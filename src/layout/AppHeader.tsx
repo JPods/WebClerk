@@ -7,6 +7,7 @@ import { ThemeToggleButton } from "../components/common/ThemeToggleButton";
 import NotificationDropdown from "../components/header/NotificationDropdown";
 import UserDropdown from "../components/header/UserDropdown";
 import TaskManagerIndicator from "../components/header/TaskManagerIndicator";
+import PendingHealthBadge from "../components/header/PendingHealthBadge";
 import HelpMenu from "../components/common/HelpMenu";
 
 const AppHeader: React.FC = () => {
@@ -195,6 +196,7 @@ const AppHeader: React.FC = () => {
             <HelpMenu />
             <ThemeToggleButton />
             {/* <!-- Dark Mode Toggler --> */}
+            <PendingHealthBadge />
             <TaskManagerIndicator />
             <NotificationDropdown />
             {/* <!-- Notification Menu Area --> */}

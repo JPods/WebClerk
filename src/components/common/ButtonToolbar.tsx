@@ -39,11 +39,8 @@ import PrintReportDropdown, {
 } from "./PrintReportDropdown";
 import SearchPresetDropdown from "./SearchPresetDropdown";
 import { getReportsForModel, type ReportDef } from "@/config/reportLists";
-import {
-  useColumnSetups,
-  type ColumnSetupEntry,
-} from "@/hooks/useColumnSetups";
-import { ColumnSetupDialog } from "./ColumnSetupDialog";
+import FieldOrderDialog from "./FieldOrderDialog";
+import { useListFieldConfig } from "@/hooks/useListFieldConfig";
 import Badge from "../ui/badge/Badge";
 import {
   type SearchPresetInputValue,
@@ -179,171 +176,13 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
     left: number;
   } | null>(null);
 
-  // Internal column visibility state (used when not controlled externally)
-  const [internalColumnVisibility, setInternalColumnVisibility] = useState<
-    boolean[]
-  >(() => columns.map(() => true));
-  const [internalColumns, setInternalColumns] =
-    useState<TableColumn<T>[]>(columns);
-
-  const getColumnIdentity = useCallback(
-    (col: TableColumn<T>, index: number) => {
-      if (col.id != null) return `id:${String(col.id)}`;
-      if (typeof col.name === "string")
-        return `name:${col.name.trim().toLowerCase()}`;
-      if (typeof col.selector === "string")
-        return `selector:${(col.selector as string).trim().toLowerCase()}`;
-      if (typeof col.sortField === "string")
-        return `sortField:${col.sortField.trim().toLowerCase()}`;
-      return `index:${index}`;
-    },
-    [],
-  );
-
-  const incomingSchemaSignature = useMemo(
-    () =>
-      columns
-        .map((col, index) => getColumnIdentity(col, index))
-        .sort()
-        .join("|"),
-    [columns, getColumnIdentity],
-  );
-
-  const internalSchemaSignature = useMemo(
-    () =>
-      internalColumns
-        .map((col, index) => getColumnIdentity(col, index))
-        .sort()
-        .join("|"),
-    [internalColumns, getColumnIdentity],
-  );
-
-  // Column setups (named presets via hook)
-  const columnSetupsApi = useColumnSetups(storageKey, modelKey);
-  const [editingSetupName, setEditingSetupName] = useState<string | null>(null);
-
-  // Use external or internal visibility
-  const columnVisibility = externalColumnVisibility ?? internalColumnVisibility;
-
-  // Use external or internal columns
-  const currentColumns = onColumnsChange ? columns : internalColumns;
+  // Column configuration via unified hook
+  const fc = useListFieldConfig(modelKey || storageKey || '', columns);
 
   const effectiveShowFilters = filtersOpen ?? showFilters;
   const setEffectiveShowFilters = onFiltersOpenChange ?? setShowFilters;
   const effectiveImportInputRef = importInputRef ?? localImportInputRef;
   const effectiveColumnBtnRef = columnBtnRef ?? localColumnBtnRef;
-
-  // Sync internal state when columns prop changes
-  useEffect(() => {
-    if (columns.length === 0) return;
-
-    // Controlled mode: mirror parent columns exactly.
-    if (onColumnsChange) {
-      setInternalColumns(columns);
-      return;
-    }
-
-    // Uncontrolled mode: initialize once, then preserve local drag order unless schema changes.
-    if (internalColumns.length === 0) {
-      setInternalColumns(columns);
-      if (!externalColumnVisibility) {
-        setInternalColumnVisibility(columns.map(() => true));
-      }
-      return;
-    }
-
-    if (incomingSchemaSignature !== internalSchemaSignature) {
-      setInternalColumns(columns);
-      if (!externalColumnVisibility) {
-        setInternalColumnVisibility(columns.map(() => true));
-      }
-    }
-  }, [
-    columns,
-    externalColumnVisibility,
-    onColumnsChange,
-    internalColumns.length,
-    incomingSchemaSignature,
-    internalSchemaSignature,
-  ]);
-
-  // Load persisted column layout + setups
-  useEffect(() => {
-    if (!storageKey || columns.length === 0) return;
-
-    try {
-      const saved = localStorage.getItem(
-        `PageBreadcrumb:${storageKey}:columns`,
-      );
-      if (saved) {
-        const { visibility } = JSON.parse(saved);
-        if (Array.isArray(visibility) && visibility.length === columns.length) {
-          if (onColumnVisibilityChange) {
-            onColumnVisibilityChange(visibility);
-          } else {
-            setInternalColumnVisibility(visibility);
-          }
-        }
-      }
-    } catch {
-      // Ignore errors
-    }
-  }, [storageKey, columns.length, onColumnVisibilityChange]);
-
-  // Save column layout
-  // Column persist-key helper (matches AdvancedDataTable logic)
-  const getColumnPersistKey = useCallback(
-    (col: TableColumn<T>, index: number): string => {
-      if (col.id != null) return `id:${String(col.id)}`;
-      if (typeof col.name === "string")
-        return `name:${col.name.trim().toLowerCase()}`;
-      if (typeof col.selector === "string")
-        return `selector:${(col.selector as string).trim().toLowerCase()}`;
-      if (typeof col.sortField === "string")
-        return `sortField:${col.sortField.trim().toLowerCase()}`;
-      return `index:${index}`;
-    },
-    [],
-  );
-
-  const saveColumnLayout = useCallback(
-    (visibility: boolean[]) => {
-      if (!storageKey) return;
-      try {
-        localStorage.setItem(
-          `PageBreadcrumb:${storageKey}:columns`,
-          JSON.stringify({ visibility }),
-        );
-      } catch {
-        // Ignore errors
-      }
-    },
-    [storageKey],
-  );
-
-  const syncTableLayout = useCallback(
-    (nextColumns: TableColumn<T>[], nextVisibility: boolean[]) => {
-      const order = nextColumns.map((c, i) => getColumnPersistKey(c, i));
-      const visibility: Record<string, boolean> = {};
-      order.forEach((key, i) => {
-        visibility[key] = nextVisibility[i] ?? true;
-      });
-
-      tableRef?.current?.applyColumnLayout?.({ order, visibility });
-
-      if (storageKey) {
-        try {
-          localStorage.setItem(
-            `AdvancedDataTable:v1:${storageKey}:columns`,
-            JSON.stringify({ v: 1 as const, order, visibility }),
-          );
-        } catch {
-          // Ignore storage errors
-        }
-      }
-    },
-    [tableRef, storageKey, getColumnPersistKey],
-  );
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -394,88 +233,8 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
 
   const activeFilterCount = Object.values(filterValues).filter(Boolean).length;
 
-  // Build current snapshot for saving as a setup
-  const buildCurrentConfig = useCallback((): ColumnSetupEntry => {
-    const order = currentColumns.map((c, i) => getColumnPersistKey(c, i));
-    const visibility: Record<string, boolean> = {};
-    const widths: Record<string, string> = {};
-    currentColumns.forEach((col, i) => {
-      const key = getColumnPersistKey(col, i);
-      visibility[key] = columnVisibility[i] ?? true;
-      if (col.width) widths[key] = col.width;
-    });
-    return { order, visibility, widths, sort: null };
-  }, [currentColumns, columnVisibility, getColumnPersistKey]);
-
-  // Apply a ColumnSetupEntry to current columns
-  const applyConfig = useCallback(
-    (config: ColumnSetupEntry) => {
-      const byKey = new Map<string, { col: TableColumn<T>; origIdx: number }>();
-      currentColumns.forEach((col, i) => {
-        byKey.set(getColumnPersistKey(col, i), { col, origIdx: i });
-      });
-
-      const reordered: TableColumn<T>[] = [];
-      const newVis: boolean[] = [];
-      const used = new Set<string>();
-
-      // Apply saved order first
-      for (const key of config.order) {
-        const entry = byKey.get(key);
-        if (entry) {
-          const c = { ...entry.col };
-          if (config.widths[key]) c.width = config.widths[key];
-          reordered.push(c);
-          newVis.push(config.visibility[key] !== false);
-          used.add(key);
-        }
-      }
-      // Append any columns not in the saved order
-      currentColumns.forEach((col, i) => {
-        const key = getColumnPersistKey(col, i);
-        if (!used.has(key)) {
-          reordered.push(col);
-          newVis.push(config.visibility[key] !== false);
-        }
-      });
-
-      if (onColumnsChange) {
-        onColumnsChange(reordered as TableColumn<T>[]);
-      } else {
-        setInternalColumns(reordered as TableColumn<T>[]);
-      }
-      if (onColumnVisibilityChange) {
-        onColumnVisibilityChange(newVis);
-      } else {
-        setInternalColumnVisibility(newVis);
-      }
-      saveColumnLayout(newVis);
-      void columnSetupsApi.uploadToServer(config);
-      syncTableLayout(reordered as TableColumn<T>[], newVis);
-    },
-    [
-      currentColumns,
-      getColumnPersistKey,
-      onColumnsChange,
-      onColumnVisibilityChange,
-      saveColumnLayout,
-      columnSetupsApi,
-      syncTableLayout,
-    ],
-  );
-
-  // Column meta for the dialog
-  const columnMetas = useMemo(
-    () =>
-      currentColumns.map((col, i) => ({
-        key: getColumnPersistKey(col, i),
-        label: String(col.name || col.id || `Column ${i + 1}`),
-      })),
-    [currentColumns, getColumnPersistKey],
-  );
-
-  const visibleColumnCount = columnVisibility.filter(Boolean).length;
-  const totalColumnCount = currentColumns.length;
+  const visibleColumnCount = fc.effectiveKeys.length;
+  const totalColumnCount = fc.allKeys.length;
 
   return (
     <div className="flex flex-col gap-3 mb-4">
@@ -573,10 +332,10 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
           <div className="relative" ref={columnManagerRef}>
             <button
               ref={effectiveColumnBtnRef}
-              onClick={() => setEditingSetupName("__current__")}
+              onClick={() => fc.toggleDialog()}
               title="Manage Columns"
               className="flex items-center gap-1 px-3 py-4 h-9 rounded-md bg-success-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
-              disabled={currentColumns.length === 0}
+              disabled={fc.allKeys.length === 0}
             >
               <FaGripVertical className="w-4 h-4" />
               {totalColumnCount > 0 && (
@@ -901,58 +660,8 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
         </div>
       )}
 
-      {/* Column Setup Edit Dialog */}
-      {editingSetupName &&
-        (() => {
-          const setup = columnSetupsApi.setups.find(
-            (s) => s.name === editingSetupName,
-          );
-          const isCurrent = editingSetupName === "__current__";
-          const dialogConfig = setup?.config ?? buildCurrentConfig();
-          const dialogTitle = isCurrent ? "Current Columns" : editingSetupName;
-          return (
-            <ColumnSetupDialog
-              open={true}
-              title={dialogTitle}
-              columnMetas={columnMetas}
-              config={dialogConfig}
-              existingSetupNames={columnSetupsApi.setups.map((s) => s.name)}
-              namedSetups={columnSetupsApi.setups}
-              initialSetupName={isCurrent ? null : editingSetupName}
-              onSaveNamed={(name, cfg) => {
-                const exists = columnSetupsApi.setups.some(
-                  (s) => s.name === name,
-                );
-                if (exists) {
-                  columnSetupsApi.updateSetup(name, cfg);
-                } else {
-                  columnSetupsApi.saveSetup(name, cfg);
-                }
-              }}
-              onClose={() => setEditingSetupName(null)}
-              onPreview={(config) => {
-                tableRef?.current?.applyColumnLayout?.({
-                  order: config.order,
-                  visibility: config.visibility,
-                  widths: config.widths,
-                });
-              }}
-              onSave={(config) => {
-                if (!isCurrent) {
-                  columnSetupsApi.updateSetup(editingSetupName, config);
-                }
-                applyConfig(config);
-                tableRef?.current?.applyColumnLayout?.({
-                  order: config.order,
-                  visibility: config.visibility,
-                  widths: config.widths,
-                });
-                setEditingSetupName(null);
-              }}
-              columnSetupsApi={columnSetupsApi}
-            />
-          );
-        })()}
+      {/* Column Setup Dialog */}
+      <FieldOrderDialog {...fc.fieldOrderDialogProps} />
     </div>
   );
 };

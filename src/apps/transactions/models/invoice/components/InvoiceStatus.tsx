@@ -9,6 +9,7 @@ import {
 } from "react-icons/fa";
 import { useInvoiceStatus, STATUS_CONFIG } from "../hooks/useInvoiceStatus";
 import type { InvoiceStatus } from "../hooks/useInvoiceStatus";
+import { formatDt } from '@/utils/fieldFormatters';
 
 interface InvoiceStatusProps {
   currentStatus: InvoiceStatus;
@@ -175,7 +176,7 @@ export default function InvoiceStatus({
                 />
                 <span className="capitalize">{entry.status}</span>
                 <span>by {entry.user}</span>
-                <span>on {entry.timestamp.toLocaleDateString()}</span>
+                <span>on {formatDt(entry.timestamp, 'date')}</span>
               </div>
             ))}
           </div>

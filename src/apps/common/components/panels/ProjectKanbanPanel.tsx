@@ -71,15 +71,15 @@ function ProjectCard({ project, onStatusChange }: { project: Project; onStatusCh
     collect: (monitor) => ({ isDragging: monitor.isDragging() }),
   });
 
-  const pctColor = project.percent_complete >= 80 ? '#4ade80'
-    : project.percent_complete >= 40 ? '#fbbf24' : '#888';
+  const pctColor = project.percent_complete >= 80 ? 'var(--db-accent-green)'
+    : project.percent_complete >= 40 ? 'var(--db-accent-gold)' : 'var(--db-text-muted)';
 
   return (
     <div
       ref={drag}
       style={{
         padding: '8px 10px', marginBottom: 6, borderRadius: 6,
-        background: '#2a2a3a', border: '1px solid #3a3a4a',
+        background: 'var(--db-surface)', border: '1px solid var(--db-border)',
         cursor: 'grab', opacity: isDragging ? 0.4 : 1,
         borderLeft: `3px solid ${ATTENTION_COLORS[project.attention] || '#3b82f6'}`,
       }}
@@ -87,17 +87,17 @@ function ProjectCard({ project, onStatusChange }: { project: Project; onStatusCh
       title="Double-click to open in DataBrowser"
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontWeight: 600, fontSize: 12, color: '#ddd' }}>{project.name}</span>
+        <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--db-text)' }}>{project.name}</span>
         <span style={{ fontSize: 10, color: pctColor, fontWeight: 600 }}>{project.percent_complete}%</span>
       </div>
       {project.intent && (
-        <div style={{ fontSize: 11, color: '#888', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ fontSize: 11, color: 'var(--db-text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {project.intent}
         </div>
       )}
       <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
         {project.category && (
-          <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: '#3a3a4a', color: '#999' }}>
+          <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
             {project.category}
           </span>
         )}
@@ -142,7 +142,7 @@ function KanbanCol({ colKey, label, color, projects, onDrop }: {
         display: 'flex', justifyContent: 'space-between',
       }}>
         <span>{label}</span>
-        <span style={{ color: '#666' }}>{projects.length}</span>
+        <span style={{ color: 'var(--db-text-dim)' }}>{projects.length}</span>
       </div>
       {projects.map(p => (
         <ProjectCard key={p.id} project={p} onStatusChange={onDrop} />
@@ -183,8 +183,8 @@ export default function ProjectKanbanPanel({ contactId }: ProjectKanbanPanelProp
     }
   }, [fetchProjects]);
 
-  if (loading) return <div style={{ padding: 16, color: '#888', fontSize: 12 }}>Loading projects...</div>;
-  if (projects.length === 0) return <div style={{ padding: 16, color: '#666', fontSize: 12, textAlign: 'center' }}>No projects for this contact</div>;
+  if (loading) return <div style={{ padding: 16, color: 'var(--db-text-muted)', fontSize: 12 }}>Loading projects...</div>;
+  if (projects.length === 0) return <div style={{ padding: 16, color: 'var(--db-text-dim)', fontSize: 12, textAlign: 'center' }}>No projects for this contact</div>;
 
   return (
     <DndProvider backend={HTML5Backend}>

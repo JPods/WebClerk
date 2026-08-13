@@ -11,34 +11,34 @@ export interface WcBadgeProps {
   className?: string;
 }
 
-const statusColors: Record<string, string> = {
-  open: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  completed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  created: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
-  planned: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
-  draft: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
-  'in progress': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  in_progress: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  journalized: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  released: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
-  shipped: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
-  received: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
-  applied: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  void: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  closed: 'bg-slate-200 text-slate-500 dark:bg-slate-600 dark:text-slate-300',
-  expired: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+const statusStyles: Record<string, React.CSSProperties> = {
+  open: { background: 'color-mix(in srgb, var(--db-accent) 15%, transparent)', color: 'var(--db-accent)' },
+  active: { background: 'color-mix(in srgb, var(--db-accent-green) 15%, transparent)', color: 'var(--db-accent-green)' },
+  completed: { background: 'color-mix(in srgb, var(--db-accent-green) 15%, transparent)', color: 'var(--db-accent-green)' },
+  created: { background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' },
+  planned: { background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' },
+  draft: { background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' },
+  'in progress': { background: 'color-mix(in srgb, var(--db-accent-gold) 15%, transparent)', color: 'var(--db-accent-gold)' },
+  in_progress: { background: 'color-mix(in srgb, var(--db-accent-gold) 15%, transparent)', color: 'var(--db-accent-gold)' },
+  journalized: { background: 'color-mix(in srgb, var(--db-accent-purple) 15%, transparent)', color: 'var(--db-accent-purple)' },
+  released: { background: 'color-mix(in srgb, var(--db-accent-green) 15%, transparent)', color: 'var(--db-accent-green)' },
+  shipped: { background: 'color-mix(in srgb, var(--db-accent-green) 15%, transparent)', color: 'var(--db-accent-green)' },
+  received: { background: 'color-mix(in srgb, var(--db-accent-green) 15%, transparent)', color: 'var(--db-accent-green)' },
+  applied: { background: 'color-mix(in srgb, var(--db-accent-green) 15%, transparent)', color: 'var(--db-accent-green)' },
+  cancelled: { background: 'color-mix(in srgb, var(--db-accent-red) 15%, transparent)', color: 'var(--db-accent-red)' },
+  void: { background: 'color-mix(in srgb, var(--db-accent-red) 15%, transparent)', color: 'var(--db-accent-red)' },
+  closed: { background: 'var(--db-surface-alt)', color: 'var(--db-text-dim)' },
+  expired: { background: 'color-mix(in srgb, var(--db-accent-red) 15%, transparent)', color: 'var(--db-accent-red)' },
 };
 
-const defaultColor = 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300';
+const defaultStyle: React.CSSProperties = { background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' };
 
 export const WcBadge: React.FC<WcBadgeProps> = ({ value, size = 'sm', className }) => {
-  const color = statusColors[value?.toLowerCase()] || defaultColor;
+  const style = statusStyles[value?.toLowerCase()] || defaultStyle;
   const sizeClass = size === 'sm' ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5';
 
   return (
-    <span className={`inline-block rounded-full font-medium ${sizeClass} ${color} ${className || ''}`}>
+    <span className={`inline-block rounded-full font-medium ${sizeClass} ${className || ''}`} style={style}>
       {value || '—'}
     </span>
   );

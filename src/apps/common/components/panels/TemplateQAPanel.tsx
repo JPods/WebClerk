@@ -90,11 +90,14 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
   const hasAnswer = existingAnswer?.answer || (existingAnswer?.answers?.length ?? 0) > 0 || existingAnswer?.answer_id;
   const status = existingAnswer?.status || (hasAnswer ? 'answered' : 'open');
   
-  const statusColor = {
-    open: 'text-amber-600 bg-amber-100 dark:bg-amber-900/30',
-    answered: 'text-green-600 bg-green-100 dark:bg-green-900/30',
-    closed: 'text-slate-500 bg-slate-100 dark:bg-slate-700',
-  }[status];
+  const statusColorMap: Record<string, React.CSSProperties> = {
+    open: { color: 'var(--db-text-muted)', background: 'var(--db-surface-alt)' },
+    answered: { color: 'var(--db-text)', background: 'var(--db-surface-alt)' },
+    closed: {},
+  };
+  const statusStyle = status === 'closed'
+    ? { color: 'var(--db-text-muted)', background: 'var(--db-surface-alt)' }
+    : statusColorMap[status] ?? {};
 
   const handleChoiceToggle = (choiceId: number) => {
     if (!canEdit) return;
@@ -233,20 +236,20 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
   const answerDisplay = getAnswerDisplay();
 
   return (
-    <div className="border rounded-lg border-slate-200 dark:border-slate-600 p-3">
+    <div className="border rounded-lg p-3" style={{ borderColor: 'var(--db-border)' }}>
       {/* Question header */}
       <div 
         className="flex items-start gap-2 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <FaQuestionCircle className="text-blue-500 mt-0.5 flex-shrink-0" size={14} />
+        <FaQuestionCircle className="mt-0.5 flex-shrink-0" style={{ color: 'var(--db-accent)' }} size={14} />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          <p className="text-sm font-medium" style={{ color: 'var(--db-text)' }}>
             {question.question}
             {options.require_image && <span className="text-red-500 ml-1">*</span>}
           </p>
-          <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
-            <span className={`px-1.5 py-0.5 rounded ${statusColor}`}>
+          <div className="flex items-center gap-2 mt-1 text-xs" style={{ color: 'var(--db-text-muted)' }}>
+            <span className="px-1.5 py-0.5 rounded" style={statusStyle}>
               {status === 'answered' ? <FaCheck size={8} className="inline mr-1" /> : <FaClock size={8} className="inline mr-1" />}
               {status}
             </span>
@@ -271,9 +274,10 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
                   key={choice.id}
                   className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
                     selectedChoices.includes(choice.id)
-                      ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700'
-                      : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-transparent'
+                      ? 'border'
+                      : 'border border-transparent'
                   } ${!canEdit ? 'cursor-default' : ''}`}
+                  style={selectedChoices.includes(choice.id) ? { background: 'var(--db-row-hover)', borderColor: 'var(--db-input-border)' } : {}}
                 >
                   <input
                     type={options.allow_multiple ? 'checkbox' : 'radio'}
@@ -281,9 +285,9 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
                     checked={selectedChoices.includes(choice.id)}
                     onChange={() => handleChoiceToggle(choice.id)}
                     disabled={!canEdit}
-                    className="text-blue-600"
+                    style={{ accentColor: 'var(--db-accent)' }}
                   />
-                  <span className="text-sm text-slate-700 dark:text-slate-300">
+                  <span className="text-sm" style={{ color: 'var(--db-text)' }}>
                     {choice.answer}
                   </span>
                 </label>
@@ -298,7 +302,8 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
                 value={freeformText}
                 onChange={(e) => handleFreeformChange(e.target.value)}
                 placeholder={question.answers?.length ? 'Or enter custom answer...' : 'Enter your answer...'}
-                className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600 focus:ring-1 focus:ring-blue-500"
+                className="w-full px-2 py-1.5 text-sm rounded focus:ring-1 focus:ring-blue-500"
+                style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)' }}
                 rows={2}
                 disabled={!canEdit}
               />
@@ -308,7 +313,7 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
           {/* Image upload section */}
           {(options.require_image || images.length > 0) && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+              <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--db-text-muted)' }}>
                 <FaImage size={12} />
                 <span>
                   {options.require_image ? 'Image required' : 'Images'}
@@ -324,12 +329,14 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
                       <img
                         src={img.path}
                         alt={img.filename}
-                        className="w-16 h-16 object-cover rounded border dark:border-slate-600"
+                        className="w-16 h-16 object-cover rounded"
+                      style={{ border: '1px solid var(--db-border)' }}
                       />
                       {canEdit && (
                         <button
                           onClick={() => handleRemoveImage(idx)}
-                          className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          style={{ background: 'var(--db-btn-danger)', color: '#fff' }}
                         >
                           <FaTimes size={8} />
                         </button>
@@ -353,7 +360,8 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
-                    className="flex items-center gap-1.5 px-2 py-1 text-xs border rounded hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-2 py-1 text-xs rounded disabled:opacity-50"
+                    style={{ border: '1px solid var(--db-border)' }}
                   >
                     {isUploading ? (
                       <FaSpinner className="animate-spin" size={10} />
@@ -378,7 +386,8 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 flex items-center gap-1"
+                className="px-3 py-1.5 text-xs rounded disabled:opacity-50 flex items-center gap-1"
+                style={{ background: 'var(--db-btn-primary)', color: '#fff' }}
               >
                 {isSaving && <FaSpinner className="animate-spin" size={10} />}
                 Save Answer
@@ -493,19 +502,20 @@ const TemplateQAPanel: React.FC<TemplateQAPanelProps> = ({
   const displayTitle = title || questionGroup;
 
   return (
-    <div className={`bg-white dark:bg-slate-800 rounded-lg border border-indigo-200 dark:border-indigo-800 ${className}`}>
+    <div className={`rounded-lg border ${className}`} style={{ background: 'var(--db-surface)', borderColor: 'var(--db-border)' }}>
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 bg-indigo-50 dark:bg-indigo-900/20 border-b border-indigo-200 dark:border-indigo-800 cursor-pointer rounded-t-lg"
+        className="flex items-center justify-between px-4 py-3 border-b cursor-pointer rounded-t-lg"
+        style={{ background: 'var(--db-surface-alt)', borderColor: 'var(--db-border)' }}
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
           <FaQuestionCircle className="text-indigo-500" size={14} />
-          <h3 className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
             {displayTitle}
           </h3>
           {totalCount > 0 && (
-            <span className="px-1.5 py-0.5 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 rounded-full">
+            <span className="px-1.5 py-0.5 text-xs rounded-full" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
               {answeredCount}/{totalCount}
             </span>
           )}
@@ -519,7 +529,7 @@ const TemplateQAPanel: React.FC<TemplateQAPanelProps> = ({
       {!isCollapsed && (
         <div className="p-4 space-y-3">
           {isLoading ? (
-            <div className="flex items-center justify-center py-8 text-slate-400">
+            <div className="flex items-center justify-center py-8" style={{ color: 'var(--db-text-dim)' }}>
               <FaSpinner className="animate-spin mr-2" />
               Loading questions...
             </div>
@@ -528,7 +538,7 @@ const TemplateQAPanel: React.FC<TemplateQAPanelProps> = ({
               {error}
             </div>
           ) : !setting?.config?.questions?.length ? (
-            <div className="text-center py-4 text-slate-400 text-sm">
+            <div className="text-center py-4 text-sm" style={{ color: 'var(--db-text-dim)' }}>
               <FaQuestionCircle size={24} className="mx-auto mb-2 opacity-50" />
               <p>No questions in this group</p>
             </div>

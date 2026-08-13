@@ -19,6 +19,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as XLSX from 'xlsx';
 import { parseFragments, matchesFragments } from '@/utils/searchFragments';
 import { formatPhone } from '@/utils/fieldFormatters';
+import './DataGrid.css';
 
 // ---------------------------------------------------------------------------
 // Universal dt formatter — stored GMT epoch ms, displayed local
@@ -260,18 +261,6 @@ function _numId(v: unknown): number | null {
   return null;
 }
 
-const DEFAULT_THEME = {
-  bg: '#f8f9fa', surface: '#ffffff', surfaceAlt: '#f1f3f5',
-  border: '#dee2e6', borderLight: '#e9ecef',
-  text: '#212529', textMuted: '#6c757d', textDim: '#adb5bd',
-  accent: '#0d6efd', accentGreen: '#198754', accentGold: '#fd7e14',
-  accentRed: '#dc3545', accentPurple: '#6f42c1',
-  btnBg: '#ffffff', btnPrimary: '#0d6efd', btnSave: '#198754',
-  btnSaveBorder: '#198754', btnDangerBorder: '#dc3545',
-  inputBg: '#ffffff', inputBorder: '#ced4da',
-  rowHover: '#f1f3f5', rowActive: '#cfe2ff', rowChecked: '#dbeafe',
-  resizeHandle: '#0d6efd',
-};
 
 export default function DataGrid(props: DataGridProps) {
   // --- Resolve convenience vs explicit props ---
@@ -326,7 +315,6 @@ export default function DataGrid(props: DataGridProps) {
   const fieldBehaviors = props.fieldBehaviors ?? {};
   const fieldSpecs = props.fieldSpecs ?? {};
   const numId = props.numId ?? _numId;
-  const t = props.theme ?? DEFAULT_THEME;
   const fontSize = props.fontSize ?? 13;
 
   // --- Column context menu state ---
@@ -658,8 +646,8 @@ export default function DataGrid(props: DataGridProps) {
         return (
           <select value={editValue} onChange={(e) => setEditValue(e.target.value)}
             onBlur={commitEdit} onKeyDown={(e) => { if (e.key === 'Escape') cancelEdit(); if (e.key === 'Enter') commitEdit(); }}
-            ref={editRef as any} autoFocus
-            style={{ width: '100%', fontSize: fontSize - 1, padding: '1px 2px', background: t.inputBg, color: t.text, border: `1px solid ${t.accent}`, borderRadius: 2 }}>
+            ref={editRef as any} autoFocus className="dg-cell-edit"
+            >
             <option value="">--</option>
             {beh.options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
@@ -674,7 +662,7 @@ export default function DataGrid(props: DataGridProps) {
             if (e.key === 'Escape') cancelEdit();
             if (e.key === 'Tab') { e.preventDefault(); commitEdit('right'); }
           }}
-          style={{ width: '100%', fontSize: fontSize - 1, padding: '1px 2px', background: t.inputBg, color: t.text, border: `1px solid ${t.accent}`, borderRadius: 2 }}
+          className="dg-cell-edit"
         />
       );
     }
@@ -796,53 +784,48 @@ export default function DataGrid(props: DataGridProps) {
       const originalIdx = treeOriginalIndices ? treeOriginalIndices[idx] : idx;
       const isCollapsed = collapsedNodes.has(originalIdx);
 
+      const rowClasses = ['dg-row'];
+      if (isActive || isChecked) rowClasses.push('dg-row--checked');
+      else if (idx % 2 === 1) rowClasses.push('dg-row--striped');
+      if (isDupe) rowClasses.push('dg-row--dupe');
+
       return (
         <tr key={rid ?? `r-${idx}`} data-rid={rid}
-          style={{
-            borderBottom: `1px solid ${t.border}`,
-            background: (isActive || isChecked) ? t.rowChecked : ruleStyle.background || (idx % 2 === 1 ? t.surfaceAlt : 'transparent'),
-            color: ruleStyle.color || t.text,
-            fontWeight: ruleStyle.fontWeight,
-            cursor: 'pointer',
-            outline: isDupe ? `2px solid ${t.accentGold}` : undefined,
-          }}
+          className={rowClasses.join(' ')}
+          style={ruleStyle.background ? { background: ruleStyle.background, color: ruleStyle.color, fontWeight: ruleStyle.fontWeight } : undefined}
           onClick={(e) => handleRowClick(e, rid, idx, rows)}
           onDoubleClick={() => { if (rid !== null) { handleSelectRecord(rid); if (props.onRowDoubleClicked) props.onRowDoubleClicked(rec); } }}
-          onMouseEnter={(e) => { if (!isActive && !isChecked && !ruleStyle.background) (e.currentTarget).style.background = t.rowHover; }}
-          onMouseLeave={(e) => { if (!isActive && !isChecked) (e.currentTarget).style.background = ruleStyle.background || (idx % 2 === 1 ? t.surfaceAlt : 'transparent'); }}
         >
-          <td style={{ width: 8, padding: '4px 0', position: pinnedColumn ? 'sticky' as const : undefined, left: pinnedColumn ? 0 : undefined, zIndex: pinnedColumn ? 1 : undefined }}>
-            {isChecked && <div style={{ width: 4, height: '100%', minHeight: 16, background: t.accent, borderRadius: 2, margin: '0 2px' }} />}
+          <td className={`dg-td-indicator${pinnedColumn ? ' dg-td-indicator--pinned' : ''}`}>
+            {isChecked && <div className="dg-check-bar" />}
           </td>
           {columns.map((f, ci) => {
-            const spec = fieldSpecs[f];
-            const doWrap = false; // List rows are always single-line; wrapping is for detail view
             const isTreeCol = treeColumn && f === treeColumn;
+            const isPinned = ci === 0 && pinnedColumn === f;
+            const tdClasses = ['dg-td'];
+            if (isPinned) tdClasses.push('dg-td--pinned');
+            if (isActive && isPinned) tdClasses.push('dg-td--active');
+            if (fieldBehaviors[f]?.calculated) tdClasses.push('dg-td--calculated');
             return (
             <td key={f}
+              className={tdClasses.join(' ')}
               style={{
-                padding: '4px 8px', overflow: 'hidden',
-                textOverflow: doWrap ? undefined : 'ellipsis',
-                whiteSpace: doWrap ? 'normal' : 'nowrap',
-                wordBreak: doWrap ? 'break-word' : undefined,
                 textAlign: getAlign(f),
-                fontStyle: fieldBehaviors[f]?.calculated ? 'italic' : undefined,
                 paddingLeft: isTreeCol ? `${8 + rowLevel * treeIndent}px` : undefined,
                 width: effectiveColWidths[f], minWidth: effectiveColWidths[f],
-                ...(ci === 0 && pinnedColumn === f ? { position: 'sticky' as const, left: 28, background: isActive ? t.rowActive : t.surface, zIndex: 1 } : {}),
               }}
               onDoubleClick={() => { if (rid !== null) startEdit(rid, f, rec[f]); }}
               title={String(rec[f] ?? '')}
             >
               {isTreeCol ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span className="dg-tree-cell">
                   {rowHasChildren ? (
-                    <span style={{ cursor: 'pointer', userSelect: 'none', width: 12, display: 'inline-block' }}
+                    <span className="dg-tree-chevron"
                       onClick={(e) => { e.stopPropagation(); toggleTreeNode(originalIdx); }}>
                       {isCollapsed ? '▶' : '▼'}
                     </span>
                   ) : (
-                    <span style={{ width: 12, display: 'inline-block', textAlign: 'center', color: t.textDim }}>·</span>
+                    <span className="dg-tree-leaf">·</span>
                   )}
                   {renderCell(rec, f, rid)}
                 </span>
@@ -919,42 +902,32 @@ export default function DataGrid(props: DataGridProps) {
 
   // --- Toolbar ---
   const toolbar = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px', borderBottom: `1px solid ${t.border}`, fontSize: fontSize - 2, color: t.textMuted }}>
+    <div className="dg-toolbar">
       <button onClick={() => setShowFilters(!showFilters)}
-        style={{ background: showFilters ? `${t.accent}20` : 'none', border: `1px solid ${showFilters ? t.accent : t.borderLight}`, borderRadius: 3, padding: '1px 6px', fontSize: fontSize - 2, color: showFilters ? t.accent : t.textMuted, cursor: 'pointer' }}>
+        className={`dg-toolbar-btn${showFilters ? ' dg-toolbar-btn--active-blue' : ''}`}>
         Filter
       </button>
       <button onClick={() => setShowDupes(!showDupes)}
-        style={{ background: showDupes ? `${t.accentGold}20` : 'none', border: `1px solid ${showDupes ? t.accentGold : t.borderLight}`, borderRadius: 3, padding: '1px 6px', fontSize: fontSize - 2, color: showDupes ? t.accentGold : t.textMuted, cursor: 'pointer' }}>
+        className={`dg-toolbar-btn${showDupes ? ' dg-toolbar-btn--active-gold' : ''}`}>
         Dupes{showDupes && dupeIds.size > 0 ? ` (${dupeIds.size})` : ''}
       </button>
-      <button onClick={exportCSV}
-        style={{ background: 'none', border: `1px solid ${t.borderLight}`, borderRadius: 3, padding: '1px 6px', fontSize: fontSize - 2, color: t.textMuted, cursor: 'pointer' }}>
-        CSV
-      </button>
-      <button onClick={exportExcel}
-        style={{ background: 'none', border: `1px solid ${t.borderLight}`, borderRadius: 3, padding: '1px 6px', fontSize: fontSize - 2, color: t.textMuted, cursor: 'pointer' }}>
-        Excel
-      </button>
-      <button onClick={() => window.print()}
-        style={{ background: 'none', border: `1px solid ${t.borderLight}`, borderRadius: 3, padding: '1px 6px', fontSize: fontSize - 2, color: t.textMuted, cursor: 'pointer' }}>
-        Print
-      </button>
+      <button onClick={exportCSV} className="dg-toolbar-btn">CSV</button>
+      <button onClick={exportExcel} className="dg-toolbar-btn">Excel</button>
+      <button onClick={() => window.print()} className="dg-toolbar-btn">Print</button>
       {Object.values(filters).some((v) => v.trim()) && (
-        <button onClick={() => setFilters({})}
-          style={{ background: 'none', border: `1px solid ${t.borderLight}`, borderRadius: 3, padding: '1px 6px', fontSize: fontSize - 2, color: t.accentRed, cursor: 'pointer' }}>
+        <button onClick={() => setFilters({})} className="dg-toolbar-btn dg-toolbar-btn--danger">
           Clear Filters
         </button>
       )}
-      <span style={{ flex: 1 }} />
+      <span className="dg-toolbar-spacer" />
       <span>{filteredRecords.length}{filteredRecords.length !== records.length ? ` of ${records.length}` : ''} rows</span>
     </div>
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, minWidth: 0 }}>
+    <div className="dg-root" style={{ '--dg-fs': `${fontSize}px`, '--dg-fs-sm': `${fontSize - 1}px`, '--dg-fs-xs': `${fontSize - 2}px` } as React.CSSProperties}>
       {!props.hideToolbar && toolbar}
-      <div ref={scrollRef} className="datagrid-scroll" style={{ flex: 1, minWidth: 0, minHeight: 0, overflowX: 'auto', overflowY: 'auto', cursor: tableWidth > (scrollRef.current?.clientWidth ?? Infinity) ? 'grab' : undefined }}
+      <div ref={scrollRef} className="dg-scroll" style={{ cursor: tableWidth > (scrollRef.current?.clientWidth ?? Infinity) ? 'grab' : undefined }}
         onMouseDown={(e) => {
           // Only drag-scroll on middle button or when table overflows
           if (!scrollRef.current || tableWidth <= scrollRef.current.clientWidth) return;
@@ -976,30 +949,27 @@ export default function DataGrid(props: DataGridProps) {
         }}
         onMouseUp={() => { if (scrollRef.current) scrollRef.current.style.cursor = ''; dragScrollRef.current = null; }}
         onMouseLeave={() => { if (scrollRef.current) scrollRef.current.style.cursor = ''; dragScrollRef.current = null; }}>
-        <table style={{ width: tableWidth, tableLayout: 'fixed', borderCollapse: 'collapse', fontSize }}>
+        <table className="dg-table" style={{ width: tableWidth }}>
           <thead>
             {/* Header row */}
-            <tr style={{ borderBottom: `1px solid ${t.border}`, position: 'sticky', top: 0, background: t.surface, zIndex: 2 }}>
-              <th style={{ width: 8, padding: '6px 0', position: pinnedColumn ? 'sticky' as const : undefined, left: pinnedColumn ? 0 : undefined, background: t.surface, zIndex: 3 }} />
+            <tr className="dg-thead-row">
+              <th className={`dg-th-indicator${pinnedColumn ? ' dg-th-indicator--pinned' : ''}`} />
               {columns.map((f, ci) => {
                 const sortIdx = multiSorts.findIndex((s) => s.field === f);
                 const sortDir = sort?.field === f ? sort.direction : null;
                 return (
                   <th key={f}
+                    className={`dg-th${fieldBehaviors[f]?.calculated ? ' dg-th--calculated' : ''}${ci === 0 && pinnedColumn === f ? ' dg-th--pinned' : ''}`}
                     style={{
-                      position: 'relative', padding: '6px 8px', textAlign: getAlign(f), color: t.textMuted,
-                      fontWeight: 600, fontSize: fontSize - 1, letterSpacing: '0.02em',
-                      fontStyle: fieldBehaviors[f]?.calculated ? 'italic' : undefined,
-                      cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      textAlign: getAlign(f),
                       width: effectiveColWidths[f], minWidth: effectiveColWidths[f],
-                      ...(ci === 0 && pinnedColumn === f ? { position: 'sticky' as const, left: 28, background: t.surface, zIndex: 3 } : {}),
                     }}
                     draggable
                     onDragStart={(e) => { if (props.disableReorder || !e.shiftKey) { e.preventDefault(); return; } setDragField(f); }}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => { if (dragField) onColumnDrop(dragField, f); setDragField(null); }}
-                    onMouseEnter={(e) => { const badge = e.currentTarget.querySelector('.db-width-badge') as HTMLElement; if (badge) badge.style.opacity = '1'; }}
-                    onMouseLeave={(e) => { const badge = e.currentTarget.querySelector('.db-width-badge') as HTMLElement; if (badge) badge.style.opacity = '0'; }}
+                    onMouseEnter={(e) => { const badge = e.currentTarget.querySelector('.dg-width-badge') as HTMLElement; if (badge) badge.style.opacity = '1'; }}
+                    onMouseLeave={(e) => { const badge = e.currentTarget.querySelector('.dg-width-badge') as HTMLElement; if (badge) badge.style.opacity = '0'; }}
                     onClick={(e) => {
                       if (e.shiftKey && props.onHeaderClick && fieldBehaviors[f]?.bulkEditable) {
                         e.preventDefault();
@@ -1018,45 +988,35 @@ export default function DataGrid(props: DataGridProps) {
                     title={fieldBehaviors[f]?.bulkEditable ? `${f} · Click to sort · Shift-click to bulk edit` : `${f} · Click to sort · Ctrl-click for multi-sort`}
                   >
                     {props.headerEditField === f ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }} onClick={(e) => e.stopPropagation()}>
-                        <input
-                          autoFocus
-                          type="text"
+                      <span className="dg-header-edit" onClick={(e) => e.stopPropagation()}>
+                        <input autoFocus type="text"
                           value={props.headerEditValue || ''}
                           onChange={(e) => props.onHeaderEditChange?.(e.target.value)}
                           onKeyDown={(e) => { if (e.key === 'Enter') props.onHeaderEditApply?.(); if (e.key === 'Escape') props.onHeaderEditCancel?.(); }}
-                          style={{ width: 60, fontSize: fontSize - 2, padding: '1px 3px', border: `1px solid ${t.accent}`, borderRadius: 2, background: t.inputBg, color: t.text }}
+                          className="dg-header-edit-input"
                         />
-                        <span style={{ cursor: 'pointer', color: t.accent, fontSize: fontSize - 2, fontWeight: 700 }} onClick={() => props.onHeaderEditApply?.()}>✓</span>
-                        <span style={{ cursor: 'pointer', color: t.textMuted, fontSize: fontSize - 2 }} onClick={() => props.onHeaderEditCancel?.()}>✕</span>
+                        <span className="dg-header-edit-ok" onClick={() => props.onHeaderEditApply?.()}>✓</span>
+                        <span className="dg-header-edit-cancel" onClick={() => props.onHeaderEditCancel?.()}>✕</span>
                       </span>
                     ) : (
                       <>
-                        <span style={{
-                          cursor: fieldBehaviors[f]?.bulkEditable ? 'pointer' : undefined,
-                          color: fieldBehaviors[f]?.bulkEditable ? '#1e40af' : undefined,
-                          textDecoration: fieldBehaviors[f]?.bulkEditable ? 'underline' : undefined,
-                          textDecorationStyle: fieldBehaviors[f]?.bulkEditable ? 'dotted' as const : undefined,
-                        }}>{f}</span>
-                        {sortDir && <span style={{ marginLeft: 4, color: t.accent }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
-                        {sortIdx >= 0 && <span style={{ marginLeft: 2, fontSize: 9, color: t.accent }}>({sortIdx + 1})</span>}
+                        <span className={fieldBehaviors[f]?.bulkEditable ? 'dg-th-name--bulk' : undefined}>{f}</span>
+                        {sortDir && <span className="dg-sort-arrow">{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                        {sortIdx >= 0 && <span className="dg-sort-order">({sortIdx + 1})</span>}
                       </>
                     )}
                     {/* Width badge — visible on hover, click to type */}
                     {colWidths[f] && onWidthClick && (
-                      <span
-                        className="db-width-badge"
-                        style={{ position: 'absolute', right: 10, top: 1, fontSize: 9, color: t.textDim, cursor: 'text', opacity: 0, transition: 'opacity 0.15s', padding: '0 3px', borderRadius: 2, background: t.surfaceAlt }}
+                      <span className="dg-width-badge"
                         onClick={(e) => { e.stopPropagation(); onWidthClick(f, e.currentTarget); }}
                         title="Click to set width"
                       >{colWidths[f]}</span>
                     )}
-                    <span
-                      style={{ position: 'absolute', right: -3, top: 0, bottom: 0, width: 7, cursor: 'col-resize', background: 'transparent', zIndex: 2 }}
+                    <span className="dg-resize-handle"
                       onMouseDown={(e) => onResizeStart(f, e)} onClick={(e) => e.stopPropagation()}
-                      onDoubleClick={(e) => { e.stopPropagation(); if (onWidthClick) { const cur = colWidths[f] || 120; onWidthClick(f, e.currentTarget as HTMLElement); } }}
-                      onMouseEnter={(e) => { const el = e.target as HTMLElement; el.style.background = t.resizeHandle; el.style.opacity = '0.7'; el.style.borderRadius = '2px'; const badge = el.previousElementSibling?.previousElementSibling as HTMLElement; if (badge?.classList.contains('db-width-badge')) badge.style.opacity = '1'; }}
-                      onMouseLeave={(e) => { const el = e.target as HTMLElement; el.style.background = 'transparent'; el.style.opacity = '1'; const badge = el.previousElementSibling?.previousElementSibling as HTMLElement; if (badge?.classList.contains('db-width-badge')) badge.style.opacity = '0'; }}
+                      onDoubleClick={(e) => { e.stopPropagation(); if (onWidthClick) { onWidthClick(f, e.currentTarget as HTMLElement); } }}
+                      onMouseEnter={(e) => { const badge = (e.currentTarget.previousElementSibling?.previousElementSibling) as HTMLElement; if (badge?.classList.contains('dg-width-badge')) badge.style.opacity = '1'; }}
+                      onMouseLeave={(e) => { const badge = (e.currentTarget.previousElementSibling?.previousElementSibling) as HTMLElement; if (badge?.classList.contains('dg-width-badge')) badge.style.opacity = '0'; }}
                     />
                   </th>
                 );
@@ -1065,15 +1025,15 @@ export default function DataGrid(props: DataGridProps) {
 
             {/* Filter row */}
             {showFilters && (
-              <tr style={{ borderBottom: `1px solid ${t.border}`, background: t.surfaceAlt }}>
-                <th style={{ padding: 2 }} />
+              <tr className="dg-filter-row">
+                <th className="dg-filter-cell" />
                 {columns.map((f) => {
                   const beh = fieldBehaviors[f];
                   if (beh?.type === 'select' && beh.options) {
                     return (
-                      <th key={f} style={{ padding: 2 }}>
+                      <th key={f} className="dg-filter-cell">
                         <select value={filters[f] || ''} onChange={(e) => setFiltersAndNotify((p) => ({ ...p, [f]: e.target.value }))}
-                          style={{ width: '100%', fontSize: fontSize - 2, padding: '2px 3px', background: t.inputBg, color: t.text, border: `1px solid ${t.inputBorder}`, borderRadius: 2 }}>
+                          className="dg-filter-select">
                           <option value="">All</option>
                           {beh.options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
                         </select>
@@ -1081,10 +1041,10 @@ export default function DataGrid(props: DataGridProps) {
                     );
                   }
                   return (
-                    <th key={f} style={{ padding: 2 }}>
+                    <th key={f} className="dg-filter-cell">
                       <input type="text" value={filters[f] || ''} placeholder="..."
                         onChange={(e) => setFiltersAndNotify((p) => ({ ...p, [f]: e.target.value }))}
-                        style={{ width: '100%', fontSize: fontSize - 2, padding: '2px 4px', background: t.inputBg, color: t.text, border: `1px solid ${t.inputBorder}`, borderRadius: 2 }}
+                        className="dg-filter-input"
                       />
                     </th>
                   );
@@ -1100,9 +1060,9 @@ export default function DataGrid(props: DataGridProps) {
                 const isCollapsed = collapsedGroups.has(groupKey);
                 return (
                   <React.Fragment key={groupKey}>
-                    <tr style={{ background: t.surfaceAlt, cursor: 'pointer' }}
+                    <tr className="dg-group-row"
                       onClick={() => setCollapsedGroups((p) => { const n = new Set(p); n.has(groupKey) ? n.delete(groupKey) : n.add(groupKey); return n; })}>
-                      <td colSpan={columns.length + 1} style={{ padding: '6px 12px', fontSize: fontSize - 1, fontWeight: 700, color: t.accent }}>
+                      <td colSpan={columns.length + 1} className="dg-group-label">
                         {isCollapsed ? '▶' : '▼'} {groupByField}: {groupKey} ({groupRows.length})
                       </td>
                     </tr>
@@ -1123,18 +1083,18 @@ export default function DataGrid(props: DataGridProps) {
           {/* Footer totals */}
           {Object.keys(totals).length > 0 && (
             <tfoot>
-              <tr style={{ borderTop: `2px solid ${t.border}`, position: 'sticky', bottom: 0, background: t.surface, fontWeight: 700 }}>
-                <td style={{ padding: '4px', fontSize: fontSize - 2, color: t.textMuted, textAlign: 'center' }}>Σ</td>
+              <tr className="dg-tfoot-row">
+                <td className="dg-tfoot-sigma">Σ</td>
                 {columns.map((f) => {
                   const t_data = totals[f];
-                  if (!t_data) return <td key={f} style={{ padding: '4px 8px' }} />;
+                  if (!t_data) return <td key={f} className="dg-tfoot-empty" />;
                   const beh = fieldBehaviors[f];
                   const dp = beh?.precision ?? 2;
                   const display = (beh?.type === 'currency')
                     ? t_data.sum.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp })
                     : t_data.sum.toLocaleString();
                   return (
-                    <td key={f} style={{ padding: '4px 8px', textAlign: 'right', fontSize: fontSize - 1, color: t.accent }}>
+                    <td key={f} className="dg-tfoot-cell">
                       {display}
                     </td>
                   );
@@ -1145,7 +1105,7 @@ export default function DataGrid(props: DataGridProps) {
         </table>
 
         {filteredRecords.length === 0 && (
-          <div style={{ padding: 16, textAlign: 'center', color: t.textMuted, fontSize: fontSize - 1 }}>
+          <div className="dg-empty">
             {Object.values(filters).some((v) => v.trim()) ? 'No records match filters.' : 'No records.'}
           </div>
         )}
@@ -1160,44 +1120,27 @@ export default function DataGrid(props: DataGridProps) {
       {/* Column context menu — wc2 right-click pattern */}
       {contextMenu && (
         <>
-          {/* Backdrop to close */}
-          <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+          <div className="dg-ctx-backdrop"
             onClick={() => { setContextMenu(null); setContextSubmenu(null); }} />
-          <div style={{
-            position: 'fixed', left: contextMenu.x, top: contextMenu.y, zIndex: 9999,
-            background: t.surface, border: `1px solid ${t.border}`, borderRadius: 4,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)', minWidth: 180, padding: '4px 0',
-            fontSize: fontSize - 1, color: t.text,
-          }}>
-            {/* Delete Column */}
+          <div className="dg-ctx-menu" style={{ left: contextMenu.x, top: contextMenu.y }}>
             {props.onDeleteColumn && (
-              <div style={{ padding: '6px 14px', cursor: 'pointer' }}
-                onMouseEnter={(e) => { (e.currentTarget).style.background = t.rowHover; setContextSubmenu(null); }}
-                onMouseLeave={(e) => { (e.currentTarget).style.background = 'transparent'; }}
+              <div className="dg-ctx-item"
+                onMouseEnter={() => setContextSubmenu(null)}
                 onClick={() => { props.onDeleteColumn!(contextMenu.field); setContextMenu(null); }}>
                 Delete Column
               </div>
             )}
-            {/* Add Column submenu */}
             {props.onAddColumn && props.allFields && (
-              <div style={{ padding: '6px 14px', cursor: 'pointer', position: 'relative' }}
-                onMouseEnter={(e) => { (e.currentTarget).style.background = t.rowHover; setContextSubmenu('add'); }}
-                onMouseLeave={(e) => { (e.currentTarget).style.background = 'transparent'; }}>
+              <div className="dg-ctx-item dg-ctx-item--submenu"
+                onMouseEnter={() => setContextSubmenu('add')}>
                 Add Column ▸
                 {contextSubmenu === 'add' && (
-                  <div style={{
-                    position: 'absolute', left: '100%', top: 0,
-                    background: t.surface, border: `1px solid ${t.border}`, borderRadius: 4,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', minWidth: 160, maxHeight: 300,
-                    overflowY: 'auto', padding: '4px 0',
-                  }}>
+                  <div className="dg-ctx-submenu">
                     {(props.allFields || [])
                       .filter((af) => !columns.includes(af))
                       .sort()
                       .map((af) => (
-                        <div key={af} style={{ padding: '4px 12px', cursor: 'pointer' }}
-                          onMouseEnter={(e) => { (e.currentTarget).style.background = t.rowHover; }}
-                          onMouseLeave={(e) => { (e.currentTarget).style.background = 'transparent'; }}
+                        <div key={af} className="dg-ctx-submenu-item"
                           onClick={() => { props.onAddColumn!(af, contextMenu.colIdx + 1); setContextMenu(null); }}>
                           {af}
                         </div>
@@ -1206,35 +1149,29 @@ export default function DataGrid(props: DataGridProps) {
                 )}
               </div>
             )}
-            {/* Separator */}
             {(props.onDeleteColumn || props.onAddColumn) && (props.onSaveLayout || props.onSaveLayoutAs) && (
-              <div style={{ borderTop: `1px solid ${t.borderLight}`, margin: '4px 0' }} />
+              <div className="dg-ctx-separator" />
             )}
-            {/* Save / Save As */}
             {props.onSaveLayout && (
-              <div style={{ padding: '6px 14px', cursor: 'pointer' }}
-                onMouseEnter={(e) => { (e.currentTarget).style.background = t.rowHover; setContextSubmenu(null); }}
-                onMouseLeave={(e) => { (e.currentTarget).style.background = 'transparent'; }}
+              <div className="dg-ctx-item"
+                onMouseEnter={() => setContextSubmenu(null)}
                 onClick={() => { props.onSaveLayout!(); setContextMenu(null); }}>
                 Save Layout
               </div>
             )}
             {props.onSaveLayoutAs && (
-              <div style={{ padding: '6px 14px', cursor: 'pointer' }}
-                onMouseEnter={(e) => { (e.currentTarget).style.background = t.rowHover; setContextSubmenu(null); }}
-                onMouseLeave={(e) => { (e.currentTarget).style.background = 'transparent'; }}
+              <div className="dg-ctx-item"
+                onMouseEnter={() => setContextSubmenu(null)}
                 onClick={() => { props.onSaveLayoutAs!(); setContextMenu(null); }}>
                 Save As New…
               </div>
             )}
-            {/* Named views */}
             {props.namedViews && props.namedViews.length > 0 && props.onLoadView && (
               <>
-                <div style={{ borderTop: `1px solid ${t.borderLight}`, margin: '4px 0' }} />
+                <div className="dg-ctx-separator" />
                 {props.namedViews.map((v) => (
-                  <div key={v.name} style={{ padding: '6px 14px', cursor: 'pointer' }}
-                    onMouseEnter={(e) => { (e.currentTarget).style.background = t.rowHover; setContextSubmenu(null); }}
-                    onMouseLeave={(e) => { (e.currentTarget).style.background = 'transparent'; }}
+                  <div key={v.name} className="dg-ctx-item"
+                    onMouseEnter={() => setContextSubmenu(null)}
                     onClick={() => { props.onLoadView!(v.name); setContextMenu(null); }}>
                     {v.name}
                   </div>

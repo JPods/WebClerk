@@ -10,6 +10,7 @@ import {
   FaPause,
   FaCheckCircle,
 } from "react-icons/fa";
+import { formatDt } from '@/utils/fieldFormatters';
 import {
   useOrderStatus,
   STATUS_CONFIG,
@@ -192,7 +193,7 @@ export default function OrderStatus({
                 />
                 <span className="capitalize">{entry.status}</span>
                 <span>by {entry.user}</span>
-                <span>on {entry.timestamp.toLocaleDateString()}</span>
+                <span>on {formatDt(entry.timestamp, 'date')}</span>
               </div>
             ))}
           </div>

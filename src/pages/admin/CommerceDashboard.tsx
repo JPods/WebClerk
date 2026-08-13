@@ -15,6 +15,8 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import apiClient from '../../api/axios';
+import { getRecords } from '../../api/wcapi';
+import DataGrid from '../../components/common/DataGrid';
 import './CommerceDashboard.css';
 
 type TabKey = 'sales' | 'purchasing' | 'inventory' | 'velocity' | 'accounting';
@@ -178,9 +180,9 @@ export default function CommerceDashboard() {
       <div className="cd-content">
         {loading && <div className="cd-loading">Loading...</div>}
 
-        {activeTab === 'sales' && <SalesTab data={tabData} />}
-        {activeTab === 'purchasing' && <PurchasingTab data={tabData} />}
-        {activeTab === 'inventory' && <InventoryTab data={tabData} />}
+        {activeTab === 'sales' && <SalesTab data={tabData} filters={filters} themeKey={theme} />}
+        {activeTab === 'purchasing' && <PurchasingTab data={tabData} filters={filters} themeKey={theme} />}
+        {activeTab === 'inventory' && <InventoryTab data={tabData} filters={filters} themeKey={theme} />}
         {activeTab === 'velocity' && <VelocityTab data={tabData} />}
         {activeTab === 'accounting' && <AccountingTab data={tabData} />}
       </div>
@@ -192,9 +194,16 @@ export default function CommerceDashboard() {
 // Tab components
 // ---------------------------------------------------------------------------
 
-function MetricCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+function MetricCard({ label, value, sub, active, onClick }: {
+  label: string; value: string | number; sub?: string;
+  active?: boolean; onClick?: () => void;
+}) {
   return (
-    <div className="cd-metric">
+    <div
+      className={`cd-metric ${onClick ? 'cd-metric--clickable' : ''} ${active ? 'cd-metric--active' : ''}`}
+      onClick={onClick}
+      style={onClick ? { cursor: 'pointer' } : undefined}
+    >
       <div className="cd-metric-value">{value}</div>
       <div className="cd-metric-label">{label}</div>
       {sub && <div className="cd-metric-sub">{sub}</div>}
@@ -202,40 +211,222 @@ function MetricCard({ label, value, sub }: { label: string; value: string | numb
   );
 }
 
-function SalesTab({ data }: { data: any }) {
+/** Margin distribution — bar + table with count, details, margins */
+function MarginDistribution({ distribution }: { distribution: any }) {
+  const { buckets, total, totals } = distribution;
+  if (!buckets || buckets.length === 0 || !total) return null;
+
+  const $ = (v: number) => `$${(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const colors = ['#e05252', '#e8c870', '#4ec98c', '#9cdcfe'];
+
+  return (
+    <div className="cd-margin-dist">
+      <div className="cd-margin-dist-bar">
+        {buckets.map((b: any, i: number) => {
+          const pct = (b.count / total) * 100;
+          if (pct === 0) return null;
+          return (
+            <div key={i} className="cd-margin-dist-segment"
+              style={{ width: `${pct}%`, backgroundColor: colors[i] }}
+              title={`${b.label}: ${b.count} lines`}
+            >
+              {pct >= 10 && <span className="cd-margin-dist-label">{b.count}</span>}
+            </div>
+          );
+        })}
+      </div>
+      <table className="cd-table" style={{ marginTop: 8 }}>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Range</th>
+            <th style={{ textAlign: 'right' }}>Lines</th>
+            <th style={{ textAlign: 'right' }}>Revenue</th>
+            <th style={{ textAlign: 'right' }}>Cost</th>
+            <th style={{ textAlign: 'right' }}>Tax</th>
+            <th style={{ textAlign: 'right' }}>Commission</th>
+            <th style={{ textAlign: 'right' }}>Margin</th>
+            <th style={{ textAlign: 'right' }}>Margin %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {buckets.map((b: any, i: number) => (
+            <tr key={i}>
+              <td><span className="cd-margin-dist-dot" style={{ backgroundColor: colors[i] }} /></td>
+              <td>{b.label}</td>
+              <td style={{ textAlign: 'right' }}>{b.count}</td>
+              <td style={{ textAlign: 'right' }}>{$(b.revenue)}</td>
+              <td style={{ textAlign: 'right' }}>{$(b.cost)}</td>
+              <td style={{ textAlign: 'right' }}>{$(b.tax)}</td>
+              <td style={{ textAlign: 'right' }}>{$(b.commission)}</td>
+              <td style={{ textAlign: 'right' }}>{$(b.margin)}</td>
+              <td style={{ textAlign: 'right' }}>{b.margin_pct}%</td>
+            </tr>
+          ))}
+        </tbody>
+        {totals && (
+          <tfoot>
+            <tr style={{ fontWeight: 700, borderTop: '2px solid var(--db-border)' }}>
+              <td></td>
+              <td>Total</td>
+              <td style={{ textAlign: 'right' }}>{total}</td>
+              <td style={{ textAlign: 'right' }}>{$(totals.revenue)}</td>
+              <td style={{ textAlign: 'right' }}>{$(totals.cost)}</td>
+              <td style={{ textAlign: 'right' }}>{$(totals.tax)}</td>
+              <td style={{ textAlign: 'right' }}>{$(totals.commission)}</td>
+              <td style={{ textAlign: 'right' }}>{$(totals.margin)}</td>
+              <td style={{ textAlign: 'right' }}>{totals.revenue ? `${((totals.margin / totals.revenue) * 100).toFixed(1)}%` : '—'}</td>
+            </tr>
+          </tfoot>
+        )}
+      </table>
+    </div>
+  );
+}
+
+// Theme tokens matching DataBrowser — passed to DataGrid for consistent styling
+const DB_THEMES = {
+  dark: {
+    bg: '#1e1e1e', surface: '#252526', surfaceAlt: '#2d2d2d',
+    border: '#3c3c3c', borderLight: '#4d4d4d',
+    text: '#d4d4d4', textMuted: '#888', textDim: '#666',
+    accent: '#9cdcfe', accentGreen: '#4ec98c', accentGold: '#e8c870',
+    accentRed: '#e05252', accentPurple: '#c8a8e8',
+    btnBg: '#2d2d2d', inputBg: '#2a2a2a', inputBorder: '#555',
+    rowHover: '#2a2d2e', rowActive: '#094771',
+  },
+  light: {
+    bg: '#f8f9fa', surface: '#ffffff', surfaceAlt: '#f1f3f5',
+    border: '#dee2e6', borderLight: '#e9ecef',
+    text: '#212529', textMuted: '#6c757d', textDim: '#adb5bd',
+    accent: '#0d6efd', accentGreen: '#198754', accentGold: '#fd7e14',
+    accentRed: '#dc3545', accentPurple: '#6f42c1',
+    btnBg: '#ffffff', inputBg: '#ffffff', inputBorder: '#ced4da',
+    rowHover: '#f1f3f5', rowActive: '#cfe2ff',
+  },
+};
+
+/** Inline record list — shown when a metric card is clicked */
+function MetricList({ modelName, filters, period_days, themeKey }: {
+  modelName: string; filters: Record<string, any>; period_days: number; themeKey?: string;
+}) {
+  const theme = DB_THEMES[(themeKey || 'dark') as keyof typeof DB_THEMES] || DB_THEMES.dark;
+  const [records, setRecords] = useState<any[]>([]);
+  const [columns, setColumns] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const cutoff = Date.now() - (period_days * 86400 * 1000);
+        const params: Record<string, any> = {
+          ...filters,
+          dt_created__gte: cutoff,
+          limit: 50,
+        };
+        const res = await getRecords(modelName, params) as any;
+        if (cancelled) return;
+        const list = res?.results || [];
+        setRecords(list);
+        if (list.length > 0) {
+          // Show most useful columns first
+          const priority = ['ida', 'status', 'company', 'attention', 'total', 'balance', 'dt_created'];
+          const available = Object.keys(list[0]);
+          const cols = priority.filter(k => available.includes(k));
+          // Add a few more if space
+          const extra = available.filter(k =>
+            !cols.includes(k) && !['id','uuid','version','is_deleted','is_archived','is_locked',
+            'security_level','health_rating','metadata','refs','prefs','actions','comments',
+            'config','commission','dt_modified','dt_approved','dt_last_used','times_used',
+            'line_increment','is_commission','source_name'].includes(k)
+          ).slice(0, 3);
+          setColumns([...cols, ...extra]);
+        }
+      } catch (e) {
+        console.error(`[MetricList] ${modelName}:`, e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [modelName, filters, period_days]);
+
+  if (loading) return <div className="cd-loading">Loading {modelName}...</div>;
+  if (records.length === 0) return <div className="cd-empty">No {modelName} records in period</div>;
+
+  return (
+    <div className="cd-metric-list">
+      <DataGrid records={records} columns={columns} theme={theme} />
+    </div>
+  );
+}
+
+function SalesTab({ data, filters, themeKey }: { data: any; filters: Filters; themeKey: string }) {
   const tx = data?.transactions || {};
   const margin = data?.margin || {};
+  const [selected, setSelected] = useState<string | null>(null);
+
+  const toggle = (model: string) => setSelected(prev => prev === model ? null : model);
+
+  const listFilters: Record<string, any> = {};
+  if (filters.customer_id) listFilters.customer_id = Number(filters.customer_id);
+
   return (
     <div className="cd-tab-content">
       <div className="cd-metrics-row">
-        <MetricCard label="Orders" value={tx.orders?.count || 0} sub={`$${(tx.orders?.total || 0).toLocaleString()}`} />
-        <MetricCard label="Invoices" value={tx.invoices?.count || 0} sub={`$${(tx.invoices?.total || 0).toLocaleString()}`} />
-        <MetricCard label="Proposals" value={tx.proposals?.count || 0} sub={`$${(tx.proposals?.total || 0).toLocaleString()}`} />
+        <MetricCard label="Orders" value={tx.orders?.count || 0} sub={`$${(tx.orders?.total || 0).toLocaleString()}`}
+          active={selected === 'order'} onClick={() => toggle('order')} />
+        <MetricCard label="Invoices" value={tx.invoices?.count || 0} sub={`$${(tx.invoices?.total || 0).toLocaleString()}`}
+          active={selected === 'invoice'} onClick={() => toggle('invoice')} />
+        <MetricCard label="Proposals" value={tx.proposals?.count || 0} sub={`$${(tx.proposals?.total || 0).toLocaleString()}`}
+          active={selected === 'proposal'} onClick={() => toggle('proposal')} />
       </div>
       <div className="cd-metrics-row">
         <MetricCard label="Avg Margin" value={`${(margin.avg_pct || 0).toFixed(1)}%`} />
         <MetricCard label="Above Margin" value={margin.above_count || 0} />
         <MetricCard label="Below Margin" value={margin.below_count || 0} sub={`Floor: ${margin.floor || 20}%`} />
       </div>
+      {margin.distribution?.buckets?.length > 0 && (
+        <MarginDistribution distribution={margin.distribution} />
+      )}
+      {selected && (
+        <MetricList modelName={selected} filters={listFilters} period_days={filters.period_days} />
+      )}
     </div>
   );
 }
 
-function PurchasingTab({ data }: { data: any }) {
+function PurchasingTab({ data, filters }: { data: any; filters: Filters }) {
   const po = data?.purchase_orders || {};
   const wo = data?.work_orders || {};
   const receipts = data?.receipts || {};
   const layers = data?.layers || {};
+  const [selected, setSelected] = useState<{ model: string; status?: string } | null>(null);
+
+  const toggle = (model: string, statusFilter?: string) =>
+    setSelected(prev => prev?.model === model && prev?.status === statusFilter ? null : { model, status: statusFilter });
+
+  const listFilters: Record<string, any> = {};
+  if (filters.vendor_id) listFilters.vendor_id = Number(filters.vendor_id);
+  if (selected?.status) listFilters.status = selected.status;
+
   return (
     <div className="cd-tab-content">
       <div className="cd-metrics-row">
-        <MetricCard label="POs Open" value={po.open || 0} />
-        <MetricCard label="POs Partial" value={po.partial || 0} />
-        <MetricCard label="POs Received" value={po.received || 0} />
-        <MetricCard label="POs Total" value={po.total || 0} />
+        <MetricCard label="POs Open" value={po.open || 0}
+          active={selected?.model === 'purchase' && selected?.status === 'open'} onClick={() => toggle('purchase', 'open')} />
+        <MetricCard label="POs Partial" value={po.partial || 0}
+          active={selected?.model === 'purchase' && selected?.status === 'partial'} onClick={() => toggle('purchase', 'partial')} />
+        <MetricCard label="POs Received" value={po.received || 0}
+          active={selected?.model === 'purchase' && selected?.status === 'released'} onClick={() => toggle('purchase', 'released')} />
+        <MetricCard label="POs Total" value={po.total || 0}
+          active={selected?.model === 'purchase' && !selected?.status} onClick={() => toggle('purchase')} />
       </div>
       <div className="cd-metrics-row">
-        <MetricCard label="WOs Open" value={wo.open || 0} />
+        <MetricCard label="WOs Open" value={wo.open || 0}
+          active={selected?.model === 'work_order' && selected?.status === 'open'} onClick={() => toggle('work_order', 'open')} />
         <MetricCard label="WOs In Progress" value={wo.in_progress || 0} />
         <MetricCard label="WOs Completed" value={wo.completed || 0} />
       </div>
@@ -244,6 +435,9 @@ function PurchasingTab({ data }: { data: any }) {
         <MetricCard label="Layers Created" value={layers.created || 0} />
         <MetricCard label="Unreconciled" value={layers.unreconciled || 0} sub="Layers >30 days" />
       </div>
+      {selected && (
+        <MetricList modelName={selected.model} filters={listFilters} period_days={filters.period_days} />
+      )}
       {(data?.stale_pos || []).length > 0 && (
         <div className="cd-section">
           <h3 className="cd-section-title">Stale POs ({data.stale_pos.length})</h3>
@@ -261,11 +455,15 @@ function PurchasingTab({ data }: { data: any }) {
   );
 }
 
-function InventoryTab({ data }: { data: any }) {
+function InventoryTab({ data, filters }: { data: any; filters: Filters }) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const toggle = (model: string) => setSelected(prev => prev === model ? null : model);
+
   return (
     <div className="cd-tab-content">
       <div className="cd-metrics-row">
-        <MetricCard label="Total Items" value={data?.total_items || 0} />
+        <MetricCard label="Total Items" value={data?.total_items || 0}
+          active={selected === 'item'} onClick={() => toggle('item')} />
         <MetricCard label="Active Layers" value={data?.active_layers || 0} />
         <MetricCard label="Reservations" value={data?.active_reservations || 0} />
         <MetricCard label="Low Stock" value={data?.low_stock_count || 0} />
@@ -274,6 +472,9 @@ function InventoryTab({ data }: { data: any }) {
         <MetricCard label="Inventory Value" value={`$${(data?.total_value || 0).toLocaleString()}`} />
         <MetricCard label="Avg Turns" value={(data?.avg_turns || 0).toFixed(1)} />
       </div>
+      {selected && (
+        <MetricList modelName={selected} filters={{}} period_days={filters.period_days} />
+      )}
     </div>
   );
 }

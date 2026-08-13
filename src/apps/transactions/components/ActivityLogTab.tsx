@@ -4,12 +4,12 @@
  * Displays timeline of changes, actions, and events
  */
 import React, { useState } from 'react';
-import { 
-  FaHistory, 
-  FaUser, 
-  FaEdit, 
-  FaPrint, 
-  FaEnvelope, 
+import {
+  FaHistory,
+  FaUser,
+  FaEdit,
+  FaPrint,
+  FaEnvelope,
   FaShoppingCart,
   FaTruck,
   FaCheck,
@@ -19,6 +19,7 @@ import {
   FaClock,
   FaExclamationTriangle
 } from 'react-icons/fa';
+import { formatDt } from '@/utils/fieldFormatters';
 
 // Activity types
 type ActivityType = 
@@ -165,7 +166,7 @@ const ActivityLogTab: React.FC<ActivityLogTabProps> = ({
 
   // Group by date
   const groupedByDate = filteredActivities.reduce<Record<string, ActivityLogEntry[]>>((acc, activity) => {
-    const date = new Date(activity.timestamp).toLocaleDateString();
+    const date = formatDt(activity.timestamp, 'date');
     if (!acc[date]) acc[date] = [];
     acc[date].push(activity);
     return acc;
@@ -173,7 +174,7 @@ const ActivityLogTab: React.FC<ActivityLogTabProps> = ({
 
   // Format timestamp
   const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return formatDt(timestamp, 'datetime');
   };
 
   // Format relative time

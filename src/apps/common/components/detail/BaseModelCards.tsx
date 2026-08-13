@@ -18,6 +18,7 @@ import ScalarCard from "./ScalarCard";
 import JsonCard from "./JsonCard";
 import { FaCode } from "react-icons/fa";
 import RawJsonCard from "./RawJsonCard";
+import { formatDt } from '@/utils/fieldFormatters';
 
 export interface BaseModelCardsProps {
   /** The full record object */
@@ -32,16 +33,7 @@ export interface BaseModelCardsProps {
 
 function epochToDisplay(val: unknown): string {
   if (val === null || val === undefined || val === 0) return "—";
-  if (typeof val === "number") {
-    // epoch ms → human-readable
-    try {
-      const d = new Date(val > 1e12 ? val : val * 1000);
-      return d.toLocaleString();
-    } catch {
-      return String(val);
-    }
-  }
-  return String(val);
+  return formatDt(val, 'datetime');
 }
 
 const BaseModelCards: React.FC<BaseModelCardsProps> = ({

@@ -24,6 +24,7 @@ import { ALL_ROLES, USER_ROLES } from "./types";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
 import { PanelTable } from "./PanelTable";
 import type { PanelColumnDef } from "./PanelTable";
+import { formatDt } from '@/utils/fieldFormatters';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -104,8 +105,7 @@ const formatQty = (value?: number) =>
 
 const formatDate = (ts?: number) => {
   if (!ts) return "—";
-  const d = new Date(ts * 1000);
-  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+  return formatDt(ts, 'date');
 };
 
 // ---------------------------------------------------------------------------
@@ -163,44 +163,39 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
       {
         key: "ida",
         label: "ida",
-        cellClassName:
-          "font-mono text-slate-500 dark:text-slate-400 shrink-0 w-[70px]",
-        render: (r) => r.item_ida ?? r.ida ?? `#${r.id}`,
+        cellClassName: "font-mono shrink-0 w-[70px]",
+        render: (r) => <span style={{ color: 'var(--db-text-muted)' }}>{r.item_ida ?? r.ida ?? `#${r.id}`}</span>,
       },
       {
         key: "item_name",
         label: "item_name",
-        cellClassName:
-          "text-slate-800 dark:text-slate-200 min-w-[120px] flex-1",
-        render: (r) => r.item_name ?? r.description ?? "—",
+        cellClassName: "min-w-[120px] flex-1",
+        render: (r) => <span style={{ color: 'var(--db-text)' }}>{r.item_name ?? r.description ?? "—"}</span>,
       },
       {
         key: "description",
         label: "description",
         defaultVisible: false,
-        cellClassName:
-          "text-slate-500 dark:text-slate-400 min-w-[100px] flex-1",
-        render: (r) =>
-          r.description && r.description !== r.item_name ? r.description : "—",
+        cellClassName: "min-w-[100px] flex-1",
+        render: (r) => <span style={{ color: 'var(--db-text-muted)' }}>{r.description && r.description !== r.item_name ? r.description : "—"}</span>,
       },
       {
         key: "quantity",
         label: "qty",
-        cellClassName: "text-slate-600 dark:text-slate-300 w-[60px] text-right",
-        render: (r) => formatQty(r.quantity),
+        cellClassName: "w-[60px] text-right",
+        render: (r) => <span style={{ color: 'var(--db-text)' }}>{formatQty(r.quantity)}</span>,
       },
       {
         key: "unit_price",
         label: "unit_price",
-        cellClassName: "text-slate-600 dark:text-slate-300 w-[80px] text-right",
-        render: (r) => formatCurrency(r.unit_price, r.currency),
+        cellClassName: "w-[80px] text-right",
+        render: (r) => <span style={{ color: 'var(--db-text)' }}>{formatCurrency(r.unit_price, r.currency)}</span>,
       },
       {
         key: "total",
         label: "total",
-        cellClassName:
-          "font-medium text-slate-700 dark:text-slate-200 w-[80px] text-right",
-        render: (r) => formatCurrency(r.total, r.currency),
+        cellClassName: "font-medium w-[80px] text-right",
+        render: (r) => <span style={{ color: 'var(--db-text)' }}>{formatCurrency(r.total, r.currency)}</span>,
       },
       {
         key: "status",
@@ -209,7 +204,7 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
         cellClassName: "w-[70px]",
         render: (r) =>
           r.status ? (
-            <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300">
+            <span className="px-1.5 py-0.5 rounded" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}>
               {String(r.status)}
             </span>
           ) : (
@@ -219,8 +214,8 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
       {
         key: "source_ida",
         label: "source",
-        cellClassName: "text-slate-400 font-mono w-[70px]",
-        render: (r) => r.source_ida ?? "—",
+        cellClassName: "font-mono w-[70px]",
+        render: (r) => <span style={{ color: 'var(--db-text-dim)' }}>{r.source_ida ?? "—"}</span>,
       },
     ],
     [],
@@ -232,16 +227,14 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
       {
         key: "serial_number",
         label: "serial",
-        cellClassName:
-          "font-mono text-slate-500 dark:text-slate-400 shrink-0 w-[100px]",
-        render: (r) => r.serial_number ?? r.ida ?? `#${r.id}`,
+        cellClassName: "font-mono shrink-0 w-[100px]",
+        render: (r) => <span style={{ color: 'var(--db-text-muted)' }}>{r.serial_number ?? r.ida ?? `#${r.id}`}</span>,
       },
       {
         key: "item_name",
         label: "item_name",
-        cellClassName:
-          "text-slate-800 dark:text-slate-200 min-w-[120px] flex-1",
-        render: (r) => r.item_name ?? "—",
+        cellClassName: "min-w-[120px] flex-1",
+        render: (r) => <span style={{ color: 'var(--db-text)' }}>{r.item_name ?? "—"}</span>,
       },
       {
         key: "status",
@@ -249,7 +242,7 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
         cellClassName: "w-[80px]",
         render: (r) =>
           r.status ? (
-            <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300">
+            <span className="px-1.5 py-0.5 rounded" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}>
               {r.status}
             </span>
           ) : (
@@ -259,15 +252,15 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
       {
         key: "location",
         label: "location",
-        cellClassName: "text-slate-500 dark:text-slate-400 w-[100px]",
-        render: (r) => r.location ?? "—",
+        cellClassName: "w-[100px]",
+        render: (r) => <span style={{ color: 'var(--db-text-muted)' }}>{r.location ?? "—"}</span>,
       },
       {
         key: "dt_created",
         label: "dt_created",
         defaultVisible: false,
-        cellClassName: "text-slate-400 w-[80px]",
-        render: (r) => formatDate(r.dt_created),
+        cellClassName: "w-[80px]",
+        render: (r) => <span style={{ color: 'var(--db-text-dim)' }}>{formatDate(r.dt_created)}</span>,
       },
     ],
     [],
@@ -333,20 +326,22 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
 
   return (
     <div
-      className={`bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 ${className}`}
+      className={`rounded-lg ${className}`}
+      style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)' }}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 cursor-pointer"
+        className="flex items-center justify-between px-4 py-3 cursor-pointer"
+        style={{ borderBottom: '1px solid var(--db-border)' }}
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <FaBoxes className="text-slate-400" size={14} />
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+          <FaBoxes style={{ color: 'var(--db-text-dim)' }} size={14} />
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
             {title}
           </h3>
           {totalCount > 0 && (
-            <span className="px-1.5 py-0.5 text-xs bg-slate-200 dark:bg-slate-600 rounded-full">
+            <span className="px-1.5 py-0.5 text-xs rounded-full" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}>
               {totalCount}
             </span>
           )}
@@ -358,42 +353,42 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
         <div className={compact ? "p-2" : "p-4"}>
           {/* View mode toggle */}
           <div className="flex items-center gap-2 mb-3">
-            <FaFilter className="text-slate-400" size={10} />
+            <FaFilter style={{ color: 'var(--db-text-dim)' }} size={10} />
             <button
               type="button"
               onClick={() => setViewMode("lines")}
-              className={`px-2 py-1 text-xs rounded ${
-                viewMode === "lines"
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                  : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-200"
-              }`}
+              className="px-2 py-1 text-xs rounded"
+              style={{
+                background: viewMode === "lines" ? 'var(--db-row-active)' : 'var(--db-surface-alt)',
+                color: viewMode === "lines" ? 'var(--db-accent)' : 'var(--db-text)',
+              }}
             >
               Line Items ({totalLines})
             </button>
             <button
               type="button"
               onClick={() => setViewMode("serials")}
-              className={`px-2 py-1 text-xs rounded ${
-                viewMode === "serials"
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                  : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-200"
-              }`}
+              className="px-2 py-1 text-xs rounded"
+              style={{
+                background: viewMode === "serials" ? 'var(--db-row-active)' : 'var(--db-surface-alt)',
+                color: viewMode === "serials" ? 'var(--db-accent)' : 'var(--db-text)',
+              }}
             >
               Serials ({totalSerials})
             </button>
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-8 text-slate-400">
+            <div className="flex items-center justify-center py-8" style={{ color: 'var(--db-text-dim)' }}>
               <FaSpinner className="animate-spin mr-2" /> Loading…
             </div>
           ) : viewMode === "lines" ? (
             totalLines === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-6">
+              <p className="text-sm text-center py-6" style={{ color: 'var(--db-text-dim)' }}>
                 No line items found.
               </p>
             ) : (
-              <div className="border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden">
+              <div className="rounded-md overflow-hidden" style={{ border: '1px solid var(--db-border)' }}>
                 <PanelTable<LineItemRecord>
                   storageKey="panel:items:lines"
                   columns={lineColumns}
@@ -405,11 +400,11 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
               </div>
             )
           ) : totalSerials === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-6">
+            <p className="text-sm text-center py-6" style={{ color: 'var(--db-text-dim)' }}>
               No serials found.
             </p>
           ) : (
-            <div className="border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden">
+            <div className="rounded-md overflow-hidden" style={{ border: '1px solid var(--db-border)' }}>
               <PanelTable<SerialRecord>
                 storageKey="panel:items:serials"
                 columns={serialColumns}

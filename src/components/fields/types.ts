@@ -12,6 +12,7 @@ export interface FieldWidgetProps {
   label?: string;          // override display label (defaults to name)
   className?: string;      // outer wrapper class for layout control
   span2?: boolean;         // span full width in grid layouts
+  model?: string;          // model name for Shift-for-Help + data-wc-model
 }
 
 /** Extended props for select-type widgets */

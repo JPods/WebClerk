@@ -16,22 +16,22 @@ export interface WcIconButtonProps {
   className?: string;
 }
 
-const variantStyles = {
+const cssVarStyles: Record<string, { base: React.CSSProperties; active: React.CSSProperties }> = {
   default: {
-    base: 'text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-700',
-    active: 'bg-blue-600 text-white',
+    base: { color: 'var(--db-text-muted)' },
+    active: { background: 'var(--db-btn-primary)', color: '#fff' },
   },
   primary: {
-    base: 'text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20',
-    active: 'bg-blue-600 text-white',
+    base: { color: 'var(--db-text-muted)' },
+    active: { background: 'var(--db-btn-primary)', color: '#fff' },
   },
   danger: {
-    base: 'text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20',
-    active: 'bg-red-600 text-white',
+    base: { color: 'var(--db-text-muted)' },
+    active: { background: 'var(--db-btn-danger)', color: '#fff' },
   },
   success: {
-    base: 'text-slate-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20',
-    active: 'bg-green-600 text-white',
+    base: { color: 'var(--db-text-muted)' },
+    active: { background: 'var(--db-btn-save)', color: '#fff' },
   },
 };
 
@@ -39,7 +39,7 @@ export const WcIconButton: React.FC<WcIconButtonProps> = ({
   icon, label, active, variant = 'default', size = 'md',
   onClick, disabled, className,
 }) => {
-  const styles = variantStyles[variant];
+  const styles = cssVarStyles[variant];
   const sizeClass = size === 'sm' ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm';
 
   return (
@@ -51,9 +51,9 @@ export const WcIconButton: React.FC<WcIconButtonProps> = ({
       className={`
         inline-flex items-center justify-center rounded transition-colors
         disabled:opacity-50 disabled:cursor-not-allowed
-        ${active ? styles.active : styles.base}
         ${sizeClass} ${className || ''}
       `.trim()}
+      style={active ? styles.active : styles.base}
     >
       {icon}
     </button>

@@ -102,7 +102,21 @@
 .cd-mono { font-family: 'SF Mono', 'Consolas', monospace; }
 .cd-balance-status { text-align: center; padding: 8px; font-weight: 600; color: var(--db-accent-green); }
 
-/* Clickable metrics (open in DataBrowser) */
-.cd-metric--clickable { cursor: pointer; border-color: var(--db-accent-gold); }
-.cd-metric--clickable:hover { background: var(--db-row-hover); }
+/* Clickable metrics (open list below) */
+.cd-metric--clickable { cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.cd-metric--clickable:hover { background: var(--db-row-hover); border-color: var(--db-accent); }
+.cd-metric--active { border-color: var(--db-accent); background: var(--db-row-active); }
 .cd-metric-value--warn { color: var(--db-accent-gold); }
+
+/* Margin distribution bar */
+.cd-margin-dist { margin-top: 12px; }
+.cd-margin-dist-bar { display: flex; height: 28px; border-radius: 4px; overflow: hidden; border: 1px solid var(--db-border); }
+.cd-margin-dist-segment { display: flex; align-items: center; justify-content: center; min-width: 2px; transition: width 0.3s; }
+.cd-margin-dist-label { font-size: 11px; font-weight: 700; color: #000; text-shadow: 0 0 2px rgba(255,255,255,0.5); }
+.cd-margin-dist-legend { display: flex; gap: 16px; margin-top: 6px; flex-wrap: wrap; }
+.cd-margin-dist-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--db-text-muted); }
+.cd-margin-dist-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+/* Inline record list below metric cards */
+.cd-metric-list { margin-top: 12px; border: 1px solid var(--db-border); border-radius: 6px; overflow: auto; max-height: 400px; }
+.cd-empty { padding: 16px; color: var(--db-text-dim); font-style: italic; }

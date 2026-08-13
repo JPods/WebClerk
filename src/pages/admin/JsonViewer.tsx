@@ -12,6 +12,7 @@
  *   // or pass complex JSON via postMessage after open
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { formatDt } from '@/utils/fieldFormatters';
 import './JsonViewer.css';
 
 // ---------------------------------------------------------------------------
@@ -91,7 +92,7 @@ const JsonNode: React.FC<JsonNodeProps> = ({ keyName, value, depth, defaultColla
     } else if (typeof value === 'number') {
       // Epoch ms → formatted date
       if (keyName && isEpochMs(keyName, value)) {
-        const dateStr = new Date(value).toLocaleString();
+        const dateStr = formatDt(value, 'datetime');
         valueEl = <span className="jv-date" title={String(value)}>{dateStr}</span>;
       } else {
         valueEl = <span className="jv-number">{value}</span>;

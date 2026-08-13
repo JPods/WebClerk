@@ -37,6 +37,7 @@ import {
   Zap,
 } from "lucide-react";
 import { getRecords } from "@/api/wcapi";
+import { formatDt } from '@/utils/fieldFormatters';
 import { fetchUserDailyLogs } from "../../apps/core/services/userDailyLogApi";
 import type { UserDailyLog } from "../../apps/core/models/log/UserDailyLog";
 import type { ContactApiTask } from "../../apps/core/models/contact/types/contactType";
@@ -182,15 +183,7 @@ function getOrgAssociations(
 
 function formatEpochMs(epoch?: number): string {
   if (!epoch) return "Never";
-  // If epoch is in seconds (< year 2100 in ms), multiply
-  const ts = epoch < 1e12 ? epoch * 1000 : epoch;
-  return new Date(ts).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return formatDt(epoch, 'datetime');
 }
 
 function completenessColor(pct: number): string {
@@ -358,7 +351,7 @@ function ContactCard({
                 <span className="text-gray-500">Last login</span>
                 <span>
                   {contact.last_login
-                    ? new Date(contact.last_login).toLocaleDateString()
+                    ? formatDt(contact.last_login, 'date')
                     : "Never"}
                 </span>
               </div>

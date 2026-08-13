@@ -34,6 +34,7 @@ import TestDashboard from "../pages/admin/TestDashboard";
 import ReportDesigner from "../pages/admin/ReportDesigner";
 import ParadeOfReportsPage from "../pages/admin/ParadeOfReportsPage";
 import InventoryDashboard from "../pages/admin/InventoryDashboard";
+import ActionDailyDashboard from "../apps/common/components/panels/ActionDailyDashboard";
 import Placeholder from "../pages/Placeholder";
 import TransactionDetail from "../apps/transactions/components/TransactionDetail";
 import OrgDetailJson from "../apps/orgs/components/OrgDetail.json";
@@ -146,6 +147,7 @@ export const protectedRoutesConfig = [
   { path: "/test-dashboard", element: <TestDashboard /> },
   { path: "/report-designer", element: <ReportDesigner /> },
   { path: "/inventory-dashboard", element: <InventoryDashboard /> },
+  { path: "/action-dashboard", element: <ActionDailyDashboard /> },
   { path: "/submit-bonus", element: <Placeholder title="Submit for Bonus" /> },
   { path: PageRoutes.coreApiLogList, element: <Navigate to="/apilog" replace /> },
   { path: PageRoutes.coreUserActivityDashboard, element: <UserActivityDashboard /> },

@@ -126,6 +126,7 @@ export const mapApiProfileToUser = (input: any): User => {
     salutation: raw.salutation ?? null,
     attention: raw.attention ?? null,
     prefs: raw.prefs ?? null,
+    config: raw.config ?? null,
     is_staff: raw.is_staff === true,
     is_superuser: raw.is_superuser === true,
   };

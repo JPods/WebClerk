@@ -28,6 +28,7 @@ import {
   getModelDetailPath,
   getModelWindowTitle,
 } from "@/apps/common/components/panels/getModelDetailPath";
+import { formatDt } from '@/utils/fieldFormatters';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -156,8 +157,7 @@ const SUB_TABLES: Record<OrgType, SubTable[]> = {
 
 const formatDate = (ts?: number) => {
   if (!ts) return "—";
-  const d = new Date(ts * 1000);
-  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+  return formatDt(ts, 'date');
 };
 
 const formatCurrency = (value?: number, currency?: string) => {

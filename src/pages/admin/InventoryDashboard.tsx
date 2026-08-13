@@ -21,6 +21,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import apiClient from "../../api/axios";
 import { getRecords, manageAction } from "../../api/wcapi";
 import AliceHintBar from "../../components/common/AliceHintBar";
+import { formatDt } from '@/utils/fieldFormatters';
 import {
   FaSync,
   FaBoxOpen,
@@ -145,7 +146,7 @@ const fmtInt = (n: number) => n.toLocaleString("en-US");
 const fmtDec = (n: number) =>
   n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtDate = (ms: number | null) =>
-  ms ? new Date(ms).toLocaleString() : "\u2014";
+  ms ? formatDt(ms, 'datetime') : "\u2014";
 
 // ---------------------------------------------------------------------------
 // Shared components
@@ -1499,11 +1500,7 @@ function TrainingTab() {
               <tbody>
                 {activity.map((row, idx) => {
                   const time = row.dt
-                    ? new Date(row.dt).toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        second: "2-digit",
-                      })
+                    ? formatDt(row.dt, 'datetime')
                     : "--";
                   const isPending = row.record_type === "pending";
                   return (

@@ -9,7 +9,7 @@
  *
  * @see ContactPanelx2 for the legacy grouped layout
  */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useWindowManager } from "@/context/WindowManagerContext";
 import {
   FaChevronDown,
@@ -19,7 +19,6 @@ import {
   FaExternalLinkAlt,
   FaPhone,
   FaPlus,
-  FaSlidersH,
   FaSpinner,
   FaStar,
   FaSyncAlt,
@@ -28,9 +27,6 @@ import {
 } from "react-icons/fa";
 import { getRecord } from "@/api/wcapi";
 import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
-import { ColumnSetupDialog } from "@/components/common/ColumnSetupDialog";
-import { useColumnSetups } from "@/hooks/useColumnSetups";
-
 // RefContact type — moved from archived ContactPanelx2
 export interface RefContact {
   contact_id: number;
@@ -114,21 +110,22 @@ const STANDARD_PURPOSES = [
   "sales",
 ];
 
-// Purpose badge colours
-const PURPOSE_COLORS: Record<string, string> = {
-  billto: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  shipto:
-    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  attention:
-    "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  approver:
-    "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  buyer: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400",
+// Purpose badge styles using CSS custom properties
+const PURPOSE_STYLES: Record<string, React.CSSProperties> = {
+  billto: { background: 'var(--db-badge-blue-bg)', color: 'var(--db-badge-blue-text)' },
+  shipto: { background: 'var(--db-badge-green-bg)', color: 'var(--db-badge-green-text)' },
+  attention: { background: 'var(--db-badge-amber-bg)', color: 'var(--db-badge-amber-text)' },
+  approver: { background: 'var(--db-badge-purple-bg)', color: 'var(--db-badge-purple-text)' },
+  buyer: { background: 'var(--db-badge-cyan-bg)', color: 'var(--db-badge-cyan-text)' },
 };
 
-const purposeBadge = (purpose: string) =>
-  PURPOSE_COLORS[purpose] ??
-  "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300";
+const DEFAULT_PURPOSE_STYLE: React.CSSProperties = {
+  background: 'var(--db-surface-alt)',
+  color: 'var(--db-text)',
+};
+
+const purposeBadgeStyle = (purpose: string): React.CSSProperties =>
+  PURPOSE_STYLES[purpose] ?? DEFAULT_PURPOSE_STYLE;
 
 /** Column metadata for ColumnSetupDialog */
 const CONTACT_COLUMN_METAS = [
@@ -249,13 +246,12 @@ const ContactRow: React.FC<{
       : comms?.name || displayName;
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-xs group">
+    <div className="db-list-row flex items-center gap-3 px-3 py-2 text-xs group">
       {/* Purpose badge */}
       {(!visibleColumns || visibleColumns.has("purpose")) && (
         <span
-          className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide shrink-0 min-w-[56px] text-center ${purposeBadge(
-            contact.purpose,
-          )}`}
+          className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide shrink-0 min-w-[56px] text-center"
+          style={purposeBadgeStyle(contact.purpose)}
         >
           {contact.purpose || "—"}
         </span>
@@ -263,16 +259,16 @@ const ContactRow: React.FC<{
 
       {/* Contact ID */}
       {(!visibleColumns || visibleColumns.has("contact_id")) && (
-        <span className="font-mono text-slate-400 shrink-0 w-10 text-right">
+        <span className="font-mono shrink-0 w-10 text-right" style={{ color: 'var(--db-text-dim)' }}>
           #{contact.contact_id}
         </span>
       )}
 
       {/* Name */}
       {(!visibleColumns || visibleColumns.has("name")) && (
-        <span className="text-slate-800 dark:text-slate-200 truncate min-w-[100px] max-w-[180px]">
+        <span className="truncate min-w-[100px] max-w-[180px]" style={{ color: 'var(--db-text)' }}>
           {loading ? (
-            <FaSpinner className="inline animate-spin text-slate-300" size={10} />
+            <FaSpinner className="inline animate-spin" style={{ color: 'var(--db-text-dim)' }} size={10} />
           ) : (
             name
           )}
@@ -281,10 +277,10 @@ const ContactRow: React.FC<{
 
       {/* Email */}
       {(!visibleColumns || visibleColumns.has("email")) && (
-        <span className="text-slate-500 dark:text-slate-400 truncate min-w-0 flex-1 flex items-center gap-1">
+        <span className="truncate min-w-0 flex-1 flex items-center gap-1" style={{ color: 'var(--db-text-muted)' }}>
           {email && (
             <>
-              <FaEnvelope size={9} className="shrink-0 text-slate-300" />
+              <FaEnvelope size={9} className="shrink-0" style={{ color: 'var(--db-text-dim)' }} />
               <span className="truncate">{email}</span>
             </>
           )}
@@ -293,10 +289,10 @@ const ContactRow: React.FC<{
 
       {/* Phone */}
       {(!visibleColumns || visibleColumns.has("phone")) && (
-        <span className="text-slate-500 dark:text-slate-400 truncate w-[120px] shrink-0 flex items-center gap-1">
+        <span className="truncate w-[120px] shrink-0 flex items-center gap-1" style={{ color: 'var(--db-text-muted)' }}>
           {phone && (
             <>
-              <FaPhone size={9} className="shrink-0 text-slate-300" />
+              <FaPhone size={9} className="shrink-0" style={{ color: 'var(--db-text-dim)' }} />
               <span className="truncate">{phone}</span>
             </>
           )}
@@ -305,7 +301,7 @@ const ContactRow: React.FC<{
 
       {/* Address */}
       {(!visibleColumns || visibleColumns.has("address")) && (
-        <span className="text-slate-500 dark:text-slate-400 truncate min-w-0 flex-1 flex items-center gap-1">
+        <span className="truncate min-w-0 flex-1 flex items-center gap-1" style={{ color: 'var(--db-text-muted)' }}>
           {(() => {
             const addr = contact.address;
             const addrStr = Array.isArray(addr) ? addr[0]?.full : (typeof addr === 'string' ? addr : addr?.full);
@@ -320,11 +316,8 @@ const ContactRow: React.FC<{
           <button
             type="button"
             title={isPrimary ? "Primary contact" : "Set as primary contact"}
-            className={`p-1 rounded transition-colors ${
-              isPrimary
-                ? "text-amber-500"
-                : "text-slate-300 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-            }`}
+            className="p-1 rounded transition-colors"
+            style={{ color: isPrimary ? 'var(--db-accent-gold)' : 'var(--db-text-dim)' }}
             onClick={(e) => {
               e.stopPropagation();
               if (!isPrimary) onSetPrimary();
@@ -338,7 +331,8 @@ const ContactRow: React.FC<{
           <button
             type="button"
             title="Edit contact link"
-            className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+            className="p-1 rounded transition-colors"
+            style={{ color: 'var(--db-text-dim)' }}
             onClick={(e) => {
               e.stopPropagation();
               onEdit();
@@ -351,7 +345,8 @@ const ContactRow: React.FC<{
           <button
             type="button"
             title="Remove contact"
-            className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+            className="p-1 rounded transition-colors"
+            style={{ color: 'var(--db-text-dim)' }}
             onClick={(e) => {
               e.stopPropagation();
               onRemove();
@@ -363,7 +358,8 @@ const ContactRow: React.FC<{
         <button
           type="button"
           title="Open contact in floating window"
-          className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+          className="p-1 rounded transition-colors"
+          style={{ color: 'var(--db-text-dim)' }}
           onClick={(e) => {
             e.stopPropagation();
             onOpen?.();
@@ -406,32 +402,8 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
   // const effectiveParentId = parentId ?? order_id;
   const windowManager = useWindowManager();
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
-  const [showColumnDialog, setShowColumnDialog] = useState(false);
-  const columnSetups = useColumnSetups("panel:contacts");
-
-  // Build default config from column metas
-  const defaultConfig = useMemo<import("@/hooks/useColumnSetups").ColumnSetupEntry>(() => {
-    const order = CONTACT_COLUMN_METAS.map((m) => m.key);
-    const visibility: Record<string, boolean> = {};
-    CONTACT_COLUMN_METAS.forEach((m) => { visibility[m.key] = true; });
-    return { order, visibility, widths: {}, sort: null };
-  }, []);
-
-  // Apply active setup (if any) over default
-  const activeConfig = useMemo(() => {
-    if (!columnSetups.activeSetupName) return defaultConfig;
-    const applied = columnSetups.applySetup(columnSetups.activeSetupName);
-    return applied ?? defaultConfig;
-  }, [columnSetups, defaultConfig]);
-
-  const visibleCols = useMemo(() => {
-    const vis = activeConfig.visibility;
-    const result = new Set<string>();
-    for (const m of CONTACT_COLUMN_METAS) {
-      if (vis[m.key] !== false) result.add(m.key);
-    }
-    return result;
-  }, [activeConfig]);
+  // All columns visible
+  const visibleCols = new Set(CONTACT_COLUMN_METAS.map((m) => m.key));
 
   // ---------------------------------------------------------------------------
   // Auto-refresh when ContactDetail dispatches a "contact-saved" event
@@ -496,19 +468,20 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+    <div className="rounded-lg" style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)' }}>
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 cursor-pointer"
+        className="flex items-center justify-between px-4 py-3 cursor-pointer"
+        style={{ borderBottom: '1px solid var(--db-border)' }}
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <FaUser className="text-slate-400" size={14} />
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+          <FaUser style={{ color: 'var(--db-text-dim)' }} size={14} />
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
             {title}
           </h3>
           {contacts.length > 0 && (
-            <span className="px-1.5 py-0.5 text-xs bg-slate-200 dark:bg-slate-600 rounded-full">
+            <span className="px-1.5 py-0.5 text-xs rounded-full" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}>
               {contacts.length}
             </span>
           )}
@@ -517,7 +490,8 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
           {(isEditing || allowCreate) && !isCollapsed && (
             <button
               type="button"
-              className="px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex items-center gap-1"
+              className="px-2 py-1 text-xs font-medium rounded transition-colors flex items-center gap-1"
+              style={{ color: 'var(--db-accent)' }}
               onClick={(e) => {
                 e.stopPropagation();
                 // Open a blank ContactDetail for creating a new contact.
@@ -545,7 +519,8 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
             <button
               type="button"
               title="Refresh contacts"
-              className="px-2 py-1 text-xs font-medium text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex items-center gap-1"
+              className="px-2 py-1 text-xs font-medium rounded transition-colors flex items-center gap-1"
+              style={{ color: 'var(--db-text-muted)' }}
               onClick={(e) => {
                 e.stopPropagation();
                 onRefresh();
@@ -558,24 +533,10 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
               />
             </button>
           )}
-          {/* Column setup badge */}
-          {!isCollapsed && (
-            <button
-              type="button"
-              title="Configure columns"
-              className="px-2 py-1 text-xs font-medium text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex items-center gap-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowColumnDialog(true);
-              }}
-            >
-              <FaSlidersH size={10} />
-            </button>
-          )}
           {isCollapsed ? (
-            <FaChevronDown size={12} className="text-slate-400" />
+            <FaChevronDown size={12} style={{ color: 'var(--db-text-dim)' }} />
           ) : (
-            <FaChevronUp size={12} className="text-slate-400" />
+            <FaChevronUp size={12} style={{ color: 'var(--db-text-dim)' }} />
           )}
         </div>
       </div>
@@ -584,7 +545,7 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
       {!isCollapsed && (
         <div>
           {sorted.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-6 italic">
+            <p className="text-sm text-center py-6 italic" style={{ color: 'var(--db-text-dim)' }}>
               {externalLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <FaSpinner className="animate-spin" size={12} />
@@ -595,9 +556,9 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
               )}
             </p>
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-700">
+            <div>
               {/* Column headers */}
-              <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              <div className="flex items-center gap-3 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)', borderBottom: '1px solid var(--db-border-light)' }}>
                 {visibleCols.has("purpose") && <span className="min-w-[56px] shrink-0 text-center">purpose</span>}
                 {visibleCols.has("contact_id") && <span className="w-10 text-right shrink-0">#</span>}
                 {visibleCols.has("name") && <span className="min-w-[100px] max-w-[180px]">name</span>}
@@ -627,20 +588,6 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
           )}
         </div>
       )}
-      {/* Column setup dialog */}
-      <ColumnSetupDialog
-        open={showColumnDialog}
-        title="Contact Columns"
-        columnMetas={CONTACT_COLUMN_METAS}
-        config={activeConfig}
-        onSave={(entry) => {
-          columnSetups.saveSetup("current", entry);
-          setShowColumnDialog(false);
-        }}
-        onClose={() => setShowColumnDialog(false)}
-        namedSetups={columnSetups.setups}
-        onSaveNamed={(name, config) => columnSetups.saveSetup(name, config)}
-      />
     </div>
   );
 };

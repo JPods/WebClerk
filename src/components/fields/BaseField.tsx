@@ -1,9 +1,11 @@
 /**
  * BaseField — shared wrapper for all field widgets.
- * Handles: label rendering, error display, span2 layout, disabled state.
+ * Handles: label rendering, error display, span2 layout, disabled state,
+ * Shift-for-Help on all labels.
  */
 import React from 'react';
 import type { FieldWidgetProps } from './types';
+import { openFieldHelp } from '../common/HelpMenu';
 
 interface BaseFieldRenderProps {
   props: FieldWidgetProps;
@@ -11,30 +13,42 @@ interface BaseFieldRenderProps {
   labelSuffix?: React.ReactNode;
   labelHref?: string;
   labelOnClick?: () => void; // for behaviors like JSON → open viewer
+  model?: string;           // model name for Shift-for-Help + data-wc-model
   children: React.ReactNode;
 }
 
-export default function BaseField({ props, labelColor = 'default', labelSuffix, labelHref, labelOnClick, children }: BaseFieldRenderProps) {
-  const { name, label, error, className, span2 } = props;
+export default function BaseField({ props, labelColor = 'default', labelSuffix, labelHref, labelOnClick, model: modelOverride, children }: BaseFieldRenderProps) {
+  const { name, label, error, className, span2, model: propsModel } = props;
   const displayLabel = label || name;
+  const model = modelOverride || propsModel;
+
+  const handleLabelClick = (e: React.MouseEvent) => {
+    if (e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      openFieldHelp(model || 'system', name);
+      return;
+    }
+    if (labelOnClick) labelOnClick();
+  };
 
   const labelEl = labelHref ? (
     <a href={labelHref} target={labelHref.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer"
-      className={`db-label db-label--${labelColor}`}>
+      className={`db-label db-label--${labelColor}`} onClick={handleLabelClick}>
       {displayLabel}{labelSuffix && <> {labelSuffix}</>}
     </a>
-  ) : labelOnClick ? (
-    <span className={`db-label db-label--${labelColor}`} onClick={labelOnClick} style={{ cursor: 'pointer' }}>
-      {displayLabel}{labelSuffix && <> {labelSuffix}</>}
-    </span>
   ) : (
-    <span className={`db-label db-label--${labelColor}`}>
+    <span className={`db-label db-label--${labelColor}`} onClick={handleLabelClick}
+      style={labelOnClick ? { cursor: 'pointer' } : undefined}>
       {displayLabel}{labelSuffix && <> {labelSuffix}</>}
     </span>
   );
 
+  const wcAttrs: Record<string, string> = { 'data-wc': `field-${name}`, 'data-wc-field': name };
+  if (model) wcAttrs['data-wc-model'] = model;
+
   return (
-    <div className={`db-field ${span2 ? 'db-field--span2' : ''} ${className || ''}`} data-wc={`field-${name}`} data-wc-field={name}>
+    <div className={`db-field ${span2 ? 'db-field--span2' : ''} ${className || ''}`} {...wcAttrs}>
       {labelEl}
       {children}
       {error && <div className="db-field-error">{error}</div>}

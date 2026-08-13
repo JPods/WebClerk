@@ -10,6 +10,8 @@
  *     onMergeComplete={() => db.fetchRecords()} />
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { formatDt } from '@/utils/fieldFormatters';
+import './DedupPanel.css';
 
 interface DedupRecord {
   id: number;
@@ -164,9 +166,9 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
 
   // Render field value — truncate long values
   const renderVal = (v: any) => {
-    if (v === null || v === undefined || v === '') return <span style={{ color: '#555' }}>—</span>;
+    if (v === null || v === undefined || v === '') return <span className="dp-field-empty">—</span>;
     const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
-    if (s.includes('placeholder')) return <span style={{ color: '#555' }}>—</span>;
+    if (s.includes('placeholder')) return <span className="dp-field-empty">—</span>;
     return s.length > 50 ? s.slice(0, 50) + '…' : s;
   };
 
@@ -177,24 +179,29 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
       )).filter(f => !SKIP_FIELDS.has(f)).slice(0, 15)
     : [];
 
+  const scoreBadgeClass = (score: number) =>
+    score >= 7 ? 'dp-badge dp-badge--score-high' :
+    score >= 4 ? 'dp-badge dp-badge--score-mid' :
+    'dp-badge dp-badge--score-low';
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#0f172a', color: '#e2e8f0' }}>
+    <div className="dp-root" style={{ '--dp-fs': `${fontScale}px` } as React.CSSProperties}>
       {/* Header */}
-      <div style={{ padding: '10px 14px', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="dp-header">
         <div>
-          <span style={{ fontSize: fontScale + 1, fontWeight: 700 }}>Dedup: {model}</span>
+          <span className="dp-title">Dedup: {model}</span>
           {result && (
-            <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 8 }}>
+            <span className="dp-stats">
               {result.total_groups} groups · {result.total_duplicates} duplicates
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <div className="dp-header-actions">
           {/* Match field selector */}
           <select
+            className="dp-select"
             value={matchConfig.join(',')}
             onChange={e => setMatchConfig(e.target.value.split(','))}
-            style={{ fontSize: fontScale - 2, padding: '3px 6px', background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 3 }}
           >
             <option value="name_first+name_last">By Name</option>
             <option value="email:email">By Email</option>
@@ -202,22 +209,20 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
             <option value="company:normalized">By Company</option>
             <option value="ida">By IDA</option>
           </select>
-          <button onClick={fetchDupes} disabled={loading}
-            style={{ fontSize: fontScale - 2, padding: '3px 10px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}>
+          <button onClick={fetchDupes} disabled={loading} className="dp-btn dp-btn--scan">
             {loading ? 'Scanning...' : 'Scan'}
           </button>
           {/* Font size controls */}
           <button onClick={() => setFontScale(s => { const n = Math.max(10, s - 2); import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('dedup_font_size', n)); return n; })}
-            style={{ fontSize: fontScale - 2, padding: '2px 6px', background: 'transparent', color: '#94a3b8', border: '1px solid #334155', borderRadius: 3, cursor: 'pointer' }}>
+            className="dp-btn--font">
             A-
           </button>
           <button onClick={() => setFontScale(s => { const n = Math.min(22, s + 2); import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('dedup_font_size', n)); return n; })}
-            style={{ fontSize: fontScale - 2, padding: '2px 6px', background: 'transparent', color: '#94a3b8', border: '1px solid #334155', borderRadius: 3, cursor: 'pointer' }}>
+            className="dp-btn--font">
             A+
           </button>
           {onClose && (
-            <button onClick={onClose}
-              style={{ fontSize: 11, padding: '3px 8px', background: 'transparent', color: '#94a3b8', border: '1px solid #334155', borderRadius: 3, cursor: 'pointer' }}>
+            <button onClick={onClose} className="dp-btn--close">
               ✕
             </button>
           )}
@@ -226,16 +231,16 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
 
       {/* Navigation */}
       {result && result.groups.length > 0 && (
-        <div style={{ padding: '6px 14px', borderBottom: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: fontScale, color: '#94a3b8' }}>
+        <div className="dp-nav">
           <button onClick={handlePrev} disabled={currentGroupIdx === 0}
-            style={{ padding: '4px 14px', border: '1px solid #334155', borderRadius: 3, background: 'transparent', color: '#e2e8f0', cursor: 'pointer', fontWeight: 600, fontSize: fontScale, opacity: currentGroupIdx === 0 ? 0.3 : 1 }}>
+            className="dp-btn dp-btn--nav">
             ← Prev
           </button>
-          <span style={{ fontSize: fontScale }}>
+          <span className="dp-nav-label">
             Group {currentGroupIdx + 1} of {result.groups.length}
-            {currentGroup && <> — <strong style={{ color: '#f59e0b' }}>{currentGroup.match_key}</strong> ({currentGroup.records.length} records)</>}
+            {currentGroup && <> — <strong className="dp-nav-match-key">{currentGroup.match_key}</strong> ({currentGroup.records.length} records)</>}
           </span>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div className="dp-nav-actions">
             <button onClick={async () => {
                 if (!currentGroup) return;
                 if (!(window.event as any)?.shiftKey && !confirm(`Delete all ${currentGroup.records.length} records in this group?`)) return;
@@ -254,15 +259,15 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
                   onMergeComplete?.();
                 } catch (e) { alert('Delete failed: ' + (e as Error).message); }
               }}
-              style={{ padding: '4px 16px', border: 'none', borderRadius: 3, background: '#991b1b', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: fontScale }}>
+              className="dp-btn dp-btn--delete-all">
               Delete All
             </button>
             <button onClick={handleSkip} disabled={currentGroupIdx >= result.groups.length - 1}
-              style={{ padding: '4px 16px', border: 'none', borderRadius: 3, background: '#2563eb', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: fontScale }}>
+              className="dp-btn dp-btn--skip">
               Skip →
             </button>
             <button onClick={handleMerge} disabled={!selectedWinner || merging}
-              style={{ padding: '4px 16px', border: 'none', borderRadius: 3, background: '#166534', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: fontScale, opacity: !selectedWinner ? 0.3 : 1 }}>
+              className="dp-btn dp-btn--merge">
               {merging ? 'Merging...' : `Merge into #${selectedWinner || '?'}`}
             </button>
           </div>
@@ -270,11 +275,11 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
       )}
 
       {/* Group detail — records as cards */}
-      <div style={{ flex: 1, overflow: 'auto', padding: 14 }}>
-        {loading && <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>Scanning for duplicates...</div>}
+      <div className="dp-content">
+        {loading && <div className="dp-loading">Scanning for duplicates...</div>}
 
         {!loading && result && result.groups.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>No duplicates found. Clean data.</div>
+          <div className="dp-empty">No duplicates found. Clean data.</div>
         )}
 
         {currentGroup && currentGroup.records.map((rec, idx) => {
@@ -283,34 +288,24 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
           return (
             <div key={rec.id}
               onClick={() => setSelectedWinner(rec.id)}
-              style={{
-                border: `2px solid ${isWinner ? '#22c55e' : '#334155'}`,
-                borderRadius: 6, padding: 10, marginBottom: 8,
-                background: isWinner ? '#0f2918' : '#1e293b',
-                cursor: 'pointer',
-                transition: 'border-color 0.15s',
-              }}>
+              className={`dp-card${isWinner ? ' dp-card--winner' : ''}`}>
               {/* Card header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: fontScale, fontWeight: 600 }}>
+              <div className="dp-card-header">
+                <div className="dp-card-header-left">
+                  <span className="dp-card-id">
                     #{rec.id}
                   </span>
-                  <span style={{ fontSize: fontScale - 2, color: '#64748b' }}>{rec.ida}</span>
-                  <span style={{
-                    fontSize: fontScale - 3, padding: '1px 6px', borderRadius: 10,
-                    background: rec.score >= 7 ? '#166534' : rec.score >= 4 ? '#854d0e' : '#7f1d1d',
-                    color: '#fff',
-                  }}>
+                  <span className="dp-card-ida">{rec.ida}</span>
+                  <span className={scoreBadgeClass(rec.score)}>
                     score: {rec.score}
                   </span>
                   {isRecommended && (
-                    <span style={{ fontSize: fontScale - 3, padding: '1px 6px', borderRadius: 10, background: '#1d4ed8', color: '#fff' }}>
+                    <span className="dp-badge dp-badge--recommended">
                       recommended
                     </span>
                   )}
                   {isWinner && (
-                    <span style={{ fontSize: fontScale - 3, padding: '1px 6px', borderRadius: 10, background: '#22c55e', color: '#000', fontWeight: 700 }}>
+                    <span className="dp-badge dp-badge--keep">
                       ★ KEEP
                     </span>
                   )}
@@ -348,10 +343,10 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
                       onMergeComplete?.();
                     } catch (err) { alert('Delete failed: ' + (err as Error).message); }
                   }}
-                  style={{ fontSize: fontScale, padding: '3px 10px', background: '#7f1d1d', color: '#fca5a5', border: 'none', borderRadius: 3, cursor: 'pointer', fontWeight: 600 }}
+                  className="dp-btn dp-btn--delete"
                   title={`Delete #${rec.id}`}
                 >Delete</button>
-                {/* Note → button — save highlighted text as comment on the OTHER record */}
+                {/* Note -> button — save highlighted text as comment on the OTHER record */}
                 {currentGroup && currentGroup.records.length === 2 && (
                   <button
                     onClick={async (e) => {
@@ -368,7 +363,7 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
                         if (!target) { alert('Could not load target record'); return; }
                         const comments = target.comments && typeof target.comments === 'object' ? { ...target.comments } : {};
                         const process = Array.isArray(comments.process) ? [...comments.process] : [];
-                        const now = new Date().toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+                        const now = formatDt(new Date(), 'datetime');
                         process.push({
                           mgs: `From #${rec.id}: ${sel}`,
                           time: now,
@@ -380,7 +375,7 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
                         if (typeof App !== 'undefined' && (App as any).flash) (App as any).flash('Noted on #' + otherId, 2000);
                       } catch (err) { alert('Save failed: ' + (err as Error).message); }
                     }}
-                    style={{ fontSize: fontScale, padding: '3px 10px', background: '#854d0e', color: '#fbbf24', border: 'none', borderRadius: 3, cursor: 'pointer', fontWeight: 600 }}
+                    className="dp-btn dp-btn--note"
                     title="Save highlighted text as process comment on the other record"
                   >Note →</button>
                 )}
@@ -401,7 +396,7 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
                     const route = routes[model] || `/${model}`;
                     window.open(`${route}/${rec.id}`, '_blank');
                   }}
-                  style={{ fontSize: fontScale, padding: '3px 10px', background: '#1e3a5f', color: '#93c5fd', border: 'none', borderRadius: 3, cursor: 'pointer', fontWeight: 600 }}
+                  className="dp-btn dp-btn--edit"
                   title={`Edit #${rec.id} in new window`}
                 >Edit</button>
                 {/* Research buttons — company website + LinkedIn lookup */}
@@ -410,16 +405,15 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
                   const domain = email.includes('@') && !email.includes('placeholder') ? email.split('@')[1] : '';
                   const name = [rec.fields.name_first, rec.fields.name_last].filter(Boolean).join(' ') || rec.fields.attention || '';
                   const company = String(rec.fields.company || '');
-                  const btnStyle = { fontSize: fontScale, padding: '3px 8px', background: 'transparent', color: '#60a5fa', border: '1px solid #334155', borderRadius: 3, cursor: 'pointer', fontWeight: 600 as const };
                   return (
                     <>
                       {domain && !['gmail.com','yahoo.com','hotmail.com','aol.com','comcast.net','msn.com','outlook.com','icloud.com','me.com','mac.com','att.net','verizon.net','sbcglobal.net'].includes(domain) && (
                         <button onClick={(e) => { e.stopPropagation(); window.open(`https://${domain}`, '_blank'); }}
-                          style={btnStyle} title={`Open ${domain}`}>🏢</button>
+                          className="dp-btn--research" title={`Open ${domain}`}>🏢</button>
                       )}
                       {name && (
                         <button onClick={(e) => { e.stopPropagation(); window.open(`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(name + (company ? ' ' + company : ''))}`, '_blank'); }}
-                          style={btnStyle} title={`Search LinkedIn for ${name}`}>in</button>
+                          className="dp-btn--research" title={`Search LinkedIn for ${name}`}>in</button>
                       )}
                     </>
                   );
@@ -427,14 +421,14 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
               </div>
 
               {/* Card fields — 2 column grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: fontScale - 1 }}>
+              <div className="dp-fields-grid">
                 {displayFields.map(f => {
                   const val = rec.fields[f];
                   if (val === undefined) return null;
                   return (
                     <React.Fragment key={f}>
-                      <span style={{ color: '#64748b', fontWeight: 500 }}>{f}</span>
-                      <span style={{ wordBreak: 'break-all' }}>{renderVal(val)}</span>
+                      <span className="dp-field-label">{f}</span>
+                      <span className="dp-field-value">{renderVal(val)}</span>
                     </React.Fragment>
                   );
                 }).filter(Boolean)}
@@ -446,7 +440,7 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
 
       {/* Footer stats */}
       {result && (
-        <div style={{ padding: '6px 14px', borderTop: '1px solid #334155', fontSize: 10, color: '#64748b', textAlign: 'center' }}>
+        <div className="dp-footer">
           Click a card to select the winner. Merge absorbs data from losers and soft-deletes them.
           All original data preserved in config.merged_records.
         </div>

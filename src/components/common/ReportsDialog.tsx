@@ -19,6 +19,7 @@ import { openUniversalPrint } from '@/components/print/UniversalPrint';
 import { fetchPrintLayout } from '@/hooks/usePrintLayout'; // fallback for reports without config.form
 import PrintLayoutDesigner from '@/components/print/PrintLayoutDesigner';
 import type { PrintLayout } from '@/components/print/printLayoutTypes';
+import './ReportsDialog.css';
 // ParadeOfReports available at /parade route — launched as a Report record, not a dialog button
 
 // ---------------------------------------------------------------------------
@@ -359,37 +360,32 @@ const ReportsDialog: React.FC<Props> = ({
 
   const isPrimary = (r: ReportRecord) => (r.sort_order ?? 999) === 0;
 
+  // Set font-size custom properties on the root element
+  const rootStyle = {
+    '--rd-fs': `${fontSize}px`,
+    '--rd-fs-sm': `${fontSize - 1}px`,
+    '--rd-fs-xs': `${fontSize - 2}px`,
+    '--rd-fs-xxs': `${fontSize - 3}px`,
+    '--rd-fs-xxxs': `${fontSize - 4}px`,
+    '--rd-fs-lg': `${fontSize + 2}px`,
+  } as React.CSSProperties;
+
   return (
     // Backdrop
     <div data-wc="reports-dialog-backdrop"
+      className="rd-backdrop"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 9000,
-        background: 'rgba(0,0,0,0.5)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
+      style={rootStyle}>
 
       {/* Full-screen editor overlay — separate from ReportsDialog */}
       {designMode && (
-        <div data-wc="reports-editor-overlay"
-          style={{
-            position: 'fixed', inset: 0, zIndex: 9500,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-          <div style={{
-            width: '96vw', height: '94vh', maxWidth: 1900,
-            background: t.surface, border: `1px solid ${t.border}`,
-            borderRadius: 8, display: 'flex', flexDirection: 'column',
-            boxShadow: '0 12px 48px rgba(0,0,0,0.7)',
-            overflow: 'hidden',
-          }}>
+        <div data-wc="reports-editor-overlay" className="rd-editor-overlay">
+          <div className="rd-editor-container">
             {designMode && designReport && designLayout && (
               <PrintLayoutDesigner
                 report={designReport}
                 model={model}
                 layout={designLayout}
-                theme={t}
                 fontSize={fontSize}
                 companyInfo={companyInfo}
                 sampleData={designSampleData}
@@ -402,63 +398,33 @@ const ReportsDialog: React.FC<Props> = ({
       )}
 
       {/* Reports list dialog */}
-      <div data-wc="reports-dialog"
-        style={{
-          background: t.surface, border: `1px solid ${t.border}`,
-          borderRadius: 8,
-          width: 620,
-          maxHeight: '85vh',
-          display: 'flex', flexDirection: 'column',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-        }}>
+      <div data-wc="reports-dialog" className="rd-dialog">
 
         {/* Header */}
-        <div style={{
-          padding: '12px 16px', borderBottom: `1px solid ${t.border}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
+        <div className="rd-header">
           <div>
-            <span style={{ fontWeight: 700, fontSize: fontSize + 2, color: t.accent }}>
-              Reports
-            </span>
-            <span style={{ fontSize: fontSize - 1, color: t.textMuted, marginLeft: 8 }}>
-              {model}
-            </span>
+            <span className="rd-header-title">Reports</span>
+            <span className="rd-header-model">{model}</span>
           </div>
-          <button onClick={onClose} style={{
-            background: 'none', border: 'none', color: t.textMuted,
-            fontSize: 18, cursor: 'pointer', padding: '0 4px',
-          }}>&times;</button>
+          <button onClick={onClose} className="rd-close-btn">&times;</button>
         </div>
 
         {/* Column headers */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: '70px 1fr 72px',
-          gap: 8, padding: '6px 16px',
-          borderBottom: `1px solid ${t.borderLight}`,
-          fontSize: fontSize - 2, fontWeight: 700, color: t.textMuted,
-          textTransform: 'uppercase', letterSpacing: '0.05em',
-        }}>
+        <div className="rd-col-headers">
           <span>Type</span>
           <span>Report Name</span>
-          <span style={{ textAlign: 'center' }}>Output</span>
+          <span className="rd-col-header--center">Output</span>
         </div>
 
         {/* Body — report list */}
-        <div style={{ flex: 1, display: 'flex', minHeight: 120, overflow: 'hidden' }}>
+        <div className="rd-body">
 
-        <div ref={listRef} style={{
-          flex: 1, overflowY: 'auto', padding: '4px 0',
-        }}>
+        <div ref={listRef} className="rd-list">
           {loading && (
-            <div style={{ padding: '16px', color: t.textMuted, textAlign: 'center' }}>
-              Loading...
-            </div>
+            <div className="rd-loading">Loading...</div>
           )}
           {!loading && filteredReports.length === 0 && (
-            <div style={{ padding: '24px 16px', color: t.textDim, textAlign: 'center' }}>
-              No reports configured for {model}
-            </div>
+            <div className="rd-empty">No reports configured for {model}</div>
           )}
           {!loading && filteredReports.map((report, i) => {
             const isSelected = i === selectedIndex;
@@ -467,74 +433,48 @@ const ReportsDialog: React.FC<Props> = ({
             const editorTag = hasForm ? 'layout' : null;
             const ot = OUTPUT_TYPE_LABELS[report.output_type || 'print'] || OUTPUT_TYPE_LABELS.print;
 
+            const rowClasses = [
+              'rd-row',
+              isSelected && 'rd-row--selected',
+              primary && 'rd-row--primary',
+            ].filter(Boolean).join(' ');
+
             return (
               <div key={report.id}
                 data-wc="reports-dialog-row"
+                className={rowClasses}
                 onClick={(e) => {
                   if (e.shiftKey && canEditReports) { enterDesignMode(report); return; }
                   setSelectedIndex(i);
                 }}
                 onDoubleClick={() => executeReport(report)}
-                style={{
-                  display: 'grid', gridTemplateColumns: '70px 1fr 72px',
-                  gap: 8, alignItems: 'center',
-                  padding: '8px 16px', cursor: 'pointer',
-                  borderBottom: i < filteredReports.length - 1 ? `1px solid ${t.borderLight}` : 'none',
-                  background: isSelected ? t.surfaceAlt : 'transparent',
-                  borderLeft: primary ? `3px solid ${t.accent}` : '3px solid transparent',
-                  transition: 'background 0.1s',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSelected) (e.currentTarget as HTMLElement).style.background = t.surfaceAlt;
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent';
-                }}
               >
                 {/* Category badge */}
-                <span style={{
-                  padding: '2px 6px', borderRadius: 3, fontSize: fontSize - 3,
-                  fontWeight: 700, background: categoryColor(report.category), color: '#fff',
-                  textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}>{report.category || 'report'}</span>
+                <span className="rd-category-badge"
+                  style={{ background: categoryColor(report.category) }}
+                >{report.category || 'report'}</span>
 
                 {/* Name + description */}
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontWeight: 600, color: t.text, fontSize }}>
-                      {report.name}
-                    </span>
+                <div className="rd-name-cell">
+                  <div className="rd-name-row">
+                    <span className="rd-name-text">{report.name}</span>
                     {primary && (
-                      <span style={{
-                        fontSize: fontSize - 3, padding: '1px 5px', borderRadius: 3,
-                        background: t.accent, color: '#fff', fontWeight: 700,
-                      }}>PRIMARY</span>
+                      <span className="rd-primary-tag">PRIMARY</span>
                     )}
                   </div>
                   {report.description && (
-                    <div style={{
-                      fontSize: fontSize - 2, color: t.textMuted, marginTop: 1,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>{report.description}</div>
+                    <div className="rd-description">{report.description}</div>
                   )}
                 </div>
 
                 {/* Output type */}
-                <span style={{
-                  fontSize: fontSize - 2, color: t.textDim, textAlign: 'center',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
-                }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                <span className="rd-output-cell">
+                  <span className="rd-output-label">
                     <span>{ot.icon}</span>
                     <span>{ot.label}</span>
                   </span>
                   {editorTag && (
-                    <span style={{
-                      fontSize: fontSize - 4, padding: '0px 4px', borderRadius: 3,
-                      background: '#059669',
-                      color: '#fff', fontWeight: 600, letterSpacing: '0.02em',
-                    }}>{editorTag}</span>
+                    <span className="rd-editor-tag">{editorTag}</span>
                   )}
                 </span>
 
@@ -545,59 +485,33 @@ const ReportsDialog: React.FC<Props> = ({
 
         {/* Library pane — shows available forms from Andi/Alice */}
         {libraryOpen && (
-          <div style={{
-            flex: 1, borderLeft: `1px solid ${t.border}`,
-            display: 'flex', flexDirection: 'column', overflow: 'hidden',
-          }}>
-            <div style={{
-              padding: '8px 12px', borderBottom: `1px solid ${t.borderLight}`,
-              fontSize: fontSize - 1, color: t.accent, fontWeight: 700,
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            }}>
+          <div className="rd-library-pane">
+            <div className="rd-library-header">
               <span>Form Library — {model}</span>
-              <span style={{ fontSize: fontSize - 2, color: t.textMuted, fontWeight: 400 }}>
-                Double-click to check out
-              </span>
+              <span className="rd-library-header-hint">Double-click to check out</span>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
+            <div className="rd-library-list">
               {libraryLoading && (
-                <div style={{ padding: 16, color: t.textMuted, textAlign: 'center' }}>
-                  Loading library...
-                </div>
+                <div className="rd-loading">Loading library...</div>
               )}
               {!libraryLoading && libraryForms.length === 0 && (
-                <div style={{ padding: '24px 16px', color: t.textDim, textAlign: 'center' }}>
+                <div className="rd-empty">
                   {libraryStatus || `No forms available for ${model}`}
                 </div>
               )}
               {!libraryLoading && libraryForms.map((entry) => (
                 <div key={entry.uuid}
+                  className="rd-library-row"
                   onDoubleClick={() => handleCheckout(entry)}
-                  style={{
-                    padding: '8px 16px', cursor: 'pointer',
-                    borderBottom: `1px solid ${t.borderLight}`,
-                    display: 'grid', gridTemplateColumns: '1fr 80px 80px',
-                    gap: 8, alignItems: 'center',
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                 >
                   <div>
-                    <div style={{ fontWeight: 600, fontSize, color: t.text }}>
-                      {entry.name}
-                    </div>
+                    <div className="rd-library-name">{entry.name}</div>
                     {entry.description && (
-                      <div style={{ fontSize: fontSize - 2, color: t.textMuted, marginTop: 1 }}>
-                        {entry.description}
-                      </div>
+                      <div className="rd-library-desc">{entry.description}</div>
                     )}
                   </div>
-                  <span style={{ fontSize: fontSize - 2, color: t.textDim, textAlign: 'center' }}>
-                    {entry.row_count} rows
-                  </span>
-                  <span style={{ fontSize: fontSize - 2, color: t.textDim, textAlign: 'center' }}>
-                    {entry.field_count} fields
-                  </span>
+                  <span className="rd-library-stat">{entry.row_count} rows</span>
+                  <span className="rd-library-stat">{entry.field_count} fields</span>
                 </div>
               ))}
             </div>
@@ -608,24 +522,22 @@ const ReportsDialog: React.FC<Props> = ({
         </div>{/* end body flex row */}
 
         {/* Footer — Library select, Edit button, New Report select */}
-        <div style={{
-          padding: '10px 16px', borderTop: `1px solid ${t.border}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div style={{ fontSize: fontSize - 2, color: t.textMuted }}>
+        <div className="rd-footer">
+          <div className="rd-footer-info">
             {context === 'detail' && selectedId ? `Record #${selectedId}` : 'List reports'}
             {' · Double-click to print · '}
-            <span style={{ color: t.textDim }}>
+            <span className="rd-footer-shortcut">
               {navigator.platform.includes('Mac') ? '⌘P' : 'Ctrl+P'} = Primary
             </span>
             {libraryStatus && (
-              <span style={{ marginLeft: 8, color: t.accent }}>{libraryStatus}</span>
+              <span className="rd-footer-status">{libraryStatus}</span>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div className="rd-footer-actions">
             {/* Library select */}
             <select
               data-wc="reports-library-select"
+              className="rd-select"
               value=""
               onChange={(e) => {
                 const action = e.target.value;
@@ -637,12 +549,6 @@ const ReportsDialog: React.FC<Props> = ({
                 else if (action === 'restore' && selectedIndex >= 0 && selectedIndex < filteredReports.length) {
                   handleRestore(filteredReports[selectedIndex]);
                 }
-              }}
-              style={{
-                padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
-                fontSize: fontSize - 1, fontWeight: 600,
-                background: t.surface, border: `1px solid ${t.border}`,
-                color: t.text, appearance: 'auto',
               }}
             >
               <option value="" disabled>Library</option>
@@ -660,16 +566,9 @@ const ReportsDialog: React.FC<Props> = ({
             {canEditReports && selectedIndex >= 0 && selectedIndex < filteredReports.length && (
               <button
                 data-wc="reports-edit-button"
+                className="rd-edit-btn"
                 onClick={() => enterDesignMode(filteredReports[selectedIndex])}
                 title="Edit report layout"
-                style={{
-                  padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
-                  fontSize: fontSize - 1, fontWeight: 600,
-                  background: 'none', border: `1px solid ${t.accent}`,
-                  color: t.accent,
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
               >
                 Edit
               </button>
@@ -679,6 +578,7 @@ const ReportsDialog: React.FC<Props> = ({
             {canCreateReports && (
               <select
                 data-wc="reports-new-select"
+                className="rd-new-report-select"
                 value=""
                 onChange={(e) => {
                   const outputType = e.target.value;
@@ -699,20 +599,14 @@ const ReportsDialog: React.FC<Props> = ({
                     }
                   });
                 }}
-                style={{
-                  padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
-                  fontSize: fontSize - 1, fontWeight: 600,
-                  background: t.accent, border: 'none',
-                  color: '#fff', appearance: 'auto',
-                }}
               >
-                <option value="" disabled style={{ color: '#000' }}>New Report</option>
-                <option value="print" style={{ color: '#000' }}>Print</option>
-                <option value="email" style={{ color: '#000' }}>Email</option>
-                <option value="export" style={{ color: '#000' }}>Export</option>
-                <option value="label" style={{ color: '#000' }}>Label</option>
-                <option value="screen" style={{ color: '#000' }}>Screen</option>
-                <option value="api" style={{ color: '#000' }}>API</option>
+                <option value="" disabled className="rd-new-report-option">New Report</option>
+                <option value="print" className="rd-new-report-option">Print</option>
+                <option value="email" className="rd-new-report-option">Email</option>
+                <option value="export" className="rd-new-report-option">Export</option>
+                <option value="label" className="rd-new-report-option">Label</option>
+                <option value="screen" className="rd-new-report-option">Screen</option>
+                <option value="api" className="rd-new-report-option">API</option>
               </select>
             )}
           </div>

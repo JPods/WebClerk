@@ -19,6 +19,7 @@
  *   - WCHQ knowledge base matches
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import './GetHelpDialog.css';
 
 interface GetHelpDialogProps {
   open: boolean;
@@ -42,33 +43,62 @@ const WC_HELP_MAP: Record<string, { label: string; topic: string; training?: str
   'alice-hint-bar': { label: 'Alice Hints', topic: 'Coaching suggestions from Alice (green), WCHQ best practices (blue), and power user tips (gold). Dismiss with ×.' },
 };
 
-// Component name → source path + description (populated from DevIdentifier source props)
-// This is the bridge between Shift+click copy and Get Help paste
-const COMPONENT_HELP: Record<string, { source: string; description: string }> = {
-  // Detail pages
-  'ContactDetailJson': { source: 'apps/core/models/contact/pages/ContactDetailJson.tsx', description: 'Contact detail form — JSON-driven layout from detail_layout Setting. Three-column header + tabbed sections.' },
-  'ItemDetailJson': { source: 'apps/products/pages/ItemDetailJson.tsx', description: 'Item detail form — JSON-driven layout. Product data, variants, BOM, serial numbers.' },
-  'TransactionDetail': { source: 'apps/transactions/components/TransactionDetail.tsx', description: 'Shared transaction renderer — orders, invoices, proposals, purchases all use this. Layout from detail_layout Setting per model.' },
-  'DynamicDetail': { source: 'components/common/DynamicDetail.tsx', description: 'Generic data-driven form renderer. Reads layout JSON, renders any model. Arrange mode for drag-to-reorder fields.' },
-  'OrgDetailJson': { source: 'apps/orgs/components/OrgDetail.json.tsx', description: 'Organization detail — shared by customer, vendor, manufacturer, employee, rep. Layout from detail_layout Setting.' },
-  'BundleDetail': { source: 'apps/sync/models/bundle/pages/BundleDetail.tsx', description: 'Sync bundle viewer — shows records exchanged between installations.' },
-  // Panels
-  'CommPanel': { source: 'apps/communications/components/CommPanel.tsx', description: 'Communications panel — emails, phones, addresses for a contact. Renders CommCards.' },
-  'DataBrowser': { source: 'pages/admin/DataBrowser.tsx', description: 'Universal databrowser — lists and details for any model. Column config from workbench_fields Setting.' },
-  'AppSidebar': { source: 'layout/AppSidebar.tsx', description: 'Main navigation sidebar — model list, dashboards, search. Configured from contact.prefs.staff.nav Setting.' },
-  'SprintBurndown': { source: 'apps/core/models/action/pages/SprintBurndown.tsx', description: 'Sprint burndown chart — tracks project action completion over time.' },
-  'KanbanBoardPage': { source: 'apps/utils/kanban/KanbanBoardPage.tsx', description: 'Kanban board — drag actions between status columns. Project-filtered.' },
-  'UnifiedGantt': { source: 'apps/utils/gantt/UnifiedGantt.tsx', description: 'Gantt chart — action timelines with dependencies. Project-filtered.' },
+// Component help loaded from Document records (purpose='help-alice') via wcapi.
+// Falls back to this static map only if the query fails or returns empty.
+const COMPONENT_HELP_FALLBACK: Record<string, { source: string; description: string }> = {
+  'ContactDetailJson': { source: 'apps/core/models/contact/pages/ContactDetailJson.tsx', description: 'Contact detail form — JSON-driven layout from detail_layout Setting.' },
+  'ItemDetailJson': { source: 'apps/products/pages/ItemDetailJson.tsx', description: 'Item detail form — product data, variants, BOM, serial numbers.' },
+  'TransactionDetail': { source: 'apps/transactions/components/TransactionDetail.tsx', description: 'Shared transaction renderer — orders, invoices, proposals, purchases.' },
+  'DynamicDetail': { source: 'components/common/DynamicDetail.tsx', description: 'Generic data-driven form renderer. Reads layout JSON, renders any model.' },
+  'DataBrowser': { source: 'pages/admin/DataBrowser.tsx', description: 'Universal databrowser — lists and details for any model.' },
 };
 
-function parseInput(text: string): { wcId: string; wcModel?: string; wcField?: string; componentName?: string; sourcePath?: string; rawAttrs: Record<string, string> } {
+// Cache for Document-based component help (loaded once per session)
+let _componentHelpCache: Record<string, { source: string; description: string }> | null = null;
+let _componentHelpLoading = false;
+
+async function getComponentHelp(): Promise<Record<string, { source: string; description: string }>> {
+  if (_componentHelpCache) return _componentHelpCache;
+  if (_componentHelpLoading) return COMPONENT_HELP_FALLBACK;
+  _componentHelpLoading = true;
+  try {
+    const { getRecords } = await import('@/api/wcapi');
+    const res = await getRecords('document', {
+      status: 'active',
+      config__doc_system: 'help-alice',
+      limit: 200,
+    }) as any;
+    const docs = res?.results || [];
+    const map: Record<string, { source: string; description: string }> = {};
+    for (const doc of docs) {
+      const name = doc.config?.component_name || doc.name;
+      if (name) {
+        map[name] = {
+          source: doc.config?.source_path || doc.path?.source || '',
+          description: doc.body?.slice(0, 500) || doc.description || '',
+        };
+      }
+    }
+    // Merge fallback for any components not in DB yet
+    _componentHelpCache = { ...COMPONENT_HELP_FALLBACK, ...map };
+    return _componentHelpCache;
+  } catch {
+    _componentHelpCache = COMPONENT_HELP_FALLBACK;
+    return _componentHelpCache;
+  } finally {
+    _componentHelpLoading = false;
+  }
+}
+
+async function parseInput(text: string): Promise<{ wcId: string; wcModel?: string; wcField?: string; componentName?: string; sourcePath?: string; rawAttrs: Record<string, string> }> {
   const result: { wcId: string; wcModel?: string; wcField?: string; componentName?: string; sourcePath?: string; rawAttrs: Record<string, string> } = { wcId: '', rawAttrs: {} };
+  const componentHelp = await getComponentHelp();
 
   // First: check if it's a component name (from Shift+click on DevIdentifier badge)
   const trimmed = text.trim();
-  if (COMPONENT_HELP[trimmed]) {
+  if (componentHelp[trimmed]) {
     result.componentName = trimmed;
-    result.sourcePath = COMPONENT_HELP[trimmed].source;
+    result.sourcePath = componentHelp[trimmed].source;
     return result;
   }
 
@@ -76,11 +106,7 @@ function parseInput(text: string): { wcId: string; wcModel?: string; wcField?: s
   if (trimmed.endsWith('.tsx') || trimmed.endsWith('.ts')) {
     const fileName = trimmed.split('/').pop()?.replace(/\.tsx?$/, '') || '';
     result.sourcePath = trimmed;
-    if (COMPONENT_HELP[fileName]) {
-      result.componentName = fileName;
-    } else {
-      result.componentName = fileName;
-    }
+    result.componentName = fileName;
     return result;
   }
 
@@ -119,6 +145,7 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
     alice_notes?: string[];
     wchq_notes?: string[];
   } | null>(null);
+  const [parsedContext, setParsedContext] = useState<{ sourcePath?: string; wcField?: string; wcModel?: string }>({});
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -126,6 +153,7 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
     if (open) {
       setPastedHtml('');
       setHelpResult(null);
+      setParsedContext({});
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [open]);
@@ -134,10 +162,12 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
     if (!html.trim()) return;
     setLoading(true);
 
-    const parsed = parseInput(html);
+    const parsed = await parseInput(html);
+    setParsedContext({ sourcePath: parsed.sourcePath, wcField: parsed.wcField, wcModel: parsed.wcModel });
+    const componentHelp = await getComponentHelp();
 
     // Try component name first, then data-wc, then unknown
-    const componentInfo = parsed.componentName ? COMPONENT_HELP[parsed.componentName] : null;
+    const componentInfo = parsed.componentName ? componentHelp[parsed.componentName] : null;
     const helpInfo = WC_HELP_MAP[parsed.wcId] || null;
 
     const result: typeof helpResult = {
@@ -205,55 +235,42 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
   if (!open) return null;
 
   return (
-    <div data-wc="get-help-dialog" style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-      paddingTop: 60,
-      zIndex: 9999,
-    }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{
-        background: '#1e1e1e', border: '1px solid #3c3c3c', borderRadius: 8,
-        width: 600, maxHeight: 'calc(100vh - 80px)', overflow: 'auto', padding: 20,
-        color: '#d4d4d4', fontSize: 13,
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontSize: 16, color: '#9cdcfe' }}>Get Help</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#888', fontSize: 18, cursor: 'pointer' }}>×</button>
+    <div data-wc="get-help-dialog" className="gh-root gh-overlay"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="gh-panel">
+        <div className="gh-header">
+          <h2 className="gh-title">Get Help</h2>
+          <button onClick={onClose} className="gh-close-btn">×</button>
         </div>
 
-        <p style={{ fontSize: 11, color: '#888', marginBottom: 12 }}>
+        <p className="gh-instructions">
           Shift+hover any zone → click nametag to copy → paste here. Or right-click → Inspect → Copy Element → paste.
         </p>
 
         <textarea
           ref={inputRef}
           data-wc="help-paste-area"
+          className="gh-textarea"
           value={pastedHtml}
           onChange={(e) => { setPastedHtml(e.target.value); }}
           onPaste={handlePaste}
           placeholder="Paste copied element here..."
-          style={{
-            width: '100%', height: 80, background: '#252526', border: '1px solid #3c3c3c',
-            borderRadius: 4, padding: 8, color: '#d4d4d4', fontSize: 11,
-            fontFamily: 'monospace', resize: 'vertical',
-          }}
         />
 
         {pastedHtml && !helpResult && !loading && (
-          <button onClick={() => analyzeElement(pastedHtml)}
-            style={{ marginTop: 8, padding: '6px 16px', background: '#0d6efd', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
+          <button onClick={() => analyzeElement(pastedHtml)} className="gh-analyze-btn">
             Analyze
           </button>
         )}
 
-        {loading && <div style={{ marginTop: 12, color: '#888' }}>Looking up help...</div>}
+        {loading && <div className="gh-loading">Looking up help...</div>}
 
         {helpResult && (
-          <div style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#9cdcfe', marginBottom: 8 }}>
+          <div className="gh-result">
+            <div className="gh-result-label">
               {helpResult.label}
             </div>
-            <div style={{ fontSize: 12, lineHeight: 1.6, marginBottom: 12 }}>
+            <div className="gh-result-topic">
               {helpResult.topic}
             </div>
 
@@ -263,16 +280,16 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
             )}
 
             {helpResult.field_help && (
-              <div style={{ padding: '6px 10px', background: '#1a2a3e', borderRadius: 4, fontSize: 11, marginBottom: 8 }}>
-                <span style={{ color: '#60a5fa', fontWeight: 600 }}>Field Info:</span> {helpResult.field_help}
+              <div className="gh-field-info">
+                <span className="gh-field-info-label">Field Info:</span> {helpResult.field_help}
               </div>
             )}
 
             {helpResult.alice_notes && helpResult.alice_notes.length > 0 && (
-              <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', textTransform: 'uppercase', marginBottom: 4 }}>Alice Notes</div>
+              <div className="gh-alice-notes">
+                <div className="gh-section-header gh-section-header--alice">Alice Notes</div>
                 {helpResult.alice_notes.map((note, i) => (
-                  <div key={i} style={{ padding: '4px 10px', background: '#1a3a2e', borderRadius: 4, fontSize: 11, marginBottom: 3 }}>
+                  <div key={i} className="gh-alice-note">
                     {note}
                   </div>
                 ))}
@@ -280,9 +297,9 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
             )}
 
             {helpResult.training && (
-              <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#60a5fa', textTransform: 'uppercase', marginBottom: 4 }}>Training Available</div>
-                <div style={{ padding: '4px 10px', background: '#1a2a3e', borderRadius: 4, fontSize: 11 }}>
+              <div className="gh-training">
+                <div className="gh-section-header gh-section-header--training">Training Available</div>
+                <div className="gh-training-content">
                   {helpResult.training}
                 </div>
               </div>
@@ -290,9 +307,9 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
 
             {helpResult.wchq_notes && helpResult.wchq_notes.length > 0 && (
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#60a5fa', textTransform: 'uppercase', marginBottom: 4 }}>WCHQ Documentation</div>
+                <div className="gh-section-header gh-section-header--wchq">WCHQ Documentation</div>
                 {helpResult.wchq_notes.map((note, i) => (
-                  <div key={i} style={{ padding: '6px 10px', background: '#1a2a3e', borderRadius: 4, fontSize: 11, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                  <div key={i} className="gh-wchq-note">
                     {note}
                   </div>
                 ))}
@@ -302,13 +319,13 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
             {/* Contribute help — users add tips that become Document records */}
             <ContributeHelp
               componentName={helpResult.label}
-              sourcePath={parseInput(pastedHtml).sourcePath || ''}
+              sourcePath={parsedContext.sourcePath || ''}
             />
 
             {/* Request Change section — users can request field type changes */}
             <FieldChangeRequest
-              wcField={parseInput(pastedHtml).wcField || ''}
-              wcModel={parseInput(pastedHtml).wcModel || ''}
+              wcField={parsedContext.wcField || ''}
+              wcModel={parsedContext.wcModel || ''}
               fieldLabel={helpResult.label}
             />
           </div>
@@ -330,53 +347,112 @@ function RequestWchqHelp({ elementText }: { elementText: string }) {
   const [question, setQuestion] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [existingAnswers, setExistingAnswers] = useState<any[]>([]);
+  const [searched, setSearched] = useState(false);
+
+  // Search existing Q&A first before creating a new question
+  const handleSearch = async (q: string) => {
+    if (!q.trim() || q.length < 3) return;
+    try {
+      const { manageAction } = await import('@/api/wcapi');
+      const res = await manageAction('search_support_qa', { query: q, limit: 5 });
+      setExistingAnswers(res?.data?.results || []);
+      setSearched(true);
+    } catch { setSearched(true); }
+  };
 
   const handleSubmit = async () => {
     if (!question.trim()) return;
     setSubmitting(true);
     try {
       const { manageAction } = await import('@/api/wcapi');
-      await manageAction('create_action', {
-        action: { en: `Help request: ${question.slice(0, 100)}` },
-        description: { en: `User pasted element and asked for help.\n\nQuestion: ${question}\n\nElement: ${elementText.slice(0, 500)}` },
-        status: 'open',
-        priority: 2,
-        project_name: 'wchq-support',
+      const { collectSupportContext } = await import('@/utils/supportContext');
+      const context = collectSupportContext();
+
+      // Create Q&A question with diagnostic context
+      const qaRes = await manageAction('ask_support_qa', {
+        question: question,
+        context: elementText.slice(0, 500),
+        asked_by: 'user',
       });
+
+      // Post to WCHQ with full diagnostic context
+      if (qaRes?.data?.id) {
+        await manageAction('post_qa_to_wchq', {
+          document_id: qaRes.data.id,
+          context: { ...context, pasted_element: elementText.slice(0, 300) },
+        });
+      }
       setSubmitted(true);
     } catch {
-      setSubmitted(true); // show success anyway — Alice will pick it up
+      setSubmitted(true);
     }
     setSubmitting(false);
   };
 
   if (submitted) {
     return (
-      <div style={{ padding: '8px 12px', background: '#1a3a2e', borderRadius: 4, fontSize: 11, color: '#4ade80', marginBottom: 12 }}>
+      <div className="gh-success gh-success--mb">
         Question submitted to WCHQ. You will receive an answer in your action list.
       </div>
     );
   }
 
   return (
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ display: 'flex', gap: 6 }}>
+    <div className="gh-wchq-request">
+      <div className="gh-wchq-request-row">
         <input
           type="text"
           value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
+          onChange={(e) => { setQuestion(e.target.value); setSearched(false); setExistingAnswers([]); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') { searched ? handleSubmit() : handleSearch(question); } }}
           placeholder="What do you need help with?"
-          style={{ flex: 1, background: '#252526', border: '1px solid #3c3c3c', borderRadius: 4, padding: '6px 8px', fontSize: 11, color: '#d4d4d4' }}
+          className="gh-input gh-input--flex"
         />
-        <button
-          onClick={handleSubmit}
-          disabled={submitting || !question.trim()}
-          style={{ padding: '6px 12px', fontSize: 11, fontWeight: 600, border: 'none', borderRadius: 4, background: '#0d6efd', color: '#fff', cursor: submitting ? 'wait' : 'pointer', opacity: submitting || !question.trim() ? 0.5 : 1 }}
-        >
-          {submitting ? '...' : 'Ask WCHQ'}
-        </button>
+        {!searched ? (
+          <button
+            onClick={() => handleSearch(question)}
+            disabled={!question.trim() || question.length < 3}
+            className="gh-btn-accent"
+          >
+            Search
+          </button>
+        ) : (
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || !question.trim()}
+            className="gh-btn-accent"
+          >
+            {submitting ? '...' : 'Ask WCHQ'}
+          </button>
+        )}
       </div>
+
+      {/* Show existing answers before letting user submit */}
+      {searched && existingAnswers.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', textTransform: 'uppercase', marginBottom: 4 }}>
+            Existing Answers ({existingAnswers.length})
+          </div>
+          {existingAnswers.map((a: any, i: number) => (
+            <div key={i} style={{ padding: '6px 10px', background: '#1a3a2e', borderRadius: 4, fontSize: 11, marginBottom: 3, cursor: 'pointer' }}
+              title={a.answer_preview}>
+              <span style={{ color: '#4ade80', fontWeight: 600 }}>{a.question}</span>
+              {a.score_avg > 0 && <span style={{ color: '#888', marginLeft: 8 }}>★ {a.score_avg}</span>}
+              <div style={{ color: '#aaa', marginTop: 2 }}>{a.answer_preview?.slice(0, 150)}</div>
+            </div>
+          ))}
+          <div style={{ fontSize: 10, color: '#888', marginTop: 4 }}>
+            Not what you need? Click "Ask WCHQ" to submit your question to the team.
+          </div>
+        </div>
+      )}
+
+      {searched && existingAnswers.length === 0 && (
+        <div style={{ fontSize: 10, color: '#888', marginTop: 4 }}>
+          No existing answers found. Click "Ask WCHQ" to submit to Bill, Alice, and the team.
+        </div>
+      )}
     </div>
   );
 }
@@ -435,30 +511,29 @@ function FieldChangeRequest({ wcField, wcModel, fieldLabel }: { wcField: string;
 
   if (submitted) {
     return (
-      <div style={{ marginTop: 12, padding: '8px 12px', background: '#1a3a2e', borderRadius: 4, fontSize: 11, color: '#4ade80' }}>
+      <div className="gh-success gh-success--mt">
         Request submitted for {wcModel}.{wcField} — Alice will review and create an action record. An admin will approve the change.
       </div>
     );
   }
 
   return (
-    <div data-wc="field-change-request" style={{ marginTop: 16, borderTop: '1px solid #3c3c3c', paddingTop: 12 }}>
-      <button onClick={() => setShowForm(!showForm)}
-        style={{ background: 'none', border: '1px solid #6f42c1', borderRadius: 4, padding: '4px 12px', fontSize: 11, color: '#a78bfa', cursor: 'pointer', fontWeight: 600 }}>
+    <div data-wc="field-change-request" className="gh-field-change">
+      <button onClick={() => setShowForm(!showForm)} className="gh-btn-outline-purple">
         {showForm ? 'Cancel Request' : 'Request Change'}
       </button>
 
       {showForm && (
-        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase' }}>
+        <div className="gh-field-change-form">
+          <div className="gh-field-change-title">
             Request Field Change: {wcModel}.{wcField}
           </div>
 
           {/* Change type */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, color: '#888', width: 90 }}>Make this a:</span>
+          <div className="gh-form-row">
+            <span className="gh-form-label">Make this a:</span>
             <select value={changeType} onChange={(e) => setChangeType(e.target.value as any)}
-              style={{ background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '3px 6px', fontSize: 11, color: '#d4d4d4' }}>
+              className="gh-select">
               <option value="select">Dropdown (select list)</option>
               <option value="lookup">Lookup (search another model)</option>
               <option value="readonly">Read-only (system driven)</option>
@@ -469,10 +544,10 @@ function FieldChangeRequest({ wcField, wcModel, fieldLabel }: { wcField: string;
           {/* Values source — only for select type */}
           {changeType === 'select' && (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 11, color: '#888', width: 90 }}>Values from:</span>
+              <div className="gh-form-row">
+                <span className="gh-form-label">Values from:</span>
                 <select value={valuesSource} onChange={(e) => setValuesSource(e.target.value as any)}
-                  style={{ background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '3px 6px', fontSize: 11, color: '#d4d4d4' }}>
+                  className="gh-select">
                   <option value="static">Type values below</option>
                   <option value="query">Query: model.field</option>
                   <option value="setting">Setting record</option>
@@ -483,44 +558,43 @@ function FieldChangeRequest({ wcField, wcModel, fieldLabel }: { wcField: string;
               {valuesSource === 'static' && (
                 <input type="text" placeholder="retail, wholesale, distributor (comma separated)"
                   value={staticValues} onChange={(e) => setStaticValues(e.target.value)}
-                  style={{ background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '4px 8px', fontSize: 11, color: '#d4d4d4' }} />
+                  className="gh-input gh-input--sm" />
               )}
 
               {valuesSource === 'query' && (
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div className="gh-form-row--gap6">
                   <input type="text" placeholder="model (e.g., gl_account)" value={queryModel} onChange={(e) => setQueryModel(e.target.value)}
-                    style={{ flex: 1, background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '4px 8px', fontSize: 11, color: '#d4d4d4' }} />
+                    className="gh-input gh-input--flex gh-input--sm" />
                   <input type="text" placeholder="field (e.g., name)" value={queryField} onChange={(e) => setQueryField(e.target.value)}
-                    style={{ flex: 1, background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '4px 8px', fontSize: 11, color: '#d4d4d4' }} />
+                    className="gh-input gh-input--flex gh-input--sm" />
                   <input type="text" placeholder="filter (e.g., type=revenue)" value={queryFilter} onChange={(e) => setQueryFilter(e.target.value)}
-                    style={{ flex: 1, background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '4px 8px', fontSize: 11, color: '#d4d4d4' }} />
+                    className="gh-input gh-input--flex gh-input--sm" />
                 </div>
               )}
 
               {valuesSource === 'setting' && (
                 <input type="text" placeholder="Setting name (e.g., select_lists)" value={settingName} onChange={(e) => setSettingName(e.target.value)}
-                  style={{ background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '4px 8px', fontSize: 11, color: '#d4d4d4' }} />
+                  className="gh-input gh-input--sm" />
               )}
             </>
           )}
 
           {/* Lookup config */}
           {changeType === 'lookup' && (
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div className="gh-form-row--gap6">
               <input type="text" placeholder="Lookup model (e.g., customer)" value={queryModel} onChange={(e) => setQueryModel(e.target.value)}
-                style={{ flex: 1, background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '4px 8px', fontSize: 11, color: '#d4d4d4' }} />
+                className="gh-input gh-input--flex gh-input--sm" />
               <input type="text" placeholder="Display field (e.g., display_name)" value={queryField} onChange={(e) => setQueryField(e.target.value)}
-                style={{ flex: 1, background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '4px 8px', fontSize: 11, color: '#d4d4d4' }} />
+                className="gh-input gh-input--flex gh-input--sm" />
             </div>
           )}
 
           {/* Reason */}
           <input type="text" placeholder="Why this change? (optional but helpful)"
             value={reason} onChange={(e) => setReason(e.target.value)}
-            style={{ background: '#252526', border: '1px solid #3c3c3c', borderRadius: 3, padding: '4px 8px', fontSize: 11, color: '#d4d4d4' }} />
+            className="gh-input gh-input--sm" />
 
-          <button onClick={handleSubmit} disabled={submitting}
-            style={{ alignSelf: 'flex-start', padding: '5px 16px', fontSize: 11, fontWeight: 600, border: 'none', borderRadius: 4, background: '#6f42c1', color: '#fff', cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.6 : 1 }}>
+          <button onClick={handleSubmit} disabled={submitting} className="gh-btn-purple">
             {submitting ? 'Submitting...' : 'Submit Request'}
           </button>
         </div>
@@ -542,7 +616,7 @@ function ContributeHelp({ componentName, sourcePath }: { componentName: string; 
 
   if (submitted) {
     return (
-      <div style={{ marginTop: 12, padding: '8px 12px', background: '#1a3a2e', borderRadius: 4, fontSize: 11, color: '#4ade80' }}>
+      <div className="gh-success gh-success--mt">
         Tip submitted. Alice will review and add it to the help for {componentName}.
       </div>
     );
@@ -575,29 +649,23 @@ function ContributeHelp({ componentName, sourcePath }: { componentName: string; 
   };
 
   return (
-    <div style={{ marginTop: 12, borderTop: '1px solid #3c3c3c', paddingTop: 10 }}>
-      <button onClick={() => setShowForm(!showForm)}
-        style={{ background: 'none', border: '1px solid #4ade80', borderRadius: 4, padding: '4px 12px', fontSize: 11, color: '#4ade80', cursor: 'pointer', fontWeight: 600 }}>
+    <div className="gh-contribute">
+      <button onClick={() => setShowForm(!showForm)} className="gh-btn-outline-green">
         {showForm ? 'Cancel' : 'Add a Tip'}
       </button>
 
       {showForm && (
-        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ fontSize: 10, color: '#888' }}>
+        <div className="gh-contribute-form">
+          <div className="gh-contribute-hint">
             Share what you know about {componentName}. Alice will review and publish to the help system.
           </div>
           <textarea
             value={tip}
             onChange={(e) => setTip(e.target.value)}
             placeholder="What should other users know about this? Tips, gotchas, workflows..."
-            style={{
-              width: '100%', height: 80, background: '#252526', border: '1px solid #3c3c3c',
-              borderRadius: 4, padding: 8, color: '#d4d4d4', fontSize: 11,
-              fontFamily: 'sans-serif', resize: 'vertical',
-            }}
+            className="gh-contribute-textarea"
           />
-          <button onClick={handleSubmit} disabled={submitting || !tip.trim()}
-            style={{ alignSelf: 'flex-start', padding: '5px 16px', fontSize: 11, fontWeight: 600, border: 'none', borderRadius: 4, background: '#4ade80', color: '#1e1e1e', cursor: submitting ? 'wait' : 'pointer', opacity: submitting || !tip.trim() ? 0.5 : 1 }}>
+          <button onClick={handleSubmit} disabled={submitting || !tip.trim()} className="gh-btn-green">
             {submitting ? 'Submitting...' : 'Submit Tip'}
           </button>
         </div>

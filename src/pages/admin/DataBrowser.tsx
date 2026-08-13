@@ -1217,6 +1217,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   const toggleTheme = () => {
     const n = theme === 'dark' ? 'light' : 'dark';
     setTheme(n); localStorage.setItem('db-theme', n);
+    window.dispatchEvent(new CustomEvent('wc3-theme-changed', { detail: { theme: n } }));
     import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('theme', n));
   };
   // Listen for font size changes from TopBar
@@ -1792,10 +1793,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
               />
             ) : null}
 
-            {/* Touch bar + spawn links — below primary contact info */}
-            {db.selectedRecord && db.selectedId && TOUCH_MODELS.has(db.selectedModel) && (
-              <TouchBar model={db.selectedModel} record={db.selectedRecord} recordId={db.selectedId} theme={tDetail} fontSize={baseFontSize} touchPrefs={user?.config?.touch} />
-            )}
+            {/* Spawn links — below primary contact info */}
             {db.selectedRecord && db.selectedId && (
               <SpawnLinks model={db.selectedModel} record={db.selectedRecord} recordId={db.selectedId} />
             )}

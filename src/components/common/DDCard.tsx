@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getRecords } from "@/api/wcapi";
+import apiClient from "@/api/axios";
 
 // ---------------------------------------------------------------------------
 // Types — match the dd_card:base Setting config shape
@@ -35,6 +36,7 @@ export interface DDCardConfig {
   filters?: Record<string, any>;
   metrics: MetricDef[];
   distribution?: DistributionDef;
+  server_action?: string;  // manage endpoint action — returns pre-computed { metrics: [{label, value}] }
 }
 
 interface DDCardProps {
@@ -136,12 +138,24 @@ export default function DDCard({ model, config }: DDCardProps) {
     let mounted = true;
     (async () => {
       try {
-        const res = await getRecords(model, { ...config.filters, limit: 500 });
-        const records = res?.results ?? [];
-        if (!mounted) return;
-        setMetrics(computeMetrics(records, config.metrics));
-        if (config.distribution) {
-          setDistribution(computeDistribution(records, config.distribution));
+        if (config.server_action) {
+          // Server-computed metrics via manage endpoint
+          const res = await apiClient.post("/wcapi/manage/", {
+            action: config.server_action,
+            params: config.filters || {},
+          });
+          const data = res.data?.data ?? res.data;
+          if (!mounted) return;
+          if (data?.metrics) setMetrics(data.metrics);
+        } else {
+          // Client-computed metrics from fetched records
+          const res = await getRecords(model, { ...config.filters, limit: 500 });
+          const records = res?.results ?? [];
+          if (!mounted) return;
+          setMetrics(computeMetrics(records, config.metrics));
+          if (config.distribution) {
+            setDistribution(computeDistribution(records, config.distribution));
+          }
         }
       } catch {
         // silent — card shows empty
@@ -160,7 +174,7 @@ export default function DDCard({ model, config }: DDCardProps) {
       className="group block rounded border transition hover:-translate-y-[1px]"
       style={{
         background: "var(--db-surface)",
-        borderColor: "var(--db-border, #3c3c3c)",
+        borderColor: "var(--db-border)",
         minWidth: 160,
         boxShadow: "3px 3px 6px rgba(0,0,0,0.3)",
       }}
@@ -169,7 +183,7 @@ export default function DDCard({ model, config }: DDCardProps) {
       <div
         style={{
           padding: "4px 8px",
-          borderBottom: "1px solid var(--db-border, #3c3c3c)",
+          borderBottom: "1px solid var(--db-border)",
           fontSize: 13,
           fontWeight: 600,
           color: "var(--db-text)",
@@ -206,7 +220,7 @@ export default function DDCard({ model, config }: DDCardProps) {
             gridTemplateColumns: "1fr 1fr",
             gap: "1px 12px",
             padding: "2px 8px 4px",
-            borderTop: "1px solid var(--db-border, #3c3c3c)",
+            borderTop: "1px solid var(--db-border)",
           }}
         >
           {distribution.map((d) => (

@@ -2,7 +2,7 @@
  * FieldOrderDialog — unified field selection, ordering, and layout management.
  *
  * Used for BOTH list columns and detail fields. Features:
- *   - Layout selector dropdown at top (load existing → modify → save)
+ *   - Layout selector dropdown at top (load existing -> modify -> save)
  *   - Drag-and-drop reordering (HTML5 drag + arrow buttons)
  *   - Checkbox visibility toggles
  *   - Behavior indicator column (color-coded badges)
@@ -29,6 +29,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getRecords } from '@/api/wcapi';
+import './FieldOrderDialog.css';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -139,16 +140,6 @@ export default function FieldOrderDialog({
     const system = savedLayouts.filter((l) => PROTECTED_LAYOUTS.includes(l.name));
     return [...user, ...system];
   }, [savedLayouts]);
-
-  const isDark = theme === 'dark';
-  const bg = isDark ? '#252526' : '#ffffff';
-  const bgAlt = isDark ? '#1e1e1e' : '#f8f9fa';
-  const border = isDark ? '#3c3c3c' : '#dee2e6';
-  const text = isDark ? '#d4d4d4' : '#212529';
-  const textMuted = isDark ? '#888' : '#6c757d';
-  const accent = isDark ? '#9cdcfe' : '#0d6efd';
-  const rowHover = isDark ? '#2a2d2e' : '#f1f3f5';
-  const dragBg = isDark ? '#094771' : '#cfe2ff';
 
   // Initialize from props when dialog opens (only on open transition)
   const prevOpenRef = useRef(false);
@@ -332,28 +323,26 @@ export default function FieldOrderDialog({
   if (!open) return null;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}
-      onClick={onClose}>
-      <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 10, boxShadow: '0 16px 48px rgba(0,0,0,0.4)', width: 580, maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
-        onClick={(e) => e.stopPropagation()}>
+    <div className="fo-overlay" onClick={onClose}>
+      <div className="fo-dialog" onClick={(e) => e.stopPropagation()}>
 
-        {/* ═══ Header with layout selector ═══ */}
-        <div style={{ padding: '14px 18px', borderBottom: `1px solid ${border}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: accent }}>
+        {/* Header with layout selector */}
+        <div className="fo-header">
+          <div className="fo-header-top">
+            <div className="fo-title">
               {mode === 'list' ? 'List Columns' : 'Detail Fields'}
             </div>
-            <div style={{ fontSize: 11, color: textMuted }}>{visibleCount}/{allFields.length} fields</div>
+            <div className="fo-field-count">{visibleCount}/{allFields.length} fields</div>
           </div>
 
           {/* Layout selector row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 10, fontWeight: 600, color: textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Layout:</span>
+          <div className="fo-row">
+            <span className="fo-row-label">Layout:</span>
             <select
               data-wc="db-layout-selector"
               value={selectedLayout}
               onChange={(e) => { setSelectedLayout(e.target.value); handleLoadLayout(e.target.value); }}
-              style={{ flex: 1, padding: '4px 8px', fontSize: 12, background: bgAlt, border: `1px solid ${border}`, borderRadius: 4, color: text, cursor: 'pointer' }}
+              className="fo-select"
             >
               <option value="__current__">Current (unsaved)</option>
               {sortedLayouts.map((l, i) => {
@@ -367,21 +356,19 @@ export default function FieldOrderDialog({
                 );
               })}
             </select>
-            <button onClick={onClose}
-              style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: `1px solid ${border}`, borderRadius: 4, background: 'transparent', color: textMuted, cursor: 'pointer' }}>
+            <button onClick={onClose} className="fo-btn fo-btn--cancel">
               Cancel
             </button>
-            <button onClick={handleApply}
-              style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: 'none', borderRadius: 4, background: accent, color: '#fff', cursor: 'pointer' }}>
+            <button onClick={handleApply} className="fo-btn fo-btn--apply">
               Apply
             </button>
             <button onClick={() => { setSaveDialogOpen(!saveDialogOpen); setSaveName(selectedLayout === '__current__' ? '' : selectedLayout); }}
-              style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: `1px solid ${isDark ? '#2f8f45' : '#157347'}`, borderRadius: 4, background: isDark ? '#1a6b2e' : '#198754', color: '#fff', cursor: 'pointer' }}>
+              className="fo-btn fo-btn--save">
               Save
             </button>
             {selectedLayout !== '__current__' && !PROTECTED_LAYOUTS.includes(selectedLayout) && (
               <button onClick={() => { onDeleteLayout(selectedLayout); setSelectedLayout('__current__'); }}
-                style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: `1px solid ${isDark ? '#c04040' : '#dc3545'}`, borderRadius: 4, background: isDark ? '#6b1a1a' : '#f8d7da', color: isDark ? '#ff6b6b' : '#dc3545', cursor: 'pointer' }}
+                className="fo-btn fo-btn--delete"
                 title={`Delete layout "${selectedLayout}"`}>
                 Delete
               </button>
@@ -390,14 +377,14 @@ export default function FieldOrderDialog({
 
           {/* Paired view selector — pick which detail opens from this list (or vice versa) */}
           {onPairedViewChange && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <div className="fo-row fo-row--mt">
+              <span className="fo-row-label">
                 {mode === 'list' ? 'Detail:' : 'List:'}
               </span>
               <select
                 value={pairedViewName || ''}
                 onChange={(e) => onPairedViewChange(e.target.value || null)}
-                style={{ flex: 1, padding: '4px 8px', fontSize: 12, background: bgAlt, border: `1px solid ${border}`, borderRadius: 4, color: text, cursor: 'pointer' }}
+                className="fo-select"
               >
                 <option value="">Default</option>
                 {savedLayouts.map((l) => (
@@ -409,8 +396,8 @@ export default function FieldOrderDialog({
 
           {/* Related panels — FK model names shown as panels in detail view */}
           {mode === 'detail' && onRelatedModelsChange && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <div className="fo-row fo-row--mt">
+              <span className="fo-row-label">
                 Panels:
               </span>
               <input
@@ -418,27 +405,27 @@ export default function FieldOrderDialog({
                 value={(relatedModels || []).join(', ')}
                 onChange={(e) => onRelatedModelsChange(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
                 placeholder="email, phone, action, order..."
-                style={{ flex: 1, padding: '4px 8px', fontSize: 12, background: bgAlt, border: `1px solid ${border}`, borderRadius: 4, color: text }}
+                className="fo-input"
               />
             </div>
           )}
 
           {/* Save name input (inline, shows when Save clicked) */}
           {saveDialogOpen && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+            <div className="fo-row fo-row--mt">
               <input
                 type="text" placeholder="Layout name..." value={saveName}
                 onChange={(e) => setSaveName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && saveName.trim()) { trySave(saveName); } if (e.key === 'Escape') setSaveDialogOpen(false); }}
-                style={{ flex: 1, padding: '4px 8px', fontSize: 12, background: bgAlt, border: `1px solid ${border}`, borderRadius: 4, color: text }}
+                className="fo-input"
                 autoFocus
               />
               <button onClick={() => { if (saveName.trim()) trySave(saveName); }}
-                style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: 'none', borderRadius: 4, background: accent, color: '#fff', cursor: 'pointer' }}>
+                className="fo-btn fo-btn--apply">
                 Save
               </button>
               <button onClick={() => setSaveDialogOpen(false)}
-                style={{ padding: '4px 8px', fontSize: 11, border: `1px solid ${border}`, borderRadius: 4, background: 'transparent', color: textMuted, cursor: 'pointer' }}>
+                className="fo-btn--inline-cancel">
                 Cancel
               </button>
             </div>
@@ -446,18 +433,18 @@ export default function FieldOrderDialog({
 
         </div>
 
-        {/* ═══ Column headers ═══ */}
-        <div style={{ display: 'flex', alignItems: 'center', padding: '6px 18px', borderBottom: `1px solid ${border}`, background: bgAlt, fontSize: 10, fontWeight: 700, color: textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          <span style={{ width: 30 }}></span>
-          <span style={{ width: 30 }}></span>
-          <span style={{ flex: 1 }}>Field</span>
-          <span style={{ width: 100, textAlign: 'center' }}>Behavior</span>
-          {mode === 'list' && <span style={{ width: 70, textAlign: 'center' }}>Width</span>}
-          {mode === 'detail' && <span style={{ width: 70, textAlign: 'center' }}>Rows</span>}
+        {/* Column headers */}
+        <div className="fo-col-headers">
+          <span className="fo-col-spacer"></span>
+          <span className="fo-col-spacer"></span>
+          <span className="fo-col-field">Field</span>
+          <span className="fo-col-behavior">Behavior</span>
+          {mode === 'list' && <span className="fo-col-size">Width</span>}
+          {mode === 'detail' && <span className="fo-col-size">Rows</span>}
         </div>
 
-        {/* ═══ Field list ═══ */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        {/* Field list */}
+        <div className="fo-field-list">
           {order.map((field, idx) => {
             const isVisible = visible.has(field);
             const beh = fieldBehaviors[field] || {};
@@ -466,35 +453,33 @@ export default function FieldOrderDialog({
             const currentSize = sizes[field] || (beh.type === 'json' ? 4 : beh.type === 'textarea' ? 3 : 1);
             const isDragging = dragIdx === idx;
 
+            const rowClasses = [
+              'fo-field-row',
+              isDragging ? 'fo-field-row--dragging' : '',
+              !isVisible ? 'fo-field-row--hidden' : '',
+            ].filter(Boolean).join(' ');
+
             return (
               <React.Fragment key={field}>
               <div
                 onPointerDown={(e) => handlePointerDown(idx, e)}
                 onPointerUp={handlePointerUp}
                 onPointerEnter={() => handlePointerEnter(idx)}
-                style={{
-                  display: 'flex', alignItems: 'center', padding: '4px 14px',
-                  borderBottom: `1px solid ${isDark ? '#2e2e2e' : '#f0f0f0'}`,
-                  background: isDragging ? dragBg : 'transparent',
-                  opacity: isVisible ? 1 : (isDark ? 0.55 : 0.4),
-                  fontSize: 12,
-                  cursor: 'grab',
-                  userSelect: 'none',
-                  touchAction: 'none',
-                  transition: 'background 0.05s',
-                }}
-                onMouseEnter={(e) => { if (dragIdx === null) (e.currentTarget).style.background = rowHover; }}
-                onMouseLeave={(e) => { if (dragIdx === null) (e.currentTarget).style.background = 'transparent'; }}
+                className={rowClasses}
               >
 
                 {/* Checkbox */}
-                <span style={{ width: 26 }}>
+                <span className="fo-check-col">
                   <input type="checkbox" checked={isVisible} onChange={() => toggleVisible(field)} onPointerDown={(e) => e.stopPropagation()} />
                 </span>
 
                 {/* Field name — expandable for JSON types */}
                 <span
-                  style={{ flex: 1, fontWeight: 500, color: isVisible ? text : textMuted, cursor: beh.type === 'json' && sampleRecord?.[field] ? 'pointer' : 'default' }}
+                  className={[
+                    'fo-field-name',
+                    !isVisible ? 'fo-field-name--hidden' : '',
+                    beh.type === 'json' && sampleRecord?.[field] ? 'fo-field-name--expandable' : '',
+                  ].filter(Boolean).join(' ')}
                   onPointerDown={(e) => {
                     if (beh.type === 'json' && sampleRecord?.[field] && typeof sampleRecord[field] === 'object') {
                       e.stopPropagation();
@@ -507,15 +492,16 @@ export default function FieldOrderDialog({
                   }}
                 >
                   {beh.type === 'json' && sampleRecord?.[field] && typeof sampleRecord[field] === 'object' && (
-                    <span style={{ fontSize: 10, marginRight: 4, color: textMuted }}>{expandedJsonFields.has(field) ? '▼' : '▶'}</span>
+                    <span className="fo-json-chevron">{expandedJsonFields.has(field) ? '▼' : '▶'}</span>
                   )}
                   {field}
                 </span>
 
                 {/* Behavior badge */}
-                <span style={{ width: 100, textAlign: 'center' }}>
+                <span className="fo-behavior-col">
                   {behInfo && (
-                    <span style={{ fontSize: 10, fontWeight: 600, color: behInfo.color, padding: '1px 6px', borderRadius: 3, border: `1px solid ${behInfo.color}40`, background: `${behInfo.color}10` }}>
+                    <span className="fo-behavior-badge"
+                      style={{ color: behInfo.color, border: `1px solid ${behInfo.color}40`, background: `${behInfo.color}10` }}>
                       {behInfo.label}
                     </span>
                   )}
@@ -523,19 +509,19 @@ export default function FieldOrderDialog({
 
                 {/* Column width (list mode) — shows recommended as placeholder */}
                 {mode === 'list' && (
-                  <span style={{ width: 80, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                  <span className="fo-width-col">
                     <input type="number" min={3} max={600}
                       value={widths[field] || ''}
                       placeholder={String(getRecWidth(field))}
                       onChange={(e) => { const v = parseInt(e.target.value) || 0; setWidths((prev) => ({ ...prev, [field]: v > 0 ? Math.max(3, v) : 0 })); }}
                       onClick={(e) => e.stopPropagation()}
                       onPointerDown={(e) => e.stopPropagation()}
-                      style={{ width: 48, textAlign: 'center', fontSize: 11, padding: '2px 3px', border: `1px solid ${border}`, borderRadius: 3, background: bgAlt, color: widths[field] ? text : textMuted }}
+                      className={`fo-width-input ${!widths[field] ? 'fo-width-input--empty' : ''}`}
                       title={`Recommended: ${getRecWidth(field)}px`}
                     />
                     {!widths[field] && (
                       <button onClick={(e) => { e.stopPropagation(); setWidths((prev) => ({ ...prev, [field]: getRecWidth(field) })); }}
-                        style={{ background: 'none', border: 'none', color: accent, fontSize: 10, cursor: 'pointer', padding: 0 }}
+                        className="fo-width-rec-btn"
                         title="Use recommended width">↵</button>
                     )}
                   </span>
@@ -543,16 +529,16 @@ export default function FieldOrderDialog({
 
                 {/* Row size (detail mode only) */}
                 {mode === 'detail' && (
-                  <span style={{ width: 70, textAlign: 'center' }}>
+                  <span className="fo-size-col">
                     {isSizable ? (
                       <input type="number" min={1} max={12} value={currentSize}
                         onChange={(e) => setRowSize(field, parseInt(e.target.value) || 1)}
                         onClick={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
-                        style={{ width: 40, textAlign: 'center', fontSize: 11, padding: '2px 4px', border: `1px solid ${border}`, borderRadius: 3, background: bgAlt, color: text }}
+                        className="fo-size-input"
                       />
                     ) : (
-                      <span style={{ fontSize: 10, color: textMuted }}>—</span>
+                      <span className="fo-size-placeholder">—</span>
                     )}
                   </span>
                 )}
@@ -572,15 +558,11 @@ export default function FieldOrderDialog({
                     return (
                       <React.Fragment key={path}>
                         <div
-                          style={{
-                            display: 'flex', alignItems: 'center', padding: '2px 14px', paddingLeft: 26 + depth * 16,
-                            borderBottom: `1px solid ${isDark ? '#1e1e1e' : '#f8f8f8'}`,
-                            fontSize: 11, color: textMuted,
-                            background: isSelected ? (isDark ? '#1a3a2a' : '#e8f5e9') : 'transparent',
-                          }}
+                          className={`fo-json-row ${isSelected ? 'fo-json-row--selected' : ''}`}
+                          style={{ paddingLeft: 26 + depth * 16 }}
                           onPointerDown={(e) => e.stopPropagation()}
                         >
-                          <span style={{ width: 26 }}>
+                          <span className="fo-check-col">
                             <input type="checkbox" checked={isSelected}
                               onChange={() => {
                                 setVisible(prev => { const next = new Set(prev); next.has(path) ? next.delete(path) : next.add(path); return next; });
@@ -589,10 +571,10 @@ export default function FieldOrderDialog({
                               }}
                             />
                           </span>
-                          <span style={{ flex: 1, fontFamily: 'monospace', color: isSelected ? text : textMuted }}>
+                          <span className={`fo-json-key ${isSelected ? 'fo-json-key--selected' : ''}`}>
                             {key}
                           </span>
-                          <span style={{ fontSize: 10, color: isObj ? accent : textMuted, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span className={`fo-json-value ${isObj ? 'fo-json-value--object' : ''}`}>
                             {truncated}
                           </span>
                         </div>
@@ -608,8 +590,8 @@ export default function FieldOrderDialog({
           })}
         </div>
 
-        {/* ═══ Footer ═══ */}
-        <div style={{ padding: '6px 18px', borderTop: `1px solid ${border}`, fontSize: 10, color: textMuted }}>
+        {/* Footer */}
+        <div className="fo-footer">
           drag row to reorder · ☑ check to show/hide
         </div>
       </div>

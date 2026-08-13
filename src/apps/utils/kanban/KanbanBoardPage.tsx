@@ -21,6 +21,7 @@ import { PageRoutes } from "../../../routes/Routes";
 import RippleLoader from "@/components/common/RippleLoader";
 import { NetworkInfo } from "@/routes/network";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { formatDt } from '@/utils/fieldFormatters';
 
 const priorityPalette: Record<TaskPriority, string> = {
   low: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
@@ -1787,7 +1788,7 @@ const KanbanBoardPage: React.FC = () => {
     if (diffSecs < 10) return "Just now";
     if (diffSecs < 60) return `${diffSecs}s ago`;
     if (diffMins < 60) return `${diffMins}m ago`;
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return formatDt(date, 'datetime');
   };
 
   useEffect(() => {

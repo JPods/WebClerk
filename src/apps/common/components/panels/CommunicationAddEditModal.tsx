@@ -121,16 +121,17 @@ export const CommunicationAddEditModal: React.FC<
       onClick={handleOverlayClick}
     >
       <div
-        className="bg-white dark:bg-slate-800 rounded-lg p-4 w-80 max-w-full mx-4"
+        className="rounded-lg p-4 w-80 max-w-full mx-4"
+        style={{ background: 'var(--db-surface)' }}
         onClick={handleModalClick}
       >
-        <h3 className="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200 capitalize">
+        <h3 className="text-sm font-semibold mb-2 capitalize" style={{ color: 'var(--db-text)' }}>
           {data ? "Edit" : "Add"} {type}
         </h3>
         {contactId !== undefined && (
-          <p className="text-xs text-slate-500 mb-4">
+          <p className="text-xs mb-4" style={{ color: 'var(--db-text-muted)' }}>
             Contact ID:{" "}
-            <strong className="text-blue-600">{contactId ?? "NOT SET"}</strong>
+            <strong style={{ color: 'var(--db-accent)' }}>{contactId ?? "NOT SET"}</strong>
           </p>
         )}
 
@@ -138,7 +139,7 @@ export const CommunicationAddEditModal: React.FC<
           {type === "email" && (
             <>
               <div>
-                <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-xs mb-1" style={{ color: 'var(--db-text-muted)' }}>
                   Email
                 </label>
                 <input
@@ -147,12 +148,13 @@ export const CommunicationAddEditModal: React.FC<
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
-                  className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                  className="w-full px-2 py-1.5 text-sm rounded"
+                  style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)' }}
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-xs mb-1" style={{ color: 'var(--db-text-muted)' }}>
                   Label
                 </label>
                 <input
@@ -162,7 +164,8 @@ export const CommunicationAddEditModal: React.FC<
                     setFormData({ ...formData, name: e.target.value })
                   }
                   placeholder="Work, Personal, etc."
-                  className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                  className="w-full px-2 py-1.5 text-sm rounded"
+                  style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)' }}
                 />
               </div>
               <label className="flex items-center gap-2 text-sm">
@@ -181,7 +184,7 @@ export const CommunicationAddEditModal: React.FC<
           {type === "phone" && (
             <>
               <div>
-                <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-xs mb-1" style={{ color: 'var(--db-text-muted)' }}>
                   Number
                 </label>
                 <input
@@ -190,12 +193,13 @@ export const CommunicationAddEditModal: React.FC<
                   onChange={(e) =>
                     setFormData({ ...formData, number: e.target.value })
                   }
-                  className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                  className="w-full px-2 py-1.5 text-sm rounded"
+                  style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)' }}
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-xs mb-1" style={{ color: 'var(--db-text-muted)' }}>
                   Label
                 </label>
                 <input
@@ -205,7 +209,8 @@ export const CommunicationAddEditModal: React.FC<
                     setFormData({ ...formData, name: e.target.value })
                   }
                   placeholder="Mobile, Office, etc."
-                  className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                  className="w-full px-2 py-1.5 text-sm rounded"
+                  style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)' }}
                 />
               </div>
             </>
@@ -214,7 +219,7 @@ export const CommunicationAddEditModal: React.FC<
           {type === "address" && (
             <>
               <div>
-                <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-xs mb-1" style={{ color: 'var(--db-text-muted)' }}>
                   Street Address
                 </label>
                 <input
@@ -223,12 +228,13 @@ export const CommunicationAddEditModal: React.FC<
                   onChange={(e) =>
                     setFormData({ ...formData, address1: e.target.value })
                   }
-                  className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                  className="w-full px-2 py-1.5 text-sm rounded"
+                  style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)' }}
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-xs mb-1" style={{ color: 'var(--db-text-muted)' }}>
                   Address 2
                 </label>
                 <input
@@ -237,12 +243,13 @@ export const CommunicationAddEditModal: React.FC<
                   onChange={(e) =>
                     setFormData({ ...formData, address2: e.target.value })
                   }
-                  className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                  className="w-full px-2 py-1.5 text-sm rounded"
+                  style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)' }}
                 />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                  <label className="block text-xs mb-1" style={{ color: 'var(--db-text-muted)' }}>
                     City
                   </label>
                   <input
@@ -251,11 +258,12 @@ export const CommunicationAddEditModal: React.FC<
                     onChange={(e) =>
                       setFormData({ ...formData, city: e.target.value })
                     }
-                    className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                    className="w-full px-2 py-1.5 text-sm rounded"
+                  style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)' }}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                  <label className="block text-xs mb-1" style={{ color: 'var(--db-text-muted)' }}>
                     State
                   </label>
                   <input
@@ -264,13 +272,14 @@ export const CommunicationAddEditModal: React.FC<
                     onChange={(e) =>
                       setFormData({ ...formData, state: e.target.value })
                     }
-                    className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                    className="w-full px-2 py-1.5 text-sm rounded"
+                  style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)' }}
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                  <label className="block text-xs mb-1" style={{ color: 'var(--db-text-muted)' }}>
                     Zip
                   </label>
                   <input
@@ -279,11 +288,12 @@ export const CommunicationAddEditModal: React.FC<
                     onChange={(e) =>
                       setFormData({ ...formData, zip: e.target.value })
                     }
-                    className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                    className="w-full px-2 py-1.5 text-sm rounded"
+                  style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)' }}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                  <label className="block text-xs mb-1" style={{ color: 'var(--db-text-muted)' }}>
                     Country
                   </label>
                   <input
@@ -293,12 +303,13 @@ export const CommunicationAddEditModal: React.FC<
                       setFormData({ ...formData, country: e.target.value })
                     }
                     placeholder="US"
-                    className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                    className="w-full px-2 py-1.5 text-sm rounded"
+                  style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)' }}
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-xs mb-1" style={{ color: 'var(--db-text-muted)' }}>
                   full
                 </label>
                 <input
@@ -312,7 +323,8 @@ export const CommunicationAddEditModal: React.FC<
                     country: formData.country as string,
                   })}
                   readOnly
-                  className="w-full px-2 py-1.5 text-sm border rounded bg-slate-50 dark:bg-slate-700/40 dark:border-slate-600 text-slate-600 dark:text-slate-300"
+                  className="w-full px-2 py-1.5 text-sm rounded"
+                  style={{ background: 'var(--db-surface-alt)', border: '1px solid var(--db-input-border)', color: 'var(--db-text)' }}
                 />
               </div>
             </>
@@ -321,7 +333,7 @@ export const CommunicationAddEditModal: React.FC<
           {type === "domain" && (
             <>
               <div>
-                <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-xs mb-1" style={{ color: 'var(--db-text-muted)' }}>
                   Domain
                 </label>
                 <input
@@ -331,7 +343,8 @@ export const CommunicationAddEditModal: React.FC<
                     setFormData({ ...formData, domain: e.target.value })
                   }
                   placeholder="example.com"
-                  className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                  className="w-full px-2 py-1.5 text-sm rounded"
+                  style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)' }}
                   required
                 />
               </div>
@@ -363,14 +376,16 @@ export const CommunicationAddEditModal: React.FC<
               type="button"
               onClick={onClose}
               disabled={isSaving}
-              className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 rounded disabled:opacity-50"
+              className="px-3 py-1.5 text-sm rounded disabled:opacity-50"
+              style={{ color: 'var(--db-text-muted)' }}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 flex items-center gap-1.5"
+              className="px-3 py-1.5 text-sm rounded disabled:opacity-50 flex items-center gap-1.5"
+              style={{ background: 'var(--db-btn-primary)', color: '#fff' }}
             >
               {isSaving && <FaSpinner className="animate-spin" size={12} />}
               {isSaving ? "Saving..." : "Save"}

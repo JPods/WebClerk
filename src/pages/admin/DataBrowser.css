@@ -514,19 +514,135 @@
 .db-label--default { color: var(--db-text-muted); }
 
 /* ---------------------------------------------------------------------------
-   Table rows
+   Common list — base classes shared by DataBrowser grid, PanelTable,
+   CommList, and any future list. All colors from --db-* variables.
    --------------------------------------------------------------------------- */
 
-.db-row:hover {
+/* Section header — collapsible group (e.g. ▼ EMAIL (3)) */
+.db-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: var(--db-surface-alt);
+  border-bottom: 1px solid var(--db-border);
+  cursor: pointer;
+  user-select: none;
+}
+.db-section-header__label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--db-text-muted);
+}
+.db-section-header__count {
+  font-size: 9px;
+  color: var(--db-text-dim);
+}
+.db-section-header__action {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--db-accent-green);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.db-section-header__action:hover {
+  opacity: 0.8;
+}
+
+/* List header — column labels row */
+.db-list-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 12px;
+  background: var(--db-surface-alt);
+  border-bottom: 1px solid var(--db-border);
+}
+.db-list-header__cell {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--db-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.db-list-header__action {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--db-text-muted);
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.db-list-header__action:hover {
+  color: var(--db-accent);
   background: var(--db-row-hover);
 }
 
-.db-row--active {
+/* List row — data row with hover + selected + checked states */
+.db-list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 12px;
+  font-size: inherit;
+  color: var(--db-text);
+  border-bottom: 1px solid var(--db-border-light);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.db-list-row:last-child {
+  border-bottom: none;
+}
+
+/* Row states */
+.db-row:hover,
+.db-list-row:hover {
+  background: var(--db-row-hover);
+}
+
+.db-row--active,
+.db-list-row--active {
   background: var(--db-row-active);
 }
 
-.db-row--checked {
+.db-row--checked,
+.db-list-row--checked {
   background: var(--db-row-checked);
+}
+
+/* Selection indicator bar (left edge) */
+.db-list-row__indicator {
+  width: 3px;
+  align-self: stretch;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.db-list-row--checked .db-list-row__indicator {
+  background: var(--db-accent);
+}
+
+/* Muted text within list rows */
+.db-list-muted {
+  color: var(--db-text-muted);
+}
+.db-list-dim {
+  color: var(--db-text-dim);
+}
+.db-list-empty {
+  font-size: 10px;
+  font-style: italic;
+  color: var(--db-text-dim);
+  padding: 8px 12px;
 }
 
 /* ---------------------------------------------------------------------------

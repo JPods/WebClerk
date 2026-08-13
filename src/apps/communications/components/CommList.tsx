@@ -24,14 +24,32 @@ const CommList: React.FC<CommListProps> = ({ model, parentModel, parentId, recor
 
   return (
     <div className="mb-3">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-[10px] font-bold text-slate-500 uppercase">{ICONS[model]} {model}s</span>
-        <span className="text-[9px] text-slate-400">({records.length})</span>
+      <div
+        className="flex items-center gap-2 px-3 py-1.5"
+        style={{
+          borderBottom: '1px solid var(--db-border)',
+          background: 'var(--db-surface-alt)',
+        }}
+      >
+        <span
+          className="text-[10px] font-bold uppercase tracking-wider"
+          style={{ color: 'var(--db-text-muted)' }}
+        >
+          {ICONS[model]} {model}
+        </span>
+        <span className="text-[9px]" style={{ color: 'var(--db-text-dim)' }}>
+          ({records.length})
+        </span>
         <span className="flex-1" />
-        <button onClick={() => setAdding(true)}
-          className="text-[9px] text-green-600 hover:text-green-800 font-medium px-1">+ add</button>
+        <button
+          onClick={() => setAdding(true)}
+          className="text-[9px] font-medium px-1"
+          style={{ color: 'var(--db-accent-green)' }}
+        >
+          + add
+        </button>
       </div>
-      <div className="space-y-1">
+      <div>
         {records.map((rec: any) => (
           <CommCard
             key={rec.id}
@@ -51,7 +69,12 @@ const CommList: React.FC<CommListProps> = ({ model, parentModel, parentId, recor
           />
         )}
         {!records.length && !adding && (
-          <div className="text-[10px] text-slate-400 italic py-1">No {model}s</div>
+          <div
+            className="text-[10px] italic py-2 px-3"
+            style={{ color: 'var(--db-text-dim)' }}
+          >
+            No {model} records
+          </div>
         )}
       </div>
     </div>

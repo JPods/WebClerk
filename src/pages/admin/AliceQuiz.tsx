@@ -23,6 +23,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getRecords, saveRecord } from '@/api/wcapi';
 import { useAppSelector } from '@/store/hooks';
+import { formatDt } from '@/utils/fieldFormatters';
 
 interface QuizAnswer {
   ida: string;       // "{setting_id}-{q_seq}-{a_seq}"
@@ -299,7 +300,7 @@ export default function AliceQuiz() {
         {/* Prior answer indicator */}
         {priorResponse && !submitted && (
           <p className="mt-3 text-[10px] text-gray-400">
-            Previously answered: {priorResponse.correct ? 'Correct' : 'Incorrect'} on {new Date(priorResponse.dt).toLocaleDateString()}
+            Previously answered: {priorResponse.correct ? 'Correct' : 'Incorrect'} on {formatDt(priorResponse.dt, 'date')}
           </p>
         )}
       </div>

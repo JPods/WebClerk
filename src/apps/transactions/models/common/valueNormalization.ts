@@ -1,4 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import { formatDt } from '@/utils/fieldFormatters';
+
 export const extractNumericValue = (value: unknown): number | null => {
   if (value === null || value === undefined) {
     return null;
@@ -161,18 +163,5 @@ export const formatDateTimeValue = (value: unknown): string => {
   if (value === null || value === undefined || value === "") {
     return "";
   }
-
-  const numeric = extractNumericValue(value);
-  if (numeric !== null) {
-    const milliseconds = numeric > 1e12 ? numeric : numeric * 1000;
-    const date = new Date(milliseconds);
-    return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
-  }
-
-  if (typeof value === "string") {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
-  }
-
-  return String(value);
+  return formatDt(value, 'datetime');
 };

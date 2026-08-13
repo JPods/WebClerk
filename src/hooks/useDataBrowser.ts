@@ -615,6 +615,18 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string) 
 
   useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
+  // Auto-select record from sessionStorage (set by MacTopBar double-click, spawn links, etc.)
+  const autoSelectDone = useRef(false);
+  useEffect(() => {
+    if (autoSelectDone.current || !records.length || !isActiveWindow) return;
+    const stored = sessionStorage.getItem('db_auto_select');
+    if (stored) {
+      sessionStorage.removeItem('db_auto_select');
+      const id = parseInt(stored, 10);
+      if (!isNaN(id)) { setSelectedId(id); autoSelectDone.current = true; }
+    }
+  }, [records, isActiveWindow]);
+
   // Debounced search
   useEffect(() => {
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);

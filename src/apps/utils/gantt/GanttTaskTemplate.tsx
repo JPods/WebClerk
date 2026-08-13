@@ -17,6 +17,7 @@
  *   Person name — right-aligned in their assigned color
  */
 import { type FC, useState, useCallback } from "react";
+import { formatDt } from '@/utils/fieldFormatters';
 import type { GanttMappedTask, AssignedUser, BadgePrefs } from "./ganttDataMapper";
 import { useStaffBadgePrefsOptional } from "../../../context/StaffBadgePrefsContext";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
@@ -178,8 +179,8 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
     `Priority: ${priority}`,
     percentComplete > 0 ? `Progress: ${percentComplete}%` : null,
     firstAssigned?.name ? `Assigned: ${firstAssigned.name}` : null,
-    task.start instanceof Date ? `Start: ${task.start.toLocaleDateString()}` : null,
-    task.end instanceof Date ? `End: ${task.end.toLocaleDateString()}` : null,
+    task.start instanceof Date ? `Start: ${formatDt(task.start, 'date')}` : null,
+    task.end instanceof Date ? `End: ${formatDt(task.end, 'date')}` : null,
   ].filter(Boolean).join('\n');
 
   // Milestone: diamond marker with text

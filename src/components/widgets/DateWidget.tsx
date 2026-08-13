@@ -1,4 +1,5 @@
 import type { WidgetProps } from "./types";
+import { formatDt } from '@/utils/fieldFormatters';
 
 const s = "w-full px-1.5 py-0.5 text-[inherit] border border-gray-300 rounded bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white disabled:opacity-60";
 
@@ -8,7 +9,7 @@ export const DateWidget: React.FC<WidgetProps> = ({
   if (mode === "print") {
     if (!value) return <span className="text-[inherit]">—</span>;
     try {
-      return <span className="text-[inherit]">{new Date(value).toLocaleDateString()}</span>;
+      return <span className="text-[inherit]">{formatDt(value, 'date')}</span>;
     } catch {
       return <span className="text-[inherit]">{value}</span>;
     }

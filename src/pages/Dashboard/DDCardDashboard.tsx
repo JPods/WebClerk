@@ -8,9 +8,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getRecords } from "@/api/wcapi";
+import { useAppSelector } from "@/store/hooks";
 import DDCard, { type DDCardConfig } from "@/components/common/DDCard";
 import DataBrowser from "@/pages/admin/DataBrowser";
 import "@/pages/admin/DataBrowser.css";
+
+type ThemeKey = "dark" | "light";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -52,8 +55,10 @@ const ACCENT_MAP: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 export default function DDCardDashboard({ dashboardName }: { dashboardName: string }) {
+  const { user } = useAppSelector((s) => s.auth);
   const [baseConfig, setBaseConfig] = useState<DDCardBaseConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState<ThemeKey>(() => (localStorage.getItem("db-theme") as ThemeKey) || "dark");
 
   useEffect(() => {
     let mounted = true;
@@ -77,6 +82,16 @@ export default function DDCardDashboard({ dashboardName }: { dashboardName: stri
     return () => { mounted = false; };
   }, []);
 
+  // Stay in sync with theme toggles from DataBrowser
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      setTheme(detail?.theme || (localStorage.getItem("db-theme") as ThemeKey) || "dark");
+    };
+    window.addEventListener("wc3-theme-changed", handler);
+    return () => window.removeEventListener("wc3-theme-changed", handler);
+  }, []);
+
   if (loading) {
     return <div style={{ padding: 20, color: "var(--db-text-muted, #888)" }}>Loading dashboard…</div>;
   }
@@ -90,21 +105,26 @@ export default function DDCardDashboard({ dashboardName }: { dashboardName: stri
     return <div style={{ padding: 20, color: "var(--db-text-muted, #888)" }}>Dashboard "{dashboardName}" not defined in dd_card:base</div>;
   }
 
-  const cardConfigs = dashboard.cards
+  // User's card selection from prefs.staff.nav.cards — falls back to dashboard default
+  const staffPrefs = (user as any)?.prefs?.staff;
+  const userCards: string[] | undefined = staffPrefs?.nav?.cards;
+  const cardNames = userCards ?? dashboard.cards;
+
+  const cardConfigs = cardNames
     .map((name) => ({ name, config: baseConfig.cards[name] }))
     .filter((c) => c.config);
 
   const quickAdds = dashboard.quick_adds || [];
 
   return (
-    <div className="flex h-full flex-col" style={{ overflow: "hidden" }}>
+    <div className="db-root flex h-full flex-col" data-theme={theme} style={{ overflow: "hidden", background: "var(--db-bg)", color: "var(--db-text)" }}>
       {/* Header: title + quick adds */}
       <div style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         padding: "6px 8px",
-        borderBottom: "1px solid var(--db-border, #3c3c3c)",
+        borderBottom: "1px solid var(--db-border)",
         flexShrink: 0,
       }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--db-text)" }}>

@@ -1,4 +1,4 @@
-/* LastChecked: 2026-08-01 | WhereUsed: LinesCard | WhoCreated: Claude */
+/* LastChecked: 2026-08-13 | WhereUsed: LinesCard | WhoCreated: Claude */
 // Cross-reference panel — "XRef" button in WC2.
 // Shows vendor/manufacturer cross-references for the selected line's item.
 import React from 'react';
@@ -92,7 +92,7 @@ const XRefPanel: React.FC<XRefPanelProps> = ({ itemId, itemCode }) => {
 
   if (!itemId) {
     return (
-      <div className="px-3 py-2 text-xs text-slate-400 dark:text-slate-500">
+      <div className="px-3 py-2 text-xs" style={{ color: 'var(--db-text-dim)' }}>
         Select a line to view cross-references
       </div>
     );
@@ -100,7 +100,7 @@ const XRefPanel: React.FC<XRefPanelProps> = ({ itemId, itemCode }) => {
 
   if (loading) {
     return (
-      <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+      <div className="px-3 py-2 text-xs" style={{ color: 'var(--db-text-muted)' }}>
         Loading cross-references for {itemCode}…
       </div>
     );
@@ -109,23 +109,23 @@ const XRefPanel: React.FC<XRefPanelProps> = ({ itemId, itemCode }) => {
   return (
     <div className="px-3 py-2 text-xs">
       {/* Header */}
-      <div className="font-medium text-slate-700 dark:text-slate-200 mb-2">
+      <div className="font-medium mb-2" style={{ color: 'var(--db-text)' }}>
         X-Ref: {itemCode}
         {item && (
-          <span className="ml-2 text-slate-500 dark:text-slate-400 font-normal">
+          <span className="ml-2 font-normal" style={{ color: 'var(--db-text-muted)' }}>
             {item.name}
           </span>
         )}
       </div>
 
       {xrefs.length === 0 ? (
-        <div className="text-slate-400 dark:text-slate-500 py-2">
+        <div className="py-2" style={{ color: 'var(--db-text-dim)' }}>
           No cross-references for this item
         </div>
       ) : (
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+            <tr style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
               <th className="text-left px-2 py-1 font-medium">Source</th>
               <th className="text-left px-2 py-1 font-medium">Item XRef</th>
               <th className="text-left px-2 py-1 font-medium">Description</th>
@@ -137,11 +137,11 @@ const XRefPanel: React.FC<XRefPanelProps> = ({ itemId, itemCode }) => {
             {xrefs.map((xr, i) => (
               <tr
                 key={i}
-                className="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                style={{ borderBottom: '1px solid var(--db-border)' }}
               >
-                <td className="px-2 py-1 text-slate-500">{xr.source}</td>
+                <td className="px-2 py-1" style={{ color: 'var(--db-text-muted)' }}>{xr.source}</td>
                 <td className="px-2 py-1 font-mono">{xr.xref_id}</td>
-                <td className="px-2 py-1 text-slate-600 dark:text-slate-300">{xr.description}</td>
+                <td className="px-2 py-1" style={{ color: 'var(--db-text-muted)' }}>{xr.description}</td>
                 <td className="px-2 py-1 text-right">{formatCurrency(xr.price_cost)}</td>
                 <td className="px-2 py-1 text-right">{xr.lead != null ? `${xr.lead}d` : '—'}</td>
               </tr>

@@ -6,6 +6,7 @@ import clsx from "clsx";
 import type { KanbanTask, TaskPriority } from "./type/kanban";
 import { DRAG_TYPE_TASK, type DragItem, type DropResult } from "./dndTypes";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { formatDt } from '@/utils/fieldFormatters';
 
 const priorityStyles: Record<TaskPriority, string> = {
   low: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200",
@@ -148,21 +149,21 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
         {task.properties?.dates?.start?.dt && (
           <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 dark:bg-gray-700/60 dark:text-gray-200">
             Start:
-             {new Date(task.properties.dates.start.dt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+             {formatDt(task.properties.dates.start.dt, 'date')}
           </span>
         )}
 
         {task.properties?.dates?.expected?.dt && (
           <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 dark:bg-gray-700/60 dark:text-gray-200">
             Expected:
-             {new Date(task.properties.dates.expected.dt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+             {formatDt(task.properties.dates.expected.dt, 'date')}
           </span>
         )}
 
         {task.properties?.dates?.due?.dt && (
           <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 dark:bg-gray-700/60 dark:text-gray-200">
             Due:
-             {new Date(task.properties.dates.due.dt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+             {formatDt(task.properties.dates.due.dt, 'date')}
           </span>
         )}
 
@@ -187,7 +188,7 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
         {task.properties?.dates?.completed?.dt && (
           <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 dark:bg-gray-700/60 dark:text-gray-200">
             Completed:
-             {new Date(task.properties.dates.completed.dt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+             {formatDt(task.properties.dates.completed.dt, 'date')}
           </span>
         )}
         {progressLabel && (

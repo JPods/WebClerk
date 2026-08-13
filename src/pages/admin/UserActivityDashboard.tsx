@@ -34,6 +34,7 @@ import type {
   DailyHint,
   ErrorDetail,
 } from "../../apps/core/models/log/UserDailyLog";
+import { formatDt } from '@/utils/fieldFormatters';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -54,11 +55,7 @@ const HINT_STYLE: Record<string, string> = {
 };
 
 function fmtDate(d: string) {
-  return new Date(d + "T00:00:00").toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  return formatDt(d + "T00:00:00", 'date');
 }
 
 function fmtNum(n: number) {

@@ -580,31 +580,32 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
   ).length;
 
   return (
-    <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden mb-3">
+    <div className="rounded-lg overflow-hidden mb-3" style={{ border: '1px solid var(--db-border)' }}>
       {/* ─── Header ─── */}
       <button
         type="button"
-        className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+        className="db-list-row w-full flex items-center justify-between px-4 py-2.5 transition-colors"
+        style={{ background: 'var(--db-surface-alt)' }}
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-2">
           {expanded ? (
-            <ChevronDown className="text-slate-400 w-3 h-3" />
+            <ChevronDown className="w-3 h-3" style={{ color: 'var(--db-text-dim)' }} />
           ) : (
-            <ChevronRight className="text-slate-400 w-3 h-3" />
+            <ChevronRight className="w-3 h-3" style={{ color: 'var(--db-text-dim)' }} />
           )}
-          <Building2 size={14} className="text-slate-500" />
-          <span className="font-semibold text-sm text-slate-700 dark:text-slate-200">
+          <Building2 size={14} style={{ color: 'var(--db-text-muted)' }} />
+          <span className="font-semibold text-sm" style={{ color: 'var(--db-text)' }}>
             Company & Organizations
           </span>
           {populatedCount > 0 && (
-            <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-medium">
+            <span className="text-xs px-1.5 py-0.5 rounded-full font-medium" style={{ background: 'var(--db-row-active)', color: 'var(--db-accent)' }}>
               {populatedCount}
             </span>
           )}
           {/* DEV: show contactId for debugging */}
           {contactId && (
-            <span className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ color: 'var(--db-text-dim)', background: 'var(--db-surface-alt)' }}>
               c#{contactId}
             </span>
           )}
@@ -612,16 +613,16 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
       </button>
 
       {expanded && (
-        <div className="px-4 py-3 bg-white dark:bg-slate-900 space-y-1">
+        <div className="px-4 py-3 space-y-1" style={{ background: 'var(--db-surface)' }}>
           {/* ─── Scalar org fields (company, title, department, role, etc.) ─── */}
           {scalarFields && scalarFields.length > 0 && (
-            <div className="space-y-1 pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
+            <div className="space-y-1 pb-2 mb-2" style={{ borderBottom: '1px solid var(--db-border-light)' }}>
               {scalarFields.map((sf) => (
                 <div
                   key={sf.fieldName}
                   className="flex items-center gap-2 py-1.5"
                 >
-                  <span className="w-32 shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  <span className="w-32 shrink-0 text-xs font-medium" style={{ color: 'var(--db-text-muted)' }}>
                     {sf.label} :
                   </span>
                   {isEditing ? (
@@ -632,7 +633,8 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
                           onScalarFieldChange?.(sf.fieldName, e.target.value)
                         }
                         disabled={sf.disabled || disabled}
-                        className="flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                        className="flex-1 px-2 py-1 text-sm rounded"
+                        style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)', color: 'var(--db-text)' }}
                       >
                         {sf.options.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -649,11 +651,12 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
                         }
                         disabled={sf.disabled || disabled}
                         placeholder={sf.placeholder || ""}
-                        className="flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                        className="flex-1 px-2 py-1 text-sm rounded"
+                        style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)', color: 'var(--db-text)' }}
                       />
                     )
                   ) : (
-                    <span className="text-sm text-slate-900 dark:text-slate-100 flex-1">
+                    <span className="text-sm flex-1" style={{ color: 'var(--db-text)' }}>
                       {sf.value || "—"}
                     </span>
                   )}
@@ -666,11 +669,12 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
                     type="button"
                     onClick={handleSaveScalars}
                     disabled={disabled || scalarsSaving}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                      scalarsSaved
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                        : "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
-                    } disabled:opacity-40`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-40"
+                    style={{
+                      background: scalarsSaved ? 'var(--db-accent-green)' : 'var(--db-row-active)',
+                      color: scalarsSaved ? 'var(--db-surface)' : 'var(--db-accent)',
+                      opacity: scalarsSaved ? 0.8 : 1,
+                    }}
                   >
                     {scalarsSaving ? (
                       <FaSpinner className="animate-spin" size={10} />
@@ -705,23 +709,22 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
                 {/* ─── Summary row ─── */}
                 <div
                   className={`flex items-center gap-2 py-1.5 ${
-                    isEditingThisOrg
-                      ? "bg-blue-50/50 dark:bg-blue-900/10 px-2 rounded"
-                      : ""
+                    isEditingThisOrg ? "px-2 rounded" : ""
                   }`}
+                  style={isEditingThisOrg ? { background: 'var(--db-row-active)' } : undefined}
                 >
                   {/* Label */}
-                  <span className="w-32 shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  <span className="w-32 shrink-0 text-xs font-medium" style={{ color: 'var(--db-text-muted)' }}>
                     {field.label} :
                   </span>
 
                   {/* Value */}
                   {hasValue ? (
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-xs font-mono text-slate-400">
+                      <span className="text-xs font-mono" style={{ color: 'var(--db-text-dim)' }}>
                         #{field.value}
                       </span>
-                      <span className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                      <span className="text-sm font-medium truncate" style={{ color: 'var(--db-text)' }}>
                         {name}
                       </span>
                       {isEditing && (
@@ -729,7 +732,8 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
                           type="button"
                           onClick={() => handleClear(field.fieldName)}
                           disabled={disabled || saving}
-                          className="shrink-0 p-1 text-slate-400 hover:text-red-500 rounded transition-colors disabled:opacity-40"
+                          className="shrink-0 p-1 rounded transition-colors disabled:opacity-40"
+                          style={{ color: 'var(--db-text-dim)' }}
                           title="Clear association"
                         >
                           <FaTimes size={10} />
@@ -737,7 +741,7 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
                       )}
                     </div>
                   ) : (
-                    <span className="text-sm text-slate-400 flex-1">—</span>
+                    <span className="text-sm flex-1" style={{ color: 'var(--db-text-dim)' }}>—</span>
                   )}
 
                   {/* Action buttons (edit mode only) */}
@@ -757,11 +761,11 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
                             orgRecordSaving ||
                             (editingOrgField != null && !isEditingThisOrg)
                           }
-                          className={`p-1 rounded transition-colors disabled:opacity-30 ${
-                            isEditingThisOrg
-                              ? "text-blue-600 bg-blue-100 dark:bg-blue-900/30"
-                              : "text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                          }`}
+                          className="p-1 rounded transition-colors disabled:opacity-30"
+                          style={{
+                            color: isEditingThisOrg ? 'var(--db-accent)' : 'var(--db-text-dim)',
+                            background: isEditingThisOrg ? 'var(--db-row-active)' : undefined,
+                          }}
                           title={
                             isEditingThisOrg
                               ? "Cancel edit"
@@ -781,7 +785,8 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
                             orgRecordSaving ||
                             (editingOrgField != null && !isEditingThisOrg)
                           }
-                          className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded transition-colors disabled:opacity-30"
+                          className="p-1 rounded transition-colors disabled:opacity-30"
+                          style={{ color: 'var(--db-text-dim)' }}
                           title={`Create new ${field.label}`}
                         >
                           <FaPlus size={11} />
@@ -792,7 +797,8 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
                         type="button"
                         onClick={() => setSearchField(field.fieldName)}
                         disabled={disabled || saving}
-                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors disabled:opacity-40"
+                        className="p-1.5 rounded-lg transition-colors disabled:opacity-40"
+                        style={{ color: 'var(--db-text-dim)' }}
                         title={`Search ${field.label}`}
                       >
                         {saving && searchField === field.fieldName ? (
@@ -826,7 +832,7 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
           })}
 
           {disabled && isEditing && (
-            <p className="text-xs text-amber-600 dark:text-amber-400 italic pt-1">
+            <p className="text-xs italic pt-1" style={{ color: 'var(--db-accent-gold)' }}>
               Save contact first to assign organizations
             </p>
           )}
@@ -878,7 +884,7 @@ function OrgRecordEditor({
 }: OrgRecordEditorProps) {
   if (loading) {
     return (
-      <div className="px-3 py-4 bg-slate-50/50 dark:bg-slate-800/30 flex items-center gap-2 text-sm text-slate-500">
+      <div className="px-3 py-4 flex items-center gap-2 text-sm" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
         <FaSpinner className="animate-spin" size={12} />
         Loading {fieldLabel} record…
       </div>
@@ -886,9 +892,9 @@ function OrgRecordEditor({
   }
 
   return (
-    <div className="ml-4 mr-2 mb-2 mt-1 px-3 py-3 bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-lg space-y-2">
+    <div className="ml-4 mr-2 mb-2 mt-1 px-3 py-3 rounded-lg space-y-2" style={{ background: 'var(--db-surface-alt)', border: '1px solid var(--db-border)' }}>
       {/* DEV: editing badge */}
-      <div className="text-[10px] font-mono text-slate-400 mb-1">
+      <div className="text-[10px] font-mono mb-1" style={{ color: 'var(--db-text-dim)' }}>
         {isNew ? `new ${fieldLabel}` : `editing ${fieldLabel} #${orgId}`}
       </div>
 
@@ -903,13 +909,14 @@ function OrgRecordEditor({
                 key={fd.key}
                 className={isFullWidth ? "col-span-2" : "col-span-1"}
               >
-                <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--db-text-muted)' }}>
                   {fd.label}
                 </label>
                 <select
                   value={values[fd.key] ?? ""}
                   onChange={(e) => onChange(fd.key, e.target.value)}
-                  className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                  className="w-full px-2 py-1 text-sm rounded"
+                  style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)', color: 'var(--db-text)' }}
                 >
                   {fd.options.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -926,7 +933,7 @@ function OrgRecordEditor({
               key={fd.key}
               className={isFullWidth ? "col-span-2" : "col-span-1"}
             >
-              <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+              <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--db-text-muted)' }}>
                 {fd.label}
               </label>
               {fd.key === "phone" ? (
@@ -941,7 +948,8 @@ function OrgRecordEditor({
                   value={values[fd.key] ?? ""}
                   onChange={(e) => onChange(fd.key, e.target.value)}
                   placeholder={fd.placeholder || ""}
-                  className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                  className="w-full px-2 py-1 text-sm rounded"
+                  style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)', color: 'var(--db-text)' }}
                 />
               )}
             </div>
@@ -955,7 +963,8 @@ function OrgRecordEditor({
           type="button"
           onClick={onSave}
           disabled={saving}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded-lg transition-colors disabled:opacity-40"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-40"
+          style={{ background: 'var(--db-accent)', color: 'white' }}
         >
           {saving ? (
             <FaSpinner className="animate-spin" size={10} />
@@ -968,7 +977,8 @@ function OrgRecordEditor({
           type="button"
           onClick={onCancel}
           disabled={saving}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors disabled:opacity-40"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-40"
+          style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}
         >
           <FaUndo size={10} />
           Cancel

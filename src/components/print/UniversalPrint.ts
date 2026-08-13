@@ -7,6 +7,7 @@
  * Alice drafts the PrintLayout JSON from user-uploaded PDF/image examples.
  * Users tweak field mappings in the DataBrowser Setting editor.
  */
+import { formatDt } from '@/utils/fieldFormatters';
 import type {
   PrintLayout, PrintLayoutSection, PrintField,
   CompanyHeaderSection, AddressBlocksSection, MetaRowSection,
@@ -29,15 +30,7 @@ function fmtCurrency(v: unknown): string {
 
 function fmtDate(v: unknown): string {
   if (!v) return '';
-  if (typeof v === 'number') {
-    const ms = v > 1e12 ? v : v * 1000;
-    return new Date(ms).toLocaleDateString();
-  }
-  if (typeof v === 'string') {
-    const d = new Date(v);
-    return isNaN(d.getTime()) ? v : d.toLocaleDateString();
-  }
-  return String(v);
+  return formatDt(v, 'date');
 }
 
 function fmtNumber(v: unknown): string {

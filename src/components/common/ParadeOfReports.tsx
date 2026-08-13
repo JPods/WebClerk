@@ -11,10 +11,11 @@
  *   - Alice via Chrome DevTools MCP
  *   - Direct URL: /parade
  *
- * LastChecked: 2026-08-07 | WhereUsed: ReportsDialog, Router | WhoCreated: Bill+Claude
+ * LastChecked: 2026-08-12 | WhereUsed: ReportsDialog, Router | WhoCreated: Bill+Claude
  */
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { manageAction, saveRecord } from '@/api/wcapi';
+import './ParadeOfReports.css';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -54,31 +55,33 @@ interface ParadeFeedback {
 interface Props {
   open: boolean;
   onClose: () => void;
-  theme: {
-    bg: string; surface: string; surfaceAlt: string;
-    border: string; borderLight: string;
-    text: string; textMuted: string; textDim: string;
-    accent: string; accentGreen: string; accentGold: string; accentRed: string;
-    [k: string]: string;
-  };
   fontSize: number;
 }
 
 // ---------------------------------------------------------------------------
-// Feedback button colors
+// Helpers
 // ---------------------------------------------------------------------------
 
-const FEEDBACK_COLORS: Record<string, { bg: string; border: string }> = {
-  'Keep':        { bg: '#1a3a1a', border: '#2d5a2d' },
-  'Modify':      { bg: '#3a3a1a', border: '#5a5a2d' },
-  "Don't Need":  { bg: '#3a1a1a', border: '#5a2d2d' },
-};
+/** Map a feedback decision to the CSS modifier class suffix */
+function badgeClass(decision: string | null): string {
+  if (decision === 'Keep') return 'por-badge--keep';
+  if (decision === 'Modify') return 'por-badge--modify';
+  if (decision === "Don't Need") return 'por-badge--dont-need';
+  return '';
+}
+
+function feedbackBtnClass(opt: string): string {
+  if (opt === 'Keep') return 'por-feedback-btn por-feedback-btn--keep';
+  if (opt === 'Modify') return 'por-feedback-btn por-feedback-btn--modify';
+  if (opt === "Don't Need") return 'por-feedback-btn por-feedback-btn--dont-need';
+  return 'por-feedback-btn';
+}
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function ParadeOfReports({ open, onClose, theme, fontSize }: Props) {
+export function ParadeOfReports({ open, onClose, fontSize }: Props) {
   const [manifest, setManifest] = useState<ParadeManifest | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -209,131 +212,66 @@ export function ParadeOfReports({ open, onClose, theme, fontSize }: Props) {
   // ── Summary view (after parade) ──
   const showSummary = !parading && Object.keys(feedbackMap).length > 0;
 
-  const fs = fontSize || 13;
-  const S: Record<string, React.CSSProperties> = {
-    overlay: {
-      position: 'fixed', inset: 0, zIndex: 9999,
-      background: 'rgba(0,0,0,0.7)', display: 'flex',
-      alignItems: 'center', justifyContent: 'center',
-    },
-    dialog: {
-      background: theme.bg, border: `1px solid ${theme.border}`,
-      borderRadius: 8, width: parading ? '95vw' : 720,
-      maxHeight: '90vh', display: 'flex', flexDirection: 'column',
-      color: theme.text, fontSize: fs,
-    },
-    header: {
-      padding: '16px 20px', borderBottom: `1px solid ${theme.border}`,
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    },
-    body: {
-      flex: 1, overflow: 'auto', padding: parading ? 0 : 20,
-      display: parading ? 'flex' : 'block',
-    },
-    footer: {
-      padding: '12px 20px', borderTop: `1px solid ${theme.border}`,
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    },
-    group: {
-      marginBottom: 16,
-    },
-    groupHeader: {
-      display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
-      padding: '6px 0', fontWeight: 600, color: theme.accent,
-    },
-    reportRow: {
-      display: 'flex', alignItems: 'center', gap: 8,
-      padding: '4px 0 4px 24px', cursor: 'pointer',
-    },
-    checkbox: {
-      width: 16, height: 16, cursor: 'pointer',
-    },
-    // Parade view
-    preview: {
-      flex: 1, border: 'none', background: '#fff',
-    },
-    feedbackPanel: {
-      width: 280, padding: 16, borderLeft: `1px solid ${theme.border}`,
-      display: 'flex', flexDirection: 'column', gap: 12,
-    },
-    feedbackBtn: {
-      padding: '10px 16px', border: '1px solid', borderRadius: 6,
-      cursor: 'pointer', fontSize: fs, fontWeight: 500,
-      color: theme.text, textAlign: 'center' as const,
-    },
-    notesArea: {
-      width: '100%', minHeight: 80, padding: 8,
-      background: theme.surfaceAlt, border: `1px solid ${theme.borderLight}`,
-      borderRadius: 4, color: theme.text, fontSize: fs - 1,
-      resize: 'vertical' as const,
-    },
-    btn: {
-      padding: '8px 20px', borderRadius: 6, cursor: 'pointer',
-      border: `1px solid ${theme.border}`, background: theme.surface,
-      color: theme.text, fontSize: fs,
-    },
-    btnPrimary: {
-      padding: '8px 20px', borderRadius: 6, cursor: 'pointer',
-      border: 'none', background: theme.accent,
-      color: '#fff', fontSize: fs, fontWeight: 600,
-    },
-  };
+  // Set the --por-fs custom property for font size on the root element
+  const rootStyle = { '--por-fs': `${fontSize || 13}px` } as React.CSSProperties;
 
   return (
-    <div style={S.overlay} onClick={onClose}>
-      <div style={S.dialog} onClick={e => e.stopPropagation()}>
-        {/* ── Header ── */}
-        <div style={S.header}>
+    <div className="por-overlay" onClick={onClose}>
+      <div
+        className={`por-dialog${parading ? ' por-dialog--parading' : ''}`}
+        style={rootStyle}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* -- Header -- */}
+        <div className="por-header">
           <div>
-            <span style={{ fontWeight: 700, fontSize: fs + 2 }}>
+            <span className="por-title">
               {parading
                 ? `Report ${currentIndex + 1} of ${paradeReports.length}`
                 : showSummary ? 'Parade Complete' : 'Parade of Reports'}
             </span>
             {parading && currentReport && (
-              <span style={{ color: theme.textMuted, marginLeft: 12 }}>
+              <span className="por-subtitle">
                 {currentReport.name}
               </span>
             )}
           </div>
           <button
-            style={{ ...S.btn, padding: '4px 12px' }}
+            className="por-btn por-btn--sm"
             onClick={parading ? () => setParading(false) : onClose}
           >
             {parading ? 'Exit Parade' : 'Close'}
           </button>
         </div>
 
-        {/* ── Body ── */}
-        <div style={S.body}>
+        {/* -- Body -- */}
+        <div className={`por-body${parading ? ' por-body--parading' : ''}`}>
           {loading && (
-            <div style={{ padding: 40, textAlign: 'center', color: theme.textMuted }}>
-              Loading reports...
-            </div>
+            <div className="por-loading">Loading reports...</div>
           )}
 
           {error && (
-            <div style={{ padding: 20, color: theme.accentRed }}>{error}</div>
+            <div className="por-error">{error}</div>
           )}
 
-          {/* ── Selection view ── */}
+          {/* -- Selection view -- */}
           {!loading && !error && !parading && !showSummary && manifest && (
             <div>
-              <p style={{ color: theme.textMuted, marginBottom: 16 }}>
+              <p className="por-instructions">
                 Select the reports you want to review. Each will render with
                 sample data so you can see what it looks like with real content.
               </p>
               {manifest.groups.map(group => (
-                <div key={group.name} style={S.group}>
-                  <div style={S.groupHeader} onClick={() => toggleGroup(group)}>
+                <div key={group.name} className="por-group">
+                  <div className="por-group-header" onClick={() => toggleGroup(group)}>
                     <input
                       type="checkbox"
-                      style={S.checkbox}
+                      className="por-checkbox"
                       checked={group.reports.every(r => selectedIds.has(r.id))}
                       readOnly
                     />
                     <span>{group.name}</span>
-                    <span style={{ color: theme.textDim, fontWeight: 400, fontSize: fs - 1 }}>
+                    <span className="por-group-desc">
                       {group.description} ({group.count})
                     </span>
                   </div>
@@ -342,31 +280,22 @@ export function ParadeOfReports({ open, onClose, theme, fontSize }: Props) {
                     return (
                       <div
                         key={r.id}
-                        style={{
-                          ...S.reportRow,
-                          opacity: r.has_sample_data ? 1 : 0.5,
-                        }}
+                        className={`por-report-row${!r.has_sample_data ? ' por-report-row--disabled' : ''}`}
                         onClick={() => r.has_sample_data && toggleReport(r.id)}
                       >
                         <input
                           type="checkbox"
-                          style={S.checkbox}
+                          className="por-checkbox"
                           checked={selectedIds.has(r.id)}
                           disabled={!r.has_sample_data}
                           readOnly
                         />
                         <span>{r.name}</span>
                         {!r.has_sample_data && (
-                          <span style={{ color: theme.textDim, fontSize: fs - 2 }}>
-                            (no sample data yet)
-                          </span>
+                          <span className="por-no-sample">(no sample data yet)</span>
                         )}
                         {prior && (
-                          <span style={{
-                            fontSize: fs - 2, padding: '1px 6px', borderRadius: 3,
-                            background: FEEDBACK_COLORS[prior.decision || '']?.bg || theme.surfaceAlt,
-                            border: `1px solid ${FEEDBACK_COLORS[prior.decision || '']?.border || theme.borderLight}`,
-                          }}>
+                          <span className={`por-badge ${badgeClass(prior.decision)}`}>
                             {prior.decision}
                           </span>
                         )}
@@ -378,30 +307,27 @@ export function ParadeOfReports({ open, onClose, theme, fontSize }: Props) {
             </div>
           )}
 
-          {/* ── Parade view ── */}
+          {/* -- Parade view -- */}
           {parading && currentReport && (
             <>
               <iframe
                 ref={iframeRef}
                 src={currentReport.render_url || ''}
-                style={S.preview}
+                className="por-preview"
                 title={currentReport.name}
               />
-              <div style={S.feedbackPanel}>
-                <div style={{ fontWeight: 600, marginBottom: 4 }}>
+              <div className="por-feedback-panel">
+                <div className="por-feedback-name">
                   {currentReport.name}
                 </div>
-                <div style={{ color: theme.textMuted, fontSize: fs - 1, marginBottom: 8 }}>
+                <div className="por-feedback-meta">
                   {currentReport.model_name} &middot; {currentReport.category}
                 </div>
 
                 {['Keep', 'Modify', "Don't Need"].map(opt => (
                   <button
                     key={opt}
-                    style={{
-                      ...S.feedbackBtn,
-                      ...(FEEDBACK_COLORS[opt] || {}),
-                    }}
+                    className={feedbackBtnClass(opt)}
                     onClick={() => submitFeedback(opt)}
                   >
                     {opt}
@@ -409,44 +335,44 @@ export function ParadeOfReports({ open, onClose, theme, fontSize }: Props) {
                 ))}
 
                 <textarea
-                  style={S.notesArea}
+                  className="por-notes"
                   placeholder="Notes (optional)..."
                   value={currentNotes}
                   onChange={e => setCurrentNotes(e.target.value)}
                 />
 
-                <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+                <div className="por-nav-row">
                   <button
-                    style={S.btn}
+                    className="por-btn"
                     onClick={goBack}
                     disabled={currentIndex === 0}
                   >
                     Back
                   </button>
-                  <button style={S.btn} onClick={skipReport}>
+                  <button className="por-btn" onClick={skipReport}>
                     Skip
                   </button>
                 </div>
 
-                <div style={{ fontSize: fs - 2, color: theme.textDim, marginTop: 8 }}>
+                <div className="por-progress">
                   {currentIndex + 1} / {paradeReports.length} reports
                 </div>
               </div>
             </>
           )}
 
-          {/* ── Summary view ── */}
+          {/* -- Summary view -- */}
           {showSummary && manifest && (
-            <div style={{ padding: 20 }}>
-              <p style={{ marginBottom: 16, fontWeight: 600 }}>
+            <div className="por-summary">
+              <p className="por-summary-title">
                 Your report selections:
               </p>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <table className="por-summary-table">
                 <thead>
-                  <tr style={{ borderBottom: `1px solid ${theme.border}` }}>
-                    <th style={{ textAlign: 'left', padding: '6px 8px' }}>Report</th>
-                    <th style={{ textAlign: 'left', padding: '6px 8px' }}>Decision</th>
-                    <th style={{ textAlign: 'left', padding: '6px 8px' }}>Notes</th>
+                  <tr>
+                    <th>Report</th>
+                    <th>Decision</th>
+                    <th>Notes</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -454,26 +380,22 @@ export function ParadeOfReports({ open, onClose, theme, fontSize }: Props) {
                     const fb = feedbackMap[r.id];
                     if (!fb) return null;
                     return (
-                      <tr key={r.id} style={{ borderBottom: `1px solid ${theme.borderLight}` }}>
-                        <td style={{ padding: '6px 8px' }}>{r.name}</td>
-                        <td style={{ padding: '6px 8px' }}>
-                          <span style={{
-                            padding: '2px 8px', borderRadius: 3,
-                            background: FEEDBACK_COLORS[fb.decision || '']?.bg || theme.surfaceAlt,
-                            border: `1px solid ${FEEDBACK_COLORS[fb.decision || '']?.border || theme.borderLight}`,
-                          }}>
+                      <tr key={r.id}>
+                        <td>{r.name}</td>
+                        <td>
+                          <span className={`por-badge ${badgeClass(fb.decision)}`}>
                             {fb.decision}
                           </span>
                         </td>
-                        <td style={{ padding: '6px 8px', color: theme.textMuted }}>
-                          {fb.notes || '—'}
+                        <td className="por-summary-notes">
+                          {fb.notes || '\u2014'}
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
-              <div style={{ marginTop: 16, color: theme.textMuted, fontSize: fs - 1 }}>
+              <div className="por-summary-stats">
                 Keep: {Object.values(feedbackMap).filter(f => f.decision === 'Keep').length} &middot;
                 Modify: {Object.values(feedbackMap).filter(f => f.decision === 'Modify').length} &middot;
                 Don't Need: {Object.values(feedbackMap).filter(f => f.decision === "Don't Need").length}
@@ -482,18 +404,15 @@ export function ParadeOfReports({ open, onClose, theme, fontSize }: Props) {
           )}
         </div>
 
-        {/* ── Footer ── */}
-        <div style={S.footer}>
-          <div style={{ color: theme.textMuted, fontSize: fs - 1 }}>
+        {/* -- Footer -- */}
+        <div className="por-footer">
+          <div className="por-footer-info">
             {!parading && manifest && `${selectedIds.size} of ${manifest.total_reports} reports selected`}
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="por-footer-actions">
             {!parading && !showSummary && (
               <button
-                style={{
-                  ...S.btnPrimary,
-                  opacity: selectedIds.size === 0 ? 0.5 : 1,
-                }}
+                className="por-btn--primary"
                 disabled={selectedIds.size === 0}
                 onClick={startParade}
               >
@@ -502,13 +421,13 @@ export function ParadeOfReports({ open, onClose, theme, fontSize }: Props) {
             )}
             {showSummary && (
               <>
-                <button style={S.btn} onClick={() => {
+                <button className="por-btn" onClick={() => {
                   setFeedbackMap({});
                   setParading(false);
                 }}>
                   Run Again
                 </button>
-                <button style={S.btnPrimary} onClick={onClose}>
+                <button className="por-btn--primary" onClick={onClose}>
                   Done
                 </button>
               </>

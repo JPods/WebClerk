@@ -8,6 +8,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { getRecords, getRecord, manageAction } from '@/api/wcapi';
+import { formatDt } from '@/utils/fieldFormatters';
 import RecordLink from '@/components/common/RecordLink';
 
 interface InventoryImpact {
@@ -124,7 +125,7 @@ function GLJournalSection() {
                   }`}>{e.type}</span>
                 </td>
                 <td className="py-1.5 pr-2 text-gray-500">{e.source_model} #{e.source_id}</td>
-                <td className="py-1.5 text-gray-400 text-[10px]">{e.dt_created ? new Date(e.dt_created).toLocaleString() : '—'}</td>
+                <td className="py-1.5 text-gray-400 text-[10px]">{e.dt_created ? formatDt(e.dt_created, 'datetime', 'dt_created') : '—'}</td>
               </tr>
             ))}
           </tbody>
@@ -293,7 +294,7 @@ export default function TestDashboard() {
       const custRes = await getRecords('customer', { keyword: 'alice-test', limit: 10 }) as any;
       (custRes?.results || []).forEach((r: any) => {
         records.push({ model: 'customer', id: r.id, ida: r.ida || '', label: r.display_name || r.ida, status: r.status });
-        journalEntries.push({ dt: new Date(r.dt_created).toLocaleString(), action: 'Customer created', detail: `${r.display_name} (id=${r.id})` });
+        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Customer created', detail: `${r.display_name} (id=${r.id})` });
       });
 
       // Also check user-created test records
@@ -301,7 +302,7 @@ export default function TestDashboard() {
       (custRes2?.results || []).forEach((r: any) => {
         if (!records.find(x => x.id === r.id)) {
           records.push({ model: 'customer', id: r.id, ida: r.ida || '', label: r.display_name || r.ida, status: r.status });
-          journalEntries.push({ dt: new Date(r.dt_created).toLocaleString(), action: 'Customer created (UI)', detail: `${r.display_name} (id=${r.id})` });
+          journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Customer created (UI)', detail: `${r.display_name} (id=${r.id})` });
         }
       });
 
@@ -309,35 +310,35 @@ export default function TestDashboard() {
       const propRes = await getRecords('proposal', { keyword: 'alice', limit: 10 }) as any;
       (propRes?.results || []).forEach((r: any) => {
         records.push({ model: 'proposal', id: r.id, ida: r.ida || '', label: `Proposal ${r.ida}`, status: r.status, amount: r.total });
-        journalEntries.push({ dt: new Date(r.dt_created).toLocaleString(), action: 'Proposal created', detail: `${r.ida} total=${r.total}` });
+        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Proposal created', detail: `${r.ida} total=${r.total}` });
       });
 
       // Orders
       const ordRes = await getRecords('order', { keyword: 'alice', limit: 10 }) as any;
       (ordRes?.results || []).forEach((r: any) => {
         records.push({ model: 'order', id: r.id, ida: r.ida || '', label: `Order ${r.ida}`, status: r.status, amount: r.total });
-        journalEntries.push({ dt: new Date(r.dt_created).toLocaleString(), action: 'Order created', detail: `${r.ida} total=${r.total}` });
+        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Order created', detail: `${r.ida} total=${r.total}` });
       });
 
       // Purchases
       const poRes = await getRecords('purchase', { keyword: 'alice', limit: 10 }) as any;
       (poRes?.results || []).forEach((r: any) => {
         records.push({ model: 'purchase', id: r.id, ida: r.ida || '', label: `PO ${r.ida}`, status: r.status, amount: r.total });
-        journalEntries.push({ dt: new Date(r.dt_created).toLocaleString(), action: 'PO created', detail: `${r.ida} total=${r.total}` });
+        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'PO created', detail: `${r.ida} total=${r.total}` });
       });
 
       // Invoices
       const invRes = await getRecords('invoice', { keyword: 'alice', limit: 10 }) as any;
       (invRes?.results || []).forEach((r: any) => {
         records.push({ model: 'invoice', id: r.id, ida: r.ida || '', label: `Invoice ${r.ida}`, status: r.status, amount: r.total });
-        journalEntries.push({ dt: new Date(r.dt_created).toLocaleString(), action: 'Invoice created', detail: `${r.ida} total=${r.total} balance=${r.balance}` });
+        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Invoice created', detail: `${r.ida} total=${r.total} balance=${r.balance}` });
       });
 
       // Contacts
       const contRes = await getRecords('contact', { keyword: 'alice-test', limit: 10 }) as any;
       (contRes?.results || []).forEach((r: any) => {
         records.push({ model: 'contact', id: r.id, ida: r.ida || '', label: `${r.name_first} ${r.name_last}` });
-        journalEntries.push({ dt: new Date(r.dt_created).toLocaleString(), action: 'Contact created', detail: `${r.email}` });
+        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Contact created', detail: `${r.email}` });
       });
 
       // Emails
@@ -508,7 +509,7 @@ export default function TestDashboard() {
                           </td>
                         );
                       })}
-                      <td className="py-2 text-gray-400 text-[10px]">{imp.dt ? new Date(imp.dt).toLocaleString() : '—'}</td>
+                      <td className="py-2 text-gray-400 text-[10px]">{imp.dt ? formatDt(imp.dt, 'datetime') : '—'}</td>
                     </tr>
                   ))}
                 </tbody>

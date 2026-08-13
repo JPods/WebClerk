@@ -10,6 +10,8 @@
  * for each field carries its own display/widget instructions.
  */
 
+import './fields.css';
+
 // Individual widgets — import directly for custom pages
 export { default as TextField } from './TextField';
 export { default as NumberField } from './NumberField';
@@ -24,7 +26,7 @@ export { default as LookupField } from './LookupField';
 export { default as BooleanField } from './BooleanField';
 export { default as DateField } from './DateField';
 export { default as TimestampField } from './TimestampField';
-export { default as JsonField } from './JsonField';
+export { default as JsonField, JsonTreeField } from './JsonField';
 export { default as TextareaField } from './TextareaField';
 export { default as ReadonlyField } from './ReadonlyField';
 export { default as GeoField } from './GeoField';
@@ -49,11 +51,14 @@ import LookupField from './LookupField';
 import BooleanField from './BooleanField';
 import DateField from './DateField';
 import TimestampField from './TimestampField';
-import JsonField from './JsonField';
+import JsonField, { JsonTreeField } from './JsonField';
 import TextareaField from './TextareaField';
 import ReadonlyField from './ReadonlyField';
 import GeoField from './GeoField';
 import ZipField from './ZipField';
+
+// Hidden type renders nothing
+function HiddenField() { return null; }
 
 const WIDGET_REGISTRY: Record<string, React.ComponentType<any>> = {
   text: TextField,
@@ -69,11 +74,13 @@ const WIDGET_REGISTRY: Record<string, React.ComponentType<any>> = {
   date: DateField,
   timestamp: TimestampField,
   json: JsonField,
+  'json-tree': JsonTreeField,
   textarea: TextareaField,
   readonly: ReadonlyField,
   geo: GeoField,
   zip: ZipField,
   masked: ReadonlyField,  // masked fields display as readonly
+  hidden: HiddenField,
 };
 
 /**
@@ -100,9 +107,20 @@ export function renderField(
   value: unknown,
   behavior: Record<string, any>,
   onChange: (value: unknown) => void,
-  opts?: { error?: string; disabled?: boolean; typeHint?: string; record?: Record<string, unknown>; span2?: boolean },
+  opts?: {
+    error?: string; disabled?: boolean; typeHint?: string;
+    record?: Record<string, unknown>; span2?: boolean; model?: string;
+    rowSize?: number;
+  },
 ) {
-  const typeName = opts?.typeHint || behavior.type || 'text';
+  const isJson = typeof value === 'object' && value !== null;
+  const isLong = typeof value === 'string' && (value as string).length > 100;
+  const typeName = opts?.typeHint || behavior.type
+    || (typeof value === 'boolean' ? 'boolean' : '')
+    || (isJson ? 'json' : '')
+    || (isLong ? 'textarea' : '')
+    || ((typeof value === 'number' && !name.startsWith('dt_')) ? 'number' : '')
+    || 'text';
   const Widget = getWidget(typeName);
 
   // Build props from behavior config
@@ -113,12 +131,18 @@ export function renderField(
     error: opts?.error,
     disabled: opts?.disabled,
     span2: opts?.span2,
+    model: opts?.model,
   };
 
   // Type-specific props from behavior
-  if (typeName === 'select' && behavior.options) props.options = behavior.options;
+  if (typeName === 'select' && behavior.options) {
+    props.options = behavior.options;
+    if (behavior.allow_custom) props.allowCustom = true;
+  }
   if (typeName === 'lookup') { props.model = behavior.model || ''; props.displayField = behavior.display; }
   if (typeName === 'geo') { props.pair = behavior.pair; props.record = opts?.record; }
+  if (typeName === 'json' || typeName === 'json-tree') { props.rows = opts?.rowSize; }
+  if (typeName === 'json-tree') { props.readOnly = behavior.readOnly; }
 
   return <Widget key={name} {...props} />;
 }

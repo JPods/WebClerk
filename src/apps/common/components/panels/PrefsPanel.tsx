@@ -55,13 +55,13 @@ const PrefSection: React.FC<PrefSectionProps> = ({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div className="border-b border-slate-100 dark:border-slate-700 last:border-b-0">
+    <div className="border-b last:border-b-0" style={{ borderColor: 'var(--db-border-light)' }}>
       <div
         className="flex items-center gap-2 py-2 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        {icon && <span className="text-slate-400">{icon}</span>}
-        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+        {icon && <span style={{ color: 'var(--db-text-dim)' }}>{icon}</span>}
+        <span className="text-xs font-semibold" style={{ color: 'var(--db-text)' }}>
           {title}
         </span>
         {isExpanded ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />}
@@ -92,11 +92,11 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
 }) => (
   <div className="flex items-center justify-between">
     <div>
-      <span className="text-xs text-slate-700 dark:text-slate-300">
+      <span className="text-xs" style={{ color: 'var(--db-text)' }}>
         {label}
       </span>
       {description && (
-        <p className="text-xs text-slate-400 mt-0.5">{description}</p>
+        <p className="text-xs mt-0.5" style={{ color: 'var(--db-text-dim)' }}>{description}</p>
       )}
     </div>
     <button
@@ -107,9 +107,9 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
       }`}
     >
       {checked ? (
-        <FaToggleOn className="text-blue-500" />
+        <FaToggleOn style={{ color: 'var(--db-accent)' }} />
       ) : (
-        <FaToggleOff className="text-slate-400" />
+        <FaToggleOff style={{ color: 'var(--db-text-dim)' }} />
       )}
     </button>
   </div>
@@ -135,12 +135,13 @@ const SelectPref: React.FC<SelectPrefProps> = ({
   disabled,
 }) => (
   <div className="flex items-center justify-between gap-4">
-    <span className="text-xs text-slate-700 dark:text-slate-300">{label}</span>
+    <span className="text-xs" style={{ color: 'var(--db-text)' }}>{label}</span>
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
-      className="text-xs px-2 py-1 border rounded bg-white dark:bg-slate-700 dark:border-slate-600 disabled:opacity-50"
+      className="text-xs px-2 py-1 rounded disabled:opacity-50"
+      style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)' }}
     >
       {options.map((opt) => (
         <option key={opt.value} value={opt.value}>
@@ -215,20 +216,22 @@ const PrefsPanel: React.FC<PrefsPanelProps> = ({
 
   return (
     <div
-      className={`bg-white dark:bg-slate-800 rounded-lg border border-purple-200 dark:border-purple-800 ${className}`}
+      className={`rounded-lg border ${className}`}
+      style={{ background: 'var(--db-surface)', borderColor: 'var(--db-border)' }}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 bg-purple-50 dark:bg-purple-900/20 border-b border-purple-200 dark:border-purple-800 cursor-pointer rounded-t-lg"
+        className="flex items-center justify-between px-4 py-3 border-b cursor-pointer rounded-t-lg"
+        style={{ background: 'var(--db-surface-alt)', borderColor: 'var(--db-border)' }}
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
           <FaCog className="text-purple-500" size={14} />
-          <h3 className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
             {title}
           </h3>
           {isAdmin && (
-            <span className="px-1.5 py-0.5 text-xs bg-purple-200 dark:bg-purple-800 text-purple-700 dark:text-purple-300 rounded">
+            <span className="px-1.5 py-0.5 text-xs rounded" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
               Admin
             </span>
           )}
@@ -302,10 +305,10 @@ const PrefsPanel: React.FC<PrefsPanelProps> = ({
           {/* Raw JSON for admin */}
           {isAdmin && (
             <details className="mt-4">
-              <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-600">
+              <summary className="text-xs cursor-pointer" style={{ color: 'var(--db-text-dim)' }}>
                 View raw JSON
               </summary>
-              <pre className="mt-2 text-xs font-mono bg-slate-50 dark:bg-slate-900 p-2 rounded overflow-x-auto max-h-48">
+              <pre className="mt-2 text-xs font-mono p-2 rounded overflow-x-auto max-h-48" style={{ background: 'var(--db-surface-alt)' }}>
                 {JSON.stringify(data, null, 2)}
               </pre>
             </details>

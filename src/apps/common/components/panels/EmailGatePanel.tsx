@@ -175,13 +175,13 @@ const EmailGatePanel: React.FC<EmailGatePanelProps> = ({
     <div className="max-w-xl mx-auto py-8 px-4">
       {/* Title */}
       <div className="text-center mb-6">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-3">
-          <Mail size={24} className="text-blue-600 dark:text-blue-400" />
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-3" style={{ background: 'var(--db-row-active)' }}>
+          <Mail size={24} style={{ color: 'var(--db-accent)' }} />
         </div>
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+        <h2 className="text-lg font-semibold" style={{ color: 'var(--db-text)' }}>
           {isStaff ? "New Contact — Enter Email First" : "Enter Your Email"}
         </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-sm mt-1" style={{ color: 'var(--db-text-muted)' }}>
           {isStaff
             ? 'Search for an existing contact before creating a new one. Type "later" to skip.'
             : "We'll check if you already have an account."}
@@ -192,9 +192,9 @@ const EmailGatePanel: React.FC<EmailGatePanelProps> = ({
       <div className="relative mb-4">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           {searching ? (
-            <FaSpinner className="animate-spin text-slate-400" size={14} />
+            <FaSpinner className="animate-spin" style={{ color: 'var(--db-text-dim)' }} size={14} />
           ) : (
-            <FaSearch className="text-slate-400" size={14} />
+            <FaSearch style={{ color: 'var(--db-text-dim)' }} size={14} />
           )}
         </div>
         <input
@@ -204,15 +204,16 @@ const EmailGatePanel: React.FC<EmailGatePanelProps> = ({
           onChange={(e) => setEmail(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder='Email address (or type "later" to skip)'
-          className="w-full pl-10 pr-4 py-3 text-sm border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+          className="w-full pl-10 pr-4 py-3 text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+          style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)', color: 'var(--db-text)' }}
           autoComplete="email"
         />
       </div>
 
       {/* "later" indicator */}
       {isLater && (
-        <div className="mb-4 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-          <p className="text-sm text-amber-800 dark:text-amber-300">
+        <div className="mb-4 px-4 py-3 border rounded-xl" style={{ background: 'var(--db-surface-alt)', borderColor: 'var(--db-border)' }}>
+          <p className="text-sm" style={{ color: 'var(--db-text-muted)' }}>
             <strong>Skip mode:</strong> The form will open without an email
             pre-filled. You can add the email later.
           </p>
@@ -222,22 +223,22 @@ const EmailGatePanel: React.FC<EmailGatePanelProps> = ({
       {/* Search results */}
       {hasSearched && !isLater && matches.length > 0 && (
         <div className="mb-4">
-          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--db-text-muted)' }}>
             Existing contacts found ({matches.length})
           </h3>
-          <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+          <div className="rounded-xl overflow-hidden divide-y" style={{ border: '1px solid var(--db-border)', divideColor: 'var(--db-border-light)' }}>
             {matches.map((contact: any) => (
               <button
                 key={contact.id}
                 type="button"
                 onClick={() => handleOpenExisting(contact)}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors group"
+                className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors group db-list-row"
               >
-                <span className="text-xs font-mono text-slate-400 shrink-0">
+                <span className="text-xs font-mono shrink-0" style={{ color: 'var(--db-text-dim)' }}>
                   #{contact.id}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                  <div className="text-sm font-medium truncate" style={{ color: 'var(--db-text)' }}>
                     {contact.attention ||
                       [contact.name_first, contact.name_last]
                         .filter(Boolean)
@@ -245,13 +246,13 @@ const EmailGatePanel: React.FC<EmailGatePanelProps> = ({
                       contact.email ||
                       `Contact #${contact.id}`}
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                  <div className="text-xs truncate" style={{ color: 'var(--db-text-muted)' }}>
                     {contact.email}
                     {contact.company ? ` · ${contact.company}` : ""}
                     {contact.role ? ` · ${contact.role}` : ""}
                   </div>
                 </div>
-                <span className="shrink-0 flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="shrink-0 flex items-center gap-1 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: 'var(--db-accent)' }}>
                   Open <FaExternalLinkAlt size={10} />
                 </span>
               </button>
@@ -262,8 +263,8 @@ const EmailGatePanel: React.FC<EmailGatePanelProps> = ({
 
       {/* No matches message */}
       {hasSearched && !isLater && matches.length === 0 && !searching && (
-        <div className="mb-4 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl">
-          <p className="text-sm text-emerald-800 dark:text-emerald-300">
+        <div className="mb-4 px-4 py-3 border rounded-xl" style={{ background: 'var(--db-surface-alt)', borderColor: 'var(--db-border)' }}>
+          <p className="text-sm" style={{ color: 'var(--db-text)' }}>
             No existing contacts match{" "}
             <strong className="font-mono">{email.trim()}</strong>. You can
             create a new contact.
@@ -277,7 +278,8 @@ const EmailGatePanel: React.FC<EmailGatePanelProps> = ({
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors"
+            className="px-4 py-2.5 text-sm font-medium rounded-xl transition-colors"
+            style={{ color: 'var(--db-text)', background: 'var(--db-surface-alt)' }}
           >
             Cancel
           </button>
@@ -287,7 +289,8 @@ const EmailGatePanel: React.FC<EmailGatePanelProps> = ({
           type="button"
           onClick={handleProceed}
           disabled={!canProceed}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-500 dark:disabled:bg-slate-700 dark:disabled:text-slate-500 rounded-xl transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium disabled:opacity-50 rounded-xl transition-colors"
+          style={{ background: 'var(--db-btn-primary)', color: '#fff' }}
         >
           {isLater ? (
             <>Skip — Continue without email</>

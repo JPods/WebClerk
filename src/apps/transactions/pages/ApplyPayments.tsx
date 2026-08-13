@@ -22,6 +22,7 @@ import {
   FaPlus,
 } from 'react-icons/fa';
 import PageBreadcrumb from '@/components/common/PageBreadCrumb';
+import { formatDt } from '@/utils/fieldFormatters';
 import ComponentCard from '@/components/common/ComponentCard';
 import { getRecords, GetListPayload } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
@@ -57,7 +58,7 @@ const formatCurrency = (value: number | undefined | null): string => {
 
 const formatDate = (dateStr?: string | null): string => {
   if (!dateStr) return '--';
-  return new Date(dateStr).toLocaleDateString();
+  return formatDt(dateStr, 'date');
 };
 
 /** Return CSS classes for invoice aging color bands. */

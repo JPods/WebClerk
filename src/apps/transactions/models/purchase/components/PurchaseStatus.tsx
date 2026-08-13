@@ -2,6 +2,7 @@
 import { FaChevronRight, FaClock, FaCheck, FaTruck, FaArchive, FaBan } from 'react-icons/fa';
 import { usePurchaseStatus, STATUS_CONFIG, PURCHASE_STATUSES, normalizePurchaseStatus } from '../hooks/usePurchaseStatus';
 import type { PurchaseStatus, StatusTransition } from '../hooks/usePurchaseStatus';
+import { formatDt } from '@/utils/fieldFormatters';
 
 interface PurchaseStatusProps {
   currentStatus?: string | null;
@@ -134,7 +135,7 @@ export default function PurchaseStatus({
                 }`} />
                 <span className="capitalize">{entry.status}</span>
                 <span>by {entry.user}</span>
-                <span>on {entry.timestamp.toLocaleDateString()}</span>
+                <span>on {formatDt(entry.timestamp, 'date')}</span>
               </div>
             ))}
           </div>

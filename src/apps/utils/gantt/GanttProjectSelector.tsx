@@ -295,14 +295,14 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
       </div>
 
       {/* Action buttons — minimal style matching DataBrowser toolbars */}
-      <div className="flex items-center gap-1 border-b border-gray-200 px-3 py-1 dark:border-gray-700" style={{ fontSize: 12, color: '#9cdcfe' }}>
+      <div className="flex items-center gap-1 border-b border-gray-200 px-3 py-1 dark:border-gray-700" style={{ fontSize: 'inherit', color: '#9cdcfe' }}>
         <button type="button" onClick={handleSelectAll}
           disabled={disabled || isLoading || filteredProjects.length === 0}
-          style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe' }}
+          style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1, fontSize: 'inherit', fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe' }}
         >📋 {allFilteredSelected ? "Deselect" : "Select All"}</button>
         <button type="button" onClick={handleClear}
           disabled={disabled || isLoading || selectedIds.length === 0}
-          style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: disabled ? 'default' : 'pointer', opacity: (disabled || selectedIds.length === 0) ? 0.4 : 1, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe' }}
+          style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: disabled ? 'default' : 'pointer', opacity: (disabled || selectedIds.length === 0) ? 0.4 : 1, fontSize: 'inherit', fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe' }}
         >✕ Clear</button>
         {hasHierarchy && (
           <button type="button"
@@ -317,7 +317,7 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
               } catch {}
             }}
             disabled={disabled || isLoading}
-            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe' }}
+            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1, fontSize: 'inherit', fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe' }}
           >{showAllLevels ? "▴ Top Only" : "▾ Sub-Projects"}</button>
         )}
       </div>

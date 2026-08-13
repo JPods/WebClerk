@@ -20,6 +20,7 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import MDEditor from '@uiw/react-md-editor';
 import { saveRecord } from '@/api/wcapi';
+import { formatDt } from '@/utils/fieldFormatters';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -75,12 +76,7 @@ function formatValue(v: unknown, format?: string): string {
     return isNaN(n) ? String(v) : n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
   }
   if (format === 'date') {
-    if (typeof v === 'number') {
-      const ms = v > 1e12 ? v : v * 1000;
-      return new Date(ms).toLocaleDateString();
-    }
-    const d = new Date(String(v));
-    return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString();
+    return formatDt(v, 'date');
   }
   if (format === 'number') {
     const n = Number(v);

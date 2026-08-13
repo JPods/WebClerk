@@ -1,0 +1,296 @@
+/**
+ * DetailLayoutDialog.css — styles for the DetailLayoutDialog component.
+ * Uses CSS custom properties from the nearest .db-root ancestor (set by DataBrowser.css).
+ * Prefix: dld-
+ */
+
+/* ---------------------------------------------------------------------------
+   Overlay
+   --------------------------------------------------------------------------- */
+
+.dld-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* ---------------------------------------------------------------------------
+   Dialog panel
+   --------------------------------------------------------------------------- */
+
+.dld-panel {
+  background: var(--db-surface, #252526);
+  border: 1px solid var(--db-border, #3c3c3c);
+  border-radius: 10px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  width: 560px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------------------------------------------------------------------------
+   Header
+   --------------------------------------------------------------------------- */
+
+.dld-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--db-border, #3c3c3c);
+}
+
+.dld-header-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--db-accent, #9cdcfe);
+}
+
+.dld-header-subtitle {
+  font-size: 11px;
+  color: var(--db-text-muted, #888);
+  margin-top: 2px;
+}
+
+.dld-header-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.dld-header-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--db-border, #3c3c3c);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--db-text-muted, #888);
+  cursor: pointer;
+}
+
+.dld-header-btn:hover {
+  border-color: var(--db-accent, #9cdcfe);
+  color: var(--db-accent, #9cdcfe);
+}
+
+/* ---------------------------------------------------------------------------
+   Column headers
+   --------------------------------------------------------------------------- */
+
+.dld-col-headers {
+  display: flex;
+  align-items: center;
+  padding: 6px 18px;
+  border-bottom: 1px solid var(--db-border, #3c3c3c);
+  background: var(--db-surface-alt, #2d2d2d);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--db-text-muted, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.dld-col-spacer {
+  width: 30px;
+}
+
+.dld-col-field {
+  flex: 1;
+}
+
+.dld-col-behavior {
+  width: 100px;
+  text-align: center;
+}
+
+.dld-col-rows {
+  width: 70px;
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------------------
+   Field list
+   --------------------------------------------------------------------------- */
+
+.dld-field-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* ---------------------------------------------------------------------------
+   Field row
+   --------------------------------------------------------------------------- */
+
+.dld-field-row {
+  display: flex;
+  align-items: center;
+  padding: 5px 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--db-border, #3c3c3c) 60%, transparent);
+  background: transparent;
+  cursor: grab;
+  font-size: 12px;
+}
+
+.dld-field-row:hover {
+  background: var(--db-row-hover, #2a2d2e);
+}
+
+.dld-field-row--dragging {
+  background: var(--db-row-active, #094771);
+}
+
+.dld-field-row--dragging:hover {
+  background: var(--db-row-active, #094771);
+}
+
+.dld-field-row--hidden {
+  opacity: 0.4;
+}
+
+/* ---------------------------------------------------------------------------
+   Field row cells
+   --------------------------------------------------------------------------- */
+
+.dld-cell-check {
+  width: 30px;
+}
+
+.dld-cell-arrows {
+  width: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.dld-arrow-btn {
+  background: none;
+  border: none;
+  color: var(--db-text-muted, #888);
+  font-size: 8px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.dld-arrow-btn:disabled {
+  cursor: default;
+  opacity: 0.2;
+}
+
+.dld-cell-name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--db-text, #d4d4d4);
+}
+
+.dld-cell-name--hidden {
+  color: var(--db-text-muted, #888);
+}
+
+.dld-cell-behavior {
+  width: 100px;
+  text-align: center;
+}
+
+.dld-behavior-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.dld-behavior-badge--action   { color: #0d6efd; border: 1px solid rgba(13, 110, 253, 0.25); background: rgba(13, 110, 253, 0.06); }
+.dld-behavior-badge--email    { color: #0d6efd; border: 1px solid rgba(13, 110, 253, 0.25); background: rgba(13, 110, 253, 0.06); }
+.dld-behavior-badge--phone    { color: #0d6efd; border: 1px solid rgba(13, 110, 253, 0.25); background: rgba(13, 110, 253, 0.06); }
+.dld-behavior-badge--address  { color: #0d6efd; border: 1px solid rgba(13, 110, 253, 0.25); background: rgba(13, 110, 253, 0.06); }
+.dld-behavior-badge--geo      { color: #0d6efd; border: 1px solid rgba(13, 110, 253, 0.25); background: rgba(13, 110, 253, 0.06); }
+.dld-behavior-badge--url      { color: #0d6efd; border: 1px solid rgba(13, 110, 253, 0.25); background: rgba(13, 110, 253, 0.06); }
+.dld-behavior-badge--select   { color: #198754; border: 1px solid rgba(25, 135, 84, 0.25); background: rgba(25, 135, 84, 0.06); }
+.dld-behavior-badge--lookup   { color: #6f42c1; border: 1px solid rgba(111, 66, 193, 0.25); background: rgba(111, 66, 193, 0.06); }
+.dld-behavior-badge--currency { color: #fd7e14; border: 1px solid rgba(253, 126, 20, 0.25); background: rgba(253, 126, 20, 0.06); }
+.dld-behavior-badge--boolean  { color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.25); background: rgba(108, 117, 125, 0.06); }
+.dld-behavior-badge--json     { color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.25); background: rgba(108, 117, 125, 0.06); }
+.dld-behavior-badge--textarea { color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.25); background: rgba(108, 117, 125, 0.06); }
+.dld-behavior-badge--timestamp{ color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.25); background: rgba(108, 117, 125, 0.06); }
+.dld-behavior-badge--readonly { color: #adb5bd; border: 1px solid rgba(173, 181, 189, 0.25); background: rgba(173, 181, 189, 0.06); }
+.dld-behavior-badge--date     { color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.25); background: rgba(108, 117, 125, 0.06); }
+.dld-behavior-badge--number   { color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.25); background: rgba(108, 117, 125, 0.06); }
+.dld-behavior-badge--text     { color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.25); background: rgba(108, 117, 125, 0.06); }
+
+.dld-cell-rows {
+  width: 70px;
+  text-align: center;
+}
+
+.dld-row-size-input {
+  width: 40px;
+  text-align: center;
+  font-size: 11px;
+  padding: 2px 4px;
+  border: 1px solid var(--db-border, #3c3c3c);
+  border-radius: 3px;
+  background: var(--db-surface-alt, #2d2d2d);
+  color: var(--db-text, #d4d4d4);
+}
+
+.dld-cell-rows-dash {
+  font-size: 10px;
+  color: var(--db-text-muted, #888);
+}
+
+/* ---------------------------------------------------------------------------
+   Footer
+   --------------------------------------------------------------------------- */
+
+.dld-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-top: 1px solid var(--db-border, #3c3c3c);
+}
+
+.dld-footer-hint {
+  font-size: 11px;
+  color: var(--db-text-muted, #888);
+}
+
+.dld-footer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.dld-btn-cancel {
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--db-border, #3c3c3c);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--db-text-muted, #888);
+  cursor: pointer;
+}
+
+.dld-btn-cancel:hover {
+  border-color: var(--db-accent, #9cdcfe);
+  color: var(--db-accent, #9cdcfe);
+}
+
+.dld-btn-apply {
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  background: var(--db-accent, #9cdcfe);
+  color: #fff;
+  cursor: pointer;
+}
+
+.dld-btn-apply:hover {
+  filter: brightness(1.15);
+}

@@ -1,0 +1,567 @@
+/**
+ * PrintLayoutDesigner.css — styles for the PrintLayoutDesigner component.
+ * Uses CSS custom properties from the nearest .db-root ancestor (set by DataBrowser.css).
+ * Prefix: pld-
+ */
+
+/* ---------------------------------------------------------------------------
+   Root / Layout
+   --------------------------------------------------------------------------- */
+
+.pld-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex: 1;
+  min-width: 0;
+  --pld-fs: var(--db-font-size, 13px);
+  --pld-fs-sm: calc(var(--pld-fs) - 1px);
+  --pld-fs-xs: calc(var(--pld-fs) - 2px);
+  --pld-fs-xxs: calc(var(--pld-fs) - 3px);
+  --pld-fs-xxxs: calc(var(--pld-fs) - 4px);
+}
+
+.pld-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ---------------------------------------------------------------------------
+   Toolbar
+   --------------------------------------------------------------------------- */
+
+.pld-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--db-border, #3c3c3c);
+  background: var(--db-surface, #252526);
+}
+
+.pld-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pld-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pld-toolbar-title {
+  font-weight: 700;
+  font-size: var(--pld-fs);
+  color: var(--db-accent, #9cdcfe);
+}
+
+.pld-toolbar-subtitle {
+  font-size: var(--pld-fs-xs);
+  color: var(--db-text-muted, #888);
+}
+
+.pld-toolbar-sep {
+  font-size: var(--pld-fs-xxs);
+  color: var(--db-text-dim, #666);
+}
+
+.pld-toolbar-label {
+  font-size: var(--pld-fs-xs);
+  color: var(--db-text-muted, #888);
+}
+
+.pld-toolbar-input {
+  background: var(--db-bg, #1e1e1e);
+  color: var(--db-text, #d4d4d4);
+  border: 1px solid var(--db-border-light, #4d4d4d);
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: var(--pld-fs-xs);
+  width: 140px;
+}
+
+.pld-toolbar-select {
+  background: var(--db-bg, #1e1e1e);
+  color: var(--db-text, #d4d4d4);
+  border: 1px solid var(--db-border-light, #4d4d4d);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: var(--pld-fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pld-unsaved {
+  font-size: var(--pld-fs-xxs);
+  color: var(--db-accent-gold, #e8c870);
+  font-weight: 700;
+}
+
+.pld-status {
+  font-size: var(--pld-fs-xs);
+  color: var(--db-accent-green, #4ec98c);
+}
+
+/* ---------------------------------------------------------------------------
+   Toolbar buttons
+   --------------------------------------------------------------------------- */
+
+.pld-btn-save {
+  padding: 4px 12px;
+  border-radius: 4;
+  font-size: var(--pld-fs-sm);
+  font-weight: 600;
+  cursor: default;
+  background: none;
+  border: 1px solid var(--db-border, #3c3c3c);
+  color: var(--db-text-muted, #888);
+}
+
+.pld-btn-save--dirty {
+  background: var(--db-accent, #9cdcfe);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+.pld-btn-save--saving {
+  opacity: 0.6;
+}
+
+.pld-btn-close {
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: var(--pld-fs-sm);
+  font-weight: 600;
+  background: none;
+  border: 1px solid var(--db-border, #3c3c3c);
+  color: var(--db-text, #d4d4d4);
+}
+
+.pld-btn-close:hover {
+  background: var(--db-surface-alt, #2d2d2d);
+}
+
+/* ---------------------------------------------------------------------------
+   Panel header (shared by all panels)
+   --------------------------------------------------------------------------- */
+
+.pld-panel-header {
+  padding: 6px 10px;
+  font-size: var(--pld-fs-xs);
+  font-weight: 700;
+  color: var(--db-text-muted, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--db-surface, #252526);
+  border-bottom: 1px solid var(--db-border-light, #4d4d4d);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+.pld-panel-header--gap {
+  gap: 6px;
+}
+
+/* ---------------------------------------------------------------------------
+   Left panel (Sections/Panels)
+   --------------------------------------------------------------------------- */
+
+.pld-panels-col {
+  display: flex;
+  flex-direction: column;
+  background: var(--db-bg, #1e1e1e);
+  overflow: hidden;
+}
+
+.pld-panels-scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.pld-panels-empty {
+  padding: 24px 16px;
+  color: var(--db-text-dim, #666);
+  text-align: center;
+  font-size: var(--pld-fs-sm);
+}
+
+/* ---------------------------------------------------------------------------
+   Insert menu
+   --------------------------------------------------------------------------- */
+
+.pld-insert-wrap {
+  position: relative;
+}
+
+.pld-insert-btn {
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: var(--pld-fs-xs);
+  font-weight: 700;
+  background: var(--db-accent, #9cdcfe);
+  border: none;
+  color: #fff;
+}
+
+.pld-insert-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 100;
+  background: var(--db-surface, #252526);
+  border: 1px solid var(--db-border, #3c3c3c);
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  min-width: 180px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.pld-insert-item {
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: var(--pld-fs-sm);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--db-border-light, #4d4d4d);
+}
+
+.pld-insert-item:hover {
+  background: var(--db-surface-alt, #2d2d2d);
+}
+
+.pld-insert-item-label {
+  color: var(--db-text, #d4d4d4);
+}
+
+/* ---------------------------------------------------------------------------
+   Section icon badge (colored square with letter)
+   --------------------------------------------------------------------------- */
+
+.pld-section-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--pld-fs-xxs);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.pld-section-icon--sm {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---------------------------------------------------------------------------
+   Section card (in left panel)
+   --------------------------------------------------------------------------- */
+
+.pld-section-card {
+  border-bottom: 1px solid var(--db-border-light, #4d4d4d);
+  border-left: 3px solid transparent;
+  background: transparent;
+  cursor: pointer;
+}
+
+.pld-section-card--selected {
+  border-left-color: var(--pld-section-color);
+  background: var(--db-surface-alt, #2d2d2d);
+}
+
+.pld-section-head {
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pld-section-title {
+  flex: 1;
+  font-size: var(--pld-fs-sm);
+  font-weight: 600;
+  color: var(--db-text, #d4d4d4);
+}
+
+.pld-section-count {
+  font-size: var(--pld-fs-xxs);
+  color: var(--db-text-dim, #666);
+}
+
+.pld-section-move {
+  font-size: var(--pld-fs-xs);
+  user-select: none;
+}
+
+.pld-section-move--active {
+  cursor: pointer;
+  color: var(--db-text-muted, #888);
+}
+
+.pld-section-move--disabled {
+  cursor: default;
+  color: var(--db-border-light, #4d4d4d);
+}
+
+.pld-section-remove {
+  color: var(--db-text-dim, #666);
+  cursor: pointer;
+  font-size: var(--pld-fs-sm);
+  user-select: none;
+}
+
+.pld-section-remove:hover {
+  color: #e55;
+}
+
+/* ---------------------------------------------------------------------------
+   Section fields (expanded)
+   --------------------------------------------------------------------------- */
+
+.pld-section-fields {
+  padding: 0 0 4px 0;
+}
+
+.pld-section-field-row {
+  padding: 2px 8px 2px 28px;
+  font-size: var(--pld-fs-xs);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--db-border-light, #4d4d4d);
+}
+
+.pld-section-field-input {
+  flex: 1;
+  background: transparent;
+  color: var(--db-text, #d4d4d4);
+  border: none;
+  border-bottom: 1px solid var(--db-border-light, #4d4d4d);
+  font-size: var(--pld-fs-xs);
+  padding: 1px 2px;
+  outline: none;
+  min-width: 40px;
+}
+
+.pld-section-field-path {
+  font-family: monospace;
+  color: var(--db-text-dim, #666);
+  font-size: var(--pld-fs-xxxs);
+}
+
+.pld-section-field-remove {
+  color: var(--db-text-dim, #666);
+  cursor: pointer;
+  font-size: var(--pld-fs-sm);
+  user-select: none;
+}
+
+.pld-section-field-remove:hover {
+  color: #e55;
+}
+
+.pld-section-empty-hint {
+  padding: 6px 28px;
+  font-size: var(--pld-fs-xxs);
+  color: var(--db-text-dim, #666);
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------------------
+   Drag handle (between panels)
+   --------------------------------------------------------------------------- */
+
+.pld-drag-handle {
+  flex: 0 0 5px;
+  cursor: col-resize;
+  background: var(--db-border, #3c3c3c);
+  transition: background 0.15s;
+}
+
+.pld-drag-handle:hover {
+  background: var(--db-accent, #9cdcfe);
+}
+
+/* ---------------------------------------------------------------------------
+   Center panel (preview)
+   --------------------------------------------------------------------------- */
+
+.pld-preview-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pld-preview-header {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--db-border-light, #4d4d4d);
+  font-size: var(--pld-fs-xs);
+  color: var(--db-text-muted, #888);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pld-preview-record {
+  font-size: var(--pld-fs-xxs);
+  color: var(--db-text-dim, #666);
+}
+
+.pld-preview-body {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 16px;
+  overflow: auto;
+  background: var(--db-bg, #1e1e1e);
+}
+
+.pld-preview-iframe {
+  border: 1px solid var(--db-border, #3c3c3c);
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Right panel (fields + models)
+   --------------------------------------------------------------------------- */
+
+.pld-fields-col {
+  display: flex;
+  flex-direction: column;
+  background: var(--db-bg, #1e1e1e);
+  overflow: hidden;
+}
+
+.pld-fields-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pld-fields-scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.pld-fields-hint {
+  font-size: var(--pld-fs-xxs);
+  color: var(--db-text-dim, #666);
+  font-weight: 400;
+  text-transform: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Field row (available fields list)
+   --------------------------------------------------------------------------- */
+
+.pld-field-row {
+  padding: 3px 10px;
+  cursor: pointer;
+  font-size: var(--pld-fs-xs);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--db-border-light, #4d4d4d);
+  background: transparent;
+}
+
+.pld-field-row:hover {
+  background: var(--db-surface-alt, #2d2d2d);
+}
+
+.pld-field-label {
+  flex: 1;
+  color: var(--db-text, #d4d4d4);
+}
+
+.pld-field-path {
+  font-family: monospace;
+  font-size: var(--pld-fs-xxxs);
+  color: var(--db-text-dim, #666);
+}
+
+.pld-field-type {
+  font-size: var(--pld-fs-xxxs);
+  color: var(--db-text-dim, #666);
+  font-style: italic;
+}
+
+.pld-fields-empty {
+  padding: 12px 10px;
+  font-size: var(--pld-fs-xs);
+  color: var(--db-text-dim, #666);
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------------------
+   Models panel (bottom of right side)
+   --------------------------------------------------------------------------- */
+
+.pld-models-section {
+  flex: 0 0 auto;
+  border-top: 2px solid var(--db-border, #3c3c3c);
+}
+
+.pld-models-scroll {
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.pld-model-row {
+  padding: 3px 10px;
+  cursor: pointer;
+  font-size: var(--pld-fs-xs);
+  border-left: 3px solid transparent;
+  color: var(--db-text-muted, #888);
+  font-weight: 400;
+}
+
+.pld-model-row:hover {
+  background: var(--db-surface-alt, #2d2d2d);
+}
+
+.pld-model-row--active {
+  background: var(--db-surface-alt, #2d2d2d);
+  border-left-color: var(--db-accent, #9cdcfe);
+  color: var(--db-text, #d4d4d4);
+  font-weight: 600;
+}
+
+.pld-model-row--base {
+  padding: 4px 10px;
+  font-size: var(--pld-fs-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  color: var(--db-text, #d4d4d4);
+}
+
+.pld-model-base-tag {
+  font-size: var(--pld-fs-xxs);
+  color: var(--db-text-dim, #666);
+  font-weight: 400;
+}
+
+.pld-models-divider {
+  height: 1px;
+  background: var(--db-border, #3c3c3c);
+  margin: 1px 0;
+}

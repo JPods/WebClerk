@@ -8,6 +8,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FaTimes, FaDollarSign, FaCheck, FaSpinner } from 'react-icons/fa';
 import usePaymentApplication, { PaymentRecord, InvoiceRecord } from '../hooks/usePaymentApplication';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { formatDt } from '@/utils/fieldFormatters';
 
 interface ApplyPaymentModalProps {
   isOpen: boolean;
@@ -103,7 +104,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
   // Format date
   const formatDate = (dateStr?: string | null): string => {
     if (!dateStr) return '--';
-    return new Date(dateStr).toLocaleDateString();
+    return formatDt(dateStr, 'date');
   };
 
   if (!isOpen) return null;

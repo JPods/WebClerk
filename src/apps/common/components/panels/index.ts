@@ -96,7 +96,11 @@ export { default as LinkagesPanel } from "./LinkagesPanel";
 export { default as CoreTabPanel } from "./CoreTabPanel";
 export type { CoreTabPanelProps } from "./CoreTabPanel";
 
-// Shared panel table component
+// Base list component — all lists inherit from DbColumns
+export { DbColumns } from "./DbColumns";
+export type { DbColumnDef, DbColumnsProps } from "./DbColumns";
+
+// Backward-compatible aliases
 export { PanelTable } from "./PanelTable";
 export type { PanelColumnDef, PanelTableProps } from "./PanelTable";
 

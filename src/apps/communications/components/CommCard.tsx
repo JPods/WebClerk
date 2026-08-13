@@ -72,24 +72,31 @@ const CommCard: React.FC<CommCardProps> = ({
   const currentData = editing ? editData : data;
 
   return (
-    <div className={`border rounded-lg p-2 text-xs ${editing ? 'border-blue-300 bg-blue-50/30 dark:bg-blue-900/10' : 'border-slate-200 dark:border-slate-700'}`}>
+    <div
+      className="db-panel-row px-3 py-2 text-xs"
+      style={{
+        borderBottom: '1px solid var(--db-border-light)',
+        background: editing ? 'var(--db-row-active)' : undefined,
+        color: 'var(--db-text)',
+      }}
+    >
       <div className="flex items-center gap-1 mb-1">
-        <span className="font-medium text-slate-700 dark:text-slate-200 capitalize text-[11px]">{model}</span>
-        {data.is_primary && <span className="text-[9px] text-amber-500">★</span>}
-        {data.id && <span className="text-[9px] text-slate-400 font-mono">#{data.id}</span>}
+        <span className="font-medium capitalize text-[11px]" style={{ color: 'var(--db-text)' }}>{model}</span>
+        {data.is_primary && <span className="text-[9px]" style={{ color: 'var(--db-accent-gold)' }}>★</span>}
+        {data.id && <span className="text-[9px] font-mono" style={{ color: 'var(--db-text-dim)' }}>#{data.id}</span>}
         <span className="flex-1" />
         {!editing && (
           <>
-            <button onClick={() => setEditing(true)} className="text-[9px] text-slate-400 hover:text-blue-600 px-1">edit</button>
-            <button onClick={handleDelete} className="text-[9px] text-slate-400 hover:text-red-600 px-1">del</button>
+            <button onClick={() => setEditing(true)} className="text-[9px] px-1" style={{ color: 'var(--db-text-muted)' }}>edit</button>
+            <button onClick={handleDelete} className="text-[9px] px-1" style={{ color: 'var(--db-text-muted)' }}>del</button>
           </>
         )}
         {editing && (
           <>
-            <button onClick={handleSave} disabled={saving} className="text-[9px] text-blue-600 hover:text-blue-800 px-1 font-medium">
+            <button onClick={handleSave} disabled={saving} className="text-[9px] px-1 font-medium" style={{ color: 'var(--db-accent)' }}>
               {saving ? '...' : 'save'}
             </button>
-            <button onClick={() => { setEditing(false); setEditData({ ...data }); onCancel?.(); }} className="text-[9px] text-slate-400 hover:text-slate-600 px-1">cancel</button>
+            <button onClick={() => { setEditing(false); setEditData({ ...data }); onCancel?.(); }} className="text-[9px] px-1" style={{ color: 'var(--db-text-muted)' }}>cancel</button>
           </>
         )}
       </div>

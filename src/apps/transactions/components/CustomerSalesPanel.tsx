@@ -30,6 +30,7 @@ import ComponentCard from "@/components/common/ComponentCard";
 import { useWindowManager } from "@/context/WindowManagerContext";
 import { getModelDetailPath, getModelWindowTitle } from "@/apps/common/components/panels/getModelDetailPath";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { formatDt } from '@/utils/fieldFormatters';
 
 // ---------- Constants ----------
 
@@ -170,11 +171,7 @@ const formatCurrency = (value?: number | null): string => {
 
 const formatDate = (dateStr?: string | null): string => {
   if (!dateStr) return "--";
-  try {
-    return new Date(dateStr).toLocaleDateString();
-  } catch {
-    return "--";
-  }
+  return formatDt(dateStr, 'date');
 };
 
 // Local storage key for recent selections

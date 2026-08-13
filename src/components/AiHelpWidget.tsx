@@ -42,6 +42,7 @@ import { askAi, debugError, submitFeedback } from "../apps/support/services/aiAp
 import type { AiSource, AiMode } from "../apps/support/services/aiApi";
 import { useConsoleCapture } from "../hooks/useConsoleCapture";
 import type { CapturedError } from "../hooks/useConsoleCapture";
+import { formatDt } from '@/utils/fieldFormatters';
 
 // ── Types ───────────────────────────────────────────────────────
 
@@ -510,7 +511,7 @@ export const AiHelpWidget: React.FC<AiHelpWidgetProps> = ({
                     {err.message.length > 120 ? "..." : ""}
                   </p>
                   <p className="text-[9px] text-gray-400 mt-0.5">
-                    {err.type} · {err.timestamp.toLocaleTimeString()}
+                    {err.type} · {formatDt(err.timestamp, 'datetime')}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">

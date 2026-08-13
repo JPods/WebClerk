@@ -192,10 +192,14 @@ export default function MacTopBar({ activePath }: Props) {
           Save Prefs
         </button>
 
-        {/* User — avatar + name + sign out */}
+        {/* User — avatar + name + sign out. Double-click opens contact record. */}
         <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200">
-          <img src="/images/user/owner.jpg" alt="avatar" className="h-5 w-5 rounded-full border border-white object-cover" />
-          <span className="text-[10px] font-medium text-slate-600">{user?.name_first || "Profile"}</span>
+          <img src="/images/user/owner.jpg" alt="avatar" className="h-5 w-5 rounded-full border border-white object-cover cursor-pointer"
+            onDoubleClick={() => { if (user?.id) { sessionStorage.setItem('db_auto_select', String(user.id)); navigate(`/contact`); } }}
+            title="Double-click to open your contact record" />
+          <span className="text-[10px] font-medium text-slate-600 cursor-pointer"
+            onDoubleClick={() => { if (user?.id) { sessionStorage.setItem('db_auto_select', String(user.id)); navigate(`/contact`); } }}
+            title="Double-click to open your contact record">{user?.name_first || "Profile"}</span>
           <button
             className="flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:text-slate-700 transition"
             onClick={async () => {

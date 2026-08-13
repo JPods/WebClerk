@@ -1,4 +1,4 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+/* LastChecked: 2026-08-13 | WhereUsed: App-wide theme toggle | WhoCreated: Unknown */
 "use client";
 
 import type React from "react";
@@ -16,24 +16,25 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [theme, setTheme] = useState<Theme>("light");
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("theme") as Theme) || "dark";
+    }
+    return "dark";
+  });
 
   useEffect(() => {
-    // Force light theme on load
-    document.documentElement.classList.remove("dark");
-    setTheme("light");
-    setIsInitialized(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isInitialized) return;
-    document.documentElement.classList.remove("dark");
-    localStorage.setItem("theme", "light");
-  }, [isInitialized]);
+    document.documentElement.setAttribute("data-theme", theme);
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    localStorage.setItem("theme", theme);
+  }, [theme]);
 
   const toggleTheme = () => {
-    setTheme("light");
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
   return (

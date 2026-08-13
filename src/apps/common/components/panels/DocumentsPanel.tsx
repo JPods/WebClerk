@@ -15,7 +15,8 @@
  *
  * @see readmes/topics/document-uploads.md
  */
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef } from "react";
+import { formatDt } from '@/utils/fieldFormatters';
 import {
   FaFile,
   FaChevronDown,
@@ -28,7 +29,6 @@ import {
   FaFileWord,
   FaFileExcel,
   FaFileAlt,
-  FaSlidersH,
   FaSpinner,
 } from "react-icons/fa";
 import { usePermissions } from "./usePermissions";
@@ -39,8 +39,6 @@ import {
   getDocumentUrl,
   formatFileSize as formatSize,
 } from "./documentUpload";
-import { ColumnSetupDialog } from "@/components/common/ColumnSetupDialog";
-import { useColumnSetups } from "@/hooks/useColumnSetups";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // ---------------------------------------------------------------------------
@@ -91,25 +89,25 @@ const getFileIcon = (type?: string, name?: string): React.ReactNode => {
     name?.split(".").pop()?.toLowerCase() || type?.split("/").pop() || "";
 
   if (["pdf"].includes(ext) || type?.includes("pdf")) {
-    return <FaFilePdf className="text-red-500" />;
+    return <FaFilePdf style={{ color: 'var(--db-accent-red)' }} />;
   }
   if (
     ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext) ||
     type?.startsWith("image/")
   ) {
-    return <FaFileImage className="text-blue-500" />;
+    return <FaFileImage style={{ color: 'var(--db-accent)' }} />;
   }
   if (["doc", "docx"].includes(ext) || type?.includes("word")) {
-    return <FaFileWord className="text-blue-600" />;
+    return <FaFileWord style={{ color: 'var(--db-accent)' }} />;
   }
   if (
     ["xls", "xlsx", "csv"].includes(ext) ||
     type?.includes("sheet") ||
     type?.includes("excel")
   ) {
-    return <FaFileExcel className="text-green-600" />;
+    return <FaFileExcel style={{ color: 'var(--db-accent-green)' }} />;
   }
-  return <FaFileAlt className="text-slate-500" />;
+  return <FaFileAlt style={{ color: 'var(--db-text-muted)' }} />;
 };
 
 const formatFileSize = (bytes?: number): string => {
@@ -119,11 +117,7 @@ const formatFileSize = (bytes?: number): string => {
 
 const formatDate = (dateStr?: string): string => {
   if (!dateStr) return "--";
-  return new Date(dateStr).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatDt(dateStr, 'date');
 };
 
 /** Column metadata for ColumnSetupDialog */
@@ -154,7 +148,7 @@ const DocumentRow: React.FC<DocumentRowProps> = ({
   onDelete,
   onDownload,
 }) => (
-  <div className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-xs group">
+  <div className="db-list-row flex items-center gap-3 px-3 py-2 text-xs group">
     {/* Icon */}
     {(!visibleColumns || visibleColumns.has("icon")) && (
       <div className="text-base shrink-0 w-5 text-center">{getFileIcon(doc.type, doc.name)}</div>
@@ -162,28 +156,28 @@ const DocumentRow: React.FC<DocumentRowProps> = ({
 
     {/* Name */}
     {(!visibleColumns || visibleColumns.has("name")) && (
-      <span className="text-slate-700 dark:text-slate-300 font-medium truncate min-w-[100px] flex-1">
+      <span className="font-medium truncate min-w-[100px] flex-1" style={{ color: 'var(--db-text)' }}>
         {doc.name || doc.display || "Untitled"}
       </span>
     )}
 
     {/* Size */}
     {(!visibleColumns || visibleColumns.has("size")) && (
-      <span className="text-slate-500 dark:text-slate-400 shrink-0 w-[70px] text-right">
+      <span className="shrink-0 w-[70px] text-right" style={{ color: 'var(--db-text-muted)' }}>
         {formatFileSize(doc.size)}
       </span>
     )}
 
     {/* Date */}
     {(!visibleColumns || visibleColumns.has("date")) && (
-      <span className="text-slate-500 dark:text-slate-400 shrink-0 w-[90px]">
+      <span className="shrink-0 w-[90px]" style={{ color: 'var(--db-text-muted)' }}>
         {doc.uploaded_at ? formatDate(doc.uploaded_at) : "--"}
       </span>
     )}
 
     {/* Uploader */}
     {(!visibleColumns || visibleColumns.has("uploader")) && (
-      <span className="text-slate-500 dark:text-slate-400 truncate w-[80px] shrink-0">
+      <span className="truncate w-[80px] shrink-0" style={{ color: 'var(--db-text-muted)' }}>
         {doc.uploaded_by || "--"}
       </span>
     )}
@@ -193,7 +187,8 @@ const DocumentRow: React.FC<DocumentRowProps> = ({
       {(doc.url || doc.document_id) && (
         <button
           onClick={onDownload}
-          className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+          className="p-1 rounded"
+          style={{ color: 'var(--db-accent)' }}
           title="Download"
         >
           <FaDownload size={12} />
@@ -202,7 +197,8 @@ const DocumentRow: React.FC<DocumentRowProps> = ({
       {canEdit && onDelete && (
         <button
           onClick={onDelete}
-          className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+          className="p-1 rounded"
+          style={{ color: 'var(--db-accent-red)' }}
           title="Delete"
         >
           <FaTrash size={12} />
@@ -239,33 +235,6 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showColumnDialog, setShowColumnDialog] = useState(false);
-  const columnSetups = useColumnSetups("panel:documents");
-
-  // Build default config from column metas
-  const defaultConfig = useMemo<import("@/hooks/useColumnSetups").ColumnSetupEntry>(() => {
-    const order = DOC_COLUMN_METAS.map((m) => m.key);
-    const visibility: Record<string, boolean> = {};
-    DOC_COLUMN_METAS.forEach((m) => { visibility[m.key] = true; });
-    return { order, visibility, widths: {}, sort: null };
-  }, []);
-
-  // Apply active setup (if any) over default
-  const activeConfig = useMemo(() => {
-    if (!columnSetups.activeSetupName) return defaultConfig;
-    const applied = columnSetups.applySetup(columnSetups.activeSetupName);
-    return applied ?? defaultConfig;
-  }, [columnSetups, defaultConfig]);
-
-  const visibleCols = useMemo(() => {
-    const vis = activeConfig.visibility;
-    const result = new Set<string>();
-    for (const m of DOC_COLUMN_METAS) {
-      if (vis[m.key] !== false) result.add(m.key);
-    }
-    return result;
-  }, [activeConfig]);
-
   // Check permissions
   const { canView, canEdit: permCanEdit } = usePermissions({
     panelType: "documents",
@@ -419,20 +388,22 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
 
   return (
     <div
-      className={`bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 ${className}`}
+      className={`rounded-lg ${className}`}
+      style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)' }}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 bg-teal-50 dark:bg-teal-900/20 border-b border-teal-200 dark:border-teal-800 cursor-pointer rounded-t-lg"
+        className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-t-lg"
+        style={{ background: 'var(--db-surface-alt)', borderBottom: '1px solid var(--db-border)' }}
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <FaFile className="text-teal-400" size={14} />
-          <h3 className="text-sm font-semibold text-teal-700 dark:text-teal-200">
+          <FaFile style={{ color: 'var(--db-text-muted)' }} size={14} />
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
             {title}
           </h3>
           {data.length > 0 && (
-            <span className="px-1.5 py-0.5 text-xs bg-teal-100 dark:bg-teal-700 text-teal-600 dark:text-teal-300 rounded-full">
+            <span className="px-1.5 py-0.5 text-xs rounded-full" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
               {data.length}
             </span>
           )}
@@ -445,7 +416,8 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
                 fileInputRef.current?.click();
               }}
               disabled={isUploading}
-              className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded disabled:opacity-50"
+              className="p-1 rounded disabled:opacity-50"
+              style={{ color: 'var(--db-accent)' }}
               title="Upload document"
             >
               {isUploading ? (
@@ -453,20 +425,6 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
               ) : (
                 <FaPlus size={12} />
               )}
-            </button>
-          )}
-          {/* Column setup badge */}
-          {!isCollapsed && (
-            <button
-              type="button"
-              title="Configure columns"
-              className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowColumnDialog(true);
-              }}
-            >
-              <FaSlidersH size={10} />
             </button>
           )}
           {isCollapsed ? (
@@ -493,11 +451,11 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
           {/* Dropzone */}
           {canEdit && (
             <div
-              className={`mb-3 rounded-lg border border-dashed px-4 py-3 text-sm transition-colors ${
-                isDragging
-                  ? "border-blue-400 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20"
-                  : "border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/30"
-              }`}
+              className="mb-3 rounded-lg border border-dashed px-4 py-3 text-sm transition-colors"
+              style={isDragging
+                ? { borderColor: 'var(--db-accent)', background: 'var(--db-row-active)' }
+                : { borderColor: 'var(--db-border)', background: 'var(--db-surface-alt)' }
+              }
               onDragEnter={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -533,10 +491,10 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="font-medium text-slate-700 dark:text-slate-200">
+                  <div className="font-medium" style={{ color: 'var(--db-text)' }}>
                     Drag and drop files here
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                  <div className="text-xs" style={{ color: 'var(--db-text-muted)' }}>
                     or click to browse
                   </div>
                 </div>
@@ -547,7 +505,8 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
                     fileInputRef.current?.click();
                   }}
                   disabled={isUploading}
-                  className="px-3 py-2 rounded bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-50"
+                  className="px-3 py-2 rounded text-xs font-semibold disabled:opacity-50"
+                  style={{ background: 'var(--db-btn-primary)', color: '#fff' }}
                 >
                   {isUploading ? "Uploading…" : "Upload"}
                 </button>
@@ -557,17 +516,17 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
 
           {/* Upload progress */}
           {isUploading && (
-            <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-600">
+            <div className="mb-2 p-2 rounded text-xs" style={{ background: 'var(--db-row-active)', color: 'var(--db-accent)' }}>
               <div className="flex items-center gap-2">
                 <FaSpinner className="animate-spin" size={10} />
                 <span>
                   {uploadStatus || "Uploading…"} {uploadProgress}%
                 </span>
               </div>
-              <div className="mt-1 h-1 bg-blue-100 rounded overflow-hidden">
+              <div className="mt-1 h-1 rounded overflow-hidden" style={{ background: 'var(--db-border)' }}>
                 <div
-                  className="h-full bg-blue-500 transition-all duration-200"
-                  style={{ width: `${uploadProgress}%` }}
+                  className="h-full transition-all duration-200"
+                  style={{ width: `${uploadProgress}%`, background: 'var(--db-accent)' }}
                 />
               </div>
             </div>
@@ -575,33 +534,34 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
 
           {/* Error message */}
           {error && (
-            <div className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-600">
+            <div className="mb-2 p-2 rounded text-xs" style={{ color: 'var(--db-accent-red)' }}>
               {error}
             </div>
           )}
 
           {data.length === 0 ? (
-            <div className="text-center py-4 text-slate-400 text-sm">
+            <div className="text-center py-4 text-sm" style={{ color: 'var(--db-text-dim)' }}>
               <FaFile size={24} className="mx-auto mb-2 opacity-50" />
               <p>No documents attached</p>
               {canEdit && (
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="mt-2 text-blue-600 hover:underline text-xs"
+                  className="mt-2 hover:underline text-xs"
+                  style={{ color: 'var(--db-accent)' }}
                 >
                   + Upload documents
                 </button>
               )}
             </div>
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-700">
+            <div>
               {/* Column headers */}
-              <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                {visibleCols.has("icon") && <span className="w-5 shrink-0" />}
-                {visibleCols.has("name") && <span className="min-w-[100px] flex-1">name</span>}
-                {visibleCols.has("size") && <span className="w-[70px] shrink-0 text-right">size</span>}
-                {visibleCols.has("date") && <span className="w-[90px] shrink-0">date</span>}
-                {visibleCols.has("uploader") && <span className="w-[80px] shrink-0">uploader</span>}
+              <div className="flex items-center gap-3 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
+                <span className="w-5 shrink-0" />
+                <span className="min-w-[100px] flex-1">name</span>
+                <span className="w-[70px] shrink-0 text-right">size</span>
+                <span className="w-[90px] shrink-0">date</span>
+                <span className="w-[80px] shrink-0">uploader</span>
                 <span className="shrink-0 w-[52px]" />
               </div>
               {data.map((doc, index) => (
@@ -609,7 +569,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
                   key={doc.id || index}
                   doc={doc}
                   canEdit={canEdit}
-                  visibleColumns={visibleCols}
+                  visibleColumns={undefined}
                   onDelete={() => handleDelete(index)}
                   onDownload={() => handleDownload(doc)}
                 />
@@ -618,20 +578,6 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
           )}
         </div>
       )}
-      {/* Column setup dialog */}
-      <ColumnSetupDialog
-        open={showColumnDialog}
-        title="Document Columns"
-        columnMetas={DOC_COLUMN_METAS}
-        config={activeConfig}
-        onSave={(entry) => {
-          columnSetups.saveSetup("current", entry);
-          setShowColumnDialog(false);
-        }}
-        onClose={() => setShowColumnDialog(false)}
-        namedSetups={columnSetups.setups}
-        onSaveNamed={(name, config) => columnSetups.saveSetup(name, config)}
-      />
     </div>
   );
 };

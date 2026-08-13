@@ -67,7 +67,7 @@ export function buildColumnsFromSpecs(specs: DbFieldSpec[]): PanelColumnDef<Reco
       return {
         key: s.field,
         label: s.field.replace(/_/g, ' '),
-        cellClassName: `truncate ${width} ${flex} ${align} text-slate-700 dark:text-slate-300`.trim(),
+        cellClassName: `truncate ${width} ${flex} ${align} `.trim(),
         render: (r: Record<string, unknown>) => {
           const val = r[s.field];
           if (val == null || val === '') return '—';
@@ -94,7 +94,7 @@ export function buildColumnsFromRecord(record: Record<string, unknown>, maxCols 
     return {
       key: field,
       label: field.replace(/_/g, ' '),
-      cellClassName: `truncate ${width} ${flex} ${align} text-slate-700 dark:text-slate-300`.trim(),
+      cellClassName: `truncate ${width} ${flex} ${align} `.trim(),
       render: (r: Record<string, unknown>) => {
         const val = r[field];
         if (val == null || val === '') return '—';

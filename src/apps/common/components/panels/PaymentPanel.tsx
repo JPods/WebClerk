@@ -18,15 +18,13 @@ import {
   FaDollarSign,
   FaExternalLinkAlt,
   FaPlus,
-  FaSlidersH,
   FaSpinner,
   FaSyncAlt,
 } from 'react-icons/fa';
 import { getRecords } from '@/api/wcapi';
+import { formatDt } from '@/utils/fieldFormatters';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { getModelDetailPath, getModelWindowTitle } from './getModelDetailPath';
-import { ColumnSetupDialog } from '@/components/common/ColumnSetupDialog';
-import { useColumnSetups } from '@/hooks/useColumnSetups';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 // ---------------------------------------------------------------------------
@@ -92,17 +90,19 @@ const formatCurrency = (v?: number | null) => {
 
 const formatDate = (d?: string | null) => {
   if (!d) return '--';
-  return new Date(d).toLocaleDateString();
+  return formatDt(d, 'date');
 };
 
-const STATUS_STYLES: Record<string, string> = {
-  completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  failed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  cancelled: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
-  refunded: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+const STATUS_BADGE_STYLES: Record<string, React.CSSProperties> = {
+  completed: { background: 'var(--db-badge-green-bg)', color: 'var(--db-badge-green-text)' },
+  pending: { background: 'var(--db-badge-amber-bg)', color: 'var(--db-badge-amber-text)' },
+  processing: { background: 'var(--db-badge-blue-bg)', color: 'var(--db-badge-blue-text)' },
+  failed: { background: 'var(--db-badge-red-bg)', color: 'var(--db-badge-red-text)' },
+  cancelled: { background: 'var(--db-surface-alt)', color: 'var(--db-text)' },
+  refunded: { background: 'var(--db-badge-purple-bg)', color: 'var(--db-badge-purple-text)' },
 };
+
+const DEFAULT_STATUS_STYLE: React.CSSProperties = { background: 'var(--db-badge-amber-bg)', color: 'var(--db-badge-amber-text)' };
 
 // ---------------------------------------------------------------------------
 // PaymentRowItem
@@ -113,13 +113,12 @@ const PaymentRowItem: React.FC<{
   visibleCols: Set<string>;
   onOpen?: () => void;
 }> = ({ payment, visibleCols, onOpen }) => (
-  <div className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-xs group">
+  <div className="db-list-row flex items-center gap-3 px-3 py-2 text-xs group">
     {/* Status badge */}
     {visibleCols.has('status') && (
       <span
-        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide shrink-0 min-w-[60px] text-center ${
-          STATUS_STYLES[payment.status || ''] || STATUS_STYLES.pending
-        }`}
+        className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide shrink-0 min-w-[60px] text-center"
+        style={STATUS_BADGE_STYLES[payment.status || ''] || DEFAULT_STATUS_STYLE}
       >
         {payment.status || '--'}
       </span>
@@ -127,49 +126,49 @@ const PaymentRowItem: React.FC<{
 
     {/* Amount */}
     {visibleCols.has('amount') && (
-      <span className="font-medium text-green-600 dark:text-green-400 shrink-0 w-[80px] text-right">
+      <span className="font-medium shrink-0 w-[80px] text-right" style={{ color: 'var(--db-accent-green)' }}>
         {formatCurrency(payment.amount)}
       </span>
     )}
 
     {/* Amount Available */}
     {visibleCols.has('amount_available') && (
-      <span className="text-slate-600 dark:text-slate-400 shrink-0 w-[80px] text-right">
+      <span className="shrink-0 w-[80px] text-right" style={{ color: 'var(--db-text-muted)' }}>
         {formatCurrency(payment.amount_available)}
       </span>
     )}
 
     {/* Payment Method */}
     {visibleCols.has('payment_method') && (
-      <span className="text-slate-700 dark:text-slate-300 truncate min-w-[70px] max-w-[100px]">
+      <span className="truncate min-w-[70px] max-w-[100px]" style={{ color: 'var(--db-text)' }}>
         {payment.payment_method_name || payment.gateway || '--'}
       </span>
     )}
 
     {/* Reference */}
     {visibleCols.has('reference') && (
-      <span className="text-slate-600 dark:text-slate-400 truncate min-w-[60px] max-w-[100px] font-mono">
+      <span className="truncate min-w-[60px] max-w-[100px] font-mono" style={{ color: 'var(--db-text-muted)' }}>
         {payment.reference_number || '--'}
       </span>
     )}
 
     {/* Invoice */}
     {visibleCols.has('invoice') && (
-      <span className="text-slate-600 dark:text-slate-400 truncate w-[60px]">
+      <span className="truncate w-[60px]" style={{ color: 'var(--db-text-muted)' }}>
         {payment.invoice_number || (payment.invoice_id ? `#${payment.invoice_id}` : '--')}
       </span>
     )}
 
     {/* Date */}
     {visibleCols.has('dt_payment') && (
-      <span className="text-slate-500 dark:text-slate-400 shrink-0 w-[75px]">
+      <span className="shrink-0 w-[75px]" style={{ color: 'var(--db-text-muted)' }}>
         {formatDate(payment.dt_payment)}
       </span>
     )}
 
     {/* Notes (truncated) */}
     {visibleCols.has('notes') && (
-      <span className="text-slate-400 dark:text-slate-500 truncate flex-1 min-w-0">
+      <span className="truncate flex-1 min-w-0" style={{ color: 'var(--db-text-dim)' }}>
         {payment.notes || ''}
       </span>
     )}
@@ -180,7 +179,8 @@ const PaymentRowItem: React.FC<{
         e.stopPropagation();
         onOpen?.();
       }}
-      className="p-1 opacity-0 group-hover:opacity-100 text-blue-500 hover:text-blue-700 transition-opacity shrink-0"
+      className="p-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+      style={{ color: 'var(--db-accent)' }}
       title="Open payment detail"
     >
       <FaExternalLinkAlt size={10} />
@@ -205,35 +205,9 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
-  const [showSetup, setShowSetup] = useState(false);
 
-  const columnSetups = useColumnSetups('panel:payments');
-
-  // Build default config from column metas
-  const defaultConfig = useMemo<import('@/hooks/useColumnSetups').ColumnSetupEntry>(() => {
-    const order = PAYMENT_COLUMN_METAS.map((m) => m.key);
-    const visibility: Record<string, boolean> = {};
-    PAYMENT_COLUMN_METAS.forEach((m) => { visibility[m.key] = true; });
-    return { order, visibility, widths: {}, sort: null };
-  }, []);
-
-  // Apply active setup (if any) over default
-  const activeConfig = useMemo(() => {
-    if (!columnSetups.activeSetupName) return defaultConfig;
-    const applied = columnSetups.applySetup(columnSetups.activeSetupName);
-    return applied ?? defaultConfig;
-  }, [columnSetups, defaultConfig]);
-
-  const visibleCols = useMemo(() => {
-    const vis = activeConfig.visibility;
-    const result = new Set<string>();
-    for (const m of PAYMENT_COLUMN_METAS) {
-      if (vis[m.key] !== false) result.add(m.key);
-    }
-    return result;
-  }, [activeConfig]);
-
-  const hiddenCount = PAYMENT_COLUMN_METAS.length - visibleCols.size;
+  // All columns visible
+  const visibleCols = new Set(PAYMENT_COLUMN_METAS.map((m) => m.key));
 
   // Fetch payments
   const fetchData = useCallback(async () => {
@@ -295,59 +269,32 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
   );
 
   return (
-    <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+    <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--db-border)' }}>
       {/* Header */}
       <div
-        className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800 cursor-pointer select-none"
+        className="flex items-center justify-between px-3 py-2 cursor-pointer select-none"
+        style={{ background: 'var(--db-surface-alt)' }}
         onClick={() => setCollapsed((c) => !c)}
       >
-        <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-          <FaDollarSign className="text-green-500" size={14} />
+        <div className="flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--db-text)' }}>
+          <FaDollarSign style={{ color: 'var(--db-accent-green)' }} size={14} />
           {title}
-          <span className="text-xs text-slate-400">({payments.length})</span>
+          <span className="text-xs" style={{ color: 'var(--db-text-dim)' }}>({payments.length})</span>
           {payments.length > 0 && (
-            <span className="text-xs text-green-600 dark:text-green-400 font-normal">
+            <span className="text-xs font-normal" style={{ color: 'var(--db-accent-green)' }}>
               {formatCurrency(totalAmount)}
             </span>
           )}
         </div>
         <div className="flex items-center gap-1">
-          {/* Column setup badge */}
-          {hiddenCount > 0 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowSetup(true);
-              }}
-              className="relative p-1 text-slate-400 hover:text-blue-500"
-              title="Column settings"
-            >
-              <FaSlidersH size={12} />
-              <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[8px] rounded-full w-3 h-3 flex items-center justify-center">
-                {hiddenCount}
-              </span>
-            </button>
-          )}
-          {!hiddenCount && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowSetup(true);
-              }}
-              className="p-1 text-slate-400 hover:text-blue-500"
-              title="Column settings"
-            >
-              <FaSlidersH size={12} />
-            </button>
-          )}
-
           {/* Refresh */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               fetchData();
             }}
-            className="p-1 text-slate-400 hover:text-blue-500"
+            className="p-1"
+            style={{ color: 'var(--db-text-dim)' }}
             title="Refresh"
           >
             <FaSyncAlt size={12} />
@@ -360,7 +307,8 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
                 e.stopPropagation();
                 onAdd();
               }}
-              className="p-1 text-green-500 hover:text-green-700"
+              className="p-1"
+              style={{ color: 'var(--db-accent-green)' }}
               title="Add payment"
             >
               <FaPlus size={12} />
@@ -373,9 +321,9 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
 
       {/* Body */}
       {!collapsed && (
-        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+        <div>
           {/* Column headers */}
-          <div className="flex items-center gap-3 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-25 dark:bg-slate-850">
+          <div className="flex items-center gap-3 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--db-text-muted)', background: 'var(--db-surface-alt)', borderBottom: '1px solid var(--db-border-light)' }}>
             {visibleCols.has('status') && <span className="shrink-0 min-w-[60px] text-center">status</span>}
             {visibleCols.has('amount') && <span className="shrink-0 w-[80px] text-right">amount</span>}
             {visibleCols.has('amount_available') && (
@@ -394,14 +342,14 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
           </div>
 
           {loading && (
-            <div className="flex items-center justify-center py-4 text-slate-400">
+            <div className="flex items-center justify-center py-4" style={{ color: 'var(--db-text-dim)' }}>
               <FaSpinner className="animate-spin mr-2" size={12} />
               Loading...
             </div>
           )}
 
           {!loading && payments.length === 0 && (
-            <div className="text-center py-4 text-xs text-slate-400">
+            <div className="text-center py-4 text-xs" style={{ color: 'var(--db-text-dim)' }}>
               No payments
             </div>
           )}
@@ -418,15 +366,15 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
 
           {/* Footer totals */}
           {!loading && payments.length > 1 && (
-            <div className="flex items-center gap-3 px-3 py-1.5 text-xs font-medium bg-slate-50 dark:bg-slate-800/50">
+            <div className="flex items-center gap-3 px-3 py-1.5 text-xs font-medium" style={{ background: 'var(--db-surface-alt)', borderTop: '1px solid var(--db-border-light)' }}>
               {visibleCols.has('status') && <span className="shrink-0 min-w-[60px]" />}
               {visibleCols.has('amount') && (
-                <span className="shrink-0 w-[80px] text-right text-green-600 dark:text-green-400">
+                <span className="shrink-0 w-[80px] text-right" style={{ color: 'var(--db-accent-green)' }}>
                   {formatCurrency(totalAmount)}
                 </span>
               )}
               {visibleCols.has('amount_available') && (
-                <span className="shrink-0 w-[80px] text-right text-slate-600 dark:text-slate-400">
+                <span className="shrink-0 w-[80px] text-right" style={{ color: 'var(--db-text-muted)' }}>
                   {formatCurrency(totalAvailable)}
                 </span>
               )}
@@ -435,20 +383,6 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
         </div>
       )}
 
-      {/* Column Setup Dialog */}
-      <ColumnSetupDialog
-        open={showSetup}
-        title="Payment Columns"
-        columnMetas={PAYMENT_COLUMN_METAS}
-        config={activeConfig}
-        onSave={(entry) => {
-          columnSetups.saveSetup('current', entry);
-          setShowSetup(false);
-        }}
-        onClose={() => setShowSetup(false)}
-        namedSetups={columnSetups.setups}
-        onSaveNamed={(name, config) => columnSetups.saveSetup(name, config)}
-      />
     </div>
   );
 };

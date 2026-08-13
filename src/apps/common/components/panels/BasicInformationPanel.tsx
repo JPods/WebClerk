@@ -56,10 +56,10 @@ interface RowProps {
 
 const Row: React.FC<RowProps> = ({ label, value, className = "" }) => (
   <div className={`flex items-center gap-2 ${className}`}>
-    <dt className="w-25 shrink text-left text-sm text-slate-500 dark:text-slate-400">
+    <dt className="w-25 shrink text-left text-sm" style={{ color: 'var(--db-text-muted)' }}>
       {label} :
     </dt>
-    <dd className="font-medium text-sm text-slate-900 dark:text-slate-100">
+    <dd className="font-medium text-sm" style={{ color: 'var(--db-text)' }}>
       {value || "—"}
     </dd>
   </div>
@@ -71,11 +71,11 @@ const Row: React.FC<RowProps> = ({ label, value, className = "" }) => (
 
 const ActiveBadge: React.FC<{ isActive: boolean }> = ({ isActive }) => (
   <span
-    className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${
-      isActive
-        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
-        : "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400"
-    }`}
+    className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full"
+    style={{
+      background: 'var(--db-surface-alt)',
+      color: isActive ? 'var(--db-text)' : 'var(--db-text-dim)',
+    }}
   >
     {isActive ? "Yes" : "No"}
   </span>
@@ -111,10 +111,11 @@ const BasicInformationPanel: React.FC<BasicInformationPanelProps> = ({
 
   return (
     <div
-      className={`bg-slate-50 dark:bg-slate-800 rounded-lg p-2 ${className}`}
+      className={`rounded-lg p-2 ${className}`}
+      style={{ background: 'var(--db-surface-alt)' }}
     >
       {showHeader && (
-        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--db-text)' }}>
           <FaBuilding size={16} />
           {title}
         </h3>

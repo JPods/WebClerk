@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import ComponentCard from "@/components/common/ComponentCard";
 import { Input, Button, TextArea } from "@/components/wrapper";
+import { formatDt as fmtDt } from '@/utils/fieldFormatters';
 
 // -- Types ------------------------------------------------------------------
 
@@ -175,9 +176,9 @@ export default function SerialActionPanel({
   };
 
   // Format timestamp
-  const formatDt = (dt: number) => {
+  const formatDtLocal = (dt: number) => {
     if (!dt) return "--";
-    return new Date(dt).toLocaleString();
+    return fmtDt(dt, 'datetime');
   };
 
   return (
@@ -423,7 +424,7 @@ export default function SerialActionPanel({
                     </div>
                     <div className="text-xs text-slate-500 mt-0.5">
                       <Clock size={10} className="inline mr-1" />
-                      {formatDt(act.dt)}
+                      {formatDtLocal(act.dt)}
                       {act.by && ` · ${act.by}`}
                       {act.status_before && act.status_after && (
                         <span className="ml-2">

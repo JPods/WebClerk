@@ -5,6 +5,7 @@
  */
 import React, { useEffect, useState } from "react";
 import { getRecords } from "@/api/wcapi";
+import { formatDt } from '@/utils/fieldFormatters';
 
 const STATUS_COLORS: Record<string, string> = {
   available: "bg-green-600",
@@ -44,11 +45,7 @@ export default function SerialDetailCard({ data }: Props) {
 
   const fmtDate = (iso: string | null) => {
     if (!iso) return "--";
-    try {
-      return new Date(iso).toLocaleDateString();
-    } catch {
-      return iso;
-    }
+    return formatDt(iso, 'date');
   };
 
   return (
@@ -121,7 +118,7 @@ export default function SerialDetailCard({ data }: Props) {
           <div className="border border-slate-700 rounded overflow-hidden">
             {logs.map((log: any) => {
               const logCfg = log.config || {};
-              const dt = log.dt ? new Date(log.dt * 1000).toLocaleString() : "";
+              const dt = log.dt ? formatDt(log.dt, 'datetime') : "";
               return (
                 <div key={log.id} className="flex items-center gap-2 px-2 py-1 text-xs border-b border-slate-800 last:border-0">
                   <span className="text-slate-500 w-36 shrink-0">{dt}</span>

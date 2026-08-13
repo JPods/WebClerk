@@ -8,11 +8,12 @@
  *               — draggable FieldEditor rows + section-specific options
  *   Signature:  blocks with string arrays
  *
- * LastChecked: 2026-08-07 | WhereUsed: PrintLayoutDesigner | WhoCreated: Claude
+ * LastChecked: 2026-08-12 | WhereUsed: PrintLayoutDesigner | WhoCreated: Claude
  */
 import React, { useState } from 'react';
 import type { PrintLayoutSection, PrintField } from './printLayoutTypes';
 import FieldEditor from './FieldEditor';
+import './SectionCard.css';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -61,20 +62,14 @@ const TYPE_COLORS: Record<string, string> = {
 // Toggle — click to flip boolean (no checkboxes)
 // ---------------------------------------------------------------------------
 
-const Toggle: React.FC<{ label: string; value: boolean; onChange: (v: boolean) => void; theme: Theme; fontSize: number }> = ({
-  label, value, onChange, theme: t, fontSize,
+const Toggle: React.FC<{ label: string; value: boolean; onChange: (v: boolean) => void }> = ({
+  label, value, onChange,
 }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0' }}>
-    <span style={{ fontSize: fontSize - 2, color: t.textMuted, width: 100 }}>{label}</span>
+  <div className="sc-toggle">
+    <span className="sc-toggle-label">{label}</span>
     <span
       onClick={() => onChange(!value)}
-      style={{
-        cursor: 'pointer', fontSize: fontSize - 2, fontWeight: 700,
-        color: value ? t.accent : t.textDim,
-        padding: '1px 6px', borderRadius: 3,
-        border: `1px solid ${value ? t.accent : t.borderLight}`,
-        userSelect: 'none',
-      }}
+      className={`sc-toggle-value${value ? ' sc-toggle-value--on' : ''}`}
     >
       {value ? 'ON' : 'off'}
     </span>
@@ -154,10 +149,10 @@ const SectionCard: React.FC<SectionCardProps> = ({
     if (sType === 'company_header') {
       const s = section as any;
       return (
-        <div style={{ padding: '4px 0' }}>
-          <Toggle label="Logo" value={s.logo !== false} onChange={(v) => update({ logo: v } as any)} theme={t} fontSize={fontSize} />
-          <Toggle label="Address" value={s.show_address !== false} onChange={(v) => update({ show_address: v } as any)} theme={t} fontSize={fontSize} />
-          <Toggle label="Contact" value={s.show_contact !== false} onChange={(v) => update({ show_contact: v } as any)} theme={t} fontSize={fontSize} />
+        <div className="sc-body-inner">
+          <Toggle label="Logo" value={s.logo !== false} onChange={(v) => update({ logo: v } as any)} />
+          <Toggle label="Address" value={s.show_address !== false} onChange={(v) => update({ show_address: v } as any)} />
+          <Toggle label="Contact" value={s.show_contact !== false} onChange={(v) => update({ show_contact: v } as any)} />
         </div>
       );
     }
@@ -166,14 +161,14 @@ const SectionCard: React.FC<SectionCardProps> = ({
     if (sType === 'comments') {
       const s = section as any;
       return (
-        <div style={{ padding: '4px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: fontSize - 2, color: t.textMuted }}>
+        <div className="sc-source-column">
+          <label className="sc-input-label">
             Source: <input value={s.source || ''} onChange={(e) => update({ source: e.target.value } as any)}
-              style={{ background: t.bg, color: t.text, border: `1px solid ${t.borderLight}`, borderRadius: 3, padding: '2px 4px', fontSize: fontSize - 2, fontFamily: 'monospace', width: 180 }} />
+              className="sc-input sc-input--mono" style={{ width: 180 }} />
           </label>
-          <label style={{ fontSize: fontSize - 2, color: t.textMuted }}>
+          <label className="sc-input-label">
             Label: <input value={s.label || ''} onChange={(e) => update({ label: e.target.value || undefined } as any)}
-              style={{ background: t.bg, color: t.text, border: `1px solid ${t.borderLight}`, borderRadius: 3, padding: '2px 4px', fontSize: fontSize - 2, width: 120 }} />
+              className="sc-input" style={{ width: 120 }} />
           </label>
         </div>
       );
@@ -182,10 +177,10 @@ const SectionCard: React.FC<SectionCardProps> = ({
     if (sType === 'conditions') {
       const s = section as any;
       return (
-        <div style={{ padding: '4px 0' }}>
-          <label style={{ fontSize: fontSize - 2, color: t.textMuted }}>
+        <div className="sc-body-inner">
+          <label className="sc-input-label">
             Source: <input value={s.source || ''} onChange={(e) => update({ source: e.target.value } as any)}
-              style={{ background: t.bg, color: t.text, border: `1px solid ${t.borderLight}`, borderRadius: 3, padding: '2px 4px', fontSize: fontSize - 2, fontFamily: 'monospace', width: 200 }} />
+              className="sc-input sc-input--mono" style={{ width: 200 }} />
           </label>
         </div>
       );
@@ -196,47 +191,47 @@ const SectionCard: React.FC<SectionCardProps> = ({
       const s = section as any;
       const blocks: { label: string; lines: string[] }[] = s.blocks || [];
       return (
-        <div style={{ padding: '4px 0' }}>
+        <div className="sc-body-inner">
           {s.preamble !== undefined && (
-            <label style={{ fontSize: fontSize - 2, color: t.textMuted, display: 'block', marginBottom: 4 }}>
+            <label className="sc-input-label sc-input-label--block">
               Preamble: <input value={s.preamble || ''} onChange={(e) => update({ preamble: e.target.value || undefined } as any)}
-                style={{ background: t.bg, color: t.text, border: `1px solid ${t.borderLight}`, borderRadius: 3, padding: '2px 4px', fontSize: fontSize - 2, width: 250 }} />
+                className="sc-input" style={{ width: 250 }} />
             </label>
           )}
           {blocks.map((block, bi) => (
-            <div key={bi} style={{ border: `1px solid ${t.borderLight}`, borderRadius: 4, padding: 6, marginBottom: 4 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+            <div key={bi} className="sc-sig-block">
+              <div className="sc-sig-block-header">
                 <input value={block.label} onChange={(e) => {
                   const next = [...blocks]; next[bi] = { ...block, label: e.target.value };
                   update({ blocks: next } as any);
                 }}
-                  style={{ background: t.bg, color: t.text, border: `1px solid ${t.borderLight}`, borderRadius: 3, padding: '2px 4px', fontSize: fontSize - 2, fontWeight: 600, width: 120 }} />
+                  className="sc-input sc-input--bold" style={{ width: 120 }} />
                 <span onClick={() => update({ blocks: blocks.filter((_, i) => i !== bi) } as any)}
-                  style={{ cursor: 'pointer', color: t.textDim, fontSize: fontSize - 2 }}>&times;</span>
+                  className="sc-remove-btn">&times;</span>
               </div>
               {block.lines.map((line, li) => (
-                <div key={li} style={{ display: 'flex', gap: 4, marginBottom: 2 }}>
+                <div key={li} className="sc-sig-line-row">
                   <input value={line} onChange={(e) => {
                     const lines = [...block.lines]; lines[li] = e.target.value;
                     const next = [...blocks]; next[bi] = { ...block, lines };
                     update({ blocks: next } as any);
                   }}
-                    style={{ background: t.bg, color: t.text, border: `1px solid ${t.borderLight}`, borderRadius: 3, padding: '2px 4px', fontSize: fontSize - 2, flex: 1 }} />
+                    className="sc-input" />
                   <span onClick={() => {
                     const lines = block.lines.filter((_, i) => i !== li);
                     const next = [...blocks]; next[bi] = { ...block, lines };
                     update({ blocks: next } as any);
-                  }} style={{ cursor: 'pointer', color: t.textDim, fontSize: fontSize - 2 }}>&times;</span>
+                  }} className="sc-remove-btn">&times;</span>
                 </div>
               ))}
               <span onClick={() => {
                 const next = [...blocks]; next[bi] = { ...block, lines: [...block.lines, 'Line'] };
                 update({ blocks: next } as any);
-              }} style={{ cursor: 'pointer', color: t.accent, fontSize: fontSize - 2 }}>+ line</span>
+              }} className="sc-add-link">+ line</span>
             </div>
           ))}
           <span onClick={() => update({ blocks: [...blocks, { label: 'Block', lines: ['Signature'] }] } as any)}
-            style={{ cursor: 'pointer', color: t.accent, fontSize: fontSize - 2 }}>+ block</span>
+            className="sc-add-link">+ block</span>
         </div>
       );
     }
@@ -246,17 +241,17 @@ const SectionCard: React.FC<SectionCardProps> = ({
       const s = section as any;
       const columns: { title: string; fields: PrintField[] }[] = s.columns || [];
       return (
-        <div style={{ padding: '4px 0' }}>
+        <div className="sc-body-inner">
           {columns.map((col, ci) => (
-            <div key={ci} style={{ border: `1px solid ${t.borderLight}`, borderRadius: 4, padding: 6, marginBottom: 6 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+            <div key={ci} className="sc-addr-block">
+              <div className="sc-addr-block-header">
                 <input value={col.title} onChange={(e) => {
                   const next = [...columns]; next[ci] = { ...col, title: e.target.value };
                   update({ columns: next } as any);
                 }}
-                  style={{ background: t.bg, color: t.text, border: `1px solid ${t.borderLight}`, borderRadius: 3, padding: '2px 4px', fontSize: fontSize - 1, fontWeight: 700, width: 140 }} />
+                  className="sc-input sc-input--bold" style={{ width: 140 }} />
                 <span onClick={() => update({ columns: columns.filter((_, i) => i !== ci) } as any)}
-                  style={{ cursor: 'pointer', color: t.textDim, fontSize: fontSize - 2 }}>&times;</span>
+                  className="sc-remove-btn">&times;</span>
               </div>
               {col.fields.map((f, fi) => (
                 <FieldEditor
@@ -279,38 +274,29 @@ const SectionCard: React.FC<SectionCardProps> = ({
               <span onClick={() => {
                 const next = [...columns]; next[ci] = { ...col, fields: addField(col.fields) };
                 update({ columns: next } as any);
-              }} style={{ cursor: 'pointer', color: t.accent, fontSize: fontSize - 2 }}>+ field</span>
+              }} className="sc-add-link">+ field</span>
             </div>
           ))}
           <span onClick={() => update({ columns: [...columns, { title: 'Column', fields: [{ field: 'field', label: 'Label' }] }] } as any)}
-            style={{ cursor: 'pointer', color: t.accent, fontSize: fontSize - 2 }}>+ column</span>
+            className="sc-add-link">+ column</span>
         </div>
       );
     }
 
     // --- Field-list sections: meta_row, footer, line_items, totals, data_table ---
     const fields = getFields();
-    if (!fields) return <div style={{ fontSize: fontSize - 2, color: t.textDim, padding: 4 }}>No editable content</div>;
+    if (!fields) return <div className="sc-no-content">No editable content</div>;
 
     const showStyle = sType === 'totals';
 
     return (
-      <div style={{ padding: '4px 0' }}>
+      <div className="sc-body-inner">
         {/* Column headers */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: showStyle
-            ? '18px 1fr 1fr 36px 70px 50px 40px 20px'
-            : '18px 1fr 1fr 36px 70px 50px 20px',
-          gap: 4, padding: '0 0 3px 0',
-          fontSize: fontSize - 3, fontWeight: 700, color: t.textDim,
-          textTransform: 'uppercase', letterSpacing: '0.04em',
-          borderBottom: `1px solid ${t.border}`,
-        }}>
+        <div className={`sc-field-header ${showStyle ? 'sc-field-header--with-style' : 'sc-field-header--standard'}`}>
           <span></span>
           <span>Field</span>
           <span>Label</span>
-          <span style={{ textAlign: 'center' }}>Aln</span>
+          <span className="sc-field-header-center">Aln</span>
           <span>Format</span>
           <span>Width</span>
           {showStyle && <span>Style</span>}
@@ -336,36 +322,36 @@ const SectionCard: React.FC<SectionCardProps> = ({
         ))}
 
         {/* Add field */}
-        <div style={{ padding: '4px 0' }}>
+        <div className="sc-add-field-row">
           <span onClick={() => setFields(addField(fields))}
-            style={{ cursor: 'pointer', color: t.accent, fontSize: fontSize - 2 }}>+ field</span>
+            className="sc-add-link">+ field</span>
         </div>
 
         {/* Section-specific options */}
         {sType === 'line_items' && (
           <Toggle label="Footer totals" value={(section as any).show_footer_totals !== false}
-            onChange={(v) => update({ show_footer_totals: v } as any)} theme={t} fontSize={fontSize} />
+            onChange={(v) => update({ show_footer_totals: v } as any)} />
         )}
         {sType === 'totals' && (
-          <label style={{ fontSize: fontSize - 2, color: t.textMuted, display: 'block', marginTop: 4 }}>
+          <label className="sc-options-label">
             Left text: <input value={(section as any).left_text || ''} onChange={(e) => update({ left_text: e.target.value || undefined } as any)}
-              style={{ background: t.bg, color: t.text, border: `1px solid ${t.borderLight}`, borderRadius: 3, padding: '2px 4px', fontSize: fontSize - 2, width: 200 }} />
+              className="sc-input" style={{ width: 200 }} />
           </label>
         )}
         {sType === 'data_table' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
-            <label style={{ fontSize: fontSize - 2, color: t.textMuted }}>
+          <div className="sc-options-column">
+            <label className="sc-input-label">
               Group by: <input value={(section as any).group_by || ''} onChange={(e) => update({ group_by: e.target.value || undefined } as any)}
-                style={{ background: t.bg, color: t.text, border: `1px solid ${t.borderLight}`, borderRadius: 3, padding: '2px 4px', fontSize: fontSize - 2, fontFamily: 'monospace', width: 120 }} />
+                className="sc-input sc-input--mono" style={{ width: 120 }} />
             </label>
-            <label style={{ fontSize: fontSize - 2, color: t.textMuted }}>
+            <label className="sc-input-label">
               Group label: <input value={(section as any).group_label || ''} onChange={(e) => update({ group_label: e.target.value || undefined } as any)}
-                style={{ background: t.bg, color: t.text, border: `1px solid ${t.borderLight}`, borderRadius: 3, padding: '2px 4px', fontSize: fontSize - 2, width: 120 }} />
+                className="sc-input" style={{ width: 120 }} />
             </label>
             <Toggle label="Subtotals" value={!!(section as any).group_subtotals}
-              onChange={(v) => update({ group_subtotals: v } as any)} theme={t} fontSize={fontSize} />
+              onChange={(v) => update({ group_subtotals: v } as any)} />
             <Toggle label="Grand total" value={!!(section as any).grand_totals}
-              onChange={(v) => update({ grand_totals: v } as any)} theme={t} fontSize={fontSize} />
+              onChange={(v) => update({ grand_totals: v } as any)} />
           </div>
         )}
       </div>
@@ -379,40 +365,33 @@ const SectionCard: React.FC<SectionCardProps> = ({
   return (
     <div
       data-wc="section-card"
+      className={`sc-root${isDragging ? ' sc-root--dragging' : ''}`}
       draggable={draggable}
       onDragStart={(e) => { onDragStart?.(); }}
       onDragOver={(e) => { e.preventDefault(); onDragOver?.(e); }}
       onDragEnd={() => onDragEnd?.()}
       style={{
-        border: `1px solid ${isDragging ? '#d97706' : t.borderLight}`,
-        borderLeft: `3px solid ${badgeColor}`,
-        borderRadius: 4, marginBottom: 4,
-        background: isDragging ? t.surfaceAlt : t.surface,
-        opacity: isDragging ? 0.5 : 1,
-        transition: 'opacity 0.1s, border-color 0.1s',
-      }}
+        borderLeftWidth: 3,
+        borderLeftStyle: 'solid',
+        borderLeftColor: badgeColor,
+        '--sc-fs': `${fontSize}px`,
+        '--sc-fs-sm': `${fontSize - 2}px`,
+        '--sc-fs-xs': `${fontSize - 3}px`,
+      } as React.CSSProperties}
     >
       {/* Header */}
       <div
         onClick={() => setExpanded(!expanded)}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '6px 8px', cursor: 'pointer',
-          userSelect: 'none',
-        }}
+        className="sc-header"
       >
         {/* Drag grip */}
-        <span style={{ color: t.textDim, fontSize: fontSize - 1, cursor: 'grab' }}>⋮⋮</span>
+        <span className="sc-drag-grip">⋮⋮</span>
 
         {/* Section type badge */}
-        <span style={{
-          padding: '1px 6px', borderRadius: 3, fontSize: fontSize - 3,
-          fontWeight: 700, background: badgeColor, color: '#fff',
-          textTransform: 'uppercase', letterSpacing: '0.04em',
-        }}>{sType.replace(/_/g, ' ')}</span>
+        <span className="sc-type-badge" style={{ background: badgeColor }}>{sType.replace(/_/g, ' ')}</span>
 
         {/* Expand indicator */}
-        <span style={{ color: t.textDim, fontSize: fontSize - 2, flex: 1 }}>
+        <span className="sc-expand-indicator">
           {expanded ? '▾' : '▸'}
         </span>
 
@@ -420,15 +399,13 @@ const SectionCard: React.FC<SectionCardProps> = ({
         <span
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
           title="Remove section"
-          style={{ color: t.textDim, fontSize: fontSize - 1, cursor: 'pointer', padding: '0 2px' }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#e55'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = t.textDim; }}
+          className="sc-delete-btn"
         >&times;</span>
       </div>
 
       {/* Body */}
       {expanded && (
-        <div style={{ padding: '0 8px 8px 28px' }}>
+        <div className="sc-body">
           {renderBody()}
         </div>
       )}

@@ -46,6 +46,7 @@ import {
   toTimestampMilliseconds,
   updateTaskFormState,
 } from "../shared/taskFormUtils";
+import { formatDt } from '@/utils/fieldFormatters';
 
 import { GanttProjectSelector, getProjectColor } from "./GanttProjectSelector";
 import { useGanttData, AUTO_REFRESH_INTERVAL_MS } from "./useGanttData";
@@ -376,7 +377,7 @@ const formatLastRefresh = (date: Date | null): string => {
   if (diffSecs < 10) return "Just now";
   if (diffSecs < 60) return `${diffSecs}s ago`;
   if (diffMins < 60) return `${diffMins}m ago`;
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return formatDt(date, 'datetime');
 };
 
 type TaskColorInfo = {
@@ -1515,7 +1516,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   // Helper to format date for display
   const formatDateShort = (date: Date | null | undefined): string => {
     if (!date) return '—';
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+    return formatDt(date, 'date');
   };
   
   // Project legend for print — colored dots with project names
@@ -1692,7 +1693,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       const leftPos = (dayOffset / totalDays) * 100;
       const isMonthStart = tempDate.getDate() <= 7 && weekPositions.length > 0;
       weekPositions.push({
-        label: tempDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        label: formatDt(tempDate, 'date'),
         left: leftPos,
         isMonth: isMonthStart,
       });
@@ -1844,7 +1845,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         <body>
           <div class="print-header">
             <h1>Project Gantt Chart</h1>
-            <p>${projectNames} | Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()} | ${ganttData.tasks.length} tasks</p>
+            <p>${projectNames} | Generated: ${formatDt(new Date(), 'datetime')} | ${ganttData.tasks.length} tasks</p>
             ${renderPrintProjectLegend(selectedProjectIds, projects)}
           </div>
 
@@ -1929,7 +1930,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
       const sun = new Date(mon);
       sun.setDate(sun.getDate() + 6);
-      return `${mon.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${sun.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      return `${formatDt(mon, 'date')} – ${formatDt(sun, 'date')}`;
     };
 
     // Group tasks by start week
@@ -1972,7 +1973,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       const leftPos = (dayOffset / totalDays) * 100;
       const isMonthStart = tempDate.getDate() <= 7 && weekPositions.length > 0;
       weekPositions.push({
-        label: tempDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        label: formatDt(tempDate, 'date'),
         left: leftPos,
         isMonth: isMonthStart,
       });
@@ -2048,7 +2049,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         <body>
           <div class="print-header">
             <h1>Project Gantt Chart</h1>
-            <p>${projectNames} | Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()} | ${ganttData.tasks.length} tasks</p>
+            <p>${projectNames} | Generated: ${formatDt(new Date(), 'datetime')} | ${ganttData.tasks.length} tasks</p>
             ${renderPrintProjectLegend(selectedProjectIds, projects)}
           </div>
 
@@ -2139,7 +2140,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       
       if (tempDate.getMonth() !== lastMonth) {
         dateMarkers.push({
-          label: tempDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+          label: formatDt(tempDate, 'date'),
           x: xPos
         });
         lastMonth = tempDate.getMonth();
@@ -2183,7 +2184,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   <!-- Header -->
   <rect x="0" y="0" width="${totalWidth}" height="${headerHeight}" class="header-bg"/>
   <text x="${padding}" y="20" class="title">Project Gantt Chart</text>
-  <text x="${padding}" y="35" class="subtitle">${escapeXml(projectNames)} | ${ganttData.tasks.length} tasks | ${new Date().toLocaleDateString()}</text>
+  <text x="${padding}" y="35" class="subtitle">${escapeXml(projectNames)} | ${ganttData.tasks.length} tasks | ${formatDt(new Date(), 'date')}</text>
 
   <!-- Date markers -->
   ${dateMarkers.map(m => `<text x="${m.x}" y="45" class="date-label">${m.label}</text>`).join('\n  ')}
@@ -3100,8 +3101,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                         project_name: (t as GanttMappedTask).projectName || '',
                         action_en: t.text || '',
                         status: (t as GanttMappedTask).columnId || '',
-                        dt_start: t.start instanceof Date ? t.start.toLocaleDateString() : '',
-                        dt_deadline: t.end instanceof Date ? t.end.toLocaleDateString() : '',
+                        dt_start: t.start instanceof Date ? formatDt(t.start, 'date') : '',
+                        dt_deadline: t.end instanceof Date ? formatDt(t.end, 'date') : '',
                       }))}
                       columns={actionListColumns}
                       selectedId={highlightedTaskId}
@@ -3112,7 +3113,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                         if (row?.id) handleOpenDetailPanel({ id: row.id });
                       }}
                       hideToolbar
-                      fontSize={11}
                     />
                   </div>
                   </>

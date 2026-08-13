@@ -1,0 +1,367 @@
+/**
+ * ParadeOfReports.css — styles for the ParadeOfReports component.
+ * Uses CSS custom properties from the nearest .db-root ancestor (set by DataBrowser.css).
+ */
+
+/* ---------------------------------------------------------------------------
+   Overlay + Dialog
+   --------------------------------------------------------------------------- */
+
+.por-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.por-dialog {
+  background: var(--db-surface, #1e1e1e);
+  border: 1px solid var(--db-border, #dee2e6);
+  border-radius: 8px;
+  width: 720px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  color: var(--db-text, #212529);
+  font-size: var(--por-fs, 13px);
+}
+
+.por-dialog--parading {
+  width: 95vw;
+}
+
+/* ---------------------------------------------------------------------------
+   Header
+   --------------------------------------------------------------------------- */
+
+.por-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--db-border, #dee2e6);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.por-title {
+  font-weight: 700;
+  font-size: calc(var(--por-fs, 13px) + 2px);
+}
+
+.por-subtitle {
+  color: var(--db-text-muted, #6c757d);
+  margin-left: 12px;
+}
+
+/* ---------------------------------------------------------------------------
+   Body
+   --------------------------------------------------------------------------- */
+
+.por-body {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+}
+
+.por-body--parading {
+  padding: 0;
+  display: flex;
+}
+
+/* ---------------------------------------------------------------------------
+   Loading / Error
+   --------------------------------------------------------------------------- */
+
+.por-loading {
+  padding: 40px;
+  text-align: center;
+  color: var(--db-text-muted, #6c757d);
+}
+
+.por-error {
+  padding: 20px;
+  color: var(--db-accent-red, #dc3545);
+}
+
+/* ---------------------------------------------------------------------------
+   Selection view
+   --------------------------------------------------------------------------- */
+
+.por-instructions {
+  color: var(--db-text-muted, #6c757d);
+  margin-bottom: 16px;
+}
+
+.por-group {
+  margin-bottom: 16px;
+}
+
+.por-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px 0;
+  font-weight: 600;
+  color: var(--db-accent, #0d6efd);
+}
+
+.por-group-desc {
+  color: var(--db-text-dim, #adb5bd);
+  font-weight: 400;
+  font-size: calc(var(--por-fs, 13px) - 1px);
+}
+
+.por-report-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 4px 24px;
+  cursor: pointer;
+}
+
+.por-report-row--disabled {
+  opacity: 0.5;
+}
+
+.por-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.por-no-sample {
+  color: var(--db-text-dim, #adb5bd);
+  font-size: calc(var(--por-fs, 13px) - 2px);
+}
+
+/* ---------------------------------------------------------------------------
+   Feedback badges (selection + summary)
+   --------------------------------------------------------------------------- */
+
+.por-badge {
+  font-size: calc(var(--por-fs, 13px) - 2px);
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--db-surface-alt, #f8f9fa);
+  border: 1px solid var(--db-border-light, #e9ecef);
+}
+
+.por-badge--keep {
+  background: #1a3a1a;
+  border-color: #2d5a2d;
+}
+
+.por-badge--modify {
+  background: #3a3a1a;
+  border-color: #5a5a2d;
+}
+
+.por-badge--dont-need {
+  background: #3a1a1a;
+  border-color: #5a2d2d;
+}
+
+/* ---------------------------------------------------------------------------
+   Parade view — preview + feedback panel
+   --------------------------------------------------------------------------- */
+
+.por-preview {
+  flex: 1;
+  border: none;
+  background: #fff;
+}
+
+.por-feedback-panel {
+  width: 280px;
+  padding: 16px;
+  border-left: 1px solid var(--db-border, #dee2e6);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.por-feedback-name {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.por-feedback-meta {
+  color: var(--db-text-muted, #6c757d);
+  font-size: calc(var(--por-fs, 13px) - 1px);
+  margin-bottom: 8px;
+}
+
+.por-feedback-btn {
+  padding: 10px 16px;
+  border: 1px solid;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: var(--por-fs, 13px);
+  font-weight: 500;
+  color: var(--db-text, #212529);
+  text-align: center;
+  background: transparent;
+}
+
+.por-feedback-btn--keep {
+  background: #1a3a1a;
+  border-color: #2d5a2d;
+}
+
+.por-feedback-btn--keep:hover {
+  background: #244a24;
+}
+
+.por-feedback-btn--modify {
+  background: #3a3a1a;
+  border-color: #5a5a2d;
+}
+
+.por-feedback-btn--modify:hover {
+  background: #4a4a24;
+}
+
+.por-feedback-btn--dont-need {
+  background: #3a1a1a;
+  border-color: #5a2d2d;
+}
+
+.por-feedback-btn--dont-need:hover {
+  background: #4a2424;
+}
+
+.por-notes {
+  width: 100%;
+  min-height: 80px;
+  padding: 8px;
+  background: var(--db-surface-alt, #f8f9fa);
+  border: 1px solid var(--db-border-light, #e9ecef);
+  border-radius: 4px;
+  color: var(--db-text, #212529);
+  font-size: calc(var(--por-fs, 13px) - 1px);
+  resize: vertical;
+}
+
+.por-nav-row {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.por-progress {
+  font-size: calc(var(--por-fs, 13px) - 2px);
+  color: var(--db-text-dim, #adb5bd);
+  margin-top: 8px;
+}
+
+/* ---------------------------------------------------------------------------
+   Summary view
+   --------------------------------------------------------------------------- */
+
+.por-summary {
+  padding: 20px;
+}
+
+.por-summary-title {
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.por-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.por-summary-table thead tr {
+  border-bottom: 1px solid var(--db-border, #dee2e6);
+}
+
+.por-summary-table th {
+  text-align: left;
+  padding: 6px 8px;
+}
+
+.por-summary-table tbody tr {
+  border-bottom: 1px solid var(--db-border-light, #e9ecef);
+}
+
+.por-summary-table td {
+  padding: 6px 8px;
+}
+
+.por-summary-table td.por-summary-notes {
+  color: var(--db-text-muted, #6c757d);
+}
+
+.por-summary-stats {
+  margin-top: 16px;
+  color: var(--db-text-muted, #6c757d);
+  font-size: calc(var(--por-fs, 13px) - 1px);
+}
+
+/* ---------------------------------------------------------------------------
+   Footer
+   --------------------------------------------------------------------------- */
+
+.por-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--db-border, #dee2e6);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.por-footer-info {
+  color: var(--db-text-muted, #6c757d);
+  font-size: calc(var(--por-fs, 13px) - 1px);
+}
+
+.por-footer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---------------------------------------------------------------------------
+   Buttons
+   --------------------------------------------------------------------------- */
+
+.por-btn {
+  padding: 8px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--db-border, #dee2e6);
+  background: var(--db-surface, #1e1e1e);
+  color: var(--db-text, #212529);
+  font-size: var(--por-fs, 13px);
+}
+
+.por-btn:hover {
+  border-color: var(--db-accent, #0d6efd);
+}
+
+.por-btn--sm {
+  padding: 4px 12px;
+}
+
+.por-btn--primary {
+  padding: 8px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  background: var(--db-accent, #0d6efd);
+  color: #fff;
+  font-size: var(--por-fs, 13px);
+  font-weight: 600;
+}
+
+.por-btn--primary:hover {
+  opacity: 0.9;
+}
+
+.por-btn--primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

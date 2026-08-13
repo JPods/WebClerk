@@ -174,3 +174,224 @@
   color: var(--db-accent, #0d6efd);
   border-color: var(--db-accent, #0d6efd);
 }
+
+/* ---------------------------------------------------------------------------
+   Select with allow_custom
+   --------------------------------------------------------------------------- */
+
+.db-select-custom-wrap {
+  display: flex;
+  gap: 4px;
+}
+
+.db-select-custom-wrap select,
+.db-select-custom-wrap input {
+  flex: 1;
+}
+
+/* ---------------------------------------------------------------------------
+   Lookup search dropdown
+   --------------------------------------------------------------------------- */
+
+.db-lookup-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: var(--db-input-bg, #fff);
+  border: 1px solid var(--db-input-border, #ced4da);
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,.2);
+}
+
+.db-lookup-option {
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--db-text, #212529);
+  border-bottom: 1px solid var(--db-border, #dee2e6);
+}
+
+.db-lookup-option:hover {
+  background: var(--db-surface-alt, #f8f9fa);
+}
+
+.db-lookup-name {
+  font-weight: 600;
+}
+
+.db-lookup-hint {
+  margin-left: 8px;
+  color: var(--db-text-muted, #6c757d);
+  font-size: 10px;
+}
+
+.db-lookup-add {
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--db-accent-green, #198754);
+  font-weight: 600;
+  border-top: 1px solid var(--db-border, #dee2e6);
+}
+
+.db-lookup-add:hover {
+  background: var(--db-surface-alt, #f8f9fa);
+}
+
+.db-lookup-empty {
+  padding: 6px 10px;
+  color: var(--db-text-muted, #6c757d);
+  font-size: 11px;
+}
+
+/* ---------------------------------------------------------------------------
+   JSON floating editor
+   --------------------------------------------------------------------------- */
+
+.db-json-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.5);
+}
+
+.db-json-editor {
+  width: 90vw;
+  max-width: 1200px;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--db-input-bg, #fff);
+  border: 1px solid var(--db-border, #dee2e6);
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+.db-json-editor-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--db-surface-alt, #f8f9fa);
+  border-bottom: 1px solid var(--db-border, #dee2e6);
+  flex-shrink: 0;
+}
+
+.db-json-editor-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.db-json-editor-title span:first-child {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--db-text, #212529);
+}
+
+.db-json-editor-error {
+  font-size: 11px;
+  color: #f87171;
+  font-family: monospace;
+}
+
+.db-json-editor-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.db-json-editor-save {
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 4px;
+  border: none;
+  background: var(--db-accent, #465fff);
+  color: #fff;
+  cursor: pointer;
+}
+
+.db-json-editor-save:disabled {
+  background: #64748b;
+  cursor: not-allowed;
+}
+
+.db-json-editor-close {
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid var(--db-border, #dee2e6);
+  background: var(--db-surface-alt, #f8f9fa);
+  color: var(--db-text, #212529);
+  cursor: pointer;
+}
+
+.db-json-editor-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.db-json-editor-code {
+  width: 45%;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--db-border, #dee2e6);
+}
+
+.db-json-editor-tree {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.db-json-editor-pane-label {
+  padding: 3px 10px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--db-text-muted, #6c757d);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--db-surface-alt, #f8f9fa);
+  border-bottom: 1px solid var(--db-border, #dee2e6);
+  flex-shrink: 0;
+}
+
+.db-json-editor-textarea {
+  flex: 1;
+  resize: none;
+  border: none;
+  outline: none;
+  padding: 12px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  background: var(--db-input-bg, #fff);
+  color: var(--db-text, #212529);
+  tab-size: 2;
+}
+
+.db-json-editor-tree-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+}
+
+.db-json-editor-tree-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--db-text-muted, #6c757d);
+  font-size: 12px;
+}

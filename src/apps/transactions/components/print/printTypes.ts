@@ -4,6 +4,7 @@
  * Shared types for print-ready document components
  */
 import type { CompanyInfo } from '@/hooks/useDefaultCompany';
+import { formatDt } from '@/utils/fieldFormatters';
 
 // Paper size definitions (US Letter is 8.5" x 11")
 export type PaperSize = 'letter' | 'a4';
@@ -150,16 +151,7 @@ export const formatCurrency = (value: number | undefined | null): string => {
 // Date formatter utility
 export const formatDate = (dateStr: string | undefined | null): string => {
   if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
+  return formatDt(dateStr, 'date');
 };
 
 // Document type labels

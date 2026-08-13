@@ -235,6 +235,12 @@ Alice pointer: Document `wc3-go-live` (id: 945).
 | 112 | Drop ship — order line flag, auto-PO generation, address copy | TODO | P1 | WC2: DropShipFill.4dm + Data_AddressCopy. Flag order line as drop-ship → auto-generate PO to vendor with customer's ship-to address. Need: drop_ship flag on line, auto-PO trigger, address copy from customer org to PO. ~1-2 sessions. |
 | 113 | Landed cost allocation — distribute PO/receipt-level freight, duty, customs across received lines | TODO | P1 | InventoryLayer has fields (cost.freight, cost.duty, cost.handling, cost.vat, cost.landed) and `update_cost_after_receipt()`. Missing: allocation service to split header-level charges across lines by weight, value, or qty. Core for importers/distributors. ~1-2 sessions. |
 
+### Cleanup
+
+| # | Item | Status | Pri | Notes |
+|---|------|--------|-----|-------|
+| 114 | Drop `templates` table — migration to remove orphan table | TODO | P4 | Model removed 2026-08-09. Table empty, nothing references it. Report + Document + Setting cover all use cases. Write migration: `DROP TABLE IF EXISTS templates`. |
+
 ---
 
 ## Architecture Notes (from Phase 1 build — 2026-08-05)

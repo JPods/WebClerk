@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { FaChevronDown, FaChevronRight, FaHistory, FaHeart, FaLock, FaFlag, FaCodeBranch, FaShieldAlt } from 'react-icons/fa';
 import type { TransactionMetadata } from '../types/transactionTypes';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { formatDt } from '@/utils/fieldFormatters';
 
 interface MetadataPanelProps {
   metadata: TransactionMetadata | undefined;
@@ -46,7 +47,7 @@ const KeyValue: React.FC<{ label: string; value: string | number | null | undefi
 
 const formatTimestamp = (ts?: number): string => {
   if (!ts) return '--';
-  return new Date(ts).toLocaleString();
+  return formatDt(ts, 'datetime');
 };
 
 const HealthBar: React.FC<{ label: string; value?: number }> = ({ label, value }) => {

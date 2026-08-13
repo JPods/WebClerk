@@ -20,6 +20,7 @@
  *   />
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './DetailLayoutDialog.css';
 
 interface Props {
   open: boolean;
@@ -32,44 +33,35 @@ interface Props {
   theme?: 'dark' | 'light';
 }
 
-const BEHAVIOR_LABELS: Record<string, { label: string; color: string }> = {
-  email:     { label: 'Email →', color: '#0d6efd' },
-  phone:     { label: 'Phone →', color: '#0d6efd' },
-  address:   { label: 'Map →', color: '#0d6efd' },
-  geo:       { label: 'Geo →', color: '#0d6efd' },
-  url:       { label: 'Link →', color: '#0d6efd' },
-  select:    { label: 'Select ▾', color: '#198754' },
-  lookup:    { label: 'Lookup ◎', color: '#6f42c1' },
-  currency:  { label: '$ Currency', color: '#fd7e14' },
-  boolean:   { label: '☑ Bool', color: '#6c757d' },
-  json:      { label: '{ } JSON', color: '#6c757d' },
-  textarea:  { label: '¶ Text', color: '#6c757d' },
-  timestamp: { label: '⏱ Time', color: '#6c757d' },
-  readonly:  { label: '🔒 Read', color: '#adb5bd' },
-  date:      { label: '📅 Date', color: '#6c757d' },
-  number:    { label: '# Num', color: '#6c757d' },
-  text:      { label: 'Abc', color: '#6c757d' },
+const BEHAVIOR_LABELS: Record<string, string> = {
+  email:     'Email →',
+  phone:     'Phone →',
+  address:   'Map →',
+  geo:       'Geo →',
+  url:       'Link →',
+  select:    'Select ▾',
+  lookup:    'Lookup ◎',
+  currency:  '$ Currency',
+  boolean:   '☑ Bool',
+  json:      '{ } JSON',
+  textarea:  '¶ Text',
+  timestamp: '⏱ Time',
+  readonly:  '🔒 Read',
+  date:      '📅 Date',
+  number:    '# Num',
+  text:      'Abc',
 };
 
 // Fields that support multi-row sizing
 const SIZABLE_TYPES = ['json', 'textarea', 'text'];
 
 export default function DetailLayoutDialog({
-  open, allFields, visibleFields, fieldBehaviors, rowSizes, onApply, onClose, theme = 'dark',
+  open, allFields, visibleFields, fieldBehaviors, rowSizes, onApply, onClose,
 }: Props) {
   const [order, setOrder] = useState<string[]>([]);
   const [visible, setVisible] = useState<Set<string>>(new Set());
   const [sizes, setSizes] = useState<Record<string, number>>({});
   const [dragIdx, setDragIdx] = useState<number | null>(null);
-
-  const isDark = theme === 'dark';
-  const bg = isDark ? '#252526' : '#ffffff';
-  const bgAlt = isDark ? '#1e1e1e' : '#f8f9fa';
-  const border = isDark ? '#3c3c3c' : '#dee2e6';
-  const text = isDark ? '#d4d4d4' : '#212529';
-  const textMuted = isDark ? '#888' : '#6c757d';
-  const accent = isDark ? '#9cdcfe' : '#0d6efd';
-  const rowHover = isDark ? '#2a2d2e' : '#f1f3f5';
 
   // Initialize from props when dialog opens
   useEffect(() => {
@@ -135,40 +127,45 @@ export default function DetailLayoutDialog({
   if (!open) return null;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}
-      onClick={onClose}>
-      <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 10, boxShadow: '0 16px 48px rgba(0,0,0,0.4)', width: 560, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
-        onClick={(e) => e.stopPropagation()}>
+    <div className="dld-overlay" onClick={onClose}>
+      <div className="dld-panel" onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: `1px solid ${border}` }}>
+        <div className="dld-header">
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: accent }}>Detail Form Layout</div>
-            <div style={{ fontSize: 11, color: textMuted, marginTop: 2 }}>{visibleCount} of {allFields.length} fields · drag or arrows to reorder</div>
+            <div className="dld-header-title">Detail Form Layout</div>
+            <div className="dld-header-subtitle">{visibleCount} of {allFields.length} fields · drag or arrows to reorder</div>
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={handleSelectAll} style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: `1px solid ${border}`, borderRadius: 4, background: 'transparent', color: textMuted, cursor: 'pointer' }}>All</button>
-            <button onClick={handleSelectNone} style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: `1px solid ${border}`, borderRadius: 4, background: 'transparent', color: textMuted, cursor: 'pointer' }}>Min</button>
+          <div className="dld-header-actions">
+            <button onClick={handleSelectAll} className="dld-header-btn">All</button>
+            <button onClick={handleSelectNone} className="dld-header-btn">Min</button>
           </div>
         </div>
 
         {/* Column headers */}
-        <div style={{ display: 'flex', alignItems: 'center', padding: '6px 18px', borderBottom: `1px solid ${border}`, background: bgAlt, fontSize: 10, fontWeight: 700, color: textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          <span style={{ width: 30 }}></span>
-          <span style={{ width: 30 }}></span>
-          <span style={{ flex: 1 }}>Field</span>
-          <span style={{ width: 100, textAlign: 'center' }}>Behavior</span>
-          <span style={{ width: 70, textAlign: 'center' }}>Rows</span>
+        <div className="dld-col-headers">
+          <span className="dld-col-spacer"></span>
+          <span className="dld-col-spacer"></span>
+          <span className="dld-col-field">Field</span>
+          <span className="dld-col-behavior">Behavior</span>
+          <span className="dld-col-rows">Rows</span>
         </div>
 
         {/* Field list */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="dld-field-list">
           {order.map((field, idx) => {
             const isVisible = visible.has(field);
             const beh = fieldBehaviors[field] || {};
-            const behInfo = BEHAVIOR_LABELS[beh.type] || null;
-            const isSizable = SIZABLE_TYPES.includes(beh.type || '') || beh.type === 'json';
-            const currentSize = sizes[field] || (beh.type === 'json' ? 4 : beh.type === 'textarea' ? 3 : 1);
+            const behType: string = beh.type || '';
+            const behLabel = BEHAVIOR_LABELS[behType] || null;
+            const isSizable = SIZABLE_TYPES.includes(behType) || behType === 'json';
+            const currentSize = sizes[field] || (behType === 'json' ? 4 : behType === 'textarea' ? 3 : 1);
+
+            const rowClasses = [
+              'dld-field-row',
+              dragIdx === idx ? 'dld-field-row--dragging' : '',
+              !isVisible ? 'dld-field-row--hidden' : '',
+            ].filter(Boolean).join(' ');
 
             return (
               <div
@@ -178,51 +175,42 @@ export default function DetailLayoutDialog({
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => handleDrop(idx)}
                 onDragEnd={() => setDragIdx(null)}
-                style={{
-                  display: 'flex', alignItems: 'center', padding: '5px 18px',
-                  borderBottom: `1px solid ${isDark ? '#2e2e2e' : '#f0f0f0'}`,
-                  background: dragIdx === idx ? (isDark ? '#094771' : '#cfe2ff') : 'transparent',
-                  opacity: isVisible ? 1 : 0.4,
-                  cursor: 'grab',
-                  fontSize: 12,
-                }}
-                onMouseEnter={(e) => { if (dragIdx === null) (e.currentTarget).style.background = rowHover; }}
-                onMouseLeave={(e) => { if (dragIdx !== idx) (e.currentTarget).style.background = 'transparent'; }}
+                className={rowClasses}
               >
                 {/* Checkbox */}
-                <span style={{ width: 30 }}>
+                <span className="dld-cell-check">
                   <input type="checkbox" checked={isVisible} onChange={() => toggleVisible(field)} />
                 </span>
 
                 {/* Arrows */}
-                <span style={{ width: 30, display: 'flex', flexDirection: 'column', gap: 0 }}>
+                <span className="dld-cell-arrows">
                   <button disabled={idx === 0} onClick={() => moveField(idx, 'up')}
-                    style={{ background: 'none', border: 'none', color: textMuted, fontSize: 8, cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.2 : 1, padding: 0 }}>▲</button>
+                    className="dld-arrow-btn">▲</button>
                   <button disabled={idx === order.length - 1} onClick={() => moveField(idx, 'down')}
-                    style={{ background: 'none', border: 'none', color: textMuted, fontSize: 8, cursor: idx === order.length - 1 ? 'default' : 'pointer', opacity: idx === order.length - 1 ? 0.2 : 1, padding: 0 }}>▼</button>
+                    className="dld-arrow-btn">▼</button>
                 </span>
 
                 {/* Field name */}
-                <span style={{ flex: 1, fontWeight: 500, color: isVisible ? text : textMuted }}>{field}</span>
+                <span className={isVisible ? 'dld-cell-name' : 'dld-cell-name dld-cell-name--hidden'}>{field}</span>
 
                 {/* Behavior */}
-                <span style={{ width: 100, textAlign: 'center' }}>
-                  {behInfo && (
-                    <span style={{ fontSize: 10, fontWeight: 600, color: behInfo.color, padding: '1px 6px', borderRadius: 3, border: `1px solid ${behInfo.color}40`, background: `${behInfo.color}10` }}>
-                      {behInfo.label}
+                <span className="dld-cell-behavior">
+                  {behLabel && (
+                    <span className={`dld-behavior-badge dld-behavior-badge--${behType}`}>
+                      {behLabel}
                     </span>
                   )}
                 </span>
 
                 {/* Row size */}
-                <span style={{ width: 70, textAlign: 'center' }}>
+                <span className="dld-cell-rows">
                   {isSizable ? (
                     <input type="number" min={1} max={12} value={currentSize}
                       onChange={(e) => setRowSize(field, parseInt(e.target.value) || 1)}
-                      style={{ width: 40, textAlign: 'center', fontSize: 11, padding: '2px 4px', border: `1px solid ${border}`, borderRadius: 3, background: bgAlt, color: text }}
+                      className="dld-row-size-input"
                     />
                   ) : (
-                    <span style={{ fontSize: 10, color: textMuted }}>—</span>
+                    <span className="dld-cell-rows-dash">—</span>
                   )}
                 </span>
               </div>
@@ -231,15 +219,13 @@ export default function DetailLayoutDialog({
         </div>
 
         {/* Footer */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', borderTop: `1px solid ${border}` }}>
-          <span style={{ fontSize: 11, color: textMuted }}>
+        <div className="dld-footer">
+          <span className="dld-footer-hint">
             Drag fields to reorder · check to show/hide · set rows for text fields
           </span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={onClose}
-              style={{ padding: '6px 16px', fontSize: 12, fontWeight: 600, border: `1px solid ${border}`, borderRadius: 4, background: 'transparent', color: textMuted, cursor: 'pointer' }}>Cancel</button>
-            <button onClick={handleApply}
-              style={{ padding: '6px 16px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 4, background: accent, color: '#fff', cursor: 'pointer' }}>Apply</button>
+          <div className="dld-footer-actions">
+            <button onClick={onClose} className="dld-btn-cancel">Cancel</button>
+            <button onClick={handleApply} className="dld-btn-apply">Apply</button>
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getRecords } from '@/api/wcapi';
+import { formatDt } from '@/utils/fieldFormatters';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -55,12 +56,12 @@ const DAY_MS = 86400000;
 
 function fmtDate(ms: number): string {
   if (!ms) return '';
-  return new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return formatDt(ms, 'date');
 }
 
 function fmtDateFull(ms: number): string {
   if (!ms) return '';
-  return new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return formatDt(ms, 'date');
 }
 
 // ---------------------------------------------------------------------------
@@ -114,7 +115,7 @@ export default function ProjectGanttPanel({ contactId }: ProjectGanttPanelProps)
     while (d.getTime() < maxDate) {
       const pct = ((d.getTime() - minDate) / rangeMs) * 100;
       markers.push({
-        label: d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+        label: formatDt(d, 'date'),
         left: pct,
       });
       d.setMonth(d.getMonth() + 1);
@@ -125,8 +126,8 @@ export default function ProjectGanttPanel({ contactId }: ProjectGanttPanelProps)
   // Today marker
   const todayPct = ((Date.now() - minDate) / rangeMs) * 100;
 
-  if (loading) return <div style={{ padding: 16, color: '#888', fontSize: 12 }}>Loading projects...</div>;
-  if (projects.length === 0) return <div style={{ padding: 16, color: '#666', fontSize: 12, textAlign: 'center' }}>No projects with dates for this contact</div>;
+  if (loading) return <div style={{ padding: 16, color: 'var(--db-text-muted)', fontSize: 12 }}>Loading projects...</div>;
+  if (projects.length === 0) return <div style={{ padding: 16, color: 'var(--db-text-dim)', fontSize: 12, textAlign: 'center' }}>No projects with dates for this contact</div>;
 
   // Sort by start date, then priority
   const sorted = [...projects].sort((a, b) => (a.dt_start || 0) - (b.dt_start || 0) || a.priority - b.priority);
@@ -138,8 +139,8 @@ export default function ProjectGanttPanel({ contactId }: ProjectGanttPanelProps)
         {monthMarkers.map((m, i) => (
           <div key={i} style={{
             position: 'absolute', left: `${m.left}%`,
-            fontSize: 9, color: '#666', fontWeight: 600,
-            borderLeft: '1px solid #333', paddingLeft: 3, top: 0, height: '100%',
+            fontSize: 9, color: 'var(--db-text-dim)', fontWeight: 600,
+            borderLeft: '1px solid var(--db-border)', paddingLeft: 3, top: 0, height: '100%',
           }}>
             {m.label}
           </div>
@@ -167,12 +168,12 @@ export default function ProjectGanttPanel({ contactId }: ProjectGanttPanelProps)
         return (
           <div key={p.id} style={{
             display: 'flex', alignItems: 'center', height: 28,
-            borderBottom: '1px solid #2a2a3a',
+            borderBottom: '1px solid var(--db-border)',
           }}>
             {/* Label */}
             <div style={{
               width: 160, flexShrink: 0, padding: '0 8px',
-              fontSize: 11, color: '#ccc', fontWeight: 500,
+              fontSize: 11, color: 'var(--db-text)', fontWeight: 500,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               cursor: 'pointer',
             }}

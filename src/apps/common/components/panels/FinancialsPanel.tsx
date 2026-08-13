@@ -52,41 +52,34 @@ const StatBox: React.FC<{
   locked?: boolean;
 }> = ({ label, value, sublabel, trend, highlight, mandatory, locked }) => (
   <div
-    className={`p-3 rounded-lg ${
-      highlight
-        ? "bg-blue-50 dark:bg-blue-900/20"
-        : "bg-slate-50 dark:bg-slate-800/50"
-    }`}
+    className="p-3 rounded-lg"
+    style={{ background: highlight ? 'var(--db-row-active)' : 'var(--db-surface-alt)' }}
   >
-    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-2">
+    <div className="text-xs mb-1 flex items-center gap-2" style={{ color: 'var(--db-text-muted)' }}>
       <span className={mandatory ? "font-semibold" : ""}>{label}</span>
       {locked && (
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+        <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}>
           Locked
         </span>
       )}
     </div>
     <div className="flex items-baseline gap-2">
       <span
-        className={`text-lg font-semibold ${
-          highlight
-            ? "text-blue-600 dark:text-blue-400"
-            : "text-slate-900 dark:text-white"
-        }`}
+        className="text-lg font-semibold"
+        style={{ color: highlight ? 'var(--db-accent)' : 'var(--db-text)' }}
       >
         {value}
       </span>
       {trend && trend !== "neutral" && (
         <span
-          className={`text-xs ${
-            trend === "up" ? "text-green-500" : "text-red-500"
-          }`}
+          className="text-xs"
+          style={{ color: trend === "up" ? 'var(--db-accent-green)' : 'var(--db-accent-red)' }}
         >
           {trend === "up" ? <FaArrowUp size={10} /> : <FaArrowDown size={10} />}
         </span>
       )}
     </div>
-    {sublabel && <span className="text-xs text-slate-400">{sublabel}</span>}
+    {sublabel && <span className="text-xs" style={{ color: 'var(--db-text-dim)' }}>{sublabel}</span>}
   </div>
 );
 
@@ -109,20 +102,20 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
       : "neutral";
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-      <div className="px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
+    <div className="rounded-lg border overflow-hidden" style={{ background: 'var(--db-surface)', borderColor: 'var(--db-border)' }}>
+      <div className="px-4 py-3 border-b" style={{ background: 'var(--db-surface-alt)', borderColor: 'var(--db-border)' }}>
         <div className="flex items-center gap-2">
-          <FaDollarSign className="text-green-500" size={16} />
-          <h3 className="font-semibold text-slate-900 dark:text-white">
+          <FaDollarSign style={{ color: 'var(--db-accent-green)' }} size={16} />
+          <h3 className="font-semibold" style={{ color: 'var(--db-text)' }}>
             Financials
           </h3>
-          <span className="text-xs text-slate-400 ml-auto">{currency}</span>
+          <span className="text-xs ml-auto" style={{ color: 'var(--db-text-dim)' }}>{currency}</span>
         </div>
       </div>
 
       {/* ── Sell summary ──────────────────────────────────────── */}
-      <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-        <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+      <div className="p-4 border-b" style={{ borderColor: 'var(--db-border)' }}>
+        <h4 className="text-xs font-semibold uppercase tracking-wide mb-3 flex items-center gap-2" style={{ color: 'var(--db-text-muted)' }}>
           <FaChartLine size={10} />
           Sell Totals
         </h4>
@@ -165,8 +158,8 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
       </div>
 
       {/* ── Cost breakdown ────────────────────────────────────── */}
-      <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-        <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">
+      <div className="p-4 border-b" style={{ borderColor: 'var(--db-border)' }}>
+        <h4 className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--db-text-muted)' }}>
           Cost Breakdown
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -212,8 +205,8 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
       </div>
 
       {/* ── Totals & Margin ───────────────────────────────────── */}
-      <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-        <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+      <div className="p-4 border-b" style={{ borderColor: 'var(--db-border)' }}>
+        <h4 className="text-xs font-semibold uppercase tracking-wide mb-3 flex items-center gap-2" style={{ color: 'var(--db-text-muted)' }}>
           <FaPercentage size={10} />
           Margin Analysis
         </h4>
@@ -243,8 +236,8 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
       </div>
 
       {/* ── Payment status ────────────────────────────────────── */}
-      <div className="p-4 bg-slate-50 dark:bg-slate-900/30">
-        <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">
+      <div className="p-4" style={{ background: 'var(--db-surface-alt)' }}>
+        <h4 className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--db-text-muted)' }}>
           Payment Status
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-2 gap-3">

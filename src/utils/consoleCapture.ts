@@ -1,3 +1,5 @@
+import { formatDt } from '@/utils/fieldFormatters';
+
 /**
  * ConsoleCapture — intercepts console output and stores in a ring buffer.
  *
@@ -95,7 +97,7 @@ async function sendToAlice(context?: string) {
     `Console: ${entries.length} total, ${errors.length} errors/warnings`,
     '',
     ...errors.slice(-20).map((e) =>
-      `[${new Date(e.dt).toLocaleTimeString()}] ${e.level.toUpperCase()}: ${e.args.join(' ').slice(0, 200)}`
+      `[${formatDt(e.dt, 'datetime')}] ${e.level.toUpperCase()}: ${e.args.join(' ').slice(0, 200)}`
     ),
   ].join('\n').slice(0, 250); // wcapi name field limit
 

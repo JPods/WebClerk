@@ -7,6 +7,7 @@ import { FaTruck, FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { usePermissions } from "./usePermissions";
 import type { BasePanelProps } from "./types";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { formatDt } from '@/utils/fieldFormatters';
 
 type AnyRecord = Record<string, any>;
 
@@ -33,8 +34,7 @@ interface ShippingPanelProps
 
 const formatDate = (value?: string) => {
   if (!value) return "--";
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString();
+  return formatDt(value, 'date');
 };
 
 const ShippingPanel: React.FC<ShippingPanelProps> = ({
@@ -68,15 +68,17 @@ const ShippingPanel: React.FC<ShippingPanelProps> = ({
 
   return (
     <div
-      className={`bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 ${className}`}
+      className={`rounded-lg border ${className}`}
+      style={{ background: 'var(--db-surface)', borderColor: 'var(--db-border)' }}
     >
       <div
-        className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 cursor-pointer"
+        className="flex items-center justify-between px-4 py-3 border-b cursor-pointer"
+        style={{ borderColor: 'var(--db-border)' }}
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <FaTruck className="text-slate-400" size={14} />
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+          <FaTruck style={{ color: 'var(--db-text-dim)' }} size={14} />
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
             {title}
           </h3>
         </div>
@@ -86,44 +88,44 @@ const ShippingPanel: React.FC<ShippingPanelProps> = ({
       {!isCollapsed && (
         <div className={compact ? "p-2" : "p-4"}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
-              <h4 className="font-semibold text-slate-900 dark:text-white mb-3">
+            <div className="rounded-lg border p-4" style={{ background: 'var(--db-surface)', borderColor: 'var(--db-border)' }}>
+              <h4 className="font-semibold mb-3" style={{ color: 'var(--db-text)' }}>
                 Shipping Details
               </h4>
               <dl className="space-y-2 text-xs">
                 <div className="flex justify-between">
-                  <dt className="text-slate-500 dark:text-slate-400">Ship Date</dt>
-                  <dd className="text-slate-900 dark:text-white">
+                  <dt style={{ color: 'var(--db-text-muted)' }}>Ship Date</dt>
+                  <dd style={{ color: 'var(--db-text)' }}>
                     {formatDate(record.ship_date)}
                   </dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-slate-500 dark:text-slate-400">Ship Via</dt>
-                  <dd className="text-slate-900 dark:text-white">
+                  <dt style={{ color: 'var(--db-text-muted)' }}>Ship Via</dt>
+                  <dd style={{ color: 'var(--db-text)' }}>
                     {record.ship_via ?? "--"}
                   </dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-slate-500 dark:text-slate-400">FOB</dt>
-                  <dd className="text-slate-900 dark:text-white">
+                  <dt style={{ color: 'var(--db-text-muted)' }}>FOB</dt>
+                  <dd style={{ color: 'var(--db-text)' }}>
                     {record.fob ?? "--"}
                   </dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-slate-500 dark:text-slate-400">Weight</dt>
-                  <dd className="text-slate-900 dark:text-white">
+                  <dt style={{ color: 'var(--db-text-muted)' }}>Weight</dt>
+                  <dd style={{ color: 'var(--db-text)' }}>
                     {record.weight ? `${record.weight} kg` : "--"}
                   </dd>
                 </div>
               </dl>
             </div>
 
-            <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
-              <h4 className="font-semibold text-slate-900 dark:text-white mb-3">
+            <div className="rounded-lg border p-4" style={{ background: 'var(--db-surface)', borderColor: 'var(--db-border)' }}>
+              <h4 className="font-semibold mb-3" style={{ color: 'var(--db-text)' }}>
                 Ship To Address
               </h4>
               {shippingContact ? (
-                <div className="text-xs text-slate-700 dark:text-slate-300 space-y-1">
+                <div className="text-xs space-y-1" style={{ color: 'var(--db-text)' }}>
                   <p className="font-medium">
                     {shippingContact.display_name ||
                       shippingContact.name ||
@@ -148,7 +150,7 @@ const ShippingPanel: React.FC<ShippingPanelProps> = ({
                   )}
                 </div>
               ) : (
-                <p className="text-slate-400 text-xs">
+                <p className="text-xs" style={{ color: 'var(--db-text-dim)' }}>
                   No shipping address specified
                 </p>
               )}

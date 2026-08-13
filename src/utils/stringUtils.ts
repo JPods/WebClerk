@@ -2,6 +2,7 @@
  * String utilities — ported from wc2 String_* methods.
  * Only the ones that aren't trivial JS built-ins.
  */
+import { formatDt } from '@/utils/fieldFormatters';
 
 /** Capitalize first character: "hello world" → "Hello world" */
 export const capitalizeFirst = (s: string): string =>
@@ -41,13 +42,13 @@ export const formatCurrency = (n: number | string | null | undefined, symbol = '
 /** Format date from epoch ms: 1783000000000 → "Jul 2, 2026" */
 export const formatDate = (epochMs: number | null | undefined): string => {
   if (!epochMs) return '';
-  return new Date(epochMs).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  return formatDt(epochMs, 'date');
 };
 
 /** Format datetime from epoch ms: 1783000000000 → "Jul 2, 2026 3:45 PM" */
 export const formatDateTime = (epochMs: number | null | undefined): string => {
   if (!epochMs) return '';
-  return new Date(epochMs).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return formatDt(epochMs, 'datetime');
 };
 
 /** Truncate with ellipsis: "long text here" → "long tex…" */

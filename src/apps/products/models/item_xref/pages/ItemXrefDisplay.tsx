@@ -3,6 +3,7 @@
  * ItemXrefDisplay - Follows 3-column standard with tab navigation
  * Tabs: Actions, Comments, Documents, History, Raw
  */
+import { formatDt } from '@/utils/fieldFormatters';
 import { useEffect, useState, useMemo } from "react";
 import { getRecord, saveRecord } from "@/api/wcapi";
 import { showToast } from "@/store/slices/toastSlice";
@@ -276,7 +277,7 @@ export default function ItemXrefDisplay({
                         <div className="flex-1 text-sm">
                           <div className="text-slate-900 dark:text-white">{entry.action || entry.description || "Change"}</div>
                           <div className="text-slate-500 text-xs">
-                            {entry.timestamp ? new Date(entry.timestamp).toLocaleString() : entry.dt_created ? new Date(entry.dt_created * 1000).toLocaleString() : "--"}
+                            {formatDt(entry.timestamp || (entry.dt_created ? entry.dt_created * 1000 : null), 'datetime')}
                             {entry.user && ` by ${entry.user}`}
                           </div>
                         </div>

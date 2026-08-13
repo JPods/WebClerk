@@ -4,7 +4,6 @@ import { ScrollToTop } from "./common/ScrollToTop";
 import ModalForm from "./common/ModalForm";
 import Input from "./form/input/InputField";
 import TextArea from "./form/input/TextArea";
-import CustTextArea from "./form/input/CustTextArea";
 import Select from "./form/Select";
 import InternationalPhoneInput from "./form/input/InternationalPhoneInput";
 
@@ -16,5 +15,4 @@ export {
   Select,
   InternationalPhoneInput,
   TextArea,
-  CustTextArea,
 };

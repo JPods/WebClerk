@@ -39,24 +39,20 @@ const formatCurrency = (value?: number | null): string => {
   }).format(value);
 };
 
-const statusColors: Record<string, string> = {
-  planned: "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
-  released:
-    "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  in_progress:
-    "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  hold: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-  complete:
-    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  canceled:
-    "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+const statusColors: Record<string, { bg: string; color: string }> = {
+  planned: { bg: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' },
+  released: { bg: 'var(--db-surface-alt)', color: 'var(--db-accent)' },
+  in_progress: { bg: 'var(--db-surface-alt)', color: 'var(--db-text)' },
+  hold: { bg: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' },
+  complete: { bg: 'var(--db-surface-alt)', color: 'var(--db-text)' },
+  canceled: { bg: 'var(--db-surface-alt)', color: 'var(--db-text-dim)' },
 };
 
-const priorityColors: Record<string, string> = {
-  low: "text-slate-500 dark:text-slate-400",
-  normal: "text-blue-600 dark:text-blue-400",
-  high: "text-orange-600 dark:text-orange-400",
-  urgent: "text-red-600 dark:text-red-400",
+const priorityColors: Record<string, { color: string }> = {
+  low: { color: 'var(--db-text-dim)' },
+  normal: { color: 'var(--db-accent)' },
+  high: { color: 'var(--db-text)' },
+  urgent: { color: 'var(--db-text)' },
 };
 
 const HeaderField: React.FC<{
@@ -66,8 +62,8 @@ const HeaderField: React.FC<{
 }> = ({ label, value, className = "" }) => {
   if (!value) return null;
   return (
-    <div className={`text-slate-600 dark:text-slate-400 ${className}`}>
-      <span className="text-slate-400 dark:text-slate-500">{label}</span>{" "}
+    <div className={className} style={{ color: 'var(--db-text-muted)' }}>
+      <span style={{ color: 'var(--db-text-muted)' }}>{label}</span>{" "}
       {value}
     </div>
   );
@@ -85,10 +81,10 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({
     <div className={`flex flex-col gap-0 ${className ?? ""}`}>
       {/* Header row — record summary */}
       {hasHeader && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-t-lg">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-xs rounded-t-lg" style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)' }}>
           {/* ida */}
           {r.ida && (
-            <span className="font-semibold text-slate-900 dark:text-slate-100">
+            <span className="font-semibold" style={{ color: 'var(--db-text)' }}>
               {r.ida}
             </span>
           )}
@@ -96,9 +92,8 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({
           {/* status badge */}
           {r.status && (
             <span
-              className={`px-2 py-0.5 rounded-full font-medium ${
-                statusColors[r.status] ?? statusColors.planned
-              }`}
+              className="px-2 py-0.5 rounded-full font-medium"
+              style={statusColors[r.status] ?? statusColors.planned}
             >
               {r.status.replace("_", " ")}
             </span>
@@ -110,7 +105,8 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({
           {/* email */}
           {r.email && (
             <div
-              className="text-slate-600 dark:text-slate-400 truncate max-w-[200px]"
+              className="truncate max-w-[200px]"
+              style={{ color: 'var(--db-text-muted)' }}
               title={r.email}
             >
               {r.email}
@@ -125,16 +121,16 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({
 
           {/* total */}
           {r.total != null && (
-            <div className="text-slate-700 dark:text-slate-300">
-              <span className="text-slate-400 dark:text-slate-500">Total:</span>{" "}
+            <div style={{ color: 'var(--db-text)' }}>
+              <span style={{ color: 'var(--db-text-muted)' }}>Total:</span>{" "}
               <span className="font-medium">{formatCurrency(r.total)}</span>
             </div>
           )}
 
           {/* balance */}
           {r.balance != null && (
-            <div className="text-slate-700 dark:text-slate-300">
-              <span className="text-slate-400 dark:text-slate-500">Bal:</span>{" "}
+            <div style={{ color: 'var(--db-text)' }}>
+              <span style={{ color: 'var(--db-text-muted)' }}>Bal:</span>{" "}
               <span className="font-medium">{formatCurrency(r.balance)}</span>
             </div>
           )}
@@ -142,9 +138,8 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({
           {/* priority */}
           {r.priority && (
             <span
-              className={`font-medium capitalize ${
-                priorityColors[r.priority] ?? "text-slate-600 dark:text-slate-400"
-              }`}
+              className="font-medium capitalize"
+              style={priorityColors[r.priority] ?? { color: 'var(--db-text-muted)' }}
             >
               {r.priority}
             </span>

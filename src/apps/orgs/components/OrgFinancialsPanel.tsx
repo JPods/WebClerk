@@ -19,6 +19,7 @@ import type {
   OrgFinancialCommon, OrgType
 } from '../types/orgTypes';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { formatDt } from '@/utils/fieldFormatters';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -75,7 +76,7 @@ const formatNumber = (value: number | undefined | null): string => {
 
 const formatDate = (value: string | null | undefined): string => {
   if (!value) return '--';
-  return new Date(value).toLocaleDateString();
+  return formatDt(value, 'date');
 };
 
 // ---------------------------------------------------------------------------

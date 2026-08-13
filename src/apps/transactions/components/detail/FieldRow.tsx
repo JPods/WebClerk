@@ -1,5 +1,6 @@
 /* LastChecked: 2026-08-02 | WhereUsed: TransactionDetail | WhoCreated: Claude */
 import React, { useState } from 'react';
+import { formatDt, formatField } from '@/utils/fieldFormatters';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -24,11 +25,24 @@ export function formatDate(val: unknown): string {
     return String(val);
   }
   if (isNaN(d.getTime())) return String(val);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return formatDt(val, 'date');
 }
 
 /** Fields that should be formatted as dates */
 export const DATE_FIELDS = new Set(['dt_created', 'dt_modified', 'dt_needed', 'Date Ord', 'Need By']);
+
+/** Fields that should be formatted as phone numbers */
+const PHONE_FIELDS = new Set(['phone', 'phone_cell', 'fax', 'number']);
+
+/** Detect format type from field name */
+function detectFormatType(field: string, label: string): string | null {
+  const fl = field.toLowerCase();
+  const ll = label.toLowerCase();
+  if (PHONE_FIELDS.has(fl) || fl.includes('phone') || fl.includes('fax') || ll === 'phone' || ll === 'fax') return 'phone';
+  if (fl === 'email' || fl.includes('email') || ll === 'email') return 'email';
+  if (fl === 'zip' || fl === 'postal_code' || ll === 'zip') return 'zip';
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // Label styles
@@ -73,8 +87,10 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
   const [showHelp, setShowHelp] = useState(false);
   const val = field.includes('.') ? getNestedValue(data, field) : data?.[field];
   const isDate = field.startsWith('dt_') || DATE_FIELDS.has(field) || DATE_FIELDS.has(label);
+  const fmtType = detectFormatType(field, label);
   const displayVal = val == null ? '—'
     : isDate ? formatDate(val)
+    : fmtType ? formatField(val, fmtType, field) || '—'
     : typeof val === 'object' ? (val as any)?.name || (val as any)?.display_name || (val as any)?.ida || JSON.stringify(val)
     : String(val);
   // Derive field type: explicit > has options > calculated fields always readonly

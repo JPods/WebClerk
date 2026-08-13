@@ -1,0 +1,468 @@
+/**
+ * GetHelpDialog.css — styles for the GetHelpDialog component.
+ * Uses CSS custom properties from the nearest .db-root ancestor (set by DataBrowser.css).
+ * Prefix: gh-
+ */
+
+/* ---------------------------------------------------------------------------
+   Font-size custom properties (set on root, driven by fontSize prop)
+   --------------------------------------------------------------------------- */
+
+.gh-root {
+  --gh-fs: 13px;
+  --gh-fs-sm: 12px;
+  --gh-fs-xs: 11px;
+  --gh-fs-xxs: 10px;
+  --gh-fs-title: 16px;
+  --gh-fs-result-title: 15px;
+  --gh-fs-close: 18px;
+}
+
+/* ---------------------------------------------------------------------------
+   Overlay
+   --------------------------------------------------------------------------- */
+
+.gh-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 60px;
+  z-index: 9999;
+}
+
+/* ---------------------------------------------------------------------------
+   Dialog panel
+   --------------------------------------------------------------------------- */
+
+.gh-panel {
+  background: var(--db-surface, #1e1e1e);
+  border: 1px solid var(--db-border, #3c3c3c);
+  border-radius: 8px;
+  width: 600px;
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+  padding: 20px;
+  color: var(--db-text, #d4d4d4);
+  font-size: var(--gh-fs);
+}
+
+/* ---------------------------------------------------------------------------
+   Header
+   --------------------------------------------------------------------------- */
+
+.gh-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.gh-title {
+  margin: 0;
+  font-size: var(--gh-fs-title);
+  color: var(--db-accent, #9cdcfe);
+}
+
+.gh-close-btn {
+  background: none;
+  border: none;
+  color: var(--db-text-muted, #888);
+  font-size: var(--gh-fs-close);
+  cursor: pointer;
+}
+
+.gh-close-btn:hover {
+  color: var(--db-text, #d4d4d4);
+}
+
+/* ---------------------------------------------------------------------------
+   Instructions
+   --------------------------------------------------------------------------- */
+
+.gh-instructions {
+  font-size: var(--gh-fs-xs);
+  color: var(--db-text-muted, #888);
+  margin-bottom: 12px;
+}
+
+/* ---------------------------------------------------------------------------
+   Paste area
+   --------------------------------------------------------------------------- */
+
+.gh-textarea {
+  width: 100%;
+  height: 80px;
+  background: var(--db-input-bg, #252526);
+  border: 1px solid var(--db-input-border, #3c3c3c);
+  border-radius: 4px;
+  padding: 8px;
+  color: var(--db-text, #d4d4d4);
+  font-size: var(--gh-fs-xs);
+  font-family: monospace;
+  resize: vertical;
+}
+
+/* ---------------------------------------------------------------------------
+   Buttons
+   --------------------------------------------------------------------------- */
+
+.gh-analyze-btn {
+  margin-top: 8px;
+  padding: 6px 16px;
+  background: var(--db-accent, #0d6efd);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: var(--gh-fs-sm);
+}
+
+.gh-analyze-btn:hover {
+  opacity: 0.85;
+}
+
+/* ---------------------------------------------------------------------------
+   Loading
+   --------------------------------------------------------------------------- */
+
+.gh-loading {
+  margin-top: 12px;
+  color: var(--db-text-muted, #888);
+}
+
+/* ---------------------------------------------------------------------------
+   Result area
+   --------------------------------------------------------------------------- */
+
+.gh-result {
+  margin-top: 16px;
+}
+
+.gh-result-label {
+  font-size: var(--gh-fs-result-title);
+  font-weight: 700;
+  color: var(--db-accent, #9cdcfe);
+  margin-bottom: 8px;
+}
+
+.gh-result-topic {
+  font-size: var(--gh-fs-sm);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+/* ---------------------------------------------------------------------------
+   Field info box
+   --------------------------------------------------------------------------- */
+
+.gh-field-info {
+  padding: 6px 10px;
+  background: var(--db-surface-alt, #1a2a3e);
+  border-radius: 4px;
+  font-size: var(--gh-fs-xs);
+  margin-bottom: 8px;
+}
+
+.gh-field-info-label {
+  color: var(--db-accent, #60a5fa);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+   Alice notes
+   --------------------------------------------------------------------------- */
+
+.gh-section-header {
+  font-size: var(--gh-fs-xxs);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.gh-section-header--alice {
+  color: var(--db-accent-green, #4ade80);
+}
+
+.gh-section-header--training,
+.gh-section-header--wchq {
+  color: var(--db-accent, #60a5fa);
+}
+
+.gh-alice-notes {
+  margin-bottom: 8px;
+}
+
+.gh-alice-note {
+  padding: 4px 10px;
+  background: #1a3a2e;
+  border-radius: 4px;
+  font-size: var(--gh-fs-xs);
+  margin-bottom: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+   Training
+   --------------------------------------------------------------------------- */
+
+.gh-training {
+  margin-bottom: 8px;
+}
+
+.gh-training-content {
+  padding: 4px 10px;
+  background: var(--db-surface-alt, #1a2a3e);
+  border-radius: 4px;
+  font-size: var(--gh-fs-xs);
+}
+
+/* ---------------------------------------------------------------------------
+   WCHQ documentation
+   --------------------------------------------------------------------------- */
+
+.gh-wchq-note {
+  padding: 6px 10px;
+  background: var(--db-surface-alt, #1a2a3e);
+  border-radius: 4px;
+  font-size: var(--gh-fs-xs);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* ---------------------------------------------------------------------------
+   Success message (shared by RequestWchqHelp, FieldChangeRequest, ContributeHelp)
+   --------------------------------------------------------------------------- */
+
+.gh-success {
+  padding: 8px 12px;
+  background: #1a3a2e;
+  border-radius: 4px;
+  font-size: var(--gh-fs-xs);
+  color: var(--db-accent-green, #4ade80);
+}
+
+.gh-success--mt {
+  margin-top: 12px;
+}
+
+.gh-success--mb {
+  margin-bottom: 12px;
+}
+
+/* ---------------------------------------------------------------------------
+   RequestWchqHelp
+   --------------------------------------------------------------------------- */
+
+.gh-wchq-request {
+  margin-bottom: 12px;
+}
+
+.gh-wchq-request-row {
+  display: flex;
+  gap: 6px;
+}
+
+.gh-input {
+  background: var(--db-input-bg, #252526);
+  border: 1px solid var(--db-input-border, #3c3c3c);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: var(--gh-fs-xs);
+  color: var(--db-text, #d4d4d4);
+}
+
+.gh-input--flex {
+  flex: 1;
+}
+
+.gh-input--sm {
+  border-radius: 3px;
+  padding: 4px 8px;
+}
+
+.gh-input--narrow {
+  border-radius: 3px;
+  padding: 3px 6px;
+}
+
+.gh-btn-accent {
+  padding: 6px 12px;
+  font-size: var(--gh-fs-xs);
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  background: var(--db-accent, #0d6efd);
+  color: #fff;
+  cursor: pointer;
+}
+
+.gh-btn-accent:hover {
+  opacity: 0.85;
+}
+
+.gh-btn-accent:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+/* ---------------------------------------------------------------------------
+   FieldChangeRequest
+   --------------------------------------------------------------------------- */
+
+.gh-field-change {
+  margin-top: 16px;
+  border-top: 1px solid var(--db-border, #3c3c3c);
+  padding-top: 12px;
+}
+
+.gh-btn-outline-purple {
+  background: none;
+  border: 1px solid #6f42c1;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: var(--gh-fs-xs);
+  color: #a78bfa;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.gh-btn-outline-purple:hover {
+  background: color-mix(in srgb, #6f42c1 12%, transparent);
+}
+
+.gh-field-change-form {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gh-field-change-title {
+  font-size: var(--gh-fs-xxs);
+  font-weight: 700;
+  color: #a78bfa;
+  text-transform: uppercase;
+}
+
+.gh-form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gh-form-row--gap6 {
+  display: flex;
+  gap: 6px;
+}
+
+.gh-form-label {
+  font-size: var(--gh-fs-xs);
+  color: var(--db-text-muted, #888);
+  width: 90px;
+}
+
+.gh-select {
+  background: var(--db-input-bg, #252526);
+  border: 1px solid var(--db-input-border, #3c3c3c);
+  border-radius: 3px;
+  padding: 3px 6px;
+  font-size: var(--gh-fs-xs);
+  color: var(--db-text, #d4d4d4);
+}
+
+.gh-btn-purple {
+  align-self: flex-start;
+  padding: 5px 16px;
+  font-size: var(--gh-fs-xs);
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  background: #6f42c1;
+  color: #fff;
+  cursor: pointer;
+}
+
+.gh-btn-purple:hover {
+  opacity: 0.85;
+}
+
+.gh-btn-purple:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* ---------------------------------------------------------------------------
+   ContributeHelp
+   --------------------------------------------------------------------------- */
+
+.gh-contribute {
+  margin-top: 12px;
+  border-top: 1px solid var(--db-border, #3c3c3c);
+  padding-top: 10px;
+}
+
+.gh-btn-outline-green {
+  background: none;
+  border: 1px solid var(--db-accent-green, #4ade80);
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: var(--gh-fs-xs);
+  color: var(--db-accent-green, #4ade80);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.gh-btn-outline-green:hover {
+  background: color-mix(in srgb, var(--db-accent-green, #4ade80) 12%, transparent);
+}
+
+.gh-contribute-form {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gh-contribute-hint {
+  font-size: var(--gh-fs-xxs);
+  color: var(--db-text-muted, #888);
+}
+
+.gh-contribute-textarea {
+  width: 100%;
+  height: 80px;
+  background: var(--db-input-bg, #252526);
+  border: 1px solid var(--db-input-border, #3c3c3c);
+  border-radius: 4px;
+  padding: 8px;
+  color: var(--db-text, #d4d4d4);
+  font-size: var(--gh-fs-xs);
+  font-family: sans-serif;
+  resize: vertical;
+}
+
+.gh-btn-green {
+  align-self: flex-start;
+  padding: 5px 16px;
+  font-size: var(--gh-fs-xs);
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  background: var(--db-accent-green, #4ade80);
+  color: var(--db-surface, #1e1e1e);
+  cursor: pointer;
+}
+
+.gh-btn-green:hover {
+  opacity: 0.85;
+}
+
+.gh-btn-green:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}

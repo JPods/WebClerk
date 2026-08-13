@@ -18,11 +18,11 @@ export interface WcButtonProps {
   className?: string;
 }
 
-const variants = {
-  primary: 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600',
-  secondary: 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-600',
-  danger: 'bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-300 dark:border-red-700',
-  ghost: 'bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border-transparent',
+const variantStyles: Record<string, React.CSSProperties> = {
+  primary: { background: 'var(--db-btn-primary)', color: '#fff', borderColor: 'var(--db-btn-primary)' },
+  secondary: { background: 'var(--db-btn-bg)', color: 'var(--db-text)', borderColor: 'var(--db-border)' },
+  danger: { background: 'var(--db-btn-bg)', color: 'var(--db-accent-red)', borderColor: 'var(--db-btn-danger-border)' },
+  ghost: { background: 'transparent', color: 'var(--db-text-muted)', borderColor: 'transparent' },
 };
 
 const sizes = {
@@ -44,8 +44,9 @@ export const WcButton: React.FC<WcButtonProps> = ({
       inline-flex items-center justify-center font-medium rounded border
       transition-colors duration-150
       disabled:opacity-50 disabled:cursor-not-allowed
-      ${variants[variant]} ${sizes[size]} ${className || ''}
+      ${sizes[size]} ${className || ''}
     `.trim()}
+    style={variantStyles[variant]}
   >
     {loading ? (
       <span className="animate-spin w-3 h-3 border-2 border-current border-t-transparent rounded-full" />

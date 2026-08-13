@@ -16,6 +16,7 @@ export interface User {
   salutation?: string | null;
   attention?: string | null;
   prefs?: Record<string, any> | null;
+  config?: Record<string, any> | null;
   is_staff?: boolean;
   is_superuser?: boolean;
 }

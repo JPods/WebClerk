@@ -14,6 +14,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import apiClient from '@/api/axios';
+import { formatDt } from '@/utils/fieldFormatters';
 
 interface HealthData {
   aging: { current: number; past_1_30: number; past_31_60: number; past_61: number; balance_due: number };
@@ -136,7 +137,7 @@ const CustomerHealthCard: React.FC<Props> = ({ customerId }) => {
           <span className="text-gray-500">Last Payment</span>
           <span className="font-mono text-gray-700">
             {data.last_payment
-              ? <>{new Date(data.last_payment.date).toLocaleDateString()} ${fmt(data.last_payment.amount)}</>
+              ? <>{formatDt(data.last_payment.date, 'date')} ${fmt(data.last_payment.amount)}</>
               : <span className="text-red-400">None</span>
             }
           </span>

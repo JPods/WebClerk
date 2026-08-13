@@ -1,6 +1,7 @@
 /* LastChecked: 2026-08-03 | WhereUsed: TransactionToolbar | WhoCreated: Claude */
 import { getRecord } from '@/api/wcapi';
 import type { DetailLayout } from '@/hooks/useDetailLayout';
+import { formatDt } from '@/utils/fieldFormatters';
 
 /**
  * Open a print-ready window rendering any transaction as clean HTML.
@@ -60,7 +61,7 @@ export async function openPrintWindow(
     const val = d?.[field];
     if (val == null) return '';
     if (typeof val === 'number' && (field.startsWith('dt_') || field.includes('date'))) {
-      return new Date(val > 1e12 ? val : val * 1000).toLocaleDateString();
+      return formatDt(val, 'date', field);
     }
     // Strip pipe-delimited pointers (conditions)
     const s = String(val);

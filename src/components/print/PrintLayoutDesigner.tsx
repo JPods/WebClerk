@@ -10,31 +10,23 @@
  * meta_row, line_items, totals, detail_fields, comments, signature, footer.
  * Insert pre-built panels from the + menu. Drag fields from left onto panels.
  *
- * LastChecked: 2026-08-10 | WhereUsed: ReportsDialog | WhoCreated: Bill+Claude
+ * LastChecked: 2026-08-12 | WhereUsed: ReportsDialog | WhoCreated: Bill+Claude
  */
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import type { PrintLayout, PrintLayoutSection, PrintField } from './printLayoutTypes';
 import { generatePrintHtml } from './UniversalPrint';
 import type { ReportRecord } from '../common/ReportsDialog';
 import { getModelNames } from '@/api/wcapi';
+import './PrintLayoutDesigner.css';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-interface Theme {
-  bg: string; surface: string; surfaceAlt: string;
-  border: string; borderLight: string;
-  text: string; textMuted: string; textDim: string;
-  accent: string; accentGreen: string; accentGold: string; accentRed: string; accentPurple: string;
-  [k: string]: string;
-}
-
 interface PrintLayoutDesignerProps {
   report: ReportRecord;
   model: string;
   layout: PrintLayout;
-  theme: Theme;
   fontSize: number;
   companyInfo: any;
   sampleData: any;
@@ -237,7 +229,7 @@ const PANEL_TEMPLATES: Record<string, () => PrintLayoutSection> = {
 
 const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
   report, model, layout: initialLayout,
-  theme: t, fontSize, companyInfo, sampleData,
+  fontSize, companyInfo, sampleData,
   onSave, onClose,
 }) => {
   const [sections, setSections] = useState<PrintLayoutSection[]>(initialLayout.sections || []);
@@ -429,129 +421,73 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
     }
   }, [buildLayout, onSave]);
 
-  // --- Style helper ---
-  const panelHeader = (label: string): React.CSSProperties => ({
-    padding: '6px 10px', fontSize: fontSize - 2, fontWeight: 700, color: t.textMuted,
-    textTransform: 'uppercase', letterSpacing: '0.04em',
-    background: t.surface, borderBottom: `1px solid ${t.borderLight}`,
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    userSelect: 'none',
-  });
-
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
   return (
-    <div data-wc="print-layout-designer" style={{
-      display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minWidth: 0,
-    }}>
+    <div data-wc="print-layout-designer" className="pld-root"
+      style={{ '--pld-fs': `${fontSize}px` } as React.CSSProperties}>
       {/* Toolbar */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 12px', borderBottom: `1px solid ${t.border}`, background: t.surface,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontWeight: 700, fontSize, color: t.accent }}>Edit</span>
-          <span style={{ fontSize: fontSize - 2, color: t.textMuted }}>{report.name}</span>
-          <span style={{ fontSize: fontSize - 3, color: t.textDim }}>|</span>
-          <label style={{ fontSize: fontSize - 2, color: t.textMuted }}>
+      <div className="pld-toolbar">
+        <div className="pld-toolbar-left">
+          <span className="pld-toolbar-title">Edit</span>
+          <span className="pld-toolbar-subtitle">{report.name}</span>
+          <span className="pld-toolbar-sep">|</span>
+          <label className="pld-toolbar-label">
             Title: <input value={title} onChange={(e) => { setTitle(e.target.value); setDirty(true); }}
-              style={{ background: t.bg, color: t.text, border: `1px solid ${t.borderLight}`,
-                borderRadius: 3, padding: '2px 4px', fontSize: fontSize - 2, width: 140 }} />
+              className="pld-toolbar-input" />
           </label>
           <select value={paper}
             onChange={(e) => { setPaper(e.target.value); setDirty(true); }}
-            style={{
-              background: t.bg, color: t.text, border: `1px solid ${t.borderLight}`,
-              borderRadius: 3, padding: '2px 6px', fontSize: fontSize - 2, fontWeight: 600,
-              cursor: 'pointer',
-            }}
+            className="pld-toolbar-select"
           >
             <option value="letter">US Letter</option>
             <option value="legal">US Legal</option>
             <option value="a4">A4</option>
           </select>
-          {dirty && <span style={{ fontSize: fontSize - 3, color: t.accentGold, fontWeight: 700 }}>UNSAVED</span>}
-          {statusMsg && <span style={{ fontSize: fontSize - 2, color: t.accentGreen }}>{statusMsg}</span>}
+          {dirty && <span className="pld-unsaved">UNSAVED</span>}
+          {statusMsg && <span className="pld-status">{statusMsg}</span>}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="pld-toolbar-right">
           <button onClick={handleSave} disabled={saving || !dirty}
-            style={{
-              padding: '4px 12px', borderRadius: 4, cursor: dirty ? 'pointer' : 'default',
-              fontSize: fontSize - 1, fontWeight: 600,
-              background: dirty ? t.accent : 'none',
-              border: dirty ? 'none' : `1px solid ${t.border}`,
-              color: dirty ? '#fff' : t.textMuted, opacity: saving ? 0.6 : 1,
-            }}>
+            className={`pld-btn-save${dirty ? ' pld-btn-save--dirty' : ''}${saving ? ' pld-btn-save--saving' : ''}`}>
             {saving ? 'Saving...' : 'Save'}
           </button>
-          <button onClick={onClose}
-            style={{
-              padding: '4px 10px', borderRadius: 4, cursor: 'pointer',
-              fontSize: fontSize - 1, fontWeight: 600,
-              background: 'none', border: `1px solid ${t.border}`, color: t.text,
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}>
+          <button onClick={onClose} className="pld-btn-close">
             Close
           </button>
         </div>
       </div>
 
       {/* Body: Panels | Preview | Fields+Models */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <div className="pld-body">
 
         {/* === LEFT PANEL: Sections as panels === */}
-        <div style={{
-          flex: `0 0 ${midWidth}px`, display: 'flex', flexDirection: 'column',
-          background: t.bg, overflow: 'hidden',
-        }}>
-          <div style={{
-            ...panelHeader('Panels'),
-            gap: 6,
-          }}>
+        <div className="pld-panels-col" style={{ flex: `0 0 ${midWidth}px` }}>
+          <div className="pld-panel-header pld-panel-header--gap">
             <span>Panels ({sections.length})</span>
-            <div style={{ position: 'relative' }}>
+            <div className="pld-insert-wrap">
               <button
                 onClick={() => setInsertMenuOpen(!insertMenuOpen)}
-                style={{
-                  padding: '2px 8px', borderRadius: 3, cursor: 'pointer',
-                  fontSize: fontSize - 2, fontWeight: 700,
-                  background: t.accent, border: 'none', color: '#fff',
-                }}
+                className="pld-insert-btn"
               >+ Insert</button>
               {insertMenuOpen && (
-                <div style={{
-                  position: 'absolute', top: '100%', right: 0, zIndex: 100,
-                  background: t.surface, border: `1px solid ${t.border}`,
-                  borderRadius: 4, boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-                  minWidth: 180, maxHeight: 300, overflowY: 'auto',
-                }}>
+                <div className="pld-insert-menu">
                   {Object.entries(SECTION_META).map(([type, meta]) => (
                     <div key={type}
                       onClick={() => addSection(type)}
-                      style={{
-                        padding: '6px 12px', cursor: 'pointer', fontSize: fontSize - 1,
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        borderBottom: `1px solid ${t.borderLight}`,
-                      }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                      className="pld-insert-item"
                     >
-                      <span style={{
-                        width: 20, height: 20, borderRadius: 3,
-                        background: meta.color, color: '#fff',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: fontSize - 3, fontWeight: 700,
-                      }}>{meta.icon}</span>
-                      <span style={{ color: t.text }}>{meta.label}</span>
+                      <span className="pld-section-icon"
+                        style={{ background: meta.color }}>{meta.icon}</span>
+                      <span className="pld-insert-item-label">{meta.label}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
           </div>
-          <div style={{ flex: 1, overflowY: 'auto' }}>
+          <div className="pld-panels-scroll">
             {sections.map((section, sIdx) => {
               const meta = SECTION_META[section.type] || { label: section.type, color: '#555', icon: '?', hasFields: false };
               const isSelected = sIdx === selectedSection;
@@ -577,75 +513,45 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
                       setDirty(true);
                     }
                   }}
-                  style={{
-                    borderBottom: `1px solid ${t.borderLight}`,
-                    borderLeft: isSelected ? `3px solid ${meta.color}` : '3px solid transparent',
-                    background: isSelected ? t.surfaceAlt : 'transparent',
-                    cursor: 'pointer',
-                  }}
+                  className={`pld-section-card${isSelected ? ' pld-section-card--selected' : ''}`}
+                  style={{ '--pld-section-color': meta.color } as React.CSSProperties}
                 >
                   {/* Panel header */}
-                  <div style={{
-                    padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 6,
-                    borderTop: `2px solid ${meta.color}`,
-                  }}>
-                    <span style={{
-                      width: 18, height: 18, borderRadius: 3,
-                      background: meta.color, color: '#fff',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: fontSize - 3, fontWeight: 700, flexShrink: 0,
-                    }}>{meta.icon}</span>
-                    <span style={{ flex: 1, fontSize: fontSize - 1, fontWeight: 600, color: t.text }}>
-                      {meta.label}
-                    </span>
+                  <div className="pld-section-head" style={{ borderTop: `2px solid ${meta.color}` }}>
+                    <span className="pld-section-icon pld-section-icon--sm"
+                      style={{ background: meta.color }}>{meta.icon}</span>
+                    <span className="pld-section-title">{meta.label}</span>
                     {fields.length > 0 && (
-                      <span style={{ fontSize: fontSize - 3, color: t.textDim }}>{fields.length}</span>
+                      <span className="pld-section-count">{fields.length}</span>
                     )}
                     <span onClick={(e) => { e.stopPropagation(); moveSection(sIdx, -1); }}
-                      style={{ cursor: sIdx > 0 ? 'pointer' : 'default', color: sIdx > 0 ? t.textMuted : t.borderLight, fontSize: fontSize - 2, userSelect: 'none' }}
-                    >▲</span>
+                      className={`pld-section-move ${sIdx > 0 ? 'pld-section-move--active' : 'pld-section-move--disabled'}`}
+                    >&#9650;</span>
                     <span onClick={(e) => { e.stopPropagation(); moveSection(sIdx, 1); }}
-                      style={{ cursor: sIdx < sections.length - 1 ? 'pointer' : 'default', color: sIdx < sections.length - 1 ? t.textMuted : t.borderLight, fontSize: fontSize - 2, userSelect: 'none' }}
-                    >▼</span>
+                      className={`pld-section-move ${sIdx < sections.length - 1 ? 'pld-section-move--active' : 'pld-section-move--disabled'}`}
+                    >&#9660;</span>
                     <span onClick={(e) => { e.stopPropagation(); removeSection(sIdx); }}
-                      style={{ color: t.textDim, cursor: 'pointer', fontSize: fontSize - 1, userSelect: 'none' }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#e55'; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = t.textDim; }}
+                      className="pld-section-remove"
                     >&times;</span>
                   </div>
 
                   {/* Panel fields — shown when selected */}
                   {isSelected && meta.hasFields && (
-                    <div style={{ padding: '0 0 4px 0' }}>
+                    <div className="pld-section-fields">
                       {fields.map((f, fIdx) => (
-                        <div key={f.field + fIdx}
-                          style={{
-                            padding: '2px 8px 2px 28px', fontSize: fontSize - 2,
-                            display: 'flex', alignItems: 'center', gap: 4,
-                            borderBottom: `1px solid ${t.borderLight}`,
-                          }}
-                        >
+                        <div key={f.field + fIdx} className="pld-section-field-row">
                           <input value={f.label || ''}
                             onChange={(e) => editFieldLabel(sIdx, fIdx, e.target.value)}
                             onClick={(e) => e.stopPropagation()}
-                            style={{
-                              flex: 1, background: 'transparent', color: t.text,
-                              border: 'none', borderBottom: `1px solid ${t.borderLight}`,
-                              fontSize: fontSize - 2, padding: '1px 2px', outline: 'none',
-                              minWidth: 40,
-                            }} />
-                          <span style={{ fontFamily: 'monospace', color: t.textDim, fontSize: fontSize - 4 }}>
-                            {f.field}
-                          </span>
+                            className="pld-section-field-input" />
+                          <span className="pld-section-field-path">{f.field}</span>
                           <span onClick={(e) => { e.stopPropagation(); removeFieldFromSection(sIdx, fIdx); }}
-                            style={{ color: t.textDim, cursor: 'pointer', fontSize: fontSize - 1, userSelect: 'none' }}
-                            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#e55'; }}
-                            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = t.textDim; }}
+                            className="pld-section-field-remove"
                           >&times;</span>
                         </div>
                       ))}
                       {fields.length === 0 && (
-                        <div style={{ padding: '6px 28px', fontSize: fontSize - 3, color: t.textDim, fontStyle: 'italic' }}>
+                        <div className="pld-section-empty-hint">
                           Double-click or drag fields here
                         </div>
                       )}
@@ -655,89 +561,63 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
               );
             })}
             {sections.length === 0 && (
-              <div style={{ padding: '24px 16px', color: t.textDim, textAlign: 'center', fontSize: fontSize - 1 }}>
+              <div className="pld-panels-empty">
                 Click <strong>+ Insert</strong> to add panels
               </div>
             )}
           </div>
         </div>
 
-        {/* Drag handle: panels ↔ preview */}
+        {/* Drag handle: panels / preview */}
         <div
           onMouseDown={(e) => {
             dragRef.current = { which: 'left', startX: e.clientX, startW: leftWidth };
             document.body.style.cursor = 'col-resize';
             document.body.style.userSelect = 'none';
           }}
-          style={{
-            flex: '0 0 5px', cursor: 'col-resize',
-            background: t.border,
-            transition: 'background 0.15s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.accent; }}
-          onMouseLeave={(e) => { if (!dragRef.current) (e.currentTarget as HTMLElement).style.background = t.border; }}
+          className="pld-drag-handle"
         />
 
         {/* === CENTER PANEL: Live preview — fixed to paper size === */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{
-            padding: '6px 12px', borderBottom: `1px solid ${t.borderLight}`,
-            fontSize: fontSize - 2, color: t.textMuted,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
+        <div className="pld-preview-col">
+          <div className="pld-preview-header">
             <span>Preview</span>
-            <span style={{ fontSize: fontSize - 3, color: t.textDim }}>
+            <span className="pld-preview-record">
               {sampleData?.ida ? `Record: ${sampleData.ida}` : 'Sample data'}
             </span>
           </div>
-          <div style={{
-            flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-            padding: 16, overflow: 'auto', background: t.bg,
-          }}>
+          <div className="pld-preview-body">
             <iframe
               srcDoc={previewHtml}
+              className="pld-preview-iframe"
               style={{
-                border: `1px solid ${t.border}`, background: '#fff',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
                 width: paper === 'a4' ? 595 : 612,
                 height: paper === 'legal' ? 1008 : paper === 'a4' ? 842 : 792,
-                flexShrink: 0,
               }}
               title="PrintLayout Preview"
             />
           </div>
         </div>
 
-        {/* Drag handle: preview ↔ fields */}
+        {/* Drag handle: preview / fields */}
         <div
           onMouseDown={(e) => {
             dragRef.current = { which: 'mid', startX: e.clientX, startW: midWidth };
             document.body.style.cursor = 'col-resize';
             document.body.style.userSelect = 'none';
           }}
-          style={{
-            flex: '0 0 5px', cursor: 'col-resize',
-            background: t.border,
-            transition: 'background 0.15s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.accent; }}
-          onMouseLeave={(e) => { if (!dragRef.current) (e.currentTarget as HTMLElement).style.background = t.border; }}
+          className="pld-drag-handle"
         />
 
         {/* === RIGHT PANEL: Fields (top) + Models (bottom) === */}
-        <div style={{
-          flex: `0 0 ${midWidth}px`, display: 'flex', flexDirection: 'column',
-          background: t.bg, overflow: 'hidden',
-        }}>
+        <div className="pld-fields-col" style={{ flex: `0 0 ${midWidth}px` }}>
           {/* Fields for selected model — top, takes most space */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <div style={panelHeader('Fields')}>
+          <div className="pld-fields-inner">
+            <div className="pld-panel-header">
               <span>{activeModel} fields</span>
-              <span style={{ fontSize: fontSize - 3, color: t.textDim, fontWeight: 400, textTransform: 'none' }}>
-                dbl-click to add
-              </span>
+              <span className="pld-fields-hint">dbl-click to add</span>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto' }}>
+            <div className="pld-fields-scroll">
               {visibleFields.map(rf => (
                 <div key={rf.field}
                   onDoubleClick={() => addFieldToSection(rf.field)}
@@ -746,22 +626,15 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
                     e.dataTransfer.setData('text/plain', rf.field);
                     e.dataTransfer.effectAllowed = 'copy';
                   }}
-                  style={{
-                    padding: '3px 10px', cursor: 'pointer', fontSize: fontSize - 2,
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    borderBottom: `1px solid ${t.borderLight}`,
-                    background: 'transparent',
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                  className="pld-field-row"
                 >
-                  <span style={{ flex: 1, color: t.text }}>{rf.label}</span>
-                  <span style={{ fontFamily: 'monospace', fontSize: fontSize - 4, color: t.textDim }}>{rf.field}</span>
-                  <span style={{ fontSize: fontSize - 4, color: t.textDim, fontStyle: 'italic' }}>{rf.type}</span>
+                  <span className="pld-field-label">{rf.label}</span>
+                  <span className="pld-field-path">{rf.field}</span>
+                  <span className="pld-field-type">{rf.type}</span>
                 </div>
               ))}
               {visibleFields.length === 0 && (
-                <div style={{ padding: '12px 10px', fontSize: fontSize - 2, color: t.textDim, textAlign: 'center' }}>
+                <div className="pld-fields-empty">
                   {fieldGroups.length === 0 ? 'Loading...' : 'All fields in use'}
                 </div>
               )}
@@ -769,40 +642,24 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
           </div>
 
           {/* Models — bottom, compact */}
-          <div style={{ flex: '0 0 auto', borderTop: `2px solid ${t.border}` }}>
-            <div style={panelHeader('Models')}>
+          <div className="pld-models-section">
+            <div className="pld-panel-header">
               <span>Models</span>
             </div>
-            <div style={{ maxHeight: 180, overflowY: 'auto' }}>
+            <div className="pld-models-scroll">
               {/* Base model first */}
               <div
                 onClick={() => fetchModelFields(model)}
-                style={{
-                  padding: '4px 10px', cursor: 'pointer', fontSize: fontSize - 1,
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  background: activeModel === model ? t.surfaceAlt : 'transparent',
-                  borderLeft: activeModel === model ? `3px solid ${t.accent}` : '3px solid transparent',
-                  color: t.text, fontWeight: 700,
-                }}
-                onMouseEnter={(e) => { if (activeModel !== model) (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-                onMouseLeave={(e) => { if (activeModel !== model) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                className={`pld-model-row pld-model-row--base${activeModel === model ? ' pld-model-row--active' : ''}`}
               >
                 <span>{model}</span>
-                <span style={{ fontSize: fontSize - 3, color: t.textDim, fontWeight: 400 }}>base</span>
+                <span className="pld-model-base-tag">base</span>
               </div>
-              <div style={{ height: 1, background: t.border, margin: '1px 0' }} />
+              <div className="pld-models-divider" />
               {allModelNames.filter(m => m !== model).map(m => (
                 <div key={m}
                   onClick={() => fetchModelFields(m)}
-                  style={{
-                    padding: '3px 10px', cursor: 'pointer', fontSize: fontSize - 2,
-                    background: activeModel === m ? t.surfaceAlt : 'transparent',
-                    borderLeft: activeModel === m ? `3px solid ${t.accent}` : '3px solid transparent',
-                    color: activeModel === m ? t.text : t.textMuted,
-                    fontWeight: activeModel === m ? 600 : 400,
-                  }}
-                  onMouseEnter={(e) => { if (activeModel !== m) (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
-                  onMouseLeave={(e) => { if (activeModel !== m) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                  className={`pld-model-row${activeModel === m ? ' pld-model-row--active' : ''}`}
                 >
                   <span>{m}</span>
                 </div>

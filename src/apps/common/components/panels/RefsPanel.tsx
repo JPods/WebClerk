@@ -40,17 +40,17 @@ function syntaxHighlightJson(json: string): string {
   return json.replace(
     /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
     (match) => {
-      let cls = "text-violet-700 dark:text-violet-400";
+      let color = "var(--db-accent)";
       if (/^"/.test(match)) {
-        cls = /:$/.test(match)
-          ? "text-sky-700 dark:text-sky-400"
-          : "text-emerald-700 dark:text-emerald-400";
+        color = /:$/.test(match)
+          ? "var(--db-accent)"
+          : "var(--db-accent-green)";
       } else if (/true|false/.test(match)) {
-        cls = "text-amber-700 dark:text-amber-400";
+        color = "var(--db-accent-gold)";
       } else if (/null/.test(match)) {
-        cls = "text-rose-700 dark:text-rose-400";
+        color = "var(--db-accent-red)";
       }
-      return `<span class="${cls}">${match}</span>`;
+      return `<span style="color:${color}">${match}</span>`;
     },
   );
 }
@@ -120,17 +120,17 @@ const LinkList: React.FC<LinkListProps> = ({
   if (links.length === 0) return null;
 
   return (
-    <div className="border-b border-slate-100 dark:border-slate-700 last:border-b-0 py-2">
+    <div className="last:border-b-0 py-2" style={{ borderBottom: '1px solid var(--db-border-light)' }}>
       {/* Header */}
       <div
         className="flex items-center gap-2 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <span className="text-slate-400">{icon}</span>
-        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 capitalize">
+        <span style={{ color: 'var(--db-text-dim)' }}>{icon}</span>
+        <span className="text-xs font-semibold capitalize" style={{ color: 'var(--db-text)' }}>
           {type.replace(/_/g, " ")}
         </span>
-        <span className="text-xs text-slate-400">({links.length})</span>
+        <span className="text-xs" style={{ color: 'var(--db-text-dim)' }}>({links.length})</span>
         {isExpanded ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />}
       </div>
 
@@ -139,18 +139,19 @@ const LinkList: React.FC<LinkListProps> = ({
         <div className="mt-2 ml-6 space-y-1">
           {links.map((link, idx) => (
             <div key={link.id || idx} className="flex items-center gap-2 group">
-              <span className="text-xs text-slate-500 font-mono">
+              <span className="text-xs font-mono" style={{ color: 'var(--db-text-muted)' }}>
                 #{link.id}
               </span>
               {link.ida && (
-                <span className="text-xs text-slate-400">[{link.ida}]</span>
+                <span className="text-xs" style={{ color: 'var(--db-text-dim)' }}>[{link.ida}]</span>
               )}
               <span
-                className={`text-xs text-slate-700 dark:text-slate-300 flex-1 truncate ${
+                className={`text-xs flex-1 truncate ${
                   navigable && onNavigate
-                    ? "cursor-pointer hover:text-blue-600 hover:underline"
+                    ? "cursor-pointer hover:underline"
                     : ""
                 }`}
+                style={{ color: 'var(--db-text)' }}
                 onClick={() =>
                   navigable &&
                   onNavigate &&
@@ -168,14 +169,15 @@ const LinkList: React.FC<LinkListProps> = ({
                   `${type} #${link.id}`}
               </span>
               {link.purpose && (
-                <span className="text-xs px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded">
+                <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
                   {link.purpose}
                 </span>
               )}
               {canEdit && onDelete && (
                 <button
                   onClick={() => onDelete(type, link.id)}
-                  className="p-1 text-red-500 opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                  className="p-1 opacity-0 group-hover:opacity-100 rounded"
+                  style={{ color: 'var(--db-accent-red)' }}
                   title="Remove link"
                 >
                   <FaTrash size={10} />
@@ -212,23 +214,24 @@ const Lineage: React.FC<LineageProps> = ({
   if (!hasLineage) return null;
 
   return (
-    <div className="border-b border-slate-100 dark:border-slate-700 py-2">
+    <div className="py-2" style={{ borderBottom: '1px solid var(--db-border-light)' }}>
       <div className="flex items-center gap-2 mb-2">
-        <FaProjectDiagram className="text-slate-400" size={12} />
-        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+        <FaProjectDiagram style={{ color: 'var(--db-text-dim)' }} size={12} />
+        <span className="text-xs font-semibold" style={{ color: 'var(--db-text)' }}>
           Lineage
         </span>
       </div>
       <div className="ml-6 space-y-1">
         {parent_id && parent_model && (
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-500">Parent:</span>
+            <span style={{ color: 'var(--db-text-muted)' }}>Parent:</span>
             <span
-              className={`text-slate-700 dark:text-slate-300 ${
+              className={`${
                 navigable && onNavigate
-                  ? "cursor-pointer hover:text-blue-600 hover:underline"
+                  ? "cursor-pointer hover:underline"
                   : ""
               }`}
+              style={{ color: 'var(--db-text)' }}
               onClick={() =>
                 navigable && onNavigate && onNavigate(parent_model, parent_id)
               }
@@ -239,13 +242,14 @@ const Lineage: React.FC<LineageProps> = ({
         )}
         {source_id && source_type && (
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-500">Source:</span>
+            <span style={{ color: 'var(--db-text-muted)' }}>Source:</span>
             <span
-              className={`text-slate-700 dark:text-slate-300 ${
+              className={`${
                 navigable && onNavigate
-                  ? "cursor-pointer hover:text-blue-600 hover:underline"
+                  ? "cursor-pointer hover:underline"
                   : ""
               }`}
+              style={{ color: 'var(--db-text)' }}
               onClick={() =>
                 navigable && onNavigate && onNavigate(source_type, source_id)
               }
@@ -326,22 +330,24 @@ const RefsPanel: React.FC<RefsPanelProps> = ({
 
   return (
     <div
-      className={`bg-white dark:bg-slate-800 rounded-lg border border-cyan-200 dark:border-cyan-800 ${className}`}
+      className={`rounded-lg ${className}`}
+      style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)' }}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 bg-cyan-50 dark:bg-cyan-900/20 border-b border-cyan-200 dark:border-cyan-800 cursor-pointer rounded-t-lg"
+        className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-t-lg"
+        style={{ background: 'var(--db-surface-alt)', borderBottom: '1px solid var(--db-border)' }}
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <FaLink className="text-cyan-500" size={14} />
-          <h3 className="text-sm font-semibold text-cyan-700 dark:text-cyan-300">
+          <FaLink style={{ color: 'var(--db-accent)' }} size={14} />
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
             {title}
           </h3>
-          <span className="px-1.5 py-0.5 text-xs bg-cyan-200 dark:bg-cyan-800 text-cyan-700 dark:text-cyan-300 rounded">
+          <span className="px-1.5 py-0.5 text-xs rounded" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}>
             Admin
           </span>
-          <span className="text-xs text-cyan-600 dark:text-cyan-400">
+          <span className="text-xs" style={{ color: 'var(--db-text-muted)' }}>
             {totalLinks} {totalLinks === 1 ? "link" : "links"}
           </span>
         </div>
@@ -360,7 +366,7 @@ const RefsPanel: React.FC<RefsPanelProps> = ({
 
           {/* Links */}
           {linkTypes.length === 0 && !data?.lineage ? (
-            <div className="text-center py-4 text-slate-400 text-sm">
+            <div className="text-center py-4 text-sm" style={{ color: 'var(--db-text-dim)' }}>
               No references defined
             </div>
           ) : (
@@ -380,11 +386,12 @@ const RefsPanel: React.FC<RefsPanelProps> = ({
           {/* Raw JSON toggle for admin */}
           {isAdmin && (
             <details className="mt-4">
-              <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-600">
+              <summary className="text-xs cursor-pointer" style={{ color: 'var(--db-text-dim)' }}>
                 View raw JSON
               </summary>
               <pre
-                className="mt-2 text-xs font-mono bg-slate-50 dark:bg-slate-900 p-2 rounded overflow-x-auto max-h-48 whitespace-pre-wrap"
+                className="mt-2 text-xs font-mono p-2 rounded overflow-x-auto max-h-48 whitespace-pre-wrap"
+                style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}
                 dangerouslySetInnerHTML={{
                   __html: syntaxHighlightJson(JSON.stringify(data, null, 2)),
                 }}

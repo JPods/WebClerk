@@ -8,6 +8,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
 import { getRecords } from '@/api/wcapi';
+import { formatDt } from '@/utils/fieldFormatters';
 import { consoleCapture, type ConsoleEntry } from '@/utils/consoleCapture';
 import { useAppSelector } from '@/store/hooks';
 
@@ -302,7 +303,7 @@ export default function AliceDashboard() {
                 entry.level === 'error' ? 'text-red-400' :
                 entry.level === 'warn' ? 'text-yellow-400' : 'text-gray-300'
               }`}>
-                <span className="text-gray-600">{new Date(entry.dt).toLocaleTimeString()}</span>{' '}
+                <span className="text-gray-600">{formatDt(entry.dt, 'datetime')}</span>{' '}
                 <span className={entry.level === 'error' ? 'text-red-500' : entry.level === 'warn' ? 'text-yellow-500' : 'text-blue-400'}>
                   [{entry.level.toUpperCase()}]
                 </span>{' '}

@@ -287,8 +287,15 @@ function DynamicDetail({
     const raw = path.includes(".") ? getNestedValue(record, path) : record[path];
     if (cfg.type === "json-text") return raw?.en || "";
     if (cfg.type === "date") {
-      if (raw && typeof raw === "number") {
-        try { return new Date(raw).toISOString().split("T")[0]; } catch { return ""; }
+      if (raw && typeof raw === "number" && raw > 0) {
+        try {
+          // Convert epoch ms to local date for input[type=date]
+          const d = new Date(raw < 1e12 ? raw * 1000 : raw);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${y}-${m}-${day}`;
+        } catch { return ""; }
       }
       return "";
     }

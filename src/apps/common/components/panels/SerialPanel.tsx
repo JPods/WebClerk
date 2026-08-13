@@ -22,6 +22,7 @@ import type { EntityType, UserRole } from "./types";
 import { ALL_ROLES, USER_ROLES } from "./types";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import { PanelTable } from "./PanelTable";
+import { formatDt } from '@/utils/fieldFormatters';
 import type { PanelColumnDef } from "./PanelTable";
 
 // ---------------------------------------------------------------------------
@@ -71,8 +72,7 @@ export interface SerialPanelProps {
 
 const formatDate = (ts?: number) => {
   if (!ts) return "—";
-  const d = new Date(ts * 1000);
-  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+  return formatDt(ts, 'date');
 };
 
 /** Map parent entity type to the filter field used in the serial query */
@@ -95,12 +95,12 @@ const getFilterField = (entityType: EntityType): string => {
   }
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  active: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  inactive: "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
-  sold: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  returned: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  defective: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+const STATUS_STYLES: Record<string, React.CSSProperties> = {
+  active: { background: 'var(--db-surface-alt)', color: 'var(--db-text)' },
+  inactive: { background: 'var(--db-surface-alt)', color: 'var(--db-text-dim)' },
+  sold: { background: 'var(--db-surface-alt)', color: 'var(--db-accent)' },
+  returned: { background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' },
+  defective: { background: 'var(--db-surface-alt)', color: 'var(--db-text)' },
 };
 
 // ---------------------------------------------------------------------------
@@ -175,43 +175,50 @@ const SerialPanel: React.FC<SerialPanelProps> = ({
 
   // Column definitions for serial rows
   const serialColumns = useMemo<PanelColumnDef<SerialRecord>[]>(() => [
-    { key: "serial_number", label: "serial_number", cellClassName: "font-mono text-slate-500 dark:text-slate-400 shrink-0 w-[120px]",
+    { key: "serial_number", label: "serial_number", cellClassName: "font-mono shrink-0 w-[120px]",
+      cellStyle: { color: 'var(--db-text-muted)' },
       render: (r) => r.serial_number ?? r.ida ?? `#${r.id}` },
-    { key: "item_name", label: "item_name", cellClassName: "text-slate-800 dark:text-slate-200 min-w-[120px] flex-1",
+    { key: "item_name", label: "item_name", cellClassName: "min-w-[120px] flex-1",
+      cellStyle: { color: 'var(--db-text)' },
       render: (r) => r.item_name ?? "\u2014" },
     { key: "status", label: "status", cellClassName: "w-[80px]",
       render: (r) => r.status ? (
-        <span className={`px-1.5 py-0.5 rounded text-xs ${
-          STATUS_COLORS[r.status.toLowerCase()] ??
-          "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-        }`}>{r.status}</span>
+        <span className="px-1.5 py-0.5 rounded text-xs"
+          style={STATUS_STYLES[r.status.toLowerCase()] ?? { background: 'var(--db-surface-alt)', color: 'var(--db-text-dim)' }}
+        >{r.status}</span>
       ) : "\u2014" },
-    { key: "location", label: "location", cellClassName: "text-slate-500 dark:text-slate-400 w-[100px]",
+    { key: "location", label: "location", cellClassName: "w-[100px]",
+      cellStyle: { color: 'var(--db-text-muted)' },
       render: (r) => r.location ?? "\u2014" },
-    { key: "condition", label: "condition", defaultVisible: false, cellClassName: "text-slate-500 dark:text-slate-400 w-[80px]",
+    { key: "condition", label: "condition", defaultVisible: false, cellClassName: "w-[80px]",
+      cellStyle: { color: 'var(--db-text-muted)' },
       render: (r) => r.condition ?? "\u2014" },
-    { key: "dt_created", label: "dt_created", cellClassName: "text-slate-400 w-[80px]",
+    { key: "dt_created", label: "dt_created", cellClassName: "w-[80px]",
+      cellStyle: { color: 'var(--db-text-dim)' },
       render: (r) => formatDate(r.dt_created) },
-    { key: "dt_modified", label: "dt_modified", defaultVisible: false, cellClassName: "text-slate-400 w-[80px]",
+    { key: "dt_modified", label: "dt_modified", defaultVisible: false, cellClassName: "w-[80px]",
+      cellStyle: { color: 'var(--db-text-dim)' },
       render: (r) => formatDate(r.dt_modified) },
   ], []);
 
   return (
     <div
-      className={`bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 ${className}`}
+      className={`rounded-lg border ${className}`}
+      style={{ background: 'var(--db-surface)', borderColor: 'var(--db-border)' }}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 cursor-pointer"
+        className="flex items-center justify-between px-4 py-3 border-b cursor-pointer"
+        style={{ borderColor: 'var(--db-border)' }}
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <FaBarcode className="text-slate-400" size={14} />
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+          <FaBarcode style={{ color: 'var(--db-text-dim)' }} size={14} />
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
             {title}
           </h3>
           {serials.length > 0 && (
-            <span className="px-1.5 py-0.5 text-xs bg-slate-200 dark:bg-slate-600 rounded-full">
+            <span className="px-1.5 py-0.5 text-xs rounded-full" style={{ background: 'var(--db-surface-alt)' }}>
               {serials.length}
             </span>
           )}
@@ -222,15 +229,15 @@ const SerialPanel: React.FC<SerialPanelProps> = ({
       {!isCollapsed && (
         <div className={compact ? "p-2" : "p-4"}>
           {loading ? (
-            <div className="flex items-center justify-center py-8 text-slate-400">
+            <div className="flex items-center justify-center py-8" style={{ color: 'var(--db-text-dim)' }}>
               <FaSpinner className="animate-spin mr-2" /> Loading…
             </div>
           ) : serials.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-6">
+            <p className="text-sm text-center py-6" style={{ color: 'var(--db-text-dim)' }}>
               No serials found.
             </p>
           ) : (
-            <div className="border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden">
+            <div className="border rounded-md overflow-hidden" style={{ borderColor: 'var(--db-border)' }}>
               <PanelTable<SerialRecord>
                 storageKey="panel:serials"
                 columns={serialColumns}

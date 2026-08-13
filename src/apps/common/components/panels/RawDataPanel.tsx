@@ -50,19 +50,19 @@ const syntaxHighlight = (json: string): string => {
   return json.replace(
     /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
     (match) => {
-      let cls = "text-purple-600 dark:text-purple-400"; // number
+      let color = "var(--db-text-muted)"; // number
       if (/^"/.test(match)) {
         if (/:$/.test(match)) {
-          cls = "text-blue-600 dark:text-blue-400"; // key
+          color = "var(--db-accent)"; // key
         } else {
-          cls = "text-green-600 dark:text-green-400"; // string
+          color = "var(--db-text)"; // string
         }
       } else if (/true|false/.test(match)) {
-        cls = "text-amber-600 dark:text-amber-400"; // boolean
+        color = "var(--db-text-muted)"; // boolean
       } else if (/null/.test(match)) {
-        cls = "text-red-600 dark:text-red-400"; // null
+        color = "var(--db-text-dim)"; // null
       }
-      return `<span class="${cls}">${match}</span>`;
+      return `<span style="color:${color}">${match}</span>`;
     },
   );
 };
@@ -85,7 +85,8 @@ const SectionNav: React.FC<SectionNavProps> = ({ sections, onNavigate }) => {
         <button
           key={section}
           onClick={() => onNavigate(section)}
-          className="px-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded hover:bg-slate-200 dark:hover:bg-slate-600"
+          className="px-2 py-0.5 text-xs rounded"
+          style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}
         >
           .{section}
         </button>
@@ -234,19 +235,21 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
 
   return (
     <div
-      className={`bg-white dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-600 ${className}`}
+      className={`rounded-lg border ${className}`}
+      style={{ background: 'var(--db-surface)', borderColor: 'var(--db-border)' }}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 bg-teal-50 dark:bg-teal-900/20 border-b border-teal-200 dark:border-teal-800 cursor-pointer rounded-t-lg"
+        className="flex items-center justify-between px-4 py-3 border-b cursor-pointer rounded-t-lg"
+        style={{ background: 'var(--db-surface-alt)', borderColor: 'var(--db-border)' }}
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
           <FaCode className="text-teal-500" size={14} />
-          <h3 className="text-sm font-semibold text-teal-700 dark:text-teal-200">
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
             {title}
           </h3>
-          <span className="px-1.5 py-0.5 text-xs bg-teal-200 dark:bg-teal-600 text-teal-600 dark:text-teal-300 rounded">
+          <span className="px-1.5 py-0.5 text-xs rounded" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
             Admin/Dev
           </span>
           <span className="text-xs text-teal-500">
@@ -262,7 +265,8 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
                     e.stopPropagation();
                     handleStartEdit();
                   }}
-                  className="p-1 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
+                  className="p-1 rounded"
+                  style={{ color: 'var(--db-text-muted)' }}
                   title="Edit JSON (Admin)"
                 >
                   <FaEdit size={12} />
@@ -275,7 +279,7 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
                       e.stopPropagation();
                       handleSaveEdit();
                     }}
-                    className="p-1 text-green-500 hover:bg-green-100 dark:hover:bg-green-900/30 rounded"
+                    className="p-1 text-green-500 rounded"
                     title="Save changes"
                   >
                     <FaSave size={12} />
@@ -285,7 +289,7 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
                       e.stopPropagation();
                       handleCancelEdit();
                     }}
-                    className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
+                    className="p-1 text-red-500 rounded"
                     title="Cancel editing"
                   >
                     <FaTimes size={12} />
@@ -297,7 +301,8 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
                   e.stopPropagation();
                   handleCopy();
                 }}
-                className="p-1 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
+                className="p-1 rounded"
+                style={{ color: 'var(--db-text-muted)' }}
                 title="Copy to clipboard"
               >
                 {copied ? (
@@ -311,7 +316,8 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
                   e.stopPropagation();
                   handleDownload();
                 }}
-                className="p-1 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
+                className="p-1 rounded"
+                style={{ color: 'var(--db-text-muted)' }}
                 title="Download JSON"
               >
                 <FaDownload size={12} />
@@ -342,33 +348,34 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search JSON..."
-              className="w-full px-2 py-1 text-xs border rounded bg-white dark:bg-slate-700 dark:border-slate-600"
+              className="w-full px-2 py-1 text-xs rounded"
+              style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)' }}
             />
           </div>
 
           {/* JSON Display */}
           {isEditing ? (
-            <div className="rounded border border-blue-300 dark:border-blue-600">
+            <div className="rounded border" style={{ borderColor: 'var(--db-input-border)' }}>
               <textarea
                 value={editValue}
                 onChange={(e) => {
                   setEditValue(e.target.value);
                   setEditError(null);
                 }}
-                className="w-full p-3 text-xs font-mono leading-relaxed bg-white dark:bg-slate-900 rounded resize-y focus:outline-none focus:ring-2 focus:ring-blue-400"
-                style={{ minHeight: "200px", maxHeight }}
+                className="w-full p-3 text-xs font-mono leading-relaxed rounded resize-y focus:outline-none focus:ring-2 focus:ring-blue-400"
+                style={{ background: 'var(--db-input-bg)', minHeight: "200px", maxHeight }}
                 spellCheck={false}
               />
               {editError && (
-                <div className="px-3 py-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-t border-red-200 dark:border-red-800">
+                <div className="px-3 py-2 text-xs text-red-600 border-t" style={{ borderColor: 'var(--db-border)' }}>
                   {editError}
                 </div>
               )}
             </div>
           ) : (
             <div
-              className="overflow-auto rounded bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700"
-              style={{ maxHeight }}
+              className="overflow-auto rounded border"
+              style={{ background: 'var(--db-surface-alt)', borderColor: 'var(--db-border)', maxHeight }}
             >
               <pre
                 className="p-3 text-xs font-mono leading-relaxed"
@@ -378,7 +385,7 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
           )}
 
           {/* Stats */}
-          <div className="mt-2 flex items-center gap-4 text-xs text-slate-400">
+          <div className="mt-2 flex items-center gap-4 text-xs" style={{ color: 'var(--db-text-dim)' }}>
             <span>Entity: {entityType}</span>
             <span>ID: {entityId}</span>
             <span>Sections: {availableSections.length}</span>

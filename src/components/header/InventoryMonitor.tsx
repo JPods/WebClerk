@@ -13,6 +13,7 @@ import {
   FaGripHorizontal,
 } from "react-icons/fa";
 import { getRecord } from "@/api/wcapi";
+import { formatDt } from '@/utils/fieldFormatters';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -236,7 +237,7 @@ export default function InventoryMonitor({ onClose }: Props) {
         {/* Last update timestamp */}
         {lastUpdate && (
           <div className="text-[10px] text-slate-400 dark:text-slate-500 text-right">
-            Updated {lastUpdate.toLocaleTimeString()} · polls every 10s
+            Updated {formatDt(lastUpdate, 'datetime')} · polls every 10s
           </div>
         )}
       </div>

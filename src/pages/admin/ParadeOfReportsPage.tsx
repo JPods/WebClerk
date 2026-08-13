@@ -9,19 +9,10 @@
 import React from 'react';
 import { ParadeOfReports } from '@/components/common/ParadeOfReports';
 
-const darkTheme = {
-  bg: '#1e1e1e', surface: '#252526', surfaceAlt: '#2d2d2d',
-  border: '#3c3c3c', borderLight: '#4d4d4d',
-  text: '#d4d4d4', textMuted: '#888', textDim: '#666',
-  accent: '#9cdcfe', accentGreen: '#4ec98c', accentGold: '#e8c870',
-  accentRed: '#e05252',
-};
-
 const ParadeOfReportsPage: React.FC = () => (
   <ParadeOfReports
     open={true}
     onClose={() => window.history.back()}
-    theme={darkTheme}
     fontSize={13}
   />
 );
