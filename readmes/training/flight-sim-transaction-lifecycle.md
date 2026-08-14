@@ -107,9 +107,43 @@ and "the quantity changed" is where understanding lives.
 
 ---
 
-## Step 6: Pay Invoice with 2% discount and $0.50 write-off
+## Step 6a: 15 Days Pass - Statement
 
-**Action:** Create payment against invoice. Apply 2% early-pay discount. Write off $0.50 as too-trivial-to-collect.
+**Action:** Run statements. Invoice is 15 days old.
+
+**Console shows:** Statement generated for the customer. Lists the open invoice with balance due. No financial impact - statements are informational.
+**Lesson:** A statement is a mirror, not a transaction. It shows the customer what they owe. No pending records, no GL entries, no inventory changes. It's communication.
+
+---
+
+## Step 6b: 30 Days Pass - Late Notice
+
+**Action:** Run aging notices. Invoice is 30 days past due.
+
+**Console shows:** Late notice generated. Touch record created (outbound communication to customer). Action created: "Follow up on past-due invoice."
+**Lesson:** A late notice is still communication, not a financial event. But it creates a touch record (proof of contact) and an action (follow-up task). The system documents that you tried. This matters legally.
+
+---
+
+## Step 6c: Six Weeks Pass - Late Fee
+
+**Action:** Run aging. Invoice is 6 weeks past due. System applies 1.2% late fee.
+
+| Field | Before | After save | After pending |
+|-------|--------|-----------|---------------|
+| on_hand | 2 | 2 | 2 |
+| on_po | 2 | 2 | 2 |
+| on_so | 4 | 4 | 4 |
+| available | 0 | 0 | 0 |
+
+**Console shows:** Finance charge line added to invoice. Invoice balance increases by 1.2%. AR ledger: additional debit. New GL entry: AR debit, late fee revenue credit.
+**Lesson:** Late fees increase what the customer owes without changing what was shipped. Inventory doesn't move. The fee is revenue - the company earned it by waiting. The invoice total grows; the original line items don't change. The fee is its own line with its own GL account.
+
+---
+
+## Step 7: Pay Invoice with 2% discount and $0.50 write-off
+
+**Action:** Create payment against invoice (now including the late fee). Apply 2% early-pay discount on the original amount. Write off $0.50 as too-trivial-to-collect.
 
 | Field | Before | After save | After pending |
 |-------|--------|-----------|---------------|
@@ -123,14 +157,16 @@ and "the quantity changed" is where understanding lives.
 
 ---
 
-## Step 7: Process GLs
+## Step 8: Process GLs
 
 **Action:** Run GL processing
 
 **Console shows:** GL journal entries appear:
 - AR debit (from invoice, step 5)
 - Revenue credit (from invoice)
-- Cash debit (from payment, step 6)
+- AR debit (from late fee, step 6)
+- Late fee revenue credit (step 6)
+- Cash debit (from payment, step 7)
 - AR credit (from payment)
 - Discount expense debit
 - Write-off expense debit
@@ -139,7 +175,7 @@ and "the quantity changed" is where understanding lives.
 
 ---
 
-## Step 8: Customer Returns 1
+## Step 9: Customer Returns 1
 
 **Action:** Create credit memo for 1x qqbb200. Customer returns the item.
 
@@ -155,7 +191,7 @@ and "the quantity changed" is where understanding lives.
 
 ---
 
-## Step 9: Scrap the Returned Item
+## Step 10: Scrap the Returned Item
 
 **Action:** Write off / scrap 1x qqbb200. The returned unit is damaged and cannot be resold.
 
@@ -171,7 +207,7 @@ and "the quantity changed" is where understanding lives.
 
 ---
 
-## Step 10: Refund the Customer
+## Step 11: Refund the Customer
 
 **Action:** Issue refund payment against the credit memo from Step 8.
 
@@ -180,7 +216,7 @@ and "the quantity changed" is where understanding lives.
 
 ---
 
-## Step 11: Deal with the Orphans
+## Step 12: Deal with the Orphans
 
 **Action:** Find and cancel the 4 remaining on the original proposal. Find and close the 4 remaining on the sales order. Find and close the 2 remaining on the purchase order.
 
@@ -219,8 +255,9 @@ Each section updates live as the user works on Screen 1.
 5. **Payment doesn't touch inventory** - it closes the money side only
 6. **GL records, it doesn't cause** - journal entries document what already happened
 7. **Partial conversions leave orphans** - someone has to deal with them
-8. **Returns run backwards** - same pending mechanism, opposite direction
-9. **Return and scrap are two events** - return is a customer transaction, scrap is an internal decision. Separate authorities, separate GL entries
-10. **Refunds require a credit memo** - no credit memo, no refund. The audit trail is complete
-11. **Clean up orphans to clean the books** - canceling orphaned partials releases on_po and on_so back to available
+8. **Late fees are revenue, not price changes** - the original line items don't change; the fee is its own line with its own GL account
+9. **Returns run backwards** - same pending mechanism, opposite direction
+10. **Return and scrap are two events** - return is a customer transaction, scrap is an internal decision. Separate authorities, separate GL entries
+11. **Refunds require a credit memo** - no credit memo, no refund. The audit trail is complete
+12. **Clean up orphans to clean the books** - canceling orphaned partials releases on_po and on_so back to available
 8. **Returns run backwards** - same pending mechanism, opposite direction
