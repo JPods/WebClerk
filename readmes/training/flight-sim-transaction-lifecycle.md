@@ -139,27 +139,59 @@ and "the quantity changed" is where understanding lives.
 
 ---
 
-## Step 8 (Optional): Customer Returns 2
+## Step 8: Customer Returns 1
 
-**Action:** Create credit memo for 2x qqbb200
+**Action:** Create credit memo for 1x qqbb200. Customer returns the item.
 
 | Field | Before | After save | After pending |
 |-------|--------|-----------|---------------|
-| on_hand | 2 | 2 | **4** |
+| on_hand | 2 | 2 | **3** |
 | on_po | 2 | 2 | 2 |
 | on_so | 4 | 4 | 4 |
-| available | 0 | 0 | **2** |
+| available | 0 | 0 | **1** |
 
-**Console shows:** Credit memo record appears. Pending stages return. on_hand increases by 2 (goods came back). Available goes to 2 - we now have surplus.
-**Lesson:** Returns run the flow backwards. Quantity increases, money reverses. This is why the pending record system matters - the same mechanism handles forward and backward.
+**Console shows:** Credit memo record appears. Pending stages return. on_hand increases by 1 (goods came back). AR ledger: credit memo reduces customer balance.
+**Lesson:** Returns run the flow backwards. Quantity goes up, money reverses. Same pending mechanism, opposite direction.
 
 ---
 
-## Step 9 (Optional): Deal with the Orphans
+## Step 9: Scrap the Returned Item
+
+**Action:** Write off / scrap 1x qqbb200. The returned unit is damaged and cannot be resold.
+
+| Field | Before | After save | After pending |
+|-------|--------|-----------|---------------|
+| on_hand | 3 | 3 | **2** |
+| on_po | 2 | 2 | 2 |
+| on_so | 4 | 4 | 4 |
+| available | 1 | 1 | **0** |
+
+**Console shows:** Inventory adjustment record. Pending stages the write-off. on_hand drops by 1. GL: inventory asset credit, scrap/loss expense debit.
+**Lesson:** Scrapping removes inventory permanently. The cost of the item moves from asset (inventory) to expense (loss). The item came back from the customer but it's worthless - the system needs to record both the return AND the disposal as separate events. One is a customer transaction, the other is an internal decision.
+
+---
+
+## Step 10: Refund the Customer
+
+**Action:** Issue refund payment against the credit memo from Step 8.
+
+**Console shows:** Payment record (outbound). Credit memo balance goes to 0. Cash decreases, AR decreases (or goes negative then zeroes). GL: cash credit, AR debit.
+**Lesson:** The refund is a payment in reverse - money goes out instead of in. The credit memo is the authority for the refund, just as the invoice was the authority for the original payment. No credit memo = no refund. The audit trail is: return -> credit memo -> refund payment -> GL.
+
+---
+
+## Step 11: Deal with the Orphans
 
 **Action:** Find and cancel the 4 remaining on the original proposal. Find and close the 4 remaining on the sales order. Find and close the 2 remaining on the purchase order.
 
-**Lesson:** Partial conversions leave orphans. Every open quantity on a transaction is a promise someone needs to keep or explicitly cancel. The system doesn't clean these up automatically - that's a business decision, not a system decision.
+| Field | Before | After cleanup | 
+|-------|--------|--------------|
+| on_hand | 2 | 2 |
+| on_po | 2 | **0** |
+| on_so | 4 | **0** |
+| available | 0 | **2** |
+
+**Lesson:** Partial conversions leave orphans. Every open quantity on a transaction is a promise someone needs to keep or explicitly cancel. Closing the orphans releases on_po and on_so back to available. The system doesn't clean these up automatically - that's a business decision, not a system decision. After cleanup, on_hand=2 and available=2 - clean books.
 
 ---
 
@@ -187,4 +219,8 @@ Each section updates live as the user works on Screen 1.
 5. **Payment doesn't touch inventory** - it closes the money side only
 6. **GL records, it doesn't cause** - journal entries document what already happened
 7. **Partial conversions leave orphans** - someone has to deal with them
+8. **Returns run backwards** - same pending mechanism, opposite direction
+9. **Return and scrap are two events** - return is a customer transaction, scrap is an internal decision. Separate authorities, separate GL entries
+10. **Refunds require a credit memo** - no credit memo, no refund. The audit trail is complete
+11. **Clean up orphans to clean the books** - canceling orphaned partials releases on_po and on_so back to available
 8. **Returns run backwards** - same pending mechanism, opposite direction
