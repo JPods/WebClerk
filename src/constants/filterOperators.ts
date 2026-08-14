@@ -58,6 +58,13 @@ export const LOOKUP_OPERATORS: FilterOperator[] = [
   { label: 'Is not empty', key: 'notempty', django: 'isnull' },
 ];
 
+export const JSON_OPERATORS: FilterOperator[] = [
+  { label: 'Contains text', key: 'json_contains_text', django: 'icontains' },
+  { label: 'Has value', key: 'json_has', django: 'contains' },
+  { label: 'Is empty', key: 'empty', django: 'isnull' },
+  { label: 'Is not empty', key: 'notempty', django: 'isnull' },
+];
+
 /** Map from widget/field type to available operators */
 export const OPERATORS_BY_TYPE: Record<string, FilterOperator[]> = {
   text: TEXT_OPERATORS,
@@ -73,13 +80,14 @@ export const OPERATORS_BY_TYPE: Record<string, FilterOperator[]> = {
   select: LOOKUP_OPERATORS,
   lookup: LOOKUP_OPERATORS,
   readonly: TEXT_OPERATORS,
-  json: [],
+  json: JSON_OPERATORS,
 };
 
 /** All allowed Django lookup suffixes — used for validation */
 export const ALLOWED_DJANGO_LOOKUPS = new Set([
   'exact', 'iexact', 'contains', 'icontains', 'startswith', 'endswith',
   'gt', 'gte', 'lt', 'lte', 'in', 'range', 'isnull', 'ne',
+  'has_key', 'has_keys',
 ]);
 
 /** Convert a RowColorRule operator key to its Django equivalent */
