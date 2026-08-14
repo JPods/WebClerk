@@ -9,7 +9,7 @@ from apps.core.models import Setting
 from apps.orgs.models import OrgBase
 
 PRIMARY_ORG_SETTING_NAME = "primary_organization"
-PRIMARY_ORG_SETTING_PURPOSE = "db_defaults"
+PRIMARY_ORG_SETTING_PURPOSE = "wc:db_defaults"
 PRIMARY_ORG_SETTING_PARENT_MODEL = "customer"
 
 

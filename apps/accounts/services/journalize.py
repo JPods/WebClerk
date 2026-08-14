@@ -214,7 +214,7 @@ def _get_category_gl(category: str) -> str:
     try:
         Setting = dj_apps.get_model('core', 'Setting')
         setting = Setting.objects.filter(
-            purpose='field_access', parent_model='payment',
+            purpose='wc:field_access', parent_model='payment',
         ).first()
         if setting:
             sl = (setting.config or {}).get('select_lists', {}).get('category', {})

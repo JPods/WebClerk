@@ -370,7 +370,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         force = options.get("force", False)
 
-        existing = Setting.objects.filter(purpose="dd_card", name="dd_card:base").first()
+        existing = Setting.objects.filter(purpose="wc:dd_card", name="dd_card:base").first()
 
         if existing and not force:
             self.stdout.write(self.style.WARNING(
@@ -389,7 +389,7 @@ class Command(BaseCommand):
         else:
             obj = Setting.objects.create(
                 name="dd_card:base",
-                purpose="dd_card",
+                purpose="wc:dd_card",
                 config=DD_CARD_CONFIG,
             )
             self.stdout.write(self.style.SUCCESS(

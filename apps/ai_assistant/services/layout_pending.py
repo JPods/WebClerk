@@ -63,7 +63,7 @@ def save_layout_pending(params: dict) -> dict:
     # --- Step 2: Apply to Setting ---
     setting = Setting.objects.filter(
         parent_model=model,
-        purpose='workbench_fields',
+        purpose='wc:workbench_fields',
     ).first()
 
     if not setting:
@@ -71,7 +71,7 @@ def save_layout_pending(params: dict) -> dict:
         setting = Setting.objects.create(
             name=f'workbench_fields:{model}',
             parent_model=model,
-            purpose='workbench_fields',
+            purpose='wc:workbench_fields',
             data=layout_data,
         )
         logger.info(f"[layout_pending] Created new Setting #{setting.id} for {model}")

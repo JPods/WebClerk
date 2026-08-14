@@ -728,7 +728,7 @@ def _get_costing_method(item: Item) -> str:
     """Get costing method: item override → company setting → 'average'.
 
     Item.config.costing_method wins if set. Otherwise reads the company
-    profile Setting (purpose='company_profile') inventory.costing_method.
+    profile Setting (purpose='wc:company_profile') inventory.costing_method.
     Final fallback is 'average'.
     """
     config = item.config if isinstance(getattr(item, 'config', None), dict) else {}
@@ -739,7 +739,7 @@ def _get_costing_method(item: Item) -> str:
     # Company-level default
     try:
         from apps.core.models import Setting
-        company = Setting.objects.filter(purpose='company_profile', is_active=True).first()
+        company = Setting.objects.filter(purpose='wc:company_profile', is_active=True).first()
         if company and isinstance(company.config, dict):
             inv = company.config.get('inventory', {})
             if isinstance(inv, dict) and inv.get('costing_method'):

@@ -2,7 +2,7 @@
 Seed status guard rules into schema_map Settings for transaction models.
 
 Stores the allowed transitions matrix and pre-condition rules in each
-transaction type's Setting record (purpose='schema_map'). This makes
+transaction type's Setting record (purpose='wc:schema_map'). This makes
 the rules visible in the DataBrowser and editable by admin without
 code changes.
 
@@ -110,7 +110,7 @@ class Command(BaseCommand):
 
             # Find existing schema_map Setting
             existing = Setting.objects.filter(
-                parent_model=model_key, purpose='schema_map', is_active=True,
+                parent_model=model_key, purpose='wc:schema_map', is_active=True,
             ).first()
 
             if existing:
@@ -128,7 +128,7 @@ class Command(BaseCommand):
                 Setting.objects.create(
                     name=f'{model_key} schema and behaviors',
                     parent_model=model_key,
-                    purpose='schema_map',
+                    purpose='wc:schema_map',
                     scope='system',
                     config=guard_config,
                 )

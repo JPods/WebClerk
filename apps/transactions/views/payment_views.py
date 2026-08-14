@@ -276,7 +276,7 @@ def gateway_config(request):
     """
     from apps.core.models import Setting
     try:
-        setting = Setting.objects.get(purpose='payment_gateway', is_active=True)
+        setting = Setting.objects.get(purpose='wc:payment_gateway', is_active=True)
         config = setting.config or {}
         spreedly = config.get('spreedly', {})
         return Response({

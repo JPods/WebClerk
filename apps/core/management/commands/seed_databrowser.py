@@ -7,7 +7,7 @@ Usage:
     ./bin/python manage.py seed_databrowser --fakes       # fake records only
     ./bin/python manage.py seed_databrowser --force       # overwrite existing layouts
 
-Layouts are saved as Setting records with purpose="workbench_fields".
+Layouts are saved as Setting records with purpose="wc:workbench_fields".
 Each includes a named "initial" view that Alice can use as a baseline
 to compare against user-submitted layouts.
 
@@ -195,7 +195,7 @@ class Command(BaseCommand):
 
             existing = Setting.objects.filter(
                 parent_model=model_key,
-                purpose='workbench_fields',
+                purpose='wc:workbench_fields',
             ).first()
 
             if existing and not force:
@@ -211,7 +211,7 @@ class Command(BaseCommand):
                 Setting.objects.create(
                     name=f'workbench_fields:{model_key}',
                     parent_model=model_key,
-                    purpose='workbench_fields',
+                    purpose='wc:workbench_fields',
                     config=data,
                 )
                 created += 1

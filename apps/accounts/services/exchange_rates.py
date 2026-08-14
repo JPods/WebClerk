@@ -1,7 +1,7 @@
 """Exchange Rate Service — Setting-based currency conversion.
 
 All transactions operate in base currency (like all datetimes are UTC).
-Exchange rates live in a single Setting record (purpose='exchange_rates').
+Exchange rates live in a single Setting record (purpose='wc:exchange_rates').
 When printing or sharing with a trading partner, the rate captured at
 transaction time is applied. At settlement, the difference between the
 captured rate and the current bank rate creates a balancing payment
@@ -42,7 +42,7 @@ from django.apps import apps
 
 logger = logging.getLogger(__name__)
 
-_SETTING_PURPOSE = 'exchange_rates'
+_SETTING_PURPOSE = 'wc:exchange_rates'
 _SETTING_PARENT = 'setting'
 
 

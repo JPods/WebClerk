@@ -21,7 +21,7 @@ def get_bootstrap_dt() -> int:
     """
     Setting = dj_apps.get_model('core', 'Setting')
     try:
-        s = Setting.objects.filter(purpose='db_defaults', parent_model='setting', name='bootstrap_version').first()
+        s = Setting.objects.filter(purpose='wc:db_defaults', parent_model='setting', name='bootstrap_version').first()
         if s and isinstance(s.config, dict):
             return s.config.get('dt_changed', 0)
     except Exception:
@@ -39,7 +39,7 @@ def touch_bootstrap() -> int:
     Setting = dj_apps.get_model('core', 'Setting')
     now_ms = int(time.time() * 1000)
     s, _ = Setting.objects.get_or_create(
-        purpose='db_defaults', parent_model='setting', name='bootstrap_version',
+        purpose='wc:db_defaults', parent_model='setting', name='bootstrap_version',
         defaults={'ida': 'bootstrap-dt', 'config': {'dt_changed': now_ms}},
     )
     config = s.config or {}
@@ -69,10 +69,10 @@ def get_app_bootstrap() -> dict:
 
 
 def _get_company_profile() -> dict:
-    """Company name, address, logos from Setting purpose='company_profile'."""
+    """Company name, address, logos from Setting purpose='wc:company_profile'."""
     Setting = dj_apps.get_model('core', 'Setting')
     try:
-        s = Setting.objects.filter(purpose='company_profile').first()
+        s = Setting.objects.filter(purpose='wc:company_profile').first()
         if s and isinstance(s.config, dict):
             c = s.config
             return {
@@ -91,11 +91,11 @@ def _get_company_profile() -> dict:
 
 
 def _get_select_lists() -> dict:
-    """All select lists from Setting purpose='admin_selectlist'."""
+    """All select lists from Setting purpose='wc:selectlist'."""
     Setting = dj_apps.get_model('core', 'Setting')
     lists = {}
     try:
-        settings = Setting.objects.filter(purpose='admin_selectlist', is_active=True)
+        settings = Setting.objects.filter(purpose='wc:selectlist', is_active=True)
         for s in settings:
             config = s.config or {}
             for key, options in config.items():
@@ -159,18 +159,18 @@ def _get_campaigns() -> list:
     # Campaign model may not exist yet (raw SQL → ORM migration pending)
     try:
         Setting = dj_apps.get_model('core', 'Setting')
-        campaigns = Setting.objects.filter(purpose='campaign', is_active=True).values('id', 'name')
+        campaigns = Setting.objects.filter(purpose='user:campaign', is_active=True).values('id', 'name')
         return list(campaigns)
     except Exception:
         return []
 
 
 def _get_defaults() -> dict:
-    """Default values from Setting purpose='db_defaults'."""
+    """Default values from Setting purpose='wc:db_defaults'."""
     Setting = dj_apps.get_model('core', 'Setting')
     defaults = {}
     try:
-        settings = Setting.objects.filter(purpose='db_defaults', is_active=True)
+        settings = Setting.objects.filter(purpose='wc:db_defaults', is_active=True)
         for s in settings:
             if isinstance(s.config, dict):
                 defaults.update(s.config)

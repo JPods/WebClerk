@@ -87,7 +87,7 @@ class PrefixAndSearchView(APIView):
             return qs
 
     def _settings_keyword_fields(self) -> list[str]:
-        """Fetch additional denormalized keyword fields from settings (purpose='keywords').
+        """Fetch additional denormalized keyword fields from settings (purpose='wc:keywords').
 
         Reads apps.core.models.setting.Setting for this view's table and returns a list of
         valid model field names to include in search. Accepts data.fields (list) or
@@ -101,7 +101,7 @@ class PrefixAndSearchView(APIView):
             # Lazy import to avoid cycles
             from apps.core.models.setting import Setting  # type: ignore
             setting = (Setting.objects
-                       .filter(parent_model=model_key, purpose='keywords', is_active=True)
+                       .filter(parent_model=model_key, purpose='wc:keywords', is_active=True)
                        .order_by('-dt_modified')
                        .first())
             if not setting or not isinstance(setting.data, dict):

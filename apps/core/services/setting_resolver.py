@@ -9,7 +9,7 @@ Usage:
 
     # Get the detail layout for action, for this user
     layout = resolve_setting(
-        purpose="detail_layout",
+        purpose="wc:detail_layout",
         parent_model="action",
         contact_id=8,
         org_id=1,

@@ -245,7 +245,7 @@ class Command(BaseCommand):
         for model_key, panel_specs in sorted(PANEL_COLUMNS.items()):
             existing = Setting.objects.filter(
                 parent_model=model_key,
-                purpose='workbench_fields',
+                purpose='wc:workbench_fields',
             ).first()
 
             if existing:
@@ -270,7 +270,7 @@ class Command(BaseCommand):
                     Setting.objects.create(
                         name=f'workbench_fields:{model_key}',
                         parent_model=model_key,
-                        purpose='workbench_fields',
+                        purpose='wc:workbench_fields',
                         config={'db': {'panel': panel_specs}},
                     )
                     created += 1

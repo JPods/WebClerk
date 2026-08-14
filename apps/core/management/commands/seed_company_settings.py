@@ -1,6 +1,6 @@
 """Seed the company profile Setting record.
 
-Creates a Setting with purpose='company_profile' that holds:
+Creates a Setting with purpose='wc:company_profile' that holds:
   - Company name, address, phone, email, website
   - Logo paths for various uses (letterhead, invoice, email, favicon)
   - Certificate/document paths
@@ -121,7 +121,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         setting, created = Setting.objects.get_or_create(
-            purpose='company_profile',
+            purpose='wc:company_profile',
             parent_model='setting',
             defaults={
                 'ida': 'company-profile',

@@ -36,7 +36,7 @@ def get_dbsr_health(params: dict = None) -> dict:
 
     # Get health manifest issue count
     try:
-        health = Setting.objects.get(ida='database-health')
+        health = Setting.objects.get(ida='database-health', purpose='wc:database_health')
         config = health.config or {}
         issue_count = len(config.get('issues', []))
     except Setting.DoesNotExist:

@@ -28,154 +28,154 @@ from apps.core.models.report import Report
 # {model} is replaced with the parent_model name (e.g., "contact", "order")
 
 PURPOSE_EXPLANATIONS = {
-    'field_access': (
+    'wc:field_access': (
         'Controls which fields on the {model} record are visible and editable '
         'by role. External users see only fields listed in their role\'s view '
         'list. Internal users see all fields unless explicitly restricted. '
         'This is the RBAC field filter — it runs on every API response.'
     ),
-    'workbench_fields': (
+    'wc:workbench_fields': (
         'Defines the DataBrowser column layout for {model} records. '
         'config.db.list controls which columns appear in the list view and their '
         'widths. config.db.detail controls the detail panel fields. '
         'config.db.panel controls embedded sub-panels (line items, related records). '
         'Users can customize via Design Mode; this is the system default.'
     ),
-    'schema_map': (
+    'wc:schema_map': (
         'Documents the Pydantic schema for the {model} model — every JSON envelope '
         'field (metadata, refs, prefs, config, comments, actions) with its type, '
         'default, and purpose. This is the contract: any code reading or writing '
         '{model} JSON fields must conform to this schema. Alice uses it to validate '
         'data quality. Sync uses it to map fields between installations.'
     ),
-    'search': (
+    'wc:search': (
         'A saved search preset for {model} records. Appears in the search dropdown '
         'so users can quickly filter by common criteria (e.g., current month, '
         'active status, assigned to me). Shared across all users by default; '
         'users can also save personal searches in their prefs.'
     ),
-    'detail_layout': (
+    'wc:detail_layout': (
         'Defines the app-level detail view layout for {model} records — which fields '
         'appear, their order, grouping, and display format. This is the structured '
         'business form (as opposed to the DataBrowser raw field view). '
         'The layout is JSON-driven via DynamicDetail.'
     ),
-    'db_defaults': (
+    'wc:db_defaults': (
         'Default values applied to new {model} records at creation time. '
         'Includes GL account assignments, status defaults, and standard field '
         'values. These save data entry time and ensure consistency across '
         'the installation.'
     ),
-    'admin_selectlist': (
+    'wc:selectlist': (
         'Defines the dropdown/select list options for {model} fields. '
         'These are the pick lists users choose from — statuses, types, '
         'categories, and other controlled vocabularies. Centralizing them '
         'here ensures consistency and makes them syncable between installations.'
     ),
-    'keywords': (
+    'wc:keywords': (
         'Keyword index for {model} records — extracted automatically from '
         'key fields to enable fast full-text search. Alice refreshes these '
         'periodically. The keyword list determines what users find when they '
         'type in the search bar.'
     ),
-    'alice_coaching': (
+    'wc:coaching': (
         'Instructions for Alice (the AI assistant) on how to handle {model} '
         'records. Includes field validation rules, data quality checks, '
         'common patterns to watch for, and recommended actions. Alice reads '
         'these at startup and applies them during her observation cycles.'
     ),
-    'print_layout': (
+    'wc:print_layout': (
         'Print template layout for {model} documents. Defines which fields '
         'appear on the printed/PDF output, their positions, and formatting. '
         'Used by the PrintDocumentLayout component and the pdfme designer. '
         'This is the system default; users can customize per-document.'
     ),
-    'model_related': (
+    'wc:model_related': (
         'Defines which related models are shown as panels when viewing a '
         '{model} record. For example, viewing a customer shows their orders, '
         'invoices, and contacts as sub-panels. Controls the relationship '
         'navigation experience.'
     ),
-    'enrichment_panels': (
+    'wc:enrichment_panels': (
         'Configures the enrichment sidebar panels for {model} records. '
         'These panels show contextual data — purchase history, credit status, '
         'Alice insights — alongside the main record. They help users make '
         'decisions without leaving the current view.'
     ),
-    'conditions_sales': (
+    'wc:conditions_sales': (
         'Sales conditions and terms templates for {model} transactions. '
         'These are the standard terms, disclaimers, and conditions that '
         'appear on proposals, orders, and invoices. Editable per transaction '
         'but seeded from these defaults.'
     ),
-    'config': (
+    'wc:config': (
         'System configuration for {model} behavior. Controls processing '
         'rules, feature settings, and operational parameters that affect '
         'how {model} records are created, validated, and processed.'
     ),
-    'feature': (
+    'wc:feature': (
         'Feature flag controlling a specific WC3 capability. When active, '
         'the feature is available to users. When inactive, it is hidden '
         'from the UI and disabled in the API. Used for staged rollouts '
         'and installation-specific customization.'
     ),
-    'company_profile': (
+    'wc:company_profile': (
         'The installation\'s company identity — name, address, logo, tax IDs, '
         'and business settings. Appears on printed documents, email headers, '
         'and the login page. Every WC3 installation has exactly one.'
     ),
-    'collaborate_webclerk': (
+    'wc:collaborate': (
         'Configuration for WebClerk HQ collaboration — sync settings, '
         'data sharing rules, and connection parameters for the WC_HQ '
         'data service. Controls what data flows between this installation '
         'and the central WebClerk ecosystem.'
     ),
-    'wchq_connection': (
+    'wc:wchq_connection': (
         'Connection credentials and endpoint for the WebClerk HQ service. '
         'Used by the sync engine to exchange data with the central '
         'WebClerk ecosystem — item libraries, pricing updates, and '
         'cross-company commerce.'
     ),
-    'exchange_rates': (
+    'wc:exchange_rates': (
         'Currency exchange rate configuration — base currency, update '
         'frequency, and rate source. Used by multi-currency transactions '
         'to convert between currencies at the correct rate.'
     ),
-    'payment_gateway': (
+    'wc:payment_gateway': (
         'Payment gateway configuration — processor credentials, supported '
         'methods, and transaction settings. Controls how online payments '
         'are processed and reconciled.'
     ),
-    'qa_questions': (
+    'wc:qa_questions': (
         'Quality assurance question templates for {model} records. '
         'Used by the QA module to prompt users for structured feedback '
         'and compliance checks. Answers are stored on the record.'
     ),
-    'qa_counters': (
+    'wc:qa_counters': (
         'Tracks QA completion counts and scoring across the installation. '
         'Used by Alice to identify areas where QA attention is needed '
         'and to measure improvement over time.'
     ),
-    'dd_card': (
+    'wc:dd_card': (
         'Dashboard card configuration — defines the summary cards shown '
         'on the main dashboard. Each card shows a count, trend, or KPI '
         'for a specific model or metric.'
     ),
-    'react_settings': (
+    'wc:react_settings': (
         'React frontend configuration — UI feature flags, component settings, '
         'and display parameters passed to the frontend at load time.'
     ),
-    'list_column_config': (
+    'wc:list_column_config': (
         'Column configuration for the {model} list view — which columns '
         'are visible, their order, and widths. This is the legacy format; '
         'new installations use workbench_fields instead.'
     ),
-    'serial_settings': (
+    'wc:serial_settings': (
         'Serial number tracking configuration for {model}. Controls how '
         'serial numbers are assigned, validated, and tracked through the '
         'inventory lifecycle — receipt, transfer, sale, return, and warranty.'
     ),
-    'print_defaults': (
+    'wc:print_defaults': (
         'Default print settings — paper size, margins, orientation, and '
         'output format. Applied to all print jobs unless overridden by '
         'a specific print layout.'

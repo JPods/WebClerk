@@ -64,7 +64,7 @@ class QAService:
     def get_or_create_counters(self) -> Setting:
         """Get or create the qa_counters singleton."""
         counters, created = Setting.objects.get_or_create(
-            purpose='qa_counters',
+            purpose='wc:qa_counters',
             defaults={
                 'name': 'counters',
                 'parent_model': 'question_answer',
@@ -80,7 +80,7 @@ class QAService:
     @db_transaction.atomic
     def allocate_question_ids(self, count: int) -> List[int]:
         """Allocate the next N unique question IDs."""
-        counters = Setting.objects.select_for_update().get(purpose='qa_counters')
+        counters = Setting.objects.select_for_update().get(purpose='wc:qa_counters')
         data = counters.config or {}
         current_max = data.get('question_max', 0)
         new_ids = list(range(current_max + 1, current_max + count + 1))
@@ -93,7 +93,7 @@ class QAService:
     @db_transaction.atomic
     def allocate_answer_ids(self, count: int) -> List[int]:
         """Allocate the next N unique answer choice IDs."""
-        counters = Setting.objects.select_for_update().get(purpose='qa_counters')
+        counters = Setting.objects.select_for_update().get(purpose='wc:qa_counters')
         data = counters.config or {}
         current_max = data.get('answer_max', 0)
         new_ids = list(range(current_max + 1, current_max + count + 1))

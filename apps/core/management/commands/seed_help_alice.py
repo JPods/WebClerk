@@ -70,7 +70,7 @@ COMPONENTS = [
             'core of the Data-Driven UI architecture. 455 lines replace 45,091 lines of '
             'hand-coded detail pages.\n\n'
             'Layout format: { rows: [{ fields: ["field1", "field2"], cols: 2 }] }\n'
-            'Stored in: Setting record with purpose=detail_layout, model_name=<model>\n\n'
+            'Stored in: Setting record with purpose=wc:detail_layout, model_name=<model>\n\n'
             'Users can toggle Arrange mode to drag rows, add/remove fields. Changes save '
             'back to the Setting. No code changes needed.\n\n'
             'Widget registry: 10 widgets (text, select, date, number, json-tree, lookup, etc.)\n'

@@ -14,7 +14,7 @@ def _auth(user):
 def test_linkage_propagation_proposal_order_invoice_po(django_user_model):
     # Minimal permissions for involved models
     for model in ('proposal', 'order', 'invoice', 'purchase'):
-        Setting.objects.create(purpose='view_edit', model_target=model, is_active=True, data={'USER': {'view': ['id'], 'edit': ['id']}})
+        Setting.objects.create(purpose='wc:view_edit', model_target=model, is_active=True, data={'USER': {'view': ['id'], 'edit': ['id']}})
     user = django_user_model.objects.create_user(email='linkage1@example.com', password='pass12345', role='USER')
     client = _auth(user)
 

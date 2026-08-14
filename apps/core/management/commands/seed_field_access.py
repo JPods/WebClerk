@@ -5,7 +5,7 @@ Usage:
     ./bin/python manage.py seed_field_access
     ./bin/python manage.py seed_field_access --force   # overwrite existing
 
-Each Setting record (purpose='field_access') contains:
+Each Setting record (purpose='wc:field_access') contains:
   data.roles.<role> = { view: [...], edit: [...], create: bool, delete: bool }
   data.publish.<channel> = [fields visible externally]
   data.query_scope.<role> = { <filter_field>: "$user.org_ids.<type>" }
@@ -566,7 +566,7 @@ class Command(BaseCommand):
 
             existing = Setting.objects.filter(
                 parent_model=model_key,
-                purpose='field_access',
+                purpose='wc:field_access',
             ).first()
 
             if existing and not force:
@@ -581,7 +581,7 @@ class Command(BaseCommand):
                 Setting.objects.create(
                     name=f'field_access:{model_key}',
                     parent_model=model_key,
-                    purpose='field_access',
+                    purpose='wc:field_access',
                     config=config,
                 )
                 created += 1

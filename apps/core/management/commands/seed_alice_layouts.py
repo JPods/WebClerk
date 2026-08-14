@@ -292,7 +292,7 @@ class Command(BaseCommand):
             # Get existing setting
             setting = Setting.objects.filter(
                 parent_model=model_key,
-                purpose='workbench_fields',
+                purpose='wc:workbench_fields',
             ).first()
 
             if not setting:
@@ -300,7 +300,7 @@ class Command(BaseCommand):
                 Setting.objects.create(
                     name=f'workbench_fields:{model_key}',
                     parent_model=model_key,
-                    purpose='workbench_fields',
+                    purpose='wc:workbench_fields',
                     config={
                         'list': alice_list,
                         'detail': alice_detail,

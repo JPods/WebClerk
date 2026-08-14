@@ -34,7 +34,7 @@ class SpreedlyService:
         """Build from the payment_gateway Setting record."""
         from apps.core.models.setting import Setting
         try:
-            setting = Setting.objects.get(purpose='payment_gateway')
+            setting = Setting.objects.get(purpose='wc:payment_gateway')
         except Setting.DoesNotExist:
             raise RuntimeError("No payment_gateway Setting found. Run: manage.py seed_payment_gateway")
         cfg = setting.config or {}

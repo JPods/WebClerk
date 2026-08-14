@@ -1,7 +1,7 @@
 """
 seed_column_widths — Alice's recommended column widths by field type and name.
 
-Creates a Setting record (purpose='alice_coaching', parent_model='column_widths')
+Creates a Setting record (purpose='wc:ui', parent_model='column_widths')
 with recommended pixel widths. Alice adjusts these over time as she sees what
 users actually choose.
 
@@ -214,7 +214,7 @@ class Command(BaseCommand):
         }
 
         existing = Setting.objects.filter(
-            purpose='alice_coaching',
+            purpose='wc:ui',
             name='column_widths',
         ).first()
 
@@ -229,7 +229,7 @@ class Command(BaseCommand):
         else:
             Setting.objects.create(
                 name='column_widths',
-                purpose='alice_coaching',
+                purpose='wc:ui',
                 parent_model='',
                 config=data,
             )

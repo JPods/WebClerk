@@ -46,7 +46,7 @@ except Exception:
 
 class SettingsDrivenCRUDMixin:
     """
-    Centralized CRUD policies driven by Setting(purpose='view_edit') or JSON fallback.
+    Centralized CRUD policies driven by Setting(purpose='wc:view_edit') or JSON fallback.
 
     Behavior toggles in setting.config['__meta__']:
       - relations: embed related data in GET
@@ -60,7 +60,7 @@ class SettingsDrivenCRUDMixin:
       - meta.policy_missing=True and meta.policy_source='dev_fallback'
     """
 
-    SETTINGS_PURPOSE = "view_edit"
+    SETTINGS_PURPOSE = "wc:view_edit"
     DEFAULT_JSON_REL_PATH = "apps/core/management/commands/view_edit.json"
 
     # ---------- Settings loading

@@ -82,7 +82,7 @@ def _scan_model_layouts(apps_dir: str) -> list[dict]:
 
 
 class Command(BaseCommand):
-    help = 'Create/update the layout_status singleton setting (purpose=admin)'
+    help = 'Create/update the layout_status singleton setting (purpose=wc:admin)'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -127,7 +127,7 @@ class Command(BaseCommand):
         # Look up or create the singleton
         setting, created = Setting.objects.get_or_create(
             name='layout_status',
-            purpose='admin',
+            purpose='wc:admin',
             defaults={'config': {'layouts': layouts}},
         )
 

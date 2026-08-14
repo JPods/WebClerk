@@ -12,7 +12,7 @@ def _auth_client(user):
 
 @pytest.mark.django_db
 def test_field_auth_matrix_endpoint(django_user_model):
-    Setting.objects.create(purpose='view_edit', model_target='proposal_line', is_active=True,
+    Setting.objects.create(purpose='wc:view_edit', model_target='proposal_line', is_active=True,
                            data={"USER": {"view": ["id", "status"], "edit": ["status"]}})
     user = django_user_model.objects.create_user(email='user1@example.com', password='pass12345', role='USER')
     client = _auth_client(user)
@@ -23,7 +23,7 @@ def test_field_auth_matrix_endpoint(django_user_model):
 
 @pytest.mark.django_db
 def test_serializer_field_filtering(django_user_model):
-    Setting.objects.create(purpose='view_edit', model_target='proposal_line', is_active=True,
+    Setting.objects.create(purpose='wc:view_edit', model_target='proposal_line', is_active=True,
                            data={"USER": {"view": ["id", "status"], "edit": ["status"]}})
     user = django_user_model.objects.create_user(email='user2@example.com', password='pass12345', role='USER')
     parent = Proposal.objects.create()
@@ -37,7 +37,7 @@ def test_serializer_field_filtering(django_user_model):
 
 @pytest.mark.django_db
 def test_disallowed_edit(django_user_model):
-    Setting.objects.create(purpose='view_edit', model_target='proposal_line', is_active=True,
+    Setting.objects.create(purpose='wc:view_edit', model_target='proposal_line', is_active=True,
                            data={"USER": {"view": ["id", "status"], "edit": []}})
     user = django_user_model.objects.create_user(email='user3@example.com', password='pass12345', role='USER')
     parent = Proposal.objects.create()
@@ -48,7 +48,7 @@ def test_disallowed_edit(django_user_model):
 
 @pytest.mark.django_db
 def test_view_edit_cache_invalidation(django_user_model):
-    setting = Setting.objects.create(purpose='view_edit', model_target='proposal_line', is_active=True,
+    setting = Setting.objects.create(purpose='wc:view_edit', model_target='proposal_line', is_active=True,
                                      data={"USER": {"view": ["id"], "edit": []}})
     user = django_user_model.objects.create_user(email='cachetest@example.com', password='pass12345', role='USER')
     parent = Proposal.objects.create()

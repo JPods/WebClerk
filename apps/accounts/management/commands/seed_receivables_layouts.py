@@ -1,7 +1,7 @@
 """
 Seed print layouts for aged receivables report and customer statement.
 
-Creates Setting records with purpose='print_layout' that drive UniversalPrint.
+Creates Setting records with purpose='wc:print_layout' that drive UniversalPrint.
 
 Usage:
     ./bin/python manage.py seed_receivables_layouts
@@ -198,7 +198,7 @@ class Command(BaseCommand):
 
         for model_key, name, layout in layouts:
             existing = Setting.objects.filter(
-                parent_model=model_key, purpose='print_layout',
+                parent_model=model_key, purpose='wc:print_layout',
             ).first()
 
             if existing and not force:
@@ -214,7 +214,7 @@ class Command(BaseCommand):
                 Setting.objects.create(
                     name=name,
                     parent_model=model_key,
-                    purpose='print_layout',
+                    purpose='wc:print_layout',
                     scope='system',
                     config=layout,
                 )

@@ -30,7 +30,7 @@ class Command(BaseCommand):
             ida=preset_ida,
             defaults={
                 'name': 'Questions for Bill',
-                'purpose': 'search',
+                'purpose': 'wc:search',
                 'parent_model': 'Action',
                 'is_active': True,
                 'config': {

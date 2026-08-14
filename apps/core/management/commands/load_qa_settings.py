@@ -53,8 +53,8 @@ class Command(BaseCommand):
 
         # Reset if requested
         if reset and not dry_run:
-            deleted_questions = Setting.objects.filter(purpose='qa_questions').delete()[0]
-            deleted_counters = Setting.objects.filter(purpose='qa_counters').delete()[0]
+            deleted_questions = Setting.objects.filter(purpose='wc:qa_questions').delete()[0]
+            deleted_counters = Setting.objects.filter(purpose='wc:qa_counters').delete()[0]
             self.stdout.write(self.style.WARNING(
                 f'Deleted {deleted_questions} qa_questions and {deleted_counters} qa_counters records'
             ))
@@ -108,7 +108,7 @@ class Command(BaseCommand):
                 
                 # Create or update Setting record
                 setting, created = Setting.objects.update_or_create(
-                    purpose='qa_questions',
+                    purpose='wc:qa_questions',
                     name=group_name,
                     defaults={
                         'parent_model': mt,
@@ -134,7 +134,7 @@ class Command(BaseCommand):
             ))
         else:
             counter, created = Setting.objects.update_or_create(
-                purpose='qa_counters',
+                purpose='wc:qa_counters',
                 defaults={
                     'name': 'counters',
                     'parent_model': 'question_answer',

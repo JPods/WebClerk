@@ -6,7 +6,7 @@ Client-side formats for display preview. Server-side is authoritative:
   3. Standardize abbreviations (St→Street, Apt→Apartment)
   4. Add ZIP+4 for US addresses (if USPS configured)
 
-Validation provider configured via Setting: purpose=system, name=address_validation
+Validation provider configured via Setting: purpose=wc:system, name=address_validation
   config: { provider: "none"|"usps"|"google", api_key: "...", auto_correct: true }
 """
 import logging
@@ -209,12 +209,12 @@ def validate_and_format(location_record) -> dict:
 def _external_validate(result, country_code):
     """Call external validation API if configured.
 
-    Reads Setting: purpose=system, name=address_validation
+    Reads Setting: purpose=wc:system, name=address_validation
     """
     try:
         from apps.core.models import Setting
         setting = Setting.objects.filter(
-            purpose='system', name='address_validation'
+            purpose='wc:system', name='address_validation'
         ).first()
         if not setting:
             return result

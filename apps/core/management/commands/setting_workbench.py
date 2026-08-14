@@ -23,7 +23,7 @@ class Command(BaseCommand):
             }
             setting, created = Setting.objects.get_or_create(
                 parent_model=model_name,
-                purpose="workbench_fields",
+                purpose="wc:workbench_fields",
                 defaults={'config': data}
             )
             self.stdout.write(f'{"Created" if created else "Updated"} setting for {model_name}')

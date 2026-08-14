@@ -29,7 +29,7 @@ class Command(BaseCommand):
             ida='search-document-support-qa',
             defaults={
                 'name': 'Support Q&A',
-                'purpose': 'search',
+                'purpose': 'wc:search',
                 'parent_model': 'Document',
                 'is_active': True,
                 'config': {
@@ -62,7 +62,7 @@ class Command(BaseCommand):
             ida='schema-support-qa',
             defaults={
                 'name': 'Support Q&A Schema',
-                'purpose': 'config',
+                'purpose': 'wc:config',
                 'parent_model': 'Document',
                 'is_active': True,
                 'config': {
@@ -107,7 +107,7 @@ class Command(BaseCommand):
             ida='search-document-support-qa-unanswered',
             defaults={
                 'name': 'Unanswered Questions',
-                'purpose': 'search',
+                'purpose': 'wc:search',
                 'parent_model': 'Document',
                 'is_active': True,
                 'config': {
@@ -139,7 +139,7 @@ class Command(BaseCommand):
             ida='search-document-support-qa-low-scored',
             defaults={
                 'name': 'Low-Scored Answers',
-                'purpose': 'search',
+                'purpose': 'wc:search',
                 'parent_model': 'Document',
                 'is_active': True,
                 'config': {

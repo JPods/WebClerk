@@ -1,6 +1,6 @@
 """Seed the payment gateway Setting record for Spreedly.
 
-Creates a Setting with purpose='payment_gateway' that holds:
+Creates a Setting with purpose='wc:payment_gateway' that holds:
   - Spreedly environment key and access secret
   - Active gateway token (Stripe, PayPal, etc. configured in Spreedly)
   - Webhook signing key
@@ -60,7 +60,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         setting, created = Setting.objects.get_or_create(
-            purpose='payment_gateway',
+            purpose='wc:payment_gateway',
             parent_model='setting',
             defaults={
                 'ida': 'payment-gateway',

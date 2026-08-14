@@ -46,7 +46,7 @@ def audit_model_schemas(model_names: list[str] | None = None, limit_per_model: i
     from apps.core.models import Setting
 
     # Get all schema_map settings
-    settings_qs = Setting.objects.filter(purpose='schema_map', is_active=True)
+    settings_qs = Setting.objects.filter(purpose='wc:schema_map', is_active=True)
     if model_names:
         settings_qs = settings_qs.filter(parent_model__in=model_names)
 

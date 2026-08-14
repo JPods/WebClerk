@@ -10,7 +10,7 @@ from apps.core.services.setting_resolver import resolve_setting_with_source
 class SettingResolveView(APIView):
     """Resolve a setting through the scope hierarchy for the current user.
 
-    GET /wcapi/setting/resolve/?purpose=detail_layout&parent_model=action
+    GET /wcapi/setting/resolve/?purpose=wc:detail_layout&parent_model=action
 
     Returns the most specific matching Setting's config, plus which scope matched.
     """

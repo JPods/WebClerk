@@ -70,51 +70,51 @@ SETTING_SCOPE_CHOICES: Final[ChoiceList] = (
 SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("", ""),
     # Layout & display
-    ("detail_layout", "detail_layout"),
-    ("print_layout", "print_layout"),
+    ("wc:detail_layout", "wc:detail_layout"),
+    ("wc:print_layout", "wc:print_layout"),
     ("compact_layout", "compact_layout"),
-    ("list_column_config", "list_column_config"),
+    ("wc:list_column_config", "wc:list_column_config"),
     ("field_registry", "field_registry"),
-    ("view_edit", "view_edit"),
-    ("field_access", "field_access"),
+    ("wc:view_edit", "wc:view_edit"),
+    ("wc:field_access", "wc:field_access"),
     ("detail_field_access", "detail_field_access"),
-    ("workbench_fields", "workbench_fields"),
+    ("wc:workbench_fields", "wc:workbench_fields"),
     # Defaults
-    ("db_defaults", "db_defaults"),
+    ("wc:db_defaults", "wc:db_defaults"),
     ("constants", "constants"),
     ("sales_defaults", "sales_defaults"),
     ("purchase_defaults", "purchase_defaults"),
     ("accounting_defaults", "accounting_defaults"),
     ("accounting_interface", "accounting_interface"),
-    ("print_defaults", "print_defaults"),
+    ("wc:print_defaults", "wc:print_defaults"),
     # Search & keywords
-    ("keywords", "keywords"),
-    ("search", "search"),
+    ("wc:keywords", "wc:keywords"),
+    ("wc:search", "wc:search"),
     # QA
-    ("qa_counters", "qa_counters"),
-    ("qa_questions", "qa_questions"),
+    ("wc:qa_counters", "wc:qa_counters"),
+    ("wc:qa_questions", "wc:qa_questions"),
     # Alice & AI
     ("alice_pending", "alice_pending"),
     ("alice_log", "alice_log"),
-    ("alice_coaching", "alice_coaching"),
+    ("wc:alice_coaching", "wc:alice_coaching"),
     ("ai_prompt_history", "ai_prompt_history"),
     # Admin & system
-    ("admin", "admin"),
-    ("admin_selectlist", "admin_selectlist"),
-    ("react_settings", "react_settings"),
+    ("wc:admin", "wc:admin"),
+    ("wc:selectlist", "wc:selectlist"),
+    ("wc:react_settings", "wc:react_settings"),
     ("seed", "seed"),
-    ("system", "system"),
-    ("feature", "feature"),
-    ("schema_map", "schema_map"),
+    ("wc:system", "wc:system"),
+    ("wc:feature", "wc:feature"),
+    ("wc:schema_map", "wc:schema_map"),
     ("calculated_function", "calculated_function"),
     # Conditions — document terms/conditions templates
-    ("conditions_sales", "conditions_sales"),
+    ("wc:conditions_sales", "wc:conditions_sales"),
     ("conditions_purchase", "conditions_purchase"),
     # Commerce & collaboration
-    ("campaign", "campaign"),
-    ("company_profile", "company_profile"),
-    ("collaborate_webclerk", "collaborate_webclerk"),
-    ("wchq_connection", "wchq_connection"),
+    ("user:campaign", "user:campaign"),
+    ("wc:company_profile", "wc:company_profile"),
+    ("wc:collaborate", "wc:collaborate"),
+    ("wc:wchq_connection", "wc:wchq_connection"),
     # Sync & storage
     ("sync_config", "sync_config"),
     ("file_storage", "file_storage"),
@@ -124,9 +124,9 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     # Line card
     ("line_card_fields", "line_card_fields"),
     # UI behaviors
-    ("ui_webclerk", "ui_webclerk"),
+    ("wc:ui", "wc:ui"),
     # Payment
-    ("payment_gateway", "payment_gateway"),
+    ("wc:payment_gateway", "wc:payment_gateway"),
 )
 
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {

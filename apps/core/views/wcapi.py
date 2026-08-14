@@ -653,12 +653,12 @@ class WCAPIGetView(APIView):
 
         report = rpt_qs.order_by("-dt_modified").first()
 
-        # Fallback: legacy Setting records (purpose='search')
+        # Fallback: legacy Setting records (purpose='wc:search')
         if not report:
             from apps.core.models.setting import Setting
             setting_qs = Setting.objects.filter(
                 is_active=True,
-                purpose="search",
+                purpose="wc:search",
                 parent_model=model_key,
             )
             if search_id:
@@ -1369,14 +1369,14 @@ Retrieve records from any configured model with comprehensive query support.
                 type=int,
                 required=False,
                 location=OpenApiParameter.QUERY,
-                description="Apply a stored search Setting by ID (purpose=search, parent_model=model_name)",
+                description="Apply a stored search Setting by ID (purpose=wc:search, parent_model=model_name)",
             ),
             OpenApiParameter(
                 name="saved_search",
                 type=str,
                 required=False,
                 location=OpenApiParameter.QUERY,
-                description="Apply a stored search Setting by name (purpose=search)",
+                description="Apply a stored search Setting by name (purpose=wc:search)",
             ),
             OpenApiParameter(
                 name="limit",
@@ -1477,7 +1477,7 @@ class ModelNameListView(APIView):
 
 
 class SearchPresetListView(APIView):
-    """List role-visible saved searches (Setting purpose=search) for a model."""
+    """List role-visible saved searches (Setting purpose=wc:search) for a model."""
 
     http_method_names = ["get", "options", "head"]
 
@@ -1495,7 +1495,7 @@ class SearchPresetListView(APIView):
         operation_id="search_preset_list",
         summary="List saved search presets",
         description=(
-            "Returns saved search presets for a model (Setting purpose=search). "
+            "Returns saved search presets for a model (Setting purpose=wc:search). "
             "Non-admin users see role-matching and global presets; admins see all."
         ),
         parameters=[
@@ -1577,12 +1577,12 @@ class SearchPresetListView(APIView):
                 }
             )
 
-        # Fallback: legacy Setting records (purpose='search')
+        # Fallback: legacy Setting records (purpose='wc:search')
         from apps.core.models import Setting
 
         setting_qs = Setting.objects.filter(
             is_active=True,
-            purpose="search",
+            purpose="wc:search",
             parent_model=model_key,
         )
         if not is_admin:

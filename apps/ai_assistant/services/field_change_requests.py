@@ -192,7 +192,7 @@ def approve_field_change(action_id: int, contact_id: int) -> dict:
     # Update the field_access Setting
     setting = Setting.objects.filter(
         parent_model=model,
-        purpose='field_access',
+        purpose='wc:field_access',
         is_active=True,
     ).first()
 

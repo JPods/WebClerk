@@ -118,10 +118,10 @@ class Document(BaseModel):
         tracked_original = {}
         tracked_fields: list[str] = []
         try:
-            # Fetch settings specifying keyword fields: purpose='keywords'
+            # Fetch settings specifying keyword fields: purpose='wc:keywords'
             model_key = 'Document'  # canonical model identifier for settings
             # Prefer parent_model in Setting going forward
-            setting = Setting.objects.filter(parent_model=model_key, purpose='keywords', is_active=True).first()
+            setting = Setting.objects.filter(parent_model=model_key, purpose='wc:keywords', is_active=True).first()
             if setting and isinstance(setting.config, dict):
                 fields_spec = setting.config.get('fields') or setting.config.get('field_list') or []
                 if isinstance(fields_spec, str):  # allow comma-separated string

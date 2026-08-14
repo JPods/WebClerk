@@ -2,7 +2,7 @@
 common.sync_wcreact.selectlists — Canonical select list definitions and sync logic.
 
 Defines the master list of r25 dynamic select lists and provides functions
-to sync them to/from wc3 Setting records (purpose="admin_selectlist").
+to sync them to/from wc3 Setting records (purpose="wc:selectlist").
 
 Used by:
     python manage.py sync_selectlists
@@ -16,7 +16,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-PURPOSE = "admin_selectlist"
+PURPOSE = "wc:selectlist"
 
 # ---------------------------------------------------------------------------
 # Canonical r25 dynamic select lists

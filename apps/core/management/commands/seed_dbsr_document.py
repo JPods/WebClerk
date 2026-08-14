@@ -28,17 +28,17 @@ HEALTH_LOCAL_IDA = 'database-health-local'
 # Every WC3 installation requires these purpose categories to be populated.
 # Each entry: (purpose, min_count, description)
 REQUIRED_PURPOSES = [
-    ('field_access', 30, 'RBAC field filters per model'),
-    ('workbench_fields', 30, 'DataBrowser layouts per model'),
-    ('schema_map', 30, 'Pydantic schema definitions per model'),
-    ('search', 5, 'Saved search presets'),
-    ('detail_layout', 10, 'App-level detail view layouts'),
-    ('db_defaults', 5, 'Default values for new records'),
-    ('admin_selectlist', 5, 'Dropdown/select list definitions'),
-    ('alice_coaching', 5, 'AI assistant coaching rules'),
-    ('print_layout', 3, 'Print template layouts'),
-    ('company_profile', 1, 'Company identity and settings'),
-    ('feature', 1, 'Feature flags'),
+    ('wc:field_access', 30, 'RBAC field filters per model'),
+    ('wc:workbench_fields', 30, 'DataBrowser layouts per model'),
+    ('wc:schema_map', 30, 'Pydantic schema definitions per model'),
+    ('wc:search', 5, 'Saved search presets'),
+    ('wc:detail_layout', 10, 'App-level detail view layouts'),
+    ('wc:db_defaults', 5, 'Default values for new records'),
+    ('wc:selectlist', 5, 'Dropdown/select list definitions'),
+    ('wc:coaching', 5, 'AI assistant coaching rules'),
+    ('wc:print_layout', 3, 'Print template layouts'),
+    ('wc:company_profile', 1, 'Company identity and settings'),
+    ('wc:feature', 1, 'Feature flags'),
 ]
 
 
@@ -208,7 +208,7 @@ class Command(BaseCommand):
             ida=HEALTH_IDA,
             defaults={
                 'name': 'Database Health Manifest',
-                'purpose': 'database_health',
+                'purpose': 'wc:database_health',
                 'config': {
                     'manifest': manifest,
                     'issues': issues,
@@ -239,7 +239,7 @@ class Command(BaseCommand):
             ida=HEALTH_LOCAL_IDA,
             defaults={
                 'name': 'Database Health Manifest (Local)',
-                'purpose': 'database_health',
+                'purpose': 'wc:database_health',
                 'config': {
                     'manifest': [],
                     'issues': [],

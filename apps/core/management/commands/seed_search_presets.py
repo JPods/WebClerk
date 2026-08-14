@@ -73,7 +73,7 @@ class Command(BaseCommand):
             for name, data in transaction_presets.items():
                 _, was_created = Setting.objects.update_or_create(
                     parent_model=model_name,
-                    purpose="search",
+                    purpose="wc:search",
                     role="all",
                     name=name,
                     defaults={"config": data, "is_active": True},
@@ -86,7 +86,7 @@ class Command(BaseCommand):
         for name, data in action_presets.items():
             _, was_created = Setting.objects.update_or_create(
                 parent_model="action",
-                purpose="search",
+                purpose="wc:search",
                 role="all",
                 name=name,
                 defaults={"config": data, "is_active": True},

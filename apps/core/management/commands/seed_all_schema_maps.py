@@ -82,7 +82,7 @@ class Command(BaseCommand):
         dry_run = options["dry_run"]
 
         existing = set(
-            Setting.objects.filter(purpose="schema_map", is_active=True)
+            Setting.objects.filter(purpose="wc:schema_map", is_active=True)
             .values_list("parent_model", flat=True)
         )
 
@@ -133,14 +133,14 @@ class Command(BaseCommand):
 
             if key in existing and force:
                 Setting.objects.filter(
-                    parent_model=key, purpose="schema_map", is_active=True
+                    parent_model=key, purpose="wc:schema_map", is_active=True
                 ).update(config=config, name=f"{meta.singular} schema")
             else:
                 Setting.objects.create(
                     name=f"{meta.singular} schema",
                     ida=f"wchq-schema-{key}",
                     parent_model=key,
-                    purpose="schema_map",
+                    purpose="wc:schema_map",
                     scope="system",
                     config=config,
                 )

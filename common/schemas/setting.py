@@ -3,7 +3,7 @@ Pydantic schemas for Setting JSON envelopes.
 
 Inherits standard bases. Add model-specific fields only.
 
-Settings with purpose='workbench_fields' use config.db to store
+Settings with purpose='wc:workbench_fields' use config.db to store
 DataBrowser layouts:
   config.db.list[]   — columns visible in the list view
   config.db.detail[] — fields visible in the detail view

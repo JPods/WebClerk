@@ -63,7 +63,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         apply = options['apply']
-        qs = Setting.objects.filter(purpose='workbench_fields')
+        qs = Setting.objects.filter(purpose='wc:workbench_fields')
         total = qs.count()
         migrated = 0
         skipped = 0

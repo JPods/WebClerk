@@ -9,7 +9,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         # 1. Centralized Communication Behaviors
         s, c = Setting.objects.update_or_create(ida='comm-behaviors', defaults={
-            'purpose': 'feature', 'parent_model': 'wc', 'name': 'Communication Behaviors',
+            'purpose': 'wc:feature', 'parent_model': 'wc', 'name': 'Communication Behaviors',
             'config': {
                 'shared': {
                     'click_actions': {
@@ -43,7 +43,7 @@ class Command(BaseCommand):
 
         # 2. Email layout
         s, c = Setting.objects.update_or_create(ida='detail-layout-email', defaults={
-            'purpose': 'detail_layout', 'parent_model': 'email', 'name': 'Email Detail',
+            'purpose': 'wc:detail_layout', 'parent_model': 'email', 'name': 'Email Detail',
             'config': {
                 'model': 'email', 'family': 'comm',
                 'sections': [{'type': 'header', 'layout': 'single-column', 'fields': [
@@ -63,7 +63,7 @@ class Command(BaseCommand):
 
         # 3. Phone layout
         s, c = Setting.objects.update_or_create(ida='detail-layout-phone', defaults={
-            'purpose': 'detail_layout', 'parent_model': 'phone', 'name': 'Phone Detail',
+            'purpose': 'wc:detail_layout', 'parent_model': 'phone', 'name': 'Phone Detail',
             'config': {
                 'model': 'phone', 'family': 'comm',
                 'sections': [{'type': 'header', 'layout': 'single-column', 'fields': [
@@ -82,7 +82,7 @@ class Command(BaseCommand):
 
         # 4. Address layout
         s, c = Setting.objects.update_or_create(ida='detail-layout-address', defaults={
-            'purpose': 'detail_layout', 'parent_model': 'address', 'name': 'Address Detail',
+            'purpose': 'wc:detail_layout', 'parent_model': 'address', 'name': 'Address Detail',
             'config': {
                 'model': 'address', 'family': 'comm',
                 'sections': [{'type': 'header', 'layout': 'single-column', 'fields': [
@@ -104,7 +104,7 @@ class Command(BaseCommand):
 
         # 5. Domain layout
         s, c = Setting.objects.update_or_create(ida='detail-layout-domain', defaults={
-            'purpose': 'detail_layout', 'parent_model': 'domain', 'name': 'Domain Detail',
+            'purpose': 'wc:detail_layout', 'parent_model': 'domain', 'name': 'Domain Detail',
             'config': {
                 'model': 'domain', 'family': 'comm',
                 'sections': [{'type': 'header', 'layout': 'single-column', 'fields': [
@@ -123,7 +123,7 @@ class Command(BaseCommand):
 
         # 6. Action detail_layout
         s, c = Setting.objects.update_or_create(ida='detail-layout-action', defaults={
-            'purpose': 'detail_layout', 'parent_model': 'action', 'name': 'Action Detail',
+            'purpose': 'wc:detail_layout', 'parent_model': 'action', 'name': 'Action Detail',
             'config': {
                 'model': 'action', 'family': 'core',
                 'sections': [{'type': 'header', 'layout': 'two-column', 'columns': [
@@ -152,7 +152,7 @@ class Command(BaseCommand):
 
         # 7. Document detail_layout
         s, c = Setting.objects.update_or_create(ida='detail-layout-document', defaults={
-            'purpose': 'detail_layout', 'parent_model': 'document', 'name': 'Document Detail',
+            'purpose': 'wc:detail_layout', 'parent_model': 'document', 'name': 'Document Detail',
             'config': {
                 'model': 'document', 'family': 'core',
                 'sections': [{'type': 'header', 'layout': 'two-column', 'columns': [
@@ -180,7 +180,7 @@ class Command(BaseCommand):
 
         # 8. Contact detail_layout
         s, c = Setting.objects.update_or_create(ida='detail-layout-contact', defaults={
-            'purpose': 'detail_layout', 'parent_model': 'contact', 'name': 'Contact Detail',
+            'purpose': 'wc:detail_layout', 'parent_model': 'contact', 'name': 'Contact Detail',
             'config': {
                 'model': 'contact', 'family': 'core',
                 'sections': [
@@ -226,7 +226,7 @@ class Command(BaseCommand):
 
         # 9. QuestionAnswer detail_layout
         s, c = Setting.objects.update_or_create(ida='detail-layout-question-answer', defaults={
-            'purpose': 'detail_layout', 'parent_model': 'question_answer', 'name': 'QA Detail',
+            'purpose': 'wc:detail_layout', 'parent_model': 'question_answer', 'name': 'QA Detail',
             'config': {
                 'model': 'question_answer', 'family': 'core',
                 'sections': [{'type': 'header', 'layout': 'single-column', 'fields': [
@@ -246,7 +246,7 @@ class Command(BaseCommand):
 
         # 10. Report detail_layout
         s, c = Setting.objects.update_or_create(ida='detail-layout-report', defaults={
-            'purpose': 'detail_layout', 'parent_model': 'report', 'name': 'Report Detail',
+            'purpose': 'wc:detail_layout', 'parent_model': 'report', 'name': 'Report Detail',
             'config': {
                 'model': 'report', 'family': 'core',
                 'sections': [{'type': 'header', 'layout': 'two-column', 'columns': [
@@ -301,7 +301,7 @@ class Command(BaseCommand):
 
         for model_name, title, account_fields in org_models:
             s, c = Setting.objects.update_or_create(ida=f'detail-layout-{model_name}', defaults={
-                'purpose': 'detail_layout', 'parent_model': model_name, 'name': f'{title} Detail',
+                'purpose': 'wc:detail_layout', 'parent_model': model_name, 'name': f'{title} Detail',
                 'config': {
                     'model': model_name, 'family': 'org',
                     'sections': [
@@ -343,7 +343,7 @@ class Command(BaseCommand):
 
         # 16. Item detail_layout
         s, c = Setting.objects.update_or_create(ida='detail-layout-item', defaults={
-            'purpose': 'detail_layout', 'parent_model': 'item', 'name': 'Item Detail',
+            'purpose': 'wc:detail_layout', 'parent_model': 'item', 'name': 'Item Detail',
             'config': {
                 'model': 'item', 'family': 'product',
                 'sections': [
@@ -394,7 +394,7 @@ class Command(BaseCommand):
 
         # 17. Serial detail_layout
         s, c = Setting.objects.update_or_create(ida='detail-layout-serial', defaults={
-            'purpose': 'detail_layout', 'parent_model': 'serial_log', 'name': 'Serial Detail',
+            'purpose': 'wc:detail_layout', 'parent_model': 'serial_log', 'name': 'Serial Detail',
             'config': {
                 'model': 'serial', 'family': 'product',
                 'sections': [{'type': 'header', 'layout': 'two-column', 'columns': [
@@ -420,7 +420,7 @@ class Command(BaseCommand):
 
         # 18. Specification detail_layout
         s, c = Setting.objects.update_or_create(ida='detail-layout-specification', defaults={
-            'purpose': 'detail_layout', 'parent_model': 'specification', 'name': 'Specification Detail',
+            'purpose': 'wc:detail_layout', 'parent_model': 'specification', 'name': 'Specification Detail',
             'config': {
                 'model': 'specification', 'family': 'product',
                 'sections': [{'type': 'header', 'layout': 'single-column', 'fields': [
@@ -439,7 +439,7 @@ class Command(BaseCommand):
 
         # 19. BOM detail_layout (record view — tree view is ui.tsx)
         s, c = Setting.objects.update_or_create(ida='detail-layout-bill-of-material', defaults={
-            'purpose': 'detail_layout', 'parent_model': 'bill_of_material', 'name': 'BOM Detail',
+            'purpose': 'wc:detail_layout', 'parent_model': 'bill_of_material', 'name': 'BOM Detail',
             'config': {
                 'model': 'bill_of_material', 'family': 'product',
                 'sections': [{'type': 'header', 'layout': 'two-column', 'columns': [

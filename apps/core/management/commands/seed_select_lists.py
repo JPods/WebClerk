@@ -230,7 +230,7 @@ class Command(BaseCommand):
 
         for model_name, lists in SELECT_LISTS.items():
             setting = Setting.objects.filter(
-                purpose='field_access',
+                purpose='wc:field_access',
                 parent_model=model_name,
                 is_active=True,
                 is_deleted=False,

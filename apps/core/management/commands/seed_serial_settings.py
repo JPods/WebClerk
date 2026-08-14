@@ -25,7 +25,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         existing = Setting.objects.filter(
-            parent_model="serial", purpose="schema_map", is_active=True
+            parent_model="serial", purpose="wc:schema_map", is_active=True
         ).first()
 
         if existing and not options["force"]:
@@ -59,7 +59,7 @@ class Command(BaseCommand):
             setting = Setting.objects.create(
                 name="Serial schema and behaviors",
                 parent_model="serial",
-                purpose="schema_map",
+                purpose="wc:schema_map",
                 scope="system",
                 config=config,
             )

@@ -68,7 +68,7 @@ class PaymentRefs(RefsBase):
 
 class PaymentSettingDefaults(BaseModel):
     """Installation-level defaults for new Payment records.
-    Lives in Setting(parent_model='payment', purpose='field_access').prefs.defaults
+    Lives in Setting(parent_model='payment', purpose='wc:field_access').prefs.defaults
     """
     type: str = 'expense'
     method: str = ''

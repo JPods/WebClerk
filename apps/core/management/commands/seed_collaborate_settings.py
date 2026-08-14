@@ -235,7 +235,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         setting, created = Setting.objects.get_or_create(
-            purpose='collaborate_webclerk',
+            purpose='wc:collaborate',
             parent_model='setting',
             defaults={
                 'ida': 'collaborate-webclerk',

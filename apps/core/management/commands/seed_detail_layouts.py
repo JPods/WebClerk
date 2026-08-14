@@ -351,7 +351,7 @@ class Command(BaseCommand):
 
         for model_name, config in models_to_seed.items():
             setting, created = Setting.objects.update_or_create(
-                purpose='detail_layout',
+                purpose='wc:detail_layout',
                 parent_model=model_name,
                 defaults={
                     'ida': f'detail-layout-{model_name}',

@@ -24,9 +24,9 @@ def _auth(user):
 @pytest.mark.django_db
 def test_line_aggregation_simple(django_user_model):
     # Allow minimal view for aggregation auth (proposal_line & order_line)
-    Setting.objects.create(purpose='view_edit', model_target='proposal_line', is_active=True,
+    Setting.objects.create(purpose='wc:view_edit', model_target='proposal_line', is_active=True,
                            data={"USER": {"view": ["id"], "edit": []}})
-    Setting.objects.create(purpose='view_edit', model_target='order_lines', is_active=True,
+    Setting.objects.create(purpose='wc:view_edit', model_target='order_lines', is_active=True,
                            data={"USER": {"view": ["id"], "edit": []}})
     parent = Proposal.objects.create(name="P1")
     # Create two lines under the same parent with mixed numeric/string extended values
@@ -50,7 +50,7 @@ def test_line_aggregation_simple(django_user_model):
 
 @pytest.mark.django_db
 def test_multi_model_permission_order_line(django_user_model):
-    Setting.objects.create(purpose='view_edit', model_target='order_lines', is_active=True,
+    Setting.objects.create(purpose='wc:view_edit', model_target='order_lines', is_active=True,
                            data={"USER": {"view": ["id", "status"], "edit": ["status"]}})
     user = django_user_model.objects.create_user(email='orderrole@example.com', password='pass12345', role='USER')
     parent = Order.objects.create(order_no="O2")
@@ -66,7 +66,7 @@ def test_multi_model_permission_order_line(django_user_model):
 @pytest.mark.django_db
 def test_public_fallback(django_user_model):
     # No USER key; should fallback to PUBLIC
-    Setting.objects.create(purpose='view_edit', model_target='proposal_line', is_active=True,
+    Setting.objects.create(purpose='wc:view_edit', model_target='proposal_line', is_active=True,
                            data={"PUBLIC": {"view": ["id", "status"], "edit": []}})
     user = django_user_model.objects.create_user(email='pub@example.com', password='pass12345', role='USER')
     parent = Proposal.objects.create(name="P2")
@@ -80,9 +80,9 @@ def test_public_fallback(django_user_model):
 
 @pytest.mark.django_db
 def test_scoped_aggregation(django_user_model):
-    Setting.objects.create(purpose='view_edit', model_target='proposal_line', is_active=True,
+    Setting.objects.create(purpose='wc:view_edit', model_target='proposal_line', is_active=True,
                            data={"USER": {"view": ["id"], "edit": []}})
-    Setting.objects.create(purpose='view_edit', model_target='invoice_line', is_active=True,
+    Setting.objects.create(purpose='wc:view_edit', model_target='invoice_line', is_active=True,
                            data={"USER": {"view": ["id"], "edit": []}})
     user = django_user_model.objects.create_user(email='scope@example.com', password='pass12345', role='USER')
     parent = Proposal.objects.create(name="P3")
@@ -105,7 +105,7 @@ def test_permissions_remaining_line_models(django_user_model):
     # Create minimal PUBLIC rule for all remaining models
     models_tables = ['invoice_line','purchase_lines','work_order_lines','requisition_line']
     for tbl in models_tables:
-        Setting.objects.create(purpose='view_edit', model_target=tbl, is_active=True,
+        Setting.objects.create(purpose='wc:view_edit', model_target=tbl, is_active=True,
                                data={"PUBLIC": {"view": ["id", "status"], "edit": []}})
     user = django_user_model.objects.create_user(email='puball@example.com', password='pass12345', role='GUEST')
     inv = Invoice.objects.create()
@@ -129,7 +129,7 @@ def test_permissions_remaining_line_models(django_user_model):
 @pytest.mark.django_db
 def test_negative_edit_error_detail(django_user_model):
     # USER can edit only status
-    Setting.objects.create(purpose='view_edit', model_target='proposal_line', is_active=True,
+    Setting.objects.create(purpose='wc:view_edit', model_target='proposal_line', is_active=True,
                            data={"USER": {"view": ["id","status","probability"], "edit": ["status"]}})
     user = django_user_model.objects.create_user(email='neg@example.com', password='pass12345', role='USER')
     parent = Proposal.objects.create(name='NP')
@@ -151,7 +151,7 @@ def test_negative_edit_error_detail(django_user_model):
 
 @pytest.mark.django_db
 def test_aggregation_invalid_model(django_user_model):
-    Setting.objects.create(purpose='view_edit', model_target='proposal_line', is_active=True,
+    Setting.objects.create(purpose='wc:view_edit', model_target='proposal_line', is_active=True,
                            data={"USER": {"view": ["id"], "edit": []}})
     user = django_user_model.objects.create_user(email='badagg@example.com', password='pass12345', role='USER')
     parent = Proposal.objects.create(name='BadAgg')
@@ -166,7 +166,7 @@ def test_aggregation_invalid_model(django_user_model):
 def test_unscoped_aggregation_breakdown(django_user_model):
     for tbl in ['proposal_line','order_lines']:
         Setting.objects.create(
-            purpose='view_edit',
+            purpose='wc:view_edit',
             model_target=tbl,
             is_active=True,
             data={"USER": {"view": ["id"], "edit": []}}
@@ -188,7 +188,7 @@ def test_unscoped_aggregation_breakdown(django_user_model):
 
 @pytest.mark.django_db
 def test_scoped_aggregation_with_breakdown_and_ttl_override(django_user_model):
-    Setting.objects.create(purpose='view_edit', model_target='proposal_line', is_active=True,
+    Setting.objects.create(purpose='wc:view_edit', model_target='proposal_line', is_active=True,
                            data={"USER": {"view": ["id"], "edit": []}})
     user = django_user_model.objects.create_user(email='scopedbd@example.com', password='pass12345', role='USER')
     proposal = Proposal.objects.create(name='SBD')
@@ -205,9 +205,9 @@ def test_scoped_aggregation_with_breakdown_and_ttl_override(django_user_model):
 
 @pytest.mark.django_db
 def test_field_auth_matrix_batch(django_user_model):
-    Setting.objects.create(purpose='view_edit', model_target='proposal_line', is_active=True,
+    Setting.objects.create(purpose='wc:view_edit', model_target='proposal_line', is_active=True,
                            data={"USER": {"view": ["id","status"], "edit": ["status"]}})
-    Setting.objects.create(purpose='view_edit', model_target='order_lines', is_active=True,
+    Setting.objects.create(purpose='wc:view_edit', model_target='order_lines', is_active=True,
                            data={"USER": {"view": ["id"], "edit": []}})
     user = django_user_model.objects.create_user(email='batch@example.com', password='pass12345', role='USER')
     client = _auth(user)
@@ -220,7 +220,7 @@ def test_field_auth_matrix_batch(django_user_model):
 
 @pytest.mark.django_db
 def test_field_auth_matrix_batch_post(django_user_model):
-    Setting.objects.create(purpose='view_edit', model_target='proposal_line', is_active=True,
+    Setting.objects.create(purpose='wc:view_edit', model_target='proposal_line', is_active=True,
                            data={"USER": {"view": ["id","status"], "edit": ["status"]}})
     user = django_user_model.objects.create_user(email='batchpost@example.com', password='pass12345', role='USER')
     client = _auth(user)

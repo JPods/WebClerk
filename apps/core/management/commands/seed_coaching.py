@@ -6,7 +6,7 @@ Usage:
     ./bin/python manage.py seed_coaching --force
 
 Creates:
-  - Setting records (purpose='alice_coaching') — one per key model with tips, field_help, etc.
+  - Setting records (purpose='wc:coaching') — one per key model with tips, field_help, etc.
   - Document records — how-to guides Alice can reference and link to
   - Action records — onboarding checklist items Alice assigns to new users
 """
@@ -500,7 +500,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.MIGRATE_HEADING('Seeding coaching Settings...'))
         s_created = s_updated = s_skipped = 0
         for model_key, content in COACHING.items():
-            existing = Setting.objects.filter(parent_model=model_key, purpose='alice_coaching').first()
+            existing = Setting.objects.filter(parent_model=model_key, purpose='wc:coaching').first()
             data = {
                 'tips': content.get('tips', []),
                 'field_help': content.get('field_help', {}),
@@ -518,7 +518,7 @@ class Command(BaseCommand):
                     existing.save()
                     s_updated += 1
                 else:
-                    Setting.objects.create(name=f'alice_coaching:{model_key}', parent_model=model_key, purpose='alice_coaching', config=data)
+                    Setting.objects.create(name=f'alice_coaching:{model_key}', parent_model=model_key, purpose='wc:coaching', config=data)
                     s_created += 1
                 self.stdout.write(f'  {model_key}: {len(data["tips"])} tips, {len(data["field_help"])} field helps')
             except Exception as e:

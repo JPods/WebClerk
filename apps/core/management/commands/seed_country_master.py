@@ -225,7 +225,7 @@ class Command(BaseCommand):
         with transaction.atomic():
             setting, created = Setting.objects.get_or_create(
                 name='country_master',
-                purpose='system',
+                purpose='wc:system',
                 defaults={
                     'ida': 'country_master',
                     'scope': 'system',

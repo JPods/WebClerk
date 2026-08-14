@@ -77,8 +77,8 @@ class Command(BaseCommand):
             return
         
         if clear and not dry_run:
-            deleted_q, _ = Setting.objects.filter(purpose='qa_questions').delete()
-            deleted_c, _ = Setting.objects.filter(purpose='qa_counters').delete()
+            deleted_q, _ = Setting.objects.filter(purpose='wc:qa_questions').delete()
+            deleted_c, _ = Setting.objects.filter(purpose='wc:qa_counters').delete()
             if deleted_q or deleted_c:
                 self.log(f"  Cleared {deleted_q} qa_questions and {deleted_c} qa_counters records")
         
@@ -115,7 +115,7 @@ class Command(BaseCommand):
             if not setting_meta:
                 # Use defaults
                 setting_meta = {
-                    'purpose': 'qa_questions',
+                    'purpose': 'wc:qa_questions',
                     'model_target': 'all',
                     'role': 'all',
                     'name': group_name,
@@ -151,7 +151,7 @@ class Command(BaseCommand):
             try:
                 with transaction.atomic():
                     setting, was_created = Setting.objects.update_or_create(
-                        purpose='qa_questions',
+                        purpose='wc:qa_questions',
                         name=group_name,
                         defaults={
                             'role': setting_meta.get('role', 'all'),
@@ -178,7 +178,7 @@ class Command(BaseCommand):
             try:
                 with transaction.atomic():
                     counters, was_created = Setting.objects.update_or_create(
-                        purpose='qa_counters',
+                        purpose='wc:qa_counters',
                         defaults={
                             'name': 'counters',
                             'role': 'all',

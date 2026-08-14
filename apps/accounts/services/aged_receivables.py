@@ -50,7 +50,7 @@ def get_company_receivables_config() -> dict:
     Setting = dj_apps.get_model('core', 'Setting')
     try:
         setting = Setting.objects.filter(
-            purpose='company_profile', parent_model='setting',
+            purpose='wc:company_profile', parent_model='setting',
         ).first()
         if setting:
             return (setting.config or {}).get('receivables', {})
@@ -133,7 +133,7 @@ def aged_receivables_report(
     company_info = {}
     try:
         cp = Setting.objects.filter(
-            purpose='company_profile', parent_model='setting',
+            purpose='wc:company_profile', parent_model='setting',
         ).first()
         if cp:
             company_info = (cp.config or {}).get('company', {})

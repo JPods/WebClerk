@@ -107,7 +107,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         setting, created = Setting.objects.get_or_create(
-            purpose='wchq_connection',
+            purpose='wc:wchq_connection',
             parent_model='setting',
             defaults={
                 'ida': 'wchq-connection',

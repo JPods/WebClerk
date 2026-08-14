@@ -36,7 +36,7 @@ class Setting(BaseModel):
             models.UniqueConstraint(
                 fields=['parent_model', 'purpose'],
                 condition=(
-                    Q(purpose='list_column_config')
+                    Q(purpose='wc:list_column_config')
                     & Q(is_active=True)
                     & Q(parent_model__isnull=False)
                     & ~Q(parent_model='')
@@ -102,7 +102,7 @@ class Setting(BaseModel):
 # - accounting_defaults: accounting/GL/tax defaults
 
 #Logic now:
-# Reads active Setting with purpose='keywords' for the documents table.
+# Reads active Setting with purpose='wc:keywords' for the documents table.
 # Accepts config.fields (list/tuple) or comma string (config.field_list fallback).
 # On create: always enqueue (unless duplicate unprocessed Pending exists).
 # On update: only enqueue if any tracked keyword field actually changed.

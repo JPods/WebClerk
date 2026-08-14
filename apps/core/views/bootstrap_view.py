@@ -24,7 +24,7 @@ class BootstrapView(APIView):
         from apps.core.models import Setting
 
         try:
-            setting = Setting.objects.get(ida='company-profile', purpose='company_profile')
+            setting = Setting.objects.get(ida='company-profile', purpose='wc:company_profile')
         except Setting.DoesNotExist:
             return Response(
                 {'status': 'error', 'message': 'Company profile not configured'},

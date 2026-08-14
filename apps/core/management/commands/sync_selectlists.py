@@ -1,5 +1,5 @@
 """
-Sync r25 select lists ↔ wc3 Setting records (purpose='admin_selectlist').
+Sync r25 select lists ↔ wc3 Setting records (purpose='wc:selectlist').
 
 Thin wrapper around common.sync_wcreact.selectlists — all data and logic lives there.
 
@@ -20,7 +20,7 @@ from common.sync_wcreact.selectlists import (
 
 
 class Command(BaseCommand):
-    help = "Sync r25 select lists ↔ wc3 Setting records (purpose='admin_selectlist')"
+    help = "Sync r25 select lists ↔ wc3 Setting records (purpose='wc:selectlist')"
 
     def add_arguments(self, parser):
         parser.add_argument(

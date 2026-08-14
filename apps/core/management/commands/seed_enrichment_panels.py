@@ -56,7 +56,7 @@ class Command(BaseCommand):
             config = schema_instance.model_dump()
 
             setting, created = Setting.objects.update_or_create(
-                purpose='enrichment_panels',
+                purpose='wc:enrichment_panels',
                 parent_model=model_name,
                 defaults={
                     'ida': f'enrichment-{model_name}',

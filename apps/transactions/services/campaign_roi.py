@@ -4,7 +4,7 @@ Campaign / Ad Source ROI Service — GAP-10
 Tracks campaign costs against leads, proposals, orders generated.
 Calculates cost per acquisition and ROI.
 
-Campaign data lives in Setting records (purpose='campaign').
+Campaign data lives in Setting records (purpose='user:campaign').
 Transaction linkage via source JSON on transaction headers.
 
 All functions single-purpose. Called from wcapi/manage.
@@ -44,7 +44,7 @@ def create_campaign(
 
     setting = Setting.objects.create(
         name=f'campaign:{name}',
-        purpose='campaign',
+        purpose='user:campaign',
         parent_model='',
         data={
             'name': name,
@@ -75,7 +75,7 @@ def record_campaign_spend(campaign_id: int, amount: Decimal, description: str = 
 
     Returns: {campaign_id, total_spent}
     """
-    setting = Setting.objects.get(pk=campaign_id, purpose='campaign')
+    setting = Setting.objects.get(pk=campaign_id, purpose='user:campaign')
     data = setting.config or {}
     spent = _dec(data.get('spent', 0)) + amount
     data['spent'] = str(spent)
@@ -93,7 +93,7 @@ def calculate_campaign_roi(campaign_id: int) -> Dict:
 
     Returns: {campaign_id, name, metrics}
     """
-    setting = Setting.objects.get(pk=campaign_id, purpose='campaign')
+    setting = Setting.objects.get(pk=campaign_id, purpose='user:campaign')
     data = setting.config or {}
     campaign_name = data.get('name', '')
 
@@ -155,7 +155,7 @@ def get_all_campaigns() -> List[Dict]:
 
     Returns: [{campaign_id, name, channel, budget, spent, metrics}]
     """
-    settings = Setting.objects.filter(purpose='campaign', is_active=True)
+    settings = Setting.objects.filter(purpose='user:campaign', is_active=True)
 
     return [{
         'campaign_id': s.pk,
@@ -172,7 +172,7 @@ def link_transaction_to_campaign(model_name: str, record_id: int, campaign_id: i
 
     Returns: {model_name, record_id, campaign_id}
     """
-    setting = Setting.objects.get(pk=campaign_id, purpose='campaign')
+    setting = Setting.objects.get(pk=campaign_id, purpose='user:campaign')
     campaign_name = (setting.config or {}).get('name', '')
 
     MODEL_MAP = {
@@ -204,14 +204,14 @@ def attribute_customer_to_campaign(customer_id: int, campaign_id: int) -> Dict:
 
     Args:
         customer_id: OrgBase PK (org_type='customer')
-        campaign_id: Setting PK (purpose='campaign')
+        campaign_id: Setting PK (purpose='user:campaign')
 
     Returns: {customer_id, campaign_id, attributed}
     """
     from apps.orgs.models import OrgBase
 
     # Verify campaign exists
-    Setting.objects.get(pk=campaign_id, purpose='campaign')
+    Setting.objects.get(pk=campaign_id, purpose='user:campaign')
 
     customer = OrgBase.objects.get(pk=customer_id)
     refs = customer.refs if isinstance(customer.refs, dict) else {}
@@ -246,7 +246,7 @@ def get_campaign_cac(campaign_id: int) -> Dict:
     """
     from apps.orgs.models import OrgBase
 
-    setting = Setting.objects.get(pk=campaign_id, purpose='campaign')
+    setting = Setting.objects.get(pk=campaign_id, purpose='user:campaign')
     data = setting.config or {}
     spent = _dec(data.get('spent', 0))
 
@@ -280,7 +280,7 @@ def get_campaign_margin_velocity(campaign_id: int) -> Dict:
     Returns: {campaign_id, name, order_count, revenue, cost, margin,
               turns, margin_velocity}
     """
-    setting = Setting.objects.get(pk=campaign_id, purpose='campaign')
+    setting = Setting.objects.get(pk=campaign_id, purpose='user:campaign')
     data = setting.config or {}
 
     # Get orders linked to campaign

@@ -342,14 +342,14 @@ def apply_pending_layouts_task() -> dict:
         try:
             setting = Setting.objects.filter(
                 parent_model=target_model,
-                purpose='workbench_fields',
+                purpose='wc:workbench_fields',
             ).first()
 
             if not setting:
                 setting = Setting.objects.create(
                     name=f'workbench_fields:{target_model}',
                     parent_model=target_model,
-                    purpose='workbench_fields',
+                    purpose='wc:workbench_fields',
                     config=view,
                 )
                 logger.info(f"[apply_pending_layouts] Created Setting #{setting.id} for {target_model}")

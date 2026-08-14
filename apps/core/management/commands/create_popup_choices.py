@@ -135,7 +135,7 @@ def _build_popup_data() -> dict:
 
 
 class Command(BaseCommand):
-    help = 'Create/update the popup_choices singleton setting (purpose=admin)'
+    help = 'Create/update the popup_choices singleton setting (purpose=wc:admin)'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -184,7 +184,7 @@ class Command(BaseCommand):
         # ── Persist setting ──────────────────────────────────────────────
         setting, created = Setting.objects.get_or_create(
             name='popup_choices',
-            purpose='admin',
+            purpose='wc:admin',
             defaults={'config': data},
         )
 
