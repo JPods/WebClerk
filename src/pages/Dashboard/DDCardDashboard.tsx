@@ -108,7 +108,9 @@ export default function DDCardDashboard({ dashboardName }: { dashboardName: stri
   // User's card selection from prefs.staff.nav.cards — falls back to dashboard default
   const staffPrefs = (user as any)?.prefs?.staff;
   const userCards: string[] | undefined = staffPrefs?.nav?.cards;
-  const cardNames = userCards ?? dashboard.cards;
+  // Support both flat 'cards' array and nested 'rows' array-of-arrays
+  const dashboardCards = dashboard.cards ?? ((dashboard as any).rows?.flat() as string[]) ?? [];
+  const cardNames = userCards ?? dashboardCards;
 
   const cardConfigs = cardNames
     .map((name) => ({ name, config: baseConfig.cards[name] }))
