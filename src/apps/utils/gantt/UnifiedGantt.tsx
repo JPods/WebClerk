@@ -79,9 +79,12 @@ export interface UnifiedGanttProps {
   
   /** Enable auto-refresh (default: true) */
   autoRefresh?: boolean;
-  
+
   /** Callback when a task is clicked */
   onTaskClick?: (task: GanttMappedTask) => void;
+
+  /** External zoom scale for chart+list area (toolbar excluded). Default 1. */
+  chartZoom?: number;
 }
 
 // =============================================================================
@@ -398,6 +401,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   className,
   autoRefresh = true,
   onTaskClick,
+  chartZoom = 1,
 }) => {
   const navigate = useNavigate();
 
@@ -426,7 +430,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   // Bottom list panel
   const [listPanelVisible, setListPanelVisible] = useState(true);
   const [highlightedTaskId, setHighlightedTaskId] = useState<number | null>(null);
-  const [ganttSplitVh, setGanttSplitVh] = useState(45);
+  const [ganttSplitVh, setGanttSplitVh] = useState(40);
   const listPanelRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll list to highlighted row when a bar is clicked
@@ -2979,7 +2983,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
           )}
           
           {/* Gantt Chart */}
-          <DualScrollbar className="min-w-0 min-h-0 flex-1 rounded-b-2xl" scrollSelector="[data-wc='GanttTimeline']">
+          <DualScrollbar className="min-w-0 min-h-0 flex-1 rounded-b-2xl" scrollSelector="[data-wc='GanttTimeline']" style={chartZoom !== 1 ? { zoom: chartZoom } : undefined}>
             {selectedProjectIds.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center">
                 <svg
@@ -3037,10 +3041,9 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
               </div>
             ) : (
               <div ref={ganttContainerRef} className="h-full w-full flex flex-col" style={{ fontSize: `${12 + ganttFontScale}px` }}>
-                {/* Timeline — 45% of viewport when list is visible, scrollable */}
+                {/* Timeline — takes remaining space above the capped list */}
                 <div
-                  className={listPanelVisible ? "shrink-0 overflow-auto" : "flex-1"}
-                  style={listPanelVisible ? { height: `${ganttSplitVh}vh` } : undefined}
+                  className="flex-1 min-h-0 overflow-auto"
                 >
                   <GanttTimeline
                     key={`${ganttKey}-fs${ganttFontScale}`}
@@ -3093,7 +3096,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                     }}
                     title="Drag to resize"
                   />
-                  <div ref={listPanelRef} className="flex-1 min-h-0 overflow-auto border-t border-gray-200 dark:border-gray-700">
+                  <div ref={listPanelRef} className="shrink-0 overflow-auto border-t border-gray-200 dark:border-gray-700" style={{ maxHeight: '10rem', ...(chartZoom !== 1 ? { zoom: 0.8 / chartZoom } : {}) }}>
                     <DataGrid
                       records={ganttData.tasks.map(t => ({
                         ...t,
