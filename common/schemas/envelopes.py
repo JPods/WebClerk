@@ -113,6 +113,7 @@ class MetadataBase(BaseModel):
     resources: dict = Field(default_factory=dict)
     versioning: VersioningInfo = Field(default_factory=VersioningInfo)
     small_stings: list = Field(default_factory=list)
+    explanation: str = ""
     audit_trail: list[AuditEntry] = Field(default_factory=list)
     import_data: Optional[ImportProvenance] = None
 

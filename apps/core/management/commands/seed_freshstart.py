@@ -62,6 +62,10 @@ SEED_SEQUENCE = [
     ('seed_report_templates',   {}),
     ('seed_template_reports',   {}),
     ('seed_print_layouts',      {}),
+
+    # DBSR explanations + health manifest (must run after all other seeds)
+    ('seed_dbsr_explanations',  {}),
+    ('seed_dbsr_document',      {}),
 ]
 
 
