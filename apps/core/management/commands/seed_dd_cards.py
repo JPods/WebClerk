@@ -279,6 +279,12 @@ DD_CARD_CONFIG = {
                 {"field": "id", "agg": "count", "label": "Count"},
             ],
         },
+        "dbsr_health": {
+            "label": "DB Health",
+            "link": "/databrowser?model=setting&view=dbsr_review",
+            "server_action": "get_dbsr_health",
+            "metrics": [],
+        },
         "project": {
             "label": "Projects",
             "link": "/project",
@@ -330,12 +336,12 @@ DD_CARD_CONFIG = {
             ],
             "default_model": "action",
         },
-        "admin": {
+        "operations": {
             "label": "Administration",
-            "route": "/admin-dashboard",
+            "route": "/administration",
             "rows": [
                 ["document", "gl_journal", "connection", "campaign"],
-                ["audit", "report", "pending"],
+                ["audit", "report", "pending", "dbsr_health"],
             ],
             "default_model": "action",
         },
