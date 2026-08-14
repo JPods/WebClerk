@@ -167,6 +167,8 @@ const QueryBuilderPanel: React.FC<QueryBuilderPanelProps> = ({
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [selectedSaved, setSelectedSaved] = useState<string>('');
   const [aliceIntent, setAliceIntent] = useState<AliceIntent>({ text: '', sent: false });
+  const [pasteText, setPasteText] = useState('');
+  const [copyFeedback, setCopyFeedback] = useState(false);
 
   // Load saved searches for this model
   useEffect(() => {
@@ -298,6 +300,43 @@ const QueryBuilderPanel: React.FC<QueryBuilderPanelProps> = ({
       // Silent — Alice observation is best-effort
     }
   }, [aliceIntent.text, model, rules, fieldBehaviors]);
+
+  const handleCopy = useCallback(() => {
+    const data = rules.filter((r) => r.field).map(({ field, operatorKey, value, combine, valueType }) => ({
+      field, op: operatorKey, value, ...(combine ? { combine } : {}), ...(valueType ? { type: valueType } : {}),
+    }));
+    const text = JSON.stringify(data, null, 2);
+    navigator.clipboard.writeText(text).then(() => {
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2000);
+    });
+  }, [rules]);
+
+  const handlePaste = useCallback(() => {
+    try {
+      const data = JSON.parse(pasteText);
+      if (!Array.isArray(data)) return;
+      const parsed: QueryRule[] = data.map((d: any, i: number) => {
+        const vt = d.type as ValueType | undefined;
+        const ops = getOperatorsForType(vt || 'text');
+        const matched = ops.find((o) => o.key === d.op) || ops[0];
+        return {
+          field: d.field || '',
+          operatorKey: matched?.key || 'eq',
+          lookup: matched?.django || 'exact',
+          value: String(d.value ?? ''),
+          combine: i === 0 ? '' : (d.combine || 'AND'),
+          valueType: vt,
+        } as QueryRule;
+      });
+      if (parsed.length > 0) {
+        setRules(parsed);
+        setPasteText('');
+      }
+    } catch {
+      // Invalid JSON — leave paste field for user to fix
+    }
+  }, [pasteText]);
 
   const handleDeleteSaved = useCallback(async () => {
     const saved = savedSearches.find((s) => s.name === selectedSaved);
@@ -437,6 +476,29 @@ const QueryBuilderPanel: React.FC<QueryBuilderPanelProps> = ({
         {selectedSaved && (
           <button className="db-btn db-btn--small db-btn--danger" onClick={handleDeleteSaved} title="Delete saved search">Del</button>
         )}
+
+        <span className="db-query-spacer" />
+
+        {/* Copy / Paste */}
+        <button className="db-btn db-btn--small" onClick={handleCopy} title="Copy query as JSON — edit externally, paste back">
+          {copyFeedback ? '✓ Copied' : 'Copy'}
+        </button>
+        <input
+          type="text"
+          className="db-query-paste-input"
+          placeholder="Paste query JSON..."
+          value={pasteText}
+          onChange={(e) => setPasteText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && pasteText.trim()) handlePaste(); }}
+        />
+        <button
+          className="db-btn db-btn--small"
+          onClick={handlePaste}
+          disabled={!pasteText.trim()}
+          title="Load pasted query"
+        >
+          Paste
+        </button>
       </div>
 
       {/* Alice intent — what are you trying to find? */}

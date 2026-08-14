@@ -433,6 +433,17 @@
   flex: 1;
 }
 
+.db-query-paste-input {
+  width: 180px;
+  background: var(--db-input-bg);
+  border: 1px solid var(--db-input-border);
+  border-radius: 3px;
+  color: var(--db-text);
+  font-size: 10px;
+  font-family: monospace;
+  padding: 3px 6px;
+}
+
 .db-query-saved {
   background: var(--db-surface-alt);
   border: 1px solid var(--db-border);
