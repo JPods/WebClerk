@@ -1014,6 +1014,13 @@ _ACTION_DISPATCH = {
     "get_contact_health": lambda p: __import__('apps.core.services.contact_health', fromlist=['get_contact_health']).get_contact_health(p),
     # ── Action Horizon ──
     "get_action_horizon": lambda p: __import__('apps.core.services.action_horizon', fromlist=['get_action_horizon']).get_action_horizon(p),
+    # ── Dashboard card summaries ──
+    "get_action_summary": lambda p: __import__('apps.core.services.action_summary', fromlist=['get_action_summary']).get_action_summary(p),
+    "get_item_summary": lambda p: __import__('apps.core.services.item_summary', fromlist=['get_item_summary']).get_item_summary(p),
+    "get_customer_summary": lambda p: __import__('apps.core.services.customer_summary', fromlist=['get_customer_summary']).get_customer_summary(p),
+    "get_vendor_summary": lambda p: __import__('apps.core.services.vendor_summary', fromlist=['get_vendor_summary']).get_vendor_summary(p),
+    "get_rep_summary": lambda p: __import__('apps.core.services.rep_summary', fromlist=['get_rep_summary']).get_rep_summary(p),
+    "get_pending_summary": lambda p: __import__('apps.core.services.pending_summary', fromlist=['get_pending_summary']).get_pending_summary(p),
     # ── Commerce Dashboard ──
     "get_sales_dashboard": lambda p: __import__('apps.core.services.commerce_dashboard', fromlist=['get_sales_dashboard']).get_sales_dashboard(p),
     "get_purchasing_dashboard": lambda p: __import__('apps.core.services.commerce_dashboard', fromlist=['get_purchasing_dashboard']).get_purchasing_dashboard(p),

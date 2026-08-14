@@ -1,0 +1,15 @@
+I want to have a standard test that every new user does. They need to have 2 screens open. One where they process transaction and another that displays 
+- the item record and its quantity.....
+- each transaction
+- each pending record
+- the item record and its quantity.... as were changed
+throught the flow from proposal to order to purchase/receipt and invoice to payment to gl
+
+Steps are
+1. make a proposal for 15 qqbb200 save -- look at console  
+2. convert the proposal to an order for 11, leaving 4 on proposal  -- console
+3. post the order to a purchase for 11 -- console
+4. receive 9 leaving 2 on_po
+5. convert order to invoice for 7, leaving 4 on_so
+6. pay the invoice with a 2% discount and a .50 cent too-trivial-to-collect
+7. process gls

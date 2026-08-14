@@ -18,8 +18,10 @@
 | Value | Frontend editor | Backend rendering | Use case |
 |-------|----------------|-------------------|----------|
 | `plain` | Textarea (12 rows) | `<pre>` with preserved whitespace | Scripts, raw text, simple notes |
-| `markdown` | @uiw/react-md-editor with edit/preview toggle | Python `markdown` library → HTML → WeasyPrint | Letters, internal reports, documentation |
-| `html` | TinyMCE (self-hosted, no API key) | HTML passthrough → WeasyPrint | Customer-facing emails, branded forms, formatted correspondence |
+| `markdown` | @uiw/react-md-editor with edit/preview toggle | Python `markdown` library → HTML | Internal notes, documentation, {{token}} preview |
+| `svg` | PrintLayoutDesigner (Export/Import SVG) | SVG populate (resolve IDs → data) | Designed print forms — invoices, POs, proposals |
+
+**Removed:** `html` (TinyMCE). WC3 is not an email or letter formatting tool. Users have Gmail, Word, Pages — WC3 provides `{{token}}` fields and data export. Users copy tokens into their own programs.
 
 ---
 
@@ -67,21 +69,11 @@ A reusable field widget that switches editor based on its `editorType` prop:
 | **ReportDisplay.tsx** | Detects `content` field, renders EditorField with record's `editor_type` |
 | **DataBrowser (3-column)** | `RecordDetailColumn.tsx` handles `kind: "editor"` — reads sibling `editor_type` from `formValues` |
 
-### TinyMCE Self-Hosting
+### npm packages
 
-TinyMCE assets live in `react-joint/public/tinymce/` (copied from node_modules at build time):
-- `tinymce.min.js`
-- `skins/`, `themes/`, `icons/`, `models/`
-
-No cloud API key. No external dependency. Loaded via `tinymceScriptSrc="/tinymce/tinymce.min.js"`.
-
-Toolbar: `undo redo | blocks | bold italic underline | bullist numlist | link table | code`
-
-### npm packages added
-
-- `@tinymce/tinymce-react` — React wrapper
-- `tinymce` — editor core (self-hosted)
 - `@uiw/react-md-editor` — Markdown editor with preview
+
+**Not installed (by design):** TinyMCE. WC3 does not format emails or letters. Users copy `{{tokens}}` into Gmail, Word, Pages, or any tool they prefer. WC3 exports data in formats those tools consume.
 
 ---
 
@@ -95,9 +87,8 @@ When a Report has non-empty `content`, the renderer uses it instead of built-in 
 |-------------|-----------|--------|
 | `plain` | Wrapped in `<pre>` | Whitespace-preserved plain text |
 | `markdown` | `markdown.markdown()` with tables + fenced_code extensions | Styled HTML |
-| `html` | Passthrough | HTML as authored in TinyMCE |
 
-All three are wrapped in the standard page template (`_BASE_CSS` + company header) and rendered to PDF via WeasyPrint.
+Both are wrapped in the standard page template (`_BASE_CSS` + company header) for internal rendering. For customer-facing output, users copy resolved tokens into their own tools.
 
 ### Python dependency
 

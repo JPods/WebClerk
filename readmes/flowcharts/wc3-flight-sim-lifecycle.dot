@@ -5,8 +5,12 @@
 digraph flight_sim {
   rankdir=TB
   compound=true
-  node [shape=box style="rounded,filled" fontsize=10 fontname="Helvetica"]
-  edge [fontsize=9 fontname="Helvetica"]
+  size="7.5,10"
+  ratio=compress
+  node [shape=box style="rounded,filled" fontsize=9 fontname="Helvetica" margin="0.1,0.05"]
+  edge [fontsize=8 fontname="Helvetica"]
+  nodesep=0.3
+  ranksep=0.4
 
   // --- Setup ---
   start [label="Setup\nItem: qqbb200\non_hand=0 on_po=0\non_so=0 available=0" fillcolor="#f0f4f8" shape=ellipse]

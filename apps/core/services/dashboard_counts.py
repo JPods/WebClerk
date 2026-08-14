@@ -39,12 +39,12 @@ MODEL_REGISTRY = {
     'requisition': 'transactions.Requisition',
     # Products
     'item': 'products.Item',
-    'products.Variant': 'products.Variant',
-    'products.BillOfMaterial': 'products.BillOfMaterial',
-    'products.Catalog': 'products.Catalog',
-    'products.Serial': 'products.Serial',
-    'products.Specification': 'products.Specification',
-    'products.Warehouse': 'products.Warehouse',
+    'variant': 'products.Variant',
+    'bill_of_material': 'products.BillOfMaterial',
+    'catalog': 'products.Catalog',
+    'serial': 'products.Serial',
+    'specification': 'products.Specification',
+    'warehouse': 'products.Warehouse',
     # Orgs
     'contact': 'core.Contact',
     'customer': 'orgs.Customer',
@@ -55,18 +55,24 @@ MODEL_REGISTRY = {
     # Admin
     'action': 'core.Action',
     'setting': 'core.Setting',
-    'core.Report': 'core.Report',
-    'docs.Document': 'docs.Document',
-    'support.Quality': 'support.Quality',
+    'report': 'core.Report',
+    'document': 'docs.Document',
+    'audit': 'accounts.Audit',
+    'project': 'transactions.Project',
+    # Accounts
+    'gl_journal': 'accounts.GlJournal',
+    'ledger': 'accounts.Ledger',
     # Sync
-    'sync.Connection': 'sync.Connection',
-    'sync.Bundle': 'sync.Bundle',
-    'conversion.ConversionProject': 'conversion.ConversionProject',
+    'connection': 'sync.Connection',
+    'bundle': 'sync.Bundle',
+    'conversion_project': 'conversion.ConversionProject',
+    # Support
+    'campaign': 'support.Campaign',
     # Communications
-    'communications.Email': 'communications.Email',
-    'communications.Phone': 'communications.Phone',
-    'communications.Address': 'communications.Address',
-    'communications.Domain': 'communications.Domain',
+    'email': 'communications.Email',
+    'phone': 'communications.Phone',
+    'address': 'communications.Address',
+    'domain': 'communications.Domain',
 }
 
 

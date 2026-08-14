@@ -15,6 +15,7 @@ from apps.core.models.setting import Setting
 
 DD_CARD_CONFIG = {
     "cards": {
+        # ── Transaction cards ──
         "order": {
             "label": "Orders",
             "link": "/order",
@@ -66,9 +67,38 @@ DD_CARD_CONFIG = {
             "filters": {"is_active": True},
             "metrics": [
                 {"field": "id", "agg": "count", "label": "Count"},
-                {"field": "amount", "agg": "sum", "label": "Total", "format": "currency"},
+                {"field": "amount", "agg": "sum", "label": "Received", "format": "currency", "filters": {"amount__gt": 0}},
+                {"field": "amount", "agg": "sum", "label": "Disbursed", "format": "currency", "filters": {"amount__lt": 0}},
             ],
         },
+        "receipt": {
+            "label": "Receipts",
+            "link": "/receipt",
+            "metrics": [
+                {"field": "id", "agg": "count", "label": "Count"},
+            ],
+        },
+        "workorder": {
+            "label": "Work Orders",
+            "link": "/workorder",
+            "filters": {"is_active": True},
+            "metrics": [
+                {"field": "id", "agg": "count", "label": "Count"},
+            ],
+            "distribution": {
+                "field": "status",
+                "type": "category",
+                "labels": ["open", "in_progress", "complete"],
+            },
+        },
+        "requisition": {
+            "label": "Requisitions",
+            "link": "/requisition",
+            "metrics": [
+                {"field": "id", "agg": "count", "label": "Count"},
+            ],
+        },
+        # ── Org cards ──
         "contact": {
             "label": "Contacts",
             "link": "/contact",
@@ -78,16 +108,14 @@ DD_CARD_CONFIG = {
         "customer": {
             "label": "Customers",
             "link": "/customer",
-            "metrics": [
-                {"field": "id", "agg": "count", "label": "Count"},
-            ],
+            "server_action": "get_customer_summary",
+            "metrics": [],
         },
         "vendor": {
             "label": "Vendors",
             "link": "/vendor",
-            "metrics": [
-                {"field": "id", "agg": "count", "label": "Count"},
-            ],
+            "server_action": "get_vendor_summary",
+            "metrics": [],
         },
         "manufacturer": {
             "label": "Manufacturers",
@@ -99,36 +127,84 @@ DD_CARD_CONFIG = {
         "rep": {
             "label": "Reps",
             "link": "/rep",
+            "server_action": "get_rep_summary",
+            "metrics": [],
+        },
+        "employee": {
+            "label": "Employees",
+            "link": "/employee",
             "metrics": [
                 {"field": "id", "agg": "count", "label": "Count"},
             ],
         },
+        # ── Product cards ──
         "item": {
             "label": "Items",
             "link": "/item",
+            "server_action": "get_item_summary",
+            "metrics": [],
+        },
+        "catalog": {
+            "label": "Catalogs",
+            "link": "/catalog",
             "metrics": [
                 {"field": "id", "agg": "count", "label": "Count"},
-                {"field": "price", "agg": "avg", "label": "Avg Price", "format": "currency"},
             ],
         },
+        "warehouse": {
+            "label": "Warehouses",
+            "link": "/warehouse",
+            "metrics": [
+                {"field": "id", "agg": "count", "label": "Count"},
+            ],
+        },
+        "serial": {
+            "label": "Serials",
+            "link": "/serial",
+            "metrics": [
+                {"field": "id", "agg": "count", "label": "Count"},
+            ],
+        },
+        "specification": {
+            "label": "Specifications",
+            "link": "/specification",
+            "metrics": [
+                {"field": "id", "agg": "count", "label": "Count"},
+            ],
+        },
+        "bill_of_material": {
+            "label": "BOM",
+            "link": "/bill_of_material",
+            "metrics": [
+                {"field": "id", "agg": "count", "label": "Count"},
+            ],
+        },
+        "variant": {
+            "label": "Variants",
+            "link": "/variant",
+            "metrics": [
+                {"field": "id", "agg": "count", "label": "Count"},
+            ],
+        },
+        # ── Action cards ──
         "action": {
             "label": "Actions",
             "link": "/action",
-            "filters": {"is_active": True},
+            "server_action": "get_action_summary",
+            "metrics": [],
+        },
+        # ── Administration cards ──
+        "document": {
+            "label": "Documents",
+            "link": "/document",
             "metrics": [
                 {"field": "id", "agg": "count", "label": "Count"},
             ],
             "distribution": {
                 "field": "status",
                 "type": "category",
-                "labels": ["open", "in_progress", "complete", "review"],
+                "labels": ["draft", "active", "archived"],
             },
-        },
-        "action_horizon": {
-            "label": "Action Horizon",
-            "link": "/action",
-            "server_action": "get_action_horizon",
-            "metrics": [],
         },
         "gl_journal": {
             "label": "GL Journal",
@@ -148,26 +224,46 @@ DD_CARD_CONFIG = {
                 {"field": "value_available", "agg": "sum", "label": "Available", "format": "currency"},
             ],
         },
-        "warehouse": {
-            "label": "Warehouses",
-            "link": "/warehouse",
+        "connection": {
+            "label": "Sync Connections",
+            "link": "/connection",
+            "metrics": [
+                {"field": "id", "agg": "count", "label": "Count"},
+            ],
+            "distribution": {
+                "field": "status",
+                "type": "category",
+                "labels": ["active", "pending", "error", "disabled"],
+            },
+        },
+        "campaign": {
+            "label": "Campaigns",
+            "link": "/campaign",
+            "metrics": [
+                {"field": "id", "agg": "count", "label": "Count"},
+                {"field": "count_customers_actual", "agg": "sum", "label": "Customers"},
+                {"field": "value_invoices", "agg": "sum", "label": "Revenue", "format": "currency"},
+            ],
+        },
+        "audit": {
+            "label": "Audit",
+            "link": "/audit",
             "metrics": [
                 {"field": "id", "agg": "count", "label": "Count"},
             ],
         },
-        "catalog": {
-            "label": "Catalogs",
-            "link": "/catalog",
+        "report": {
+            "label": "Reports",
+            "link": "/report",
             "metrics": [
                 {"field": "id", "agg": "count", "label": "Count"},
             ],
         },
-        "variant": {
-            "label": "Variants",
-            "link": "/variant",
-            "metrics": [
-                {"field": "id", "agg": "count", "label": "Count"},
-            ],
+        "pending": {
+            "label": "Pending",
+            "link": "/pending",
+            "server_action": "get_pending_summary",
+            "metrics": [],
         },
         "notification": {
             "label": "Notifications",
@@ -196,7 +292,9 @@ DD_CARD_CONFIG = {
         "sales": {
             "label": "Sales & Service",
             "route": "/dashboard",
-            "cards": ["order", "invoice", "proposal", "customer", "contact", "purchase"],
+            "rows": [
+                ["order", "invoice", "proposal", "customer", "contact", "payment", "rep"],
+            ],
             "default_model": "action",
             "quick_adds": [
                 {"label": "+ Order", "to": "/order?action=new", "accent": "blue"},
@@ -206,51 +304,47 @@ DD_CARD_CONFIG = {
                 {"label": "+ Contact", "to": "/contact?action=new", "accent": "purple"},
             ],
         },
-        "accounting": {
-            "label": "Accounting",
-            "route": "/accounting",
-            "cards": ["invoice", "payment", "ledger", "gl_journal"],
-            "default_model": "gl_journal",
-            "quick_adds": [
-                {"label": "Payments", "to": "/payment", "accent": "teal"},
-                {"label": "Expenses", "to": "/payment?filter=type:expense", "accent": "rose"},
-                {"label": "Statements", "to": "/statement_line", "accent": "orange"},
-            ],
-        },
-        "inventory": {
-            "label": "Inventory",
-            "route": "/inventory-dashboard",
-            "cards": ["item", "warehouse"],
-            "default_model": "item",
-        },
-        "operations": {
-            "label": "Operations",
-            "route": "/operations",
-            "cards": ["action", "project"],
-            "default_model": "action",
-        },
         "products": {
             "label": "Products",
             "route": "/products",
-            "cards": ["item", "catalog", "variant"],
-            "default_model": "item",
+            "rows": [
+                ["item", "catalog", "warehouse", "purchase", "workorder"],
+                ["serial", "specification", "bill_of_material"],
+            ],
+            "default_model": "action",
         },
         "transactions": {
             "label": "Transactions",
             "route": "/transactions",
-            "cards": ["order", "invoice", "proposal", "purchase"],
-            "default_model": "order",
+            "rows": [
+                ["order", "invoice", "purchase", "payment"],
+                ["proposal", "receipt", "workorder", "requisition"],
+            ],
+            "default_model": "action",
         },
         "orgs": {
             "label": "Organizations",
             "route": "/orgs",
-            "cards": ["customer", "vendor", "manufacturer", "rep"],
-            "default_model": "customer",
+            "rows": [
+                ["customer", "vendor", "manufacturer", "rep", "employee"],
+            ],
+            "default_model": "action",
+        },
+        "admin": {
+            "label": "Administration",
+            "route": "/admin-dashboard",
+            "rows": [
+                ["document", "gl_journal", "connection", "campaign"],
+                ["audit", "report", "pending"],
+            ],
+            "default_model": "action",
         },
         "alice": {
             "label": "Alice",
             "route": "/alice-dashboard",
-            "cards": ["action", "notification", "setting"],
+            "rows": [
+                ["action", "notification", "setting"],
+            ],
             "default_model": "notification",
         },
     },

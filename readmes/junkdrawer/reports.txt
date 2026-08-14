@@ -1,0 +1,53 @@
+Reports run functions on the data, and send data out of the database to be printed....
+
+We have 3 ways of 
+
+
+⏺ Handoff written. Next session picks up with:
+  1. Restart Mac
+  2. Build + deploy React                                                       
+  3. Test the Gantt zoom and App view font scaling
+  4. Then reports                                                               
+                                                                  
+  Go ahead and restart when ready. The code changes are all saved to disk.  
+
+query builder dialog
+
+
+
+
+(webClerk3) williamjames@MacBookPro webClerk3 % ./runserver.sh
+Starting Django with same-terminal auto-restart loop
+Use this command for dev: ./runserver.sh [local|remote]
+DB mode set to: local
+Starting Celery worker+beat in background...
+Celery PID: 3649 (log: logs/celery.log)
+Starting Ollama in background...
+Ollama started (PID: 3651, log: logs/ollama.log)
+
+[webClerk3] Data Set: DEV - Development Server
+[webClerk3] Database: LOCAL @ localhost:5432/commerce_expert
+
+/Users/williamjames/Documents/CommerceExpert/webClerk3/venv/lib/python3.13/site-packages/django/db/backends/utils.py:98: RuntimeWarning: Accessing the database during app initialization is discouraged. To fix this warning, avoid executing queries in AppConfig.ready() or when your app modules are imported.
+  warnings.warn(self.APPS_NOT_READY_WARNING_MSG, category=RuntimeWarning)
+
+[webClerk3] Data Set: DEV - Development Server
+[webClerk3] Database: LOCAL @ localhost:5432/commerce_expert
+
+/Users/williamjames/Documents/CommerceExpert/webClerk3/venv/lib/python3.13/site-packages/django/db/backends/utils.py:98: RuntimeWarning: Accessing the database during app initialization is discouraged. To fix this warning, avoid executing queries in AppConfig.ready() or when your app modules are imported.
+  warnings.warn(self.APPS_NOT_READY_WARNING_MSG, category=RuntimeWarning)
+Watching for file changes with StatReloader
+INFO 2026-08-14 00:11:15,813 autoreload Watching for file changes with StatReloader
+Performing system checks...
+
+
+
+
+System check identified some issues:
+
+WARNINGS:
+?: (urls.W005) URL namespace 'jpods' isn't unique. You may not be able to reverse all URLs in this namespace
+
+System check identified 1 issue (0 silenced).
+
+

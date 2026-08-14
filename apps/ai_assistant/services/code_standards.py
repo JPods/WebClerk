@@ -67,6 +67,7 @@ ANTI_PATTERNS = [
         'id': 'no-dark-mode',
         'pattern': r'(?:background|color|border):\s*["\']#[0-9a-fA-F]+["\']',
         'check': 'no_dark_variant',
+        'exclude_dirs': ['components/print', 'print/'],
         'severity': 'info',
         'message': 'Hardcoded color without dark mode variant.',
         'fix': 'Use theme object (t.bg, t.text, etc.) or add dark: prefix.',
@@ -118,6 +119,7 @@ def scan_file(filepath: str) -> list[dict]:
         return []
 
     filename = path.name
+    filepath_str = str(path)
 
     for ap in ANTI_PATTERNS:
         # Check file type filter
@@ -127,6 +129,11 @@ def scan_file(filepath: str) -> list[dict]:
 
         # Check exclusions
         if filename in ap.get('exclude_files', []):
+            continue
+
+        # Check directory exclusions (print files are always light — no dark mode needed)
+        exclude_dirs = ap.get('exclude_dirs', [])
+        if exclude_dirs and any(d in filepath_str for d in exclude_dirs):
             continue
 
         # Run pattern match
