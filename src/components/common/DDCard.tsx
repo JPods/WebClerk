@@ -6,7 +6,7 @@
  * Uses --db-* CSS variables for theme consistency.
  */
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getRecords } from "@/api/wcapi";
 import apiClient from "@/api/axios";
 
@@ -37,6 +37,7 @@ export interface DDCardConfig {
   metrics: MetricDef[];
   distribution?: DistributionDef;
   server_action?: string;  // manage endpoint action — returns pre-computed { metrics: [{label, value}] }
+  model_list?: string[];   // optional model selector — renders dropdown, navigates to databrowser with selected model
 }
 
 interface DDCardProps {
@@ -184,18 +185,11 @@ export default function DDCard({ model, config }: DDCardProps) {
   }, [model, config, dateRange]);
 
   const hasDistribution = distribution.length > 0;
+  const hasModelList = config.model_list && config.model_list.length > 0;
+  const navigate = useNavigate();
 
-  return (
-    <Link
-      to={config.link}
-      className="group block rounded border transition hover:-translate-y-[1px]"
-      style={{
-        background: "var(--db-surface)",
-        borderColor: "var(--db-border)",
-        minWidth: 160,
-        boxShadow: "3px 3px 6px rgba(0,0,0,0.3)",
-      }}
-    >
+  const cardBody = (
+    <>
       {/* Header */}
       <div
         style={{
@@ -248,6 +242,53 @@ export default function DDCard({ model, config }: DDCardProps) {
           ))}
         </div>
       )}
+
+      {/* Model selector (optional) */}
+      {hasModelList && (
+        <div style={{ padding: "2px 4px 4px", borderTop: "1px solid var(--db-border)" }}>
+          <select
+            style={{
+              width: "100%",
+              fontSize: 10,
+              padding: "1px 2px",
+              background: "var(--db-bg)",
+              color: "var(--db-text)",
+              border: "1px solid var(--db-border)",
+              borderRadius: 3,
+              cursor: "pointer",
+            }}
+            defaultValue=""
+            onClick={(e) => e.preventDefault()}
+            onChange={(e) => {
+              if (e.target.value) {
+                navigate(`/databrowser?model=${e.target.value}`);
+              }
+            }}
+          >
+            <option value="" disabled>Browse model…</option>
+            {config.model_list!.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+        </div>
+      )}
+    </>
+  );
+
+  const cardStyle = {
+    background: "var(--db-surface)",
+    borderColor: "var(--db-border)",
+    minWidth: 160,
+    boxShadow: "3px 3px 6px rgba(0,0,0,0.3)",
+  };
+
+  return (
+    <Link
+      to={config.link}
+      className="group block rounded border transition hover:-translate-y-[1px]"
+      style={cardStyle}
+    >
+      {cardBody}
     </Link>
   );
 }
