@@ -1,0 +1,83 @@
+// WC3 Flight Simulator - Transaction Lifecycle Training
+// 12-step walk-through: proposal to GL to return/scrap/refund to orphan cleanup
+// Two screens: process transactions + watch item.quantity change
+// Quantity shown TWICE per step: after save, after pending applies
+digraph flight_sim {
+  rankdir=TB
+  compound=true
+  node [shape=box style="rounded,filled" fontsize=10 fontname="Helvetica"]
+  edge [fontsize=9 fontname="Helvetica"]
+
+  // --- Setup ---
+  start [label="Setup\nItem: qqbb200\non_hand=0 on_po=0\non_so=0 available=0" fillcolor="#f0f4f8" shape=ellipse]
+
+  // --- Forward flow ---
+  subgraph cluster_forward {
+    label="Forward Flow" labeljust=l fontsize=11 fontname="Helvetica-Bold"
+    style="rounded,dashed" color="#3b82f6"
+
+    s1 [label="1. Proposal\n15x qqbb200\nNo inventory impact" fillcolor="#dbeafe"]
+    s2 [label="2. Convert to Order\n11 ordered, 4 remain\non_so=11, available=-11" fillcolor="#dbeafe"]
+    s3 [label="3. Post to Purchase\n11 on PO\non_po=11, available=0" fillcolor="#dbeafe"]
+    s4 [label="4. Receive 9\n2 remain on PO\non_hand=9, on_po=2" fillcolor="#dbeafe"]
+    s5 [label="5. Invoice for 7\n4 remain on SO\non_hand=2, on_so=4" fillcolor="#dbeafe"]
+  }
+
+  // --- Time passes ---
+  subgraph cluster_aging {
+    label="Aging Timeline" labeljust=l fontsize=11 fontname="Helvetica-Bold"
+    style="rounded,dashed" color="#f59e0b"
+
+    s6a [label="6a. Statement (15 days)\nInformational only\nNo pending, no GL" fillcolor="#fef3c7"]
+    s6b [label="6b. Late Notice (30 days)\nCreates touch + action\nStill no financial event" fillcolor="#fef3c7"]
+    s6c [label="6c. Late Fee (6 weeks)\n1.2% finance charge\nAR increases" fillcolor="#fde68a"]
+  }
+
+  // --- Payment & GL ---
+  subgraph cluster_payment {
+    label="Payment & GL" labeljust=l fontsize=11 fontname="Helvetica-Bold"
+    style="rounded,dashed" color="#22c55e"
+
+    s7 [label="7. Payment\n2% discount + $0.50 write-off\nInvoice balance = 0" fillcolor="#d1fae5"]
+    s8 [label="8. Process GLs\nAR, revenue, cash,\ndiscount, write-off,\nlate fee entries" fillcolor="#d1fae5"]
+  }
+
+  // --- Reverse flow ---
+  subgraph cluster_reverse {
+    label="Reverse Flow" labeljust=l fontsize=11 fontname="Helvetica-Bold"
+    style="rounded,dashed" color="#ef4444"
+
+    s9 [label="9. Return 1\nCredit memo\non_hand 2->3" fillcolor="#fecaca"]
+    s10 [label="10. Scrap returned item\nInventory adjustment\non_hand 3->2, loss to GL" fillcolor="#fecaca"]
+    s11 [label="11. Refund customer\nOutbound payment\nagainst credit memo" fillcolor="#fecaca"]
+  }
+
+  // --- Cleanup ---
+  s12 [label="12. Clean up orphans\nCancel 4 on proposal\nClose 4 on SO, 2 on PO\non_hand=2, available=2" fillcolor="#e0e7ff"]
+
+  done [label="Clean Books\non_hand=2\navailable=2" fillcolor="#d1fae5" shape=ellipse]
+
+  // --- Edges ---
+  start -> s1
+  s1 -> s2 [label="partial\nconvert"]
+  s2 -> s3 [label="post"]
+  s3 -> s4 [label="partial\nreceive"]
+  s4 -> s5 [label="partial\ninvoice"]
+  s5 -> s6a [label="15 days"]
+  s6a -> s6b [label="30 days"]
+  s6b -> s6c [label="6 weeks"]
+  s6c -> s7 [label="customer\npays"]
+  s7 -> s8 [label="run GL"]
+  s8 -> s9 [label="customer\nreturns 1"]
+  s9 -> s10 [label="damaged"]
+  s10 -> s11 [label="issue\nrefund"]
+  s11 -> s12 [label="clean up"]
+  s12 -> done
+
+  // --- Side annotations ---
+  pending [label="Pending Records\nStage every change\nQuantity shown TWICE:\n1. After save\n2. After pending applies" fillcolor="#f5f3ff" shape=note]
+  console [label="Console Screen\nItem quantities\nTransactions\nPending records\nGL entries" fillcolor="#f5f3ff" shape=note]
+
+  pending -> s2 [style=dotted arrowhead=none]
+  console -> s4 [style=dotted arrowhead=none]
+}
