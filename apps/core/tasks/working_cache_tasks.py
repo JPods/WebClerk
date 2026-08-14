@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
     # Purposes needed at startup for request handling.
     # Everything else is lazy-loaded when first accessed.
 STARTUP_PURPOSES = {
-    'field_access', 'schema_map', 'workbench_fields', 'db_defaults',
-    'keywords', 'search', 'detail_layout', 'admin_selectlist',
-    'model_related', 'list_column_config', 'feature',
-    'company_profile', 'react_settings',
+    'wc:field_access', 'wc:schema_map', 'wc:workbench_fields', 'wc:db_defaults',
+    'wc:keywords', 'wc:search', 'wc:detail_layout', 'wc:selectlist',
+    'wc:model_related', 'wc:list_column_config', 'wc:feature',
+    'wc:company_profile', 'wc:react_settings',
 }
 
 

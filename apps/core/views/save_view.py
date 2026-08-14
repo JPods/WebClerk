@@ -419,7 +419,7 @@ class SaveWcapiView(APIView):
         console_logger.debug(f"[SAVE_VIEW] Model resolved: {model_key} (class: {model_cls.__name__})")
 
         # Log setting saves for debugging layout persistence
-        if model_key == 'setting' and data.get('purpose') == 'workbench_fields':
+        if model_key == 'setting' and data.get('purpose') == 'wc:workbench_fields':
             _data = data.get('data', {})
             _list_preview = [f.get('field') if isinstance(f, dict) else f for f in (_data.get('list') or [])[:4]] if isinstance(_data, dict) else '?'
             console_logger.warning(f"[SAVE_VIEW] SETTING SAVE id={data.get('id')} parent_model={data.get('parent_model')} list_preview={_list_preview}")
@@ -850,7 +850,7 @@ class SaveWcapiView(APIView):
             obj.save()
             console_logger.debug(f"[SAVE_VIEW] Save completed successfully for {model_key} ID: {getattr(obj, 'id', 'new')}")
             # Verify setting save
-            if model_key == 'setting' and hasattr(obj, 'purpose') and getattr(obj, 'purpose', '') == 'workbench_fields':
+            if model_key == 'setting' and hasattr(obj, 'purpose') and getattr(obj, 'purpose', '') == 'wc:workbench_fields':
                 _saved = getattr(obj, 'data', {})
                 _list_saved = [f.get('field') if isinstance(f, dict) else f for f in (_saved.get('list') or [])[:4]] if isinstance(_saved, dict) else '?'
                 console_logger.warning(f"[SAVE_VIEW] SETTING SAVED id={obj.id} parent_model={getattr(obj, 'parent_model', '?')} list={_list_saved}")

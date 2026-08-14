@@ -49,7 +49,7 @@ def test_settings_normalizes_plural_model_name(user):
     c.force_authenticate(user=user)
 
     bad = {
-        "purpose": "view_edit",
+        "purpose": "wc:view_edit",
         "model_name": "order_lines",  # plural on purpose
         "is_active": True,
         "data": {"ADMIN": {"view": ["id"], "edit": []}},

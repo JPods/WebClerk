@@ -18,7 +18,7 @@ from django.dispatch import receiver
 
 logger = logging.getLogger(__name__)
 
-SCHEMA_PURPOSES = {'schema_map', 'enrichment_panels', 'detail_layout', 'field_access'}
+SCHEMA_PURPOSES = {'wc:schema_map', 'wc:enrichment_panels', 'wc:detail_layout', 'wc:field_access'}
 
 
 @receiver(post_save, sender='core.Setting')

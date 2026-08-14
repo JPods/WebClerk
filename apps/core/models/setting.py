@@ -89,7 +89,7 @@ class Setting(BaseModel):
 #QQQ look at documents as a model
 # we have settings record for each table that
 # lists the fields that are denormalized into .refs.keywords.
-# settings.parent_model = canonical model name and settings.purpose = keywords
+# settings.parent_model = canonical model name and settings.purpose = wc:keywords
 # settings.config contains an object listing fields
 # for the values to be denormalized into keywords.
 

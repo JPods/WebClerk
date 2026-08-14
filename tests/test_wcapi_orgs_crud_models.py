@@ -255,7 +255,7 @@ def test_wcapi_save_saved_search_requires_admin(client):
             {
                 "model_name": "setting",
                 "name": "non_admin_saved_search",
-                "purpose": "search",
+                "purpose": "wc:search",
                 "parent_model": "customer",
                 "role": "sales",
                 "data": {"keyword": "acme"},
@@ -290,7 +290,7 @@ def test_wcapi_save_saved_search_allows_admin(client):
             {
                 "model_name": "setting",
                 "name": "admin_saved_search",
-                "purpose": "search",
+                "purpose": "wc:search",
                 "parent_model": "customer",
                 "role": "sales",
                 "data": {"keyword": "acme", "filters": {"status": "active"}},
@@ -306,7 +306,7 @@ def test_wcapi_save_saved_search_allows_admin(client):
     assert setting_id is not None
 
     saved = Setting.objects.get(id=setting_id)
-    assert saved.purpose == "search"
+    assert saved.purpose == "wc:search"
     assert saved.parent_model == "customer"
 
 

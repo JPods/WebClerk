@@ -72,7 +72,7 @@ def test_view_edit_cache_invalidation(django_user_model):
 def test_setting_invalid_model_target_rejected(django_user_model):
     user = django_user_model.objects.create_user(email='invalidtbl@example.com', password='pass12345', role='ADMIN')
     client = _auth_client(user)
-    payload = {"purpose": "view_edit", "model_target": "not_a_model", "is_active": True, "data": {"ADMIN": {"view": ["id"], "edit": []}}}
+    payload = {"purpose": "wc:view_edit", "model_target": "not_a_model", "is_active": True, "data": {"ADMIN": {"view": ["id"], "edit": []}}}
     resp = client.post('/settings/', payload, format='json')  # type: ignore
     # Expect 400 with specific error
     assert resp.status_code == 400  # type: ignore[attr-defined]

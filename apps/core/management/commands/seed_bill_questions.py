@@ -67,7 +67,7 @@ class Command(BaseCommand):
             ida=cat_ida,
             defaults={
                 'name': 'Alice Observation Extra Categories',
-                'purpose': 'config',
+                'purpose': 'wc:config',
                 'parent_model': 'alice_observation',
                 'is_active': True,
                 'config': {

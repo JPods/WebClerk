@@ -96,13 +96,13 @@ def validate_schema_setting(setting) -> list[dict[str, Any]]:
     purpose = getattr(setting, 'purpose', '')
     model_name = getattr(setting, 'parent_model', '') or ''
 
-    if purpose == 'schema_map':
+    if purpose == 'wc:schema_map':
         _check_schema_inheritance(config, model_name, violations)
-    elif purpose == 'enrichment_panels':
+    elif purpose == 'wc:enrichment_panels':
         _check_enrichment_panels(config, model_name, violations)
-    elif purpose == 'detail_layout':
+    elif purpose == 'wc:detail_layout':
         _check_detail_layout(config, model_name, violations)
-    elif purpose == 'field_access':
+    elif purpose == 'wc:field_access':
         _check_field_access(config, model_name, violations)
 
     return violations
@@ -274,7 +274,7 @@ def audit_all_schema_settings(fix: bool = False) -> dict:
     Setting = apps.get_model('core', 'Setting')
 
     settings = Setting.objects.filter(
-        purpose__in=['schema_map', 'enrichment_panels', 'detail_layout', 'field_access'],
+        purpose__in=['wc:schema_map', 'wc:enrichment_panels', 'wc:detail_layout', 'wc:field_access'],
         is_active=True,
         is_deleted=False,
     ).order_by('purpose', 'parent_model')
