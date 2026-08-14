@@ -637,7 +637,9 @@ export default function DataGrid(props: DataGridProps) {
       return richCol.cell(rec);
     }
 
-    const v = richCol?.selector ? richCol.selector(rec) : rec[field];
+    const v = richCol?.selector ? richCol.selector(rec)
+      : field.includes('.') ? field.split('.').reduce((o: any, k: string) => o?.[k], rec)
+      : rec[field];
     const isEditing = editCell?.rid === rid && editCell?.field === field;
 
     if (isEditing) {
@@ -681,6 +683,7 @@ export default function DataGrid(props: DataGridProps) {
       return JSON.stringify(v).slice(0, 50);
     }
     if (Array.isArray(v)) return JSON.stringify(v).slice(0, 50);
+    if (typeof v === 'boolean') return v ? '\u2705' : '';
     const beh = fieldBehaviors[field];
     if ((spec?.format === 'currency' || beh?.type === 'currency') && typeof v === 'number') {
       const dp = beh?.precision ?? 2;
