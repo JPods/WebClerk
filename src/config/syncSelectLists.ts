@@ -3,7 +3,7 @@
  * syncSelectLists.ts — Sync editable select lists between r25 and wc3
  *
  * wc3 stores each select list as a Setting record with:
- *   - purpose: "admin_selectlist"
+ *   - purpose: "wc:selectlist"
  *   - name:    the list key (e.g. "terms", "priority")
  *   - data:    { options: SelectOption[], label: string }
  *

@@ -187,7 +187,7 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
     if (parsed.wcField && parsed.wcModel) {
       try {
         const { getRecords } = await import('@/api/wcapi');
-        const faRes = await getRecords('setting', { parent_model: parsed.wcModel, purpose: 'field_access' }) as any;
+        const faRes = await getRecords('setting', { parent_model: parsed.wcModel, purpose: 'wc:field_access' }) as any;
         const faRec = (faRes?.results || [])[0];
         const behaviors = faRec?.config?.field_behaviors || {};
         const fieldBehavior = behaviors[parsed.wcField];

@@ -163,7 +163,7 @@ function toSettingData(modelKey: string, preset: SearchPresetRecord) {
   return {
     id: preset.id,
     name: preset.name,
-    purpose: "search",
+    purpose: "wc:search",
     role: preset.role || "all",
     parent_model: preset.model_name || modelKey,
     is_active: true,
@@ -300,7 +300,7 @@ const SearchPresetDropdown: React.FC<SearchPresetDropdownProps> = ({
 
   const searchDefaults = useMemo(
     () => ({
-      purpose: "search",
+      purpose: "wc:search",
       parent_model: modelKey,
       role: "all",
       data: {
@@ -397,7 +397,7 @@ const SearchPresetDropdown: React.FC<SearchPresetDropdownProps> = ({
                         navigate(PageRoutes.coreSettingList, {
                           state: {
                             filterValues: {
-                              purpose: "search",
+                              purpose: "wc:search",
                               parent_model: modelKey,
                             },
                             filtersOpen: true,

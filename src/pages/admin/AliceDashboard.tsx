@@ -100,7 +100,7 @@ export default function AliceDashboard() {
     (async () => {
       try {
         // Coaching tips (generic system coaching)
-        const cRes = await getRecords('setting', { purpose: 'alice_coaching', limit: 10 }) as any;
+        const cRes = await getRecords('setting', { purpose: 'wc:coaching', limit: 10 }) as any;
         const coachingRecords = cRes?.results || [];
         setCoaching(coachingRecords);
 
@@ -113,7 +113,7 @@ export default function AliceDashboard() {
         setTrainingDocs(tRes?.results || []);
 
         // LLM config
-        const lRes = await getRecords('setting', { name: 'alice_llm_config', purpose: 'alice_coaching' }) as any;
+        const lRes = await getRecords('setting', { name: 'alice_llm_config', purpose: 'wc:coaching' }) as any;
         const llmRec = (lRes?.results || [])[0];
         setLlmConfig(llmRec?.config || {
           provider: 'ollama',
@@ -535,11 +535,11 @@ export default function AliceDashboard() {
                 setLlmSaving(true);
                 try {
                   const { default: apiClient } = await import('@/api/axios');
-                  const existing = await getRecords('setting', { name: 'alice_llm_config', purpose: 'alice_coaching' }) as any;
+                  const existing = await getRecords('setting', { name: 'alice_llm_config', purpose: 'wc:coaching' }) as any;
                   const existingRec = (existing?.results || [])[0];
                   await apiClient.post('/wcapi/save/', {
                     model_name: 'setting', id: existingRec?.id,
-                    name: 'alice_llm_config', purpose: 'alice_coaching',
+                    name: 'alice_llm_config', purpose: 'wc:coaching',
                     data: llmConfig,
                   });
                   alert('LLM configuration saved.');
@@ -580,11 +580,11 @@ export default function AliceDashboard() {
       <div className="mt-8 border border-gray-200 dark:border-gray-700 rounded-lg p-5 bg-gray-50 dark:bg-gray-800">
         <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-3">How to Extend Alice</h3>
         <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
-          <p><strong>Add coaching tips:</strong> Create Setting records with purpose="alice_coaching" and parent_model set to any model. Alice will show the tips when users work with that model. Tips include field_help, action guides, warnings, and code examples.</p>
+          <p><strong>Add coaching tips:</strong> Create Setting records with purpose="wc:coaching" and parent_model set to any model. Alice will show the tips when users work with that model. Tips include field_help, action guides, warnings, and code examples.</p>
           <p><strong>Submit training documents:</strong> Create Document records with model_name="system" and status="published". They appear in the Training tab. Submit useful documents for bonus credit via the Submit for Bonus page — Alice tracks adoption.</p>
           <p><strong>Create onboarding actions:</strong> Create Action records with project_name="Alice Onboarding". New users see these as their getting-started checklist.</p>
           <p><strong>Teach Alice field behaviors:</strong> Update the field_access Setting for any model to add field_behaviors — Alice uses these to know which fields are emails (mailto), phones (tel), addresses (map), selects, lookups, etc.</p>
-          <p><strong>Improve column widths:</strong> Alice watches what column widths users set and refines her recommendations. The column_widths Setting (purpose="alice_coaching") is synced from WCHQ.</p>
+          <p><strong>Improve column widths:</strong> Alice watches what column widths users set and refines her recommendations. The column_widths Setting (purpose="wc:coaching") is synced from WCHQ.</p>
           <p><strong>Configure her LLM:</strong> Use the LLM Config tab to set Alice's AI provider, model, endpoint, and system prompt. Local Ollama models work offline. Cloud providers (OpenAI, Anthropic) need API keys.</p>
           <p><strong>Ask Alice questions:</strong> Use the "Ask Alice" input below. Questions are saved as pending items. Alice reviews and responds during her coaching cycle. Over time, she learns what users need help with.</p>
           <p><strong>Capture console logs:</strong> Click "Start Capture" to log browser console output. Click "Send to Alice" to share errors and warnings. Alice uses this to identify common problems and coach proactively.</p>

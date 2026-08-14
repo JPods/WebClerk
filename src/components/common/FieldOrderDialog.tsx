@@ -162,7 +162,7 @@ export default function FieldOrderDialog({
 
     // Fetch Alice's recommended widths (synced from WCHQ via Setting)
     if (!recWidths) {
-      getRecords('setting', { name: 'column_widths', purpose: 'alice_coaching' })
+      getRecords('setting', { name: 'column_widths', purpose: 'wc:ui' })
         .then((res: any) => {
           const rec = (res?.results || [])[0];
           if (rec?.config) setRecWidths(rec.config);

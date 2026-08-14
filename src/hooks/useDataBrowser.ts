@@ -515,7 +515,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
       let ws: WorkbenchFieldsSetting | null = null;
       let wsId: number | null = null;
       try {
-        const wsRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'workbench_fields', limit: 1 }) as any;
+        const wsRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'wc:workbench_fields', limit: 1 }) as any;
         if (modelChangeRef.current !== fetchId) return;
         const wsRec = (wsRes?.results || [])[0];
         ws = wsRec?.config?.db || wsRec?.config || null;
@@ -528,7 +528,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
 
       // Load field behaviors
       try {
-        const faRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'field_access' }) as any;
+        const faRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'wc:field_access' }) as any;
         if (modelChangeRef.current !== fetchId) return;
         const faRec = (faRes?.results || [])[0];
         const behaviors = faRec?.config?.field_behaviors || {};
@@ -693,7 +693,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
           const result = await saveRecord('setting', {
             name: `workbench_fields:${model}`,
             parent_model: model,
-            purpose: 'workbench_fields',
+            purpose: 'wc:workbench_fields',
             config: { db: next },
           });
           const newId = result?.id || result?.data?.id || result?.data?.record?.id;

@@ -360,7 +360,7 @@ export function useDefaultCompany(): UseDefaultCompanyResult {
     const loadCompany = async (): Promise<CompanyInfo | null> => {
       // Primary source: singleton setting (purpose=db_defaults, name=primary_organization)
       const settingsData: any = await getRecordsWithRetry('setting', {
-        purpose: 'db_defaults',
+        purpose: 'wc:db_defaults',
         name: 'primary_organization',
         is_active: true,
         limit: 1,

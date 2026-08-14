@@ -151,7 +151,7 @@ export async function getQACounters(): Promise<QACountersData | null> {
     const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', {
       params: {
         model_name: 'setting',
-        purpose: 'qa_counters',
+        purpose: 'wc:qa_counters',
       },
     });
     const results = res.data.data.results || [];
@@ -170,7 +170,7 @@ export async function getQAQuestions(groupName: string): Promise<QAQuestionsSett
     const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', {
       params: {
         model_name: 'setting',
-        purpose: 'qa_questions',
+        purpose: 'wc:qa_questions',
         name: groupName,
       },
     });
@@ -189,7 +189,7 @@ export async function getAllQAQuestionGroups(modelTarget?: string): Promise<QAQu
   try {
     const params: Record<string, string> = {
       model_name: 'setting',
-      purpose: 'qa_questions',
+      purpose: 'wc:qa_questions',
     };
     if (modelTarget) {
       params.parent_model = modelTarget;

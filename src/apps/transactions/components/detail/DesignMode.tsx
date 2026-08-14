@@ -112,7 +112,7 @@ const DesignMode: React.FC<DesignModeProps> = ({ layout, modelName, onLayoutChan
     try {
       // Find the Setting by model_name + purpose
       const { getRecords } = await import('@/api/wcapi');
-      const res = await getRecords('setting', { parent_model: modelName, purpose: 'detail_layout', limit: 1 });
+      const res = await getRecords('setting', { parent_model: modelName, purpose: 'wc:detail_layout', limit: 1 });
       const setting = res?.results?.[0] || res?.records?.[0];
       if (setting) {
         await saveRecord('setting', { id: setting.id, config: layout });

@@ -8,11 +8,11 @@
  * Results cached in module state + localStorage fallback.
  *
  * Data loaded:
- *   - Company profile (Setting purpose='company_profile')
- *   - Select lists (Setting purpose='admin_selectlist' per model)
+ *   - Company profile (Setting purpose='wc:company_profile')
+ *   - Select lists (Setting purpose='wc:selectlist' per model)
  *   - Payment terms (Term model — for dropdowns)
  *   - Tax jurisdictions (TaxJurisdiction — for dropdowns)
- *   - Default values (Setting purpose='db_defaults')
+ *   - Default values (Setting purpose='wc:db_defaults')
  *   - Active campaigns (for source attribution dropdown)
  *   - Warehouses (for location dropdowns)
  */

@@ -102,7 +102,7 @@ export function usePrintLayout(modelName: string) {
     if (cached) { setLayout(cached); return; }
 
     setLoading(true);
-    getRecords('setting', { parent_model: modelName, purpose: 'print_layout' })
+    getRecords('setting', { parent_model: modelName, purpose: 'wc:print_layout' })
       .then((res: any) => {
         const rec = (res?.results || [])[0];
         const config = rec?.config as PrintLayout | undefined;
@@ -127,7 +127,7 @@ export async function fetchPrintLayout(modelName: string): Promise<PrintLayout> 
   if (cached) return cached;
 
   try {
-    const res = await getRecords('setting', { parent_model: modelName, purpose: 'print_layout' }) as any;
+    const res = await getRecords('setting', { parent_model: modelName, purpose: 'wc:print_layout' }) as any;
     const rec = (res?.results || [])[0];
     const config = rec?.config as PrintLayout | undefined;
     const pl = config?.sections ? config : defaultPrintLayout(modelName);

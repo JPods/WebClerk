@@ -572,7 +572,7 @@ export async function getWorkbenchFieldsSetting(
         params: {
           model_name: "setting",
           parent_model: model_name,
-          purpose: "workbench_fields",
+          purpose: "wc:workbench_fields",
         },
       },
     );
@@ -586,7 +586,7 @@ export async function getWorkbenchFieldsSetting(
           params: {
             model_name: "setting",
             parent_model: model_name,
-            purpose: "workbench_fields",
+            purpose: "wc:workbench_fields",
           },
         },
       );
@@ -891,7 +891,7 @@ export async function getAllWorkbenchFieldsSettings(): Promise<
     const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
       "/wcapi/get/",
       {
-        params: { model_name: "setting", purpose: "workbench_fields" },
+        params: { model_name: "setting", purpose: "wc:workbench_fields" },
       },
     );
     return res.data.data.results || [];
@@ -900,7 +900,7 @@ export async function getAllWorkbenchFieldsSettings(): Promise<
       const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(
         "/api/wcapi/get/",
         {
-          params: { model_name: "setting", purpose: "workbench_fields" },
+          params: { model_name: "setting", purpose: "wc:workbench_fields" },
         },
       );
       return res2.data.data.results || [];

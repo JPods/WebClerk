@@ -88,7 +88,7 @@ export function useListFieldConfig<T>(
 
       // Load field behaviors
       try {
-        const faRes = await getRecords('setting', { parent_model: modelName, purpose: 'field_access' }) as any;
+        const faRes = await getRecords('setting', { parent_model: modelName, purpose: 'wc:field_access' }) as any;
         const faRec = (faRes?.results || [])[0];
         if (faRec?.config?.field_behaviors) setFieldBehaviors(faRec.config.field_behaviors);
       } catch { /* no behaviors */ }
@@ -125,7 +125,7 @@ export function useListFieldConfig<T>(
       await saveWorkbenchFieldsSetting({
         id: existing?.id,
         model_name: modelName,
-        purpose: 'workbench_fields',
+        purpose: 'wc:workbench_fields',
         config: { ...data },
       });
     } catch (e) {

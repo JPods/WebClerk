@@ -107,7 +107,7 @@ export function useDetailLayout(modelName: string) {
       try {
         const res = await getRecords('setting', {
           parent_model: modelName,
-          purpose: 'detail_layout',
+          purpose: 'wc:detail_layout',
           limit: 1,
         });
         console.log('[useDetailLayout]', modelName, 'response:', res);

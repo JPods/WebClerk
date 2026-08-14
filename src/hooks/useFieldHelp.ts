@@ -1,5 +1,5 @@
 /**
- * useFieldHelp — lazy-fetch field help from alice_coaching Settings.
+ * useFieldHelp — lazy-fetch field help from coaching Settings.
  *
  * Fetches coaching data for a model on first access, caches in sessionStorage.
  * Provides getFieldHelp(fieldName) for Shift-for-Help tooltips.
@@ -50,7 +50,7 @@ export function useFieldHelp(model: string | undefined) {
 
     // Fetch from backend
     setLoading(true);
-    getRecords('setting', { parent_model: model, purpose: 'alice_coaching', limit: 1 })
+    getRecords('setting', { parent_model: model, purpose: 'wc:coaching', limit: 1 })
       .then((res: any) => {
         const records = res?.records || res?.results || [];
         const config = records[0]?.config || {};

@@ -65,7 +65,7 @@ export default function DDCardDashboard({ dashboardName }: { dashboardName: stri
     (async () => {
       try {
         const res = await getRecords("setting", {
-          purpose: "dd_card",
+          purpose: "wc:dd_card",
           name: "dd_card:base",
           limit: 1,
         });

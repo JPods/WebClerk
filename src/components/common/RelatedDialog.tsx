@@ -72,7 +72,7 @@ const RelatedDialog: React.FC<Props> = ({ open, model, selectedRecord, selectedR
     if (!open || !model || loaded === model) return;
     setLoading(true);
     fetchLatestSettingRecord<RelatedSettingData>({
-      purpose: 'model_related',
+      purpose: 'wc:model_related',
       parent_model: model,
     }).then((rec) => {
       setEntries(rec?.data?.related || []);

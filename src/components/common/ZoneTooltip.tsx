@@ -35,7 +35,7 @@ export default function ZoneTooltip() {
     (async () => {
       try {
         const { getRecords } = await import('@/api/wcapi');
-        const res = await getRecords('setting', { purpose: 'ui_webclerk', limit: 1 }) as any;
+        const res = await getRecords('setting', { purpose: 'wc:ui', limit: 1 }) as any;
         const setting = (res?.results || [])[0];
         if (setting?.config?.zone_tooltip_ms) {
           durationRef.current = Number(setting.config.zone_tooltip_ms) || DEFAULT_DURATION_MS;

@@ -228,7 +228,7 @@ function RelatedPanel({ modelName, parentModel, parentId, fontSize, theme }: {
 
         // 2. Fetch child model's workbench_fields Setting for db.panel
         try {
-          const wsRes = await getRecords('setting', { parent_model: modelName, purpose: 'workbench_fields', limit: 1 }) as any;
+          const wsRes = await getRecords('setting', { parent_model: modelName, purpose: 'wc:workbench_fields', limit: 1 }) as any;
           if (cancelled) return;
           const wsRec = (wsRes?.results || [])[0];
           const dbLayout = wsRec?.config?.db || wsRec?.config;

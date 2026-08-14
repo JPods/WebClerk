@@ -87,12 +87,12 @@ export default function HelpDashboard() {
         setLocalDocs(dRes?.results || []);
 
         // Coaching for this model
-        const cRes = await getRecords('setting', { parent_model: model, purpose: 'alice_coaching' }) as any;
+        const cRes = await getRecords('setting', { parent_model: model, purpose: 'wc:coaching' }) as any;
         const cData = (cRes?.results || [])[0]?.data || null;
         setCoaching(cData);
 
         // Build glossary from all coaching field_help
-        const allCoaching = await getRecords('setting', { purpose: 'alice_coaching', limit: 50 }) as any;
+        const allCoaching = await getRecords('setting', { purpose: 'wc:coaching', limit: 50 }) as any;
         const g: Record<string, string> = {};
         (allCoaching?.results || []).forEach((s: any) => {
           const fh = s.config?.field_help || {};
