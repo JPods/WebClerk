@@ -19,6 +19,7 @@ import { openUniversalPrint } from '@/components/print/UniversalPrint';
 import { fetchPrintLayout } from '@/hooks/usePrintLayout'; // fallback for reports without config.form
 import PrintLayoutDesigner from '@/components/print/PrintLayoutDesigner';
 import type { PrintLayout } from '@/components/print/printLayoutTypes';
+import TokenBuilder from './TokenBuilder';
 import './ReportsDialog.css';
 // ParadeOfReports available at /parade route — launched as a Report record, not a dialog button
 
@@ -129,6 +130,7 @@ const ReportsDialog: React.FC<Props> = ({
 
   // --- DesignMode ---
   const [designMode, setDesignMode] = useState(false);
+  const [tokenMode, setTokenMode] = useState(false);
   const [designReport, setDesignReport] = useState<ReportRecord | null>(null);
   const [designLayout, setDesignLayout] = useState<PrintLayout | null>(null);
   const [designSampleData, setDesignSampleData] = useState<any>(null);
@@ -416,10 +418,37 @@ const ReportsDialog: React.FC<Props> = ({
           <span className="rd-col-header--center">Output</span>
         </div>
 
-        {/* Body — report list */}
+        {/* Body — report list OR token builder */}
         <div className="rd-body">
 
+        {tokenMode ? (
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <TokenBuilder model={model} onClose={() => setTokenMode(false)} />
+          </div>
+        ) : (
         <div ref={listRef} className="rd-list">
+          {/* {{}} Tokens row — always first */}
+          <div
+            data-wc="reports-dialog-tokens"
+            className="rd-row"
+            onClick={() => setTokenMode(true)}
+            style={{ cursor: 'pointer' }}
+          >
+            <span className="rd-category-badge" style={{ background: '#0e7490' }}>tokens</span>
+            <div className="rd-name-cell">
+              <div className="rd-name-row">
+                <span className="rd-name-text">{'{{'} Tokens {'}}'}</span>
+              </div>
+              <div className="rd-description">Copy field tokens to paste into Gmail, Word, Pages</div>
+            </div>
+            <span className="rd-output-cell">
+              <span className="rd-output-label">
+                <span>📋</span>
+                <span>Clipboard</span>
+              </span>
+            </span>
+          </div>
+
           {loading && (
             <div className="rd-loading">Loading...</div>
           )}
@@ -482,6 +511,8 @@ const ReportsDialog: React.FC<Props> = ({
             );
           })}
         </div>
+
+        )}{/* end tokenMode ternary */}
 
         {/* Library pane — shows available forms from Andi/Alice */}
         {libraryOpen && (

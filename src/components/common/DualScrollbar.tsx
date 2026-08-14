@@ -13,6 +13,8 @@ interface DualScrollbarProps {
   scrollSelector?: string;
   /** Class name for the outer wrapper */
   className?: string;
+  /** Inline styles for the outer wrapper */
+  style?: React.CSSProperties;
   /** Whether to show the top scrollbar (default: true) */
   showTopScrollbar?: boolean;
 }
@@ -21,6 +23,7 @@ export const DualScrollbar: FC<DualScrollbarProps> = ({
   children,
   scrollSelector,
   className = "",
+  style,
   showTopScrollbar = true,
 }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -160,7 +163,7 @@ export const DualScrollbar: FC<DualScrollbarProps> = ({
   const hasHorizontalScroll = scrollWidth > clientWidth;
 
   return (
-    <div className={`flex flex-col ${className}`}>
+    <div className={`flex flex-col ${className}`} style={style}>
       {/* Top scrollbar - only visible when content overflows horizontally */}
       {showTopScrollbar && (
         <div

@@ -15,6 +15,7 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import type { PrintLayout, PrintLayoutSection, PrintField } from './printLayoutTypes';
 import { generatePrintHtml } from './UniversalPrint';
+import { generateFormSvg, downloadSvg } from './SvgFormGenerator';
 import type { ReportRecord } from '../common/ReportsDialog';
 import { getModelNames } from '@/api/wcapi';
 import './PrintLayoutDesigner.css';
@@ -235,6 +236,12 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
   const [sections, setSections] = useState<PrintLayoutSection[]>(initialLayout.sections || []);
   const [title, setTitle] = useState(initialLayout.title || report.name || '');
   const [paper, setPaper] = useState(initialLayout.paper || 'letter');
+  const [linesPage1, setLinesPage1] = useState(initialLayout.lines_page_1 || 15);
+  const [linesFollowing, setLinesFollowing] = useState(initialLayout.lines_following || 25);
+  const [maxDescLines, setMaxDescLines] = useState(initialLayout.max_description_lines || 2);
+  const [showPageNumbers, setShowPageNumbers] = useState(initialLayout.show_page_numbers ?? true);
+  const [showDomain, setShowDomain] = useState(initialLayout.show_domain ?? true);
+  const [textFormat, setTextFormat] = useState<'markdown' | 'plain'>(initialLayout.text_format || 'plain');
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
@@ -387,8 +394,15 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
     model,
     title: title || model.charAt(0).toUpperCase() + model.slice(1),
     paper: (paper as any) || 'letter',
+    lines_page_1: linesPage1,
+    lines_following: linesFollowing,
+    max_description_lines: maxDescLines,
+    show_page_numbers: showPageNumbers,
+    show_domain: showDomain,
+    text_format: textFormat,
     sections,
-  }), [model, title, paper, sections]);
+    ...((window as any).__pld_svg_template ? { svg_template: (window as any).__pld_svg_template } : {}),
+  }), [model, title, paper, linesPage1, linesFollowing, maxDescLines, showPageNumbers, showDomain, textFormat, sections]);
 
   // --- Debounced preview ---
   useEffect(() => {
@@ -421,6 +435,37 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
     }
   }, [buildLayout, onSave]);
 
+  // --- Import SVG (designed template handed back) ---
+  const svgFileRef = useRef<HTMLInputElement>(null);
+  const handleImportSvg = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const svgString = reader.result as string;
+      // Store SVG template in the layout — saved to the Setting on next Save
+      setSections(prev => prev); // trigger dirty
+      // We store the raw SVG string; buildLayout will include it
+      (window as any).__pld_svg_template = svgString;
+      setDirty(true);
+      setStatusMsg('SVG imported');
+      setTimeout(() => setStatusMsg(''), 2000);
+    };
+    reader.readAsText(file);
+    // Reset input so same file can be re-imported
+    e.target.value = '';
+  }, []);
+
+  // --- Export SVG ---
+  const handleExportSvg = useCallback(() => {
+    const layout = buildLayout();
+    const svg = generateFormSvg(layout);
+    const filename = `${model}_${title || 'form'}_template`.replace(/\s+/g, '_');
+    downloadSvg(svg, filename);
+    setStatusMsg('SVG exported');
+    setTimeout(() => setStatusMsg(''), 2000);
+  }, [buildLayout, model, title]);
+
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
@@ -445,10 +490,52 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
             <option value="legal">US Legal</option>
             <option value="a4">A4</option>
           </select>
+          <span className="pld-toolbar-sep">|</span>
+          <label className="pld-toolbar-label" title="Line item rows on page 1">
+            Pg1: <input type="number" value={linesPage1} min={1} max={50}
+              onChange={(e) => { setLinesPage1(Number(e.target.value)); setDirty(true); }}
+              className="pld-toolbar-input pld-toolbar-input--narrow" />
+          </label>
+          <label className="pld-toolbar-label" title="Line item rows on following pages">
+            Pg2+: <input type="number" value={linesFollowing} min={1} max={50}
+              onChange={(e) => { setLinesFollowing(Number(e.target.value)); setDirty(true); }}
+              className="pld-toolbar-input pld-toolbar-input--narrow" />
+          </label>
+          <label className="pld-toolbar-label" title="Max description lines before truncation">
+            Wrap: <input type="number" value={maxDescLines} min={1} max={10}
+              onChange={(e) => { setMaxDescLines(Number(e.target.value)); setDirty(true); }}
+              className="pld-toolbar-input pld-toolbar-input--narrow" />
+          </label>
+          <span className="pld-toolbar-sep">|</span>
+          <label className="pld-toolbar-label pld-toolbar-label--check">
+            <input type="checkbox" checked={showPageNumbers}
+              onChange={(e) => { setShowPageNumbers(e.target.checked); setDirty(true); }} />
+            Pg #
+          </label>
+          <label className="pld-toolbar-label pld-toolbar-label--check">
+            <input type="checkbox" checked={showDomain}
+              onChange={(e) => { setShowDomain(e.target.checked); setDirty(true); }} />
+            Domain
+          </label>
+          <select value={textFormat}
+            onChange={(e) => { setTextFormat(e.target.value as any); setDirty(true); }}
+            className="pld-toolbar-select"
+            title="Rich text format for comments/conditions"
+          >
+            <option value="plain">Plain text</option>
+            <option value="markdown">Markdown</option>
+          </select>
           {dirty && <span className="pld-unsaved">UNSAVED</span>}
           {statusMsg && <span className="pld-status">{statusMsg}</span>}
         </div>
         <div className="pld-toolbar-right">
+          <button onClick={handleExportSvg} className="pld-btn-export" title="Export SVG template for external design">
+            Export SVG
+          </button>
+          <button onClick={() => svgFileRef.current?.click()} className="pld-btn-export" title="Import designed SVG template back">
+            Import SVG
+          </button>
+          <input ref={svgFileRef} type="file" accept=".svg" onChange={handleImportSvg} style={{ display: 'none' }} />
           <button onClick={handleSave} disabled={saving || !dirty}
             className={`pld-btn-save${dirty ? ' pld-btn-save--dirty' : ''}${saving ? ' pld-btn-save--saving' : ''}`}>
             {saving ? 'Saving...' : 'Save'}

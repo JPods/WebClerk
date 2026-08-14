@@ -212,7 +212,7 @@ export const PAGE_SIZE = 50;
 // Hook
 // ---------------------------------------------------------------------------
 
-export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string) {
+export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, extraFilters?: Record<string, unknown>) {
   const [searchParams, setSearchParams] = useSearchParams();
   const routeParams = useParams<{ model?: string }>();
   const navigate = useNavigate();
@@ -235,6 +235,9 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string) 
     });
     urlFiltersRef.current = filters;
   }
+
+  // Stable key for extraFilters to avoid infinite re-fetch
+  const extraFiltersKey = useMemo(() => extraFilters ? JSON.stringify(extraFilters) : '', [extraFilters]);
 
   // --- Model list ---
   const [modelNames, setModelNames] = useState<string[]>([]);
@@ -484,6 +487,12 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string) 
           if (!params[k]) params[k] = v;
         }
       }
+      // Apply extra filters (e.g. date range from header)
+      if (extraFilters) {
+        for (const [k, v] of Object.entries(extraFilters)) {
+          if (v !== undefined && v !== null && v !== '') params[k] = v;
+        }
+      }
 
       const list = await getRecords(selectedModel, params) as { results?: unknown; total?: number };
       if (modelChangeRef.current !== fetchId) { dbLog('fetchRecords:stale (model changed)'); return; }
@@ -609,7 +618,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string) 
       dbLog.error('fetchRecords:failed', { model: selectedModel, error: msg });
     }
     finally { setRecordsLoading(false); fetchingRef.current = false; }
-  }, [selectedModel, modelNames, page, activeSearch, sort, isActiveWindow]);
+  }, [selectedModel, modelNames, page, activeSearch, sort, isActiveWindow, extraFiltersKey]);
   // NOTE: workbenchSettingsMap intentionally excluded — it changes when layouts are saved,
   // which would cause infinite re-fetch. We read it inside fetchRecords via closure.
 

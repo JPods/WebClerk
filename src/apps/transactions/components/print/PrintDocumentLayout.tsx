@@ -165,9 +165,9 @@ const PrintDocumentLayout: React.FC<PrintDocumentLayoutProps> = ({
     : import.meta.env.DEV;
 
   return (
-    <div 
+    <div
       className="print-document bg-white text-black font-sans"
-      style={{ 
+      style={{
         width: dimensions.width,
         minHeight: dimensions.height,
         padding: '0.5in',

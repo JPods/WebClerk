@@ -24,6 +24,7 @@ import { openUniversalPrint } from '../../components/print/UniversalPrint';
 import { fetchPrintLayout } from '../../hooks/usePrintLayout';
 import { PanelTable } from '../../apps/common/components/panels/PanelTable';
 import { buildColumnsFromSpecs, buildColumnsFromRecord } from '../../apps/common/components/panels/panelColumnUtils';
+import QueryBuilderPanel from '../../components/common/QueryBuilderPanel';
 import './DataBrowser.css';
 
 /** Maps DataBrowser model name → .tsx detail route (used for double-click new-tab). */
@@ -1032,7 +1033,105 @@ function GroupedDetailFields({ fields, record, fieldGroups, collapsedKeys, onTog
 const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   const { isAuthenticated, user } = useAppSelector((s) => s.auth);
   const navigate = useNavigate();
-  const db = useDataBrowser(isAuthenticated, defaultModel);
+
+  // ── Date range + Who filter (header bar) ──────────────────────────────────
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [staffFilter, setStaffFilter] = useState<number | ''>('');
+  const [staffList, setStaffList] = useState<{ id: number; name: string }[]>([]);
+
+  // Load staff list once
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await getRecords('contact', { is_staff: true, is_active: true, limit: 200 }) as any;
+        const contacts = res?.results || res || [];
+        setStaffList(
+          contacts.map((c: any) => ({
+            id: c.id,
+            name: `${c.name_first || ''} ${c.name_last || ''}`.trim() || c.ida || `#${c.id}`,
+          })).sort((a: any, b: any) => a.name.localeCompare(b.name))
+        );
+      } catch { /* staff list unavailable */ }
+    })();
+  }, []);
+
+  // Query builder filters (from Filter panel)
+  const [queryFilters, setQueryFilters] = useState<Record<string, unknown> | null>(null);
+
+  // Build extra filters from date range + who + query builder
+  const extraFilters = useMemo(() => {
+    const f: Record<string, unknown> = {};
+    if (dateFrom) {
+      f.dt_created__gte = new Date(dateFrom + 'T00:00:00').getTime();
+    }
+    if (dateTo) {
+      f.dt_created__lte = new Date(dateTo + 'T23:59:59').getTime();
+    }
+    if (staffFilter) {
+      f.contact_id = staffFilter;
+    }
+    // Merge query builder filters
+    if (queryFilters) {
+      Object.assign(f, queryFilters);
+    }
+    return Object.keys(f).length > 0 ? f : undefined;
+  }, [dateFrom, dateTo, staffFilter, queryFilters]);
+
+  const db = useDataBrowser(isAuthenticated, defaultModel, extraFilters);
+
+  // Emit date range event for DDCardDashboard to re-tally cards
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('wc3-date-range-changed', {
+      detail: { dateFrom, dateTo, staffId: staffFilter || null },
+    }));
+  }, [dateFrom, dateTo, staffFilter]);
+
+  // Date presets
+  const setDatePreset = useCallback((preset: string) => {
+    const today = new Date();
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const todayStr = iso(today);
+    switch (preset) {
+      case 'today':
+        setDateFrom(todayStr); setDateTo(todayStr); break;
+      case 'yesterday': {
+        const d = new Date(today); d.setDate(d.getDate() - 1);
+        const y = iso(d); setDateFrom(y); setDateTo(y); break;
+      }
+      case 'this_week': {
+        const d = new Date(today); d.setDate(d.getDate() - d.getDay());
+        setDateFrom(iso(d)); setDateTo(todayStr); break;
+      }
+      case 'this_month':
+        setDateFrom(`${todayStr.slice(0, 7)}-01`); setDateTo(todayStr); break;
+      case 'this_quarter': {
+        const q = Math.floor(today.getMonth() / 3) * 3;
+        setDateFrom(`${today.getFullYear()}-${String(q + 1).padStart(2, '0')}-01`);
+        setDateTo(todayStr); break;
+      }
+      case 'ytd':
+        setDateFrom(`${today.getFullYear()}-01-01`); setDateTo(todayStr); break;
+      case 'tomorrow': {
+        const d = new Date(today); d.setDate(d.getDate() + 1);
+        const t = iso(d); setDateFrom(t); setDateTo(t); break;
+      }
+      case 'next_7': {
+        const d = new Date(today); d.setDate(d.getDate() + 7);
+        setDateFrom(todayStr); setDateTo(iso(d)); break;
+      }
+      case 'next_30': {
+        const d = new Date(today); d.setDate(d.getDate() + 30);
+        setDateFrom(todayStr); setDateTo(iso(d)); break;
+      }
+      case 'next_90': {
+        const d = new Date(today); d.setDate(d.getDate() + 90);
+        setDateFrom(todayStr); setDateTo(iso(d)); break;
+      }
+      case 'clear':
+        setDateFrom(''); setDateTo(''); setStaffFilter(''); break;
+    }
+  }, []);
 
   // --- Cmd+P print shortcut ---
   useReportShortcuts({
@@ -1366,43 +1465,50 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   }, [db.savedViews, db.loadView]);
 
   return (
-    <div data-wc="databrowser" className="db-root" data-zone="db | .db-root | DataBrowser.tsx" data-theme={theme} style={{ fontSize: baseFontSize }}>
+    <div data-wc="databrowser" className="db-root" data-zone="db | .db-root | DataBrowser.tsx" data-theme={theme} style={{ fontSize: baseFontSize, ['--db-font-size' as any]: `${baseFontSize}px` }}>
 
-      {/* ═══ Header — model picker + search + global controls ═══ */}
+      {/* ═══ Header — model picker + search + date range + who ═══ */}
       <header data-wc="db-header" className="db-header" data-zone="db.header | .db-header | DataBrowser.tsx">
         <button data-wc="db-model-picker" className="db-btn db-model-picker-btn"
           onClick={() => { setShowModelPicker((p) => { const n = !p; if (n) setTimeout(() => modelInputRef.current?.focus(), 50); return n; }); }}
           title="Cmd/Ctrl+Shift+M">{db.modelLabel} <span className="db-model-count">({db.modelNames.length})</span></button>
         <input data-wc="db-search" className="db-search" type="text" placeholder="Search records..." value={db.searchTerm} onChange={(e) => db.setSearchTerm(e.target.value)} />
-        <div className="db-layout-bar">
-          <select
-            style={{ fontSize: 11, padding: '2px 4px', background: 'var(--db-surface-alt)', color: 'var(--db-text)', border: '1px solid var(--db-border)', borderRadius: 3, cursor: 'pointer' }}
-            value={db.activeViewName || ''}
-            title={db.workbenchSettingId ? `Setting #${db.workbenchSettingId}` : 'Layout'}
-            onChange={(e) => {
-              const name = e.target.value;
-              if (name === '__list_order__') { setShowLayoutDialog('list'); return; }
-              if (name === '__detail_order__') { setShowLayoutDialog('detail'); return; }
-              if (name === '__save__') { db.saveView(db.activeViewName || 'default', db.listFieldSpecs, 'list'); return; }
-              if (name === '__save_new__') { setShowSaveDialog(true); setSaveLayoutName(''); return; }
-              if (name === '__reset__') { db.resetLayout(); return; }
-              const v = db.savedViews.find(sv => sv.name === name);
-              if (v) db.loadView(v);
-            }}
-          >
-            <option value="">Layout...</option>
-            {db.savedViews.map(v => (
-              <option key={v.name} value={v.name}>{v.name}</option>
-            ))}
-            <option disabled>──────</option>
-            <option value="__list_order__">List Order...</option>
-            <option value="__detail_order__">Detail Order...</option>
-            <option disabled>──────</option>
-            <option value="__save__">Save</option>
-            <option value="__save_new__">Save As New...</option>
-            <option value="__reset__">Reset to Default</option>
-          </select>
-        </div>
+
+        {/* Date range */}
+        <input type="date" className="db-date-input" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} title="From date" />
+        <input type="date" className="db-date-input" value={dateTo} onChange={(e) => setDateTo(e.target.value)} title="To date" />
+
+        {/* Date presets */}
+        <select className="db-date-preset" value="" onChange={(e) => { if (e.target.value) setDatePreset(e.target.value); e.target.value = ''; }} title="Date presets">
+          <option value="">Range...</option>
+          <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
+          <option value="tomorrow">Tomorrow</option>
+          <option disabled>──────</option>
+          <option value="this_week">This Week</option>
+          <option value="this_month">This Month</option>
+          <option value="this_quarter">This Quarter</option>
+          <option value="ytd">YTD</option>
+          <option disabled>──────</option>
+          <option value="next_7">Next 7 Days</option>
+          <option value="next_30">Next 30 Days</option>
+          <option value="next_90">Next 90 Days</option>
+          <option disabled>──────</option>
+          <option value="clear">Clear</option>
+        </select>
+
+        {/* Who (staff filter) */}
+        <select className="db-who-filter" value={staffFilter} onChange={(e) => setStaffFilter(e.target.value ? Number(e.target.value) : '')} title="Filter by staff">
+          <option value="">All</option>
+          {staffList.map((s) => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
+
+        {/* Clear filters */}
+        {(dateFrom || dateTo || staffFilter) && (
+          <button className="db-btn db-clear-filters" onClick={() => setDatePreset('clear')} title="Clear date range and who filter">×</button>
+        )}
       </header>
 
       {/* Model picker */}
@@ -1550,6 +1656,33 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
             }
           }} />}
           <span className="db-separator">|</span>
+          <select
+            className="db-layout-select"
+            value={db.activeViewName || ''}
+            title={db.workbenchSettingId ? `Setting #${db.workbenchSettingId}` : 'Layout'}
+            onChange={(e) => {
+              const name = e.target.value;
+              if (name === '__list_order__') { setShowLayoutDialog('list'); return; }
+              if (name === '__detail_order__') { setShowLayoutDialog('detail'); return; }
+              if (name === '__save__') { db.saveView(db.activeViewName || 'default', db.listFieldSpecs, 'list'); return; }
+              if (name === '__save_new__') { setShowSaveDialog(true); setSaveLayoutName(''); return; }
+              if (name === '__reset__') { db.resetLayout(); return; }
+              const v = db.savedViews.find(sv => sv.name === name);
+              if (v) db.loadView(v);
+            }}
+          >
+            <option value="">Layout...</option>
+            {db.savedViews.map(v => (
+              <option key={v.name} value={v.name}>{v.name}</option>
+            ))}
+            <option disabled>──────</option>
+            <option value="__list_order__">List Order...</option>
+            <option value="__detail_order__">Detail Order...</option>
+            <option disabled>──────</option>
+            <option value="__save__">Save</option>
+            <option value="__save_new__">Save As New...</option>
+            <option value="__reset__">Reset to Default</option>
+          </select>
           <Btn small variant="ghost" onClick={() => setShowRelatedDialog('list')}>Related</Btn>
           <span className="db-spacer" />
           <span className="db-pagination-info">{db.totalRecords}</span>
@@ -1637,6 +1770,17 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
           </>
         )}
       </div>
+
+      {/* ═══ Query Builder Panel ═══ */}
+      {showFilters && (
+        <QueryBuilderPanel
+          fields={db.allFields}
+          fieldBehaviors={db.fieldBehaviors}
+          model={db.selectedModel}
+          onExecute={(filters) => setQueryFilters(Object.keys(filters).length > 0 ? filters : null)}
+          onClear={() => setQueryFilters(null)}
+        />
+      )}
 
       {/* ═══ Two-pane body ═══ */}
       <div className="db-main" ref={mainRef}>
@@ -1750,7 +1894,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
         {!showDedup && (db.selectedRecord || (db.selectedModel && db.totalRecords === 0 && !db.recordsLoading)) && (() => {
           const AppDetailComponent = viewPref === 'app' ? APP_DETAIL_COMPONENTS[db.selectedModel] : null;
           return (
-        <div data-wc="db-detail-pane" data-zone="db.detail | .db-detail-pane | DataBrowser.tsx" data-theme={detailTheme} className={`db-detail-pane ${viewPref === 'app' && AppDetailComponent ? 'db-detail-pane--app' : ''}`} style={{ width: detailWidth }}>
+        <div data-wc="db-detail-pane" data-zone="db.detail | .db-detail-pane | DataBrowser.tsx" data-theme={detailTheme} className={`db-detail-pane ${viewPref === 'app' && AppDetailComponent ? 'db-detail-pane--app' : ''}`} style={{ width: detailWidth, fontSize: baseFontSize, zoom: viewPref === 'app' && AppDetailComponent ? baseFontSize / 20 : undefined }}>
           {/* Glass detail toolbar removed — DetailToolbar in each ui.json component is the single source */}
           <div className="db-detail-body">
             {/* App mode: render the model's Detail.tsx component inline */}

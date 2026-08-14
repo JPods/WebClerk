@@ -61,7 +61,6 @@ export function mapJsonToOrderPrintData(json: any): {
  * US Letter (8.5" x 11") format
  */
 import React from "react";
-import "./legacy-invoice-print.css";
 import PrintDocumentLayout from "./PrintDocumentLayout";
 import { useDefaultCompany } from "@/hooks/useDefaultCompany";
 import type {

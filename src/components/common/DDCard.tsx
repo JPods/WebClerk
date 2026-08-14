@@ -133,23 +133,40 @@ export default function DDCard({ model, config }: DDCardProps) {
   const [metrics, setMetrics] = useState<{ label: string; value: string }[]>([]);
   const [distribution, setDistribution] = useState<{ label: string; count: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<{ dateFrom: string; dateTo: string; staffId: number | null }>({ dateFrom: '', dateTo: '', staffId: null });
+
+  // Listen for date range changes from DataBrowser header
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const d = (e as CustomEvent)?.detail;
+      if (d) setDateRange({ dateFrom: d.dateFrom || '', dateTo: d.dateTo || '', staffId: d.staffId || null });
+    };
+    window.addEventListener('wc3-date-range-changed', handler);
+    return () => window.removeEventListener('wc3-date-range-changed', handler);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
+        // Build date filters
+        const dateFilters: Record<string, unknown> = {};
+        if (dateRange.dateFrom) dateFilters.dt_created__gte = new Date(dateRange.dateFrom + 'T00:00:00').getTime();
+        if (dateRange.dateTo) dateFilters.dt_created__lte = new Date(dateRange.dateTo + 'T23:59:59').getTime();
+        if (dateRange.staffId) dateFilters.contact_id = dateRange.staffId;
+
         if (config.server_action) {
           // Server-computed metrics via manage endpoint
           const res = await apiClient.post("/wcapi/manage/", {
             action: config.server_action,
-            params: config.filters || {},
+            params: { ...config.filters, ...dateFilters },
           });
           const data = res.data?.data ?? res.data;
           if (!mounted) return;
           if (data?.metrics) setMetrics(data.metrics);
         } else {
           // Client-computed metrics from fetched records
-          const res = await getRecords(model, { ...config.filters, limit: 500 });
+          const res = await getRecords(model, { ...config.filters, ...dateFilters, limit: 500 });
           const records = res?.results ?? [];
           if (!mounted) return;
           setMetrics(computeMetrics(records, config.metrics));
@@ -164,7 +181,7 @@ export default function DDCard({ model, config }: DDCardProps) {
       }
     })();
     return () => { mounted = false; };
-  }, [model, config]);
+  }, [model, config, dateRange]);
 
   const hasDistribution = distribution.length > 0;
 

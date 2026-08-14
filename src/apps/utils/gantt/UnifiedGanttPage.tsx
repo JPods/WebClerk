@@ -1,70 +1,86 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+/* LastChecked: 2026-08-13 | WhereUsed: /gantt route | WhoCreated: Unknown */
 /**
  * UnifiedGanttPage - Full page wrapper for UnifiedGantt
- * 
- * Handles URL parameters for project selection and provides
- * the page layout with breadcrumb navigation.
- * 
- * URL Parameters:
- * - /gantt                    - Full page with project selector
- * - /gantt?project=123        - Pre-select single project
- * - /gantt?projects=123,456   - Pre-select multiple projects
+ *
+ * Gantt has its own +/- zoom control (chartZoom), independent of the Font selector.
+ * Zoom applies to the chart+list area only — toolbar stays at natural size.
+ * Default scale is 0.5. Persisted in localStorage.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { Link } from "react-router-dom";
 import { UnifiedGantt } from "./UnifiedGantt";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
+const GANTT_SCALE_KEY = 'wc3_gantt_scale';
+const DEFAULT_SCALE = 0.5;
+const SCALE_STEP = 0.1;
+const MIN_SCALE = 0.3;
+const MAX_SCALE = 1.5;
+
+function loadScale(): number {
+  try {
+    const v = localStorage.getItem(GANTT_SCALE_KEY);
+    if (v) { const n = parseFloat(v); if (n >= MIN_SCALE && n <= MAX_SCALE) return n; }
+  } catch {}
+  return DEFAULT_SCALE;
+}
+
 const UnifiedGanttPage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  
-  // Parse URL parameters
+
   const { projectId, initialProjectIds } = useMemo(() => {
-    // Single project: ?project=123
     const singleProject = searchParams.get("project");
-    if (singleProject) {
-      return { projectId: singleProject, initialProjectIds: [] };
-    }
-    
-    // Multiple projects: ?projects=123,456,789
+    if (singleProject) return { projectId: singleProject, initialProjectIds: [] };
     const multipleProjects = searchParams.get("projects");
     if (multipleProjects) {
       const ids = multipleProjects.split(",").map((id) => id.trim()).filter(Boolean);
       return { projectId: undefined, initialProjectIds: ids };
     }
-    
     return { projectId: undefined, initialProjectIds: [] };
   }, [searchParams]);
-  
-  // Determine page title based on mode
-  const pageTitle = projectId 
-    ? "Project Gantt Chart" 
-    : "Multi-Project Gantt";
 
-  // Font size — listen for wc3-font-size-changed from MacTopBar
-  // Scale the entire Gantt proportionally using CSS zoom relative to base 12px
-  const [fontSize, setFontSize] = useState(12);
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const size = (e as CustomEvent).detail?.size;
-      if (size) setFontSize(size);
-    };
-    window.addEventListener('wc3-font-size-changed', handler);
-    return () => window.removeEventListener('wc3-font-size-changed', handler);
-  }, []);
+  const [scale, setScale] = useState(loadScale);
 
-  const scale = fontSize / 12;
+  const adjustScale = (delta: number) => {
+    setScale(prev => {
+      const next = Math.round(Math.max(MIN_SCALE, Math.min(MAX_SCALE, prev + delta)) * 10) / 10;
+      localStorage.setItem(GANTT_SCALE_KEY, String(next));
+      return next;
+    });
+  };
 
   return (
-    <div className="space-y-1 px-2 py-1 origin-top-left" style={{ transform: `scale(${scale})`, width: `${100 / scale}%` }}>
-      <UnifiedGantt
-        projectId={projectId}
-        initialProjectIds={initialProjectIds}
-        showSelector={!projectId}
-        autoRefresh={true}
-      />
+    <div className="flex flex-col h-[calc(100vh-2rem)]">
+      {/* Zoom control — not scaled */}
+      <div className="flex items-center gap-1 px-2 py-0.5 flex-shrink-0" style={{ fontSize: 11 }}>
+        <button
+          onClick={() => adjustScale(-SCALE_STEP)}
+          disabled={scale <= MIN_SCALE}
+          className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30"
+          title="Zoom out"
+        >−</button>
+        <span className="text-gray-500 dark:text-gray-400 min-w-[3em] text-center" title="Gantt zoom level">
+          {Math.round(scale * 100)}%
+        </span>
+        <button
+          onClick={() => adjustScale(SCALE_STEP)}
+          disabled={scale >= MAX_SCALE}
+          className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30"
+          title="Zoom in"
+        >+</button>
+      </div>
+
+      {/* Gantt — chartZoom scales chart+list only, toolbar stays natural */}
+      <div className="flex-1 min-h-0">
+        <UnifiedGantt
+          projectId={projectId}
+          initialProjectIds={initialProjectIds}
+          showSelector={!projectId}
+          autoRefresh={true}
+          chartZoom={scale}
+        />
+      </div>
     </div>
   );
 };

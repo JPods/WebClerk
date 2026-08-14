@@ -54,6 +54,10 @@ export interface LineItemsSection {
   type: 'line_items';
   columns: PrintField[];
   show_footer_totals?: boolean;
+  /** SVG row height in points — used to clone and offset line panel <g> groups */
+  row_height?: number;
+  /** SVG group ID for the line panel template row (cloned per line item) */
+  svg_panel_id?: string;
 }
 
 export interface TotalsSection {
@@ -149,4 +153,33 @@ export interface PrintLayout {
   repeat_footer?: boolean;
   /** Page break between groups (data_table group_by) */
   page_break_between_groups?: boolean;
+
+  // --- Line panel pagination (runtime config — user can change these) ---
+  /** Number of line item rows on page 1 (header takes space) */
+  lines_page_1?: number;
+  /** Number of line item rows on following pages */
+  lines_following?: number;
+  /** Max description lines before truncation with ellipsis (default 2).
+   *  Each wrapped line consumes a slot from the line count budget.
+   *  Set to 1 for strict truncate behavior. */
+  max_description_lines?: number;
+
+  // --- Standard footer/header offerings (user toggles these) ---
+  /** Show "Page X of Y" in footer bottom-right */
+  show_page_numbers?: boolean;
+  /** Show domain name in footer bottom-center */
+  show_domain?: boolean;
+
+  // --- Text rendering ---
+  /** Format for rich text fields (comments, conditions, terms).
+   *  'markdown' = stored as markdown, rendered to HTML at print time.
+   *  'plain' = no formatting (default for backward compatibility).
+   *  Rendered HTML injected into SVG via <foreignObject>. */
+  text_format?: 'markdown' | 'plain';
+
+  // --- SVG template ---
+  /** SVG template string — designed externally, IDs map to field paths */
+  svg_template?: string;
+  /** SVG template for following pages (if different from page 1) */
+  svg_template_following?: string;
 }

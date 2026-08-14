@@ -74,18 +74,18 @@
     display: none;
   }
   
-  /* Ensure text is black for readability */
+  /* Ensure text uses print variables */
   .print-document p,
   .print-document span,
   .print-document td,
   .print-document th {
-    color: black !important;
+    color: var(--print-text) !important;
   }
-  
+
   /* Gray text stays visible but muted */
   .print-document .text-gray-500,
   .print-document .text-gray-600 {
-    color: #666 !important;
+    color: var(--print-text-muted) !important;
   }
 }
 
@@ -104,50 +104,16 @@
   }
 }
 
-/* Font sizing for print - ensure readability */
+/* ---------------------------------------------------------------------------
+   Print CSS Variables — structural defaults, always light.
+   Fonts and styling live in the SVG template, not here.
+   Colors are defaults for our standard print rendering (non-SVG path).
+   --------------------------------------------------------------------------- */
 .print-document {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 11px;
-  line-height: 1.4;
-}
+  --print-bg: #ffffff;
+  --print-text: #222222;
+  --print-text-muted: #666666;
+  --print-border: #cccccc;
 
-.print-document h1 {
-  font-size: 18px;
-}
-
-.print-document h2 {
-  font-size: 16px;
-}
-
-.print-document h3 {
-  font-size: 14px;
-}
-
-.print-document h4 {
-  font-size: 12px;
-}
-
-.print-document table {
-  font-size: 10px;
-}
-
-/* Compact table cells for more data per page */
-.print-document table td,
-.print-document table th {
-  padding: 2px 4px;
-}
-
-/* Right-align currency values */
-.print-document .currency,
-.print-document .amount,
-.print-document td.text-right {
-  text-align: right;
   font-variant-numeric: tabular-nums;
-}
-
-/* Signature lines */
-.print-document .signature-line {
-  border-bottom: 1px solid #333;
-  min-width: 200px;
-  display: inline-block;
 }

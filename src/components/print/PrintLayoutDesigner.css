@@ -146,6 +146,40 @@
   background: var(--db-surface-alt, #2d2d2d);
 }
 
+.pld-btn-export {
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: var(--pld-fs-sm);
+  font-weight: 600;
+  background: none;
+  border: 1px solid var(--db-accent-green, #4ec98c);
+  color: var(--db-accent-green, #4ec98c);
+}
+
+.pld-btn-export:hover {
+  background: var(--db-surface-alt, #2d2d2d);
+}
+
+.pld-toolbar-input--narrow {
+  width: 44px;
+  text-align: center;
+}
+
+.pld-toolbar-label--check {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--pld-fs-xxs);
+  color: var(--db-text-muted, #888);
+  cursor: pointer;
+}
+
+.pld-toolbar-label--check input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
 /* ---------------------------------------------------------------------------
    Panel header (shared by all panels)
    --------------------------------------------------------------------------- */

@@ -22,6 +22,8 @@ const UnifiedGanttPage = React.lazy(() => import("../apps/utils/gantt/UnifiedGan
 const JsonTreeApplet = React.lazy(() => import("../pages/tools/JsonTreeApplet"));
 const InventoryAdjust = React.lazy(() => import("../apps/products/pages/InventoryAdjust"));
 const CycleCountMobile = React.lazy(() => import("../apps/products/pages/CycleCountMobile"));
+const CustomPageLoader = React.lazy(() => import("./CustomPageLoader"));
+const TokenBuilderPage = React.lazy(() => import("./TokenBuilderPage"));
 
 // Print pages archived 2026-08-06 — all printing now via pdfme report templates
 
@@ -84,6 +86,13 @@ const Router: React.FC = () => {
           )}
           {/* /td/:model/:id — alternate record route */}
           <Route path="td/:model/:id" element={<S><TransactionDetail /></S>} />
+
+          {/* Token builder — {{field.path}} clipboard tool */}
+          <Route path="tokens" element={<TokenBuilderPage />} />
+          <Route path="tokens/:model" element={<TokenBuilderPage />} />
+
+          {/* Custom user pages — registered via Report records */}
+          <Route path="custom/:page" element={<S><CustomPageLoader /></S>} />
 
           {/* /:model — any model name → DataBrowser list */}
           <Route path=":model" element={<DataBrowser />} />
