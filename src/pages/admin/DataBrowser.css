@@ -249,6 +249,233 @@
 }
 
 /* ---------------------------------------------------------------------------
+   Date range + Who filter (header bar)
+   --------------------------------------------------------------------------- */
+
+.db-date-input {
+  background: var(--db-input-bg);
+  border: 1px solid var(--db-input-border);
+  border-radius: 4px;
+  color: var(--db-text);
+  padding: 3px 6px;
+  font-size: 11px;
+  outline: none;
+  width: 120px;
+}
+
+.db-date-input:focus {
+  border-color: var(--db-accent);
+}
+
+.db-date-preset,
+.db-who-filter,
+.db-layout-select {
+  background: var(--db-surface-alt);
+  border: 1px solid var(--db-border);
+  border-radius: 3px;
+  color: var(--db-text);
+  padding: 2px 4px;
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+}
+
+.db-date-preset:focus,
+.db-who-filter:focus,
+.db-layout-select:focus {
+  border-color: var(--db-accent);
+}
+
+.db-who-filter {
+  max-width: 140px;
+}
+
+.db-clear-filters {
+  padding: 2px 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--db-text-muted);
+  background: transparent;
+  border: 1px solid var(--db-border);
+  border-radius: 3px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.db-clear-filters:hover {
+  color: var(--db-accent-red);
+  border-color: var(--db-accent-red);
+}
+
+/* ---------------------------------------------------------------------------
+   Query Builder Panel
+   --------------------------------------------------------------------------- */
+
+.db-query-panel {
+  background: var(--db-surface-alt);
+  border-bottom: 1px solid var(--db-border);
+  padding: 6px 12px;
+}
+
+.db-query-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.db-query-combine-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--db-text-muted);
+  width: 48px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.db-query-combine {
+  width: 48px;
+  flex-shrink: 0;
+  background: var(--db-input-bg);
+  border: 1px solid var(--db-input-border);
+  border-radius: 3px;
+  color: var(--db-text);
+  font-size: 10px;
+  padding: 2px 2px;
+  cursor: pointer;
+}
+
+.db-query-field {
+  flex: 1;
+  max-width: 200px;
+  background: var(--db-input-bg);
+  border: 1px solid var(--db-input-border);
+  border-radius: 3px;
+  color: var(--db-text);
+  font-size: 11px;
+  padding: 3px 4px;
+  cursor: pointer;
+}
+
+.db-query-type {
+  width: 70px;
+  flex-shrink: 0;
+  background: var(--db-input-bg);
+  border: 1px solid var(--db-input-border);
+  border-radius: 3px;
+  color: var(--db-text-muted);
+  font-size: 10px;
+  padding: 3px 4px;
+  cursor: pointer;
+}
+
+.db-query-operator {
+  width: 130px;
+  flex-shrink: 0;
+  background: var(--db-input-bg);
+  border: 1px solid var(--db-input-border);
+  border-radius: 3px;
+  color: var(--db-text);
+  font-size: 11px;
+  padding: 3px 4px;
+  cursor: pointer;
+}
+
+.db-query-value {
+  flex: 1;
+  max-width: 200px;
+  background: var(--db-input-bg);
+  border: 1px solid var(--db-input-border);
+  border-radius: 3px;
+  color: var(--db-text);
+  font-size: 11px;
+  padding: 3px 6px;
+  outline: none;
+}
+
+.db-query-value:focus {
+  border-color: var(--db-accent);
+}
+
+.db-query-value-placeholder {
+  flex: 1;
+  max-width: 200px;
+}
+
+.db-query-remove {
+  background: transparent;
+  border: 1px solid var(--db-border);
+  border-radius: 3px;
+  color: var(--db-text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 1px 6px;
+  line-height: 1;
+}
+
+.db-query-remove:hover {
+  color: var(--db-accent-red);
+  border-color: var(--db-accent-red);
+}
+
+.db-query-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--db-border);
+}
+
+.db-query-spacer {
+  flex: 1;
+}
+
+.db-query-saved {
+  background: var(--db-surface-alt);
+  border: 1px solid var(--db-border);
+  border-radius: 3px;
+  color: var(--db-text);
+  font-size: 11px;
+  padding: 2px 4px;
+  cursor: pointer;
+  max-width: 160px;
+}
+
+.db-query-alice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--db-border);
+}
+
+.db-query-alice-input {
+  flex: 1;
+  background: var(--db-input-bg);
+  border: 1px solid var(--db-input-border);
+  border-radius: 4px;
+  color: var(--db-text);
+  font-size: 11px;
+  padding: 4px 8px;
+  outline: none;
+  font-style: italic;
+}
+
+.db-query-alice-input:focus {
+  border-color: var(--db-accent);
+  font-style: normal;
+}
+
+.db-query-alice-input::placeholder {
+  color: var(--db-text-dim);
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------------------
    Main content area
    --------------------------------------------------------------------------- */
 

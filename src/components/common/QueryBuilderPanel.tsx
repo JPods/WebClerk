@@ -18,12 +18,15 @@ interface AliceIntent {
   sent: boolean;
 }
 
+export type ValueType = 'text' | 'number' | 'date' | 'boolean' | 'json';
+
 export interface QueryRule {
   field: string;
   lookup: string;       // Django lookup suffix
   operatorKey: string;  // internal key (for operator label display)
   value: string;
   combine: '' | 'AND' | 'OR';
+  valueType?: ValueType; // user override — when set, controls operators + input widget
 }
 
 interface SavedSearch {
@@ -42,7 +45,15 @@ interface QueryBuilderPanelProps {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-const EMPTY_RULE: QueryRule = { field: '', lookup: 'exact', operatorKey: 'eq', value: '', combine: '' };
+const EMPTY_RULE: QueryRule = { field: '', lookup: 'exact', operatorKey: 'eq', value: '', combine: '', valueType: undefined };
+
+const VALUE_TYPE_OPTIONS: { value: ValueType; label: string }[] = [
+  { value: 'text', label: 'Text' },
+  { value: 'number', label: 'Number' },
+  { value: 'date', label: 'Date' },
+  { value: 'boolean', label: 'Boolean' },
+  { value: 'json', label: 'JSON' },
+];
 
 // Known JSON/array fields — add here as needed
 const JSON_FIELD_NAMES = new Set([
@@ -73,9 +84,13 @@ function getFieldType(field: string, behaviors: Record<string, any>): string {
   return 'text';
 }
 
+function getOperatorsForType(type: string): FilterOperator[] {
+  return OPERATORS_BY_TYPE[type] || OPERATORS_BY_TYPE.text;
+}
+
 function getOperatorsForField(field: string, behaviors: Record<string, any>): FilterOperator[] {
   const type = getFieldType(field, behaviors);
-  return OPERATORS_BY_TYPE[type] || OPERATORS_BY_TYPE.text;
+  return getOperatorsForType(type);
 }
 
 function rulesToParams(rules: QueryRule[], behaviors: Record<string, any>): Record<string, unknown> {
@@ -85,7 +100,7 @@ function rulesToParams(rules: QueryRule[], behaviors: Record<string, any>): Reco
   for (const rule of rules) {
     if (!rule.field || (!rule.value && rule.operatorKey !== 'empty' && rule.operatorKey !== 'notempty')) continue;
 
-    const fieldType = getFieldType(rule.field, behaviors);
+    const fieldType = rule.valueType || getFieldType(rule.field, behaviors);
 
     // Handle special operators
     if (rule.operatorKey === 'empty') {
@@ -181,14 +196,27 @@ const QueryBuilderPanel: React.FC<QueryBuilderPanelProps> = ({
       const next = [...prev];
       next[index] = { ...next[index], ...updates };
 
-      // When field changes, reset operator to first valid for that type
+      // When field changes, auto-detect type and reset operator
       if (updates.field && updates.field !== prev[index].field) {
-        const ops = getOperatorsForField(updates.field, fieldBehaviors);
+        const detectedType = getFieldType(updates.field, fieldBehaviors) as ValueType;
+        next[index].valueType = detectedType;
+        const ops = getOperatorsForType(detectedType);
         if (ops.length > 0) {
           next[index].lookup = ops[0].django;
           next[index].operatorKey = ops[0].key;
         }
       }
+
+      // When valueType is explicitly changed, reset operator
+      if (updates.valueType && updates.valueType !== prev[index].valueType) {
+        const ops = getOperatorsForType(updates.valueType);
+        if (ops.length > 0) {
+          next[index].lookup = ops[0].django;
+          next[index].operatorKey = ops[0].key;
+        }
+        next[index].value = '';
+      }
+
       return next;
     });
   }, [fieldBehaviors]);
@@ -289,8 +317,8 @@ const QueryBuilderPanel: React.FC<QueryBuilderPanelProps> = ({
     <div className="db-query-panel">
       {/* Rules */}
       {rules.map((rule, i) => {
-        const ops = rule.field ? getOperatorsForField(rule.field, fieldBehaviors) : [];
-        const fieldType = rule.field ? getFieldType(rule.field, fieldBehaviors) : 'text';
+        const activeType = rule.valueType || (rule.field ? getFieldType(rule.field, fieldBehaviors) as ValueType : 'text');
+        const ops = rule.field ? getOperatorsForType(activeType) : [];
         const needsValue = rule.operatorKey !== 'empty' && rule.operatorKey !== 'notempty';
 
         return (
@@ -321,6 +349,19 @@ const QueryBuilderPanel: React.FC<QueryBuilderPanelProps> = ({
               ))}
             </select>
 
+            {/* Type override — user can change how the field is searched */}
+            <select
+              className="db-query-type"
+              value={activeType}
+              onChange={(e) => updateRule(i, { valueType: e.target.value as ValueType })}
+              disabled={!rule.field}
+              title="Value type — change if auto-detection is wrong"
+            >
+              {VALUE_TYPE_OPTIONS.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+
             {/* Operator */}
             <select
               className="db-query-operator"
@@ -336,9 +377,9 @@ const QueryBuilderPanel: React.FC<QueryBuilderPanelProps> = ({
               ))}
             </select>
 
-            {/* Value */}
+            {/* Value — input widget matches activeType */}
             {needsValue && (
-              fieldType === 'boolean' ? (
+              activeType === 'boolean' ? (
                 <select
                   className="db-query-value"
                   value={rule.value}
@@ -347,7 +388,7 @@ const QueryBuilderPanel: React.FC<QueryBuilderPanelProps> = ({
                   <option value="true">True</option>
                   <option value="false">False</option>
                 </select>
-              ) : fieldType === 'date' ? (
+              ) : activeType === 'date' ? (
                 <input
                   type="date"
                   className="db-query-value"
@@ -356,10 +397,10 @@ const QueryBuilderPanel: React.FC<QueryBuilderPanelProps> = ({
                 />
               ) : (
                 <input
-                  type={fieldType === 'number' ? 'number' : 'text'}
+                  type={activeType === 'number' ? 'number' : 'text'}
                   className="db-query-value"
                   value={rule.value}
-                  placeholder="Value..."
+                  placeholder={activeType === 'json' ? 'Search in JSON...' : 'Value...'}
                   onChange={(e) => updateRule(i, { value: e.target.value })}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleExecute(); }}
                 />
