@@ -4,12 +4,12 @@
  * Includes photo/video upload for job site documentation and QA.
  * Used in Gantt and Kanban to view/edit actions without covering the workspace.
  */
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { DynamicDetail } from "../../../../../components/common/DynamicDetail";
 import type { DynamicDetailActions } from "../../../../../components/common/DynamicDetail";
 import { DetailToolbar } from "../../../../../components/common/DetailToolbar";
-import { FileUploadPanel } from "../../../../../components/common/FileUploadPanel";
-import { deleteRecord } from "../../../../../api/wcapi";
+import { deleteRecord, getRecords } from "../../../../../api/wcapi";
+import { formatDt } from "@/utils/fieldFormatters";
 import { useDispatch } from "react-redux";
 import { showToast } from "@/store/slices/toastSlice";
 
@@ -25,11 +25,20 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [, forceUpdate] = useState(0);
+  const [touches, setTouches] = useState<any[]>([]);
+  const [showTouches, setShowTouches] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const resizeRef = useRef<{ startX: number; startY: number; origW: number; origH: number } | null>(null);
   const windowRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<DynamicDetailActions | null>(null);
   const dispatch = useDispatch();
+
+  // Fetch touch records for this action
+  useEffect(() => {
+    getRecords('touch', { action: actionId }).then((res: any) => {
+      setTouches(res?.records || res?.results || []);
+    }).catch(() => {});
+  }, [actionId]);
 
   const handleDelete = useCallback(async () => {
     if (!confirmDelete) {
@@ -123,6 +132,17 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
         <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
           Action #{actionId}
         </span>
+        <button
+          onClick={() => setShowTouches(!showTouches)}
+          className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
+            touches.length > 0
+              ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-800'
+              : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'
+          }`}
+          title={`${touches.length} touch record${touches.length !== 1 ? 's' : ''}`}
+        >
+          📞 {touches.length}
+        </button>
         <span className="flex-1" />
         <button onClick={onClose}
           className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-sm px-1"
@@ -142,6 +162,43 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
         onDelete={handleDelete}
       />
 
+      {/* Touch records panel */}
+      {showTouches && touches.length > 0 && (
+        <div className="shrink-0 max-h-48 overflow-y-auto border-b border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-950/30 px-3 py-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+              Touches ({touches.length})
+            </span>
+            <button
+              onClick={() => setShowTouches(false)}
+              className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >×</button>
+          </div>
+          <table className="w-full text-[11px]">
+            <thead>
+              <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-amber-200 dark:border-amber-800">
+                <th className="py-0.5 pr-2">Date</th>
+                <th className="py-0.5 pr-2">Channel</th>
+                <th className="py-0.5 pr-2">Dir</th>
+                <th className="py-0.5">Subject</th>
+              </tr>
+            </thead>
+            <tbody>
+              {touches.map((t: any) => (
+                <tr key={t.id} className="border-b border-amber-100 dark:border-amber-900/50">
+                  <td className="py-0.5 pr-2 whitespace-nowrap text-gray-600 dark:text-gray-300">
+                    {t.dt_created ? formatDt(t.dt_created, 'date') : '—'}
+                  </td>
+                  <td className="py-0.5 pr-2 text-gray-700 dark:text-gray-200">{t.channel || '—'}</td>
+                  <td className="py-0.5 pr-2 text-gray-500 dark:text-gray-400">{t.direction === 'in' ? '←' : '→'}</td>
+                  <td className="py-0.5 text-gray-700 dark:text-gray-200 truncate max-w-[200px]">{t.subject || t.summary?.slice(0, 60) || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-3 py-2">
         <DynamicDetail
@@ -153,13 +210,6 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
           onActionsReady={() => forceUpdate(n => n + 1)}
         />
 
-        {/* File upload — creates Document record per file */}
-        <FileUploadPanel
-          modelName="action"
-          recordId={actionId}
-          recordIda={actions?.ida}
-          className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700"
-        />
       </div>
 
       {/* Resize handle — bottom right corner */}

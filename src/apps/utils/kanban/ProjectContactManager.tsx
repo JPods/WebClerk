@@ -15,10 +15,20 @@ import { withDevIdentifier } from '@/components/common/DevIdentifier';
  * - Other users can view but not modify the list
  */
 
-// Contact as stored in project.refs.links.contact
+// Authority levels for project access
+export type ProjectAuthority = 'read_only' | 'read_write' | 'add_to_comment';
+
+const AUTHORITY_OPTIONS: { value: ProjectAuthority; label: string; desc: string }[] = [
+  { value: 'read_only', label: 'View', desc: 'See Gantt & Kanban' },
+  { value: 'read_write', label: 'Edit', desc: 'Update actions' },
+  { value: 'add_to_comment', label: 'Comment', desc: 'Add comments only' },
+];
+
+// Contact as stored in project.refs.links.contacts
 export interface ProjectContact {
   id: number | string;
   attention?: string;
+  authority?: ProjectAuthority;
 }
 
 // Full contact record from API
@@ -138,8 +148,16 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
     if (!canEdit) return;
     setContacts((prev) => [
       ...prev,
-      { id: contact.id, attention: contact.attention },
+      { id: contact.id, attention: contact.attention, authority: 'read_only' as ProjectAuthority },
     ]);
+  };
+
+  // Change authority level for a contact
+  const handleChangeAuthority = (contactId: number | string, authority: ProjectAuthority) => {
+    if (!canEdit) return;
+    setContacts((prev) => prev.map((c) =>
+      String(c.id) === String(contactId) ? { ...c, authority } : c
+    ));
   };
 
   // Remove a contact from the project
@@ -155,14 +173,15 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
     setSaveError(null);
 
     try {
-      // Build the payload to update project.refs.links.contact
+      // Build the payload to update project.refs.links.contacts (with authority)
       const payload = {
         project_id: Number(projectId),
         refs: {
           links: {
-            contact: contacts.map((c) => ({
+            contacts: contacts.map((c) => ({
               id: Number(c.id),
               attention: c.attention || "",
+              authority: c.authority || "read_only",
             })),
           },
         },
@@ -183,11 +202,14 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
     }
   };
 
-  // Check if there are unsaved changes
+  // Check if there are unsaved changes (ids or authority)
   const hasChanges = useMemo(() => {
     if (contacts.length !== currentContacts.length) return true;
-    const currentIds = new Set(currentContacts.map((c) => String(c.id)));
-    return contacts.some((c) => !currentIds.has(String(c.id)));
+    const currentMap = new Map(currentContacts.map((c) => [String(c.id), c.authority || 'read_only']));
+    return contacts.some((c) => {
+      const prev = currentMap.get(String(c.id));
+      return prev === undefined || prev !== (c.authority || 'read_only');
+    });
   }, [contacts, currentContacts]);
 
   if (!isOpen) return null;
@@ -238,16 +260,35 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
                 {contacts.map((contact) => (
                   <div
                     key={contact.id}
-                    className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 dark:border-gray-700 dark:bg-gray-800"
+                    className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 dark:border-gray-700 dark:bg-gray-800"
                   >
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <span className="text-sm font-medium text-gray-900 dark:text-white">
                         {contact.attention || `Contact #${contact.id}`}
                       </span>
                       <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
-                        ID: {contact.id}
+                        #{contact.id}
                       </span>
                     </div>
+                    {canEdit ? (
+                      <select
+                        value={contact.authority || 'read_only'}
+                        onChange={(e) => handleChangeAuthority(contact.id, e.target.value as ProjectAuthority)}
+                        className="rounded border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                      >
+                        {AUTHORITY_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        contact.authority === 'read_write' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' :
+                        contact.authority === 'add_to_comment' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' :
+                        'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                      }`}>
+                        {AUTHORITY_OPTIONS.find(o => o.value === contact.authority)?.label || 'View'}
+                      </span>
+                    )}
                     {canEdit && (
                       <button
                         type="button"

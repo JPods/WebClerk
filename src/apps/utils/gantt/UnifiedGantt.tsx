@@ -26,6 +26,8 @@ import { patchAction } from "../../../api/userProfile";
 import { saveRecord, getRecord } from "../../../api/wcapi";
 import { createEmptyBoardData } from "../kanban/kanbanDataMapper";
 import type { BoardData, KanbanTask, TaskPriority } from "../kanban/type/kanban";
+import { ProjectContactManager } from "../kanban/ProjectContactManager";
+import type { ProjectContact } from "../kanban/ProjectContactManager";
 import {
   DEFAULT_LANGUAGE_ORDER,
   DEFAULT_DIFFICULTY,
@@ -411,6 +413,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
 
   // Project metadata — loaded once for project-level settings
   const [projectMetadata, setProjectMetadata] = useState<any>(null);
+  const [projectRecord, setProjectRecord] = useState<any>(null);
   const projectSettingsApplied = useRef(false);
 
   // Load project metadata for settings
@@ -418,8 +421,10 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     if (!projectId) return;
     projectSettingsApplied.current = false;
     getRecord("project", projectId).then((resp: any) => {
-      const meta = resp?.data?.metadata || resp?.metadata || null;
+      const rec = resp?.data || resp || null;
+      const meta = rec?.metadata || null;
       setProjectMetadata(meta);
+      setProjectRecord(rec);
     }).catch(() => {});
   }, [projectId]);
 
@@ -430,7 +435,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   // Bottom list panel
   const [listPanelVisible, setListPanelVisible] = useState(true);
   const [highlightedTaskId, setHighlightedTaskId] = useState<number | null>(null);
-  const [ganttSplitVh, setGanttSplitVh] = useState(40);
+  const [listHeightVh, setListHeightVh] = useState(12);
   const listPanelRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll list to highlighted row when a bar is clicked
@@ -730,6 +735,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
   const [showAdminTools, setShowAdminTools] = useState(false);
   const [detailActionId, setDetailActionId] = useState<string | null>(null);
+  const [showContactManager, setShowContactManager] = useState(false);
 
   // Unique assignees from current tasks for filter dropdown
   const uniqueAssignees = useMemo(() => {
@@ -2856,6 +2862,22 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 </button>
               </div>
               
+              {/* Share — manage project access contacts */}
+              {isSingleProjectMode && (
+                <button
+                  type="button"
+                  onClick={() => setShowContactManager(true)}
+                  className="rounded-md p-1.5 text-gray-400 transition hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                  title="Manage project access"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="9" cy="7" r="4" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              )}
+
               {/* Admin toolbox — Shift-click to toggle */}
               <button
                 type="button"
@@ -3075,17 +3097,18 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 {/* Bottom action list — fills remaining space */}
                 {listPanelVisible && ganttData.tasks.length > 0 && (
                   <>
-                  {/* Drag handle */}
+                  {/* Drag handle — tall enough to grab at any zoom */}
                   <div
-                    className="h-1.5 cursor-row-resize bg-gray-200 dark:bg-gray-700 hover:bg-indigo-300 dark:hover:bg-indigo-600 flex-shrink-0 transition-colors"
+                    className="h-3 cursor-row-resize bg-gray-200 dark:bg-gray-700 hover:bg-indigo-300 dark:hover:bg-indigo-600 flex-shrink-0 transition-colors"
                     onMouseDown={(e) => {
                       e.preventDefault();
                       const startY = e.clientY;
-                      const startVh = ganttSplitVh;
+                      const startVh = listHeightVh;
                       const vh = window.innerHeight / 100;
+                      const zoom = chartZoom || 1;
                       const onMove = (ev: MouseEvent) => {
-                        const delta = ev.clientY - startY;
-                        setGanttSplitVh(Math.max(15, Math.min(75, startVh + delta / vh)));
+                        const delta = (ev.clientY - startY) / zoom;
+                        setListHeightVh(Math.max(5, Math.min(60, startVh - delta / vh)));
                       };
                       const onUp = () => {
                         window.removeEventListener('mousemove', onMove);
@@ -3096,7 +3119,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                     }}
                     title="Drag to resize"
                   />
-                  <div ref={listPanelRef} className="shrink-0 overflow-auto border-t border-gray-200 dark:border-gray-700" style={{ maxHeight: '10rem', ...(chartZoom !== 1 ? { zoom: 0.8 / chartZoom } : {}) }}>
+                  <div ref={listPanelRef} className="shrink-0 overflow-auto border-t border-gray-200 dark:border-gray-700" style={{ height: `${listHeightVh}vh`, ...(chartZoom !== 1 ? { zoom: 0.8 / chartZoom } : {}) }}>
                     <DataGrid
                       records={ganttData.tasks.map(t => ({
                         ...t,
@@ -3169,6 +3192,23 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         actionId={detailActionId}
         onClose={() => setDetailActionId(null)}
         onSaved={() => refetchActions()}
+      />
+    )}
+
+    {/* Project access contact manager */}
+    {isSingleProjectMode && projectId && (
+      <ProjectContactManager
+        isOpen={showContactManager}
+        onClose={() => setShowContactManager(false)}
+        projectId={projectId}
+        projectName={projectRecord?.name || `Project #${projectId}`}
+        currentContacts={(projectRecord?.refs?.links?.contacts || []) as ProjectContact[]}
+        onContactsUpdated={(contacts) => {
+          setProjectRecord((prev: any) => ({
+            ...prev,
+            refs: { ...(prev?.refs || {}), links: { ...(prev?.refs?.links || {}), contacts } },
+          }));
+        }}
       />
     )}
     </>

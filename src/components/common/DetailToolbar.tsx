@@ -5,7 +5,7 @@
  * Print templates come from Report records (model_name + output_type='print').
  * Report.config.layout holds a PrintLayout JSON that UniversalPrint renders.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
 import { openUniversalPrint } from '@/components/print/UniversalPrint';
@@ -58,6 +58,7 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
 }) => {
   const dispatch = useDispatch();
   const isEditing = modeProp ? modeProp !== 'view' : (isEditingProp ?? false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const handlePrintSelect = (report: ReportRecord) => {
     const rec = currentData || data;
@@ -86,10 +87,6 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
       <ToolbarIcon action={TB.save} title={saving ? 'Saving...' : 'Save'} disabled={!isEditing || saving} onClick={onSave} />
       <ToolbarIcon action={TB.discard} title="Cancel" disabled={!isEditing} onClick={onCancel} />
 
-      <ToolbarIcon action={TB.deleteRecord} title="Delete Record" danger
-        disabled={!canEdit || !canDelete || !data?.id}
-        onClick={onDelete || (() => dispatch(showToast({ message: 'Delete: coming soon', type: 'info' })))} />
-
       {/* Report / Print — reads Report records */}
       <PrintReportDropdown
         modelKey={modelName}
@@ -112,6 +109,25 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
         <span className="text-xs text-red-500">Bal: <span className="font-medium">${((data.totals?.balance ?? data?.balance ?? 0)).toLocaleString()}</span></span>
       )}
       {data?.id && <span className="text-xs font-mono text-slate-400 dark:text-slate-500">#{data.id}</span>}
+
+      {/* Delete — far right, single confirm */}
+      {canDelete && onDelete && (
+        deleteConfirm ? (
+          <button
+            className="ml-2 px-2 py-0.5 text-xs font-semibold rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
+            onClick={() => { setDeleteConfirm(false); onDelete(); }}
+            onBlur={() => setDeleteConfirm(false)}
+            autoFocus
+            title="Click again to confirm delete"
+          >
+            Confirm?
+          </button>
+        ) : (
+          <ToolbarIcon action={TB.deleteRecord} title="Delete Record" danger
+            disabled={!canEdit || !data?.id}
+            onClick={() => setDeleteConfirm(true)} />
+        )
+      )}
     </div>
   );
 };
