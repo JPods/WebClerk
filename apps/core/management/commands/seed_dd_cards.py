@@ -284,6 +284,10 @@ DD_CARD_CONFIG = {
             "link": "/databrowser?model=setting&view=dbsr_review",
             "server_action": "get_dbsr_health",
             "metrics": [],
+            "model_list": [
+                "setting", "report", "gl_account", "tax_jurisdiction",
+                "term", "currency", "document", "connection",
+            ],
         },
         "project": {
             "label": "Projects",
