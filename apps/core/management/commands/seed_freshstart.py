@@ -54,6 +54,14 @@ SEED_SEQUENCE = [
 
     # GL defaults into items/orgs/payment methods
     ('seed_gl_defaults',        {}),
+
+    # Documents — system docs, report templates, print layouts
+    ('seed_wc3_commerce_docs',  {}),
+    ('seed_wc3_operations_docs', {}),
+    ('seed_wc3_system_docs',    {}),
+    ('seed_report_templates',   {}),
+    ('seed_template_reports',   {}),
+    ('seed_print_layouts',      {}),
 ]
 
 
