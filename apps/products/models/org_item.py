@@ -93,6 +93,9 @@ class OrgItem(ItemLinkedBase):
     @property
     def description_value(self):
         return self.description
+    def __str__(self):
+        return self.item_ida or f"OrgItem {self.id}"
+
     # --- Enumerations / standardized codes ---------------------------------
     STATE_ENABLED = "enabled"
     STATE_PAUSED = "paused"

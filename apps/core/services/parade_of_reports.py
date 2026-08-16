@@ -38,7 +38,7 @@ PARADE_GROUPS = [
     {
         "name": "Selling",
         "description": "Documents you send to customers",
-        "models": ["invoice", "order", "proposal"],
+        "models": ["invoice", "order", "proposal", "workorder"],
         "report_patterns": [
             "invoice", "credit memo", "order confirmation",
             "packing slip", "pick", "bill of lading", "work order",
@@ -57,9 +57,9 @@ PARADE_GROUPS = [
     {
         "name": "Buying",
         "description": "Documents you send to vendors",
-        "models": ["purchase"],
+        "models": ["purchase", "requisition"],
         "report_patterns": [
-            "purchase order", "receiving", "vendor",
+            "purchase order", "receiving", "vendor", "requisition",
         ],
     },
     {
@@ -83,9 +83,20 @@ PARADE_GROUPS = [
 ]
 
 
-def _has_sample_data(model_name: str) -> bool:
-    """Check if polished sample data exists for this model."""
-    return (SAMPLE_DATA_DIR / f"{model_name}.json").exists()
+def _has_sample_data(model_name: str, report_name: str = "") -> bool:
+    """Check if polished sample data exists for this model or report."""
+    if (SAMPLE_DATA_DIR / f"{model_name}.json").exists():
+        return True
+    # Check by report name slug (e.g., "aging" for "Aging Report")
+    if report_name:
+        slug = report_name.lower().replace(" ", "_")
+        if (SAMPLE_DATA_DIR / f"{slug}.json").exists():
+            return True
+        # Partial match — "aging" in "aging_report"
+        for f in SAMPLE_DATA_DIR.glob("*.json"):
+            if not f.name.startswith("_") and f.stem in slug:
+                return True
+    return False
 
 
 def _classify_report(report) -> str:
@@ -146,7 +157,7 @@ def build_parade_manifest(
     for report in qs:
         model = report.model_name or ""
         config = report.config or {}
-        has_sample = bool(config.get("sample_data")) or _has_sample_data(model)
+        has_sample = bool(config.get("sample_data")) or _has_sample_data(model, report.name or "")
 
         group_name = _classify_report(report)
 

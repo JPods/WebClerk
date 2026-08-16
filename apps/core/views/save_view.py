@@ -25,26 +25,19 @@ console_logger = logging.getLogger('console')  # Console logger for debugging
 #         - Validates field sizes and allowed nested keys.
 #         - Calls pre-save and post-save asynchronous tasks.
 #         - Returns a JSON response indicating success or failure, including error messages for field size violations or integrity errors.
-from django.db import models, transaction
-from django.db import models, transaction
+from django.db import models, transaction, IntegrityError
 from rest_framework.views import APIView  # type: ignore
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 from common.decorators import allow_write
 from apps.core.services.wcapi_registry import get_model, normalize_table_key, to_model_name  # explicit registry lookup (replaces dynamic app scan)
 from apps.core.utils import policy
 from apps.core.constants.model_registry import get_model_meta
 import json
 import re
-from django.db import IntegrityError
 from django.forms.models import model_to_dict
 import logging
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiExample
 from typing import Type, cast, List, Dict, Any
-from common.refs.links import ensure_bidirectional
-from common.models import LINK_DENORMALIZE_FIELDS
-from apps.core.models import Contact
 from common.refs.links import ensure_bidirectional
 from common.models import LINK_DENORMALIZE_FIELDS
 from apps.core.models import Contact
@@ -164,13 +157,10 @@ def coerce_int(value):
 #     QQQ confirm no remaining callers, then fully remove
 #     ...
 
-@method_decorator(csrf_exempt, name='dispatch')
 @allow_write
 class SaveWcapiView(APIView):
-    # apply exempt to CSRF for save view actions
-    # already passed CSRF protection
-    #def dispatch(self, *args, **kwargs):
-    #return super().dispatch(*args, **kwargs)
+    # CSRF enforced by DRF's SessionAuthentication for cookie-based requests.
+    # JWT Bearer requests skip CSRF automatically (not browser-forwardable).
 
     # NOTE: _perform_save() was removed 2026-02-21 — it was dead code (never
     # called) that duplicated the line-processing + pending-creation logic
@@ -419,7 +409,7 @@ class SaveWcapiView(APIView):
         console_logger.debug(f"[SAVE_VIEW] Model resolved: {model_key} (class: {model_cls.__name__})")
 
         # Log setting saves for debugging layout persistence
-        if model_key == 'setting' and data.get('purpose') == 'wc:workbench_fields':
+        if model_key == 'setting' and data.get('purpose') in ('wc:workbench_fields', 'wc:model'):
             _data = data.get('data', {})
             _list_preview = [f.get('field') if isinstance(f, dict) else f for f in (_data.get('list') or [])[:4]] if isinstance(_data, dict) else '?'
             console_logger.warning(f"[SAVE_VIEW] SETTING SAVE id={data.get('id')} parent_model={data.get('parent_model')} list_preview={_list_preview}")
@@ -496,24 +486,45 @@ class SaveWcapiView(APIView):
                 )
             return api_response(data=wt_payload, status_code=wt_status)
 
-        # Create or update
+        # Create or update — wrapped in transaction.atomic for data integrity.
+        # All saves (parent + lines) succeed or fail together.
+        try:
+            return self._save_record(request, model_cls, model_key, norm_key, data, record_id, expected_version, deprecation_flag)
+        except IntegrityError as e:
+            console_logger.error(f"[SAVE_VIEW] Integrity error during save: {e}")
+            return api_response(success=False, status_code=400, message='Integrity error', error={'code':'integrity_error','details': str(e)})
+        except ValueError as e:
+            console_logger.error(f"[SAVE_VIEW] Value error during save: {e}")
+            return api_response(success=False, status_code=400, message='Invalid field values', error={'code':'invalid_field','details': str(e)})
+        except Exception as e:
+            console_logger.error(f"[SAVE_VIEW] Exception during save: {e}")
+            return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
+
+    @transaction.atomic
+    def _save_record(self, request, model_cls, model_key, norm_key, data, record_id, expected_version, deprecation_flag):
         is_update = bool(record_id)
         if is_update:
             console_logger.debug(f"[SAVE_VIEW] Loading existing record with ID: {record_id}")
             try:
-                obj = model_cls.objects.get(id=record_id)
+                # Use select_for_update() to prevent concurrent modifications.
+                # When expected_version is set, include it in the filter so the
+                # version check is atomic — no race window between fetch and check.
+                if expected_version is not None:
+                    try:
+                        obj = model_cls.objects.select_for_update().get(id=record_id)
+                    except model_cls.DoesNotExist:  # type: ignore[attr-defined]
+                        console_logger.error(f"[SAVE_VIEW] Record not found: {record_id}")
+                        return api_response(success=False, status_code=404, message='Record not found', error={'code':'not_found','details':'Record not found'})
+                    current_version = getattr(obj, 'version', None)
+                    if current_version is not None and current_version != expected_version:
+                        console_logger.warning(f"[SAVE_VIEW] Version conflict - Current: {current_version}, Expected: {expected_version}")
+                        return api_response(success=False, status_code=412, message='Record was modified by another user. Reload and try again.', error={'code':'version_conflict','details': {'expected': expected_version, 'current': current_version}})
+                else:
+                    obj = model_cls.objects.select_for_update().get(id=record_id)
                 console_logger.debug(f"[SAVE_VIEW] Record loaded successfully: {obj}")
             except model_cls.DoesNotExist:  # type: ignore[attr-defined]
                 console_logger.error(f"[SAVE_VIEW] Record not found: {record_id}")
                 return api_response(success=False, status_code=404, message='Record not found', error={'code':'not_found','details':'Record not found'})
-            # Version conflict checking — re-enabled 2026-07-04
-            # Frontend sends expected version; if it doesn't match current, someone else changed the record.
-            # Returns 412 so frontend can show "Record modified by another user" instead of silent overwrite.
-            if expected_version is not None:
-                current_version = getattr(obj, 'version', None)
-                if current_version is not None and current_version != expected_version:
-                    console_logger.warning(f"[SAVE_VIEW] Version conflict - Current: {current_version}, Expected: {expected_version}")
-                    return api_response(success=False, status_code=412, message='Record was modified by another user. Reload and try again.', error={'code':'version_conflict','details': {'expected': expected_version, 'current': current_version}})
         else:
             console_logger.debug(f"[SAVE_VIEW] Creating new record")
             obj = model_cls()
@@ -670,9 +681,7 @@ class SaveWcapiView(APIView):
                             userdefined = prefs.get('userdefined', {})
                             if field in userdefined:
                                 del userdefined[field]
-                                # If userdefined is empty, remove it
-                                if not userdefined:
-                                    prefs.pop('userdefined', None)
+                                # Keep userdefined even when empty — it's a required catch-all
                                 setattr(obj, 'prefs', prefs)
                         except Exception:
                             pass  # Ignore errors when deleting from prefs
@@ -815,68 +824,52 @@ class SaveWcapiView(APIView):
 
         console_logger.debug(f"[SAVE_VIEW] Starting database save...")
 
-        # Save
+        # Normalize contact_id: ensure numeric or clear so model can auto-resolve
         try:
-            # Normalize contact_id: ensure numeric or clear so model can auto-resolve
-            try:
-                if hasattr(obj, 'contact_id'):
-                    cid = getattr(obj, 'contact_id')
-                    if isinstance(cid, str):
-                        s = cid.strip()
-                        if s.isdigit():
-                            setattr(obj, 'contact_id', int(s))
-                        else:
+            if hasattr(obj, 'contact_id'):
+                cid = getattr(obj, 'contact_id')
+                if isinstance(cid, str):
+                    s = cid.strip()
+                    if s.isdigit():
+                        setattr(obj, 'contact_id', int(s))
+                    else:
+                        resolved = None
+                        try:
+                            assigned = data.get('assigned_to') or data.get('assignedTo')
+                            if isinstance(assigned, list) and assigned:
+                                first = assigned[0]
+                                if isinstance(first, dict):
+                                    aid = first.get('id')
+                                    name = first.get('name')
+                                    if isinstance(aid, str) and aid.isdigit():
+                                        resolved = int(aid)
+                                    elif isinstance(name, str) and name.strip().isdigit():
+                                        resolved = int(name.strip())
+                        except Exception:
                             resolved = None
-                            try:
-                                assigned = data.get('assigned_to') or data.get('assignedTo')
-                                if isinstance(assigned, list) and assigned:
-                                    first = assigned[0]
-                                    if isinstance(first, dict):
-                                        aid = first.get('id')
-                                        name = first.get('name')
-                                        if isinstance(aid, str) and aid.isdigit():
-                                            resolved = int(aid)
-                                        elif isinstance(name, str) and name.strip().isdigit():
-                                            resolved = int(name.strip())
-                            except Exception:
-                                resolved = None
-                            if resolved:
-                                setattr(obj, 'contact_id', resolved)
-                            else:
-                                setattr(obj, 'contact_id', 0)
-            except Exception:
-                pass
-            console_logger.debug(f"[SAVE_VIEW] Executing obj.save() for {model_key} ID: {getattr(obj, 'id', 'new')}")
-            obj.save()
-            console_logger.debug(f"[SAVE_VIEW] Save completed successfully for {model_key} ID: {getattr(obj, 'id', 'new')}")
-            # Verify setting save
-            if model_key == 'setting' and hasattr(obj, 'purpose') and getattr(obj, 'purpose', '') == 'wc:workbench_fields':
-                _saved = getattr(obj, 'data', {})
-                _list_saved = [f.get('field') if isinstance(f, dict) else f for f in (_saved.get('list') or [])[:4]] if isinstance(_saved, dict) else '?'
-                console_logger.warning(f"[SAVE_VIEW] SETTING SAVED id={obj.id} parent_model={getattr(obj, 'parent_model', '?')} list={_list_saved}")
+                        if resolved:
+                            setattr(obj, 'contact_id', resolved)
+                        else:
+                            setattr(obj, 'contact_id', 0)
+        except Exception:
+            pass
+        console_logger.debug(f"[SAVE_VIEW] Executing obj.save() for {model_key} ID: {getattr(obj, 'id', 'new')}")
+        obj.save()
+        console_logger.debug(f"[SAVE_VIEW] Save completed successfully for {model_key} ID: {getattr(obj, 'id', 'new')}")
+        # Verify setting save
+        if model_key == 'setting' and hasattr(obj, 'purpose') and getattr(obj, 'purpose', '') in ('wc:workbench_fields', 'wc:model'):
+            _saved = getattr(obj, 'data', {})
+            _list_saved = [f.get('field') if isinstance(f, dict) else f for f in (_saved.get('list') or [])[:4]] if isinstance(_saved, dict) else '?'
+            console_logger.warning(f"[SAVE_VIEW] SETTING SAVED id={obj.id} parent_model={getattr(obj, 'parent_model', '?')} list={_list_saved}")
 
-            # ── Denormalize org (customer/vendor/manufacturer) into refs.links ──
-            try:
-                from apps.transactions.services.denormalize_org_links import denormalize_org_links
-                if denormalize_org_links(obj, model_key):
-                    obj.save(update_fields=['refs'])
-                    console_logger.debug(f"[SAVE_VIEW] Denormalized org links for {model_key} #{getattr(obj, 'id', '?')}")
-            except Exception:
-                pass  # non-transaction models will simply return False
-
-        except IntegrityError as e:
-            console_logger.error(f"[SAVE_VIEW] Integrity error during save: {e}")
-            return api_response(success=False, status_code=400, message='Integrity error', error={'code':'integrity_error','details': str(e)})
-        except ValueError as e:
-            try:
-                obj_id_val = getattr(obj, 'id', None)
-            except Exception:
-                obj_id_val = 'unreadable'
-            console_logger.error(f"[SAVE_VIEW] Value error during save: {e} | obj.id={obj_id_val}")
-            return api_response(success=False, status_code=400, message='Invalid field values', error={'code':'invalid_field','details': str(e)})
-        except Exception as e:
-            console_logger.error(f"[SAVE_VIEW] Exception during save: {e}")
-            return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
+        # ── Denormalize org (customer/vendor/manufacturer) into refs.links ──
+        try:
+            from apps.transactions.services.denormalize_org_links import denormalize_org_links
+            if denormalize_org_links(obj, model_key):
+                obj.save(update_fields=['refs', 'version', 'dt_modified'])
+                console_logger.debug(f"[SAVE_VIEW] Denormalized org links for {model_key} #{getattr(obj, 'id', '?')}")
+        except Exception:
+            pass  # non-transaction models will simply return False
 
         # Handle associated lines for header models (order, invoice, etc.)
         # Check for lines in data - support models even without meta.kind == 'header'
@@ -982,7 +975,7 @@ class SaveWcapiView(APIView):
                             links[refs_links_key] = line_refs
                             refs['links'] = links
                             obj.refs = refs
-                            obj.save(update_fields=['refs'])
+                            obj.save(update_fields=['refs', 'version', 'dt_modified'])
                             console_logger.info(f"[SAVE_VIEW] Updated refs.links with {len(new_line_ids)} new line IDs")
                         except Exception as e:
                             console_logger.error(f"[SAVE_VIEW] Error updating refs.links: {e}")
@@ -1059,7 +1052,7 @@ class SaveWcapiView(APIView):
             # When refs.parents is set, update dt_start to latest parent's dt_end
             try:
                 from apps.core.services.action_service import auto_schedule_from_parents
-                refs_data = parsed_data.get('refs.parents') or parsed_data.get('refs', {})
+                refs_data = data.get('refs.parents') or data.get('refs', {})
                 if isinstance(refs_data, dict) and refs_data.get('value'):
                     refs_data = refs_data.get('value')
                 refs_obj = getattr(obj, 'refs', {}) or {}
@@ -1077,8 +1070,8 @@ class SaveWcapiView(APIView):
             try:
                 from apps.core.services.action_service import check_and_reschedule_children
                 # Check if dt_start or duration was updated
-                dt_start_changed = 'dt_start' in parsed_data
-                duration_changed = 'duration' in parsed_data
+                dt_start_changed = 'dt_start' in data
+                duration_changed = 'duration' in data
                 if dt_start_changed or duration_changed:
                     rescheduled = check_and_reschedule_children(obj, save=True)
                     if rescheduled:
@@ -1174,7 +1167,7 @@ class SaveWcapiView(APIView):
                 console_logger.debug(f"[SAVE_VIEW] Executing update_keywords...")
                 update_keywords_method()
                 console_logger.debug(f"[SAVE_VIEW] update_keywords completed, doing keyword save...")
-                obj.save(update_fields=['refs', 'metadata'])
+                obj.save(update_fields=['refs', 'metadata', 'version', 'dt_modified'])
                 console_logger.debug(f"[SAVE_VIEW] Keyword save completed")
         except Exception as e:
             console_logger.error(f"[SAVE_VIEW] Error persisting deferred contact refs: {e}")
@@ -1211,7 +1204,7 @@ class SaveWcapiView(APIView):
                     contact_list = obj_links.setdefault('contact', [])
                     if contact.pk not in contact_list:
                         contact_list.append(contact.pk)
-                        obj.save(update_fields=['refs'])
+                        obj.save(update_fields=['refs', 'version', 'dt_modified'])
                 except Exception:
                     pass
                     try:

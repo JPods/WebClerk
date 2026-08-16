@@ -222,8 +222,11 @@ class Command(BaseCommand):
             self.stdout.write('Column widths setting already exists (use --force)')
             return
 
+        cw_expl = "Recommended column widths for DataBrowser grids. Four-tier lookup: by field name, by behavior type, by pattern (prefix/suffix), then default."
+
         if existing:
             existing.config = data
+            existing.explanation = cw_expl
             existing.save()
             self.stdout.write(self.style.SUCCESS(f'Updated: {len(BY_NAME)} by-name, {len(BY_TYPE)} by-type'))
         else:
@@ -232,5 +235,6 @@ class Command(BaseCommand):
                 purpose='wc:ui',
                 parent_model='',
                 config=data,
+                explanation=cw_expl,
             )
             self.stdout.write(self.style.SUCCESS(f'Created: {len(BY_NAME)} by-name, {len(BY_TYPE)} by-type'))

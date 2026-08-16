@@ -206,22 +206,28 @@ def _get_org_gl_override(org_id: int, key: str) -> Optional[str]:
 def _get_category_gl(category: str) -> str:
     """Look up GL account for an expense category bucket.
 
-    Reads the gl_map from the payment field_access Setting.
+    Reads the gl_map from the payment model definition Setting.
     Freehand entries that aren't in the map get default_gl.
     """
     if not category:
         return 'EXP-MISC-000'
     try:
         Setting = dj_apps.get_model('core', 'Setting')
+        # Try wc:model first, fall back to legacy wc:field_access
         setting = Setting.objects.filter(
-            purpose='wc:field_access', parent_model='payment',
+            purpose='wc:model', parent_model='payment',
         ).first()
         if setting:
             sl = (setting.config or {}).get('select_lists', {}).get('category', {})
-            gl = sl.get('gl_map', {}).get(category)
-            if gl:
-                return gl
-            return sl.get('default_gl', 'EXP-MISC-000')
+        else:
+            setting = Setting.objects.filter(
+                purpose='wc:field_access', parent_model='payment',
+            ).first()
+            sl = (setting.config or {}).get('select_lists', {}).get('category', {}) if setting else {}
+        gl = sl.get('gl_map', {}).get(category)
+        if gl:
+            return gl
+        return sl.get('default_gl', 'EXP-MISC-000')
     except Exception:
         pass
     return 'EXP-MISC-000'

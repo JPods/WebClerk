@@ -53,14 +53,9 @@ _LIST_ACTIONS = frozenset({"list", "detail"})
 # Paths under /api/ that should NOT be redirected (they have dedicated views
 # with business logic that doesn't map to simple CRUD).
 _EXEMPT_PREFIXES = (
-    "/api/docs/stats",                          # doc stats view
-    "/api/docs/qa/",                            # QA endpoints (also under wcapi)
-    "/api/transactions/transfers/",             # transfer operations (validate, execute, bulk)
-    "/api/transactions/payments/process",       # payment processing
-    "/api/transactions/payments/apply",         # payment application
-    "/api/transactions/payments/webhooks/",     # webhook receivers
-    "/api/transactions/payments/reconcile",     # payment reconciliation
-    "/api/transactions/inventory/",             # inventory reserve/release
+    # All domain endpoints now live under /wcapi/ — these exemptions catch any
+    # legacy /api/ calls that still arrive (e.g. from bookmarks or external integrations)
+    # and let them fall through to Django's normal routing (which will 404 cleanly).
 )
 
 # Action segments after an ID that indicate a business-logic endpoint,

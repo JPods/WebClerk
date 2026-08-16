@@ -69,6 +69,9 @@ SETTING_SCOPE_CHOICES: Final[ChoiceList] = (
 
 SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("", ""),
+    # Model definition — one record per model, all definition in config
+    ("wc:model", "wc:model"),
+    ("wc:workspace", "wc:workspace"),
     # Layout & display
     ("wc:detail_layout", "wc:detail_layout"),
     ("wc:print_layout", "wc:print_layout"),

@@ -189,18 +189,24 @@ def approve_field_change(action_id: int, contact_id: int) -> dict:
     field = request['field']
     change_type = request['change_type']
 
-    # Update the field_access Setting
+    # Update the model definition Setting (wc:model, fallback to legacy wc:field_access)
     setting = Setting.objects.filter(
         parent_model=model,
-        purpose='wc:field_access',
+        purpose='wc:model',
         is_active=True,
     ).first()
+    if not setting:
+        setting = Setting.objects.filter(
+            parent_model=model,
+            purpose='wc:field_access',
+            is_active=True,
+        ).first()
 
     if not setting:
-        return {'error': f'No field_access Setting found for {model}'}
+        return {'error': f'No model definition Setting found for {model}'}
 
     data = setting.config or {}
-    behaviors = data.get('field_behaviors', {})
+    behaviors = data.get('behaviors', data.get('field_behaviors', {}))
     field_def = behaviors.get(field, {})
 
     # Apply the change
@@ -236,7 +242,11 @@ def approve_field_change(action_id: int, contact_id: int) -> dict:
         field_def['editable'] = True
 
     behaviors[field] = field_def
-    data['field_behaviors'] = behaviors
+    # Write back to correct key based on record format
+    if 'behaviors' in data:
+        data['behaviors'] = behaviors
+    else:
+        data['field_behaviors'] = behaviors
     Setting.objects.filter(pk=setting.pk).update(data=data, dt_modified=_now_ms())
 
     # Mark action as approved and complete

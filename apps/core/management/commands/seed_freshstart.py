@@ -18,8 +18,8 @@ from django.core.management import call_command
 
 
 SEED_SEQUENCE = [
-    # Foundation — must run first
-    ('seed_field_access',       {}),
+    # Foundation — model definitions first (replaces field_access + schema_map)
+    ('seed_model_definitions',  {}),
     ('seed_company_settings',   {}),
     ('seed_rbac_roles',         {}),
 
@@ -27,13 +27,12 @@ SEED_SEQUENCE = [
     ('seed_gl_accounts',        {}),
     ('seed_terms',              {}),
 
-    # UI — reports, DataBrowser, search, layouts, select lists
+    # UI — reports, DataBrowser, search, layouts
     ('seed_reports',            {}),
     ('seed_databrowser',        {}),
     ('seed_column_widths',      {}),
     ('seed_search_presets',     {}),
     ('seed_alice_layouts',      {}),
-    ('seed_select_lists',       {}),
 
     # QA templates
     ('seed_qa_templates',       {}),
@@ -46,9 +45,8 @@ SEED_SEQUENCE = [
     ('seed_wchq_settings',     {}),
     ('seed_collaborate_settings', {}),
 
-    # Model schema definitions
-    ('seed_all_schema_maps',    {}),
-    ('seed_serial_settings',    {}),  # serial-specific actions/behaviors on top of base schema
+    # Model-specific overrides
+    ('seed_serial_settings',    {}),  # serial-specific actions/behaviors
     ('seed_status_guards',      {}),  # transaction status transitions + journalized locks
     ('seed_receivables_layouts', {}),  # aged receivables report + customer statement print layouts
 

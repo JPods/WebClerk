@@ -12,6 +12,9 @@ class ProposalLine(BaseSellLineModel):
         blank=True,
     )
 
+    def __str__(self):
+        return f"ProposalLine {self.id} on proposal {self.proposal_id}"
+
     class Meta:
         db_table = "proposal_lines"
 

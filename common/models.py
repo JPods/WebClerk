@@ -212,18 +212,11 @@ def default_metadata() -> dict:
         "publish": "",
         "priority": "",
         "version": "1.0",
+        "explanation": "",
         "access": {"view": [], "edit": []},
-        "resources": {  # planning stub
-            "required": {},
-            "allocated": {},
-        },
-    # Cross-cutting operational context (lightweight, rarely indexed)
-    # Moved here to avoid schema churn and keep non-critical fields uniform across all models.
-    # Canonical keys; specific apps can mirror or promote to columns when needed for performance.
-    "flow": {},   # e.g., lineage hints, parent/child hops for reporting
-    "source": {}, # e.g., campaign/vendor/manufacturer attribution for analytics
-        # images removed from base — only Contact, Item, Document use images.
-        # Model-specific schemas define image fields (see common/schemas/images.py).
+        "resources": {"required": {}, "allocated": {}},
+        "flow": {},
+        "source": {},
         "history": {
             "created": {"dt": now_ms, "contact_id": 0},
             "modified": {"dt": now_ms, "contact_id": 0},
@@ -238,19 +231,15 @@ def default_metadata() -> dict:
             "freshness": 0,
             "consistency": 0,
         },
-        # Erosion annotations — lightweight per-record value-loss tracking.
-        # small_stings: minor customer-base erosions (discounts, overrides, rounding)
-        # erosions: significant erosion events (margin loss, late payment, rework, bad debt)
-        # Each entry: {"category": str, "amount": float, "dt": ms_epoch, "note": str, "erosion_id": int|null}
-        # erosion_id is null until the record is saved; BaseModel.post_save_hook
-        # then creates the Erosion row and writes the id back.
+        "flags": {"schema_rev": 1, "keywords_pending": False},
+        "versioning": {"size_activity": {}, "changed_fields": []},
         "small_stings": [],
         "erosions": [],
-        # Temporary snippets/hints for short-lived UX helpers.
-        # Each entry should include clear_dt (epoch ms) so background cleanup can prune it.
         "temp": [],
-        # undefined was here — moved to prefs.userdefined (user's space, not system's)
-        # save_view captures unknown fields into prefs.userdefined
+        "userdefined": {},
+        "images": {"source": "", "tn": False, "display": False, "hires": False},
+        "audit_trail": [],
+        "import_data": None,
     }
 
 
@@ -334,6 +323,7 @@ def default_refs() -> dict:
         "depends_on": {},
         "categories": [],
         "related_ids": [],
+        "source": None,
     }
 
 
@@ -350,7 +340,7 @@ def default_prefs() -> dict:
         tags: user's personal tags (not categories — categories are model fields)
         pinned: user pinned this record
         """
-        return {"userdefined": {}, "tags": [], "pinned": False}
+        return {"userdefined": {}, "tags": [], "pinned": False, "search": []}
 
 
 def default_data() -> dict:  # reserved placeholder (not currently used)
@@ -377,6 +367,12 @@ def default_comments() -> dict:
         },
         "records": {},
     }
+
+
+# ---------------- Model-specific envelope defaults ------------------------
+# Base factories above produce the universal structure every record gets.
+# For model-specific Pydantic defaults (e.g. ContactMetadata, SerialConfig),
+# see: common/schemas/defaults.py → get_envelope_default()
 
 
 # ---------------- Core + Mixins -------------------------------------------
@@ -589,6 +585,17 @@ class MetadataMixin(models.Model):
         self.metadata.setdefault("small_stings", [])
         self.metadata.setdefault("erosions", [])
         self.metadata.setdefault("temp", [])
+        self.metadata.setdefault("userdefined", {})
+        # Uniform image path structure — empty until Alice resolves
+        img = self.metadata.setdefault("images", {})
+        if isinstance(img, dict):
+            img.setdefault("source", "")
+            img.setdefault("tn", False)
+            img.setdefault("display", False)
+            img.setdefault("hires", False)
+        self.metadata.setdefault("explanation", "")
+        self.metadata.setdefault("audit_trail", [])
+        self.metadata.setdefault("import_data", None)
         self.metadata["flags"].setdefault("schema_rev", 1)
 
     def save(self, *args, **kwargs):  # inject history
@@ -1507,6 +1514,10 @@ class BaseModel(
             if changed_fields:
                 ver = self.metadata.setdefault("versioning", {})  # type: ignore[attr-defined]
                 ver["changed_fields"] = changed_fields
+
+        # Ensure userdefined catch-all exists in prefs
+        if hasattr(self, 'prefs') and isinstance(self.prefs, dict):
+            self.prefs.setdefault('userdefined', {})
 
         # Ensure links are denormalized
         if isinstance(self, RefsMixin):

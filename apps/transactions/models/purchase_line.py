@@ -10,6 +10,9 @@ class PurchaseLine(BaseExecLineModel):
         on_delete=models.CASCADE,
     )
 
+    def __str__(self):
+        return f"PurchaseLine {self.id} on purchase {self.purchase_id}"
+
     class Meta:
         db_table = "purchase_lines"
 

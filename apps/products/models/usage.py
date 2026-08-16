@@ -178,6 +178,9 @@ class ItemUsage(ItemLinkedBase):
         })
         return flat
 
+    def __str__(self):
+        return f"Usage {self.id} ({self.period_key})"
+
     class Meta:
         indexes = [
             models.Index(fields=("year", "month"), name="usage_year_month_idx"),

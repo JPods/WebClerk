@@ -75,9 +75,15 @@ class VersioningInfo(BaseModel):
 
 
 class ImportProvenance(BaseModel):
-    """Where this record came from during import."""
+    """Where this record came from during import — with lifecycle management.
+
+    Without dt_delete_on, import artifacts accumulate forever.
+    status tracks the record through review: imported → reviewed → cleared → expired.
+    """
     source: str = ''                      # mac_contacts, csv, sync, manual
-    dt_imported: int = 0
+    dt_imported: int = 0                  # epoch ms — when the record was imported
+    dt_delete_on: int = 0                 # epoch ms — auto-cleanup deadline; 0 = no expiry
+    status: str = ''                      # imported, reviewed, cleared, expired
     risk: str = ''                        # low, medium, high
     original: dict = Field(default_factory=dict)
 
@@ -116,6 +122,10 @@ class MetadataBase(BaseModel):
     explanation: str = ""
     audit_trail: list[AuditEntry] = Field(default_factory=list)
     import_data: Optional[ImportProvenance] = None
+    userdefined: dict = Field(default_factory=dict)
+    images: dict = Field(default_factory=lambda: {
+        "source": "", "tn": False, "display": False, "hires": False,
+    })
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -360,35 +370,15 @@ class ActionsBase(BaseModel):
 # ConfigBase — model-specific structural data
 # ═══════════════════════════════════════════════════════════════════════
 
-class ImagePaths(BaseModel):
-    """Standardized image paths for any record.
-
-    Alice writes config.images once after first resolution — no re-probing.
-    source = 'local' | 'remote:SupplierName' | 'placeholder'
-
-    Standard sizes (all PNG, width adapts to height):
-      tn.png      — 90x90 max (most 48x48), lists/cards
-      display.png — 800x600 max, detail pages
-      hires.png   — original resolution, print/zoom
-
-    Naming: {ida}/tn.png, {ida}/display.png, {ida}/hires.png
-    """
-    source: str = ''                          # local, remote:Name, placeholder
-    tn: bool = False                          # thumbnail exists
-    display: bool = False                     # display size exists
-    hires: bool = False                       # high-res exists
-
-    class Config:
-        extra = 'forbid'
-
-
 class ConfigBase(BaseModel):
     """Base config — models with no specific config fields inherit this.
 
     Default: extra = 'forbid'. Models that need flexibility override
     with their own Config class. This forces deliberate schema decisions.
+
+    Images live in metadata.images (not config) — enforced by
+    _init_metadata_if_needed on every save.
     """
-    images: Optional[ImagePaths] = None
 
     class Config:
         extra = 'forbid'

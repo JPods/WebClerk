@@ -310,7 +310,10 @@ class Command(BaseCommand):
                 self.stdout.write(f'  [DRY] Setting {setting.ida}: {explanation[:80]}...')
             else:
                 metadata['explanation'] = explanation
-                Setting.objects.filter(pk=setting.pk).update(metadata=metadata)
+                Setting.objects.filter(pk=setting.pk).update(
+                    metadata=metadata,
+                    explanation=explanation,
+                )
             updated += 1
 
         # ── Reports ──

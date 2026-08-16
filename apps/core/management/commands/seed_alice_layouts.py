@@ -301,6 +301,7 @@ class Command(BaseCommand):
                     name=f'workbench_fields:{model_key}',
                     parent_model=model_key,
                     purpose='wc:workbench_fields',
+                    explanation=f"Alice-generated workbench layout for {model_key}. Best-guess column and field selection based on field analysis.",
                     config={
                         'list': alice_list,
                         'detail': alice_detail,

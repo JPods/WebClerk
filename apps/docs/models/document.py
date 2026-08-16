@@ -118,15 +118,12 @@ class Document(BaseModel):
         tracked_original = {}
         tracked_fields: list[str] = []
         try:
-            # Fetch settings specifying keyword fields: purpose='wc:keywords'
-            model_key = 'Document'  # canonical model identifier for settings
-            # Prefer parent_model in Setting going forward
-            setting = Setting.objects.filter(parent_model=model_key, purpose='wc:keywords', is_active=True).first()
+            # Fetch keyword fields from wc:model config.search
+            model_key = 'document'
+            setting = Setting.objects.filter(parent_model=model_key, purpose='wc:model', is_active=True).first()
             if setting and isinstance(setting.config, dict):
-                fields_spec = setting.config.get('fields') or setting.config.get('field_list') or []
-                if isinstance(fields_spec, str):  # allow comma-separated string
-                    parts = fields_spec.split(',') if fields_spec else []
-                    fields_spec = [f.strip() for f in parts if f and isinstance(f, str)]
+                search_cfg = setting.config.get('search', {})
+                fields_spec = search_cfg.get('self_fields', [])
                 if isinstance(fields_spec, (list, tuple)):
                     tracked_fields = [f for f in fields_spec if isinstance(f, str)]
             if not is_create and tracked_fields:

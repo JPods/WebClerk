@@ -9,6 +9,9 @@ class OrderLine(BaseSellLineModel):
         on_delete=models.CASCADE,
     )
 
+    def __str__(self):
+        return f"OrderLine {self.id} on order {self.order_id}"
+
     class Meta:
         db_table = "order_lines"
 

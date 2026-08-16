@@ -77,6 +77,14 @@ class Report(BaseModel):
         default=0,
         help_text="Display order within the model's report menu",
     )
+    explanation = models.TextField(
+        blank=True, default='',
+        help_text="What this report does, what config holds, how it relates to its model — human-readable",
+    )
+    paths = models.JSONField(
+        default=dict, blank=True,
+        help_text="Pointers to supporting files: schema, page, template, print definition",
+    )
     config = models.JSONField(
         default=dict,
         help_text="Extended config: endpoint_url, template, parameters, etc.",

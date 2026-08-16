@@ -10,5 +10,8 @@ class RequisitionLine(BaseExecLineModel):
         db_column='requisition_id',
     )
 
+    def __str__(self):
+        return f"RequisitionLine {self.id} on requisition {self.requisition_id}"
+
     class Meta:
         db_table = "requisition_lines"

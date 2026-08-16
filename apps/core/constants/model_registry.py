@@ -75,11 +75,12 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'wc': ModelMeta('wc', 'apps.core.models.setting.Setting', 'WebClerk System', 'WebClerk System', 'wc', kind='support', aliases=['webclerk', 'system']),
     'gantt': ModelMeta('gantt', 'apps.core.models.setting.Setting', 'Gantt', 'Gantt', 'gantt', kind='support', aliases=[]),
     'databrowser': ModelMeta('databrowser', 'apps.core.models.setting.Setting', 'DataBrowser', 'DataBrowser', 'databrowser', kind='support', aliases=['db']),
-    'template': ModelMeta('template', 'apps.core.models.template.Template', 'Template', 'Templates', 'templates', kind='support', aliases=['templates']),
+    # 'template': ModelMeta('template', 'apps.core.models.template.Template', 'Template', 'Templates', 'templates', kind='support', aliases=['templates']),  # model not yet created
+    'workspace': ModelMeta('workspace', 'apps.core.models.workspace.Workspace', 'Workspace', 'Workspaces', 'workspaces', kind='support', aliases=['workspaces']),
 
     # --- docs --- (A->Z by key)
-    'doc': ModelMeta('doc', 'apps.docs.models.document.Document', 'Document', 'Documents', 'docs', kind='support', aliases=['documents', 'document', 'docs']),
-    'linkage': ModelMeta('linkage', 'apps.docs.models.linkage.Linkage', 'Doc Linkage', 'Doc Linkages', 'doc-linkages', kind='support', aliases=['linkages']),
+    # 'doc' resolved via alias on 'document' entry above — no separate registry entry needed
+    'linkage': ModelMeta('linkage', 'apps.docs.models.linkage_entry.LinkageEntry', 'Doc Linkage', 'Doc Linkages', 'doc-linkages', kind='support', aliases=['linkages', 'linkage_entry']),
     'question_answer': ModelMeta('question_answer', 'apps.docs.models.question_answer.QuestionAnswer', 'Doc QuestionAnswer', 'Doc QAs', 'doc-qas', kind='support', aliases=['question_answer']),
     'tag': ModelMeta('tag', 'apps.docs.models.tag.Tag', 'Doc Tag', 'Doc Tags', 'doc-tags', kind='support', aliases=['tags']),
 
@@ -111,13 +112,13 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     # --- transactions --- (A->Z by key)
     'invoice': ModelMeta('invoice', 'apps.transactions.models.Invoice', 'Invoice', 'Invoices', 'invoices', kind='header', aliases=['invoices']),
     'invoice_line': ModelMeta('invoice_line', 'apps.transactions.models.InvoiceLine', 'Invoice Line', 'Invoice Lines', 'invoice-lines', kind='line', aliases=['invoice_lines']),
-    'project': ModelMeta('project', 'apps.transactions.models.projects.Project', 'Project', 'Projects', 'projects', kind='support', aliases=['projects']),
+    'project': ModelMeta('project', 'apps.transactions.models.project.Project', 'Project', 'Projects', 'projects', kind='support', aliases=['projects']),
     'project_association': ModelMeta('project_association', 'apps.transactions.models.project_links.ProjectAssociation', 'Project Association', 'Project Associations', 'project-associations', kind='support', aliases=['project_associations']),
     'proposal': ModelMeta('proposal', 'apps.transactions.models.Proposal', 'Proposal', 'Proposals', 'proposals', kind='header', aliases=['proposals']),
     'proposal_line': ModelMeta('proposal_line', 'apps.transactions.models.ProposalLine', 'Proposal Line', 'Proposal Lines', 'proposal-lines', kind='line', aliases=['proposal_lines']),
     'purchase': ModelMeta('purchase', 'apps.transactions.models.Purchase', 'Purchase', 'Purchases', 'purchases', kind='header', aliases=['purchases']),
     'purchase_line': ModelMeta('purchase_line', 'apps.transactions.models.PurchaseLine', 'Purchase Line', 'Purchase Lines', 'purchase-lines', kind='line', aliases=['purchase_lines']),
-    'purchase_receipt': ModelMeta('purchase_receipt', 'apps.transactions.models.purchase_receipt.PurchaseReceipt', 'Purchase Receipt', 'Purchase Receipts', 'purchase-receipts', kind='support', aliases=['purchase_receipts']),
+    # 'purchase_receipt': ModelMeta('purchase_receipt', 'apps.transactions.models.purchase_receipt.PurchaseReceipt', 'Purchase Receipt', 'Purchase Receipts', 'purchase-receipts', kind='support', aliases=['purchase_receipts']),  # model not yet created
     'requisition': ModelMeta(
         'requisition',
         'apps.transactions.models.Requisition',

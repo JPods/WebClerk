@@ -271,6 +271,7 @@ class Command(BaseCommand):
                         name=f'workbench_fields:{model_key}',
                         parent_model=model_key,
                         purpose='wc:workbench_fields',
+                        explanation=f"Panel column layout for {model_key}. Defines which fields appear in related-record panels.",
                         config={'db': {'panel': panel_specs}},
                     )
                     created += 1

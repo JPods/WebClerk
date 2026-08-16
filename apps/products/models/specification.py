@@ -54,6 +54,9 @@ class Specification(StatsMixin, ItemLinkedBase):
             models.Index(fields=("item", "name"), name="spec_item_name_idx"),
         ]
 
+    def __str__(self):
+        return self.name or f"Specification {self.id}"
+
     def clean(self):  # pragma: no cover
         # Normalize details schema
         if not isinstance(self.details, dict):

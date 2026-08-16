@@ -43,10 +43,207 @@ DEFAULTS = {
     'commission_pay': 'LIAB-COMMPAY-000',
     'discount': 'EXP-DISCOUNTS-000',
     'bad_debt': 'EXP-BADDEBT-000',
+    'scrap': 'EXP-SCRAP-000',
 }
 
 TAX_RATE = Decimal('0.05')       # 5%
 COMMISSION_RATE = Decimal('0.05')  # 5%
+
+
+def get_flight_ledger(item_id: int) -> Dict[str, Any]:
+    """Build the inventory ledger — an append-only event log.
+
+    Three row types, interleaved chronologically:
+      1. 'transaction' — a transaction line was saved (delta values)
+      2. 'pending'     — a pending record was created (what it will change)
+      3. 'state'       — item.quantity after pending applied (the new truth)
+
+    Each saved transaction produces up to 3 rows:
+      transaction saved → pending created → item.quantity updated
+
+    The first row is always the initial item.quantity state.
+    """
+    columns = ['on_hand', 'on_so', 'on_po', 'on_p', 'on_wo', 'available']
+
+    Item = dj_apps.get_model('products', 'Item')
+    Pending = dj_apps.get_model('core', 'Pending')
+
+    try:
+        item = Item.objects.get(pk=item_id)
+    except Item.DoesNotExist:
+        return {'error': f'Item {item_id} not found'}
+
+    quantity = item.quantity if isinstance(item.quantity, dict) else {}
+    item_dict = {
+        'id': item.pk,
+        'ida': item.ida,
+        'name': str(item),
+        'quantity': {col: _dec(quantity.get(col, 0)) for col in columns},
+    }
+
+    # Gather all events chronologically
+    events: List[Dict[str, Any]] = []
+
+    # Transaction lines — each is a "transaction saved" event
+    line_models = [
+        ('transactions', 'ProposalLine', 'proposal', 'on_p'),
+        ('transactions', 'OrderLine', 'order', 'on_so'),
+        ('transactions', 'InvoiceLine', 'invoice', None),  # special: on_hand and on_so
+        ('transactions', 'PurchaseLine', 'purchase', 'on_po'),
+        ('transactions', 'WorkOrderLine', 'workorder', 'on_wo'),
+    ]
+
+    for app, model_name, parent_model, bucket in line_models:
+        try:
+            LineModel = dj_apps.get_model(app, model_name)
+        except LookupError:
+            continue
+
+        fk_field = 'item_fk_id'
+        qs = LineModel.objects.filter(
+            **{fk_field: item_id, 'is_active': True, 'is_deleted': False}
+        ).order_by('dt_created')
+
+        for line in qs:
+            qty = getattr(line, 'quantity', None)
+            if isinstance(qty, dict):
+                active = float(qty.get('active', qty.get('staged', 0)) or 0)
+            elif isinstance(qty, (int, float)):
+                active = float(qty)
+            else:
+                active = 0
+
+            # Build delta dict
+            delta = {}
+            if active and bucket:
+                delta[bucket] = active
+            elif active and parent_model == 'invoice':
+                delta['on_hand'] = -active
+                delta['on_so'] = -active
+
+            # Format delta for display (prefix with +/-)
+            display_delta = {}
+            for k, v in delta.items():
+                display_delta[k] = f'+{int(v)}' if v > 0 else f'{int(v)}'
+
+            # Get parent ida
+            parent_fk = f'{parent_model}_id' if parent_model != 'workorder' else 'workorder_id'
+            parent_id = getattr(line, parent_fk, None)
+            parent_obj = getattr(line, parent_model, None) if hasattr(line, parent_model) else None
+            parent_ida = getattr(parent_obj, 'ida', '') if parent_obj else ''
+
+            # GL impact
+            gl_entries = []
+            if parent_model == 'invoice' and active > 0:
+                price = getattr(line, 'price', None) or {}
+                if isinstance(price, dict):
+                    extended = float(price.get('extended', 0) or 0)
+                    if extended > 0:
+                        tax = round(extended * float(TAX_RATE), 2)
+                        gl_entries = [
+                            {'account': DEFAULTS['ar'], 'side': 'debit', 'amount': extended + tax},
+                            {'account': DEFAULTS['revenue'], 'side': 'credit', 'amount': extended},
+                            {'account': DEFAULTS['tax_payable'], 'side': 'credit', 'amount': tax},
+                        ]
+
+            dt = getattr(line, 'dt_created', None)
+            events.append({
+                'type': 'transaction',
+                'label': f'{parent_model.title()} #{parent_ida}',
+                'model': parent_model,
+                'record_id': parent_id,
+                'values': display_delta,
+                'gl': gl_entries if gl_entries else None,
+                'dt': dt,
+                'sort_key': (dt, 0),  # transactions sort first within same timestamp
+            })
+
+    # Pending records — each is a "pending created" event
+    pending_qs = Pending.objects.filter(
+        record_id=str(item_id),
+    ).order_by('dt_created')
+
+    for p in pending_qs:
+        changes = p.changes if isinstance(p.changes, list) else []
+        pending_delta = {}
+        for change in changes:
+            if isinstance(change, dict):
+                field = change.get('field', '')
+                if field in columns:
+                    old_val = change.get('old', 0) or 0
+                    new_val = change.get('new', 0) or 0
+                    diff = float(new_val) - float(old_val)
+                    if diff != 0:
+                        pending_delta[field] = f'+{int(diff)}' if diff > 0 else f'{int(diff)}'
+
+        purpose = p.purpose if hasattr(p, 'purpose') else (p.name or '')
+        is_processed = p.is_processed() if hasattr(p, 'is_processed') else bool(p.dt_processed)
+
+        events.append({
+            'type': 'pending',
+            'label': f'Pending: {purpose}' if purpose else 'Pending',
+            'values': pending_delta,
+            'processed': is_processed,
+            'dt': getattr(p, 'dt_created', None),
+            'sort_key': (getattr(p, 'dt_created', None), 1),  # pending sorts after transaction
+        })
+
+        # If pending was processed, add a state row showing item.quantity at that point
+        if is_processed and p.dt_processed:
+            events.append({
+                'type': 'state',
+                'label': 'Item.quantity',
+                'values': {},  # filled below after sorting
+                'dt': p.dt_processed,
+                'sort_key': (p.dt_processed, 2),  # state sorts after pending
+                '_reconstruct': True,
+            })
+
+    # Sort all events chronologically
+    events.sort(key=lambda e: (e.get('sort_key', (None, 0)) if e.get('sort_key', (None, 0))[0] else ('', 0)))
+
+    # Build rows: initial state + all events
+    rows: List[Dict[str, Any]] = []
+
+    # Row 0 — initial item.quantity (before any transactions, or current if no history)
+    rows.append({
+        'type': 'state',
+        'label': f'Item {item_dict["ida"]}',
+        'values': {col: int(item_dict['quantity'].get(col, 0)) for col in columns},
+    })
+
+    # Reconstruct state rows by walking the running totals
+    running = {col: item_dict['quantity'].get(col, 0) for col in columns}
+
+    for event in events:
+        row = {
+            'type': event['type'],
+            'label': event['label'],
+            'values': event.get('values', {}),
+        }
+        if event.get('gl'):
+            row['gl'] = event['gl']
+        if event.get('model'):
+            row['model'] = event['model']
+        if event.get('record_id'):
+            row['record_id'] = event['record_id']
+
+        rows.append(row)
+
+    # Final row — current item.quantity (always the truth)
+    rows.append({
+        'type': 'state',
+        'label': 'Current',
+        'values': {col: int(item_dict['quantity'].get(col, 0)) for col in columns},
+    })
+
+    return {
+        'columns': columns,
+        'rows': rows,
+        'item': item_dict,
+        'line_count': len([e for e in events if e['type'] == 'transaction']),
+        'pending_count': len([e for e in events if e['type'] == 'pending']),
+    }
 
 
 def get_item_flight_state(item_id: int) -> Dict[str, Any]:
@@ -307,6 +504,10 @@ def get_flight_scenario() -> Dict[str, Any]:
             'instruction': 'Write off the remaining $2.00 as uncollectable',
             'action': 'write_off',
             'amount': 2.00,
+            'exit_point': {
+                'name': 'Invoice Settled',
+                'summary': 'The invoice is fully settled: $30 cash + $10 discount + $2 write-off = $42. You can stop here or continue to see returns, aging, and orphan cleanup.',
+            },
             'expected_gl': [
                 {'account': 'EXP-BADDEBT-000', 'side': 'debit', 'amount': 2.00,
                  'purpose': 'Bad Debt expense (cost of uncollectable)'},
@@ -320,9 +521,171 @@ def get_flight_scenario() -> Dict[str, Any]:
                 'The invoice is now fully settled: $30 cash + $10 discount + $2 write-off = $42.'
             ),
         },
+        # ── Reverse Flow ─────────────────────────────────────────────
+        {
+            'step': 10,
+            'title': 'Return 1 unit',
+            'instruction': 'Customer returns 1 of the 4 invoiced units. Create a Credit Memo.',
+            'action': 'create_return',
+            'qty': 1,
+            'section': 'Reverse Flow',
+            'expected_quantity': {
+                'on_hand': 108, 'on_so': 5, 'on_po': 3, 'on_p': 6,
+                'allocated': 5, 'available': 103,
+            },
+            'expected_pending': [
+                {'purpose': 'on_hand', 'delta': '+1'},
+            ],
+            'expected_gl': [
+                {'account': 'REV-SALES-000', 'side': 'debit', 'amount': 10.00,
+                 'purpose': 'Revenue reversal (1 × $10.00)'},
+                {'account': 'LIAB-SALESTAX-000', 'side': 'debit', 'amount': 0.50,
+                 'purpose': 'Sales tax reversal (5% × $10.00)'},
+                {'account': 'ASSET-AR-000', 'side': 'credit', 'amount': 10.50,
+                 'purpose': 'Credit memo — customer is owed $10.50'},
+                {'account': 'ASSET-INVENTORY-000', 'side': 'debit', 'amount': 6.00,
+                 'purpose': 'Inventory restored (1 × $6.00 — item back on shelf)'},
+                {'account': 'COGS-PRODUCTS-000', 'side': 'credit', 'amount': 6.00,
+                 'purpose': 'COGS reversal (cost of returned unit)'},
+            ],
+            'explanation': (
+                'Customer sends 1 unit back. Everything reverses:\n'
+                '• Revenue debit $10.00 (we un-earn the sale)\n'
+                '• Tax debit $0.50 (we un-collect the tax)\n'
+                '• AR credit $10.50 (we now owe the customer a credit)\n'
+                '• Inventory debit $6.00 (unit back on the shelf)\n'
+                '• COGS credit $6.00 (cost reversal)\n'
+                'On_hand goes from 107→108. The unit is physically back.'
+            ),
+        },
+        {
+            'step': 11,
+            'title': 'Scrap returned item',
+            'instruction': 'The returned unit is damaged. Create an inventory adjustment to scrap it.',
+            'action': 'scrap_adjustment',
+            'qty': 1,
+            'section': 'Reverse Flow',
+            'expected_quantity': {
+                'on_hand': 107, 'on_so': 5, 'on_po': 3, 'on_p': 6,
+                'allocated': 5, 'available': 102,
+            },
+            'expected_pending': [
+                {'purpose': 'on_hand', 'delta': '-1'},
+            ],
+            'expected_gl': [
+                {'account': 'EXP-SCRAP-000', 'side': 'debit', 'amount': 6.00,
+                 'purpose': 'Scrap/loss expense (damaged goods — cost of 1 unit)'},
+                {'account': 'ASSET-INVENTORY-000', 'side': 'credit', 'amount': 6.00,
+                 'purpose': 'Inventory reduction (scrapped unit leaves the books)'},
+            ],
+            'explanation': (
+                'The returned item is damaged beyond resale. Scrap it.\n'
+                '• Scrap expense debit $6.00 (loss on the damaged unit)\n'
+                '• Inventory credit $6.00 (remove from asset)\n'
+                'On_hand goes from 108→107. The unit is gone.\n'
+                'This is a real cost — we got the item back but can\'t sell it. '
+                'Alice tracks scrap rates by vendor and category.'
+            ),
+        },
+        {
+            'step': 12,
+            'title': 'Refund customer',
+            'instruction': 'Issue a refund payment of $10.50 against the credit memo.',
+            'action': 'refund_payment',
+            'amount': 10.50,
+            'section': 'Reverse Flow',
+            'exit_point': {
+                'name': 'Returns Complete',
+                'summary': 'Return processed, item scrapped, customer refunded. You can stop here or continue to see aging and orphan cleanup.',
+            },
+            'expected_gl': [
+                {'account': 'ASSET-AR-000', 'side': 'debit', 'amount': 10.50,
+                 'purpose': 'Clear credit memo balance'},
+                {'account': 'ASSET-CASH-000', 'side': 'credit', 'amount': 10.50,
+                 'purpose': 'Cash outflow — refund to customer'},
+            ],
+            'explanation': (
+                'Pay the customer what we owe from the credit memo.\n'
+                '• AR debit $10.50 (clear the credit balance)\n'
+                '• Cash credit $10.50 (money leaves the bank)\n'
+                'The return cycle is now complete: item returned, scrapped, customer refunded.'
+            ),
+        },
+        # ── Aging ─────────────────────────────────────────────────────
+        {
+            'step': 13,
+            'title': 'Pay vendor — $66.00 AP',
+            'instruction': 'Pay the $66.00 owed to the vendor for the 11 received units.',
+            'action': 'vendor_payment',
+            'amount': 66.00,
+            'section': 'Settlement',
+            'expected_gl': [
+                {'account': 'LIAB-ACCTSPAY-000', 'side': 'debit', 'amount': 66.00,
+                 'purpose': 'AP cleared — vendor paid'},
+                {'account': 'ASSET-CASH-000', 'side': 'credit', 'amount': 66.00,
+                 'purpose': 'Cash outflow to vendor'},
+            ],
+            'explanation': (
+                'We owe the vendor $66 from step 6 (11 units × $6.00). Pay it.\n'
+                '• AP debit $66.00 (we no longer owe the vendor)\n'
+                '• Cash credit $66.00 (money leaves the bank)\n'
+                'AP is now zero. All vendor obligations settled.'
+            ),
+        },
+        # ── Cleanup ───────────────────────────────────────────────────
+        {
+            'step': 14,
+            'title': 'Cancel remaining proposal (6 units)',
+            'instruction': 'Cancel the 6 units still sitting on the original proposal.',
+            'action': 'cancel_proposal_remainder',
+            'qty': 6,
+            'section': 'Cleanup',
+            'expected_quantity': {
+                'on_hand': 107, 'on_so': 5, 'on_po': 3, 'on_p': 0,
+                'allocated': 5, 'available': 102,
+            },
+            'expected_pending': [
+                {'purpose': 'on_p', 'delta': '-6'},
+            ],
+            'expected_gl': [],
+            'explanation': (
+                'The remaining 6 proposal units are stale — cancel them.\n'
+                'On_p drops from 6→0. No GL impact (proposals never had financial weight).\n'
+                'This is housekeeping — orphan proposals clutter reports and confuse users.'
+            ),
+        },
+        {
+            'step': 15,
+            'title': 'Close remaining SO (5) and PO (3)',
+            'instruction': 'Close the 5 remaining order units and 3 remaining PO units.',
+            'action': 'close_orphans',
+            'section': 'Cleanup',
+            'exit_point': {
+                'name': 'Clean Books',
+                'summary': 'All orphans cleared. Books are clean: on_hand=107, available=107, no open commitments.',
+            },
+            'expected_quantity': {
+                'on_hand': 107, 'on_so': 0, 'on_po': 0, 'on_p': 0,
+                'allocated': 0, 'available': 107,
+            },
+            'expected_pending': [
+                {'purpose': 'on_so', 'delta': '-5'},
+                {'purpose': 'on_po', 'delta': '-3'},
+            ],
+            'expected_gl': [],
+            'explanation': (
+                'Close the remaining open commitments:\n'
+                '• SO: 5 units cancelled (on_so 5→0)\n'
+                '• PO: 3 units cancelled (on_po 3→0)\n'
+                'No GL — these were commitments, not financial events.\n'
+                'Available goes from 102→107. All inventory is free.\n\n'
+                'The books are clean. Every transaction from proposal to cleanup '
+                'is accounted for. No orphans, no dangling commitments.'
+            ),
+        },
     ]
 
-    # Summary: what happened to the $42 invoice
+    # Summary: what happened across the full lifecycle
     invoice_summary = {
         'invoice_total': 42.00,
         'breakdown': [
@@ -336,15 +699,27 @@ def get_flight_scenario() -> Dict[str, Any]:
         ],
         'settlement_total': 42.00,
         'margin_analysis': {
-            'revenue': 40.00,
-            'cogs': 24.00,
-            'gross_margin': 16.00,
+            'revenue': 30.00,       # $40 original - $10 return reversal
+            'cogs': 18.00,          # $24 original - $6 return reversal
+            'gross_margin': 12.00,
             'commission': 2.00,
             'discount': 10.00,
             'bad_debt': 2.00,
-            'net_margin': 2.00,
-            'margin_pct': 5.0,  # $2 / $40 = 5%
-            'note': 'Started at 40% gross margin ($16/$40). After commission, discount, and write-off: 5% net. This is why Alice tracks erosion.',
+            'scrap': 6.00,
+            'refund_cash': 10.50,
+            'net_margin': -8.50,
+            'margin_pct': -28.3,    # -$8.50 / $30 net revenue
+            'note': (
+                'Started at 40% gross margin on 4 units ($16/$40). After return, scrap, '
+                'commission, discount, write-off, and refund: -28.3% net. The return + scrap '
+                'turned a thin profit into a loss. This is why Alice tracks erosion at every stage.'
+            ),
+        },
+        'cash_position': {
+            'cash_in': 30.00,       # customer payment
+            'cash_out': 76.50,      # vendor $66 + refund $10.50
+            'net_cash': -46.50,
+            'note': 'We collected $30 and paid out $76.50. Net cash is negative because we bought 11 units but only kept revenue on 3.',
         },
     }
 

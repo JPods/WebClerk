@@ -62,6 +62,23 @@ def _resolve(data: dict, field_path: str) -> str:
     return _safe(current)
 
 
+def _get_company_logo_url() -> str:
+    """Pull company logo URL from Company Profile Setting."""
+    try:
+        from django.apps import apps as _apps
+        Setting = _apps.get_model("core", "Setting")
+        s = Setting.objects.filter(name="Company Profile", is_active=True).first()
+        if s and isinstance(s.config, dict):
+            logos = s.config.get("logos", {})
+            logo = logos.get("primary", "") or logos.get("icon", "")
+            if logo:
+                # Ensure it starts with /
+                return f"/{logo}" if not logo.startswith("/") else logo
+    except Exception:
+        pass
+    return ""
+
+
 def _render_sample_html(report_name: str, model_name: str, sample: dict, form: dict) -> str:
     """Render sample data using the config.form layout as standalone HTML."""
 
@@ -81,10 +98,20 @@ def _render_sample_html(report_name: str, model_name: str, sample: dict, form: d
         stype = section.get("type", "")
 
         if stype == "company_header":
+            logo_url = _get_company_logo_url()
+            logo_html = (
+                f'<img src="{logo_url}" alt="" style="height:48px; opacity:0.9" onerror="this.style.display=\'none\'">'
+                if logo_url else ""
+            )
             sections_html.append(f"""
             <div class="company-header">
-                <h1>{title}</h1>
-                <div class="meta-label">Sample Data — Report Parade Preview</div>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start">
+                    <div>
+                        <h1>{title}</h1>
+                        <div class="meta-label">Sample Data — Report Parade Preview</div>
+                    </div>
+                    {logo_html}
+                </div>
             </div>""")
 
         elif stype == "address_blocks":
@@ -94,6 +121,11 @@ def _render_sample_html(report_name: str, model_name: str, sample: dict, form: d
                 for f in col.get("fields", []):
                     val = _resolve(sample, f["field"])
                     if val:
+                        fmt = f.get("format", "")
+                        if fmt == "date" and str(val).isdigit():
+                            val = _date(val)
+                        elif fmt == "currency":
+                            val = _money(val)
                         val_display = val.replace("\n", "<br>")
                         fields_html += f'<div><span class="meta-label">{f.get("label", "")}:</span> {val_display}</div>'
                 cols_html += f'<div class="addr-col"><div class="addr-title">{col.get("title", "")}</div>{fields_html}</div>'
@@ -135,6 +167,78 @@ def _render_sample_html(report_name: str, model_name: str, sample: dict, form: d
                     align = c.get("align", "left")
                     cells += f'<td style="text-align:{align}">{val}</td>'
                 rows += f"<tr>{cells}</tr>"
+            sections_html.append(f"""
+            <table class="line-items">
+                <thead>{thead}</thead>
+                <tbody>{rows}</tbody>
+            </table>""")
+
+        elif stype == "detail_fields":
+            fields_html = ""
+            for f in section.get("fields", []):
+                val = _resolve(sample, f["field"])
+                if val:
+                    fields_html += f'<div style="margin:6px 0"><span class="meta-label">{f.get("label", "")}:</span> {val}</div>'
+            if fields_html:
+                sections_html.append(f'<div class="detail-fields" style="margin:12px 0; padding:12px; background:#fafafa; border-radius:4px">{fields_html}</div>')
+
+        elif stype == "data_table":
+            columns = section.get("columns", [])
+            thead = "<tr>" + "".join(
+                f'<th style="width:{c.get("width","auto")}; text-align:{c.get("align","left")}">{c.get("label","")}</th>'
+                for c in columns
+            ) + "</tr>"
+            # Group by field if specified
+            group_by = section.get("group_by", "")
+            rows_data = sample.get("lines", [])
+            if group_by:
+                groups: dict = {}
+                for row in rows_data:
+                    key = _resolve(row, group_by) or "Other"
+                    groups.setdefault(key, []).append(row)
+            else:
+                groups = {"": rows_data}
+            rows = ""
+            for group_name, group_rows in groups.items():
+                if group_name and section.get("group_label"):
+                    rows += f'<tr><td colspan="{len(columns)}" style="background:#e8e8e8; font-weight:700; padding:6px 10px">{section["group_label"]}: {group_name}</td></tr>'
+                for ln in group_rows:
+                    cells = ""
+                    for c in columns:
+                        val = _resolve(ln, c["field"])
+                        fmt = c.get("format", "")
+                        if fmt == "currency":
+                            val = _money(val)
+                        elif fmt == "number":
+                            val = _qty(val)
+                        align = c.get("align", "left")
+                        cells += f'<td style="text-align:{align}">{val}</td>'
+                    rows += f"<tr>{cells}</tr>"
+                if group_name and section.get("group_subtotals"):
+                    subtotals = ""
+                    for c in columns:
+                        fmt = c.get("format", "")
+                        if fmt == "currency":
+                            total = sum(float(_resolve(r, c["field"]) or 0) for r in group_rows)
+                            subtotals += f'<td style="text-align:{c.get("align","right")}; font-weight:700; border-top:1px solid #999">{_money(total)}</td>'
+                        elif c == columns[0]:
+                            subtotals += f'<td style="font-weight:700; border-top:1px solid #999">Subtotal</td>'
+                        else:
+                            subtotals += '<td style="border-top:1px solid #999"></td>'
+                    rows += f"<tr>{subtotals}</tr>"
+            # Grand totals
+            if section.get("grand_totals") and rows_data:
+                grand = ""
+                for c in columns:
+                    fmt = c.get("format", "")
+                    if fmt == "currency":
+                        total = sum(float(_resolve(r, c["field"]) or 0) for r in rows_data)
+                        grand += f'<td style="text-align:{c.get("align","right")}; font-weight:700; border-top:2px solid #333">{_money(total)}</td>'
+                    elif c == columns[0]:
+                        grand += f'<td style="font-weight:700; border-top:2px solid #333">Grand Total</td>'
+                    else:
+                        grand += '<td style="border-top:2px solid #333"></td>'
+                rows += f"<tr>{grand}</tr>"
             sections_html.append(f"""
             <table class="line-items">
                 <thead>{thead}</thead>
@@ -208,7 +312,7 @@ body {{ font-family: -apple-system, Helvetica, Arial, sans-serif; font-size: 11p
 .meta-table {{ width: 100%; margin: 12px 0; background: #f8f8f8; border-radius: 4px; }}
 .meta-table td {{ padding: 6px 12px; }}
 .line-items {{ width: 100%; border-collapse: collapse; margin: 16px 0; }}
-.line-items th {{ background: #333; color: #fff; padding: 8px 10px; text-align: left; font-size: 9pt;
+.line-items th {{ background: #3355FF; color: #fff; padding: 8px 10px; text-align: left; font-size: 9pt;
                   text-transform: uppercase; letter-spacing: 0.5px; }}
 .line-items td {{ padding: 8px 10px; border-bottom: 1px solid #e0e0e0; }}
 .line-items tbody tr:hover {{ background: #f5f5f5; }}
@@ -272,6 +376,26 @@ class ParadePreviewView(APIView):
         sample = config.get("sample_data")
         form = config.get("form")
 
+        # Filesystem fallback — check sample_data/ by model_name and report name
+        if not sample:
+            from pathlib import Path
+            sample_dir = Path(__file__).resolve().parent.parent / "sample_data"
+            # Try model_name first, then report name slug
+            for candidate in [report.model_name, report.name.lower().replace(" ", "_")]:
+                if not candidate:
+                    continue
+                sample_file = sample_dir / f"{candidate}.json"
+                if sample_file.exists():
+                    sample = json.loads(sample_file.read_text())
+                    sample.pop("_meta", None)
+                    break
+            # For aging report: model is "customer" but file is "aging.json"
+            if not sample and report.name and "aging" in report.name.lower():
+                aging_file = sample_dir / "aging.json"
+                if aging_file.exists():
+                    sample = json.loads(aging_file.read_text())
+                    sample.pop("_meta", None)
+
         if not sample:
             from common.api_responses import api_response
             return api_response(
@@ -298,3 +422,34 @@ class ParadePreviewView(APIView):
         response = HttpResponse(html, content_type="text/html")
         response["Content-Disposition"] = f'inline; filename="parade-{report.id}.html"'
         return response
+
+
+class ParadeManifestView(APIView):
+    """GET /wcapi/parade-manifest/ — returns the parade manifest for the React UI."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        from apps.core.services.parade_of_reports import build_parade_manifest
+        base_url = request.build_absolute_uri('/').rstrip('/')
+        manifest = build_parade_manifest(base_url=base_url)
+        from common.api_responses import api_response
+        return api_response(success=True, data=manifest)
+
+
+class ParadeFeedbackView(APIView):
+    """POST /wcapi/parade-feedback/ — save user feedback on a report."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        from apps.core.services.parade_of_reports import save_parade_feedback
+        report_id = request.data.get("report_id")
+        feedback = request.data.get("feedback", "")
+        notes = request.data.get("notes", "")
+        if not report_id or not feedback:
+            from common.api_responses import api_response
+            return api_response(success=False, status_code=400, message="report_id and feedback required")
+        ok = save_parade_feedback(report_id, feedback, notes, request.user.id)
+        from common.api_responses import api_response
+        if ok:
+            return api_response(success=True, message="Feedback saved")
+        return api_response(success=False, status_code=404, message="Report not found")

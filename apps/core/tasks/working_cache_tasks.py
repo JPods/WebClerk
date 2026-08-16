@@ -10,7 +10,9 @@ logger = logging.getLogger(__name__)
     # Purposes needed at startup for request handling.
     # Everything else is lazy-loaded when first accessed.
 STARTUP_PURPOSES = {
-    'wc:field_access', 'wc:schema_map', 'wc:workbench_fields', 'wc:db_defaults',
+    'wc:model',  # combined model definition (replaces schema_map, field_access, etc.)
+    'wc:field_access', 'wc:schema_map',  # legacy — remove after migration complete
+    'wc:workbench_fields', 'wc:db_defaults',
     'wc:keywords', 'wc:search', 'wc:detail_layout', 'wc:selectlist',
     'wc:model_related', 'wc:list_column_config', 'wc:feature',
     'wc:company_profile', 'wc:react_settings',

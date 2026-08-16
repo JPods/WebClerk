@@ -43,13 +43,29 @@
       "file": "item.json",
       "reports": ["Item Detail", "Price List", "Inventory Status"],
       "business_type": ["all"]
+    },
+    "requisition": {
+      "file": "requisition.json",
+      "reports": ["Purchase Requisition", "Requisition Approval"],
+      "business_type": ["all"]
+    },
+    "workorder": {
+      "file": "workorder.json",
+      "reports": ["Work Order", "Service Report", "Field Service Ticket"],
+      "business_type": ["service", "contractor"]
+    },
+    "aging": {
+      "file": "aging.json",
+      "reports": ["AR Aging Summary", "AR Aging Detail", "Collections Report"],
+      "business_type": ["all"]
     }
   },
   "parade_sequence": {
     "onboarding": [
       {"group": "Selling", "models": ["invoice", "order", "proposal"]},
-      {"group": "Getting Paid", "models": ["payment", "statement"]},
-      {"group": "Buying", "models": ["purchase"]},
+      {"group": "Getting Paid", "models": ["payment", "statement", "aging"]},
+      {"group": "Buying", "models": ["purchase", "requisition"]},
+      {"group": "Service", "models": ["workorder"]},
       {"group": "Catalog", "models": ["item", "contact"]}
     ]
   }

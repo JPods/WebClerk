@@ -45,10 +45,14 @@ def audit_model_schemas(model_names: list[str] | None = None, limit_per_model: i
     from apps.ai_assistant.services.user_patterns import log_schema_question
     from apps.core.models import Setting
 
-    # Get all schema_map settings
-    settings_qs = Setting.objects.filter(purpose='wc:schema_map', is_active=True)
+    # Get model definition settings (wc:model preferred, fall back to legacy wc:schema_map)
+    settings_qs = Setting.objects.filter(purpose='wc:model', is_active=True)
     if model_names:
         settings_qs = settings_qs.filter(parent_model__in=model_names)
+    if not settings_qs.exists():
+        settings_qs = Setting.objects.filter(purpose='wc:schema_map', is_active=True)
+        if model_names:
+            settings_qs = settings_qs.filter(parent_model__in=model_names)
 
     results = {}
     total_questions = 0
@@ -56,7 +60,9 @@ def audit_model_schemas(model_names: list[str] | None = None, limit_per_model: i
     for setting in settings_qs:
         model_key = setting.parent_model
         cfg = setting.config or {}
-        schema_module_path = cfg.get('pydantic_schema', '')
+        # wc:model stores schema under 'schema' key; legacy stores at top level
+        schema_cfg = cfg.get('schema', cfg) if setting.purpose == 'wc:model' else cfg
+        schema_module_path = schema_cfg.get('pydantic_schema', '')
         if not schema_module_path:
             continue
 

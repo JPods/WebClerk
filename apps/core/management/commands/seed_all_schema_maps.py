@@ -131,10 +131,14 @@ class Command(BaseCommand):
                 created_settings += 1
                 continue
 
+            schema_expl = (
+                f"Schema map for {meta.singular}. "
+                f"Defines field types, constraints, and validation rules for sync and API consumers."
+            )
             if key in existing and force:
                 Setting.objects.filter(
                     parent_model=key, purpose="wc:schema_map", is_active=True
-                ).update(config=config, name=f"{meta.singular} schema")
+                ).update(config=config, name=f"{meta.singular} schema", explanation=schema_expl)
             else:
                 Setting.objects.create(
                     name=f"{meta.singular} schema",
@@ -143,6 +147,7 @@ class Command(BaseCommand):
                     purpose="wc:schema_map",
                     scope="system",
                     config=config,
+                    explanation=schema_expl,
                 )
             created_settings += 1
 

@@ -28,7 +28,14 @@ class Setting(BaseModel):
     contact_id = models.BigIntegerField(default=0, db_index=True, help_text="User contact ID — 0 = all users")
     # Canonical model identifier
     parent_model = models.CharField(max_length=255, blank=True, null=True)
-    
+    explanation = models.TextField(
+        blank=True, default='',
+        help_text="What this Setting governs — human-readable description of purpose and parent_model relationship",
+    )
+    paths = models.JSONField(
+        default=dict, blank=True,
+        help_text="Pointers to supporting documentation, schema files, pages, and related code",
+    )
 
     class Meta:
         db_table = 'settings'

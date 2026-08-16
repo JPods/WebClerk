@@ -4,20 +4,19 @@ Setting resolver — walks the scope hierarchy to find the effective setting.
 Precedence (most specific wins):
     user (contact_id) → role → org (org_id) → system
 
+For legacy purposes that have been consolidated into wc:model, the resolver
+transparently extracts the correct config section from the wc:model record.
+
 Usage:
     from apps.core.services.setting_resolver import resolve_setting
 
-    # Get the detail layout for action, for this user
     layout = resolve_setting(
-        purpose="wc:detail_layout",
+        purpose="wc:detail_layout",   # or "wc:model" directly
         parent_model="action",
         contact_id=8,
         org_id=1,
         role="admin",
     )
-
-    # Returns the config from the most specific matching Setting,
-    # or None if no Setting exists at any level.
 """
 
 import logging
@@ -26,6 +25,18 @@ from typing import Optional, Any
 from apps.core.models.setting import Setting
 
 logger = logging.getLogger("core.settings")
+
+# Legacy purposes now stored as sections within wc:model config
+_WC_MODEL_SECTIONS = {
+    'wc:detail_layout': 'layout',
+    'wc:field_access': 'access',
+    'wc:schema_map': 'schema',
+    'wc:enrichment_panels': 'enrichment',
+    'wc:workbench_fields': 'columns',
+    'wc:keywords': 'search',
+    'wc:print_layout': 'print',
+    'wc:db_defaults': 'defaults',
+}
 
 
 def resolve_setting(
@@ -88,6 +99,20 @@ def resolve_setting(
         logger.debug("resolve_setting: system match id=%s for %s/%s", match.id, purpose, parent_model)
         return match.config
 
+    # 5. Legacy fallback — extract section from wc:model record
+    section_key = _WC_MODEL_SECTIONS.get(purpose)
+    if section_key and parent_model:
+        model_setting = Setting.objects.filter(
+            purpose="wc:model", parent_model=parent_model,
+            is_active=True, scope="system",
+        ).first()
+        if model_setting and isinstance(model_setting.config, dict):
+            section = model_setting.config.get(section_key)
+            if section:
+                logger.debug("resolve_setting: wc:model fallback for %s/%s -> config.%s",
+                             purpose, parent_model, section_key)
+                return section
+
     logger.debug("resolve_setting: no match for %s/%s", purpose, parent_model)
     return None
 
@@ -128,5 +153,17 @@ def resolve_setting_with_source(
     match = Setting.objects.filter(**base_q, scope="system").first()
     if match:
         return match.config, "system"
+
+    # Legacy fallback — extract section from wc:model record
+    section_key = _WC_MODEL_SECTIONS.get(purpose)
+    if section_key and parent_model:
+        model_setting = Setting.objects.filter(
+            purpose="wc:model", parent_model=parent_model,
+            is_active=True, scope="system",
+        ).first()
+        if model_setting and isinstance(model_setting.config, dict):
+            section = model_setting.config.get(section_key)
+            if section:
+                return section, "system"
 
     return None, ""

@@ -29,7 +29,7 @@ from apps.core.views.permissions import UserPermissionsView, ModelPermissionsVie
 from apps.core.views.image_view import ImageView
 from apps.core.views.template_views import ResolveTemplateView, TemplateFieldsView
 from apps.core.views.sample_data_view import SampleDataView
-from apps.core.views.parade_preview_view import ParadePreviewView
+from apps.core.views.parade_preview_view import ParadePreviewView, ParadeManifestView, ParadeFeedbackView
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
 from apps.docs.views_qa import ApplyQuestionsView, ListQuestionGroupsView, ParentQAView
 
@@ -81,6 +81,8 @@ urlpatterns = [
     # Sample data for report parade onboarding
     path("wcapi/sample-data/", SampleDataView.as_view(), name="wcapi-sample-data"),
     path("wcapi/parade-preview/", ParadePreviewView.as_view(), name="wcapi-parade-preview"),
+    path("wcapi/parade-manifest/", ParadeManifestView.as_view(), name="wcapi-parade-manifest"),
+    path("wcapi/parade-feedback/", ParadeFeedbackView.as_view(), name="wcapi-parade-feedback"),
     # Template resolution API — letters, emails, labels, external integrations
     path("wcapi/resolve-template/", ResolveTemplateView.as_view(), name="wcapi-resolve-template"),
     path("wcapi/template-fields/", TemplateFieldsView.as_view(), name="wcapi-template-fields"),

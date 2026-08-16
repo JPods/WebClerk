@@ -844,6 +844,12 @@ _ACTION_DISPATCH = {
         'apps.products.services.inventory_flight_sim',
         fromlist=['get_flight_scenario']
     ).get_flight_scenario(),
+    "get_flight_ledger": lambda params: __import__(
+        'apps.products.services.inventory_flight_sim',
+        fromlist=['get_flight_ledger']
+    ).get_flight_ledger(
+        item_id=int(params['item_id']),
+    ),
     "get_collections_dashboard": lambda params: __import__(
         'apps.accounts.services.collections_dashboard',
         fromlist=['get_collections_dashboard']
@@ -989,8 +995,10 @@ _ACTION_DISPATCH = {
     # ── Field Change Requests ──
     "request_field_change": lambda p: __import__('apps.ai_assistant.services.field_change_requests', fromlist=['request_field_change']).request_field_change(p.get('model',''), p.get('field',''), p.get('change_type','select'), p.get('values_source','static'), p.get('options'), p.get('query_model',''), p.get('query_field',''), p.get('query_filter',''), p.get('setting_name',''), p.get('reason',''), p.get('field_label',''), p.get('contact_id')),
     "approve_field_change": lambda p: __import__('apps.ai_assistant.services.field_change_requests', fromlist=['approve_field_change']).approve_field_change(p['action_id'], p['contact_id']),
-    # ── UI Preferences (prefs.wcui on Contact) ──
-    "save_wcui_prefs": lambda p: __import__('apps.core.services.wcui_prefs', fromlist=['save_wcui_prefs']).save_wcui_prefs(p.get('prefs', {}), p.get('contact_id')),
+    # ── UI Configuration (config.ui on Contact) ──
+    "save_ui_config": lambda p: __import__('apps.core.services.ui_config', fromlist=['save_ui_config']).save_ui_config(p.get('config_ui', {}), p.get('contact_id')),
+    "get_ui_config": lambda p: __import__('apps.core.services.ui_config', fromlist=['get_ui_config']).get_ui_config(p.get('contact_id')),
+    "save_wcui_prefs": lambda p: __import__('apps.core.services.ui_config', fromlist=['save_ui_config']).save_ui_config(p.get('prefs', {}), p.get('contact_id')),  # legacy alias
     # ── Dedup (any model) ──
     "find_duplicates": lambda p: __import__('apps.core.services.dedup', fromlist=['find_duplicates']).find_duplicates(p['model'], p.get('match_fields', ['name_first+name_last']), p.get('limit', 500)),
     "merge_records": lambda p: __import__('apps.core.services.dedup', fromlist=['merge_records']).merge_records(p['model'], p['winner_id'], p['loser_ids'], p.get('merge_strategy', 'fill_empty')),

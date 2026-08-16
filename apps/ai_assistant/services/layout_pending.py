@@ -61,20 +61,55 @@ def save_layout_pending(params: dict) -> dict:
         # Don't block the save — audit is nice-to-have
 
     # --- Step 2: Apply to Setting ---
+    # Try wc:model first (consolidated), fall back to legacy wc:workbench_fields
+    setting = Setting.objects.filter(
+        parent_model=model,
+        purpose='wc:model',
+    ).first()
+
+    if setting:
+        # Update the columns section within wc:model
+        cfg = setting.config or {}
+        old_list = [f.get('field') if isinstance(f, dict) else f
+                    for f in (cfg.get('columns', {}).get('list', []) if isinstance(cfg.get('columns'), dict) else [])[:4]]
+
+        cfg['columns'] = layout_data
+        setting.config = cfg
+        setting.save(update_fields=['config', 'dt_modified'])
+
+        new_list = [f.get('field') if isinstance(f, dict) else f
+                    for f in layout_data.get('list', [])[:4]]
+
+        logger.warning(
+            f"[layout_pending] APPLIED to wc:model #{setting.id} for {model}: "
+            f"list {old_list} → {new_list}"
+        )
+
+        return {
+            'setting_id': setting.id,
+            'model': model,
+            'status': 'applied',
+            'list_count': len(layout_data.get('list', [])),
+            'views_count': len(layout_data.get('views', [])),
+        }
+
+    # Legacy fallback
     setting = Setting.objects.filter(
         parent_model=model,
         purpose='wc:workbench_fields',
     ).first()
 
     if not setting:
-        # Create new
+        # Create new wc:model record with columns section
         setting = Setting.objects.create(
-            name=f'workbench_fields:{model}',
+            name=f'{model} Model Definition',
+            ida=f'wc-model-{model}',
             parent_model=model,
-            purpose='wc:workbench_fields',
-            data=layout_data,
+            purpose='wc:model',
+            scope='system',
+            config={'columns': layout_data},
         )
-        logger.info(f"[layout_pending] Created new Setting #{setting.id} for {model}")
+        logger.info(f"[layout_pending] Created new wc:model Setting #{setting.id} for {model}")
         return {
             'setting_id': setting.id,
             'model': model,
@@ -83,7 +118,7 @@ def save_layout_pending(params: dict) -> dict:
             'views_count': len(layout_data.get('views', [])),
         }
 
-    # Update existing — REPLACE data entirely (not merge)
+    # Update legacy record
     old_list = [f.get('field') if isinstance(f, dict) else f
                 for f in (setting.config or {}).get('list', [])[:4]]
 

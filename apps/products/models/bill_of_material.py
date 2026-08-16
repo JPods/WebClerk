@@ -67,6 +67,9 @@ class BillOfMaterial(BaseModel):
     change_reason = models.CharField(max_length=120, blank=True, default="")
     dt_last_recalc = models.DateTimeField(null=True, blank=True)
 
+    def __str__(self):
+        return f"BOM {self.id}: {self.parent_ida} -> {self.child_ida}"
+
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=["parent_item", "child_item"], name="uniq_bom_parent_component"),

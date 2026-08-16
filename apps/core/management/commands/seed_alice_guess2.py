@@ -173,7 +173,6 @@ LIST_PRIORITIES = {
     'currency':  ['ida', 'name', 'code', 'is_active'],
     'service':   ['ida', 'name', 'type', 'status', 'is_active'],
     'tax_jurisdiction': ['ida', 'name', 'type', 'rate', 'is_active'],
-    'template':  ['ida', 'name', 'type', 'is_active'],
     'term':      ['ida', 'name', 'type', 'is_active'],
     'warehouse': ['ida', 'name', 'status', 'address_full', 'is_active'],
     'item_xref': ['ida', 'item', 'source', 'dt_created'],

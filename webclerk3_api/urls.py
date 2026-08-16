@@ -22,16 +22,20 @@ urlpatterns = [
     # Document upload endpoints
     path('wcapi/', include(upload_urlpatterns)),
 
+    # Settings bootstrap — available before full auth (database may be empty)
+    path('wcapi/settings-health/', __import__('apps.core.views.settings_bootstrap_view', fromlist=['SettingsHealthView']).SettingsHealthView.as_view(), name='settings-health'),
+    path('wcapi/settings-bootstrap/', __import__('apps.core.views.settings_bootstrap_view', fromlist=['SettingsBootstrapView']).SettingsBootstrapView.as_view(), name='settings-bootstrap'),
+    path('wcapi/settings-fetch-hq/', __import__('apps.core.views.settings_bootstrap_view', fromlist=['SettingsFetchHqView']).SettingsFetchHqView.as_view(), name='settings-fetch-hq'),
+
     # Core API endpoints
     path('', include('apps.core.urls')),
     path('wcapi/ai/', include('apps.ai_assistant.urls')),
     path('wcapi/jpods/', include('apps.jpods.urls')),
-    path('jpods/',      include('apps.jpods.urls')),
     path('wcapi/reports/', include('apps.accounts.urls')),
-    path('api/orgs/', include('apps.orgs.urls')),
-    path('api/docs/', include('apps.docs.urls')),
-    path('api/transactions/', include('apps.transactions.urls')),
-    path('api/products/', include('apps.products.urls')),
+    path('wcapi/orgs/', include('apps.orgs.urls')),
+    path('wcapi/docs/', include('apps.docs.urls')),
+    path('wcapi/transactions/', include('apps.transactions.urls')),
+    path('wcapi/products/', include('apps.products.urls')),
     path('wcapi/sync/', include('apps.sync.urls')),
 
     # Admin swagger
@@ -41,9 +45,10 @@ urlpatterns = [
     # path('explorer/', include('explorer.urls')),  # TODO: install django-sql-explorer in lib/python3.13
 ]
 
-# Serve static files in development (images, etc.)
+# Serve static and media files in development (images, logos, etc.)
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # JSON-only error handlers
 handler400 = "django.views.defaults.bad_request"

@@ -332,6 +332,9 @@ class PendingInventoryAdjustment(CoreModel):
     dt_applied = models.DateTimeField(null=True, blank=True)
     cancel_reason = models.CharField(max_length=120, blank=True)
 
+    def __str__(self):
+        return f"PendingAdj {self.id} ({self.state}) on stack {self.inventory_layer_id}"
+
     class Meta:
         indexes = [
             models.Index(fields=("state",), name="pendinv_state_idx"),

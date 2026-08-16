@@ -44,14 +44,14 @@ def resolve_image(model_name: str, ida: str, size: str = 'tn') -> dict:
     """
     Resolve an image through the three-source pipeline.
 
-    Alice writes config.images on each record to cache the resolution:
-      config.images = {
+    Alice writes metadata.images on each record to cache the resolution:
+      metadata.images = {
         "source": "local" | "remote:SupplierName" | "placeholder",
-        "sizes": {"tn": true, "display": true, "hires": false}
+        "tn": true, "display": true, "hires": false
       }
 
-    Once config.images.source is set, we skip the probe and go direct.
-    Alice updates config.images when she learns about new image sources
+    Once metadata.images.source is set, we skip the probe and go direct.
+    Alice updates metadata.images when she learns about new image sources
     or when a supplier library changes.
 
     Returns {found: bool, path: str|None, bytes: bytes|None, source: str}
@@ -97,16 +97,15 @@ def resolve_image(model_name: str, ida: str, size: str = 'tn') -> dict:
 
 
 def _get_cached_source(model_name: str, ida: str) -> str | None:
-    """Read config.images.source from the record.
+    """Read metadata.images.source from the record.
 
-    config.images follows the ImagePaths pydantic schema:
-      {source: str, tn: bool, display: bool, hires: bool}
+    metadata.images structure: {source: str, tn: bool, display: bool, hires: bool}
     """
     try:
         Model = _resolve_model(model_name)
         if not Model:
             return None
-        record = Model.objects.filter(ida=ida).values_list('config', flat=True).first()
+        record = Model.objects.filter(ida=ida).values_list('metadata', flat=True).first()
         if record and isinstance(record, dict):
             images = record.get('images')
             if images and isinstance(images, dict):
@@ -117,9 +116,9 @@ def _get_cached_source(model_name: str, ida: str) -> str | None:
 
 
 def _set_cached_source(model_name: str, ida: str, source: str, size: str = None):
-    """Write config.images on the record so future lookups skip the probe.
+    """Write metadata.images on the record so future lookups skip the probe.
 
-    Follows ImagePaths schema: {source, tn, display, hires}
+    Structure: {source, tn, display, hires}
     """
     try:
         Model = _resolve_model(model_name)
@@ -127,13 +126,13 @@ def _set_cached_source(model_name: str, ida: str, source: str, size: str = None)
             return
         record = Model.objects.filter(ida=ida).first()
         if record:
-            config = record.config or {}
-            images = config.get('images') or {'source': '', 'tn': False, 'display': False, 'hires': False}
+            metadata = record.metadata or {}
+            images = metadata.get('images') or {'source': '', 'tn': False, 'display': False, 'hires': False}
             images['source'] = source
             if size:
                 images[size] = True
-            config['images'] = images
-            Model.objects.filter(pk=record.pk).update(config=config)
+            metadata['images'] = images
+            Model.objects.filter(pk=record.pk).update(metadata=metadata)
     except Exception as e:
         logger.debug(f"Could not cache image source on {model_name}/{ida}: {e}")
 

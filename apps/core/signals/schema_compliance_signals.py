@@ -1,8 +1,7 @@
 """Schema compliance signals — Alice checks on Setting save and post-migrate.
 
 Two triggers:
-1. post_save on Setting — when a schema_map, enrichment_panels, detail_layout,
-   or field_access Setting is modified, validate it against BaseModel.
+1. post_save on Setting — when a wc:model Setting is modified, validate it.
 2. post_migrate — after any migration, run a full schema compliance audit.
 
 Violations are logged and optionally fixed (Alice mode).
@@ -18,7 +17,7 @@ from django.dispatch import receiver
 
 logger = logging.getLogger(__name__)
 
-SCHEMA_PURPOSES = {'wc:schema_map', 'wc:enrichment_panels', 'wc:detail_layout', 'wc:field_access'}
+SCHEMA_PURPOSES = {'wc:model', 'wc:schema_map', 'wc:enrichment_panels', 'wc:detail_layout', 'wc:field_access'}
 
 
 @receiver(post_save, sender='core.Setting')

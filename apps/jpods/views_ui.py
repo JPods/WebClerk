@@ -23,7 +23,7 @@ import logging
 import pathlib
 import subprocess
 import uuid as uuid_module
-from datetime import datetime
+from django.utils import timezone
 
 
 _ALLIE_CAPTURE = pathlib.Path.home() / "Allie" / "scripts" / "allie-capture.py"
@@ -291,7 +291,7 @@ class TravelView(APIView):
                 status=400,
             )
 
-        trip_id = f"T-{datetime.now().strftime('%Y%m%d')}-{str(uuid_module.uuid4())[:8].upper()}"
+        trip_id = f"T-{timezone.now().strftime('%Y%m%d')}-{str(uuid_module.uuid4())[:8].upper()}"
 
         result = create_trip_invoice({
             "contact_id": contact.pk,

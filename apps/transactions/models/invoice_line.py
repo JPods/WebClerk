@@ -12,6 +12,9 @@ class InvoiceLine(BaseSellLineModel):
         blank=True,
     )
 
+    def __str__(self):
+        return f"InvoiceLine {self.id} on invoice {self.invoice_id}"
+
     class Meta:
         db_table = "invoice_lines"
 

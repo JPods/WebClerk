@@ -109,6 +109,9 @@ class Service(ItemLinkedBase):
 
     # Deprecated legacy fields removed (see migration & scan command for any lingering DB columns)
 
+    def __str__(self):
+        return self.description or self.category or f"Service {self.id}"
+
     class Meta:
         indexes = []
 

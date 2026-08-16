@@ -106,6 +106,9 @@ class InventoryCheck(BaseModel):
     notes = models.TextField(blank=True)
     config = models.JSONField(default=dict, blank=True, help_text="Optional metadata envelope (device info, geo, method, etc.)")
 
+    def __str__(self):
+        return f"InventoryCheck {self.id} ({self.status})"
+
     class Meta:
         indexes = [
             models.Index(fields=("orgbase", "dt_performed"), name="invchk_org_dt_idx"),
@@ -170,6 +173,9 @@ class InventoryCheckLine(BaseModel):
         indexes = [
             models.Index(fields=("auto_flag",), name="invchkline_autoflag_idx"),
         ]
+
+    def __str__(self):
+        return f"CheckLine {self.id} on check {self.inventory_check_id}"
 
     def save(self, *args, **kwargs):  # pragma: no cover simple arithmetic
         if self.counted_qty is not None and self.prior_qty is not None:

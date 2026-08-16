@@ -7,10 +7,13 @@ from sentry_sdk.integrations.django import DjangoIntegration
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Provide fallback secret for local/dev or test runs if not supplied via env
-SECRET_KEY = config('SECRET_KEY', default='insecure-dev-test-key')
+# Dev fallback only — production must set SECRET_KEY in .env or environment
+_SECRET_KEY_FALLBACK = 'insecure-dev-test-key'
+SECRET_KEY = config('SECRET_KEY', default=_SECRET_KEY_FALLBACK)
 DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.webclerk.com', '*']  # TODO: restrict in production
+if not DEBUG and SECRET_KEY == _SECRET_KEY_FALLBACK:
+    raise RuntimeError('SECRET_KEY not set — refusing to start in production with insecure fallback')
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.webclerk.com', '85.31.234.194']
 
 
 CORS_ALLOWED_ORIGINS = (
@@ -150,6 +153,8 @@ _remote_db_cfg = {
     'HOST': config('REMOTE_DATABASE_HOST', default=config('DATABASE_HOST', default='localhost')),
     'PORT': config('REMOTE_DATABASE_PORT', default=config('DATABASE_PORT', default='5432')),
     'ATOMIC_REQUESTS': False,
+    'CONN_MAX_AGE': 600,
+    'CONN_HEALTH_CHECKS': True,
 }
 
 # ── Local DB configuration (shared by local + write-through modes) ──
@@ -161,6 +166,8 @@ _local_db_cfg = {
     'HOST': config('LOCAL_DATABASE_HOST', default='localhost'),
     'PORT': config('LOCAL_DATABASE_PORT', default='5432'),
     'ATOMIC_REQUESTS': False,
+    'CONN_MAX_AGE': 600,
+    'CONN_HEALTH_CHECKS': True,
 }
 
 

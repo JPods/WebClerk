@@ -86,6 +86,9 @@ class DeliveryVisit(BaseModel):
     notes = models.TextField(blank=True)
     config = models.JSONField(default=dict, blank=True, help_text="Flexible metadata: route info, geo, truck id, etc.")
 
+    def __str__(self):
+        return f"DeliveryVisit {self.id} ({self.status})"
+
     class Meta:
         indexes = [
             models.Index(fields=("orgbase", "dt_scheduled"), name="delv_vendor_sched_idx"),
@@ -152,6 +155,9 @@ class DeliveryLine(BaseModel):
     skipped_reason = models.CharField(max_length=120, blank=True)
     status = models.CharField(max_length=16, choices=STATUSES, default=STATUS_PLANNED, db_index=True)
     config = models.JSONField(default=dict, blank=True, help_text="Aux data: pricing snapshot, adjustments, device capture")
+
+    def __str__(self):
+        return f"DeliveryLine {self.id} on visit {self.delivery_visit_id}"
 
     class Meta:
         constraints = [

@@ -61,6 +61,9 @@ class InventoryReservation(models.Model):
     # dt_created is inherited from BaseModel/CoreModel
     dt_modified = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return f"Reservation {self.id} ({self.state})"
+
     class Meta:
         indexes = [
             models.Index(fields=("state", "dt_expires"), name="invres_state_exp_idx"),

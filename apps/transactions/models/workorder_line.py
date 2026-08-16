@@ -12,6 +12,9 @@ class WorkOrderLine(BaseExecLineModel):
         blank=True,
     )
 
+    def __str__(self):
+        return f"WorkOrderLine {self.id} on workorder {self.workorder_id}"
+
     class Meta:
         db_table = "work_order_lines"
 

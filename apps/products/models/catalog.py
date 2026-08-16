@@ -95,6 +95,9 @@ class Catalog(BaseModel):
     margin_floor = models.DecimalField(max_digits=6, decimal_places=2, default=0, blank=True,
         help_text="Minimum margin % allowed — below triggers approval Action")
 
+    def __str__(self):
+        return self.name or self.code or f"Catalog {self.id}"
+
     class Meta:
         indexes = [
             models.Index(fields=("is_active", "dt_effective_start"), name="catalog_active_idx"),
@@ -195,6 +198,10 @@ class CatalogLine(ItemLinkedBase):
         # list ids prices, attributes, etc. for denormalized lookup
         # if it exceeds a size, put it in an external doc store
     metrics = models.JSONField(default=default_catalog_metrics, blank=True, help_text="Line-level metrics snapshot (plan/actual/value deltas)")
+
+    def __str__(self):
+        return f"CatalogLine {self.id} on {self.catalog_id}"
+
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=["catalog", "item"], name="uniq_catalog_item"),

@@ -16,7 +16,7 @@ from django.db import models
 from common.models import CoreModel, BaseModel
 
 
-class AliceObservation(CoreModel):
+class AliceObservation(BaseModel):
     """A pattern, anomaly, or coaching suggestion Alice has detected.
 
     Created by alice-patterns.py (scheduled) or real-time signal handlers.
@@ -87,7 +87,7 @@ class AliceObservation(CoreModel):
         return f'[{self.category}] {self.message[:80]}'
 
 
-class AlicePreset(CoreModel):
+class AlicePreset(BaseModel):
     """A promoted search, layout, or workflow — a "paved path."
 
     Created when Alice or a power user promotes a frequently-used pattern.
@@ -141,7 +141,7 @@ class AlicePreset(CoreModel):
         return f'[{self.preset_type}] {self.name}'
 
 
-class AliceCoachingLog(CoreModel):
+class AliceCoachingLog(BaseModel):
     """Training drill completion and user progress tracking.
 
     Alice coaches users through training drills. This tracks what

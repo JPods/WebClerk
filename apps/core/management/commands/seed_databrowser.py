@@ -64,7 +64,6 @@ LAYOUTS = {
     'contact':      {'list': ['id', 'email', 'name_first', 'name_last', 'company', 'title', 'role', 'phone'], 'detail': ['id', 'ida', 'email', 'name_first', 'name_last', 'name_prefix', 'name_suffix', 'company', 'title', 'department', 'role', 'phone', 'domain', 'address_full', 'comment', 'is_staff', 'is_superuser', 'dt_created', 'dt_modified']},
     'action':       {'list': ['id', 'ida', 'status', 'kanban_column', 'priority', 'percent_complete', 'project_name', 'dt_deadline'], 'detail': ['id', 'ida', 'action', 'description', 'status', 'kanban_column', 'priority', 'difficulty', 'percent_complete', 'project_name', 'project_ida', 'assigned_to', 'sequence', 'dt_start', 'dt_deadline', 'dt_expected', 'dt_completed', 'duration', 'dt_created', 'dt_modified']},
     'setting':      {'list': ['id', 'name', 'purpose', 'parent_model', 'role', 'is_active'], 'detail': ['id', 'name', 'purpose', 'parent_model', 'role', 'is_active', 'data', 'dt_created', 'dt_modified']},
-    'template':     {'list': ['id', 'name', 'purpose', 'is_active', 'dt_created'], 'detail': ['id', 'name', 'purpose', 'is_active', 'data', 'dt_processed', 'dt_created', 'dt_modified']},
     'report':       {'list': ['id', 'name', 'model_name', 'output_type', 'category', 'purpose'], 'detail': ['id', 'name', 'description', 'purpose', 'model_name', 'record_id', 'output_type', 'category', 'dt_created', 'dt_modified']},
     'notification': {'list': ['id', 'name', 'purpose', 'model_name', 'record_id', 'dt_created'], 'detail': ['id', 'name', 'purpose', 'model_name', 'record_id', 'data', 'dt_created', 'dt_modified']},
 
@@ -106,8 +105,6 @@ LAYOUTS = {
 
     # --- Transactions (additional) ---
     'project':              {'list': ['id', 'ida', 'name', 'is_active', 'dt_created'], 'detail': ['id', 'ida', 'name', 'is_active', 'dt_created', 'dt_modified']},
-    'project_association':  {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
-    'purchase_receipt':     {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
 }
 
 
@@ -202,8 +199,15 @@ class Command(BaseCommand):
                 skipped += 1
                 continue
 
+            meta = MODEL_REGISTRY.get(model_key)
+            expl = (
+                f"DataBrowser workbench layout for {meta.singular if meta else model_key}. "
+                f"User-level list columns, detail fields, and named views."
+            )
+
             if existing:
                 existing.config = data
+                existing.explanation = expl
                 existing.save()
                 updated += 1
                 self.stdout.write(f'  Updated {model_key} ({len(list_fields)} list, {len(detail_fields)} detail)')
@@ -213,6 +217,7 @@ class Command(BaseCommand):
                     parent_model=model_key,
                     purpose='wc:workbench_fields',
                     config=data,
+                    explanation=expl,
                 )
                 created += 1
                 self.stdout.write(f'  Created {model_key} ({len(list_fields)} list, {len(detail_fields)} detail)')

@@ -38,7 +38,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from datetime import datetime
+from django.utils import timezone
 from pathlib import Path
 from typing import Any
 
@@ -750,7 +750,7 @@ class LayoutDriftDetector:
             "field": field,
             "issue_type": issue_type,
             "reason": reason,
-            "dismissed_at": datetime.now().isoformat(),
+            "dismissed_at": timezone.now().isoformat(),
         }
         self._save_dismissals(data)
         logger.info("Dismissed layout issue: %s — %s", key, reason)
@@ -818,7 +818,7 @@ class LayoutDriftDetector:
         Returns a summary of what changed since last run.
         """
         history = self._load_history()
-        now = datetime.now().isoformat()
+        now = timezone.now().isoformat()
 
         # Build current issue fingerprint set
         current_issues: set[str] = set()

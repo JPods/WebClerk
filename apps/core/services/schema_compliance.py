@@ -96,7 +96,21 @@ def validate_schema_setting(setting) -> list[dict[str, Any]]:
     purpose = getattr(setting, 'purpose', '')
     model_name = getattr(setting, 'parent_model', '') or ''
 
-    if purpose == 'wc:schema_map':
+    if purpose == 'wc:model':
+        # Combined record — validate each section
+        schema = config.get('schema', {})
+        if schema:
+            _check_schema_inheritance(schema, model_name, violations)
+        enrichment = config.get('enrichment', {})
+        if enrichment:
+            _check_enrichment_panels(enrichment, model_name, violations)
+        layout = config.get('layout', {})
+        if layout:
+            _check_detail_layout(layout, model_name, violations)
+        roles = config.get('access', {}).get('roles', {})
+        if roles:
+            _check_field_access(roles, model_name, violations)
+    elif purpose == 'wc:schema_map':
         _check_schema_inheritance(config, model_name, violations)
     elif purpose == 'wc:enrichment_panels':
         _check_enrichment_panels(config, model_name, violations)
@@ -274,7 +288,7 @@ def audit_all_schema_settings(fix: bool = False) -> dict:
     Setting = apps.get_model('core', 'Setting')
 
     settings = Setting.objects.filter(
-        purpose__in=['wc:schema_map', 'wc:enrichment_panels', 'wc:detail_layout', 'wc:field_access'],
+        purpose__in=['wc:model', 'wc:schema_map', 'wc:enrichment_panels', 'wc:detail_layout', 'wc:field_access'],
         is_active=True,
         is_deleted=False,
     ).order_by('purpose', 'parent_model')

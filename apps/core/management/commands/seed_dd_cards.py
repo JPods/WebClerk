@@ -378,8 +378,11 @@ class Command(BaseCommand):
             ))
             return
 
+        dd_expl = "Dashboard card and dashboard definitions. Cards are reusable visual widgets; dashboards arrange cards into named layouts."
+
         if existing:
             existing.config = DD_CARD_CONFIG
+            existing.explanation = dd_expl
             existing.save()
             self.stdout.write(self.style.SUCCESS(
                 f"Updated dd_card:base (id={existing.id}) — "
@@ -391,6 +394,7 @@ class Command(BaseCommand):
                 name="dd_card:base",
                 purpose="wc:dd_card",
                 config=DD_CARD_CONFIG,
+                explanation=dd_expl,
             )
             self.stdout.write(self.style.SUCCESS(
                 f"Created dd_card:base (id={obj.id}) — "

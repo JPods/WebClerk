@@ -87,11 +87,11 @@ class PrefixAndSearchView(APIView):
             return qs
 
     def _settings_keyword_fields(self) -> list[str]:
-        """Fetch additional denormalized keyword fields from settings (purpose='wc:keywords').
+        """Fetch keyword fields from model definition (wc:model config.search).
 
-        Reads apps.core.models.setting.Setting for this view's table and returns a list of
-        valid model field names to include in search. Accepts data.fields (list) or
-        data.field_list (comma-separated string). Silently ignores invalid/unknown fields.
+        Reads the search section of the wc:model Setting for this view's table
+        and returns self_fields as the list of model field names to include in search.
+        Falls back to legacy wc:keywords purpose.
         """
         # Resolve model for settings
         try:
@@ -100,6 +100,26 @@ class PrefixAndSearchView(APIView):
                 return []
             # Lazy import to avoid cycles
             from apps.core.models.setting import Setting  # type: ignore
+            # Try wc:model first
+            setting = (Setting.objects
+                       .filter(parent_model=model_key, purpose='wc:model', is_active=True)
+                       .first())
+            if setting and isinstance(setting.config, dict):
+                search_cfg = setting.config.get('search', {})
+                if search_cfg and search_cfg.get('self_fields'):
+                    candidate_fields = search_cfg['self_fields']
+                    valid: list[str] = []
+                    model_cls = getattr(self, 'model', None)
+                    if model_cls:
+                        for fname in candidate_fields:
+                            try:
+                                field_obj = model_cls._meta.get_field(fname)
+                                if isinstance(field_obj, (models.CharField, models.TextField)):
+                                    valid.append(fname)
+                            except Exception:
+                                continue
+                    return valid
+            # Legacy fallback
             setting = (Setting.objects
                        .filter(parent_model=model_key, purpose='wc:keywords', is_active=True)
                        .order_by('-dt_modified')

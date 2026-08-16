@@ -490,6 +490,17 @@ def repair_dangling_communications(
             summary.dangling_unlinked += 1
 
     # ─ Phone ─
+    # Build normalized phone → contact lookup once (avoids N+1 full-table scan)
+    _phone_lookup: dict[str, Contact | None] = {}
+    for contact in Contact.objects.filter(is_deleted=False).only("id", "phone").iterator(chunk_size=500):
+        norm_p = _norm_phone(contact.phone)
+        if not norm_p:
+            continue
+        if norm_p in _phone_lookup:
+            _phone_lookup[norm_p] = None  # ambiguous — two contacts share this phone
+        else:
+            _phone_lookup[norm_p] = contact
+
     for row in Phone.objects.filter(contact__isnull=True):
         summary.dangling_found += 1
         norm = _norm_phone(row.number)
@@ -497,15 +508,8 @@ def repair_dangling_communications(
             orphans["phone"].append(row.id)
             summary.dangling_unlinked += 1
             continue
-        matched: Contact | None = None
-        for contact in Contact.objects.filter(is_deleted=False).iterator(chunk_size=200):
-            if _norm_phone(contact.phone) == norm:
-                if matched is None:
-                    matched = contact
-                else:
-                    matched = None  # ambiguous — two contacts, skip
-                    break
-        if matched:
+        matched = _phone_lookup.get(norm)
+        if matched is not None:
             _link_dangling_to_contact(row, matched, dry_run)
             summary.dangling_claimed += 1
         else:

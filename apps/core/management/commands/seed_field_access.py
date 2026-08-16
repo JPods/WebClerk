@@ -275,7 +275,134 @@ def _build_field_behaviors(model_key, field_map):
         if ftype == 'CharField':
             behaviors[name] = {'type': 'text'}
 
+    # ── Leaf behaviors for JSON envelope fields ──
+    # Generate dot-path entries from the canonical default factories.
+    # These give the frontend labels, types, and formats for leaf fields
+    # like totals.total, price.unit, quantity.active — the same system
+    # that handles flat fields.
+    _inject_leaf_behaviors(model_key, field_map, behaviors)
+
     return behaviors
+
+
+# ── JSON leaf behavior definitions ─────────────────────────────────────
+# Keyed by the JSON field name on the Django model.
+# Each entry maps leaf keys to their behavior spec.
+# These are the canonical structures from the default factories in
+# base_transaction_model.py and base_line_model.py.
+
+LEAF_BEHAVIORS = {
+    'totals': {
+        'subtotal':  {'type': 'currency', 'label': 'Subtotal'},
+        'discount':  {'type': 'currency', 'label': 'Discount'},
+        'taxable':   {'type': 'currency', 'label': 'Taxable'},
+        'tax':       {'type': 'currency', 'label': 'Tax'},
+        'shipping':  {'type': 'currency', 'label': 'Shipping'},
+        'other':     {'type': 'currency', 'label': 'Other'},
+        'total':     {'type': 'currency', 'label': 'Total'},
+        'cost':      {'type': 'currency', 'label': 'Cost'},
+        'margin':    {'type': 'currency', 'label': 'Margin'},
+        'margin_pc': {'type': 'number',   'label': 'Margin %'},
+        'received':  {'type': 'currency', 'label': 'Received'},
+        'balance':   {'type': 'currency', 'label': 'Balance'},
+    },
+    'quantity': {
+        'active':    {'type': 'number', 'label': 'Qty Active'},
+        'staged':    {'type': 'number', 'label': 'Qty Staged'},
+        'remaining': {'type': 'number', 'label': 'Qty Remaining'},
+        'is_fixed':  {'type': 'boolean', 'label': 'Qty Fixed'},
+        'is_complete': {'type': 'boolean', 'label': 'Qty Complete'},
+        'precision': {'type': 'number', 'label': 'Qty Precision'},
+        'is_blanket': {'type': 'boolean', 'label': 'Blanket'},
+        'increment': {'type': 'number', 'label': 'Increment'},
+    },
+    'price': {
+        'unit':             {'type': 'currency', 'label': 'Unit Price'},
+        'unit_base':        {'type': 'currency', 'label': 'Base Price'},
+        'discount_percent': {'type': 'number',   'label': 'Disc %'},
+        'discount_amount':  {'type': 'currency', 'label': 'Disc Amt'},
+        'extended':         {'type': 'currency', 'label': 'Extended'},
+        'is_fixed':         {'type': 'boolean',  'label': 'Price Fixed'},
+        'precision':        {'type': 'number',   'label': 'Price Precision'},
+    },
+    'cost': {
+        'unit':              {'type': 'currency', 'label': 'Unit Cost'},
+        'extended':          {'type': 'currency', 'label': 'Extended Cost'},
+        'shipping':          {'type': 'currency', 'label': 'Cost: Shipping'},
+        'handling':          {'type': 'currency', 'label': 'Cost: Handling'},
+        'freight':           {'type': 'currency', 'label': 'Cost: Freight'},
+        'commissions':       {'type': 'currency', 'label': 'Commissions'},
+        'tax_rate':          {'type': 'number',   'label': 'Cost Tax Rate'},
+        'tax':               {'type': 'currency', 'label': 'Cost: Tax'},
+        'total':             {'type': 'currency', 'label': 'Cost Total'},
+        'line_sum_goods':    {'type': 'currency', 'label': 'Line Sum Goods'},
+        'line_sum_tax':      {'type': 'currency', 'label': 'Line Sum Tax'},
+        'line_sum_shipping': {'type': 'currency', 'label': 'Line Sum Shipping'},
+        'line_sum_handling': {'type': 'currency', 'label': 'Line Sum Handling'},
+    },
+    'comments': {
+        'public':  {'type': 'json-tree', 'label': 'Public Comments'},
+        'process': {'type': 'json-tree', 'label': 'Process Notes'},
+        'partner': {'type': 'json-tree', 'label': 'Partner Notes'},
+        'notes':   {'type': 'json-tree', 'label': 'Internal Notes'},
+    },
+}
+
+# Which models get which leaf sets.
+# Transaction headers get totals + cost (header-level).
+# Transaction lines get quantity + price + cost (line-level).
+# Items get quantity + price.
+LEAF_MAP = {
+    # Transaction headers (BaseTransactionModel — have totals JSONField)
+    'order': ['totals'],
+    'invoice': ['totals'],
+    'proposal': ['totals'],
+    'purchase': ['totals'],
+    'requisition': ['totals'],
+    'work_order': ['totals'],
+    # Receipt is BaseModel, not BaseTransactionModel — no totals
+    # Sell-side lines (BaseSellLineModel — quantity + price + cost)
+    'order_line': ['quantity', 'price', 'cost'],
+    'invoice_line': ['quantity', 'price', 'cost'],
+    'proposal_line': ['quantity', 'price', 'cost'],
+    # Exec-side lines (BaseExecLineModel — quantity + cost, NO price)
+    'purchase_line': ['quantity', 'cost'],
+    'requisition_line': ['quantity', 'cost'],
+    'receipt_line': ['quantity', 'cost'],
+    'work_order_line': ['quantity', 'cost'],
+    # Items
+    'item': ['quantity', 'price'],
+}
+
+
+def _inject_leaf_behaviors(model_key, field_map, behaviors):
+    """Add dot-path leaf behaviors for JSON envelope fields.
+
+    For each JSON field that has a known leaf structure (totals, quantity,
+    price, cost, comments), generate entries like:
+      behaviors['totals.total'] = {'type': 'currency', 'label': 'Total'}
+      behaviors['comments.process'] = {'type': 'json-tree', 'label': 'Process Notes'}
+
+    Two sources:
+    1. LEAF_MAP — model-specific assignments (totals for orders, price for lines)
+    2. Universal fields — comments exists on many models via mixin; inject
+       whenever the field is present on the model regardless of LEAF_MAP.
+    """
+    # Universal JSON fields — inject if the model has them, regardless of LEAF_MAP
+    UNIVERSAL_LEAF_FIELDS = ['comments']
+
+    leaf_sets = list(LEAF_MAP.get(model_key, []))
+    for uf in UNIVERSAL_LEAF_FIELDS:
+        if uf not in leaf_sets and uf in field_map:
+            leaf_sets.append(uf)
+
+    for json_field in leaf_sets:
+        if json_field not in field_map:
+            continue
+        leaves = LEAF_BEHAVIORS.get(json_field, {})
+        for leaf_key, leaf_spec in leaves.items():
+            dot_path = f'{json_field}.{leaf_key}'
+            behaviors[dot_path] = dict(leaf_spec)
 
 
 def _build_field_groups(model_key, fields):
@@ -573,8 +700,17 @@ class Command(BaseCommand):
                 skipped += 1
                 continue
 
+            meta = MODEL_REGISTRY.get(model_key)
+            expl = (
+                f"Role-based field access for {meta.singular if meta else model_key}. "
+                f"Controls which fields each role (admin, manager, sales, warehouse, "
+                f"accounting, customer, vendor, rep) can view or edit, "
+                f"plus query scoping and publish channels."
+            )
+
             if existing:
                 existing.config = config
+                existing.explanation = expl
                 existing.save()
                 updated += 1
             else:
@@ -583,6 +719,7 @@ class Command(BaseCommand):
                     parent_model=model_key,
                     purpose='wc:field_access',
                     config=config,
+                    explanation=expl,
                 )
                 created += 1
 

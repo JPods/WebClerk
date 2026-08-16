@@ -50,9 +50,12 @@ class Command(BaseCommand):
             },
         }
 
+        serial_expl = "Schema map for Serial. Defines serial number patterns, behaviors, and validation for inventory tracking."
+
         if existing:
             existing.config = config
             existing.name = "Serial schema and behaviors"
+            existing.explanation = serial_expl
             existing.save()
             self.stdout.write(f"Updated Setting.serial (id={existing.pk})")
         else:
@@ -62,5 +65,6 @@ class Command(BaseCommand):
                 purpose="wc:schema_map",
                 scope="system",
                 config=config,
+                explanation=serial_expl,
             )
             self.stdout.write(f"Created Setting.serial (id={setting.pk})")

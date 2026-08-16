@@ -340,23 +340,38 @@ def apply_pending_layouts_task() -> dict:
             continue
 
         try:
+            # Try wc:model first (consolidated), fall back to legacy
             setting = Setting.objects.filter(
                 parent_model=target_model,
-                purpose='wc:workbench_fields',
+                purpose='wc:model',
             ).first()
 
-            if not setting:
-                setting = Setting.objects.create(
-                    name=f'workbench_fields:{target_model}',
+            if setting:
+                cfg = setting.config or {}
+                cfg['columns'] = view
+                setting.config = cfg
+                setting.save(update_fields=['config', 'dt_modified'])
+                logger.info(f"[apply_pending_layouts] Updated wc:model #{setting.id} columns for {target_model}")
+            else:
+                setting = Setting.objects.filter(
                     parent_model=target_model,
                     purpose='wc:workbench_fields',
-                    config=view,
-                )
-                logger.info(f"[apply_pending_layouts] Created Setting #{setting.id} for {target_model}")
-            else:
-                setting.config = view
-                setting.save(update_fields=['config', 'dt_modified'])
-                logger.info(f"[apply_pending_layouts] Updated Setting #{setting.id} for {target_model}")
+                ).first()
+
+                if not setting:
+                    setting = Setting.objects.create(
+                        name=f'{target_model} Model Definition',
+                        ida=f'wc-model-{target_model}',
+                        parent_model=target_model,
+                        purpose='wc:model',
+                        scope='system',
+                        config={'columns': view},
+                    )
+                    logger.info(f"[apply_pending_layouts] Created wc:model #{setting.id} for {target_model}")
+                else:
+                    setting.config = view
+                    setting.save(update_fields=['config', 'dt_modified'])
+                    logger.info(f"[apply_pending_layouts] Updated legacy #{setting.id} for {target_model}")
 
             p.config = {**data, 'setting_id': setting.id, 'status': 'applied'}
             p.mark_processed()

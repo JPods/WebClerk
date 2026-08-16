@@ -38,7 +38,8 @@ Key methods:
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
+from django.utils import timezone
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional, Dict, Any
 
@@ -409,7 +410,7 @@ def _stage_invoice_gl_accounts(invoice) -> None:
     }
     invoice.metadata = metadata
     try:
-        now_ms = int(datetime.now().timestamp() * 1000)
+        now_ms = int(timezone.now().timestamp() * 1000)
         invoice.__class__.objects.filter(pk=invoice.pk).update(metadata=metadata, dt_modified=now_ms)
     except Exception:
         pass
@@ -454,7 +455,7 @@ def _stage_payment_gl_accounts(payment) -> None:
 
     payment.metadata = metadata
     try:
-        now_ms = int(datetime.now().timestamp() * 1000)
+        now_ms = int(timezone.now().timestamp() * 1000)
         payment.__class__.objects.filter(pk=payment.pk).update(metadata=metadata, dt_modified=now_ms)
     except Exception:
         pass
@@ -744,7 +745,7 @@ def on_payment_save(payment) -> None:
         record_payment(
             invoice=invoice,
             amount=Decimal(str(pay_amount)),
-            dt_paid=getattr(payment, 'dt_payment', None) or datetime.now(),
+            dt_paid=getattr(payment, 'dt_payment', None) or timezone.now(),
             payment=payment
         )
     
@@ -961,7 +962,7 @@ def rebuild_org_ledgers(org: 'OrgBase') -> Dict[str, int]:
                 record_payment(
                     invoice=getattr(payment, 'invoice', None),
                     amount=Decimal(str(pay_amount)),
-                    dt_paid=getattr(payment, 'dt_payment', None) or datetime.now(),
+                    dt_paid=getattr(payment, 'dt_payment', None) or timezone.now(),
                     payment=payment
                 )
                 counts['payment_ledgers'] += 1

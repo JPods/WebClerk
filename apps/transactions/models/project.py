@@ -88,6 +88,9 @@ class Project(BaseModel):
     )
     percent_complete = models.IntegerField(default=0, help_text="0-100 completion percentage")
 
+    def __str__(self):
+        return self.name or f"Project {self.id}"
+
     class Meta:
         db_table = "projects"
         indexes = [

@@ -513,12 +513,14 @@ class Command(BaseCommand):
                 s_skipped += 1
                 continue
             try:
+                coach_expl = f"Alice coaching tips and field help for {model_key}. Contextual guidance shown to users during data entry."
                 if existing:
                     existing.config = data
+                    existing.explanation = coach_expl
                     existing.save()
                     s_updated += 1
                 else:
-                    Setting.objects.create(name=f'alice_coaching:{model_key}', parent_model=model_key, purpose='wc:coaching', config=data)
+                    Setting.objects.create(name=f'alice_coaching:{model_key}', parent_model=model_key, purpose='wc:coaching', config=data, explanation=coach_expl)
                     s_created += 1
                 self.stdout.write(f'  {model_key}: {len(data["tips"])} tips, {len(data["field_help"])} field helps')
             except Exception as e:

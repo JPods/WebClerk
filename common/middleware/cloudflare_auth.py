@@ -12,19 +12,22 @@ Behavior:
   - If CF header present and no Contact exists → create one (role=guest)
   - If no CF header → fall through to normal Django auth (password, session, etc.)
 
-For local dev without Cloudflare: set CF_ACCESS_DEV_EMAIL env var to simulate.
+For local dev without Cloudflare: set CF_ACCESS_DEV_EMAIL env var (only works when DEBUG=True).
 """
 
 import logging
 import os
+import subprocess
 import uuid
 
+from django.conf import settings
 from django.contrib.auth import login
 
 logger = logging.getLogger(__name__)
 
 CF_EMAIL_HEADER = "HTTP_CF_ACCESS_AUTHENTICATED_USER_EMAIL"
-DEV_EMAIL = os.environ.get("CF_ACCESS_DEV_EMAIL", "")
+# DEV_EMAIL only honored when DEBUG=True — never in production
+DEV_EMAIL = os.environ.get("CF_ACCESS_DEV_EMAIL", "") if getattr(settings, 'DEBUG', False) else ""
 
 
 class CloudflareAccessMiddleware:
@@ -64,15 +67,14 @@ class CloudflareAccessMiddleware:
 
             # Alice observation — track CF login for behavior analysis
             try:
-                import importlib.util
                 _alice_script = "/opt/andi/scripts/alice-observe.py"
                 if os.path.exists(_alice_script):
-                    spec = importlib.util.spec_from_file_location("alice_observe", _alice_script)
-                    alice = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(alice)
-                    alice.on_cf_login(email, request.path)
-            except Exception:
-                pass  # never break auth for observation
+                    subprocess.Popen(
+                        ["python3", _alice_script, "--event", "cf_login", "--email", email, "--path", request.path],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    )
+            except OSError:
+                logger.debug("Alice observe script not available at %s", _alice_script)
 
         except Exception:
             logger.exception("Cloudflare auth failed for %s", email)

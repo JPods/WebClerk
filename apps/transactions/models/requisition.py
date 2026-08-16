@@ -13,6 +13,9 @@ class Requisition(common_models.BaseModel):
     name = models.CharField(max_length=128, default="", db_index=True)
     status = models.CharField(max_length=50, default="draft", blank=True, db_index=True)
 
+    def __str__(self):
+        return self.name or f"Requisition {self.id}"
+
     class Meta:
         db_table = 'requisitions'
 
