@@ -45,7 +45,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ itemIds }) => {
     const fetchInventory = async () => {
       try {
         // Try bulk endpoint first
-        const resp = await fetch(`/api/products/items/inventory/?ids=${itemIds.join(',')}`, {
+        const resp = await fetch(`/wcapi/products/items/inventory/?ids=${itemIds.join(',')}`, {
           credentials: 'include',
         });
         if (resp.ok) {

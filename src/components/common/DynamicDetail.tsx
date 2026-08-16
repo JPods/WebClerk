@@ -24,7 +24,6 @@
  */
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { getRecord, saveRecord } from "../../api/wcapi";
-import { patchAction } from "../../api/userProfile";
 import { getWidget } from "../widgets";
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -326,7 +325,7 @@ function DynamicDetail({
     setValues(v);
   }, [data, fieldRegistry, extractValue]);
 
-  // Save handler — uses generic saveRecord for all models, patchAction for legacy action
+  // Save handler — uses generic saveRecord for all models
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
@@ -360,12 +359,7 @@ function DynamicDetail({
           payload[key] = { mode: "update", value: val };
         }
       }
-      // Use patchAction for legacy action model, saveRecord for everything else
-      if (modelName === "action" && !reportConfig?.fields) {
-        await patchAction(payload);
-      } else {
-        await saveRecord(modelName, payload);
-      }
+      await saveRecord(modelName, payload);
       dispatch(showToast({ message: "Saved", type: "success" }));
       setEditing(false);
       onSaved?.();
@@ -374,7 +368,7 @@ function DynamicDetail({
     } finally {
       setSaving(false);
     }
-  }, [modelName, recordId, values, fieldRegistry, reportConfig, data, dispatch, onSaved]);
+  }, [modelName, recordId, values, fieldRegistry, data, dispatch, onSaved]);
 
   // Expose actions to parent via ref
   useEffect(() => {

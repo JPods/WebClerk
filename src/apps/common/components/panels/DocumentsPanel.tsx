@@ -27,7 +27,6 @@ import {
   FaFilePdf,
   FaFileImage,
   FaFileWord,
-  FaFileExcel,
   FaFileAlt,
   FaSpinner,
 } from "react-icons/fa";
@@ -89,25 +88,18 @@ const getFileIcon = (type?: string, name?: string): React.ReactNode => {
     name?.split(".").pop()?.toLowerCase() || type?.split("/").pop() || "";
 
   if (["pdf"].includes(ext) || type?.includes("pdf")) {
-    return <FaFilePdf style={{ color: 'var(--db-accent-red)' }} />;
+    return <FaFilePdf className="db-text-red" />;
   }
   if (
     ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext) ||
     type?.startsWith("image/")
   ) {
-    return <FaFileImage style={{ color: 'var(--db-accent)' }} />;
+    return <FaFileImage className="db-text-accent" />;
   }
   if (["doc", "docx"].includes(ext) || type?.includes("word")) {
-    return <FaFileWord style={{ color: 'var(--db-accent)' }} />;
+    return <FaFileWord className="db-text-accent" />;
   }
-  if (
-    ["xls", "xlsx", "csv"].includes(ext) ||
-    type?.includes("sheet") ||
-    type?.includes("excel")
-  ) {
-    return <FaFileExcel style={{ color: 'var(--db-accent-green)' }} />;
-  }
-  return <FaFileAlt style={{ color: 'var(--db-text-muted)' }} />;
+  return <FaFileAlt className="db-text-muted" />;
 };
 
 const formatFileSize = (bytes?: number): string => {
@@ -156,28 +148,28 @@ const DocumentRow: React.FC<DocumentRowProps> = ({
 
     {/* Name */}
     {(!visibleColumns || visibleColumns.has("name")) && (
-      <span className="font-medium truncate min-w-[100px] flex-1" style={{ color: 'var(--db-text)' }}>
+      <span className="font-medium truncate min-w-[100px] flex-1 db-text">
         {doc.name || doc.display || "Untitled"}
       </span>
     )}
 
     {/* Size */}
     {(!visibleColumns || visibleColumns.has("size")) && (
-      <span className="shrink-0 w-[70px] text-right" style={{ color: 'var(--db-text-muted)' }}>
+      <span className="shrink-0 w-[70px] text-right db-text-muted">
         {formatFileSize(doc.size)}
       </span>
     )}
 
     {/* Date */}
     {(!visibleColumns || visibleColumns.has("date")) && (
-      <span className="shrink-0 w-[90px]" style={{ color: 'var(--db-text-muted)' }}>
+      <span className="shrink-0 w-[90px] db-text-muted">
         {doc.uploaded_at ? formatDate(doc.uploaded_at) : "--"}
       </span>
     )}
 
     {/* Uploader */}
     {(!visibleColumns || visibleColumns.has("uploader")) && (
-      <span className="truncate w-[80px] shrink-0" style={{ color: 'var(--db-text-muted)' }}>
+      <span className="truncate w-[80px] shrink-0 db-text-muted">
         {doc.uploaded_by || "--"}
       </span>
     )}
@@ -187,8 +179,7 @@ const DocumentRow: React.FC<DocumentRowProps> = ({
       {(doc.url || doc.document_id) && (
         <button
           onClick={onDownload}
-          className="p-1 rounded"
-          style={{ color: 'var(--db-accent)' }}
+          className="p-1 rounded db-text-accent"
           title="Download"
         >
           <FaDownload size={12} />
@@ -197,8 +188,7 @@ const DocumentRow: React.FC<DocumentRowProps> = ({
       {canEdit && onDelete && (
         <button
           onClick={onDelete}
-          className="p-1 rounded"
-          style={{ color: 'var(--db-accent-red)' }}
+          className="p-1 rounded db-text-red"
           title="Delete"
         >
           <FaTrash size={12} />
@@ -388,22 +378,20 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
 
   return (
     <div
-      className={`rounded-lg ${className}`}
-      style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)' }}
+      className={`rounded-lg db-panel ${className}`}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-t-lg"
-        style={{ background: 'var(--db-surface-alt)', borderBottom: '1px solid var(--db-border)' }}
+        className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-t-lg db-section-bg"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <FaFile style={{ color: 'var(--db-text-muted)' }} size={14} />
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
+          <FaFile className="db-text-muted" size={14} />
+          <h3 className="text-sm font-semibold db-text">
             {title}
           </h3>
           {data.length > 0 && (
-            <span className="px-1.5 py-0.5 text-xs rounded-full" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
+            <span className="px-1.5 py-0.5 text-xs rounded-full db-surface-alt-muted">
               {data.length}
             </span>
           )}
@@ -416,8 +404,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
                 fileInputRef.current?.click();
               }}
               disabled={isUploading}
-              className="p-1 rounded disabled:opacity-50"
-              style={{ color: 'var(--db-accent)' }}
+              className="p-1 rounded disabled:opacity-50 db-text-accent"
               title="Upload document"
             >
               {isUploading ? (
@@ -491,10 +478,10 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="font-medium" style={{ color: 'var(--db-text)' }}>
+                  <div className="font-medium db-text">
                     Drag and drop files here
                   </div>
-                  <div className="text-xs" style={{ color: 'var(--db-text-muted)' }}>
+                  <div className="text-xs db-text-muted">
                     or click to browse
                   </div>
                 </div>
@@ -505,8 +492,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
                     fileInputRef.current?.click();
                   }}
                   disabled={isUploading}
-                  className="px-3 py-2 rounded text-xs font-semibold disabled:opacity-50"
-                  style={{ background: 'var(--db-btn-primary)', color: '#fff' }}
+                  className="px-3 py-2 rounded text-xs font-semibold disabled:opacity-50 db-btn-primary-solid"
                 >
                   {isUploading ? "Uploading…" : "Upload"}
                 </button>
@@ -516,14 +502,14 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
 
           {/* Upload progress */}
           {isUploading && (
-            <div className="mb-2 p-2 rounded text-xs" style={{ background: 'var(--db-row-active)', color: 'var(--db-accent)' }}>
+            <div className="mb-2 p-2 rounded text-xs db-row-active-accent">
               <div className="flex items-center gap-2">
                 <FaSpinner className="animate-spin" size={10} />
                 <span>
                   {uploadStatus || "Uploading…"} {uploadProgress}%
                 </span>
               </div>
-              <div className="mt-1 h-1 rounded overflow-hidden" style={{ background: 'var(--db-border)' }}>
+              <div className="mt-1 h-1 rounded overflow-hidden db-bg-border">
                 <div
                   className="h-full transition-all duration-200"
                   style={{ width: `${uploadProgress}%`, background: 'var(--db-accent)' }}
@@ -534,20 +520,19 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
 
           {/* Error message */}
           {error && (
-            <div className="mb-2 p-2 rounded text-xs" style={{ color: 'var(--db-accent-red)' }}>
+            <div className="mb-2 p-2 rounded text-xs db-text-red">
               {error}
             </div>
           )}
 
           {data.length === 0 ? (
-            <div className="text-center py-4 text-sm" style={{ color: 'var(--db-text-dim)' }}>
+            <div className="text-center py-4 text-sm db-text-dim">
               <FaFile size={24} className="mx-auto mb-2 opacity-50" />
               <p>No documents attached</p>
               {canEdit && (
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="mt-2 hover:underline text-xs"
-                  style={{ color: 'var(--db-accent)' }}
+                  className="mt-2 hover:underline text-xs db-text-accent"
                 >
                   + Upload documents
                 </button>
@@ -556,7 +541,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
           ) : (
             <div>
               {/* Column headers */}
-              <div className="flex items-center gap-3 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
+              <div className="flex items-center gap-3 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider db-surface-alt-muted">
                 <span className="w-5 shrink-0" />
                 <span className="min-w-[100px] flex-1">name</span>
                 <span className="w-[70px] shrink-0 text-right">size</span>

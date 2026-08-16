@@ -48,7 +48,7 @@ const WC_HELP_MAP: Record<string, { label: string; topic: string; training?: str
 const COMPONENT_HELP_FALLBACK: Record<string, { source: string; description: string }> = {
   'ContactDetailJson': { source: 'apps/core/models/contact/pages/ContactDetailJson.tsx', description: 'Contact detail form — JSON-driven layout from detail_layout Setting.' },
   'ItemDetailJson': { source: 'apps/products/pages/ItemDetailJson.tsx', description: 'Item detail form — product data, variants, BOM, serial numbers.' },
-  'TransactionDetail': { source: 'apps/transactions/components/TransactionDetail.tsx', description: 'Shared transaction renderer — orders, invoices, proposals, purchases.' },
+  'UiDetail': { source: 'apps/transactions/components/TransactionDetail.tsx', description: 'Shared transaction renderer — orders, invoices, proposals, purchases.' },
   'DynamicDetail': { source: 'components/common/DynamicDetail.tsx', description: 'Generic data-driven form renderer. Reads layout JSON, renders any model.' },
   'DataBrowser': { source: 'pages/admin/DataBrowser.tsx', description: 'Universal databrowser — lists and details for any model.' },
 };
@@ -237,7 +237,7 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
   return (
     <div data-wc="get-help-dialog" className="gh-root gh-overlay"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="gh-panel">
+      <div className="gh-panel" role="dialog" aria-modal="true" aria-label="Get help">
         <div className="gh-header">
           <h2 className="gh-title">Get Help</h2>
           <button onClick={onClose} className="gh-close-btn">×</button>

@@ -267,7 +267,6 @@ const SectionCard: React.FC<SectionCardProps> = ({
                     const next = [...columns]; next[ci] = { ...col, fields };
                     update({ columns: next } as any);
                   }}
-                  theme={t}
                   fontSize={fontSize}
                 />
               ))}
@@ -315,7 +314,6 @@ const SectionCard: React.FC<SectionCardProps> = ({
             onDragOver={(e) => handleFieldDragOver(e, fi)}
             onDragEnd={() => setDragFieldIdx(null)}
             isDragging={dragFieldIdx === fi}
-            theme={t}
             fontSize={fontSize}
             showStyle={showStyle}
           />

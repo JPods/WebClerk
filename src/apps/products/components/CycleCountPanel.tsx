@@ -33,7 +33,7 @@ export default function CycleCountPanel({ itemId, itemCode }: Props) {
       .find((c) => c.startsWith("access_token="))
       ?.split("=")[1];
 
-    fetch(`/api/products/inventory/layers/?item_id=${itemId}`, {
+    fetch(`/wcapi/products/inventory/layers/?item_id=${itemId}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       credentials: "include",
     })
@@ -88,7 +88,7 @@ export default function CycleCountPanel({ itemId, itemCode }: Props) {
         ?.split("=")[1];
 
       // Get warehouse_id from layers endpoint — we need it for the adjustment
-      const layerResp = await fetch(`/api/products/inventory/layers/?item_id=${itemId}`, {
+      const layerResp = await fetch(`/wcapi/products/inventory/layers/?item_id=${itemId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         credentials: "include",
       });
@@ -117,7 +117,7 @@ export default function CycleCountPanel({ itemId, itemCode }: Props) {
       let totalPending = 0;
 
       for (const [whId, lines] of Object.entries(byWarehouse)) {
-        const resp = await fetch("/api/products/inventory/adjust/", {
+        const resp = await fetch("/wcapi/products/inventory/adjust/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

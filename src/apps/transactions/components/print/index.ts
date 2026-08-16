@@ -4,6 +4,9 @@
  * Export all print-ready document components for transactions
  */
 
+// Print utility styles
+import './print.css';
+
 // Types
 export * from './printTypes';
 

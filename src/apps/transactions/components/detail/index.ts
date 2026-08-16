@@ -1,4 +1,4 @@
-/* LastChecked: 2026-08-02 | WhereUsed: TransactionDetail | WhoCreated: Claude */
+/* LastChecked: 2026-08-02 | WhereUsed: UiDetail | WhoCreated: Claude */
 export { default as FieldRow, getNestedValue, formatDate, DATE_FIELDS, LABEL_STYLES, useLabelStyle } from './FieldRow';
 export type { FieldRowProps } from './FieldRow';
 

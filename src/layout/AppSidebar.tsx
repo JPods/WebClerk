@@ -27,13 +27,13 @@ import {
   Braces,
   ArrowLeftRight,
   LifeBuoy,
+  Plane,
   type LucideIcon,
 } from "lucide-react";
 import { useSidebar } from "../context/SidebarContext";
 import { PageRoutes } from "@/routes/Routes";
 import { useWindowManager } from "../context/WindowManagerContext";
-import { useSelector } from "react-redux";
-import type { RootState } from "@/store";
+import { getUI } from "@/utils/contactUI";
 
 type NavItem = {
   name: string;
@@ -42,7 +42,7 @@ type NavItem = {
   subItems?: { name: string; path: string; new?: boolean }[];
 };
 
-// ─── Icon registry — maps model/page names to Lucide icons ───────────
+// Icon registry — maps model/page names to Lucide icons
 const ICON_MAP: Record<string, LucideIcon> = {
   contact: UserCircle,
   customer: Users,
@@ -76,6 +76,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   gantt: CalendarRange,
   accounting: BarChart3,
   alice: Bot,
+  "flight-sim": Plane,
   databrowser: Database,
   json: Braces,
 };
@@ -85,7 +86,7 @@ function iconFor(name: string): React.ReactNode {
   return <Icon size={18} />;
 }
 
-// ─── Route map — model name to route path ────────────────────────────
+// Route map — model name to route path
 const ROUTE_MAP: Record<string, string> = {
   dashboard: "/dashboard",
   kanban: "/kanban",
@@ -99,6 +100,7 @@ const ROUTE_MAP: Record<string, string> = {
   operations: "/operations",
   administration: "/administration",
   alice: "/alice-dashboard",
+  "flight-sim": "/flight-sim/inventory",
   databrowser: "/databrowser",
   json: "/json-tree",
   adjust: "/inventory-adjust",
@@ -108,11 +110,7 @@ function routeFor(name: string): string {
   return ROUTE_MAP[name.toLowerCase()] || `/${name.toLowerCase()}`;
 }
 
-// ─── Defaults (used when user has no prefs.nav) ──────────────────────
-const DEFAULT_MODELS = ["contact", "customer", "proposal", "order", "invoice", "purchase"];
-const DEFAULT_DASHBOARDS = ["dashboard", "products", "transactions", "orgs", "administration", "kanban", "gantt", "alice", "databrowser", "json"];
-
-// ─── Display names (capitalize, handle special cases) ────────────────
+// Display names (capitalize, handle special cases)
 const DISPLAY_NAMES: Record<string, string> = {
   adjust: "Adjust",
   products: "Products",
@@ -125,6 +123,7 @@ const DISPLAY_NAMES: Record<string, string> = {
   databrowser: "databrowser",
   json: "JSON",
   alice: "Alice",
+  "flight-sim": "Flight Sim",
   work_order: "Work Order",
   gantt: "Gantt",
   kanban: "Kanban",
@@ -134,7 +133,7 @@ function displayName(name: string): string {
   return DISPLAY_NAMES[name.toLowerCase()] || name.charAt(0).toUpperCase() + name.slice(1);
 }
 
-// ─── Build NavItem[] from a list of names ────────────────────────────
+// Build NavItem[] from a list of names
 function buildItems(names: string[]): NavItem[] {
   return names.map(name => ({
     name: displayName(name),
@@ -153,13 +152,10 @@ const AppSidebar: React.FC = () => {
     toggleVisibility,
   } = useSidebar();
   const { ensureWindow, activateWindow, activePath } = useWindowManager();
-  const authUser = useSelector((s: RootState) => s.auth?.user);
 
-  // Read nav prefs from user's contact record (prefs.staff.nav or legacy prefs.nav)
-  const staffPrefs = (authUser as any)?.prefs?.staff;
-  const navPrefs = staffPrefs?.nav || (authUser as any)?.prefs?.nav;
-  const modelNames: string[] = navPrefs?.models || DEFAULT_MODELS;
-  const dashboardNames: string[] = navPrefs?.dashboards || DEFAULT_DASHBOARDS;
+  // Read nav config from config.ui.navbar
+  const modelNames: string[] = getUI<string[]>('navbar.models', ['contact', 'customer', 'proposal', 'order', 'invoice', 'purchase']);
+  const dashboardNames: string[] = getUI<string[]>('navbar.dashboards', ['dashboard', 'products', 'transactions', 'orgs', 'administration', 'kanban', 'gantt', 'alice', 'databrowser', 'json']);
 
   const modelItems = buildItems(modelNames);
   const dashboardItems = buildItems(dashboardNames);
@@ -219,11 +215,13 @@ const AppSidebar: React.FC = () => {
           {nav.subItems ? (
             <button
               onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                openSubmenu?.type === menuType && openSubmenu?.index === index
-                  ? "bg-white/10 text-white"
-                  : "text-slate-300 hover:bg-white/5 hover:text-white"
-              }`}
+              className="sidebar-item"
+              style={{
+                backgroundColor: openSubmenu?.type === menuType && openSubmenu?.index === index
+                  ? 'var(--wc-nav-hover)' : undefined,
+                color: openSubmenu?.type === menuType && openSubmenu?.index === index
+                  ? 'var(--wc-nav-text-active)' : 'var(--wc-nav-text)',
+              }}
             >
               <span className="flex-shrink-0">{nav.icon}</span>
               {show && <span className="flex-1 text-left">{nav.name}</span>}
@@ -241,12 +239,14 @@ const AppSidebar: React.FC = () => {
           ) : (
             nav.path && (
               <button
-                className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive(nav.path)
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-300 hover:bg-white/5 hover:text-white"
-                }`}
+                className="sidebar-item"
+                style={{
+                  backgroundColor: isActive(nav.path) ? 'var(--wc-nav-active)' : undefined,
+                  color: isActive(nav.path) ? 'var(--wc-nav-text-active)' : 'var(--wc-nav-text)',
+                }}
                 onClick={(e) => openWindow(nav.path!, nav.name, e.shiftKey)}
+                onMouseEnter={(e) => { if (!isActive(nav.path!)) (e.currentTarget.style.backgroundColor = 'var(--wc-nav-hover)'); }}
+                onMouseLeave={(e) => { if (!isActive(nav.path!)) (e.currentTarget.style.backgroundColor = ''); }}
               >
                 <span className="flex-shrink-0">{nav.icon}</span>
                 {show && <span>{nav.name}</span>}
@@ -270,18 +270,16 @@ const AppSidebar: React.FC = () => {
                 {nav.subItems.map((sub) => (
                   <li key={sub.name}>
                     <button
-                      className={`flex w-full items-center rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                        isActive(sub.path)
-                          ? "text-white bg-white/10"
-                          : "text-slate-400 hover:text-white hover:bg-white/5"
-                      }`}
+                      className="sidebar-subitem"
+                      style={{
+                        color: isActive(sub.path) ? 'var(--wc-nav-text-active)' : 'var(--wc-nav-text-muted, var(--wc-nav-text))',
+                        backgroundColor: isActive(sub.path) ? 'var(--wc-nav-hover)' : undefined,
+                      }}
                       onClick={(e) => openWindow(sub.path, sub.name, e.shiftKey)}
                     >
                       {sub.name}
                       {sub.new && (
-                        <span className="ml-auto rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-blue-300">
-                          new
-                        </span>
+                        <span className="sidebar-badge-new">new</span>
                       )}
                     </button>
                   </li>
@@ -296,11 +294,12 @@ const AppSidebar: React.FC = () => {
 
   const sectionLabel = (text: string) =>
     show ? (
-      <h2 className="mb-1 mt-4 px-3 text-[10px] uppercase tracking-widest font-semibold text-slate-500">
+      <h2 className="mb-1 mt-4 px-3 text-[10px] uppercase tracking-widest font-semibold"
+        style={{ color: 'var(--wc-nav-section)' }}>
         {text}
       </h2>
     ) : (
-      <div className="mt-3 mb-1 mx-3 border-t border-slate-700" />
+      <div className="mt-3 mb-1 mx-3 border-t" style={{ borderColor: 'var(--wc-nav-divider)' }} />
     );
 
   const targetWidth = show ? 200 : 52;
@@ -308,30 +307,33 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed top-[40px] left-0 flex h-[calc(100vh-40px)] flex-col bg-slate-900 transition-all duration-200 ease-in-out z-50 ${translateClass}`}
+      className={`fixed top-[40px] left-0 flex h-[calc(100vh-40px)] flex-col transition-all duration-200 ease-in-out z-50 ${translateClass}`}
       data-zone="NavBar | aside.fixed | AppSidebar.tsx"
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
         pointerEvents: isVisible ? "auto" : "none",
         width: isVisible ? `${targetWidth}px` : 0,
+        backgroundColor: 'var(--wc-nav-bg)',
       }}
     >
       {/* Top: branding + collapse */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-700/50">
+      <div className="flex items-center justify-between px-3 py-2 border-b"
+        style={{ borderColor: 'var(--wc-nav-divider)' }}>
         {show && (
-          <span className="text-sm font-bold text-white tracking-wide">WC3</span>
+          <span className="text-sm font-bold tracking-wide" style={{ color: 'var(--wc-nav-text-active)' }}>WC3</span>
         )}
         <button
           onClick={toggleVisibility}
-          className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+          className="p-1 rounded transition-colors"
+          style={{ color: 'var(--wc-nav-text)' }}
           title={isVisible ? "Collapse sidebar" : "Expand sidebar"}
         >
           {show ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
         </button>
       </div>
 
-      {/* Navigation — fills all available space */}
+      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2 px-2">
         {sectionLabel("Models")}
         {renderItems(modelItems, "models")}

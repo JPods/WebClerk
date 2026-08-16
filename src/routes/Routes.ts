@@ -39,8 +39,11 @@
   static readonly commerceDashboard: string = "/commerce";
   static readonly accountingDashboard: string = "/accounting";
   static readonly aliceTraining: string = "/training";
+  static readonly flightSim: string = "/flight-sim";
+  static readonly flightSimInventory: string = "/flight-sim/inventory";
   static readonly modelWorkbench: string = "/model-workbench";
   static readonly whitelist: string = "/whitelist";
+  static readonly formParade: string = "/form-parade";
   static readonly docs: string = "/docs";
   static readonly notionTracker: string = "/notion-tracker";
   static readonly kanbanBoard: string = "/kanban";

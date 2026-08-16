@@ -226,35 +226,34 @@ const LinkedTableSection: React.FC<LinkedTableSectionProps> = ({
   const recordCount = records.length;
 
   return (
-    <div className="rounded-lg" style={{ border: `1px solid ${isInFlow ? 'var(--db-accent)' : 'var(--db-border)'}` }}>
+    <div className="rounded-lg db-border-all" style={isInFlow ? { borderColor: 'var(--db-accent)' } : undefined}>
       {/* Header */}
       <button
         onClick={onToggle}
-        className="db-list-row w-full flex items-center justify-between p-3 text-left transition-colors"
-        style={isInFlow ? { background: 'var(--db-row-active)' } : undefined}
+        className={`db-list-row w-full flex items-center justify-between p-3 text-left transition-colors${isInFlow ? ' db-bg-row-active' : ''}`}
       >
         <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4" style={{ color: isInFlow ? 'var(--db-accent)' : 'var(--db-text-muted)' }} />
-          <span className="font-medium" style={{ color: 'var(--db-text)' }}>{displayName}</span>
-          <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: 'var(--db-text-muted)', background: 'var(--db-surface-alt)' }}>
+          <Icon className={`w-4 h-4 ${isInFlow ? 'db-text-accent' : 'db-text-muted'}`} />
+          <span className="font-medium db-text">{displayName}</span>
+          <span className="text-xs px-2 py-0.5 rounded-full db-surface-alt-muted">
             {recordCount}
           </span>
           {isInFlow && (
-            <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: 'var(--db-accent)', background: 'var(--db-row-active)' }}>
+            <span className="text-xs px-2 py-0.5 rounded-full db-row-active-accent">
               Flow
             </span>
           )}
         </div>
         {isExpanded ? (
-          <FiChevronDown className="w-4 h-4" style={{ color: 'var(--db-text-dim)' }} />
+          <FiChevronDown className="w-4 h-4 db-text-dim" />
         ) : (
-          <FiChevronRight className="w-4 h-4" style={{ color: 'var(--db-text-dim)' }} />
+          <FiChevronRight className="w-4 h-4 db-text-dim" />
         )}
       </button>
 
       {/* Records list */}
       {isExpanded && (
-        <div style={{ borderTop: '1px solid var(--db-border)' }}>
+        <div className="db-border-top">
           {records.map((record, index) => {
             const isNumber = typeof record === 'number';
             const recordId = isNumber ? record : record.id;
@@ -264,20 +263,19 @@ const LinkedTableSection: React.FC<LinkedTableSectionProps> = ({
             return (
               <div
                 key={recordId}
-                className="db-list-row flex items-center justify-between p-2 pl-10"
-                style={index !== records.length - 1 ? { borderBottom: '1px solid var(--db-border-light)' } : undefined}
+                className={`db-list-row flex items-center justify-between p-2 pl-10${index !== records.length - 1 ? ' db-border-bottom-light' : ''}`}
               >
                 <div className="flex flex-col">
-                  <span className="text-sm" style={{ color: 'var(--db-text)' }}>
+                  <span className="text-sm db-text">
                     {display}
                   </span>
                   {recordData?.status && (
-                    <span className="text-xs" style={{ color: 'var(--db-text-muted)' }}>
+                    <span className="text-xs db-text-muted">
                       Status: {recordData.status}
                     </span>
                   )}
                   {recordData?.dt_created && (
-                    <span className="text-xs" style={{ color: 'var(--db-text-dim)' }}>
+                    <span className="text-xs db-text-dim">
                       Created: {formatDate(recordData.dt_created)}
                     </span>
                   )}
@@ -285,8 +283,7 @@ const LinkedTableSection: React.FC<LinkedTableSectionProps> = ({
                 {onRecordClick && (
                   <button
                     onClick={() => onRecordClick(tableName, recordId, recordData)}
-                    className="p-1 transition-colors"
-                    style={{ color: 'var(--db-text-dim)' }}
+                    className="p-1 transition-colors db-text-dim"
                     title={`View ${tableName} #${recordId}`}
                   >
                     <FiExternalLink className="w-4 h-4" />
@@ -383,12 +380,12 @@ const LinkagesPanel: React.FC<LinkagesPanelProps> = ({
   // No linkage data
   if (!data) {
     return (
-      <div className={`rounded-lg ${className}`} style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)' }}>
-        <div className="flex items-center gap-2 p-4" style={{ borderBottom: '1px solid var(--db-border)' }}>
-          <FiLink2 className="w-5 h-5" style={{ color: 'var(--db-accent)' }} />
-          <h3 className="font-semibold" style={{ color: 'var(--db-text)' }}>{title}</h3>
+      <div className={`rounded-lg db-panel ${className}`}>
+        <div className="flex items-center gap-2 p-4 db-border-bottom">
+          <FiLink2 className="w-5 h-5 db-text-accent" />
+          <h3 className="font-semibold db-text">{title}</h3>
         </div>
-        <div className="p-4 text-center" style={{ color: 'var(--db-text-muted)' }}>
+        <div className="p-4 text-center db-text-muted">
           <FiLink2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
           <p>No linkage associated with this {entityType}</p>
         </div>
@@ -397,41 +394,41 @@ const LinkagesPanel: React.FC<LinkagesPanelProps> = ({
   }
 
   return (
-    <div className={`rounded-lg ${className}`} style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)' }}>
+    <div className={`rounded-lg db-panel ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4" style={{ borderBottom: '1px solid var(--db-border)', background: 'var(--db-surface-alt)' }}>
+      <div className="flex items-center justify-between p-4 db-section-bg">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
-          <FiLink2 className="w-5 h-5" style={{ color: 'var(--db-accent)' }} />
-          <h3 className="font-semibold" style={{ color: 'var(--db-text)' }}>{title}</h3>
+          <FiLink2 className="w-5 h-5 db-text-accent" />
+          <h3 className="font-semibold db-text">{title}</h3>
           {data.purpose && (
-            <span className="text-sm" style={{ color: 'var(--db-accent)' }}>
+            <span className="text-sm db-text-accent">
               ({data.purpose})
             </span>
           )}
           {isCollapsed ? (
-            <FiChevronRight className="w-4 h-4" style={{ color: 'var(--db-text-dim)' }} />
+            <FiChevronRight className="w-4 h-4 db-text-dim" />
           ) : (
-            <FiChevronDown className="w-4 h-4" style={{ color: 'var(--db-text-dim)' }} />
+            <FiChevronDown className="w-4 h-4 db-text-dim" />
           )}
         </button>
 
         <div className="flex items-center gap-3">
           {/* Stats badges */}
           <div className="flex items-center gap-2 text-sm">
-            <span style={{ color: 'var(--db-text-muted)' }}>
+            <span className="db-text-muted">
               {stats.totalRecords} records
             </span>
-            <span style={{ color: 'var(--db-border)' }}>|</span>
-            <span style={{ color: 'var(--db-text-muted)' }}>
+            <span className="db-text-border">|</span>
+            <span className="db-text-muted">
               {stats.tableCount} tables
             </span>
             {stats.flowTableCount > 0 && (
               <>
-                <span style={{ color: 'var(--db-border)' }}>|</span>
-                <span style={{ color: 'var(--db-accent)' }}>
+                <span className="db-text-border">|</span>
+                <span className="db-text-accent">
                   {stats.flowTableCount} in flow
                 </span>
               </>
@@ -442,8 +439,7 @@ const LinkagesPanel: React.FC<LinkagesPanelProps> = ({
           {onViewLinkage && (
             <button
               onClick={() => onViewLinkage(data.id)}
-              className="text-xs hover:underline"
-              style={{ color: 'var(--db-accent)' }}
+              className="text-xs hover:underline db-text-accent"
             >
               View Linkage #{data.id}
             </button>
@@ -456,12 +452,12 @@ const LinkagesPanel: React.FC<LinkagesPanelProps> = ({
         <div className="p-4">
           {/* Linkage info */}
           {(data.name || data.note) && !compact && (
-            <div className="mb-4 p-3 rounded-lg" style={{ background: 'var(--db-surface-alt)' }}>
+            <div className="mb-4 p-3 rounded-lg db-bg-surface-alt">
               {data.name && (
-                <p className="font-medium" style={{ color: 'var(--db-text)' }}>{data.name}</p>
+                <p className="font-medium db-text">{data.name}</p>
               )}
               {data.note && (
-                <p className="text-sm mt-1" style={{ color: 'var(--db-text-muted)' }}>{data.note}</p>
+                <p className="text-sm mt-1 db-text-muted">{data.note}</p>
               )}
             </div>
           )}
@@ -471,16 +467,14 @@ const LinkagesPanel: React.FC<LinkagesPanelProps> = ({
             <div className="flex justify-end gap-2 mb-3">
               <button
                 onClick={expandAll}
-                className="text-xs hover:underline"
-                style={{ color: 'var(--db-accent)' }}
+                className="text-xs hover:underline db-text-accent"
               >
                 Expand All
               </button>
-              <span style={{ color: 'var(--db-border)' }}>|</span>
+              <span className="db-text-border">|</span>
               <button
                 onClick={collapseAll}
-                className="text-xs hover:underline"
-                style={{ color: 'var(--db-accent)' }}
+                className="text-xs hover:underline db-text-accent"
               >
                 Collapse All
               </button>
@@ -490,7 +484,7 @@ const LinkagesPanel: React.FC<LinkagesPanelProps> = ({
           {/* Linked tables */}
           <div className={`space-y-2 ${compact ? 'max-h-64 overflow-y-auto' : ''}`}>
             {organizedLinks.tables.length === 0 ? (
-              <p className="text-center py-4" style={{ color: 'var(--db-text-muted)' }}>
+              <p className="text-center py-4 db-text-muted">
                 No linked records
               </p>
             ) : (
@@ -513,7 +507,7 @@ const LinkagesPanel: React.FC<LinkagesPanelProps> = ({
 
           {/* Timestamps */}
           {!compact && (data.dt_created || data.dt_modified) && (
-            <div className="mt-4 pt-3 text-xs flex gap-4" style={{ borderTop: '1px solid var(--db-border)', color: 'var(--db-text-dim)' }}>
+            <div className="mt-4 pt-3 text-xs flex gap-4 db-border-top db-text-dim">
               {data.dt_created && <span>Created: {formatDate(data.dt_created)}</span>}
               {data.dt_modified && <span>Modified: {formatDate(data.dt_modified)}</span>}
             </div>

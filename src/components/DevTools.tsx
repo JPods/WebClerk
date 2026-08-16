@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import apiClient from '@/api/axios';
 
 interface DevConfig {
   db_mode: string;
@@ -52,8 +53,8 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
 
   const checkBackendHealth = useCallback(async (): Promise<boolean> => {
     try {
-      const response = await fetch('/wcapi/system-info/');
-      return response.ok;
+      await apiClient.get('/wcapi/system-info/');
+      return true;
     } catch {
       return false;
     }
@@ -71,16 +72,14 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     setIsLoading(true);
     try {
       // Try dedicated dev_config endpoint first
-      const response = await fetch('/wcapi/dev/config/');
-      if (response.ok) {
-        const json = await response.json();
-        // Handle nested response: { data: { data: { ... } } } or { data: { ... } }
-        const configData = json.data?.data || json.data;
-        setConfig(configData);
-      }
-      // If endpoint doesn't exist (404), just don't show config - this is expected
+      const response = await apiClient.get('/wcapi/dev/config/');
+      const json = response.data;
+      // Handle nested response: { data: { data: { ... } } } or { data: { ... } }
+      const configData = json.data?.data || json.data || json;
+      setConfig(configData);
+      // If endpoint doesn't exist (404), axios throws and we silently catch below
     } catch {
-      // Network error - silently fail, dev config is optional
+      // Network error or 404 - silently fail, dev config is optional
     } finally {
       setIsLoading(false);
     }
@@ -166,9 +165,8 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     if (!isSyncing) return;
     const poll = setInterval(async () => {
       try {
-        const response = await fetch('/wcapi/dev/sync-status/');
-        if (!response.ok) return;
-        const json = await response.json();
+        const response = await apiClient.get('/wcapi/dev/sync-status/');
+        const json = response.data;
         const data = json.data?.data || json.data || {};
         const progress = Number(data.progress ?? 0);
         setSyncProgress(Number.isFinite(progress) ? progress : 0);
@@ -190,28 +188,20 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     setMessage(null);
     
     try {
-      const response = await fetch('/wcapi/dev/switch/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: newMode }),
-      });
-      
-      const json = await response.json();
+      const response = await apiClient.post('/wcapi/dev/switch/', { mode: newMode });
+      const json = response.data;
       // Handle nested response structure
       const data = json.data?.data || json.data || json;
-      
-      if (response.ok) {
-        setMessage({ type: 'success', text: json.message || data.message || `Switched to ${newMode}` });
-        if (data?.changed && data?.same_console_required) {
-          waitForServerAndRefresh(300);
-        } else if (data?.changed) {
-          await fetchConfig();
-        }
-      } else {
-        setMessage({ type: 'error', text: data.message });
+
+      setMessage({ type: 'success', text: json.message || data.message || `Switched to ${newMode}` });
+      if (data?.changed && data?.same_console_required) {
+        waitForServerAndRefresh(300);
+      } else if (data?.changed) {
+        await fetchConfig();
       }
-    } catch {
-      setMessage({ type: 'error', text: 'Failed to switch mode' });
+    } catch (err: any) {
+      const errData = err?.response?.data?.data?.data || err?.response?.data?.data || err?.response?.data;
+      setMessage({ type: 'error', text: errData?.message || 'Failed to switch mode' });
     } finally {
       setIsSwitching(false);
     }
@@ -229,23 +219,12 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     setIsSyncing(true);
 
     try {
-      const response = await fetch('/wcapi/dev/sync/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ direction }),
-      });
-
-      const json = await response.json();
-      if (response.ok) {
-        setMessage({ type: 'success', text: json.message || `Sync started (${label})` });
-      } else {
-        const data = json.data?.data || json.data || json;
-        setMessage({ type: 'error', text: data.message || 'Failed to start sync' });
-        setIsSyncing(false);
-        setSyncDirection(null);
-      }
-    } catch {
-      setMessage({ type: 'error', text: 'Failed to start sync' });
+      const response = await apiClient.post('/wcapi/dev/sync/', { direction });
+      const json = response.data;
+      setMessage({ type: 'success', text: json.message || `Sync started (${label})` });
+    } catch (err: any) {
+      const errData = err?.response?.data?.data?.data || err?.response?.data?.data || err?.response?.data;
+      setMessage({ type: 'error', text: errData?.message || 'Failed to start sync' });
       setIsSyncing(false);
       setSyncDirection(null);
     }
@@ -259,10 +238,10 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     setMessage({ type: 'success', text: 'Restarting servers...' });
     
     try {
-      const response = await fetch('/wcapi/dev/restart/', { method: 'POST' });
-      const json = await response.json().catch(() => ({}));
+      const response = await apiClient.post('/wcapi/dev/restart/');
+      const json = response.data;
       const data = json.data?.data || json.data || json;
-      if (response.ok && data?.same_console_required) {
+      if (data?.same_console_required) {
         setMessage({
           type: 'success',
           text: data?.instructions?.note || json.message || 'Restart signal sent.',

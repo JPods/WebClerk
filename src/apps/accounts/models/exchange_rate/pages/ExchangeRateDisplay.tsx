@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { getRecord, saveRecord } from "@/api/wcapi";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import RippleLoader from "@/components/common/RippleLoader";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 interface ExchangeRateDisplayProps {
   inline?: boolean;
@@ -82,7 +82,7 @@ export default function ExchangeRateDisplay({
     setData({ ...data, [field]: value });
   };
 
-  if (loading) return <RippleLoader />;
+  if (loading) return <LoadingSpinner size="lg" label="Loading..." />;
 
   return (
     <div className="p-4 space-y-4">

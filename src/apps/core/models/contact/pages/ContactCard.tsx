@@ -3,7 +3,7 @@
  * Shows photo, name, phone, email. Shift-click from any assigned_to label.
  */
 import { useEffect, useState } from "react";
-import { getRecord } from "../../../../../api/wcapi";
+import { getRecord } from "@/api/wcapi";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface ContactCardProps {

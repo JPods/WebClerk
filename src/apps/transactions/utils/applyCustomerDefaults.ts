@@ -1,4 +1,4 @@
-/* LastChecked: 2026-08-01 | WhereUsed: TransactionDetail | WhoCreated: Claude */
+/* LastChecked: 2026-08-01 | WhereUsed: UiDetail | WhoCreated: Claude */
 /**
  * applyCustomerDefaults — fetch customer record and return fields to merge into transaction.
  *

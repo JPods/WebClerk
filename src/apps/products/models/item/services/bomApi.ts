@@ -1,5 +1,5 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
-import apiClient from "../../../../../api/axios";
+import apiClient from '@/api/axios';
 
 // Types for BOM data
 export interface BOMComponent {
@@ -57,7 +57,7 @@ export interface BOMListResponse {
  * Fetch BOM (Bill of Materials) children for a parent item
  */
 export const fetchBOMLines = async (parentId: number): Promise<BOMListResponse> => {
-  const response = await apiClient.get(`/api/products/items/${parentId}/bom/`);
+  const response = await apiClient.get(`/wcapi/products/items/${parentId}/bom/`);
   // Handle wrapped response
   if (response.data?.data) {
     return response.data.data;
@@ -69,5 +69,5 @@ export const fetchBOMLines = async (parentId: number): Promise<BOMListResponse> 
  * Recalculate BOM cost for a parent item
  */
 export const recalcBOMCost = async (parentId: number): Promise<void> => {
-  await apiClient.post(`/api/products/items/${parentId}/bom/recalc-cost/`);
+  await apiClient.post(`/wcapi/products/items/${parentId}/bom/recalc-cost/`);
 };

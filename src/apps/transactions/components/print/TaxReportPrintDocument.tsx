@@ -43,78 +43,78 @@ export default function TaxReportPrintDocument({ data }: { data: TaxReportData }
   const { company, lines, period_label, total_tax, total_invoices } = data;
 
   return (
-    <div className="print-page" style={{ fontFamily: 'Helvetica, Arial, sans-serif', fontSize: 11, color: '#222', padding: '0.5in 0.75in' }}>
+    <div className="print-page">
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, borderBottom: '2px solid #000', paddingBottom: 12 }}>
+      <div className="print-header">
         <div>
-          {company.logo_url && <img src={company.logo_url} alt="" style={{ maxHeight: 50, marginBottom: 8 }} />}
-          <div style={{ fontWeight: 700, fontSize: 14 }}>{company.name}</div>
+          {company.logo_url && <img src={company.logo_url} alt="" className="print-logo" />}
+          <div className="print-company-name">{company.name}</div>
           <div>{company.address}</div>
           <div>{company.city_state_zip}</div>
           <div>{company.phone}</div>
           {company.tax_id && <div>EIN: {company.tax_id}</div>}
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>Sales Tax Report</div>
-          <div style={{ fontSize: 14, color: '#444' }}>{period_label}</div>
-          <div style={{ fontSize: 10, color: '#888' }}>{data.period_start} to {data.period_end}</div>
+        <div className="print-right">
+          <div className="print-text-title">Sales Tax Report</div>
+          <div className="print-text-2xl print-text-subtle">{period_label}</div>
+          <div className="print-text-sm print-text-dim">{data.period_start} to {data.period_end}</div>
         </div>
       </div>
 
       {/* Tax by Jurisdiction */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 24 }}>
+      <table className="print-table-lg">
         <thead>
-          <tr style={{ borderBottom: '2px solid #000' }}>
-            <th style={{ textAlign: 'left', padding: '6px 8px', fontSize: 11 }}>Jurisdiction</th>
-            <th style={{ textAlign: 'right', padding: '6px 8px', fontSize: 11 }}>Invoices</th>
-            <th style={{ textAlign: 'right', padding: '6px 8px', fontSize: 11 }}>Tax Collected</th>
+          <tr className="print-thead-row">
+            <th className="print-th">Jurisdiction</th>
+            <th className="print-th-r">Invoices</th>
+            <th className="print-th-r">Tax Collected</th>
           </tr>
         </thead>
         <tbody>
           {lines.map((line, i) => (
-            <tr key={i} style={{ borderBottom: '1px solid #ddd' }}>
-              <td style={{ padding: '5px 8px' }}>{line.jurisdiction_name || line.jurisdiction}</td>
-              <td style={{ textAlign: 'right', padding: '5px 8px' }}>{line.invoice_count}</td>
-              <td style={{ textAlign: 'right', padding: '5px 8px', fontFamily: 'monospace' }}>{fmt(line.tax_collected)}</td>
+            <tr key={i} className="print-row">
+              <td className="print-td">{line.jurisdiction_name || line.jurisdiction}</td>
+              <td className="print-td-r">{line.invoice_count}</td>
+              <td className="print-td-mono">{fmt(line.tax_collected)}</td>
             </tr>
           ))}
         </tbody>
         <tfoot>
-          <tr style={{ borderTop: '2px solid #000', fontWeight: 700 }}>
-            <td style={{ padding: '6px 8px' }}>Total</td>
-            <td style={{ textAlign: 'right', padding: '6px 8px' }}>{total_invoices}</td>
-            <td style={{ textAlign: 'right', padding: '6px 8px', fontFamily: 'monospace' }}>{fmt(total_tax)}</td>
+          <tr className="print-tfoot-row">
+            <td className="print-td">Total</td>
+            <td className="print-td-r">{total_invoices}</td>
+            <td className="print-td-mono">{fmt(total_tax)}</td>
           </tr>
         </tfoot>
       </table>
 
       {/* Certification */}
-      <div style={{ border: '1px solid #ccc', padding: 16, marginBottom: 24 }}>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>Certification</div>
-        <div style={{ fontSize: 10, marginBottom: 12 }}>
+      <div className="print-box-padded print-mb-3xl">
+        <div className="print-semibold print-mb-md">Certification</div>
+        <div className="print-text-sm print-mb-lg">
           I certify that this report accurately reflects the sales tax collected
           during the period {data.period_start} to {data.period_end} based on
           transaction records maintained by {company.name}.
         </div>
-        <div style={{ display: 'flex', gap: 48 }}>
+        <div className="print-flex print-gap-lg">
           <div>
-            <div style={{ borderBottom: '1px solid #000', width: 200, marginBottom: 4 }}>&nbsp;</div>
-            <div style={{ fontSize: 9, color: '#888' }}>Signature</div>
+            <div className="print-sig-line print-sig-line-md">&nbsp;</div>
+            <div className="print-text-xs print-text-dim">Signature</div>
           </div>
           <div>
-            <div style={{ borderBottom: '1px solid #000', width: 120, marginBottom: 4 }}>&nbsp;</div>
-            <div style={{ fontSize: 9, color: '#888' }}>Date</div>
+            <div className="print-sig-line print-sig-line-sm">&nbsp;</div>
+            <div className="print-text-xs print-text-dim">Date</div>
           </div>
           <div>
-            <div style={{ borderBottom: '1px solid #000', width: 200, marginBottom: 4 }}>&nbsp;</div>
-            <div style={{ fontSize: 9, color: '#888' }}>Printed Name / Title</div>
+            <div className="print-sig-line print-sig-line-md">&nbsp;</div>
+            <div className="print-text-xs print-text-dim">Printed Name / Title</div>
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div style={{ fontSize: 9, color: '#888', textAlign: 'center' }}>
+      <div className="print-footer">
         Generated by {company.name} · {formatDt(new Date(), 'date')}
       </div>
     </div>

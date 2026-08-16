@@ -61,7 +61,7 @@ import {
   FaThumbsUp,
 } from "react-icons/fa";
 import { usePermissions } from "./usePermissions";
-import { getRecords, saveRecord } from "../../../../api/wcapi";
+import { getRecords, saveRecord } from "@/api/wcapi";
 import { SearchableSelect } from "../../../../components/ui/dropdown/SearchableSelect";
 import type {
   BasePanelProps,
@@ -142,42 +142,42 @@ interface ActionsPanelProps
 
 const STATUS_CONFIG: Record<
   ActionStatus,
-  { icon: React.ReactNode; color: string; bg: string; label: string; style?: React.CSSProperties }
+  { icon: React.ReactNode; color: string; bg: string; label: string; badgeClass: string }
 > = {
   pending: {
     icon: <FaClock size={12} />,
     color: "",
     bg: "",
     label: "Pending",
-    style: { color: 'var(--db-accent-gold)', background: 'var(--db-surface-alt)' },
+    badgeClass: "db-badge-gold",
   },
   in_progress: {
     icon: <FaTasks size={12} />,
     color: "",
     bg: "",
     label: "In Progress",
-    style: { color: 'var(--db-accent)', background: 'var(--db-surface-alt)' },
+    badgeClass: "db-badge-accent",
   },
   completed: {
     icon: <FaCheck size={12} />,
     color: "",
     bg: "",
     label: "Completed",
-    style: { color: 'var(--db-accent-green)', background: 'var(--db-surface-alt)' },
+    badgeClass: "db-badge-green",
   },
   cancelled: {
     icon: <FaBan size={12} />,
     color: "",
     bg: "",
     label: "Cancelled",
-    style: { color: 'var(--db-text-muted)', background: 'var(--db-surface-alt)' },
+    badgeClass: "db-badge-muted",
   },
   on_hold: {
     icon: <FaExclamationTriangle size={12} />,
     color: "",
     bg: "",
     label: "On Hold",
-    style: { color: 'var(--db-accent-gold)', background: 'var(--db-surface-alt)' },
+    badgeClass: "db-badge-gold",
   },
 };
 
@@ -394,37 +394,34 @@ const ActionCard: React.FC<ActionCardProps> = ({
 
   return (
     <div
-      className={`rounded-lg ${compact ? "p-2" : "p-3"}`}
-      style={{ border: '1px solid var(--db-border)', ...(statusConfig.style || {}) }}
+      className={`rounded-lg db-border-all ${statusConfig.badgeClass} ${compact ? "p-2" : "p-3"}`}
     >
       <div className="flex items-start gap-3">
         {/* Kind icon */}
-        <div className="p-2 rounded" style={statusConfig.style}>{kindIcon}</div>
+        <div className={`p-2 rounded ${statusConfig.badgeClass}`}>{kindIcon}</div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
           {/* Header row */}
           <div className="flex items-center gap-2 flex-wrap">
             <span
-              className="px-2 py-0.5 text-xs rounded font-medium"
-              style={statusConfig.style}
+              className={`px-2 py-0.5 text-xs rounded font-medium ${statusConfig.badgeClass}`}
             >
               {statusConfig.icon}
               <span className="ml-1 capitalize">
                 {status.replace("_", " ")}
               </span>
             </span>
-            <span className="text-xs capitalize" style={{ color: 'var(--db-text-muted)' }}>{kind}</span>
+            <span className="text-xs capitalize db-text-muted">{kind}</span>
             {action.priority && action.priority !== "normal" && (
               <span
-                className="px-1.5 py-0.5 text-xs rounded"
-                style={
+                className={`px-1.5 py-0.5 text-xs rounded ${
                   action.priority === "urgent"
-                    ? { background: 'color-mix(in srgb, var(--db-accent-red) 20%, transparent)', color: 'var(--db-accent-red)' }
+                    ? "db-badge-red"
                     : action.priority === "high"
-                    ? { background: 'color-mix(in srgb, var(--db-accent-gold) 20%, transparent)', color: 'var(--db-accent-gold)' }
-                    : { background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }
-                }
+                    ? "db-badge-gold-tint"
+                    : "db-badge-muted"
+                }`}
               >
                 {action.priority}
               </span>
@@ -433,16 +430,15 @@ const ActionCard: React.FC<ActionCardProps> = ({
 
           {/* Description */}
           <p
-            className={`text-sm mt-1 ${
+            className={`text-sm mt-1 db-text ${
               compact ? "line-clamp-1" : ""
             }`}
-            style={{ color: 'var(--db-text)' }}
           >
             {action.what || "No description"}
           </p>
 
           {/* Meta row */}
-          <div className="flex items-center gap-4 mt-2 text-xs" style={{ color: 'var(--db-text-muted)' }}>
+          <div className="flex items-center gap-4 mt-2 text-xs db-text-muted">
             {action.who && <span>Assigned: {action.who}</span>}
             {action.when && (
               <span className={isOverdue ? "text-red-600 font-medium" : ""}>
@@ -459,8 +455,7 @@ const ActionCard: React.FC<ActionCardProps> = ({
             {status !== "completed" && onStatusChange && (
               <button
                 onClick={() => onStatusChange("completed")}
-                className="p-1.5 rounded"
-                style={{ color: 'var(--db-accent-green)' }}
+                className="p-1.5 rounded db-text-green"
                 title="Mark complete"
                 type="button"
               >
@@ -470,8 +465,7 @@ const ActionCard: React.FC<ActionCardProps> = ({
             {onEdit && (
               <button
                 onClick={onEdit}
-                className="p-1.5 rounded"
-                style={{ color: 'var(--db-accent)' }}
+                className="p-1.5 rounded db-text-accent"
                 title="Edit"
                 type="button"
               >
@@ -481,8 +475,7 @@ const ActionCard: React.FC<ActionCardProps> = ({
             {onDelete && (
               <button
                 onClick={onDelete}
-                className="p-1.5 rounded"
-                style={{ color: 'var(--db-accent-red)' }}
+                className="p-1.5 rounded db-text-red"
                 title="Delete"
                 type="button"
               >
@@ -539,24 +532,24 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
 }) => {
   if (actions.length === 0) {
     return (
-      <div className="text-center py-6 text-sm" style={{ color: 'var(--db-text-muted)' }}>
+      <div className="text-center py-6 text-sm db-text-muted">
         No actions found
       </div>
     );
   }
 
-  const getPriorityStyle = (priority?: string): React.CSSProperties => {
+  const getPriorityClass = (priority?: string): string => {
     switch (priority) {
       case "urgent":
-        return { color: 'var(--db-accent-red)', background: 'var(--db-surface-alt)' };
+        return "db-badge-red";
       case "high":
-        return { color: 'var(--db-accent-gold)', background: 'var(--db-surface-alt)' };
+        return "db-badge-gold";
       case "normal":
-        return { color: 'var(--db-accent)', background: 'var(--db-surface-alt)' };
+        return "db-badge-accent";
       case "low":
-        return { color: 'var(--db-text-muted)', background: 'var(--db-surface-alt)' };
+        return "db-badge-muted";
       default:
-        return { color: 'var(--db-text-muted)' };
+        return "db-text-muted";
     }
   };
 
@@ -564,8 +557,7 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
     const config = STATUS_CONFIG[status || "pending"];
     return (
       <span
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded"
-        style={config.style}
+        className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded ${config.badgeClass}`}
       >
         {config.icon}
         <span className="hidden sm:inline">{config.label}</span>
@@ -576,8 +568,8 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
   return (
     <div className="overflow-auto max-h-80">
       <table className="w-full text-xs">
-        <thead className="sticky top-0 z-10" style={{ background: 'var(--db-surface)' }}>
-          <tr className="text-left" style={{ borderBottom: '1px solid var(--db-border)', color: 'var(--db-text-muted)' }}>
+        <thead className="sticky top-0 z-10 db-bg-surface">
+          <tr className="text-left db-border-bottom db-text-muted">
             {(!visibleColumns || visibleColumns.has("ida")) && <th className="py-2 px-2 font-medium">IDA</th>}
             {(!visibleColumns || visibleColumns.has("action")) && <th className="py-2 px-2 font-medium">Action</th>}
             {(!visibleColumns || visibleColumns.has("project")) && <th className="py-2 px-2 font-medium">Project</th>}
@@ -593,11 +585,10 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
           {actions.map((action, idx) => (
             <tr
               key={action.id || idx}
-              className="db-list-row"
-              style={{ borderBottom: '1px solid var(--db-border)' }}
+              className="db-list-row db-border-bottom"
             >
               {(!visibleColumns || visibleColumns.has("ida")) && (
-              <td className="py-2 px-2 font-mono" style={{ color: 'var(--db-text-muted)' }}>
+              <td className="py-2 px-2 font-mono db-text-muted">
                 {action.ida || action.id || "--"}
               </td>
               )}
@@ -607,14 +598,14 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
                   <span className="text-lg">
                     {KIND_ICONS[action.kind || "task"]}
                   </span>
-                  <span className="truncate" style={{ color: 'var(--db-text)' }}>
+                  <span className="truncate db-text">
                     {action.what || "--"}
                   </span>
                 </div>
               </td>
               )}
               {(!visibleColumns || visibleColumns.has("project")) && (
-              <td className="py-2 px-2" style={{ color: 'var(--db-text)' }}>
+              <td className="py-2 px-2 db-text">
                 {action.project_name || "--"}
               </td>
               )}
@@ -624,13 +615,13 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
               {(!visibleColumns || visibleColumns.has("progress")) && (
               <td className="py-2 px-2">
                 <div className="flex items-center gap-1">
-                  <div className="w-12 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--db-border)' }}>
+                  <div className="w-12 h-1.5 rounded-full overflow-hidden db-bg-border">
                     <div
                       className="h-full bg-emerald-500 rounded-full"
                       style={{ width: `${action.progress || 0}%` }}
                     />
                   </div>
-                  <span style={{ color: 'var(--db-text-muted)' }}>
+                  <span className="db-text-muted">
                     {action.progress || 0}%
                   </span>
                 </div>
@@ -639,15 +630,14 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
               {(!visibleColumns || visibleColumns.has("priority")) && (
               <td className="py-2 px-2">
                 <span
-                  className="px-1.5 py-0.5 rounded text-xs"
-                  style={getPriorityStyle(action.priority)}
+                  className={`px-1.5 py-0.5 rounded text-xs ${getPriorityClass(action.priority)}`}
                 >
                   {action.priority || "normal"}
                 </span>
               </td>
               )}
               {(!visibleColumns || visibleColumns.has("difficulty")) && (
-              <td className="py-2 px-2 text-center" style={{ color: 'var(--db-text)' }}>
+              <td className="py-2 px-2 text-center db-text">
                 {action.difficulty ?? "--"}
               </td>
               )}
@@ -658,8 +648,7 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
                     {action.assigned_to.map((a) => (
                       <span
                         key={a.id}
-                        className="px-1.5 py-0.5 rounded"
-                        style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}
+                        className="px-1.5 py-0.5 rounded db-surface-alt-text"
                       >
                         {a.name}
                       </span>
@@ -678,8 +667,7 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
                     {onEdit && (
                       <button
                         onClick={() => onEdit(action)}
-                        className="p-1 rounded"
-                        style={{ color: 'var(--db-accent)' }}
+                        className="p-1 rounded db-text-accent"
                         title="Edit"
                         type="button"
                       >
@@ -689,8 +677,7 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
                     {onDelete && (
                       <button
                         onClick={() => onDelete(action)}
-                        className="p-1 rounded"
-                        style={{ color: 'var(--db-accent-red)' }}
+                        className="p-1 rounded db-text-red"
                         title="Delete"
                         type="button"
                       >
@@ -830,32 +817,26 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
   };
 
   const controlClass =
-    "w-full h-10 rounded-xl px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40";
-  const controlStyle: React.CSSProperties = {
-    background: 'var(--db-surface)',
-    border: '1px solid var(--db-border)',
-    color: 'var(--db-text)',
-  };
+    "w-full h-10 rounded-xl px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 db-panel-text";
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[200000] flex items-stretch justify-end">
       {/* Right Panel */}
-      <div className="pointer-events-auto relative z-10 ml-auto flex h-full w-full max-h-screen flex-col overflow-hidden shadow-2xl sm:w-[480px] lg:w-[33vw] lg:min-w-[360px]" style={{ background: 'var(--db-surface)', borderLeft: '1px solid var(--db-border)' }}>
+      <div className="pointer-events-auto relative z-10 ml-auto flex h-full w-full max-h-screen flex-col overflow-hidden shadow-2xl sm:w-[480px] lg:w-[33vw] lg:min-w-[360px] db-bg-surface" style={{ borderLeft: '1px solid var(--db-border)' }}>
         {/* Header */}
-        <div className="flex items-start justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--db-border)' }}>
+        <div className="flex items-start justify-between px-5 py-4 db-border-bottom">
           <div>
-            <h2 className="text-lg font-semibold" style={{ color: 'var(--db-text)' }}>
+            <h2 className="text-lg font-semibold db-text">
               {action ? "Edit Action" : "Create Action"}
             </h2>
-            <p className="mt-1 text-sm" style={{ color: 'var(--db-text-muted)' }}>
+            <p className="mt-1 text-sm db-text-muted">
               Fill in the action details below
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-1 transition"
-            style={{ color: 'var(--db-text-dim)' }}
+            className="rounded-full p-1 transition db-text-dim"
             aria-label="Close modal"
           >
             <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none">
@@ -877,7 +858,7 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
         >
           {/* Action Title */}
           <div>
-            <label className="text-xs font-medium tracking-wide" style={{ color: 'var(--db-text-muted)' }}>
+            <label className="text-xs font-medium tracking-wide db-text-muted">
               action
             </label>
             <input
@@ -887,7 +868,7 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
                 setFormData({ ...formData, what: e.target.value })
               }
               className={`mt-1 ${controlClass}`}
-              style={controlStyle}
+
               placeholder="Task title or action description"
               required
             />
@@ -895,7 +876,7 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
 
           {/* Description */}
           <div>
-            <label className="text-xs font-medium tracking-wide" style={{ color: 'var(--db-text-muted)' }}>
+            <label className="text-xs font-medium tracking-wide db-text-muted">
               description
             </label>
             <textarea
@@ -904,7 +885,7 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
                 setFormData({ ...formData, notes: e.target.value })
               }
               className={`mt-1 ${controlClass} h-auto min-h-16 resize-y`}
-              style={controlStyle}
+
               rows={2}
               placeholder="Context, acceptance criteria, or notes"
             />
@@ -912,15 +893,14 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
 
           {/* Assigned To with Chips */}
           <div className="space-y-2">
-            <label className="text-xs font-medium tracking-wide" style={{ color: 'var(--db-text-muted)' }}>
+            <label className="text-xs font-medium tracking-wide db-text-muted">
               assigned to
             </label>
             <div className="flex flex-wrap gap-2">
               {(formData.assigned_to || []).map((a) => (
                 <span
                   key={a.id}
-                  className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
-                  style={{ background: 'var(--db-row-active)', color: 'var(--db-accent-purple)' }}
+                  className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold db-badge-purple"
                 >
                   {a.name}
                   <button
@@ -980,7 +960,7 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
 
           {/* Type */}
           <div>
-            <label className="text-xs font-medium tracking-wide" style={{ color: 'var(--db-text-muted)' }}>
+            <label className="text-xs font-medium tracking-wide db-text-muted">
               type
             </label>
             <select
@@ -989,7 +969,7 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
                 setFormData({ ...formData, kind: e.target.value as ActionKind })
               }
               className={`mt-1 ${controlClass}`}
-              style={controlStyle}
+
             >
               <option value="task">Task</option>
               <option value="followup">Follow Up</option>
@@ -1004,7 +984,7 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
 
           {/* Project */}
           <div className="space-y-2">
-            <label className="text-xs font-medium tracking-wide" style={{ color: 'var(--db-text-muted)' }}>
+            <label className="text-xs font-medium tracking-wide db-text-muted">
               project
             </label>
             <div className="relative z-[200001]">
@@ -1049,9 +1029,9 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
           {/* Priority & Difficulty Sliders */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm font-medium" style={{ color: 'var(--db-text)' }}>
+              <div className="flex items-center justify-between text-sm font-medium db-text">
                 <span>priority</span>
-                <span className="text-xs" style={{ color: 'var(--db-text-muted)' }}>
+                <span className="text-xs db-text-muted">
                   {formData.priority}
                 </span>
               </div>
@@ -1070,7 +1050,7 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
                 }}
                 className="w-full accent-indigo-600"
               />
-              <div className="flex justify-between text-xs" style={{ color: 'var(--db-text-muted)' }}>
+              <div className="flex justify-between text-xs db-text-muted">
                 <span>Low</span>
                 <span>Normal</span>
                 <span>High</span>
@@ -1079,9 +1059,9 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm font-medium" style={{ color: 'var(--db-text)' }}>
+              <div className="flex items-center justify-between text-sm font-medium db-text">
                 <span>difficulty</span>
-                <span className="text-xs" style={{ color: 'var(--db-text-muted)' }}>
+                <span className="text-xs db-text-muted">
                   {formData.difficulty || 30}
                 </span>
               </div>
@@ -1099,7 +1079,7 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
                 }
                 className="w-full accent-indigo-600"
               />
-              <div className="flex justify-between text-xs" style={{ color: 'var(--db-text-muted)' }}>
+              <div className="flex justify-between text-xs db-text-muted">
                 <span>Easy</span>
                 <span>Hard</span>
               </div>
@@ -1108,9 +1088,9 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
 
           {/* Progress Slider */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm font-medium" style={{ color: 'var(--db-text)' }}>
+            <div className="flex items-center justify-between text-sm font-medium db-text">
               <span>progress</span>
-              <span className="text-xs" style={{ color: 'var(--db-text-muted)' }}>
+              <span className="text-xs db-text-muted">
                 {formData.progress || 0}%
               </span>
             </div>
@@ -1144,7 +1124,7 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
               }}
               className="w-full accent-indigo-600"
             />
-            <div className="flex justify-between text-xs" style={{ color: 'var(--db-text-muted)' }}>
+            <div className="flex justify-between text-xs db-text-muted">
               <span>0%</span>
               <span>50%</span>
               <span>100%</span>
@@ -1155,7 +1135,7 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
           <div className="space-y-2">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium" style={{ color: 'var(--db-text)' }}>
+                <label className="block text-sm font-medium db-text">
                   dt_start
                 </label>
                 <input
@@ -1171,11 +1151,11 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
                     })
                   }
                   className={`mt-1 ${controlClass}`}
-              style={controlStyle}
+
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium" style={{ color: 'var(--db-text)' }}>
+                <label className="block text-sm font-medium db-text">
                   dt_deadline
                 </label>
                 <input
@@ -1191,13 +1171,13 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
                     setFormData({ ...formData, dt_deadline: ts, when: ts });
                   }}
                   className={`mt-1 ${controlClass}`}
-              style={controlStyle}
+
                 />
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium" style={{ color: 'var(--db-text)' }}>
+                <label className="block text-sm font-medium db-text">
                   dt_completed
                 </label>
                 <input
@@ -1217,11 +1197,11 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
                     });
                   }}
                   className={`mt-1 ${controlClass}`}
-              style={controlStyle}
+
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium" style={{ color: 'var(--db-text)' }}>
+                <label className="block text-sm font-medium db-text">
                   dt_expected
                 </label>
                 <input
@@ -1243,7 +1223,7 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
                     } as ExtendedActionEntry)
                   }
                   className={`mt-1 ${controlClass}`}
-              style={controlStyle}
+
                 />
               </div>
             </div>
@@ -1251,7 +1231,7 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
 
           {/* Status Button Group */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium" style={{ color: 'var(--db-text)' }}>
+            <label className="block text-sm font-medium db-text">
               status
             </label>
             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
@@ -1287,9 +1267,8 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
                       setFormData({ ...formData, ...updates });
                     }}
                     className={`${base} ${
-                      active ? activeClass : inactiveClass
+                      active ? activeClass : `${inactiveClass} db-border-color db-text`
                     }`}
-                    style={active ? {} : { borderColor: 'var(--db-border)', color: 'var(--db-text)' }}
                   >
                     {opt.label}
                   </button>
@@ -1299,12 +1278,12 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
           </div>
 
           {/* is_active Toggle */}
-          <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: 'var(--db-surface-alt)', border: '1px solid var(--db-border)' }}>
+          <div className="flex items-center justify-between rounded-xl px-4 py-3 db-panel-alt">
             <div>
-              <span className="text-sm font-medium" style={{ color: 'var(--db-text)' }}>
+              <span className="text-sm font-medium db-text">
                 is_active
               </span>
-              <p className="text-xs" style={{ color: 'var(--db-text-muted)' }}>
+              <p className="text-xs db-text-muted">
                 Action is active and visible
               </p>
             </div>
@@ -1322,9 +1301,8 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
                 (formData as ExtendedActionEntry & { is_active?: boolean })
                   .is_active !== false
                   ? "bg-indigo-600"
-                  : ""
+                  : "db-bg-border"
               }`}
-              style={(formData as ExtendedActionEntry & { is_active?: boolean }).is_active === false ? { background: 'var(--db-border)' } : {}}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${
@@ -1339,12 +1317,11 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-5 py-4" style={{ borderTop: '1px solid var(--db-border)' }}>
+        <div className="flex items-center justify-end gap-3 px-5 py-4 db-border-top">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl px-4 py-2 text-sm font-semibold transition"
-            style={{ border: '1px solid var(--db-border)', color: 'var(--db-text)' }}
+            className="rounded-xl px-4 py-2 text-sm font-semibold transition db-border-all db-text"
           >
             Cancel
           </button>
@@ -1619,37 +1596,35 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
 
   return (
     <div
-      className={`rounded-lg ${className}`}
-      style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)' }}
+      className={`rounded-lg db-panel ${className}`}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-t-lg"
-        style={{ background: 'var(--db-surface-alt)', borderBottom: '1px solid var(--db-border)' }}
+        className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-t-lg db-section-bg"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <FaTasks style={{ color: 'var(--db-accent-green)' }} size={14} />
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
+          <FaTasks className="db-text-green" size={14} />
+          <h3 className="text-sm font-semibold db-text">
             {title}
           </h3>
           {actions.length > 0 && (
-            <span className="px-1.5 py-0.5 text-xs rounded-full" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
+            <span className="px-1.5 py-0.5 text-xs rounded-full db-surface-alt-muted">
               {actions.length}
             </span>
           )}
           {pendingCount > 0 && (
-            <span className="px-1.5 py-0.5 text-xs rounded-full" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-accent-gold)' }}>
+            <span className="px-1.5 py-0.5 text-xs rounded-full db-surface-alt-gold">
               {pendingCount} pending
             </span>
           )}
           {hasRequired && (
-            <span className="px-1.5 py-0.5 text-xs rounded" style={{ color: 'var(--db-accent-red)' }}>
+            <span className="px-1.5 py-0.5 text-xs rounded db-text-red">
               Required
             </span>
           )}
           {isSaving && (
-            <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--db-accent)' }}>
+            <span className="flex items-center gap-1 text-xs db-text-accent">
               <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500" />
               Saving...
             </span>
@@ -1669,7 +1644,7 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
         <div className={`${compact ? "p-2" : "p-4"} space-y-2`}>
           {/* Loading state for API mode */}
           {isLoadingApi && (
-            <div className="text-center py-6 text-sm" style={{ color: 'var(--db-text-muted)' }}>
+            <div className="text-center py-6 text-sm db-text-muted">
               <div className="animate-spin rounded-full h-6 w-6 mx-auto mb-2" style={{ borderBottom: '2px solid var(--db-accent-green)' }} />
               Loading actions...
             </div>
@@ -1684,14 +1659,13 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
 
           {/* Empty state */}
           {!isLoadingApi && !apiError && actions.length === 0 ? (
-            <div className="text-center py-4 text-sm" style={{ color: 'var(--db-text-dim)' }}>
+            <div className="text-center py-4 text-sm db-text-dim">
               <FaTasks size={24} className="mx-auto mb-2 opacity-50" />
               <p>No actions defined</p>
               {canEdit && (
                 <button
                   onClick={handleAdd}
-                  className="mt-2 hover:underline text-xs"
-                  style={{ color: 'var(--db-accent-green)' }}
+                  className="mt-2 hover:underline text-xs db-text-green"
                   type="button"
                 >
                   + Add first action
@@ -1723,8 +1697,7 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
                 {canEdit && (
                   <button
                     onClick={handleAdd}
-                    className="mt-3 flex items-center gap-1 text-sm"
-                    style={{ color: 'var(--db-accent-green)' }}
+                    className="mt-3 flex items-center gap-1 text-sm db-text-green"
                     type="button"
                   >
                     <FaPlus size={10} />
@@ -1750,8 +1723,7 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
                 {canEdit && (
                   <button
                     onClick={handleAdd}
-                    className="mt-2 flex items-center gap-1 text-sm"
-                    style={{ color: 'var(--db-accent-green)' }}
+                    className="mt-2 flex items-center gap-1 text-sm db-text-green"
                     type="button"
                   >
                     <FaPlus size={10} />

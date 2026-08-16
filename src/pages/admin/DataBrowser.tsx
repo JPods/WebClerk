@@ -1,1030 +1,54 @@
-/* LastChecked: 2026-07-19 | WhereUsed: DataBrowser route | WhoCreated: Bill+Claude */
+/* LastChecked: 2026-08-14 | WhereUsed: DataBrowser route | WhoCreated: Bill+Claude */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getUI, setUI } from '@/utils/contactUI';
 import { createBlankRecord } from '../../tools/createBlankRecord';
 import { useAppSelector } from '../../store/hooks';
 import { useDataBrowser, numId, type FieldSpec } from '../../hooks/useDataBrowser';
-import { dbLog } from '../../utils/dbLog';
 import { getDetailViewPref } from '../../layout/MacTopBar';
-import BehaviorField from '../../components/common/BehaviorField';
 import JsonEnvelopePanel from '../../components/common/JsonEnvelopePanel';
-import FieldGroupSection from '../../components/common/FieldGroupSection';
 import FieldOrderDialog from '../../components/common/FieldOrderDialog';
 import RelatedDialog from '../../components/common/RelatedDialog';
 import ReportsDialog from '../../components/common/ReportsDialog';
 import MarkdownEditor, { resolveTokens, type FieldPath } from '../../components/common/MarkdownEditor';
 import DataGrid from '../../components/common/DataGrid';
 import { getRecords } from '../../api/wcapi';
-import type { RowColorRule } from '../../components/common/DataGrid';
 import ToolbarIcon from '../../components/common/ToolbarIcon';
+import { WorkflowSelect } from '../../components/common/WorkflowSelect';
 import { TB } from '../../components/common/toolbarActions';
 import DedupPanel from '../../components/common/DedupPanel';
 import { useReportShortcuts } from '../../hooks/useReportShortcuts';
 import { openUniversalPrint } from '../../components/print/UniversalPrint';
 import { fetchPrintLayout } from '../../hooks/usePrintLayout';
-import { PanelTable } from '../../apps/common/components/panels/PanelTable';
-import { buildColumnsFromSpecs, buildColumnsFromRecord } from '../../apps/common/components/panels/panelColumnUtils';
 import QueryBuilderPanel from '../../components/common/QueryBuilderPanel';
+import { RelatedPanel } from './RelatedPanel';
+import { HarvestBar } from './HarvestBar';
+import { SpawnLinks } from './SpawnLinks';
+// TouchBar available at ./TouchBar if needed (currently not rendered — see comment in detail body)
+import { BOMPanel } from './BOMPanel';
+import { MatchCandidatesPanel } from './MatchCandidatesPanel';
+import { GroupedDetailFields } from './GroupedDetailFields';
+import { themes, type ThemeKey } from './dbThemes';
+import { APP_DETAIL_ROUTES, APP_DETAIL_COMPONENTS } from './dbRoutes';
 import './DataBrowser.css';
 
-/** Maps DataBrowser model name → .tsx detail route (used for double-click new-tab). */
-const APP_DETAIL_ROUTES: Record<string, string> = {
-  order: '/order',
-  invoice: '/invoice',
-  proposal: '/proposal',
-  purchase: '/purchase',
-  workorder: '/work_order',
-  work_order: '/work_order',
-  receipt: '/receipt',
-  requisition: '/requisition',
-  payment: '/payment',
-  customer: '/customer',
-  item: '/item',
-  contact: '/contact',
-  vendor: '/vendor',
-  manufacturer: '/manufacturer',
-  employee: '/employee',
-  rep: '/rep',
-  action: '/action',
-};
-
-/** Lazy-loaded detail components for App mode inline rendering in the right panel. */
-/** Lazy-loaded detail components for App mode inline rendering.
- *  Every model with a detail_layout Setting should be mapped here.
- *  Models NOT mapped fall through to Admin mode (BehaviorField grid). */
-const APP_DETAIL_COMPONENTS: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
-  // Core
-  contact: React.lazy(() => import('@/apps/core/models/contact/pages/ContactDetailJson')),
-  report: React.lazy(() => import('@/apps/core/models/report/pages/ReportDisplay')),
-  // Orgs
-  customer: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
-  vendor: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
-  manufacturer: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
-  employee: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
-  rep: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
-  // Products
-  item: React.lazy(() => import('@/apps/products/pages/ItemDetailJson')),
-  serial_log: React.lazy(() => import('@/apps/products/models/serial/pages/SerialDisplay')),
-  // Transactions
-  proposal: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  order: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  invoice: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  purchase: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  work_order: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  receipt: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  requisition: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  payment: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  // Communications — Display pages not yet built; fall through to Admin mode
-  // Docs
-  document: React.lazy(() => import('@/apps/docs/models/document/pages/DocumentDisplay')),
-  question_answer: React.lazy(() => import('@/apps/docs/models/question_answer/pages/QuestionAnswerDisplay')),
-};
-
 // ---------------------------------------------------------------------------
-// SpawnLinks — related-window buttons for complex records
+// Extracted components — each in its own file in this directory:
+// RelatedPanel, HarvestBar, SpawnLinks, TouchBar, BOMPanel,
+// MatchCandidatesPanel, GroupedDetailFields, dbThemes
 // ---------------------------------------------------------------------------
 
-const SPAWN_CONFIG: Record<string, Array<{ label: string; target: string; filterKey: string }>> = {
-  serial: [
-    { label: 'History', target: 'serial_log', filterKey: 'serial_id' },
-    { label: 'Q&A', target: 'question_answer', filterKey: 'refs__links__serial_id' },
-    { label: 'Documents', target: 'document', filterKey: 'refs__links__serial_id' },
-    { label: 'Actions', target: 'action', filterKey: 'refs__links__serial_id' },
-    { label: 'Customer', target: 'contact', filterKey: 'id' },
-    { label: 'Vendor', target: 'contact', filterKey: 'id' },
-  ],
-  item: [
-    { label: 'Serials', target: 'serial', filterKey: 'item_id' },
-    { label: 'XRefs', target: 'item_xref', filterKey: 'item_id' },
-    { label: 'Org Items', target: 'org_item', filterKey: 'item_id' },
-    { label: 'Documents', target: 'document', filterKey: 'refs__links__item_id' },
-  ],
-  invoice: [
-    { label: 'Lines', target: 'invoice_line', filterKey: 'invoice_id' },
-    { label: 'Payments', target: 'payment', filterKey: 'invoice_id' },
-    { label: 'Customer', target: 'contact', filterKey: 'id' },
-    { label: 'Documents', target: 'document', filterKey: 'refs__links__invoice_id' },
-  ],
-  order: [
-    { label: 'Lines', target: 'order_line', filterKey: 'order_id' },
-    { label: 'Customer', target: 'contact', filterKey: 'id' },
-    { label: 'Documents', target: 'document', filterKey: 'refs__links__order_id' },
-  ],
-  contact: [
-    { label: 'Orders', target: 'order', filterKey: 'customer_id' },
-    { label: 'Invoices', target: 'invoice', filterKey: 'customer_id' },
-    { label: 'Payments', target: 'payment', filterKey: 'invoice__customer_id' },
-    { label: 'Serials', target: 'serial', filterKey: 'refs__links__customer_id' },
-    { label: 'Actions', target: 'action', filterKey: 'refs__links__contact_id' },
-    { label: 'Touches', target: 'touch', filterKey: 'contact_id' },
-    { label: 'Documents', target: 'document', filterKey: 'refs__links__contact_id' },
-  ],
-  action: [
-    { label: 'Touches', target: 'touch', filterKey: 'action_id' },
-    { label: 'Documents', target: 'document', filterKey: 'refs__links__action_id' },
-  ],
-  customer: [
-    { label: 'Contacts', target: 'contact', filterKey: 'customer_id' },
-    { label: 'Orders', target: 'order', filterKey: 'customer_id' },
-    { label: 'Invoices', target: 'invoice', filterKey: 'customer_id' },
-    { label: 'Touches', target: 'touch', filterKey: 'org_id' },
-  ],
-  vendor: [
-    { label: 'Contacts', target: 'contact', filterKey: 'vendor_id' },
-    { label: 'Purchases', target: 'purchase', filterKey: 'vendor_id' },
-    { label: 'Touches', target: 'touch', filterKey: 'org_id' },
-  ],
-};
-
-// ── RelatedPanel — embedded list of FK-connected records in detail view ──
-
-// Common FK patterns: model_id, contact_id, or refs__links__model_id
-// FK_PATTERNS: parent_model → { child_model: django_fk_field_name }
-// Audited 2026-08-11 against Django model ForeignKey definitions.
-// The fallback in getFilterKey is `${parentModel}_id` — only entries
-// where the FK field name differs from that convention need to be here.
-const FK_PATTERNS: Record<string, Record<string, string>> = {
-  contact: {
-    email: 'contact', phone: 'contact', address: 'contact', domain: 'contact',
-    action: 'refs__links__contact_id', document: 'refs__links__contact_id',
-    question_answer: 'refs__links__contact_id',
-    order: 'contact_id', invoice: 'contact_id', proposal: 'contact_id',
-    purchase: 'contact_id', workorder: 'contact_id', payment: 'contact_id',
-  },
-  // OrgBase proxies — customer/vendor/manufacturer/rep all use orgbase FKs
-  customer: {
-    order: 'customer_id', invoice: 'customer_id', proposal: 'customer_id',
-    purchase: 'customer_id', workorder: 'customer_id', payment: 'customer_id',
-    contact: 'customer_id',
-  },
-  vendor: {
-    purchase: 'vendor_id', invoice: 'vendor_id', order: 'vendor_id',
-    item: 'vendor_id', payment: 'vendor_id', contact: 'vendor_id',
-  },
-  manufacturer: {
-    item: 'manufacturer_id', invoice: 'manufacturer_id', order: 'manufacturer_id',
-    proposal: 'manufacturer_id', purchase: 'manufacturer_id', contact: 'manufacturer_id',
-  },
-  // Transaction parents
-  order: { order_line: 'order_id', document: 'refs__links__order_id', action: 'refs__links__order_id' },
-  invoice: { invoice_line: 'invoice_id', payment: 'invoice_id', ledger: 'invoice_id', document: 'refs__links__invoice_id' },
-  proposal: { proposal_line: 'proposal_id', document: 'refs__links__proposal_id' },
-  purchase: { purchase_line: 'purchase_id', receipt: 'purchase_id', payment: 'purchase_id', document: 'refs__links__purchase_id' },
-  workorder: { workorder_line: 'workorder_id', receipt: 'workorder_id' },
-  receipt: { receipt_line: 'receipt_id' },
-  // Products
-  item: {
-    serial: 'item_id', item_xref: 'item_id', org_item: 'item_id',
-    bill_of_material: 'parent_item', variant: 'item_id', service: 'item_id',
-    specification: 'item_id', catalog_line: 'item_id',
-  },
-  serial: { serial_log: 'serial_id' },
-  catalog: { catalog_line: 'catalog_id', org_item: 'catalog_id' },
-  // Inventory
-  warehouse: { inventory_layer: 'warehouse_id' },
-  payment: { payment_application: 'payment_id' },
-};
-
-function getFilterKey(parentModel: string, relatedModel: string): string {
-  return FK_PATTERNS[parentModel]?.[relatedModel] || `${parentModel}_id`;
-}
-
-/**
- * RelatedPanel — shows FK-linked or refs.links-linked child records.
- *
- * Resolution order:
- *   1. FK_PATTERNS explicit entry → use that field name as filter key
- *   2. Fallback `${parentModel}_id` → try as FK filter
- *
- * Columns come from the child model's workbench_fields Setting (db.panel),
- * falling back to auto-detection from the first record's keys.
- * Renders via PanelTable for unified column config and styling.
- */
-function RelatedPanel({ modelName, parentModel, parentId, fontSize, theme }: {
-  modelName: string; parentModel: string; parentId: number;
-  fontSize: number; theme: any;
-}) {
-  const [records, setRecords] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [collapsed, setCollapsed] = React.useState(false);
-  const [linkType, setLinkType] = React.useState<'fk' | 'refs'>('fk');
-  const [panelSpecs, setPanelSpecs] = React.useState<any[] | null>(null);
-
-  // Fetch records + child model's db.panel column specs
-  React.useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        // 1. Fetch records via FK filter
-        const filterKey = getFilterKey(parentModel, modelName);
-        const isRefsFilter = filterKey.startsWith('refs__');
-        const params: Record<string, any> = { [filterKey]: parentId, limit: 50 };
-        const res = await getRecords(modelName, params) as any;
-        if (cancelled) return;
-        const list = res?.results || [];
-        setLinkType(isRefsFilter ? 'refs' : 'fk');
-        setRecords(list);
-
-        // 2. Fetch child model's workbench_fields Setting for db.panel
-        try {
-          const wsRes = await getRecords('setting', { parent_model: modelName, purpose: 'wc:workbench_fields', limit: 1 }) as any;
-          if (cancelled) return;
-          const wsRec = (wsRes?.results || [])[0];
-          const dbLayout = wsRec?.config?.db || wsRec?.config;
-          if (dbLayout?.panel?.length) setPanelSpecs(dbLayout.panel);
-        } catch { /* no setting — auto-detect will handle it */ }
-      } catch (e) {
-        console.error(`[RelatedPanel] ${modelName}:`, e);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [modelName, parentModel, parentId]);
-
-  // Build PanelColumnDef from db.panel specs or auto-detect from data
-  const panelColumns = React.useMemo(() => {
-    if (panelSpecs?.length) return buildColumnsFromSpecs(panelSpecs);
-    if (records.length > 0) return buildColumnsFromRecord(records[0]);
-    return [];
-  }, [panelSpecs, records]);
-
-  return (
-    <div className="border-t border-slate-200 dark:border-slate-700 mt-1">
-      <div
-        className="flex items-center gap-1.5 px-2 py-1.5 cursor-pointer select-none"
-        onClick={() => setCollapsed(!collapsed)}
-      >
-        <span className="text-[10px] text-slate-400 dark:text-slate-500">{collapsed ? '▶' : '▼'}</span>
-        <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-          {modelName.replace(/_/g, ' ')}
-        </span>
-        <span className="text-[10px] text-slate-400 dark:text-slate-500">({records.length})</span>
-        {linkType === 'refs' && records.length > 0 && (
-          <span className="text-[9px] text-slate-400 italic" title="Linked via refs.links (soft link)">refs</span>
-        )}
-        {loading && <span className="text-[10px] text-slate-400">loading...</span>}
-      </div>
-      {!collapsed && records.length > 0 && panelColumns.length > 0 && (
-        <div className="px-1 pb-2">
-          <PanelTable
-            storageKey={`panel:${parentModel}:${modelName}`}
-            columns={panelColumns}
-            data={records}
-            rowKey={(r: any) => r.id ?? r.uuid ?? Math.random()}
-            compact
-          />
-        </div>
-      )}
-      {!collapsed && !loading && records.length === 0 && (
-        <div className="px-2 pb-2 text-[10px] text-slate-400 dark:text-slate-500">
-          No {modelName.replace(/_/g, ' ')} records
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── HarvestBar — folder input + harvest button for StatementLine ──
-const HarvestBar: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
-  const [folder, setFolder] = React.useState(() => localStorage.getItem('db-harvest-folder') || '');
-  const [loading, setLoading] = React.useState(false);
-  const [result, setResult] = React.useState<any>(null);
-
-  const handleHarvest = async () => {
-    if (!folder.trim()) return;
-    setLoading(true);
-    setResult(null);
-    try {
-      const res = await fetch('/api/transactions/statements/harvest/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ path: folder.trim() }),
-      });
-      const data = await res.json();
-      setResult(data);
-      localStorage.setItem('db-harvest-folder', folder.trim());
-      if (data.lines_loaded > 0) onComplete();
-    } catch (err: any) {
-      setResult({ error: err.message || 'Harvest failed' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px',
-      background: 'var(--db-surface-alt)', borderBottom: '1px solid var(--db-border)',
-      fontSize: 12,
-    }}>
-      <span style={{ fontWeight: 600, color: 'var(--db-text-muted)', whiteSpace: 'nowrap' }}>Harvest:</span>
-      <input
-        type="text"
-        value={folder}
-        onChange={(e) => setFolder(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter') handleHarvest(); }}
-        placeholder="~/Taxes/2025 or drop folder path here"
-        style={{
-          flex: 1, padding: '3px 8px', fontSize: 12,
-          background: 'var(--db-input-bg)', color: 'var(--db-text)',
-          border: '1px solid var(--db-border)', borderRadius: 4,
-        }}
-      />
-      <button
-        onClick={handleHarvest}
-        disabled={loading || !folder.trim()}
-        style={{
-          padding: '3px 12px', fontSize: 12, fontWeight: 600,
-          background: loading ? 'var(--db-border)' : '#ea580c',
-          color: '#fff', border: 'none', borderRadius: 4, cursor: loading ? 'wait' : 'pointer',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {loading ? 'Harvesting...' : 'Harvest'}
-      </button>
-      {result && !result.error && (
-        <span style={{ color: 'var(--db-text-muted)', whiteSpace: 'nowrap' }}>
-          {result.lines_loaded} loaded, {result.lines_skipped} skipped
-          {result.missing?.length > 0 && (
-            <span style={{ color: '#ef4444', marginLeft: 8 }}>
-              ⚠ Missing: {result.missing.join(', ')}
-            </span>
-          )}
-        </span>
-      )}
-      {result?.error && (
-        <span style={{ color: '#ef4444' }}>{result.error}</span>
-      )}
-    </div>
-  );
-};
-
-const SpawnLinks: React.FC<{ model: string; record: any; recordId: number }> = ({ model, record, recordId }) => {
-  const links = SPAWN_CONFIG[model];
-  if (!links || !links.length) return null;
-
-  const openSpawn = (link: typeof links[0]) => {
-    let filterValue = recordId;
-    // For customer/vendor links, resolve the ID from refs
-    if (link.label === 'Customer' && link.target === 'contact') {
-      const refs = record.refs || {};
-      filterValue = refs?.links?.customer_id || refs?.links?.contact?.[0] || recordId;
-    } else if (link.label === 'Vendor' && link.target === 'contact') {
-      const refs = record.refs || {};
-      filterValue = refs?.links?.vendor_id || recordId;
-    }
-    window.open(`/${link.target}?${link.filterKey}=${filterValue}`, '_blank');
-  };
-
-  return (
-    <div className="db-spawn-bar">
-      <span className="db-spawn-label">Related:</span>
-      {links.map((link) => (
-        <button key={link.label} className="db-btn db-btn--small db-btn--ghost"
-          onClick={() => openSpawn(link)}
-          title={`Open ${link.label} in new databrowser window`}>
-          {link.label} ↗
-        </button>
-      ))}
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// TouchBar — phone/email/sms action icons for contact-linked records
-// ---------------------------------------------------------------------------
-
-const TOUCH_MODELS = new Set(['action', 'contact', 'customer', 'vendor', 'manufacturer', 'rep', 'employee', 'other_org']);
-
-interface TouchPrefs {
-  default_channel?: 'call' | 'email' | 'text' | 'visit' | 'meeting';
-  default_direction?: 'out' | 'in';
-  phone_action?: 'tel' | 'facetime' | 'facetime-audio' | 'log_only';
-  email_action?: 'mailto' | 'log_only';
-  text_action?: 'sms' | 'log_only';
-  auto_log?: boolean;
-}
-
-const TouchBar: React.FC<{ model: string; record: any; recordId: number; theme: any; fontSize: number; touchPrefs?: TouchPrefs }> = ({ model, record, recordId, theme: t, fontSize, touchPrefs }) => {
-  const tp: TouchPrefs = touchPrefs || {};
-  const [showTouchForm, setShowTouchForm] = useState(false);
-  const [touchChannel, setTouchChannel] = useState<'call' | 'email' | 'text' | 'visit' | 'meeting'>(tp.default_channel || 'call');
-  const [touchSummary, setTouchSummary] = useState('');
-  const [touchSubject, setTouchSubject] = useState('');
-  const [touchDuration, setTouchDuration] = useState('');
-  const [touchEmailId, setTouchEmailId] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  const isContact = model === 'contact';
-  const isOrg = ['customer', 'vendor', 'manufacturer', 'rep', 'employee', 'other_org'].includes(model);
-
-  const contactId = isContact ? recordId : (record.contact_id || 0);
-  const contactPhone = record.phone || '';
-  const contactEmail = record.email || '';
-  const contactName = record.attention || record.display_name || record.name || record.company || record.contact_name || '';
-
-  const orgId = isOrg ? recordId
-    : record.customer_id || record.vendor_id || record.manufacturer_id || 0;
-  const orgModel = isOrg ? model
-    : record.customer_id ? 'customer'
-    : record.vendor_id ? 'vendor'
-    : record.manufacturer_id ? 'manufacturer'
-    : '';
-
-  const handleTouch = (channel: 'call' | 'email' | 'text') => {
-    // Fire URI based on user's touch preferences
-    if (channel === 'call' && contactPhone && tp.phone_action !== 'log_only') {
-      const scheme = tp.phone_action === 'facetime' ? 'facetime' : tp.phone_action === 'facetime-audio' ? 'facetime-audio' : 'tel';
-      const a = document.createElement('a'); a.href = `${scheme}:${contactPhone}`; a.click();
-    } else if (channel === 'email' && contactEmail && tp.email_action !== 'log_only') {
-      const subject = encodeURIComponent(
-        typeof record.action === 'object' ? (record.action?.en || '') :
-        String(record.action || record.subject || record.company || '')
-      );
-      const a = document.createElement('a'); a.href = `mailto:${contactEmail}?subject=${subject}`; a.click();
-    } else if (channel === 'text' && contactPhone && tp.text_action !== 'log_only') {
-      const a = document.createElement('a'); a.href = `sms:${contactPhone}`; a.click();
-    }
-    setTouchChannel(channel);
-    setTouchSubject(
-      typeof record.action === 'object' ? (record.action?.en || '') :
-      String(record.action || record.subject || '')
-    );
-    setTouchSummary('');
-    setTouchDuration('');
-    setTouchEmailId('');
-    setShowTouchForm(true);
-  };
-
-  const handleSaveTouch = async () => {
-    setSaving(true);
-    try {
-      const { saveRecord } = await import('@/api/wcapi');
-      await saveRecord('touch', {
-        contact_id: contactId || null,
-        channel: touchChannel,
-        direction: (document.querySelector<HTMLInputElement>('input[name="touch-dir"]:checked')?.value || 'out'),
-        subject: touchSubject,
-        summary: touchSummary,
-        duration: touchDuration ? parseInt(touchDuration, 10) : null,
-        email_message_id: touchEmailId,
-        action_id: model === 'action' ? recordId : null,
-        org_id: orgId,
-        org_model: orgModel,
-        project_id: record.project_id || null,
-        logged_by: 0,
-      });
-      setShowTouchForm(false);
-    } catch (err) {
-      console.error('Failed to save touch:', err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const hasPhone = !!contactPhone;
-  const hasEmail = !!contactEmail;
-
-  const iconStyle = (color: string): React.CSSProperties => ({
-    cursor: 'pointer', fontSize: fontSize + 4, padding: '4px 8px',
-    borderRadius: 4, border: `1px solid ${t.border}`, background: t.surfaceAlt,
-    color, transition: 'background 0.15s',
-  });
-
-  const openLogTouch = () => {
-    setTouchChannel('call');
-    setTouchSubject(
-      typeof record.action === 'object' ? (record.action?.en || '') :
-      String(record.action || record.subject || '')
-    );
-    setTouchSummary('');
-    setTouchDuration('');
-    setTouchEmailId('');
-    setShowTouchForm(true);
-  };
-
-  return (
-    <>
-      <div className="db-spawn-bar" style={{ gap: 8 }}>
-        <span className="db-spawn-label">Touch:</span>
-        {hasPhone && tp.phone_action !== 'log_only' && (
-          <a href={`${tp.phone_action === 'facetime' ? 'facetime' : tp.phone_action === 'facetime-audio' ? 'facetime-audio' : 'tel'}:${contactPhone}`}
-            style={{ ...iconStyle(t.accentGreen), textDecoration: 'none', display: 'inline-block' }}
-            onClick={(e) => { /* don't prevent default — let the <a> fire the URI */ handleTouch('call'); }}
-            title={`Call ${contactName || contactPhone}`}>
-            &#9742; Call
-          </a>
-        )}
-        {hasEmail && tp.email_action !== 'log_only' && (
-          <a href={`mailto:${contactEmail}?subject=${encodeURIComponent(typeof record.action === 'object' ? (record.action?.en || '') : String(record.action || record.subject || record.company || ''))}`}
-            style={{ ...iconStyle(t.accent), textDecoration: 'none', display: 'inline-block' }}
-            onClick={() => { handleTouch('email'); }}
-            title={`Email ${contactName || contactEmail}`}>
-            &#9993; Email
-          </a>
-        )}
-        {hasPhone && tp.text_action !== 'log_only' && (
-          <a href={`sms:${contactPhone}`}
-            style={{ ...iconStyle(t.accentGold), textDecoration: 'none', display: 'inline-block' }}
-            onClick={() => { handleTouch('text'); }}
-            title={`Text ${contactName || contactPhone}`}>
-            &#128172; Text
-          </a>
-        )}
-        <button style={iconStyle(t.textMuted)} onClick={openLogTouch}
-          title="Log a touch (call, email, visit, text, meeting)">
-          &#128221; Log
-        </button>
-      </div>
-
-      {showTouchForm && (
-        <div data-wc="touch-dialog-backdrop"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowTouchForm(false); }}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 9000,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-          <div data-wc="touch-dialog"
-            style={{
-              background: t.surface, border: `1px solid ${t.border}`,
-              borderRadius: 8, width: 520, maxHeight: '80vh',
-              display: 'flex', flexDirection: 'column',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-            }}>
-            {/* Header */}
-            <div style={{
-              padding: '12px 16px', borderBottom: `1px solid ${t.border}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            }}>
-              <span style={{ fontWeight: 700, fontSize: fontSize + 1, color: t.accent }}>Log Touch</span>
-              <button onClick={() => setShowTouchForm(false)} style={{
-                background: 'none', border: 'none', color: t.textMuted,
-                fontSize: 18, cursor: 'pointer', padding: '0 4px',
-              }}>&times;</button>
-            </div>
-
-            {/* Channel selector */}
-            <div style={{ padding: '12px 16px', borderBottom: `1px solid ${t.border}`, display: 'flex', gap: 6 }}>
-              {([['call', '☎ Call'], ['email', '✉ Email'], ['visit', '📋 Visit'], ['text', '💬 Text'], ['meeting', '🤝 Meeting']] as const).map(([ch, label]) => (
-                <button key={ch}
-                  onClick={() => setTouchChannel(ch as any)}
-                  style={{
-                    padding: '5px 10px', borderRadius: 4, fontSize, cursor: 'pointer',
-                    border: `1px solid ${touchChannel === ch ? t.accent : t.border}`,
-                    background: touchChannel === ch ? t.accent + '22' : t.surfaceAlt,
-                    color: touchChannel === ch ? t.accent : t.text,
-                    fontWeight: touchChannel === ch ? 700 : 400,
-                  }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Body */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {/* Direction */}
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <label style={{ fontSize: fontSize - 1, color: t.textMuted }}>Direction</label>
-                <label style={{ cursor: 'pointer', color: t.text }}>
-                  <input type="radio" name="touch-dir" value="out" defaultChecked={tp.default_direction !== 'in'} style={{ marginRight: 4 }} /> Outbound
-                </label>
-                <label style={{ cursor: 'pointer', color: t.text }}>
-                  <input type="radio" name="touch-dir" value="in" defaultChecked={tp.default_direction === 'in'} style={{ marginRight: 4 }} /> Inbound
-                </label>
-              </div>
-
-              {/* Contact line */}
-              {(contactName || contactId > 0) && (
-                <div>
-                  <label style={{ fontSize: fontSize - 1, color: t.textMuted, display: 'block', marginBottom: 4 }}>Contact</label>
-                  <div style={{ color: t.text, fontSize }}>
-                    {contactName || `#${contactId}`}
-                    {touchChannel === 'email' && contactEmail ? ` — ${contactEmail}` : ''}
-                    {touchChannel === 'call' && contactPhone ? ` — ${contactPhone}` : ''}
-                    {touchChannel === 'text' && contactPhone ? ` — ${contactPhone}` : ''}
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label style={{ fontSize: fontSize - 1, color: t.textMuted, display: 'block', marginBottom: 4 }}>Subject</label>
-                <input className="db-input" value={touchSubject} onChange={(e) => setTouchSubject(e.target.value)}
-                  style={{ width: '100%', background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, fontSize, padding: '6px 8px', borderRadius: 4 }} />
-              </div>
-              <div>
-                <label style={{ fontSize: fontSize - 1, color: t.textMuted, display: 'block', marginBottom: 4 }}>Summary</label>
-                <textarea value={touchSummary} onChange={(e) => setTouchSummary(e.target.value)}
-                  rows={4} placeholder="What happened, what was discussed, next steps..."
-                  style={{ width: '100%', background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, fontSize, padding: '6px 8px', borderRadius: 4, resize: 'vertical' }} />
-              </div>
-              {(touchChannel === 'call' || touchChannel === 'meeting') && (
-                <div>
-                  <label style={{ fontSize: fontSize - 1, color: t.textMuted, display: 'block', marginBottom: 4 }}>Duration (minutes)</label>
-                  <input className="db-input" type="number" value={touchDuration} onChange={(e) => setTouchDuration(e.target.value)}
-                    style={{ width: 100, background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, fontSize, padding: '6px 8px', borderRadius: 4 }} />
-                </div>
-              )}
-              {touchChannel === 'email' && (
-                <div>
-                  <label style={{ fontSize: fontSize - 1, color: t.textMuted, display: 'block', marginBottom: 4 }}>Email Message ID (paste from email program)</label>
-                  <input className="db-input" value={touchEmailId} onChange={(e) => setTouchEmailId(e.target.value)}
-                    placeholder="<abc123@mail.example.com>"
-                    style={{ width: '100%', background: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, fontSize, padding: '6px 8px', borderRadius: 4 }} />
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div style={{
-              padding: '12px 16px', borderTop: `1px solid ${t.border}`,
-              display: 'flex', justifyContent: 'flex-end', gap: 8,
-            }}>
-              <button className="db-btn db-btn--small" onClick={() => setShowTouchForm(false)}>Cancel</button>
-              <button className="db-btn db-btn--small db-btn--save" onClick={handleSaveTouch} disabled={saving}>
-                {saving ? 'Saving...' : 'Save Touch'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// BOM Panel — shows when viewing an Item with BOM children
-// ---------------------------------------------------------------------------
-
-const BOM_COLUMNS = ['item_ida', 'description', 'qty_plan', 'qty_actual', 'cost_avg', 'cost_last', 'cost_extended'];
-
-const BOMPanel: React.FC<{ itemId: number; theme: any; fontSize: number }> = ({ itemId, theme, fontSize }) => {
-  const [bomData, setBomData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [costBasis, setCostBasis] = useState('avg');
-  const [buildQty, setBuildQty] = useState('1');
-
-  const fetchBom = useCallback(async () => {
-    setLoading(true);
-    try {
-      const resp = await fetch(`/products/items/${itemId}/bom/expand/?qty=${buildQty}&cost_basis=${costBasis}`);
-      if (resp.ok) {
-        const data = await resp.json();
-        setBomData(data?.data || data);
-      } else {
-        setBomData(null);
-      }
-    } catch { setBomData(null); }
-    setLoading(false);
-  }, [itemId, costBasis, buildQty]);
-
-  useEffect(() => { fetchBom(); }, [fetchBom]);
-
-  if (loading) return <div className="db-status-msg">Loading BOM...</div>;
-  if (!bomData?.rows?.length) return null; // No BOM — hide panel
-
-  return (
-    <div className="db-bom-panel">
-      <div className="db-bom-header">
-        <span className="db-bom-title">Bill of Materials</span>
-        <label className="db-bom-control">
-          Qty: <input type="number" min="1" value={buildQty}
-            onChange={(e) => setBuildQty(e.target.value)} className="db-bom-input" />
-        </label>
-        <label className="db-bom-control">
-          Cost:
-          <select value={costBasis} onChange={(e) => setCostBasis(e.target.value)} className="db-bom-input">
-            <option value="avg">Average</option>
-            <option value="last">Last Receipt</option>
-            <option value="min">Min (conservative)</option>
-            <option value="landed">Landed</option>
-          </select>
-        </label>
-        <span className="db-bom-total">Total: ${(bomData.total_cost || 0).toFixed(2)}</span>
-        <button className="db-btn db-btn--small db-btn--ghost" onClick={() => {
-          window.open(`/bill_of_material?parent_id=${itemId}`, '_blank');
-        }}>Open BOM ↗</button>
-      </div>
-      <DataGrid
-        records={bomData.rows}
-        columns={BOM_COLUMNS}
-        treeColumn="item_ida"
-        levelField="level"
-        childFlag="is_subassembly"
-        theme={theme}
-        fontSize={fontSize - 1}
-        hideToolbar
-        numId={(v: unknown) => typeof v === 'number' ? v : null}
-        onRowDoubleClicked={(row: any) => {
-          if (row?.is_subassembly && row?.item_id) {
-            window.open(`/item?id=${row.item_id}`, '_blank');
-          }
-        }}
-      />
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// Theme tokens — kept for passing to child components (DataGrid, BehaviorField)
-// that still use inline styles. DataBrowser itself uses CSS custom properties.
-// ---------------------------------------------------------------------------
-
-const themes = {
-  dark: {
-    bg: '#1e1e1e', surface: '#252526', surfaceAlt: '#2d2d2d',
-    border: '#3c3c3c', borderLight: '#4d4d4d',
-    text: '#d4d4d4', textMuted: '#888', textDim: '#666',
-    accent: '#9cdcfe', accentGreen: '#4ec98c', accentGold: '#e8c870',
-    accentRed: '#e05252', accentPurple: '#c8a8e8',
-    btnBg: '#2d2d2d', btnPrimary: '#0e639c', btnSave: '#1a6b2e',
-    btnDanger: '#6b1a1a', btnDangerBorder: '#964040', btnSaveBorder: '#2f8f45',
-    inputBg: '#2a2a2a', inputBorder: '#555',
-    rowHover: '#2a2d2e', rowActive: '#094771', rowChecked: '#3a3a1a',
-    resizeHandle: '#4a9eff',
-  },
-  light: {
-    bg: '#f8f9fa', surface: '#ffffff', surfaceAlt: '#f1f3f5',
-    border: '#dee2e6', borderLight: '#e9ecef',
-    text: '#212529', textMuted: '#6c757d', textDim: '#adb5bd',
-    accent: '#0d6efd', accentGreen: '#198754', accentGold: '#fd7e14',
-    accentRed: '#dc3545', accentPurple: '#6f42c1',
-    btnBg: '#ffffff', btnPrimary: '#0d6efd', btnSave: '#198754',
-    btnDanger: '#dc3545', btnDangerBorder: '#dc3545', btnSaveBorder: '#157347',
-    inputBg: '#ffffff', inputBorder: '#ced4da',
-    rowHover: '#f1f3f5', rowActive: '#cfe2ff', rowChecked: '#fff3cd',
-    resizeHandle: '#0d6efd',
-  },
-};
-
-type ThemeKey = keyof typeof themes;
-
-// ---------------------------------------------------------------------------
 // Btn helper — uses CSS classes from DataBrowser.css
-// ---------------------------------------------------------------------------
-
 const Btn: React.FC<{
   variant?: 'default' | 'primary' | 'save' | 'danger' | 'ghost';
   small?: boolean; disabled?: boolean; title?: string;
   onClick?: (e: React.MouseEvent) => void; children: React.ReactNode;
-  // Legacy: accept and ignore `t` prop for backward compat during migration
   t?: any;
 }> = ({ variant = 'default', small, disabled, title, onClick, children }) => (
   <button
     className={`db-btn ${small ? 'db-btn--small' : ''} ${variant !== 'default' ? `db-btn--${variant}` : ''}`}
     disabled={disabled} title={title} onClick={onClick}>{children}</button>
 );
-
-// ---------------------------------------------------------------------------
-// MatchCandidatesPanel — full detail cards for dedup/merge review
-// ---------------------------------------------------------------------------
-
-type MatchPanelProps = {
-  selectedRecord: any; selectedId: number | null; selectedModel: string;
-  visibleFields: string[]; fieldBehaviors: Record<string, any>;
-  detailFieldSpecs: any[]; detailRowSizes: Record<string, any>;
-  theme: any; fontSize: number;
-  onMerged: () => void; onDeleted: () => void;
-};
-
-function MatchCandidatesPanel({
-  selectedRecord, selectedId, selectedModel, visibleFields, fieldBehaviors,
-  detailFieldSpecs, detailRowSizes, theme, fontSize, onMerged, onDeleted,
-}: MatchPanelProps) {
-  const [candidateRecords, setCandidateRecords] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const refs = selectedRecord?.refs as any;
-  const candidates = refs?.contact;
-  const isRisk = refs?.import === 'risk';
-
-  // Fetch full records for each candidate
-  useEffect(() => {
-    if (!candidates || !Array.isArray(candidates) || candidates.length === 0) {
-      setCandidateRecords([]);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const { getRecords } = await import('@/api/wcapi');
-        const ids = candidates.map((c: any) => c.contact_id).filter(Boolean);
-        if (ids.length === 0) { setCandidateRecords([]); return; }
-        const res = await getRecords(selectedModel, { filters: { id__in: ids } });
-        if (!cancelled) setCandidateRecords(res.results || []);
-      } catch { if (!cancelled) setCandidateRecords([]); }
-      finally { if (!cancelled) setLoading(false); }
-    })();
-    return () => { cancelled = true; };
-  }, [selectedId, candidates?.length]);
-
-  if ((!candidates || candidates.length === 0) && !isRisk) return null;
-
-  const isDark = theme === (theme?.bg ? theme : null) || true; // fallback
-  const cardBg = '#1e293b';
-  const cardBorder = '#334155';
-  const headerColor = '#94a3b8';
-
-  // Pick display fields — shorter list for cards (skip large JSON fields)
-  const cardFields = visibleFields.filter(f =>
-    !['metadata', 'refs', 'prefs', 'actions', 'comments', 'config', 'password'].includes(f)
-  ).slice(0, 12);
-
-  const doMerge = async (candidateRecord: any, matchMeta: any) => {
-    if (!confirm(`Merge into "${matchMeta?.name || candidateRecord.ida}"?\nThis updates the matched contact and deletes the risk record.`)) return;
-    try {
-      const { saveRecord: sr, deleteRecord: dr } = await import('@/api/wcapi');
-      const rec = selectedRecord!;
-      const config = rec.config || {};
-      const orig = config.original_mac || {};
-      const update: any = { id: candidateRecord.id };
-      // Fill empty fields on the target from the risk record
-      if (orig.first && !candidateRecord.name_first) update.name_first = orig.first;
-      if (orig.last && !candidateRecord.name_last) update.name_last = orig.last;
-      if (orig.org && !candidateRecord.company) update.company = orig.org;
-      if (orig.title && !candidateRecord.title) update.title = orig.title;
-      if (orig.dept && !candidateRecord.department) update.department = orig.dept;
-      if (orig.addresses?.length && !candidateRecord.address_full) {
-        const a = orig.addresses[0];
-        update.address_full = [a.street, a.city, a.state, a.zip].filter(Boolean).join(', ');
-      }
-      if (orig.phones?.length && !candidateRecord.phone) {
-        update.phone = orig.phones[0].number;
-      }
-      update.config = { ...(candidateRecord.config || {}), merged_from_risk: rec.ida, original_mac: orig };
-      await sr(selectedModel, update);
-      await dr(selectedModel, selectedId!);
-      onMerged();
-    } catch (e) { alert('Merge failed: ' + (e as Error).message); }
-  };
-
-  const doDelete = async () => {
-    if (!confirm('Delete this risk record?')) return;
-    try {
-      const { deleteRecord: dr } = await import('@/api/wcapi');
-      await dr(selectedModel, selectedId!);
-      onDeleted();
-    } catch (e) { alert('Delete failed: ' + (e as Error).message); }
-  };
-
-  return (
-    <div style={{ marginTop: 12, borderTop: `1px solid ${cardBorder}`, paddingTop: 12 }}>
-      {/* Header with delete button for risk records */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: headerColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          {candidateRecords.length > 0 ? `Possible Matches (${candidateRecords.length})` : 'No Matches Found'}
-        </span>
-        {isRisk && (
-          <button onClick={doDelete}
-            style={{ padding: '4px 12px', fontSize: 11, fontWeight: 600, background: '#991b1b', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-            title="Delete this risk record — garbage">
-            Delete
-          </button>
-        )}
-      </div>
-
-      {loading && <div style={{ fontSize: 11, color: '#6b7280', padding: 8 }}>Loading candidates...</div>}
-
-      {/* Candidate detail cards */}
-      {candidateRecords.map((rec, idx) => {
-        const matchMeta = candidates?.find((c: any) => c.contact_id === rec.id) || {};
-        return (
-          <div key={rec.id} style={{
-            background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 6,
-            padding: 10, marginBottom: 10,
-          }}>
-            {/* Card header with merge/view buttons */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingBottom: 6, borderBottom: `1px solid ${cardBorder}` }}>
-              <div>
-                <span style={{ fontWeight: 600, fontSize: 13, color: '#e2e8f0' }}>
-                  {rec.attention || rec.name_first && rec.name_last ? `${rec.name_first || ''} ${rec.name_last || ''}`.trim() : rec.ida}
-                </span>
-                <span style={{ fontSize: 10, color: '#6b7280', marginLeft: 8 }}>#{rec.id}</span>
-                {matchMeta.reason && (
-                  <span style={{ fontSize: 10, color: '#f59e0b', marginLeft: 8 }}>
-                    {matchMeta.reason} (score: {matchMeta.score})
-                  </span>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: 4 }}>
-                <button onClick={() => doMerge(rec, matchMeta)}
-                  style={{ padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#166534', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
-                  Merge
-                </button>
-                <button onClick={() => {
-                  const route = APP_DETAIL_ROUTES[selectedModel];
-                  if (route) window.open(`${route}/${rec.id}`, '_blank');
-                }}
-                  style={{ padding: '3px 8px', fontSize: 11, background: 'transparent', color: '#6b7280', border: `1px solid ${cardBorder}`, borderRadius: 4, cursor: 'pointer' }}>
-                  Open
-                </button>
-              </div>
-            </div>
-
-            {/* Card body — detail fields in 2-column grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 8px', fontSize: 11 }}>
-              {cardFields.map(f => {
-                const val = rec[f];
-                if (val === null || val === undefined || val === '' || val === false) return null;
-                const display = typeof val === 'object' ? JSON.stringify(val).slice(0, 60) : String(val).slice(0, 60);
-                return (
-                  <React.Fragment key={f}>
-                    <span style={{ color: '#6b7280', fontWeight: 500 }}>{f}</span>
-                    <span style={{ color: '#e2e8f0', wordBreak: 'break-all' }}>{display}</span>
-                  </React.Fragment>
-                );
-              }).filter(Boolean)}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// GroupedDetailFields — renders BehaviorFields in collapsible groups
-// ---------------------------------------------------------------------------
-
-type GroupedDetailFieldsProps = {
-  fields: string[];
-  record: Record<string, unknown>;
-  fieldGroups: { key: string; label: string; fields: string[] }[];
-  collapsedKeys: string[];
-  onToggleGroup: (key: string) => void;
-  fieldBehaviors: Record<string, any>;
-  detailFieldSpecs: FieldSpec[];
-  detailRowSizes: Record<string, number>;
-  validationErrors: Record<string, string>;
-  updateField: (field: string, value: unknown) => void;
-  fontSize: number;
-  theme: any;
-};
-
-function GroupedDetailFields({ fields, record, fieldGroups, collapsedKeys, onToggleGroup, fieldBehaviors, detailFieldSpecs, detailRowSizes, validationErrors, updateField, fontSize, theme }: GroupedDetailFieldsProps) {
-  const presentFields = fields.filter((f) => Object.prototype.hasOwnProperty.call(record, f));
-  const groupTheme = { text: theme.text, textMuted: theme.textMuted, border: theme.border, surfaceAlt: theme.surfaceAlt, inputBg: theme.inputBg };
-
-  const renderField = (f: string) => (
-    <BehaviorField key={f} name={f} value={record[f]} behavior={fieldBehaviors[f] || {}}
-      onChange={(v: unknown) => updateField(f, v)} record={record}
-      fontSize={fontSize} theme={theme} rowSize={detailRowSizes[f]}
-      typeHint={detailFieldSpecs.find(s => s.field === f)?.typeHint}
-      error={validationErrors[f]} />
-  );
-
-  // No groups defined — flat layout (backward compatible)
-  if (!fieldGroups.length) {
-    return <div className="db-detail-grid">{presentFields.map(renderField)}</div>;
-  }
-
-  // Partition fields into groups — preserve user's detail order within each group
-  const fieldOrder = new Map(presentFields.map((f, i) => [f, i]));
-  const assigned = new Set<string>();
-  const groups = fieldGroups.map(g => {
-    const gFields = g.fields
-      .filter(f => presentFields.includes(f))
-      .sort((a, b) => (fieldOrder.get(a) ?? 999) - (fieldOrder.get(b) ?? 999));
-    gFields.forEach(f => assigned.add(f));
-    return { ...g, presentFields: gFields };
-  }).filter(g => g.presentFields.length > 0);
-
-  const ungrouped = presentFields.filter(f => !assigned.has(f));
-
-  return (
-    <div>
-      {groups.map(g => (
-        <FieldGroupSection
-          key={g.key}
-          group={g}
-          presentFields={g.presentFields}
-          collapsed={collapsedKeys.includes(g.key)}
-          onToggle={onToggleGroup}
-          fontSize={fontSize}
-          theme={groupTheme}
-        >
-          {g.presentFields.map(renderField)}
-        </FieldGroupSection>
-      ))}
-      {ungrouped.length > 0 && (
-        <FieldGroupSection
-          group={{ key: '_other', label: 'Other', fields: ungrouped }}
-          presentFields={ungrouped}
-          collapsed={collapsedKeys.includes('_other')}
-          onToggle={onToggleGroup}
-          fontSize={fontSize}
-          theme={groupTheme}
-        >
-          {ungrouped.map(renderField)}
-        </FieldGroupSection>
-      )}
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -1172,35 +196,30 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   }, []);
 
   // --- Local UI state ---
-  const [theme, setTheme] = useState<ThemeKey>(() => (localStorage.getItem('db-theme') as ThemeKey) || 'dark');
-  // Per-zone color mode — stateful, initialized from contact.prefs.color_mode
-  const colorMode = (user as any)?.prefs?.color_mode;
-  const [listTheme, setListTheme] = useState<ThemeKey>(() => colorMode?.list || (localStorage.getItem('db-theme') as ThemeKey) || 'dark');
-  const [detailTheme, setDetailTheme] = useState<ThemeKey>(() => colorMode?.detail || (localStorage.getItem('db-theme') as ThemeKey) || 'dark');
+  const [theme, setTheme] = useState<ThemeKey>(() => getUI<ThemeKey>('theme.active', 'dark'));
+  // Theme is now unified via config.ui.theme.active
+  const [listTheme, setListTheme] = useState<ThemeKey>(() => getUI<ThemeKey>('theme.active', 'dark'));
+  const [detailTheme, setDetailTheme] = useState<ThemeKey>(() => getUI<ThemeKey>('theme.active', 'dark'));
 
-  // Listen for theme changes from TopBar Theme selector
+  // Listen for theme changes from TopBar
   useEffect(() => {
     const handler = (e: Event) => {
       const { zone, mode } = (e as CustomEvent).detail;
-      if (zone === 'list') setListTheme(mode);
-      else if (zone === 'detail') setDetailTheme(mode);
+      if (zone === 'all' || zone === 'list') setListTheme(mode);
+      if (zone === 'all' || zone === 'detail') setDetailTheme(mode);
     };
     window.addEventListener('wc3-zone-theme-changed', handler);
     return () => window.removeEventListener('wc3-zone-theme-changed', handler);
   }, []);
 
-  // Sync when global theme toggle changes (applies to zones without explicit pref)
+  // Sync zone themes when global theme changes
   useEffect(() => {
-    if (!colorMode?.list) setListTheme(theme);
-    if (!colorMode?.detail) setDetailTheme(theme);
+    setListTheme(theme);
+    setDetailTheme(theme);
   }, [theme]);
   const [baseFontSizeNum, setBaseFontSizeNum] = useState<number>(() => {
-    try {
-      const stored = localStorage.getItem('wc3_wcui_prefs');
-      if (stored) { const p = JSON.parse(stored); if (p.font_size) return p.font_size; }
-    } catch {}
-    const legacy = localStorage.getItem('db-fontsize');
-    return legacy === 'L' ? 16 : legacy === 'M' ? 14 : 12;
+    const active = getUI<string>('theme.active', 'dark');
+    return getUI<number>(`theme.${active}.font.size`, 14);
   });
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [modelFilterText, setModelFilterText] = useState('');
@@ -1275,15 +294,16 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
     return () => window.removeEventListener('wc3-view-pref-changed', handler);
   }, []);
 
-  // Load UI preferences from wcuiPrefs on mount
+  // Load UI config from server on mount
   useEffect(() => {
     if (!isAuthenticated) return;
-    import('@/utils/wcuiPrefs').then(({ loadWcuiFromServer, migrateLegacyPrefs, getWcuiPref }) => {
-      migrateLegacyPrefs();
-      loadWcuiFromServer().then(() => {
-        const t = getWcuiPref('theme', 'dark');
+    import('@/utils/contactUI').then(({ loadUIFromServer, migrateFromWcuiPrefs, getUI }) => {
+      migrateFromWcuiPrefs();
+      loadUIFromServer().then(() => {
+        const t = getUI<string>('theme.active', 'dark');
         if (t === 'dark' || t === 'light') setTheme(t as ThemeKey);
-        const fs = getWcuiPref('font_size', 12);
+        const active = t || 'dark';
+        const fs = getUI<number>(`theme.${active}.font.size`, 14);
         if (typeof fs === 'number') setBaseFontSizeNum(fs);
       });
     });
@@ -1315,16 +335,17 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
 
   const toggleTheme = () => {
     const n = theme === 'dark' ? 'light' : 'dark';
-    setTheme(n); localStorage.setItem('db-theme', n);
+    setTheme(n); setListTheme(n); setDetailTheme(n);
+    setUI('theme.active', n);
     window.dispatchEvent(new CustomEvent('wc3-theme-changed', { detail: { theme: n } }));
-    import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('theme', n));
   };
   // Listen for font size changes from TopBar
   useEffect(() => {
     const handler = (e: Event) => {
       const size = (e as CustomEvent).detail.size;
       setBaseFontSizeNum(size);
-      import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('font_size', size));
+      const active = getUI('theme.active', 'dark');
+      setUI(`theme.${active}.font.size`, size);
     };
     window.addEventListener('wc3-font-size-changed', handler);
     return () => window.removeEventListener('wc3-font-size-changed', handler);
@@ -1568,7 +589,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
           {/* Apply to Selection — bulk set field values on selected rows */}
           {db.selectedRowIds.size > 0 && (
             <select
-              style={{ fontSize: 11, padding: '2px 4px', background: 'var(--db-surface-alt)', color: 'var(--db-text)', border: '1px solid var(--db-border)', borderRadius: 3, cursor: 'pointer' }}
+              className="db-apply-select"
               value=""
               title={`Apply to ${db.selectedRowIds.size} selected records`}
               onChange={async (e) => {
@@ -1732,9 +753,9 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                 db.setSelectedRecord(null);
               }} />
               <ToolbarIcon action={TB.print} title="Report / Print" disabled={!db.selectedId} onClick={() => setShowReportsDialog('detail')} />
-              <ToolbarIcon action={TB.modelMenu} title={`${db.modelLabel} menu`} onClick={() => {}} />
+              <WorkflowSelect modelName={db.selectedModel} record={db.selectedRecord} onComplete={db.fetchRecords} />
               <select
-                style={{ fontSize: 11, padding: '2px 4px', background: 'var(--db-surface-alt)', color: 'var(--db-text)', border: '1px solid var(--db-border)', borderRadius: 3, cursor: 'pointer' }}
+                className="db-apply-select"
                 value={db.activeViewName || ''}
                 title="Detail Layout"
                 onChange={(e) => {
@@ -1894,12 +915,12 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
         {!showDedup && (db.selectedRecord || (db.selectedModel && db.totalRecords === 0 && !db.recordsLoading)) && (() => {
           const AppDetailComponent = viewPref === 'app' ? APP_DETAIL_COMPONENTS[db.selectedModel] : null;
           return (
-        <div data-wc="db-detail-pane" data-zone="db.detail | .db-detail-pane | DataBrowser.tsx" data-theme={detailTheme} className={`db-detail-pane ${viewPref === 'app' && AppDetailComponent ? 'db-detail-pane--app' : ''}`} style={{ width: detailWidth, fontSize: baseFontSize, zoom: viewPref === 'app' && AppDetailComponent ? baseFontSize / 20 : undefined }}>
+        <div data-wc="db-detail-pane" data-zone="db.detail | .db-detail-pane | DataBrowser.tsx" data-theme={detailTheme} className={`db-detail-pane ${viewPref === 'app' && AppDetailComponent ? 'db-detail-pane--app' : ''}`} style={{ width: detailWidth, fontSize: baseFontSize }}>
           {/* Glass detail toolbar removed — DetailToolbar in each ui.json component is the single source */}
           <div className="db-detail-body">
             {/* App mode: render the model's Detail.tsx component inline */}
             {viewPref === 'app' && AppDetailComponent && db.selectedId ? (
-              <React.Suspense fallback={<div style={{ padding: 20, textAlign: 'center', color: '#888' }}>Loading...</div>}>
+              <React.Suspense fallback={<div className="db-loading-fallback">Loading...</div>}>
                 <AppDetailComponent
                   modeProp="edit"
                   recordId={db.selectedId}
@@ -2011,7 +1032,6 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
         model={db.selectedModel}
         selectedRecord={showRelatedDialog === 'detail' ? db.selectedRecord : null}
         selectedRowIds={db.selectedRowIds}
-        theme={t}
         fontSize={baseFontSize}
         onClose={() => setShowRelatedDialog(null)}
       />
@@ -2070,37 +1090,22 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
       {showMarkdownTemplate && (
         <div
           data-wc="md-template-backdrop"
+          className="db-md-overlay"
           onClick={(e) => { if (e.target === e.currentTarget) setShowMarkdownTemplate(null); }}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 9000,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
         >
-          <div style={{
-            background: t.surface, border: `1px solid ${t.border}`,
-            borderRadius: 8, width: 900, maxWidth: '90vw', maxHeight: '85vh',
-            display: 'flex', flexDirection: 'column',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          }}>
-            <div style={{
-              padding: '10px 16px', borderBottom: `1px solid ${t.border}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            }}>
-              <span style={{ fontWeight: 700, color: t.accent }}>
+          <div className="db-md-dialog">
+            <div className="db-md-header">
+              <span className="db-md-title">
                 {mdTemplateName || 'Markdown Template'}
-                <span style={{ fontWeight: 400, color: t.textMuted, marginLeft: 8, fontSize: baseFontSize - 1 }}>
+                <span className="db-md-subtitle" style={{ fontSize: baseFontSize - 1 }}>
                   {showMarkdownTemplate === 'list'
                     ? `${db.records?.length || 0} records`
                     : db.selectedId ? `Record #${db.selectedId}` : ''}
                 </span>
               </span>
-              <button onClick={() => setShowMarkdownTemplate(null)} style={{
-                background: 'none', border: 'none', color: t.textMuted,
-                fontSize: 18, cursor: 'pointer',
-              }}>&times;</button>
+              <button onClick={() => setShowMarkdownTemplate(null)} className="db-md-close">&times;</button>
             </div>
-            <div style={{ flex: 1, overflow: 'auto' }}>
+            <div className="db-md-body">
               <MarkdownEditor
                 value={mdTemplateContent}
                 onChange={setMdTemplateContent}

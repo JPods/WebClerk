@@ -144,16 +144,8 @@ export const GanttGrid: FC<GanttGridProps> = ({
                     width: col.width,
                     textAlign: col.align || "left",
                   }}
-                  title={typeof cellContent === "string" ? cellContent.replace(/<[^>]+>/g, "") : ""}
-                  dangerouslySetInnerHTML={
-                    typeof cellContent === "string" && cellContent.includes("<")
-                      ? { __html: cellContent }
-                      : undefined
-                  }
                 >
-                  {typeof cellContent === "string" && !cellContent.includes("<")
-                    ? cellContent
-                    : null}
+                  {cellContent}
                 </div>
               );
             })}

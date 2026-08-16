@@ -1,4 +1,4 @@
-/* LastChecked: 2026-08-02 | WhereUsed: TransactionDetail | WhoCreated: Claude */
+/* LastChecked: 2026-08-02 | WhereUsed: UiDetail | WhoCreated: Claude */
 import React, { useState } from 'react';
 import { formatDt, formatField } from '@/utils/fieldFormatters';
 
@@ -59,7 +59,9 @@ export const LABEL_STYLES: Record<string, { light: string; dark: string; fontWei
 };
 
 export const useLabelStyle = (fieldType?: string) => {
-  const isDark = document.documentElement.classList.contains('dark');
+  // Check both Tailwind dark class AND DataBrowser data-theme attribute
+  const isDark = document.documentElement.classList.contains('dark')
+    || !!document.querySelector('[data-theme="dark"]');
   const style = LABEL_STYLES[fieldType || 'editable'] || LABEL_STYLES.editable;
   return {
     color: isDark ? style.dark : style.light,
@@ -139,10 +141,11 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
           type="text"
           value={displayVal === '—' ? '' : displayVal}
           onChange={(e) => onChange(field, e.target.value)}
-          className="flex-1 text-xs px-2 py-0.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+          className="flex-1 text-xs px-2 py-0.5 rounded"
+          style={{ border: '1px solid var(--db-border, #cbd5e1)', background: 'var(--db-surface-alt, #fff)', color: 'var(--db-text, #1e293b)' }}
         />
       ) : (
-        <span className="flex-1 text-xs text-slate-900 dark:text-white">{typeof displayVal === 'string' ? displayVal.split('|')[0] : displayVal}</span>
+        <span className="flex-1 text-xs" style={{ color: 'var(--db-text, #1e293b)' }}>{typeof displayVal === 'string' ? displayVal.split('|')[0] : displayVal}</span>
       )}
       </>
       )}

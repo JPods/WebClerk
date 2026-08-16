@@ -33,7 +33,7 @@ export const deletePayment = async (id: number) =>
 
 /** Fetch public gateway config (environment_key for Spreedly SDK) */
 export const fetchGatewayConfig = async () => {
-  const res = await apiClient.get('/api/transactions/payments/gateway-config/');
+  const res = await apiClient.get('/wcapi/transactions/payments/gateway-config/');
   return res.data as {
     environment_key: string;
     test_mode: boolean;
@@ -48,7 +48,7 @@ export const processGatewayPayment = async (
   amount: number,
   paymentMethodToken: string,
 ) => {
-  const res = await apiClient.post('/api/transactions/payments/process/', {
+  const res = await apiClient.post('/wcapi/transactions/payments/process/', {
     invoice_id: invoiceId,
     amount,
     payment_method_token: paymentMethodToken,
@@ -74,7 +74,7 @@ export const applyPaymentToInvoice = async (
   amount: number,
 ) => {
   const response = await apiClient.post(
-    `/api/transactions/payments/${paymentId}/apply_to_invoice/`,
+    `/wcapi/transactions/payments/${paymentId}/apply_to_invoice/`,
     { invoice_id: invoiceId, amount },
   );
   return response.data;

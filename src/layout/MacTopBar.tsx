@@ -1,9 +1,10 @@
-/* LastChecked: 2026-08-04 | WhereUsed: Main layout top bar | WhoCreated: Unknown */
+/* LastChecked: 2026-08-16 | WhereUsed: Main layout top bar | Source: config.ui */
 import { useMemo, useState, useCallback } from "react";
+import { getUI, setUI } from "@/utils/contactUI";
 
-/** Detail view preference — "app" = .tsx pages, "admin" = DataBrowser detail */
+/** Detail view preference from config.ui */
 export function getDetailViewPref(): 'app' | 'admin' {
-  return (localStorage.getItem('wc3_detail_view_pref') as 'app' | 'admin') || 'app';
+  return getUI<'app' | 'admin'>('detail.default_view', 'app');
 }
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -20,9 +21,6 @@ import HelpMenu from "../components/common/HelpMenu";
 type Props = {
   activePath: string;
 };
-
-// Shared select/button style — all TopBar controls match
-const ctlClass = "rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 hover:border-slate-300 transition cursor-pointer";
 
 export default function MacTopBar({ activePath }: Props) {
   const { windows, closeWindow, activateWindow } = useWindowManager();
@@ -53,70 +51,88 @@ export default function MacTopBar({ activePath }: Props) {
   }, [navigate]);
 
   return (
-    <div className="sticky top-0 z-200 flex items-center gap-4 border-b border-slate-200 bg-white/95 px-4 text-sm text-slate-900 backdrop-blur" style={{ height: 40 }} data-zone="TopBar | .sticky.top-0 | MacTopBar.tsx">
+    <div
+      className="sticky top-0 z-200 flex items-center gap-4 border-b px-4 text-sm backdrop-blur"
+      style={{
+        height: 40,
+        backgroundColor: 'var(--wc-topbar-bg)',
+        borderColor: 'var(--wc-topbar-border)',
+        color: 'var(--wc-topbar-text)',
+      }}
+      data-zone="TopBar | .sticky.top-0 | MacTopBar.tsx"
+    >
 
-      {/* ═══ Left: Logo + window tabs ═══ */}
-      <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-        <GridIcon className="h-4 w-4 text-emerald-500" />
+      {/* Left: Logo + window tabs */}
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        <GridIcon className="h-4 w-4" style={{ color: 'var(--wc-accent-green)' }} />
         <span className="text-xs">WebClerk 3.0</span>
         {user?.prefs?.training && (
-          <span className="rounded bg-red-600 px-2 py-0.5 text-[9px] font-bold text-white animate-pulse">
+          <span className="rounded px-2 py-0.5 text-[9px] font-bold animate-pulse"
+            style={{ backgroundColor: 'var(--wc-accent-red)', color: '#fff' }}>
             TRAINING
           </span>
         )}
         {apiBusy && (
-          <span className="flex items-center gap-1 text-[9px] text-amber-600">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+          <span className="flex items-center gap-1 text-[9px]" style={{ color: 'var(--wc-accent)' }}>
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ backgroundColor: 'var(--wc-accent)' }} />
             Syncing
           </span>
         )}
         {sessionWarning && (
           <button
             onClick={handleReauth}
-            className="flex items-center gap-1 rounded bg-amber-100 border border-amber-300 px-2 py-0.5 text-[9px] font-medium text-amber-800 hover:bg-amber-200 transition"
+            className="flex items-center gap-1 rounded border px-2 py-0.5 text-[9px] font-medium transition"
+            style={{
+              backgroundColor: 'color-mix(in srgb, var(--wc-accent) 15%, transparent)',
+              borderColor: 'var(--wc-accent)',
+              color: 'var(--wc-topbar-text)',
+            }}
             title="Your session expires soon. Click to sign in again."
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--wc-accent)' }} />
             Session expires in {sessionWarning}
           </button>
         )}
       </div>
 
-      {/* ═══ Center: Window tabs ═══ */}
+      {/* Center: Window tabs */}
       <div className="flex flex-1 items-center gap-1.5 overflow-x-auto">
         {orderedWindows.map((w) => {
           const isActive = w.path === activePath;
           return (
             <div
               key={w.path}
-              className={`group flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] transition ${
-                isActive
-                  ? "border-emerald-300 bg-white text-slate-900 shadow-sm"
-                  : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-white"
-              }`}
+              className="group flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] transition"
+              style={{
+                borderColor: isActive ? 'var(--wc-accent-green)' : 'var(--wc-topbar-border)',
+                backgroundColor: isActive ? 'var(--wc-surface)' : 'var(--wc-surface-alt)',
+                color: isActive ? 'var(--wc-topbar-text)' : 'var(--wc-topbar-text-muted)',
+              }}
             >
-              <span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-slate-300"}`} />
+              <span className="h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: isActive ? 'var(--wc-accent-green)' : 'var(--wc-text-dim)' }} />
               <button className="text-left" onClick={() => activateWindow(w.path)} title={w.path}>
                 {w.title}
               </button>
-              {isActive && <span className="text-[9px] font-medium text-emerald-600">Active</span>}
-              <button className="text-slate-400 hover:text-slate-700" onClick={() => closeWindow(w.path)} title="Close">x</button>
+              {isActive && <span className="text-[9px] font-medium" style={{ color: 'var(--wc-accent-green)' }}>Active</span>}
+              <button className="transition" onClick={() => closeWindow(w.path)} title="Close"
+                style={{ color: 'var(--wc-text-dim)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--wc-topbar-text)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--wc-text-dim)')}>x</button>
             </div>
           );
         })}
       </div>
 
-      {/* ═══ Right: Controls — all same size ═══ */}
+      {/* Right: Controls */}
       <div className="flex items-center gap-1.5">
         <HelpMenu />
-
-        {/* Stale pending indicator — only shows after 10 minutes */}
         <TaskManagerIndicator />
 
-        <select className={ctlClass} title="Detail view mode" value={detailView}
+        <select className="topbar-ctl" title="App: business forms (ui.json) | Admin: field grid (db.json)" value={detailView}
           onChange={(e) => {
             const v = e.target.value as 'app' | 'admin';
-            localStorage.setItem('wc3_detail_view_pref', v);
+            setUI('detail.default_view', v);
             setDetailView(v);
             window.dispatchEvent(new CustomEvent('wc3-view-pref-changed', { detail: { mode: v } }));
           }}
@@ -125,10 +141,12 @@ export default function MacTopBar({ activePath }: Props) {
           <option value="admin">View: Admin</option>
         </select>
 
-        <select className={ctlClass} title="Font size"
-          defaultValue={(() => { try { const p = JSON.parse(localStorage.getItem('wc3_wcui_prefs') || '{}'); return String(p.font_size || 12); } catch { return '12'; } })()}
+        <select className="topbar-ctl" title="Font size"
+          defaultValue={String(getUI('theme.' + getUI('theme.active', 'dark') + '.font.size', 14))}
           onChange={(e) => {
             const size = Number(e.target.value);
+            const active = getUI('theme.active', 'dark');
+            setUI(`theme.${active}.font.size`, size);
             window.dispatchEvent(new CustomEvent('wc3-font-size-changed', { detail: { size } }));
           }}
         >
@@ -139,69 +157,32 @@ export default function MacTopBar({ activePath }: Props) {
           <option value="18">Font: 18</option>
         </select>
 
-        <select className={ctlClass} title="Color mode: list/detail — saves to your prefs"
+        <select className="topbar-ctl" title="Color mode"
           defaultValue=""
-          onChange={async (e) => {
-            const [zone, mode] = e.target.value.split(':');
-            if (!zone || !mode) return;
-            window.dispatchEvent(new CustomEvent('wc3-zone-theme-changed', { detail: { zone, mode } }));
-            try {
-              const { saveRecord } = await import('@/api/wcapi');
-              const userId = user?.id;
-              if (userId) {
-                const currentPrefs = (user as any)?.prefs || {};
-                const staff = currentPrefs.staff || {};
-                const colorMode = staff.color_mode || currentPrefs.color_mode || {};
-                colorMode[zone] = mode;
-                staff.color_mode = colorMode;
-                await saveRecord('contact', { id: userId, prefs: { ...currentPrefs, staff } });
-              }
-            } catch (err) { console.error('Failed to save color_mode pref:', err); }
+          onChange={(e) => {
+            const mode = e.target.value as 'dark' | 'light';
+            if (!mode) return;
+            setUI('theme.active', mode);
+            window.dispatchEvent(new CustomEvent('wc3-zone-theme-changed', { detail: { zone: 'all', mode } }));
             e.target.value = '';
           }}
         >
           <option value="">Theme...</option>
-          <option value="list:dark">List: Dark</option>
-          <option value="list:light">List: Light</option>
-          <option value="detail:dark">Detail: Dark</option>
-          <option value="detail:light">Detail: Light</option>
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
         </select>
 
-        <button className={ctlClass} title="Save current UI settings to your preferences"
-          onClick={async () => {
-            try {
-              const { saveRecord } = await import('@/api/wcapi');
-              const userId = user?.id;
-              if (!userId) return;
-              const currentPrefs = (user as any)?.prefs || {};
-              const staff = currentPrefs.staff || {};
-
-              staff.wcui = {
-                ...(staff.wcui || {}),
-                view_mode: localStorage.getItem('wc3_detail_view_pref') || 'app',
-                font_size: (() => { try { return JSON.parse(localStorage.getItem('wc3_wcui_prefs') || '{}').font_size || 12; } catch { return 12; } })(),
-                theme: localStorage.getItem('db-theme') || 'dark',
-              };
-
-              await saveRecord('contact', { id: userId, prefs: { ...currentPrefs, staff } });
-            } catch (err) {
-              console.error('Failed to save prefs:', err);
-            }
-          }}
-        >
-          Save Prefs
-        </button>
-
-        {/* User — avatar + name + sign out. Double-click opens contact record. */}
-        <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200">
+        {/* User — avatar + name + sign out */}
+        <div className="flex items-center gap-1.5 pl-1.5 border-l" style={{ borderColor: 'var(--wc-topbar-border)' }}>
           <img src="/images/user/owner.jpg" alt="avatar" className="h-5 w-5 rounded-full border border-white object-cover cursor-pointer"
             onDoubleClick={() => { if (user?.id) { sessionStorage.setItem('db_auto_select', String(user.id)); navigate(`/contact`); } }}
             title="Double-click to open your contact record" />
-          <span className="text-[10px] font-medium text-slate-600 cursor-pointer"
+          <span className="text-[10px] font-medium cursor-pointer" style={{ color: 'var(--wc-topbar-text-muted)' }}
             onDoubleClick={() => { if (user?.id) { sessionStorage.setItem('db_auto_select', String(user.id)); navigate(`/contact`); } }}
             title="Double-click to open your contact record">{user?.name_first || "Profile"}</span>
           <button
-            className="flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:text-slate-700 transition"
+            className="flex h-5 w-5 items-center justify-center rounded-full transition"
+            style={{ color: 'var(--wc-text-dim)' }}
             onClick={async () => {
               if (loggingOut) return;
               setLoggingOut(true);

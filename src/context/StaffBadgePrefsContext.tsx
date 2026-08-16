@@ -1,4 +1,4 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+/* LastChecked: 2026-08-16 | WhereUsed: Staff badge colors | Source: config.ui.badge */
 "use client";
 
 import type React from "react";
@@ -6,7 +6,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useMemo } 
 import { getRecords } from "../api/wcapi";
 
 /**
- * Badge preferences stored in contact.prefs.badge
+ * Badge preferences stored in contact.config.ui.badge
  */
 export interface BadgePrefs {
   bg_color?: string;     // hex color for badge background
@@ -20,6 +20,14 @@ interface StaffContact {
   name_last?: string;
   attention?: string;
   is_staff?: boolean;
+  config?: {
+    ui?: {
+      badge?: BadgePrefs;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+  // Legacy fallback
   prefs?: {
     badge?: BadgePrefs;
     [key: string]: unknown;
@@ -48,10 +56,9 @@ export const StaffBadgePrefsProvider: React.FC<{ children: React.ReactNode }> = 
   const fetchStaffBadgePrefs = useCallback(async () => {
     try {
       setIsLoading(true);
-      // Fetch all staff contacts with their prefs
       const response = await getRecords("contact", {
         is_staff: true,
-        limit: 500, // Should be more than enough for most organizations
+        limit: 500,
       });
 
       const rawContacts = (response as any)?.records || response;
@@ -59,21 +66,22 @@ export const StaffBadgePrefsProvider: React.FC<{ children: React.ReactNode }> = 
       const prefsMap = new Map<number, BadgePrefs>();
 
       for (const contact of contacts) {
-        if (contact?.id && contact?.prefs?.badge) {
-          prefsMap.set(contact.id, contact.prefs.badge);
+        if (!contact?.id) continue;
+        // config.ui.badge is the source of truth; fall back to prefs.badge
+        const badge = contact?.config?.ui?.badge || contact?.prefs?.badge;
+        if (badge) {
+          prefsMap.set(contact.id, badge);
         }
       }
 
       setBadgePrefsMap(prefsMap);
     } catch (error) {
       console.error("Failed to fetch staff badge prefs:", error);
-      // Keep existing prefs on error
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // Fetch on mount
   useEffect(() => {
     fetchStaffBadgePrefs();
   }, [fetchStaffBadgePrefs]);
@@ -104,10 +112,6 @@ export const StaffBadgePrefsProvider: React.FC<{ children: React.ReactNode }> = 
   );
 };
 
-/**
- * Hook to access staff badge preferences
- * Must be used within a StaffBadgePrefsProvider
- */
 export const useStaffBadgePrefs = () => {
   const context = useContext(StaffBadgePrefsContext);
   if (context === undefined) {
@@ -116,10 +120,6 @@ export const useStaffBadgePrefs = () => {
   return context;
 };
 
-/**
- * Optional hook that returns undefined instead of throwing if used outside provider
- * Useful for components that may or may not have access to the context
- */
 export const useStaffBadgePrefsOptional = () => {
   return useContext(StaffBadgePrefsContext);
 };

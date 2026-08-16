@@ -12,6 +12,7 @@
 // @ts-nocheck - Temporary: types need alignment with current definitions
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getUI } from "@/utils/contactUI";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store";
@@ -22,8 +23,7 @@ import { GanttLinks } from "./GanttLinks";
 import DataGrid from "../../../components/common/DataGrid";
 import KanbanTaskModal from "../kanban/KanbanTaskModal";
 import type { TaskFormEditableField, TaskFormState } from "../kanban/taskFormTypes";
-import { patchAction } from "../../../api/userProfile";
-import { saveRecord, getRecord } from "../../../api/wcapi";
+import { saveRecord, getRecord } from "@/api/wcapi";
 import { createEmptyBoardData } from "../kanban/kanbanDataMapper";
 import type { BoardData, KanbanTask, TaskPriority } from "../kanban/type/kanban";
 import { ProjectContactManager } from "../kanban/ProjectContactManager";
@@ -264,7 +264,7 @@ const createGanttColumns = (_taskLookup: Map<string, GanttMappedTask>, includeRe
     template: (_value: unknown, task: GanttMappedTask) => {
       const slack = task?.slack;
       if (typeof slack !== "number") return "-";
-      if (slack === 0) return `<span style="color:#dc2626;font-weight:600">0d</span>`;
+      if (slack === 0) return <span className="text-red-600 font-semibold">0d</span>;
       return `${slack}d`;
     },
   },
@@ -280,9 +280,9 @@ const createGanttColumns = (_taskLookup: Map<string, GanttMappedTask>, includeRe
       const actualMs = task.start instanceof Date ? task.start.getTime() : 0;
       if (!originalMs || !actualMs) return "-";
       const varianceDays = Math.round((actualMs - originalMs) / (1000 * 60 * 60 * 24));
-      if (varianceDays === 0) return `<span style="color:#059669">±0</span>`;
-      if (varianceDays > 0) return `<span style="color:#dc2626;font-weight:600">+${varianceDays}d</span>`;
-      return `<span style="color:#059669">${varianceDays}d</span>`;
+      if (varianceDays === 0) return <span className="text-emerald-600">±0</span>;
+      if (varianceDays > 0) return <span className="text-red-600 font-semibold">+{varianceDays}d</span>;
+      return <span className="text-emerald-600">{varianceDays}d</span>;
     },
   });
   
@@ -699,38 +699,11 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   }, [projectId, selectedProjectIds]);
   
   // Gantt display state
-  const [scalePreset, setScalePreset] = useState<ScalePresetKey>(() => {
-    try {
-      const stored = localStorage.getItem('wc3_wcui_prefs');
-      if (stored) {
-        const prefs = JSON.parse(stored);
-        if (prefs.gantt_scale) return prefs.gantt_scale as ScalePresetKey;
-      }
-    } catch {}
-    return "month";
-  });
+  const [scalePreset, setScalePreset] = useState<ScalePresetKey>(() => getUI<ScalePresetKey>('gantt.scale', 'month'));
   const [colorMode, setColorMode] = useState<'project' | 'priority' | 'status' | 'assigned' | 'difficulty'>('priority');
   const [ganttKey, setGanttKey] = useState(0);
-  const [ganttFontScale, setGanttFontScale] = useState(() => {
-    try {
-      const stored = localStorage.getItem('wc3_wcui_prefs');
-      if (stored) {
-        const prefs = JSON.parse(stored);
-        if (typeof prefs.gantt_font_scale === 'number') return prefs.gantt_font_scale;
-      }
-    } catch {}
-    return 0;
-  });
-  const [textOverflow, setTextOverflow] = useState(() => {
-    try {
-      const stored = localStorage.getItem('wc3_wcui_prefs');
-      if (stored) {
-        const prefs = JSON.parse(stored);
-        if (typeof prefs.gantt_show_full_text === 'boolean') return prefs.gantt_show_full_text;
-      }
-    } catch {}
-    return false;
-  });
+  const [ganttFontScale, setGanttFontScale] = useState(() => getUI<number>('gantt.font_scale', 0));
+  const [textOverflow, setTextOverflow] = useState(() => getUI<boolean>('gantt.show_full_text', false));
   const [criticalPathHighlight, setCriticalPathHighlight] = useState(false);
   const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
   const [showAdminTools, setShowAdminTools] = useState(false);
@@ -1233,7 +1206,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       }
 
       try {
-        await patchAction(result.payload);
+        const { model_name: _mn, ...editSavePayload } = result.payload;
+        await saveRecord("action", editSavePayload);
         await refetchActions();
         handleCloseEditModal();
       } catch (error) {
@@ -1301,7 +1275,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         }
 
         console.log("[Gantt] Saving payload:", payload);
-        await patchAction(payload);
+        const { model_name: _mn2, ...dragSavePayload } = payload;
+        await saveRecord("action", dragSavePayload);
         console.log("[Gantt] Save completed for task", id);
         
         // Update local React state to keep ganttData in sync with the new values
@@ -1418,13 +1393,10 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         if (!existingParents.includes(sourceId)) {
           const updatedParents = [...existingParents, sourceId];
           
-          const payload: Record<string, unknown> = {
-            model_name: "action",
+          await saveRecord("action", {
             id: targetId,
             "refs.parents": { mode: "update", value: updatedParents },
-          };
-          
-          await patchAction(payload);
+          });
           console.log(`[Gantt] Link added successfully: ${sourceId} → ${targetId}`);
           
           // Refresh to show the new link and auto-scheduled dates
@@ -1475,13 +1447,10 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         const existingParents: string[] = (targetTask as any).refParents || [];
         const updatedParents = existingParents.filter((p) => String(p) !== sourceId);
         
-        const payload: Record<string, unknown> = {
-          model_name: "action",
+        await saveRecord("action", {
           id: targetId,
           "refs.parents": { mode: "update", value: updatedParents },
-        };
-        
-        await patchAction(payload);
+        });
         console.log(`[Gantt] Link deleted successfully: ${sourceId} → ${targetId}`);
         
         // Refresh to update the display
@@ -2378,14 +2347,11 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         
         if (!startMs) return;
         
-        const payload: Record<string, unknown> = {
-          model_name: "action",
+        return saveRecord("action", {
           id: task.id,
           dt_start_original: { mode: "update", value: startMs },
           dt_end_original: { mode: "update", value: endMs },
-        };
-        
-        return patchAction(payload);
+        });
       });
       
       await Promise.all(updates);
@@ -2405,15 +2371,12 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     setUndoStack((stack) => stack.slice(0, -1));
     
     try {
-      const payload: Record<string, unknown> = {
-        model_name: "action",
+      await saveRecord("action", {
         id: entry.taskId,
         [entry.field]: { mode: "update", value: entry.oldValue },
-      };
-      
-      await patchAction(payload);
+      });
       await refetchActions();
-      
+
       // Add to redo stack
       setRedoStack((stack) => [...stack, entry]);
     } catch (error) {
@@ -2422,22 +2385,19 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       setUndoStack((stack) => [...stack, entry]);
     }
   }, [undoStack, refetchActions]);
-  
+
   // Redo handler
   const handleRedo = useCallback(async () => {
     if (redoStack.length === 0) return;
-    
+
     const entry = redoStack[redoStack.length - 1];
     setRedoStack((stack) => stack.slice(0, -1));
     
     try {
-      const payload: Record<string, unknown> = {
-        model_name: "action",
+      await saveRecord("action", {
         id: entry.taskId,
         [entry.field]: { mode: "update", value: entry.newValue },
-      };
-      
-      await patchAction(payload);
+      });
       await refetchActions();
       
       // Add to undo stack
@@ -2721,7 +2681,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 onChange={(e) => {
                   const v = e.target.value as ScalePresetKey;
                   setScalePreset(v);
-                  import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_scale', v));
+                  import('@/utils/contactUI').then(m => m.setUI('gantt.scale', v));
                 }}
                 className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
                 style={{ fontSize: 'inherit', padding: 0 }}
@@ -2739,13 +2699,13 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                   if (v === 'text') {
                     const next = !textOverflow;
                     setTextOverflow(next);
-                    import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_show_full_text', next));
+                    import('@/utils/contactUI').then(m => m.setUI('gantt.show_full_text', next));
                   } else if (v === 'cp') {
                     setCriticalPathHighlight(!criticalPathHighlight);
                   } else if (v === 'font+') {
-                    setGanttFontScale(s => { const n = s + 2; import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_font_scale', n)); return n; });
+                    setGanttFontScale(s => { const n = s + 2; import('@/utils/contactUI').then(m => m.setUI('gantt.font_scale', n)); return n; });
                   } else if (v === 'font-') {
-                    setGanttFontScale(s => { const n = s - 2; import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('gantt_font_scale', n)); return n; });
+                    setGanttFontScale(s => { const n = s - 2; import('@/utils/contactUI').then(m => m.setUI('gantt.font_scale', n)); return n; });
                   }
                   e.target.value = '';
                 }}

@@ -4,8 +4,7 @@ import {
   saveRecord,
   deleteRecord,
   getRecord,
-} from "../../../../../api/wcapi";
-import { patchAction } from "../../../../../api/userProfile";
+} from "@/api/wcapi";
 import {
   InvoiceLine,
   CreateInvoiceLineRequest,
@@ -47,13 +46,11 @@ export const createInvoiceLine = async (
   invoiceId: number,
   data: CreateInvoiceLineRequest
 ): Promise<{ status: number; data: InvoiceLine }> => {
-  const payload = {
-    model_name: "invoice_line",
+  const res = await saveRecord("invoice_line", {
     ...data,
     parent: invoiceId,
-  };
-  const res = await patchAction(payload);
-  return { status: res?.status || 200, data: res?.data || res };
+  });
+  return { status: 200, data: res?.record ?? res };
 };
 
 export const updateInvoiceLine = async (
@@ -61,27 +58,20 @@ export const updateInvoiceLine = async (
   lineId: number,
   data: UpdateInvoiceLineRequest
 ): Promise<{ status: number; data: InvoiceLine }> => {
-  const payload = {
-    model_name: "invoice_line",
+  const res = await saveRecord("invoice_line", {
     ...data,
     parent: invoiceId,
     id: lineId,
-  };
-  const res = await patchAction(payload);
-  return { status: res?.status || 200, data: res?.data || res };
+  });
+  return { status: 200, data: res?.record ?? res };
 };
 
 export const deleteInvoiceLine = async (
   _invoiceId: number,
   lineId: number
 ): Promise<{ status: number; data: any }> => {
-  const payload = {
-    model_name: "invoice_line",
-    id: lineId,
-    method: "delete",
-  };
-  const res = await patchAction(payload);
-  return { status: res?.status || 200, data: res?.data || res };
+  const res = await deleteRecord("invoice_line", lineId);
+  return { status: 200, data: res };
 };
 
 export const fetchInvoiceDetail = async (id: number): Promise<any> => {

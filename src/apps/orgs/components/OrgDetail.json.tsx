@@ -3,7 +3,7 @@
  * OrgDetailJson — JSON-driven org detail page.
  *
  * Works for customer, vendor, manufacturer, employee, rep.
- * Same pattern as TransactionDetail and ContactDetailJson:
+ * Same pattern as UiDetail and ContactDetailJson:
  * - Layout JSON from detail_layout Setting drives rendering
  * - CommPanel for communications tab
  * - OrgPanel not needed here (this IS the org detail)

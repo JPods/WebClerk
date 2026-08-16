@@ -124,6 +124,19 @@ export function getDefaultFieldSpec(field: string): Partial<FieldSpec> {
   // Source
   if (fl === 'source' || fl === 'source_model') return { width: 100, align: 'left' };
 
+  // Dot-path fields from JSON envelopes (totals.total, price.unit, etc.)
+  if (field.includes('.')) {
+    const leaf = field.split('.').pop() || '';
+    const CURRENCY_LEAVES = ['total', 'subtotal', 'tax', 'shipping', 'other', 'margin', 'balance',
+      'received', 'unit', 'unit_base', 'extended', 'discount_amount', 'handling', 'freight',
+      'commissions', 'cost', 'line_sum_goods', 'line_sum_tax', 'line_sum_shipping', 'line_sum_handling'];
+    const PERCENT_LEAVES = ['discount_percent', 'tax_rate', 'margin_pc'];
+    const NUMBER_LEAVES = ['active', 'staged', 'remaining', 'precision', 'increment'];
+    if (CURRENCY_LEAVES.includes(leaf)) return { width: 100, align: 'right', format: 'currency' };
+    if (PERCENT_LEAVES.includes(leaf)) return { width: 80, align: 'right', format: 'percent' };
+    if (NUMBER_LEAVES.includes(leaf)) return { width: 70, align: 'right', format: 'number' };
+  }
+
   // Default
   return {};
 }
@@ -176,6 +189,57 @@ export type WorkbenchFieldsSetting = {
 
 export type SortSpec = { field: string; direction: 'asc' | 'desc' } | null;
 
+/**
+ * Convert named layout format (config.layout on wc:model) to WorkbenchFieldsSetting.
+ *
+ * Named format (db.list/db.dynamic/db.display):
+ *   { active: {list: "bill_layout"}, list: { default: {columns: [...]} }, dynamic: {...}, display: {...} }
+ * Old format has layout.list as a flat array:
+ *   { list: [...], detail: [...], views: [...] }
+ *
+ * Also handles transitional format where 'detail'/'ui' keys haven't been renamed yet.
+ */
+function namedLayoutToWorkbench(layout: any): WorkbenchFieldsSetting | null {
+  if (!layout || typeof layout !== 'object') return null;
+
+  // Old format — layout.list is an array (or missing)
+  if (!layout.list || Array.isArray(layout.list)) {
+    return { list: layout.list || [], detail: layout.detail || [], views: layout.views || [] };
+  }
+
+  // Named format — layout.list is a dict of named layouts
+  const active = layout.active || { list: 'default' };
+  const activeName = active.list || 'default';
+  const namedList: Record<string, any> = layout.list || {};
+  // Support both new names (dynamic) and old names (detail) during transition
+  const namedDynamic: Record<string, any> = layout.dynamic || layout.detail || {};
+
+  // Resolve active list layout
+  const activeListLayout = namedList[activeName] || namedList['default'] || {};
+  // Pairing key: 'dynamic' (new) or 'detail' (old)
+  const activeDynamicName = activeListLayout.dynamic || activeListLayout.detail || active.dynamic || active.detail || 'default';
+  const activeDynamicLayout = namedDynamic[activeDynamicName] || namedDynamic['default'] || {};
+
+  // Convert all named list layouts to NamedView[] for the layout selector
+  const views: NamedView[] = Object.entries(namedList).map(([name, nl]: [string, any]) => {
+    const pairedDynamicName = nl.dynamic || nl.detail || name || 'default';
+    const pairedDynamic = namedDynamic[pairedDynamicName] || namedDynamic['default'] || {};
+    return {
+      name,
+      list: nl.columns || [],
+      detail: pairedDynamic.fields || [],
+      listWidths: {},
+    };
+  });
+
+  return {
+    list: activeListLayout.columns || [],
+    detail: activeDynamicLayout.fields || [],
+    related: layout.related || [],
+    views,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -217,6 +281,9 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
   const routeParams = useParams<{ model?: string }>();
   const navigate = useNavigate();
   const previousModelParam = useRef<string | null>(null);
+  // When the user explicitly picks a model, the toolbar owns that choice.
+  // URL sync must not override it — the toolbar is independent of the console.
+  const userSelectedModelRef = useRef(false);
 
   // Determine if this DataBrowser instance is in the active window.
   // Inactive windows should not react to URL changes or fire API calls.
@@ -295,25 +362,25 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
     return collapsedGroups[selectedModel] ?? defaultCollapsed;
   }, [selectedModel, collapsedGroups, defaultCollapsed]);
 
-  /** Toggle a field group's collapsed state; persist to wcui prefs */
+  /** Toggle a field group's collapsed state; persist to config.ui */
   const toggleFieldGroup = useCallback((groupKey: string) => {
     if (!selectedModel) return;
     const cur = collapsedGroups[selectedModel] ?? [...defaultCollapsed];
     const next = cur.includes(groupKey) ? cur.filter(k => k !== groupKey) : [...cur, groupKey];
     setCollapsedGroups(prev => ({ ...prev, [selectedModel]: next }));
     // Persist — fire and forget
-    import('@/utils/wcuiPrefs').then(({ setWcuiPref, getWcuiPref }) => {
-      const all = getWcuiPref<Record<string, string[]>>('detail_collapsed', {});
-      setWcuiPref('detail_collapsed', { ...all, [selectedModel]: next });
+    import('@/utils/contactUI').then(({ getUI, setUI }) => {
+      const all = getUI<Record<string, string[]>>('detail.collapsed', {});
+      setUI('detail.collapsed', { ...all, [selectedModel]: next });
     });
   }, [selectedModel, collapsedGroups, defaultCollapsed]);
 
-  // Load user's saved collapse state from wcui prefs on model change
+  // Load user's saved collapse state from config.ui on model change
   useEffect(() => {
     if (!selectedModel) return;
     if (collapsedGroups[selectedModel] !== undefined) return; // already loaded
-    import('@/utils/wcuiPrefs').then(({ getWcuiPref }) => {
-      const all = getWcuiPref<Record<string, string[]>>('detail_collapsed', {});
+    import('@/utils/contactUI').then(({ getUI }) => {
+      const all = getUI<Record<string, string[]>>('detail.collapsed', {});
       if (all[selectedModel]) {
         setCollapsedGroups(prev => ({ ...prev, [selectedModel]: all[selectedModel] }));
       }
@@ -326,7 +393,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
 
   // Route param (/:model) takes priority, then search param (?model=X), then pathname
   // Exclude known route paths that are NOT model names (e.g. /databrowser, /admin-wb, /db)
-  const ROUTE_PATHS = new Set(['databrowser', 'admin-wb', 'db', 'dashboard', 'kanban', 'gantt', 'commerce', 'accounting', 'whitelist', 'json-viewer', 'json-tree', 'help', 'profile', 'training', 'docs', 'inventory-dashboard', 'inventory-adjust', 'cycle-count', 'administration', 'alice-dashboard', 'test-dashboard', 'report-designer', 'model-workbench']);
+  const ROUTE_PATHS = new Set(['browser', 'databrowser', 'admin-wb', 'db', 'dashboard', 'kanban', 'gantt', 'commerce', 'accounting', 'whitelist', 'json-viewer', 'json-tree', 'help', 'profile', 'training', 'docs', 'inventory-dashboard', 'inventory-adjust', 'cycle-count', 'administration', 'alice-dashboard', 'test-dashboard', 'report-designer', 'model-workbench']);
   const rawPathname = window.location.pathname.split('/').filter(Boolean)[0] || '';
   const pathnameModel = ROUTE_PATHS.has(rawPathname) ? '' : rawPathname;
   const modelParam = routeParams.model || searchParams.get('model') || pathnameModel || defaultModel || '';
@@ -377,6 +444,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
 
   const handleSelectModel = useCallback((name: string) => {
     console.log('[DB]', instanceId.current, 'handleSelectModel', name);
+    userSelectedModelRef.current = true;
     // Increment change counter — any in-flight fetch for old model will be discarded
     modelChangeRef.current += 1;
     fetchingRef.current = false;
@@ -399,27 +467,38 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
     setRecordsError(null);
     // Set new model — this triggers the fetchRecords useEffect via dep change
     setSelectedModel(name);
-    // On a /:model route, navigate to /<newModel> (stays in same window).
-    // On /databrowser, use search params to stay in the same window/component instance.
+    // On a /:model route, navigate to /<newModel> and update the window's
+    // path so that activateWindow (fired on every mouseDown in the chrome)
+    // does not revert the URL to the old model.
     if (routeParams.model) {
-      navigate(`/${name}`, { replace: true });
+      const oldPath = `/${routeParams.model}`;
+      const newPath = `/${name}`;
+      navigate(newPath, { replace: true });
+      if (wmCtx?.updateWindowPath) wmCtx.updateWindowPath(oldPath, newPath, name);
     } else {
+      // /browser or /databrowser — track model in search params.
+      // Also update the window path so activateWindow preserves the param.
       const next = new URLSearchParams(searchParams);
       next.set('model', name);
       setSearchParams(next, { replace: true });
+      const base = window.location.pathname;
+      if (windowPath && wmCtx?.updateWindowPath) {
+        wmCtx.updateWindowPath(windowPath, `${base}?model=${name}`, name);
+      }
     }
     previousModelParam.current = name;
-  }, [searchParams, setSearchParams, routeParams.model, navigate]);
+  }, [searchParams, setSearchParams, routeParams.model, navigate, wmCtx, windowPath]);
 
-  // Sync model FROM URL param (browser back/forward, external navigation, initial load ONLY)
-  // This effect should NOT run when handleSelectModel changes the URL — previousModelParam guards that
-  // Only the ACTIVE window reacts to URL changes — inactive windows keep their last model
+  // Sync model FROM URL param — initial load and browser back/forward ONLY.
+  // Once the user explicitly picks a model (userSelectedModelRef), this effect
+  // must not override their choice.  The toolbar is independent of the console.
   useEffect(() => {
     if (!isActiveWindow) return;
     if (!modelNames.length) return;
-    // URL param present and different from what we currently show — always switch
+    // User explicitly selected — toolbar owns the model, URL does not override
+    if (userSelectedModelRef.current) return;
+    // URL param present and different from what we currently show
     if (modelParam && modelNames.includes(modelParam) && modelParam !== selectedModel) {
-      // Only switch if this wasn't caused by handleSelectModel (which already set previousModelParam)
       if (modelParam !== previousModelParam.current) {
         console.log('[DB] URL sync: switching to', modelParam);
         previousModelParam.current = modelParam;
@@ -433,7 +512,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
       setSelectedModel(modelNames[0]);
       previousModelParam.current = modelNames[0];
     }
-  }, [modelNames, modelParam, selectedModel, isActiveWindow]); // include selectedModel to detect stale state
+  }, [modelNames, modelParam, selectedModel, isActiveWindow]);
 
   // ---------------------------------------------------------------------------
   // Load models
@@ -512,6 +591,8 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
       }
 
       // Load workbench setting directly (not from cached map — avoids stale closure)
+      // Primary: wc:workbench_fields (user-saved layouts)
+      // Fallback: wc:model config.layout (curated default)
       let ws: WorkbenchFieldsSetting | null = null;
       let wsId: number | null = null;
       try {
@@ -521,17 +602,40 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
         ws = wsRec?.config?.db || wsRec?.config || null;
         wsId = wsRec?.id ?? null;
       } catch { /* use null */ }
+      // Fallback to wc:model config.layout if no workbench_fields exists
+      if (!ws || (!ws.list?.length && !ws.detail?.length)) {
+        try {
+          const modelRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'wc:model', limit: 1 }) as any;
+          if (modelChangeRef.current !== fetchId) return;
+          const modelRec = (modelRes?.results || [])[0];
+          const layout = modelRec?.config?.layout;
+          if (layout) {
+            const converted = namedLayoutToWorkbench(layout);
+            if (converted && (converted.list?.length || converted.detail?.length)) {
+              ws = converted;
+              dbLog('fetchRecords:workbenchFallback', { model: selectedModel, source: 'wc:model', list: ws.list?.length, detail: ws.detail?.length, named: !Array.isArray(layout.list) });
+            }
+          }
+        } catch { /* use null */ }
+      }
       setWorkbenchSetting(ws);
       setWorkbenchSettingId(wsId);
       if (wsId && selectedModel) workbenchSettingIdMap.current[selectedModel] = wsId;
       dbLog('fetchRecords:workbenchSetting', { model: selectedModel, settingId: wsId, list: ws?.list?.slice(0, 8), detail: ws?.detail?.slice(0, 8), views: ws?.views?.length });
 
-      // Load field behaviors
+      // Load field behaviors from wc:model (consolidated) or legacy wc:field_access
       try {
-        const faRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'wc:field_access' }) as any;
+        let faRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'wc:model' }) as any;
         if (modelChangeRef.current !== fetchId) return;
-        const faRec = (faRes?.results || [])[0];
-        const behaviors = faRec?.config?.field_behaviors || {};
+        let faRec = (faRes?.results || [])[0];
+        let behaviors = faRec?.config?.behaviors || {};
+        // Legacy fallback
+        if (!faRec || !Object.keys(behaviors).length) {
+          faRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'wc:field_access' }) as any;
+          if (modelChangeRef.current !== fetchId) return;
+          faRec = (faRes?.results || [])[0];
+          behaviors = faRec?.config?.field_behaviors || {};
+        }
 
         // Dynamic assigned_to select for action model — three-tier fallback
         if (selectedModel === 'action' && behaviors.assigned_to) {
@@ -608,6 +712,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
 
         setFieldBehaviors(behaviors);
         setFieldDefaults(faRec?.prefs?.defaults || {});
+        // wc:model stores field_groups and default_collapsed at top level; legacy nested in config
         setFieldGroups(faRec?.config?.field_groups || []);
         setDefaultCollapsed(faRec?.config?.default_collapsed || []);
       } catch { setFieldBehaviors({}); setFieldDefaults({}); setFieldGroups([]); setDefaultCollapsed([]); }
@@ -885,7 +990,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
     if (!confirm('Reset to default layout? Your current layout will be replaced.')) return;
     const cur = workbenchSetting ?? { list: [], detail: [], views: [] };
     const views = cur.views || [];
-    const initial = views.find((v) => v.name === 'initial') || views.find((v) => v.name === 'alice_guess');
+    const initial = views.find((v) => v.name === 'default') || views.find((v) => v.name === 'initial') || views.find((v) => v.name === 'alice_guess');
     if (initial) {
       const next: WorkbenchFieldsSetting = { ...cur, list: initial.list, detail: initial.detail };
       setWorkbenchSetting(next);
@@ -953,7 +1058,8 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
 
   // Delete record — doSafeSelect: auto-select adjacent record after delete
   const handleDeleteRecord = useCallback(async () => {
-    if (!selectedModel || !selectedId || !confirm(`Delete ${modelLabel} #${selectedId}?`)) return;
+    if (!selectedModel || !selectedId) return;
+    if (!confirm(`Delete ${modelLabel} #${selectedId}? This cannot be undone.`)) return;
     await deleteRecord(selectedModel, selectedId);
     const idx = records.findIndex((r) => numId(r.id) === selectedId);
     const filtered = records.filter((r) => numId(r.id) !== selectedId);

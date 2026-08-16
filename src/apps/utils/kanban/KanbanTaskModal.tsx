@@ -176,7 +176,6 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   const getFileIcon = (fileType: string) => {
     if (fileType.includes('pdf')) return '📄';
     if (fileType.includes('word') || fileType.includes('document')) return '📝';
-    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return '📊';
     if (fileType.includes('powerpoint') || fileType.includes('presentation')) return '📽️';
     if (fileType.includes('zip') || fileType.includes('archive')) return '📦';
     return '📎';
@@ -564,7 +563,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                     type="file"
                     className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                     multiple
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif"
                     onChange={handleFileSelect}
                     disabled={isSaving}
                   />

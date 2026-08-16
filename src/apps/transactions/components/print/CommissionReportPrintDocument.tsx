@@ -61,21 +61,6 @@ export interface CommissionReportData {
   rep_name?: string;
 }
 
-// ---------------------------------------------------------------------------
-// Shared styles
-// ---------------------------------------------------------------------------
-
-const PAGE: React.CSSProperties = {
-  fontFamily: 'Helvetica, Arial, sans-serif', fontSize: 11, color: '#222', padding: '0.5in 0.75in',
-};
-const TH: React.CSSProperties = { textAlign: 'left', padding: '6px 8px', fontSize: 11 };
-const TH_R: React.CSSProperties = { ...TH, textAlign: 'right' };
-const TH_C: React.CSSProperties = { ...TH, textAlign: 'center' };
-const TD: React.CSSProperties = { padding: '5px 8px' };
-const TD_R: React.CSSProperties = { ...TD, textAlign: 'right' };
-const TD_MONO: React.CSSProperties = { ...TD_R, fontFamily: 'monospace' };
-const BOLD_MONO: React.CSSProperties = { ...TD_MONO, fontWeight: 600 };
-
 const fmt = (n: number) => formatCurrency(n);
 
 // ---------------------------------------------------------------------------
@@ -86,48 +71,48 @@ function CompanySummary({ data }: { data: CommissionReportData }) {
   const { company, reps, period_label, total_sales, total_commission, total_invoices } = data;
 
   return (
-    <div className="print-page" style={PAGE}>
+    <div className="print-page">
       <Header company={company} title="Commission Report" periodLabel={period_label} data={data} />
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 24 }}>
+      <table className="print-table-lg">
         <thead>
-          <tr style={{ borderBottom: '2px solid #000' }}>
-            <th style={TH}>Representative</th>
-            <th style={TH_C}>Basis</th>
-            <th style={TH_R}>Rate</th>
-            <th style={TH_R}>Invoices</th>
-            <th style={TH_R}>Sales Credited</th>
-            <th style={TH_R}>Commission</th>
-            <th style={TH_R}>Accrued</th>
-            <th style={TH_R}>Paid</th>
-            <th style={TH_R}>Pending</th>
+          <tr className="print-thead-row">
+            <th className="print-th">Representative</th>
+            <th className="print-th-c">Basis</th>
+            <th className="print-th-r">Rate</th>
+            <th className="print-th-r">Invoices</th>
+            <th className="print-th-r">Sales Credited</th>
+            <th className="print-th-r">Commission</th>
+            <th className="print-th-r">Accrued</th>
+            <th className="print-th-r">Paid</th>
+            <th className="print-th-r">Pending</th>
           </tr>
         </thead>
         <tbody>
           {reps.map((rep, i) => (
-            <tr key={i} style={{ borderBottom: '1px solid #ddd' }}>
-              <td style={TD}>
-                <div style={{ fontWeight: 600 }}>{rep.name}</div>
-                <div style={{ fontSize: 9, color: '#888' }}>{rep.rep_ida}</div>
+            <tr key={i} className="print-row">
+              <td className="print-td">
+                <div className="print-semibold">{rep.name}</div>
+                <div className="print-text-xs print-text-dim">{rep.rep_ida}</div>
               </td>
-              <td style={{ ...TD, textAlign: 'center', fontSize: 10 }}>{rep.basis}</td>
-              <td style={TD_R}>{rep.rate_pct.toFixed(1)}%</td>
-              <td style={TD_R}>{rep.invoice_count}</td>
-              <td style={TD_MONO}>{fmt(rep.sales_credited)}</td>
-              <td style={BOLD_MONO}>{fmt(rep.commission_earned)}</td>
-              <td style={TD_MONO}>{fmt(rep.accrued)}</td>
-              <td style={TD_MONO}>{fmt(rep.paid)}</td>
-              <td style={{ ...BOLD_MONO, color: rep.pending > 0 ? '#9333ea' : '#666' }}>{fmt(rep.pending)}</td>
+              <td className="print-td print-center print-text-sm">{rep.basis}</td>
+              <td className="print-td-r">{rep.rate_pct.toFixed(1)}%</td>
+              <td className="print-td-r">{rep.invoice_count}</td>
+              <td className="print-td-mono">{fmt(rep.sales_credited)}</td>
+              <td className="print-td-bold-mono">{fmt(rep.commission_earned)}</td>
+              <td className="print-td-mono">{fmt(rep.accrued)}</td>
+              <td className="print-td-mono">{fmt(rep.paid)}</td>
+              <td className={`print-td-bold-mono ${rep.pending > 0 ? 'print-accent' : 'print-text-muted'}`}>{fmt(rep.pending)}</td>
             </tr>
           ))}
         </tbody>
         <tfoot>
-          <tr style={{ borderTop: '2px solid #000', fontWeight: 700 }}>
-            <td style={TD}>Total</td>
+          <tr className="print-tfoot-row">
+            <td className="print-td">Total</td>
             <td></td><td></td>
-            <td style={TD_R}>{total_invoices}</td>
-            <td style={TD_MONO}>{fmt(total_sales)}</td>
-            <td style={BOLD_MONO}>{fmt(total_commission)}</td>
+            <td className="print-td-r">{total_invoices}</td>
+            <td className="print-td-mono">{fmt(total_sales)}</td>
+            <td className="print-td-bold-mono">{fmt(total_commission)}</td>
             <td></td><td></td><td></td>
           </tr>
         </tfoot>
@@ -153,62 +138,62 @@ function RepStatement({ data }: { data: CommissionReportData }) {
   const totalComm = detail.reduce((s, d) => s + d.commission, 0);
 
   return (
-    <div className="print-page" style={PAGE}>
+    <div className="print-page">
       <Header company={company} title="Commission Statement" periodLabel={period_label} data={data} />
 
       {/* Rep info */}
-      <div style={{ marginBottom: 16, padding: '8px 12px', background: '#f8f8f8', border: '1px solid #ddd' }}>
-        <div style={{ fontWeight: 700, fontSize: 13 }}>{rep.name}</div>
-        <div style={{ fontSize: 10, color: '#666' }}>
+      <div className="print-box-highlight print-mb-xl">
+        <div className="print-bold print-text-xl">{rep.name}</div>
+        <div className="print-text-sm print-text-muted">
           {rep.rep_ida} · {rep.basis} · Base rate: {rep.rate_pct}% · {rep.invoice_count} invoices
         </div>
       </div>
 
       {/* Invoice detail */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 24 }}>
+      <table className="print-table-lg">
         <thead>
-          <tr style={{ borderBottom: '2px solid #000' }}>
-            <th style={TH}>Invoice</th>
-            <th style={TH}>Date</th>
-            <th style={TH}>Customer</th>
-            <th style={TH_R}>Sale</th>
-            <th style={TH_R}>Credited</th>
-            <th style={TH_R}>Rate</th>
-            <th style={TH_R}>Eff Rate</th>
-            <th style={TH_R}>Commission</th>
-            <th style={TH_C}>Accrued</th>
+          <tr className="print-thead-row">
+            <th className="print-th">Invoice</th>
+            <th className="print-th">Date</th>
+            <th className="print-th">Customer</th>
+            <th className="print-th-r">Sale</th>
+            <th className="print-th-r">Credited</th>
+            <th className="print-th-r">Rate</th>
+            <th className="print-th-r">Eff Rate</th>
+            <th className="print-th-r">Commission</th>
+            <th className="print-th-c">Accrued</th>
           </tr>
         </thead>
         <tbody>
           {detail.map((d, i) => (
-            <tr key={i} style={{ borderBottom: '1px solid #ddd' }}>
-              <td style={{ ...TD, fontWeight: 500 }}>{d.invoice_ida}</td>
-              <td style={{ ...TD, fontSize: 10 }}>{d.date}</td>
-              <td style={TD}>{d.customer}</td>
-              <td style={TD_MONO}>{fmt(d.sale_amount)}</td>
-              <td style={TD_MONO}>{fmt(d.credited)}</td>
-              <td style={TD_R}>{d.rate_pct.toFixed(1)}%</td>
-              <td style={TD_R}>{(d.effective_rate || 0).toFixed(2)}%</td>
-              <td style={BOLD_MONO}>{fmt(d.commission)}</td>
-              <td style={{ ...TD, textAlign: 'center', fontSize: 10 }}>{d.accrued ? '✓' : '—'}</td>
+            <tr key={i} className="print-row">
+              <td className="print-td print-medium">{d.invoice_ida}</td>
+              <td className="print-td print-text-sm">{d.date}</td>
+              <td className="print-td">{d.customer}</td>
+              <td className="print-td-mono">{fmt(d.sale_amount)}</td>
+              <td className="print-td-mono">{fmt(d.credited)}</td>
+              <td className="print-td-r">{d.rate_pct.toFixed(1)}%</td>
+              <td className="print-td-r">{(d.effective_rate || 0).toFixed(2)}%</td>
+              <td className="print-td-bold-mono">{fmt(d.commission)}</td>
+              <td className="print-td print-center print-text-sm">{d.accrued ? '✓' : '—'}</td>
             </tr>
           ))}
         </tbody>
         <tfoot>
-          <tr style={{ borderTop: '2px solid #000', fontWeight: 700 }}>
-            <td style={TD}>Total</td>
+          <tr className="print-tfoot-row">
+            <td className="print-td">Total</td>
             <td></td><td></td>
             <td></td>
-            <td style={TD_MONO}>{fmt(totalCredited)}</td>
+            <td className="print-td-mono">{fmt(totalCredited)}</td>
             <td></td><td></td>
-            <td style={BOLD_MONO}>{fmt(totalComm)}</td>
+            <td className="print-td-bold-mono">{fmt(totalComm)}</td>
             <td></td>
           </tr>
         </tfoot>
       </table>
 
       {/* Summary box */}
-      <div style={{ display: 'flex', gap: 32, marginBottom: 24 }}>
+      <div className="print-flex print-gap-md print-mb-3xl">
         <SummaryBox label="Commission Earned" value={fmt(rep.commission_earned)} />
         <SummaryBox label="Accrued (GL posted)" value={fmt(rep.accrued)} />
         <SummaryBox label="Paid" value={fmt(rep.paid)} />
@@ -229,18 +214,18 @@ function Header({ company, title, periodLabel, data }: {
   company: CommissionReportData['company']; title: string; periodLabel: string; data: CommissionReportData;
 }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, borderBottom: '2px solid #000', paddingBottom: 12 }}>
+    <div className="print-header">
       <div>
-        {company.logo_url && <img src={company.logo_url} alt="" style={{ maxHeight: 50, marginBottom: 8 }} />}
-        <div style={{ fontWeight: 700, fontSize: 14 }}>{company.name}</div>
+        {company.logo_url && <img src={company.logo_url} alt="" className="print-logo" />}
+        <div className="print-company-name">{company.name}</div>
         <div>{company.address}</div>
         <div>{company.city_state_zip}</div>
         <div>{company.phone}</div>
       </div>
-      <div style={{ textAlign: 'right' }}>
-        <div style={{ fontSize: 20, fontWeight: 700 }}>{title}</div>
-        <div style={{ fontSize: 14, color: '#444' }}>{periodLabel}</div>
-        <div style={{ fontSize: 10, color: '#888' }}>{data.period_start} to {data.period_end}</div>
+      <div className="print-right">
+        <div className="print-text-title">{title}</div>
+        <div className="print-text-2xl print-text-subtle">{periodLabel}</div>
+        <div className="print-text-sm print-text-dim">{data.period_start} to {data.period_end}</div>
       </div>
     </div>
   );
@@ -248,29 +233,29 @@ function Header({ company, title, periodLabel, data }: {
 
 function SummaryBox({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div style={{ border: '1px solid #ccc', padding: '8px 16px', minWidth: 120 }}>
-      <div style={{ fontSize: 9, color: '#888', marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'monospace', color: highlight ? '#9333ea' : '#222' }}>{value}</div>
+    <div className="print-box-summary">
+      <div className="print-text-xs print-text-dim print-mb-xs">{label}</div>
+      <div className={`print-text-3xl print-bold print-mono ${highlight ? 'print-accent' : 'print-text'}`}>{value}</div>
     </div>
   );
 }
 
 function ApprovalBlock({ data }: { data: CommissionReportData }) {
   return (
-    <div style={{ border: '1px solid #ccc', padding: 16, marginBottom: 24 }}>
-      <div style={{ fontWeight: 600, marginBottom: 8 }}>Approval</div>
-      <div style={{ fontSize: 10, marginBottom: 12 }}>
+    <div className="print-box-padded print-mb-3xl">
+      <div className="print-semibold print-mb-md">Approval</div>
+      <div className="print-text-sm print-mb-lg">
         Commission amounts shown are based on invoiced sales during {data.period_start} to {data.period_end}.
         Accrued amounts have been posted to the general ledger. Pending amounts await payment.
       </div>
-      <div style={{ display: 'flex', gap: 48 }}>
+      <div className="print-flex print-gap-lg">
         <div>
-          <div style={{ borderBottom: '1px solid #000', width: 200, marginBottom: 4 }}>&nbsp;</div>
-          <div style={{ fontSize: 9, color: '#888' }}>Approved By</div>
+          <div className="print-sig-line print-sig-line-md">&nbsp;</div>
+          <div className="print-text-xs print-text-dim">Approved By</div>
         </div>
         <div>
-          <div style={{ borderBottom: '1px solid #000', width: 120, marginBottom: 4 }}>&nbsp;</div>
-          <div style={{ fontSize: 9, color: '#888' }}>Date</div>
+          <div className="print-sig-line print-sig-line-sm">&nbsp;</div>
+          <div className="print-text-xs print-text-dim">Date</div>
         </div>
       </div>
     </div>
@@ -279,7 +264,7 @@ function ApprovalBlock({ data }: { data: CommissionReportData }) {
 
 function Footer({ company }: { company: CommissionReportData['company'] }) {
   return (
-    <div style={{ fontSize: 9, color: '#888', textAlign: 'center' }}>
+    <div className="print-footer">
       Generated by {company.name} · {formatDt(new Date(), 'date')}
     </div>
   );

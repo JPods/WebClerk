@@ -1,7 +1,9 @@
-/* LastChecked: 2026-08-02 | WhereUsed: TransactionDetail | WhoCreated: Claude */
+/* LastChecked: 2026-08-16 | WhereUsed: UiDetail | WhoCreated: Claude */
 import React from 'react';
 import FieldRow from './FieldRow';
 import { getNestedValue } from './FieldRow';
+import CardRenderer from '@/components/cards/CardRenderer';
+import type { CardSpec } from '@/components/cards';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,15 +27,42 @@ export interface HeaderRendererProps {
   modelName: string;
   onChange: (field: string, value: unknown) => void;
   custSearch?: CustSearchProps;
+  /** Named card specs from layout.card */
+  cardSpecs?: Record<string, CardSpec>;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-/** Render header -- supports rows layout and three-column layout */
-const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditing, onChange, custSearch }) => {
-  // Three-column layout (Customer | Ship To | Order)
+/** Render header — supports card-based layout, three-column layout, and rows layout */
+const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditing, onChange, custSearch, cardSpecs }) => {
+
+  // ── Card-based layout (new: header.cards references named card specs) ──
+  if (section.header?.cards && cardSpecs) {
+    const cardNames: string[] = section.header.cards;
+    const resolvedCards = cardNames
+      .map((name: string) => cardSpecs[name])
+      .filter(Boolean);
+
+    if (resolvedCards.length > 0) {
+      return (
+        <div className={`grid grid-cols-${resolvedCards.length} gap-3`}>
+          {resolvedCards.map((spec, idx) => (
+            <CardRenderer
+              key={spec.title || idx}
+              spec={spec}
+              data={data}
+              isEditing={isEditing}
+              onChange={onChange}
+            />
+          ))}
+        </div>
+      );
+    }
+  }
+
+  // ── Three-column layout (legacy: section.columns inline) ──
   if (section.layout === 'three-column' && section.columns) {
     return (
       <div className="grid grid-cols-3 gap-3">
@@ -137,7 +166,7 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
     );
   }
 
-  // Default rows layout
+  // ── Default rows layout ──
   return (
     <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-2">
       {(section.rows || []).map((row: any, rowIdx: number) => (

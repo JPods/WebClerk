@@ -29,6 +29,8 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getRecords } from '@/api/wcapi';
+import { JsonLeafSelectorTree } from './JsonLeafSelector';
+import './JsonLeafSelector.css';
 import './FieldOrderDialog.css';
 
 // ---------------------------------------------------------------------------
@@ -84,6 +86,7 @@ const BEH_LABELS: Record<string, { label: string; color: string }> = {
   currency:  { label: '$ Curr', color: '#fd7e14' },
   boolean:   { label: '☑ Bool', color: '#6c757d' },
   json:      { label: '{ } JSON', color: '#6c757d' },
+  'json-tree': { label: '{ } JSON', color: '#6c757d' },
   textarea:  { label: '¶ Text', color: '#6c757d' },
   timestamp: { label: '⏱ Time', color: '#6c757d' },
   readonly:  { label: '🔒 Read', color: '#adb5bd' },
@@ -92,7 +95,8 @@ const BEH_LABELS: Record<string, { label: string; color: string }> = {
   text:      { label: 'Abc', color: '#6c757d' },
 };
 
-const SIZABLE_TYPES = ['json', 'textarea', 'text'];
+const JSON_TYPES = ['json', 'json-tree'];
+const SIZABLE_TYPES = ['json', 'json-tree', 'textarea', 'text'];
 
 // ---------------------------------------------------------------------------
 // Component
@@ -324,7 +328,7 @@ export default function FieldOrderDialog({
 
   return (
     <div className="fo-overlay" onClick={onClose}>
-      <div className="fo-dialog" onClick={(e) => e.stopPropagation()}>
+      <div className="fo-dialog" role="dialog" aria-modal="true" aria-label="Field order" onClick={(e) => e.stopPropagation()}>
 
         {/* Header with layout selector */}
         <div className="fo-header">
@@ -465,6 +469,7 @@ export default function FieldOrderDialog({
                 onPointerDown={(e) => handlePointerDown(idx, e)}
                 onPointerUp={handlePointerUp}
                 onPointerEnter={() => handlePointerEnter(idx)}
+                onDoubleClick={(e) => { e.stopPropagation(); toggleVisible(field); }}
                 className={rowClasses}
               >
 
@@ -478,10 +483,10 @@ export default function FieldOrderDialog({
                   className={[
                     'fo-field-name',
                     !isVisible ? 'fo-field-name--hidden' : '',
-                    beh.type === 'json' && sampleRecord?.[field] ? 'fo-field-name--expandable' : '',
+                    JSON_TYPES.includes(beh.type) && sampleRecord?.[field] ? 'fo-field-name--expandable' : '',
                   ].filter(Boolean).join(' ')}
                   onPointerDown={(e) => {
-                    if (beh.type === 'json' && sampleRecord?.[field] && typeof sampleRecord[field] === 'object') {
+                    if (JSON_TYPES.includes(beh.type) && sampleRecord?.[field] && typeof sampleRecord[field] === 'object') {
                       e.stopPropagation();
                       setExpandedJsonFields(prev => {
                         const next = new Set(prev);
@@ -491,7 +496,7 @@ export default function FieldOrderDialog({
                     }
                   }}
                 >
-                  {beh.type === 'json' && sampleRecord?.[field] && typeof sampleRecord[field] === 'object' && (
+                  {JSON_TYPES.includes(beh.type) && sampleRecord?.[field] && typeof sampleRecord[field] === 'object' && (
                     <span className="fo-json-chevron">{expandedJsonFields.has(field) ? '▼' : '▶'}</span>
                   )}
                   {field}
@@ -545,46 +550,31 @@ export default function FieldOrderDialog({
               </div>
 
               {/* JSON object tree — shown when field is expanded */}
-              {beh.type === 'json' && expandedJsonFields.has(field) && sampleRecord?.[field] && typeof sampleRecord[field] === 'object' && (() => {
-                const renderTree = (obj: any, prefix: string, depth: number): React.ReactNode[] => {
-                  if (!obj || typeof obj !== 'object') return [];
-                  return Object.entries(obj).map(([key, val]) => {
-                    const path = `${prefix}.${key}`;
-                    const isObj = val && typeof val === 'object' && !Array.isArray(val);
-                    const isArr = Array.isArray(val);
-                    const display = isObj ? '{ }' : isArr ? `[${val.length}]` : String(val ?? '—');
-                    const truncated = display.length > 40 ? display.slice(0, 40) + '…' : display;
-                    const isSelected = visible.has(path);
-                    return (
-                      <React.Fragment key={path}>
-                        <div
-                          className={`fo-json-row ${isSelected ? 'fo-json-row--selected' : ''}`}
-                          style={{ paddingLeft: 26 + depth * 16 }}
-                          onPointerDown={(e) => e.stopPropagation()}
-                        >
-                          <span className="fo-check-col">
-                            <input type="checkbox" checked={isSelected}
-                              onChange={() => {
-                                setVisible(prev => { const next = new Set(prev); next.has(path) ? next.delete(path) : next.add(path); return next; });
-                                if (!order.includes(path)) setOrder(prev => [...prev, path]);
-                                setHasChanges(true);
-                              }}
-                            />
-                          </span>
-                          <span className={`fo-json-key ${isSelected ? 'fo-json-key--selected' : ''}`}>
-                            {key}
-                          </span>
-                          <span className={`fo-json-value ${isObj ? 'fo-json-value--object' : ''}`}>
-                            {truncated}
-                          </span>
-                        </div>
-                        {isObj && renderTree(val, path, depth + 1)}
-                      </React.Fragment>
-                    );
-                  });
-                };
-                return renderTree(sampleRecord[field], field, 0);
-              })()}
+              {JSON_TYPES.includes(beh.type) && expandedJsonFields.has(field) && sampleRecord?.[field] && typeof sampleRecord[field] === 'object' && (
+                <div onPointerDown={(e) => e.stopPropagation()} style={{ paddingLeft: 20 }}>
+                  <JsonLeafSelectorTree
+                    data={sampleRecord[field]}
+                    parentField={field}
+                    selected={visible}
+                    fieldBehaviors={fieldBehaviors}
+                    onToggle={(path, isSelected) => {
+                      setVisible(prev => {
+                        const next = new Set(prev);
+                        if (isSelected) {
+                          next.add(path);
+                          // Uncheck parent — selecting a leaf means you want the leaf, not the blob
+                          next.delete(field);
+                        } else {
+                          next.delete(path);
+                        }
+                        return next;
+                      });
+                      if (!order.includes(path)) setOrder(prev => [...prev, path]);
+                      setHasChanges(true);
+                    }}
+                  />
+                </div>
+              )}
               </React.Fragment>
             );
           })}

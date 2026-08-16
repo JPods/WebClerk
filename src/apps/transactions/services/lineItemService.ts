@@ -10,7 +10,7 @@
  * - Purchase transactions: cost.unit is the primary value
  */
 
-import { wcapi } from '../../../api/wcapi';
+import { wcapi } from "@/api/wcapi";
 import type { TransactionLine } from '../types/transactionTypes';
 import {
   ItemSearchResult,

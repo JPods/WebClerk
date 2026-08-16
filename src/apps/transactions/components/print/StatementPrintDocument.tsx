@@ -53,26 +53,26 @@ export default function StatementPrintDocument({ data }: { data: StatementData }
   const { company, customer, aging_summary: aging, lines, statement_date, message } = data;
 
   return (
-    <div className="print-page" style={{ fontFamily: 'Helvetica, Arial, sans-serif', fontSize: 11, color: '#222', padding: '0.5in 0.75in' }}>
+    <div className="print-page">
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div className="print-header-plain">
         <div>
-          {company.logo_url && <img src={company.logo_url} alt="" style={{ maxHeight: 50, marginBottom: 8 }} />}
-          <div style={{ fontWeight: 700, fontSize: 14 }}>{company.name}</div>
+          {company.logo_url && <img src={company.logo_url} alt="" className="print-logo" />}
+          <div className="print-company-name">{company.name}</div>
           <div>{company.address}</div>
           <div>{company.city_state_zip}</div>
           <div>{company.phone}</div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 22, fontWeight: 700 }}>Statement: {statement_date}</div>
-          <div style={{ color: '#666' }}>{company.name}</div>
+        <div className="print-right">
+          <div className="print-text-title-lg">Statement: {statement_date}</div>
+          <div className="print-text-muted">{company.name}</div>
         </div>
       </div>
 
       {/* Customer + Message */}
-      <div style={{ display: 'flex', gap: 24, marginBottom: 16, border: '1px solid #ccc', padding: 12 }}>
-        <div style={{ flex: 1 }}>
+      <div className="print-box print-flex print-gap-sm print-mb-xl">
+        <div className="print-flex-1">
           {customer.attention && <div><strong>Attention:</strong> {customer.attention}</div>}
           {customer.company && <div><strong>Company:</strong> {customer.company}</div>}
           {customer.address1 && <div>{customer.address1}</div>}
@@ -81,12 +81,12 @@ export default function StatementPrintDocument({ data }: { data: StatementData }
           {customer.phone && <div><strong>Phone:</strong> {customer.phone}</div>}
           {customer.email && <div><strong>Fax:</strong> {customer.email}</div>}
         </div>
-        <div style={{ flex: 1, borderLeft: '1px solid #ccc', paddingLeft: 16 }}>
-          <div style={{ fontSize: 10, marginBottom: 8 }}>
+        <div className="print-flex-1 print-border-left">
+          <div className="print-text-sm print-mb-md">
             {message || 'Our records show that we have yet to receive payments for the invoice(s) list below. These invoices are critically overdue. Immediate payment is required to maintain our business relationship.'}
           </div>
-          <div style={{ fontSize: 10, borderTop: '1px solid #ccc', paddingTop: 8 }}>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>Response Area</div>
+          <div className="print-text-sm print-border-top">
+            <div className="print-semibold print-mb-sm">Response Area</div>
             <div>○ The check is in the mail.</div>
             <div>○ I don't have copies of invoices. (✓ needed invoices)</div>
             <div>○ Payment is due to be mailed on ____________.</div>
@@ -96,63 +96,63 @@ export default function StatementPrintDocument({ data }: { data: StatementData }
       </div>
 
       {/* Aging Summary */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 16 }}>
+      <table className="print-table">
         <thead>
-          <tr style={{ borderBottom: '2px solid #000' }}>
-            <th style={{ textAlign: 'right', padding: '4px 8px' }}></th>
-            <th style={{ textAlign: 'right', padding: '4px 8px' }}>Balance Due</th>
-            <th style={{ textAlign: 'right', padding: '4px 8px' }}>Current</th>
-            <th style={{ textAlign: 'right', padding: '4px 8px' }}>1 to 30 Days<br/>Past Due</th>
-            <th style={{ textAlign: 'right', padding: '4px 8px' }}>31 to 60 Days<br/>Past Due</th>
-            <th style={{ textAlign: 'right', padding: '4px 8px' }}>61+ Days<br/>Past Due</th>
+          <tr className="print-thead-row">
+            <th className="print-td-aging"></th>
+            <th className="print-td-aging">Balance Due</th>
+            <th className="print-td-aging">Current</th>
+            <th className="print-td-aging">1 to 30 Days<br/>Past Due</th>
+            <th className="print-td-aging">31 to 60 Days<br/>Past Due</th>
+            <th className="print-td-aging">61+ Days<br/>Past Due</th>
           </tr>
         </thead>
         <tbody>
-          <tr style={{ borderBottom: '1px solid #ccc', fontWeight: 700 }}>
-            <td style={{ textAlign: 'right', padding: '4px 8px' }}>Totals:</td>
-            <td style={{ textAlign: 'right', padding: '4px 8px' }}>{fmt(aging.balance_due)}</td>
-            <td style={{ textAlign: 'right', padding: '4px 8px' }}>{fmt(aging.current)}</td>
-            <td style={{ textAlign: 'right', padding: '4px 8px' }}>{fmt(aging.past_1_30)}</td>
-            <td style={{ textAlign: 'right', padding: '4px 8px' }}>{fmt(aging.past_31_60)}</td>
-            <td style={{ textAlign: 'right', padding: '4px 8px' }}>{fmt(aging.past_61)}</td>
+          <tr className="print-row print-bold">
+            <td className="print-td-aging">Totals:</td>
+            <td className="print-td-aging">{fmt(aging.balance_due)}</td>
+            <td className="print-td-aging">{fmt(aging.current)}</td>
+            <td className="print-td-aging">{fmt(aging.past_1_30)}</td>
+            <td className="print-td-aging">{fmt(aging.past_31_60)}</td>
+            <td className="print-td-aging">{fmt(aging.past_61)}</td>
           </tr>
         </tbody>
       </table>
 
       {/* Transaction Details */}
-      <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>Transaction Details:</div>
-      <div style={{ fontSize: 9, color: '#666', marginBottom: 4 }}>- - - - - - - - - Transaction - - - - - - - - -</div>
+      <div className="print-bold print-text-lg print-mb-sm">Transaction Details:</div>
+      <div className="print-text-xs print-text-muted print-mb-sm">- - - - - - - - - Transaction - - - - - - - - -</div>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
+      <table className="print-table-detail">
         <thead>
-          <tr style={{ borderBottom: '1px solid #000' }}>
-            <th style={{ textAlign: 'left', padding: '3px 4px' }}>Type</th>
-            <th style={{ textAlign: 'left', padding: '3px 4px' }}>Number</th>
-            <th style={{ textAlign: 'left', padding: '3px 4px' }}>Date</th>
-            <th style={{ textAlign: 'right', padding: '3px 4px' }}>Total</th>
-            <th style={{ textAlign: 'right', padding: '3px 4px' }}>Balance</th>
-            <th style={{ textAlign: 'right', padding: '3px 4px' }}>Current</th>
-            <th style={{ textAlign: 'right', padding: '3px 4px' }}>1-30</th>
-            <th style={{ textAlign: 'right', padding: '3px 4px' }}>31-60</th>
-            <th style={{ textAlign: 'right', padding: '3px 4px' }}>61+</th>
-            <th style={{ textAlign: 'right', padding: '3px 4px' }}>Finance</th>
-            <th style={{ textAlign: 'right', padding: '3px 4px' }}>Days</th>
+          <tr className="print-row">
+            <th className="print-th-compact">Type</th>
+            <th className="print-th-compact">Number</th>
+            <th className="print-th-compact">Date</th>
+            <th className="print-th-compact-r">Total</th>
+            <th className="print-th-compact-r">Balance</th>
+            <th className="print-th-compact-r">Current</th>
+            <th className="print-th-compact-r">1-30</th>
+            <th className="print-th-compact-r">31-60</th>
+            <th className="print-th-compact-r">61+</th>
+            <th className="print-th-compact-r">Finance</th>
+            <th className="print-th-compact-r">Days</th>
           </tr>
         </thead>
         <tbody>
           {lines.map((line, i) => (
-            <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
-              <td style={{ padding: '3px 4px' }}>{line.type}</td>
-              <td style={{ padding: '3px 4px' }}>{line.number}</td>
-              <td style={{ padding: '3px 4px' }}>{line.date}</td>
-              <td style={{ textAlign: 'right', padding: '3px 4px' }}>{fmt(line.total)}</td>
-              <td style={{ textAlign: 'right', padding: '3px 4px' }}>{fmt(line.balance)}</td>
-              <td style={{ textAlign: 'right', padding: '3px 4px' }}>{fmt(line.current)}</td>
-              <td style={{ textAlign: 'right', padding: '3px 4px' }}>{fmt(line.past_1_30)}</td>
-              <td style={{ textAlign: 'right', padding: '3px 4px' }}>{fmt(line.past_31_60)}</td>
-              <td style={{ textAlign: 'right', padding: '3px 4px' }}>{fmt(line.past_61)}</td>
-              <td style={{ textAlign: 'right', padding: '3px 4px' }}>{fmt(line.finance)}</td>
-              <td style={{ textAlign: 'right', padding: '3px 4px' }}>{line.days}</td>
+            <tr key={i} className="print-row-light">
+              <td className="print-td-compact">{line.type}</td>
+              <td className="print-td-compact">{line.number}</td>
+              <td className="print-td-compact">{line.date}</td>
+              <td className="print-td-compact-r">{fmt(line.total)}</td>
+              <td className="print-td-compact-r">{fmt(line.balance)}</td>
+              <td className="print-td-compact-r">{fmt(line.current)}</td>
+              <td className="print-td-compact-r">{fmt(line.past_1_30)}</td>
+              <td className="print-td-compact-r">{fmt(line.past_31_60)}</td>
+              <td className="print-td-compact-r">{fmt(line.past_61)}</td>
+              <td className="print-td-compact-r">{fmt(line.finance)}</td>
+              <td className="print-td-compact-r">{line.days}</td>
             </tr>
           ))}
         </tbody>

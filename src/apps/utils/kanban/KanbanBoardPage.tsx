@@ -13,12 +13,11 @@ import type { DragItem, DropResult } from "./dndTypes";
 import { DRAG_TYPE_TASK } from "./dndTypes";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry, TaskAttachment, TaskFormFieldValue } from "./taskFormTypes";
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "./type/kanban";
-import { Actions, patchAction } from "../../../api/userProfile";
-import { getRecords, manageAction, saveRecord, uploadDocument } from "../../../api/wcapi";
+import { getRecords, manageAction, saveRecord, uploadDocument } from "@/api/wcapi";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
 import { Link, useSearchParams } from "react-router";
 import { PageRoutes } from "../../../routes/Routes";
-import RippleLoader from "@/components/common/RippleLoader";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { NetworkInfo } from "@/routes/network";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import { formatDt } from '@/utils/fieldFormatters';
@@ -1369,8 +1368,7 @@ const KanbanBoardPage: React.FC = () => {
       return;
     }
 
-    await patchAction({
-      model_name: "action",
+    await saveRecord("action", {
       id: actionId,
       "refs.attachments_sha256": {
         mode: "update",
@@ -1477,7 +1475,6 @@ const KanbanBoardPage: React.FC = () => {
 
       // Build complete payload with all necessary fields
       const entry: Record<string, unknown> = {
-        model_name: "action",
         id: targetTask.id,
         kanban_column: destinationColumn.title,
         kanban_column_id: destinationColumn.id,
@@ -1512,7 +1509,7 @@ const KanbanBoardPage: React.FC = () => {
       console.log("Dragging task - payload:", entry);
 
       try {
-        const response = await patchAction(entry);
+        const response = await saveRecord("action", entry);
         console.log("Drag persist response:", response);
       } catch (error) {
         console.error("Failed to persist kanban reorder", error);
@@ -1527,8 +1524,7 @@ const KanbanBoardPage: React.FC = () => {
     const payloadId = Number.isNaN(parsedId) ? taskId : parsedId;
 
     try {
-      const response = await patchAction({
-        model_name: "action",
+      await saveRecord("action", {
         id: payloadId,
         is_deleted: { mode: "update", value: true },
         is_active: { mode: "update", value: false },
@@ -1537,20 +1533,10 @@ const KanbanBoardPage: React.FC = () => {
         kanban_column_id: { mode: "update", value: "column-removed" },
       });
 
-      const body: any = (response as any)?.data ?? response;
-      if ((response as any)?.status !== 200 && (response as any)?.status !== 201) {
-        throw new Error("Failed to remove task.");
-      }
-      if (body?.status === "fail") {
-        const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
-        throw new Error(details || "Backend rejected the remove request.");
-      }
-
       return { success: true } as const;
     } catch (error) {
       console.error("Failed to remove kanban task", error);
       const message =
-        (error as any)?.response?.data?.message ||
         (error as any)?.message ||
         "Unable to remove task. Please try again.";
       return { success: false, error: message } as const;
@@ -1667,11 +1653,8 @@ const KanbanBoardPage: React.FC = () => {
       }
 
       console.log("fetchActions - params:", params);
-      const response = await Actions(Object.keys(params).length ? params : undefined);
+      const response = await getRecords("action", Object.keys(params).length ? params : undefined);
       console.log("fetchActions - raw response:", response);
-      if (!response || response.status !== 200) {
-        throw new Error("Request failed");
-      }
 
       let items = extractKanbanItems(response);
       console.log("fetchActions - items count:", Array.isArray(items) ? items.length : 0);
@@ -2482,9 +2465,9 @@ const KanbanBoardPage: React.FC = () => {
           return;
         }
 
-        const response = await patchAction(result.payload);
-        console.log("Create task response:", response);
-        const body: any = (response as any)?.data ?? response;
+        const { model_name: _mn, ...savePayload } = result.payload;
+        const body: any = await saveRecord("action", savePayload);
+        console.log("Create task response:", body);
 
         if (body?.status === "fail") {
           const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
@@ -2510,9 +2493,7 @@ const KanbanBoardPage: React.FC = () => {
 
         const createdIdCandidate =
           bulkCreatedId ??
-          body?.data?.id ??
           body?.id ??
-          body?.data?.record?.id ??
           body?.record?.id;
         const createdTaskId = Number(createdIdCandidate);
 
@@ -2599,7 +2580,8 @@ const KanbanBoardPage: React.FC = () => {
           // ignore
         }
 
-        await patchAction(result.payload);
+        const { model_name: _mn2, ...editSavePayload } = result.payload;
+        await saveRecord("action", editSavePayload);
 
         const pendingUploads = (editTaskState.attachments || []).filter((attachment) => attachment.file instanceof File);
         const uploadedAttachments: TaskAttachment[] = [];
@@ -2786,7 +2768,7 @@ const KanbanBoardPage: React.FC = () => {
         <TrashDropZone isDeleting={isTrashDeleting} />
         {isLoading ? (
           <div className="flex justify-center items-center h-[50vh] rounded-3xl border border-dashed border-gray-300 text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">
-            <RippleLoader />
+            <LoadingSpinner size="lg" label="Loading..." />
           </div>
         ) : columns.length === 0 ? (
           <div className="flex h-56 items-center justify-center rounded-3xl border border-dashed border-gray-300 text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">

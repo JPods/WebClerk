@@ -12,14 +12,14 @@ const CustomPageLoader: React.FC = () => {
   const { page } = useParams<{ page: string }>();
 
   if (!page) {
-    return <div style={{ padding: 40 }}>No page specified.</div>;
+    return <div className="p-10">No page specified.</div>;
   }
 
   const Component = customPages[page];
 
   if (!Component) {
     return (
-      <div style={{ padding: 40 }}>
+      <div className="p-10">
         <h2>Custom page not found: {page}</h2>
         <p>Register it in <code>src/custom/index.ts</code></p>
         <p>Available pages: {Object.keys(customPages).join(', ') || 'none'}</p>
@@ -28,7 +28,7 @@ const CustomPageLoader: React.FC = () => {
   }
 
   return (
-    <Suspense fallback={<div style={{ padding: 40 }}>Loading...</div>}>
+    <Suspense fallback={<div className="p-10">Loading...</div>}>
       <Component />
     </Suspense>
   );

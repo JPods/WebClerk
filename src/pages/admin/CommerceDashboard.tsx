@@ -14,6 +14,7 @@
  *   POST /wcapi/manage/ { action: "get_accounting_dashboard", params: {...} }
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { getUI, setUI } from '@/utils/contactUI';
 import apiClient from '../../api/axios';
 import { getRecords } from '../../api/wcapi';
 import DataGrid from '../../components/common/DataGrid';
@@ -61,7 +62,7 @@ export default function CommerceDashboard() {
   const [data, setData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>(() =>
-    (localStorage.getItem('db-theme') as 'dark' | 'light') || 'dark'
+    getUI<'dark' | 'light'>('theme.active', 'dark')
   );
 
   const updateFilter = (key: keyof Filters, value: string | number) => {
@@ -119,7 +120,7 @@ export default function CommerceDashboard() {
           <button className="cd-btn cd-btn--ghost" onClick={fetchData}>Refresh</button>
           <button className="cd-btn cd-btn--ghost" onClick={() => {
             const n = theme === 'dark' ? 'light' : 'dark';
-            setTheme(n); localStorage.setItem('db-theme', n);
+            setTheme(n); setUI('theme.active', n);
           }}>{theme === 'dark' ? 'Light' : 'Dark'}</button>
         </div>
       </header>
@@ -202,7 +203,6 @@ function MetricCard({ label, value, sub, active, onClick }: {
     <div
       className={`cd-metric ${onClick ? 'cd-metric--clickable' : ''} ${active ? 'cd-metric--active' : ''}`}
       onClick={onClick}
-      style={onClick ? { cursor: 'pointer' } : undefined}
     >
       <div className="cd-metric-value">{value}</div>
       <div className="cd-metric-label">{label}</div>
@@ -240,13 +240,13 @@ function MarginDistribution({ distribution }: { distribution: any }) {
           <tr>
             <th></th>
             <th>Range</th>
-            <th style={{ textAlign: 'right' }}>Lines</th>
-            <th style={{ textAlign: 'right' }}>Revenue</th>
-            <th style={{ textAlign: 'right' }}>Cost</th>
-            <th style={{ textAlign: 'right' }}>Tax</th>
-            <th style={{ textAlign: 'right' }}>Commission</th>
-            <th style={{ textAlign: 'right' }}>Margin</th>
-            <th style={{ textAlign: 'right' }}>Margin %</th>
+            <th className="cd-align-right">Lines</th>
+            <th className="cd-align-right">Revenue</th>
+            <th className="cd-align-right">Cost</th>
+            <th className="cd-align-right">Tax</th>
+            <th className="cd-align-right">Commission</th>
+            <th className="cd-align-right">Margin</th>
+            <th className="cd-align-right">Margin %</th>
           </tr>
         </thead>
         <tbody>
@@ -254,28 +254,28 @@ function MarginDistribution({ distribution }: { distribution: any }) {
             <tr key={i}>
               <td><span className="cd-margin-dist-dot" style={{ backgroundColor: colors[i] }} /></td>
               <td>{b.label}</td>
-              <td style={{ textAlign: 'right' }}>{b.count}</td>
-              <td style={{ textAlign: 'right' }}>{$(b.revenue)}</td>
-              <td style={{ textAlign: 'right' }}>{$(b.cost)}</td>
-              <td style={{ textAlign: 'right' }}>{$(b.tax)}</td>
-              <td style={{ textAlign: 'right' }}>{$(b.commission)}</td>
-              <td style={{ textAlign: 'right' }}>{$(b.margin)}</td>
-              <td style={{ textAlign: 'right' }}>{b.margin_pct}%</td>
+              <td className="cd-align-right">{b.count}</td>
+              <td className="cd-align-right">{$(b.revenue)}</td>
+              <td className="cd-align-right">{$(b.cost)}</td>
+              <td className="cd-align-right">{$(b.tax)}</td>
+              <td className="cd-align-right">{$(b.commission)}</td>
+              <td className="cd-align-right">{$(b.margin)}</td>
+              <td className="cd-align-right">{b.margin_pct}%</td>
             </tr>
           ))}
         </tbody>
         {totals && (
           <tfoot>
-            <tr style={{ fontWeight: 700, borderTop: '2px solid var(--db-border)' }}>
+            <tr className="cd-table-footer">
               <td></td>
               <td>Total</td>
-              <td style={{ textAlign: 'right' }}>{total}</td>
-              <td style={{ textAlign: 'right' }}>{$(totals.revenue)}</td>
-              <td style={{ textAlign: 'right' }}>{$(totals.cost)}</td>
-              <td style={{ textAlign: 'right' }}>{$(totals.tax)}</td>
-              <td style={{ textAlign: 'right' }}>{$(totals.commission)}</td>
-              <td style={{ textAlign: 'right' }}>{$(totals.margin)}</td>
-              <td style={{ textAlign: 'right' }}>{totals.revenue ? `${((totals.margin / totals.revenue) * 100).toFixed(1)}%` : '—'}</td>
+              <td className="cd-align-right">{total}</td>
+              <td className="cd-align-right">{$(totals.revenue)}</td>
+              <td className="cd-align-right">{$(totals.cost)}</td>
+              <td className="cd-align-right">{$(totals.tax)}</td>
+              <td className="cd-align-right">{$(totals.commission)}</td>
+              <td className="cd-align-right">{$(totals.margin)}</td>
+              <td className="cd-align-right">{totals.revenue ? `${((totals.margin / totals.revenue) * 100).toFixed(1)}%` : '—'}</td>
             </tr>
           </tfoot>
         )}

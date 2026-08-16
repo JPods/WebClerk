@@ -4,6 +4,8 @@
  * Standalone page at /cycle-count — no login sidebar, no desktop chrome.
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import apiClient from "@/api/axios";
+import "@/pages/admin/DataBrowser.css";
 
 interface CountEntry {
   item_id: number;
@@ -33,12 +35,6 @@ export default function CycleCountMobile() {
     scanRef.current?.focus();
   }, []);
 
-  const getToken = () =>
-    document.cookie
-      .split("; ")
-      .find((c) => c.startsWith("access_token="))
-      ?.split("=")[1];
-
   // Look up item by scan (ida, barcode, or QR code content)
   const lookupItem = useCallback(async (code: string) => {
     if (!code.trim()) return;
@@ -46,16 +42,12 @@ export default function CycleCountMobile() {
     setMessage("");
 
     try {
-      const token = getToken();
       // Search by ida/sku
-      const resp = await fetch(
-        `/wcapi/get/?model_name=item&keyword=${encodeURIComponent(code.trim())}&limit=1`,
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          credentials: "include",
-        }
+      const resp = await apiClient.get(
+        `/wcapi/get/`,
+        { params: { model_name: "item", keyword: code.trim(), limit: 1 } }
       );
-      const result = await resp.json();
+      const result = resp.data;
       const items = result.data || result.results || [];
 
       if (!items.length) {
@@ -75,14 +67,11 @@ export default function CycleCountMobile() {
       }
 
       // Get layers for this item
-      const layerResp = await fetch(
-        `/api/products/inventory/layers/?item_id=${itemId}`,
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          credentials: "include",
-        }
+      const layerResp = await apiClient.get(
+        `/wcapi/products/inventory/layers/`,
+        { params: { item_id: itemId } }
       );
-      const layerResult = await layerResp.json();
+      const layerResult = layerResp.data;
       const layers = (layerResult.data || []).filter((l: any) => l.remaining > 0);
 
       if (layers.length === 0) {
@@ -200,7 +189,6 @@ export default function CycleCountMobile() {
     setMessage("");
 
     try {
-      const token = getToken();
       const byWarehouse: Record<number, any[]> = {};
       for (const d of diffs) {
         const wid = d.warehouse_id || 0;
@@ -215,16 +203,11 @@ export default function CycleCountMobile() {
 
       let total = 0;
       for (const [whId, lines] of Object.entries(byWarehouse)) {
-        const resp = await fetch("/api/products/inventory/adjust/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          credentials: "include",
-          body: JSON.stringify({ warehouse_id: Number(whId), lines }),
+        const resp = await apiClient.post("/wcapi/products/inventory/adjust/", {
+          warehouse_id: Number(whId),
+          lines,
         });
-        const result = await resp.json();
+        const result = resp.data;
         total += (result.data?.applied || 0);
       }
 
@@ -247,20 +230,19 @@ export default function CycleCountMobile() {
 
   return (
     <div
+      className="db-root"
+      data-theme="dark"
       style={{
         maxWidth: 480,
         margin: "0 auto",
         padding: "12px 8px",
-        fontFamily: "system-ui, sans-serif",
         minHeight: "100vh",
-        background: "#0f0f0f",
-        color: "#e0e0e0",
       }}
     >
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+      <div className="db-flex-between" style={{ marginBottom: 12 }}>
         <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Cycle Count</h1>
-        <span style={{ fontSize: 11, color: "#888" }}>
+        <span className="db-text-muted db-font-sm">
           {entries.length} item{entries.length !== 1 ? "s" : ""}
         </span>
       </div>
@@ -279,27 +261,13 @@ export default function CycleCountMobile() {
               lookupItem(scanInput);
             }
           }}
-          style={{
-            flex: 1,
-            padding: "10px 12px",
-            borderRadius: 8,
-            border: "1px solid #444",
-            background: "#1a1a1a",
-            color: "#e0e0e0",
-            fontSize: 16,
-          }}
+          className="db-input"
+          style={{ flex: 1, padding: "10px 12px", borderRadius: 8, fontSize: 16 }}
         />
         <button
           onClick={() => (cameraActive ? stopCamera() : startCamera())}
-          style={{
-            padding: "10px 14px",
-            borderRadius: 8,
-            border: "none",
-            background: cameraActive ? "#ef4444" : "#2563eb",
-            color: "#fff",
-            fontSize: 18,
-            cursor: "pointer",
-          }}
+          className={cameraActive ? "db-btn db-btn--danger" : "db-btn db-btn--primary"}
+          style={{ padding: "10px 14px", borderRadius: 8, fontSize: 18 }}
           title={cameraActive ? "Stop camera" : "Scan barcode"}
         >
           {cameraActive ? "X" : "\u{1F4F7}"}
@@ -353,21 +321,21 @@ export default function CycleCountMobile() {
                   : "#1a1a1a",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ fontWeight: 700, fontSize: 14 }}>{entry.ida}</span>
-              <span style={{ fontSize: 11, color: "#888" }}>{entry.warehouse_name}</span>
+            <div className="db-flex-between" style={{ marginBottom: 4 }}>
+              <span className="db-font-bolder" style={{ fontSize: 14 }}>{entry.ida}</span>
+              <span className="db-text-muted db-font-sm">{entry.warehouse_name}</span>
             </div>
-            <div style={{ fontSize: 12, color: "#999", marginBottom: 6 }}>
+            <div className="db-text-muted" style={{ fontSize: 12, marginBottom: 6 }}>
               {entry.name}
-              {entry.location && <span style={{ marginLeft: 8, color: "#666" }}>Loc: {entry.location}</span>}
+              {entry.location && <span className="db-text-dim" style={{ marginLeft: 8 }}>Loc: {entry.location}</span>}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 10, color: "#666", textTransform: "uppercase" }}>Expected</div>
-                <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "monospace" }}>{entry.expected}</div>
+                <div className="db-text-dim db-font-xs" style={{ textTransform: "uppercase" }}>Expected</div>
+                <div className="db-font-bolder db-font-mono" style={{ fontSize: 20 }}>{entry.expected}</div>
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 10, color: "#666", textTransform: "uppercase" }}>Actual</div>
+                <div className="db-text-dim db-font-xs" style={{ textTransform: "uppercase" }}>Actual</div>
                 <input
                   type="number"
                   inputMode="numeric"
@@ -377,29 +345,25 @@ export default function CycleCountMobile() {
                     const v = e.target.value;
                     updateActual(idx, v === "" ? null : Number(v));
                   }}
+                  className="db-input db-font-bolder db-font-mono"
                   style={{
                     width: "100%",
                     padding: "6px 8px",
                     borderRadius: 6,
-                    border: "1px solid #555",
-                    background: "#0f0f0f",
                     color: "#fff",
                     fontSize: 20,
-                    fontWeight: 700,
-                    fontFamily: "monospace",
                     textAlign: "center",
                   }}
                 />
               </div>
               <div style={{ width: 60, textAlign: "right" }}>
-                <div style={{ fontSize: 10, color: "#666", textTransform: "uppercase" }}>Variance</div>
+                <div className="db-text-dim db-font-xs" style={{ textTransform: "uppercase" }}>Variance</div>
                 <div
+                  className="db-font-bolder db-font-mono"
                   style={{
                     fontSize: 20,
-                    fontWeight: 700,
-                    fontFamily: "monospace",
                     color:
-                      entry.variance > 0 ? "#22c55e" : entry.variance < 0 ? "#ef4444" : "#555",
+                      entry.variance > 0 ? "var(--db-accent-green)" : entry.variance < 0 ? "var(--db-accent-red)" : "var(--db-text-dim)",
                   }}
                 >
                   {entry.actual !== null
@@ -413,34 +377,23 @@ export default function CycleCountMobile() {
       </div>
 
       {entries.length === 0 && (
-        <div
-          style={{
-            textAlign: "center",
-            padding: 40,
-            color: "#555",
-            fontSize: 14,
-          }}
-        >
+        <div className="db-text-dim" style={{ textAlign: "center", padding: 40, fontSize: 14 }}>
           Scan an item barcode or type an item number to start counting.
         </div>
       )}
 
       {/* Apply button — fixed at bottom */}
       {entries.length > 0 && (
-        <div style={{ position: "sticky", bottom: 0, padding: "12px 0", background: "#0f0f0f" }}>
+        <div className="db-bg" style={{ position: "sticky", bottom: 0, padding: "12px 0" }}>
           <button
             onClick={applyAll}
             disabled={!hasVariances || applying}
+            className={`db-btn db-font-bolder ${hasVariances ? "db-btn--primary" : ""}`}
             style={{
               width: "100%",
               padding: "14px 0",
               borderRadius: 10,
-              border: "none",
-              background: hasVariances ? "#2563eb" : "#222",
-              color: hasVariances ? "#fff" : "#555",
               fontSize: 16,
-              fontWeight: 700,
-              cursor: hasVariances ? "pointer" : "default",
             }}
           >
             {applying ? "Applying..." : `Apply ${entries.filter((e) => e.actual !== null && e.variance !== 0).length} Variance(s)`}

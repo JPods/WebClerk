@@ -16,9 +16,9 @@
   --db-surface-alt: #2d2d2d;
   --db-border: #3c3c3c;
   --db-border-light: #4d4d4d;
-  --db-text: #d4d4d4;
-  --db-text-muted: #888;
-  --db-text-dim: #666;
+  --db-text: #ececec;
+  --db-text-muted: #a0a0a0;
+  --db-text-dim: #787878;
   --db-accent: #9cdcfe;
   --db-accent-green: #4ec98c;
   --db-accent-gold: #e8c870;
@@ -72,7 +72,7 @@
 .db-detail-pane[data-theme="dark"] {
   --db-bg: #1e1e1e; --db-surface: #252526; --db-surface-alt: #2d2d2d;
   --db-border: #3c3c3c; --db-border-light: #4d4d4d;
-  --db-text: #d4d4d4; --db-text-muted: #888; --db-text-dim: #666;
+  --db-text: #ececec; --db-text-muted: #a0a0a0; --db-text-dim: #787878;
   --db-accent: #9cdcfe; --db-accent-green: #4ec98c; --db-accent-gold: #e8c870;
   --db-accent-red: #e05252; --db-accent-purple: #c8a8e8;
   --db-btn-bg: #2d2d2d; --db-btn-primary: #0e639c; --db-btn-save: #1a6b2e; --db-btn-danger: #6b1a1a;
@@ -1069,4 +1069,421 @@
   font-weight: 600;
   color: var(--db-text-muted);
   text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------------------
+   Utility classes — replace common inline style={{ }} patterns
+   Generated from audit of 677 inline violations across 39 files.
+   Only patterns appearing 3+ times are included.
+   --------------------------------------------------------------------------- */
+
+/* --- Text colors (single-property) --- */
+.db-text              { color: var(--db-text); }
+.db-text-muted        { color: var(--db-text-muted); }
+.db-text-dim          { color: var(--db-text-dim); }
+.db-text-accent       { color: var(--db-accent); }
+.db-text-green        { color: var(--db-accent-green); }
+.db-text-red          { color: var(--db-accent-red); }
+.db-text-gold         { color: var(--db-accent-gold); }
+.db-text-purple       { color: var(--db-accent-purple); }
+.db-text-border       { color: var(--db-border); }  /* used as separator color */
+
+/* --- Background colors (single-property) --- */
+.db-bg                { background: var(--db-bg); }
+.db-bg-surface        { background: var(--db-surface); }
+.db-bg-surface-alt    { background: var(--db-surface-alt); }
+.db-bg-border         { background: var(--db-border); }
+.db-bg-row-active     { background: var(--db-row-active); }
+
+/* --- Combined background + text --- */
+.db-surface-text         { background: var(--db-surface); color: var(--db-text); }
+.db-surface-alt-text     { background: var(--db-surface-alt); color: var(--db-text); }
+.db-surface-alt-muted    { background: var(--db-surface-alt); color: var(--db-text-muted); }
+.db-surface-alt-gold     { background: var(--db-surface-alt); color: var(--db-accent-gold); }
+.db-row-active-accent    { background: var(--db-row-active); color: var(--db-accent); }
+
+/* --- Borders (single side) --- */
+.db-border-bottom        { border-bottom: 1px solid var(--db-border); }
+.db-border-bottom-light  { border-bottom: 1px solid var(--db-border-light); }
+.db-border-top           { border-top: 1px solid var(--db-border); }
+.db-border-all           { border: 1px solid var(--db-border); }
+.db-border-color         { border-color: var(--db-border); }
+
+/* --- Panel / card containers (background + border combos seen 3+ times) --- */
+.db-panel {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+}
+
+.db-panel-input {
+  background: var(--db-input-bg);
+  border: 1px solid var(--db-input-border);
+}
+
+.db-panel-input-text {
+  background: var(--db-input-bg);
+  border: 1px solid var(--db-input-border);
+  color: var(--db-text);
+}
+
+.db-panel-text {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  color: var(--db-text);
+}
+
+.db-panel-alt {
+  background: var(--db-surface-alt);
+  border: 1px solid var(--db-border);
+}
+
+/* --- Section headers (background + border-bottom combos) --- */
+.db-section-bg {
+  background: var(--db-surface-alt);
+  border-bottom: 1px solid var(--db-border);
+}
+
+/* --- Button combos --- */
+.db-btn-primary-solid {
+  background: var(--db-btn-primary);
+  color: #fff;
+}
+
+/* --- Accent color for checkboxes / range inputs --- */
+.db-accent-color { accent-color: var(--db-accent); }
+
+/* --- Common layout helpers --- */
+.db-flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* --- Font helpers --- */
+.db-font-mono { font-family: monospace; }
+.db-font-xs   { font-size: 10px; }
+.db-font-sm   { font-size: 11px; }
+.db-font-base { font-size: 12px; }
+.db-font-bold { font-weight: 600; }
+.db-font-bolder { font-weight: 700; }
+
+/* --- Status / priority badge bases (used repeatedly in panels) --- */
+.db-badge-gold {
+  color: var(--db-accent-gold);
+  background: var(--db-surface-alt);
+}
+
+.db-badge-accent {
+  color: var(--db-accent);
+  background: var(--db-surface-alt);
+}
+
+.db-badge-green {
+  color: var(--db-accent-green);
+  background: var(--db-surface-alt);
+}
+
+.db-badge-muted {
+  color: var(--db-text-muted);
+  background: var(--db-surface-alt);
+}
+
+.db-badge-red {
+  color: var(--db-accent-red);
+  background: color-mix(in srgb, var(--db-accent-red) 20%, transparent);
+}
+
+.db-badge-gold-tint {
+  color: var(--db-accent-gold);
+  background: color-mix(in srgb, var(--db-accent-gold) 20%, transparent);
+}
+
+.db-badge-purple {
+  color: var(--db-accent-purple);
+  background: var(--db-row-active);
+}
+
+/* ---------------------------------------------------------------------------
+   Apply-to-Selection dropdown (toolbar)
+   --------------------------------------------------------------------------- */
+
+.db-apply-select {
+  font-size: 11px;
+  padding: 2px 4px;
+  background: var(--db-surface-alt);
+  color: var(--db-text);
+  border: 1px solid var(--db-border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------------------
+   Markdown template overlay
+   --------------------------------------------------------------------------- */
+
+.db-md-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.db-md-dialog {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 8px;
+  width: 900px;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.db-md-header {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--db-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.db-md-title {
+  font-weight: 700;
+  color: var(--db-accent);
+}
+
+.db-md-subtitle {
+  font-weight: 400;
+  color: var(--db-text-muted);
+  margin-left: 8px;
+}
+
+.db-md-close {
+  background: none;
+  border: none;
+  color: var(--db-text-muted);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.db-md-body {
+  flex: 1;
+  overflow: auto;
+}
+
+/* ---------------------------------------------------------------------------
+   Harvest bar (statement_line)
+   --------------------------------------------------------------------------- */
+
+.db-harvest-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: var(--db-surface-alt);
+  border-bottom: 1px solid var(--db-border);
+  font-size: 12px;
+}
+
+.db-harvest-label {
+  font-weight: 600;
+  color: var(--db-text-muted);
+  white-space: nowrap;
+}
+
+.db-harvest-input {
+  flex: 1;
+  padding: 3px 8px;
+  font-size: 12px;
+  background: var(--db-input-bg);
+  color: var(--db-text);
+  border: 1px solid var(--db-border);
+  border-radius: 4px;
+}
+
+.db-harvest-btn {
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #ea580c;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.db-harvest-btn:disabled {
+  background: var(--db-border);
+  cursor: wait;
+}
+
+.db-harvest-result {
+  color: var(--db-text-muted);
+  white-space: nowrap;
+}
+
+.db-harvest-error {
+  color: #ef4444;
+}
+
+/* ---------------------------------------------------------------------------
+   Match candidates panel (dedup/merge review)
+   --------------------------------------------------------------------------- */
+
+.db-match-panel {
+  margin-top: 12px;
+  border-top: 1px solid var(--db-border);
+  padding-top: 12px;
+}
+
+.db-match-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.db-match-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--db-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.db-match-delete-btn {
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #991b1b;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.db-match-loading {
+  font-size: 11px;
+  color: var(--db-text-muted);
+  padding: 8px;
+}
+
+.db-match-card {
+  background: var(--db-surface-alt);
+  border: 1px solid var(--db-border);
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.db-match-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--db-border);
+}
+
+.db-match-card-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--db-text);
+}
+
+.db-match-card-id {
+  font-size: 10px;
+  color: var(--db-text-muted);
+  margin-left: 8px;
+}
+
+.db-match-card-reason {
+  font-size: 10px;
+  color: var(--db-accent-gold);
+  margin-left: 8px;
+}
+
+.db-match-merge-btn {
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #166534;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.db-match-open-btn {
+  padding: 3px 8px;
+  font-size: 11px;
+  background: transparent;
+  color: var(--db-text-muted);
+  border: 1px solid var(--db-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.db-match-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+  font-size: 11px;
+}
+
+.db-match-field-label {
+  color: var(--db-text-muted);
+  font-weight: 500;
+}
+
+.db-match-field-value {
+  color: var(--db-text);
+  word-break: break-all;
+}
+
+/* ---------------------------------------------------------------------------
+   Loading fallback (centered muted text)
+   --------------------------------------------------------------------------- */
+
+.db-loading-fallback {
+  padding: 20px;
+  text-align: center;
+  color: var(--db-text-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   TouchBar — icon buttons and channel selector
+   --------------------------------------------------------------------------- */
+
+.touch-icon {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--db-border);
+  background: var(--db-surface-alt);
+  text-decoration: none;
+  display: inline-block;
+  transition: background 0.15s;
+}
+
+.touch-channel-btn {
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--db-border);
+  background: var(--db-surface-alt);
+  color: var(--db-text);
+  font-weight: 400;
+}
+
+.touch-channel-btn--active {
+  border-color: var(--db-accent);
+  background: color-mix(in srgb, var(--db-accent) 13%, transparent);
+  color: var(--db-accent);
+  font-weight: 700;
 }

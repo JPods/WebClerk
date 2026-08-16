@@ -7,6 +7,7 @@
  */
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { JsonTree } from '@/components/widgets/JsonTreeWidget';
+import './JsonTreeApplet.css';
 
 // ── Stats ────────────────────────────────────────────────────────────
 
@@ -39,21 +40,6 @@ const SAMPLE = {
   links: { website: "webclerk.com", source: "bottom-up, locally governed" },
 };
 
-// ── Theme ────────────────────────────────────────────────────────────
-
-const LIGHT = {
-  bg: '#ffffff', surface: '#f8fafc', border: '#e2e8f0', text: '#0f172a',
-  textMuted: '#64748b', textDim: '#94a3b8', primary: '#465fff', danger: '#dc2626',
-  success: '#16a34a', inputBg: '#ffffff', surfaceAlt: '#f1f5f9',
-  codeBg: '#f8fafc', codeText: '#334155',
-};
-const DARK = {
-  bg: '#0f172a', surface: '#1e293b', border: '#334155', text: '#f1f5f9',
-  textMuted: '#94a3b8', textDim: '#64748b', primary: '#60a5fa', danger: '#f87171',
-  success: '#4ade80', inputBg: '#1e293b', surfaceAlt: '#334155',
-  codeBg: '#1e293b', codeText: '#e2e8f0',
-};
-
 export default function JsonTreeApplet() {
   const [code, setCode] = useState(() => JSON.stringify(SAMPLE, null, 2));
   const [data, setData] = useState<any>(SAMPLE);
@@ -68,8 +54,6 @@ export default function JsonTreeApplet() {
   const codeRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const th = dark ? DARK : LIGHT;
 
   // Sync code → tree
   const parseCode = useCallback((text: string) => {
@@ -194,68 +178,57 @@ export default function JsonTreeApplet() {
   };
 
   const stats = error ? null : jsonStats(data);
-
-  const btnStyle: React.CSSProperties = {
-    padding: '5px 12px', borderRadius: 5, fontSize: 12, fontWeight: 500, cursor: 'pointer',
-    border: `1px solid ${th.border}`, background: th.surface, color: th.text,
-    transition: 'background 150ms',
-  };
-  const btnPrimary: React.CSSProperties = { ...btnStyle, background: th.primary, color: '#fff', border: 'none' };
+  const themeAttr = dark ? 'dark' : 'light';
 
   return (
-    <div style={{ minHeight: '100vh', background: th.bg, color: th.text, fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="jt-root" data-jt-theme={themeAttr}>
       {/* Header */}
-      <header style={{ borderBottom: `1px solid ${th.border}`, padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 16, background: th.surface }}>
-        <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>
-          <span style={{ color: th.primary }}>JSON</span> Tree
-        </h1>
+      <header className="jt-header">
+        <h1><span>JSON</span> Tree</h1>
         {filePath ? (
-          <span style={{ fontSize: 12, color: th.text, fontFamily: 'monospace', background: th.surfaceAlt,
-            padding: '2px 10px', borderRadius: 4, border: `1px solid ${th.border}` }}>
-            {filePath}
-          </span>
+          <span className="jt-header-file">{filePath}</span>
         ) : (
-          <span style={{ fontSize: 11, color: th.textDim }}>Paste, explore, edit, format — free, no login, nothing leaves your browser</span>
+          <span className="jt-header-sub">Paste, explore, edit, format — free, no login, nothing leaves your browser</span>
         )}
-        <span style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
+        <span className="jt-header-right">
           {stats && (
-            <span style={{ fontSize: 10, color: th.textDim, fontFamily: 'monospace', marginRight: 8 }}>
+            <span className="jt-stats">
               {stats.keys} keys · depth {stats.depth} · {stats.arrays} arrays · {stats.size}
             </span>
           )}
-          <button style={btnStyle} onClick={() => setDark(!dark)} title="Toggle dark mode">
+          <button className="jt-btn" onClick={() => setDark(!dark)} title="Toggle dark mode">
             {dark ? '☀' : '🌙'}
           </button>
         </span>
       </header>
 
       {/* Toolbar */}
-      <div style={{ borderBottom: `1px solid ${th.border}`, padding: '6px 24px', display: 'flex', gap: 6, background: th.surface, flexWrap: 'wrap' }}>
-        <button style={btnPrimary} onClick={doFormat}>Format</button>
-        <button style={btnStyle} onClick={doMinify}>Minify</button>
-        <button style={btnStyle} onClick={doValidate}>Validate</button>
-        <button style={{ ...btnStyle, ...(copied ? { background: th.success, color: '#fff', border: 'none' } : {}) }} onClick={doCopy}>
+      <div className="jt-toolbar">
+        <button className="jt-btn jt-btn--primary" onClick={doFormat}>Format</button>
+        <button className="jt-btn" onClick={doMinify}>Minify</button>
+        <button className="jt-btn" onClick={doValidate}>Validate</button>
+        <button className={`jt-btn ${copied ? 'jt-btn--copied' : ''}`} onClick={doCopy}>
           {copied ? 'Copied!' : 'Copy'}
         </button>
-        <button style={btnStyle} onClick={doClear}>Clear</button>
-        <button style={btnStyle} onClick={doSample}>Sample</button>
-        <span style={{ width: 1, height: 20, background: th.border, alignSelf: 'center' }} />
-        <button style={btnStyle} onClick={doSave} title="Save as .json file">Save</button>
+        <button className="jt-btn" onClick={doClear}>Clear</button>
+        <button className="jt-btn" onClick={doSample}>Sample</button>
+        <span className="jt-toolbar-divider" />
+        <button className="jt-btn" onClick={doSave} title="Save as .json file">Save</button>
         <button
-          style={{ ...btnStyle, background: th.success, color: '#fff', border: 'none', opacity: posting ? 0.6 : 1 }}
+          className="jt-btn jt-btn--success"
           onClick={doPostBundle}
           disabled={posting || !!error}
+          style={{ opacity: posting ? 0.6 : 1 }}
           title="Post as bundle to WebClerk"
         >
           {posting ? 'Posting...' : 'Post Bundle'}
         </button>
         {postResult && (
-          <span style={{ fontSize: 12, fontFamily: 'monospace', alignSelf: 'center', marginLeft: 4,
-            color: postResult.ok ? th.success : th.danger }}>
+          <span className="jt-toolbar-msg" style={{ color: postResult.ok ? 'var(--jt-success)' : 'var(--jt-danger)' }}>
             {postResult.msg}
           </span>
         )}
-        {error && <span style={{ fontSize: 12, color: th.danger, fontFamily: 'monospace', alignSelf: 'center', marginLeft: 8 }}>{error}</span>}
+        {error && <span className="jt-toolbar-error">{error}</span>}
       </div>
 
       {/* Drop zone */}
@@ -265,63 +238,47 @@ export default function JsonTreeApplet() {
         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
-        style={{
-          margin: '8px 24px', padding: dragOver ? '16px' : '10px', textAlign: 'center', cursor: 'pointer',
-          border: `2px dashed ${dragOver ? th.primary : th.border}`, borderRadius: 6,
-          background: dragOver ? (dark ? 'rgba(96,165,250,0.08)' : 'rgba(70,95,255,0.06)') : 'transparent',
-          color: dragOver ? th.primary : th.textDim, fontSize: 12,
-          transition: 'all 150ms',
-        }}
+        className={`jt-dropzone ${dragOver ? 'jt-dropzone--active' : ''}`}
       >
         {dragOver ? 'Drop JSON file here' : 'Drop a .json file here, or click to browse'}
       </div>
 
       {/* Split pane: code + tree */}
-      <div ref={containerRef} style={{ display: 'flex', height: 'calc(100vh - 175px)', overflow: 'hidden' }}
-        onDragOver={e => e.preventDefault()} onDrop={onDrop}>
+      <div ref={containerRef} className="jt-split" onDragOver={e => e.preventDefault()} onDrop={onDrop}>
 
-        {/* Code editor */}
-        <div style={{ width: `${splitPct}%`, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${th.border}` }}>
-          <div style={{ padding: '4px 12px', fontSize: 10, fontWeight: 600, color: th.textDim, textTransform: 'uppercase', letterSpacing: '0.06em', background: th.surfaceAlt, borderBottom: `1px solid ${th.border}` }}>
-            Code Editor — paste or drop a .json file
-          </div>
+        {/* Code editor — width is dynamic (split drag) */}
+        <div className="jt-code-pane" style={{ width: `${splitPct}%` }}>
+          <div className="jt-pane-label">Code Editor — paste or drop a .json file</div>
           <textarea
             ref={codeRef}
             value={code}
             onChange={e => parseCode(e.target.value)}
             spellCheck={false}
-            style={{
-              flex: 1, resize: 'none', border: 'none', outline: 'none', padding: 16,
-              fontFamily: "'JetBrains Mono', 'Fira Code', monospace", fontSize: 12, lineHeight: 1.6,
-              background: th.codeBg, color: th.codeText, tabSize: 2,
-            }}
+            className="jt-code-editor"
             placeholder='Paste JSON here, or drop a .json file...'
           />
         </div>
 
         {/* Splitter */}
-        <div
-          onMouseDown={onMouseDown}
-          style={{ width: 5, cursor: 'col-resize', background: th.border, flexShrink: 0, transition: 'background 150ms' }}
-        />
+        <div className="jt-splitter" onMouseDown={onMouseDown} />
 
         {/* Tree view */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-          <div style={{ padding: '4px 12px', fontSize: 10, fontWeight: 600, color: th.textDim, textTransform: 'uppercase', letterSpacing: '0.06em', background: th.surfaceAlt, borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
-            Tree View — click values to edit, hover for actions
-          </div>
-          <div style={{ flex: 1, overflow: 'auto', padding: 8, paddingBottom: 60 }}>
+        <div className="jt-tree-pane">
+          <div className="jt-pane-label">Tree View — click values to edit, hover for actions</div>
+          <div className="jt-tree-body">
             {error ? (
-              <div style={{ padding: 32, textAlign: 'center', color: th.textDim, fontSize: 13 }}>
-                Fix the JSON error to see the tree
-              </div>
+              <div className="jt-tree-empty">Fix the JSON error to see the tree</div>
             ) : (
               <JsonTree
                 data={data}
                 onChange={handleTreeChange}
                 defaultExpanded
                 maxHeight="none"
-                theme={{ text: th.text, textMuted: th.textMuted, border: th.border, surfaceAlt: th.surfaceAlt, inputBg: th.inputBg }}
+                theme={{
+                  text: 'var(--jt-text)', textMuted: 'var(--jt-text-muted)',
+                  border: 'var(--jt-border)', surfaceAlt: 'var(--jt-surface-alt)',
+                  inputBg: 'var(--jt-input-bg)',
+                }}
                 style={{ border: 'none', background: 'transparent', display: 'flex', flexDirection: 'column', height: '100%' }}
               />
             )}
@@ -330,7 +287,7 @@ export default function JsonTreeApplet() {
       </div>
 
       {/* Footer */}
-      <div style={{ padding: '4px 24px', fontSize: 10, color: th.textDim, background: th.surface, borderTop: `1px solid ${th.border}`, display: 'flex', justifyContent: 'space-between' }}>
+      <div className="jt-footer">
         <span>webclerk.com/json-tree — free, open source, bottom-up</span>
         <span>All processing happens in your browser. Nothing is sent to any server.</span>
       </div>

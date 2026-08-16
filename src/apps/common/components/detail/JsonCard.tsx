@@ -11,6 +11,7 @@ import React, { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import InfoRow from "./InfoRow";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { HighlightedJson } from '../syntaxHighlightJson';
 
 const typeBadgeClass = {
   string: "text-emerald-700 dark:text-emerald-400",
@@ -19,25 +20,6 @@ const typeBadgeClass = {
   nullish: "text-rose-700 dark:text-rose-400",
   object: "text-sky-700 dark:text-sky-400",
 };
-
-function syntaxHighlightJson(json: string): string {
-  return json.replace(
-    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
-    (match) => {
-      let cls = "text-violet-700 dark:text-violet-400";
-      if (/^"/.test(match)) {
-        cls = /:$/.test(match)
-          ? "text-sky-700 dark:text-sky-400"
-          : "text-emerald-700 dark:text-emerald-400";
-      } else if (/true|false/.test(match)) {
-        cls = "text-amber-700 dark:text-amber-400";
-      } else if (/null/.test(match)) {
-        cls = "text-rose-700 dark:text-rose-400";
-      }
-      return `<span class="${cls}">${match}</span>`;
-    },
-  );
-}
 
 function renderJsonValue(value: unknown): React.ReactNode {
   if (value === null || value === undefined) {
@@ -59,10 +41,9 @@ function renderJsonValue(value: unknown): React.ReactNode {
   if (Array.isArray(value) || typeof value === "object") {
     const pretty = JSON.stringify(value, null, 2);
     return (
-      <pre
-        className="m-0 p-2 rounded bg-slate-50 dark:bg-slate-800 text-xs font-mono whitespace-pre-wrap"
-        dangerouslySetInnerHTML={{ __html: syntaxHighlightJson(pretty) }}
-      />
+      <pre className="m-0 p-2 rounded bg-slate-50 dark:bg-slate-800 text-xs font-mono whitespace-pre-wrap">
+        <HighlightedJson json={pretty} />
+      </pre>
     );
   }
 

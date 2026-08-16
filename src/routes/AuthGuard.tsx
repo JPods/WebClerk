@@ -5,13 +5,12 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { SidebarProvider } from '@/context/SidebarContext';
 import AppLayout from '@/layout/AppLayout';
-
-const RippleLoader = () => <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'100vh'}}>Loading...</div>;
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isLoading, isAuthenticated } = useSelector((state: RootState) => state.auth);
 
-  if (isLoading) return <RippleLoader />;
+  if (isLoading) return <div className="flex justify-center items-center h-screen"><LoadingSpinner size="lg" label="Loading..." /></div>;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   return (

@@ -13,7 +13,7 @@
  *   GET  /wcapi/ai/modes/     — list available modes
  *   POST /wcapi/ai/reindex/   — trigger reindex (staff)
  */
-import apiClient from "../../../api/axios";
+import apiClient from "@/api/axios";
 
 // ── Types ───────────────────────────────────────────────────────
 

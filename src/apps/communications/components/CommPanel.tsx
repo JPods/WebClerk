@@ -242,6 +242,8 @@ const CommPanel: React.FC<CommPanelProps> = ({
 
   const handleDelete = useCallback(async (row: CommRow) => {
     if (!row.id) return;
+    if (!confirm(`Delete this ${row._type} record?`)) return;
+    if (!confirm('CONFIRM: Permanently delete. This cannot be undone.')) return;
     try {
       await deleteRecord(row._type, row.id);
       dispatch(showToast({ message: `${row._type} deleted`, type: 'success' }));

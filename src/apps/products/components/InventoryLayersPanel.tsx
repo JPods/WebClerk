@@ -43,7 +43,7 @@ export default function InventoryLayersPanel({ itemId }: Props) {
       .find((c) => c.startsWith("access_token="))
       ?.split("=")[1];
 
-    fetch(`/api/products/inventory/layers/?item_id=${itemId}`, {
+    fetch(`/wcapi/products/inventory/layers/?item_id=${itemId}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       credentials: "include",
     })

@@ -1,7 +1,7 @@
 /* LastChecked: 2026-08-03 | WhereUsed: CommunicationsPanel, ContactDetail | WhoCreated: Claude */
 /**
  * CommCard — renders a single communication record (email, phone, address, domain)
- * from a detail_layout Setting. JSON-driven, same FieldRow as TransactionDetail.
+ * from a detail_layout Setting. JSON-driven, same FieldRow as UiDetail.
  *
  * Usage:
  *   <CommCard model="email" data={emailRecord} isEditing={true} onChange={handleChange} />
@@ -55,6 +55,8 @@ const CommCard: React.FC<CommCardProps> = ({
 
   const handleDelete = async () => {
     if (!data.id) return;
+    if (!confirm(`Delete this ${model} record?`)) return;
+    if (!confirm('CONFIRM: Permanently delete. This cannot be undone.')) return;
     try {
       await deleteRecord(model, data.id);
       dispatch(showToast({ message: `${model} deleted`, type: 'success' }));

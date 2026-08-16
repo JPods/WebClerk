@@ -14,6 +14,7 @@ import {
   FaExclamationTriangle,
   FaCode
 } from 'react-icons/fa';
+import { HighlightedJson } from './syntaxHighlightJson';
 
 interface JsonFieldEditorProps {
   label: string;
@@ -249,21 +250,8 @@ const JsonFieldEditor: React.FC<JsonFieldEditorProps> = ({
   );
 };
 
-// Simple JSON syntax highlighting
 const JsonHighlight: React.FC<{ value: string }> = ({ value }) => {
-  const highlighted = value
-    // Keys
-    .replace(/"([^"]+)":/g, '<span class="text-purple-600 dark:text-purple-400">"$1"</span>:')
-    // String values
-    .replace(/: "([^"]*)"/g, ': <span class="text-green-600 dark:text-green-400">"$1"</span>')
-    // Numbers
-    .replace(/: (-?\d+\.?\d*)/g, ': <span class="text-blue-600 dark:text-blue-400">$1</span>')
-    // Booleans
-    .replace(/: (true|false)/g, ': <span class="text-amber-600 dark:text-amber-400">$1</span>')
-    // Null
-    .replace(/: (null)/g, ': <span class="text-slate-400">$1</span>');
-
-  return <span dangerouslySetInnerHTML={{ __html: highlighted }} />;
+  return <HighlightedJson json={value} />;
 };
 
 export default JsonFieldEditor;

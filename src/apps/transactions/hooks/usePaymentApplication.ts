@@ -10,8 +10,8 @@
  */
 import { useCallback, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { getRecords } from '../../../api/wcapi';
-import apiClient from '../../../api/axios';
+import { getRecords } from "@/api/wcapi";
+import apiClient from "@/api/axios";
 import { showToast } from '../../../store/slices/toastSlice';
 
 export interface PaymentRecord {
@@ -156,7 +156,7 @@ export function usePaymentApplication() {
       setLoading(true);
       setError(null);
 
-      const response = await apiClient.post(`/api/transactions/invoices/${invoiceId}/apply_payment/`, {
+      const response = await apiClient.post(`/wcapi/transactions/invoices/${invoiceId}/apply_payment/`, {
         payment_id: paymentId,
         amount: amount
       });
@@ -190,7 +190,7 @@ export function usePaymentApplication() {
 
   /**
    * Apply payment via PaymentViewSet action
-   * Alternative endpoint: /api/transactions/payments/{id}/apply_to_invoice/
+   * Alternative endpoint: /wcapi/transactions/payments/{id}/apply_to_invoice/
    */
   const applyPaymentViaPaymentEndpoint = useCallback(async (
     paymentId: number,
@@ -201,7 +201,7 @@ export function usePaymentApplication() {
       setLoading(true);
       setError(null);
 
-      const response = await apiClient.post(`/api/transactions/payments/${paymentId}/apply_to_invoice/`, {
+      const response = await apiClient.post(`/wcapi/transactions/payments/${paymentId}/apply_to_invoice/`, {
         invoice_id: invoiceId,
         amount: amount
       });
@@ -238,14 +238,15 @@ export function usePaymentApplication() {
    */
   const getInvoicePaymentStatus = useCallback(async (invoiceId: number) => {
     try {
-      const response = await apiClient.get(`/api/transactions/invoices/${invoiceId}/payment_status/`);
+      const response = await apiClient.get(`/wcapi/transactions/invoices/${invoiceId}/payment_status/`);
       return response.data;
     } catch (err: any) {
-      const msg = err?.message || 'Failed to get payment status';
+      const msg = err?.response?.data?.error || err?.message || 'Failed to get payment status';
       setError(msg);
+      dispatch(showToast({ message: msg, type: 'error' }));
       return null;
     }
-  }, []);
+  }, [dispatch]);
 
   /**
    * Calculate days past due for an invoice

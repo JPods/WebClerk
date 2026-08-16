@@ -4,7 +4,9 @@
  * Every adjustment flows through PendingInventoryAdjustment — one path, one audit trail.
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { getRecords, searchItems } from "../../../api/wcapi";
+import apiClient from "@/api/axios";
+import { getRecords, searchItems } from "@/api/wcapi";
+import "@/pages/admin/DataBrowser.css";
 
 interface AdjustmentLine {
   item_id: number;
@@ -141,19 +143,7 @@ export default function InventoryAdjust() {
     setMessage("");
 
     try {
-      const token = document.cookie
-        .split("; ")
-        .find((c) => c.startsWith("access_token="))
-        ?.split("=")[1];
-
-      const resp = await fetch("/api/products/inventory/adjust/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        credentials: "include",
-        body: JSON.stringify({
+      const resp = await apiClient.post("/wcapi/products/inventory/adjust/", {
           warehouse_id: warehouseId,
           lines: toApply.map((l) => ({
             item_id: l.item_id,
@@ -161,10 +151,9 @@ export default function InventoryAdjust() {
             reason: l.reason,
             notes: l.notes,
           })),
-        }),
-      });
+        });
 
-      const result = await resp.json();
+      const result = resp.data;
       if (result.success !== false) {
         const data = result.data || result;
         setMessage(
@@ -202,27 +191,14 @@ export default function InventoryAdjust() {
     async (itemId: number, qty: number) => {
       if (!warehouseId) return;
 
-      const token = document.cookie
-        .split("; ")
-        .find((c) => c.startsWith("access_token="))
-        ?.split("=")[1];
-
-      const resp = await fetch("/api/products/inventory/adjust-bom/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        credentials: "include",
-        body: JSON.stringify({
+      const resp = await apiClient.post("/wcapi/products/inventory/adjust-bom/", {
           item_id: itemId,
           warehouse_id: warehouseId,
           qty,
           reason: "bom_build",
-        }),
-      });
+        });
 
-      const result = await resp.json();
+      const result = resp.data;
       if (result.success !== false) {
         const data = result.data || result;
         setMessage(
@@ -240,35 +216,24 @@ export default function InventoryAdjust() {
 
   return (
     <div
+      className="db-root"
+      data-theme="dark"
       style={{
         maxWidth: 1100,
         margin: "0 auto",
         padding: 24,
-        fontFamily: "system-ui, sans-serif",
       }}
     >
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
+      <div className="db-flex-between" style={{ marginBottom: 16 }}>
         <h1 style={{ margin: 0, fontSize: 22 }}>Adjust Inventory</h1>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <label style={{ fontSize: 13, color: "#888" }}>Warehouse</label>
+          <label className="db-text-muted db-font-sm">Warehouse</label>
           <select
             value={warehouseId || ""}
             onChange={(e) => setWarehouseId(Number(e.target.value))}
-            style={{
-              padding: "6px 10px",
-              borderRadius: 4,
-              border: "1px solid #555",
-              background: "#1e1e1e",
-              color: "#e0e0e0",
-            }}
+            className="db-input"
+            style={{ padding: "6px 10px", width: "auto" }}
           >
             {warehouses.map((w) => (
               <option key={w.id} value={w.id}>
@@ -280,14 +245,7 @@ export default function InventoryAdjust() {
       </div>
 
       {/* Search bar */}
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          marginBottom: 16,
-          alignItems: "center",
-        }}
-      >
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center" }}>
         <input
           ref={searchRef}
           type="text"
@@ -295,28 +253,14 @@ export default function InventoryAdjust() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && doSearch()}
-          style={{
-            flex: 1,
-            padding: "8px 12px",
-            borderRadius: 4,
-            border: "1px solid #555",
-            background: "#1e1e1e",
-            color: "#e0e0e0",
-            fontSize: 14,
-          }}
+          className="db-input"
+          style={{ flex: 1, padding: "8px 12px", fontSize: 14 }}
         />
         <button
           onClick={doSearch}
           disabled={loading}
-          style={{
-            padding: "8px 20px",
-            borderRadius: 4,
-            border: "none",
-            background: "#2563eb",
-            color: "#fff",
-            cursor: "pointer",
-            fontSize: 14,
-          }}
+          className="db-btn db-btn--primary"
+          style={{ padding: "8px 20px", fontSize: 14 }}
         >
           Search
         </button>
@@ -325,14 +269,8 @@ export default function InventoryAdjust() {
       {/* Search results dropdown */}
       {searchResults.length > 0 && (
         <div
-          style={{
-            border: "1px solid #444",
-            borderRadius: 4,
-            marginBottom: 16,
-            maxHeight: 200,
-            overflowY: "auto",
-            background: "#1a1a1a",
-          }}
+          className="db-panel-input"
+          style={{ borderRadius: 4, marginBottom: 16, maxHeight: 200, overflowY: "auto" }}
         >
           {searchResults.map((item: any) => {
             const id = item.id || item.item_id;
@@ -350,25 +288,25 @@ export default function InventoryAdjust() {
                   setSearchQuery("");
                   searchRef.current?.focus();
                 }}
+                className="db-border-bottom-light"
                 style={{
                   padding: "6px 12px",
                   cursor: "pointer",
                   display: "flex",
                   justifyContent: "space-between",
-                  borderBottom: "1px solid #333",
                   fontSize: 13,
                 }}
                 onMouseOver={(e) =>
-                  (e.currentTarget.style.background = "#2a2a2a")
+                  (e.currentTarget.style.background = "var(--db-row-hover)")
                 }
                 onMouseOut={(e) =>
                   (e.currentTarget.style.background = "transparent")
                 }
               >
-                <span style={{ fontWeight: 600, width: 120 }}>
+                <span className="db-font-bold" style={{ width: 120 }}>
                   {item.ida || item.sku || item.item_num}
                 </span>
-                <span style={{ flex: 1, color: "#aaa" }}>
+                <span className="db-text-muted" style={{ flex: 1 }}>
                   {item.name || item.description}
                 </span>
                 <span style={{ width: 60, textAlign: "right" }}>
@@ -381,24 +319,11 @@ export default function InventoryAdjust() {
       )}
 
       {/* Adjustment grid */}
-      <div
-        style={{
-          border: "1px solid #444",
-          borderRadius: 4,
-          overflow: "hidden",
-        }}
-      >
+      <div className="db-border-all" style={{ borderRadius: 4, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr
-              style={{
-                background: "#252525",
-                borderBottom: "1px solid #444",
-                fontSize: 12,
-                textTransform: "uppercase",
-                color: "#999",
-              }}
-            >
+            <tr className="db-bg-surface db-border-bottom db-text-muted db-font-base" style={{ textTransform: "uppercase" }}>
+
               <th style={{ padding: "8px 12px", textAlign: "left" }}>Item</th>
               <th style={{ padding: "8px 12px", textAlign: "left" }}>
                 Description
@@ -450,12 +375,8 @@ export default function InventoryAdjust() {
               <tr>
                 <td
                   colSpan={8}
-                  style={{
-                    padding: 24,
-                    textAlign: "center",
-                    color: "#666",
-                    fontSize: 13,
-                  }}
+                  className="db-text-dim"
+                  style={{ padding: 24, textAlign: "center", fontSize: 13 }}
                 >
                   Search for items above and add them to this list.
                 </td>
@@ -464,8 +385,8 @@ export default function InventoryAdjust() {
             {lines.map((line, idx) => (
               <tr
                 key={line.item_id}
+                className="db-border-bottom-light"
                 style={{
-                  borderBottom: "1px solid #333",
                   background:
                     line.adjust !== 0
                       ? line.adjust > 0
@@ -474,31 +395,18 @@ export default function InventoryAdjust() {
                       : "transparent",
                 }}
               >
-                <td
-                  style={{
-                    padding: "6px 12px",
-                    fontWeight: 600,
-                    fontSize: 13,
-                  }}
-                >
+                <td className="db-font-bold" style={{ padding: "6px 12px", fontSize: 13 }}>
                   {line.ida}
                 </td>
-                <td style={{ padding: "6px 12px", fontSize: 13, color: "#bbb" }}>
+                <td className="db-text-muted" style={{ padding: "6px 12px", fontSize: 13 }}>
                   {line.name}
                 </td>
                 <td style={{ padding: "4px 8px" }}>
                   <select
                     value={line.reason}
                     onChange={(e) => updateReason(idx, e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "4px 6px",
-                      borderRadius: 3,
-                      border: "1px solid #555",
-                      background: "#1e1e1e",
-                      color: "#e0e0e0",
-                      fontSize: 12,
-                    }}
+                    className="db-input"
+                    style={{ width: "100%", padding: "4px 6px", fontSize: 12 }}
                   >
                     {REASON_CODES.map((r) => (
                       <option key={r.value} value={r.value}>
@@ -523,21 +431,18 @@ export default function InventoryAdjust() {
                     onChange={(e) =>
                       updateAdjust(idx, Number(e.target.value) || 0)
                     }
+                    className="db-input db-font-bold"
                     style={{
                       width: 70,
                       padding: "4px 6px",
-                      borderRadius: 3,
-                      border: "1px solid #555",
-                      background: "#1e1e1e",
                       color:
                         line.adjust > 0
-                          ? "#22c55e"
+                          ? "var(--db-accent-green)"
                           : line.adjust < 0
-                          ? "#ef4444"
-                          : "#e0e0e0",
+                          ? "var(--db-accent-red)"
+                          : "var(--db-text)",
                       textAlign: "right",
                       fontSize: 13,
-                      fontWeight: 600,
                     }}
                   />
                 </td>
@@ -549,31 +454,27 @@ export default function InventoryAdjust() {
                     fontWeight: line.adjust !== 0 ? 600 : 400,
                     color:
                       line.new_on_hand < 0
-                        ? "#ef4444"
+                        ? "var(--db-accent-red)"
                         : line.adjust !== 0
                         ? "#fff"
-                        : "#bbb",
+                        : "var(--db-text-muted)",
                   }}
                 >
                   {line.new_on_hand}
                 </td>
                 <td
-                  style={{
-                    padding: "6px 12px",
-                    textAlign: "right",
-                    fontSize: 13,
-                    color: "#888",
-                  }}
+                  className="db-text-muted"
+                  style={{ padding: "6px 12px", textAlign: "right", fontSize: 13 }}
                 >
                   {line.unit_cost.toFixed(2)}
                 </td>
                 <td style={{ padding: "4px" }}>
                   <button
                     onClick={() => removeLine(idx)}
+                    className="db-text-dim"
                     style={{
                       background: "none",
                       border: "none",
-                      color: "#666",
                       cursor: "pointer",
                       fontSize: 16,
                       padding: "2px 6px",
@@ -590,31 +491,19 @@ export default function InventoryAdjust() {
       </div>
 
       {/* Footer buttons */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginTop: 16,
-        }}
-      >
-        <div style={{ fontSize: 13, color: message.startsWith("Error") ? "#ef4444" : "#22c55e" }}>
+      <div className="db-flex-between" style={{ marginTop: 16 }}>
+        <div style={{
+          fontSize: 13,
+          color: message.startsWith("Error") ? "var(--db-accent-red)" : "var(--db-accent-green)",
+        }}>
           {message}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={applyAdjustments}
             disabled={!hasChanges || applying}
-            style={{
-              padding: "8px 24px",
-              borderRadius: 4,
-              border: "none",
-              background: hasChanges ? "#2563eb" : "#333",
-              color: hasChanges ? "#fff" : "#666",
-              cursor: hasChanges ? "pointer" : "default",
-              fontSize: 14,
-              fontWeight: 600,
-            }}
+            className={`db-btn ${hasChanges ? "db-btn--primary" : ""} db-font-bold`}
+            style={{ padding: "8px 24px", fontSize: 14 }}
           >
             {applying ? "Applying..." : "Apply"}
           </button>
@@ -623,15 +512,8 @@ export default function InventoryAdjust() {
               setLines([]);
               setMessage("");
             }}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 4,
-              border: "1px solid #555",
-              background: "transparent",
-              color: "#ccc",
-              cursor: "pointer",
-              fontSize: 14,
-            }}
+            className="db-btn"
+            style={{ padding: "8px 16px", fontSize: 14 }}
           >
             Clear
           </button>

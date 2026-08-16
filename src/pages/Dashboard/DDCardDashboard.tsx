@@ -6,6 +6,7 @@
  * Replaces all boilerplate dashboard pages with one component.
  */
 import { useEffect, useState } from "react";
+import { getUI } from "@/utils/contactUI";
 import { Link } from "react-router-dom";
 import { getRecords } from "@/api/wcapi";
 import { useAppSelector } from "@/store/hooks";
@@ -38,16 +39,16 @@ interface DDCardBaseConfig {
   dashboards: Record<string, DashboardConfig>;
 }
 
-// Accent color map — Tailwind classes
+// Accent color map — hex values, applied inline so they work in any theme
 const ACCENT_MAP: Record<string, string> = {
-  blue: "bg-blue-600 text-white",
-  indigo: "bg-indigo-600 text-white",
-  emerald: "bg-emerald-600 text-white",
-  amber: "bg-amber-600 text-white",
-  purple: "bg-purple-600 text-white",
-  teal: "bg-teal-600 text-white",
-  rose: "bg-rose-600 text-white",
-  orange: "bg-orange-600 text-white",
+  blue: "#2563eb",
+  indigo: "#4f46e5",
+  emerald: "#059669",
+  amber: "#d97706",
+  purple: "#7c3aed",
+  teal: "#0d9488",
+  rose: "#e11d48",
+  orange: "#ea580c",
 };
 
 // ---------------------------------------------------------------------------
@@ -58,7 +59,7 @@ export default function DDCardDashboard({ dashboardName }: { dashboardName: stri
   const { user } = useAppSelector((s) => s.auth);
   const [baseConfig, setBaseConfig] = useState<DDCardBaseConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const [theme, setTheme] = useState<ThemeKey>(() => (localStorage.getItem("db-theme") as ThemeKey) || "dark");
+  const [theme, setTheme] = useState<ThemeKey>(() => getUI<ThemeKey>('theme.active', 'dark'));
 
   useEffect(() => {
     let mounted = true;
@@ -86,7 +87,7 @@ export default function DDCardDashboard({ dashboardName }: { dashboardName: stri
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent)?.detail;
-      setTheme(detail?.theme || (localStorage.getItem("db-theme") as ThemeKey) || "dark");
+      setTheme(detail?.theme || getUI<ThemeKey>('theme.active', 'dark'));
     };
     window.addEventListener("wc3-theme-changed", handler);
     return () => window.removeEventListener("wc3-theme-changed", handler);
@@ -138,7 +139,8 @@ export default function DDCardDashboard({ dashboardName }: { dashboardName: stri
               <Link
                 key={qa.label}
                 to={qa.to}
-                className={`rounded px-2 py-0.5 text-[10px] font-semibold shadow-sm transition hover:-translate-y-[1px] hover:shadow-md ${ACCENT_MAP[qa.accent] || "bg-slate-600 text-white"}`}
+                className="rounded px-2 py-0.5 text-[10px] font-semibold shadow-sm transition hover:-translate-y-[1px] hover:shadow-md"
+                style={{ backgroundColor: ACCENT_MAP[qa.accent] || '#475569', color: '#fff' }}
               >
                 {qa.label}
               </Link>

@@ -16,7 +16,6 @@
  * Reusable in any page that needs a data table.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import * as XLSX from 'xlsx';
 import { parseFragments, matchesFragments } from '@/utils/searchFragments';
 import { formatPhone } from '@/utils/fieldFormatters';
 import './DataGrid.css';
@@ -139,7 +138,7 @@ export interface DataGridProps {
   noDataMessage?: string;
   /** Hide the built-in header/toolbar */
   hideHeader?: boolean;
-  /** Hide the built-in toolbar (Filter/Dupes/CSV/Excel/Print) — use when parent provides its own */
+  /** Hide the built-in toolbar (Filter/Dupes/CSV/Print) — use when parent provides its own */
   hideToolbar?: boolean;
   /** Expose filter toggle to parent */
   onToggleFilters?: (show: boolean) => void;
@@ -794,12 +793,14 @@ export default function DataGrid(props: DataGridProps) {
 
       return (
         <tr key={rid ?? `r-${idx}`} data-rid={rid}
+          role="row"
+          aria-selected={isActive || isChecked}
           className={rowClasses.join(' ')}
           style={ruleStyle.background ? { background: ruleStyle.background, color: ruleStyle.color, fontWeight: ruleStyle.fontWeight } : undefined}
           onClick={(e) => handleRowClick(e, rid, idx, rows)}
           onDoubleClick={() => { if (rid !== null) { handleSelectRecord(rid); if (props.onRowDoubleClicked) props.onRowDoubleClicked(rec); } }}
         >
-          <td className={`dg-td-indicator${pinnedColumn ? ' dg-td-indicator--pinned' : ''}`}>
+          <td className={`dg-td-indicator${pinnedColumn ? ' dg-td-indicator--pinned' : ''}`} role="gridcell">
             {isChecked && <div className="dg-check-bar" />}
           </td>
           {columns.map((f, ci) => {
@@ -809,8 +810,11 @@ export default function DataGrid(props: DataGridProps) {
             if (isPinned) tdClasses.push('dg-td--pinned');
             if (isActive && isPinned) tdClasses.push('dg-td--active');
             if (fieldBehaviors[f]?.calculated) tdClasses.push('dg-td--calculated');
+            const cellEditable = !!onCellEdit && fieldBehaviors[f]?.type !== 'readonly' && fieldBehaviors[f]?.type !== 'timestamp';
             return (
             <td key={f}
+              role="gridcell"
+              aria-readonly={cellEditable ? false : undefined}
               className={tdClasses.join(' ')}
               style={{
                 textAlign: getAlign(f),
@@ -841,14 +845,14 @@ export default function DataGrid(props: DataGridProps) {
     });
 
   // --- Export ---
-  const exportExcel = useCallback(() => {
+  const exportJSON = useCallback(() => {
     const exportData = filteredRecords.map((rec) =>
-      Object.fromEntries(columns.map((f) => [f, typeof rec[f] === 'object' ? JSON.stringify(rec[f]) : rec[f]]))
+      Object.fromEntries(columns.map((f) => [f, rec[f]]))
     );
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Data');
-    XLSX.writeFile(wb, `export_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json;charset=utf-8;' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `export_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click(); URL.revokeObjectURL(a.href);
   }, [filteredRecords, columns]);
 
   const exportCSV = useCallback(() => {
@@ -915,7 +919,7 @@ export default function DataGrid(props: DataGridProps) {
         Dupes{showDupes && dupeIds.size > 0 ? ` (${dupeIds.size})` : ''}
       </button>
       <button onClick={exportCSV} className="dg-toolbar-btn">CSV</button>
-      <button onClick={exportExcel} className="dg-toolbar-btn">Excel</button>
+      <button onClick={exportJSON} className="dg-toolbar-btn">JSON</button>
       <button onClick={() => window.print()} className="dg-toolbar-btn">Print</button>
       {Object.values(filters).some((v) => v.trim()) && (
         <button onClick={() => setFilters({})} className="dg-toolbar-btn dg-toolbar-btn--danger">
@@ -928,7 +932,7 @@ export default function DataGrid(props: DataGridProps) {
   );
 
   return (
-    <div className="dg-root" style={{ '--dg-fs': `${fontSize}px`, '--dg-fs-sm': `${fontSize - 1}px`, '--dg-fs-xs': `${fontSize - 2}px` } as React.CSSProperties}>
+    <div className="dg-root" role="grid" aria-label="Data grid" aria-rowcount={filteredRecords.length} aria-colcount={columns.length} style={{ '--dg-fs': `${fontSize}px`, '--dg-fs-sm': `${fontSize - 1}px`, '--dg-fs-xs': `${fontSize - 2}px` } as React.CSSProperties}>
       {!props.hideToolbar && toolbar}
       <div ref={scrollRef} className="dg-scroll" style={{ cursor: tableWidth > (scrollRef.current?.clientWidth ?? Infinity) ? 'grab' : undefined }}
         onMouseDown={(e) => {
@@ -955,13 +959,15 @@ export default function DataGrid(props: DataGridProps) {
         <table className="dg-table" style={{ width: tableWidth }}>
           <thead>
             {/* Header row */}
-            <tr className="dg-thead-row">
-              <th className={`dg-th-indicator${pinnedColumn ? ' dg-th-indicator--pinned' : ''}`} />
+            <tr className="dg-thead-row" role="row">
+              <th className={`dg-th-indicator${pinnedColumn ? ' dg-th-indicator--pinned' : ''}`} role="columnheader" />
               {columns.map((f, ci) => {
                 const sortIdx = multiSorts.findIndex((s) => s.field === f);
                 const sortDir = sort?.field === f ? sort.direction : null;
                 return (
                   <th key={f}
+                    role="columnheader"
+                    aria-sort={sortDir === 'asc' ? 'ascending' : sortDir === 'desc' ? 'descending' : 'none'}
                     className={`dg-th${fieldBehaviors[f]?.calculated ? ' dg-th--calculated' : ''}${ci === 0 && pinnedColumn === f ? ' dg-th--pinned' : ''}`}
                     style={{
                       textAlign: getAlign(f),
@@ -1063,7 +1069,7 @@ export default function DataGrid(props: DataGridProps) {
                 const isCollapsed = collapsedGroups.has(groupKey);
                 return (
                   <React.Fragment key={groupKey}>
-                    <tr className="dg-group-row"
+                    <tr className="dg-group-row" role="row"
                       onClick={() => setCollapsedGroups((p) => { const n = new Set(p); n.has(groupKey) ? n.delete(groupKey) : n.add(groupKey); return n; })}>
                       <td colSpan={columns.length + 1} className="dg-group-label">
                         {isCollapsed ? '▶' : '▼'} {groupByField}: {groupKey} ({groupRows.length})
@@ -1086,7 +1092,7 @@ export default function DataGrid(props: DataGridProps) {
           {/* Footer totals */}
           {Object.keys(totals).length > 0 && (
             <tfoot>
-              <tr className="dg-tfoot-row">
+              <tr className="dg-tfoot-row" role="row">
                 <td className="dg-tfoot-sigma">Σ</td>
                 {columns.map((f) => {
                   const t_data = totals[f];

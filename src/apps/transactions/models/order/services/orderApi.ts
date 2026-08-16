@@ -4,8 +4,7 @@ import {
   saveRecord,
   deleteRecord,
   getRecord,
-} from "../../../../../api/wcapi";
-import { patchAction } from "../../../../../api/userProfile";
+} from "@/api/wcapi";
 import {
   OrderLine,
   CreateOrderLineRequest,
@@ -78,13 +77,11 @@ export const createOrderLine = async (
   order_id: number,
   data: CreateOrderLineRequest,
 ): Promise<{ status: number; data: OrderLine }> => {
-  const payload = {
-    model_name: "order_line",
+  const res = await saveRecord("order_line", {
     ...data,
     parent: order_id,
-  };
-  const res = await patchAction(payload);
-  return { status: res?.status || 200, data: res?.data || res };
+  });
+  return { status: 200, data: res?.record ?? res };
 };
 
 export const updateOrderLine = async (
@@ -92,27 +89,20 @@ export const updateOrderLine = async (
   lineId: number,
   data: UpdateOrderLineRequest,
 ): Promise<{ status: number; data: OrderLine }> => {
-  const payload = {
-    model_name: "order_line",
+  const res = await saveRecord("order_line", {
     ...data,
     parent: order_id,
     id: lineId,
-  };
-  const res = await patchAction(payload);
-  return { status: res?.status || 200, data: res?.data || res };
+  });
+  return { status: 200, data: res?.record ?? res };
 };
 
 export const deleteOrderLine = async (
   _orderId: number,
   lineId: number,
 ): Promise<{ status: number; data: any }> => {
-  const payload = {
-    model_name: "order_line",
-    id: lineId,
-    method: "delete",
-  };
-  const res = await patchAction(payload);
-  return { status: res?.status || 200, data: res?.data || res };
+  const res = await deleteRecord("order_line", lineId);
+  return { status: 200, data: res };
 };
 
 export const fetchOrderDetail = async (id: number): Promise<any> => {

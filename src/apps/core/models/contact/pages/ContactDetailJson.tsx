@@ -2,7 +2,7 @@
 /**
  * ContactDetailJson — JSON-driven contact detail page.
  *
- * Replaces ContactDetail.tsx (4,114 lines) with the same pattern as TransactionDetail:
+ * Replaces ContactDetail.tsx (4,114 lines) with the same pattern as UiDetail:
  * - Layout JSON from detail_layout Setting drives header rendering
  * - CommPanel handles communications tab
  * - Existing panels reused for actions, documents, notes
@@ -18,7 +18,7 @@ import { useWindowManager } from '@/context/WindowManagerContext';
 import { useDetailLayout } from '@/hooks/useDetailLayout';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
-// Detail components — same as TransactionDetail uses
+// Detail components — same as UiDetail uses
 import FieldRow from '@/apps/transactions/components/detail/FieldRow';
 import { CommPanel } from '@/apps/communications/components';
 

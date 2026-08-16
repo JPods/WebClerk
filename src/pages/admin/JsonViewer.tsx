@@ -12,6 +12,7 @@
  *   // or pass complex JSON via postMessage after open
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { getUI, setUI } from '@/utils/contactUI';
 import { formatDt } from '@/utils/fieldFormatters';
 import './JsonViewer.css';
 
@@ -170,7 +171,7 @@ const JsonViewer: React.FC = () => {
   const [data, setData] = useState<JsonValue>(null);
   const [title, setTitle] = useState('JSON Viewer');
   const [theme, setTheme] = useState<'dark' | 'light'>(() =>
-    (localStorage.getItem('db-theme') as 'dark' | 'light') || 'dark'
+    getUI<'dark' | 'light'>('theme.active', 'dark')
   );
   const [collapseDepth, setCollapseDepth] = useState(2);
   const [copyMsg, setCopyMsg] = useState('');
@@ -281,7 +282,7 @@ const JsonViewer: React.FC = () => {
           <button className="jv-btn" onClick={() => {
             const n = theme === 'dark' ? 'light' : 'dark';
             setTheme(n);
-            localStorage.setItem('db-theme', n);
+            setUI('theme.active', n);
           }}>{theme === 'dark' ? 'Light' : 'Dark'}</button>
         </div>
       </header>

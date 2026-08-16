@@ -13,14 +13,6 @@ import type { PrintField } from './printLayoutTypes';
 // Types
 // ---------------------------------------------------------------------------
 
-interface Theme {
-  bg: string; surface: string; surfaceAlt: string;
-  border: string; borderLight: string;
-  text: string; textMuted: string; textDim: string;
-  accent: string;
-  [k: string]: string;
-}
-
 interface FieldEditorProps {
   field: PrintField;
   onChange: (field: PrintField) => void;
@@ -30,7 +22,6 @@ interface FieldEditorProps {
   onDragOver?: (e: React.DragEvent) => void;
   onDragEnd?: () => void;
   isDragging?: boolean;
-  theme: Theme;
   fontSize: number;
   /** Show style column (for totals rows with bold) */
   showStyle?: boolean;
@@ -52,12 +43,12 @@ const ALIGN_LABELS: Record<string, string> = { left: 'L', center: 'C', right: 'R
 const FieldEditor: React.FC<FieldEditorProps> = ({
   field, onChange, onRemove,
   draggable, onDragStart, onDragOver, onDragEnd, isDragging,
-  theme: t, fontSize, showStyle,
+  fontSize, showStyle,
 }) => {
   const fs = fontSize - 2;
 
   const inputStyle: React.CSSProperties = {
-    background: t.bg, color: t.text, border: `1px solid ${t.borderLight}`,
+    background: 'var(--db-bg)', color: 'var(--db-text)', border: '1px solid var(--db-border-light)',
     borderRadius: 3, padding: '2px 4px', fontSize: fs,
     outline: 'none', width: '100%',
   };
@@ -88,11 +79,11 @@ const FieldEditor: React.FC<FieldEditorProps> = ({
         gap: 4, alignItems: 'center',
         padding: '3px 0',
         opacity: isDragging ? 0.4 : 1,
-        borderBottom: `1px solid ${t.borderLight}`,
+        borderBottom: '1px solid var(--db-border-light)',
       }}
     >
       {/* Drag grip */}
-      <span style={{ cursor: draggable ? 'grab' : 'default', color: t.textDim, fontSize: fs, textAlign: 'center', userSelect: 'none' }}>
+      <span style={{ cursor: draggable ? 'grab' : 'default', color: 'var(--db-text-dim)', fontSize: fs, textAlign: 'center', userSelect: 'none' }}>
         ⋮⋮
       </span>
 
@@ -120,8 +111,8 @@ const FieldEditor: React.FC<FieldEditorProps> = ({
         title={`Alignment: ${field.align || 'left'} (click to cycle)`}
         style={{
           cursor: 'pointer', textAlign: 'center', fontSize: fs - 1,
-          fontWeight: 700, color: t.accent, userSelect: 'none',
-          border: `1px solid ${t.borderLight}`, borderRadius: 3,
+          fontWeight: 700, color: 'var(--db-accent)', userSelect: 'none',
+          border: '1px solid var(--db-border-light)', borderRadius: 3,
           padding: '2px 0',
         }}
       >
@@ -157,8 +148,8 @@ const FieldEditor: React.FC<FieldEditorProps> = ({
             cursor: 'pointer', textAlign: 'center', fontSize: fs - 1,
             fontWeight: field.style?.includes('bold') ? 700 : 400,
             fontStyle: field.style?.includes('italic') ? 'italic' : 'normal',
-            color: field.style ? t.accent : t.textDim,
-            border: `1px solid ${t.borderLight}`, borderRadius: 3,
+            color: field.style ? 'var(--db-accent)' : 'var(--db-text-dim)',
+            border: '1px solid var(--db-border-light)', borderRadius: 3,
             padding: '2px 0', userSelect: 'none',
           }}
         >
@@ -171,11 +162,11 @@ const FieldEditor: React.FC<FieldEditorProps> = ({
         onClick={onRemove}
         title="Remove field"
         style={{
-          cursor: 'pointer', color: t.textDim, textAlign: 'center',
+          cursor: 'pointer', color: 'var(--db-text-dim)', textAlign: 'center',
           fontSize: fs, userSelect: 'none',
         }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#e55'; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = t.textDim; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--db-text-dim)'; }}
       >
         &times;
       </span>
@@ -184,4 +175,4 @@ const FieldEditor: React.FC<FieldEditorProps> = ({
 };
 
 export default FieldEditor;
-export type { FieldEditorProps, Theme as FieldEditorTheme };
+export type { FieldEditorProps };

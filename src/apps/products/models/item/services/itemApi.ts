@@ -1,5 +1,5 @@
 /* LastChecked: 2026-06-27 | WhereUsed: ItemList, ItemDetail | WhoCreated: Unknown */
-import { getRecords, getRecord, saveRecord, deleteRecord } from "../../../../../api/wcapi";
+import { getRecords, getRecord, saveRecord, deleteRecord } from "@/api/wcapi";
 import type {
   CreateItemRequest,
   ItemApiTask,

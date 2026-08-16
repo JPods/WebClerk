@@ -126,49 +126,49 @@ const PaymentRowItem: React.FC<{
 
     {/* Amount */}
     {visibleCols.has('amount') && (
-      <span className="font-medium shrink-0 w-[80px] text-right" style={{ color: 'var(--db-accent-green)' }}>
+      <span className="font-medium shrink-0 w-[80px] text-right db-text-green">
         {formatCurrency(payment.amount)}
       </span>
     )}
 
     {/* Amount Available */}
     {visibleCols.has('amount_available') && (
-      <span className="shrink-0 w-[80px] text-right" style={{ color: 'var(--db-text-muted)' }}>
+      <span className="shrink-0 w-[80px] text-right db-text-muted">
         {formatCurrency(payment.amount_available)}
       </span>
     )}
 
     {/* Payment Method */}
     {visibleCols.has('payment_method') && (
-      <span className="truncate min-w-[70px] max-w-[100px]" style={{ color: 'var(--db-text)' }}>
+      <span className="truncate min-w-[70px] max-w-[100px] db-text">
         {payment.payment_method_name || payment.gateway || '--'}
       </span>
     )}
 
     {/* Reference */}
     {visibleCols.has('reference') && (
-      <span className="truncate min-w-[60px] max-w-[100px] font-mono" style={{ color: 'var(--db-text-muted)' }}>
+      <span className="truncate min-w-[60px] max-w-[100px] font-mono db-text-muted">
         {payment.reference_number || '--'}
       </span>
     )}
 
     {/* Invoice */}
     {visibleCols.has('invoice') && (
-      <span className="truncate w-[60px]" style={{ color: 'var(--db-text-muted)' }}>
+      <span className="truncate w-[60px] db-text-muted">
         {payment.invoice_number || (payment.invoice_id ? `#${payment.invoice_id}` : '--')}
       </span>
     )}
 
     {/* Date */}
     {visibleCols.has('dt_payment') && (
-      <span className="shrink-0 w-[75px]" style={{ color: 'var(--db-text-muted)' }}>
+      <span className="shrink-0 w-[75px] db-text-muted">
         {formatDate(payment.dt_payment)}
       </span>
     )}
 
     {/* Notes (truncated) */}
     {visibleCols.has('notes') && (
-      <span className="truncate flex-1 min-w-0" style={{ color: 'var(--db-text-dim)' }}>
+      <span className="truncate flex-1 min-w-0 db-text-dim">
         {payment.notes || ''}
       </span>
     )}
@@ -179,8 +179,7 @@ const PaymentRowItem: React.FC<{
         e.stopPropagation();
         onOpen?.();
       }}
-      className="p-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-      style={{ color: 'var(--db-accent)' }}
+      className="p-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 db-text-accent"
       title="Open payment detail"
     >
       <FaExternalLinkAlt size={10} />
@@ -269,19 +268,18 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
   );
 
   return (
-    <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--db-border)' }}>
+    <div className="rounded-lg overflow-hidden db-border-all">
       {/* Header */}
       <div
-        className="flex items-center justify-between px-3 py-2 cursor-pointer select-none"
-        style={{ background: 'var(--db-surface-alt)' }}
+        className="flex items-center justify-between px-3 py-2 cursor-pointer select-none db-bg-surface-alt"
         onClick={() => setCollapsed((c) => !c)}
       >
-        <div className="flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--db-text)' }}>
-          <FaDollarSign style={{ color: 'var(--db-accent-green)' }} size={14} />
+        <div className="flex items-center gap-2 text-sm font-medium db-text">
+          <FaDollarSign className="db-text-green" size={14} />
           {title}
-          <span className="text-xs" style={{ color: 'var(--db-text-dim)' }}>({payments.length})</span>
+          <span className="text-xs db-text-dim">({payments.length})</span>
           {payments.length > 0 && (
-            <span className="text-xs font-normal" style={{ color: 'var(--db-accent-green)' }}>
+            <span className="text-xs font-normal db-text-green">
               {formatCurrency(totalAmount)}
             </span>
           )}
@@ -293,8 +291,7 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
               e.stopPropagation();
               fetchData();
             }}
-            className="p-1"
-            style={{ color: 'var(--db-text-dim)' }}
+            className="p-1 db-text-dim"
             title="Refresh"
           >
             <FaSyncAlt size={12} />
@@ -307,8 +304,7 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
                 e.stopPropagation();
                 onAdd();
               }}
-              className="p-1"
-              style={{ color: 'var(--db-accent-green)' }}
+              className="p-1 db-text-green"
               title="Add payment"
             >
               <FaPlus size={12} />
@@ -323,7 +319,7 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
       {!collapsed && (
         <div>
           {/* Column headers */}
-          <div className="flex items-center gap-3 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--db-text-muted)', background: 'var(--db-surface-alt)', borderBottom: '1px solid var(--db-border-light)' }}>
+          <div className="flex items-center gap-3 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider db-surface-alt-muted db-border-bottom-light">
             {visibleCols.has('status') && <span className="shrink-0 min-w-[60px] text-center">status</span>}
             {visibleCols.has('amount') && <span className="shrink-0 w-[80px] text-right">amount</span>}
             {visibleCols.has('amount_available') && (
@@ -342,14 +338,14 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
           </div>
 
           {loading && (
-            <div className="flex items-center justify-center py-4" style={{ color: 'var(--db-text-dim)' }}>
+            <div className="flex items-center justify-center py-4 db-text-dim">
               <FaSpinner className="animate-spin mr-2" size={12} />
               Loading...
             </div>
           )}
 
           {!loading && payments.length === 0 && (
-            <div className="text-center py-4 text-xs" style={{ color: 'var(--db-text-dim)' }}>
+            <div className="text-center py-4 text-xs db-text-dim">
               No payments
             </div>
           )}
@@ -366,15 +362,15 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
 
           {/* Footer totals */}
           {!loading && payments.length > 1 && (
-            <div className="flex items-center gap-3 px-3 py-1.5 text-xs font-medium" style={{ background: 'var(--db-surface-alt)', borderTop: '1px solid var(--db-border-light)' }}>
+            <div className="flex items-center gap-3 px-3 py-1.5 text-xs font-medium db-bg-surface-alt" style={{ borderTop: '1px solid var(--db-border-light)' }}>
               {visibleCols.has('status') && <span className="shrink-0 min-w-[60px]" />}
               {visibleCols.has('amount') && (
-                <span className="shrink-0 w-[80px] text-right" style={{ color: 'var(--db-accent-green)' }}>
+                <span className="shrink-0 w-[80px] text-right db-text-green">
                   {formatCurrency(totalAmount)}
                 </span>
               )}
               {visibleCols.has('amount_available') && (
-                <span className="shrink-0 w-[80px] text-right" style={{ color: 'var(--db-text-muted)' }}>
+                <span className="shrink-0 w-[80px] text-right db-text-muted">
                   {formatCurrency(totalAvailable)}
                 </span>
               )}

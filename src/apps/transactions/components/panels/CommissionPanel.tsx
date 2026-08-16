@@ -71,7 +71,7 @@ const CommissionPanel: React.FC<CommissionPanelProps> = ({ lines, selectedIds, h
 
   if (!hasData) {
     return (
-      <div className="text-center py-6 text-sm" style={{ color: 'var(--db-text-dim)' }}>
+      <div className="text-center py-6 text-sm db-text-dim">
         No commission data. Commission populates when customer has rep assignments.
       </div>
     );
@@ -81,21 +81,21 @@ const CommissionPanel: React.FC<CommissionPanelProps> = ({ lines, selectedIds, h
     <div>
       {/* Rep summary cards */}
       {repSummary.length > 0 && (
-        <div className="px-3 py-2" style={{ background: 'color-mix(in srgb, var(--db-accent-purple) 10%, transparent)', borderBottom: '1px solid var(--db-border)' }}>
-          <div className="text-[10px] font-medium mb-1" style={{ color: 'var(--db-accent-purple)' }}>Representatives</div>
+        <div className="px-3 py-2 db-border-bottom" style={{ background: 'color-mix(in srgb, var(--db-accent-purple) 10%, transparent)' }}>
+          <div className="text-[10px] font-medium mb-1 db-text-purple">Representatives</div>
           <div className="flex flex-wrap gap-3">
             {repSummary.map((rep, i) => (
-              <div key={i} className="rounded px-3 py-1.5 text-xs" style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)' }}>
-                <div className="font-medium" style={{ color: 'var(--db-text)' }}>
+              <div key={i} className="rounded px-3 py-1.5 text-xs db-panel">
+                <div className="font-medium db-text">
                   {rep.name}
-                  {rep.override && <span className="ml-1 text-[9px]" style={{ color: 'var(--db-accent-gold)' }}>(override)</span>}
+                  {rep.override && <span className="ml-1 text-[9px] db-text-gold">(override)</span>}
                 </div>
-                <div className="flex gap-3 mt-0.5" style={{ color: 'var(--db-text-muted)' }}>
+                <div className="flex gap-3 mt-0.5 db-text-muted">
                   <span>Rate: {rep.rate.toFixed(1)}%</span>
                   {rep.split < 100 && <span>Split: {rep.split.toFixed(0)}%</span>}
                   <span>Eff: {rep.effRate.toFixed(2)}%</span>
-                  <span className="font-medium" style={{ color: 'var(--db-accent-purple)' }}>{formatCurrency(rep.amount)}</span>
-                  <span style={{ color: 'var(--db-text-dim)' }}>{rep.basis}</span>
+                  <span className="font-medium db-text-purple">{formatCurrency(rep.amount)}</span>
+                  <span className="db-text-dim">{rep.basis}</span>
                 </div>
               </div>
             ))}
@@ -106,7 +106,7 @@ const CommissionPanel: React.FC<CommissionPanelProps> = ({ lines, selectedIds, h
       {/* Per-line table */}
       <table className="w-full text-xs border-collapse">
         <thead>
-          <tr style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
+          <tr className="db-surface-alt-muted">
             <th className="text-left px-2 py-1.5 font-medium">Item</th>
             <th className="text-left px-2 py-1.5 font-medium">Description</th>
             <th className="text-right px-2 py-1.5 font-medium">Extended</th>
@@ -124,20 +124,19 @@ const CommissionPanel: React.FC<CommissionPanelProps> = ({ lines, selectedIds, h
             return (
               <tr
                 key={r.id}
-                className={isSelected ? '' : 'opacity-40'}
-                style={{ borderBottom: '1px solid var(--db-border)' }}
+                className={`${isSelected ? '' : 'opacity-40'} db-border-bottom`}
               >
                 <td className="px-2 py-1 font-mono">{r.itemCode}</td>
-                <td className="px-2 py-1 max-w-[180px] truncate" style={{ color: 'var(--db-text-muted)' }}>{r.description}</td>
+                <td className="px-2 py-1 max-w-[180px] truncate db-text-muted">{r.description}</td>
                 <td className="px-2 py-1 text-right">{formatCurrency(r.extended)}</td>
-                <td className="px-2 py-1" style={{ color: 'var(--db-text-muted)' }}>
+                <td className="px-2 py-1 db-text-muted">
                   {r.reps.length === 0
                     ? '—'
                     : r.reps.map((rep: any) => rep.name || rep.rep_ida).join(', ')}
                 </td>
                 <td className="px-2 py-1 text-right">{primaryRep ? `${primaryRep.rate_pct}%` : '—'}</td>
                 <td className="px-2 py-1 text-right">{primaryRep ? `${primaryRep.effective_rate?.toFixed(2)}%` : '—'}</td>
-                <td className={`px-2 py-1 text-right font-medium ${hasOverride ? 'italic' : ''}`} style={{ color: 'var(--db-accent-purple)' }}>
+                <td className={`px-2 py-1 text-right font-medium db-text-purple ${hasOverride ? 'italic' : ''}`}>
                   {r.total > 0 ? formatCurrency(r.total) : '—'}
                 </td>
               </tr>
@@ -147,20 +146,20 @@ const CommissionPanel: React.FC<CommissionPanelProps> = ({ lines, selectedIds, h
       </table>
 
       {/* Footer totals */}
-      <div className="px-2 py-2 text-xs" style={{ background: 'var(--db-surface-alt)', borderTop: '2px solid var(--db-border)' }}>
-        <div className="mb-1" style={{ color: 'var(--db-text-dim)' }}>{selectionNote}</div>
+      <div className="px-2 py-2 text-xs db-bg-surface-alt" style={{ borderTop: '2px solid var(--db-border)' }}>
+        <div className="mb-1 db-text-dim">{selectionNote}</div>
         <div className="grid grid-cols-3 gap-4 text-right">
           <div>
-            <div style={{ color: 'var(--db-text-muted)' }}>Sales</div>
-            <div className="font-bold" style={{ color: 'var(--db-text)' }}>{formatCurrency(totalExtended)}</div>
+            <div className="db-text-muted">Sales</div>
+            <div className="font-bold db-text">{formatCurrency(totalExtended)}</div>
           </div>
           <div>
-            <div style={{ color: 'var(--db-text-muted)' }}>Commission</div>
-            <div className="font-bold" style={{ color: 'var(--db-accent-purple)' }}>{formatCurrency(totalCommission)}</div>
+            <div className="db-text-muted">Commission</div>
+            <div className="font-bold db-text-purple">{formatCurrency(totalCommission)}</div>
           </div>
           <div>
-            <div style={{ color: 'var(--db-text-muted)' }}>Effective %</div>
-            <div className="font-bold" style={{ color: 'var(--db-accent-purple)' }}>{commPct.toFixed(2)}%</div>
+            <div className="db-text-muted">Effective %</div>
+            <div className="font-bold db-text-purple">{commPct.toFixed(2)}%</div>
           </div>
         </div>
       </div>

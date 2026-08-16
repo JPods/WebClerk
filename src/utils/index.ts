@@ -58,69 +58,10 @@ export const emailValidator = (v: string | null | undefined): boolean => {
   return re.test(String(v).toLowerCase());
 };
 
-// Local storage helpers for current entity IDs
-export const getCurrentCustomerId = (): string | null => {
-  return window.localStorage.getItem("currentCustomerId");
-};
-
-export const setCurrentCustomerId = (currentCustomerId: string): void => {
-  window.localStorage.setItem("currentCustomerId", currentCustomerId);
-};
-
-export const getCurrentProposalId = (): string | null => {
-  return window.localStorage.getItem("currenProposalId");
-};
-
-export const setCurrentProposalId = (currenProposalId: string): void => {
-  window.localStorage.setItem("currenProposalId", currenProposalId);
-};
-
-export const getCurrentOrderId = (): string | null => {
-  return window.localStorage.getItem("currenOrderId");
-};
-
-export const setCurrentOrderId = (currenOrderId: string): void => {
-  window.localStorage.setItem("currenOrderId", currenOrderId);
-};
-
-export const getCurrentInvoiceId = (): string | null => {
-  return window.localStorage.getItem("currentInvoiceId");
-};
-
-export const setCurrentInvoiceId = (currentInvoiceId: string): void => {
-  window.localStorage.setItem("currentInvoiceId", currentInvoiceId);
-};
-
-// Login status
-export const setLoggedIn = (): void => {
-  window.localStorage.setItem("loggedIn", "true");
-};
-
-export const setLoggedOut = (): void => {
-  window.localStorage.setItem("loggedIn", "false");
-};
-
-export const isLoggedIn = (): boolean => {
-  return window.localStorage.getItem("loggedIn") === "true";
-};
-
-// Search persistence
-export const setLastSearch = (lastSearch: unknown): void => {
-  window.localStorage.setItem("lastSearch", JSON.stringify(lastSearch));
-};
-
-export const getLastSearch = <T = unknown>(): T | null => {
-  const item = window.localStorage.getItem("lastSearch");
-  if (!item) {
-    return null;
-  }
-  try {
-    return JSON.parse(item) as T;
-  } catch {
-    return null;
-  }
-};
-
+// Auth state (setLoggedIn/isLoggedIn/setLoggedOut) REMOVED 2026-08-14.
+// Auth is owned by Redux authSlice + userProfile localStorage (managed by
+// api/auth.ts and AuthInitializer.tsx). The old "loggedIn" key was never consumed.
+//
 type LabeledValue = {
   value: string;
   label: string;

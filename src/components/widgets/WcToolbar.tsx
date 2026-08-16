@@ -1,4 +1,4 @@
-/* LastChecked: 2026-08-02 | WhereUsed: TransactionDetail, all .td views | WhoCreated: Claude */
+/* LastChecked: 2026-08-02 | WhereUsed: UiDetail, all .td views | WhoCreated: Claude */
 /**
  * WcToolbar — standard toolbar for .td views.
  *

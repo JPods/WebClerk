@@ -1,5 +1,5 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
-import { getRecords, saveRecord, deleteRecord, getRecord } from '../../../../../api/wcapi';
+import { getRecords, saveRecord, deleteRecord, getRecord } from "@/api/wcapi";
 
 export const createAction = async (payload: Record<string, unknown>) => {
   return saveRecord('action', payload);

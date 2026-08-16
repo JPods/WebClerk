@@ -242,7 +242,7 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
         paymentData.invoice_id = invoice_id;
       }
 
-      const response = await apiClient.post('/api/transactions/payments/', paymentData);
+      const response = await apiClient.post('/wcapi/transactions/payments/', paymentData);
 
       if (response.data) {
         const displayAmount = isCredit ? -parsedAmount : parsedAmount;

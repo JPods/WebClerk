@@ -37,6 +37,18 @@ import { resolveModelName, parseRestfulPath } from './modelNameResolver';
 /**
  * Maps RESTful path patterns to wcapi model names.
  * Keys are path patterns (lowercase), values are the canonical wcapi model_name.
+ *
+ * Why this map exists alongside MODEL_NAME_MAP and PATH_PATTERN_MAP in modelNameResolver.ts:
+ *
+ *   MODEL_NAME_MAP (modelNameResolver.ts) — normalizes bare model names (e.g. "po" → "purchase").
+ *   PATH_PATTERN_MAP (modelNameResolver.ts) — maps "app/model" path segments to model names.
+ *   REST_PATH_TO_MODEL (this file) — adds plural aliases ("customers" → "customer") and
+ *     alternate slug forms ("purchaseline" vs "purchase-line") needed for RESTful URL matching.
+ *
+ * REST_PATH_TO_MODEL is a superset of PATH_PATTERN_MAP: every PATH_PATTERN_MAP entry
+ * appears here, plus plural and no-separator variants. A future consolidation could
+ * generate REST_PATH_TO_MODEL from PATH_PATTERN_MAP by auto-adding plurals, but
+ * the irregular plurals (e.g. "categories") make full automation non-trivial.
  */
 export const REST_PATH_TO_MODEL: Record<string, string> = {
   // Orgs
@@ -52,8 +64,8 @@ export const REST_PATH_TO_MODEL: Record<string, string> = {
   'orgs/reps': 'rep',
   'orgs/manufacturer': 'manufacturer',
   'orgs/manufacturers': 'manufacturer',
-  'orgs/organization': 'organization',
-  'orgs/organizations': 'organization',
+  'orgs/organization': 'org',
+  'orgs/organizations': 'org',
   
   // Transactions
   'transactions/order': 'order',
@@ -113,7 +125,7 @@ export const REST_PATH_TO_MODEL: Record<string, string> = {
   'products/usage': 'usage',
   'products/usages': 'usage',
   'products/matrics': 'matrics',
-  'products/metrics': 'metrics',
+  'products/metrics': 'matrics',  // alias — "matrics" is the canonical model name
   'products/org-item': 'org_item',
   'products/orgitem': 'org_item',
   'products/item-xref': 'item_xref',
@@ -130,6 +142,8 @@ export const REST_PATH_TO_MODEL: Record<string, string> = {
   'communications/addresses': 'address',
   
   // Accounts
+  'accounts/payment': 'payment',
+  'accounts/payments': 'payment',
   'accounts/gl-account': 'gl_account',
   'accounts/glaccount': 'gl_account',
   'accounts/gl-journal': 'gl_journal',
@@ -150,6 +164,8 @@ export const REST_PATH_TO_MODEL: Record<string, string> = {
   'accounts/taxjurisdiction': 'tax_jurisdiction',
   
   // Core
+  'core/address': 'address',
+  'core/addresses': 'address',
   'core/contact': 'contact',
   'core/contacts': 'contact',
   'core/setting': 'setting',
@@ -200,7 +216,7 @@ export const WCAPI_ENDPOINTS = {
   // Data endpoints
   GET: '/wcapi/get/',           // GET with params: model_name, id?, limit?, offset?, search?, filters?
   SAVE: '/wcapi/save/',         // POST with body: { model_name, id?, data? }
-  DELETE: '/wcapi/delete/',     // GET with params: model_name, id OR POST with body: { model_name, id }
+  DELETE: '/wcapi/delete/',     // POST with body: { model_name, id }
   
   // Model metadata endpoints
   MODEL_LIST: '/wcapi/model_name/list/',
@@ -287,8 +303,8 @@ export function convertRestToWcapi(
     }
     return {
       endpoint: WCAPI_ENDPOINTS.DELETE,
-      method: 'GET',
-      params: {
+      method: 'POST',
+      body: {
         model_name: resolvedModel,
         id,
       },

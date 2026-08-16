@@ -8,7 +8,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { DynamicDetail } from "../../../../../components/common/DynamicDetail";
 import type { DynamicDetailActions } from "../../../../../components/common/DynamicDetail";
 import { DetailToolbar } from "../../../../../components/common/DetailToolbar";
-import { deleteRecord, getRecords } from "../../../../../api/wcapi";
+import { deleteRecord, getRecords, saveRecord } from "@/api/wcapi";
 import { formatDt } from "@/utils/fieldFormatters";
 import { useDispatch } from "react-redux";
 import { showToast } from "@/store/slices/toastSlice";
@@ -27,6 +27,9 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
   const [, forceUpdate] = useState(0);
   const [touches, setTouches] = useState<any[]>([]);
   const [showTouches, setShowTouches] = useState(false);
+  const [addingTouch, setAddingTouch] = useState<string | null>(null); // channel type or null
+  const [touchForm, setTouchForm] = useState({ subject: '', summary: '', direction: 'out' });
+  const [savingTouch, setSavingTouch] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const resizeRef = useRef<{ startX: number; startY: number; origW: number; origH: number } | null>(null);
   const windowRef = useRef<HTMLDivElement>(null);
@@ -163,39 +166,133 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
       />
 
       {/* Touch records panel */}
-      {showTouches && touches.length > 0 && (
-        <div className="shrink-0 max-h-48 overflow-y-auto border-b border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-950/30 px-3 py-2">
+      {showTouches && (
+        <div className="shrink-0 max-h-64 overflow-y-auto border-b border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-950/30 px-3 py-2">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
               Touches ({touches.length})
             </span>
-            <button
-              onClick={() => setShowTouches(false)}
-              className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            >×</button>
+            <div className="flex items-center gap-2">
+              {/* Channel select — pick type to add */}
+              <select
+                value=""
+                onChange={(e) => {
+                  setAddingTouch(e.target.value);
+                  setTouchForm({ subject: '', summary: '', direction: 'out' });
+                }}
+                className="text-[10px] font-semibold bg-transparent text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 rounded px-1 py-0.5 cursor-pointer"
+                title="Add a touch record"
+              >
+                <option value="">+ Add Touch...</option>
+                <option value="call">📞 Phone Call</option>
+                <option value="email">✉️ Email</option>
+                <option value="visit">🏢 Visit</option>
+                <option value="text">💬 Text/SMS</option>
+                <option value="meeting">🤝 Meeting</option>
+              </select>
+              <button
+                onClick={() => { setShowTouches(false); setAddingTouch(null); }}
+                className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >×</button>
+            </div>
           </div>
-          <table className="w-full text-[11px]">
-            <thead>
-              <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-amber-200 dark:border-amber-800">
-                <th className="py-0.5 pr-2">Date</th>
-                <th className="py-0.5 pr-2">Channel</th>
-                <th className="py-0.5 pr-2">Dir</th>
-                <th className="py-0.5">Subject</th>
-              </tr>
-            </thead>
-            <tbody>
-              {touches.map((t: any) => (
-                <tr key={t.id} className="border-b border-amber-100 dark:border-amber-900/50">
-                  <td className="py-0.5 pr-2 whitespace-nowrap text-gray-600 dark:text-gray-300">
-                    {t.dt_created ? formatDt(t.dt_created, 'date') : '—'}
-                  </td>
-                  <td className="py-0.5 pr-2 text-gray-700 dark:text-gray-200">{t.channel || '—'}</td>
-                  <td className="py-0.5 pr-2 text-gray-500 dark:text-gray-400">{t.direction === 'in' ? '←' : '→'}</td>
-                  <td className="py-0.5 text-gray-700 dark:text-gray-200 truncate max-w-[200px]">{t.subject || t.summary?.slice(0, 60) || '—'}</td>
+
+          {/* Inline add form */}
+          {addingTouch && (
+            <div className="mb-2 p-2 rounded border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-800">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase">
+                  {addingTouch === 'call' ? '📞 Call' : addingTouch === 'email' ? '✉️ Email' : addingTouch === 'visit' ? '🏢 Visit' : addingTouch === 'text' ? '💬 Text' : '🤝 Meeting'}
+                </span>
+                <select
+                  value={touchForm.direction}
+                  onChange={(e) => setTouchForm(f => ({ ...f, direction: e.target.value }))}
+                  className="text-[10px] bg-transparent border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 text-gray-700 dark:text-gray-300"
+                >
+                  <option value="out">→ Outbound</option>
+                  <option value="in">← Inbound</option>
+                </select>
+              </div>
+              <input
+                type="text"
+                value={touchForm.subject}
+                onChange={(e) => setTouchForm(f => ({ ...f, subject: e.target.value }))}
+                placeholder="Subject — e.g. Discussed pricing"
+                className="w-full text-[11px] px-2 py-1 mb-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                autoFocus
+              />
+              <textarea
+                value={touchForm.summary}
+                onChange={(e) => setTouchForm(f => ({ ...f, summary: e.target.value }))}
+                placeholder="Summary — what happened, next steps"
+                rows={2}
+                className="w-full text-[11px] px-2 py-1 mb-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 resize-none"
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    if (!touchForm.subject.trim()) return;
+                    setSavingTouch(true);
+                    try {
+                      await saveRecord('touch', {
+                        channel: addingTouch,
+                        direction: touchForm.direction,
+                        subject: touchForm.subject,
+                        summary: touchForm.summary,
+                        action: actionId,
+                      });
+                      // Reload touches
+                      const res = await getRecords('touch', { action: actionId });
+                      setTouches(res?.records || res?.results || []);
+                      setAddingTouch(null);
+                      dispatch(showToast({ message: 'Touch saved', type: 'success' }));
+                    } catch {
+                      dispatch(showToast({ message: 'Failed to save touch', type: 'error' }));
+                    } finally {
+                      setSavingTouch(false);
+                    }
+                  }}
+                  disabled={savingTouch || !touchForm.subject.trim()}
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50"
+                >
+                  {savingTouch ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  onClick={() => setAddingTouch(null)}
+                  className="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {touches.length > 0 ? (
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-amber-200 dark:border-amber-800">
+                  <th className="py-0.5 pr-2">Date</th>
+                  <th className="py-0.5 pr-2">Channel</th>
+                  <th className="py-0.5 pr-2">Dir</th>
+                  <th className="py-0.5">Subject</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {touches.map((t: any) => (
+                  <tr key={t.id} className="border-b border-amber-100 dark:border-amber-900/50">
+                    <td className="py-0.5 pr-2 whitespace-nowrap text-gray-600 dark:text-gray-300">
+                      {t.dt_created ? formatDt(t.dt_created, 'date') : '—'}
+                    </td>
+                    <td className="py-0.5 pr-2 text-gray-700 dark:text-gray-200">{t.channel || '—'}</td>
+                    <td className="py-0.5 pr-2 text-gray-500 dark:text-gray-400">{t.direction === 'in' ? '←' : '→'}</td>
+                    <td className="py-0.5 text-gray-700 dark:text-gray-200 truncate max-w-[200px]">{t.subject || t.summary?.slice(0, 60) || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : !addingTouch ? (
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 py-1">No touches yet. Use the dropdown above to add one.</p>
+          ) : null}
         </div>
       )}
 

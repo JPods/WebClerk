@@ -1,4 +1,4 @@
-/* LastChecked: 2026-08-03 | WhereUsed: TransactionDetail | WhoCreated: Claude */
+/* LastChecked: 2026-08-03 | WhereUsed: UiDetail | WhoCreated: Claude */
 import React, { useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAppSelector } from '@/store/hooks';
@@ -189,10 +189,10 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
   }
 
   const footerBar = (
-    <div className="bg-slate-50 dark:bg-slate-900/50 border-t-2 border-slate-300 dark:border-slate-600 text-xs px-2 py-2">
+    <div className="text-xs px-2 py-2" style={{ background: 'var(--db-surface-alt, #f8f9fa)', borderTop: '2px solid var(--db-border, #dee2e6)' }}>
       <div className="flex items-center gap-4 mb-1">
-        <span className="font-medium text-slate-600">Lns: {lc.lineCount}</span>
-        <span className="text-slate-600">Items: {formatNumber(footerQty)}</span>
+        <span className="font-medium text-[var(--db-text-muted,#6c757d)]">Lns: {lc.lineCount}</span>
+        <span className="text-[var(--db-text-muted,#6c757d)]">Items: {formatNumber(footerQty)}</span>
         {selectionLabel && <span className="text-blue-600 font-medium">{selectionLabel}</span>}
         {lc.selectedId != null && (
           <span className="flex items-center gap-1 ml-2 text-[10px]">
@@ -282,7 +282,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
   const panelContent = (
     <>
       {showItemSearch && lc.canEdit && (
-        <div className="border-t-2 border-green-300 bg-white dark:bg-slate-900 p-3">
+        <div className="border-t-2 border-green-300 p-3" style={{ background: 'var(--db-surface, #fff)' }}>
           <TransactionItemSearch
             onAddItem={handleAddItem}
             useCost={!isSellSide}
@@ -294,12 +294,12 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
         <MarginPanel lines={lines} selectedIds={lc.selectedLineIds} isSellSide={lc.isSellSide} />
       )}
       {lc.showCommission && isSellSide && (
-        <div className="border-t border-purple-200 bg-white max-h-[300px] overflow-y-auto">
+        <div className="border-t border-purple-200 max-h-[300px] overflow-y-auto" style={{ background: 'var(--db-surface, #fff)' }}>
           <CommissionPanel lines={lines} selectedIds={lc.selectedLineIds} headerCommission={data?.commission} />
         </div>
       )}
       {lc.activePanel !== 'none' && lc.activePanel !== 'margin' && (
-        <div className="border-t border-slate-200 bg-white max-h-[250px] overflow-y-auto">
+        <div className="max-h-[250px] overflow-y-auto" style={{ borderTop: '1px solid var(--db-border, #dee2e6)', background: 'var(--db-surface, #fff)' }}>
           {lc.activePanel === 'inventory' && <InventoryPanel itemIds={lc.inventoryItemIds} itemCodes={[]} />}
           {lc.activePanel === 'spec' && <SpecPanel itemId={lc.selectedLineRecord?._itemId ?? null} itemCode={lc.selectedLineRecord?.item_code ?? ''} />}
           {lc.activePanel === 'xref' && <XRefPanel itemId={lc.selectedLineRecord?._itemId ?? null} itemCode={lc.selectedLineRecord?.item_code ?? ''} />}

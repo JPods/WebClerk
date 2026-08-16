@@ -1,6 +1,4 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
-"use client";
-
 import type React from "react";
 import {
   createContext,
@@ -10,6 +8,7 @@ import {
   useCallback,
   useMemo,
 } from "react";
+import apiClient from "@/api/axios";
 import type {
   UserPermissions,
   ModelPermissions,
@@ -73,29 +72,17 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({
     setError(null);
 
     try {
-      const response = await fetch(`${apiBaseUrl}permissions/`, {
-        credentials: "include",
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      if (response.status === 401) {
+      const response = await apiClient.get(`${apiBaseUrl}permissions/`);
+      setPermissions(response.data);
+    } catch (err: any) {
+      if (err?.response?.status === 401) {
         // Not authenticated
         setPermissions(null);
-        return;
+      } else {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setError(message);
+        setPermissions(null);
       }
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch permissions: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setPermissions(data);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      setError(message);
-      setPermissions(null);
     } finally {
       setLoading(false);
     }

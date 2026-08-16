@@ -27,22 +27,19 @@ interface JsonEnvelopePanelProps {
   recordId?: number | string;
   jsonExpert?: boolean;  // from user.prefs.staff.json_expert — unlocks metadata/refs editing
   fontSize?: number;
-  theme?: { text: string; textMuted: string; border: string; surfaceAlt: string; inputBg: string };
   style?: React.CSSProperties;
 }
 
 // ── Floating JSON editor window ──────────────────────────────────────
 
-function FloatingJsonEditor({ field, label, data, modelName, recordId, onSave, onClose, theme }: {
+function FloatingJsonEditor({ field, label, data, modelName, recordId, onSave, onClose }: {
   field: string; label: string; data: any; modelName?: string; recordId?: number | string;
   onSave: (data: any) => void; onClose: () => void;
-  theme: { text: string; textMuted: string; border: string; surfaceAlt: string; inputBg: string };
 }) {
   const [code, setCode] = useState(() => JSON.stringify(data, null, 2));
   const [treeData, setTreeData] = useState(data);
   const [error, setError] = useState('');
   const overlayRef = useRef<HTMLDivElement>(null);
-  const th = theme;
 
   const handleCodeChange = useCallback((text: string) => {
     setCode(text);
@@ -67,27 +64,24 @@ function FloatingJsonEditor({ field, label, data, modelName, recordId, onSave, o
   const handleSave = () => { if (!error) { onSave(treeData); onClose(); } };
 
   return (
-    <div ref={overlayRef}
-      style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}
+    <div ref={overlayRef} className="db-dialog-overlay" style={{ zIndex: 9999 }}
       onClick={e => { if (e.target === overlayRef.current) onClose(); }}>
-      <div style={{ width: '90vw', maxWidth: 1200, height: '85vh', display: 'flex', flexDirection: 'column',
-        background: th.inputBg, border: `1px solid ${th.border}`, borderRadius: 8,
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
+      <div className="db-panel-input" style={{ width: '90vw', maxWidth: 1200, height: '85vh', display: 'flex', flexDirection: 'column',
+        borderRadius: 8, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
         {/* Title bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '8px 16px', background: th.surfaceAlt, borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
+        <div className="db-section-bg db-flex-between" style={{ padding: '8px 16px', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: th.text }}>{title}</span>
-            {error && <span style={{ fontSize: 11, color: '#f87171', fontFamily: 'monospace' }}>{error}</span>}
+            <span className="db-text db-font-bolder" style={{ fontSize: 13 }}>{title}</span>
+            {error && <span className="db-font-mono" style={{ fontSize: 11, color: '#f87171' }}>{error}</span>}
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={handleSave} disabled={!!error}
-              style={{ padding: '4px 14px', fontSize: 12, fontWeight: 600, borderRadius: 4, border: 'none',
-                background: error ? '#64748b' : '#465fff', color: '#fff', cursor: error ? 'not-allowed' : 'pointer' }}>
+              className="db-btn db-btn--primary" style={{ borderRadius: 4,
+                background: error ? '#64748b' : undefined, cursor: error ? 'not-allowed' : 'pointer' }}>
               Save
             </button>
             <button onClick={onClose}
-              style={{ padding: '4px 14px', fontSize: 12, fontWeight: 500, borderRadius: 4, border: `1px solid ${th.border}`, background: th.surfaceAlt, color: th.text, cursor: 'pointer' }}>
+              className="db-btn" style={{ borderRadius: 4 }}>
               Close
             </button>
           </div>
@@ -95,28 +89,27 @@ function FloatingJsonEditor({ field, label, data, modelName, recordId, onSave, o
         {/* Split pane */}
         <div style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
           {/* Code — left */}
-          <div style={{ width: '45%', display: 'flex', flexDirection: 'column', borderRight: `1px solid ${th.border}` }}>
-            <div style={{ padding: '3px 10px', fontSize: 9, fontWeight: 600, color: th.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', background: th.surfaceAlt, borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
+          <div style={{ width: '45%', display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--db-border)' }}>
+            <div className="db-section-bg db-text-muted db-font-bold" style={{ padding: '3px 10px', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
               Code
             </div>
             <textarea value={code} onChange={e => handleCodeChange(e.target.value)} spellCheck={false}
-              style={{ flex: 1, resize: 'none', border: 'none', outline: 'none', padding: 12,
-                fontFamily: "'JetBrains Mono', 'Fira Code', monospace", fontSize: 11, lineHeight: 1.6,
-                background: th.inputBg, color: th.text, tabSize: 2 }} />
+              className="db-panel-input-text" style={{ flex: 1, resize: 'none', border: 'none', outline: 'none', padding: 12,
+                fontFamily: "'JetBrains Mono', 'Fira Code', monospace", fontSize: 11, lineHeight: 1.6, tabSize: 2 }} />
           </div>
           {/* Tree — right */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <div style={{ padding: '3px 10px', fontSize: 9, fontWeight: 600, color: th.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', background: th.surfaceAlt, borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
+            <div className="db-section-bg db-text-muted db-font-bold" style={{ padding: '3px 10px', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
               Tree
             </div>
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: 8 }}>
               {error ? (
-                <div style={{ padding: 32, textAlign: 'center', color: th.textMuted, fontSize: 12 }}>
+                <div className="db-text-muted" style={{ padding: 32, textAlign: 'center', fontSize: 12 }}>
                   Fix the JSON to see the tree
                 </div>
               ) : (
                 <JsonTree data={treeData} onChange={handleTreeChange} defaultExpanded maxHeight="none"
-                  theme={th} style={{ border: 'none', background: 'transparent' }} />
+                  style={{ border: 'none', background: 'transparent' }} />
               )}
             </div>
           </div>
@@ -129,9 +122,8 @@ function FloatingJsonEditor({ field, label, data, modelName, recordId, onSave, o
 // ── Main panel ───────────────────────────────────────────────────────
 
 export default function JsonEnvelopePanel({
-  record, onChange, modelName, recordId, jsonExpert = false, fontSize = 12, theme, style,
+  record, onChange, modelName, recordId, jsonExpert = false, fontSize = 12, style,
 }: JsonEnvelopePanelProps) {
-  const th = theme || { text: '#212529', textMuted: '#6c757d', border: '#dee2e6', surfaceAlt: '#f8f9fa', inputBg: '#fff' };
   const [collapsed, setCollapsed] = useState(false);
   const [floatingField, setFloatingField] = useState<string | null>(null);
 
@@ -151,23 +143,24 @@ export default function JsonEnvelopePanel({
 
   return (
     <>
-      <div style={{ border: `1px solid ${th.border}`, borderRadius: 6, overflow: 'hidden', background: th.inputBg, ...style }}>
+      <div className="db-panel-input" style={{ borderRadius: 6, overflow: 'hidden', ...style }}>
         {/* header */}
         <div
+          className="db-bg-surface-alt"
           style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            padding: '6px 12px', borderBottom: collapsed ? 'none' : `1px solid ${th.border}`,
-            background: th.surfaceAlt, cursor: 'pointer', userSelect: 'none',
+            padding: '6px 12px', borderBottom: collapsed ? 'none' : '1px solid var(--db-border)',
+            cursor: 'pointer', userSelect: 'none',
           }}
           onClick={() => setCollapsed(!collapsed)}
         >
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke={th.textMuted} strokeWidth="1.5">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="var(--db-text-muted)" strokeWidth="1.5">
             {collapsed ? <path d="M3 1 L7 5 L3 9" /> : <path d="M1 3 L5 7 L9 3" />}
           </svg>
-          <span style={{ fontSize: fontSize - 1, fontWeight: 600, color: th.textMuted, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <span className="db-text-muted db-font-bold" style={{ fontSize: fontSize - 1, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             JSON Envelopes
           </span>
-          <span style={{ fontSize: fontSize - 2, color: th.textMuted, fontWeight: 400 }}>
+          <span className="db-text-muted" style={{ fontSize: fontSize - 2, fontWeight: 400 }}>
             ({present.length})
           </span>
         </div>
@@ -185,7 +178,6 @@ export default function JsonEnvelopePanel({
                 readOnly={readOnly}
                 onChange={readOnly ? undefined : (d) => onChange!(key, d)}
                 onLabelClick={(e) => handleLabelClick(key, e)}
-                theme={th}
               />
             );
           })}
@@ -203,7 +195,6 @@ export default function JsonEnvelopePanel({
           recordId={recordId}
           onSave={(d) => handleFloatSave(floatingEntry.key, d)}
           onClose={() => setFloatingField(null)}
-          theme={th}
         />
       )}
     </>

@@ -29,7 +29,6 @@ export const modelRegistry: ModelRegistration[] = [
   // core
   { app: "core", model: "action", label: kebabCaseToTitle("action") },
   { app: "core", model: "contact", label: kebabCaseToTitle("contact") },
-  { app: "core", model: "customer", label: kebabCaseToTitle("customer") },
   { app: "core", model: "notification", label: kebabCaseToTitle("notification") },
   { app: "core", model: "pending", label: kebabCaseToTitle("pending") },
   { app: "core", model: "report", label: kebabCaseToTitle("report") },
@@ -63,9 +62,7 @@ export const modelRegistry: ModelRegistration[] = [
 
   // support
   { app: "support", model: "campaign", label: kebabCaseToTitle("campaign") },
-
-  // supports (legacy)
-  { app: "supports", model: "campaign", label: kebabCaseToTitle("campaign") },
+  { app: "support", model: "quality", label: kebabCaseToTitle("quality") },
 
   // transactions
   { app: "transactions", model: "base", label: kebabCaseToTitle("base") },
@@ -78,13 +75,14 @@ export const modelRegistry: ModelRegistration[] = [
   { app: "transactions", model: "proposal_line", label: kebabCaseToTitle("proposal_line") },
   { app: "transactions", model: "purchase", label: kebabCaseToTitle("purchase") },
   { app: "transactions", model: "purchase_line", label: kebabCaseToTitle("purchase_line") },
-  { app: "transactions", model: "purchase_receipt", label: kebabCaseToTitle("purchase_receipt") },
+  { app: "transactions", model: "receipt", label: kebabCaseToTitle("receipt") },
+  { app: "transactions", model: "payment", label: kebabCaseToTitle("payment") },
   { app: "transactions", model: "requisition", label: kebabCaseToTitle("requisition") },
   { app: "transactions", model: "requisition_line", label: kebabCaseToTitle("requisition_line") },
   { app: "transactions", model: "order", label: kebabCaseToTitle("order") },
   { app: "transactions", model: "order_line", label: kebabCaseToTitle("order_line") },
-  { app: "transactions", model: "work_order", label: kebabCaseToTitle("work_order") },
-  { app: "transactions", model: "work_order_line", label: kebabCaseToTitle("work_order_line") },
+  { app: "transactions", model: "workorder", label: kebabCaseToTitle("workorder") },
+  { app: "transactions", model: "workorder_line", label: kebabCaseToTitle("workorder_line") },
 
   // sync
   { app: "sync", model: "bundle", label: kebabCaseToTitle("bundle") },

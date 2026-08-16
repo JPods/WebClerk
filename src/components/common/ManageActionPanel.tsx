@@ -218,9 +218,10 @@ export default function ManageActionPanel({ modelName, recordId, record, onActio
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800 text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+        className="w-full flex items-center justify-between px-4 py-2 text-xs font-semibold transition"
+        style={{ background: 'var(--db-surface-alt, #f8f9fa)', color: 'var(--db-text-muted, #6c757d)' }}
       >
-        <span>⚡ Actions ({actions.length})</span>
+        <span>⚡ Workflow ({actions.length})</span>
         <span>{expanded ? '▼' : '▶'}</span>
       </button>
 

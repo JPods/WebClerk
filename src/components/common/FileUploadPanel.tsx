@@ -144,7 +144,7 @@ const FileUploadPanel: React.FC<Props> = ({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx"
+            accept="image/*,video/*,.pdf,.doc,.docx"
             multiple
             capture="environment"
             onChange={handleUpload}

@@ -10,8 +10,8 @@ const TokenBuilder = lazy(() => import('../components/common/TokenBuilder'));
 const TokenBuilderPage: React.FC = () => {
   const { model } = useParams<{ model?: string }>();
   return (
-    <Suspense fallback={<div style={{ padding: 40 }}>Loading...</div>}>
-      <div style={{ height: '100vh' }}>
+    <Suspense fallback={<div className="p-10">Loading...</div>}>
+      <div className="h-screen">
         <TokenBuilder model={model} />
       </div>
     </Suspense>

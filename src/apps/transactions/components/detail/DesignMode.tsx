@@ -1,4 +1,4 @@
-/* LastChecked: 2026-08-03 | WhereUsed: TransactionDetail | WhoCreated: Claude */
+/* LastChecked: 2026-08-03 | WhereUsed: UiDetail | WhoCreated: Claude */
 /**
  * DesignMode — visual form designer overlay.
  *

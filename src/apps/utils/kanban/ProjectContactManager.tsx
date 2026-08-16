@@ -1,6 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { useState, useEffect, useCallback, useMemo, ChangeEvent } from "react";
-import { getRecords, saveRecord } from "../../../api/wcapi";
+import { getRecords, saveRecord } from "@/api/wcapi";
 import { useAuth } from "../../../hooks/useAuth";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 

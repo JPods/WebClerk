@@ -1,4 +1,4 @@
-/* LastChecked: 2026-08-02 | WhereUsed: TransactionDetail toolbar | WhoCreated: Claude */
+/* LastChecked: 2026-08-02 | WhereUsed: UiDetail toolbar | WhoCreated: Claude */
 /**
  * WcModelMenu — model-specific action dropdown.
  *

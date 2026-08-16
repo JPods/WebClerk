@@ -1,6 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Actions, Projects } from "../../../api/userProfile";
+import { getRecords } from "@/api/wcapi";
 import type { ApiKanbanItem } from "../kanban/kanbanDataMapper";
 import type { ProjectOption, ProjectPrefs } from "./GanttProjectSelector";
 import { getProjectColor } from "./GanttProjectSelector";
@@ -55,61 +55,40 @@ export interface UseGanttDataResult {
   getTaskOrder: () => string[];
 }
 
-// Type guard for checking if response is valid
-const isValidResponse = (response: unknown): response is { data: unknown } => {
-  return (
-    response !== null &&
-    typeof response === "object" &&
-    "data" in response
-  );
-};
-
 // Extract records array from API response
-// Handles axios response: { data: { status, data: { results: [...] } } }
-// Or direct API response: { status, data: { results: [...] } }
+// Handles wcapi.getRecords shape: { results: [...], total, model_name }
+// Also handles legacy axios shape: { data: { status, data: { results: [...] } } }
 const extractRecordsFromResponse = (response: unknown): Record<string, unknown>[] => {
   console.log('[useGanttData] extractRecordsFromResponse input:', response);
-  
-  if (!isValidResponse(response)) {
-    console.log('[useGanttData] Response is not valid (no data property)');
+
+  if (!response || typeof response !== "object") {
     return [];
   }
-  
-  let payload = response.data;
-  console.log('[useGanttData] Initial payload:', payload);
-  
-  // Handle axios wrapper: response.data is the API response body
-  // API response body has shape: { status, data: { results: [...] } }
-  if (payload && typeof payload === "object" && "data" in payload) {
-    const apiBody = payload as Record<string, unknown>;
-    // Check if this is the API response wrapper with status field
-    if ("status" in apiBody && apiBody.data) {
-      payload = apiBody.data;
-      console.log('[useGanttData] Unwrapped API body, payload now:', payload);
+
+  const obj = response as Record<string, unknown>;
+
+  // Direct shape from getRecords: { results: [...], total, model_name }
+  for (const key of ["results", "items", "data", "records"]) {
+    if (Array.isArray(obj[key])) {
+      return (obj[key] as unknown[]).filter(
+        (item): item is Record<string, unknown> =>
+          item !== null && typeof item === "object"
+      );
     }
   }
-  
-  if (Array.isArray(payload)) {
-    return payload.filter(
+
+  // Legacy axios wrapper: response.data.data.results
+  if ("data" in obj && obj.data && typeof obj.data === "object") {
+    return extractRecordsFromResponse(obj.data);
+  }
+
+  if (Array.isArray(response)) {
+    return (response as unknown[]).filter(
       (item): item is Record<string, unknown> =>
         item !== null && typeof item === "object"
     );
   }
-  
-  if (payload && typeof payload === "object") {
-    const obj = payload as Record<string, unknown>;
-    
-    // Check common nested array keys
-    for (const key of ["results", "items", "data", "records"]) {
-      if (Array.isArray(obj[key])) {
-        return (obj[key] as unknown[]).filter(
-          (item): item is Record<string, unknown> =>
-            item !== null && typeof item === "object"
-        );
-      }
-    }
-  }
-  
+
   return [];
 };
 
@@ -228,8 +207,8 @@ export const useGanttData = ({
     setProjectsError(null);
     
     try {
-      console.log('[useGanttData] Calling Projects API with is_active:true, limit:500');
-      const response = await Projects({ is_active: true, limit: 500 });
+      console.log('[useGanttData] Calling getRecords("project") with is_active:true, limit:500');
+      const response = await getRecords("project", { is_active: true, limit: 500 });
       console.log('[useGanttData] Projects API response:', response);
       
       if (!isMountedRef.current) return;
@@ -278,7 +257,7 @@ export const useGanttData = ({
           batch.map(async (projectId) => {
             try {
               console.log(`[useGanttData] Fetching actions for project_id=${projectId} (type: ${typeof projectId})`);
-              const response = await Actions({
+              const response = await getRecords("action", {
                 project_id: projectId,
                 is_active: true,
                 limit: 500,

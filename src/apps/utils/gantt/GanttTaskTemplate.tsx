@@ -99,7 +99,8 @@ const getAssigneeInitials = (user: AssignedUser, badgePrefsContext: any): string
     const prefs = badgePrefsContext.getBadgePrefs(contactId);
     if (prefs?.initials) return prefs.initials;
   }
-  if (user.prefs?.badge?.initials) return user.prefs.badge.initials;
+  if (user.config?.ui?.badge?.initials) return user.config.ui.badge.initials;
+  if (user.prefs?.badge?.initials) return user.prefs.badge.initials; // legacy fallback
   return getInitials(user.name);
 };
 
@@ -198,10 +199,9 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
           overflow: "visible",
           pointerEvents: "auto",
           opacity: isDimmed ? 0.25 : 1,
-          transition: "opacity 0.3s ease",
           outline: emphasized ? "2px solid #3b82f6" : "none",
           outlineOffset: "-1px",
-          transition: "outline 0.2s ease",
+          transition: "outline 0.2s ease, opacity 0.3s ease",
           zIndex: emphasized ? 10 : undefined,
         }}
       >

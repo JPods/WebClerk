@@ -14,6 +14,7 @@ import PrintReportDropdown from './PrintReportDropdown';
 import type { ReportRecord } from './PrintReportDropdown';
 import ToolbarIcon from './ToolbarIcon';
 import { TB } from './toolbarActions';
+import { WorkflowSelect } from './WorkflowSelect';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -94,8 +95,7 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
         onSelect={handlePrintSelect}
       />
 
-      <ToolbarIcon action={TB.modelMenu} title={`${modelName} menu`}
-        onClick={() => dispatch(showToast({ message: `${modelName} menu: coming soon`, type: 'info' }))} />
+      <WorkflowSelect modelName={modelName} record={data} onComplete={() => {}} />
 
       {/* Status + total + balance badges */}
       <span className="flex-1" />

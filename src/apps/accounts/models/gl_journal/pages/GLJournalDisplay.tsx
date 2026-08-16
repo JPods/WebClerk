@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { getRecord, saveRecord } from "@/api/wcapi";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import RippleLoader from "@/components/common/RippleLoader";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { DevBadge } from "@/components/common/DevBadge";
 
 interface GLJournalDisplayProps {
@@ -81,7 +81,7 @@ export default function GLJournalDisplay({
   };
 
   if (loading && modeProp === "edit") {
-    return <RippleLoader />;
+    return <LoadingSpinner size="lg" label="Loading..." />;
   }
 
   return (

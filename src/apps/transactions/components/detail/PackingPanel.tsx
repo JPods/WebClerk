@@ -68,19 +68,10 @@ async function callManage(action: string, params: Record<string, unknown>): Prom
 }
 
 // ---------------------------------------------------------------------------
-// Styles
+// Styles — layout-only; colors via db-* CSS utility classes
 // ---------------------------------------------------------------------------
 
 const S = {
-  panel: {
-    background: '#1a1a2a', color: '#ddd', borderRadius: 8,
-    border: '1px solid #333', overflow: 'hidden',
-  } as React.CSSProperties,
-  header: {
-    padding: '10px 16px', borderBottom: '1px solid #333',
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-  } as React.CSSProperties,
-  title: { fontWeight: 700, fontSize: 15, color: '#88ccff' } as React.CSSProperties,
   step: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600,
@@ -88,24 +79,13 @@ const S = {
   body: { padding: '12px 16px', maxHeight: 500, overflowY: 'auto' } as React.CSSProperties,
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 } as React.CSSProperties,
   th: {
-    textAlign: 'left' as const, padding: '6px 8px', borderBottom: '1px solid #444',
-    color: '#999', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const,
+    textAlign: 'left' as const, padding: '6px 8px',
+    fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const,
   },
-  td: { padding: '6px 8px', borderBottom: '1px solid #2a2a3a' } as React.CSSProperties,
+  td: { padding: '6px 8px' } as React.CSSProperties,
   btn: {
     padding: '6px 16px', borderRadius: 4, cursor: 'pointer',
     fontSize: 13, fontWeight: 600, border: 'none',
-  } as React.CSSProperties,
-  btnPrimary: { background: '#2563eb', color: '#fff' } as React.CSSProperties,
-  btnDefault: { background: 'rgba(255,255,255,0.08)', color: '#ccc', border: '1px solid #555' } as React.CSSProperties,
-  btnSuccess: { background: '#16a34a', color: '#fff' } as React.CSSProperties,
-  footer: {
-    padding: '10px 16px', borderTop: '1px solid #333',
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-  } as React.CSSProperties,
-  input: {
-    background: '#2a2a3a', border: '1px solid #555', borderRadius: 4,
-    padding: '4px 8px', color: '#ddd', fontSize: 13,
   } as React.CSSProperties,
 };
 
@@ -273,34 +253,32 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
   const totalPacked = boxes.reduce((sum, b) => sum + b.lines.length, 0);
   const allPacked = totalPacked >= totalToPick && totalToPick > 0;
 
-  const stepColor = (s: string) => s === step ? '#2563eb' : '#444';
-
   // ── Ship complete ──
   if (shipResult) {
     return (
-      <div style={S.panel}>
-        <div style={S.header}>
-          <span style={S.title}>Shipment Complete</span>
+      <div className="db-panel db-text" style={{ borderRadius: 8, overflow: 'hidden' }}>
+        <div className="db-border-bottom db-flex-between" style={{ padding: '10px 16px' }}>
+          <span className="db-text-accent db-font-bolder" style={{ fontSize: 15 }}>Shipment Complete</span>
         </div>
         <div style={{ ...S.body, textAlign: 'center', padding: '32px 16px' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>&#x2714;</div>
-          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
+          <div className="db-font-bold" style={{ fontSize: 16, marginBottom: 8 }}>
             Invoice {shipResult.invoice_ida || `#${shipResult.invoice_id}`} created
           </div>
-          <div style={{ color: '#999', fontSize: 13 }}>
+          <div className="db-text-muted" style={{ fontSize: 13 }}>
             {shipResult.lines_shipped} lines shipped
             {shipResult.lines_remaining > 0 &&
               ` · ${shipResult.lines_remaining} lines remaining on order`}
           </div>
           {trackingNumber && (
-            <div style={{ marginTop: 8, color: '#88ccff', fontSize: 13 }}>
+            <div className="db-text-accent" style={{ marginTop: 8, fontSize: 13 }}>
               Tracking: {trackingNumber}
             </div>
           )}
         </div>
-        <div style={S.footer}>
+        <div className="db-border-top db-flex-between" style={{ padding: '10px 16px', gap: 8 }}>
           <div />
-          <button style={{ ...S.btn, ...S.btnPrimary }} onClick={() => { onComplete?.(); onClose?.(); }}>
+          <button className="db-btn db-btn--primary" style={S.btn} onClick={() => { onComplete?.(); onClose?.(); }}>
             Done
           </button>
         </div>
@@ -309,18 +287,18 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
   }
 
   return (
-    <div style={S.panel}>
+    <div className="db-panel db-text" style={{ borderRadius: 8, overflow: 'hidden' }}>
       {/* Header with step indicator */}
-      <div style={S.header}>
-        <span style={S.title}>
+      <div className="db-border-bottom db-flex-between" style={{ padding: '10px 16px' }}>
+        <span className="db-text-accent db-font-bolder" style={{ fontSize: 15 }}>
           Pack &amp; Ship — {orderIda || `Order #${orderId}`}
         </span>
         <div style={{ display: 'flex', gap: 4 }}>
           {(['pick', 'pack', 'ship'] as const).map((s, i) => (
             <span key={s} style={{
               ...S.step,
-              background: stepColor(s),
-              color: s === step ? '#fff' : '#888',
+              background: s === step ? 'var(--db-btn-primary)' : 'var(--db-border-light)',
+              color: s === step ? '#fff' : 'var(--db-text-muted)',
               cursor: s === 'pick' || (s === 'pack' && totalPicked > 0) ? 'pointer' : 'default',
             }}
             onClick={() => {
@@ -333,15 +311,15 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
           ))}
         </div>
         {onClose && (
-          <button onClick={onClose} style={{
-            background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 18,
+          <button onClick={onClose} className="db-text-muted" style={{
+            background: 'none', border: 'none', cursor: 'pointer', fontSize: 18,
           }}>&times;</button>
         )}
       </div>
 
       {/* Error bar */}
       {error && (
-        <div style={{ padding: '6px 16px', background: 'rgba(255,60,60,0.15)', color: '#ff6b6b', fontSize: 13 }}>
+        <div className="db-text-red" style={{ padding: '6px 16px', background: 'color-mix(in srgb, var(--db-accent-red) 15%, transparent)', fontSize: 13 }}>
           {error}
         </div>
       )}
@@ -350,9 +328,9 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
       {step === 'pick' && (
         <>
           <div style={S.body}>
-            {loading && <div style={{ color: '#888', padding: 16 }}>Loading pick list...</div>}
+            {loading && <div className="db-text-muted" style={{ padding: 16 }}>Loading pick list...</div>}
             {!loading && pickList.length === 0 && (
-              <div style={{ color: '#888', padding: 16, textAlign: 'center' }}>
+              <div className="db-text-muted" style={{ padding: 16, textAlign: 'center' }}>
                 No lines to pick — all items shipped or order empty.
               </div>
             )}
@@ -360,45 +338,46 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
               <table style={S.table}>
                 <thead>
                   <tr>
-                    <th style={{ ...S.th, width: 32 }}>
+                    <th className="db-text-muted db-border-bottom-light" style={{ ...S.th, width: 32 }}>
                       <input type="checkbox"
                         checked={totalPicked === totalToPick}
                         onChange={() => totalPicked === totalToPick ? setPickedLines(new Set()) : pickAll()}
                       />
                     </th>
-                    <th style={S.th}>Item</th>
-                    <th style={S.th}>Description</th>
-                    <th style={{ ...S.th, textAlign: 'right' }}>Qty</th>
-                    <th style={S.th}>Warehouse</th>
-                    <th style={S.th}>Bin</th>
+                    <th className="db-text-muted db-border-bottom-light" style={S.th}>Item</th>
+                    <th className="db-text-muted db-border-bottom-light" style={S.th}>Description</th>
+                    <th className="db-text-muted db-border-bottom-light" style={{ ...S.th, textAlign: 'right' }}>Qty</th>
+                    <th className="db-text-muted db-border-bottom-light" style={S.th}>Warehouse</th>
+                    <th className="db-text-muted db-border-bottom-light" style={S.th}>Bin</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pickList.map(pl => (
                     <tr key={pl.line_id}
                       onClick={() => togglePicked(pl.line_id)}
-                      style={{ cursor: 'pointer', background: pickedLines.has(pl.line_id) ? 'rgba(37,99,235,0.1)' : 'transparent' }}
+                      style={{ cursor: 'pointer', background: pickedLines.has(pl.line_id) ? 'var(--db-row-active)' : 'transparent' }}
                     >
-                      <td style={S.td}>
+                      <td className="db-border-bottom-light" style={S.td}>
                         <input type="checkbox" checked={pickedLines.has(pl.line_id)} readOnly />
                       </td>
-                      <td style={{ ...S.td, fontFamily: 'monospace', color: '#88ccff' }}>{pl.item_ida}</td>
-                      <td style={S.td}>{pl.item_name}</td>
-                      <td style={{ ...S.td, textAlign: 'right', fontWeight: 600 }}>{pl.qty}</td>
-                      <td style={{ ...S.td, color: '#999' }}>{pl.warehouse}</td>
-                      <td style={{ ...S.td, color: '#ccc', fontWeight: 600 }}>{pl.bin_location}</td>
+                      <td className="db-text-accent db-font-mono db-border-bottom-light" style={S.td}>{pl.item_ida}</td>
+                      <td className="db-border-bottom-light" style={S.td}>{pl.item_name}</td>
+                      <td className="db-font-bold db-border-bottom-light" style={{ ...S.td, textAlign: 'right' }}>{pl.qty}</td>
+                      <td className="db-text-muted db-border-bottom-light" style={S.td}>{pl.warehouse}</td>
+                      <td className="db-text db-font-bold db-border-bottom-light" style={S.td}>{pl.bin_location}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
           </div>
-          <div style={S.footer}>
-            <span style={{ fontSize: 13, color: '#999' }}>
+          <div className="db-border-top db-flex-between" style={{ padding: '10px 16px', gap: 8 }}>
+            <span className="db-text-muted" style={{ fontSize: 13 }}>
               {totalPicked} of {totalToPick} picked
             </span>
             <button
-              style={{ ...S.btn, ...S.btnPrimary }}
+              className="db-btn db-btn--primary"
+              style={S.btn}
               disabled={totalPicked === 0}
               onClick={() => setStep('pack')}
             >
@@ -420,16 +399,13 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
               {boxes.map(box => (
                 <button key={box.id}
                   onClick={() => setActiveBoxId(box.id)}
-                  style={{
-                    ...S.btn,
-                    ...(box.id === activeBoxId ? S.btnPrimary : S.btnDefault),
-                    padding: '4px 12px', fontSize: 12,
-                  }}
+                  className={box.id === activeBoxId ? 'db-btn db-btn--primary' : 'db-btn'}
+                  style={{ ...S.btn, padding: '4px 12px', fontSize: 12 }}
                 >
                   {box.label} ({box.lines.length})
                 </button>
               ))}
-              <button onClick={addBox} style={{ ...S.btn, ...S.btnDefault, padding: '4px 8px', fontSize: 12 }}>
+              <button onClick={addBox} className="db-btn" style={{ ...S.btn, padding: '4px 8px', fontSize: 12 }}>
                 + Box
               </button>
             </div>
@@ -437,7 +413,7 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
             {/* Add picked items to active box */}
             {pickedLines.size > 0 && (
               <div style={{ marginBottom: 12 }}>
-                <button onClick={addToBox} style={{ ...S.btn, ...S.btnDefault, fontSize: 12 }}>
+                <button onClick={addToBox} className="db-btn" style={{ ...S.btn, fontSize: 12 }}>
                   Add picked items to {boxes.find(b => b.id === activeBoxId)?.label || 'box'}
                 </button>
               </div>
@@ -448,9 +424,10 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
               <div key={box.id}>
                 {/* Weight input */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <label style={{ fontSize: 12, color: '#999' }}>Weight:</label>
+                  <label className="db-text-muted" style={{ fontSize: 12 }}>Weight:</label>
                   <input
-                    style={{ ...S.input, width: 80 }}
+                    className="db-input"
+                    style={{ width: 80, fontSize: 13 }}
                     type="number" step="0.1" placeholder="lbs"
                     value={box.weight}
                     onChange={e => setBoxWeight(box.id, e.target.value)}
@@ -458,36 +435,38 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
                 </div>
 
                 {box.lines.length === 0 ? (
-                  <div style={{ color: '#666', fontSize: 13, padding: '16px 0', textAlign: 'center' }}>
+                  <div className="db-text-dim" style={{ fontSize: 13, padding: '16px 0', textAlign: 'center' }}>
                     No items in this box. Pick items first, then click "Add picked items."
                   </div>
                 ) : (
                   <table style={S.table}>
                     <thead>
                       <tr>
-                        <th style={S.th}>Item</th>
-                        <th style={S.th}>Description</th>
-                        <th style={{ ...S.th, textAlign: 'right', width: 80 }}>Qty</th>
-                        <th style={{ ...S.th, width: 32 }}></th>
+                        <th className="db-text-muted db-border-bottom-light" style={S.th}>Item</th>
+                        <th className="db-text-muted db-border-bottom-light" style={S.th}>Description</th>
+                        <th className="db-text-muted db-border-bottom-light" style={{ ...S.th, textAlign: 'right', width: 80 }}>Qty</th>
+                        <th className="db-text-muted db-border-bottom-light" style={{ ...S.th, width: 32 }}></th>
                       </tr>
                     </thead>
                     <tbody>
                       {box.lines.map(bl => (
                         <tr key={bl.line_id}>
-                          <td style={{ ...S.td, fontFamily: 'monospace', color: '#88ccff' }}>{bl.item_ida}</td>
-                          <td style={S.td}>{bl.item_name}</td>
-                          <td style={{ ...S.td, textAlign: 'right' }}>
+                          <td className="db-text-accent db-font-mono db-border-bottom-light" style={S.td}>{bl.item_ida}</td>
+                          <td className="db-border-bottom-light" style={S.td}>{bl.item_name}</td>
+                          <td className="db-border-bottom-light" style={{ ...S.td, textAlign: 'right' }}>
                             <input
                               type="number" min="0" step="1"
                               value={bl.qty_packed}
                               onChange={e => setQtyPacked(box.id, bl.line_id, parseFloat(e.target.value) || 0)}
-                              style={{ ...S.input, width: 60, textAlign: 'right' }}
+                              className="db-input"
+                              style={{ width: 60, textAlign: 'right', fontSize: 13 }}
                             />
                           </td>
-                          <td style={S.td}>
+                          <td className="db-border-bottom-light" style={S.td}>
                             <button
                               onClick={() => removeFromBox(box.id, bl.line_id)}
-                              style={{ background: 'none', border: 'none', color: '#ff6b6b', cursor: 'pointer', fontSize: 14 }}
+                              className="db-text-red"
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}
                               title="Remove from box"
                             >&times;</button>
                           </td>
@@ -501,20 +480,21 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
 
             {/* All boxes summary */}
             {boxes.length > 1 && (
-              <div style={{ marginTop: 12, fontSize: 12, color: '#999' }}>
+              <div className="db-text-muted" style={{ marginTop: 12, fontSize: 12 }}>
                 {boxes.map(b => `${b.label}: ${b.lines.length} items${b.weight ? ', ' + b.weight + ' lbs' : ''}`).join(' · ')}
               </div>
             )}
           </div>
-          <div style={S.footer}>
-            <button style={{ ...S.btn, ...S.btnDefault }} onClick={() => setStep('pick')}>
+          <div className="db-border-top db-flex-between" style={{ padding: '10px 16px', gap: 8 }}>
+            <button className="db-btn" style={S.btn} onClick={() => setStep('pick')}>
               Back to Pick
             </button>
-            <span style={{ fontSize: 13, color: '#999' }}>
+            <span className="db-text-muted" style={{ fontSize: 13 }}>
               {totalPacked} items in {boxes.filter(b => b.lines.length > 0).length} box(es)
             </span>
             <button
-              style={{ ...S.btn, ...S.btnSuccess }}
+              className="db-btn db-btn--save"
+              style={S.btn}
               disabled={totalPacked === 0 || loading}
               onClick={confirmPack}
             >
@@ -528,40 +508,41 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
       {step === 'ship' && (
         <>
           <div style={S.body}>
-            <div style={{ fontSize: 13, color: '#999', marginBottom: 16 }}>
+            <div className="db-text-muted" style={{ fontSize: 13, marginBottom: 16 }}>
               Pack confirmed. Enter shipping details to create the invoice.
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '10px 12px', alignItems: 'center', maxWidth: 400 }}>
-              <label style={{ fontSize: 13, color: '#999' }}>Carrier:</label>
-              <input style={S.input} value={carrier} onChange={e => setCarrier(e.target.value)} placeholder="UPS, FedEx, USPS..." />
+              <label className="db-text-muted" style={{ fontSize: 13 }}>Carrier:</label>
+              <input className="db-input" style={{ fontSize: 13 }} value={carrier} onChange={e => setCarrier(e.target.value)} placeholder="UPS, FedEx, USPS..." />
 
-              <label style={{ fontSize: 13, color: '#999' }}>Tracking #:</label>
-              <input style={S.input} value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} placeholder="Tracking number" />
+              <label className="db-text-muted" style={{ fontSize: 13 }}>Tracking #:</label>
+              <input className="db-input" style={{ fontSize: 13 }} value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} placeholder="Tracking number" />
 
-              <label style={{ fontSize: 13, color: '#999' }}>Ship Date:</label>
-              <input style={S.input} type="date" value={shipDate} onChange={e => setShipDate(e.target.value)} />
+              <label className="db-text-muted" style={{ fontSize: 13 }}>Ship Date:</label>
+              <input className="db-input" style={{ fontSize: 13 }} type="date" value={shipDate} onChange={e => setShipDate(e.target.value)} />
 
-              <label style={{ fontSize: 13, color: '#999' }}>Freight Cost:</label>
-              <input style={S.input} type="number" step="0.01" value={freightCost} onChange={e => setFreightCost(e.target.value)} placeholder="0.00" />
+              <label className="db-text-muted" style={{ fontSize: 13 }}>Freight Cost:</label>
+              <input className="db-input" style={{ fontSize: 13 }} type="number" step="0.01" value={freightCost} onChange={e => setFreightCost(e.target.value)} placeholder="0.00" />
             </div>
 
             {/* Box summary */}
-            <div style={{ marginTop: 16, padding: '10px 12px', background: '#2a2a3a', borderRadius: 6, fontSize: 13 }}>
-              <div style={{ fontWeight: 600, marginBottom: 6, color: '#88ccff' }}>Packed:</div>
+            <div className="db-bg-surface-alt" style={{ marginTop: 16, padding: '10px 12px', borderRadius: 6, fontSize: 13 }}>
+              <div className="db-text-accent db-font-bold" style={{ marginBottom: 6 }}>Packed:</div>
               {boxes.filter(b => b.lines.length > 0).map(b => (
-                <div key={b.id} style={{ color: '#ccc' }}>
+                <div key={b.id} className="db-text">
                   {b.label}: {b.lines.map(l => `${l.item_ida} ×${l.qty_packed}`).join(', ')}
-                  {b.weight && <span style={{ color: '#999' }}> — {b.weight} lbs</span>}
+                  {b.weight && <span className="db-text-muted"> — {b.weight} lbs</span>}
                 </div>
               ))}
             </div>
           </div>
-          <div style={S.footer}>
-            <button style={{ ...S.btn, ...S.btnDefault }} onClick={() => setStep('pack')}>
+          <div className="db-border-top db-flex-between" style={{ padding: '10px 16px', gap: 8 }}>
+            <button className="db-btn" style={S.btn} onClick={() => setStep('pack')}>
               Back to Pack
             </button>
             <button
-              style={{ ...S.btn, ...S.btnSuccess }}
+              className="db-btn db-btn--save"
+              style={S.btn}
               disabled={loading}
               onClick={shipOrder}
             >
@@ -594,10 +575,10 @@ function ScaleBar({ scale, onReadWeight }: {
   const color = SCALE_COLORS[scale.status] || '#666';
 
   return (
-    <div style={{
+    <div className="db-bg-surface-alt" style={{
       display: 'flex', alignItems: 'center', gap: 10,
       padding: '6px 10px', marginBottom: 10,
-      background: '#2a2a3a', borderRadius: 6,
+      borderRadius: 6,
       border: `1px solid ${color}33`,
     }}>
       {/* Status dot */}
@@ -609,32 +590,32 @@ function ScaleBar({ scale, onReadWeight }: {
       {scale.connected ? (
         <>
           {/* Live weight */}
-          <span style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 700, color, minWidth: 80 }}>
+          <span className="db-font-mono db-font-bolder" style={{ fontSize: 18, color, minWidth: 80 }}>
             {scale.weightScale.toFixed(3)}
           </span>
-          <span style={{ fontSize: 11, color: '#888' }}>lbs</span>
+          <span className="db-text-muted db-font-sm">lbs</span>
 
           {/* Deviation */}
           {scale.status === 'mismatch' && (
-            <span style={{ fontSize: 12, color: '#ff6b6b', marginLeft: 8 }}>
+            <span className="db-text-red" style={{ fontSize: 12, marginLeft: 8 }}>
               {scale.message}
             </span>
           )}
           {scale.status === 'ok' && scale.weightScale > 0 && (
-            <span style={{ fontSize: 12, color: '#4ade80' }}>OK</span>
+            <span className="db-text-green" style={{ fontSize: 12 }}>OK</span>
           )}
 
           {/* Stable indicator */}
           {scale.stable && (
-            <span style={{ fontSize: 10, color: '#888', marginLeft: 4 }}>STABLE</span>
+            <span className="db-text-muted db-font-xs" style={{ marginLeft: 4 }}>STABLE</span>
           )}
 
-          <div style={{ flex: 1 }} />
+          <div className="db-spacer" />
 
           {/* Tare button */}
           <button
             onClick={scale.tare}
-            style={{ ...S.btn, ...S.btnDefault, padding: '2px 8px', fontSize: 11 }}
+            className="db-btn db-btn--small"
           >
             Tare
           </button>
@@ -642,7 +623,7 @@ function ScaleBar({ scale, onReadWeight }: {
           {/* Read weight into box */}
           <button
             onClick={() => onReadWeight(scale.weightScale)}
-            style={{ ...S.btn, ...S.btnDefault, padding: '2px 8px', fontSize: 11 }}
+            className="db-btn db-btn--small"
             title="Set box weight from scale"
           >
             Read
@@ -651,18 +632,19 @@ function ScaleBar({ scale, onReadWeight }: {
           {/* Disconnect */}
           <button
             onClick={scale.disconnect}
-            style={{ ...S.btn, ...S.btnDefault, padding: '2px 8px', fontSize: 11 }}
+            className="db-btn db-btn--small"
           >
             Disconnect
           </button>
         </>
       ) : (
         <>
-          <span style={{ fontSize: 12, color: '#888' }}>{scale.message}</span>
-          <div style={{ flex: 1 }} />
+          <span className="db-text-muted" style={{ fontSize: 12 }}>{scale.message}</span>
+          <div className="db-spacer" />
           <button
             onClick={scale.connect}
-            style={{ ...S.btn, ...S.btnPrimary, padding: '3px 12px', fontSize: 12 }}
+            className="db-btn db-btn--primary"
+            style={{ ...S.btn, padding: '3px 12px', fontSize: 12 }}
           >
             Connect Scale
           </button>

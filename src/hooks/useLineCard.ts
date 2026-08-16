@@ -1,4 +1,4 @@
-/* LastChecked: 2026-08-01 | WhereUsed: TransactionDetail | WhoCreated: Claude */
+/* LastChecked: 2026-08-01 | WhereUsed: UiDetail | WhoCreated: Claude */
 /**
  * useLineCard — returns DataGrid props for rendering transaction lines.
  *
@@ -6,7 +6,7 @@
  * for DataGrid to render as a line card. LinesCard.tsx is eliminated.
  * DataGrid IS the line card.
  *
- * Usage in TransactionDetail:
+ * Usage in UiDetail:
  *   const lineCard = useLineCard({ lines, family, isEditing, ... });
  *   <DataGrid {...lineCard.gridProps} />
  *   {lineCard.footerBar}
@@ -263,6 +263,19 @@ export function useLineCard(options: UseLineCardOptions) {
 
   const handleCellEdit = useCallback((recordId: number, field: string, value: unknown) => {
     if (!canEdit || !onLinesChange) return;
+
+    // Zero-quantity check — ask user to remove or keep the line
+    if (field === 'qty' && Number(value) === 0) {
+      const line = lines.find((l: any, i: number) => lineKey(l, i) === recordId);
+      const itemCode = line?.item?.ida_item || line?.item?.sku || `line #${recordId}`;
+      const remove = confirm(`Quantity set to zero for ${itemCode}.\n\nOK = Remove line from transaction\nCancel = Keep line at zero quantity`);
+      if (remove) {
+        onLinesChange(lines.filter((l: any, i: number) => lineKey(l, i) !== recordId));
+        return;
+      }
+      // Keep at zero — fall through to normal update
+    }
+
     const newLines = lines.map((l: any, i: number) => {
       if (lineKey(l, i) !== recordId) return l;
       return applyFieldUpdate(l, field, value);

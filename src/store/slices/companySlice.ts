@@ -1,4 +1,4 @@
-/* LastChecked: 2026-08-02 | WhereUsed: App bootstrap, TransactionDetail, DataGrid | WhoCreated: Claude */
+/* LastChecked: 2026-08-02 | WhereUsed: App bootstrap, UiDetail, DataGrid | WhoCreated: Claude */
 /**
  * companySlice — company-level configuration loaded once at startup.
  *

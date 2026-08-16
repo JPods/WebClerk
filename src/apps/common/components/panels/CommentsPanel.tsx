@@ -96,7 +96,7 @@ const TabButton: React.FC<TabButtonProps> = ({
     {icon}
     {label}
     {count !== undefined && count > 0 && (
-      <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
+      <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full db-surface-alt-muted">
         {count}
       </span>
     )}
@@ -200,18 +200,17 @@ const CommentList: React.FC<CommentListProps> = ({
 
   return (
     <div className="flex flex-col h-64">
-      <label className="block text-xs font-medium mb-1" style={{ color: 'var(--db-text-muted)' }}>
+      <label className="block text-xs font-medium mb-1 db-text-muted">
         {getTabLabel()}
       </label>
 
       {/* Messages display area */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto rounded mb-2 pr-1 space-y-2 p-2"
-        style={{ background: 'var(--db-surface-alt)', border: '1px solid var(--db-border)' }}
+        className="flex-1 overflow-y-auto rounded mb-2 pr-1 space-y-2 p-2 db-panel-alt"
       >
         {messages.length === 0 ? (
-          <div className="text-center py-8" style={{ color: 'var(--db-text-dim)' }}>
+          <div className="text-center py-8 db-text-dim">
             <p className="text-sm">No comments yet</p>
             {isEditing && (
               <p className="mt-1 text-xs">Be the first to add one.</p>
@@ -245,8 +244,7 @@ const CommentList: React.FC<CommentListProps> = ({
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       placeholder="Edit message..."
-                      className="flex-1 rounded px-2 py-1 text-sm focus:ring-1"
-                      style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)', color: 'var(--db-text)' }}
+                      className="flex-1 rounded px-2 py-1 text-sm focus:ring-1 db-panel-text"
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && editValue.trim()) {
                           handleEditSave(idx);
@@ -258,15 +256,13 @@ const CommentList: React.FC<CommentListProps> = ({
                     <div className="flex gap-1">
                       <button
                         onClick={() => handleEditSave(idx)}
-                        className="px-2 py-1 rounded text-xs font-semibold"
-                        style={{ background: 'var(--db-btn-save)', color: '#fff' }}
+                        className="px-2 py-1 rounded text-xs font-semibold db-btn--save"
                       >
                         Save
                       </button>
                       <button
                         onClick={handleEditCancel}
-                        className="px-2 py-1 rounded text-xs font-semibold"
-                        style={{ background: 'var(--db-btn-bg)', color: 'var(--db-text-muted)', border: '1px solid var(--db-border)' }}
+                        className="px-2 py-1 rounded text-xs font-semibold db-btn db-text-muted"
                       >
                         Cancel
                       </button>
@@ -275,15 +271,15 @@ const CommentList: React.FC<CommentListProps> = ({
                 ) : (
                   <>
                     <div className="flex items-center justify-between gap-2 mb-0.5">
-                      <div className="flex items-center gap-2 text-xs font-medium" style={{ color: 'var(--db-text)' }}>
+                      <div className="flex items-center gap-2 text-xs font-medium db-text">
                         <span className="inline-flex items-center gap-2">
-                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}>
+                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold db-surface-alt-text">
                             {(msg.user || "?").slice(0, 1).toUpperCase()}
                           </span>
                           <span className="truncate">{msg.user}</span>
                         </span>
-                        <span style={{ color: 'var(--db-text-dim)' }}>•</span>
-                        <span style={{ color: 'var(--db-text-muted)' }}>
+                        <span className="db-text-dim">•</span>
+                        <span className="db-text-muted">
                           {msg.time}
                         </span>
                       </div>
@@ -295,8 +291,7 @@ const CommentList: React.FC<CommentListProps> = ({
                                 setEditingIndex(idx);
                                 setEditValue(msg.mgs);
                               }}
-                              className="text-xs"
-                              style={{ color: 'var(--db-accent)' }}
+                              className="text-xs db-text-accent"
                               title="Edit"
                             >
                               <FaEdit size={12} />
@@ -309,8 +304,7 @@ const CommentList: React.FC<CommentListProps> = ({
                               );
                               if (ok) onDelete(idx);
                             }}
-                            className="text-xs"
-                            style={{ color: 'var(--db-accent-red)' }}
+                            className="text-xs db-text-red"
                             title="Delete"
                           >
                             <FaTrash size={12} />
@@ -334,14 +328,13 @@ const CommentList: React.FC<CommentListProps> = ({
 
       {/* Input area */}
       {isEditing && (
-        <div className="flex gap-2 p-2 rounded-b" style={{ background: 'var(--db-surface-alt)', borderTop: '1px solid var(--db-border)' }}>
+        <div className="flex gap-2 p-2 rounded-b db-bg-surface-alt db-border-top">
           <div className="flex-1">
             <textarea
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={`Add ${tabKey} comment... (Enter to send, Shift+Enter for new line)`}
-              className="w-full resize-none rounded px-3 py-2 text-sm focus:ring-1"
-              style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)', color: 'var(--db-text)' }}
+              className="w-full resize-none rounded px-3 py-2 text-sm focus:ring-1 db-panel-text"
               rows={2}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -350,13 +343,12 @@ const CommentList: React.FC<CommentListProps> = ({
                 }
               }}
             />
-            <div className="mt-1 text-[11px]" style={{ color: 'var(--db-text-muted)' }}>
+            <div className="mt-1 text-[11px] db-text-muted">
               Tip: Shift+Enter for a new line.
             </div>
           </div>
           <button
-            className="self-start px-3 py-2 rounded text-sm font-semibold disabled:opacity-50"
-            style={{ background: 'var(--db-btn-primary)', color: '#fff' }}
+            className="self-start px-3 py-2 rounded text-sm font-semibold disabled:opacity-50 db-btn-primary-solid"
             onClick={handleSend}
             disabled={!inputValue.trim()}
           >
@@ -531,32 +523,30 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
 
   return (
     <div
-      className={`rounded-lg ${className}`}
-      style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)' }}
+      className={`rounded-lg db-panel ${className}`}
     >
       {/* Header with collapse toggle */}
       <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-t-lg"
-        style={{ background: 'var(--db-surface-alt)', borderBottom: '1px solid var(--db-border)' }}
+        className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-t-lg db-section-bg"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <FaComment style={{ color: 'var(--db-text-muted)' }} size={14} />
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
+          <FaComment className="db-text-muted" size={14} />
+          <h3 className="text-sm font-semibold db-text">
             {title}
           </h3>
           {totalCount > 0 && (
-            <span className="px-1.5 py-0.5 text-xs rounded-full" style={{ background: 'var(--db-row-active)', color: 'var(--db-accent)' }}>
+            <span className="px-1.5 py-0.5 text-xs rounded-full db-row-active-accent">
               {totalCount}
             </span>
           )}
           {isAdmin && (
-            <span className="px-1.5 py-0.5 text-xs rounded" style={{ color: 'var(--db-accent-gold)' }}>
+            <span className="px-1.5 py-0.5 text-xs rounded db-text-gold">
               Admin
             </span>
           )}
           {isSaving && (
-            <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--db-accent)' }}>
+            <span className="flex items-center gap-1 text-xs db-text-accent">
               <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500" />
               Saving...
             </span>
@@ -576,7 +566,7 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
           )}
 
           {/* Tab Navigation */}
-          <div className="flex" style={{ borderBottom: '1px solid var(--db-border)' }}>
+          <div className="flex db-border-bottom">
             <TabButton
               active={activeTab === "public"}
               onClick={() => setActiveTab("public")}

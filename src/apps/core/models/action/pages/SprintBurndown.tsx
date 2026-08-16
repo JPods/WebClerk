@@ -6,7 +6,7 @@
  * Ideal = linear from total to 0 over sprint duration.
  */
 import { useEffect, useState } from "react";
-import apiClient from "../../../../../api/axios";
+import apiClient from "@/api/axios";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface BurndownData {

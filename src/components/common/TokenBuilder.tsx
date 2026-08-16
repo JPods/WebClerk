@@ -36,8 +36,6 @@ interface ReportFieldsResponse {
 interface TokenBuilderProps {
   /** Current model context (pre-selects model) */
   model?: string;
-  /** Dark mode */
-  dark?: boolean;
   /** Called when panel closes */
   onClose?: () => void;
 }
@@ -66,7 +64,7 @@ function copyToClipboard(text: string): Promise<void> {
 // Component
 // ---------------------------------------------------------------------------
 
-const TokenBuilder: React.FC<TokenBuilderProps> = ({ model: initialModel, dark = true, onClose }) => {
+const TokenBuilder: React.FC<TokenBuilderProps> = ({ model: initialModel, onClose }) => {
   const [allModels, setAllModels] = useState<string[]>([]);
   const [activeModel, setActiveModel] = useState(initialModel || '');
   const [registry, setRegistry] = useState<ReportFieldsResponse | null>(null);
@@ -76,16 +74,6 @@ const TokenBuilder: React.FC<TokenBuilderProps> = ({ model: initialModel, dark =
   const [copied, setCopied] = useState('');
   const registryCache = useRef<Record<string, ReportFieldsResponse>>({});
   const filterRef = useRef<HTMLInputElement>(null);
-
-  // Colors
-  const bg = dark ? '#1e1e2e' : '#fff';
-  const surface = dark ? '#252536' : '#f5f5f5';
-  const border = dark ? '#3c3c3c' : '#ddd';
-  const text = dark ? '#d4d4d4' : '#222';
-  const textMuted = dark ? '#888' : '#999';
-  const accent = dark ? '#9cdcfe' : '#0066cc';
-  const accentGreen = dark ? '#4ec98c' : '#2e7d32';
-  const highlight = dark ? '#2a2d3e' : '#e8f0fe';
 
   // Fetch models
   useEffect(() => {
@@ -190,42 +178,43 @@ const TokenBuilder: React.FC<TokenBuilderProps> = ({ model: initialModel, dark =
   const handleClear = useCallback(() => setSelected([]), []);
 
   return (
-    <div style={{
+    <div className="db-bg db-text" style={{
       display: 'flex', flexDirection: 'column', height: '100%',
-      background: bg, color: text, fontSize: 13, fontFamily: 'system-ui, sans-serif',
+      fontSize: 13, fontFamily: 'system-ui, sans-serif',
     }}>
       {/* Toolbar */}
-      <div style={{
+      <div className="db-section-bg" style={{
         display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
-        borderBottom: `1px solid ${border}`, background: surface,
       }}>
-        <span style={{ fontWeight: 700, color: accent }}>{'{{'}Tokens{'}}'}</span>
+        <span className="db-text-accent db-font-bolder">{'{{'}Tokens{'}}'}</span>
         <button onClick={handleClear}
-          style={{ background: 'none', border: `1px solid ${border}`, color: textMuted, borderRadius: 3, padding: '2px 8px', cursor: 'pointer', fontSize: 11 }}>
+          className="db-text-muted db-border-all" style={{ background: 'none', borderRadius: 3, padding: '2px 8px', cursor: 'pointer', fontSize: 11 }}>
           Clear
         </button>
         <div style={{ display: 'flex', gap: 2, marginLeft: 4 }}>
           <button onClick={() => setMode('detail')}
-            style={{ background: mode === 'detail' ? accent : 'none', color: mode === 'detail' ? '#000' : textMuted, border: `1px solid ${border}`, borderRadius: '3px 0 0 3px', padding: '2px 8px', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>
+            className={`db-font-bold db-font-sm db-border-all ${mode === 'detail' ? 'db-btn--ghost' : 'db-text-muted'}`}
+            style={{ background: mode === 'detail' ? 'var(--db-accent)' : 'none', color: mode === 'detail' ? '#000' : undefined, borderRadius: '3px 0 0 3px', padding: '2px 8px', cursor: 'pointer' }}>
             Detail
           </button>
           <button onClick={() => setMode('list')}
-            style={{ background: mode === 'list' ? accent : 'none', color: mode === 'list' ? '#000' : textMuted, border: `1px solid ${border}`, borderRadius: '0 3px 3px 0', padding: '2px 8px', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>
+            className={`db-font-bold db-font-sm db-border-all ${mode === 'list' ? 'db-btn--ghost' : 'db-text-muted'}`}
+            style={{ background: mode === 'list' ? 'var(--db-accent)' : 'none', color: mode === 'list' ? '#000' : undefined, borderRadius: '0 3px 3px 0', padding: '2px 8px', cursor: 'pointer' }}>
             List
           </button>
         </div>
         {selected.length > 0 && (
           <button onClick={handleCopyAll}
-            style={{ background: accentGreen, color: '#fff', border: 'none', borderRadius: 3, padding: '3px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 600, marginLeft: 'auto' }}>
+            className="db-btn db-btn--save db-font-bold db-font-sm" style={{ marginLeft: 'auto' }}>
             Copy All ({selected.length})
           </button>
         )}
         {copied && (
-          <span style={{ fontSize: 11, color: accentGreen, marginLeft: 'auto' }}>{copied}</span>
+          <span className="db-text-green db-font-sm" style={{ marginLeft: 'auto' }}>{copied}</span>
         )}
         {onClose && (
           <button onClick={onClose}
-            style={{ background: 'none', border: 'none', color: textMuted, cursor: 'pointer', fontSize: 16, marginLeft: onClose && !copied ? 'auto' : 0 }}>
+            className="db-text-muted" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, marginLeft: onClose && !copied ? 'auto' : 0 }}>
             ×
           </button>
         )}
@@ -234,28 +223,26 @@ const TokenBuilder: React.FC<TokenBuilderProps> = ({ model: initialModel, dark =
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
         {/* Selected fields (top tier in WC2) */}
-        <div style={{ flex: '0 0 50%', display: 'flex', flexDirection: 'column', borderRight: `1px solid ${border}` }}>
+        <div style={{ flex: '0 0 50%', display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--db-border)' }}>
           {/* Selected list */}
           <div style={{ flex: 1, overflow: 'auto', padding: 0 }}>
-            <div style={{ padding: '4px 8px', fontSize: 11, color: textMuted, borderBottom: `1px solid ${border}`, background: surface }}>
+            <div className="db-text-muted db-bg-surface-alt db-border-bottom db-font-sm" style={{ padding: '4px 8px' }}>
               Selected ({selected.length}) — click to copy, shift-click in field list to add
             </div>
             {selected.map(f => (
               <div key={f.field}
                 onClick={() => handleFieldClick(f)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px',
-                  cursor: 'pointer', borderBottom: `1px solid ${border}`,
-                }}
+                className="db-border-bottom-light"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px', cursor: 'pointer' }}
               >
-                <span style={{ flex: 1, fontSize: 12 }}>{`{{${f.field}}}`}</span>
-                <span style={{ fontSize: 10, color: textMuted }}>{f.type}</span>
+                <span className="db-font-base" style={{ flex: 1 }}>{`{{${f.field}}}`}</span>
+                <span className="db-text-muted db-font-xs">{f.type}</span>
                 <span onClick={(e) => { e.stopPropagation(); handleRemove(f.field); }}
-                  style={{ color: textMuted, cursor: 'pointer', fontSize: 14 }}>×</span>
+                  className="db-text-muted" style={{ cursor: 'pointer', fontSize: 14 }}>×</span>
               </div>
             ))}
             {selected.length === 0 && (
-              <div style={{ padding: '12px 8px', color: textMuted, fontSize: 11 }}>
+              <div className="db-text-muted db-font-sm" style={{ padding: '12px 8px' }}>
                 Shift-click fields to build a set. Click any field to copy its token.
               </div>
             )}
@@ -263,22 +250,19 @@ const TokenBuilder: React.FC<TokenBuilderProps> = ({ model: initialModel, dark =
 
           {/* Line fields (if model has lines) */}
           {lineFields.length > 0 && (
-            <div style={{ borderTop: `1px solid ${border}` }}>
-              <div style={{ padding: '4px 8px', fontSize: 11, color: textMuted, background: surface }}>
+            <div className="db-border-top">
+              <div className="db-text-muted db-bg-surface-alt db-font-sm" style={{ padding: '4px 8px' }}>
                 Line fields ({lineFields.length})
               </div>
               <div style={{ maxHeight: 120, overflow: 'auto' }}>
                 {lineFields.map(f => (
                   <div key={f.field}
                     onClick={(e) => handleFieldSelect(f, e)}
-                    style={{
-                      display: 'flex', gap: 6, padding: '2px 8px', cursor: 'pointer',
-                      background: selectedPaths.has(f.field) ? highlight : 'transparent',
-                      borderBottom: `1px solid ${border}`,
-                    }}
+                    className={`db-border-bottom-light ${selectedPaths.has(f.field) ? 'db-bg-row-active' : ''}`}
+                    style={{ display: 'flex', gap: 6, padding: '2px 8px', cursor: 'pointer' }}
                   >
-                    <span style={{ flex: 1, fontSize: 12 }}>{f.label}</span>
-                    <span style={{ fontSize: 10, color: textMuted }}>{f.field}</span>
+                    <span className="db-font-base" style={{ flex: 1 }}>{f.label}</span>
+                    <span className="db-text-muted db-font-xs">{f.field}</span>
                   </div>
                 ))}
               </div>
@@ -286,18 +270,15 @@ const TokenBuilder: React.FC<TokenBuilderProps> = ({ model: initialModel, dark =
           )}
 
           {/* Model selector (bottom tier in WC2) */}
-          <div style={{ borderTop: `1px solid ${border}`, maxHeight: 140, overflow: 'auto' }}>
-            <div style={{ padding: '4px 8px', fontSize: 11, color: textMuted, background: surface }}>
+          <div className="db-border-top" style={{ maxHeight: 140, overflow: 'auto' }}>
+            <div className="db-text-muted db-bg-surface-alt db-font-sm" style={{ padding: '4px 8px' }}>
               Models
             </div>
             {allModels.map(m => (
               <div key={m}
                 onClick={() => fetchFields(m)}
-                style={{
-                  padding: '2px 8px', cursor: 'pointer', fontSize: 12,
-                  background: m === activeModel ? highlight : 'transparent',
-                  fontWeight: m === activeModel ? 600 : 400,
-                }}
+                className={`db-font-base ${m === activeModel ? 'db-bg-row-active db-font-bold' : ''}`}
+                style={{ padding: '2px 8px', cursor: 'pointer' }}
               >
                 {m}
               </div>
@@ -307,39 +288,33 @@ const TokenBuilder: React.FC<TokenBuilderProps> = ({ model: initialModel, dark =
 
         {/* Available fields (middle tier in WC2) */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <div style={{
+          <div className="db-section-bg" style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px',
-            borderBottom: `1px solid ${border}`, background: surface,
           }}>
-            <span style={{ fontSize: 11, color: textMuted }}>{activeModel} fields</span>
+            <span className="db-text-muted db-font-sm">{activeModel} fields</span>
             <input
               ref={filterRef}
               value={filter}
               onChange={e => setFilter(e.target.value)}
               placeholder="filter..."
-              style={{
-                flex: 1, background: bg, border: `1px solid ${border}`,
-                borderRadius: 3, padding: '2px 6px', color: text, fontSize: 11,
-              }}
+              className="db-panel-input-text db-font-sm"
+              style={{ flex: 1, borderRadius: 3, padding: '2px 6px' }}
             />
           </div>
           <div style={{ flex: 1, overflow: 'auto' }}>
             {filtered.map(f => (
               <div key={f.field}
                 onClick={(e) => handleFieldSelect(f, e)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px',
-                  cursor: 'pointer', borderBottom: `1px solid ${border}`,
-                  background: selectedPaths.has(f.field) ? highlight : 'transparent',
-                }}
+                className={`db-border-bottom-light ${selectedPaths.has(f.field) ? 'db-bg-row-active' : ''}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px', cursor: 'pointer' }}
               >
-                <span style={{ flex: 1, fontSize: 12 }}>{f.label}</span>
-                <span style={{ fontSize: 10, color: textMuted, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.field}</span>
-                <span style={{ fontSize: 10, color: textMuted, width: 50, textAlign: 'right' }}>{f.type}</span>
+                <span className="db-font-base" style={{ flex: 1 }}>{f.label}</span>
+                <span className="db-text-muted db-font-xs" style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.field}</span>
+                <span className="db-text-muted db-font-xs" style={{ width: 50, textAlign: 'right' }}>{f.type}</span>
               </div>
             ))}
             {filtered.length === 0 && (
-              <div style={{ padding: '12px 8px', color: textMuted, fontSize: 11 }}>
+              <div className="db-text-muted db-font-sm" style={{ padding: '12px 8px' }}>
                 {allFields.length === 0 ? 'Select a model' : 'No matches'}
               </div>
             )}

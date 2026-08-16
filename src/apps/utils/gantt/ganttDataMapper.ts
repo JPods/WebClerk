@@ -338,7 +338,8 @@ export const mapApiActionToGanttTask = (
       id: a.id ?? a.contact_id,
       name: a.name ?? a.attention,
       is_staff: a.is_staff,
-      prefs: a.prefs?.badge ? { badge: a.prefs.badge } : undefined,
+      config: a.config?.ui?.badge ? { ui: { badge: a.config.ui.badge } } : undefined,
+      prefs: a.prefs?.badge ? { badge: a.prefs.badge } : undefined, // legacy fallback
     })) : undefined,
     details: action.description_en || action.comments?.public || undefined,
     // Store refs.parents for link manipulation

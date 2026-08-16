@@ -53,7 +53,7 @@ const ModalForm: React.FC<PersonalInfoModalProps> = ({ isOpen, onClose, data = '
 
   return (
     <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex justify-center items-center z-50">
-      <div className="bg-white rounded-2xl p-8 w-full max-w-lg relative shadow-lg m-2">
+      <div className="bg-white rounded-2xl p-8 w-full max-w-lg relative shadow-lg m-2" role="dialog" aria-modal="true" aria-label="Verify email">
         {/* Close Button */}
         <button
           onClick={onClose}

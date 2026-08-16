@@ -1127,7 +1127,7 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
                 {importStatus === 'analyzing' ? 'Analyzing...' : 'Analyze'}
               </button>
             </div>
-            <p className="mt-1 text-[10px] text-gray-400">Supports: CSV, XLSX, JSON, XML, TSV. Alice reads the file, never moves or modifies the original.</p>
+            <p className="mt-1 text-[10px] text-gray-400">Supports: CSV, JSON, XML, TSV. Alice reads the file, never moves or modifies the original.</p>
           </div>
 
           {/* ── Status flow ── */}

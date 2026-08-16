@@ -3,6 +3,7 @@
  * Native Gantt types — replaces @svar-ui/react-gantt types.
  * Part of the Data-Driven UI architecture: JSON-configurable Gantt chart.
  */
+import React from "react";
 
 // ── Task ──
 
@@ -41,7 +42,7 @@ export interface GanttColumn {
   header: string;
   width: number;
   align?: "left" | "center" | "right";
-  template?: (value: unknown, task: any, column: GanttColumn) => string;
+  template?: (value: unknown, task: any, column: GanttColumn) => React.ReactNode;
 }
 
 // ── Scale (timeline header row) ──

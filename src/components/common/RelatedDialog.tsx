@@ -37,13 +37,6 @@ interface Props {
   selectedRecord: Record<string, unknown> | null;
   /** Set of selected row IDs (list context) */
   selectedRowIds: Set<number>;
-  theme: {
-    bg: string; surface: string; surfaceAlt: string;
-    border: string; borderLight: string;
-    text: string; textMuted: string; textDim: string;
-    accent: string; accentGreen: string; accentRed: string; accentPurple: string;
-    [k: string]: string;
-  };
   fontSize: number;
   onClose: () => void;
 }
@@ -62,7 +55,7 @@ const TYPE_BADGES: Record<string, { label: string; bg: string; color: string }> 
 // Component
 // ---------------------------------------------------------------------------
 
-const RelatedDialog: React.FC<Props> = ({ open, model, selectedRecord, selectedRowIds, theme: t, fontSize, onClose }) => {
+const RelatedDialog: React.FC<Props> = ({ open, model, selectedRecord, selectedRowIds, fontSize, onClose }) => {
   const [entries, setEntries] = useState<RelatedEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState('');
@@ -124,22 +117,23 @@ const RelatedDialog: React.FC<Props> = ({ open, model, selectedRecord, selectedR
       }}>
       {/* Dialog */}
       <div data-wc="related-dialog"
+        role="dialog" aria-modal="true" aria-label="Related records"
         style={{
-          background: t.surface, border: `1px solid ${t.border}`,
+          background: 'var(--db-surface)', border: '1px solid var(--db-border)',
           borderRadius: 8, width: 420, maxHeight: '70vh',
           display: 'flex', flexDirection: 'column',
           boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
         }}>
         {/* Header */}
         <div style={{
-          padding: '12px 16px', borderBottom: `1px solid ${t.border}`,
+          padding: '12px 16px', borderBottom: '1px solid var(--db-border)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <span style={{ fontWeight: 700, fontSize: fontSize + 1, color: t.accent }}>
+          <span style={{ fontWeight: 700, fontSize: fontSize + 1, color: 'var(--db-accent)' }}>
             Related to {model}
           </span>
           <button onClick={onClose} style={{
-            background: 'none', border: 'none', color: t.textMuted,
+            background: 'none', border: 'none', color: 'var(--db-text-muted)',
             fontSize: 18, cursor: 'pointer', padding: '0 4px',
           }}>&times;</button>
         </div>
@@ -147,12 +141,12 @@ const RelatedDialog: React.FC<Props> = ({ open, model, selectedRecord, selectedR
         {/* Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
           {loading && (
-            <div style={{ padding: '16px', color: t.textMuted, textAlign: 'center' }}>
+            <div style={{ padding: '16px', color: 'var(--db-text-muted)', textAlign: 'center' }}>
               Loading...
             </div>
           )}
           {!loading && entries.length === 0 && (
-            <div style={{ padding: '24px 16px', color: t.textDim, textAlign: 'center' }}>
+            <div style={{ padding: '24px 16px', color: 'var(--db-text-dim)', textAlign: 'center' }}>
               No relationships configured
             </div>
           )}
@@ -165,10 +159,10 @@ const RelatedDialog: React.FC<Props> = ({ open, model, selectedRecord, selectedR
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '10px 16px', cursor: 'pointer',
-                  borderBottom: i < entries.length - 1 ? `1px solid ${t.borderLight}` : 'none',
+                  borderBottom: i < entries.length - 1 ? '1px solid var(--db-border-light)' : 'none',
                   transition: 'background 0.1s',
                 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = t.surfaceAlt; }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--db-surface-alt)'; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
               >
                 {/* Type badge */}
@@ -180,12 +174,12 @@ const RelatedDialog: React.FC<Props> = ({ open, model, selectedRecord, selectedR
 
                 {/* Label and model name */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, color: t.text, fontSize }}>{entry.label}</div>
-                  <div style={{ fontSize: fontSize - 2, color: t.textMuted }}>{entry.model}{entry.fk ? ` (${entry.fk})` : entry.fk_field ? ` (${entry.fk_field})` : ''}</div>
+                  <div style={{ fontWeight: 600, color: 'var(--db-text)', fontSize }}>{entry.label}</div>
+                  <div style={{ fontSize: fontSize - 2, color: 'var(--db-text-muted)' }}>{entry.model}{entry.fk ? ` (${entry.fk})` : entry.fk_field ? ` (${entry.fk_field})` : ''}</div>
                 </div>
 
                 {/* Arrow */}
-                <span style={{ color: t.textDim, fontSize: fontSize + 2 }}>&rarr;</span>
+                <span style={{ color: 'var(--db-text-dim)', fontSize: fontSize + 2 }}>&rarr;</span>
               </div>
             );
           })}
@@ -193,8 +187,8 @@ const RelatedDialog: React.FC<Props> = ({ open, model, selectedRecord, selectedR
 
         {/* Footer context */}
         <div style={{
-          padding: '8px 16px', borderTop: `1px solid ${t.border}`,
-          fontSize: fontSize - 2, color: t.textMuted,
+          padding: '8px 16px', borderTop: '1px solid var(--db-border)',
+          fontSize: fontSize - 2, color: 'var(--db-text-muted)',
         }}>
           {selectedRecord ? `Record #${(selectedRecord as any).id || '?'}` : `${selectedRowIds.size} selected`}
           {' '}&middot; Opens in new window

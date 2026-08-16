@@ -5,7 +5,8 @@
  * Fetches question templates from Setting records and manages Q&A answers.
  * See: readmes/topics/settings-api.md
  */
-import { apiClient } from '../../../../api/axios';
+import { apiClient } from "@/api/axios";
+import type { ApiEnvelope, GetListPayload } from "@/api/wcapi";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -133,15 +134,6 @@ export function getEffectiveOptions(
 // API Functions
 // ---------------------------------------------------------------------------
 
-interface ApiEnvelope<T> {
-  data: T;
-  status?: string;
-}
-
-interface GetListPayload {
-  results: any[];
-  count?: number;
-}
 
 /**
  * Fetch Q&A counters singleton

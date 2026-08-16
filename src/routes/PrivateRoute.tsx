@@ -11,7 +11,7 @@ import { useWindowManager } from "../context/WindowManagerContext";
 import { PageRoutes } from "./Routes";
 import { resolveWindowElement } from "./protectedRoutesConfig";
 import NotFoundPage from "../pages/NotFoundPage";
-import RippleLoader from "@/components/common/RippleLoader";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import ZoneTooltip from "@/components/common/ZoneTooltip";
 import { fetchBootstrap } from "@/store/slices/companySlice";
 import { useDispatch } from "react-redux";
@@ -66,7 +66,7 @@ const AppLayout: React.FC = () => {
 
   // Show loading while auth state is being determined
   if (isLoading) {
-    return <div className="flex justify-center items-center h-screen"><RippleLoader /></div>;
+    return <div className="flex justify-center items-center h-screen"><LoadingSpinner size="lg" label="Loading..." /></div>;
   }
 
   // Redirect if not authenticated (rely on Redux state, not localStorage directly)
@@ -77,7 +77,7 @@ const AppLayout: React.FC = () => {
     : 0;
 
   return (
-    <div className="relative min-h-screen bg-transparent text-slate-900">
+    <div className="relative min-h-screen" style={{ backgroundColor: 'var(--wc-bg)', color: 'var(--wc-text)' }}>
       <ZoneTooltip />
       <MacTopBar activePath={activePath || ""} />
       <div className="relative h-[calc(100vh-40px)]">
@@ -86,7 +86,8 @@ const AppLayout: React.FC = () => {
 
         {!isVisible && (
           <button
-            className="fixed left-1 top-[52px] z-180 rounded-r border border-l-0 border-slate-300 bg-slate-800 p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+            className="fixed left-1 top-[52px] z-180 rounded-r border border-l-0 p-1.5 transition-colors"
+            style={{ borderColor: 'var(--wc-border)', backgroundColor: 'var(--wc-surface)', color: 'var(--wc-text-muted)' }}
             onClick={toggleVisibility}
             title="Show navigation"
           >
@@ -102,7 +103,7 @@ const AppLayout: React.FC = () => {
             {windows
               .filter((w) => !w.minimized)
               .map((w, idx) => (
-                <div key={w.path} className={w.path === activePath ? 'z-30' : 'z-10'}>
+                <div key={w.openedAt} className={w.path === activePath ? 'z-30' : 'z-10'}>
                   <MacWindowChrome
                     path={w.path}
                     title={deriveTitle(w.path)}
@@ -127,7 +128,7 @@ const PrivateRoute: React.FC = () => {
   
   // Show loading while auth state is being initialized
   if (isLoading) {
-    return <div className="flex justify-center items-center h-screen"><RippleLoader /></div>;
+    return <div className="flex justify-center items-center h-screen"><LoadingSpinner size="lg" label="Loading..." /></div>;
   }
   
   // Once loading is done, check authentication

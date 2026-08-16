@@ -69,9 +69,7 @@ export default defineConfig(({ mode }) => {
         "react",
         "react-dom",
         "react-router-dom",
-        "@excalidraw/excalidraw",
       ],
-      exclude: ["@excalidraw/excalidraw/locales"],
     },
     resolve: {
       alias: [
@@ -99,11 +97,11 @@ export default defineConfig(({ mode }) => {
           target: "http://127.0.0.1:8000",
           changeOrigin: true,
         },
-        "/orgs/": {
+        "/tx": {
           target: "http://127.0.0.1:8000",
           changeOrigin: true,
         },
-        "/tx": {
+        "/media": {
           target: "http://127.0.0.1:8000",
           changeOrigin: true,
         },

@@ -19,11 +19,11 @@ export interface SettingRecord<T = unknown> {
   is_active?: boolean;
 }
 
+/** Extract rows from wcapi getRecords() response.
+ *  getRecords() already unwraps the ApiEnvelope (res.data.data),
+ *  so the result is a GetListPayload with a .results array. */
 function pickRows(result: any): SettingRecord[] {
   if (Array.isArray(result?.results)) return result.results as SettingRecord[];
-  if (Array.isArray(result?.data?.results)) return result.data.results as SettingRecord[];
-  if (Array.isArray(result?.records)) return result.records as SettingRecord[];
-  if (Array.isArray(result?.data?.records)) return result.data.records as SettingRecord[];
   return [];
 }
 

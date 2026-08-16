@@ -18,13 +18,15 @@ import DataBrowser from "../pages/admin/DataBrowser";
 import JsonViewer from "../pages/admin/JsonViewer";
 import CommerceDashboard from "../pages/admin/CommerceDashboard";
 import AliceTraining from "../pages/admin/AliceTraining";
+import FlightSimConsole from "../pages/admin/FlightSimConsole";
 import UserActivityDashboard from "../pages/admin/UserActivityDashboard";
 import TeamDashboard from "../pages/admin/TeamDashboard";
 import WhitelistTester from "../pages/tools/WhitelistTester";
+import FormParade from "../pages/tools/FormParade";
 import JsonTreeApplet from "../pages/tools/JsonTreeApplet";
 import ItemDetailJson from "../apps/products/pages/ItemDetailJson";
 import DDCardDashboard from "../pages/Dashboard/DDCardDashboard";
-// All model-specific detail pages replaced by TransactionDetail / OrgDetailJson / ItemDetailJson
+// All model-specific detail pages replaced by UiDetail / OrgDetailJson / ItemDetailJson
 // Old imports archived to src/archive/replaced-2026-08-03/
 import ApplyPayments from "../apps/transactions/pages/ApplyPayments";
 import AllModelsWorkbench from "../apps/utils/scaffold/AllModelsWorkbench";
@@ -36,10 +38,11 @@ import ParadeOfReportsPage from "../pages/admin/ParadeOfReportsPage";
 import InventoryDashboard from "../pages/admin/InventoryDashboard";
 import ActionDailyDashboard from "../apps/common/components/panels/ActionDailyDashboard";
 import Placeholder from "../pages/Placeholder";
-import TransactionDetail from "../apps/transactions/components/TransactionDetail";
+import UiDetail from "../apps/transactions/components/TransactionDetail";
 import OrgDetailJson from "../apps/orgs/components/OrgDetail.json";
 
 export const protectedRoutesConfig = [
+  { path: "/", element: <DDCardDashboard dashboardName="sales" /> },
   { path: PageRoutes.dashboard, element: <DDCardDashboard dashboardName="sales" /> },
   { path: PageRoutes.profile, element: <UserProfiles /> },
 
@@ -87,20 +90,20 @@ export const protectedRoutesConfig = [
 
   // User-facing: Transactions — lists via DataBrowser, details via custom pages
   { path: PageRoutes.transactionsProposalList, element: <Navigate to="/proposal" replace /> },
-  { path: PageRoutes.transactionsProposalDetail, element: <TransactionDetail modelName="proposal" /> },
+  { path: PageRoutes.transactionsProposalDetail, element: <UiDetail modelName="proposal" /> },
   { path: PageRoutes.transactionsOrderList, element: <Navigate to="/order" replace /> },
-  { path: PageRoutes.transactionsOrderDetail, element: <TransactionDetail modelName="order" /> },
+  { path: PageRoutes.transactionsOrderDetail, element: <UiDetail modelName="order" /> },
   { path: PageRoutes.transactionsInvoiceList, element: <Navigate to="/invoice" replace /> },
-  { path: PageRoutes.transactionsInvoiceDetail, element: <TransactionDetail modelName="invoice" /> },
+  { path: PageRoutes.transactionsInvoiceDetail, element: <UiDetail modelName="invoice" /> },
   { path: PageRoutes.transactionsApplyPayments, element: <ApplyPayments /> },
   { path: PageRoutes.transactionsPaymentList, element: <Navigate to="/payment" replace /> },
-  { path: PageRoutes.transactionsPaymentDetail, element: <TransactionDetail modelName="payment" /> },
+  { path: PageRoutes.transactionsPaymentDetail, element: <UiDetail modelName="payment" /> },
   { path: PageRoutes.transactionsPurchaseList, element: <Navigate to="/purchase" replace /> },
-  { path: PageRoutes.transactionsPurchaseDetail, element: <TransactionDetail modelName="purchase" /> },
+  { path: PageRoutes.transactionsPurchaseDetail, element: <UiDetail modelName="purchase" /> },
   { path: PageRoutes.transactionsWorkOrderList, element: <Navigate to="/workorder" replace /> },
-  { path: PageRoutes.transactionsWorkOrderDetail, element: <TransactionDetail modelName="workorder" /> },
+  { path: PageRoutes.transactionsWorkOrderDetail, element: <UiDetail modelName="workorder" /> },
   { path: PageRoutes.transactionsReceiptList, element: <Navigate to="/receipt" replace /> },
-  { path: PageRoutes.transactionsReceiptDetail, element: <TransactionDetail modelName="receipt" /> },
+  { path: PageRoutes.transactionsReceiptDetail, element: <UiDetail modelName="receipt" /> },
   { path: PageRoutes.transactionsAdjustmentList, element: <Navigate to="/inventory-dashboard" replace /> },
 
   // Tools
@@ -113,14 +116,14 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.multiProjectGantt, element: <Navigate to="/gantt" replace /> },
 
   // /:model/:id = record detail pages
-  { path: "/order/:id", element: <TransactionDetail modelName="order" /> },
-  { path: "/invoice/:id", element: <TransactionDetail modelName="invoice" /> },
-  { path: "/proposal/:id", element: <TransactionDetail modelName="proposal" /> },
-  { path: "/purchase/:id", element: <TransactionDetail modelName="purchase" /> },
-  { path: "/work_order/:id", element: <TransactionDetail modelName="work_order" /> },
-  { path: "/receipt/:id", element: <TransactionDetail modelName="receipt" /> },
-  { path: "/requisition/:id", element: <TransactionDetail modelName="requisition" /> },
-  { path: "/payment/:id", element: <TransactionDetail modelName="payment" /> },
+  { path: "/order/:id", element: <UiDetail modelName="order" /> },
+  { path: "/invoice/:id", element: <UiDetail modelName="invoice" /> },
+  { path: "/proposal/:id", element: <UiDetail modelName="proposal" /> },
+  { path: "/purchase/:id", element: <UiDetail modelName="purchase" /> },
+  { path: "/work_order/:id", element: <UiDetail modelName="work_order" /> },
+  { path: "/receipt/:id", element: <UiDetail modelName="receipt" /> },
+  { path: "/requisition/:id", element: <UiDetail modelName="requisition" /> },
+  { path: "/payment/:id", element: <UiDetail modelName="payment" /> },
   { path: "/contact/:id", element: <CoreContactDetail /> },
   { path: "/customer/:id", element: <OrgDetailJson modelName="customer" /> },
   { path: "/vendor/:id", element: <OrgDetailJson modelName="vendor" /> },
@@ -139,8 +142,11 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.jsonViewer, element: <JsonViewer /> },
   { path: PageRoutes.commerceDashboard, element: <CommerceDashboard /> },
   { path: PageRoutes.aliceTraining, element: <AliceTraining /> },
+  { path: PageRoutes.flightSim, element: <FlightSimConsole /> },
+  { path: PageRoutes.flightSimInventory, element: <FlightSimConsole scenarioAction="get_flight_scenario" title="Flight Simulator: Transaction Lifecycle" description="Step through proposal → order → invoice → payment → purchase → receive and watch inventory, GL, and pending records change." /> },
   { path: PageRoutes.modelWorkbench, element: <AllModelsWorkbench /> },
   { path: PageRoutes.whitelist, element: <WhitelistTester /> },
+  { path: PageRoutes.formParade, element: <FormParade /> },
   { path: "/json-tree", element: <JsonTreeApplet /> },
   { path: "/alice-dashboard", element: <AliceDashboard /> },
   { path: "/help", element: <HelpDashboard /> },

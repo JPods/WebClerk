@@ -1,4 +1,4 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+/* LastChecked: 2026-08-16 | WhereUsed: Window frame for all content | Theme: --wc-* variables */
 import { ReactNode } from "react";
 import { useAppSelector } from "../store/hooks";
 import { useWindowManager } from "../context/WindowManagerContext";
@@ -56,20 +56,29 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
 
   return (
     <div
-      className={`absolute flex flex-col overflow-hidden bg-white text-slate-900 backdrop-blur-sm ${maximized ? "rounded-none border-0 shadow-none" : "rounded-2xl border border-slate-200 shadow-xl"} ${transitionClass} will-change-transform`}
-      style={baseStyle}
+      className={`absolute flex flex-col overflow-hidden backdrop-blur-sm ${maximized ? "rounded-none border-0 shadow-none" : "rounded-2xl border shadow-xl"} ${transitionClass} will-change-transform`}
+      style={{
+        ...baseStyle,
+        backgroundColor: 'var(--wc-window-bg)',
+        borderColor: maximized ? undefined : 'var(--wc-window-border)',
+        color: 'var(--wc-text)',
+      }}
       onMouseDown={() => {
         activateWindow(path);
         onActivate?.();
       }}
     >
-      <div className="relative flex-1 overflow-auto bg-white text-slate-900">
+      <div className="relative flex-1 overflow-auto"
+        style={{ backgroundColor: 'var(--wc-window-bg)', color: 'var(--wc-text)' }}>
         <WindowPathProvider value={path}>
         {children}
         </WindowPathProvider>
         {showSpinner && (
-          <div className="pointer-events-none absolute inset-0 z-[500] flex items-center justify-center bg-white/30">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-600 border-t-transparent" aria-label="Loading" />
+          <div className="pointer-events-none absolute inset-0 z-[500] flex items-center justify-center"
+            style={{ backgroundColor: 'var(--wc-spinner-overlay)' }}>
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-t-transparent"
+              style={{ borderColor: 'var(--wc-spinner-color)', borderTopColor: 'transparent' }}
+              aria-label="Loading" />
           </div>
         )}
       </div>

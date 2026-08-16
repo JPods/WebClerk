@@ -10,7 +10,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FaPrint, FaChevronDown } from "react-icons/fa";
+// FaPrint, FaChevronDown removed — using minimal text style to match ToolbarIcon
 import { getRecords } from "@/api/wcapi";
 
 // ── Types ─────────────────────────────────────────────────────────────
@@ -128,12 +128,6 @@ const PrintReportDropdown: React.FC<PrintReportDropdownProps> = ({
   }
   const orderedCategories = CATEGORY_ORDER.filter(c => grouped.has(c));
 
-  const triggerCls =
-    className ??
-    (compact
-      ? "w-9 h-9 flex items-center justify-center rounded-md bg-yellow-500 text-white hover:bg-yellow-600 disabled:opacity-50"
-      : "flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md bg-yellow-500 text-white hover:bg-yellow-600 disabled:opacity-50");
-
   return (
     <>
       <button
@@ -142,11 +136,25 @@ const PrintReportDropdown: React.FC<PrintReportDropdownProps> = ({
         onClick={toggle}
         disabled={disabled}
         title="Print / Reports"
-        className={triggerCls}
+        className={className}
+        style={{
+          padding: '4px 8px',
+          border: open ? '1px solid #9cdcfe' : '1px solid transparent',
+          borderRadius: 4,
+          background: 'transparent',
+          color: disabled ? '#666' : '#9cdcfe',
+          cursor: disabled ? 'default' : 'pointer',
+          opacity: disabled ? 0.4 : 1,
+          fontSize: 12,
+          fontWeight: 600,
+          flexShrink: 0,
+          whiteSpace: 'nowrap',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+        }}
       >
-        <FaPrint className={compact ? "w-4 h-4" : "w-3.5 h-3.5"} />
-        {!compact && <span>Print</span>}
-        <FaChevronDown className={compact ? "w-2 h-2 ml-px" : "w-2.5 h-2.5"} />
+        🖨 Report ▾
       </button>
 
       {open &&

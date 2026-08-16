@@ -80,7 +80,7 @@ const MODEL_NAME_MAP: Record<string, string> = {
   flow: "flow",
   usage: "usage",
   matrics: "matrics",
-  metrics: "metrics",
+  metrics: "matrics",  // "metrics" is a common misspelling of "matrics" — both resolve to the same model
   orgitem: "org_item",
   itemxref: "item_xref",
 
@@ -151,7 +151,7 @@ const PATH_PATTERN_MAP: Record<string, string> = {
   "orgs/manufacturer": "manufacturer",
   "orgs/rep": "rep",
   "orgs/employee": "employee",
-  "orgs/organization": "organization",
+  "orgs/organization": "org",
   "orgs/contact": "contact",
 
   // Products
@@ -168,7 +168,7 @@ const PATH_PATTERN_MAP: Record<string, string> = {
   "products/flow": "flow",
   "products/usage": "usage",
   "products/matrics": "matrics",
-  "products/metrics": "metrics",
+  "products/metrics": "matrics",  // alias — "matrics" is the canonical model name
   "products/org-item": "org_item",
   "products/item-xref": "item_xref",
 
@@ -189,6 +189,7 @@ const PATH_PATTERN_MAP: Record<string, string> = {
   "communications/address": "address",
 
   // Accounts
+  "accounts/payment": "payment",
   "accounts/audit": "audit",
   "accounts/currency": "currency",
   "accounts/exchange-rate": "exchange_rate",

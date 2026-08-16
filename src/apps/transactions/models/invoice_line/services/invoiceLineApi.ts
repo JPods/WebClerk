@@ -1,5 +1,5 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
-import { getRecords, deleteRecord, saveRecord } from "../../../../../api/wcapi";
+import { getRecords, deleteRecord, saveRecord } from "@/api/wcapi";
 import type { InvoiceLine } from "../types/invoiceLineType";
 
 export const fetchInvoiceLines = async (): Promise<{

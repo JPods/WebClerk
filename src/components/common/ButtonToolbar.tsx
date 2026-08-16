@@ -30,7 +30,6 @@ import {
   FaGripVertical,
   FaSync,
   FaFilter,
-  FaFileExcel,
   FaFilePdf,
   FaFileCode,
 } from "react-icons/fa";
@@ -281,7 +280,7 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
           <input
             ref={effectiveImportInputRef}
             type="file"
-            accept=".json,.csv,.xlsx"
+            accept=".json,.csv"
             className="hidden"
             onChange={handleImportChange}
           />
@@ -589,16 +588,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
             </div>
             <button
               onClick={() => {
-                tableRef?.current?.exportToExcel?.(false);
-                setShowExportDropdown(false);
-              }}
-              className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-            >
-              <FaFileExcel className="w-4 h-4 text-green-600" />
-              Excel
-            </button>
-            <button
-              onClick={() => {
                 tableRef?.current?.exportToPDF?.(false);
                 setShowExportDropdown(false);
               }}
@@ -624,16 +613,6 @@ const ButtonToolbar = <T extends Record<string, any> = any>({
                 <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
                   Export Selected ({count})
                 </div>
-                <button
-                  onClick={() => {
-                    tableRef?.current?.exportToExcel?.(true);
-                    setShowExportDropdown(false);
-                  }}
-                  className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  <FaFileExcel className="w-4 h-4 text-green-600" />
-                  Excel ({count} selected)
-                </button>
                 <button
                   onClick={() => {
                     tableRef?.current?.exportToPDF?.(true);

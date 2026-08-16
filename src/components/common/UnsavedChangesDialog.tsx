@@ -65,7 +65,7 @@ const UnsavedChangesDialog: React.FC<UnsavedChangesDialogProps> = ({
 
       {/* Dialog */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative w-full max-w-md transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl transition-all">
+        <div className="relative w-full max-w-md transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl transition-all" role="dialog" aria-modal="true" aria-label="Unsaved changes">
           {/* Header */}
           <div className="flex items-center gap-3 border-b border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-900/20 px-4 py-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40">

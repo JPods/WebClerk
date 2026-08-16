@@ -109,7 +109,7 @@ const BomPanel: React.FC<BomPanelProps> = ({ itemId, itemCode }) => {
     }
     setBuilding(true);
     try {
-      const res = await apiClient.post(`/api/products/items/${itemId}/bom/consume/`, {
+      const res = await apiClient.post(`/wcapi/products/items/${itemId}/bom/consume/`, {
         qty,
         adjust_for_on_hand: false,
         reason: buildReason || `Build ${qty} × ${itemCode}`,

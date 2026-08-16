@@ -6,13 +6,11 @@ import AuthInitializer from "./components/common/AuthInitializer";
 import { WindowManagerProvider } from "./context/WindowManagerContext";
 import { StaffBadgePrefsProvider } from "./context/StaffBadgePrefsContext";
 import Router from "./routes/Router";
-import { DataSetBadge } from './components/DataSetBadge';
-import { DevTools } from './components/DevTools';
-import { AiHelpWidget } from './components/AiHelpWidget';
-import { UserIssueReporter } from './components/UserIssueReporter';
-import { DevIssueReporter } from './components/DevIssueReporter';
 import { useDefaultCompany } from './hooks/useDefaultCompany';
 import { AliceProvider } from './context/AliceContext';
+import { PermissionsProvider } from './context/PermissionsContext';
+import { SettingsBootstrap } from './components/SettingsBootstrap';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 function PrimeCompanyBootstrap() {
   useDefaultCompany();
@@ -38,8 +36,10 @@ export default function App() {
 
   return (
     <>
+      <SettingsBootstrap>
       <Provider store={store}>
         <AliceProvider>
+        <PermissionsProvider>
         <WindowManagerProvider>
           <StaffBadgePrefsProvider>
             <AuthInitializer />
@@ -56,24 +56,16 @@ export default function App() {
                   </button>
                 </div>
               )}
-              <Router />
-              {/* Floating widgets — hidden on public tool pages */}
-              {!window.location.pathname.startsWith('/json-tree') && <>
-                {/* Fixed position badge with expandable details */}
-                <DataSetBadge position="bottom-right" showDetails />
-                {/* Dev tools panel (only shows in DEV mode) */}
-                <DevTools position="bottom-left" />
-                {/* AI Help Assistant chat widget */}
-                <AiHelpWidget position="bottom-right" />
-                {/* Issue reporters — floating buttons for users & devs */}
-                <UserIssueReporter />
-                <DevIssueReporter />
-              </>}
+              <ErrorBoundary>
+                <Router />
+              </ErrorBoundary>
             </div>
           </StaffBadgePrefsProvider>
         </WindowManagerProvider>
+        </PermissionsProvider>
         </AliceProvider>
       </Provider>
+      </SettingsBootstrap>
     </>
   );
 }

@@ -15,7 +15,7 @@ import { persistTokens } from "../../api/axios";
 import { showToast } from "../../store/slices/toastSlice";
 import { setUser } from "../../store/slices/authSlice";
 import { PageRoutes } from "../../routes/Routes";
-import Spinner from "../ui/Spinner";
+import LoadingSpinner from "../common/LoadingSpinner";
 // import axiosInstance from "../../api/axios";
 // import { PostLoginURL } from "../../routes/network";
 
@@ -177,7 +177,7 @@ export default function SignInForm() {
                   <Button className="w-full" size="sm" disabled={submitting}>
                     {submitting ? (
                       <span className="flex items-center justify-center gap-2">
-                        <Spinner size="sm" />
+                        <LoadingSpinner size="sm" />
                         Signing in...
                       </span>
                     ) : (

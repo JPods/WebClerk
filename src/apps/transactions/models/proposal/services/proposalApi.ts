@@ -1,7 +1,6 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
-import { getRecords, getRecord } from '../../../../../api/wcapi';
-import apiClient from '../../../../../api/axios';
-import { patchAction } from '../../../../../api/userProfile';
+/* LastChecked: 2026-08-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import { getRecords, getRecord, saveRecord, deleteRecord } from "@/api/wcapi";
+import apiClient from "@/api/axios";
 import { Proposal } from '../types/proposalType';
 import { ProposalFormData } from "../utils/proposalSchema";
 import {
@@ -9,19 +8,6 @@ import {
   CreateProposalLineRequest,
   UpdateProposalLineRequest
 } from '../types/proposalLineType';
-
-type PatchActionResponse<T> = {
-  status?: number;
-  data?: T;
-};
-
-function normalizePatchResponse<T>(res: unknown): { status: number; data: T } {
-  const maybe = (res ?? {}) as PatchActionResponse<T>;
-  return {
-    status: maybe.status ?? 200,
-    data: (maybe.data ?? res) as T,
-  };
-}
 
 export const fetchProposals = async (params?: any): Promise<{ status: number; data: { results: Proposal[]; total: number } }> => {
   const res = await getRecords('proposal', params);
@@ -35,35 +21,23 @@ export const fetchProposal = async (id: number): Promise<{ status: number; data:
 };
 
 export const createProposal = async (data: Partial<ProposalFormData>): Promise<{ status: number; data: Proposal }> => {
-  const payload = {
-    model_name: 'proposal',
-    ...data,
-  };
-  const res = await patchAction(payload);
-  return normalizePatchResponse<Proposal>(res);
+  const res = await saveRecord('proposal', { ...data });
+  const record = res?.record ?? res;
+  return { status: 200, data: record as Proposal };
 };
 
 export const updateProposal = async (id: number, data: Partial<ProposalFormData>): Promise<{ status: number; data: Proposal }> => {
-  const payload = {
-    model_name: 'proposal',
-    ...data,
-    id,
-  };
-  const res = await patchAction(payload);
-  return normalizePatchResponse<Proposal>(res);
+  const res = await saveRecord('proposal', { ...data, id });
+  const record = res?.record ?? res;
+  return { status: 200, data: record as Proposal };
 };
 
 export const deleteProposal = async (id: number): Promise<{ status: number; data: any }> => {
-  const payload = {
-    model_name: 'proposal',
-    id,
-    method: 'delete',
-  };
-  const res = await patchAction(payload);
-  return normalizePatchResponse<any>(res);
+  const res = await deleteRecord('proposal', id);
+  return { status: 200, data: res };
 };
 
-// Proposal Actions - Note: Backend action endpoint may need implementation
+// Custom ViewSet action — not routable through wcapi CRUD
 export const convertProposalToOrder = async (id: number): Promise<{ status: number; data: any }> => {
   try {
     const res = await apiClient.post(`/tx/proposals/${id}/convert-to-order/`);
@@ -75,11 +49,6 @@ export const convertProposalToOrder = async (id: number): Promise<{ status: numb
     }
     throw err;
   }
-};
-
-export const generateProposalPdf = async (_id: number): Promise<{ status: number; data: any }> => {
-  // PDF generation - placeholder until backend endpoint is implemented
-  return { status: 200, data: { message: 'PDF generation not yet implemented' } };
 };
 
 // Proposal Lines API
@@ -94,32 +63,18 @@ export const fetchProposalLine = async (proposalId: number, lineId: number): Pro
 };
 
 export const createProposalLine = async (proposalId: number, data: CreateProposalLineRequest): Promise<{ status: number; data: ProposalLine }> => {
-  const payload = {
-    model_name: 'proposal_line',
-    parent: proposalId,
-    ...data,
-  };
-  const res = await patchAction(payload);
-  return normalizePatchResponse<ProposalLine>(res);
+  const res = await saveRecord('proposal_line', { ...data, parent: proposalId });
+  const record = res?.record ?? res;
+  return { status: 200, data: record as ProposalLine };
 };
 
 export const updateProposalLine = async (proposalId: number, lineId: number, data: UpdateProposalLineRequest): Promise<{ status: number; data: ProposalLine }> => {
-  const payload = {
-    model_name: 'proposal_line',
-    ...data,
-    parent: proposalId,
-    id: lineId,
-  };
-  const res = await patchAction(payload);
-  return normalizePatchResponse<ProposalLine>(res);
+  const res = await saveRecord('proposal_line', { ...data, parent: proposalId, id: lineId });
+  const record = res?.record ?? res;
+  return { status: 200, data: record as ProposalLine };
 };
 
 export const deleteProposalLine = async (_proposalId: number, lineId: number): Promise<{ status: number; data: any }> => {
-  const payload = {
-    model_name: 'proposal_line',
-    id: lineId,
-    method: 'delete',
-  };
-  const res = await patchAction(payload);
-  return normalizePatchResponse<any>(res);
+  const res = await deleteRecord('proposal_line', lineId);
+  return { status: 200, data: res };
 };

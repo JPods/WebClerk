@@ -93,44 +93,45 @@ function getBackendErrorMessage(err: any, fallback: string): string {
   return detail || error || message || err?.message || fallback;
 }
 
-export async function getModelNames() {
+/**
+ * Wrapper: try /wcapi/ first, fall back to /api/wcapi/ on 404.
+ * Some deployments mount the API under /api — this handles both.
+ */
+async function wcapiGet<T>(path: string, config?: any): Promise<T> {
   try {
-    const res = await apiClient.get<ApiEnvelope<ModelNamesPayload>>(
-      "/wcapi/model_name/list/",
-    );
+    const res = await apiClient.get<ApiEnvelope<T>>(`/wcapi/${path}`, config);
     return res.data.data;
   } catch (err: any) {
-    const status = err?.response?.status;
-    if (status === 404) {
-      // Fallback: some deployments mount API under /api
-      const res2 = await apiClient.get<ApiEnvelope<ModelNamesPayload>>(
-        "/api/wcapi/model_name/list/",
-      );
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.get<ApiEnvelope<T>>(`/api/wcapi/${path}`, config);
       return res2.data.data;
     }
-    // Bubble other errors (like 401) so caller can show a helpful message
     throw err;
   }
 }
 
-export async function getModelDetail(model_name: string) {
-  const resolved = resolveModelName(model_name);
+async function wcapiPost<T>(path: string, body: any): Promise<T> {
   try {
-    const res = await apiClient.get<ApiEnvelope<ModelDetailPayload>>(
-      "/wcapi/model_name/detail/",
-      { params: { model_name: resolved } },
-    );
+    const res = await apiClient.post<ApiEnvelope<T>>(`/wcapi/${path}`, body);
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<ModelDetailPayload>>(
-        "/api/wcapi/model_name/detail/",
-        { params: { model_name: resolved } },
-      );
+      const res2 = await apiClient.post<ApiEnvelope<T>>(`/api/wcapi/${path}`, body);
       return res2.data.data;
     }
     throw err;
   }
+}
+
+export async function getModelNames() {
+  return wcapiGet<ModelNamesPayload>("model_name/list/");
+}
+
+export async function getModelDetail(model_name: string) {
+  const resolved = resolveModelName(model_name);
+  return wcapiGet<ModelDetailPayload>("model_name/detail/", {
+    params: { model_name: resolved },
+  });
 }
 
 export async function getRecords(
@@ -163,30 +164,11 @@ export async function getRecords(
   const headers = allowDefaultCompanyCache
     ? { "x-wcapi-cache-exempt": "default-company" }
     : undefined;
-  try {
-    // Never cache wcapi/get calls - always fetch fresh database records
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
-      `/wcapi/get/`,
-      {
-        params: { model_name: resolved, ...normalizedParams },
-        cache: allowDefaultCompanyCache,
-        headers,
-      } as any,
-    );
-    return res.data.data;
-  } catch (err: any) {
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(
-        `/api/wcapi/get/`,
-        {
-          params: { model_name: resolved, ...normalizedParams },
-          cache: false,
-        } as any,
-      );
-      return res2.data.data;
-    }
-    throw err;
-  }
+  return wcapiGet<GetListPayload>("get/", {
+    params: { model_name: resolved, ...normalizedParams },
+    cache: allowDefaultCompanyCache,
+    headers,
+  } as any);
 }
 
 // ---------------------------------------------------------------------------
@@ -289,42 +271,10 @@ export function clearOptionCache(modelName?: string): void {
 
 export async function getRecord(model_name: string, id: number) {
   const resolved = resolveModelName(model_name);
-  try {
-    // Disable cache for detail requests to always get fresh data (lines may have changed)
-    const res = await apiClient.get<ApiEnvelope<GetDetailPayload>>(
-      `/wcapi/get/`,
-      {
-        params: { model_name: resolved, id },
-        cache: false,
-      } as any,
-    );
-    console.log(
-      `[wcapi.getRecord] model=${resolved} id=${id} response:`,
-      res.data,
-    );
-    const record = res.data.data?.record;
-    if (record && ["order"].includes(resolved)) {
-      console.log(`[wcapi.getRecord] lines in response:`, record.lines);
-      console.log(`[wcapi.getRecord] lines count:`, record.lines?.length);
-      console.log(
-        `[wcapi.getRecord] line IDs:`,
-        record.lines?.map((l: any) => l.id),
-      );
-    }
-    return res.data.data;
-  } catch (err: any) {
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetDetailPayload>>(
-        `/api/wcapi/get/`,
-        {
-          params: { model_name: resolved, id },
-          cache: false,
-        } as any,
-      );
-      return res2.data.data;
-    }
-    throw err;
-  }
+  return wcapiGet<GetDetailPayload>("get/", {
+    params: { model_name: resolved, id },
+    cache: false,
+  } as any);
 }
 
 export async function saveRecord(model_name: string, payload: any) {
@@ -344,30 +294,9 @@ export async function saveRecord(model_name: string, payload: any) {
   if (mode !== undefined) {
     body.mode = mode;
   }
-  console.log("[wcapi.saveRecord] Sending:", {
-    model_name,
-    resolved,
-    payload,
-    body,
-  });
   try {
-    const res = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", body);
-    console.log("[wcapi.saveRecord] Response:", res.data);
-    return res.data.data;
+    return await wcapiPost<any>("save/", body);
   } catch (err: any) {
-    // Log the full error response so we can diagnose 400/500 errors
-    if (err?.response) {
-      console.error("[wcapi.saveRecord] Error response:", {
-        status: err.response.status,
-        data: err.response.data,
-        model_name,
-        body,
-      });
-    }
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", body);
-      return res2.data.data;
-    }
     throw new Error(getBackendErrorMessage(err, "Save failed"));
   }
 }
@@ -416,39 +345,9 @@ export async function saveTransactionWithLines(
     },
   };
 
-  console.log("[wcapi.saveTransactionWithLines] Saving:", {
-    model_name: resolved,
-    hasLines: !!payload.lines,
-    lineCount: payload.lines?.length,
-  });
-  console.log(
-    "[wcapi.saveTransactionWithLines] Full payload:",
-    JSON.stringify(body, null, 2),
-  );
-  //return false;
   try {
-    const res = await apiClient.post<ApiEnvelope<any>>(
-      "/wcapi/transaction/save/",
-      body,
-    );
-    console.log("[wcapi.saveTransactionWithLines] Response:", res.data);
-    return res.data.data ?? res.data;
+    return await wcapiPost<any>("transaction/save/", body);
   } catch (err: any) {
-    console.error(
-      "[wcapi.saveTransactionWithLines] Error:",
-      err.response?.data || err,
-    );
-    console.error(
-      "[wcapi.saveTransactionWithLines] Error details:",
-      err.response?.data?.error?.details || "No details",
-    );
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>(
-        "/api/wcapi/transaction/save/",
-        body,
-      );
-      return res2.data.data ?? res2.data;
-    }
     throw new Error(getBackendErrorMessage(err, "Failed to save transaction"));
   }
 }
@@ -467,38 +366,15 @@ export async function populateCommission(
     order: 'orders', proposal: 'proposals', invoice: 'invoices',
   };
   const plural = pluralMap[modelName] || `${modelName}s`;
-  try {
-    const res = await apiClient.post<any>(
-      `/tx/${plural}/${transactionId}/populate_commission/`,
-    );
-    return res.data;
-  } catch (err: any) {
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<any>(
-        `/api/tx/${plural}/${transactionId}/populate_commission/`,
-      );
-      return res2.data;
-    }
-    throw err;
-  }
+  const res = await apiClient.post<any>(
+    `/tx/${plural}/${transactionId}/populate_commission/`,
+  );
+  return res.data;
 }
 
 export async function deleteRecord(model_name: string, id: number) {
   const resolved = resolveModelName(model_name);
-  try {
-    const res = await apiClient.get<ApiEnvelope<any>>("/wcapi/delete/", {
-      params: { model_name: resolved, id },
-    });
-    return res.data.data;
-  } catch (err: any) {
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<any>>("/api/wcapi/delete/", {
-        params: { model_name: resolved, id },
-      });
-      return res2.data.data;
-    }
-    throw err;
-  }
+  return wcapiPost<any>("delete/", { model_name: resolved, id });
 }
 
 /**
@@ -515,22 +391,7 @@ export async function searchItems(
   if (options?.limit) {
     params.limit = options.limit;
   }
-  try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
-      "/wcapi/get/",
-      { params },
-    );
-    return res.data.data;
-  } catch (err: any) {
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(
-        "/api/wcapi/get/",
-        { params },
-      );
-      return res2.data.data;
-    }
-    throw err;
-  }
+  return wcapiGet<GetListPayload>("get/", { params });
 }
 
 // Local persistence for field selections per model
@@ -565,36 +426,15 @@ export interface SettingRecord {
 export async function getWorkbenchFieldsSetting(
   model_name: string,
 ): Promise<SettingRecord | null> {
-  try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
-      "/wcapi/get/",
-      {
-        params: {
-          model_name: "setting",
-          parent_model: model_name,
-          purpose: "wc:workbench_fields",
-        },
-      },
-    );
-    const results = res.data.data.results || [];
-    return results.length > 0 ? results[0] : null;
-  } catch (err: any) {
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(
-        "/api/wcapi/get/",
-        {
-          params: {
-            model_name: "setting",
-            parent_model: model_name,
-            purpose: "wc:workbench_fields",
-          },
-        },
-      );
-      const results = res2.data.data.results || [];
-      return results.length > 0 ? results[0] : null;
-    }
-    throw err;
-  }
+  const data = await wcapiGet<GetListPayload>("get/", {
+    params: {
+      model_name: "setting",
+      parent_model: model_name,
+      purpose: "wc:workbench_fields",
+    },
+  });
+  const results = data.results || [];
+  return results.length > 0 ? results[0] : null;
 }
 
 export interface DetailFieldSettingRecord {
@@ -761,25 +601,11 @@ export async function getSearchPresets(
 ): Promise<SearchPresetRecord[]> {
   const resolved = resolveModelName(model_name);
 
-  try {
-    const res = await apiClient.get<ApiEnvelope<{ results: SearchPresetRecord[] }>>(
-      "/wcapi/search-presets/",
-      {
-        params: { model_name: resolved },
-      },
-    );
-    return res.data.data.results || [];
-  } catch (err: any) {
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<
-        ApiEnvelope<{ results: SearchPresetRecord[] }>
-      >("/api/wcapi/search-presets/", {
-        params: { model_name: resolved },
-      });
-      return res2.data.data.results || [];
-    }
-    throw err;
-  }
+  const data = await wcapiGet<{ results: SearchPresetRecord[] }>(
+    "search-presets/",
+    { params: { model_name: resolved } },
+  );
+  return data.results || [];
 }
 
 // Module-level cache for detail field settings to prevent duplicate API calls
@@ -808,40 +634,18 @@ export async function getDetailFieldSetting(
   // Create in-flight promise
   const fetchPromise = (async () => {
     try {
-      const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
-        "/wcapi/get/",
-        {
-          params: {
-            model_name: "setting",
-            parent_model: model_name,
-            purpose: "detail_field_access",
-          },
+      const data = await wcapiGet<GetListPayload>("get/", {
+        params: {
+          model_name: "setting",
+          parent_model: model_name,
+          purpose: "detail_field_access",
         },
-      );
-      const results = res.data.data.results || [];
+      });
+      const results = data.results || [];
       const result =
         results.length > 0 ? (results[0] as DetailFieldSettingRecord) : null;
       detailFieldSettingCache.set(model_name, result);
       return result;
-    } catch (err: any) {
-      if (err?.response?.status === 404) {
-        const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(
-          "/api/wcapi/get/",
-          {
-            params: {
-              model_name: "setting",
-              parent_model: model_name,
-              purpose: "detail_field_access",
-            },
-          },
-        );
-        const results = res2.data.data.results || [];
-        const result =
-          results.length > 0 ? (results[0] as DetailFieldSettingRecord) : null;
-        detailFieldSettingCache.set(model_name, result);
-        return result;
-      }
-      throw err;
     } finally {
       detailFieldSettingInFlight.delete(model_name);
     }
@@ -863,69 +667,25 @@ export function clearDetailFieldSettingCache(model_name?: string): void {
 export async function saveDetailFieldSetting(
   setting: DetailFieldSettingRecord,
 ) {
-  try {
-    const res = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", {
-      ...setting,
-      model_name: "setting",
-    });
-    // Clear cache for this model so next fetch gets fresh data
-    clearDetailFieldSettingCache(setting.model_name);
-    return res.data.data;
-  } catch (err: any) {
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", {
-        ...setting,
-        model_name: "setting",
-      });
-      clearDetailFieldSettingCache(setting.model_name);
-      return res2.data.data;
-    }
-    throw err;
-  }
+  const result = await wcapiPost<any>("save/", {
+    ...setting,
+    model_name: "setting",
+  });
+  clearDetailFieldSettingCache(setting.model_name);
+  return result;
 }
 
 export async function getAllWorkbenchFieldsSettings(): Promise<
   SettingRecord[]
 > {
-  try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
-      "/wcapi/get/",
-      {
-        params: { model_name: "setting", purpose: "wc:workbench_fields" },
-      },
-    );
-    return res.data.data.results || [];
-  } catch (err: any) {
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(
-        "/api/wcapi/get/",
-        {
-          params: { model_name: "setting", purpose: "wc:workbench_fields" },
-        },
-      );
-      return res2.data.data.results || [];
-    }
-    throw err;
-  }
+  const data = await wcapiGet<GetListPayload>("get/", {
+    params: { model_name: "setting", purpose: "wc:workbench_fields" },
+  });
+  return data.results || [];
 }
 
 export async function saveWorkbenchFieldsSetting(setting: SettingRecord) {
-  try {
-    const res = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", {
-      ...setting,
-      model_name: "setting",
-    });
-    return res.data.data;
-  } catch (err: any) {
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", {
-        ...setting,
-        model_name: "setting",
-      });
-      return res2.data.data;
-    }
-    throw err;
-  }
+  return wcapiPost<any>("save/", { ...setting, model_name: "setting" });
 }
 
 /**
@@ -938,22 +698,7 @@ export async function manageAction(
   action: string,
   params: Record<string, any> = {},
 ) {
-  try {
-    const res = await apiClient.post<ApiEnvelope<any>>("/wcapi/manage/", {
-      action,
-      params,
-    });
-    return res.data.data;
-  } catch (err: any) {
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>(
-        "/api/wcapi/manage/",
-        { action, params },
-      );
-      return res2.data.data;
-    }
-    throw err;
-  }
+  return wcapiPost<any>("manage/", { action, params });
 }
 
 /**

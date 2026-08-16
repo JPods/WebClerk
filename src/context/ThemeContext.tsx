@@ -1,8 +1,9 @@
-/* LastChecked: 2026-08-13 | WhereUsed: App-wide theme toggle | WhoCreated: Unknown */
+/* LastChecked: 2026-08-16 | WhereUsed: App-wide theme toggle | Source: config.ui.theme */
 "use client";
 
 import type React from "react";
 import { createContext, useState, useContext, useEffect } from "react";
+import { getUI, setUI } from "@/utils/contactUI";
 
 type Theme = "light" | "dark";
 
@@ -17,10 +18,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window !== "undefined") {
-      return (localStorage.getItem("theme") as Theme) || "dark";
-    }
-    return "dark";
+    return getUI<Theme>('theme.active', 'dark');
   });
 
   useEffect(() => {
@@ -30,7 +28,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     } else {
       document.documentElement.classList.remove("dark");
     }
-    localStorage.setItem("theme", theme);
+    setUI('theme.active', theme);
   }, [theme]);
 
   const toggleTheme = () => {

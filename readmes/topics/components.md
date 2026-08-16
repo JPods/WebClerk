@@ -92,7 +92,7 @@ Components consumed across multiple apps and pages.
 | File | Purpose |
 |------|---------|
 | `ErrorBoundary.tsx` | React error boundary class component |
-| `RippleLoader.tsx` | Loading animation |
+| `LoadingSpinner.tsx` | Standard inline loading spinner (xs/sm/md/lg, aria attrs) |
 | `GlobalLoadingSpinner.tsx` | Full-screen overlay spinner (Redux-driven) |
 | `ScrollToTop.tsx` | Scrolls to top on route change |
 | `ThemeToggleButton.tsx` | Dark/light mode toggle |

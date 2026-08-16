@@ -1,6 +1,6 @@
 /* LastChecked: 2026-08-02 | WhereUsed: DataBrowser, Router | WhoCreated: Claude */
 /**
- * TransactionDetail — JSON-driven transaction detail renderer.
+ * UiDetail — JSON-driven transaction detail renderer.
  *
  * Thin orchestrator: fetches data, manages edit state, delegates rendering
  * to sub-components in ./detail/.
@@ -23,6 +23,8 @@ import { useCustomerSearch } from './detail/CustomerSearch';
 import HeaderRenderer from './detail/HeaderRenderer';
 import LineCardRenderer from './detail/LineCardRenderer';
 import TabsRenderer from './detail/TabsRenderer';
+// Ensure card components are registered
+import '@/components/cards';
 import { DetailToolbar } from '@/components/common/DetailToolbar';
 import ManageActionPanel from '@/components/common/ManageActionPanel';
 import TransactionFlowIndicator from './detail/TransactionFlowIndicator';
@@ -32,7 +34,7 @@ import DesignMode from './detail/DesignMode';
 // Types
 // ---------------------------------------------------------------------------
 
-interface TransactionDetailProps {
+interface UiDetailProps {
   modelName?: string;
   recordId?: number;
   onClose?: () => void;
@@ -45,7 +47,7 @@ interface TransactionDetailProps {
 // Component
 // ---------------------------------------------------------------------------
 
-const TransactionDetail: React.FC<TransactionDetailProps> = ({
+const UiDetail: React.FC<UiDetailProps> = ({
   modelName: propModelName,
   recordId: propRecordId,
   onClose,
@@ -174,7 +176,13 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
       const custId = typeof value === 'number' ? value : Number(value);
       if (custId > 0) {
         applyCustomerDefaults(custId).then(defaults => {
-          setEditData((prev: any) => prev ? { ...prev, ...defaults } : prev);
+          console.log('[TD] applyCustomerDefaults result:', { company: defaults.company, phone: defaults.phone, ship_to: defaults.config?.ship_to?.company });
+          setEditData((prev: any) => {
+            if (!prev) return prev;
+            const merged = { ...prev, ...defaults, config: { ...(prev.config || {}), ...(defaults.config || {}) } };
+            console.log('[TD] editData merged:', { company: merged.company, phone: merged.phone, isEditing });
+            return merged;
+          });
           const isStaff = authUser?.is_staff || authUser?.is_superuser;
           const repMsg = (defaults.has_reps && isStaff) ? ' (commission will populate on save)' : '';
           dispatch(showToast({ message: `Customer defaults applied: ${defaults.company}${repMsg}`, type: 'success' }));
@@ -330,6 +338,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
                   isEditing={isEditing}
                   modelName={modelName}
                   onChange={handleFieldChange}
+                  cardSpecs={activeLayout.card}
                   custSearch={{
                     open: custSearch.open,
                     query: custSearch.query,
@@ -372,15 +381,9 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
               return null;
           }
         })}
-        <ManageActionPanel
-          modelName={modelName}
-          recordId={recordId}
-          record={currentData}
-          onActionComplete={fetchData}
-        />
       </div>
     </div>
   );
 };
 
-export default TransactionDetail;
+export default UiDetail;

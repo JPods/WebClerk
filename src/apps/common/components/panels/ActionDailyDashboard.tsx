@@ -128,9 +128,8 @@ const DbCard: React.FC<{
   children?: React.ReactNode;
 }> = ({ label, count, value, expanded, onClick, children }) => (
   <div
+    className="db-panel"
     style={{
-      background: 'var(--db-surface)',
-      border: '1px solid var(--db-border)',
       borderRadius: 6,
       minWidth: 120,
       flex: 1,
@@ -141,20 +140,20 @@ const DbCard: React.FC<{
     onClick={onClick}
   >
     <div style={{ padding: '10px 14px' }}>
-      <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--db-text-muted)', marginBottom: 4 }}>
+      <div className="db-text-muted" style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
         {label}
       </div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--db-text)' }}>
+      <div className="db-text" style={{ fontSize: 22, fontWeight: 700 }}>
         {count}
       </div>
       {value != null && value > 0 && (
-        <div style={{ fontSize: 12, color: 'var(--db-accent-green)', fontWeight: 600, marginTop: 2 }}>
+        <div className="db-text-green" style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>
           {formatCurrency(value)}
         </div>
       )}
     </div>
     {expanded && children && (
-      <div style={{ borderTop: '1px solid var(--db-border)' }}>
+      <div className="db-border-top">
         {children}
       </div>
     )}
@@ -248,7 +247,7 @@ const ActionDailyDashboard: React.FC<ActionDailyDashboardProps> = ({
   };
 
   return (
-    <div style={{ background: 'var(--db-bg)', color: 'var(--db-text)', padding: 16 }}>
+    <div className="db-bg db-text" style={{ padding: 16 }}>
       {/* ── Toolbar ──────────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap" style={{ marginBottom: 16 }}>
         <span style={{ fontSize: 14, fontWeight: 700 }}>Action Dashboard</span>
@@ -257,10 +256,9 @@ const ActionDailyDashboard: React.FC<ActionDailyDashboardProps> = ({
         <select
           value={selectedStaffId ?? ''}
           onChange={(e) => setSelectedStaffId(Number(e.target.value))}
+          className="db-panel-input-text"
           style={{
             fontSize: 12, padding: '4px 8px', borderRadius: 4,
-            background: 'var(--db-input-bg)', color: 'var(--db-text)',
-            border: '1px solid var(--db-input-border)',
           }}
         >
           {staffList.map((s) => (
@@ -273,9 +271,10 @@ const ActionDailyDashboard: React.FC<ActionDailyDashboardProps> = ({
           <button
             key={p}
             onClick={() => setPreset(p)}
+            className="db-text-muted"
             style={{
               fontSize: 10, padding: '3px 8px', borderRadius: 3,
-              background: 'var(--db-btn-bg)', color: 'var(--db-text-muted)',
+              background: 'var(--db-btn-bg)',
               border: '1px solid var(--db-border)', cursor: 'pointer',
               textTransform: 'capitalize',
             }}
@@ -288,24 +287,18 @@ const ActionDailyDashboard: React.FC<ActionDailyDashboardProps> = ({
         <input
           type="date" value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
-          style={{
-            fontSize: 11, padding: '3px 6px', borderRadius: 3,
-            background: 'var(--db-input-bg)', color: 'var(--db-text)',
-            border: '1px solid var(--db-input-border)',
-          }}
+          className="db-panel-input-text"
+          style={{ fontSize: 11, padding: '3px 6px', borderRadius: 3 }}
         />
-        <span style={{ color: 'var(--db-text-dim)', fontSize: 11 }}>to</span>
+        <span className="db-text-dim" style={{ fontSize: 11 }}>to</span>
         <input
           type="date" value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
-          style={{
-            fontSize: 11, padding: '3px 6px', borderRadius: 3,
-            background: 'var(--db-input-bg)', color: 'var(--db-text)',
-            border: '1px solid var(--db-input-border)',
-          }}
+          className="db-panel-input-text"
+          style={{ fontSize: 11, padding: '3px 6px', borderRadius: 3 }}
         />
 
-        <span style={{ color: 'var(--db-text-dim)', fontSize: 11, marginLeft: 'auto' }}>
+        <span className="db-text-dim" style={{ fontSize: 11, marginLeft: 'auto' }}>
           {loading ? 'Loading...' : `${actions.length} actions`}
         </span>
       </div>
@@ -331,7 +324,7 @@ const ActionDailyDashboard: React.FC<ActionDailyDashboardProps> = ({
                   onClick={(e) => { e.stopPropagation(); openTransaction(r.model, r.id); }}
                 >
                   <span style={{ fontWeight: 600, marginRight: 8 }}>{r.ida || `#${r.id}`}</span>
-                  <span style={{ color: 'var(--db-text-muted)', flex: 1 }}>
+                  <span className="db-text-muted" style={{ flex: 1 }}>
                     {r.company || r.name || ''}
                   </span>
                   {(r.total ?? r.amount) != null && (
@@ -340,11 +333,11 @@ const ActionDailyDashboard: React.FC<ActionDailyDashboardProps> = ({
                     </span>
                   )}
                   {r.status && (
-                    <span style={{ color: 'var(--db-text-dim)', fontSize: 10, marginLeft: 8 }}>
+                    <span className="db-text-dim" style={{ fontSize: 10, marginLeft: 8 }}>
                       {r.status}
                     </span>
                   )}
-                  <span style={{ color: 'var(--db-text-dim)', marginLeft: 8 }}>↗</span>
+                  <span className="db-text-dim" style={{ marginLeft: 8 }}>↗</span>
                 </div>
               ))}
             </DbCard>
@@ -415,9 +408,9 @@ const ActionDailyDashboard: React.FC<ActionDailyDashboardProps> = ({
                 {linkModels.map((lm) => (
                   <span
                     key={`${lm.model}-${lm.id}`}
+                    className="db-bg-surface-alt"
                     style={{
                       fontSize: 10, padding: '1px 6px', borderRadius: 3,
-                      background: 'var(--db-surface-alt)',
                       border: '1px solid var(--db-border-light)',
                       cursor: 'pointer', whiteSpace: 'nowrap',
                     }}
@@ -429,7 +422,7 @@ const ActionDailyDashboard: React.FC<ActionDailyDashboardProps> = ({
                   </span>
                 ))}
                 {linkModels.length === 0 && (
-                  <span style={{ color: 'var(--db-text-dim)', fontSize: 10 }}>—</span>
+                  <span className="db-text-dim" style={{ fontSize: 10 }}>—</span>
                 )}
               </span>
             </div>

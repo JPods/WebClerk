@@ -15,7 +15,7 @@ export const patchUserProfile = async (data:any) => {
     return res;
   }
   catch (error: any) { 
-    return error.response?.data || error.message   
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }  
 };
 
@@ -25,7 +25,7 @@ export const postPhone = async (data:any) => {
     return res;
   }
   catch (error: any) { 
-    return error.response?.data || error.message   
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }  
 };
 
@@ -36,7 +36,7 @@ export const getPhone = async (id:any = '') => {
     return res.data;
   }
   catch (error: any) { 
-    return error.response?.data || error.message   
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }  
 };
 
@@ -46,7 +46,7 @@ export const postEmail = async (data:any) => {
     return res;
   }
   catch (error: any) { 
-    return error.response?.data || error.message   
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }  
 };
 
@@ -57,7 +57,7 @@ export const getEmail = async (id:any = '') => {
     return res.data;
   }
   catch (error: any) { 
-    return error.response?.data || error.message   
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }  
 };
 
@@ -67,7 +67,7 @@ export const postAddress = async (data:any) => {
     return res;
   }
   catch (error: any) { 
-    return error.response?.data || error.message   
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }  
 };
 
@@ -78,7 +78,7 @@ export const getAddress = async (id:any='') => {
     return res.data;
   }
   catch (error: any) { 
-    return error.response?.data || error.message   
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }  
 };
 
@@ -88,7 +88,7 @@ export const postDomain = async (data:any) => {
     return res;
   }
   catch (error: any) { 
-    return error.response?.data || error.message   
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }  
 };
 
@@ -99,7 +99,7 @@ export const getDomain = async (id:any='') => {
     return res.data;
   }
   catch (error: any) { 
-    return error.response?.data || error.message   
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }  
 };
 
@@ -109,7 +109,7 @@ export const postAction = async (data:any) => {
     return res;
   }
   catch (error: any) { 
-    return error.response?.data || error.message   
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }  
 };
 
@@ -120,7 +120,7 @@ export const getAction = async (id:any = '') => {
     return res;
   }
   catch (error: any) { 
-    return error.response?.data || error.message   
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }  
 };
 
@@ -132,19 +132,9 @@ export const deleteAction = async (id:any) => {
     return res;
   }
   catch (error: any) { 
-    return error.response?.data || error.message   
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }  
 };  
-
-export const Contacts = async (id:any = '') => {
-  try {
-  const res = await apiClient.get(PostLoginURL.allTypes + 'model_name=contact' + (id ? `&id=${id}` : '') );
-    return res;
-  }
-  catch (error: any) { 
-    return error.response?.data || error.message   
-  }  
-};
 
 type WcapiQueryValue = string | number | boolean | null | undefined;
 
@@ -183,7 +173,7 @@ export const Actions = async (params?: Record<string, WcapiQueryValue | WcapiQue
     return res;
   }
   catch (error: any) { 
-    return error.response?.data || error.message   
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }  
 };
 
@@ -193,7 +183,7 @@ export const Projects = async (params?: Record<string, WcapiQueryValue | WcapiQu
     return res;
   }
   catch (error: any) {
-    return error.response?.data || error.message;
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }
 };
 
@@ -209,40 +199,6 @@ export const patchAction = async (data: any) => {
   return promise;
 };
 
-// Generic fetch for any table by id via the allTypes endpoint
-export const getByTypeAndId = async (tableName: string, id: string | number) => {
-  try {
-    const url = `${PostLoginURL.allTypes}model_name=${encodeURIComponent(tableName)}&id=${encodeURIComponent(String(id))}`;
-    const res = await apiClient.get(url);
-    // Some endpoints return { data: [...] } or a single object; normalize to array of items
-    const payload = (res as any).data ?? res;
-    // Try to extract item(s)
-    if (Array.isArray(payload)) return payload;
-    if (payload?.data && Array.isArray(payload.data)) return payload.data;
-    return [payload];
-  } catch (error: any) {
-    return [];
-  }
-};
-
-export const Settings = async () => {
-  try {
-  const res = await apiClient.get(PostLoginURL.allTypes + 'model_name=settings' );
-    return res;
-  }
-  catch (error: any) { 
-    return error.response?.data || error.message   
-  }  
-};
-export const Domains = async () => {
-  try {
-  const res = await apiClient.get(PostLoginURL.allTypes + 'model_name=domains' );
-    return res;
-  }
-  catch (error: any) { 
-    return error.response?.data || error.message   
-  }  
-};
 
 // --------------------
 // Notion integration

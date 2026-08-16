@@ -128,7 +128,7 @@ export default function DetailLayoutDialog({
 
   return (
     <div className="dld-overlay" onClick={onClose}>
-      <div className="dld-panel" onClick={(e) => e.stopPropagation()}>
+      <div className="dld-panel" role="dialog" aria-modal="true" aria-label="Detail form layout" onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
         <div className="dld-header">

@@ -32,6 +32,7 @@ type WindowManagerCtx = {
   updateWindowPosition: (path: string, x: number, y: number) => void;
   maximizeWindow: (path: string, maximized?: boolean) => void;
   updateWindowSize: (path: string, width: number, height: number) => void;
+  updateWindowPath: (oldPath: string, newPath: string, newTitle?: string) => void;
   setNavigate: (nav: (path: string) => void) => void;
   /** Base pathname that ensureWindow just navigated to — AppLayout checks this to avoid creating a duplicate auto-window. */
   skipAutoCreateForPathRef: React.MutableRefObject<string | null>;
@@ -125,7 +126,12 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const activateWindow = useCallback((path: string) => {
-    if (navigateRef.current) {
+    // Only navigate when switching TO a different window — not when clicking
+    // inside the already-active window.  Re-navigating the active window's
+    // original path can strip query params (?model=X) or revert a pathname
+    // that the DataBrowser changed via handleSelectModel, causing the model
+    // to snap back to the window's creation-time path.
+    if (navigateRef.current && path !== activePath) {
       navigateRef.current(path);
     }
     setWindows((prev) => {
@@ -135,7 +141,7 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       setActivePath(path);
       return [...rest, { ...target, minimized: false }];
     });
-  }, []);
+  }, [activePath]);
 
   const updateWindowPosition = useCallback((path: string, x: number, y: number) => {
     setWindows((prev) => prev.map((w) => (w.path === path ? { ...w, x, y } : w)));
@@ -149,9 +155,16 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     setWindows((prev) => prev.map((w) => (w.path === path ? { ...w, width, height } : w)));
   }, []);
 
+  const updateWindowPath = useCallback((oldPath: string, newPath: string, newTitle?: string) => {
+    setWindows((prev) => prev.map((w) =>
+      w.path === oldPath ? { ...w, path: newPath, title: newTitle ?? newPath } : w
+    ));
+    setActivePath((prev) => prev === oldPath ? newPath : prev);
+  }, []);
+
   const api = useMemo<WindowManagerCtx>(
-    () => ({ windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow, updateWindowSize, setNavigate, skipAutoCreateForPathRef }),
-    [windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow, updateWindowSize, setNavigate]
+    () => ({ windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow, updateWindowSize, updateWindowPath, setNavigate, skipAutoCreateForPathRef }),
+    [windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow, updateWindowSize, updateWindowPath, setNavigate]
   );
 
   return <WindowManagerContext.Provider value={api}>{children}</WindowManagerContext.Provider>;

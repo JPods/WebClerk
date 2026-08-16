@@ -7,7 +7,7 @@ import { FormEvent, useCallback, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
 
 import { showToast } from "../../../store/slices/toastSlice";
-import { searchItems as searchItemsApi } from "../../../api/wcapi";
+import { searchItems as searchItemsApi } from "@/api/wcapi";
 
 // Generic item search result - supports various field naming conventions
 export interface ItemSearchResult {

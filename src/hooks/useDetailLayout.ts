@@ -1,7 +1,7 @@
-/* LastChecked: 2026-08-01 | WhereUsed: TransactionDetail | WhoCreated: Claude */
+/* LastChecked: 2026-08-01 | WhereUsed: UiDetail | WhoCreated: Claude */
 /**
  * useDetailLayout — fetch and cache the detail_layout Setting for a model.
- * Returns the layout JSON that drives TransactionDetail rendering.
+ * Returns the layout JSON that drives UiDetail rendering.
  */
 import { useState, useEffect, useCallback } from 'react';
 import { getRecords } from '@/api/wcapi';
@@ -46,6 +46,7 @@ export interface DetailLayout {
   family: 'sell' | 'exec';
   sections: LayoutSection[];
   edit_rules: EditRules;
+  card?: Record<string, any>;  // named card specs for db.display
 }
 
 // Default layout for models without a Setting — shows basic fields + lines

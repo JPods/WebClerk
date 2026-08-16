@@ -1,4 +1,4 @@
-/* LastChecked: 2026-08-02 | WhereUsed: TransactionDetail | WhoCreated: Claude */
+/* LastChecked: 2026-08-02 | WhereUsed: UiDetail | WhoCreated: Claude */
 import React from 'react';
 import { useAppSelector } from '@/store/hooks';
 import { getRecords } from '@/api/wcapi';
@@ -37,17 +37,17 @@ const TabsRenderer: React.FC<TabsRendererProps> = ({ section, data, isEditing, m
   const currentTab = tabIds.includes(activeTab) ? activeTab : tabIds[0] || 'summary';
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+    <div className="bg-[var(--db-surface,#fff)] rounded-lg border border-[var(--db-border,#dee2e6)]">
       {/* Tab bar */}
-      <div className="flex border-b border-slate-200 dark:border-slate-700 overflow-x-auto no-print">
+      <div className="flex border-b border-[var(--db-border,#dee2e6)] overflow-x-auto no-print">
         {section.tabs.map((tab) => (
           <button
             key={tab.content}
             onClick={() => onTabChange(tab.content)}
             className={`px-4 py-2 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
               currentTab === tab.content
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                ? 'border-blue-600 text-blue-600 '
+                : 'border-transparent text-[var(--db-text-muted,#6c757d)] hover:text-[var(--db-text,#212529)]'
             }`}
           >
             {tab.label}
@@ -117,15 +117,15 @@ export const TabContent: React.FC<{
       }) : [];
 
       if (!contactRows.length) {
-        return <div className="text-center py-8 text-slate-400 text-sm">No contacts linked</div>;
+        return <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] text-sm">No contacts linked</div>;
       }
 
       const contactCols: PanelColumnDef<Record<string, unknown>>[] = [
-        { key: 'role', label: 'role', cellClassName: 'w-[70px] text-slate-600 dark:text-slate-300', render: (r) => String(r.role ?? '—') },
-        { key: 'name', label: 'name', cellClassName: 'w-[150px] text-slate-800 dark:text-slate-200', render: (r) => String(r.name ?? '—') },
-        { key: 'email', label: 'email', cellClassName: 'w-[200px] text-slate-600 dark:text-slate-300', render: (r) => String(r.email ?? '—') },
-        { key: 'phone', label: 'phone', cellClassName: 'w-[140px] text-slate-600 dark:text-slate-300', render: (r) => String(r.phone ?? '—') },
-        { key: 'address', label: 'address', cellClassName: 'min-w-[200px] flex-1 text-slate-600 dark:text-slate-300', render: (r) => String(r.address ?? '—') },
+        { key: 'role', label: 'role', cellClassName: 'w-[70px] text-[var(--db-text,#212529)]', render: (r) => String(r.role ?? '—') },
+        { key: 'name', label: 'name', cellClassName: 'w-[150px] text-[var(--db-text,#212529)]', render: (r) => String(r.name ?? '—') },
+        { key: 'email', label: 'email', cellClassName: 'w-[200px] text-[var(--db-text,#212529)]', render: (r) => String(r.email ?? '—') },
+        { key: 'phone', label: 'phone', cellClassName: 'w-[140px] text-[var(--db-text,#212529)]', render: (r) => String(r.phone ?? '—') },
+        { key: 'address', label: 'address', cellClassName: 'min-w-[200px] flex-1 text-[var(--db-text,#212529)]', render: (r) => String(r.address ?? '—') },
       ];
 
       return (
@@ -154,12 +154,12 @@ export const TabContent: React.FC<{
         const doc = d.document || d;
         return { id: doc.id || 0, ida: doc.ida || '', name: doc.name || doc.display_name || '', status: doc.status || d.purpose || '' };
       }) : [];
-      if (!docRows.length) return <div className="text-center py-8 text-slate-400 text-sm">No documents attached</div>;
+      if (!docRows.length) return <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] text-sm">No documents attached</div>;
 
       const docCols: PanelColumnDef<Record<string, unknown>>[] = [
-        { key: 'ida', label: 'ida', cellClassName: 'w-[100px] font-mono text-slate-500 dark:text-slate-400', render: (r) => String(r.ida ?? '—') },
-        { key: 'name', label: 'name', cellClassName: 'min-w-[200px] flex-1 text-slate-800 dark:text-slate-200', render: (r) => String(r.name ?? '—') },
-        { key: 'status', label: 'status', cellClassName: 'w-[80px] text-slate-600 dark:text-slate-300', render: (r) => String(r.status ?? '—') },
+        { key: 'ida', label: 'ida', cellClassName: 'w-[100px] font-mono text-[var(--db-text-muted,#6c757d)]', render: (r) => String(r.ida ?? '—') },
+        { key: 'name', label: 'name', cellClassName: 'min-w-[200px] flex-1 text-[var(--db-text,#212529)]', render: (r) => String(r.name ?? '—') },
+        { key: 'status', label: 'status', cellClassName: 'w-[80px] text-[var(--db-text,#212529)]', render: (r) => String(r.status ?? '—') },
       ];
 
       return (
@@ -175,17 +175,17 @@ export const TabContent: React.FC<{
 
     case 'actions': {
       const actionItems = (data?.actions?.items ?? []) as any[];
-      if (!actionItems.length) return <div className="text-center py-8 text-slate-400 text-sm">No actions on this {modelName}</div>;
+      if (!actionItems.length) return <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] text-sm">No actions on this {modelName}</div>;
 
       const actionCols: PanelColumnDef<Record<string, unknown>>[] = [
-        { key: 'action', label: 'action', cellClassName: 'min-w-[200px] flex-1 text-slate-800 dark:text-slate-200', render: (r) => {
+        { key: 'action', label: 'action', cellClassName: 'min-w-[200px] flex-1 text-[var(--db-text,#212529)]', render: (r) => {
           const v = r.action;
           return String(typeof v === 'object' && v !== null ? (v as any).en ?? JSON.stringify(v) : v ?? '—');
         }},
         { key: 'status', label: 'status', cellClassName: 'w-[90px]', render: (r) => {
           const s = String(r.status ?? 'pending');
           const done = s === 'done' || s === 'completed';
-          return <span className={`px-1.5 py-0.5 rounded text-xs ${done ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-600 dark:text-slate-300'}`}>{s}</span>;
+          return <span className={`px-1.5 py-0.5 rounded text-xs ${done ? 'bg-green-100 text-green-600' : 'bg-[var(--db-surface-alt,#f1f3f5)] text-[var(--db-text-muted,#6c757d)]'}`}>{s}</span>;
         }},
       ];
 
@@ -215,12 +215,12 @@ export const TabContent: React.FC<{
           });
         }
       }
-      if (!relatedRows.length) return <div className="text-center py-8 text-slate-400 text-sm">No related records</div>;
+      if (!relatedRows.length) return <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] text-sm">No related records</div>;
 
       const relCols: PanelColumnDef<Record<string, unknown>>[] = [
-        { key: 'type', label: 'type', cellClassName: 'w-[90px] font-semibold text-slate-600 dark:text-slate-300', render: (r) => String(r.type ?? '—') },
-        { key: 'ida', label: 'ida', cellClassName: 'w-[120px] font-mono text-slate-500 dark:text-slate-400', render: (r) => String(r.ida ?? '—') },
-        { key: 'name', label: 'name', cellClassName: 'min-w-[200px] flex-1 text-slate-800 dark:text-slate-200', render: (r) => String(r.name ?? '—') },
+        { key: 'type', label: 'type', cellClassName: 'w-[90px] font-semibold text-[var(--db-text,#212529)]', render: (r) => String(r.type ?? '—') },
+        { key: 'ida', label: 'ida', cellClassName: 'w-[120px] font-mono text-[var(--db-text-muted,#6c757d)]', render: (r) => String(r.ida ?? '—') },
+        { key: 'name', label: 'name', cellClassName: 'min-w-[200px] flex-1 text-[var(--db-text,#212529)]', render: (r) => String(r.name ?? '—') },
       ];
 
       return (
@@ -245,13 +245,13 @@ export const TabContent: React.FC<{
           .catch(() => setQaRecords([]));
       }, [data?.id, modelName]);
 
-      if (!qaRecords.length) return <div className="text-center py-8 text-slate-400 text-sm">No QA records</div>;
+      if (!qaRecords.length) return <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] text-sm">No QA records</div>;
 
       const qaCols: PanelColumnDef<Record<string, unknown>>[] = [
-        { key: 'ida', label: 'ida', cellClassName: 'w-[80px] font-mono text-slate-500 dark:text-slate-400', render: (r) => String(r.ida ?? '—') },
-        { key: 'question', label: 'question', cellClassName: 'min-w-[200px] flex-1 text-slate-800 dark:text-slate-200', render: (r) => String(r.question ?? '—') },
-        { key: 'answer', label: 'answer', cellClassName: 'min-w-[150px] flex-1 text-slate-600 dark:text-slate-300', render: (r) => String(r.answer ?? '—') },
-        { key: 'status', label: 'status', cellClassName: 'w-[70px] text-slate-600 dark:text-slate-300', render: (r) => String(r.status ?? '—') },
+        { key: 'ida', label: 'ida', cellClassName: 'w-[80px] font-mono text-[var(--db-text-muted,#6c757d)]', render: (r) => String(r.ida ?? '—') },
+        { key: 'question', label: 'question', cellClassName: 'min-w-[200px] flex-1 text-[var(--db-text,#212529)]', render: (r) => String(r.question ?? '—') },
+        { key: 'answer', label: 'answer', cellClassName: 'min-w-[150px] flex-1 text-[var(--db-text,#212529)]', render: (r) => String(r.answer ?? '—') },
+        { key: 'status', label: 'status', cellClassName: 'w-[70px] text-[var(--db-text,#212529)]', render: (r) => String(r.status ?? '—') },
       ];
 
       return (
@@ -273,14 +273,14 @@ export const TabContent: React.FC<{
 
     case 'history':
       return (
-        <div className="text-xs text-slate-500 dark:text-slate-400">
+        <div className="text-xs text-[var(--db-text-muted,#6c757d)]">
           <pre className="whitespace-pre-wrap">{JSON.stringify(data?.metadata?.history ?? [], null, 2)}</pre>
         </div>
       );
 
     default:
       return (
-        <div className="text-center py-8 text-slate-400 text-sm">
+        <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] text-sm">
           Tab "{tabId}" not implemented
         </div>
       );
@@ -347,104 +347,104 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
     <div className="grid grid-cols-3 gap-6 text-xs">
       {/* Left: Order Totals */}
       <div>
-        <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">Order Totals</div>
+        <div className="text-xs font-bold text-[var(--db-text,#212529)] mb-2">Order Totals</div>
         <div className="space-y-0.5">
-          <div className="flex justify-between"><span className="text-slate-500">Lines</span><span className="font-mono">{lines.length}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Sell Amount</span><span className="font-mono">{fmt(sell.line_sum_goods || totalExtended)}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Discount</span><span className="font-mono">{fmt(sell.discount || totals.discount)}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Sell Total</span><span className="font-mono font-medium">{fmt(sell.total || totalExtended)}</span></div>
-          <div className="border-t border-slate-100 dark:border-slate-700 my-1" />
-          <div className="flex justify-between"><span className="text-slate-500">Taxable</span><span className="font-mono">{fmt(totals.taxable)}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Tax</span><span className="font-mono">{fmt(totals.tax)}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Shipping</span><span className="font-mono">{fmt(totals.shipping)}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Other</span><span className="font-mono">{fmt(totals.other)}</span></div>
-          <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Lines</span><span className="font-mono">{lines.length}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Sell Amount</span><span className="font-mono">{fmt(sell.line_sum_goods || totalExtended)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Discount</span><span className="font-mono">{fmt(sell.discount || totals.discount)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Sell Total</span><span className="font-mono font-medium">{fmt(sell.total || totalExtended)}</span></div>
+          <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Taxable</span><span className="font-mono">{fmt(totals.taxable)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Tax</span><span className="font-mono">{fmt(totals.tax)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Shipping</span><span className="font-mono">{fmt(totals.shipping)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Other</span><span className="font-mono">{fmt(totals.other)}</span></div>
+          <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
           <div className="flex justify-between font-bold"><span>Total</span><span className="font-mono">{fmt(totals.total || totalExtended)}</span></div>
-          <div className="border-t border-slate-100 dark:border-slate-700 my-1" />
-          <div className="flex justify-between"><span className="text-slate-500">Cost</span><span className="font-mono">{fmt(cost.line_sum_goods || totalCost)}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Freight</span><span className="font-mono">{fmt(cost.freight)}</span></div>
-          {isStaff && <div className="flex justify-between"><span className="text-slate-500">Commissions</span><span className="font-mono">{fmt(cost.commissions)}</span></div>}
-          <div className="flex justify-between"><span className="text-slate-500">Cost Total</span><span className="font-mono">{fmt(cost.total || totalCost)}</span></div>
-          <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
+          <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Cost</span><span className="font-mono">{fmt(cost.line_sum_goods || totalCost)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Freight</span><span className="font-mono">{fmt(cost.freight)}</span></div>
+          {isStaff && <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Commissions</span><span className="font-mono">{fmt(cost.commissions)}</span></div>}
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Cost Total</span><span className="font-mono">{fmt(cost.total || totalCost)}</span></div>
+          <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
           <div className="flex justify-between">
-            <span className="text-slate-500">Margin</span>
-            <span className="font-mono text-green-700 dark:text-green-400">{fmt(margin)} ({marginPct.toFixed(1)}%)</span>
+            <span className="text-[var(--db-text-muted,#6c757d)]">Margin</span>
+            <span className="font-mono text-green-600">{fmt(margin)} ({marginPct.toFixed(1)}%)</span>
           </div>
-          <div className="border-t border-slate-100 dark:border-slate-700 my-1" />
-          <div className="flex justify-between"><span className="text-slate-500">Payments</span><span className="font-mono">{data?.finance?.payment_count ?? totals.payment_count ?? 0}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Received</span><span className="font-mono">{fmt(totals.received)}</span></div>
+          <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Payments</span><span className="font-mono">{data?.finance?.payment_count ?? totals.payment_count ?? 0}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Received</span><span className="font-mono">{fmt(totals.received)}</span></div>
           <div className="flex justify-between font-medium"><span>Balance</span><span className="font-mono">{fmt(totals.balance || data?.balance)}</span></div>
         </div>
       </div>
 
       {/* Right: Customer */}
       <div>
-        <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">Customer</div>
+        <div className="text-xs font-bold text-[var(--db-text,#212529)] mb-2">Customer</div>
         <div className="space-y-0.5">
-          <div className="flex justify-between"><span className="text-slate-500">Company</span><span className="font-mono">{data?.company || data?.customer_company || customerData.company || customerData.display_name || '—'}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Price Level</span><span className="font-mono">{data?.price_level || '—'}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Terms</span><span className="font-mono">{data?.terms || '—'}</span></div>
-          <div className="border-t border-slate-100 dark:border-slate-700 my-1" />
-          <div className="text-[10px] font-medium text-slate-400 mb-1">Credit</div>
-          <div className="flex justify-between"><span className="text-slate-500">Credit Limit</span><span className="font-mono">{fmt(customerData.credit_limit)}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Available</span><span className="font-mono">{fmt(customerData.credit_available)}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Balance Due</span><span className="font-mono">{fmt(customerData.balance_due)}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Current</span><span className="font-mono">{fmt(customerData.balance_current)}</span></div>
-          <div className="border-t border-slate-100 dark:border-slate-700 my-1" />
-          <div className="text-[10px] font-medium text-slate-400 mb-1">Sales History</div>
-          <div className="flex justify-between"><span className="text-slate-500">MTD</span><span className="font-mono">{fmt(customerData.sales_mtd)}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">YTD</span><span className="font-mono">{fmt(customerData.sales_ytd)}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Lifetime</span><span className="font-mono">{fmt(customerData.sales_lifetime)}</span></div>
-          <div className="border-t border-slate-100 dark:border-slate-700 my-1" />
-          <div className="text-[10px] font-medium text-slate-400 mb-1">Payment</div>
-          <div className="flex justify-between"><span className="text-slate-500">Avg Days</span><span className="font-mono">{customerData.avg_pay_days ?? '—'}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Last Payment</span><span className="font-mono">{fmt(customerData.last_payment_amount)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Company</span><span className="font-mono">{data?.company || data?.customer_company || customerData.company || customerData.display_name || '—'}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Price Level</span><span className="font-mono">{data?.price_level || '—'}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Terms</span><span className="font-mono">{data?.terms || '—'}</span></div>
+          <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
+          <div className="text-[10px] font-medium text-[var(--db-text-dim,#adb5bd)] mb-1">Credit</div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Credit Limit</span><span className="font-mono">{fmt(customerData.credit_limit)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Available</span><span className="font-mono">{fmt(customerData.credit_available)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Balance Due</span><span className="font-mono">{fmt(customerData.balance_due)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Current</span><span className="font-mono">{fmt(customerData.balance_current)}</span></div>
+          <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
+          <div className="text-[10px] font-medium text-[var(--db-text-dim,#adb5bd)] mb-1">Sales History</div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">MTD</span><span className="font-mono">{fmt(customerData.sales_mtd)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">YTD</span><span className="font-mono">{fmt(customerData.sales_ytd)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Lifetime</span><span className="font-mono">{fmt(customerData.sales_lifetime)}</span></div>
+          <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
+          <div className="text-[10px] font-medium text-[var(--db-text-dim,#adb5bd)] mb-1">Payment</div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Avg Days</span><span className="font-mono">{customerData.avg_pay_days ?? '—'}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Last Payment</span><span className="font-mono">{fmt(customerData.last_payment_amount)}</span></div>
         </div>
       </div>
 
       {/* Right: Payments then Invoices */}
       <div>
-        <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">Flow</div>
+        <div className="text-xs font-bold text-[var(--db-text,#212529)] mb-2">Flow</div>
         <div className="space-y-0.5">
           <div className="flex justify-between font-medium"><span>Total</span><span className="font-mono">{fmt(totalInvoiced || totals.total || totalExtended)}</span></div>
           <div className="flex justify-between font-medium">
-            <span className={totalUnapplied > 0 ? 'text-red-600' : 'text-slate-500'}>Unapplied</span>
+            <span className={totalUnapplied > 0 ? 'text-red-600' : 'text-[var(--db-text-muted,#6c757d)]'}>Unapplied</span>
             <span className={`font-mono ${totalUnapplied > 0 ? 'text-red-600 font-bold' : ''}`}>{fmt(totalUnapplied || totals.balance || data?.balance)}</span>
           </div>
-          <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
+          <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
 
           {/* Payments first */}
-          <div className="text-[10px] font-medium text-slate-400 mb-0.5">Payments</div>
+          <div className="text-[10px] font-medium text-[var(--db-text-dim,#adb5bd)] mb-0.5">Payments</div>
           {payments.length > 0 ? (
             <div className="space-y-0.5 mb-2">
               {payments.map((doc: any, i: number) => (
                 <div
                   key={doc.id || i}
-                  className="flex justify-between py-0.5 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded px-1 -mx-1"
+                  className="flex justify-between py-0.5 cursor-pointer hover:bg-blue-50/50 rounded px-1 -mx-1"
                   onDoubleClick={() => { if (doc.id) window.open(`/td/payment/${doc.id}`, '_blank'); }}
                   title="Double-click to open"
                 >
-                  <span className="font-mono text-slate-700 dark:text-slate-300">{doc.ida || `#${doc.id}`}</span>
-                  <span className="font-mono text-green-700 dark:text-green-400">{fmt(doc.total ?? doc.totals?.total)}</span>
+                  <span className="font-mono text-[var(--db-text,#212529)]">{doc.ida || `#${doc.id}`}</span>
+                  <span className="font-mono text-green-600">{fmt(doc.total ?? doc.totals?.total)}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-slate-400 mb-2">No payments</div>
+            <div className="text-[var(--db-text-dim,#adb5bd)] mb-2">No payments</div>
           )}
 
           {/* Invoices second */}
-          <div className="text-[10px] font-medium text-slate-400 mb-0.5">Invoices</div>
+          <div className="text-[10px] font-medium text-[var(--db-text-dim,#adb5bd)] mb-0.5">Invoices</div>
           {invoices.length > 0 ? (
             <div className="space-y-0.5">
               {invoices.map((doc: any, i: number) => (
                 <div
                   key={doc.id || i}
-                  className="flex justify-between py-0.5 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded px-1 -mx-1"
+                  className="flex justify-between py-0.5 cursor-pointer hover:bg-blue-50/50 rounded px-1 -mx-1"
                   onDoubleClick={() => { if (doc.id) window.open(`/td/invoice/${doc.id}`, '_blank'); }}
                   title="Double-click to open"
                 >
-                  <span className="font-mono text-slate-700 dark:text-slate-300">{doc.ida || `#${doc.id}`}</span>
+                  <span className="font-mono text-[var(--db-text,#212529)]">{doc.ida || `#${doc.id}`}</span>
                   <span className="font-mono">{fmt(doc.total ?? doc.totals?.total)}</span>
                   <span className={`font-mono ${Number(doc.balance ?? doc.totals?.balance ?? 0) > 0 ? 'text-red-500' : 'text-green-600'}`}>
                     {fmt(doc.balance ?? doc.totals?.balance)}
@@ -453,7 +453,7 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
               ))}
             </div>
           ) : (
-            <div className="text-slate-400">No invoices</div>
+            <div className="text-[var(--db-text-dim,#adb5bd)]">No invoices</div>
           )}
         </div>
       </div>
@@ -466,7 +466,7 @@ export const ActionsTabContent: React.FC<{ data: any; modelName: string }> = ({ 
 
   if (!actions.length) {
     return (
-      <div className="text-center py-8 text-slate-400 text-sm">
+      <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] text-sm">
         No actions on this {modelName}
       </div>
     );
@@ -477,15 +477,15 @@ export const ActionsTabContent: React.FC<{ data: any; modelName: string }> = ({ 
       {actions.map((action: any, idx: number) => (
         <div
           key={action.id ?? idx}
-          className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 flex justify-between items-center"
+          className="p-3 bg-[var(--db-surface-alt,#f1f3f5)] rounded-lg border border-[var(--db-border,#dee2e6)] flex justify-between items-center"
         >
-          <span className="font-medium text-sm text-slate-900 dark:text-white">
+          <span className="font-medium text-sm text-[var(--db-text,#212529)]">
             {typeof action.action === 'object' ? action.action?.en : action.action ?? action.what ?? '—'}
           </span>
           <span className={`px-2 py-0.5 text-xs rounded-full ${
             action.status === 'done' || action.status === 'completed'
-              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-              : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+              ? 'bg-green-100 text-green-600'
+              : 'bg-amber-100 text-amber-700 '
           }`}>
             {action.status ?? 'pending'}
           </span>
@@ -500,7 +500,7 @@ export const ShippingTabContent: React.FC<{ data: any }> = ({ data }) => {
 
   if (!shipments.length) {
     return (
-      <div className="text-center py-8 text-slate-400 text-sm">
+      <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] text-sm">
         No shipments recorded
       </div>
     );
@@ -509,7 +509,7 @@ export const ShippingTabContent: React.FC<{ data: any }> = ({ data }) => {
   return (
     <table className="w-full text-xs border-collapse">
       <thead>
-        <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+        <tr className="bg-[var(--db-surface-alt,#f1f3f5)] text-[var(--db-text,#212529)]">
           <th className="text-left px-2 py-1.5 font-medium">Carrier</th>
           <th className="text-left px-2 py-1.5 font-medium">Shipment ID</th>
           <th className="text-right px-2 py-1.5 font-medium">Mass</th>
@@ -518,7 +518,7 @@ export const ShippingTabContent: React.FC<{ data: any }> = ({ data }) => {
       </thead>
       <tbody>
         {shipments.map((s: any, i: number) => (
-          <tr key={i} className="border-b border-slate-100 dark:border-slate-700">
+          <tr key={i} className="border-b border-[var(--db-border,#dee2e6)]">
             <td className="px-2 py-1">{s.carrier ?? '—'}</td>
             <td className="px-2 py-1 font-mono">{s.shipment_id ?? '—'}</td>
             <td className="px-2 py-1 text-right">{s.mass != null ? `${s.mass} lbs` : '—'}</td>
@@ -566,8 +566,8 @@ export const NotesTabContent: React.FC<{
           <label
             className={`text-xs font-medium capitalize mb-1 block ${
               isEditing
-                ? 'text-blue-600 dark:text-blue-400 cursor-pointer hover:underline'
-                : 'text-slate-500 dark:text-slate-400'
+                ? 'text-blue-600  cursor-pointer hover:underline'
+                : 'text-[var(--db-text-muted,#6c757d)]'
             }`}
             onClick={isEditing ? () => handleLabelClick(key) : undefined}
             title={isEditing ? `Click to add timestamped entry to ${key}` : undefined}
@@ -579,11 +579,11 @@ export const NotesTabContent: React.FC<{
               ref={(el) => { textareaRefs.current[key] = el; }}
               value={notes[key] ?? ''}
               onChange={(e) => onChange('comments', { ...notes, [key]: e.target.value })}
-              className="w-full text-xs p-2 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-white min-h-[80px] font-mono"
+              className="w-full text-xs p-2 border border-[var(--db-border,#dee2e6)] rounded bg-[var(--db-surface-alt,#fff)] text-[var(--db-text,#212529)] min-h-[80px] font-mono"
               placeholder={`Click "${key}" label above to add a timestamped entry`}
             />
           ) : (
-            <div className="text-xs text-slate-600 dark:text-slate-300 p-2 bg-slate-50 dark:bg-slate-900/50 rounded min-h-[30px] whitespace-pre-wrap font-mono">
+            <div className="text-xs text-[var(--db-text,#212529)] p-2 bg-[var(--db-surface-alt,#f1f3f5)] rounded min-h-[30px] whitespace-pre-wrap font-mono">
               {notes[key] || '—'}
             </div>
           )}

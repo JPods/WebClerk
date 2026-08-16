@@ -164,38 +164,38 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
         key: "ida",
         label: "ida",
         cellClassName: "font-mono shrink-0 w-[70px]",
-        render: (r) => <span style={{ color: 'var(--db-text-muted)' }}>{r.item_ida ?? r.ida ?? `#${r.id}`}</span>,
+        render: (r) => <span className="db-text-muted">{r.item_ida ?? r.ida ?? `#${r.id}`}</span>,
       },
       {
         key: "item_name",
         label: "item_name",
         cellClassName: "min-w-[120px] flex-1",
-        render: (r) => <span style={{ color: 'var(--db-text)' }}>{r.item_name ?? r.description ?? "—"}</span>,
+        render: (r) => <span className="db-text">{r.item_name ?? r.description ?? "—"}</span>,
       },
       {
         key: "description",
         label: "description",
         defaultVisible: false,
         cellClassName: "min-w-[100px] flex-1",
-        render: (r) => <span style={{ color: 'var(--db-text-muted)' }}>{r.description && r.description !== r.item_name ? r.description : "—"}</span>,
+        render: (r) => <span className="db-text-muted">{r.description && r.description !== r.item_name ? r.description : "—"}</span>,
       },
       {
         key: "quantity",
         label: "qty",
         cellClassName: "w-[60px] text-right",
-        render: (r) => <span style={{ color: 'var(--db-text)' }}>{formatQty(r.quantity)}</span>,
+        render: (r) => <span className="db-text">{formatQty(r.quantity)}</span>,
       },
       {
         key: "unit_price",
         label: "unit_price",
         cellClassName: "w-[80px] text-right",
-        render: (r) => <span style={{ color: 'var(--db-text)' }}>{formatCurrency(r.unit_price, r.currency)}</span>,
+        render: (r) => <span className="db-text">{formatCurrency(r.unit_price, r.currency)}</span>,
       },
       {
         key: "total",
         label: "total",
         cellClassName: "font-medium w-[80px] text-right",
-        render: (r) => <span style={{ color: 'var(--db-text)' }}>{formatCurrency(r.total, r.currency)}</span>,
+        render: (r) => <span className="db-text">{formatCurrency(r.total, r.currency)}</span>,
       },
       {
         key: "status",
@@ -204,7 +204,7 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
         cellClassName: "w-[70px]",
         render: (r) =>
           r.status ? (
-            <span className="px-1.5 py-0.5 rounded" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}>
+            <span className="px-1.5 py-0.5 rounded db-surface-alt-text">
               {String(r.status)}
             </span>
           ) : (
@@ -215,7 +215,7 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
         key: "source_ida",
         label: "source",
         cellClassName: "font-mono w-[70px]",
-        render: (r) => <span style={{ color: 'var(--db-text-dim)' }}>{r.source_ida ?? "—"}</span>,
+        render: (r) => <span className="db-text-dim">{r.source_ida ?? "—"}</span>,
       },
     ],
     [],
@@ -228,13 +228,13 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
         key: "serial_number",
         label: "serial",
         cellClassName: "font-mono shrink-0 w-[100px]",
-        render: (r) => <span style={{ color: 'var(--db-text-muted)' }}>{r.serial_number ?? r.ida ?? `#${r.id}`}</span>,
+        render: (r) => <span className="db-text-muted">{r.serial_number ?? r.ida ?? `#${r.id}`}</span>,
       },
       {
         key: "item_name",
         label: "item_name",
         cellClassName: "min-w-[120px] flex-1",
-        render: (r) => <span style={{ color: 'var(--db-text)' }}>{r.item_name ?? "—"}</span>,
+        render: (r) => <span className="db-text">{r.item_name ?? "—"}</span>,
       },
       {
         key: "status",
@@ -242,7 +242,7 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
         cellClassName: "w-[80px]",
         render: (r) =>
           r.status ? (
-            <span className="px-1.5 py-0.5 rounded" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}>
+            <span className="px-1.5 py-0.5 rounded db-surface-alt-text">
               {r.status}
             </span>
           ) : (
@@ -253,14 +253,14 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
         key: "location",
         label: "location",
         cellClassName: "w-[100px]",
-        render: (r) => <span style={{ color: 'var(--db-text-muted)' }}>{r.location ?? "—"}</span>,
+        render: (r) => <span className="db-text-muted">{r.location ?? "—"}</span>,
       },
       {
         key: "dt_created",
         label: "dt_created",
         defaultVisible: false,
         cellClassName: "w-[80px]",
-        render: (r) => <span style={{ color: 'var(--db-text-dim)' }}>{formatDate(r.dt_created)}</span>,
+        render: (r) => <span className="db-text-dim">{formatDate(r.dt_created)}</span>,
       },
     ],
     [],
@@ -326,22 +326,20 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
 
   return (
     <div
-      className={`rounded-lg ${className}`}
-      style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)' }}
+      className={`rounded-lg db-panel ${className}`}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer"
-        style={{ borderBottom: '1px solid var(--db-border)' }}
+        className="flex items-center justify-between px-4 py-3 cursor-pointer db-border-bottom"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <FaBoxes style={{ color: 'var(--db-text-dim)' }} size={14} />
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
+          <FaBoxes className="db-text-dim" size={14} />
+          <h3 className="text-sm font-semibold db-text">
             {title}
           </h3>
           {totalCount > 0 && (
-            <span className="px-1.5 py-0.5 text-xs rounded-full" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}>
+            <span className="px-1.5 py-0.5 text-xs rounded-full db-surface-alt-text">
               {totalCount}
             </span>
           )}
@@ -353,7 +351,7 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
         <div className={compact ? "p-2" : "p-4"}>
           {/* View mode toggle */}
           <div className="flex items-center gap-2 mb-3">
-            <FaFilter style={{ color: 'var(--db-text-dim)' }} size={10} />
+            <FaFilter className="db-text-dim" size={10} />
             <button
               type="button"
               onClick={() => setViewMode("lines")}
@@ -379,16 +377,16 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-8" style={{ color: 'var(--db-text-dim)' }}>
+            <div className="flex items-center justify-center py-8 db-text-dim">
               <FaSpinner className="animate-spin mr-2" /> Loading…
             </div>
           ) : viewMode === "lines" ? (
             totalLines === 0 ? (
-              <p className="text-sm text-center py-6" style={{ color: 'var(--db-text-dim)' }}>
+              <p className="text-sm text-center py-6 db-text-dim">
                 No line items found.
               </p>
             ) : (
-              <div className="rounded-md overflow-hidden" style={{ border: '1px solid var(--db-border)' }}>
+              <div className="rounded-md overflow-hidden db-border-all">
                 <PanelTable<LineItemRecord>
                   storageKey="panel:items:lines"
                   columns={lineColumns}
@@ -400,11 +398,11 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
               </div>
             )
           ) : totalSerials === 0 ? (
-            <p className="text-sm text-center py-6" style={{ color: 'var(--db-text-dim)' }}>
+            <p className="text-sm text-center py-6 db-text-dim">
               No serials found.
             </p>
           ) : (
-            <div className="rounded-md overflow-hidden" style={{ border: '1px solid var(--db-border)' }}>
+            <div className="rounded-md overflow-hidden db-border-all">
               <PanelTable<SerialRecord>
                 storageKey="panel:items:serials"
                 columns={serialColumns}

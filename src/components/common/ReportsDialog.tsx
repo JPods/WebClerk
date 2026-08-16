@@ -400,7 +400,7 @@ const ReportsDialog: React.FC<Props> = ({
       )}
 
       {/* Reports list dialog */}
-      <div data-wc="reports-dialog" className="rd-dialog">
+      <div data-wc="reports-dialog" className="rd-dialog" role="dialog" aria-modal="true" aria-label="Reports">
 
         {/* Header */}
         <div className="rd-header">

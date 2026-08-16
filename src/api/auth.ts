@@ -154,7 +154,7 @@ export const login = async (credentials:any) => {
     return payload;
   }
   catch (error: any) {
-    return error.response?.data || error.message
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }
 };
 
@@ -169,7 +169,7 @@ export const logout = async () => {
     const res = await authClient.post(AuthURL.LOGOUT, {});
     return res.data;
   } catch (error:any) {
-    return error.response?.status || error.message
+    throw error.response?.data || { message: error.message || 'Request failed' };
   } finally {
     resetClientState();
   }
@@ -181,7 +181,7 @@ export const userDetails = async () => {
     return res;
   }
   catch (error: any) {
-    return error.response?.data || error.message
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }
 };
 
@@ -191,6 +191,6 @@ export const verifyEmail = async (userData:EmailVerifyFormData) => {
     return res;
   }
   catch (error: any) {
-    return error.response?.data || error.message
+    throw error.response?.data || { message: error.message || 'Request failed' };
   }
 };

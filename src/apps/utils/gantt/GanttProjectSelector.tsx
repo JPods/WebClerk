@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { getUI, setUI } from "@/utils/contactUI";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 export interface ProjectPrefs {
@@ -112,16 +113,7 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
     }
   }, [ganttPrefs]);
   const effectivePrefs = ganttPrefs?.categories?.length ? ganttPrefs : (fetchedPrefs || ganttPrefs);
-  const [showAllLevels, setShowAllLevels] = useState(() => {
-    try {
-      const stored = localStorage.getItem('wc3_wcui_prefs');
-      if (stored) {
-        const prefs = JSON.parse(stored);
-        if (typeof prefs.gantt_show_all_levels === 'boolean') return prefs.gantt_show_all_levels;
-      }
-    } catch {}
-    return false;
-  });
+  const [showAllLevels, setShowAllLevels] = useState(() => getUI<boolean>('gantt.show_all_levels', false));
 
   // Build dynamic gantt list from categories + byid
   const ganttListItems = useMemo(() => {
@@ -309,12 +301,7 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
             onClick={() => {
               const next = !showAllLevels;
               setShowAllLevels(next);
-              try {
-                const stored = localStorage.getItem('wc3_wcui_prefs');
-                const prefs = stored ? JSON.parse(stored) : {};
-                prefs.gantt_show_all_levels = next;
-                localStorage.setItem('wc3_wcui_prefs', JSON.stringify(prefs));
-              } catch {}
+              setUI('gantt.show_all_levels', next);
             }}
             disabled={disabled || isLoading}
             style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1, fontSize: 'inherit', fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe' }}

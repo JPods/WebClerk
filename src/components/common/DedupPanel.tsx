@@ -10,6 +10,7 @@
  *     onMergeComplete={() => db.fetchRecords()} />
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { getUI } from '@/utils/contactUI';
 import { formatDt } from '@/utils/fieldFormatters';
 import './DedupPanel.css';
 
@@ -57,16 +58,7 @@ const DEFAULT_MATCH_FIELDS: Record<string, string[]> = {
 };
 
 export default function DedupPanel({ model, matchFields, onMergeComplete, onClose, fontSize: fontSizeProp, onDedupIds }: DedupPanelProps) {
-  const [fontScale, setFontScale] = useState<number>(() => {
-    try {
-      const stored = localStorage.getItem('wc3_wcui_prefs');
-      if (stored) {
-        const prefs = JSON.parse(stored);
-        if (prefs.dedup_font_size) return prefs.dedup_font_size;
-      }
-    } catch {}
-    return fontSizeProp || 13;
-  });
+  const [fontScale, setFontScale] = useState<number>(() => getUI<number>('dedup.font_size', fontSizeProp || 13));
   const [result, setResult] = useState<DedupResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentGroupIdx, setCurrentGroupIdx] = useState(0);
@@ -213,11 +205,11 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
             {loading ? 'Scanning...' : 'Scan'}
           </button>
           {/* Font size controls */}
-          <button onClick={() => setFontScale(s => { const n = Math.max(10, s - 2); import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('dedup_font_size', n)); return n; })}
+          <button onClick={() => setFontScale(s => { const n = Math.max(10, s - 2); import('@/utils/contactUI').then(m => m.setUI('dedup.font_size', n)); return n; })}
             className="dp-btn--font">
             A-
           </button>
-          <button onClick={() => setFontScale(s => { const n = Math.min(22, s + 2); import('@/utils/wcuiPrefs').then(m => m.setWcuiPref('dedup_font_size', n)); return n; })}
+          <button onClick={() => setFontScale(s => { const n = Math.min(22, s + 2); import('@/utils/contactUI').then(m => m.setUI('dedup.font_size', n)); return n; })}
             className="dp-btn--font">
             A+
           </button>

@@ -117,3 +117,176 @@
 
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------------------------------------------------------------------------
+   Print Document Utility Classes
+   Common patterns for statement, commission, tax, and other print layouts.
+   --------------------------------------------------------------------------- */
+
+/* --- Page container --- */
+.print-page {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 11px;
+  color: #222;
+  padding: 0.5in 0.75in;
+}
+
+/* --- Text colors --- */
+.print-text        { color: #222; }
+.print-text-subtle { color: #444; }
+.print-text-muted  { color: #666; }
+.print-text-dim    { color: #888; }
+
+/* --- Text sizes --- */
+.print-text-xs  { font-size: 9px; }
+.print-text-sm  { font-size: 10px; }
+.print-text-md  { font-size: 11px; }
+.print-text-lg  { font-size: 12px; }
+.print-text-xl  { font-size: 13px; }
+.print-text-2xl { font-size: 14px; }
+.print-text-3xl { font-size: 16px; }
+.print-text-title { font-size: 20px; font-weight: 700; }
+.print-text-title-lg { font-size: 22px; font-weight: 700; }
+
+/* --- Font weight --- */
+.print-bold     { font-weight: 700; }
+.print-semibold { font-weight: 600; }
+.print-medium   { font-weight: 500; }
+
+/* --- Font family --- */
+.print-mono { font-family: monospace; }
+
+/* --- Alignment --- */
+.print-right  { text-align: right; }
+.print-center { text-align: center; }
+.print-left   { text-align: left; }
+
+/* --- Layout --- */
+.print-flex       { display: flex; }
+.print-flex-between { display: flex; justify-content: space-between; }
+.print-flex-1     { flex: 1; }
+.print-gap-sm     { gap: 24px; }
+.print-gap-md     { gap: 32px; }
+.print-gap-lg     { gap: 48px; }
+
+/* --- Spacing --- */
+.print-mb-xs  { margin-bottom: 2px; }
+.print-mb-sm  { margin-bottom: 4px; }
+.print-mb-md  { margin-bottom: 8px; }
+.print-mb-lg  { margin-bottom: 12px; }
+.print-mb-xl  { margin-bottom: 16px; }
+.print-mb-2xl { margin-bottom: 20px; }
+.print-mb-3xl { margin-bottom: 24px; }
+
+/* --- Header block (company left, title right) --- */
+.print-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #000;
+  padding-bottom: 12px;
+}
+.print-header-plain {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.print-company-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+.print-logo {
+  max-height: 50px;
+  margin-bottom: 8px;
+}
+
+/* --- Bordered info boxes --- */
+.print-box {
+  border: 1px solid #ccc;
+  padding: 12px;
+}
+.print-box-padded {
+  border: 1px solid #ccc;
+  padding: 16px;
+}
+.print-box-highlight {
+  padding: 8px 12px;
+  background: #f8f8f8;
+  border: 1px solid #ddd;
+}
+.print-box-summary {
+  border: 1px solid #ccc;
+  padding: 8px 16px;
+  min-width: 120px;
+}
+
+/* --- Section dividers --- */
+.print-border-left {
+  border-left: 1px solid #ccc;
+  padding-left: 16px;
+}
+.print-border-top {
+  border-top: 1px solid #ccc;
+  padding-top: 8px;
+}
+
+/* --- Tables --- */
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+}
+.print-table-lg {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+}
+.print-table-detail {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+
+/* Table header rows */
+.print-thead-row    { border-bottom: 2px solid #000; }
+.print-tfoot-row    { border-top: 2px solid #000; font-weight: 700; }
+
+/* Table body rows */
+.print-row          { border-bottom: 1px solid #ddd; }
+.print-row-light    { border-bottom: 1px solid #eee; }
+
+/* Table cells — standard (6px 8px) */
+.print-th      { text-align: left;   padding: 6px 8px; font-size: 11px; }
+.print-th-r    { text-align: right;  padding: 6px 8px; font-size: 11px; }
+.print-th-c    { text-align: center; padding: 6px 8px; font-size: 11px; }
+.print-td      { padding: 5px 8px; }
+.print-td-r    { padding: 5px 8px; text-align: right; }
+.print-td-mono { padding: 5px 8px; text-align: right; font-family: monospace; }
+.print-td-bold-mono { padding: 5px 8px; text-align: right; font-family: monospace; font-weight: 600; }
+
+/* Table cells — compact (3-4px padding, for dense detail tables) */
+.print-th-compact   { text-align: left;  padding: 3px 4px; }
+.print-th-compact-r { text-align: right; padding: 3px 4px; }
+.print-td-compact   { padding: 3px 4px; }
+.print-td-compact-r { padding: 3px 4px; text-align: right; }
+
+/* Table cells — aging summary (4px 8px) */
+.print-td-aging     { padding: 4px 8px; text-align: right; }
+
+/* --- Signature / approval lines --- */
+.print-sig-line {
+  border-bottom: 1px solid #000;
+  margin-bottom: 4px;
+}
+.print-sig-line-sm  { width: 120px; }
+.print-sig-line-md  { width: 200px; }
+
+/* --- Footer --- */
+.print-footer {
+  font-size: 9px;
+  color: #888;
+  text-align: center;
+}
+
+/* --- Accent color (commission pending highlight) --- */
+.print-accent { color: #9333ea; }

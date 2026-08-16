@@ -16,7 +16,7 @@ import {
   deleteRecord,
   getWorkbenchFieldsSetting,
   saveWorkbenchFieldsSetting,
-} from "../../../api/wcapi";
+} from "@/api/wcapi";
 import { showToast } from "../../../store/slices/toastSlice";
 import { kebabCaseToTitle, safeString } from "./scaffoldUtils";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';

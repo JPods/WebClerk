@@ -9,7 +9,7 @@
  * 
  * @see readmes/topics/document-uploads.md
  */
-import { apiClient } from '../../../../api/axios';
+import { apiClient } from "@/api/axios";
 import type { RefLink } from './types';
 
 // ---------------------------------------------------------------------------
@@ -378,7 +378,7 @@ function getDocumentType(mimeType: string, filename: string): string {
   if (mimeType.startsWith('audio/')) return 'audio';
   if (mimeType.includes('pdf')) return 'pdf';
   if (mimeType.includes('word') || ['doc', 'docx'].includes(ext)) return 'document';
-  if (mimeType.includes('sheet') || mimeType.includes('excel') || ['xls', 'xlsx', 'csv'].includes(ext)) return 'spreadsheet';
+  if (mimeType.includes('sheet') || ['csv'].includes(ext)) return 'spreadsheet';
   if (mimeType.includes('presentation') || ['ppt', 'pptx'].includes(ext)) return 'presentation';
   if (['zip', 'tar', 'gz', 'rar', '7z'].includes(ext)) return 'archive';
   if (['txt', 'md', 'rtf'].includes(ext)) return 'text';

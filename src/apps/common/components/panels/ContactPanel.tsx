@@ -259,16 +259,16 @@ const ContactRow: React.FC<{
 
       {/* Contact ID */}
       {(!visibleColumns || visibleColumns.has("contact_id")) && (
-        <span className="font-mono shrink-0 w-10 text-right" style={{ color: 'var(--db-text-dim)' }}>
+        <span className="font-mono shrink-0 w-10 text-right db-text-dim">
           #{contact.contact_id}
         </span>
       )}
 
       {/* Name */}
       {(!visibleColumns || visibleColumns.has("name")) && (
-        <span className="truncate min-w-[100px] max-w-[180px]" style={{ color: 'var(--db-text)' }}>
+        <span className="truncate min-w-[100px] max-w-[180px] db-text">
           {loading ? (
-            <FaSpinner className="inline animate-spin" style={{ color: 'var(--db-text-dim)' }} size={10} />
+            <FaSpinner className="inline animate-spin db-text-dim" size={10} />
           ) : (
             name
           )}
@@ -277,10 +277,10 @@ const ContactRow: React.FC<{
 
       {/* Email */}
       {(!visibleColumns || visibleColumns.has("email")) && (
-        <span className="truncate min-w-0 flex-1 flex items-center gap-1" style={{ color: 'var(--db-text-muted)' }}>
+        <span className="truncate min-w-0 flex-1 flex items-center gap-1 db-text-muted">
           {email && (
             <>
-              <FaEnvelope size={9} className="shrink-0" style={{ color: 'var(--db-text-dim)' }} />
+              <FaEnvelope size={9} className="shrink-0 db-text-dim" />
               <span className="truncate">{email}</span>
             </>
           )}
@@ -289,10 +289,10 @@ const ContactRow: React.FC<{
 
       {/* Phone */}
       {(!visibleColumns || visibleColumns.has("phone")) && (
-        <span className="truncate w-[120px] shrink-0 flex items-center gap-1" style={{ color: 'var(--db-text-muted)' }}>
+        <span className="truncate w-[120px] shrink-0 flex items-center gap-1 db-text-muted">
           {phone && (
             <>
-              <FaPhone size={9} className="shrink-0" style={{ color: 'var(--db-text-dim)' }} />
+              <FaPhone size={9} className="shrink-0 db-text-dim" />
               <span className="truncate">{phone}</span>
             </>
           )}
@@ -301,7 +301,7 @@ const ContactRow: React.FC<{
 
       {/* Address */}
       {(!visibleColumns || visibleColumns.has("address")) && (
-        <span className="truncate min-w-0 flex-1 flex items-center gap-1" style={{ color: 'var(--db-text-muted)' }}>
+        <span className="truncate min-w-0 flex-1 flex items-center gap-1 db-text-muted">
           {(() => {
             const addr = contact.address;
             const addrStr = Array.isArray(addr) ? addr[0]?.full : (typeof addr === 'string' ? addr : addr?.full);
@@ -316,8 +316,7 @@ const ContactRow: React.FC<{
           <button
             type="button"
             title={isPrimary ? "Primary contact" : "Set as primary contact"}
-            className="p-1 rounded transition-colors"
-            style={{ color: isPrimary ? 'var(--db-accent-gold)' : 'var(--db-text-dim)' }}
+            className={`p-1 rounded transition-colors ${isPrimary ? 'db-text-gold' : 'db-text-dim'}`}
             onClick={(e) => {
               e.stopPropagation();
               if (!isPrimary) onSetPrimary();
@@ -331,8 +330,7 @@ const ContactRow: React.FC<{
           <button
             type="button"
             title="Edit contact link"
-            className="p-1 rounded transition-colors"
-            style={{ color: 'var(--db-text-dim)' }}
+            className="p-1 rounded transition-colors db-text-dim"
             onClick={(e) => {
               e.stopPropagation();
               onEdit();
@@ -345,8 +343,7 @@ const ContactRow: React.FC<{
           <button
             type="button"
             title="Remove contact"
-            className="p-1 rounded transition-colors"
-            style={{ color: 'var(--db-text-dim)' }}
+            className="p-1 rounded transition-colors db-text-dim"
             onClick={(e) => {
               e.stopPropagation();
               onRemove();
@@ -358,8 +355,7 @@ const ContactRow: React.FC<{
         <button
           type="button"
           title="Open contact in floating window"
-          className="p-1 rounded transition-colors"
-          style={{ color: 'var(--db-text-dim)' }}
+          className="p-1 rounded transition-colors db-text-dim"
           onClick={(e) => {
             e.stopPropagation();
             onOpen?.();
@@ -468,20 +464,19 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
   };
 
   return (
-    <div className="rounded-lg" style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)' }}>
+    <div className="rounded-lg db-panel">
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer"
-        style={{ borderBottom: '1px solid var(--db-border)' }}
+        className="flex items-center justify-between px-4 py-3 cursor-pointer db-border-bottom"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <FaUser style={{ color: 'var(--db-text-dim)' }} size={14} />
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
+          <FaUser className="db-text-dim" size={14} />
+          <h3 className="text-sm font-semibold db-text">
             {title}
           </h3>
           {contacts.length > 0 && (
-            <span className="px-1.5 py-0.5 text-xs rounded-full" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}>
+            <span className="px-1.5 py-0.5 text-xs rounded-full db-surface-alt-text">
               {contacts.length}
             </span>
           )}
@@ -490,8 +485,7 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
           {(isEditing || allowCreate) && !isCollapsed && (
             <button
               type="button"
-              className="px-2 py-1 text-xs font-medium rounded transition-colors flex items-center gap-1"
-              style={{ color: 'var(--db-accent)' }}
+              className="px-2 py-1 text-xs font-medium rounded transition-colors flex items-center gap-1 db-text-accent"
               onClick={(e) => {
                 e.stopPropagation();
                 // Open a blank ContactDetail for creating a new contact.
@@ -519,8 +513,7 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
             <button
               type="button"
               title="Refresh contacts"
-              className="px-2 py-1 text-xs font-medium rounded transition-colors flex items-center gap-1"
-              style={{ color: 'var(--db-text-muted)' }}
+              className="px-2 py-1 text-xs font-medium rounded transition-colors flex items-center gap-1 db-text-muted"
               onClick={(e) => {
                 e.stopPropagation();
                 onRefresh();
@@ -534,9 +527,9 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
             </button>
           )}
           {isCollapsed ? (
-            <FaChevronDown size={12} style={{ color: 'var(--db-text-dim)' }} />
+            <FaChevronDown size={12} className="db-text-dim" />
           ) : (
-            <FaChevronUp size={12} style={{ color: 'var(--db-text-dim)' }} />
+            <FaChevronUp size={12} className="db-text-dim" />
           )}
         </div>
       </div>
@@ -545,7 +538,7 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
       {!isCollapsed && (
         <div>
           {sorted.length === 0 ? (
-            <p className="text-sm text-center py-6 italic" style={{ color: 'var(--db-text-dim)' }}>
+            <p className="text-sm text-center py-6 italic db-text-dim">
               {externalLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <FaSpinner className="animate-spin" size={12} />
@@ -558,7 +551,7 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
           ) : (
             <div>
               {/* Column headers */}
-              <div className="flex items-center gap-3 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)', borderBottom: '1px solid var(--db-border-light)' }}>
+              <div className="flex items-center gap-3 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider db-surface-alt-muted db-border-bottom-light">
                 {visibleCols.has("purpose") && <span className="min-w-[56px] shrink-0 text-center">purpose</span>}
                 {visibleCols.has("contact_id") && <span className="w-10 text-right shrink-0">#</span>}
                 {visibleCols.has("name") && <span className="min-w-[100px] max-w-[180px]">name</span>}

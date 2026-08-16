@@ -16,7 +16,7 @@ import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { signup } from "../../api/auth";
 
 import { ModalForm } from "../wrapper";
-import Spinner from "../ui/Spinner";
+import LoadingSpinner from "../common/LoadingSpinner";
 
 export default function SignUpForm() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -222,7 +222,7 @@ export default function SignUpForm() {
                   >
                     {submitting ? (
                       <span className="flex items-center gap-2">
-                        <Spinner size="sm" />
+                        <LoadingSpinner size="sm" />
                         Signing up...
                       </span>
                     ) : (

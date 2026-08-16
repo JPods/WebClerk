@@ -113,20 +113,20 @@ const FreeformQAItem: React.FC<FreeformQAItemProps> = ({
   };
 
   return (
-    <div className={`rounded-lg ${compact ? 'p-1.5' : 'p-2'}`} style={{ border: '1px solid var(--db-border)' }}>
+    <div className={`rounded-lg db-border-all ${compact ? 'p-1.5' : 'p-2'}`}>
       {/* Question row - horizontal layout */}
       <div 
         className="flex items-center gap-1.5 cursor-pointer flex-wrap"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <FaQuestionCircle style={{ color: 'var(--db-accent)' }} className="flex-shrink-0" size={11} />
-        <span className="text-xs font-medium" style={{ color: 'var(--db-text)' }}>
+        <FaQuestionCircle className="flex-shrink-0 db-text-accent" size={11} />
+        <span className="text-xs font-medium db-text">
           {entry.question}
         </span>
         {entry.answer && !isExpanded && (
           <>
-            <span style={{ color: 'var(--db-text-dim)' }}>→</span>
-            <span className="text-xs truncate max-w-[200px]" style={{ color: 'var(--db-accent-green)' }}>
+            <span className="db-text-dim">→</span>
+            <span className="text-xs truncate max-w-[200px] db-text-green">
               {entry.answer}
             </span>
           </>
@@ -138,8 +138,7 @@ const FreeformQAItem: React.FC<FreeformQAItemProps> = ({
           {canEdit && onEdit && (
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              className="p-0.5 rounded"
-              style={{ color: 'var(--db-accent)' }}
+              className="p-0.5 rounded db-text-accent"
             >
               <FaEdit size={10} />
             </button>
@@ -147,8 +146,7 @@ const FreeformQAItem: React.FC<FreeformQAItemProps> = ({
           {canEdit && onDelete && (
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="p-0.5 rounded"
-              style={{ color: 'var(--db-accent-red)' }}
+              className="p-0.5 rounded db-text-red"
             >
               <FaTrash size={10} />
             </button>
@@ -162,9 +160,9 @@ const FreeformQAItem: React.FC<FreeformQAItemProps> = ({
         <div className="mt-1.5 ml-4 pl-2" style={{ borderLeft: '2px solid var(--db-accent-green)' }}>
           {entry.answer ? (
             <div>
-              <p className="text-xs" style={{ color: 'var(--db-text-muted)' }}>{entry.answer}</p>
+              <p className="text-xs db-text-muted">{entry.answer}</p>
               {(entry.answered_by || entry.answered_at) && (
-                <p className="text-[10px] mt-0.5" style={{ color: 'var(--db-text-dim)' }}>
+                <p className="text-[10px] mt-0.5 db-text-dim">
                   {entry.answered_by && `by ${entry.answered_by}`}
                   {entry.answered_at && ` · ${formatDt(entry.answered_at, 'date')}`}
                 </p>
@@ -176,8 +174,7 @@ const FreeformQAItem: React.FC<FreeformQAItemProps> = ({
                 value={answerText}
                 onChange={(e) => setAnswerText(e.target.value)}
                 placeholder="Type your answer..."
-                className="w-full px-2 py-1 text-xs rounded"
-                style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)', color: 'var(--db-text)' }}
+                className="w-full px-2 py-1 text-xs rounded db-panel-text"
                 rows={2}
                 autoFocus
               />
@@ -185,28 +182,26 @@ const FreeformQAItem: React.FC<FreeformQAItemProps> = ({
                 <button
                   onClick={handleSubmitAnswer}
                   disabled={!answerText.trim()}
-                  className="px-2 py-1 text-xs text-white rounded disabled:opacity-50"
+                  className="px-2 py-1 text-xs text-white rounded disabled:opacity-50 db-bg-surface-alt"
                   style={{ background: 'var(--db-accent-green)' }}
                 >
                   Submit Answer
                 </button>
                 <button
                   onClick={() => setShowAnswerInput(false)}
-                  className="px-2 py-1 text-xs rounded"
-                  style={{ color: 'var(--db-text-muted)' }}
+                  className="px-2 py-1 text-xs rounded db-text-muted"
                 >
                   Cancel
                 </button>
               </div>
             </div>
           ) : (
-            <div className="text-sm italic" style={{ color: 'var(--db-text-dim)' }}>
+            <div className="text-sm italic db-text-dim">
               No answer yet
               {canEdit && onAnswer && (
                 <button
                   onClick={() => setShowAnswerInput(true)}
-                  className="ml-2 hover:underline"
-                  style={{ color: 'var(--db-accent)' }}
+                  className="ml-2 hover:underline db-text-accent"
                 >
                   Add answer
                 </button>
@@ -406,11 +401,11 @@ const TemplateQAItem: React.FC<TemplateQAItemProps> = ({
   ).join(',');
 
   return (
-    <div className="rounded-lg p-2" style={{ border: '1px solid var(--db-border)' }}>
+    <div className="rounded-lg p-2 db-border-all">
       {/* Question row with inline choices and images */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        <FaQuestionCircle style={{ color: 'var(--db-accent)' }} className="flex-shrink-0" size={11} />
-        <span className="text-xs font-medium" style={{ color: 'var(--db-text)' }}>
+        <FaQuestionCircle className="flex-shrink-0 db-text-accent" size={11} />
+        <span className="text-xs font-medium db-text">
           {question.question}
           {options.require_image && <span className="text-red-500 ml-0.5">*</span>}
         </span>
@@ -421,10 +416,10 @@ const TemplateQAItem: React.FC<TemplateQAItemProps> = ({
             {question.answers.map(choice => (
               <label 
                 key={choice.id}
-                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded cursor-pointer transition-colors text-[11px] ${!canEdit ? 'cursor-default' : ''}`}
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded cursor-pointer transition-colors text-[11px] ${!canEdit ? 'cursor-default' : ''} ${selectedChoices.includes(choice.id) ? 'db-row-active-accent' : 'db-panel-alt db-text'}`}
                 style={selectedChoices.includes(choice.id)
-                  ? { background: 'var(--db-row-active)', border: '1px solid var(--db-accent)', color: 'var(--db-accent)' }
-                  : { background: 'var(--db-surface-alt)', border: '1px solid var(--db-border)', color: 'var(--db-text)' }
+                  ? { border: '1px solid var(--db-accent)' }
+                  : { border: '1px solid var(--db-border)' }
                 }
                 onClick={(e) => e.stopPropagation()}
               >
@@ -434,8 +429,7 @@ const TemplateQAItem: React.FC<TemplateQAItemProps> = ({
                   checked={selectedChoices.includes(choice.id)}
                   onChange={() => handleChoiceToggle(choice.id)}
                   disabled={!canEdit}
-                  className="w-2.5 h-2.5"
-                  style={{ accentColor: 'var(--db-accent)' }}
+                  className="w-2.5 h-2.5 db-accent-color"
                 />
                 <span>{choice.answer}</span>
               </label>
@@ -447,10 +441,9 @@ const TemplateQAItem: React.FC<TemplateQAItemProps> = ({
         {images.length > 0 && (
           <div className="flex items-center gap-1 ml-1">
             {images.map((img, index) => (
-              <div 
-                key={img.id || index} 
-                className="relative w-6 h-6 rounded overflow-hidden group"
-                style={{ border: '1px solid var(--db-border)' }}
+              <div
+                key={img.id || index}
+                className="relative w-6 h-6 rounded overflow-hidden group db-border-all"
               >
                 <img 
                   src={img.preview || img.path} 
@@ -477,8 +470,7 @@ const TemplateQAItem: React.FC<TemplateQAItemProps> = ({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); imageInputRef.current?.click(); }}
-              className="p-1 rounded"
-              style={{ color: 'var(--db-text-dim)' }}
+              className="p-1 rounded db-text-dim"
               title="Add image"
             >
               <FaImage size={10} />
@@ -517,8 +509,7 @@ const TemplateQAItem: React.FC<TemplateQAItemProps> = ({
                 value={freeformText}
                 onChange={(e) => handleFreeformChange(e.target.value)}
                 placeholder={question.answers?.length ? 'Or enter custom answer...' : 'Enter your answer...'}
-                className="w-full px-2 py-1 text-xs rounded focus:ring-1 focus:ring-blue-500"
-                style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)', color: 'var(--db-text)' }}
+                className="w-full px-2 py-1 text-xs rounded focus:ring-1 focus:ring-blue-500 db-panel-text"
                 rows={2}
                 disabled={!canEdit}
               />
@@ -531,8 +522,7 @@ const TemplateQAItem: React.FC<TemplateQAItemProps> = ({
               <button
                 onClick={handleSave}
                 disabled={isSaving || (options.require_image && images.filter(i => i.file || i.path).length === 0)}
-                className="px-3 py-1.5 text-xs rounded disabled:opacity-50 flex items-center gap-1"
-                style={{ background: 'var(--db-btn-primary)', color: '#fff' }}
+                className="px-3 py-1.5 text-xs rounded disabled:opacity-50 flex items-center gap-1 db-btn db-btn--primary"
               >
                 {isSaving && <FaSpinner className="animate-spin" size={10} />}
                 Save Answer
@@ -582,19 +572,18 @@ const AddQuestionModal: React.FC<AddQuestionModalProps> = ({ isOpen, entry, onCl
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="rounded-lg p-3 w-80 max-w-full mx-4" style={{ background: 'var(--db-surface)' }}>
-        <h3 className="text-xs font-semibold mb-3" style={{ color: 'var(--db-text)' }}>
+      <div className="rounded-lg p-3 w-80 max-w-full mx-4 db-bg-surface">
+        <h3 className="text-xs font-semibold mb-3 db-text">
           {entry ? 'Edit Q&A' : 'Add Question'}
         </h3>
         
         <form onSubmit={handleSubmit} className="space-y-2">
           <div>
-            <label className="block text-[10px] mb-0.5" style={{ color: 'var(--db-text-muted)' }}>Question</label>
+            <label className="block text-[10px] mb-0.5 db-text-muted">Question</label>
             <textarea
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              className="w-full px-2 py-1 text-xs rounded"
-              style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)', color: 'var(--db-text)' }}
+              className="w-full px-2 py-1 text-xs rounded db-panel-text"
               rows={2}
               required
               autoFocus
@@ -602,12 +591,11 @@ const AddQuestionModal: React.FC<AddQuestionModalProps> = ({ isOpen, entry, onCl
           </div>
 
           <div>
-            <label className="block text-[10px] mb-0.5" style={{ color: 'var(--db-text-muted)' }}>Answer (optional)</label>
+            <label className="block text-[10px] mb-0.5 db-text-muted">Answer (optional)</label>
             <textarea
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
-              className="w-full px-2 py-1 text-xs rounded"
-              style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)', color: 'var(--db-text)' }}
+              className="w-full px-2 py-1 text-xs rounded db-panel-text"
               rows={2}
             />
           </div>
@@ -616,15 +604,13 @@ const AddQuestionModal: React.FC<AddQuestionModalProps> = ({ isOpen, entry, onCl
             <button
               type="button"
               onClick={onClose}
-              className="px-2 py-1 text-xs rounded"
-              style={{ color: 'var(--db-text-muted)' }}
+              className="px-2 py-1 text-xs rounded db-text-muted"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-2 py-1 text-xs rounded text-white"
-              style={{ background: 'var(--db-accent)' }}
+              className="px-2 py-1 text-xs rounded text-white db-btn db-btn--primary"
             >
               Save
             </button>
@@ -872,23 +858,22 @@ const QAPanel: React.FC<QAPanelProps> = ({
   const openCount = totalCount - answeredCount;
 
   return (
-    <div className={`rounded-lg ${className}`} style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)' }}>
+    <div className={`rounded-lg db-panel ${className}`}>
       {/* Header */}
       <div
-        className="flex items-center justify-between px-3 py-2 cursor-pointer rounded-t-lg"
-        style={{ background: 'var(--db-surface-alt)', borderBottom: '1px solid var(--db-border)' }}
+        className="flex items-center justify-between px-3 py-2 cursor-pointer rounded-t-lg db-section-bg"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <FaQuestionCircle style={{ color: 'var(--db-accent-purple)' }} size={14} />
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>{displayTitle}</h3>
+          <FaQuestionCircle className="db-text-purple" size={14} />
+          <h3 className="text-sm font-semibold db-text">{displayTitle}</h3>
           {totalCount > 0 && (
-            <span className="px-1.5 py-0.5 text-xs rounded-full" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-accent-purple)' }}>
+            <span className="px-1.5 py-0.5 text-xs rounded-full db-badge-purple">
               {answeredCount}/{totalCount}
             </span>
           )}
           {openCount > 0 && (
-            <span className="px-1.5 py-0.5 text-xs rounded" style={{ color: 'var(--db-accent-gold)' }}>
+            <span className="px-1.5 py-0.5 text-xs rounded db-text-gold">
               {openCount} open
             </span>
           )}
@@ -900,8 +885,7 @@ const QAPanel: React.FC<QAPanelProps> = ({
                 e.stopPropagation();
                 handleAdd();
               }}
-              className="p-1 rounded"
-              style={{ color: 'var(--db-accent-purple)' }}
+              className="p-1 rounded db-text-purple"
               title="Add question"
             >
               <FaPlus size={12} />
@@ -916,14 +900,14 @@ const QAPanel: React.FC<QAPanelProps> = ({
         <div className={`${compact ? 'p-1.5' : 'p-3'} space-y-1.5`}>
           {/* Parent record not saved yet */}
           {isTemplateMode && !parentId ? (
-            <div className="flex items-center gap-2 py-4 px-3 rounded-lg" style={{ background: 'var(--db-surface-alt)', border: '1px solid var(--db-border)' }}>
-              <FaExclamationTriangle style={{ color: 'var(--db-accent-gold)' }} className="flex-shrink-0" size={14} />
-              <p className="text-xs" style={{ color: 'var(--db-accent-gold)' }}>
+            <div className="flex items-center gap-2 py-4 px-3 rounded-lg db-panel-alt">
+              <FaExclamationTriangle className="flex-shrink-0 db-text-gold" size={14} />
+              <p className="text-xs db-text-gold">
                 Save the record first to enable Q&A functionality.
               </p>
             </div>
           ) : isLoading ? (
-            <div className="flex items-center justify-center py-8" style={{ color: 'var(--db-text-dim)' }}>
+            <div className="flex items-center justify-center py-8 db-text-dim">
               <FaSpinner className="animate-spin mr-2" />
               Loading questions...
             </div>
@@ -960,8 +944,8 @@ const QAPanel: React.FC<QAPanelProps> = ({
 
               {/* Divider between template and freeform */}
               {isTemplateMode && setting && setting.config?.questions && setting.config.questions.length > 0 && freeformCount > 0 && (
-                <div className="my-2 pt-1.5" style={{ borderTop: '1px solid var(--db-border)' }}>
-                  <span className="text-[10px] font-medium" style={{ color: 'var(--db-text-dim)' }}>Additional Questions</span>
+                <div className="my-2 pt-1.5 db-border-top">
+                  <span className="text-[10px] font-medium db-text-dim">Additional Questions</span>
                 </div>
               )}
 
@@ -1007,14 +991,13 @@ const QAPanel: React.FC<QAPanelProps> = ({
 
               {/* Empty state */}
               {totalCount === 0 && (
-                <div className="text-center py-3 text-xs" style={{ color: 'var(--db-text-dim)' }}>
+                <div className="text-center py-3 text-xs db-text-dim">
                   <FaQuestionCircle size={18} className="mx-auto mb-1.5 opacity-50" />
                   <p>No questions yet</p>
                   {canEdit && allowFreeform && (
                     <button
                       onClick={handleAdd}
-                      className="mt-1.5 hover:underline text-[10px]"
-                    style={{ color: 'var(--db-accent-purple)' }}
+                      className="mt-1.5 hover:underline text-[10px] db-text-purple"
                     >
                       + Add first question
                     </button>
@@ -1026,8 +1009,7 @@ const QAPanel: React.FC<QAPanelProps> = ({
               {isTemplateMode && canEdit && freeformCount === 0 && totalCount > 0 && (
                 <button
                   onClick={handleAdd}
-                  className="w-full mt-1.5 py-1.5 text-[10px] rounded border border-dashed"
-                  style={{ color: 'var(--db-accent-purple)', borderColor: 'var(--db-border)' }}
+                  className="w-full mt-1.5 py-1.5 text-[10px] rounded border border-dashed db-text-purple db-border-color"
                 >
                   + Add custom question
                 </button>

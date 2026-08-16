@@ -1,6 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import React, { useState } from 'react';
-import { InputField, TextareaField } from '../../../../../components';
+import { TextField, TextareaField } from '../../../../../components/fields';
 import { Audit, AUDIT_FIELD_LABELS } from '../../../types';
 
 interface AuditFormProps {
@@ -16,21 +16,17 @@ export const AuditForm: React.FC<AuditFormProps> = ({
 }) => {
   const [formData, setFormData] = useState<Partial<Audit>>(initialData);
 
-  const handleChange = (field: keyof Audit) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleChange = (field: keyof Audit) => (value: unknown) => {
     setFormData((prev: Partial<Audit>) => ({
       ...prev,
-      [field]: e.target.value
+      [field]: value
     }));
   };
 
-  const handleNumberChange = (field: keyof Audit) => (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleNumberChange = (field: keyof Audit) => (value: unknown) => {
     setFormData((prev: Partial<Audit>) => ({
       ...prev,
-      [field]: parseInt(e.target.value) || undefined
+      [field]: parseInt(String(value)) || undefined
     }));
   };
 
@@ -52,20 +48,18 @@ export const AuditForm: React.FC<AuditFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-4 max-w-2xl mx-auto p-6">
       <h2 className="text-2xl font-bold mb-6">Audit Form</h2>
 
-      <InputField
+      <TextField
         name="purpose"
         label={AUDIT_FIELD_LABELS.purpose}
         value={formData.purpose || ''}
         onChange={handleChange('purpose')}
-        placeholder="Enter purpose"
       />
 
-      <InputField
+      <TextField
         name="name"
         label={AUDIT_FIELD_LABELS.name}
         value={formData.name || ''}
         onChange={handleChange('name')}
-        placeholder="Enter name"
       />
 
       <TextareaField
@@ -73,7 +67,6 @@ export const AuditForm: React.FC<AuditFormProps> = ({
         label={AUDIT_FIELD_LABELS.conflicts}
         value={typeof formData.conflicts === 'string' ? formData.conflicts : JSON.stringify(formData.conflicts, null, 2)}
         onChange={handleChange('conflicts')}
-        placeholder="Enter conflicts (JSON)"
         rows={3}
       />
 
@@ -82,7 +75,6 @@ export const AuditForm: React.FC<AuditFormProps> = ({
         label={AUDIT_FIELD_LABELS.changes}
         value={typeof formData.changes === 'string' ? formData.changes : JSON.stringify(formData.changes, null, 2)}
         onChange={handleChange('changes')}
-        placeholder="Enter changes (JSON)"
         rows={3}
       />
 
@@ -91,7 +83,6 @@ export const AuditForm: React.FC<AuditFormProps> = ({
         label={AUDIT_FIELD_LABELS.actions}
         value={typeof formData.actions === 'string' ? formData.actions : JSON.stringify(formData.actions, null, 2)}
         onChange={handleChange('actions')}
-        placeholder="Enter actions (JSON)"
         rows={3}
       />
 
@@ -100,17 +91,14 @@ export const AuditForm: React.FC<AuditFormProps> = ({
         label={AUDIT_FIELD_LABELS.recommendations}
         value={typeof formData.recommendations === 'string' ? formData.recommendations : JSON.stringify(formData.recommendations, null, 2)}
         onChange={handleChange('recommendations')}
-        placeholder="Enter recommendations (JSON)"
         rows={3}
       />
 
-      <InputField
+      <TextField
         name="rating"
         label={AUDIT_FIELD_LABELS.rating}
-        type="number"
         value={formData.rating?.toString() || ''}
         onChange={handleNumberChange('rating')}
-        placeholder="Enter rating"
       />
 
       <div className="flex items-center">
@@ -127,13 +115,11 @@ export const AuditForm: React.FC<AuditFormProps> = ({
         </label>
       </div>
 
-      <InputField
+      <TextField
         name="priority"
         label={AUDIT_FIELD_LABELS.priority}
-        type="number"
         value={formData.priority?.toString() || ''}
         onChange={handleNumberChange('priority')}
-        placeholder="Enter priority"
       />
 
       <div className="flex space-x-4 pt-4">

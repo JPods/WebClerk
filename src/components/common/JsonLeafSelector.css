@@ -1,0 +1,104 @@
+/* JsonLeafSelector — shared tree for selection and display of JSON leaves */
+
+/* ── Selector tree ──────────────────────────────────────────────────── */
+
+.jls-tree {
+  font-family: var(--db-font-mono, 'SF Mono', 'Consolas', monospace);
+  font-size: 11px;
+}
+
+.jls-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 0;
+  border-radius: 3px;
+  transition: background 100ms;
+}
+
+.jls-row:hover {
+  background: var(--db-surface-alt, #161b22);
+}
+
+.jls-row--selected {
+  background: var(--db-selection, #1a3a5c);
+}
+
+.jls-row--selected:hover {
+  background: var(--db-selection-hover, #1e4470);
+}
+
+.jls-chevron {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--db-text-muted, #6c757d);
+  padding: 0;
+  font-size: 9px;
+  flex-shrink: 0;
+}
+
+.jls-chevron-spacer {
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.jls-check {
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.jls-check-spacer {
+  width: 13px;
+  flex-shrink: 0;
+}
+
+.jls-key {
+  color: var(--db-text, #c9d1d9);
+  flex-shrink: 0;
+}
+
+.jls-key--parent {
+  color: var(--db-text-muted, #8b949e);
+  font-weight: 600;
+}
+
+.jls-value {
+  margin-left: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.jls-type {
+  color: var(--db-text-muted, #6c757d);
+  margin-left: 4px;
+  font-size: 10px;
+}
+
+/* ── Display mode ───────────────────────────────────────────────────── */
+
+.jls-display {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--db-font-mono, 'SF Mono', 'Consolas', monospace);
+  font-size: 12px;
+}
+
+.jls-display-label {
+  color: var(--db-text-muted, #8b949e);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.jls-display-value {
+  color: var(--db-text, #c9d1d9);
+}

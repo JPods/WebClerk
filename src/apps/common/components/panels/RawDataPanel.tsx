@@ -28,6 +28,7 @@ import {
 import { usePermissions } from "./usePermissions";
 import type { BasePanelProps } from "./types";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
+import { HighlightedJson } from "../syntaxHighlightJson";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -41,31 +42,6 @@ interface RawDataPanelProps extends BasePanelProps<unknown> {
   /** Callback when data is saved in edit mode (admin only) */
   onSave?: (updatedData: unknown) => void;
 }
-
-// ---------------------------------------------------------------------------
-// JSON Syntax Highlighter
-// ---------------------------------------------------------------------------
-
-const syntaxHighlight = (json: string): string => {
-  return json.replace(
-    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
-    (match) => {
-      let color = "var(--db-text-muted)"; // number
-      if (/^"/.test(match)) {
-        if (/:$/.test(match)) {
-          color = "var(--db-accent)"; // key
-        } else {
-          color = "var(--db-text)"; // string
-        }
-      } else if (/true|false/.test(match)) {
-        color = "var(--db-text-muted)"; // boolean
-      } else if (/null/.test(match)) {
-        color = "var(--db-text-dim)"; // null
-      }
-      return `<span style="color:${color}">${match}</span>`;
-    },
-  );
-};
 
 // ---------------------------------------------------------------------------
 // Section Navigator
@@ -174,11 +150,6 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
     matchingLines.sort((a, b) => a - b);
     return matchingLines.map((i) => lines[i]).join("\n");
   }, [jsonString, searchTerm]);
-
-  // Highlighted JSON HTML
-  const highlightedJson = useMemo(() => {
-    return syntaxHighlight(displayJson);
-  }, [displayJson]);
 
   const handleCopy = async () => {
     try {
@@ -377,10 +348,9 @@ const RawDataPanel: React.FC<RawDataPanelProps> = ({
               className="overflow-auto rounded border"
               style={{ background: 'var(--db-surface-alt)', borderColor: 'var(--db-border)', maxHeight }}
             >
-              <pre
-                className="p-3 text-xs font-mono leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: highlightedJson }}
-              />
+              <pre className="p-3 text-xs font-mono leading-relaxed">
+                <HighlightedJson json={displayJson} />
+              </pre>
             </div>
           )}
 
