@@ -138,6 +138,13 @@ export const TouchBar: React.FC<{ model: string; record: any; recordId: number; 
   const hasPhone = !!contactPhone;
   const hasEmail = !!contactEmail;
 
+  const copyBadge = (text: string, label: string) => (
+    <button className="touch-copy-badge" title={`Copy ${label}`}
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigator.clipboard.writeText(text); }}>
+      {text} <span className="touch-copy-icon">⧉</span>
+    </button>
+  );
+
   const openLogTouch = () => {
     setTouchChannel('call');
     setTouchSubject(
@@ -182,6 +189,10 @@ export const TouchBar: React.FC<{ model: string; record: any; recordId: number; 
           title="Log a touch (call, email, visit, text, meeting)">
           &#128221; Log
         </button>
+        <span style={{ flex: 1 }} />
+        {contactName && <span className="db-text-muted" style={{ fontSize: fontSize - 1 }}>{contactName}</span>}
+        {hasPhone && copyBadge(contactPhone, 'phone')}
+        {hasEmail && copyBadge(contactEmail, 'email')}
       </div>
 
       {showTouchForm && (
@@ -222,15 +233,14 @@ export const TouchBar: React.FC<{ model: string; record: any; recordId: number; 
                 </label>
               </div>
 
-              {/* Contact line */}
+              {/* Contact line with copy badges */}
               {(contactName || contactId > 0) && (
                 <div>
                   <label className="db-label--default" style={{ fontSize: fontSize - 1, display: 'block', marginBottom: 4 }}>Contact</label>
-                  <div className="db-text" style={{ fontSize }}>
-                    {contactName || `#${contactId}`}
-                    {touchChannel === 'email' && contactEmail ? ` — ${contactEmail}` : ''}
-                    {touchChannel === 'call' && contactPhone ? ` — ${contactPhone}` : ''}
-                    {touchChannel === 'text' && contactPhone ? ` — ${contactPhone}` : ''}
+                  <div className="db-text" style={{ fontSize, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                    <span>{contactName || `#${contactId}`}</span>
+                    {contactPhone && copyBadge(contactPhone, 'phone')}
+                    {contactEmail && copyBadge(contactEmail, 'email')}
                   </div>
                 </div>
               )}
