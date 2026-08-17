@@ -234,12 +234,22 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
                     if (!touchForm.subject.trim()) return;
                     setSavingTouch(true);
                     try {
+                      const loggedBy = (window as any).__WC_USER_ID || 0;
+                      const dir = touchForm.direction;
                       await saveRecord('touch', {
                         channel: addingTouch,
-                        direction: touchForm.direction,
+                        direction: dir,
                         subject: touchForm.subject,
                         summary: touchForm.summary,
                         action: actionId,
+                        logged_by: loggedBy,
+                        refs: {
+                          parents: {
+                            from: dir === 'out' ? loggedBy : null,
+                            to: dir === 'out' ? null : loggedBy,
+                            action: Number(actionId) || null,
+                          },
+                        },
                       });
                       // Reload touches
                       const res = await getRecords('touch', { action: actionId });

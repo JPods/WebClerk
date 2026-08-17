@@ -1,5 +1,5 @@
 /* LastChecked: 2026-08-14 | WhereUsed: DataBrowser detail pane | WhoCreated: Bill+Claude */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // ---------------------------------------------------------------------------
 // TouchBar — phone/email/sms action icons for contact-linked records
@@ -29,10 +29,37 @@ export const TouchBar: React.FC<{ model: string; record: any; recordId: number; 
   const isContact = model === 'contact';
   const isOrg = ['customer', 'vendor', 'manufacturer', 'rep', 'employee', 'other_org'].includes(model);
 
-  const contactId = isContact ? recordId : (record.contact_id || 0);
-  const contactPhone = record.phone || '';
-  const contactEmail = record.email || '';
-  const contactName = record.attention || record.display_name || record.name || record.company || record.contact_name || '';
+  const contactId = isContact ? recordId : (record.contact_id || record.contact || 0);
+
+  // For models that don't carry phone/email directly (e.g. action),
+  // fetch the linked contact record to resolve phone/email/name.
+  const [resolvedContact, setResolvedContact] = useState<{ phone?: string; email?: string; name?: string } | null>(null);
+  useEffect(() => {
+    if (record.phone || record.email || isContact || !contactId) {
+      setResolvedContact(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getRecord } = await import('@/api/wcapi');
+        const res = await getRecord('contact', contactId);
+        const c = res?.record || res;
+        if (!cancelled && c) {
+          setResolvedContact({
+            phone: c.phone || '',
+            email: c.email || '',
+            name: c.attention || c.display_name || c.name || '',
+          });
+        }
+      } catch { /* contact not found — show Log only */ }
+    })();
+    return () => { cancelled = true; };
+  }, [contactId, record.phone, record.email, isContact]);
+
+  const contactPhone = record.phone || resolvedContact?.phone || '';
+  const contactEmail = record.email || resolvedContact?.email || '';
+  const contactName = record.attention || record.display_name || record.name || record.company || record.contact_name || resolvedContact?.name || '';
 
   const orgId = isOrg ? recordId
     : record.customer_id || record.vendor_id || record.manufacturer_id || 0;
@@ -71,10 +98,24 @@ export const TouchBar: React.FC<{ model: string; record: any; recordId: number; 
     setSaving(true);
     try {
       const { saveRecord } = await import('@/api/wcapi');
+      // refs.parents — canonical lineage: who it was from, who it was to, what it belongs to
+      const dir = document.querySelector<HTMLInputElement>('input[name="touch-dir"]:checked')?.value || 'out';
+      const loggedByContact = (window as any).__WC_USER_ID || 0;
+      const parents: Record<string, number | null> = {
+        from: dir === 'out' ? loggedByContact : (contactId || null),
+        to: dir === 'out' ? (contactId || null) : loggedByContact,
+        contact: contactId || null,
+        customer: orgModel === 'customer' ? orgId : null,
+        vendor: orgModel === 'vendor' ? orgId : null,
+        manufacturer: orgModel === 'manufacturer' ? orgId : null,
+        rep: orgModel === 'rep' ? orgId : null,
+        action: model === 'action' ? recordId : null,
+      };
+
       await saveRecord('touch', {
         contact_id: contactId || null,
         channel: touchChannel,
-        direction: (document.querySelector<HTMLInputElement>('input[name="touch-dir"]:checked')?.value || 'out'),
+        direction: dir,
         subject: touchSubject,
         summary: touchSummary,
         duration: touchDuration ? parseInt(touchDuration, 10) : null,
@@ -83,7 +124,8 @@ export const TouchBar: React.FC<{ model: string; record: any; recordId: number; 
         org_id: orgId,
         org_model: orgModel,
         project_id: record.project_id || null,
-        logged_by: 0,
+        logged_by: (window as any).__WC_USER_ID || 0,
+        refs: { parents },
       });
       setShowTouchForm(false);
     } catch (err) {

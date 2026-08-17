@@ -24,7 +24,7 @@ import QueryBuilderPanel from '../../components/common/QueryBuilderPanel';
 import { RelatedPanel } from './RelatedPanel';
 import { HarvestBar } from './HarvestBar';
 import { SpawnLinks } from './SpawnLinks';
-// TouchBar available at ./TouchBar if needed (currently not rendered — see comment in detail body)
+import { TouchBar, TOUCH_MODELS } from './TouchBar';
 import { BOMPanel } from './BOMPanel';
 import { MatchCandidatesPanel } from './MatchCandidatesPanel';
 import { GroupedDetailFields } from './GroupedDetailFields';
@@ -918,6 +918,17 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
         <div data-wc="db-detail-pane" data-zone="db.detail | .db-detail-pane | DataBrowser.tsx" data-theme={detailTheme} className={`db-detail-pane ${viewPref === 'app' && AppDetailComponent ? 'db-detail-pane--app' : ''}`} style={{ width: detailWidth, fontSize: baseFontSize }}>
           {/* Glass detail toolbar removed — DetailToolbar in each ui.json component is the single source */}
           <div className="db-detail-body">
+            {/* TouchBar — phone/email/text icons for contact-linked records */}
+            {db.selectedRecord && db.selectedId && TOUCH_MODELS.has(db.selectedModel) && (
+              <TouchBar
+                model={db.selectedModel}
+                record={db.selectedRecord}
+                recordId={db.selectedId}
+                theme={tDetail}
+                fontSize={baseFontSize}
+                touchPrefs={(user as any)?.config?.touch}
+              />
+            )}
             {/* App mode: render the model's Detail.tsx component inline */}
             {viewPref === 'app' && AppDetailComponent && db.selectedId ? (
               <React.Suspense fallback={<div className="db-loading-fallback">Loading...</div>}>
