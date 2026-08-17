@@ -110,6 +110,34 @@ class Touch(BaseModel):
         help_text="Contact ID of who recorded this touch"
     )
 
+    OUTCOME_CHOICES = [
+        ('connected', 'Connected'),
+        ('voicemail', 'Voicemail'),
+        ('no_answer', 'No Answer'),
+        ('bounced', 'Bounced'),
+        ('rescheduled', 'Rescheduled'),
+    ]
+
+    outcome = models.CharField(
+        max_length=12,
+        choices=OUTCOME_CHOICES,
+        blank=True,
+        db_index=True,
+        help_text="What happened: connected, voicemail, no_answer, bounced, rescheduled"
+    )
+
+    impact = models.PositiveSmallIntegerField(
+        default=0,
+        db_index=True,
+        help_text="Rep judgment of touch importance, 1-5 (0 = not rated)"
+    )
+
+    plan = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Sequence of planned future touches: [{step, channel, when, note, done}]"
+    )
+
     class Meta:
         db_table = 'touches'
         verbose_name = 'Touch'
