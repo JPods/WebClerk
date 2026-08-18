@@ -23,6 +23,8 @@ interface SelectListRow {
   options: { value: string; label: string; sequence?: number; alternate?: string }[];
   setting_id: number;
   setting_ida: string;
+  setting_name: string;
+  setting_parent_model: string;
   setting_purpose: string;
   shared_count: number;
 }
@@ -190,7 +192,7 @@ const SiblingPanel: React.FC<{
 /*  Main Page                                                          */
 /* ------------------------------------------------------------------ */
 
-type SortKey = 'field' | 'setting_ida' | 'count' | 'shared_count';
+type SortKey = 'field' | 'setting_name' | 'setting_parent_model' | 'setting_purpose' | 'count' | 'shared_count';
 
 const SelectListBrowser: React.FC = () => {
   const [rows, setRows] = useState<SelectListRow[]>([]);
@@ -267,7 +269,7 @@ const SelectListBrowser: React.FC = () => {
       <PageMeta title="Select Lists" />
 
       {/* Left — list with sortable header */}
-      <div style={{ width: 400, borderRight: '1px solid var(--db-border)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ width: 520, borderRight: '1px solid var(--db-border)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--db-border)', fontWeight: 700, fontSize: 13, color: 'var(--db-text)' }}>
           Select Lists ({rows.length})
         </div>
@@ -277,7 +279,7 @@ const SelectListBrowser: React.FC = () => {
           borderBottom: '2px solid var(--db-border)', background: 'var(--db-surface-alt)',
           fontSize: 10, fontWeight: 700, color: 'var(--db-text-muted)', textTransform: 'uppercase',
         }}>
-          {([['field', 'Field', 130], ['setting_ida', 'Setting', 0], ['count', '#', 30], ['shared_count', '×', 30]] as const).map(([key, label, minW]) => (
+          {([['field', 'Field', 110], ['setting_name', 'Name', 0], ['setting_parent_model', 'Model', 70], ['setting_purpose', 'Purpose', 80], ['count', '#', 25], ['shared_count', '×', 25]] as const).map(([key, label, minW]) => (
             <button key={key} onClick={() => handleSort(key as SortKey)}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0',
@@ -301,10 +303,12 @@ const SelectListBrowser: React.FC = () => {
                 background: selectedIdx === idx ? 'color-mix(in srgb, var(--db-accent) 12%, transparent)' : 'transparent',
                 cursor: 'pointer', textAlign: 'left', fontSize: 11, color: 'var(--db-text)',
               }}>
-              <span style={{ fontWeight: 600, minWidth: 130 }}>{row.field}</span>
-              <span style={{ color: 'var(--db-text-muted)', flex: 1 }}>{row.setting_ida}</span>
-              <span style={{ color: 'var(--db-text-muted)', minWidth: 30, textAlign: 'right' }}>{row.count}</span>
-              <span style={{ color: row.shared_count > 1 ? 'var(--db-accent)' : 'var(--db-text-muted)', minWidth: 30, textAlign: 'right', fontSize: 10, fontWeight: row.shared_count > 1 ? 600 : 400 }}>
+              <span style={{ fontWeight: 600, minWidth: 110 }}>{row.field}</span>
+              <span style={{ color: 'var(--db-text-muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.setting_name || row.setting_ida}</span>
+              <span style={{ color: 'var(--db-text-muted)', minWidth: 70 }}>{row.setting_parent_model}</span>
+              <span style={{ color: 'var(--db-text-muted)', minWidth: 80, fontSize: 10 }}>{row.setting_purpose}</span>
+              <span style={{ color: 'var(--db-text-muted)', minWidth: 25, textAlign: 'right' }}>{row.count}</span>
+              <span style={{ color: row.shared_count > 1 ? 'var(--db-accent)' : 'var(--db-text-muted)', minWidth: 25, textAlign: 'right', fontSize: 10, fontWeight: row.shared_count > 1 ? 600 : 400 }}>
                 {row.shared_count > 1 ? `×${row.shared_count}` : ''}
               </span>
             </button>
