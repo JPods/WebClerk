@@ -1614,6 +1614,45 @@
   border-color: var(--db-accent);
 }
 
+/* TouchBadge — count + days */
+.touch-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--db-border);
+  background: var(--db-surface-alt);
+  color: var(--db-text-muted);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.touch-badge:hover {
+  background: color-mix(in srgb, var(--db-accent) 12%, transparent);
+  color: var(--db-text);
+}
+.touch-badge--overdue {
+  background: color-mix(in srgb, #e53e3e 12%, transparent);
+  border-color: #e53e3e;
+  color: #e53e3e;
+}
+.touch-badge--overdue:hover {
+  background: color-mix(in srgb, #e53e3e 22%, transparent);
+}
+.touch-badge--soon {
+  background: color-mix(in srgb, #d69e2e 12%, transparent);
+  border-color: #d69e2e;
+  color: #d69e2e;
+}
+.touch-badge--soon:hover {
+  background: color-mix(in srgb, #d69e2e 22%, transparent);
+}
+.touch-badge-days {
+  font-weight: 400;
+}
+
 /* ContactPicker search */
 .touch-contact-search {
   border: 1px solid var(--db-border);

@@ -1,6 +1,7 @@
 /* LastChecked: 2026-08-17 | WhereUsed: DataBrowser detail pane | WhoCreated: Bill+Claude */
 import React, { useState, useEffect } from 'react';
 import { TouchForm, type TouchFormContext } from './TouchForm';
+import { TouchBadge } from './TouchBadge';
 
 // ---------------------------------------------------------------------------
 // TouchBar — phone/email/sms action icons for contact-linked records
@@ -104,7 +105,7 @@ export const TouchBar: React.FC<{ model: string; record: any; recordId: number; 
   return (
     <>
       <div className="db-spawn-bar" style={{ gap: 8 }}>
-        <span className="db-spawn-label">Touch:</span>
+        <TouchBadge model={model} recordId={recordId} contactId={contactId} fontSize={fontSize} />
         {hasPhone && tp.phone_action !== 'log_only' && (
           <a href={`${tp.phone_action === 'facetime' ? 'facetime' : tp.phone_action === 'facetime-audio' ? 'facetime-audio' : 'tel'}:${contactPhone}`}
             className="touch-icon db-text-green"
