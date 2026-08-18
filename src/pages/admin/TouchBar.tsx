@@ -104,41 +104,8 @@ export const TouchBar: React.FC<{ model: string; record: any; recordId: number; 
 
   return (
     <>
-      <div className="db-spawn-bar" style={{ gap: 8 }}>
-        <TouchBadge model={model} recordId={recordId} contactId={contactId} fontSize={fontSize} />
-        {hasPhone && tp.phone_action !== 'log_only' && (
-          <a href={`${tp.phone_action === 'facetime' ? 'facetime' : tp.phone_action === 'facetime-audio' ? 'facetime-audio' : 'tel'}:${contactPhone}`}
-            className="touch-icon db-text-green"
-            onClick={(e) => { openForm('call'); }}
-            title={`Call ${contactName || contactPhone}`}>
-            &#9742; Call
-          </a>
-        )}
-        {hasEmail && tp.email_action !== 'log_only' && (
-          <a href={`mailto:${contactEmail}?subject=${encodeURIComponent(defaultSubject)}`}
-            className="touch-icon db-text-accent"
-            onClick={() => { openForm('email'); }}
-            title={`Email ${contactName || contactEmail}`}>
-            &#9993; Email
-          </a>
-        )}
-        {hasPhone && tp.text_action !== 'log_only' && (
-          <a href={`sms:${contactPhone}`}
-            className="touch-icon db-text-gold"
-            onClick={() => { openForm('text'); }}
-            title={`Text ${contactName || contactPhone}`}>
-            &#128172; Text
-          </a>
-        )}
-        <button className="touch-icon db-text-muted" onClick={() => openForm('call')}
-          title="Log a touch (call, email, visit, text, meeting)">
-          &#128221; Log
-        </button>
-        <span style={{ flex: 1 }} />
-        {contactName && <span className="db-text-muted" style={{ fontSize: fontSize - 1 }}>{contactName}</span>}
-        {hasPhone && copyBadge(contactPhone, 'phone')}
-        {hasEmail && copyBadge(contactEmail, 'email')}
-      </div>
+      <TouchBadge model={model} recordId={recordId} contactId={contactId} fontSize={fontSize}
+        onClick={() => openForm('call')} />
 
       {showTouchForm && (
         <TouchForm mode="dialog" ctx={formCtx} fontSize={fontSize}
