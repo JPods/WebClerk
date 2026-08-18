@@ -77,11 +77,9 @@ const ContactPicker: React.FC<ContactPickerProps> = ({ label, contactId, contact
 
   return (
     <div ref={wrapperRef} style={{ position: 'relative' }}>
-      <label className="db-label--default" style={{ fontSize: fontSize - 1, display: 'block', marginBottom: 4 }}>{label}</label>
-      <div className="db-text" style={{ fontSize, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-        {contactId > 0 && <span>{contactName || `#${contactId}`}</span>}
-        {contactPhone && copyBadge(contactPhone, 'phone')}
-        {contactEmail && copyBadge(contactEmail, 'email')}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <label className="db-label--default" style={{ fontSize: fontSize - 1 }}>{label}</label>
+        {contactId > 0 && <span className="db-text" style={{ fontSize, fontWeight: 600 }}>{contactName || `#${contactId}`}</span>}
         <input
           type="text"
           value={query}
@@ -89,9 +87,21 @@ const ContactPicker: React.FC<ContactPickerProps> = ({ label, contactId, contact
           onFocus={() => { if (results.length > 0) setShowResults(true); }}
           placeholder={contactId > 0 ? '↻ change...' : 'Search contacts...'}
           className="touch-contact-search"
-          style={{ fontSize: fontSize - 1 }}
+          style={{ fontSize: fontSize - 1, flex: 1 }}
         />
       </div>
+      {(contactPhone || contactEmail || contactId > 0) && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingLeft: 2, alignItems: 'center' }}>
+          {contactPhone && copyBadge(contactPhone, 'phone')}
+          {contactEmail && copyBadge(contactEmail, 'email')}
+          {contactId > 0 && (!contactPhone || !contactEmail) && (
+            <button className="touch-copy-badge" title="Edit contact record"
+              onClick={(e) => { e.preventDefault(); window.open(`/contact/${contactId}`, `contact-${contactId}`, 'width=900,height=700'); }}>
+              ✎ edit contact
+            </button>
+          )}
+        </div>
+      )}
       {showResults && results.length > 0 && (
         <div className="touch-contact-results">
           {results.map((r: any) => (
