@@ -1,5 +1,5 @@
 /* LastChecked: 2026-08-17 | WhereUsed: TouchBar (dialog), ActionFloatingWindow (inline) | WhoCreated: Bill+Claude */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 // ---------------------------------------------------------------------------
 // TouchForm — unified touch entry form, two rendering modes
@@ -18,6 +18,96 @@ const OUTCOMES: [string, string][] = [
   ['', '—'], ['connected', 'Connected'], ['voicemail', 'Voicemail'],
   ['no_answer', 'No Answer'], ['bounced', 'Bounced'], ['rescheduled', 'Rescheduled'],
 ];
+
+// ---------------------------------------------------------------------------
+// ContactPicker — type-ahead search for a single contact
+// ---------------------------------------------------------------------------
+
+interface ContactPickerProps {
+  label: string;
+  contactId: number;
+  contactName: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  onChange: (id: number, name: string, phone: string, email: string) => void;
+  fontSize: number;
+}
+
+const ContactPicker: React.FC<ContactPickerProps> = ({ label, contactId, contactName, contactPhone, contactEmail, onChange, fontSize }) => {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [showResults, setShowResults] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const doSearch = useCallback(async (q: string) => {
+    if (q.length < 2) { setResults([]); return; }
+    setSearching(true);
+    try {
+      const { getRecords } = await import('@/api/wcapi');
+      const res = await getRecords('contact', { keyword: q, is_active: true, limit: 10 }) as any;
+      setResults(res?.results || []);
+    } catch { setResults([]); }
+    setSearching(false);
+  }, []);
+
+  const handleInput = (val: string) => {
+    setQuery(val);
+    setShowResults(true);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSearch(val), 300);
+  };
+
+  const handleSelect = (r: any) => {
+    onChange(r.id, r.attention || r.name || `#${r.id}`, r.phone || '', r.email || '');
+    setQuery('');
+    setShowResults(false);
+    setResults([]);
+  };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setShowResults(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={wrapperRef} style={{ position: 'relative' }}>
+      <label className="db-label--default" style={{ fontSize: fontSize - 1, display: 'block', marginBottom: 4 }}>{label}</label>
+      <div className="db-text" style={{ fontSize, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+        {contactId > 0 && <span>{contactName || `#${contactId}`}</span>}
+        {contactPhone && copyBadge(contactPhone, 'phone')}
+        {contactEmail && copyBadge(contactEmail, 'email')}
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => handleInput(e.target.value)}
+          onFocus={() => { if (results.length > 0) setShowResults(true); }}
+          placeholder={contactId > 0 ? '↻ change...' : 'Search contacts...'}
+          className="touch-contact-search"
+          style={{ fontSize: fontSize - 1 }}
+        />
+      </div>
+      {showResults && results.length > 0 && (
+        <div className="touch-contact-results">
+          {results.map((r: any) => (
+            <button key={r.id} className="touch-contact-result"
+              onClick={() => handleSelect(r)}>
+              <span className="touch-contact-result-name">{r.attention || r.name || `#${r.id}`}</span>
+              {r.phone && <span className="touch-contact-result-detail">{r.phone}</span>}
+              {r.email && <span className="touch-contact-result-detail">{r.email}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {showResults && searching && <div className="touch-contact-results"><div style={{ padding: 8, fontSize: fontSize - 1, color: 'var(--db-text-muted)' }}>Searching...</div></div>}
+    </div>
+  );
+};
 
 export interface TouchFormContext {
   /** Parent model name (action, contact, customer, etc.) */
@@ -38,6 +128,8 @@ export interface TouchFormContext {
   orgModel: string;
   /** Pre-fill subject from parent record */
   defaultSubject: string;
+  /** Linkage group ID — ties touch to transaction graph */
+  linkageId?: number;
   /** Default channel */
   defaultChannel?: Channel;
   /** Default direction */
@@ -68,18 +160,27 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
   const [emailId, setEmailId] = useState('');
   const [outcome, setOutcome] = useState('');
   const [impact, setImpact] = useState(0);
+
+  // From/To contacts — auto-filled, user-changeable
+  const loggedByUser = (window as any).__WC_USER_ID || 0;
+  const loggedByName = (window as any).__WC_USER_NAME || 'Me';
+  const [fromContact, setFromContact] = useState({ id: loggedByUser, name: loggedByName, phone: '', email: '' });
+  const [toContact, setToContact] = useState({ id: ctx.contactId, name: ctx.contactName, phone: ctx.contactPhone, email: ctx.contactEmail });
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
     try {
       const { saveRecord } = await import('@/api/wcapi');
-      const loggedBy = (window as any).__WC_USER_ID || 0;
+      // from/to flip with direction
+      const fromId = direction === 'out' ? fromContact.id : toContact.id;
+      const toId = direction === 'out' ? toContact.id : fromContact.id;
+      const externalContactId = toContact.id || ctx.contactId;
 
       const parents: Record<string, number | null> = {
-        from: direction === 'out' ? loggedBy : (ctx.contactId || null),
-        to: direction === 'out' ? (ctx.contactId || null) : loggedBy,
-        contact: ctx.contactId || null,
+        from: fromId || null,
+        to: toId || null,
+        contact: externalContactId || null,
         customer: ctx.orgModel === 'customer' ? ctx.orgId : null,
         vendor: ctx.orgModel === 'vendor' ? ctx.orgId : null,
         manufacturer: ctx.orgModel === 'manufacturer' ? ctx.orgId : null,
@@ -88,7 +189,7 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
       };
 
       await saveRecord('touch', {
-        contact_id: ctx.contactId || null,
+        contact_id: externalContactId || null,
         channel,
         direction,
         subject,
@@ -101,7 +202,8 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
         org_id: ctx.orgId || null,
         org_model: ctx.orgModel || null,
         project_id: null,
-        logged_by: loggedBy,
+        linkage_id: ctx.linkageId || null,
+        logged_by: fromContact.id || loggedByUser,
         refs: { parents },
       });
 
@@ -136,13 +238,12 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
             {OUTCOMES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
           </select>
         </div>
-        {ctx.contactName && (
-          <div className="touch-form-contact-line">
-            <span>{ctx.contactName}</span>
-            {ctx.contactPhone && copyBadge(ctx.contactPhone, 'phone')}
-            {ctx.contactEmail && copyBadge(ctx.contactEmail, 'email')}
-          </div>
-        )}
+        <div className="touch-form-contact-line">
+          <span style={{ fontSize: '0.75em', color: 'var(--db-text-muted)' }}>{direction === 'out' ? 'To:' : 'From:'}</span>
+          <span>{toContact.name || '—'}</span>
+          {toContact.phone && copyBadge(toContact.phone, 'phone')}
+          {toContact.email && copyBadge(toContact.email, 'email')}
+        </div>
         <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)}
           placeholder="Subject" className="touch-form-input" autoFocus />
         <textarea value={summary} onChange={(e) => setSummary(e.target.value)}
@@ -204,17 +305,35 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
             </label>
           </div>
 
-          {/* Contact line with copy badges */}
-          {(ctx.contactName || ctx.contactId > 0) && (
-            <div>
-              <label className="db-label--default" style={{ fontSize: fontSize - 1, display: 'block', marginBottom: 4 }}>Contact</label>
-              <div className="db-text" style={{ fontSize, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                <span>{ctx.contactName || `#${ctx.contactId}`}</span>
-                {ctx.contactPhone && copyBadge(ctx.contactPhone, 'phone')}
-                {ctx.contactEmail && copyBadge(ctx.contactEmail, 'email')}
-              </div>
+          {/* From / To contacts with search */}
+          <div style={{ display: 'flex', gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <ContactPicker label={direction === 'out' ? 'From (you)' : 'From (external)'}
+                contactId={direction === 'out' ? fromContact.id : toContact.id}
+                contactName={direction === 'out' ? fromContact.name : toContact.name}
+                contactPhone={direction === 'out' ? fromContact.phone : toContact.phone}
+                contactEmail={direction === 'out' ? fromContact.email : toContact.email}
+                onChange={(id, name, phone, email) => {
+                  if (direction === 'out') setFromContact({ id, name, phone, email });
+                  else setToContact({ id, name, phone, email });
+                }}
+                fontSize={fontSize}
+              />
             </div>
-          )}
+            <div style={{ flex: 1 }}>
+              <ContactPicker label={direction === 'out' ? 'To (external)' : 'To (you)'}
+                contactId={direction === 'out' ? toContact.id : fromContact.id}
+                contactName={direction === 'out' ? toContact.name : fromContact.name}
+                contactPhone={direction === 'out' ? toContact.phone : fromContact.phone}
+                contactEmail={direction === 'out' ? toContact.email : fromContact.email}
+                onChange={(id, name, phone, email) => {
+                  if (direction === 'out') setToContact({ id, name, phone, email });
+                  else setFromContact({ id, name, phone, email });
+                }}
+                fontSize={fontSize}
+              />
+            </div>
+          </div>
 
           <div>
             <label className="db-label--default" style={{ fontSize: fontSize - 1, display: 'block', marginBottom: 4 }}>Subject</label>

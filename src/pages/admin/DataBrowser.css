@@ -1613,3 +1613,54 @@
   color: #fff;
   border-color: var(--db-accent);
 }
+
+/* ContactPicker search */
+.touch-contact-search {
+  border: 1px solid var(--db-border);
+  border-radius: 3px;
+  padding: 2px 6px;
+  background: var(--db-input-bg, var(--db-surface));
+  color: var(--db-text);
+  min-width: 100px;
+  flex: 1;
+}
+.touch-contact-search::placeholder {
+  color: var(--db-text-muted);
+  font-style: italic;
+}
+.touch-contact-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--db-surface, #fff);
+  border: 1px solid var(--db-border);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  max-height: 200px;
+  overflow-y: auto;
+}
+.touch-contact-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--db-text);
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.85em;
+}
+.touch-contact-result:hover {
+  background: color-mix(in srgb, var(--db-accent) 10%, transparent);
+}
+.touch-contact-result-name {
+  font-weight: 600;
+}
+.touch-contact-result-detail {
+  color: var(--db-text-muted);
+  font-size: 0.9em;
+}

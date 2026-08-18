@@ -311,7 +311,10 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
 
   // Expose user ID for hooks that can't access Redux directly
   useEffect(() => {
-    if (user?.id) (window as any).__WC_USER_ID = Number(user.id);
+    if (user?.id) {
+      (window as any).__WC_USER_ID = Number(user.id);
+      (window as any).__WC_USER_NAME = (user as any).name || (user as any).attention || (user as any).display_name || 'Me';
+    }
   }, [user?.id]);
 
   // Track navigation patterns — Alice watches for coaching opportunities
