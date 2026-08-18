@@ -191,6 +191,21 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
   const [outcome, setOutcome] = useState('');
   const [impact, setImpact] = useState(0);
   const [plan, setPlan] = useState(0);
+  const [purpose, setPurpose] = useState('');
+  const [purposeOptions, setPurposeOptions] = useState<{value: string; label: string}[]>([]);
+
+  // Fetch purpose selectlist from wc-model-touch Setting
+  useEffect(() => {
+    (async () => {
+      try {
+        const { getRecords } = await import('@/api/wcapi');
+        const res = await getRecords('setting', { ida: 'wc-model-touch', limit: 1 }) as any;
+        const rec = res?.results?.[0];
+        const opts = rec?.config?.selectlists?.purpose || [];
+        setPurposeOptions(opts);
+      } catch { /* no purpose options */ }
+    })();
+  }, []);
 
   // From/To contacts — auto-filled, user-changeable
   const loggedByUser = (window as any).__WC_USER_ID || 0;
@@ -230,6 +245,7 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
         outcome: outcome || null,
         impact: impact || 0,
         plan: plan || 0,
+        purpose: purpose || null,
         action_id: ctx.model === 'action' ? ctx.recordId : null,
         org_id: ctx.orgId || null,
         org_model: ctx.orgModel || null,
@@ -269,6 +285,12 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
             className="touch-form-select">
             {OUTCOMES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
           </select>
+          {purposeOptions.length > 0 && (
+            <select value={purpose} onChange={(e) => setPurpose(e.target.value)}
+              className="touch-form-select">
+              {purposeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          )}
         </div>
         <div className="touch-form-contact-line">
           <span style={{ fontSize: '0.75em', color: 'var(--db-text-muted)' }}>{direction === 'out' ? 'To:' : 'From:'}</span>
@@ -384,12 +406,21 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
               style={{ fontSize, resize: 'vertical' }} />
           </div>
 
-          {/* Outcome + Impact + Plan row */}
+          {/* Purpose + Outcome + Impact + Plan row */}
           <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+            {purposeOptions.length > 0 && (
+              <div>
+                <label className="db-label--default" style={{ fontSize: fontSize - 1, display: 'block', marginBottom: 4 }}>Purpose</label>
+                <select className="db-input" value={purpose} onChange={(e) => setPurpose(e.target.value)}
+                  style={{ fontSize, width: 130 }}>
+                  {purposeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+            )}
             <div>
               <label className="db-label--default" style={{ fontSize: fontSize - 1, display: 'block', marginBottom: 4 }}>Outcome</label>
               <select className="db-input" value={outcome} onChange={(e) => setOutcome(e.target.value)}
-                style={{ fontSize, width: 140 }}>
+                style={{ fontSize, width: 130 }}>
                 {OUTCOMES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
               </select>
             </div>
