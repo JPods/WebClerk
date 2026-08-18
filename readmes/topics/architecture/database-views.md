@@ -111,9 +111,59 @@ Users can create their own VIEWs for cross-model reporting:
 
 These would be registered in the `wc-views` Setting by an admin. Alice can suggest VIEWs based on common query patterns she observes.
 
+## Testing
+
+```bash
+# 1. Verify VIEW exists and has data
+cd /Users/williamjames/Documents/CommerceExpert/webClerk3
+source venv/bin/activate
+python3 -c "
+import os, django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webclerk3_api.settings')
+django.setup()
+from django.db import connection
+with connection.cursor() as c:
+    c.execute('SELECT count(*) FROM agenda')
+    print('Total:', c.fetchone()[0])
+    c.execute('SELECT source_model, count(*) FROM agenda GROUP BY source_model')
+    print('By source:', c.fetchall())
+    c.execute('SELECT icon, title, status, purpose, dt_due FROM agenda ORDER BY dt_due DESC LIMIT 5')
+    for r in c.fetchall(): print(' ', r)
+"
+
+# 2. Test endpoint (requires auth — use browser console)
+# In browser console at localhost:5173:
+# fetch('/wcapi/view/?view=agenda&limit=5&sort=dt_due&dir=desc', {credentials:'include'}).then(r=>r.json()).then(console.log)
+
+# 3. Test in DataBrowser
+# Navigate to /databrowser, click model dropdown, select "agenda"
+# Should show 345 rows (340 actions + 5 touches) with mixed icons
+# Click a row — detail pane should show the source record (touch or action)
+# Detail pane should be READ-ONLY for VIEW rows
+
+# 4. Test keyword search
+# Type in search box — filters across title, status, purpose, detail_text
+
+# 5. Test sorting
+# Click Sort button — sort by dt_due, title, status, impact
+```
+
+### Known Issues
+
+1. **Touches need `plan > 0` to appear** — dt_next is computed from plan. Touches without a plan have dt_next=0 and are excluded from the VIEW.
+2. **dt_next computation timing** — `_compute_dt_next` runs after `super().save()` because CoreModel sets dt_created during save. Fixed in touch.py but uses a secondary `UPDATE` query.
+3. **Icon rendering** — emoji icons (📞 ✉ 📋 🤝 🏃) render as small text in some fonts. Consider using SVG icons.
+4. **Detail pane click-through** — Uses `source_model` + `source_id` from the VIEW row to fetch the real record. If the row doesn't have these fields, click will fail.
+5. **Auth timing** — The `/wcapi/view/` endpoint requires authentication. If the page loads before auth bootstrap completes, the first fetch may fail silently.
+
 ## Files
 
 | File | What |
 |------|------|
 | `apps/communications/migrations/0016_create_agenda_view.py` | Agenda VIEW SQL |
+| `apps/core/views/view_query.py` | ViewQueryView — raw SQL endpoint for VIEWs |
+| `apps/core/urls.py` | Route `/wcapi/view/` |
+| `React2025/src/hooks/useDataBrowser.ts` | VIEW detection, fetch from /wcapi/view/, click-through |
+| `React2025/src/pages/admin/DataBrowser.tsx` | Detail pane source_model resolution, read-only mode |
+| `React2025/src/pages/admin/AgendaView.tsx` | Standalone prototype (may be removed) |
 | `readmes/topics/architecture/database-views.md` | This document |
