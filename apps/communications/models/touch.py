@@ -104,6 +104,13 @@ class Touch(BaseModel):
         help_text="Project this touch relates to"
     )
 
+    linkage_id = models.BigIntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Linkage group — ties touch to the transaction graph (proposal→order→invoice)"
+    )
+
     logged_by = models.BigIntegerField(
         default=0,
         db_index=True,
