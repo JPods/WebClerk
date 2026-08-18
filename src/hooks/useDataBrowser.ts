@@ -827,15 +827,36 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
   useEffect(() => {
     if (!selectedModel || selectedId == null) return;
     (async () => {
-      const d = await getRecord(selectedModel, selectedId) as { record?: unknown };
-      setSelectedRecord(toRec(d?.record));
+      // VIEW: resolve source_model + source_id from the row, fetch the real record
+      const viewConfigs = (window as any).__WC_VIEW_CONFIGS || {};
+      const isView = !!viewConfigs[selectedModel];
+      let fetchModel = selectedModel;
+      let fetchId = selectedId;
+
+      if (isView) {
+        const row = records.find((r: any) => numId(r.id) === selectedId);
+        if (row?.source_model && row?.source_id) {
+          fetchModel = row.source_model;
+          fetchId = Number(row.source_id);
+        }
+      }
+
+      const d = await getRecord(fetchModel, fetchId) as { record?: unknown };
+      const rec = toRec(d?.record);
+      // For VIEWs, tag the record with its source so the detail pane knows
+      if (isView && rec) {
+        (rec as any)._viewSource = true;
+        (rec as any)._sourceModel = fetchModel;
+        (rec as any)._sourceId = fetchId;
+      }
+      setSelectedRecord(rec);
       setIsDirty(false);
       // Notify other windows
       import('@/utils/windowChannel').then(({ windowChannel }) => {
-        windowChannel.send({ type: 'record-selected', model: selectedModel, id: selectedId });
+        windowChannel.send({ type: 'record-selected', model: fetchModel, id: fetchId });
       }).catch(() => {});
     })();
-  }, [selectedModel, selectedId]);
+  }, [selectedModel, selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------------------------------------------------------------------------
   // Field operations

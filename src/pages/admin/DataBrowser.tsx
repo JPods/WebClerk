@@ -916,30 +916,34 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
 
         {/* Detail pane — show when record selected OR when list is empty (so Add button is accessible) */}
         {!showDedup && (db.selectedRecord || (db.selectedModel && db.totalRecords === 0 && !db.recordsLoading)) && (() => {
-          const AppDetailComponent = viewPref === 'app' ? APP_DETAIL_COMPONENTS[db.selectedModel] : null;
+          // VIEW: use source model for detail rendering
+          const isViewSource = !!(db.selectedRecord as any)?._viewSource;
+          const detailModel = isViewSource ? (db.selectedRecord as any)._sourceModel || db.selectedModel : db.selectedModel;
+          const detailId = isViewSource ? (db.selectedRecord as any)._sourceId || db.selectedId : db.selectedId;
+          const AppDetailComponent = viewPref === 'app' ? APP_DETAIL_COMPONENTS[detailModel] : null;
           return (
         <div data-wc="db-detail-pane" data-zone="db.detail | .db-detail-pane | DataBrowser.tsx" data-theme={detailTheme} className={`db-detail-pane ${viewPref === 'app' && AppDetailComponent ? 'db-detail-pane--app' : ''}`} style={{ width: detailWidth, fontSize: baseFontSize }}>
           {/* Glass detail toolbar removed — DetailToolbar in each ui.json component is the single source */}
           <div className="db-detail-body">
             {/* TouchBar — phone/email/text icons for contact-linked records */}
-            {db.selectedRecord && db.selectedId && TOUCH_MODELS.has(db.selectedModel) && (
+            {db.selectedRecord && detailId && TOUCH_MODELS.has(detailModel) && (
               <TouchBar
-                model={db.selectedModel}
+                model={detailModel}
                 record={db.selectedRecord}
-                recordId={db.selectedId}
+                recordId={detailId}
                 theme={tDetail}
                 fontSize={baseFontSize}
                 touchPrefs={(user as any)?.config?.touch}
               />
             )}
             {/* App mode: render the model's Detail.tsx component inline */}
-            {viewPref === 'app' && AppDetailComponent && db.selectedId ? (
+            {viewPref === 'app' && AppDetailComponent && detailId ? (
               <React.Suspense fallback={<div className="db-loading-fallback">Loading...</div>}>
                 <AppDetailComponent
-                  modeProp="edit"
-                  recordId={db.selectedId}
-                  id={db.selectedId}
-                  modelName={db.selectedModel}
+                  modeProp={isViewSource ? "view" : "edit"}
+                  recordId={detailId}
+                  id={detailId}
+                  modelName={detailModel}
                   dataProp={db.selectedRecord}
                   hideBreadcrumb
                   inline
