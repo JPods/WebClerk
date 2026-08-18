@@ -1653,6 +1653,25 @@
   font-weight: 400;
 }
 
+/* ContactPicker label-as-button */
+.touch-contact-label {
+  border: none;
+  background: transparent;
+  color: var(--db-accent);
+  font-weight: 600;
+  font-size: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+.touch-contact-label:hover {
+  color: var(--db-text);
+  text-decoration-style: solid;
+}
+
 /* ContactPicker search */
 .touch-contact-search {
   border: 1px solid var(--db-border);

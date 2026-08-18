@@ -75,11 +75,33 @@ const ContactPicker: React.FC<ContactPickerProps> = ({ label, contactId, contact
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const handleLabelClick = async (e: React.MouseEvent) => {
+    if (!contactId) return;
+    if (e.shiftKey) {
+      // Shift-click = refresh contact data
+      try {
+        const { getRecord } = await import('@/api/wcapi');
+        const res = await getRecord('contact', contactId);
+        const c = res?.record || res;
+        if (c) onChange(contactId, c.attention || c.display_name || c.name || contactName, c.phone || '', c.email || '');
+      } catch {}
+    } else {
+      // Click = open contact record
+      window.open(`/contact/${contactId}`, `contact-${contactId}`, 'width=900,height=700');
+    }
+  };
+
   return (
     <div ref={wrapperRef} style={{ position: 'relative' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <label className="db-label--default" style={{ fontSize: fontSize - 1 }}>{label}</label>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button className="touch-contact-label" onClick={handleLabelClick}
+          title={contactId > 0 ? 'Click: open contact · Shift-click: refresh' : label}
+          style={{ fontSize: fontSize - 1 }}>
+          {label}
+        </button>
         {contactId > 0 && <span className="db-text" style={{ fontSize, fontWeight: 600 }}>{contactName || `#${contactId}`}</span>}
+        {contactPhone && copyBadge(contactPhone, 'phone')}
+        {contactEmail && copyBadge(contactEmail, 'email')}
         <input
           type="text"
           value={query}
@@ -90,34 +112,6 @@ const ContactPicker: React.FC<ContactPickerProps> = ({ label, contactId, contact
           style={{ fontSize: fontSize - 1, flex: 1 }}
         />
       </div>
-      {(contactPhone || contactEmail || contactId > 0) && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingLeft: 2, alignItems: 'center' }}>
-          {contactPhone && copyBadge(contactPhone, 'phone')}
-          {contactEmail && copyBadge(contactEmail, 'email')}
-          {contactId > 0 && (
-            <>
-              {(!contactPhone || !contactEmail) && (
-                <button className="touch-copy-badge" title="Edit contact record"
-                  onClick={(e) => { e.preventDefault(); window.open(`/contact/${contactId}`, `contact-${contactId}`, 'width=900,height=700'); }}>
-                  ✎ edit
-                </button>
-              )}
-              <button className="touch-copy-badge" title="Refresh contact data"
-                onClick={async (e) => {
-                  e.preventDefault();
-                  try {
-                    const { getRecord } = await import('@/api/wcapi');
-                    const res = await getRecord('contact', contactId);
-                    const c = res?.record || res;
-                    if (c) onChange(contactId, c.attention || c.display_name || c.name || contactName, c.phone || '', c.email || '');
-                  } catch {}
-                }}>
-                ↻
-              </button>
-            </>
-          )}
-        </div>
-      )}
       {showResults && results.length > 0 && (
         <div className="touch-contact-results">
           {results.map((r: any) => (
