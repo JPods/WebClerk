@@ -88,7 +88,7 @@ class SelectListCatalogView(APIView):
     def get(self, request):
         """Return flat index of all select lists found in Settings."""
         rows = []
-        for s in Setting.objects.filter(is_active=True).only('id', 'ida', 'purpose', 'config'):
+        for s in Setting.objects.filter(is_active=True).only('id', 'ida', 'name', 'parent_model', 'purpose', 'config'):
             if not s.config or not isinstance(s.config, dict):
                 continue
             entries = _extract_options(s.config)
@@ -100,6 +100,8 @@ class SelectListCatalogView(APIView):
                     'options': entry['options'],
                     'setting_id': s.id,
                     'setting_ida': s.ida,
+                    'setting_name': s.name or '',
+                    'setting_parent_model': s.parent_model or '',
                     'setting_purpose': s.purpose or '',
                 })
 
