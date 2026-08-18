@@ -12,6 +12,7 @@ import { deleteRecord, getRecords, saveRecord } from "@/api/wcapi";
 import { formatDt } from "@/utils/fieldFormatters";
 import { useDispatch } from "react-redux";
 import { showToast } from "@/store/slices/toastSlice";
+import { TouchForm, type TouchFormContext } from "@/pages/admin/TouchForm";
 
 interface Props {
   actionId: string;
@@ -28,8 +29,6 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
   const [touches, setTouches] = useState<any[]>([]);
   const [showTouches, setShowTouches] = useState(false);
   const [addingTouch, setAddingTouch] = useState<string | null>(null); // channel type or null
-  const [touchForm, setTouchForm] = useState({ subject: '', summary: '', direction: 'out' });
-  const [savingTouch, setSavingTouch] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const resizeRef = useRef<{ startX: number; startY: number; origW: number; origH: number } | null>(null);
   const windowRef = useRef<HTMLDivElement>(null);
@@ -197,83 +196,30 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
             </div>
           </div>
 
-          {/* Inline add form */}
+          {/* Inline add form — unified TouchForm */}
           {addingTouch && (
-            <div className="mb-2 p-2 rounded border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-800">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase">
-                  {addingTouch === 'call' ? '📞 Call' : addingTouch === 'email' ? '✉️ Email' : addingTouch === 'visit' ? '🏢 Visit' : addingTouch === 'text' ? '💬 Text' : '🤝 Meeting'}
-                </span>
-                <select
-                  value={touchForm.direction}
-                  onChange={(e) => setTouchForm(f => ({ ...f, direction: e.target.value }))}
-                  className="text-[10px] bg-transparent border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 text-gray-700 dark:text-gray-300"
-                >
-                  <option value="out">→ Outbound</option>
-                  <option value="in">← Inbound</option>
-                </select>
-              </div>
-              <input
-                type="text"
-                value={touchForm.subject}
-                onChange={(e) => setTouchForm(f => ({ ...f, subject: e.target.value }))}
-                placeholder="Subject — e.g. Discussed pricing"
-                className="w-full text-[11px] px-2 py-1 mb-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
-                autoFocus
+            <div className="mb-2">
+              <TouchForm
+                mode="inline"
+                ctx={{
+                  model: 'action',
+                  recordId: Number(actionId),
+                  contactId: 0,
+                  contactName: '',
+                  contactPhone: '',
+                  contactEmail: '',
+                  orgId: 0,
+                  orgModel: '',
+                  defaultSubject: '',
+                  defaultChannel: addingTouch as any,
+                }}
+                onClose={() => setAddingTouch(null)}
+                onSaved={async () => {
+                  const res = await getRecords('touch', { action: actionId });
+                  setTouches(res?.records || res?.results || []);
+                  dispatch(showToast({ message: 'Touch saved', type: 'success' }));
+                }}
               />
-              <textarea
-                value={touchForm.summary}
-                onChange={(e) => setTouchForm(f => ({ ...f, summary: e.target.value }))}
-                placeholder="Summary — what happened, next steps"
-                rows={2}
-                className="w-full text-[11px] px-2 py-1 mb-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 resize-none"
-              />
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={async () => {
-                    if (!touchForm.subject.trim()) return;
-                    setSavingTouch(true);
-                    try {
-                      const loggedBy = (window as any).__WC_USER_ID || 0;
-                      const dir = touchForm.direction;
-                      await saveRecord('touch', {
-                        channel: addingTouch,
-                        direction: dir,
-                        subject: touchForm.subject,
-                        summary: touchForm.summary,
-                        action: actionId,
-                        logged_by: loggedBy,
-                        refs: {
-                          parents: {
-                            from: dir === 'out' ? loggedBy : null,
-                            to: dir === 'out' ? null : loggedBy,
-                            action: Number(actionId) || null,
-                          },
-                        },
-                      });
-                      // Reload touches
-                      const res = await getRecords('touch', { action: actionId });
-                      setTouches(res?.records || res?.results || []);
-                      setAddingTouch(null);
-                      dispatch(showToast({ message: 'Touch saved', type: 'success' }));
-                    } catch {
-                      dispatch(showToast({ message: 'Failed to save touch', type: 'error' }));
-                    } finally {
-                      setSavingTouch(false);
-                    }
-                  }}
-                  disabled={savingTouch || !touchForm.subject.trim()}
-                  className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50"
-                >
-                  {savingTouch ? 'Saving...' : 'Save'}
-                </button>
-                <button
-                  onClick={() => setAddingTouch(null)}
-                  className="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                >
-                  Cancel
-                </button>
-              </div>
             </div>
           )}
 

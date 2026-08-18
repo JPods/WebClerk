@@ -1513,3 +1513,103 @@
   opacity: 0.5;
   font-size: 0.9em;
 }
+
+/* ---------------------------------------------------------------------------
+   TouchForm — inline mode + impact dots
+   --------------------------------------------------------------------------- */
+
+.touch-form-inline {
+  padding: 8px;
+  border: 1px solid var(--db-border);
+  border-radius: 4px;
+  background: var(--db-surface-alt);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.touch-form-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.touch-form-channel-label {
+  font-size: 0.8em;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--db-accent);
+}
+.touch-form-select {
+  font-size: 0.8em;
+  background: transparent;
+  border: 1px solid var(--db-border);
+  border-radius: 3px;
+  padding: 2px 4px;
+  color: var(--db-text);
+  cursor: pointer;
+}
+.touch-form-input {
+  width: 100%;
+  font-size: 0.85em;
+  padding: 4px 8px;
+  border: 1px solid var(--db-border);
+  border-radius: 3px;
+  background: var(--db-input-bg, var(--db-surface));
+  color: var(--db-text);
+}
+.touch-form-textarea {
+  resize: none;
+}
+.touch-form-contact-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8em;
+  color: var(--db-text-muted);
+}
+.touch-form-btn {
+  font-size: 0.8em;
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--db-border);
+  background: var(--db-surface-alt);
+  color: var(--db-text-muted);
+  cursor: pointer;
+}
+.touch-form-btn--save {
+  background: var(--db-accent);
+  color: #fff;
+  border-color: var(--db-accent);
+  font-weight: 600;
+}
+.touch-form-btn--save:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.touch-form-impact {
+  display: flex;
+  gap: 3px;
+}
+.touch-impact-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  border: 1px solid var(--db-border);
+  background: var(--db-surface-alt);
+  color: var(--db-text-muted);
+  font-size: 0.75em;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.touch-impact-dot:hover {
+  background: color-mix(in srgb, var(--db-accent) 15%, transparent);
+}
+.touch-impact-dot--active {
+  background: var(--db-accent);
+  color: #fff;
+  border-color: var(--db-accent);
+}
