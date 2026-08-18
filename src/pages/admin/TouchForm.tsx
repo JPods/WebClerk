@@ -160,6 +160,7 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
   const [emailId, setEmailId] = useState('');
   const [outcome, setOutcome] = useState('');
   const [impact, setImpact] = useState(0);
+  const [plan, setPlan] = useState(0);
 
   // From/To contacts — auto-filled, user-changeable
   const loggedByUser = (window as any).__WC_USER_ID || 0;
@@ -198,6 +199,7 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
         email_message_id: emailId || null,
         outcome: outcome || null,
         impact: impact || 0,
+        plan: plan || 0,
         action_id: ctx.model === 'action' ? ctx.recordId : null,
         org_id: ctx.orgId || null,
         org_model: ctx.orgModel || null,
@@ -347,8 +349,8 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
               style={{ fontSize, resize: 'vertical' }} />
           </div>
 
-          {/* Outcome + Impact row */}
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          {/* Outcome + Impact + Plan row */}
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
             <div>
               <label className="db-label--default" style={{ fontSize: fontSize - 1, display: 'block', marginBottom: 4 }}>Outcome</label>
               <select className="db-input" value={outcome} onChange={(e) => setOutcome(e.target.value)}
@@ -365,6 +367,12 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
                     style={{ fontSize }}>{n}</button>
                 ))}
               </div>
+            </div>
+            <div>
+              <label className="db-label--default" style={{ fontSize: fontSize - 1, display: 'block', marginBottom: 4 }}>Follow-up (days)</label>
+              <input className="db-input" type="number" min="0" value={plan || ''} placeholder="0"
+                onChange={(e) => setPlan(parseInt(e.target.value, 10) || 0)}
+                style={{ width: 70, fontSize }} />
             </div>
           </div>
 
