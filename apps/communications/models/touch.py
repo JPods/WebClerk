@@ -139,10 +139,10 @@ class Touch(BaseModel):
         help_text="Rep judgment of touch importance, 1-5 (0 = not rated)"
     )
 
-    plan = models.JSONField(
-        default=list,
-        blank=True,
-        help_text="Sequence of planned future touches: [{step, channel, when, note, done}]"
+    plan = models.PositiveSmallIntegerField(
+        default=0,
+        db_index=True,
+        help_text="Follow-up in N days from dt_created. 0 = no follow-up. Due when dt_created + (plan * 86400000) <= now."
     )
 
     class Meta:
