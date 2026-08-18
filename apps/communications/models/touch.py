@@ -209,8 +209,12 @@ class Touch(BaseModel):
 
     def save(self, *args, **kwargs):
         self._resolve_org_from_contact()
-        self._compute_dt_next()
         super().save(*args, **kwargs)
+        # Compute dt_next AFTER super().save() because CoreModel sets dt_created there
+        if self.plan and self.plan > 0 and self.dt_created and not self.dt_next:
+            self._compute_dt_next()
+            # Save just the dt_next field
+            type(self).objects.filter(pk=self.pk).update(dt_next=self.dt_next)
 
     def post_save_hook(self, data, is_update=False, context=None):
         base_msg = super().post_save_hook(data, is_update=is_update, context=context)
