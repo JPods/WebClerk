@@ -524,7 +524,21 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
       try {
         setLoadingModels(true); setModelsError(null);
         const data = await getModelNames();
-        setModelNames((Array.isArray(data.model_names) ? data.model_names : []).slice().sort((a, b) => a.localeCompare(b)));
+        const dbModelNames = (Array.isArray(data.model_names) ? data.model_names : []).slice();
+        // Fetch registered VIEWs and add to model list
+        try {
+          const viewRes = await getRecords('setting', { ida: 'wc-views', limit: 1 }) as any;
+          const viewSetting = viewRes?.results?.[0];
+          const views = viewSetting?.config?.views;
+          if (views && typeof views === 'object') {
+            for (const vName of Object.keys(views)) {
+              if (!dbModelNames.includes(vName)) dbModelNames.unshift(vName);
+            }
+            // Store view configs for later use
+            (window as any).__WC_VIEW_CONFIGS = views;
+          }
+        } catch { /* no views */ }
+        setModelNames(dbModelNames.sort((a, b) => a.localeCompare(b)));
         const settings = await getAllWorkbenchFieldsSettings();
         const map: Record<string, WorkbenchFieldsSetting> = {};
         settings.forEach((s: any) => { map[s.parent_model || s.model_name] = s.config?.db || s.config; });
@@ -546,38 +560,85 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
     fetchingRef.current = true;
     try {
       setRecordsLoading(true); setRecordsError(null);
-      const md = await getModelDetail(selectedModel) as { model?: { fields?: unknown } };
-      if (modelChangeRef.current !== fetchId) { dbLog('fetchRecords:stale (model changed)'); return; }
 
-      const rf = md?.model?.fields;
+      // Check if this is a PostgreSQL VIEW (not a Django model)
+      const viewConfigs = (window as any).__WC_VIEW_CONFIGS || {};
+      const isView = !!viewConfigs[selectedModel];
+
       let fields: string[] = [];
-      if (Array.isArray(rf)) fields = rf.map(fieldName).filter((n): n is string => !!n);
-      else if (isObj(rf)) fields = Object.keys(rf);
-      setAllFields(fields);
-      dbLog('fetchRecords:fields', { model: selectedModel, fieldCount: fields.length, fields: fields.slice(0, 10) });
+      let resultList: any[] = [];
+      let resultTotal = 0;
 
-      const params: Record<string, unknown> = { limit: PAGE_SIZE, offset: page * PAGE_SIZE };
-      if (activeSearch.trim().length >= 3) params.keyword = activeSearch.trim();
-      if (sort) params.ordering = sort.direction === 'desc' ? `-${sort.field}` : sort.field;
-      // Apply URL filter params (e.g. dt_created__gte from dashboard drill-down links)
-      const urlFilters = urlFiltersRef.current;
-      if (urlFilters) {
-        for (const [k, v] of Object.entries(urlFilters)) {
-          if (!params[k]) params[k] = v;
+      if (isView) {
+        // VIEW path — query /wcapi/view/ with raw SQL
+        const viewConfig = viewConfigs[selectedModel];
+        fields = (viewConfig.columns || []).map((c: any) => c.field || c);
+        setAllFields(fields);
+        dbLog('fetchRecords:view', { view: selectedModel, fieldCount: fields.length });
+
+        const params: Record<string, string> = {
+          view: selectedModel,
+          limit: String(PAGE_SIZE),
+          offset: String(page * PAGE_SIZE),
+        };
+        if (activeSearch.trim().length >= 3) params.keyword = activeSearch.trim();
+        if (sort) {
+          params.sort = sort.field;
+          params.dir = sort.direction === 'desc' ? 'desc' : 'asc';
         }
-      }
-      // Apply extra filters (e.g. date range from header)
-      if (extraFilters) {
-        for (const [k, v] of Object.entries(extraFilters)) {
-          if (v !== undefined && v !== null && v !== '') params[k] = v;
+        const urlFilters = urlFiltersRef.current;
+        if (urlFilters) {
+          for (const [k, v] of Object.entries(urlFilters)) {
+            if (!params[k]) params[k] = String(v);
+          }
         }
+        if (extraFilters) {
+          for (const [k, v] of Object.entries(extraFilters)) {
+            if (v !== undefined && v !== null && v !== '') params[k] = String(v);
+          }
+        }
+
+        const qs = new URLSearchParams(params).toString();
+        const res = await fetch(`/wcapi/view/?${qs}`, { credentials: 'include' });
+        const json = await res.json();
+        if (modelChangeRef.current !== fetchId) { dbLog('fetchRecords:stale (model changed)'); return; }
+
+        const payload = json?.data || json;
+        resultList = toRecList(payload?.results);
+        resultTotal = typeof payload?.total === 'number' ? payload.total : resultList.length;
+
+      } else {
+        // Standard model path — Django ORM via getRecords
+        const md = await getModelDetail(selectedModel) as { model?: { fields?: unknown } };
+        if (modelChangeRef.current !== fetchId) { dbLog('fetchRecords:stale (model changed)'); return; }
+
+        const rf = md?.model?.fields;
+        if (Array.isArray(rf)) fields = rf.map(fieldName).filter((n): n is string => !!n);
+        else if (isObj(rf)) fields = Object.keys(rf);
+        setAllFields(fields);
+        dbLog('fetchRecords:fields', { model: selectedModel, fieldCount: fields.length, fields: fields.slice(0, 10) });
+
+        const params: Record<string, unknown> = { limit: PAGE_SIZE, offset: page * PAGE_SIZE };
+        if (activeSearch.trim().length >= 3) params.keyword = activeSearch.trim();
+        if (sort) params.ordering = sort.direction === 'desc' ? `-${sort.field}` : sort.field;
+        const urlFilters = urlFiltersRef.current;
+        if (urlFilters) {
+          for (const [k, v] of Object.entries(urlFilters)) {
+            if (!params[k]) params[k] = v;
+          }
+        }
+        if (extraFilters) {
+          for (const [k, v] of Object.entries(extraFilters)) {
+            if (v !== undefined && v !== null && v !== '') params[k] = v;
+          }
+        }
+
+        const list = await getRecords(selectedModel, params) as { results?: unknown; total?: number };
+        if (modelChangeRef.current !== fetchId) { dbLog('fetchRecords:stale (model changed)'); return; }
+
+        resultList = toRecList(list?.results);
+        resultTotal = typeof list?.total === 'number' ? list.total : resultList.length;
       }
-
-      const list = await getRecords(selectedModel, params) as { results?: unknown; total?: number };
-      if (modelChangeRef.current !== fetchId) { dbLog('fetchRecords:stale (model changed)'); return; }
-
-      const resultList = toRecList(list?.results);
-      const resultTotal = typeof list?.total === 'number' ? list.total : resultList.length;
       console.log('[DB]', instanceId.current, 'setRecords', selectedModel, resultTotal, 'records, fetchId=', fetchId);
       setRecords(resultList);
       setTotalRecords(resultTotal);
