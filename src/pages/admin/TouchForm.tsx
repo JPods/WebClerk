@@ -305,9 +305,14 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div data-wc="touch-dialog" className="db-md-dialog"
         style={{ width: 520, maxHeight: '80vh' }}>
-        {/* Header */}
-        <div className="db-md-header">
+        {/* Header — actions at top, most-likely first */}
+        <div className="db-md-header" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className="db-md-title" style={{ fontSize: fontSize + 1 }}>Log Touch</span>
+          <span style={{ flex: 1 }} />
+          <button className="db-btn db-btn--small db-btn--save" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Touch'}
+          </button>
+          <button className="db-btn db-btn--small" onClick={onClose}>Cancel</button>
           <button className="db-md-close" onClick={onClose}>&times;</button>
         </div>
 
@@ -422,13 +427,7 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
           )}
         </div>
 
-        {/* Footer */}
-        <div className="db-border-top" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button className="db-btn db-btn--small" onClick={onClose}>Cancel</button>
-          <button className="db-btn db-btn--small db-btn--save" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : 'Save Touch'}
-          </button>
-        </div>
+        {/* Footer removed — Save/Cancel in header per WC3 standard: actions top-down by priority */}
       </div>
     </div>
   );
