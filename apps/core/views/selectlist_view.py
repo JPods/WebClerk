@@ -18,29 +18,40 @@ from apps.core.models import Setting
 
 
 def _extract_options(config: dict) -> list:
-    """Walk a Setting config and extract all options/choices arrays with their paths."""
+    """Walk a Setting config and extract all select list arrays.
+
+    Primary path: config.selectlists.<field> = [{value, label}]
+    Legacy fallback paths (read-only, for backward compat):
+      - config.behaviors.<field>.options
+      - config.field_behaviors.<field>.options
+      - config.lists.<name>.choices
+      - config.select_lists.<name>.options
+    """
     entries = []
     if not isinstance(config, dict):
         return entries
 
-    # Pattern 1: config.lists.<name>.choices (wc:admin)
-    lists = config.get('lists')
-    if isinstance(lists, dict):
-        for name, lst in lists.items():
-            if isinstance(lst, dict):
-                choices = lst.get('choices')
-                if isinstance(choices, list):
-                    entries.append({
-                        'field': name,
-                        'path': f'lists.{name}.choices',
-                        'options': choices,
-                        'count': len(choices),
-                    })
+    seen_fields = set()
 
-    # Pattern 2: config.behaviors.<field>.options (wc:model)
+    # Primary: config.selectlists.<field> — canonical location
+    selectlists = config.get('selectlists')
+    if isinstance(selectlists, dict):
+        for field, opts in selectlists.items():
+            if isinstance(opts, list) and len(opts) > 0:
+                entries.append({
+                    'field': field,
+                    'path': f'selectlists.{field}',
+                    'options': opts,
+                    'count': len(opts),
+                })
+                seen_fields.add(field)
+
+    # Legacy fallback: config.behaviors.<field>.options
     behaviors = config.get('behaviors')
     if isinstance(behaviors, dict):
         for field, spec in behaviors.items():
+            if field in seen_fields:
+                continue
             if isinstance(spec, dict):
                 options = spec.get('options')
                 if isinstance(options, list) and len(options) > 0:
@@ -50,11 +61,14 @@ def _extract_options(config: dict) -> list:
                         'options': options,
                         'count': len(options),
                     })
+                    seen_fields.add(field)
 
-    # Pattern 3: config.field_behaviors.<field>.options (wc:field_access)
+    # Legacy fallback: config.field_behaviors.<field>.options
     fb = config.get('field_behaviors')
     if isinstance(fb, dict):
         for field, spec in fb.items():
+            if field in seen_fields:
+                continue
             if isinstance(spec, dict):
                 options = spec.get('options')
                 if isinstance(options, list) and len(options) > 0:
@@ -64,11 +78,31 @@ def _extract_options(config: dict) -> list:
                         'options': options,
                         'count': len(options),
                     })
+                    seen_fields.add(field)
 
-    # Pattern 4: config.select_lists.<name>.options (wc:company_profile)
+    # Legacy fallback: config.lists.<name>.choices
+    lists = config.get('lists')
+    if isinstance(lists, dict):
+        for name, lst in lists.items():
+            if name in seen_fields:
+                continue
+            if isinstance(lst, dict):
+                choices = lst.get('choices')
+                if isinstance(choices, list) and len(choices) > 0:
+                    entries.append({
+                        'field': name,
+                        'path': f'lists.{name}.choices',
+                        'options': choices,
+                        'count': len(choices),
+                    })
+                    seen_fields.add(name)
+
+    # Legacy fallback: config.select_lists.<name>.options
     sl = config.get('select_lists')
     if isinstance(sl, dict):
         for name, spec in sl.items():
+            if name in seen_fields:
+                continue
             if isinstance(spec, dict):
                 options = spec.get('options')
                 if isinstance(options, list) and len(options) > 0:
@@ -78,6 +112,7 @@ def _extract_options(config: dict) -> list:
                         'options': options,
                         'count': len(options),
                     })
+                    seen_fields.add(name)
 
     return entries
 
