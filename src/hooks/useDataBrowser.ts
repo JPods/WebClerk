@@ -637,6 +637,20 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
           behaviors = faRec?.config?.field_behaviors || {};
         }
 
+        // Merge config.selectlists into behaviors — canonical source for dropdown options
+        const selectlists = faRec?.config?.selectlists;
+        if (selectlists && typeof selectlists === 'object') {
+          for (const [field, opts] of Object.entries(selectlists)) {
+            if (Array.isArray(opts) && opts.length > 0) {
+              behaviors[field] = {
+                ...(behaviors[field] || {}),
+                type: 'select',
+                options: opts,
+              };
+            }
+          }
+        }
+
         // Dynamic assigned_to select for action model — three-tier fallback
         if (selectedModel === 'action' && behaviors.assigned_to) {
           const settingAssignTo = faRec?.prefs?.assigned_to;
