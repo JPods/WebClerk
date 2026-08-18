@@ -1672,6 +1672,22 @@
   text-decoration-style: solid;
 }
 
+.touch-contact-name {
+  border: none;
+  background: transparent;
+  color: var(--db-text);
+  font-weight: 600;
+  font-size: inherit;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.touch-contact-name:hover {
+  background: color-mix(in srgb, var(--db-accent) 12%, transparent);
+}
+
 /* ContactPicker search */
 .touch-contact-search {
   border: 1px solid var(--db-border);

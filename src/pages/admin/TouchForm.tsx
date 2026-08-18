@@ -38,6 +38,7 @@ const ContactPicker: React.FC<ContactPickerProps> = ({ label, contactId, contact
   const [results, setResults] = useState<any[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [editing, setEditing] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -64,6 +65,7 @@ const ContactPicker: React.FC<ContactPickerProps> = ({ label, contactId, contact
     setQuery('');
     setShowResults(false);
     setResults([]);
+    setEditing(false);
   };
 
   // Close dropdown on outside click
@@ -93,25 +95,33 @@ const ContactPicker: React.FC<ContactPickerProps> = ({ label, contactId, contact
 
   return (
     <div ref={wrapperRef} style={{ position: 'relative' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div className="db-label--default" style={{ fontSize: fontSize - 1, marginBottom: 2 }}>
         <button className="touch-contact-label" onClick={handleLabelClick}
           title={contactId > 0 ? 'Click: open contact · Shift-click: refresh' : label}
           style={{ fontSize: fontSize - 1 }}>
           {label}
         </button>
-        {contactId > 0 && <span className="db-text" style={{ fontSize, fontWeight: 600 }}>{contactName || `#${contactId}`}</span>}
-        {contactPhone && copyBadge(contactPhone, 'phone')}
-        {contactEmail && copyBadge(contactEmail, 'email')}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
+        <button className="touch-contact-name" onClick={() => setEditing(!editing)}
+          title="Click to change contact">
+          {contactName || (contactId > 0 ? `#${contactId}` : '— none —')}
+        </button>
+        {copyBadge(contactPhone || 'missing', contactPhone ? 'phone' : 'no phone')}
+        {copyBadge(contactEmail || 'missing', contactEmail ? 'email' : 'no email')}
+      </div>
+      {editing && (
         <input
           type="text"
           value={query}
           onChange={(e) => handleInput(e.target.value)}
           onFocus={() => { if (results.length > 0) setShowResults(true); }}
-          placeholder={contactId > 0 ? '↻ change...' : 'Search contacts...'}
+          placeholder="Search contacts..."
           className="touch-contact-search"
-          style={{ fontSize: fontSize - 1, flex: 1 }}
+          style={{ fontSize: fontSize - 1, width: '100%', marginTop: 4 }}
+          autoFocus
         />
-      </div>
+      )}
       {showResults && results.length > 0 && (
         <div className="touch-contact-results">
           {results.map((r: any) => (
