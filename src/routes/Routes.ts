@@ -44,6 +44,7 @@
   static readonly modelWorkbench: string = "/model-workbench";
   static readonly whitelist: string = "/whitelist";
   static readonly formParade: string = "/form-parade";
+  static readonly selectLists: string = "/selectlists";
   static readonly docs: string = "/docs";
   static readonly notionTracker: string = "/notion-tracker";
   static readonly kanbanBoard: string = "/kanban";
