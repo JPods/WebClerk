@@ -44,6 +44,7 @@ type NavItem = {
 
 // Icon registry — maps model/page names to Lucide icons
 const ICON_MAP: Record<string, LucideIcon> = {
+  agenda: CalendarRange,
   contact: UserCircle,
   customer: Users,
   vendor: Truck,
@@ -88,6 +89,7 @@ function iconFor(name: string): React.ReactNode {
 
 // Route map — model name to route path
 const ROUTE_MAP: Record<string, string> = {
+  agenda: "/agenda",
   dashboard: "/dashboard",
   kanban: "/kanban",
   gantt: PageRoutes.gantt,
@@ -119,6 +121,7 @@ const DISPLAY_NAMES: Record<string, string> = {
   sync: "Sync",
   support: "Support",
   operations: "Operations",
+  agenda: "Agenda",
   administration: "Administration",
   databrowser: "databrowser",
   json: "JSON",
@@ -154,7 +157,7 @@ const AppSidebar: React.FC = () => {
   const { ensureWindow, activateWindow, activePath } = useWindowManager();
 
   // Read nav config from config.ui.navbar
-  const modelNames: string[] = getUI<string[]>('navbar.models', ['contact', 'customer', 'proposal', 'order', 'invoice', 'purchase']);
+  const modelNames: string[] = getUI<string[]>('navbar.models', ['agenda', 'proposal', 'order', 'invoice', 'purchase', 'action']);
   const dashboardNames: string[] = getUI<string[]>('navbar.dashboards', ['dashboard', 'products', 'transactions', 'orgs', 'administration', 'kanban', 'gantt', 'alice', 'databrowser', 'json']);
 
   const modelItems = buildItems(modelNames);

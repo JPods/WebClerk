@@ -45,6 +45,7 @@
   static readonly whitelist: string = "/whitelist";
   static readonly formParade: string = "/form-parade";
   static readonly selectLists: string = "/selectlists";
+  static readonly agenda: string = "/agenda";
   static readonly docs: string = "/docs";
   static readonly notionTracker: string = "/notion-tracker";
   static readonly kanbanBoard: string = "/kanban";

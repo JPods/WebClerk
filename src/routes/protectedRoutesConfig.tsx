@@ -24,6 +24,7 @@ import TeamDashboard from "../pages/admin/TeamDashboard";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import FormParade from "../pages/tools/FormParade";
 import SelectListBrowser from "../pages/tools/SelectListBrowser";
+import AgendaView from "../pages/admin/AgendaView";
 import JsonTreeApplet from "../pages/tools/JsonTreeApplet";
 import ItemDetailJson from "../apps/products/pages/ItemDetailJson";
 import DDCardDashboard from "../pages/Dashboard/DDCardDashboard";
@@ -149,6 +150,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.whitelist, element: <WhitelistTester /> },
   { path: PageRoutes.formParade, element: <FormParade /> },
   { path: PageRoutes.selectLists, element: <SelectListBrowser /> },
+  { path: PageRoutes.agenda, element: <AgendaView /> },
   { path: "/json-tree", element: <JsonTreeApplet /> },
   { path: "/alice-dashboard", element: <AliceDashboard /> },
   { path: "/help", element: <HelpDashboard /> },
