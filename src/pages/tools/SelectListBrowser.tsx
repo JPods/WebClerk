@@ -204,22 +204,29 @@ const SelectListBrowser: React.FC = () => {
   const [sortKey, setSortKey] = useState<SortKey>('field');
   const [sortAsc, setSortAsc] = useState(true);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/wcapi/selectlists/', { credentials: 'include' });
-      const json = await res.json();
-      console.log('[SelectListBrowser] raw keys:', Object.keys(json), 'data keys:', json.data ? Object.keys(json.data) : 'no data');
-      const r = json?.data?.rows || json?.rows || [];
-      console.log('[SelectListBrowser] fetched', r.length, 'rows');
-      setRows(r);
-    } catch (err) {
-      console.error('Failed to load select lists:', err);
-    }
-    setLoading(false);
+  useEffect(() => {
+    let cancelled = false;
+    const doFetch = async () => {
+      try {
+        // Get auth token from apiClient defaults
+        const token = apiClient.defaults.headers?.common?.['Authorization'] ||
+          (apiClient as any).defaults?.headers?.Authorization || '';
+        const headers: Record<string, string> = { 'Accept': 'application/json' };
+        if (token) headers['Authorization'] = String(token);
+        const res = await window.fetch('/wcapi/selectlists/', { headers, credentials: 'include' });
+        if (cancelled) return;
+        const json = await res.json();
+        const r = json?.data?.rows || json?.rows || [];
+        setRows(r);
+      } catch (err: any) {
+        console.error('[SLB] fetch failed:', err);
+      }
+      if (!cancelled) setLoading(false);
+    };
+    // Wait for auth bootstrap to complete
+    const timer = setTimeout(doFetch, 1000);
+    return () => { cancelled = true; clearTimeout(timer); };
   }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortAsc(!sortAsc);

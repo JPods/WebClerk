@@ -50,14 +50,13 @@ async function fetchTouchSummary(model: string, recordId: number, contactId: num
 
     if (count === 0) return { count: 0, daysUntilNext: null };
 
-    // Find the most recent touch with a plan > 0
+    // Find the nearest dt_next across all touches
     const now = Date.now();
     let nearestDue: number | null = null;
 
     for (const t of touches) {
-      if (t.plan && t.plan > 0 && t.dt_created) {
-        const dueMs = t.dt_created + (t.plan * 86400000);
-        const daysLeft = Math.ceil((dueMs - now) / 86400000);
+      if (t.dt_next && t.dt_next > 0) {
+        const daysLeft = Math.ceil((t.dt_next - now) / 86400000);
         if (nearestDue === null || daysLeft < nearestDue) {
           nearestDue = daysLeft;
         }
