@@ -94,11 +94,27 @@ const ContactPicker: React.FC<ContactPickerProps> = ({ label, contactId, contact
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingLeft: 2, alignItems: 'center' }}>
           {contactPhone && copyBadge(contactPhone, 'phone')}
           {contactEmail && copyBadge(contactEmail, 'email')}
-          {contactId > 0 && (!contactPhone || !contactEmail) && (
-            <button className="touch-copy-badge" title="Edit contact record"
-              onClick={(e) => { e.preventDefault(); window.open(`/contact/${contactId}`, `contact-${contactId}`, 'width=900,height=700'); }}>
-              ✎ edit contact
-            </button>
+          {contactId > 0 && (
+            <>
+              {(!contactPhone || !contactEmail) && (
+                <button className="touch-copy-badge" title="Edit contact record"
+                  onClick={(e) => { e.preventDefault(); window.open(`/contact/${contactId}`, `contact-${contactId}`, 'width=900,height=700'); }}>
+                  ✎ edit
+                </button>
+              )}
+              <button className="touch-copy-badge" title="Refresh contact data"
+                onClick={async (e) => {
+                  e.preventDefault();
+                  try {
+                    const { getRecord } = await import('@/api/wcapi');
+                    const res = await getRecord('contact', contactId);
+                    const c = res?.record || res;
+                    if (c) onChange(contactId, c.attention || c.display_name || c.name || contactName, c.phone || '', c.email || '');
+                  } catch {}
+                }}>
+                ↻
+              </button>
+            </>
           )}
         </div>
       )}
