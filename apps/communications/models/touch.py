@@ -142,7 +142,13 @@ class Touch(BaseModel):
     plan = models.PositiveSmallIntegerField(
         default=0,
         db_index=True,
-        help_text="Follow-up in N days from dt_created. 0 = no follow-up. Due when dt_created + (plan * 86400000) <= now."
+        help_text="Follow-up in N days from dt_created. 0 = no follow-up."
+    )
+
+    dt_next = models.BigIntegerField(
+        default=0,
+        db_index=True,
+        help_text="Epoch ms of next follow-up. Set on save: dt_created + (plan * 86400000). 0 = none. Query: WHERE dt_next <= now() AND dt_next > 0"
     )
 
     class Meta:
@@ -194,8 +200,16 @@ class Touch(BaseModel):
         except Exception:
             pass
 
+    def _compute_dt_next(self):
+        """Set dt_next from plan + dt_created."""
+        if self.plan and self.plan > 0 and self.dt_created:
+            self.dt_next = self.dt_created + (self.plan * 86400000)
+        else:
+            self.dt_next = 0
+
     def save(self, *args, **kwargs):
         self._resolve_org_from_contact()
+        self._compute_dt_next()
         super().save(*args, **kwargs)
 
     def post_save_hook(self, data, is_update=False, context=None):
