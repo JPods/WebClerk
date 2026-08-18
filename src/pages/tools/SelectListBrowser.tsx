@@ -87,7 +87,7 @@ const OptionsEditor: React.FC<{
               </td>
               <td>
                 <button onClick={() => handleRemove(idx)} title="Remove"
-                  style={{ background: 'none', border: 'none', color: 'var(--db-text-muted)', cursor: 'pointer', fontSize: '14px' }}>×</button>
+                  style={{ background: 'none', border: 'none', color: '#e53e3e', cursor: 'pointer', fontSize: '14px', fontWeight: 700 }}>×</button>
               </td>
             </tr>
           ))}
@@ -113,13 +113,13 @@ const OptionsEditor: React.FC<{
       <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
         {!adding && (
           <button onClick={() => setAdding(true)}
-            style={{ background: 'none', border: '1px solid var(--db-border)', borderRadius: 3, padding: '2px 8px', color: 'var(--db-accent)', cursor: 'pointer', fontSize: fs }}>
+            style={{ background: 'color-mix(in srgb, #22c55e 12%, transparent)', border: '1px solid #22c55e', borderRadius: 3, padding: '2px 8px', color: '#22c55e', cursor: 'pointer', fontSize: fs, fontWeight: 600 }}>
             + Add
           </button>
         )}
         {onSave && (
           <button onClick={onSave} disabled={saving}
-            style={{ background: 'var(--db-accent)', border: 'none', borderRadius: 3, padding: '3px 12px', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: fs }}>
+            style={{ background: '#3355FF', border: 'none', borderRadius: 3, padding: '3px 12px', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: fs }}>
             {saving ? 'Saving...' : '💾 Save'}
           </button>
         )}
@@ -192,7 +192,7 @@ const SiblingPanel: React.FC<{
 /*  Main Page                                                          */
 /* ------------------------------------------------------------------ */
 
-type SortKey = 'field' | 'setting_name' | 'setting_parent_model' | 'setting_purpose' | 'count' | 'shared_count';
+type SortKey = 'field' | 'setting_ida' | 'setting_name' | 'setting_parent_model' | 'setting_purpose' | 'count' | 'shared_count';
 
 const SelectListBrowser: React.FC = () => {
   const [rows, setRows] = useState<SelectListRow[]>([]);
@@ -269,7 +269,7 @@ const SelectListBrowser: React.FC = () => {
       <PageMeta title="Select Lists" />
 
       {/* Left — list with sortable header */}
-      <div style={{ width: 520, borderRight: '1px solid var(--db-border)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ width: 620, borderRight: '1px solid var(--db-border)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--db-border)', fontWeight: 700, fontSize: 13, color: 'var(--db-text)' }}>
           Select Lists ({rows.length})
         </div>
@@ -279,7 +279,7 @@ const SelectListBrowser: React.FC = () => {
           borderBottom: '2px solid var(--db-border)', background: 'var(--db-surface-alt)',
           fontSize: 10, fontWeight: 700, color: 'var(--db-text-muted)', textTransform: 'uppercase',
         }}>
-          {([['field', 'Field', 110], ['setting_name', 'Name', 0], ['setting_parent_model', 'Model', 70], ['setting_purpose', 'Purpose', 80], ['count', '#', 25], ['shared_count', '×', 25]] as const).map(([key, label, minW]) => (
+          {([['field', 'Field', 100], ['setting_ida', 'IDA', 90], ['setting_name', 'Name', 0], ['setting_parent_model', 'Model', 65], ['setting_purpose', 'Purpose', 70], ['count', '#', 22], ['shared_count', '×', 22]] as const).map(([key, label, minW]) => (
             <button key={key} onClick={() => handleSort(key as SortKey)}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0',
@@ -303,12 +303,13 @@ const SelectListBrowser: React.FC = () => {
                 background: selectedIdx === idx ? 'color-mix(in srgb, var(--db-accent) 12%, transparent)' : 'transparent',
                 cursor: 'pointer', textAlign: 'left', fontSize: 11, color: 'var(--db-text)',
               }}>
-              <span style={{ fontWeight: 600, minWidth: 110 }}>{row.field}</span>
-              <span style={{ color: 'var(--db-text-muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.setting_name || row.setting_ida}</span>
-              <span style={{ color: 'var(--db-text-muted)', minWidth: 70 }}>{row.setting_parent_model}</span>
-              <span style={{ color: 'var(--db-text-muted)', minWidth: 80, fontSize: 10 }}>{row.setting_purpose}</span>
-              <span style={{ color: 'var(--db-text-muted)', minWidth: 25, textAlign: 'right' }}>{row.count}</span>
-              <span style={{ color: row.shared_count > 1 ? 'var(--db-accent)' : 'var(--db-text-muted)', minWidth: 25, textAlign: 'right', fontSize: 10, fontWeight: row.shared_count > 1 ? 600 : 400 }}>
+              <span style={{ fontWeight: 600, minWidth: 100 }}>{row.field}</span>
+              <span style={{ color: 'var(--db-text-muted)', minWidth: 90, fontFamily: 'monospace', fontSize: 10 }}>{row.setting_ida}</span>
+              <span style={{ color: 'var(--db-text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.setting_name}</span>
+              <span style={{ color: 'var(--db-text-muted)', minWidth: 65 }}>{row.setting_parent_model}</span>
+              <span style={{ color: 'var(--db-text-muted)', minWidth: 70, fontSize: 10 }}>{row.setting_purpose}</span>
+              <span style={{ color: 'var(--db-text-muted)', minWidth: 22, textAlign: 'right' }}>{row.count}</span>
+              <span style={{ color: row.shared_count > 1 ? 'var(--db-accent)' : 'var(--db-text-muted)', minWidth: 22, textAlign: 'right', fontSize: 10, fontWeight: row.shared_count > 1 ? 600 : 400 }}>
                 {row.shared_count > 1 ? `×${row.shared_count}` : ''}
               </span>
             </button>
