@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 
-from apps.products.services.inventory_adjustment_processor import process_pending_inventory
+from apps.transactions.services.pending_inventory_processor import process_line_item_pending as process_pending_inventory
 from apps.products.services.inventory_reservations import release_expired
 
 logger = logging.getLogger('inventory')

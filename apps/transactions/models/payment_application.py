@@ -52,15 +52,10 @@ class PaymentApplication(BaseModel):
         if self.amount <= 0:
             raise ValidationError("Applied amount must be positive")
 
-        # Check payment has sufficient remaining amount
-        total_applied = sum(
-            app.amount for app in self.payment.applications.all()
-            if app.pk != self.pk  # Exclude self if updating
-        )
-        remaining = self.payment.amount - total_applied
-        if self.amount > remaining:
+        # Check payment has sufficient available amount
+        if self.amount > self.payment.available:
             raise ValidationError(
-                f"Applied amount (${self.amount}) exceeds payment remaining (${remaining})"
+                f"Applied amount (${self.amount}) exceeds payment available (${self.payment.available})"
             )
 
         # Check invoice has sufficient balance

@@ -18,7 +18,7 @@ from typing import List, Dict, Optional
 from django.db import transaction
 from apps.transactions.models import Order, OrderLine, Invoice, InvoiceLine, WorkOrder, WorkOrderLine
 from apps.core.models.action import Action
-from apps.products.services.inventory_pending import adjust_item_quantity
+from apps.core.models import Pending
 import time
 
 
@@ -178,16 +178,21 @@ def partial_ship(order_id: int, shipped_lines: List[Dict]) -> Dict:
             ol.quantity = qty_data
             ol.save(update_fields=['quantity', 'dt_modified'])
 
-            # ONE PATH: decrement item on_hand via adjust_item_quantity
+            # ONE PATH: decrement item on_hand via Pending
             if ol.item_fk_id and qty_shipped > 0:
-                adjust_item_quantity(
-                    item_id=ol.item_fk_id,
-                    field='on_hand',
-                    delta=-qty_shipped,
-                    reason='production_ship',
-                    source_type='order',
-                    source_id=order.pk,
-                    source_line_id=ol.pk,
+                Pending.objects.create(
+                    model_name='item',
+                    record_id=str(ol.item_fk_id),
+                    purpose='inventory_line_add',
+                    name=f'Production ship: {ol.item_fk_id}',
+                    changes={
+                        'on_hand': -qty_shipped,
+                        'item_id': ol.item_fk_id,
+                        'reason': 'production_ship',
+                        'source_type': 'order',
+                        'source_id': order.pk,
+                        'source_line_id': ol.pk,
+                    },
                 )
 
             # Track backorder if remaining > 0

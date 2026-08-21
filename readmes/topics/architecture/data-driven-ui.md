@@ -2,8 +2,9 @@
 
 **Domain:** datadrivenui.com
 **Date:** 2026-08-03 (archive date) through 2026-08-06 (documentation)
+**Terms updated:** 2026-08-18 — canonical layout names established (list, detail, form, column)
 **Principle:** The data defines the interface. The program bends to the user's perception. The trellis serves the rose.
-**Xref:** Duplicate maintained at `~/Allie/readmes/data-driven-ui.md` — update both when either changes.
+**Schema:** `db-layout-schema.md` — the canonical layout schema definition.
 
 ---
 
@@ -20,45 +21,49 @@ In one week, 45,091 lines of hand-coded React detail pages were replaced by ~1,7
 | ItemDetail | 2,968 lines | 291 lines | 90% |
 | CommPanel | 1,704 lines | 65 lines | 96% |
 | TransactionDetailBase | 3,404 lines | 373 lines (8 components) | 89% |
-| New model cost | ~400 lines of custom .tsx | 0 lines (add a ui.json layout) | 100% |
+| New model cost | ~400 lines of custom .tsx | 0 lines (add a form layout) | 100% |
 
 ## How It Works
 
-### Three UI Paths
+### Three Rendering Paths
 
 Every model uses exactly one rendering path:
 
 | Path | Renderer | When to use |
 |------|----------|-------------|
-| **ui.json** | DynamicDetail + FieldRow + Design Mode | User-facing business forms |
-| **db.json** | databrowser (db.list + db.detail) | Admin/config, structured data |
-| **ui.tsx** | Custom React component | Complex interaction (drag, timeline, real-time) |
+| **form** | DynamicDetail + FieldRow + Design Mode | User-facing business forms (App mode) |
+| **detail** | GroupedDetailFields + BehaviorField | Admin/config, all fields in groups (Admin mode) |
+| **custom** | Custom React component (.tsx) | Complex interaction (drag, timeline, real-time) |
+
+Every model also gets **list** (DataBrowser grid) and **detail** (admin field grid) automatically. The **form** path is what makes a model feel like a business application. The **custom** path is reserved for interaction that JSON can't express.
 
 ### The Layout Format
 
-A layout is a JSON object stored as a Setting record. It defines rows of fields:
+Layouts live in `config.layout` on `wc:model` Setting records. See `db-layout-schema.md` for the full schema. Four paired layout types:
 
-```json
-{
-  "rows": [
-    { "fields": ["action"], "cols": 1 },
-    { "fields": ["assigned_to", "status"], "cols": 2 },
-    { "fields": ["priority", "difficulty", "percent_complete"], "cols": 3 },
-    { "fields": ["dt_start", "dt_deadline", "dt_completed"], "cols": 3 }
-  ]
-}
-```
+| Type | What it stores |
+|------|---------------|
+| `layout.list` | Grid columns, widths, sort — scanning many records |
+| `layout.detail` | All fields, one record, collapsible groups — Admin mode |
+| `layout.form` | Curated business form — cards, tabs, lines — App mode |
+| `layout.column` | Panel grid inside a detail view |
 
 ### The Rendering Stack
 
 ```
-Setting (detail_layout)     ← JSON layout definition, syncable, per-user overridable
+Setting (config.layout)        ← JSON layout definition, syncable, per-user overridable
     ↓
-DynamicDetail (455 lines)   ← reads layout, renders form, handles arrange mode
+useDataBrowser hook            ← loads Setting, resolves active layouts, computes field specs
     ↓
-BehaviorField               ← field-level rendering based on field_behaviors Setting
+DataBrowser.tsx                ← left panel (list), right panel (detail or form)
+    ↓ (Admin mode)                              ↓ (App mode)
+GroupedDetailFields            ← detail layout   DynamicDetail / *DetailJson  ← form layout
+    ↓                                           ↓
+FieldGroupSection              ← collapsible     Cards + Lines + Tabs
+    ↓                                           ↓
+BehaviorField                  ← field-level rendering based on field_behaviors
     ↓
-Widget Registry (10 widgets) ← text, select, date, number, json-tree, lookup, etc.
+Widget Registry (20 widgets)   ← text, select, date, currency, lookup, json-tree, geo, etc.
 ```
 
 ### Design Mode
@@ -104,22 +109,6 @@ All replaced code lives in `React2025/src/archive/replaced-2026-08-03/`. This is
 
 The archive exists for research — to understand what the hand-coded pages did, what edge cases they handled, and what assumptions they encoded. It is not operational code.
 
-### Key Archived Files
-
-| File | Lines | Replaced by |
-|------|-------|-------------|
-| ContactDetail.tsx | 4,114 | ContactDetailJson.tsx (325) |
-| ContactDetail2.tsx | 3,095 | ContactDetailJson.tsx (325) |
-| ContactDetail3.tsx | 3,110 | ContactDetailJson.tsx (325) |
-| ItemDetail.tsx | 2,968 | ItemDetailJson.tsx (291) |
-| TransactionDetailBase.tsx | 3,404 | TransactionDetail.tsx (373) |
-| CommunicationsPanel.tsx | 1,704 | CommPanel.tsx (65) |
-| CustomerDetail.tsx | 1,530 | OrgDetail.json.tsx |
-| VendorDetail.tsx | 1,514 | OrgDetail.json.tsx |
-| OrderDetail.tsx | 1,176 | TransactionDetail.tsx (373) |
-| OrgDetail.tsx | 1,208 | OrgDetail.json.tsx |
-| 44 db-json-models/ | 15,618 | databrowser db.detail |
-
 ## Lineage
 
 This approach has roots in Bill James's 2002 book on Desktop Hosting (Wiley). The core idea: stop building message-based interfaces ("fill out this form"). Build published-based interfaces — the system publishes what you need based on who you are, what you're doing, and what the data says. Data-Driven UI is that idea implemented 24 years later, with JSON layouts, a widget registry, and a Settings hierarchy that lets every user see the interface that fits their work.
@@ -149,20 +138,15 @@ Layouts are Settings. Settings sync. This means users can share their layouts wi
 
 ### What Gets Shared
 
-Both layout types participate:
+All layout types participate:
 
-| Layout type | Setting purpose | What the user built |
-|-------------|----------------|---------------------|
-| **Detail layout** (ui.json) | `detail_layout` | Form arrangement — which fields, what order, how many columns |
-| **List layout** (databrowser) | `workbench_fields` | Column selection, order, widths, filters, sort |
+| Layout type | What the user built |
+|-------------|---------------------|
+| **List** | Column selection, order, widths — how to scan records |
+| **Detail** | Field arrangement, groups, visibility — how to inspect a record |
+| **Form** | Cards, tabs, lines, edit rules — how to do business with a record |
 
-A user who builds a great order entry form and a great order list view can submit both. They're separate Settings, separate library entries, independently adoptable.
-
-### Why This Matters
-
-The traditional approach: a vendor designs one layout per model, ships it, and every customer adapts. The WebClerk approach: users who do the work every day design the layouts that fit their work, the best layouts surface through adoption, and creators are rewarded.
-
-This is the same pattern as the Pydantic schema evolution — bottom-up, not top-down. The difference: schemas are structural (Alice observes and proposes). Layouts are creative (users design and share). Both improve through the Wisdom of the Many. Both require user consent. Both reward contribution.
+A user who builds a great order entry form and a great order list can submit both. They're separate named layouts, separate library entries, independently adoptable.
 
 ### Transport
 
@@ -174,9 +158,7 @@ Layouts move through the existing sync infrastructure:
 
 ## Open Items
 
-1. **JSON Schema validation** — layouts should validate against a formal schema at save time. Missing or misspelled field names should fail loudly, not render silently wrong.
-2. **736 code standard violations** — mostly in untouched old code (no-dark-mode, missing-data-wc, raw-select). These resolve naturally as old pages are replaced.
-3. **Pending models** — work_order, receipt, requisition, payment transactions still need ui.json layouts.
-4. **Print templates** — layout-driven print is built; template library needs population.
-5. **Layout library UI at WC_HQ** — browse, preview, install flow. Alice curation logic.
-6. **Creator credit accounting** — threshold for cash payout, subscription credit rules.
+1. **Pending models** — work_order, receipt, requisition, payment transactions still need form layouts.
+2. **Print templates** — layout-driven print is built; template library needs population.
+3. **Layout library UI at WC_HQ** — browse, preview, install flow. Alice curation logic.
+4. **Creator credit accounting** — threshold for cash payout, subscription credit rules.

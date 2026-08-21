@@ -60,7 +60,12 @@ def _ensure_refs_dict(refs):
 
 
 def _resolve_item_id(line) -> int | None:
-    """Extract item ID from any line's ``item`` JSONField."""
+    """Extract item ID from any line's ``item`` JSONField or item_fk FK."""
+    # Try the FK field first (authoritative)
+    fk_id = getattr(line, 'item_fk_id', None)
+    if fk_id:
+        return fk_id
+    # Fall back to JSON item dict
     item = getattr(line, 'item', {}) or {}
     return item.get('id_num') or item.get('id') or item.get('item_id')
 

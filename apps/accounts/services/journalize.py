@@ -404,18 +404,12 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
                 created += 1
                 posting_list.append({'account': account, 'debit': 0, 'credit': float(data['credit']), 'purpose': data['purpose']})
 
-        # Mark invoice as journalized
-        meta = invoice.metadata or {}
-        meta['gl_accounts'] = {
-            'event': 'invoice_journalized',
-            'posted': True,
-            'dt_posted': _now_ms(),
-            'journal_count': created,
-        }
+        # Mark invoice as journalized — dt_journaled non-zero = locked
+        now = _now_ms()
         Invoice.objects.filter(pk=invoice_id).update(
-            metadata=meta,
+            dt_journaled=now,
             is_locked=True,
-            dt_modified=_now_ms(),
+            dt_modified=now,
         )
 
     # Accrue commission if present on this invoice
@@ -470,15 +464,9 @@ def journalize_payment(payment_id: int, ida_prefix: str = '') -> dict:
     # Adjusting entries, memo credits — mark as journalized immediately.
     amount = Decimal(str(getattr(payment, 'amount', 0) or 0))
     if amount == 0:
-        meta = payment.metadata or {}
-        meta['gl_accounts'] = {
-            'event': 'payment_journalized',
-            'posted': True,
-            'dt_posted': _now_ms(),
-            'zero_amount': True,
-        }
+        now = _now_ms()
         Payment.objects.filter(pk=payment_id).update(
-            metadata=meta, is_locked=True, dt_modified=_now_ms(),
+            dt_journaled=now, is_locked=True, dt_modified=now,
         )
         return {'created': 0, 'status': 'auto_completed', 'payment_ida': payment.ida,
                 'message': 'Zero-amount payment auto-completed without GL entry'}
@@ -557,17 +545,12 @@ def journalize_payment(payment_id: int, ida_prefix: str = '') -> dict:
         created += 1
         posting_list.append({'account': credit_account, 'debit': 0, 'credit': float(abs_amount), 'purpose': credit_purpose})
 
-        # Mark payment as journalized
-        meta = payment.metadata or {}
-        meta['gl_accounts'] = {
-            'event': 'payment_journalized',
-            'posted': True,
-            'dt_posted': _now_ms(),
-        }
+        # Mark payment as journalized — dt_journaled non-zero = locked
+        now = _now_ms()
         Payment.objects.filter(pk=payment_id).update(
-            metadata=meta,
+            dt_journaled=now,
             is_locked=True,
-            dt_modified=_now_ms(),
+            dt_modified=now,
         )
 
     return {'created': created, 'postings': posting_list, 'payment_ida': payment.ida}
@@ -678,16 +661,12 @@ def journalize_purchase(purchase_id: int, ida_prefix: str = '') -> dict:
                 created += 1
                 posting_list.append({'account': account, 'debit': 0, 'credit': float(data['credit']), 'purpose': data['purpose']})
 
-        meta = purchase.metadata or {}
-        meta['gl_accounts'] = {
-            'event': 'purchase_journalized',
-            'posted': True,
-            'dt_posted': _now_ms(),
-        }
+        # Mark purchase as journalized — dt_journaled non-zero = locked
+        now = _now_ms()
         Purchase.objects.filter(pk=purchase_id).update(
-            metadata=meta,
+            dt_journaled=now,
             is_locked=True,
-            dt_modified=_now_ms(),
+            dt_modified=now,
         )
 
     return {'created': created, 'postings': posting_list, 'purchase_ida': purchase.ida}
@@ -756,21 +735,16 @@ def batch_journalize(ida_prefix: str = 'zzz-', run_by_id: int = None) -> dict:
             result['doc_ida'] = doc_ida
             results['exceptions'].append(result)
 
-    # Find un-journalized invoices (have lines, not yet posted)
-    posted_inv_ids = set(GlJournal.objects.filter(source_model='invoice').values_list('source_id', flat=True))
-    invoices = Invoice.objects.exclude(pk__in=posted_inv_ids).filter(is_active=True)
+    # Find un-journalized records — dt_journaled=0 means not yet posted
+    invoices = Invoice.objects.filter(dt_journaled=0, is_active=True)
     for inv in invoices:
         _classify(journalize_invoice(inv.pk, ida_prefix=ida_prefix), 'invoices', inv.ida)
 
-    # Find un-journalized payments
-    posted_pay_ids = set(GlJournal.objects.filter(source_model='payment').values_list('source_id', flat=True))
-    payments = Payment.objects.exclude(pk__in=posted_pay_ids).filter(is_active=True)
+    payments = Payment.objects.filter(dt_journaled=0, is_active=True)
     for pay in payments:
         _classify(journalize_payment(pay.pk, ida_prefix=ida_prefix), 'payments', pay.ida)
 
-    # Find un-journalized purchases
-    posted_po_ids = set(GlJournal.objects.filter(source_model='purchase').values_list('source_id', flat=True))
-    purchases = Purchase.objects.exclude(pk__in=posted_po_ids).filter(is_active=True)
+    purchases = Purchase.objects.filter(dt_journaled=0, is_active=True)
     for po in purchases:
         _classify(journalize_purchase(po.pk, ida_prefix=ida_prefix), 'purchases', po.ida)
 

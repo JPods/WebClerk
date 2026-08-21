@@ -31,17 +31,16 @@ class GlJournal(BaseModel):
         db_index=True, help_text="Department/division code for GL segmentation")
     batch_id = models.CharField(max_length=80, blank=True, default='',
         db_index=True, help_text="Groups journal lines into a single posting batch (e.g., SJ-2026-06)")
-    date_posted = models.DateField(blank=True, null=True,
-        help_text="Accounting date for this entry (may differ from dt_created)")
-    is_posted = models.BooleanField(default=False, db_index=True,
-        help_text="True after exported to accounting package")
+    # Journalizing lock — 0 means editable, non-zero epoch ms means locked
+    dt_journaled = models.BigIntegerField(default=0, db_index=True,
+        help_text="UTC epoch ms when journalized. 0=editable, non-zero=locked.")
     note = models.CharField(max_length=255, blank=True, default='')
 
     class Meta:
         db_table = 'gl_journals'
         indexes = [
             models.Index(fields=['batch_id', 'account'], name='glj_batch_acct_idx'),
-            models.Index(fields=['division', 'date_posted'], name='glj_div_date_idx'),
+            models.Index(fields=['division', 'dt_journaled'], name='glj_div_journaled_idx'),
         ]
 
     def __str__(self):

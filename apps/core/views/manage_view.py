@@ -69,6 +69,53 @@ from common.api_responses import api_response
 logger = logging.getLogger(__name__)
 
 
+# ── Allowlisted management commands for admin tools ──────────────────────
+_ADMIN_TOOL_COMMANDS = {
+    'audit_field_behaviors',
+    'audit_select_lists',
+    'seed_model_definitions',
+    'seed_company_settings',
+    'seed_select_lists',
+    'seed_freshstart',
+    'load_demo_data',
+    'remove_demo_data',
+    'pack_demo_bundle',
+    'seed_demo',
+    'seed_demo_transactions',
+}
+
+
+def _run_admin_tool(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Run an allowlisted management command and capture its JSON output.
+
+    Params:
+        command: management command name (must be in allowlist)
+        args: list of CLI arguments (e.g. ["--json", "--model", "order"])
+    """
+    import io
+    import json
+    from django.core.management import call_command
+
+    command = params.get('command', '')
+    args = params.get('args', [])
+
+    if command not in _ADMIN_TOOL_COMMANDS:
+        raise ValueError(f"Command '{command}' is not in the admin tool allowlist")
+
+    # Capture stdout
+    out = io.StringIO()
+    call_command(command, *args, stdout=out)
+    output = out.getvalue()
+
+    # Try to parse as JSON; fall back to plain text
+    try:
+        result = json.loads(output)
+    except (json.JSONDecodeError, ValueError):
+        result = {'text': output}
+
+    return {'command': command, 'args': args, 'result': result}
+
+
 def _carrier_action(method_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
     """Dispatch a carrier API call via the Connection record.
 
@@ -255,7 +302,7 @@ def _get_receivable_aging(params: Dict[str, Any]) -> Dict[str, Any]:
     # ── Fetch all open AR ledgers with org FK ──────────────────────────
     ledgers = (
         Ledger.objects
-        .filter(source='AR', is_settled=False)
+        .filter(source='AR', dt_applied__isnull=True)
         .exclude(value_available=0)
         .exclude(value_available__isnull=True)
         .values('org_id', 'dt_due', 'value_available', 'parent_id', 'model_name')
@@ -834,6 +881,18 @@ _ACTION_DISPATCH = {
         month=int(params['month']) if params.get('month') else None,
         category=params.get('category'),
     ),
+    "get_item_by_ida": lambda params: __import__(
+        'apps.products.services.inventory_flight_sim',
+        fromlist=['get_item_by_ida']
+    ).get_item_by_ida(
+        ida=params['ida'],
+    ),
+    "reset_flight_simulator": lambda params: __import__(
+        'apps.products.services.inventory_flight_sim',
+        fromlist=['reset_flight_simulator']
+    ).reset_flight_simulator(
+        item_ida=params['ida'],
+    ),
     "get_item_flight_state": lambda params: __import__(
         'apps.products.services.inventory_flight_sim',
         fromlist=['get_item_flight_state']
@@ -844,10 +903,26 @@ _ACTION_DISPATCH = {
         'apps.products.services.inventory_flight_sim',
         fromlist=['get_flight_scenario']
     ).get_flight_scenario(),
-    "get_flight_ledger": lambda params: __import__(
+    "get_payment_flight_scenario": lambda params: __import__(
         'apps.products.services.inventory_flight_sim',
-        fromlist=['get_flight_ledger']
-    ).get_flight_ledger(
+        fromlist=['get_payment_flight_scenario']
+    ).get_payment_flight_scenario(),
+    "get_first_customer_scenario": lambda params: __import__(
+        'apps.products.services.onboarding_flight_sim',
+        fromlist=['get_first_customer_scenario']
+    ).get_first_customer_scenario(),
+    "get_first_item_scenario": lambda params: __import__(
+        'apps.products.services.onboarding_flight_sim',
+        fromlist=['get_first_item_scenario']
+    ).get_first_item_scenario(),
+    "get_first_sale_scenario": lambda params: __import__(
+        'apps.products.services.onboarding_flight_sim',
+        fromlist=['get_first_sale_scenario']
+    ).get_first_sale_scenario(),
+    "get_flight_transactions": lambda params: __import__(
+        'apps.products.services.inventory_flight_sim',
+        fromlist=['get_flight_transactions']
+    ).get_flight_transactions(
         item_id=int(params['item_id']),
     ),
     "get_collections_dashboard": lambda params: __import__(
@@ -989,9 +1064,13 @@ _ACTION_DISPATCH = {
     "get_available_templates": lambda p: __import__('apps.communications.services.mail_merge', fromlist=['get_available_templates']).get_available_templates(p.get('model_name')),
     # ── Clone / Duplicate ──
     "clone_record": lambda p: __import__('apps.core.services.clone', fromlist=['clone_record']).clone_record(p['model_name'], p['record_id'], p.get('include_children', True), p.get('contact_id')),
-    # ── Inventory Pending (ONE PATH) ──
-    "adjust_item_quantity": lambda p: __import__('apps.products.services.inventory_pending', fromlist=['adjust_item_quantity']).adjust_item_quantity(p['item_id'], p['field'], p['delta'], p.get('reason', ''), p.get('source_type', ''), p.get('source_id'), p.get('source_line_id'), p.get('inventory_layer_id')),
-    "get_pending_for_item": lambda p: __import__('apps.products.services.inventory_pending', fromlist=['get_pending_for_item']).get_pending_for_item(p['item_id']),
+    # ── Inventory Pending (ONE PATH — Pending.try_apply on save) ──
+    "adjust_item_quantity": lambda p: __import__('apps.products.services.inventory_services', fromlist=['adjust_item_quantity_via_pending']).adjust_item_quantity_via_pending(p),
+    "get_pending_for_item": lambda p: list(
+        __import__('apps.core.models', fromlist=['Pending']).Pending.objects.filter(
+            model_name='item', record_id=str(p['item_id']),
+        ).order_by('-dt_created').values('id', 'purpose', 'changes', 'dt_processed', 'dt_created')[:50]
+    ),
     # ── Field Change Requests ──
     "request_field_change": lambda p: __import__('apps.ai_assistant.services.field_change_requests', fromlist=['request_field_change']).request_field_change(p.get('model',''), p.get('field',''), p.get('change_type','select'), p.get('values_source','static'), p.get('options'), p.get('query_model',''), p.get('query_field',''), p.get('query_filter',''), p.get('setting_name',''), p.get('reason',''), p.get('field_label',''), p.get('contact_id')),
     "approve_field_change": lambda p: __import__('apps.ai_assistant.services.field_change_requests', fromlist=['approve_field_change']).approve_field_change(p['action_id'], p['contact_id']),
@@ -1036,6 +1115,8 @@ _ACTION_DISPATCH = {
     "get_inventory_summary": lambda p: __import__('apps.core.services.commerce_dashboard', fromlist=['get_inventory_summary']).get_inventory_summary(p),
     "get_velocity_report": lambda p: __import__('apps.core.services.commerce_dashboard', fromlist=['get_velocity_report']).get_velocity_report(p),
     "get_accounting_dashboard": lambda p: __import__('apps.core.services.commerce_dashboard', fromlist=['get_accounting_dashboard']).get_accounting_dashboard(p),
+    # ── Admin Tools (management commands via Report records) ──
+    "run_admin_tool": _run_admin_tool,
     # ── Support Q&A (search → ask → answer → score → escalate) ──
     "search_support_qa": lambda p: __import__('apps.ai_assistant.services.support_qa', fromlist=['search_qa']).search_qa(p),
     "ask_support_qa": lambda p: __import__('apps.ai_assistant.services.support_qa', fromlist=['ask_qa']).ask_qa(p),
@@ -1050,6 +1131,7 @@ _STAFF_ONLY_ACTIONS = {
     "populate_commission",
     "accrue_commission",
     "get_commission_report",
+    "run_admin_tool",
 }
 
 

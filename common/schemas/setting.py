@@ -8,10 +8,12 @@ Settings with purpose='wc:model' use config.layout to store layouts:
   config.layout.active       — which named layout is selected per type
   config.layout.list.*       — named list layouts (toolbar grid + pairings)
   config.layout.column.*     — named column layouts (panel grid, no toolbar)
-  config.layout.dynamic.*    — named dynamic layouts (DynamicDetail sections + pairings)
-  config.layout.display.*    — named display layouts (JSON-driven detail pages + pairings)
+  config.layout.detail.*     — named detail layouts (all fields, collapsible groups + pairings)
+  config.layout.form.*       — named form layouts (curated business forms — cards, tabs, lines + pairings)
   config.layout.panel[]      — panel field specs (not paired)
-  config.layout.card[]       — card field specs (not paired)
+  config.layout.card{}       — named card definitions (not paired)
+
+Terms established 2026-08-18. See db-layout-schema.md.
 """
 from __future__ import annotations
 
@@ -24,7 +26,7 @@ from .envelopes import ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, Sour
 # ── DataBrowser layout types ─────────────────────────────────────────────
 
 class DbFieldSpec(BaseModel):
-    """One field in a list, column, or dynamic layout."""
+    """One field in a list, column, or detail layout."""
     field: str
     width: Optional[int] = None              # px — user sets via drag or type
     min_width: Optional[int] = None
@@ -46,9 +48,9 @@ class DbFieldSpec(BaseModel):
 
 
 class NamedListLayout(BaseModel):
-    """A named list layout — toolbar grid columns + pairings to dynamic and display."""
-    dynamic: str = 'default'                 # paired dynamic layout name
-    display: str = 'default'                 # paired display layout name
+    """A named list layout — toolbar grid columns + pairings to detail and form."""
+    detail: str = 'default'                  # paired detail layout name
+    form: str = 'default'                    # paired form layout name
     columns: List[DbFieldSpec] = Field(default_factory=list)
 
     class Config:
@@ -57,23 +59,23 @@ class NamedListLayout(BaseModel):
 
 class NamedColumnLayout(BaseModel):
     """A named column layout — panel grid (no toolbar) + pairings."""
-    dynamic: str = 'default'                 # paired dynamic layout name
-    display: str = 'default'                 # paired display layout name
+    detail: str = 'default'                  # paired detail layout name
+    form: str = 'default'                    # paired form layout name
     columns: List[DbFieldSpec] = Field(default_factory=list)
 
     class Config:
         extra = 'forbid'
 
 
-class NamedDynamicLayout(BaseModel):
-    """A named dynamic layout — DynamicDetail sections + pairings to list and display.
+class NamedDetailLayout(BaseModel):
+    """A named detail layout — all fields, collapsible groups + pairings to list and form.
 
     The 'sections' field holds the DynamicDetail definition (model, family,
     sections[], edit_rules). It's typed as Any because DynamicDetail schemas
     are complex and defined elsewhere.
     """
     list: str = 'default'                    # paired list layout name
-    display: str = 'default'                 # paired display layout name
+    form: str = 'default'                    # paired form layout name
     sections: Any = None                     # DynamicDetail definition dict
 
     class Config:
@@ -95,7 +97,7 @@ class CardFieldSpec(BaseModel):
 class CardSpec(BaseModel):
     """A reusable card definition — named block of fields with optional component override.
 
-    Cards are the building blocks of db.display layouts. Most cards are pure JSON
+    Cards are the building blocks of form layouts. Most cards are pure JSON
     (fields rendered via FieldRow). Cards that need interactive behavior reference
     a registered React component by name.
     """
@@ -110,8 +112,8 @@ class CardSpec(BaseModel):
         extra = 'allow'
 
 
-class DisplayHeader(BaseModel):
-    """Header section of a display layout — arranges cards."""
+class FormHeader(BaseModel):
+    """Header section of a form layout — arranges cards."""
     layout: str = 'columns'                  # columns, rows, stacked
     cards: List[str] = Field(default_factory=list)  # card names from layout.card
 
@@ -119,8 +121,8 @@ class DisplayHeader(BaseModel):
         extra = 'allow'
 
 
-class DisplayLines(BaseModel):
-    """Line items section of a display layout."""
+class FormLines(BaseModel):
+    """Line items section of a form layout."""
     family: Optional[str] = None             # sell, exec
     toolbar: List[str] = Field(default_factory=list)
     actions: List[str] = Field(default_factory=list)
@@ -129,8 +131,8 @@ class DisplayLines(BaseModel):
         extra = 'allow'
 
 
-class DisplayTab(BaseModel):
-    """A tab in a display layout."""
+class FormTab(BaseModel):
+    """A tab in a form layout."""
     label: str
     content: str                             # panel name: summary, actions, documents, etc.
 
@@ -139,7 +141,7 @@ class DisplayTab(BaseModel):
 
 
 class EditRules(BaseModel):
-    """Edit locking rules for a display layout."""
+    """Edit locking rules for a form layout."""
     locked_statuses: List[str] = Field(default_factory=list)
     status_field: str = 'status'
     require_unlock_for: List[str] = Field(default_factory=list)
@@ -148,29 +150,29 @@ class EditRules(BaseModel):
         extra = 'allow'
 
 
-class NamedDisplayLayout(BaseModel):
-    """A named display layout — JSON-driven detail page (replaces *DetailJson.tsx hardcoding).
+class NamedFormLayout(BaseModel):
+    """A named form layout — curated business form (cards, tabs, lines, edit rules).
 
-    Pairings to list and dynamic. The display layout drives header cards,
-    line items, tabs, and edit rules for the full detail view.
+    Pairings to list and detail. The form layout drives header cards,
+    line items, tabs, and edit rules for the full detail view in App mode.
     """
     list: str = 'default'                    # paired list layout name
-    dynamic: str = 'default'                 # paired dynamic layout name
-    header: Optional[DisplayHeader] = None
-    lines: Optional[DisplayLines] = None
-    tabs: List[DisplayTab] = Field(default_factory=list)
+    detail: str = 'default'                  # paired detail layout name
+    header: Optional[FormHeader] = None
+    lines: Optional[FormLines] = None
+    tabs: List[FormTab] = Field(default_factory=list)
     edit_rules: Optional[EditRules] = None
 
     class Config:
-        extra = 'allow'                      # display layouts carry diverse keys
+        extra = 'allow'                      # form layouts carry diverse keys
 
 
 class ActiveLayout(BaseModel):
     """Tracks which named layout is currently selected per type."""
     list: str = 'default'
     column: str = 'default'
-    dynamic: str = 'default'
-    display: str = 'default'
+    detail: str = 'default'
+    form: str = 'default'
 
     class Config:
         extra = 'forbid'
@@ -183,17 +185,19 @@ class LayoutConfig(BaseModel):
     with in the other types. Pick any one, the others follow.
       - list    — toolbar grid (DataBrowser main view)
       - column  — panel grid (no toolbar, hamburger to configure)
-      - dynamic — DynamicDetail sections (form builder)
-      - display — JSON-driven detail page (ContactDetailJson pattern)
+      - detail  — all fields, collapsible groups (Admin mode)
+      - form    — curated business form with cards, tabs, lines (App mode)
 
     Two unpaired types (panel, card) — always rendered in their specific
     context regardless of which paired layout is active.
+
+    Terms established 2026-08-18. See db-layout-schema.md.
     """
     active: ActiveLayout = Field(default_factory=ActiveLayout)
     list: Dict[str, NamedListLayout] = Field(default_factory=lambda: {'default': NamedListLayout()})
     column: Dict[str, NamedColumnLayout] = Field(default_factory=lambda: {'default': NamedColumnLayout()})
-    dynamic: Dict[str, NamedDynamicLayout] = Field(default_factory=lambda: {'default': NamedDynamicLayout()})
-    display: Dict[str, NamedDisplayLayout] = Field(default_factory=lambda: {'default': NamedDisplayLayout()})
+    detail: Dict[str, NamedDetailLayout] = Field(default_factory=lambda: {'default': NamedDetailLayout()})
+    form: Dict[str, NamedFormLayout] = Field(default_factory=lambda: {'default': NamedFormLayout()})
     panel: List[DbFieldSpec] = Field(default_factory=list)
     card: Dict[str, CardSpec] = Field(default_factory=dict)
     related: List[str] = Field(default_factory=list)

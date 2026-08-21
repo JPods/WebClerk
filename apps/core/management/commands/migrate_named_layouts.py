@@ -58,17 +58,18 @@ def migrate_layout(layout):
     """
     if not layout:
         return {
-            'active': {'list': 'default', 'column': 'default', 'dynamic': 'default', 'display': 'default'},
-            'list': {'default': {'dynamic': 'default', 'display': 'default', 'columns': []}},
-            'column': {'default': {'dynamic': 'default', 'display': 'default', 'columns': []}},
-            'dynamic': {'default': {'list': 'default', 'display': 'default'}},
-            'display': {'default': {'list': 'default', 'dynamic': 'default'}},
+            'active': {'list': 'default', 'column': 'default', 'detail': 'default', 'form': 'default'},
+            'list': {'default': {'detail': 'default', 'form': 'default', 'columns': []}},
+            'column': {'default': {'detail': 'default', 'form': 'default', 'columns': []}},
+            'detail': {'default': {'list': 'default', 'form': 'default'}},
+            'form': {'default': {'list': 'default', 'detail': 'default'}},
             'panel': [],
             'card': [],
         }, 'empty layout → defaults'
 
+    # Support both old keys (dynamic/display) and new keys (detail/form)
     old_list = layout.get('list', [])
-    old_detail = layout.get('detail', [])
+    old_detail_sections = layout.get('detail', layout.get('dynamic', []))
     old_views = layout.get('views', [])
     old_panel = layout.get('panel', [])
     old_card = layout.get('card', [])
@@ -80,44 +81,44 @@ def migrate_layout(layout):
     new_list = {}
     if isinstance(old_list, list) and old_list:
         new_list['default'] = {
-            'dynamic': 'default',
-            'display': 'default',
+            'detail': 'default',
+            'form': 'default',
             'columns': [normalize_field_spec(s) for s in old_list],
         }
         changes.append(f'list: {len(old_list)} fields → default')
     else:
-        new_list['default'] = {'dynamic': 'default', 'display': 'default', 'columns': []}
+        new_list['default'] = {'detail': 'default', 'form': 'default', 'columns': []}
 
     # --- Build layout.column (panel grid) ---
     new_column = {}
     if isinstance(old_panel, list) and old_panel:
         new_column['default'] = {
-            'dynamic': 'default',
-            'display': 'default',
+            'detail': 'default',
+            'form': 'default',
             'columns': [normalize_field_spec(s) for s in old_panel],
         }
         changes.append(f'panel → column.default: {len(old_panel)} fields')
     else:
-        new_column['default'] = {'dynamic': 'default', 'display': 'default', 'columns': []}
+        new_column['default'] = {'detail': 'default', 'form': 'default', 'columns': []}
 
-    # --- Build layout.dynamic (DynamicDetail sections) ---
-    new_dynamic = {}
-    if isinstance(old_detail, dict) and old_detail:
-        # Old detail was DynamicDetail sections → dynamic layout
-        dyn_entry = {
+    # --- Build layout.detail (all fields, collapsible groups) ---
+    new_detail = {}
+    if isinstance(old_detail_sections, dict) and old_detail_sections:
+        # Old detail was DynamicDetail sections → detail layout
+        detail_entry = {
             'list': 'default',
-            'display': 'default',
+            'form': 'default',
         }
-        for k, v in old_detail.items():
-            dyn_entry[k] = v
-        new_dynamic['default'] = dyn_entry
-        changes.append(f'detail (DynamicDetail) → dynamic.default')
+        for k, v in old_detail_sections.items():
+            detail_entry[k] = v
+        new_detail['default'] = detail_entry
+        changes.append(f'detail (DynamicDetail) → detail.default')
     else:
-        new_dynamic['default'] = {'list': 'default', 'display': 'default'}
+        new_detail['default'] = {'list': 'default', 'form': 'default'}
 
-    # --- Build layout.display (JSON-driven detail pages) ---
-    new_display = {}
-    new_display['default'] = {'list': 'default', 'dynamic': 'default'}
+    # --- Build layout.form (curated business form) ---
+    new_form = {}
+    new_form['default'] = {'list': 'default', 'detail': 'default'}
 
     # --- Migrate views into named list entries ---
     for view in old_views:
@@ -130,8 +131,8 @@ def migrate_layout(layout):
         view_list = view.get('list', [])
         if isinstance(view_list, list) and view_list:
             new_list[name] = {
-                'dynamic': 'default',
-                'display': 'default',
+                'detail': 'default',
+                'form': 'default',
                 'columns': [normalize_field_spec(s) for s in view_list],
             }
 
@@ -139,11 +140,11 @@ def migrate_layout(layout):
 
     # --- Assemble new layout ---
     new_layout = {
-        'active': {'list': 'default', 'column': 'default', 'dynamic': 'default', 'display': 'default'},
+        'active': {'list': 'default', 'column': 'default', 'detail': 'default', 'form': 'default'},
         'list': new_list,
         'column': new_column,
-        'dynamic': new_dynamic,
-        'display': new_display,
+        'detail': new_detail,
+        'form': new_form,
         'panel': old_panel,
         'card': old_card,
     }

@@ -458,21 +458,26 @@ def record_payment(invoice, amount: Decimal, dt_paid, payment=None, gl_account_i
     
     # AUDIT: Ensure Decimal type for precision
     val = (amount if isinstance(amount, Decimal) else Decimal(str(amount)))
-    
+
+    # WC2: origValue = -amount (immutable), unAppliedValue = -available (tracks applications)
+    # `amount` passed here is payment.available (from on_payment_save).
+    # value_original uses the full payment.amount for the immutable record.
+    original_amount = Decimal(str(getattr(payment, 'amount', val))) if payment else val
+
     # AUDIT: Create payment ledger with NEGATIVE value
     # -abs(val) ensures negative regardless of input sign
     obj = Ledger(
         dt_recorded=dt_paid,                       # When payment was recorded
-        dt_posted=dt_paid,                         # When payment was posted (same initially)
-        is_settled=False,                          # Not yet allocated to invoice ledgers
+        dt_journaled=0,                            # 0=editable, set to epoch ms when journalized
+        dt_applied=None,                           # Not yet allocated to invoice ledgers
         model_name='payment',                      # Source document type
         source=source,                             # Usually 'AR'
         parent_id=pid,                             # Payment record ID
         org_id=org_id,                             # Org FK for indexed queries
         invoice=invoice,                           # FK to Invoice for allocation
         term_id=None,                              # Payments don't have terms
-        value_original=float(-abs(val)),           # Original amount (NEGATIVE, immutable)
-        value_available=float(-abs(val)),          # Current unallocated (NEGATIVE)
+        value_original=float(-abs(original_amount)),  # Original payment amount (NEGATIVE, immutable)
+        value_available=float(-abs(val)),              # Current unapplied (NEGATIVE, tracks applications)
         refs=refs,                                 # Additional metadata
         gl_account=gl_account_id,                  # GL account for FX variance
     )

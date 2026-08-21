@@ -102,7 +102,7 @@ def create_trip_invoice(data: dict[str, Any]) -> dict[str, Any]:
         "network_id": network_id,
         "currency": currency,
         "source": "natalie",
-        "dt_posted": timezone.now().isoformat(),
+        "dt_trip_created": timezone.now().isoformat(),
     }
 
     totals = {

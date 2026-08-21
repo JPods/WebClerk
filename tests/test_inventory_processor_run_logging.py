@@ -1,53 +1,55 @@
 import pytest
 from decimal import Decimal
-from apps.products.models import InventoryLayer, InventoryAdjustmentProcessorRun
-from apps.products.models.inventory_layer import PendingInventoryAdjustment
+from apps.core.models import Pending
+from apps.products.models import InventoryLayer
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
-from apps.products.services.inventory_adjustment_processor import process_pending_inventory, process_pending_for_stack
+from apps.transactions.services.pending_inventory_processor import process_pending_for_item
 
 pytestmark = pytest.mark.django_db
 
-def make_stack(qty=10):
-    item = Item.objects.create(name="Test Item", sku=None)
+
+def make_item_and_stack(qty=10):
+    item = Item.objects.create(name="Test Item", quantity={
+        'on_hand': float(qty), 'available': float(qty),
+        'on_so': 0, 'on_po': 0, 'on_p': 0,
+    })
     wh = Warehouse.objects.create(name="Main WH", code=f"WH{item.id}")
-    stack = InventoryLayer.objects.create(item=item, warehouse=wh, quantity={"received": float(qty), "issued": 0})
-    return stack
+    stack = InventoryLayer.objects.create(
+        item=item, warehouse=wh,
+        quantity={"received": float(qty), "issued": 0},
+    )
+    return item, stack
 
 
-def test_global_processor_creates_run():
-    stack = make_stack(qty=5)
-    stack.is_locked = True
-    stack.save(update_fields=["is_locked"])
-    success, pending = stack.issue_or_enqueue(2, reason="issue")
-    assert success is False
-    assert isinstance(pending, PendingInventoryAdjustment)
-    stack.is_locked = False
-    stack.save(update_fields=["is_locked"])
-    summary = process_pending_inventory(dry_run=False)
-    assert summary["attempted"] >= 1
-    run = InventoryAdjustmentProcessorRun.objects.order_by('-id').first()
-    assert run is not None
-    assert run.run_type == InventoryAdjustmentProcessorRun.RUN_GLOBAL
-    assert run.attempted == summary["attempted"]
-    assert run.applied == summary["applied"]
-    assert isinstance(run.duration_s, (float, int, Decimal))
-    assert run.summary.get("attempted") == summary["attempted"]
+def test_pending_applies_on_save():
+    item, stack = make_item_and_stack(qty=100)
+    p = Pending.objects.create(
+        model_name='item', record_id=str(item.pk),
+        purpose='inventory_line_add', name='Test apply',
+        changes={'on_p': 15, 'item_id': item.pk},
+    )
+    assert p.is_processed()
+    item.refresh_from_db()
+    assert item.quantity.get('on_p') == 15
 
 
-def test_stack_processor_creates_run():
-    stack = make_stack(qty=8)
-    success, pending = stack.issue_or_enqueue(20, reason="issue")
-    assert success is False
-    assert isinstance(pending, PendingInventoryAdjustment)
-    assert pending.reason == "insufficient_issue"
-    pending.qty = Decimal('3')
-    pending.reason = "issue"
-    pending.save(update_fields=["qty", "reason"])
-    summary = process_pending_for_stack(stack.id, dry_run=False)
-    run = InventoryAdjustmentProcessorRun.objects.filter(stack_id=stack.id).order_by('-id').first()
-    assert run is not None
-    assert run.run_type == InventoryAdjustmentProcessorRun.RUN_STACK
-    assert run.stack_id == stack.id
-    assert run.applied == summary["applied"]
-    assert run.summary.get("stack_id") == stack.id
+def test_celery_processor_picks_up_unprocessed():
+    item, stack = make_item_and_stack(qty=100)
+
+    # Create pending and force it to unprocessed
+    p = Pending.objects.create(
+        model_name='item', record_id=str(item.pk),
+        purpose='inventory_line_add', name='Test celery',
+        changes={'on_so': 9, 'item_id': item.pk},
+    )
+    # Reset: force unprocessed and revert item
+    Pending.objects.filter(pk=p.pk).update(dt_processed=0)
+    item.quantity['on_so'] = 0
+    item.save(update_fields=['quantity'])
+
+    result = process_pending_for_item(item_id=item.pk)
+    assert result['processed'] == 1
+
+    item.refresh_from_db()
+    assert item.quantity.get('on_so') == 9

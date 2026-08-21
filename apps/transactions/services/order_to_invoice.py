@@ -68,99 +68,46 @@ def transfer_order_to_invoice(
         metadata=_prepare_invoice_metadata(order, invoice_type),
     )
 
-    # ── Phase 1: Save all lines, collect inventory deltas ────────────
-    line_mapping: Dict[int, int] = {}
-    pending_deltas: List[Dict[str, Any]] = []
-    transferred = 0
-
+    # ── Build line data for React — NOT saved server-side ────────────
+    # Conversion creates the header. React receives line data and populates
+    # the form. User reviews, clicks Save.
+    # On save: InvoiceLine records created → each fires its own pending.
+    # InvoiceLine tells OrderLine to adjust → OrderLine saves → fires its pending.
+    lines_for_react = []
     for ol in lines_to_transfer:
         q = ol.quantity or {}
         remaining = q.get("remaining", 0)
         if transfer_all and remaining <= 0:
             continue
 
-        # Create InvoiceLine — suppress signal with _pending_created
-        il = InvoiceLine(
-            invoice=invoice,
-            status=ol.status or "pending",
-            price_level=ol.price_level,
-            item=ol.item,
-            quantity=_convert_quantity_for_invoice(ol.quantity),
-            price=ol.price,
-            cost=ol.cost,
-            tax=ol.tax,
-            physical=ol.physical,
-            refs=_prepare_line_refs(ol),
-            prefs=dict(ol.prefs or {}),
-            metadata=_prepare_line_metadata(ol, order),
-        )
-        il._pending_created = True  # suppress signal
-        il.save()
+        lines_for_react.append({
+            'line_number': getattr(ol, 'line_number', 0) or 0,
+            'item': ol.item or {},
+            'quantity': _convert_quantity_for_invoice(ol.quantity),
+            'price': ol.price or {},
+            'cost': ol.cost or {},
+            'tax': getattr(ol, 'tax', None) or {},
+            'price_level': ol.price_level or '',
+            'status': ol.status or 'pending',
+            'is_active': True,
+            'comments': getattr(ol, 'comments', None) or {},
+            'config': getattr(ol, 'config', None) or {},
+            'commission': getattr(ol, 'commission', None) or {},
+            'refs': _prepare_line_refs(ol),
+            '_dirty': True,
+        })
 
-        line_mapping[ol.id] = il.id
-        transferred += 1
-
-        # Update source OrderLine — suppress signal with _pending_created
-        _update_order_line_quantity(ol, remaining, child_line_id=il.id)
-
-        # Collect the inventory delta for this transfer
-        item_data = ol.item or {}
-        item_id = item_data.get('id') or item_data.get('item_id')
-        if item_id and remaining > 0:
-            pending_deltas.append({
-                'item_id': item_id,
-                'item_ida': item_data.get('ida', str(item_id)),
-                'quantity': float(remaining),
-                'invoice_line_id': il.id,
-                'order_line_id': ol.id,
-                'unit_cost': float((ol.cost or {}).get('unit', 0) or 0),
-                'unit_price': float((ol.price or {}).get('unit', 0) or 0),
-            })
-
-    # ── Phase 2: Create pending records from collected deltas ────────
-    _create_pending_records(invoice, order, pending_deltas)
-
-    if transfer_all:
-        remaining_total = sum(
-            (l.quantity or {}).get("remaining", 0) for l in OrderLine.objects.filter(order=order)
-        )
-        if remaining_total <= 0:
-            order.status = "fulfilled"
-            order.save(update_fields=["status", "dt_modified", "version"])
-    inv_refs = invoice.refs or {}
-    inv_refs.setdefault("source", {})["order_id"] = order.id
-    transfer_date_value: Any = getattr(invoice, "dt_created", None)
-    if getattr(transfer_date_value, "isoformat", None):
-        inv_refs["source"]["transfer_date"] = transfer_date_value.isoformat()
-    else:
-        try:
-            inv_refs["source"]["transfer_date"] = datetime.fromtimestamp(float(transfer_date_value), tz=dt_timezone.utc).isoformat()
-        except Exception:
-            inv_refs["source"]["transfer_date"] = str(transfer_date_value)
-    inv_refs["source"]["invoice_type"] = invoice_type
-    invoice.refs = inv_refs
-    invoice.save(update_fields=["refs", "dt_modified", "version"])
-
-    # Recalculate totals on both the new invoice and the source order
-    # so sell/cost/totals reflect the transferred lines.
-    try:
-        invoice.update_sell_cost_totals(persist=True)
-    except Exception:
-        pass  # best-effort; invoice lines are already saved
-    try:
-        order.update_sell_cost_totals(persist=True)
-    except Exception:
-        pass  # best-effort; order lines have been updated
+    # Order lines are NOT modified here. They are only copied.
+    # When the user saves the invoice:
+    #   1. InvoiceLine records are created → each fires on_hand/on_in pending
+    #   2. InvoiceLine tells OrderLine how to adjust → OrderLine saves → fires on_so pending
 
     return {
         "success": True,
         "invoice_id": invoice.id,
         "order_id": order.id,
-        "lines_transferred": transferred,
-        "line_mapping": line_mapping,
-        "order_preserved": preserve_order,
-        "invoice_status": invoice.status,
-        "invoice_type": invoice_type,
+        "lines_for_review": len(lines_for_react),
+        "lines": lines_for_react,
     }
     
 def _resolve_order_party(order: Order) -> Any:
@@ -298,14 +245,8 @@ def _create_pending_records(
             'line_id': delta['invoice_line_id'],
             'line_num': 0,
 
-            # Quantity buckets
+            # Release source bucket only — invoice line save handles on_hand/on_in
             'on_so': -qty,
-            'on_po': 0,
-            'on_wo': 0,
-            'on_in': qty,
-            'on_r': 0,
-            'on_p': 0,
-            'on_hand': -qty,
 
             # Pricing snapshot
             'unit_cost': delta['unit_cost'],
@@ -334,7 +275,7 @@ def _create_pending_records(
             record_id=str(item_id),
             purpose='inventory_line_add',
             name=f'IN Line Add: {delta["item_ida"]}',
-            data=pending_data,
+            changes=pending_data,
         )
         created.append(pending)
         logger.debug(

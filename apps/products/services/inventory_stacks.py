@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Dict, Optional, Literal
 from decimal import Decimal
 from django.db import transaction
-from apps.products.models.inventory_layer import InventoryLayer, PendingInventoryAdjustment
+from apps.products.models.inventory_layer import InventoryLayer
 import time
 
 

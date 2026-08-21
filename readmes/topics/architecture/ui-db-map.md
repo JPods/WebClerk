@@ -1,4 +1,13 @@
-# UI / DB Model Map
+# UI / DB Model Map — SUPERSEDED
+
+**Superseded by:** `model-layout-map.md` (2026-08-18)
+**Reason:** Terms changed — `ui.json`→form, `db.json`→detail. Content consolidated into one file.
+
+---
+
+*Original content below preserved for reference only.*
+
+# UI / DB Model Map (OLD)
 
 Every model has db.json access (databrowser) for administration. That's universal — not listed per model.
 

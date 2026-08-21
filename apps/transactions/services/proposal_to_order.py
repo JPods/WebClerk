@@ -128,92 +128,6 @@ def _convert_quantity_from_proposal(proposal_qty: Optional[Dict]) -> Dict:
     return order_qty
 
 
-def _create_transfer_pending_records(
-    order: Order,
-    proposal: Proposal,
-    pending_deltas: List[Dict],
-) -> List:
-    """Create Pending records for a proposal → order transfer.
-
-    For each transferred line creates TWO pending records:
-      1. Order-side:   on_so += quantity  (new SO commitment)
-      2. Proposal-side: on_p -= quantity  (release proposal forecast)
-
-    Called after all lines are saved so IDs are stable.
-    """
-    from apps.core.models import Pending
-
-    created = []
-    for delta in pending_deltas:
-        item_id = delta['item_id']
-        qty = delta['quantity']
-
-        # 1. Order-side pending: SO commitment
-        so_data = {
-            'type_id': 'SO',
-            'item_num': delta['item_ida'],
-            'item_id': item_id,
-            'doc_id': getattr(order, 'ida', '') or str(order.pk),
-            'doc_pk': order.pk,
-            'line_id': delta['order_line_id'],
-            'line_num': 0,
-            'on_so': qty, 'on_po': 0, 'on_wo': 0,
-            'on_in': 0, 'on_r': 0, 'on_p': 0, 'on_hand': 0,
-            'unit_cost': delta['unit_cost'],
-            'unit_price': delta['unit_price'],
-            'reason': 'so line add (from proposal transfer)',
-            'take_action': 1,
-            'changed_by': '',
-            'transaction_type': 'order',
-            'transaction_model': 'order',
-            'links': {'proposal': {'parent_id': proposal.pk, 'proposal_line_id': delta['proposal_line_id']}},
-        }
-        p_so = Pending.objects.create(
-            model_name='item',
-            record_id=str(item_id),
-            purpose='inventory_line_add',
-            name=f'SO Line Add: {delta["item_ida"]}',
-            data=so_data,
-        )
-        created.append(p_so)
-
-        # 2. Proposal-side pending: release forecast
-        pp_data = {
-            'type_id': 'PP',
-            'item_num': delta['item_ida'],
-            'item_id': item_id,
-            'doc_id': getattr(proposal, 'ida', '') or str(proposal.pk),
-            'doc_pk': proposal.pk,
-            'line_id': delta['proposal_line_id'],
-            'line_num': 0,
-            'on_so': 0, 'on_po': 0, 'on_wo': 0,
-            'on_in': 0, 'on_r': 0, 'on_p': -qty, 'on_hand': 0,
-            'unit_cost': delta['unit_cost'],
-            'unit_price': delta['unit_price'],
-            'reason': 'pp transfer to order',
-            'take_action': 1,
-            'changed_by': '',
-            'transaction_type': 'proposal',
-            'transaction_model': 'proposal',
-            'links': {'order': {'child_id': order.pk, 'order_line_id': delta['order_line_id']}},
-        }
-        p_pp = Pending.objects.create(
-            model_name='item',
-            record_id=str(item_id),
-            purpose='inventory_line_add',
-            name=f'PP Transfer to Order: {delta["item_ida"]}',
-            data=pp_data,
-        )
-        created.append(p_pp)
-
-        logger.debug(
-            f"Created pending pair for proposal→order: "
-            f"SO#{p_so.pk} (on_so=+{qty}), PP#{p_pp.pk} (on_p=-{qty}) "
-            f"item={item_id}"
-        )
-
-    return created
-
 
 @transaction.atomic
 def transfer_proposal_to_order(
@@ -263,88 +177,55 @@ def transfer_proposal_to_order(
 
     order = Order.objects.create(**order_kwargs)
 
-    # If party_id wasn't accepted at create but exists, set after
-    if hasattr(order, "party_id") and proposal_party_id is not None and "party_id" not in order_kwargs:
-        try:
-            setattr(order, "party_id", proposal_party_id)
-            order.save(update_fields=["party_id"])
-        except Exception:
-            # Ignore if field doesn't exist or is read-only
-            pass
+    # Copy customer/contact/party fields from proposal to order
+    for field in ('customer', 'contact', 'company', 'attention', 'address_full',
+                  'email', 'phone', 'price_level', 'terms', 'terms_fk'):
+        val = getattr(proposal, field, None)
+        if val is not None and hasattr(order, field):
+            setattr(order, field, val)
+    # Copy config (ship_to, etc.)
+    if getattr(proposal, 'config', None):
+        order.config = dict(proposal.config)
+    order.save()
 
-    # ── Phase 1: Save all lines, collect inventory deltas ────────────
-    line_mapping: Dict[int, int] = {}
-    pending_deltas: List[Dict] = []
-
+    # ── Build line data for React — NOT saved server-side ────────────
+    # Conversion creates the header. React receives line data and populates
+    # the form. User reviews, adjusts quantities, clicks Save.
+    # Save creates lines + pending records. Pending is fire-and-forget on save.
+    lines_for_react = []
     for pl in selected_lines:
         qty = _convert_quantity_from_proposal(getattr(pl, "quantity", None))
-        ol = OrderLine(
-            order=order,
-            price=pl.price or {},
-            cost=getattr(pl, "cost", None) or {},
-            quantity=qty,
-            item=getattr(pl, "item", None) or {},
-            refs={
-                "source": {"proposal_line_id": pl.id},
-                "xfer": build_line_payload(pl, "proposal"),  # common payload array
-            },
-        )
-        ol._pending_created = True  # suppress signal
-        ol.save()
-        line_mapping[pl.id] = ol.id
-
-        # Collect inventory delta for the new order line
-        item_data = getattr(pl, 'item', None) or {}
+        item_data = getattr(pl, "item", None) or {}
         item_id = item_data.get('id') or item_data.get('item_id') if isinstance(item_data, dict) else None
-        staged_qty = float(qty.get('remaining', 0) or qty.get('staged', 0) or qty.get('active', 0) or 0)
-        if item_id and staged_qty > 0:
-            pending_deltas.append({
-                'item_id': item_id,
-                'item_ida': item_data.get('ida', str(item_id)) if isinstance(item_data, dict) else str(item_id),
-                'quantity': staged_qty,
-                'order_line_id': ol.id,
-                'proposal_line_id': pl.id,
-                'unit_cost': float((getattr(pl, 'cost', None) or {}).get('unit', 0) or 0),
-                'unit_price': float((pl.price or {}).get('unit', 0) or 0),
-            })
 
-        # Update proposal line: children_active tracker + status
-        try:
-            pq = dict(getattr(pl, 'quantity', None) or {})
-            children = pq.get('children_active', {'sum': 0, 'lines': []})
-            if not isinstance(children, dict):
-                children = {'sum': 0, 'lines': []}
-            if not isinstance(children.get('lines'), list):
-                children['lines'] = []
-            children['lines'].append({'id': ol.id, 'active': staged_qty})
-            children['sum'] = sum(c.get('active', 0) for c in children['lines'])
-            pq['children_active'] = children
-            p_active = float(pq.get('active', 0) or 0)
-            pq['remaining'] = max(0.0, p_active - children['sum'])
-            pl.quantity = pq
-            pl.status = 'transferred' if pq['remaining'] <= 0 else pl.status
-            pl._pending_created = True  # suppress signal
-            pl.save(update_fields=['quantity', 'status', 'dt_modified', 'version'])
-        except Exception as e:
-            logger.warning('Failed to update proposal line %s children_active: %s', pl.pk, e)
+        lines_for_react.append({
+            'line_number': getattr(pl, 'line_number', 0) or 0,
+            'item': item_data,
+            'quantity': qty,
+            'price': pl.price or {},
+            'cost': getattr(pl, 'cost', None) or {},
+            'price_level': getattr(pl, 'price_level', '') or '',
+            'status': '',
+            'is_active': True,
+            'comments': getattr(pl, 'comments', None) or {},
+            'config': getattr(pl, 'config', None) or {},
+            'commission': getattr(pl, 'commission', None) or {},
+            'refs': {
+                'source': {'proposal_line_id': pl.id},
+                'xfer': build_line_payload(pl, "proposal"),
+            },
+            '_dirty': True,
+        })
 
-    # ── Phase 2: Create pending records from collected deltas ────────
-    _create_transfer_pending_records(order, proposal, pending_deltas)
-
-    # Update proposal if not preserving
-    if not preserve_proposal:
-        try:
-            proposal.status = "converted"
-            proposal.save(update_fields=["status"])
-        except Exception:
-            pass
+    # Proposal lines are NOT modified here. They are only copied.
+    # When the user saves the order:
+    #   1. OrderLine records are created → each fires on_so pending
+    #   2. OrderLine tells ProposalLine how to adjust → ProposalLine saves → fires on_p pending
 
     return {
         "success": True,
         "order_id": order.id,
         "proposal_id": proposal.id,
-        "lines_transferred": len(selected_lines),
-        "line_mapping": line_mapping,
-        "proposal_preserved": bool(preserve_proposal),
-        "order_status": order_status,
+        "lines_for_review": len(lines_for_react),
+        "lines": lines_for_react,
     }

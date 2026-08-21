@@ -91,19 +91,19 @@ class TestJournalizedLock(TestCase):
     def test_posted_invoice_is_journalized(self):
         obj = _make_instance(
             model_name='Invoice',
-            metadata={'gl_accounts': {'posted': True}},
+            dt_journaled=1719000000000,
         )
         self.assertTrue(is_journalized(obj))
 
     def test_unposted_invoice_is_not_journalized(self):
-        obj = _make_instance(model_name='Invoice')
+        obj = _make_instance(model_name='Invoice', dt_journaled=0)
         self.assertFalse(is_journalized(obj))
 
     def test_journalized_blocks_status_change(self):
         obj = _make_instance(
             model_name='Invoice',
             status='released',
-            metadata={'gl_accounts': {'posted': True}},
+            dt_journaled=1719000000000,
         )
         result = validate_transition(obj, 'invoice', 'complete')
         self.assertFalse(result.can_proceed)
@@ -112,13 +112,13 @@ class TestJournalizedLock(TestCase):
     def test_journalized_blocks_modification(self):
         obj = _make_instance(
             model_name='Invoice',
-            metadata={'gl_accounts': {'posted': True}},
+            dt_journaled=1719000000000,
         )
         result = validate_modification(obj, 'invoice')
         self.assertFalse(result.can_proceed)
 
     def test_unposted_allows_modification(self):
-        obj = _make_instance(model_name='Invoice')
+        obj = _make_instance(model_name='Invoice', dt_journaled=0)
         result = validate_modification(obj, 'invoice')
         self.assertTrue(result.can_proceed)
 
@@ -132,7 +132,7 @@ class TestJournalizedLock(TestCase):
     def test_payment_journalized_blocks_modification(self):
         obj = _make_instance(
             model_name='Payment',
-            metadata={'gl_accounts': {'posted': True, 'event': 'payment_journalized'}},
+            dt_journaled=1719000000000,
         )
         result = validate_modification(obj, 'payment')
         self.assertFalse(result.can_proceed)

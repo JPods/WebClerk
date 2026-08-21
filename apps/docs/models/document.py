@@ -42,7 +42,6 @@ class Document(BaseModel):
     )
     description = models.CharField(max_length=255, blank=True, null=True)
     body = models.TextField(blank=True, null=True)
-    comment = models.TextField(blank=True, default="", help_text="General notes")
     config = models.JSONField(blank=True, null=True)
     
     confidential = models.CharField(

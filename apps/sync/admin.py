@@ -11,8 +11,8 @@ from .services.decisions import accept_email_verification, reject_bundle
 
 @admin.register(Connection)
 class ConnectionAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
-	# Scalar fields: action, comment, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, name, purpose, security_level, status, type, uuid, version
-	list_display = ("ida", "name", "status", "type", "action", "comment", "is_active", "dt_created")
+	# Scalar fields: action, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, name, purpose, security_level, status, type, uuid, version
+	list_display = ("ida", "name", "status", "type", "action", "is_active", "dt_created")
 	search_fields = ("name", "type")
 	readonly_fields = ()
 

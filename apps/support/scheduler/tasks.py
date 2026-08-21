@@ -956,8 +956,7 @@ def task_archive_pending(self, batch_size=1000):
     """Archive processed pending records to external dated storage.
 
     Nightly task. Extracts applied/canceled/processed pending records
-    from PendingInventoryAdjustment, PendingPaymentApplication, and
-    generic Pending. Writes to .local/dated_outside/ as JSONL.gz files
+    from PendingPaymentApplication and Pending (inventory + generic). Writes to .local/dated_outside/ as JSONL.gz files
     organized by type/category/month. Deletes from operational DB.
     """
     task_name = 'archive_pending'

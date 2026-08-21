@@ -9,7 +9,7 @@ impacts, commission carry-forward, and parent/child linkage are handled by the
 ONE PATH. Shipping metadata is stored on both the order and the resulting invoice.
 
 Design rules:
-  - All inventory changes go through the conversion chain (adjust_item_quantity).
+  - All inventory changes go through Pending (try_apply on save).
   - Partial shipments create one invoice per shipment.
   - Tracking/carrier/weight data stored in metadata.shipping on both order and invoice.
   - All datetimes are UTC (Axiom 14).

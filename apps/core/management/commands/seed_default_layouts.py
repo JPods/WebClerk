@@ -309,8 +309,8 @@ class Command(BaseCommand):
 
             # Must be in new named format
             list_layouts = layout.get('list', {})
-            # Support both new (dynamic) and old (detail) key names
-            dynamic_layouts = layout.get('dynamic', layout.get('detail', {}))
+            # Canonical key is 'detail'; fall back to old 'dynamic' for backward compat
+            detail_layouts = layout.get('detail', layout.get('dynamic', {}))
             if not isinstance(list_layouts, dict):
                 skipped += 1
                 self.stdout.write(f'  SKIP  {setting.parent_model} (id={setting.id}) — not in named format')
@@ -326,19 +326,19 @@ class Command(BaseCommand):
             if apply:
                 # Update default list layout
                 if 'default' not in list_layouts:
-                    list_layouts['default'] = {'dynamic': 'default', 'display': 'default', 'columns': []}
+                    list_layouts['default'] = {'detail': 'default', 'form': 'default', 'columns': []}
                 list_layouts['default']['columns'] = list_cols
                 layout['list'] = list_layouts
 
-                # Update default dynamic layout
-                if not isinstance(dynamic_layouts, dict):
-                    dynamic_layouts = {}
-                if 'default' not in dynamic_layouts:
-                    dynamic_layouts['default'] = {'list': 'default', 'display': 'default', 'fields': []}
-                dynamic_layouts['default']['fields'] = detail_fields
-                layout['dynamic'] = dynamic_layouts
-                # Remove old key if present
-                layout.pop('detail', None)
+                # Update default detail layout
+                if not isinstance(detail_layouts, dict):
+                    detail_layouts = {}
+                if 'default' not in detail_layouts:
+                    detail_layouts['default'] = {'list': 'default', 'form': 'default', 'fields': []}
+                detail_layouts['default']['fields'] = detail_fields
+                layout['detail'] = detail_layouts
+                # Remove old keys if present
+                layout.pop('dynamic', None)
 
                 config['layout'] = layout
                 setting.config = config

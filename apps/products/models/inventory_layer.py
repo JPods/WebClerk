@@ -5,7 +5,6 @@ from django.db import models
 from django.contrib.postgres.indexes import GinIndex
 from apps.products.choices import (
     INVENTORY_MOVEMENT_TYPE_CHOICES,
-    PENDING_INVENTORY_STATE_CHOICES,
 )
 from common.models import CoreModel
 from .item_base_model import ItemLinkedBase
@@ -128,8 +127,8 @@ class InventoryLayer(ItemLinkedBase):
         self.dt_locked = None
         self.save(update_fields=['is_locked', 'dt_locked', 'dt_modified', 'version'])
         # Drain the pending queue — the whole reason pending exists
-        from apps.products.services.inventory_adjustment_processor import process_pending_for_stack
-        process_pending_for_stack(self.pk)
+        from apps.transactions.services.pending_inventory_processor import process_pending_for_item
+        process_pending_for_item(item_id=self.item_id)
 
     # Override LifecycleMixin so admin lock/unlock also honors the pending contract
     def lock(self):
@@ -193,56 +192,39 @@ class InventoryLayer(ItemLinkedBase):
         setattr(self, 'cost', c)
 
     def issue_or_enqueue(self, qty: Decimal | float, reason: str = "issue", request_ref: dict | None = None):
-        """Create a pending inventory adjustment, then apply immediately if possible.
+        """Create a Pending record for this inventory layer issue.
 
-        Inventory always goes through pending — one path, one audit trail.
-        If locked or insufficient, the pending record waits for the next drain.
+        The Pending.save() automatically calls try_apply() which applies
+        immediately if the item is not locked. If locked, celery picks it up.
         Returns (applied: bool, pending_obj).
         """
-        from .inventory_layer import PendingInventoryAdjustment
-        from django.utils import timezone
+        from apps.core.models import Pending
 
         request_qty = Decimal(str(qty))
+        item_id = self.item_id
 
-        # Always create pending first — this IS the audit trail
-        pending = PendingInventoryAdjustment.objects.create(
-            inventory_layer=self,
-            qty=request_qty,
-            state=PendingInventoryAdjustment.STATE_PENDING,
-            reason=reason,
-            request_ref=request_ref or {},
+        # Create Pending — try_apply fires automatically in save()
+        pending = Pending.objects.create(
+            model_name='item',
+            record_id=str(item_id),
+            purpose='inventory_line_add',
+            name=f'Layer issue: {reason}',
+            changes={
+                'on_hand': float(-request_qty),
+                'item_id': item_id,
+                'layer_id': self.pk,
+                'reason': reason,
+                **(request_ref or {}),
+            },
         )
 
-        # Try to apply immediately if conditions allow
-        self.check_lock_expired()
-        if self.is_locked:
-            return False, pending
+        applied = pending.is_processed()
+        if applied:
+            # Also update the layer's issued quantity
+            self.mark_issue(qty)
+            self.save(update_fields=['quantity', 'dt_modified', 'version'])
 
-        remaining = Decimal(str(self.remaining_qty()))
-        if remaining < request_qty:
-            return False, pending
-
-        # Check active reservations
-        try:
-            from django.db.models import Sum
-            from apps.products.models.inventory_reservation import InventoryReservation
-            now = timezone.now()
-            active_reserved = (InventoryReservation.objects
-                                .filter(inventory_layer=self, state='pending', expires_at__gt=now)
-                                .aggregate(total=Sum('qty'))['total'] or Decimal('0'))
-            active_reserved = Decimal(str(active_reserved))
-        except Exception:
-            active_reserved = Decimal('0')
-
-        if request_qty > (remaining - active_reserved):
-            return False, pending
-
-        # Apply now
-        self.mark_issue(qty)
-        pending.state = PendingInventoryAdjustment.STATE_APPLIED
-        pending.dt_applied = timezone.now()
-        pending.save(update_fields=['state', 'dt_applied', 'dt_modified', 'version'])
-        return True, pending
+        return applied, pending
 
 
 class SiteInventory(ItemLinkedBase):
@@ -313,54 +295,3 @@ class InventoryMovement(ItemLinkedBase):
         ]
 
 
-class PendingInventoryAdjustment(CoreModel):
-    """Deferred inventory mutation when target stack is locked or insufficient.
-
-    Processing strategy (future service): a periodic job or unlock hook attempts
-    to apply PENDING rows in FIFO order. If successful, state -> APPLIED and dt_applied set.
-    If permanently invalid (e.g., stack depleted), state -> CANCELED with a reason.
-    """
-    STATE_PENDING = "pending"
-    STATE_APPLIED = "applied"
-    STATE_CANCELED = "canceled"
-    STATE_CHOICES = PENDING_INVENTORY_STATE_CHOICES
-    inventory_layer = models.ForeignKey(InventoryLayer, on_delete=models.CASCADE, related_name="pending_adjustments", db_column='inventorylayer_id')
-    qty = models.DecimalField(max_digits=14, decimal_places=4)
-    state = models.CharField(max_length=20, choices=STATE_CHOICES, default=STATE_PENDING, db_index=True)
-    reason = models.CharField(max_length=80, blank=True)
-    request_ref = models.JSONField(default=dict, blank=True)
-    dt_applied = models.DateTimeField(null=True, blank=True)
-    cancel_reason = models.CharField(max_length=120, blank=True)
-
-    def __str__(self):
-        return f"PendingAdj {self.id} ({self.state}) on stack {self.inventory_layer_id}"
-
-    class Meta:
-        indexes = [
-            models.Index(fields=("state",), name="pendinv_state_idx"),
-            models.Index(fields=("inventory_layer", "state"), name="pendinv_stack_state_idx"),
-        ]
-
-    def apply_now(self):
-        if self.state != self.STATE_PENDING:
-            return False
-        stack = self.inventory_layer
-        if stack.remaining_qty() < self.qty and not stack.is_locked:
-            return False
-        if stack.is_locked:
-            return False
-        stack.mark_issue(self.qty)
-        stack.save(update_fields=["quantity", "dt_modified", "version"])
-        from django.utils import timezone
-        self.state = self.STATE_APPLIED
-        self.dt_applied = timezone.now()
-        self.save()
-        return True
-
-    def cancel(self, reason: str):
-        if self.state != self.STATE_PENDING:
-            return False
-        self.state = self.STATE_CANCELED
-        self.cancel_reason = reason[:120]
-        self.save()
-        return True

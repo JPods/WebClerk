@@ -11,7 +11,7 @@ from decimal import Decimal
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 
-from apps.products.models.inventory_layer import InventoryLayer, PendingInventoryAdjustment
+from apps.products.models.inventory_layer import InventoryLayer
 from apps.products.models.inventory_reservation import InventoryReservation
 from apps.products.models.metrics import InventoryMetricsSnapshot
 from apps.products.models.processor_runs import InventoryAdjustmentProcessorRun
@@ -29,13 +29,13 @@ def summarize_inventory_metrics(include_samples: bool = False, sample_limit: int
         .aggregate(total=Sum('qty'))['total'] or 0
     )
 
-    # Pending adjustments aggregates
-    padj_qs = PendingInventoryAdjustment.objects.all()
-    padj_by_state = padj_qs.values('state').annotate(c=Count('id'), qty=Sum('qty'))
-    padj_state_counts = {row['state']: int(row['c']) for row in padj_by_state}
-    padj_state_qty = {row['state']: float(row['qty'] or 0) for row in padj_by_state}
-    padj_reserved_conflict = padj_qs.filter(reason='reserved_conflict', state=PendingInventoryAdjustment.STATE_PENDING).count()
-    padj_insufficient_pending = padj_qs.filter(reason='insufficient_issue', state=PendingInventoryAdjustment.STATE_PENDING).count()
+    # Pending inventory adjustments (via Pending model)
+    from apps.core.models import Pending
+    padj_qs = Pending.objects.filter(model_name='item', purpose__startswith='inventory_')
+    padj_processed = padj_qs.exclude(dt_processed=0).count()
+    padj_unprocessed = padj_qs.filter(dt_processed=0).count()
+    padj_state_counts = {'processed': padj_processed, 'unprocessed': padj_unprocessed}
+    padj_state_qty = {}
 
     # Stack level aggregates
     stacks = InventoryLayer.objects.all()
@@ -93,8 +93,6 @@ def summarize_inventory_metrics(include_samples: bool = False, sample_limit: int
         'pending_adjustments': {
             'counts': padj_state_counts,
             'qty': padj_state_qty,
-            'reserved_conflict_pending': padj_reserved_conflict,
-            'insufficient_pending': padj_insufficient_pending,
         },
         'stacks': {
             'total': stack_count,
@@ -165,9 +163,9 @@ def summarize_inventory_metrics(include_samples: bool = False, sample_limit: int
 
     if include_samples:
         sample_padjs = list(
-            padj_qs.filter(state=PendingInventoryAdjustment.STATE_PENDING)
+            padj_qs.filter(dt_processed=0)
             .order_by('-dt_created')[:sample_limit]
-            .values('id', 'stack_id', 'qty', 'reason', 'dt_created')
+            .values('id', 'record_id', 'purpose', 'changes', 'dt_created')
         )
         sample_reservations = list(
             InventoryReservation.objects.filter(state=InventoryReservation.STATE_PENDING, expires_at__gt=now)

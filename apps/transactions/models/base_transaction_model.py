@@ -178,6 +178,10 @@ class TransactionBaseModel(BaseModel):
     conditions_id = models.IntegerField(blank=True, null=True)
     conditions_description = models.CharField(max_length=255, blank=True, null=True)
 
+    # Journalizing lock — 0 means editable, non-zero epoch ms means locked (GL has this data)
+    dt_journaled = models.BigIntegerField(default=0, db_index=True,
+        help_text="UTC epoch ms when journalized to GL. 0=editable, non-zero=locked.")
+
     cost = models.JSONField(default=dict, blank=True, null=True)  # new: { sell:{...}, cost:{...}, margin:{...} }
     sell = models.JSONField(default=dict, blank=True, null=True)  # new: { sell:{...}, cost:{...}, margin:{...} }
     # Header-level cached totals for quick filtering and reporting. Persisted so

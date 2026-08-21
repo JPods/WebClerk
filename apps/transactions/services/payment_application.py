@@ -177,11 +177,12 @@ def unapply_payment_from_invoice(
 
     invoice.save(update_fields=['totals', 'status', 'dt_modified', 'version'])
 
-    # Update payment status
+    # Restore payment.available and update status
+    payment.available = payment.available + unapply_amount
     total_applied = sum(p.amount for p in payment.applications.all()) - unapply_amount
     if total_applied < payment.amount:
         payment.status = 'completed'  # Reset if not fully applied
-        payment.save(update_fields=['status', 'dt_modified', 'version'])
+    payment.save(update_fields=['available', 'status', 'dt_modified', 'version'])
 
     # Delete the application
     application.delete()

@@ -8,7 +8,7 @@ Usage:
 Creates 3 complete transaction cycles (proposal → order → invoice → payment → GL)
 using the items, customers, and contacts created by seed_demo.
 
-All demo records use ida prefix 'qqdemo-' for easy identification and cleanup.
+All demo records are tagged refs.source="demo-baseline" for clean removal.
 Prerequisites: seed_demo must have run first (items, orgs, contacts required).
 """
 from decimal import Decimal
@@ -29,7 +29,7 @@ from apps.core.models.contact import Contact
 from apps.orgs.models import OrgBase
 
 
-DEMO_PREFIX = 'qqdemo-'
+DEMO_SOURCE = 'demo-baseline'
 
 # ─── Transaction cycle definitions ──────────────────────────────────────
 # Each cycle: customer ida, contact ida, price_level, terms,
@@ -38,64 +38,72 @@ DEMO_PREFIX = 'qqdemo-'
 CYCLES = [
     {
         'name': 'Riverside Sports — Team Equipment Order',
-        'customer_ida': 'qqdemo-CUST-01',
-        'contact_ida': 'qqdemo-CON-01',
+        'customer_ida': 'CUST-01',
+        'contact_ida': 'CON-01',
         'price_level': 'B',
         'terms': 'N30',
-        'proposal_ida': 'qqdemo-PROP-01',
-        'order_ida': 'qqdemo-ORD-01',
-        'invoice_ida': 'qqdemo-INV-01',
+        'proposal_ida': 'PROP-01',
+        'order_ida': 'ORD-01',
+        'invoice_ida': 'INV-01',
         'gl_batch': 'SJ-DEMO-01',
         'lines': [
             # (item_ida, quantity, unit_measure)
-            ('qqdemo-BAT-01', 2, 'each'),
-            ('qqdemo-BAG-01', 1, 'each'),
-            ('qqdemo-BALL-01', 2, 'dozen'),
+            ('BAT-01', 2, 'each'),
+            ('BAG-01', 1, 'each'),
+            ('BALL-01', 2, 'dozen'),
         ],
         'payments': [
             # (ida, fraction_of_total, method, status)
-            ('qqdemo-PAY-01', Decimal('1.0'), 'check-1234', 'completed'),
+            ('PAY-01', Decimal('1.0'), 'check-1234', 'completed'),
         ],
     },
     {
         'name': 'Metro Baseball Academy — Training Equipment',
-        'customer_ida': 'qqdemo-CUST-02',
-        'contact_ida': 'qqdemo-CON-02',
+        'customer_ida': 'CUST-02',
+        'contact_ida': 'CON-02',
         'price_level': 'A',
         'terms': 'N30',
-        'proposal_ida': 'qqdemo-PROP-02',
-        'order_ida': 'qqdemo-ORD-02',
-        'invoice_ida': 'qqdemo-INV-02',
+        'proposal_ida': 'PROP-02',
+        'order_ida': 'ORD-02',
+        'invoice_ida': 'INV-02',
         'gl_batch': 'SJ-DEMO-02',
         'lines': [
-            ('qqdemo-SCREEN-01', 3, 'each'),
-            ('qqdemo-TRAIN-01', 6, 'each'),
-            ('qqdemo-GLOVE-02', 3, 'pair'),
+            ('SCREEN-01', 3, 'each'),
+            ('TRAIN-01', 6, 'each'),
+            ('GLOVE-02', 3, 'pair'),
         ],
         'payments': [
-            ('qqdemo-PAY-02', Decimal('0.6'), 'visa-8821', 'completed'),
-            ('qqdemo-PAY-03', Decimal('0.4'), 'visa-8821', 'completed'),
+            ('PAY-02', Decimal('0.6'), 'visa-8821', 'completed'),
+            ('PAY-03', Decimal('0.4'), 'visa-8821', 'completed'),
         ],
     },
     {
         'name': 'Eastside Little League — Starter Kits',
-        'customer_ida': 'qqdemo-CUST-03',
-        'contact_ida': 'qqdemo-CON-03',
+        'customer_ida': 'CUST-03',
+        'contact_ida': 'CON-03',
         'price_level': 'C',
         'terms': 'N10',
-        'proposal_ida': 'qqdemo-PROP-03',
-        'order_ida': 'qqdemo-ORD-03',
-        'invoice_ida': 'qqdemo-INV-03',
+        'proposal_ida': 'PROP-03',
+        'order_ida': 'ORD-03',
+        'invoice_ida': 'INV-03',
         'gl_batch': 'SJ-DEMO-03',
         'lines': [
-            ('qqdemo-KIT-01', 12, 'each'),
-            ('qqdemo-BALL-02', 6, 'dozen'),
+            ('KIT-01', 12, 'each'),
+            ('BALL-02', 6, 'dozen'),
         ],
         'payments': [
-            ('qqdemo-PAY-04', Decimal('1.0'), 'check-5678', 'completed'),
+            ('PAY-04', Decimal('1.0'), 'check-5678', 'completed'),
         ],
     },
 ]
+
+
+def _demo_refs():
+    """Return refs dict tagged as demo-baseline for clean removal."""
+    from common.models import default_refs
+    refs = default_refs()
+    refs['source'] = DEMO_SOURCE
+    return refs
 
 
 def _empty_totals(subtotal=0, total=0, cost=0, received=0, balance=0):
@@ -217,17 +225,17 @@ class Command(BaseCommand):
 
     # ─── Cleanup ────────────────────────────────────────────────────────
     def _delete_demo(self):
-        """Delete all demo transaction data by ida prefix."""
+        """Delete all demo transaction data by refs.source tag."""
         # Delete in dependency order: GL → payments → invoice lines → invoices →
         # order lines → orders → proposal lines → proposals
-        del_gl = GlJournal.objects.filter(ida__startswith=DEMO_PREFIX).delete()[0]
-        del_pay = Payment.objects.filter(ida__startswith=DEMO_PREFIX).delete()[0]
-        del_il = InvoiceLine.objects.filter(ida__startswith=DEMO_PREFIX).delete()[0]
-        del_inv = Invoice.objects.filter(ida__startswith=DEMO_PREFIX).delete()[0]
-        del_ol = OrderLine.objects.filter(ida__startswith=DEMO_PREFIX).delete()[0]
-        del_ord = Order.objects.filter(ida__startswith=DEMO_PREFIX).delete()[0]
-        del_pl = ProposalLine.objects.filter(ida__startswith=DEMO_PREFIX).delete()[0]
-        del_prop = Proposal.objects.filter(ida__startswith=DEMO_PREFIX).delete()[0]
+        del_gl = GlJournal.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
+        del_pay = Payment.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
+        del_il = InvoiceLine.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
+        del_inv = Invoice.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
+        del_ol = OrderLine.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
+        del_ord = Order.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
+        del_pl = ProposalLine.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
+        del_prop = Proposal.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
         self.stdout.write(
             f'Deleted demo transactions: {del_prop} proposals, {del_ord} orders, '
             f'{del_inv} invoices, {del_pay} payments, {del_gl} GL entries, '
@@ -326,6 +334,7 @@ class Command(BaseCommand):
                 balance=Decimal('0'),
                 totals=_empty_totals(subtotal, total, total_cost,
                                      received=0, balance=float(total)),
+                refs=_demo_refs(),
             )
             result['proposals'] = 1
             result['lines'] += self._create_lines(
@@ -352,6 +361,7 @@ class Command(BaseCommand):
                 parent_model='proposal',
                 totals=_empty_totals(subtotal, total, total_cost,
                                      received=0, balance=float(total)),
+                refs=_demo_refs(),
             )
             result['orders'] = 1
             result['lines'] += self._create_lines(
@@ -379,6 +389,7 @@ class Command(BaseCommand):
                 invoice_type='invoice',
                 totals=_empty_totals(subtotal, total, total_cost,
                                      received=0, balance=float(total)),
+                refs=_demo_refs(),
             )
             result['invoices'] = 1
             result['lines'] += self._create_lines(
@@ -407,6 +418,7 @@ class Command(BaseCommand):
                     notes=f'Demo payment for {cycle["invoice_ida"]}',
                     status=pay_status,
                     is_active=True,
+                    refs=_demo_refs(),
                 )
                 result['payments'] += 1
 
@@ -425,7 +437,7 @@ class Command(BaseCommand):
 
         # Invoice GL: debit AR, credit Sales
         result['gl_entries'] += self._create_gl(
-            ida=f"{DEMO_PREFIX}GL-{batch_id}-AR",
+            ida=f"GL-{batch_id}-AR",
             account='1200-AR',
             debit=float(total),
             credit=None,
@@ -437,7 +449,7 @@ class Command(BaseCommand):
             note=f'AR from {cycle["invoice_ida"]}',
         )
         result['gl_entries'] += self._create_gl(
-            ida=f"{DEMO_PREFIX}GL-{batch_id}-SALES",
+            ida=f"GL-{batch_id}-SALES",
             account='4000-Sales',
             debit=None,
             credit=float(total),
@@ -458,7 +470,7 @@ class Command(BaseCommand):
             suffix = f'-P{i + 1}' if len(cycle['payments']) > 1 else '-P'
 
             result['gl_entries'] += self._create_gl(
-                ida=f"{DEMO_PREFIX}GL-{batch_id}{suffix}-CASH",
+                ida=f"GL-{batch_id}{suffix}-CASH",
                 account='1000-Cash',
                 debit=pay_amount,
                 credit=None,
@@ -470,7 +482,7 @@ class Command(BaseCommand):
                 note=f'Cash from {pay_ida} ({method})',
             )
             result['gl_entries'] += self._create_gl(
-                ida=f"{DEMO_PREFIX}GL-{batch_id}{suffix}-AR",
+                ida=f"GL-{batch_id}{suffix}-AR",
                 account='1200-AR',
                 debit=None,
                 credit=pay_amount,
@@ -487,10 +499,17 @@ class Command(BaseCommand):
 
     # ─── Line creation ──────────────────────────────────────────────────
     def _create_lines(self, LineModel, fk_name, parent, line_data, cycle):
-        """Create line items for a transaction header. Returns count."""
-        created = 0
+        """Create line items for a transaction header. Returns count.
+
+        Uses bulk_create to bypass post_save signals that expect live
+        transaction context (inventory pending, source dict parsing).
+        Demo data doesn't need those side effects.
+        """
+        import uuid as _uuid
+        now_ms = int(timezone.now().timestamp() * 1000)
+        lines_to_create = []
         for idx, ld in enumerate(line_data):
-            line_ida = f"{DEMO_PREFIX}{fk_name.upper()}-{cycle[f'{fk_name}_ida'].split('-')[-1]}-L{idx + 1}"
+            line_ida = f"{fk_name.upper()}-{cycle[f'{fk_name}_ida'].split('-')[-1]}-L{idx + 1}"
             if LineModel.objects.filter(ida=line_ida).exists():
                 continue
 
@@ -510,10 +529,15 @@ class Command(BaseCommand):
                 'price_level': cycle['price_level'],
                 'status': 'released',
                 'is_active': True,
+                'refs': _demo_refs(),
+                'uuid': _uuid.uuid4(),
+                'dt_created': now_ms,
+                'dt_modified': now_ms,
             }
-            LineModel.objects.create(**fields)
-            created += 1
-        return created
+            lines_to_create.append(LineModel(**fields))
+        if lines_to_create:
+            LineModel.objects.bulk_create(lines_to_create)
+        return len(lines_to_create)
 
     # ─── GL entry creation ──────────────────────────────────────────────
     def _create_gl(self, ida, account, debit, credit, source, source_id,
@@ -521,6 +545,13 @@ class Command(BaseCommand):
         """Create a single GL journal entry. Returns 1 if created, 0 if exists."""
         if GlJournal.objects.filter(ida=ida).exists():
             return 0
+        import datetime as _dt
+        # Convert date to epoch ms for dt_journaled
+        if isinstance(date_posted, _dt.date):
+            dt_j = int(_dt.datetime.combine(date_posted, _dt.time.min,
+                        tzinfo=_dt.timezone.utc).timestamp() * 1000)
+        else:
+            dt_j = int(date_posted) if date_posted else 0
         GlJournal.objects.create(
             ida=ida,
             account=account,
@@ -532,9 +563,9 @@ class Command(BaseCommand):
             source_model=source_model,
             division='',
             batch_id=batch_id,
-            date_posted=date_posted,
-            is_posted=True,
+            dt_journaled=dt_j,
             note=note,
             is_active=True,
+            refs=_demo_refs(),
         )
         return 1

@@ -148,8 +148,6 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     # Source attribution — where did this contact come from?
     source_name = models.CharField(max_length=80, blank=True, default='', db_index=True,
         help_text="How this contact originated: Facebook, Referral, Walk-in, Trade Show, etc.")
-    # General notes / legacy compatibility (column exists with NOT NULL constraint in current schema)
-    comment = models.TextField(blank=True, default="", help_text="General notes about this contact")
     # System Fields
     role = models.CharField(
         max_length=50, 

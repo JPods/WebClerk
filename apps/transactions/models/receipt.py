@@ -81,6 +81,10 @@ class Receipt(BaseModel):
         help_text="Source work order (if source_type=workorder_completion)"
     )
 
+    # Journalizing lock — 0 means editable, non-zero epoch ms means locked (GL has this data)
+    dt_journaled = models.BigIntegerField(default=0, db_index=True,
+        help_text="UTC epoch ms when journalized to GL. 0=editable, non-zero=locked.")
+
     class Meta:
         db_table = "receipt"
         indexes = [

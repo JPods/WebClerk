@@ -10,7 +10,7 @@ to the existing transfer infrastructure (transfer.py, proposal_to_order.py,
 order_to_invoice.py, order_to_purchase.py) where possible, and adds:
 
   - Commission carry-forward (set at earliest point, flows downstream)
-  - Inventory impacts through adjust_item_quantity (ONE PATH)
+  - Inventory impacts through Pending (ONE PATH — try_apply on save)
   - Partial conversion support via line_ids
   - Conversion history tracing (walk parent_id/parent_model chain)
   - Bulk conversion
@@ -22,7 +22,7 @@ Design rules (from Bill):
   3. parent_id / parent_model link child to parent.
   4. Partial conversions are supported (convert N of M lines).
   5. Source transaction status updates after conversion.
-  6. All inventory changes go through adjust_item_quantity — no direct writes.
+  6. All inventory changes go through Pending — no direct writes to item.quantity.
 """
 from __future__ import annotations
 
@@ -40,13 +40,21 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-# Fields copied from source header to target header
-_HEADER_COPY_FIELDS = (
-    "customer_id", "vendor_id", "manufacturer_id",
-    "contact_id", "price_level", "terms", "terms_fk_id",
-    "attention", "address_full", "email", "phone",
+# Fields copied from source header to target header (sell-side: proposal→order→invoice)
+# Customer data transfers — same party through the sell chain.
+_HEADER_COPY_FIELDS_SELL = (
+    "customer", "customer_id", "contact_id",
+    "company", "attention", "address_full", "email", "phone", "ship_via",
+    "price_level", "terms", "terms_fk_id",
     "is_commission", "conditions_id", "conditions_description",
-    "source",
+    "config", "source",
+)
+
+# Fields copied for buy-side (order→purchase, order→workorder)
+# Customer does NOT transfer — purchase/workorder are vendor-side.
+# Only item references and basic config carry forward.
+_HEADER_COPY_FIELDS_BUY = (
+    "config", "source",
 )
 
 # Fields copied from source line to target line (sell-side)
@@ -122,9 +130,10 @@ def _get_lines(header, model_name: str, line_ids: Optional[List[int]] = None):
     return lines
 
 
-def _copy_header_fields(source, target, extra_fields: tuple = ()) -> None:
+def _copy_header_fields(source, target, is_sell_side: bool = True, extra_fields: tuple = ()) -> None:
     """Copy header-level fields from source to target."""
-    for field in _HEADER_COPY_FIELDS + extra_fields:
+    fields = (_HEADER_COPY_FIELDS_SELL if is_sell_side else _HEADER_COPY_FIELDS_BUY) + extra_fields
+    for field in fields:
         val = getattr(source, field, None)
         if val is not None and hasattr(target, field):
             setattr(target, field, val)
@@ -207,13 +216,17 @@ def _copy_line(
     # Refs: trace lineage
     src_refs = getattr(source_line, "refs", None) or {}
     import copy
-    target.refs = copy.deepcopy(src_refs)
-    target.refs.setdefault("source", {})["converted_from_line_id"] = source_line.pk
+    target.refs = copy.deepcopy(src_refs) or {}
+    if not target.refs.get("source"):
+        target.refs["source"] = {}
+    target.refs["source"]["converted_from_line_id"] = source_line.pk
 
     # Metadata: conversion audit
     src_meta = getattr(source_line, "metadata", None) or {}
-    target.metadata = copy.deepcopy(src_meta)
-    target.metadata.setdefault("conversion", {})["source_line_id"] = source_line.pk
+    target.metadata = copy.deepcopy(src_meta) or {}
+    if not target.metadata.get("conversion"):
+        target.metadata["conversion"] = {}
+    target.metadata["conversion"]["source_line_id"] = source_line.pk
     target.metadata["conversion"]["transfer_qty"] = transfer_qty
 
     target.save()
@@ -258,7 +271,7 @@ def _apply_inventory_adjustments(
     source_type: str,
     target_type: str,
 ) -> List[Dict]:
-    """Apply inventory adjustments through the ONE PATH (adjust_item_quantity).
+    """Apply inventory adjustments through the ONE PATH (Pending).
 
     Inventory bucket semantics:
       on_p    = proposal forecast
@@ -273,25 +286,24 @@ def _apply_inventory_adjustments(
       order → purchase:   on_po += qty
       proposal → invoice: on_p -= qty,  on_hand -= qty
     """
-    from apps.products.services.inventory_pending import adjust_item_quantity
+    from apps.core.models import Pending
 
     results = []
     # Define the bucket changes for each conversion type
+    # Conversion pending only releases the SOURCE bucket.
+    # The TARGET bucket (on_so, on_hand, on_po) is handled by the
+    # target line's own save path via _create_pending_for_new_line.
+    # Do NOT double-count by adjusting both here.
     adjustments_map = {
         ("proposal", "order"): [
             {"field": "on_p", "sign": -1},
-            {"field": "on_so", "sign": 1},
         ],
         ("order", "invoice"): [
             {"field": "on_so", "sign": -1},
-            {"field": "on_hand", "sign": -1},
         ],
-        ("order", "purchase"): [
-            {"field": "on_po", "sign": 1},
-        ],
+        ("order", "purchase"): [],  # no source bucket to release
         ("proposal", "invoice"): [
             {"field": "on_p", "sign": -1},
-            {"field": "on_hand", "sign": -1},
         ],
     }
 
@@ -311,31 +323,40 @@ def _apply_inventory_adjustments(
         if qty <= 0:
             continue
 
+        # Build a single changes dict with all bucket deltas for this item
+        changes = {
+            'item_id': item_id,
+            'reason': f"{source_type}_to_{target_type}_conversion",
+            'source_type': target_type,
+            'source_id': delta.get("target_header_id"),
+            'source_line_id': delta.get("target_line_id"),
+        }
         for adj in adjustments:
-            try:
-                result = adjust_item_quantity(
-                    item_id=item_id,
-                    field=adj["field"],
-                    delta=adj["sign"] * qty,
-                    reason=f"{source_type}_to_{target_type}_conversion",
-                    source_type=target_type,
-                    source_id=delta.get("target_header_id"),
-                    source_line_id=delta.get("target_line_id"),
-                )
-                results.append(result)
-            except Exception as e:
-                logger.error(
-                    "Inventory adjustment failed: item=%s field=%s delta=%s: %s",
-                    item_id, adj["field"], adj["sign"] * qty, e,
-                )
-                # Don't fail the conversion for inventory errors —
-                # the pending record is created either way
-                results.append({
-                    "item_id": item_id,
-                    "field": adj["field"],
-                    "error": str(e),
-                    "applied": False,
-                })
+            changes[adj["field"]] = adj["sign"] * qty
+
+        try:
+            pending = Pending.objects.create(
+                model_name='item',
+                record_id=str(item_id),
+                purpose='inventory_line_add',
+                name=f'Conversion {source_type}→{target_type}: {item_id}',
+                changes=changes,
+            )
+            results.append({
+                'pending_id': pending.pk,
+                'item_id': item_id,
+                'applied': pending.is_processed(),
+            })
+        except Exception as e:
+            logger.error(
+                "Inventory adjustment failed: item=%s changes=%s: %s",
+                item_id, changes, e,
+            )
+            results.append({
+                "item_id": item_id,
+                "error": str(e),
+                "applied": False,
+            })
 
     return results
 
@@ -422,7 +443,7 @@ def _do_convert(
     target.status = "planned"
     target.parent_id = source.pk
     target.parent_model = source_type
-    _copy_header_fields(source, target)
+    _copy_header_fields(source, target, is_sell_side=is_sell_side)
 
     # Commission flows forward at header level
     source_comm = getattr(source, "commission", None)
@@ -439,91 +460,62 @@ def _do_convert(
 
     target.save()
 
-    # Copy lines
-    line_mapping: Dict[int, int] = {}
-    inventory_deltas: List[Dict[str, Any]] = []
-    lines_converted = 0
-    lines_skipped = 0
+    # ── Build line data array for React — NOT saved server-side ─────
+    # Conversion creates the header only. React receives line data,
+    # displays it for user review. User adjusts quantities, clicks Save.
+    # On save: target lines are created → each fires its own pending.
+    # Target line tells source line to adjust → source line saves → fires its pending.
+    # Source lines are NOT modified here — only copied.
+    lines_for_review = []
+    lines_available = 0
 
     for src_line in source_lines:
         src_qty = getattr(src_line, "quantity", None) or {}
         remaining = float(src_qty.get("remaining", 0) or 0)
 
         if remaining <= 0:
-            lines_skipped += 1
             continue
 
-        target_line = _copy_line(
-            source_line=src_line,
-            target_header=target,
-            target_fk_field=target_fk_field,
-            TargetLineModel=TargetLineModel,
-            is_sell_side=is_sell_side,
-        )
+        lines_available += 1
+        item_data = getattr(src_line, "item", None) or {}
 
-        if target_line is None:
-            lines_skipped += 1
-            continue
+        # Build quantity for target type
+        target_qty = {
+            "active": remaining,
+            "staged": remaining,
+            "remaining": remaining,
+        }
+        if "precision" in src_qty:
+            target_qty["precision"] = src_qty["precision"]
 
-        line_mapping[src_line.pk] = target_line.pk
-        lines_converted += 1
+        lines_for_review.append({
+            "line_number": getattr(src_line, "line_number", 0) or 0,
+            "item": item_data,
+            "quantity": target_qty,
+            "price": getattr(src_line, "price", None) or {},
+            "cost": getattr(src_line, "cost", None) or {},
+            "price_level": getattr(src_line, "price_level", "") or "",
+            "status": "",
+            "is_active": True,
+            "comments": getattr(src_line, "comments", None) or {},
+            "config": getattr(src_line, "config", None) or {},
+            "commission": getattr(src_line, "commission", None) or {},
+            "refs": {
+                "source": {f"{source_type}_line_id": src_line.pk},
+            },
+            "_dirty": True,
+        })
 
-        # Decrement source line remaining
-        _decrement_source_remaining(src_line, remaining, target_line.pk)
-
-        # Collect inventory delta
-        item_id = _extract_item_id(src_line)
-        if item_id:
-            inventory_deltas.append({
-                "item_id": item_id,
-                "quantity": remaining,
-                "target_header_id": target.pk,
-                "target_line_id": target_line.pk,
-                "source_line_id": src_line.pk,
-            })
-
-    if lines_converted == 0:
+    if lines_available == 0:
         raise ConversionError(
             f"No convertible lines (all have remaining <= 0)"
         )
 
-    # Apply inventory adjustments (ONE PATH)
-    _apply_inventory_adjustments(inventory_deltas, source_type, target_type)
-
-    # Update source status and flow
-    _update_source_status(source, source_type)
-    _update_source_flow(source, target_type, target.pk)
-
-    # Recalculate totals on target
-    try:
-        target.refresh_from_db()
-        target.update_sell_cost_totals(persist=True)
-    except Exception:
-        pass  # best-effort
-
-    # Recalculate totals on source
-    try:
-        source.refresh_from_db()
-        source.update_sell_cost_totals(persist=True)
-    except Exception:
-        pass
-
-    # Count remaining lines on source
-    source_lines_remaining = 0
-    LineModel = _get_line_model(source_type)
-    fk_field = _get_line_fk_field(source_type)
-    for ln in LineModel.objects.filter(**{fk_field: source}):
-        r = float((ln.quantity or {}).get("remaining", 0) or 0)
-        if r > 0:
-            source_lines_remaining += 1
-
     return {
         f"{target_type}_id": target.pk,
         f"{target_type}_ida": getattr(target, "ida", ""),
-        "lines_converted": lines_converted,
-        "lines_remaining": source_lines_remaining,
-        "line_mapping": line_mapping,
-        "source_status": source.status,
+        "lines_for_review": lines_available,
+        "lines": lines_for_review,
     }
 
 
@@ -620,11 +612,7 @@ def convert_order_to_purchase(
         raise ConversionError(f"Order #{order_id} not found")
 
     effective_vendor = vendor_id or getattr(order, "vendor_id", None)
-    if not effective_vendor:
-        raise ConversionError(
-            "vendor_id is required for order-to-purchase conversion "
-            "(no vendor on the source order)"
-        )
+    # vendor_id is optional — user can set it during review
 
     return _do_convert(
         source_type="order",

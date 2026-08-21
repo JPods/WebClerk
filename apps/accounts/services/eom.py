@@ -64,7 +64,7 @@ def _compute_aging_for_source(source: str, as_of: date) -> int:
     # Fetch all open ledger entries for this source
     entries = (
         Ledger.objects
-        .filter(source=source, is_settled=False)
+        .filter(source=source, dt_applied__isnull=True)
         .exclude(value_available=0)
         .exclude(value_available__isnull=True)
         .values("org_id", "dt_due", "value_available")

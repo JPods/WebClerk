@@ -5,7 +5,7 @@ from django.dispatch import receiver
 from django.db import transaction
 
 from apps.products.models.inventory_layer import InventoryLayer
-from apps.products.services.inventory_adjustment_processor import process_pending_for_stack
+from apps.transactions.services.pending_inventory_processor import process_pending_for_item
 
 
 @receiver(pre_save, sender=InventoryLayer)
@@ -27,7 +27,7 @@ def _invstack_process_on_unlock(sender, instance: InventoryLayer, created: bool,
         # Defer processing until after transaction commit to see final state.
         def _do():
             try:
-                process_pending_for_stack(instance.pk)
+                process_pending_for_item(item_id=instance.item_id)
             except Exception:  # swallow (optional logging)
                 pass
         transaction.on_commit(_do)

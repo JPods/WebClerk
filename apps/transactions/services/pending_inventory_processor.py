@@ -118,7 +118,7 @@ def process_line_item_pending(
     # Group by item_id for efficient processing
     item_pending_map: Dict[int, list] = {}
     for pending in pending_records:
-        pending_item_id = pending.config.get('item_id')
+        pending_item_id = int(pending.record_id) if pending.record_id else None
         if pending_item_id:
             if pending_item_id not in item_pending_map:
                 item_pending_map[pending_item_id] = []
@@ -224,19 +224,22 @@ def _process_pending_for_item(
         on_p_delta = Decimal('0')
         on_in_delta = Decimal('0')
         on_r_delta = Decimal('0')
-        
+        on_hand_delta = Decimal('0')
+
         for pending in pending_records:
-            data = pending.config or {}
+            data = pending.changes if isinstance(pending.changes, dict) else (pending.config or {})
             on_so_delta += Decimal(str(data.get('on_so', 0) or 0))
             on_po_delta += Decimal(str(data.get('on_po', 0) or 0))
             on_wo_delta += Decimal(str(data.get('on_wo', 0) or 0))
             on_p_delta += Decimal(str(data.get('on_p', 0) or 0))
-            on_in_delta += Decimal(str(data.get('on_in', 0) or data.get('invoiced', 0) or 0))  # Support both keys for backwards compat
+            on_in_delta += Decimal(str(data.get('on_in', 0) or 0))
             on_r_delta += Decimal(str(data.get('on_r', 0) or 0))
+            on_hand_delta += Decimal(str(data.get('on_hand', 0) or 0))
         
         logger.debug(
             f"Item {item_pk}: SO={on_so_delta:+}, PO={on_po_delta:+}, "
-            f"WO={on_wo_delta:+}, PP={on_p_delta:+}, IN={on_in_delta:+}, RC={on_r_delta:+}"
+            f"WO={on_wo_delta:+}, PP={on_p_delta:+}, IN={on_in_delta:+}, "
+            f"RC={on_r_delta:+}, OH={on_hand_delta:+}"
         )
         
         if dry_run:
@@ -262,15 +265,16 @@ def _process_pending_for_item(
         quantity['on_p'] = float(current_p + on_p_delta)
         quantity['on_in'] = float(current_on_in + on_in_delta)
         quantity['on_r'] = float(current_on_r + on_r_delta)
-        
-        # Invoicing decreases on_hand, Receipts increase on_hand
-        # Both on_in and on_r are informational - the actual change flows through on_hand
-        on_hand_change = on_r_delta - on_in_delta  # Receipts add, invoices subtract
-        if on_hand_change != 0:
-            quantity['on_hand'] = float(current_on_hand + on_hand_change)
-            # Recompute available
-            alloc = Decimal(str(quantity.get('allocated', 0) or 0))
-            quantity['available'] = float(Decimal(str(quantity['on_hand'])) - alloc)
+
+        # on_hand is explicit in the data — no derived calculation
+        if on_hand_delta != 0:
+            quantity['on_hand'] = float(current_on_hand + on_hand_delta)
+
+        # Recompute available
+        alloc = Decimal(str(quantity.get('allocated', 0) or 0))
+        quantity['available'] = float(
+            Decimal(str(quantity.get('on_hand', 0) or 0)) - alloc
+        )
         
         # Update the item using .update() to avoid full save() with all its hooks
         Item.objects.filter(pk=item_pk).update(quantity=quantity)
@@ -292,6 +296,7 @@ def _process_pending_for_item(
     if on_p_delta: deltas['on_p'] = f'{on_p_delta:+}'
     if on_in_delta: deltas['on_in'] = f'{on_in_delta:+}'
     if on_r_delta: deltas['on_r'] = f'{on_r_delta:+}'
+    if on_hand_delta: deltas['on_hand'] = f'{on_hand_delta:+}'
     trace_pending_processing_complete(
         item_id=item_pk,
         item_ida=item.ida or item.sku or item.name,

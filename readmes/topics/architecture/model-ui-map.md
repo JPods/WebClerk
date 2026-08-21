@@ -1,4 +1,13 @@
-# Model UI Map — Which Models Get What
+# Model UI Map — SUPERSEDED
+
+**Superseded by:** `model-layout-map.md` (2026-08-18)
+**Reason:** Terms changed — `ui.json`→form, `db.json`→detail. Content consolidated into one file.
+
+---
+
+*Original content below preserved for reference only.*
+
+# Model UI Map — Which Models Get What (OLD)
 
 ## The Three UI Paths
 

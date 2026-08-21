@@ -100,9 +100,6 @@ DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
     "InventoryMovement": {
         "movement_type": INVENTORY_MOVEMENT_TYPE_CHOICES,
     },
-    "PendingInventoryAdjustment": {
-        "state": PENDING_INVENTORY_STATE_CHOICES,
-    },
     "InventoryAdjustmentProcessorRun": {
         "run_type": PROCESSOR_RUN_TYPE_CHOICES,
     },

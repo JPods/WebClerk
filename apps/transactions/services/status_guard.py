@@ -106,19 +106,15 @@ JOURNALIZABLE_MODELS = {
 def is_journalized(instance) -> bool:
     """Check if a record has been journalized (GL posted).
 
-    Journalized records are identified by:
-    - metadata.gl_accounts.posted == True (set by journalize.py)
-    - is_locked == True (set at the same time)
-
+    Journalized records are identified by dt_journaled != 0.
     For line models, check the parent header.
     """
-    # Direct check on the instance
-    meta = getattr(instance, 'metadata', None) or {}
-    gl = meta.get('gl_accounts', {})
-    if gl.get('posted'):
+    # Direct check — dt_journaled non-zero means locked
+    dt_j = getattr(instance, 'dt_journaled', 0) or 0
+    if dt_j != 0:
         return True
 
-    # For line models, check the parent
+    # For line models, check the parent header
     model_name = instance.__class__.__name__.lower()
     parent_field = None
     if model_name == 'invoiceline':
@@ -131,9 +127,8 @@ def is_journalized(instance) -> bool:
     if parent_field:
         parent = getattr(instance, parent_field, None)
         if parent:
-            parent_meta = getattr(parent, 'metadata', None) or {}
-            parent_gl = parent_meta.get('gl_accounts', {})
-            if parent_gl.get('posted'):
+            parent_dt_j = getattr(parent, 'dt_journaled', 0) or 0
+            if parent_dt_j != 0:
                 return True
 
     # Commission check — if this record's commission has been accrued

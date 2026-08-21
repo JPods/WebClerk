@@ -26,7 +26,7 @@ from django.db.models import Sum, F, Q
 from django.utils import timezone
 
 from apps.products.models.inventory_layer import (
-    InventoryLayer, InventoryMovement, SiteInventory, PendingInventoryAdjustment,
+    InventoryLayer, InventoryMovement, SiteInventory,
     default_cost,
 )
 from apps.products.models.warehouse import Warehouse
@@ -768,10 +768,41 @@ def _create_deficit_alert(item: Item, deficit_qty: Decimal, batch_id: str, reaso
         pass  # Action model may not be available in all contexts
 
 
+def adjust_item_quantity_via_pending(params: dict) -> dict:
+    """Manage action wrapper: create a Pending record for an inventory adjustment.
+
+    Pending.save() calls try_apply() automatically.
+    """
+    from apps.core.models import Pending
+
+    pending = Pending.objects.create(
+        model_name='item',
+        record_id=str(params['item_id']),
+        purpose='inventory_line_add',
+        name=f"Adjust {params['field']}: {params['item_id']}",
+        changes={
+            params['field']: float(params['delta']),
+            'item_id': params['item_id'],
+            'reason': params.get('reason', ''),
+            'source_type': params.get('source_type', ''),
+            'source_id': params.get('source_id'),
+            'source_line_id': params.get('source_line_id'),
+        },
+    )
+    return {
+        'pending_id': pending.pk,
+        'applied': pending.is_processed(),
+        'item_id': params['item_id'],
+        'field': params['field'],
+        'delta': float(params['delta']),
+    }
+
+
 __all__ = [
     'create_layer', 'consume_fifo', 'consume_lifo', 'consume_by_item_method',
     'recalc_average_cost', 'split_layer', 'transfer_layer',
     'get_count_sheet', 'record_count', 'classify_abc',
     'compute_margin_velocity', 'update_item_margin_velocity',
     'check_orphaned_events', 'tally_site_buckets',
+    'adjust_item_quantity_via_pending',
 ]

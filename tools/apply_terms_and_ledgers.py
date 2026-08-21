@@ -49,11 +49,11 @@ for i, inv in enumerate(invoices):
             value_original=payment_amount,
             value_available=payment_amount,
             dt_due=period_due,
-            dt_posted=now,
+            dt_journaled=0,
             dt_recorded=now,
             dt_discount_due=discount_due,
             discount_potential=discount_potential if p == 0 else None,
-            is_settled=False,
+            dt_applied=None,
             is_cleared=False,
             is_void=False,
         )

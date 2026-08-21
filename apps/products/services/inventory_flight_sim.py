@@ -50,20 +50,89 @@ TAX_RATE = Decimal('0.05')       # 5%
 COMMISSION_RATE = Decimal('0.05')  # 5%
 
 
-def get_flight_ledger(item_id: int) -> Dict[str, Any]:
-    """Build the inventory ledger — an append-only event log.
+def reset_flight_simulator(item_ida: str) -> Dict[str, Any]:
+    """Reset an item and all its training data to clean state.
 
-    Three row types, interleaved chronologically:
-      1. 'transaction' — a transaction line was saved (delta values)
-      2. 'pending'     — a pending record was created (what it will change)
-      3. 'state'       — item.quantity after pending applied (the new truth)
-
-    Each saved transaction produces up to 3 rows:
-      transaction saved → pending created → item.quantity updated
-
-    The first row is always the initial item.quantity state.
+    Called when the user clicks a simulation card (fresh start).
+    Deletes all training transactions, lines, and pending records
+    for this item, then resets quantity to on_hand=100, everything else 0.
     """
-    columns = ['on_hand', 'on_so', 'on_po', 'on_p', 'on_wo', 'available']
+    Item = dj_apps.get_model('products', 'Item')
+    Pending = dj_apps.get_model('core', 'Pending')
+    Proposal = dj_apps.get_model('transactions', 'Proposal')
+    Order = dj_apps.get_model('transactions', 'Order')
+    Invoice = dj_apps.get_model('transactions', 'Invoice')
+
+    try:
+        item = Item.objects.get(ida=item_ida)
+    except Item.DoesNotExist:
+        return {'error': f'Item with ida={item_ida} not found'}
+
+    item_id = item.pk
+
+    # Delete all pending records for this item
+    p_del = Pending.objects.filter(record_id=str(item_id)).delete()
+
+    # Collect parent header IDs from lines, then delete lines and orphaned headers
+    line_configs = [
+        ('transactions', 'ProposalLine', 'proposal_id', 'transactions', 'Proposal'),
+        ('transactions', 'OrderLine', 'order_id', 'transactions', 'Order'),
+        ('transactions', 'InvoiceLine', 'invoice_id', 'transactions', 'Invoice'),
+        ('transactions', 'PurchaseLine', 'purchase_id', 'transactions', 'Purchase'),
+        ('transactions', 'WorkOrderLine', 'workorder_id', 'transactions', 'WorkOrder'),
+    ]
+    lines_deleted = 0
+    headers_deleted = 0
+    for line_app, line_model, fk_field, header_app, header_model in line_configs:
+        try:
+            LineModel = dj_apps.get_model(line_app, line_model)
+            lines_qs = LineModel.objects.filter(item_fk_id=item_id)
+            # Collect parent IDs before deleting
+            parent_ids = set(lines_qs.values_list(fk_field, flat=True))
+            count, _ = lines_qs.delete()
+            lines_deleted += count
+            # Delete parent headers that now have zero lines
+            if parent_ids:
+                HeaderModel = dj_apps.get_model(header_app, header_model)
+                for pid in parent_ids:
+                    remaining = LineModel.objects.filter(**{fk_field: pid}).count()
+                    if remaining == 0:
+                        HeaderModel.objects.filter(pk=pid).delete()
+                        headers_deleted += 1
+        except LookupError:
+            pass
+
+    # Reset item quantity
+    item.quantity = {
+        'on_p': 0, 'on_po': 0, 'on_so': 0, 'on_wo': 0,
+        'on_hand': 100, 'allocated': 0, 'available': 100,
+    }
+    item.save(update_fields=['quantity'])
+
+    return {
+        'success': True,
+        'item_id': item_id,
+        'item_ida': item_ida,
+        'quantity': item.quantity,
+        'pending_deleted': p_del[1].get('core.Pending', 0) if isinstance(p_del[1], dict) else 0,
+        'lines_deleted': lines_deleted,
+        'headers_deleted': headers_deleted,
+    }
+
+
+def get_flight_transactions(item_id: int) -> Dict[str, Any]:
+    """Build the transaction display — three rows per event.
+
+    Row pattern:
+      1. item          — starting state (or state after previous event)
+      2. transaction   — the line that was saved (cause)
+      3. pending       — the pending record created by the line (mechanism)
+      4. item          — item.quantity after pending applied (effect)
+
+    The first row is always the initial item state (before any events).
+    Running totals are reconstructed by walking pending deltas forward.
+    """
+    COLUMNS = ['on_hand', 'on_so', 'on_po', 'on_p', 'on_wo', 'available']
 
     Item = dj_apps.get_model('products', 'Item')
     Pending = dj_apps.get_model('core', 'Pending')
@@ -74,176 +143,149 @@ def get_flight_ledger(item_id: int) -> Dict[str, Any]:
         return {'error': f'Item {item_id} not found'}
 
     quantity = item.quantity if isinstance(item.quantity, dict) else {}
+    current_state = {col: _dec(quantity.get(col, 0)) for col in COLUMNS}
     item_dict = {
         'id': item.pk,
         'ida': item.ida,
         'name': str(item),
-        'quantity': {col: _dec(quantity.get(col, 0)) for col in columns},
+        'quantity': current_state,
     }
 
-    # Gather all events chronologically
-    events: List[Dict[str, Any]] = []
-
-    # Transaction lines — each is a "transaction saved" event
+    # ── Gather transaction lines ─────────────────────────────────────
+    tx_lines = []
     line_models = [
-        ('transactions', 'ProposalLine', 'proposal', 'on_p'),
-        ('transactions', 'OrderLine', 'order', 'on_so'),
-        ('transactions', 'InvoiceLine', 'invoice', None),  # special: on_hand and on_so
-        ('transactions', 'PurchaseLine', 'purchase', 'on_po'),
-        ('transactions', 'WorkOrderLine', 'workorder', 'on_wo'),
+        ('transactions', 'ProposalLine', 'proposal'),
+        ('transactions', 'OrderLine', 'order'),
+        ('transactions', 'InvoiceLine', 'invoice'),
+        ('transactions', 'PurchaseLine', 'purchase'),
+        ('transactions', 'WorkOrderLine', 'workorder'),
     ]
-
-    for app, model_name, parent_model, bucket in line_models:
+    for app, model_name, parent_model in line_models:
         try:
             LineModel = dj_apps.get_model(app, model_name)
         except LookupError:
             continue
-
-        fk_field = 'item_fk_id'
-        qs = LineModel.objects.filter(
-            **{fk_field: item_id, 'is_active': True, 'is_deleted': False}
-        ).order_by('dt_created')
-
-        for line in qs:
-            qty = getattr(line, 'quantity', None)
-            if isinstance(qty, dict):
-                active = float(qty.get('active', qty.get('staged', 0)) or 0)
-            elif isinstance(qty, (int, float)):
-                active = float(qty)
-            else:
-                active = 0
-
-            # Build delta dict
-            delta = {}
-            if active and bucket:
-                delta[bucket] = active
-            elif active and parent_model == 'invoice':
-                delta['on_hand'] = -active
-                delta['on_so'] = -active
-
-            # Format delta for display (prefix with +/-)
-            display_delta = {}
-            for k, v in delta.items():
-                display_delta[k] = f'+{int(v)}' if v > 0 else f'{int(v)}'
-
-            # Get parent ida
-            parent_fk = f'{parent_model}_id' if parent_model != 'workorder' else 'workorder_id'
-            parent_id = getattr(line, parent_fk, None)
-            parent_obj = getattr(line, parent_model, None) if hasattr(line, parent_model) else None
+        for line in LineModel.objects.filter(
+            item_fk_id=item_id, is_active=True, is_deleted=False
+        ).select_related(parent_model).order_by('dt_created'):
+            qty = _line_active_qty(line)
+            parent_obj = getattr(line, parent_model, None)
             parent_ida = getattr(parent_obj, 'ida', '') if parent_obj else ''
-
-            # GL impact
-            gl_entries = []
-            if parent_model == 'invoice' and active > 0:
-                price = getattr(line, 'price', None) or {}
-                if isinstance(price, dict):
-                    extended = float(price.get('extended', 0) or 0)
-                    if extended > 0:
-                        tax = round(extended * float(TAX_RATE), 2)
-                        gl_entries = [
-                            {'account': DEFAULTS['ar'], 'side': 'debit', 'amount': extended + tax},
-                            {'account': DEFAULTS['revenue'], 'side': 'credit', 'amount': extended},
-                            {'account': DEFAULTS['tax_payable'], 'side': 'credit', 'amount': tax},
-                        ]
-
-            dt = getattr(line, 'dt_created', None)
-            events.append({
-                'type': 'transaction',
+            parent_id = getattr(line, f'{parent_model}_id', None)
+            tx_lines.append({
+                'type': f'{parent_model}_line',
                 'label': f'{parent_model.title()} #{parent_ida}',
                 'model': parent_model,
                 'record_id': parent_id,
-                'values': display_delta,
-                'gl': gl_entries if gl_entries else None,
-                'dt': dt,
-                'sort_key': (dt, 0),  # transactions sort first within same timestamp
+                'line_id': line.pk,
+                'qty': qty,
+                'dt': getattr(line, 'dt_created', 0) or 0,
             })
 
-    # Pending records — each is a "pending created" event
-    pending_qs = Pending.objects.filter(
-        record_id=str(item_id),
-    ).order_by('dt_created')
-
-    for p in pending_qs:
-        changes = p.changes if isinstance(p.changes, list) else []
-        pending_delta = {}
-        for change in changes:
-            if isinstance(change, dict):
-                field = change.get('field', '')
-                if field in columns:
-                    old_val = change.get('old', 0) or 0
-                    new_val = change.get('new', 0) or 0
-                    diff = float(new_val) - float(old_val)
-                    if diff != 0:
-                        pending_delta[field] = f'+{int(diff)}' if diff > 0 else f'{int(diff)}'
-
-        purpose = p.purpose if hasattr(p, 'purpose') else (p.name or '')
-        is_processed = p.is_processed() if hasattr(p, 'is_processed') else bool(p.dt_processed)
-
-        events.append({
+    # ── Gather pending records ───────────────────────────────────────
+    pending_list = []
+    for p in Pending.objects.filter(
+        model_name='item', record_id=str(item_id),
+    ).order_by('dt_created'):
+        data = p.changes if isinstance(p.changes, dict) else {}
+        deltas = {}
+        for col in COLUMNS:
+            v = float(data.get(col, 0) or 0)
+            if v != 0:
+                deltas[col] = v
+        pending_list.append({
             'type': 'pending',
-            'label': f'Pending: {purpose}' if purpose else 'Pending',
-            'values': pending_delta,
-            'processed': is_processed,
-            'dt': getattr(p, 'dt_created', None),
-            'sort_key': (getattr(p, 'dt_created', None), 1),  # pending sorts after transaction
+            'purpose': p.purpose or '',
+            'name': p.name or '',
+            'deltas': deltas,
+            'processed': p.is_processed(),
+            'line_id': data.get('line_id'),
+            'dt': getattr(p, 'dt_created', 0) or 0,
         })
 
-        # If pending was processed, add a state row showing item.quantity at that point
-        if is_processed and p.dt_processed:
-            events.append({
-                'type': 'state',
-                'label': 'Item.quantity',
-                'values': {},  # filled below after sorting
-                'dt': p.dt_processed,
-                'sort_key': (p.dt_processed, 2),  # state sorts after pending
-                '_reconstruct': True,
+    # ── Pair lines with their pending records ────────────────────────
+    # Sort both by dt_created, then interleave: line → pending → state
+    tx_lines.sort(key=lambda x: x['dt'])
+    pending_list.sort(key=lambda x: x['dt'])
+
+    # ── Compute initial state by reverse-walking ─────────────────────
+    # Start from current item.quantity, subtract all pending deltas
+    # to get back to the state before any transactions.
+    initial = dict(current_state)
+    for p in pending_list:
+        if p['processed']:
+            for col, delta in p['deltas'].items():
+                initial[col] = initial.get(col, 0) - delta
+    # Recompute available
+    initial['available'] = initial.get('on_hand', 0)
+
+    # ── Build rows ───────────────────────────────────────────────────
+    rows: List[Dict[str, Any]] = []
+    running = dict(initial)
+
+    # Row 1: initial item state
+    rows.append({
+        'type': 'item',
+        'label': f'{item_dict["ida"]}',
+        'values': {col: int(running[col]) for col in COLUMNS},
+    })
+
+    # Merge lines and pending by timestamp
+    all_events = []
+    for tx in tx_lines:
+        all_events.append(('line', tx))
+    for p in pending_list:
+        all_events.append(('pending', p))
+    all_events.sort(key=lambda x: (x[1]['dt'], 0 if x[0] == 'line' else 1))
+
+    for kind, event in all_events:
+        if kind == 'line':
+            # Transaction line row (cause)
+            rows.append({
+                'type': event['type'],
+                'label': event['label'],
+                'model': event['model'],
+                'record_id': event.get('record_id'),
+                'values': {'qty': event['qty']},
+            })
+        elif kind == 'pending':
+            # Pending row (mechanism) — show deltas
+            display_deltas = {}
+            for col, v in event['deltas'].items():
+                display_deltas[col] = f'+{int(v)}' if v > 0 else f'{int(v)}'
+            rows.append({
+                'type': 'pending',
+                'label': event['name'] or event['purpose'],
+                'values': display_deltas,
+                'processed': event['processed'],
+            })
+            # Item state row (effect) — running totals after this pending
+            if event['processed']:
+                for col, delta in event['deltas'].items():
+                    running[col] = running.get(col, 0) + delta
+                running['available'] = running.get('on_hand', 0)
+            rows.append({
+                'type': 'item',
+                'label': item_dict['ida'],
+                'values': {col: int(running[col]) for col in COLUMNS},
             })
 
-    # Sort all events chronologically
-    events.sort(key=lambda e: (e.get('sort_key', (None, 0)) if e.get('sort_key', (None, 0))[0] else ('', 0)))
-
-    # Build rows: initial state + all events
-    rows: List[Dict[str, Any]] = []
-
-    # Row 0 — initial item.quantity (before any transactions, or current if no history)
-    rows.append({
-        'type': 'state',
-        'label': f'Item {item_dict["ida"]}',
-        'values': {col: int(item_dict['quantity'].get(col, 0)) for col in columns},
-    })
-
-    # Reconstruct state rows by walking the running totals
-    running = {col: item_dict['quantity'].get(col, 0) for col in columns}
-
-    for event in events:
-        row = {
-            'type': event['type'],
-            'label': event['label'],
-            'values': event.get('values', {}),
-        }
-        if event.get('gl'):
-            row['gl'] = event['gl']
-        if event.get('model'):
-            row['model'] = event['model']
-        if event.get('record_id'):
-            row['record_id'] = event['record_id']
-
-        rows.append(row)
-
-    # Final row — current item.quantity (always the truth)
-    rows.append({
-        'type': 'state',
-        'label': 'Current',
-        'values': {col: int(item_dict['quantity'].get(col, 0)) for col in columns},
-    })
-
     return {
-        'columns': columns,
+        'columns': COLUMNS,
         'rows': rows,
         'item': item_dict,
-        'line_count': len([e for e in events if e['type'] == 'transaction']),
-        'pending_count': len([e for e in events if e['type'] == 'pending']),
+        'row_count': len(rows),
     }
+
+
+def get_item_by_ida(ida: str) -> Dict[str, Any]:
+    """Look up an item by ida and return its flight state."""
+    Item = dj_apps.get_model('products', 'Item')
+    try:
+        item = Item.objects.get(ida=ida)
+    except Item.DoesNotExist:
+        return {'error': f'Item with ida={ida} not found'}
+    return get_item_flight_state(item.pk)
 
 
 def get_item_flight_state(item_id: int) -> Dict[str, Any]:
@@ -737,6 +779,287 @@ def get_flight_scenario() -> Dict[str, Any]:
     }
 
 
+def get_payment_flight_scenario() -> Dict[str, Any]:
+    """Payment Lifecycle flight scenario.
+
+    Walks through the full payment flow that WC2 handled via Make_Payment,
+    PaymentCreate, ApplyPayments, and Ledger_PaySave:
+
+      1. Create Order for 10 units at $10 = $100
+      2. Invoice 6 of the 10 = $63 (with 5% tax)
+      3. Accept payment of $80 (tendered $100 cash, change $20)
+      4. Apply $50 of the $80 to the $63 invoice
+      5. Journal the payment (post GL entries)
+      6. Check ledger — available $30, invoice balance $13
+      7. Apply remaining $13 to close the invoice
+      8. Remaining $17 available — unapplied on account
+
+    Key fields demonstrated: amount, available, tendered, change.
+    Key behaviors: available decrements on apply, ledger tracks available not amount.
+    """
+    unit_price = Decimal('10.00')
+    unit_cost = Decimal('6.00')
+
+    steps = [
+        {
+            'step': 1,
+            'title': 'Create Order — 10 units × $10.00',
+            'instruction': 'Create an Order with 10 units of the training item at $10.00 each. Total = $100.00.',
+            'action': 'create_order',
+            'qty': 10,
+            'expected_payment': None,
+            'expected_gl': [],
+            'explanation': (
+                'No financial event yet. The order is a commitment — 10 units reserved (on_so=10). '
+                'No payment fields involved. No GL impact.'
+            ),
+        },
+        {
+            'step': 2,
+            'title': 'Invoice 6 of 10 — partial shipment',
+            'instruction': 'Create an Invoice from the Order for 6 of the 10 units. Invoice total = $63.00 (6 × $10 + 5% tax).',
+            'action': 'create_invoice_from_order',
+            'qty': 6,
+            'expected_invoice': {
+                'subtotal': 60.00,
+                'tax': 3.00,
+                'total': 63.00,
+                'balance_due': 63.00,
+            },
+            'expected_gl': [
+                {'account': 'ASSET-AR-000', 'side': 'debit', 'amount': 63.00,
+                 'purpose': 'AR — customer owes $63'},
+                {'account': 'REV-SALES-000', 'side': 'credit', 'amount': 60.00,
+                 'purpose': 'Revenue — 6 × $10'},
+                {'account': 'LIAB-SALESTAX-000', 'side': 'credit', 'amount': 3.00,
+                 'purpose': 'Sales Tax — 5% × $60'},
+                {'account': 'COGS-PRODUCTS-000', 'side': 'debit', 'amount': 36.00,
+                 'purpose': 'COGS — 6 × $6'},
+                {'account': 'ASSET-INVENTORY-000', 'side': 'credit', 'amount': 36.00,
+                 'purpose': 'Inventory reduction'},
+            ],
+            'explanation': (
+                'THIS is the financial event. 6 units ship. Invoice created for $63.\n'
+                'GL records the sale. AR = $63. Revenue = $60. Tax = $3.\n'
+                'The remaining 4 units stay on the order (on_so=4).'
+            ),
+        },
+        {
+            'step': 3,
+            'title': 'Accept Payment — $80 (tendered $100 cash)',
+            'instruction': (
+                'Create a Payment record:\n'
+                '• amount = $80.00 (what they\'re paying)\n'
+                '• tendered = $100.00 (what they handed over)\n'
+                '• change = $20.00 (auto-computed)\n'
+                '• available = $80.00 (auto-set = amount on creation)\n\n'
+                'Do NOT apply it to the invoice yet. This is just accepting the money.'
+            ),
+            'action': 'create_payment',
+            'amount': 80.00,
+            'tendered': 100.00,
+            'expected_payment': {
+                'amount': 80.00,
+                'available': 80.00,
+                'tendered': 100.00,
+                'change': 20.00,
+                'status': 'completed',
+            },
+            'expected_gl': [
+                {'account': 'ASSET-CASH-000', 'side': 'debit', 'amount': 80.00,
+                 'purpose': 'Cash received (amount, not tendered)'},
+                {'account': 'ASSET-AR-000', 'side': 'credit', 'amount': 80.00,
+                 'purpose': 'AR reduced by payment amount'},
+            ],
+            'explanation': (
+                'Customer hands over $100 cash for an $80 payment. Change = $20.\n\n'
+                'Key fields on Payment record:\n'
+                '• amount = $80 — the real payment amount\n'
+                '• tendered = $100 — what the customer physically gave\n'
+                '• change = $20 — computed: tendered - amount\n'
+                '• available = $80 — starts equal to amount, decrements as applied\n\n'
+                'WC2 equivalent: [Payment]amount, [Payment]amountAvailable, '
+                '[Payment]tendered, [Payment]change\n\n'
+                'The payment exists but is NOT yet applied to the invoice. '
+                'The customer has $80 on account.'
+            ),
+        },
+        {
+            'step': 4,
+            'title': 'Apply $50 to Invoice',
+            'instruction': (
+                'Apply $50 of the $80 payment to the $63 invoice.\n\n'
+                'After this step:\n'
+                '• Payment.available drops from $80 → $30\n'
+                '• Invoice balance drops from $63 → $13\n'
+                '• Ledger value_available updates to -$30 (tracks unapplied)\n'
+                '• PendingPaymentApplication record created'
+            ),
+            'action': 'apply_payment_to_invoice',
+            'amount': 50.00,
+            'expected_payment': {
+                'amount': 80.00,
+                'available': 30.00,
+                'tendered': 100.00,
+                'change': 20.00,
+            },
+            'expected_invoice': {
+                'total': 63.00,
+                'received': 50.00,
+                'balance_due': 13.00,
+                'status': 'partially_paid',
+            },
+            'expected_gl': [],
+            'explanation': (
+                'Partial application. We take $50 of the $80 and apply it to the $63 invoice.\n\n'
+                'What changes:\n'
+                '• Payment.available: $80 → $30 (decremented by apply amount)\n'
+                '• Invoice.totals.received: $0 → $50\n'
+                '• Invoice.totals.balance: $63 → $13\n'
+                '• Invoice status: "sent" → "partially_paid"\n'
+                '• Ledger value_available: -$80 → -$30 (on next payment save)\n\n'
+                'What does NOT change:\n'
+                '• Payment.amount stays $80 (immutable — the original payment)\n'
+                '• Payment.tendered stays $100\n'
+                '• Payment.change stays $20\n\n'
+                'WC2: This is the ApplyPayments dialog. The user picks invoices '
+                'and allocates payment dollars across them. amountAvailable tracked '
+                'how much was left to allocate.'
+            ),
+        },
+        {
+            'step': 5,
+            'title': 'Journal the Payment',
+            'instruction': (
+                'Post the payment to the GL (user-initiated action).\n\n'
+                'This creates GlJournal records from the staged metadata.gl_accounts.\n'
+                'The payment is now locked — can only be reversed, not edited.'
+            ),
+            'action': 'post_gl',
+            'expected_gl': [
+                {'account': 'ASSET-CASH-000', 'side': 'debit', 'amount': 80.00,
+                 'purpose': 'Cash receipt — full payment amount'},
+                {'account': 'ASSET-AR-000', 'side': 'credit', 'amount': 80.00,
+                 'purpose': 'AR reduction — full payment amount'},
+            ],
+            'explanation': (
+                'GL journals are created. The payment is now part of the permanent record.\n\n'
+                'Note: GL posts the FULL payment amount ($80), not the applied amount ($50). '
+                'The journal captures the cash event. The application captures the allocation. '
+                'These are two different things:\n'
+                '• Cash event: "Customer gave us $80" → GL\n'
+                '• Allocation: "We applied $50 to Invoice #X" → PaymentApplication\n\n'
+                'The ledger tracks available ($30) for aging and credit calculations. '
+                'The GL tracks the full amount for financial statements.'
+            ),
+        },
+        {
+            'step': 6,
+            'title': 'Check the Ledger',
+            'instruction': (
+                'Verify the ledger state for this customer:\n\n'
+                '• Invoice ledger: value_original = +$63, value_available = +$13\n'
+                '• Payment ledger: value_original = -$80, value_available = -$30\n'
+                '• Net ledger = $13 - $30 = -$17 (customer has $17 credit)\n\n'
+                'Org financial should show:\n'
+                '• balance_due = -$17 (net of invoice + payment ledgers)\n'
+                '• available_payments = $30 (unapplied payment on account)'
+            ),
+            'action': 'check_ledger',
+            'expected_ledger': {
+                'invoice_value_original': 63.00,
+                'invoice_value_available': 13.00,
+                'payment_value_original': -80.00,
+                'payment_value_available': -30.00,
+                'net': -17.00,
+            },
+            'explanation': (
+                'The ledger is the single source of truth for AR aging.\n\n'
+                'WC2 equivalent: Ledger_TallyBal computed:\n'
+                '• balanceDue from SUM(unAppliedValue) across all ledger records\n'
+                '• balanceAvailablePayments from SUM(amountAvailable) on Payment\n'
+                '• totalExposure = balanceDue + openOrders\n\n'
+                'WC3 does the same in update_org_balances():\n'
+                '• Reads all Ledger records for org → aging buckets\n'
+                '• Reads Payment.available WHERE > 0 → available_payments\n'
+                '• total_exposure = balance_due + open_orders - available_payments'
+            ),
+        },
+        {
+            'step': 7,
+            'title': 'Apply remaining $13 — close the invoice',
+            'instruction': (
+                'Apply $13 more of the payment to the invoice.\n\n'
+                'After this step:\n'
+                '• Payment.available: $30 → $17\n'
+                '• Invoice balance: $13 → $0\n'
+                '• Invoice status: "partially_paid" → "paid"\n'
+                '• $17 remains unapplied on account'
+            ),
+            'action': 'apply_payment_to_invoice',
+            'amount': 13.00,
+            'expected_payment': {
+                'amount': 80.00,
+                'available': 17.00,
+            },
+            'expected_invoice': {
+                'total': 63.00,
+                'received': 63.00,
+                'balance_due': 0.00,
+                'status': 'paid',
+            },
+            'explanation': (
+                'Invoice is fully paid. The $17 remaining on the payment is unapplied.\n\n'
+                'This is common in commerce: customer overpays, or pays a round number. '
+                'The excess stays on account as available_payments. It can be:\n'
+                '• Applied to the next invoice\n'
+                '• Refunded\n'
+                '• Left on account as a credit\n\n'
+                'WC2 tracked this with balanceAvailablePayments on Customer. '
+                'WC3 tracks it with Payment.available and org.financial.available_payments.'
+            ),
+        },
+        {
+            'step': 8,
+            'title': 'Summary — the payment lifecycle',
+            'instruction': 'Review what happened across all 7 steps.',
+            'action': None,
+            'exit_point': {
+                'name': 'Payment Lifecycle Complete',
+                'summary': (
+                    'Order $100 → Invoice $63 (partial) → Payment $80 (tendered $100, change $20) '
+                    '→ Apply $50 → Journal → Apply $13 → Invoice paid, $17 on account.'
+                ),
+            },
+            'explanation': (
+                'The four payment fields and their roles:\n\n'
+                '| Field     | Created | After apply $50 | After apply $13 |\n'
+                '|-----------|---------|-----------------|------------------|\n'
+                '| amount    | $80     | $80             | $80              |\n'
+                '| available | $80     | $30             | $17              |\n'
+                '| tendered  | $100    | $100            | $100             |\n'
+                '| change    | $20     | $20             | $20              |\n\n'
+                'amount and tendered are immutable (what happened). '
+                'available is the working field (what\'s left to allocate). '
+                'change is computed (tendered - amount).\n\n'
+                'The ledger tracks available, not amount. This is how WC2 worked '
+                '(aLdgValue = -amountAvailable) and now WC3 matches.'
+            ),
+        },
+    ]
+
+    return {
+        'steps': steps,
+        'config': {
+            'unit_price': 10.00,
+            'unit_cost': 6.00,
+            'tax_rate': float(TAX_RATE),
+            'starting_on_hand': 100,
+        },
+        'gl_accounts': DEFAULTS,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
@@ -964,6 +1287,16 @@ def _get_pending_records(item_id: int) -> list:
             'dt_processed': p.dt_processed,
         })
     return records
+
+
+def _line_active_qty(line) -> float:
+    """Extract the active quantity from a line as a float."""
+    qty = getattr(line, 'quantity', None)
+    if isinstance(qty, dict):
+        return float(qty.get('active', qty.get('staged', 0)) or 0)
+    if isinstance(qty, (int, float)):
+        return float(qty)
+    return 0.0
 
 
 def _line_qty(line) -> dict:

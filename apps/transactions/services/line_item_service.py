@@ -1033,33 +1033,15 @@ class LineItemService:
         elif pending_type == 'WO':
             pending_data['on_wo'] = quantity
         elif pending_type == 'IN':
-            # Invoice: track on_in, release on_so, deduct on_hand
+            # Invoice: own bucket only — on_hand decrease, on_in increase
+            # Source bucket (on_so) is released by _adjust_source_line on save
             pending_data['on_in'] = quantity
-            parent_id = getattr(transaction, 'parent_id', None)
-            if parent_id:
-                # Invoice from Order: release order commitment and deduct inventory
-                pending_data['on_so'] = -quantity
-                pending_data['on_hand'] = -quantity
-                pending_data['links']['order'] = {'parent_id': parent_id}
-                pending_data['reason'] = 'in line add (releases so, deducts on_hand)'
+            pending_data['on_hand'] = -quantity
         elif pending_type == 'RC':
-            # Receipt: track on_r, release source commitment, add on_hand
+            # Receipt: own bucket only — on_hand increase
+            # Source bucket (on_po) is released by _adjust_source_line on save
             pending_data['on_r'] = quantity
-            # Check for purchase parent
-            purchase_id = getattr(transaction, 'purchase_id', None)
-            if purchase_id:
-                pending_data['on_po'] = -quantity
-                pending_data['on_hand'] = quantity
-                pending_data['links']['purchase'] = {'parent_id': purchase_id}
-                pending_data['reason'] = 'rc line add (releases po, adds on_hand)'
-            else:
-                # Check for workorder parent
-                workorder_id = getattr(transaction, 'workorder_id', None)
-                if workorder_id:
-                    pending_data['on_wo'] = -quantity
-                    pending_data['on_hand'] = quantity
-                    pending_data['links']['workorder'] = {'parent_id': workorder_id}
-                    pending_data['reason'] = 'rc line add (releases wo, adds on_hand)'
+            pending_data['on_hand'] = quantity
         
         # ── Duplicate-pair guard ──────────────────────────────────────
         # Forbid creating a second pending for the same order_line↔invoice_line pair.
@@ -1115,17 +1097,17 @@ class LineItemService:
     ) -> 'Pending':
         """
         Create a Pending record for a newly created line from save_view.py.
-        
+
         This method bridges the save_view.py direct line creation with the
         inventory pending system. It extracts the item_id and quantity from
         the line_data and creates the appropriate pending record.
-        
+
         Args:
             parent: The parent transaction object (Order, Proposal, etc.)
             parent_model_key: The model key ('order', 'proposal', etc.)
             line: The created line object
             line_data: The raw dict data used to create the line
-            
+
         Returns:
             The created Pending record, or None if not applicable
         """
@@ -1156,7 +1138,9 @@ class LineItemService:
             item_id = line.item.get('id') or line.item.get('item_id')
         if not item_id and hasattr(line, 'item_id'):
             item_id = line.item_id
-        
+        if not item_id and hasattr(line, 'item_fk_id'):
+            item_id = line.item_fk_id
+
         if not item_id:
             logger.debug(f"_create_pending_for_new_line: No item_id found for line {line.pk}")
             return None
@@ -1325,38 +1309,13 @@ class LineItemService:
         # - Receipt from WorkOrder: adjust on_wo
         # Note: on_hand is derived by the processor from on_in/on_r, but we
         # set it here for visibility in the pending data.
+        # Each model owns one bucket. Qty change only adjusts own bucket.
+        # Source bucket adjustment is handled by _adjust_source_line on save.
         if pending_type == 'IN':
-            parent_id = getattr(transaction, 'parent_id', None)
-            if parent_id:
-                # Reducing invoice qty (+delta to on_so to restore order commitment)
-                pending_data['on_so'] = -quantity_delta
-                pending_data['on_hand'] = -quantity_delta
-                pending_data['links']['order'] = {'parent_id': parent_id}
-                pending_data['reason'] = (
-                    f'in qty {"increase" if quantity_delta > 0 else "decrease"}'
-                    f' (adjusts so, on_hand)'
-                )
+            pending_data['on_hand'] = -quantity_delta
         elif pending_type == 'RC':
-            purchase_id = getattr(transaction, 'purchase_id', None)
-            if purchase_id:
-                pending_data['on_po'] = -quantity_delta
-                pending_data['on_hand'] = quantity_delta
-                pending_data['links']['purchase'] = {'parent_id': purchase_id}
-                pending_data['reason'] = (
-                    f'rc qty {"increase" if quantity_delta > 0 else "decrease"}'
-                    f' (adjusts po, on_hand)'
-                )
-            else:
-                workorder_id = getattr(transaction, 'workorder_id', None)
-                if workorder_id:
-                    pending_data['on_wo'] = -quantity_delta
-                    pending_data['on_hand'] = quantity_delta
-                    pending_data['links']['workorder'] = {'parent_id': workorder_id}
-                    pending_data['reason'] = (
-                        f'rc qty {"increase" if quantity_delta > 0 else "decrease"}'
-                        f' (adjusts wo, on_hand)'
-                    )
-        
+            pending_data['on_hand'] = quantity_delta
+
         pending = Pending.objects.create(
             model_name='item',
             record_id=str(item_id) if item_id else '',

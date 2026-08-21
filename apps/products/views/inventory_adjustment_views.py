@@ -1,4 +1,4 @@
-"""Inventory adjustment API — always through pending, one path, one audit trail."""
+"""Inventory adjustment API — always through Pending, one path, one audit trail."""
 from __future__ import annotations
 
 import logging
@@ -10,9 +10,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from common.api_responses import api_response
-from apps.products.models.inventory_layer import (
-    InventoryLayer, PendingInventoryAdjustment,
-)
+from apps.core.models import Pending
+from apps.products.models.inventory_layer import InventoryLayer
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +25,8 @@ class InventoryAdjustmentView(APIView):
     """POST /api/products/inventory/adjust/
 
     Apply one or more inventory adjustments. Every adjustment creates a
-    PendingInventoryAdjustment first, then applies immediately if the
-    stack is unlocked. One path, one audit trail.
+    Pending record which tries to apply itself on save. If the item is
+    locked, celery picks it up later. One path, one audit trail.
 
     Body: {
         "warehouse_id": int,
@@ -66,69 +65,35 @@ class InventoryAdjustmentView(APIView):
 
             qty_decimal = Decimal(str(qty))
 
-            with transaction.atomic():
-                # Find or create the inventory layer for this item+warehouse
-                layer = (InventoryLayer.objects
-                         .select_for_update()
-                         .filter(item_id=item_id, warehouse_id=warehouse_id, is_deleted=False)
-                         .first())
-
-                if not layer:
-                    # Create a new layer for this item at this warehouse
-                    layer = InventoryLayer.objects.create(
-                        item_id=item_id,
-                        warehouse_id=warehouse_id,
-                        quantity={'received': 0, 'issued': 0, 'scrapped': 0},
-                    )
-
-                # Always create pending first
-                pending = PendingInventoryAdjustment.objects.create(
-                    inventory_layer=layer,
-                    qty=abs(qty_decimal),
-                    state=PendingInventoryAdjustment.STATE_PENDING,
-                    reason=reason,
-                    request_ref={
-                        'type': 'increase' if qty_decimal > 0 else 'decrease',
-                        'signed_qty': float(qty_decimal),
-                        'notes': notes,
-                        'user': request.user.username if request.user else '',
-                        'dt': timezone.now().isoformat(),
-                    },
-                )
-
-                # Apply immediately if stack is unlocked
-                layer.check_lock_expired()
-                applied = False
-                if not layer.is_locked:
-                    q = layer.quantity or {}
-                    if qty_decimal > 0:
-                        # Increase: add to received
-                        received = Decimal(str(q.get('received', 0) or 0))
-                        q['received'] = float(received + qty_decimal)
-                    else:
-                        # Decrease: add to issued (qty is negative, issued is positive)
-                        issued = Decimal(str(q.get('issued', 0) or 0))
-                        q['issued'] = float(issued + abs(qty_decimal))
-                    layer.quantity = q
-                    layer.save(update_fields=['quantity', 'dt_modified', 'version'])
-
-                    pending.state = PendingInventoryAdjustment.STATE_APPLIED
-                    pending.dt_applied = timezone.now()
-                    pending.save(update_fields=['state', 'dt_applied', 'dt_modified', 'version'])
-                    applied = True
-                    applied_count += 1
-                else:
-                    pending_count += 1
-
-                remaining = layer.remaining_qty()
-                results.append({
+            # Create Pending — try_apply fires automatically in save()
+            pending = Pending.objects.create(
+                model_name='item',
+                record_id=str(item_id),
+                purpose='inventory_line_add',
+                name=f'Adjustment {reason}: item {item_id}',
+                changes={
+                    'on_hand': float(qty_decimal),
                     'item_id': item_id,
-                    'pending_id': pending.pk,
-                    'applied': applied,
-                    'qty_adjusted': float(qty_decimal),
-                    'new_on_hand': float(remaining),
+                    'warehouse_id': warehouse_id,
                     'reason': reason,
-                })
+                    'notes': notes,
+                    'user': request.user.username if request.user else '',
+                },
+            )
+
+            applied = pending.is_processed()
+            if applied:
+                applied_count += 1
+            else:
+                pending_count += 1
+
+            results.append({
+                'item_id': item_id,
+                'pending_id': pending.pk,
+                'applied': applied,
+                'qty_adjusted': float(qty_decimal),
+                'reason': reason,
+            })
 
         return api_response(data={
             'applied': applied_count,
@@ -138,43 +103,37 @@ class InventoryAdjustmentView(APIView):
 
 
 class InventoryAdjustmentHistoryView(APIView):
-    """GET /api/products/inventory/adjustments/?item_id=N&warehouse_id=N
+    """GET /api/products/inventory/adjustments/?item_id=N
 
-    Return adjustment history for an item at a warehouse.
+    Return adjustment history for an item.
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         item_id = request.query_params.get('item_id')
-        warehouse_id = request.query_params.get('warehouse_id')
         limit = int(request.query_params.get('limit', 50))
 
-        filters = {}
-        if item_id:
-            filters['inventory_layer__item_id'] = item_id
-        if warehouse_id:
-            filters['inventory_layer__warehouse_id'] = warehouse_id
+        if not item_id:
+            return api_response(success=False, status_code=400, message='item_id required')
 
-        rows = (PendingInventoryAdjustment.objects
-                .filter(**filters)
-                .select_related('inventory_layer')
+        rows = (Pending.objects
+                .filter(model_name='item', record_id=str(item_id))
                 .order_by('-dt_created')[:limit])
 
         results = []
         for r in rows:
-            ref = r.request_ref or {}
+            data = r.changes if isinstance(r.changes, dict) else {}
             results.append({
                 'id': r.pk,
-                'item_id': r.inventory_layer.item_id,
-                'warehouse_id': r.inventory_layer.warehouse_id,
-                'qty': float(r.qty),
-                'signed_qty': ref.get('signed_qty', float(r.qty)),
-                'state': r.state,
-                'reason': r.reason,
-                'notes': ref.get('notes', ''),
-                'user': ref.get('user', ''),
-                'dt_created': r.dt_created.isoformat() if r.dt_created else None,
-                'dt_applied': r.dt_applied.isoformat() if r.dt_applied else None,
+                'item_id': int(r.record_id),
+                'purpose': r.purpose,
+                'changes': data,
+                'processed': r.is_processed(),
+                'reason': data.get('reason', ''),
+                'notes': data.get('notes', ''),
+                'user': data.get('user', ''),
+                'dt_created': r.dt_created,
+                'dt_processed': r.dt_processed,
             })
 
         return api_response(data=results)

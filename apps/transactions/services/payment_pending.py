@@ -203,14 +203,18 @@ def _apply_one(
     if early_discount > 0:
         _apply_one(discount_pending, invoice, discount_payment)
 
+    # Decrement payment.available
+    payment.available = max(Decimal('0'), payment.available - amount)
+    payment.save(update_fields=['available', 'dt_modified', 'version'])
+
     # Mark pending as applied
     pending.state = PendingPaymentApplication.STATE_APPLIED
     pending.dt_applied = timezone.now()
     pending.save(update_fields=['state', 'dt_applied', 'dt_modified', 'version'])
 
     logger.info(
-        "Applied pending payment %s: payment %s -> invoice %s, $%s",
-        pending.pk, payment.pk, invoice.pk, amount,
+        "Applied pending payment %s: payment %s -> invoice %s, $%s (available now $%s)",
+        pending.pk, payment.pk, invoice.pk, amount, payment.available,
     )
     return True
 

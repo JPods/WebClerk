@@ -67,9 +67,6 @@ class GlAccount(BaseModel):
     division = models.IntegerField(
         blank=True, null=True,
         help_text="Division/department code")
-    comment = models.TextField(
-        blank=True, null=True,
-        help_text="Notes or description")
 
     class Meta:
         db_table = 'gl_accounts'

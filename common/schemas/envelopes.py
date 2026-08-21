@@ -179,7 +179,11 @@ class RefsBase(BaseModel):
 # ═══════════════════════════════════════════════════════════════════════
 
 class GlStage(BaseModel):
-    """GL posting stage — written by journalizer or ledger_balance."""
+    """GL posting stage — DEPRECATED. Use model.dt_journaled instead.
+
+    dt_journaled on the model (0=editable, non-zero=locked) replaces
+    metadata.gl_accounts.posted. This schema remains for reading legacy data.
+    """
     event: str = ''
     posted: bool = False
     dt_posted: int = 0

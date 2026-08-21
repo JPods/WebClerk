@@ -28,14 +28,16 @@ class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
         fields = [
-            "id", "invoice_id", "contact_id", "amount", "dt_payment",
+            "id", "invoice_id", "contact_id", "amount", "available", "tendered", "change",
+            "dt_payment",
             "payment_method_id", "payment_term_id", "reference_number", "notes",
             "gateway", "id_gateway_transaction", "id_gateway_payment_intent", "status",
             "gateway_response", "dt_processed", "reconciled", "dt_reconciliation", "fee_amount",
             "refs", "metadata",
             "dt_created", "dt_modified", "version"
         ]
-        read_only_fields = ["id", "dt_created", "dt_modified", "dt_processed", "dt_reconciliation", "version"]
+        read_only_fields = ["id", "dt_created", "dt_modified", "dt_processed", "dt_reconciliation", "version",
+                            "available", "change"]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

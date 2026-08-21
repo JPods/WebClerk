@@ -123,6 +123,9 @@ class Payment(BaseModel):
         help_text="Vendor org — expense payments"
     )
     amount = models.DecimalField(max_digits=15, decimal_places=2, default=0, help_text="Positive=money in (received), negative=money out (disbursed). SUM(amount) = net cash position.")
+    available = models.DecimalField(max_digits=15, decimal_places=2, default=0, help_text="Amount remaining to apply. Starts = amount, decremented as applied to invoices.")
+    tendered = models.DecimalField(max_digits=15, decimal_places=2, default=0, help_text="Amount physically tendered (cash scenarios). May exceed amount.")
+    change = models.DecimalField(max_digits=15, decimal_places=2, default=0, help_text="Change returned. tendered - amount when tendered > amount.")
     dt_payment = models.DateTimeField(null=True, blank=True, default=django_now, help_text="Date the payment was made")
     method = models.CharField(
         max_length=100,
@@ -304,6 +307,16 @@ class Payment(BaseModel):
         return sanitized
 
     def save(self, *args, **kwargs):
+        if not self.pk:
+            # New payment: available starts equal to amount
+            if not self.available:
+                self.available = self.amount
+            # New payment: tendered defaults to amount if not set
+            if not self.tendered:
+                self.tendered = self.amount
+        # Compute change whenever tendered exceeds amount
+        if self.tendered > abs(self.amount):
+            self.change = self.tendered - abs(self.amount)
         if self.gateway_response and self.gateway != 'manual':
             self.gateway_response = self.sanitize_gateway_response(self.gateway_response)
         super().save(*args, **kwargs)

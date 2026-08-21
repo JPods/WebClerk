@@ -1,0 +1,76 @@
+digraph leaf_declarations {
+    rankdir=TB
+    fontname="Helvetica"
+    node [fontname="Helvetica" fontsize=11 shape=box style="rounded,filled"]
+    edge [fontname="Helvetica" fontsize=9]
+
+    // Source of truth
+    subgraph cluster_code {
+        label="CODE (source of truth)"
+        style="dashed"
+        color="#666"
+        fontcolor="#666"
+
+        pydantic [label="Pydantic Schema\ncommon/schemas/*.py" fillcolor="#E8F5E9"]
+        i18n_set [label="_I18N_FIELDS\n{action, description,\nassigned_to, ...}" fillcolor="#E3F2FD"]
+        envelope_set [label="_ENVELOPE_FIELDS\n{config, metadata,\nrefs, prefs, ...}" fillcolor="#FFF3E0"]
+    }
+
+    // Service layer
+    subgraph cluster_service {
+        label="DJANGO SERVICE"
+        style="dashed"
+        color="#666"
+        fontcolor="#666"
+
+        get_leaf [label="get_leaf_declarations()\nfield_behaviors.py" fillcolor="#F3E5F5"]
+        compute [label="_compute_behaviors()\nsetting_resolver.py" fillcolor="#F3E5F5"]
+    }
+
+    // API response
+    api [label="API Response\n{behaviors, field_groups, leaves}" fillcolor="#FFFDE7" shape=note]
+
+    // React layer
+    subgraph cluster_react {
+        label="REACT"
+        style="dashed"
+        color="#666"
+        fontcolor="#666"
+
+        hook [label="useDataBrowser\nleafDeclarations state" fillcolor="#E0F7FA"]
+        grouped [label="GroupedDetailFields\npasses leaf to each field" fillcolor="#E0F7FA"]
+        render [label="renderField()\nleaf.type drives widget" fillcolor="#E0F7FA"]
+    }
+
+    // Widget outcomes
+    subgraph cluster_widgets {
+        label="WIDGET"
+        style="dashed"
+        color="#666"
+        fontcolor="#666"
+
+        text [label="Text / Textarea\nextract [0]" fillcolor="#C8E6C9"]
+        select [label="Select\nextract [0]\nCmd+click multi" fillcolor="#C8E6C9"]
+        tree [label="JSON Tree\nfull structure" fillcolor="#FFE0B2"]
+        json [label="JSON Textarea\nfallback" fillcolor="#FFCCBC"]
+    }
+
+    // Flow
+    pydantic -> get_leaf [label="declares\nstructure"]
+    i18n_set -> get_leaf [label="i18n fields"]
+    envelope_set -> get_leaf [label="envelope fields"]
+    get_leaf -> compute [label="leaves dict"]
+    compute -> api [label="includes in\nresponse"]
+    api -> hook [label="fetch on\nmodel switch"]
+    hook -> grouped [label="leafDeclarations"]
+    grouped -> render [label="leaf prop\nper field"]
+
+    // Decision
+    decision [label="leaf.type?" shape=diamond fillcolor="#FFF9C4"]
+    render -> decision
+
+    decision -> text [label="i18n"]
+    decision -> tree [label="envelope"]
+    decision -> json [label="json\n(fallback)"]
+    decision -> select [label="i18n +\nbehavior.select"]
+}

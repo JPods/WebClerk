@@ -98,7 +98,6 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'item_usage': ModelMeta('item_usage', 'apps.products.models.ItemUsage', 'Item Usage', 'Item Usages', 'item-usages', kind='support', aliases=['item_usages']),
     'item_xref': ModelMeta('item_xref', 'apps.products.models.ItemXRef', 'Item XRef', 'Item XRefs', 'item-xrefs', kind='support', aliases=['item_xrefs']),
     'org_item': ModelMeta('org_item', 'apps.products.models.org_item.OrgItem', 'Org Item', 'Org Items', 'org-items', kind='support', aliases=['org_items']),
-    'pending_inventory_adjustment': ModelMeta('pending_inventory_adjustment', 'apps.products.models.inventory_layer.PendingInventoryAdjustment', 'Pending Inventory Adjustment', 'Pending Inventory Adjustments', 'pending-inventory-adjustments', kind='support', aliases=['pending_inventory_adjustments']),
     'serial': ModelMeta('serial', 'apps.products.models.serial.Serial', 'Serial', 'Serials', 'serials', kind='support', aliases=['serials']),
     'serial_log': ModelMeta('serial_log', 'apps.products.models.serial.SerialLog', 'Serial Log', 'Serial Logs', 'serial-logs', kind='support', aliases=['serial_logs']),
     'service': ModelMeta('service', 'apps.products.models.Service', 'Service', 'Services', 'services', kind='support', aliases=['services']),

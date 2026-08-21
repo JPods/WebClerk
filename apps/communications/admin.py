@@ -75,8 +75,8 @@ class PhoneAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
 @admin.register(Domain)
 class DomainAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Domain model."""
-    # Scalar fields: comment, count_accessed, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, path, security_level, sequence, status, type, uuid, version
-    list_display = ("ida", "status", "type", "comment", "count_accessed", "health_rating", "is_active", "dt_created")
+    # Scalar fields: count_accessed, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, path, security_level, sequence, status, type, uuid, version
+    list_display = ("ida", "status", "type", "count_accessed", "health_rating", "is_active", "dt_created")
     list_filter = ('type',)  # Remove dt_verified from list_filter
     search_fields = ('path', 'type')
     #readonly_fields = ('uuid')  # Use get_dt_verified

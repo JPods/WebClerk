@@ -38,9 +38,9 @@ class TermAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdm
 
 @admin.register(Ledger)
 class LedgerAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
-	# Scalar fields: discount_potential, dt_created, dt_discount_due, dt_due, dt_modified, dt_posted, dt_recorded, dt_settled, health_rating, ida, is_active, is_archived, is_cleared, is_deleted, is_locked, is_settled, is_void, model_name, parent_id, security_level, source, uuid, value_available, value_original, version
-	list_display = ("ida", "discount_potential", "dt_discount_due", "dt_due", "dt_posted", "dt_recorded", "is_active", "dt_created")
-	list_filter = ("source", "model_name", "is_settled", "is_cleared", "is_void", "is_active")
+	# Scalar fields: discount_potential, dt_created, dt_discount_due, dt_due, dt_modified, dt_journaled, dt_recorded, dt_applied, health_rating, ida, is_active, is_archived, is_cleared, is_deleted, is_locked, is_settled, is_void, model_name, parent_id, security_level, source, uuid, value_available, value_original, version
+	list_display = ("ida", "discount_potential", "dt_discount_due", "dt_due", "dt_journaled", "dt_recorded", "is_active", "dt_created")
+	list_filter = ("source", "model_name", "is_cleared", "is_void", "is_active")
 	search_fields = ("ida",)
 	readonly_fields = ("uuid", "dt_created", "dt_modified")
 

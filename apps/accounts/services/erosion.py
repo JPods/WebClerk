@@ -152,7 +152,7 @@ def detect_late_payment(payment, daily_rate: D = D('0.0005')) -> Optional['Erosi
     # Find the earliest unpaid ledger due date for this invoice
     earliest_ledger = (
         Ledger.objects
-        .filter(invoice_id=invoice.id, model_name='invoice', is_settled=False)
+        .filter(invoice_id=invoice.id, model_name='invoice', dt_applied__isnull=True)
         .order_by('dt_due')
         .first()
     )

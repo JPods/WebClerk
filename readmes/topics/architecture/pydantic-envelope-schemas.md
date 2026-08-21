@@ -202,7 +202,7 @@ Setting(purpose='schema_map', model_name='contact', ...)
 
 ## Connection to Data-Driven UI
 
-The Pydantic schemas are the validation layer that makes Data-Driven UI safe. When a ui.json layout references a field name, BehaviorField reads the field from the record. The Pydantic schema ensures that:
+The Pydantic schemas are the validation layer that makes Data-Driven UI safe. When a form layout references a field name, BehaviorField reads the field from the record. The Pydantic schema ensures that:
 
 - The field exists and has the right type
 - Default values are populated for new records
@@ -269,7 +269,7 @@ The principle: your data is yours. The structure of your data — the shape, not
 ## Open Items
 
 1. **Config schemas are weak.** Most models have `extra = "allow"` on config with no defined fields. As config usage patterns solidify, tighten these — and Alice's observation loop is the mechanism that will drive this.
-2. **Layout schema.** The ui.json layout format itself needs a Pydantic model — `LayoutRow`, `LayoutDefinition` — so Design Mode saves are validated too.
+2. **Layout schema.** The form layout format now has Pydantic models (`NamedFormLayout`, `CardSpec`, `EditRules` etc. in `setting.py`) — established 2026-08-18. Design Mode saves should validate against these.
 3. **Alice schema audit.** `schema_audit.py` exists but needs to run on schedule, flagging models where the actual data diverges from the declared schema.
 4. **WC_HQ aggregation endpoint.** The sync protocol supports bundle exchange; the schema proposal format and aggregation logic need to be built.
 5. **Alice observation queries.** Alice needs queries that scan `extra` fields across records of the same model, group by key name and type, and surface patterns above a threshold.

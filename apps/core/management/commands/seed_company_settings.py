@@ -32,6 +32,14 @@ COMPANY_PROFILE_CONFIG = {
         "website": "",
         "tax_id": "",
         "registration_number": "",
+        "address_ship_to": {
+            "street1": "",
+            "street2": "",
+            "city": "",
+            "state": "",
+            "zip": "",
+            "country": "US",
+        },
     },
     "logos": {
         "primary": "",           # main logo — used on letterhead, invoices, reports

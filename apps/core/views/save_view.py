@@ -41,6 +41,7 @@ from typing import Type, cast, List, Dict, Any
 from common.refs.links import ensure_bidirectional
 from common.models import LINK_DENORMALIZE_FIELDS
 from apps.core.models import Contact
+from apps.core.services.field_behaviors import _I18N_FIELDS as _i18n_field_set
 from django.utils import timezone
 
 ALLOWED_NESTED_KEYS = {
@@ -363,6 +364,8 @@ class SaveWcapiView(APIView):
                 data['id'] = record_id
             if options:
                 data['options'] = options
+            # Remove the record key itself — its contents are now at top level
+            del data['record']
             console_logger.info(f"[SAVE_VIEW] Merged 'record' fields into payload, lines count: {len(data.get('lines', []))}")
 
         # If client provided a project_slug but not a numeric project_id, try to resolve it here.
@@ -500,6 +503,73 @@ class SaveWcapiView(APIView):
             console_logger.error(f"[SAVE_VIEW] Exception during save: {e}")
             return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
 
+    @staticmethod
+    def _adjust_source_line(source: dict, target_model: str, line_qty: float, line_obj):
+        """After creating a new line from conversion, adjust the source line.
+
+        Each model owns one bucket. The source line adjusts its remaining,
+        saves, and fires its own pending. Linear: one thing, then the next.
+
+        Only sell-side conversions adjust source lines:
+          order    → proposal_line_id  → ProposalLine (on_p)
+          invoice  → order_line_id     → OrderLine    (on_so)
+          invoice  → proposal_line_id  → ProposalLine (on_p)  [direct proposal→invoice]
+
+        Purchase does NOT adjust the source order — it's a buy-side action.
+        The order's on_so stays committed until an invoice consumes it.
+        """
+        from apps.core.models import Pending
+
+        # Purchase lines don't adjust source — buy-side doesn't consume sell-side
+        if target_model == 'purchase':
+            return
+
+        # Determine which source line to adjust.
+        source_lookups = [
+            ('proposal_line_id', 'apps.transactions.models.proposal_line', 'ProposalLine', 'proposal', 'on_p'),
+            ('order_line_id',    'apps.transactions.models.order_line',    'OrderLine',    'order',    'on_so'),
+        ]
+        source_key = source_id = module_path = class_name = parent_attr = bucket_field = None
+        for _key, _mod, _cls, _parent, _bucket in source_lookups:
+            _id = source.get(_key)
+            if _id:
+                source_key, source_id, module_path, class_name, parent_attr, bucket_field = _key, _id, _mod, _cls, _parent, _bucket
+                break
+        if not source_id:
+            return
+
+        import importlib
+        mod = importlib.import_module(module_path)
+        SourceLine = getattr(mod, class_name)
+
+        src_line = SourceLine.objects.get(pk=source_id)
+        sq = dict(src_line.quantity or {})
+        s_active = float(sq.get('active', 0) or 0)
+        sq['remaining'] = max(0.0, s_active - line_qty)
+        src_line.quantity = sq
+        src_line.status = 'transferred' if sq['remaining'] <= 0 else src_line.status
+        src_line.save(update_fields=['quantity', 'status', 'dt_modified', 'version'])
+
+        # Fire source bucket pending
+        item_data = src_line.item or {}
+        item_id = item_data.get('item_id') or item_data.get('id') if isinstance(item_data, dict) else None
+        if item_id:
+            parent_obj = getattr(src_line, parent_attr, None)
+            doc_ida = getattr(parent_obj, 'ida', '') if parent_obj else ''
+            Pending.objects.create(
+                model_name='item',
+                record_id=str(item_id),
+                purpose='inventory_line_add',
+                name=f'{bucket_field} release: {item_data.get("ida_item", item_id)}',
+                changes={
+                    bucket_field: -line_qty,
+                    'reason': f'{parent_attr} line transferred to {target_model}',
+                    'doc_id': doc_ida,
+                    'line_id': src_line.id,
+                    'item_id': item_id,
+                },
+            )
+
     @transaction.atomic
     def _save_record(self, request, model_cls, model_key, norm_key, data, record_id, expected_version, deprecation_flag):
         is_update = bool(record_id)
@@ -620,7 +690,7 @@ class SaveWcapiView(APIView):
                 else:
                     raw_password = field_data
                 continue
-            if field in ('model_name', 'id', 'version', 'expected_version', 'bulk', 'lines', 'uuid'):
+            if field in ('model_name', 'id', 'version', 'expected_version', 'bulk', 'lines', 'uuid', 'record', 'options'):
                 continue
             # Skip M2M fields — cannot be set via setattr, must use .set() after save
             if field in m2m_field_names:
@@ -716,6 +786,10 @@ class SaveWcapiView(APIView):
                     if _is_model_field:
                         current = getattr(obj, field)
                         is_json_field = field in json_field_names or isinstance(current, dict)
+                        # i18n fields: wrap plain strings in {"en": value}
+                        if is_json_field and field in _i18n_field_set and isinstance(value, str):
+                            value = {'en': value}
+                            field_data['value'] = value
                         if isinstance(value, dict) and is_json_field:
                             if isinstance(current, str):
                                 try:
@@ -739,6 +813,16 @@ class SaveWcapiView(APIView):
                                 except Exception:
                                     model_field = None
                                 if model_field is not None:
+                                    # FK fields: if value is int/str-int, set the _id column directly
+                                    if isinstance(model_field, (models.ForeignKey, models.OneToOneField)):
+                                        # Use field_id unless field already ends with _id
+                                        id_attr = field if field.endswith('_id') else f'{field}_id'
+                                        if isinstance(value, int) or (isinstance(value, str) and value.strip().isdigit()):
+                                            setattr(obj, id_attr, int(value) if isinstance(value, str) else value)
+                                            continue
+                                        elif value is None:
+                                            setattr(obj, id_attr, None)
+                                            continue
                                     int_field_types = (
                                         models.AutoField,
                                         models.IntegerField,
@@ -876,7 +960,12 @@ class SaveWcapiView(APIView):
         header_models = {'order', 'invoice', 'purchase', 'workorder', 'proposal'}
         norm_model = model_key.replace('_', '').lower()
         is_header_model = norm_model in {m.replace('_', '').lower() for m in header_models}
-        
+        if is_header_model and 'lines' in data:
+            console_logger.info(
+                f"[SAVE_VIEW] Line processing: model_key={model_key}, "
+                f"lines_count={len(data['lines']) if isinstance(data.get('lines'), list) else 'N/A'}"
+            )
+
         if is_header_model and 'lines' in data and isinstance(data['lines'], list):
             console_logger.info(f"[SAVE_VIEW] Processing {len(data['lines'])} lines for {model_key}")
             
@@ -903,7 +992,12 @@ class SaveWcapiView(APIView):
                     for idx, line_data in enumerate(data['lines']):
                         try:
                             line_id = line_data.get('id')
-                            is_new = line_id is None or (isinstance(line_id, str) and line_id.startswith('temp-'))
+                            is_new = (
+                                line_id is None
+                                or (isinstance(line_id, str) and line_id.startswith('temp-'))
+                                or (isinstance(line_id, (int, float)) and line_id < 0)
+                            )
+                            console_logger.info(f"[SAVE_VIEW] LINE {idx}: id={line_id} is_new={is_new}")
                             
                             if is_new:
                                 # Create new line using direct ORM
@@ -913,12 +1007,29 @@ class SaveWcapiView(APIView):
                                 
                                 # Copy fields from line_data
                                 skip_fields = ('id', 'model_name', fk_field_name, f'{fk_field_name}_id', 'parent', 'parent_id')
+                                # Build set of FK descriptor names to skip — use _id suffix instead
+                                _fk_descriptors = set()
+                                for f in LineModel._meta.get_fields():
+                                    if hasattr(f, 'related_model') and f.related_model is not None:
+                                        _fk_descriptors.add(f.name)  # e.g., 'item_fk'
                                 for field_name, field_value in line_data.items():
                                     if field_name in skip_fields:
                                         continue
+                                    # Skip FK descriptors — the _id variant handles the raw value
+                                    if field_name in _fk_descriptors and not isinstance(field_value, models.Model):
+                                        continue
+                                    if field_name.startswith('_'):
+                                        continue  # skip private/transient fields like _dirty
                                     if hasattr(line_obj, field_name):
                                         setattr(line_obj, field_name, field_value)
-                                
+
+                                # Derive item_fk_id from item envelope if not set directly
+                                if not getattr(line_obj, 'item_fk_id', None):
+                                    item_env = line_data.get('item') or {}
+                                    _item_id = item_env.get('item_id') or item_env.get('id') if isinstance(item_env, dict) else None
+                                    if _item_id:
+                                        line_obj.item_fk_id = _item_id
+
                                 # Mark that we're handling pending creation (prevents signal duplicate)
                                 line_obj._pending_created = True
                                 line_obj.save()
@@ -935,9 +1046,20 @@ class SaveWcapiView(APIView):
                                         line=line_obj,
                                         line_data=line_data,
                                     )
-                                    console_logger.info(f"[SAVE_VIEW] Created pending inventory record for line ID: {line_obj.id}")
                                 except Exception as pending_err:
-                                    console_logger.warning(f"[SAVE_VIEW] Failed to create pending for line {line_obj.id}: {pending_err}")
+                                    console_logger.error(f"[SAVE_VIEW] Failed to create pending for line {line_obj.id}: {pending_err}", exc_info=True)
+
+                                # If this line was converted from a source line, update the source.
+                                # Each conversion: new line fires its pending, then tells source to adjust.
+                                # Source saves → fires its own pending (own bucket only).
+                                try:
+                                    refs = line_data.get('refs') or {}
+                                    source = refs.get('source') or {}
+                                    line_qty = float((line_obj.quantity or {}).get('active', 0) or (line_obj.quantity or {}).get('staged', 0) or 0)
+                                    if line_qty > 0:
+                                        self._adjust_source_line(source, norm_model, line_qty, line_obj)
+                                except Exception as src_err:
+                                    console_logger.warning(f"[SAVE_VIEW] Source line update failed for line {line_obj.id}: {src_err}")
                             else:
                                 # Update existing line
                                 try:
@@ -946,14 +1068,24 @@ class SaveWcapiView(APIView):
                                     for field_name, field_value in line_data.items():
                                         if field_name in skip_fields:
                                             continue
+                                        if field_name in _fk_descriptors and not isinstance(field_value, models.Model):
+                                            continue
+                                        if field_name.startswith('_'):
+                                            continue
                                         if hasattr(line_obj, field_name):
                                             setattr(line_obj, field_name, field_value)
+                                    # Derive item_fk_id from item envelope if not set
+                                    if not getattr(line_obj, 'item_fk_id', None):
+                                        item_env = line_data.get('item') or {}
+                                        _item_id = item_env.get('item_id') or item_env.get('id') if isinstance(item_env, dict) else None
+                                        if _item_id:
+                                            line_obj.item_fk_id = _item_id
                                     line_obj.save()
                                     console_logger.info(f"[SAVE_VIEW] Updated existing line ID {line_id}")
                                 except LineModel.DoesNotExist:
                                     console_logger.warning(f"[SAVE_VIEW] Line ID {line_id} not found, skipping")
                         except Exception as e:
-                            console_logger.error(f"[SAVE_VIEW] Error saving line {idx}: {e}")
+                            console_logger.error(f"[SAVE_VIEW] Error saving line {idx}: {e}", exc_info=True)
                     
                     # Update refs.links with new line IDs
                     # Determine the refs.links key based on line model name

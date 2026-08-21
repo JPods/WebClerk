@@ -12,10 +12,12 @@ class Ledger(BaseModel):
     discount_potential = models.DecimalField(max_digits=10, decimal_places=4, blank=True, null=True, help_text="Discount rate, e.g. 0.02 for 2%")
     dt_discount_due = models.DateTimeField(blank=True, null=True)
     dt_due = models.DateTimeField(blank=True, null=True)
-    dt_posted = models.DateTimeField(blank=True, null=True)
+    # Journalizing lock — 0 means editable, non-zero epoch ms means locked
+    dt_journaled = models.BigIntegerField(default=0, db_index=True,
+        help_text="UTC epoch ms when journalized. 0=editable, non-zero=locked.")
     dt_recorded = models.DateTimeField(blank=True, null=True)
-    dt_settled = models.DateTimeField(blank=True, null=True)
-    is_settled = models.BooleanField(default=False)
+    dt_applied = models.DateTimeField(blank=True, null=True,
+        help_text="When payment was applied (settled). Record remains editable. Non-null = settled.")
     is_cleared = models.BooleanField(default=False)
     is_void = models.BooleanField(default=False)
     source = models.CharField(

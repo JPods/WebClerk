@@ -258,6 +258,18 @@ def update_org_balances(org: 'OrgBase', save: bool = True) -> Dict[str, Any]:
 
         # --- Credit decision metrics (from WC2 mining) ---
 
+        # Available payments: sum of unapplied payment money on account
+        # WC2: $oCust.balanceAvailablePayments := ds.Payment.query("amountAvailable # 0 & ida_customer").sum(amountAvailable)
+        try:
+            Payment = dj_apps.get_model('transactions', 'Payment')
+            available_payments = Payment.objects.filter(
+                customer_id=org_id,
+                available__gt=0,
+            ).aggregate(total=models.Sum('available'))['total'] or Decimal('0')
+            role_financial['available_payments'] = float(available_payments)
+        except Exception:
+            role_financial['available_payments'] = 0
+
         # High credit: peak balance ever reached
         high_credit = role_financial.get('high_credit', 0)
         if float(buckets['total']) > high_credit:
@@ -271,26 +283,28 @@ def update_org_balances(org: 'OrgBase', save: bool = True) -> Dict[str, Any]:
                 status__in=['planned', 'released', 'in_progress'],
             ).aggregate(total=models.Sum('total'))['total'] or Decimal('0')
             role_financial['open_orders'] = float(open_order_total)
-            role_financial['total_exposure'] = float(buckets['total']) + float(open_order_total)
+            avail_pay = role_financial.get('available_payments', 0)
+            role_financial['total_exposure'] = float(buckets['total']) + float(open_order_total) - avail_pay
         except Exception:
             role_financial['open_orders'] = 0
-            role_financial['total_exposure'] = float(buckets['total'])
+            avail_pay = role_financial.get('available_payments', 0)
+            role_financial['total_exposure'] = float(buckets['total']) - avail_pay
 
         # Days average paid: mean days from invoice date to payment date on settled ledgers
         try:
             Ledger = dj_apps.get_model('accounts', 'Ledger')
             settled = Ledger.objects.filter(
-                org_id=org_id, model_name='invoice', is_settled=True,
-                dt_due__isnull=False, dt_settled__isnull=False,
-            ).values_list('dt_due', 'dt_settled')
+                org_id=org_id, model_name='invoice',
+                dt_due__isnull=False, dt_applied__isnull=False,
+            ).values_list('dt_due', 'dt_applied')
             if settled:
                 total_days = 0
                 count = 0
-                for dt_due, dt_settled in settled:
-                    if dt_due and dt_settled:
+                for dt_due, dt_applied in settled:
+                    if dt_due and dt_applied:
                         due_d = dt_due.date() if isinstance(dt_due, datetime) else dt_due
-                        settled_d = dt_settled.date() if isinstance(dt_settled, datetime) else dt_settled
-                        total_days += (settled_d - due_d).days
+                        applied_d = dt_applied.date() if isinstance(dt_applied, datetime) else dt_applied
+                        total_days += (applied_d - due_d).days
                         count += 1
                 role_financial['days_avg_paid'] = round(total_days / count) if count > 0 else 0
                 role_financial['invoice_count_settled'] = count
@@ -738,13 +752,17 @@ def on_payment_save(payment) -> None:
     ).delete()
     
     # AUDIT: Create payment ledger with NEGATIVE value
-    # Only create if there's an amount to record
+    # Ledger tracks available (unapplied), not original amount.
+    # WC2: aLdgValue{1} := -ent.amountAvailable; aLdgOrig{1} := -ent.amount
+    pay_available = getattr(payment, 'available', None)
     pay_amount = getattr(payment, 'amount', None)
-    if pay_amount and pay_amount != 0:
+    # Use available for ledger value; fall back to amount if available not set
+    ledger_amount = pay_available if pay_available and pay_available != 0 else pay_amount
+    if ledger_amount and ledger_amount != 0:
         invoice = getattr(payment, 'invoice', None)
         record_payment(
             invoice=invoice,
-            amount=Decimal(str(pay_amount)),
+            amount=Decimal(str(ledger_amount)),
             dt_paid=getattr(payment, 'dt_payment', None) or timezone.now(),
             payment=payment
         )
@@ -847,11 +865,12 @@ def reconcile_org(org: 'OrgBase') -> Dict[str, Any]:
     
     # ==========================================================================
     # STEP 3: Sum payment available (what we EXPECT in ledgers, negative)
+    # WC2: ledger uses amountAvailable, not amount — tracks partial applications
     # ==========================================================================
     payment_sum = Payment.objects.filter(
         invoice__customer_id=org_id
     ).aggregate(
-        total=models.Sum('amount')
+        total=models.Sum('available')
     )['total'] or Decimal('0')
     results['payment_sum'] = payment_sum
     
@@ -957,11 +976,11 @@ def rebuild_org_ledgers(org: 'OrgBase') -> Dict[str, int]:
         # =======================================================================
         payments = Payment.objects.filter(invoice__customer_id=org_id)
         for payment in payments:
-            pay_amount = getattr(payment, 'amount', 0)
-            if pay_amount and pay_amount != 0:
+            pay_available = getattr(payment, 'available', 0)
+            if pay_available and pay_available != 0:
                 record_payment(
                     invoice=getattr(payment, 'invoice', None),
-                    amount=Decimal(str(pay_amount)),
+                    amount=Decimal(str(pay_available)),
                     dt_paid=getattr(payment, 'dt_payment', None) or timezone.now(),
                     payment=payment
                 )

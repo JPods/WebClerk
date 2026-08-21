@@ -12,32 +12,24 @@ from apps.accounts.models import GlJournal
 def get_pending_summary(params: dict = None) -> dict:
     now_ms = int(timezone.now().timestamp() * 1000)
 
-    # Unposted GL entries
-    unposted = GlJournal.objects.filter(is_posted=False)
+    # Unposted GL entries — dt_journaled=0 means not yet posted
+    unposted = GlJournal.objects.filter(dt_journaled=0)
     unapplied_count = unposted.count()
 
     # Average time to post (posted entries only, trailing 90 days)
     ninety_days_ms = now_ms - (90 * 24 * 60 * 60 * 1000)
-    posted_recent = GlJournal.objects.filter(
-        is_posted=True,
+    posted_recent = GlJournal.objects.exclude(
+        dt_journaled=0,
+    ).filter(
         dt_created__gte=ninety_days_ms,
-    ).values_list('dt_created', 'date_posted')
+    ).values_list('dt_created', 'dt_journaled')
 
     post_times = []
-    for dt_created, date_posted in posted_recent:
-        if dt_created and date_posted:
-            try:
-                # date_posted is a date field, dt_created is epoch ms
-                import datetime
-                posted_ms = int(datetime.datetime.combine(
-                    date_posted, datetime.time.min,
-                    tzinfo=datetime.timezone.utc
-                ).timestamp() * 1000)
-                delta_hours = (posted_ms - dt_created) / (1000 * 60 * 60)
-                if delta_hours >= 0:
-                    post_times.append(delta_hours)
-            except (TypeError, ValueError):
-                pass
+    for dt_created, dt_journaled in posted_recent:
+        if dt_created and dt_journaled:
+            delta_hours = (dt_journaled - dt_created) / (1000 * 60 * 60)
+            if delta_hours >= 0:
+                post_times.append(delta_hours)
 
     avg_hours = sum(post_times) / len(post_times) if post_times else 0
     worst_hours = max(post_times) if post_times else 0

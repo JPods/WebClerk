@@ -20,7 +20,7 @@ Usage:
 """
 
 import logging
-from typing import Optional, Any
+from typing import Optional
 
 from apps.core.models.setting import Setting
 
@@ -29,7 +29,6 @@ logger = logging.getLogger("core.settings")
 # Legacy purposes now stored as sections within wc:model config
 _WC_MODEL_SECTIONS = {
     'wc:detail_layout': 'layout',
-    'wc:field_access': 'access',
     'wc:schema_map': 'schema',
     'wc:enrichment_panels': 'enrichment',
     'wc:workbench_fields': 'columns',
@@ -113,8 +112,42 @@ def resolve_setting(
                              purpose, parent_model, section_key)
                 return section
 
+    # 6. Computed fallback — behaviors and field_groups from model metadata
+    if purpose == 'wc:field_behaviors' and parent_model:
+        return _compute_behaviors(parent_model)
+
     logger.debug("resolve_setting: no match for %s/%s", purpose, parent_model)
     return None
+
+
+def _compute_behaviors(parent_model: str) -> Optional[dict]:
+    """Compute field behaviors live from Django model metadata.
+
+    Merges any overrides stored in the wc:model Setting's config.behaviors.
+    No separate Setting record needed — the model IS the source of truth.
+    """
+    from apps.core.services.field_behaviors import (
+        get_field_behaviors, get_field_groups, get_leaf_declarations,
+        get_model_field_map,
+    )
+    field_map = get_model_field_map(parent_model)
+    if not field_map:
+        return None
+
+    # Load overrides from wc:model Setting if it exists
+    overrides = None
+    model_setting = Setting.objects.filter(
+        purpose="wc:model", parent_model=parent_model,
+        is_active=True, scope="system",
+    ).first()
+    if model_setting and isinstance(model_setting.config, dict):
+        overrides = model_setting.config.get('behaviors')
+
+    return {
+        'behaviors': get_field_behaviors(parent_model, field_map, overrides=overrides),
+        'field_groups': get_field_groups(parent_model, list(field_map.keys())),
+        'leaves': get_leaf_declarations(parent_model, field_map),
+    }
 
 
 def resolve_setting_with_source(
@@ -165,5 +198,11 @@ def resolve_setting_with_source(
             section = model_setting.config.get(section_key)
             if section:
                 return section, "system"
+
+    # Computed fallback — behaviors from model metadata
+    if purpose == 'wc:field_behaviors' and parent_model:
+        result = _compute_behaviors(parent_model)
+        if result:
+            return result, "computed"
 
     return None, ""

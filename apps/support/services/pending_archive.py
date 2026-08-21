@@ -34,11 +34,10 @@ ARCHIVE_ROOT = Path(getattr(settings, 'BASE_DIR', '.')) / '.local' / 'dated_outs
 
 def _get_models():
     """Lazy-load models from across apps."""
-    PendingInventoryAdjustment = dj_apps.get_model('products', 'PendingInventoryAdjustment')
     PendingPaymentApplication = dj_apps.get_model('transactions', 'PendingPaymentApplication')
     Pending = dj_apps.get_model('core', 'Pending')
     Item = dj_apps.get_model('products', 'Item')
-    return PendingInventoryAdjustment, PendingPaymentApplication, Pending, Item
+    return PendingPaymentApplication, Pending, Item
 
 
 def _now_ms() -> int:
@@ -77,7 +76,7 @@ def _get_product_class(item_id: Optional[int]) -> str:
     if not item_id:
         return '_unclassified'
     try:
-        _, _, _, Item = _get_models()
+        _, _, Item = _get_models()
         item = Item.objects.only('refs', 'catalog').get(pk=item_id)
         # Try refs.categories first
         refs = item.refs if isinstance(item.refs, dict) else {}
@@ -97,64 +96,48 @@ def _get_product_class(item_id: Optional[int]) -> str:
 # ── Archive extractors ────────────────────────────────────────────────
 
 def _archive_inventory_pending(batch_size: int = 1000) -> Dict[str, int]:
-    """Archive applied/canceled PendingInventoryAdjustment records."""
-    PendingInventoryAdjustment, _, _, _ = _get_models()
+    """Archive processed inventory Pending records."""
+    _, Pending, _ = _get_models()
 
     qs = (
-        PendingInventoryAdjustment.objects
-        .filter(state__in=['applied', 'canceled'])
-        .select_related('inventory_layer', 'inventory_layer__item')
+        Pending.objects
+        .filter(model_name='item', purpose__startswith='inventory_')
+        .exclude(dt_processed=0)
         .order_by('pk')[:batch_size]
     )
 
-    # Group by product_class + month
     buckets: Dict[str, List[Dict]] = {}
     pks_to_delete = []
 
     for rec in qs:
-        layer = rec.inventory_layer
-        item = layer.item if layer else None
-        item_id = item.pk if item else None
+        item_id = int(rec.record_id) if rec.record_id else None
         product_class = _get_product_class(item_id)
-
-        dt_created = getattr(rec, 'dt_created', 0) or 0
-        dt_applied = None
-        if rec.dt_applied:
-            dt_applied = int(rec.dt_applied.timestamp() * 1000)
-
-        processing_ms = (dt_applied - dt_created) if (dt_applied and dt_created) else None
+        data = rec.changes if isinstance(rec.changes, dict) else {}
 
         archive_rec = {
-            'dt_created': dt_created,
-            'dt_applied': dt_applied,
-            'processing_ms': processing_ms,
-            'state': rec.state,
+            'dt_created': rec.dt_created,
+            'dt_processed': rec.dt_processed,
+            'processing_ms': (rec.dt_processed - rec.dt_created) if (rec.dt_processed and rec.dt_created) else None,
             'type': 'inventory',
+            'purpose': rec.purpose,
             'item_id': item_id,
-            'item_sku': getattr(item, 'sku', '') if item else '',
             'product_class': product_class,
-            'warehouse_id': layer.warehouse_id if layer else None,
-            'qty': float(rec.qty) if rec.qty else 0,
-            'reason': rec.reason or '',
-            'request_ref': rec.request_ref if isinstance(rec.request_ref, dict) else {},
-            'cancel_reason': rec.cancel_reason or '',
+            'changes': data,
         }
 
-        month_key = _month_key(dt_created)
+        month_key = _month_key(rec.dt_created)
         bucket_key = f"inventory/{product_class}/{month_key}"
         buckets.setdefault(bucket_key, []).append(archive_rec)
         pks_to_delete.append(rec.pk)
 
-    # Write to files
     counts = {}
     for bucket_key, records in buckets.items():
         filepath = ARCHIVE_ROOT / f"{bucket_key}.jsonl.gz"
         written = _append_jsonl_gz(filepath, records)
         counts[bucket_key] = written
 
-    # Delete archived records from operational DB
     if pks_to_delete:
-        PendingInventoryAdjustment.objects.filter(pk__in=pks_to_delete).delete()
+        Pending.objects.filter(pk__in=pks_to_delete).delete()
 
     total = sum(counts.values())
     if total > 0:
@@ -164,7 +147,7 @@ def _archive_inventory_pending(batch_size: int = 1000) -> Dict[str, int]:
 
 def _archive_payment_pending(batch_size: int = 1000) -> Dict[str, int]:
     """Archive applied/canceled PendingPaymentApplication records."""
-    _, PendingPaymentApplication, _, _ = _get_models()
+    PendingPaymentApplication, _, _ = _get_models()
 
     qs = (
         PendingPaymentApplication.objects
@@ -234,7 +217,7 @@ def _archive_payment_pending(batch_size: int = 1000) -> Dict[str, int]:
 
 def _archive_generic_pending(batch_size: int = 1000) -> Dict[str, int]:
     """Archive processed generic Pending queue records."""
-    _, _, Pending, _ = _get_models()
+    _, Pending, _ = _get_models()
 
     qs = (
         Pending.objects
