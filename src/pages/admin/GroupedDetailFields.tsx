@@ -15,6 +15,7 @@ export type GroupedDetailFieldsProps = {
   collapsedKeys: string[];
   onToggleGroup: (key: string) => void;
   fieldBehaviors: Record<string, any>;
+  leafDeclarations: Record<string, any>;
   detailFieldSpecs: FieldSpec[];
   detailRowSizes: Record<string, number>;
   validationErrors: Record<string, string>;
@@ -37,7 +38,7 @@ function fieldPresent(record: Record<string, unknown>, field: string): boolean {
   return Object.prototype.hasOwnProperty.call(record, root) && resolveDotPath(record, field) !== undefined;
 }
 
-export function GroupedDetailFields({ fields, record, fieldGroups, collapsedKeys, onToggleGroup, fieldBehaviors, detailFieldSpecs, detailRowSizes, validationErrors, updateField, fontSize, theme }: GroupedDetailFieldsProps) {
+export function GroupedDetailFields({ fields, record, fieldGroups, collapsedKeys, onToggleGroup, fieldBehaviors, leafDeclarations, detailFieldSpecs, detailRowSizes, validationErrors, updateField, fontSize, theme }: GroupedDetailFieldsProps) {
   const presentFields = fields.filter((f) => fieldPresent(record, f));
   const groupTheme = { text: theme.text, textMuted: theme.textMuted, border: theme.border, surfaceAlt: theme.surfaceAlt, inputBg: theme.inputBg };
 
@@ -46,6 +47,7 @@ export function GroupedDetailFields({ fields, record, fieldGroups, collapsedKeys
       onChange={(v: unknown) => updateField(f, v)} record={record}
       fontSize={fontSize} theme={theme} rowSize={detailRowSizes[f]}
       typeHint={detailFieldSpecs.find(s => s.field === f)?.typeHint}
+      leaf={leafDeclarations[f]}
       error={validationErrors[f]} />
   );
 
@@ -54,21 +56,31 @@ export function GroupedDetailFields({ fields, record, fieldGroups, collapsedKeys
     return <div className="db-detail-grid">{presentFields.map(renderField)}</div>;
   }
 
-  // Partition fields into groups — preserve user's detail order within each group
-  const fieldOrder = new Map(presentFields.map((f, i) => [f, i]));
+  // Setting-specified fields render first, in order, ungrouped.
+  // Fields from config.db.detail are the source of truth for primary field order.
+  // Remaining fields (present in record but not in Setting) get grouped.
+  const specifiedFields = detailFieldSpecs.map(s => s.field);
+  const primaryFields = specifiedFields.filter(f => presentFields.includes(f));
+  const primarySet = new Set(primaryFields);
+
+  // Remaining fields get partitioned into groups
+  const remainingFields = presentFields.filter(f => !primarySet.has(f));
   const assigned = new Set<string>();
   const groups = fieldGroups.map(g => {
-    const gFields = g.fields
-      .filter(f => presentFields.includes(f))
-      .sort((a, b) => (fieldOrder.get(a) ?? 999) - (fieldOrder.get(b) ?? 999));
+    const gFields = g.fields.filter(f => remainingFields.includes(f));
     gFields.forEach(f => assigned.add(f));
     return { ...g, presentFields: gFields };
   }).filter(g => g.presentFields.length > 0);
 
-  const ungrouped = presentFields.filter(f => !assigned.has(f));
+  const ungrouped = remainingFields.filter(f => !assigned.has(f));
 
   return (
     <div>
+      {/* Primary fields from Setting — rendered first, in Setting order */}
+      {primaryFields.length > 0 && (
+        <div className="db-detail-grid">{primaryFields.map(renderField)}</div>
+      )}
+      {/* Remaining fields in collapsible groups */}
       {groups.map(g => (
         <FieldGroupSection
           key={g.key}

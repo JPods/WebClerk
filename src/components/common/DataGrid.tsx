@@ -636,9 +636,19 @@ export default function DataGrid(props: DataGridProps) {
       return richCol.cell(rec);
     }
 
-    const v = richCol?.selector ? richCol.selector(rec)
-      : field.includes('.') ? field.split('.').reduce((o: any, k: string) => o?.[k], rec)
-      : rec[field];
+    let v = richCol?.selector ? richCol.selector(rec)
+      : (field.includes('.') || field.includes('['))
+        ? field.replace(/\[(\d+)\]/g, '.$1').split('.').reduce((o: any, k: string) => {
+            if (o == null) return o;
+            // [0] on an object means "first value", not numeric index
+            if (o[k] === undefined && !Array.isArray(o) && typeof o === 'object') {
+              const vals = Object.values(o);
+              const idx = parseInt(k, 10);
+              if (!isNaN(idx) && idx < vals.length) return vals[idx];
+            }
+            return o[k];
+          }, rec)
+        : rec[field];
     const isEditing = editCell?.rid === rid && editCell?.field === field;
 
     if (isEditing) {
@@ -994,7 +1004,7 @@ export default function DataGrid(props: DataGridProps) {
                         setContextSubmenu(null);
                       }
                     }}
-                    title={fieldBehaviors[f]?.bulkEditable ? `${f} · Click to sort · Shift-click to bulk edit` : `${f} · Click to sort · Ctrl-click for multi-sort`}
+                    title={fieldBehaviors[f]?.bulkEditable ? `${f} · Click to sort · Shift-click to bulk edit` : `${f} · Click to sort`}
                   >
                     {props.headerEditField === f ? (
                       <span className="dg-header-edit" onClick={(e) => e.stopPropagation()}>
@@ -1009,7 +1019,7 @@ export default function DataGrid(props: DataGridProps) {
                       </span>
                     ) : (
                       <>
-                        <span className={fieldBehaviors[f]?.bulkEditable ? 'dg-th-name--bulk' : undefined}>{f}</span>
+                        <span className={fieldBehaviors[f]?.bulkEditable ? 'dg-th-name--bulk' : undefined}>{fieldSpecs[f]?.label || (f.includes('.') ? f.split('.').slice(-2).join('.') : f)}</span>
                         {sortDir && <span className="dg-sort-arrow">{sortDir === 'asc' ? '↑' : '↓'}</span>}
                         {sortIdx >= 0 && <span className="dg-sort-order">({sortIdx + 1})</span>}
                       </>

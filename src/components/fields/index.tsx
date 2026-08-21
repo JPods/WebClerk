@@ -110,24 +110,43 @@ export function renderField(
   opts?: {
     error?: string; disabled?: boolean; typeHint?: string;
     record?: Record<string, unknown>; span2?: boolean; model?: string;
-    rowSize?: number;
+    rowSize?: number; leaf?: { type: string; extract?: string };
   },
 ) {
   const isJson = typeof value === 'object' && value !== null;
-  const isLong = typeof value === 'string' && (value as string).length > 100;
-  const typeName = opts?.typeHint || behavior.type
-    || (typeof value === 'boolean' ? 'boolean' : '')
-    || (isJson ? 'json' : '')
+
+  // i18n extraction — declared by leaf or detected from value
+  const isI18n = behavior.type === 'i18n'
+    || opts?.leaf?.type === 'i18n'
+    || (isJson && !Array.isArray(value)
+        && Object.keys(value as object).length > 0
+        && Object.values(value as object).every(v => typeof v === 'string' || v === null)
+        && (behavior.type === 'json' || !behavior.type));
+  const objKey = isI18n && isJson ? Object.keys(value as object)[0] : null;
+  const objValue = objKey ? (value as Record<string, string>)[objKey] || '' : null;
+  const effectiveValue = isI18n && objKey ? objValue : value;
+  const isLong = typeof effectiveValue === 'string' && (effectiveValue as string).length > 100;
+
+  // Determine widget type — i18n fields are never json trees
+  const typeName = opts?.typeHint
+    || (isI18n ? '' : behavior.type)
+    || (typeof effectiveValue === 'boolean' ? 'boolean' : '')
+    || (isJson && !isI18n ? 'json' : '')
     || (isLong ? 'textarea' : '')
-    || ((typeof value === 'number' && !name.startsWith('dt_')) ? 'number' : '')
+    || ((typeof effectiveValue === 'number' && !name.startsWith('dt_')) ? 'number' : '')
     || 'text';
   const Widget = getWidget(typeName);
 
+  // For i18n objects, wrap onChange to preserve the key
+  const effectiveOnChange = isI18n && objKey
+    ? (v: unknown) => onChange({ ...(value as object), [objKey]: v })
+    : onChange;
+
   // Build props from behavior config
   const props: any = {
-    name,
-    value,
-    onChange,
+    name: isI18n && objKey ? `${name}.${objKey}` : name,
+    value: effectiveValue,
+    onChange: effectiveOnChange,
     error: opts?.error,
     disabled: opts?.disabled,
     span2: opts?.span2,

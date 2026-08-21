@@ -967,6 +967,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                 collapsedKeys={db.currentCollapsed}
                 onToggleGroup={db.toggleFieldGroup}
                 fieldBehaviors={db.fieldBehaviors}
+                leafDeclarations={db.leafDeclarations}
                 detailFieldSpecs={db.detailFieldSpecs}
                 detailRowSizes={db.detailRowSizes}
                 validationErrors={db.validationErrors}

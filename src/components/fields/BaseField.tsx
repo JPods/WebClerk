@@ -1,11 +1,12 @@
 /**
  * BaseField — shared wrapper for all field widgets.
  * Handles: label rendering, error display, span2 layout, disabled state,
- * Shift-for-Help on all labels.
+ * Shift-for-Help on all labels, Cmd+Shift+click for behavior override (admin).
  */
-import React from 'react';
+import React, { useState } from 'react';
 import type { FieldWidgetProps } from './types';
 import { openFieldHelp } from '../common/HelpMenu';
+import BehaviorOverrideDialog from './BehaviorOverrideDialog';
 
 interface BaseFieldRenderProps {
   props: FieldWidgetProps;
@@ -21,8 +22,17 @@ export default function BaseField({ props, labelColor = 'default', labelSuffix, 
   const { name, label, error, className, span2, model: propsModel } = props;
   const displayLabel = label || name;
   const model = modelOverride || propsModel;
+  const [behaviorOpen, setBehaviorOpen] = useState(false);
 
   const handleLabelClick = (e: React.MouseEvent) => {
+    // Cmd+Shift+click → behavior override dialog (admin)
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      setBehaviorOpen(true);
+      return;
+    }
+    // Shift+click → field help
     if (e.shiftKey) {
       e.preventDefault();
       e.stopPropagation();
@@ -52,6 +62,15 @@ export default function BaseField({ props, labelColor = 'default', labelSuffix, 
       {labelEl}
       {children}
       {error && <div className="db-field-error">{error}</div>}
+      {behaviorOpen && model && (
+        <BehaviorOverrideDialog
+          open={behaviorOpen}
+          onClose={() => setBehaviorOpen(false)}
+          onReload={() => window.dispatchEvent(new CustomEvent('wc:reload-behaviors'))}
+          model={model}
+          fieldName={name}
+        />
+      )}
     </div>
   );
 }

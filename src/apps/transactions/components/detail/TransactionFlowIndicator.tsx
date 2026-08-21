@@ -32,6 +32,9 @@ interface TransactionFlowIndicatorProps {
     refs?: { source?: Record<string, unknown> };
     flow?: { children?: Array<{ type: string; id: number }> };
   };
+  /** If provided, clicking a node calls this instead of opening a new window.
+   *  Used by flight simulator to stay in-panel. */
+  onNavigate?: (model: string, id: number) => void;
 }
 
 // Canonical order for the flow strip
@@ -55,7 +58,7 @@ const MODEL_LABELS: Record<string, string> = {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function TransactionFlowIndicator({ modelName, record }: TransactionFlowIndicatorProps) {
+export default function TransactionFlowIndicator({ modelName, record, onNavigate }: TransactionFlowIndicatorProps) {
   const [nodes, setNodes] = useState<FlowNode[]>([]);
   const [loading, setLoading] = useState(true);
   const windowManager = useWindowManager();
@@ -158,10 +161,16 @@ export default function TransactionFlowIndicator({ modelName, record }: Transact
 
   const handleClick = (node: FlowNode) => {
     if (node.isCurrent) return;
-    const path = `/${node.model}/${node.id}`;
-    const label = MODEL_LABELS[node.model] || node.model;
-    const title = `${label} ${node.ida || `#${node.id}`}`;
-    windowManager.ensureWindow(path, title);
+    if (onNavigate) {
+      // Stay in-panel (flight simulator)
+      onNavigate(node.model, node.id);
+    } else {
+      // Open in new window (normal mode)
+      const path = `/${node.model}/${node.id}`;
+      const label = MODEL_LABELS[node.model] || node.model;
+      const title = `${label} ${node.ida || `#${node.id}`}`;
+      windowManager.ensureWindow(path, title);
+    }
   };
 
   return (

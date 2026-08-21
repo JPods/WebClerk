@@ -41,6 +41,7 @@ export interface DetailToolbarProps {
   onCancel?: () => void;
   onDelete?: () => void;
   onToggleDesign?: () => void;
+  onWorkflowComplete?: (result?: any) => void;
   className?: string;
 }
 
@@ -55,6 +56,7 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
   companyInfo, logos, documentText,
   onEdit, onAddNew, onSave, onCancel, onDelete,
   designMode, userRole, onToggleDesign,
+  onWorkflowComplete,
   className = '',
 }) => {
   const dispatch = useDispatch();
@@ -95,7 +97,7 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
         onSelect={handlePrintSelect}
       />
 
-      <WorkflowSelect modelName={modelName} record={data} onComplete={() => {}} />
+      <WorkflowSelect modelName={modelName} record={data} onComplete={onWorkflowComplete || (() => {})} />
 
       {/* Status + total + balance badges */}
       <span className="flex-1" />

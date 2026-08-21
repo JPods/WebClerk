@@ -23,6 +23,8 @@ import { useCustomerSearch } from './detail/CustomerSearch';
 import HeaderRenderer from './detail/HeaderRenderer';
 import LineCardRenderer from './detail/LineCardRenderer';
 import TabsRenderer from './detail/TabsRenderer';
+import PanelSectionRenderer from './detail/PanelSectionRenderer';
+import JsonSectionRenderer from './detail/JsonSectionRenderer';
 // Ensure card components are registered
 import '@/components/cards';
 import { DetailToolbar } from '@/components/common/DetailToolbar';
@@ -52,6 +54,9 @@ const UiDetail: React.FC<UiDetailProps> = ({
   recordId: propRecordId,
   onClose,
   inline,
+  onAfterSave,
+  onWorkflowComplete,
+  initialLines,
   ...rest
 }) => {
   const params = useParams<{ model?: string; id?: string }>();
@@ -113,6 +118,14 @@ const UiDetail: React.FC<UiDetailProps> = ({
   }, [modelName, recordId, dispatch]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // ── Inject initial lines from conversion (user reviews before saving) ──
+  useEffect(() => {
+    if (initialLines && Array.isArray(initialLines) && initialLines.length > 0 && data) {
+      setEditData((prev: any) => prev ? { ...prev, lines: initialLines } : prev);
+      setIsEditing(true);
+    }
+  }, [initialLines, data]);
 
   // ── Edit state ───────────────────────────────────────────────────
   const editTier = useMemo((): 'open' | 'pend' | 'closed' => {
@@ -210,8 +223,10 @@ const UiDetail: React.FC<UiDetailProps> = ({
     if (!editData) return;
     setSaving(true);
     try {
-      const hasLines = editData.lines && Array.isArray(editData.lines);
-      if (hasLines) { await saveTransactionWithLines(modelName, editData); }
+      const dirtyLines = (editData.lines || []).filter((l: any) => l._dirty || l._new);
+      const hasLinesToSave = dirtyLines.length > 0;
+      console.log('[TransactionDetail] Saving:', { modelName, id: editData.id, hasLinesToSave, totalLines: editData.lines?.length, dirtyLines: dirtyLines.length });
+      if (hasLinesToSave) { await saveTransactionWithLines(modelName, editData); }
       else { await saveRecord(modelName, editData); }
       dispatch(showToast({ message: `${modelName} saved`, type: 'success' }));
       // Auto-populate commission if customer has reps — staff only
@@ -231,8 +246,12 @@ const UiDetail: React.FC<UiDetailProps> = ({
       }
       setIsEditing(false);
       fetchData();
-    } catch (err) {
-      dispatch(showToast({ message: `Save failed`, type: 'error' }));
+      if (typeof onAfterSave === 'function') onAfterSave();
+    } catch (err: any) {
+      const resp = err?.response?.data;
+      const detail = resp?.detail || resp?.message || resp?.error?.details || err?.message || String(err);
+      console.error('[TransactionDetail] Save failed:', { err, response: resp, status: err?.response?.status, url: err?.config?.url, method: err?.config?.method });
+      dispatch(showToast({ message: `Save failed: ${typeof detail === 'string' ? detail : JSON.stringify(detail)}`, type: 'error' }));
     } finally {
       setSaving(false);
     }
@@ -306,6 +325,7 @@ const UiDetail: React.FC<UiDetailProps> = ({
           onAddNew={handleAddNew}
           onSave={handleSave}
           onCancel={handleCancel}
+          onWorkflowComplete={onWorkflowComplete as ((result?: any) => void) | undefined}
         />
       )}
 
@@ -322,7 +342,7 @@ const UiDetail: React.FC<UiDetailProps> = ({
 
       {/* Document lineage — shows chain when this record has parent/children */}
       {currentData && (
-        <TransactionFlowIndicator modelName={modelName} record={currentData} />
+        <TransactionFlowIndicator modelName={modelName} record={currentData} onNavigate={rest.onNavigate as any} />
       )}
 
       {/* Content — scrollable */}
@@ -375,6 +395,30 @@ const UiDetail: React.FC<UiDetailProps> = ({
                   onChange={handleFieldChange}
                   onRefresh={fetchData}
                   loggedInUserName={loggedInUserName}
+                />
+              );
+            case 'panel':
+              return (
+                <PanelSectionRenderer
+                  key={idx}
+                  section={section as any}
+                  data={currentData}
+                  isEditing={isEditing}
+                  modelName={modelName}
+                  onChange={handleFieldChange}
+                  onRefresh={fetchData}
+                  loggedInUserName={loggedInUserName}
+                />
+              );
+            case 'json_tree':
+              return (
+                <JsonSectionRenderer
+                  key={idx}
+                  section={section as any}
+                  data={currentData}
+                  isEditing={isEditing}
+                  modelName={modelName}
+                  onChange={handleFieldChange}
                 />
               );
             default:

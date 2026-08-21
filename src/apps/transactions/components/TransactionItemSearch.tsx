@@ -282,8 +282,10 @@ export function TransactionItemSearch({
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Tab' && query.trim()) { e.preventDefault(); handleSearch(); } }}
             placeholder="Search by key tags, item #, or description"
             className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            autoFocus
           />
         </label>
         <button
@@ -354,9 +356,8 @@ export function TransactionItemSearch({
                     </td>
                     <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
                       <input
-                        type="number"
-                        min="0"
-                        step="0.01"
+                        type="text"
+                        inputMode="decimal"
                         value={quantity || ""}
                         onChange={(event) =>
                           handleQuantityChange(itemKey, event.target.value)

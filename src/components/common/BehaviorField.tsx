@@ -18,10 +18,11 @@ interface BehaviorFieldProps {
   rowSize?: number;
   typeHint?: string;
   error?: string;
+  leaf?: { type: string; extract?: string };
 }
 
 export default function BehaviorField({
-  name, value, behavior, onChange, record, rowSize, typeHint, error,
+  name, value, behavior, onChange, record, rowSize, typeHint, error, leaf,
 }: BehaviorFieldProps) {
   const wcModel = (record as any)?._model || '';
 
@@ -31,6 +32,7 @@ export default function BehaviorField({
     record,
     model: wcModel,
     rowSize,
+    leaf,
     span2: undefined, // let renderField auto-detect from type
   });
 }

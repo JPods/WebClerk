@@ -280,14 +280,9 @@ export async function getRecord(model_name: string, id: number) {
 export async function saveRecord(model_name: string, payload: any) {
   const resolved = resolveModelName(model_name);
   // Extract id and mode from payload if present (they go at root level, not in data)
-  const { id, mode, ...data } = payload;
-  const hasConfigField = Object.prototype.hasOwnProperty.call(data, "config");
-  // SaveWcapiView merges and removes top-level `data` wrapper for compatibility.
-  // Models that formerly had a `data` JSONField now use `config` (e.g. setting.config).
-  // If the payload contains a `config` field, use `record` wrapper so it is preserved.
-  const body: any = hasConfigField
-    ? { model_name: resolved, record: data }
-    : { model_name: resolved, data };
+  const { id, mode, ...record } = payload;
+  // Always use `record` wrapper — `data` wrapper is deprecated (fixed 2026-06).
+  const body: any = { model_name: resolved, record };
   if (id !== undefined) {
     body.id = id;
   }
@@ -325,8 +320,8 @@ export async function saveTransactionWithLines(
   // Strip read-only/calculated fields from lines too
   if (cleanPayload.lines) {
     cleanPayload.lines = cleanPayload.lines.map((line: any) => {
-      const { uuid: _lu, metadata: _lm, refs: _lr, prefs: _lp,
-        physical: _lph, commission: _lcm, actions: _la, tax: _lt,
+      const { uuid: _lu, metadata: _lm, prefs: _lp,
+        physical: _lph, actions: _la, tax: _lt,
         dt_created: _ldc, dt_modified: _ldm, health_rating: _lhr,
         is_archived: _lia, is_deleted: _lid, is_locked: _lil,
         security_level: _lsl, version: _lv,
@@ -345,8 +340,10 @@ export async function saveTransactionWithLines(
     },
   };
 
+  // Use save/ directly — transaction/save/ has intermittent 404 issues.
+  // save/ handles lines in the payload for header models (order, invoice, proposal, purchase).
   try {
-    return await wcapiPost<any>("transaction/save/", body);
+    return await wcapiPost<any>("save/", body);
   } catch (err: any) {
     throw new Error(getBackendErrorMessage(err, "Failed to save transaction"));
   }

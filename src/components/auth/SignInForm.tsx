@@ -80,7 +80,8 @@ export default function SignInForm() {
         dispatch(showToast({ message: "Login successful!", type: "success" }));
         navigate(PageRoutes.dashboard);
      } catch (error : any) {
-       dispatch(showToast({ message: error, type: "error" }));
+       const msg = error?.response?.data?.message || error?.message || "Login failed";
+       dispatch(showToast({ message: msg, type: "error" }));
      } finally {
        setSubmitting(false);
      }   

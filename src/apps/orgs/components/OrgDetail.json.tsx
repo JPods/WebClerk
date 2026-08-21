@@ -27,6 +27,8 @@ import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
 import { DocumentsPanel } from '@/apps/common/components/panels';
 import ActionsPanel from '@/apps/common/components/panels/ActionsPanel';
 import DataGrid from '@/components/common/DataGrid';
+import PanelSectionRenderer from '@/apps/transactions/components/detail/PanelSectionRenderer';
+import JsonSectionRenderer from '@/apps/transactions/components/detail/JsonSectionRenderer';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -135,8 +137,11 @@ const OrgDetailJson: React.FC<OrgDetailJsonProps> = ({ modelName: propModel, rec
       dispatch(showToast({ message: `${modelName} saved`, type: 'success' }));
       setIsEditing(false);
       fetchData();
-    } catch {
-      dispatch(showToast({ message: 'Save failed', type: 'error' }));
+    } catch (err: any) {
+      const resp = err?.response?.data;
+      const detail = resp?.detail || resp?.message || resp?.error?.details || err?.message || String(err);
+      console.error('[OrgDetail] Save failed:', { err, response: resp, status: err?.response?.status });
+      dispatch(showToast({ message: `Save failed: ${typeof detail === 'string' ? detail : JSON.stringify(detail)}`, type: 'error' }));
     }
     setSaving(false);
   };
@@ -168,18 +173,168 @@ const OrgDetailJson: React.FC<OrgDetailJsonProps> = ({ modelName: propModel, rec
   }
 
   const currentData = isEditing ? editData : data;
-  const headerSection = activeLayout.sections?.find((s: any) => s.type === 'header') as any;
-  const tabsSection = activeLayout.sections?.find((s: any) => s.type === 'tabs') as any;
-  const columns = headerSection?.columns || [];
-  const tabs = tabsSection?.tabs || [
-    { label: 'Summary', content: 'summary' },
-    { label: 'Contacts', content: 'contacts' },
-    { label: 'Communications', content: 'communications' },
-    { label: 'Transactions', content: 'transactions' },
-    { label: 'Actions', content: 'actions' },
-    { label: 'Documents', content: 'documents' },
-    { label: 'Notes', content: 'notes' },
+  const sections = activeLayout.sections || [];
+
+  // Fallback: if no sections defined, build default org sections
+  const effectiveSections = sections.length > 0 ? sections : [
+    { type: 'header', columns: [
+      { title: 'Identity', fields: [
+        { field: 'ida', label: 'ID' }, { field: 'display_name', label: 'Name' },
+        { field: 'type', label: 'Type' }, { field: 'status', label: 'Status' },
+      ]},
+      { title: 'Contact', fields: [
+        { field: 'attention', label: 'Attn' }, { field: 'email', label: 'Email' },
+        { field: 'phone', label: 'Phone' }, { field: 'address_full', label: 'Address' },
+      ]},
+      { title: 'Account', fields: [
+        { field: 'price_level', label: 'Price Level' }, { field: 'terms', label: 'Terms' },
+      ]},
+    ]},
+    { type: 'panel', content: 'transactions', label: 'Transactions' },
+    { type: 'panel', content: 'contacts', label: 'Contacts' },
+    { type: 'panel', content: 'notes', label: 'Comments' },
+    { type: 'json_tree', label: 'Data', collapsed: true },
   ];
+
+  const renderSection = (section: any, idx: number) => {
+    switch (section.type) {
+      case 'header': {
+        const columns = section.columns || [];
+        return (
+          <div key={idx} className="grid gap-3" style={{ gridTemplateColumns: `repeat(${columns.length}, 1fr)` }}>
+            {columns.map((col: any, colIdx: number) => (
+              <div key={colIdx} className="bg-[var(--db-surface,#fff)] rounded-lg border border-[var(--db-border,#dee2e6)] p-3">
+                <div className="flex items-center justify-between text-xs font-bold text-[var(--db-text,#212529)] mb-2 border-b border-[var(--db-border,#dee2e6)] pb-1">
+                  <span>{col.title}</span>
+                  {colIdx === 0 && data.ida && (
+                    <span className="font-mono font-normal text-[var(--db-text-muted,#6c757d)]">{data.ida}</span>
+                  )}
+                </div>
+                {(col.fields || []).map((f: any) => (
+                  <FieldRow
+                    key={f.field}
+                    field={f.field}
+                    label={f.label}
+                    data={currentData}
+                    isEditing={isEditing}
+                    options={f.options}
+                    fieldType={f.type}
+                    help={f.help}
+                    onChange={handleFieldChange}
+                  />
+                ))}
+                {col.action_summary && data.actions?.items?.[0] && (
+                  <div className="mt-2 pt-2 border-t border-[var(--db-border,#dee2e6)]">
+                    <div className="text-[10px] text-[var(--db-text-muted,#6c757d)]">Next Action</div>
+                    <div className="text-xs text-[var(--db-text,#212529)]">{data.actions.items[0].action} — {data.actions.items[0].status}</div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+      }
+      case 'panel':
+        return (
+          <PanelSectionRenderer
+            key={idx}
+            section={section}
+            data={currentData}
+            isEditing={isEditing}
+            modelName={modelName}
+            onChange={handleFieldChange}
+            onRefresh={fetchData}
+          />
+        );
+      case 'json_tree':
+        return (
+          <JsonSectionRenderer
+            key={idx}
+            section={section}
+            data={currentData}
+            isEditing={isEditing}
+            modelName={modelName}
+            onChange={handleFieldChange}
+          />
+        );
+      case 'tabs': {
+        const tabs = section.tabs || [];
+        return (
+          <div key={idx} className="bg-[var(--db-surface,#fff)] rounded-lg border border-[var(--db-border,#dee2e6)]">
+            <div className="flex border-b border-[var(--db-border,#dee2e6)] overflow-x-auto">
+              {tabs.map((tab: any) => (
+                <button
+                  key={tab.content}
+                  onClick={() => setActiveTab(tab.content)}
+                  className={`px-4 py-2 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
+                    activeTab === tab.content
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-[var(--db-text-muted,#6c757d)] hover:text-[var(--db-text,#212529)]'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <div className="p-2">
+              {activeTab === 'summary' && (
+                <div className="p-4 text-xs text-[var(--db-text-muted,#6c757d)]">Summary — coming soon</div>
+              )}
+              {activeTab === 'contacts' && (
+                <div className="p-2">
+                  <DataGrid
+                    records={data.refs?.links?.contact || []}
+                    columns={['attention', 'email', 'phone', 'title']}
+                    sort={null}
+                    onSort={() => {}}
+                    onSelectRecord={(id) => windowManager.ensureWindow(`/contact/${id}`, `Contact #${id}`)}
+                    fontSize={11}
+                  />
+                </div>
+              )}
+              {activeTab === 'communications' && data.contact_id && (
+                <CommPanel
+                  contactId={data.contact_id}
+                  emails={data._contact?.refs?.links?.email || data.refs?.links?.email || []}
+                  phones={data._contact?.refs?.links?.phone || data.refs?.links?.phone || []}
+                  addresses={data._contact?.refs?.links?.address || data.refs?.links?.address || []}
+                  domains={data._contact?.refs?.links?.domain || data.refs?.links?.domain || []}
+                  onRefresh={fetchData}
+                />
+              )}
+              {activeTab === 'transactions' && (
+                <div className="p-2">
+                  <DataGrid
+                    records={[
+                      ...(data.refs?.links?.order || []).map((o: any) => ({ ...o, type: 'Order' })),
+                      ...(data.refs?.links?.invoice || []).map((i: any) => ({ ...i, type: 'Invoice' })),
+                    ]}
+                    columns={['type', 'ida', 'status', 'total']}
+                    sort={null}
+                    onSort={() => {}}
+                    onSelectRecord={(id) => {}}
+                    fontSize={11}
+                  />
+                </div>
+              )}
+              {activeTab === 'actions' && (
+                <ActionsPanel entityType={modelName} entityId={data.id} data={data.actions?.items || []} isEditing={isEditing} />
+              )}
+              {activeTab === 'documents' && (
+                <DocumentsPanel parent_model={modelName} parentId={data.id} data={data.refs?.links?.document} isEditing={isEditing} />
+              )}
+              {activeTab === 'notes' && (
+                <CommentsPanel entityType={modelName} entityId={data.id} data={data.comments} isEditing={isEditing}
+                  onChange={(comments: any) => handleFieldChange('comments', comments)} />
+              )}
+            </div>
+          </div>
+        );
+      }
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden" data-wc={`${modelName}-detail`} data-zone={`db.detail.form | .${modelName}-detail | OrgDetail.json.tsx`}>
@@ -208,113 +363,9 @@ const OrgDetailJson: React.FC<OrgDetailJsonProps> = ({ modelName: propModel, rec
         />
       )}
 
-      {/* Content */}
+      {/* Content — section-driven */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
-        {/* Header columns */}
-        {headerSection && (
-          <div className={`grid gap-3`} style={{ gridTemplateColumns: `repeat(${columns.length}, 1fr)` }}>
-            {columns.map((col: any, colIdx: number) => (
-              <div key={colIdx} className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 border-b border-slate-100 dark:border-slate-700 pb-1">
-                  <span>{col.title}</span>
-                  {colIdx === 0 && data.ida && (
-                    <span className="font-mono font-normal text-slate-400 dark:text-slate-500">{data.ida}</span>
-                  )}
-                </div>
-                {(col.fields || []).map((f: any) => (
-                  <FieldRow
-                    key={f.field}
-                    field={f.field}
-                    label={f.label}
-                    data={currentData}
-                    isEditing={isEditing}
-                    options={f.options}
-                    fieldType={f.type}
-                    help={f.help}
-                    onChange={handleFieldChange}
-                  />
-                ))}
-                {col.action_summary && data.actions?.items?.[0] && (
-                  <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
-                    <div className="text-[10px] text-slate-400">Next Action</div>
-                    <div className="text-xs text-slate-600">{data.actions.items[0].action} — {data.actions.items[0].status}</div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-          <div className="flex border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
-            {tabs.map((tab: any) => (
-              <button
-                key={tab.content}
-                onClick={() => setActiveTab(tab.content)}
-                className={`px-4 py-2 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
-                  activeTab === tab.content
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          <div className="p-2">
-            {activeTab === 'summary' && (
-              <div className="p-4 text-xs text-slate-400">Summary — coming soon</div>
-            )}
-            {activeTab === 'contacts' && (
-              <div className="p-2">
-                <DataGrid
-                  records={data.refs?.links?.contact || []}
-                  columns={['attention', 'email', 'phone', 'title']}
-                  sort={null}
-                  onSort={() => {}}
-                  onSelectRecord={(id) => windowManager.ensureWindow(`/contact/${id}`, `Contact #${id}`)}
-                  fontSize={11}
-                />
-              </div>
-            )}
-            {activeTab === 'communications' && data.contact_id && (
-              <CommPanel
-                contactId={data.contact_id}
-                emails={data._contact?.refs?.links?.email || data.refs?.links?.email || []}
-                phones={data._contact?.refs?.links?.phone || data.refs?.links?.phone || []}
-                addresses={data._contact?.refs?.links?.address || data.refs?.links?.address || []}
-                domains={data._contact?.refs?.links?.domain || data.refs?.links?.domain || []}
-                onRefresh={fetchData}
-              />
-            )}
-            {activeTab === 'transactions' && (
-              <div className="p-2">
-                <DataGrid
-                  records={[
-                    ...(data.refs?.links?.order || []).map((o: any) => ({ ...o, type: 'Order' })),
-                    ...(data.refs?.links?.invoice || []).map((i: any) => ({ ...i, type: 'Invoice' })),
-                  ]}
-                  columns={['type', 'ida', 'status', 'total']}
-                  sort={null}
-                  onSort={() => {}}
-                  onSelectRecord={(id) => {}}
-                  fontSize={11}
-                />
-              </div>
-            )}
-            {activeTab === 'actions' && (
-              <ActionsPanel entityType={modelName} entityId={data.id} data={data.actions?.items || []} isEditing={isEditing} />
-            )}
-            {activeTab === 'documents' && (
-              <DocumentsPanel parent_model={modelName} parentId={data.id} data={data.refs?.links?.document} isEditing={isEditing} />
-            )}
-            {activeTab === 'notes' && (
-              <CommentsPanel entityType={modelName} entityId={data.id} data={data.comments} isEditing={isEditing}
-                onChange={(comments: any) => handleFieldChange('comments', comments)} />
-            )}
-          </div>
-        </div>
+        {effectiveSections.map((section: any, idx: number) => renderSection(section, idx))}
       </div>
     </div>
   );

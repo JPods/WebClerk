@@ -33,6 +33,7 @@ import DDCardDashboard from "../pages/Dashboard/DDCardDashboard";
 import ApplyPayments from "../apps/transactions/pages/ApplyPayments";
 import AllModelsWorkbench from "../apps/utils/scaffold/AllModelsWorkbench";
 import AliceDashboard from "../pages/admin/AliceDashboard";
+import AdminTools from "../pages/admin/AdminTools";
 import HelpDashboard from "../pages/admin/HelpDashboard";
 import TestDashboard from "../pages/admin/TestDashboard";
 import ReportDesigner from "../pages/admin/ReportDesigner";
@@ -144,8 +145,9 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.jsonViewer, element: <JsonViewer /> },
   { path: PageRoutes.commerceDashboard, element: <CommerceDashboard /> },
   { path: PageRoutes.aliceTraining, element: <AliceTraining /> },
+  { path: PageRoutes.flightSimulator, element: <FlightSimConsole /> },
   { path: PageRoutes.flightSim, element: <FlightSimConsole /> },
-  { path: PageRoutes.flightSimInventory, element: <FlightSimConsole scenarioAction="get_flight_scenario" title="Flight Simulator: Transaction Lifecycle" description="Step through proposal → order → invoice → payment → purchase → receive and watch inventory, GL, and pending records change." /> },
+  { path: PageRoutes.flightSimInventory, element: <FlightSimConsole /> },
   { path: PageRoutes.modelWorkbench, element: <AllModelsWorkbench /> },
   { path: PageRoutes.whitelist, element: <WhitelistTester /> },
   { path: PageRoutes.formParade, element: <FormParade /> },
@@ -153,6 +155,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.agenda, element: <AgendaView /> },
   { path: "/json-tree", element: <JsonTreeApplet /> },
   { path: "/alice-dashboard", element: <AliceDashboard /> },
+  { path: "/admin-tools", element: <AdminTools /> },
   { path: "/help", element: <HelpDashboard /> },
   { path: "/test-dashboard", element: <TestDashboard /> },
   { path: "/report-designer", element: <ReportDesigner /> },

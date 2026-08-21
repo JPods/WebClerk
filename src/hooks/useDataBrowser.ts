@@ -7,6 +7,8 @@
  * Reusable — any page that needs a model browser can call this hook.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '@/store';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import { useWindowPath } from '@/context/WindowPathContext';
 import { useWindowManagerSafe } from '@/context/WindowManagerContext';
@@ -32,6 +34,7 @@ export type WorkbenchRecord = { id?: number | string; [key: string]: unknown };
 /** Field specification — each field is an object with display properties */
 export type FieldSpec = {
   field: string;
+  label?: string;    // column header label; default: field name (flat) or ".leaf" (dot-path)
   width?: number;
   minWidth?: number;
   maxWidth?: number;
@@ -192,12 +195,12 @@ export type SortSpec = { field: string; direction: 'asc' | 'desc' } | null;
 /**
  * Convert named layout format (config.layout on wc:model) to WorkbenchFieldsSetting.
  *
- * Named format (db.list/db.dynamic/db.display):
- *   { active: {list: "bill_layout"}, list: { default: {columns: [...]} }, dynamic: {...}, display: {...} }
+ * Named format (terms established 2026-08-18: list, detail, form, column):
+ *   { active: {list: "bill_layout"}, list: { default: {columns: [...]} }, detail: {...}, form: {...} }
  * Old format has layout.list as a flat array:
  *   { list: [...], detail: [...], views: [...] }
  *
- * Also handles transitional format where 'detail'/'ui' keys haven't been renamed yet.
+ * Backward compatible with old keys: 'dynamic' (now 'detail'), 'display' (now 'form').
  */
 function namedLayoutToWorkbench(layout: any): WorkbenchFieldsSetting | null {
   if (!layout || typeof layout !== 'object') return null;
@@ -211,30 +214,30 @@ function namedLayoutToWorkbench(layout: any): WorkbenchFieldsSetting | null {
   const active = layout.active || { list: 'default' };
   const activeName = active.list || 'default';
   const namedList: Record<string, any> = layout.list || {};
-  // Support both new names (dynamic) and old names (detail) during transition
-  const namedDynamic: Record<string, any> = layout.dynamic || layout.detail || {};
+  // Canonical key is 'detail'; fall back to old 'dynamic' for backward compat
+  const namedDetail: Record<string, any> = layout.detail || layout.dynamic || {};
 
   // Resolve active list layout
   const activeListLayout = namedList[activeName] || namedList['default'] || {};
-  // Pairing key: 'dynamic' (new) or 'detail' (old)
-  const activeDynamicName = activeListLayout.dynamic || activeListLayout.detail || active.dynamic || active.detail || 'default';
-  const activeDynamicLayout = namedDynamic[activeDynamicName] || namedDynamic['default'] || {};
+  // Pairing key: 'detail' (canonical) or 'dynamic' (old)
+  const activeDetailName = activeListLayout.detail || activeListLayout.dynamic || active.detail || active.dynamic || 'default';
+  const activeDetailLayout = namedDetail[activeDetailName] || namedDetail['default'] || {};
 
   // Convert all named list layouts to NamedView[] for the layout selector
   const views: NamedView[] = Object.entries(namedList).map(([name, nl]: [string, any]) => {
-    const pairedDynamicName = nl.dynamic || nl.detail || name || 'default';
-    const pairedDynamic = namedDynamic[pairedDynamicName] || namedDynamic['default'] || {};
+    const pairedDetailName = nl.detail || nl.dynamic || name || 'default';
+    const pairedDetail = namedDetail[pairedDetailName] || namedDetail['default'] || {};
     return {
       name,
       list: nl.columns || [],
-      detail: pairedDynamic.fields || [],
+      detail: pairedDetail.fields || [],
       listWidths: {},
     };
   });
 
   return {
     list: activeListLayout.columns || [],
-    detail: activeDynamicLayout.fields || [],
+    detail: activeDetailLayout.fields || [],
     related: layout.related || [],
     views,
   };
@@ -277,6 +280,8 @@ export const PAGE_SIZE = 50;
 // ---------------------------------------------------------------------------
 
 export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, extraFilters?: Record<string, unknown>) {
+  const authUser = useSelector((s: RootState) => s.auth?.user);
+  const isSuperuser = !!(authUser?.is_superuser);
   const [searchParams, setSearchParams] = useSearchParams();
   const routeParams = useParams<{ model?: string }>();
   const navigate = useNavigate();
@@ -350,6 +355,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
   const [fieldBehaviors, setFieldBehaviors] = useState<Record<string, any>>({});
   const [fieldDefaults, setFieldDefaults] = useState<Record<string, any>>({});
   const [detailRowSizes, setDetailRowSizes] = useState<Record<string, number>>({});
+  const [leafDeclarations, setLeafDeclarations] = useState<Record<string, any>>({});
 
   // --- Field groups ---
   const [fieldGroups, setFieldGroups] = useState<FieldGroup[]>([]);
@@ -684,19 +690,12 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
       if (wsId && selectedModel) workbenchSettingIdMap.current[selectedModel] = wsId;
       dbLog('fetchRecords:workbenchSetting', { model: selectedModel, settingId: wsId, list: ws?.list?.slice(0, 8), detail: ws?.detail?.slice(0, 8), views: ws?.views?.length });
 
-      // Load field behaviors from wc:model (consolidated) or legacy wc:field_access
+      // Load field behaviors from wc:model (consolidated)
       try {
-        let faRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'wc:model' }) as any;
+        const faRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'wc:model' }) as any;
         if (modelChangeRef.current !== fetchId) return;
-        let faRec = (faRes?.results || [])[0];
+        const faRec = (faRes?.results || [])[0];
         let behaviors = faRec?.config?.behaviors || {};
-        // Legacy fallback
-        if (!faRec || !Object.keys(behaviors).length) {
-          faRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'wc:field_access' }) as any;
-          if (modelChangeRef.current !== fetchId) return;
-          faRec = (faRes?.results || [])[0];
-          behaviors = faRec?.config?.field_behaviors || {};
-        }
 
         // Merge config.selectlists into behaviors — canonical source for dropdown options
         const selectlists = faRec?.config?.selectlists;
@@ -768,29 +767,49 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
           // Tier 3: hardcoded crew seed
           if (assignOptions.length === 0) {
             assignOptions = [
-              { label: 'Bill James', value: JSON.stringify({ id: 8, name: 'Bill James' }) },
-              { label: 'Claude Code', value: JSON.stringify({ id: 10627, name: 'Claude Code' }) },
-              { label: 'Allie', value: JSON.stringify({ name: 'Allie' }) },
-              { label: 'Alice', value: JSON.stringify({ name: 'Alice' }) },
-              { label: 'Noelle', value: JSON.stringify({ name: 'Noelle' }) },
-              { label: 'Nora', value: JSON.stringify({ name: 'Nora' }) },
+              { label: 'Bill James', value: 'Bill James' },
+              { label: 'Claude Code', value: 'Claude Code' },
+              { label: 'Allie', value: 'Allie' },
+              { label: 'Alice', value: 'Alice' },
+              { label: 'Noelle', value: 'Noelle' },
+              { label: 'Nora', value: 'Nora' },
             ];
           }
+
+          // renderField extracts [0] from {"en":"name"} before the widget sees it,
+          // so option values must be plain strings matching the extracted value
+          assignOptions = assignOptions.map(o => {
+            try {
+              const parsed = JSON.parse(o.value);
+              const name = parsed.en || parsed.name || parsed.label || o.label;
+              return { label: o.label, value: name };
+            } catch { return o; }
+          });
 
           behaviors.assigned_to = {
             ...behaviors.assigned_to,
             type: 'select',
             source: 'inline',
             options: assignOptions,
+            allow_custom: true,
           };
         }
 
         setFieldBehaviors(behaviors);
         setFieldDefaults(faRec?.prefs?.defaults || {});
-        // wc:model stores field_groups and default_collapsed at top level; legacy nested in config
         setFieldGroups(faRec?.config?.field_groups || []);
         setDefaultCollapsed(faRec?.config?.default_collapsed || []);
-      } catch { setFieldBehaviors({}); setFieldDefaults({}); setFieldGroups([]); setDefaultCollapsed([]); }
+
+        // Build leaves from behaviors — the behavior type IS the leaf declaration
+        const computedLeaves: Record<string, any> = {};
+        for (const [field, beh] of Object.entries(behaviors)) {
+          const b = beh as any;
+          if (b.type === 'i18n') computedLeaves[field] = { type: 'i18n', extract: '[0]' };
+          else if (b.type === 'json-tree') computedLeaves[field] = { type: 'envelope' };
+          else if (b.type === 'json') computedLeaves[field] = { type: 'json' };
+        }
+        setLeafDeclarations(computedLeaves);
+      } catch { setFieldBehaviors({}); setFieldDefaults({}); setFieldGroups([]); setDefaultCollapsed([]); setLeafDeclarations({}); }
     } catch (e) {
       if (modelChangeRef.current !== fetchId) return; // don't show error for stale fetch
       const msg = errMsg(e, 'Failed to load records');
@@ -803,6 +822,13 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
   // which would cause infinite re-fetch. We read it inside fetchRecords via closure.
 
   useEffect(() => { fetchRecords(); }, [fetchRecords]);
+
+  // Reload behaviors when admin saves an override via BehaviorOverrideDialog
+  useEffect(() => {
+    const handler = () => fetchRecords();
+    window.addEventListener('wc:reload-behaviors', handler);
+    return () => window.removeEventListener('wc:reload-behaviors', handler);
+  }, [fetchRecords]);
 
   // Auto-select record from sessionStorage (set by MacTopBar double-click, spawn links, etc.)
   const autoSelectDone = useRef(false);
@@ -876,13 +902,32 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         if (settingId) {
-          // Surgical update: write to config.db.* path
+          // Surgical update: write to config.db.* AND config.layout.* paths
+          // config.db is the DataBrowser working copy; config.layout is the
+          // authoritative source read by detail/list renderers on reload.
           const ops: Record<string, any> = {
             id: settingId,
             'config.db.list': { mode: 'update', value: next.list || [] },
             'config.db.detail': { mode: 'update', value: next.detail || [] },
             'config.db.related': { mode: 'update', value: next.related || [] },
           };
+          // Sync to config.layout (the default for all users) — superuser only.
+          // Non-superusers save to config.db.views (personal named layouts).
+          if (isSuperuser) {
+            if (next.detail?.length) {
+              const detailFieldNames = (next.detail as any[]).map(
+                (f: any) => typeof f === 'string' ? f : f.field
+              );
+              ops['config.layout.detail.default.fields'] = { mode: 'update', value: detailFieldNames };
+            }
+            if (next.list?.length) {
+              const listSpecs = (next.list as any[]).map((f: any) => {
+                if (typeof f === 'string') return { field: f, label: f, width: 100, visible: true };
+                return { field: f.field, label: f.label || f.field, width: f.width || 100, visible: f.visible !== false };
+              });
+              ops['config.layout.list.default.columns'] = { mode: 'update', value: listSpecs };
+            }
+          }
           // Upsert each named view individually
           for (const view of (next.views || [])) {
             if (view.name) {
@@ -923,7 +968,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
         return;
       }
     }
-  }, []);
+  }, [isSuperuser]);
 
   const toggleField = useCallback(async (kind: 'list' | 'detail', field: string) => {
     if (!selectedModel) return;
@@ -1048,6 +1093,11 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
       alert(`"${name}" is a system layout and cannot be overwritten.`);
       return;
     }
+    // Only superuser can overwrite "default" — it's the layout all users see
+    if (name.trim().toLowerCase() === 'default' && !isSuperuser) {
+      alert('Only administrators can overwrite the Default layout. Save with a different name.');
+      return;
+    }
     // Merge dialog widths (authoritative) with existing colWidths (fallback)
     const effectiveWidths = { ...colWidths, ...(dialogWidths || {}) };
     const cur = workbenchSetting ?? { list: [], detail: [] };
@@ -1067,7 +1117,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
     setWorkbenchSetting(next); setWorkbenchSettingsMap((p) => ({ ...p, [selectedModel]: next }));
     setActiveViewName(name.trim());
     await persistSetting(selectedModel, next);
-  }, [selectedModel, workbenchSetting, colWidths, persistSetting]);
+  }, [selectedModel, workbenchSetting, colWidths, persistSetting, isSuperuser]);
 
   const loadView = useCallback(async (v: NamedView) => {
     if (!selectedModel) return;
@@ -1235,7 +1285,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
     // Columns
     colWidths, setColWidths, handleColumnDrop, handleResizeStart, handleWidthClick,
     // Field behaviors
-    fieldBehaviors, fieldDefaults, detailRowSizes, setDetailRowSizes,
+    fieldBehaviors, fieldDefaults, detailRowSizes, setDetailRowSizes, leafDeclarations,
     // Field groups
     fieldGroups, currentCollapsed, toggleFieldGroup,
     // CRUD

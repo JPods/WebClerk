@@ -108,8 +108,6 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
     const newLine: any = {
       id: -Date.now(),
       line_number: getNextLineNumber(lines),
-      item_fk: itemId,
-      item_fk_id: itemId,
       price_level: priceLevel,
       status: '',
       is_active: true,

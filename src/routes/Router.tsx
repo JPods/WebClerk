@@ -17,6 +17,7 @@ import DDCardDashboard from "../pages/Dashboard/DDCardDashboard";
 const UiDetail = React.lazy(() => import("../apps/transactions/components/TransactionDetail"));
 const ShoppingCart = React.lazy(() => import("../apps/transactions/components/ShoppingCart"));
 const AliceDashboard = React.lazy(() => import("../pages/admin/AliceDashboard"));
+const AdminTools = React.lazy(() => import("../pages/admin/AdminTools"));
 const HelpDashboard = React.lazy(() => import("../pages/admin/HelpDashboard"));
 const InventoryDashboard = React.lazy(() => import("../pages/admin/InventoryDashboard"));
 const ContactDetailJson = React.lazy(() => import("../apps/core/models/contact/pages/ContactDetailJson"));
@@ -78,6 +79,7 @@ const Router: React.FC = () => {
           <Route path="browser" element={<DataBrowser />} />
           <Route path="profile" element={<UserProfiles />} />
           <Route path="alice-dashboard" element={<S><AliceDashboard /></S>} />
+          <Route path="admin-tools" element={<S><AdminTools /></S>} />
           <Route path="help" element={<S><HelpDashboard /></S>} />
           <Route path="products" element={<DDCardDashboard dashboardName="products" />} />
           <Route path="orgs" element={<DDCardDashboard dashboardName="orgs" />} />
@@ -93,8 +95,9 @@ const Router: React.FC = () => {
           <Route path="admin-wb" element={<Navigate to="/databrowser" replace />} />
           <Route path="kanban" element={<S><KanbanBoardPage /></S>} />
           <Route path="gantt" element={<S><UnifiedGanttPage /></S>} />
+          <Route path="flight-simulator" element={<S><FlightSimConsole /></S>} />
           <Route path="flight-sim" element={<S><FlightSimConsole /></S>} />
-          <Route path="flight-sim/inventory" element={<S><FlightSimConsole scenarioAction="get_flight_scenario" title="Flight Simulator: Transaction Lifecycle" description="Step through proposal → order → invoice → payment → purchase → receive and watch inventory, GL, and pending records change." /></S>} />
+          <Route path="flight-sim/inventory" element={<S><FlightSimConsole /></S>} />
 
           {/* Legacy /db/ routes — keep working for bookmarks */}
           <Route path="db/:model" element={<DataBrowser />} />

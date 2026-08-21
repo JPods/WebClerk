@@ -11,7 +11,7 @@
  *   CSS  = our standard print plumbing (page breaks, color-adjust)
  *   JSON = runtime config (line counts, page numbers, text_format)
  *
- * Same card patterns as db.display (DynamicDetail) — address blocks,
+ * Same card patterns as form layouts (DynamicDetail) — address blocks,
  * info rows, line items, totals, footer. Consistent building blocks
  * across screen and print.
  */

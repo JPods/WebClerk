@@ -11,3 +11,4 @@ export { getCardComponent, getFooterComponent, registerCardComponent, registerFo
 // Self-registering components — import triggers registration
 import './CustomerSearchCard';
 import './ActionSummaryFooter';
+import './FlightSimCard';

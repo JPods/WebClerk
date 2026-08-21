@@ -82,7 +82,7 @@ async function callManage(action: string, params: Record<string, unknown>): Prom
 interface WorkflowSelectProps {
   modelName: string;
   record?: any;
-  onComplete?: () => void;
+  onComplete?: (result?: any) => void;
 }
 
 const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onComplete }) => {
@@ -110,9 +110,9 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
     try {
       setLoading(true);
       const params = action.params ? action.params(record || {}) : {};
-      await callManage(action.key, params);
+      const result = await callManage(action.key, params);
       dispatch(showToast({ message: `${action.label} completed`, type: 'success' }));
-      onComplete?.();
+      onComplete?.({ ...result, _action: action.key });
     } catch (err: any) {
       dispatch(showToast({ message: err?.response?.data?.message || err?.message || `${action.label} failed`, type: 'error' }));
     } finally {
