@@ -77,6 +77,10 @@ class Pending(CoreModel):
         if self.model_name == 'item' and self.purpose in INVENTORY_PURPOSES:
             return self._apply_inventory()
 
+        # ── Payment application ──────────────────────────────────
+        if self.purpose == 'payment_application':
+            return self._apply_payment()
+
         # ── Future handlers ──────────────────────────────────────
         # if self.purpose == 'ledger_sync':
         #     return self._apply_ledger_sync()
@@ -139,6 +143,15 @@ class Pending(CoreModel):
         except OperationalError:
             # Row locked — celery will pick this up
             logger.debug(f"Pending {self.pk}: Item {item_id} locked, queued for celery")
+            return False
+
+    def _apply_payment(self):
+        """Apply payment to invoice. Delegates to payment_pending service."""
+        try:
+            from apps.transactions.services.payment_pending import apply_payment_pending
+            return apply_payment_pending(self)
+        except Exception:
+            logger.debug("Pending %s: payment apply failed, queued for celery", self.pk, exc_info=True)
             return False
 
     def mark_processed(self, save: bool = True):

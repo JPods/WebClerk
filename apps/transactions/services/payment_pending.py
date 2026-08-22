@@ -1,8 +1,22 @@
-"""Payment pending service — one-path payment application.
+"""Payment pending service — one-path payment application via Pending model.
 
-Every payment application flows through PendingPaymentApplication first.
-If the invoice is unlocked, apply immediately. If locked, queue for later.
-One path, one audit trail.
+Every payment application flows through a Pending record with
+purpose='payment_application'. Same model as inventory pending,
+different purpose. One Pending model, many purposes.
+
+If the invoice is unlocked, Pending.try_apply() fires immediately.
+If locked, stays queued (dt_processed=0) for celery.
+
+changes JSON schema:
+    {
+        "payment_id": int,
+        "invoice_id": int,
+        "amount": float,
+        "reason": str,
+        "contact_id": int|null,
+        "state": "pending"|"applied"|"canceled",
+        "dt_applied": str|null,
+    }
 """
 from __future__ import annotations
 
@@ -15,6 +29,61 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
+PAYMENT_PURPOSE = 'payment_application'
+
+# System item IDAs for payment adjustments
+SYS_DISCOUNT = 'SYS-DISCOUNT'
+SYS_WRITEOFF = 'SYS-WRITEOFF'
+SYS_FXDIFF = 'SYS-FXDIFF'
+
+
+def _create_adjustment_payment(
+    invoice, method: str, amount: Decimal, reason: str = '',
+    source_payment=None,
+) -> None:
+    """Create an adjustment Payment record and apply it to the invoice.
+
+    Discount, write-off, and FX difference are payment-side events.
+    The invoice total stays immutable. Each adjustment is a separate
+    Payment record applied via the same Pending path as cash payments.
+    """
+    from apps.core.models.pending import Pending
+    from apps.transactions.models import Payment
+
+    adj_payment = Payment.objects.create(
+        amount=amount,
+        available=amount,
+        status='completed',
+        method=method,
+        reference_number=f'{method.upper()}-{invoice.pk}',
+        customer_id=getattr(source_payment, 'customer_id', None) if source_payment else None,
+        invoice=invoice,
+        metadata={
+            'type': method,
+            'invoice_id': invoice.pk,
+            'source_payment_id': source_payment.pk if source_payment else None,
+            'reason': reason,
+        },
+    )
+
+    # Apply via Pending — same path as cash payments
+    Pending.objects.create(
+        model_name='payment',
+        record_id=str(adj_payment.pk),
+        name=f'{method.title()} #{adj_payment.pk} → Invoice #{invoice.pk} ${amount}',
+        purpose=PAYMENT_PURPOSE,
+        changes={
+            'payment_id': adj_payment.pk,
+            'invoice_id': invoice.pk,
+            'amount': float(amount),
+            'reason': reason,
+            'state': 'pending',
+        },
+    )
+
+    logger.info("Created %s payment #%s → invoice %s: $%s (%s)",
+                method, adj_payment.pk, invoice.pk, amount, reason)
+
 
 @transaction.atomic
 def apply_payment_to_invoice(
@@ -23,23 +92,24 @@ def apply_payment_to_invoice(
     amount,
     reason: str = '',
     contact_id: Optional[int] = None,
-    write_off_difference: bool = False,
+    discount_pct: float = 0,
+    dismiss_balance: bool = False,
+    fx_difference: float = 0,
 ) -> Dict[str, Any]:
-    """Create a PendingPaymentApplication.
+    """Create a Pending record for payment application.
 
-    If the invoice is not locked, apply immediately (reduce invoice balance,
-    update payment). If locked, queue as pending.
+    If the invoice is not locked, applies immediately (reduce invoice balance,
+    update payment). If locked, queues for celery.
 
-    write_off_difference: if True, after applying the payment, any remaining
-    balance on the invoice is written off as a separate Payment record posted
-    to the write-off GL account. For small differences not worth collecting
-    (e.g., customer pays $99.50 on a $100.00 invoice — $0.50 written off).
+    Adjustments (discount, dismiss, fx) add SYS-* lines to the invoice
+    before applying the payment. The lines reduce the invoice total through
+    normal totals recalculation.
 
     Returns:
-        {pending_id, state, amount, applied, write_off}
+        {pending_id, state, amount, applied, adjustments}
     """
+    from apps.core.models.pending import Pending
     from apps.transactions.models import Invoice, Payment
-    from apps.transactions.models.pending_payment import PendingPaymentApplication
 
     payment = Payment.objects.select_for_update().get(pk=payment_id)
     invoice = Invoice.objects.select_for_update().get(pk=invoice_id)
@@ -48,266 +118,184 @@ def apply_payment_to_invoice(
     if amount <= 0:
         raise ValueError("amount must be positive")
 
-    # Build request_ref for audit trail
-    request_ref: Dict[str, Any] = {}
-    if contact_id:
-        request_ref['contact_id'] = contact_id
+    adjustments = []
 
-    pending = PendingPaymentApplication.objects.create(
-        payment=payment,
-        invoice=invoice,
-        amount=amount,
-        state=PendingPaymentApplication.STATE_PENDING,
-        reason=reason,
-        request_ref=request_ref,
+    # ── Discount (payment-side — separate Payment record) ─────────
+    if discount_pct > 0:
+        totals = invoice.totals or {}
+        invoice_total = Decimal(str(totals.get('total') or invoice.total or 0))
+        discount_amt = (invoice_total * Decimal(str(discount_pct)) / 100).quantize(Decimal('0.01'))
+        _create_adjustment_payment(
+            invoice, 'discount', discount_amt,
+            reason=f'{discount_pct}% payment discount',
+            source_payment=payment,
+        )
+        adjustments.append({'type': 'discount', 'amount': float(discount_amt)})
+
+    # ── FX difference (payment-side) ────────────────────────────────
+    if fx_difference != 0:
+        fx_amt = abs(Decimal(str(fx_difference)))
+        method = 'fx_gain' if fx_difference > 0 else 'fx_loss'
+        _create_adjustment_payment(
+            invoice, method, fx_amt,
+            reason='Currency exchange difference',
+            source_payment=payment,
+        )
+        adjustments.append({'type': method, 'amount': float(fx_amt)})
+
+    # ── Dismiss balance (after payment applied) ─────────────────────
+    # Handled after the payment is applied — see below
+
+    changes = {
+        'payment_id': payment_id,
+        'invoice_id': invoice_id,
+        'amount': float(amount),
+        'reason': reason,
+        'contact_id': contact_id,
+        'state': 'pending',
+        'dt_applied': None,
+    }
+
+    # Creating the Pending record triggers try_apply() on save
+    pending = Pending.objects.create(
+        model_name='payment',
+        record_id=str(payment_id),
+        name=f'Payment #{payment_id} → Invoice #{invoice_id} ${amount}',
+        purpose=PAYMENT_PURPOSE,
+        changes=changes,
     )
 
-    applied = False
-    if not getattr(invoice, 'is_locked', False):
-        applied = _apply_one(pending, invoice, payment)
+    applied = pending.is_processed()
 
-    write_off_result = None
-    if write_off_difference and applied:
-        write_off_result = _write_off_balance(invoice, payment)
+    # ── Dismiss remaining balance ───────────────────────────────────
+    if dismiss_balance and applied:
+        invoice.refresh_from_db()
+        remaining = Decimal(str((invoice.totals or {}).get('balance') or invoice.balance or 0))
+        if remaining > 0:
+            _create_adjustment_payment(
+                invoice, 'write_off', remaining,
+                reason='Balance dismissed — too small to chase',
+                source_payment=payment,
+            )
+            adjustments.append({'type': 'write_off', 'amount': float(remaining)})
 
     result = {
         'pending_id': pending.pk,
-        'state': pending.state,
-        'amount': float(pending.amount),
+        'state': 'applied' if applied else 'pending',
+        'amount': float(amount),
         'applied': applied,
     }
-    if write_off_result:
-        result['write_off'] = write_off_result
+    if adjustments:
+        result['adjustments'] = adjustments
     return result
 
 
-def _apply_one(
-    pending,
-    invoice=None,
-    payment=None,
-) -> bool:
-    """Apply a single pending payment application. Returns True on success."""
-    from apps.transactions.models import Invoice, Payment
-    from apps.transactions.models.pending_payment import PendingPaymentApplication
+def apply_payment_pending(pending) -> bool:
+    """Apply a single payment Pending record. Called from Pending.try_apply().
 
-    if pending.state != PendingPaymentApplication.STATE_PENDING:
-        return False
-
-    if invoice is None:
-        invoice = Invoice.objects.select_for_update().get(pk=pending.invoice_id)
-    if payment is None:
-        payment = Payment.objects.select_for_update().get(pk=pending.payment_id)
-
-    # Don't apply to locked invoices
-    if getattr(invoice, 'is_locked', False):
-        return False
-
-    amount = pending.amount
-
-    # ── Early payment discount check ─────────────────────────────────
-    # If payment is within the discount window (e.g. 10 days for "2/10
-    # Net 30"), create a separate Payment record for the discount amount
-    # posted to the discount GL account. The discount is real money —
-    # it needs its own Payment, its own GL entry, its own audit trail.
-    early_discount = Decimal('0')
-    finance = getattr(invoice, 'finance', None) or {}
-    discount_days = finance.get('discount_days') or 0
-    discount_rate = finance.get('discount_rate') or 0
-
-    if discount_days and discount_rate and not finance.get('discount_taken'):
-        invoice_date = getattr(invoice, 'dt_created', None)
-        payment_date = getattr(payment, 'dt_created', None) or timezone.now()
-        if invoice_date and payment_date:
-            from datetime import timedelta
-
-            # Normalize to date objects
-            def _to_date(val):
-                if isinstance(val, (int, float)):
-                    from datetime import datetime as dt
-                    return dt.fromtimestamp(val / 1000, tz=timezone.utc).date()
-                return val.date() if hasattr(val, 'date') else val
-
-            invoice_dt = _to_date(invoice_date)
-            payment_dt = _to_date(payment_date)
-
-            if payment_dt <= invoice_dt + timedelta(days=int(discount_days)):
-                totals_check = invoice.totals or {}
-                total_due = Decimal(str(totals_check.get('total', 0)))
-                early_discount = (total_due * Decimal(str(discount_rate)) / 100).quantize(Decimal('0.01'))
-
-                # Create a Payment record for the discount amount
-                discount_payment = Payment.objects.create(
-                    amount=early_discount,
-                    status='completed',
-                    payment_method='discount',
-                    reference_number=f'EPD-{invoice.pk}',
-                    customer_id=getattr(payment, 'customer_id', None),
-                    metadata={
-                        'type': 'early_payment_discount',
-                        'invoice_id': invoice.pk,
-                        'source_payment_id': payment.pk,
-                        'discount_rate': float(discount_rate),
-                        'discount_days': int(discount_days),
-                        'invoice_date': invoice_dt.isoformat(),
-                        'payment_date': payment_dt.isoformat(),
-                        'gl_account': finance.get('discount_gl_account', ''),
-                    },
-                )
-
-                # Apply the discount payment to the same invoice
-                from apps.transactions.models.pending_payment import PendingPaymentApplication
-                discount_pending = PendingPaymentApplication.objects.create(
-                    payment=discount_payment,
-                    invoice=invoice,
-                    amount=early_discount,
-                    state=PendingPaymentApplication.STATE_PENDING,
-                    reason=f'Early payment discount {discount_rate}% within {discount_days} days',
-                )
-
-                logger.info(
-                    "Early payment discount: invoice %s, %s%% = $%s → Payment #%s",
-                    invoice.pk, discount_rate, early_discount, discount_payment.pk,
-                )
-
-                # Record that discount was taken (prevents double application)
-                finance['discount_taken'] = float(early_discount)
-                finance['discount_date'] = payment_dt.isoformat()
-                finance['discount_payment_id'] = discount_payment.pk
-                invoice.finance = finance
-
-    # Update invoice totals
-    totals = invoice.totals or {}
-    total_due = Decimal(str(totals.get('total', 0)))
-    received = Decimal(str(totals.get('received', 0)))
-    # The discount Payment will be applied separately via its own pending record.
-    # Here we only apply the original payment amount.
-    new_received = received + amount
-    new_balance = total_due - new_received - early_discount
-
-    totals['received'] = float(new_received)
-    totals['balance'] = float(new_balance)
-    invoice.totals = totals
-
-    # Update invoice status
-    if new_balance <= 0:
-        invoice.status = 'paid'
-    elif new_received > 0:
-        invoice.status = 'partially_paid'
-
-    update_fields = ['totals', 'status', 'dt_modified', 'version']
-    if early_discount > 0:
-        update_fields.append('finance')
-    invoice.save(update_fields=update_fields)
-
-    # Now apply the discount payment's pending record
-    if early_discount > 0:
-        _apply_one(discount_pending, invoice, discount_payment)
-
-    # Decrement payment.available
-    payment.available = max(Decimal('0'), payment.available - amount)
-    payment.save(update_fields=['available', 'dt_modified', 'version'])
-
-    # Mark pending as applied
-    pending.state = PendingPaymentApplication.STATE_APPLIED
-    pending.dt_applied = timezone.now()
-    pending.save(update_fields=['state', 'dt_applied', 'dt_modified', 'version'])
-
-    logger.info(
-        "Applied pending payment %s: payment %s -> invoice %s, $%s (available now $%s)",
-        pending.pk, payment.pk, invoice.pk, amount, payment.available,
-    )
-    return True
-
-
-def _write_off_balance(invoice, source_payment) -> Optional[Dict[str, Any]]:
-    """Write off a small remaining balance as a separate Payment.
-
-    Creates a Payment with payment_method='write_off' for the remaining
-    balance. Posts to the write-off GL account. Same pattern as the
-    early payment discount — every dollar gets its own Payment record.
-
-    WC2 heritage: "Discount Difference" checkbox in Apply Payment dialog.
-    Customer pays $99.50 on $100 invoice → $0.50 write-off, not worth calling.
+    Returns True on success, False if queued for celery.
     """
-    from apps.transactions.models.pending_payment import PendingPaymentApplication
+    from django.db import OperationalError
+    from apps.transactions.models import Invoice, Payment
 
-    invoice.refresh_from_db(fields=['totals', 'status'])
-    totals = invoice.totals or {}
-    balance = Decimal(str(totals.get('balance', 0)))
+    changes = pending.changes if isinstance(pending.changes, dict) else {}
+    payment_id = changes.get('payment_id')
+    invoice_id = changes.get('invoice_id')
+    amount_val = changes.get('amount', 0)
 
-    if balance <= 0:
-        return None  # nothing to write off
+    if not payment_id or not invoice_id or not amount_val:
+        logger.warning("Pending %s: missing payment_id/invoice_id/amount", pending.pk)
+        return False
 
-    # Create write-off Payment
-    wo_payment = Payment.objects.create(
-        amount=balance,
-        status='completed',
-        payment_method='write_off',
-        reference_number=f'WO-{invoice.pk}',
-        customer_id=getattr(source_payment, 'customer_id', None),
-        metadata={
-            'type': 'write_off',
-            'invoice_id': invoice.pk,
-            'source_payment_id': source_payment.pk,
-            'original_balance': float(balance),
-            'gl_account': (getattr(invoice, 'finance', None) or {}).get('write_off_gl_account', ''),
-        },
-    )
+    amount = Decimal(str(amount_val))
 
-    # Apply to invoice
-    wo_pending = PendingPaymentApplication.objects.create(
-        payment=wo_payment,
-        invoice=invoice,
-        amount=balance,
-        state=PendingPaymentApplication.STATE_PENDING,
-        reason=f'Write off balance ${balance}',
-    )
-    _apply_one(wo_pending, invoice, wo_payment)
+    try:
+        with transaction.atomic():
+            try:
+                payment = Payment.objects.select_for_update(nowait=True).get(pk=payment_id)
+                invoice = Invoice.objects.select_for_update(nowait=True).get(pk=invoice_id)
+            except (Payment.DoesNotExist, Invoice.DoesNotExist) as e:
+                logger.warning("Pending %s: record not found: %s", pending.pk, e)
+                return False
 
-    logger.info(
-        "Write-off: invoice %s, $%s → Payment #%s",
-        invoice.pk, balance, wo_payment.pk,
-    )
+            # Don't apply to locked invoices
+            if getattr(invoice, 'is_locked', False):
+                return False
 
-    return {
-        'payment_id': wo_payment.pk,
-        'amount': float(balance),
-        'reference': wo_payment.reference_number,
-    }
+            # ── Update invoice totals ───────────────────────────────
+            totals = invoice.totals or {}
+            total_due = Decimal(str(totals.get('total') or 0))
+            received = Decimal(str(totals.get('received') or 0))
+            new_received = received + amount
+            new_balance = total_due - new_received
+
+            totals['received'] = float(new_received)
+            totals['balance'] = float(new_balance)
+            invoice.totals = totals
+            invoice.balance = new_balance
+
+            if new_balance <= 0:
+                invoice.status = 'paid'
+            elif new_received > 0:
+                invoice.status = 'partially_paid'
+
+            invoice.save(update_fields=['totals', 'balance', 'status', 'dt_modified', 'version'])
+
+            # ── Decrement payment.available ─────────────────────────
+            payment.available = max(Decimal('0'), payment.available - amount)
+            payment.save(update_fields=['available', 'dt_modified', 'version'])
+
+            # ── Mark pending as processed ───────────────────────────
+            changes['state'] = 'applied'
+            changes['dt_applied'] = timezone.now().isoformat()
+            pending.changes = changes
+            pending.dt_processed = int(timezone.now().timestamp() * 1000)
+            pending.save(update_fields=['changes', 'dt_processed', 'dt_modified', 'version'])
+
+            logger.info(
+                "Applied payment pending %s: payment %s → invoice %s, $%s (available now $%s)",
+                pending.pk, payment.pk, invoice.pk, amount, payment.available,
+            )
+            return True
+
+    except OperationalError:
+        logger.debug("Pending %s: record locked, queued for celery", pending.pk)
+        return False
 
 
 @transaction.atomic
 def apply_pending_for_invoice(invoice_id: int) -> Dict[str, Any]:
-    """Apply all pending payments for an invoice after unlock.
+    """Apply all pending payment records for an invoice after unlock.
 
     Returns:
         {applied_count, still_pending}
     """
+    from apps.core.models.pending import Pending
     from apps.transactions.models import Invoice
-    from apps.transactions.models.pending_payment import PendingPaymentApplication
 
     invoice = Invoice.objects.select_for_update().get(pk=invoice_id)
 
     if getattr(invoice, 'is_locked', False):
-        return {'applied_count': 0, 'still_pending': 0, 'message': 'Invoice is still locked'}
+        return {'applied_count': 0, 'still_pending': 0, 'message': 'Invoice still locked'}
 
     pendings = (
-        PendingPaymentApplication.objects
-        .filter(invoice_id=invoice_id, state=PendingPaymentApplication.STATE_PENDING)
+        Pending.objects
+        .filter(purpose=PAYMENT_PURPOSE, dt_processed=0)
+        .filter(changes__invoice_id=invoice_id)
         .select_for_update()
         .order_by('dt_created')
     )
 
     applied_count = 0
     for p in pendings:
-        if _apply_one(p, invoice=invoice):
+        if apply_payment_pending(p):
             applied_count += 1
-            # Refresh invoice to get updated totals for next iteration
             invoice.refresh_from_db()
 
     still_pending = (
-        PendingPaymentApplication.objects
-        .filter(invoice_id=invoice_id, state=PendingPaymentApplication.STATE_PENDING)
+        Pending.objects
+        .filter(purpose=PAYMENT_PURPOSE, dt_processed=0)
+        .filter(changes__invoice_id=invoice_id)
         .count()
     )
 
@@ -318,18 +306,19 @@ def apply_pending_for_invoice(invoice_id: int) -> Dict[str, Any]:
 
 
 def get_pending_for_invoice(invoice_id: int) -> Dict[str, Any]:
-    """Return all pending payment applications for an invoice.
+    """Return all payment pending records for an invoice.
 
     Returns:
         {invoice_id, pending: [{id, payment_id, amount, state, reason, dt_created}]}
     """
-    from apps.transactions.models.pending_payment import PendingPaymentApplication
+    from apps.core.models.pending import Pending
 
     rows = (
-        PendingPaymentApplication.objects
-        .filter(invoice_id=invoice_id)
+        Pending.objects
+        .filter(purpose=PAYMENT_PURPOSE)
+        .filter(changes__invoice_id=invoice_id)
         .order_by('-dt_created')
-        .values('id', 'payment_id', 'amount', 'state', 'reason', 'dt_created', 'dt_applied')
+        .values('id', 'changes', 'dt_created', 'dt_processed')
     )
 
     return {
@@ -337,12 +326,12 @@ def get_pending_for_invoice(invoice_id: int) -> Dict[str, Any]:
         'pending': [
             {
                 'id': r['id'],
-                'payment_id': r['payment_id'],
-                'amount': float(r['amount']),
-                'state': r['state'],
-                'reason': r['reason'],
+                'payment_id': r['changes'].get('payment_id'),
+                'amount': r['changes'].get('amount'),
+                'state': r['changes'].get('state', 'pending'),
+                'reason': r['changes'].get('reason', ''),
                 'dt_created': r['dt_created'],
-                'dt_applied': r['dt_applied'],
+                'dt_processed': r['dt_processed'],
             }
             for r in rows
         ],
@@ -351,6 +340,8 @@ def get_pending_for_invoice(invoice_id: int) -> Dict[str, Any]:
 
 __all__ = [
     'apply_payment_to_invoice',
+    'apply_payment_pending',
     'apply_pending_for_invoice',
     'get_pending_for_invoice',
+    'PAYMENT_PURPOSE',
 ]

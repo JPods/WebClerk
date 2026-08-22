@@ -1082,6 +1082,27 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.support.scheduler.tasks.task_cash_flow_patterns',
         'schedule': crontab(hour=3, minute=30, day_of_week='monday'),
     },
+
+    # ── Alice: Inbox processor (every 60s) ────────────────────────
+    # Real-time awareness — reads agent bus messages, creates observations
+    'alice-inbox-realtime': {
+        'task': 'apps.ai_assistant.tasks.alice_inbox_task',
+        'schedule': 60.0,
+    },
+
+    # ── Alice: Accounting watchdog (daily 2:50 AM) ────────────────
+    # GL balance, invoice balance, unapplied payments, aging
+    'alice-accounting-watchdog-nightly': {
+        'task': 'apps.ai_assistant.tasks.accounting_watchdog_task',
+        'schedule': crontab(hour=2, minute=50),
+    },
+
+    # ── Alice: Inventory watchdog (daily 4:10 AM) ─────────────────
+    # Under/overstock, negative on_hand, dead stock, qty mismatches
+    'alice-inventory-watchdog-nightly': {
+        'task': 'apps.ai_assistant.tasks.inventory_watchdog_task',
+        'schedule': crontab(hour=4, minute=10),
+    },
 }
 
 # --- Inventory Pending Processing ---

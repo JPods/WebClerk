@@ -444,6 +444,8 @@ def full_intelligence_run(limit: int = 500, use_llm: bool = False, dry_run: bool
     results["layout_drift"] = layout_drift_task(use_llm=use_llm)
     results["relationships"] = relationship_scan_task()
     results["dedup"] = dedup_scan_task()
+    results["accounting"] = accounting_watchdog_task()
+    results["inventory"] = inventory_watchdog_task()
 
     total_duration = (timezone.now() - started).total_seconds()
     results["total_duration_seconds"] = total_duration
@@ -499,3 +501,67 @@ def dedup_scan_task(limit_per_model: int = 500, auto_extract: bool = False) -> d
         total_groups, total_dups, extracted, duration,
     )
     return scan_results
+
+
+# ─── Alice Inbox (real-time bus processing) ──────────────────────────
+
+@shared_task
+def alice_inbox_task(batch_size: int = 50) -> dict:
+    """Process Alice's agent bus inbox (every 60s).
+
+    Reads unread messages from agent_messages, processes by category,
+    creates AliceObservation records for anomalies, marks messages read.
+    This is Alice's real-time awareness layer.
+    """
+    from apps.ai_assistant.services.alice_inbox import process_inbox
+    return process_inbox(batch_size=batch_size)
+
+
+# ─── Accounting Watchdog ─────────────────────────────────────────────
+
+@shared_task
+def accounting_watchdog_task() -> dict:
+    """Nightly task: scan for GL imbalances, payment anomalies, aging issues.
+
+    Alice checks:
+    - GL batch balance (debits == credits)
+    - Invoice balance vs payments applied
+    - Unapplied payments
+    - Orphaned ledger entries
+    - 90+ day past-due aging
+    """
+    logger.info("Starting accounting watchdog")
+    started = timezone.now()
+
+    from apps.ai_assistant.services.accounting_watchdog import run_accounting_watchdog
+    result = run_accounting_watchdog()
+
+    duration = (timezone.now() - started).total_seconds()
+    result['duration_seconds'] = duration
+    logger.info("Accounting watchdog complete in %.1fs", duration)
+    return result
+
+
+# ─── Inventory Watchdog ──────────────────────────────────────────────
+
+@shared_task
+def inventory_watchdog_task(limit: int = 1000) -> dict:
+    """Nightly task: scan for over/understock, dead stock, quantity errors.
+
+    Alice checks:
+    - Items below reorder point (understock)
+    - Items above max stock (overstock)
+    - Negative on_hand (data error)
+    - Quantity calculation mismatches
+    - Dead stock (no sales 90+ days)
+    """
+    logger.info("Starting inventory watchdog")
+    started = timezone.now()
+
+    from apps.ai_assistant.services.inventory_watchdog import run_inventory_watchdog
+    result = run_inventory_watchdog(limit=limit)
+
+    duration = (timezone.now() - started).total_seconds()
+    result['duration_seconds'] = duration
+    logger.info("Inventory watchdog complete in %.1fs", duration)
+    return result

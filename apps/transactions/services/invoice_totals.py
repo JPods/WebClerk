@@ -56,24 +56,59 @@ def compute_invoice_sell_cost_totals(invoice) -> Dict[str, Dict[str, float]]:
         "total": float(cost_goods + cost_tax + cost_shipping + cost_handling + cost_freight + cost_commissions),
     }
 
-    total_amt = sell_goods
+    # Preserve existing header-level values that lines don't determine
+    existing = invoice.totals or {}
+    tax = _d(existing.get("tax", 0))
+    shipping = _d(existing.get("shipping", 0))
+    other = _d(existing.get("other", 0))
+    received = existing.get("received")  # preserve — set by payment_pending
+    discount_header = _d(existing.get("discount", 0))
+
+    # Separate product lines from system adjustment lines (SYS-*)
+    product_subtotal = Decimal(0)
+    adjustment_total = Decimal(0)
+    for ln in invoice.lines.all():
+        p = ln.price or {}
+        item_ida = (ln.item or {}).get('ida', '')
+        ext = _d(p.get("extended", 0))
+        if item_ida.startswith('SYS-'):
+            adjustment_total += ext
+        else:
+            product_subtotal += ext
+
+    # If no product lines but header has a total, preserve it.
+    # The header total is authoritative — lines are detail.
+    existing_total = _d(existing.get("total", 0))
+    header_total = _d(getattr(invoice, 'total', 0) or 0)
+    if product_subtotal == 0 and (existing_total > 0 or header_total > 0):
+        subtotal = max(existing_total, header_total)
+    else:
+        subtotal = product_subtotal if product_subtotal > 0 else sell_goods
+
+    taxable = subtotal - discount_header
+    total_amt = subtotal - discount_header + tax + shipping + other + adjustment_total
     total_cost = Decimal(str(cost["total"]))
     margin = total_amt - total_cost
     margin_pc = (margin / total_amt * Decimal(100)) if total_amt > 0 else None
 
-    # Build the full default_totals() structure so every key is present.
+    # Recompute balance from total - received (if received is set)
+    if received is not None:
+        balance = float(total_amt - _d(received))
+    else:
+        balance = float(total_amt)
+
     totals = {
-        "subtotal": float(sell_goods),
-        "discount": float(sell_discount),
-        "taxable": float(sell_goods - sell_discount),
-        "tax": 0.0,
-        "shipping": 0.0,
-        "other": 0.0,
+        "subtotal": float(subtotal),
+        "discount": float(discount_header),
+        "taxable": float(taxable),
+        "tax": float(tax),
+        "shipping": float(shipping),
+        "other": float(other),
         "total": float(total_amt),
         "cost": float(total_cost),
         "margin": float(margin),
         "margin_pc": float(margin_pc) if margin_pc is not None else None,
-        "received": None,
-        "balance": None,
+        "received": received,
+        "balance": balance,
     }
     return {"sell": sell, "cost": cost, "totals": totals}

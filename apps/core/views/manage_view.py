@@ -977,7 +977,7 @@ _ACTION_DISPATCH = {
     "journalize_purchase": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_purchase']).journalize_purchase(p['purchase_id'], p.get('ida_prefix', '')),
     "batch_journalize": lambda p: __import__('apps.accounts.services.journalize', fromlist=['batch_journalize']).batch_journalize(p.get('ida_prefix', 'zzz-')),
     # ── Payment Pending (One Path) ──
-    "apply_payment_to_invoice": lambda p: __import__('apps.transactions.services.payment_pending', fromlist=['apply_payment_to_invoice']).apply_payment_to_invoice(p['payment_id'], p['invoice_id'], p['amount'], p.get('reason', ''), p.get('contact_id')),
+    "apply_payment_to_invoice": lambda p: __import__('apps.transactions.services.payment_pending', fromlist=['apply_payment_to_invoice']).apply_payment_to_invoice(p['payment_id'], p['invoice_id'], p['amount'], p.get('reason', ''), p.get('contact_id'), discount_pct=p.get('discount_pct', 0), dismiss_balance=p.get('dismiss_balance', False), fx_difference=p.get('fx_difference', 0)),
     "apply_pending_payments": lambda p: __import__('apps.transactions.services.payment_pending', fromlist=['apply_pending_for_invoice']).apply_pending_for_invoice(p['invoice_id']),
     # ── Commission ──
     "populate_commission": lambda p: __import__('apps.transactions.services.commission', fromlist=['populate_transaction_commission']).populate_transaction_commission(p['transaction_id'], p['model_name']),
