@@ -48,7 +48,13 @@ def _deep_merge_baseline(current: dict, incoming: dict) -> dict:
     return merged
 
 
-def import_settings_bundle(bundle_data: dict | list) -> dict[str, Any]:
+def _is_foundational(record) -> bool:
+    """Check if a DB record is marked as foundational (from init bundle)."""
+    meta = getattr(record, 'metadata', None) or {}
+    return bool(meta.get('foundational'))
+
+
+def import_settings_bundle(bundle_data: dict | list, force_foundational: bool = False) -> dict[str, Any]:
     """Import a settings bundle — create or update Setting records.
 
     bundle_data: list of Setting dicts, each with at least:
@@ -58,7 +64,11 @@ def import_settings_bundle(bundle_data: dict | list) -> dict[str, Any]:
     UUID controls merge: if a Setting with matching UUID exists, update it.
     If not, create it.
 
-    Returns: {created: int, updated: int, errors: [str]}
+    Foundational protection: records with metadata.foundational=true in the
+    database are NEVER modified by external bundles. Only unpack_init_bundle
+    (which passes force_foundational=True) can update them.
+
+    Returns: {created: int, updated: int, protected: int, errors: [str]}
     """
     from apps.core.models.setting import Setting
 
@@ -68,10 +78,12 @@ def import_settings_bundle(bundle_data: dict | list) -> dict[str, Any]:
         records = bundle_data
 
     if not isinstance(records, list):
-        return {'created': 0, 'updated': 0, 'errors': ['bundle_data must contain a list of records']}
+        return {'created': 0, 'updated': 0, 'protected': 0,
+                'errors': ['bundle_data must contain a list of records']}
 
     created = 0
     updated = 0
+    protected = 0
     errors = []
 
     for rec in records:
@@ -84,6 +96,11 @@ def import_settings_bundle(bundle_data: dict | list) -> dict[str, Any]:
             existing = Setting.objects.filter(uuid=uuid_val).first()
 
             if existing:
+                # Foundational protection — skip unless this is the init bundle
+                if _is_foundational(existing) and not force_foundational:
+                    protected += 1
+                    continue
+
                 # Update — baseline merge: add missing keys, never replace existing.
                 # WC_HQ settings are the baseline. User customizations win.
 
@@ -93,11 +110,10 @@ def import_settings_bundle(bundle_data: dict | list) -> dict[str, Any]:
                         setattr(existing, field, rec[field])
 
                 # explanation/paths — update if empty (user hasn't written their own)
-                if field in rec:
-                    if not getattr(existing, 'explanation', ''):
-                        existing.explanation = rec.get('explanation', '')
-                    if not getattr(existing, 'paths', None):
-                        existing.paths = rec.get('paths', {})
+                if not getattr(existing, 'explanation', ''):
+                    existing.explanation = rec.get('explanation', '')
+                if not getattr(existing, 'paths', None):
+                    existing.paths = rec.get('paths', {})
 
                 # JSON fields — deep merge: add missing keys, preserve existing
                 for field in ('config', 'metadata', 'refs'):
@@ -133,8 +149,11 @@ def import_settings_bundle(bundle_data: dict | list) -> dict[str, Any]:
             errors.append(f"Error on ida={rec.get('ida', '?')}: {e}")
             logger.exception('settings_bootstrap: import error')
 
-    logger.info('settings_bootstrap: created=%d updated=%d errors=%d', created, updated, len(errors))
-    return {'created': created, 'updated': updated, 'errors': errors}
+    if protected:
+        logger.info('settings_bootstrap: %d foundational records protected from external bundle', protected)
+    logger.info('settings_bootstrap: created=%d updated=%d protected=%d errors=%d',
+                created, updated, protected, len(errors))
+    return {'created': created, 'updated': updated, 'protected': protected, 'errors': errors}
 
 
 def fetch_from_wchq(athena_token: str) -> dict[str, Any]:
