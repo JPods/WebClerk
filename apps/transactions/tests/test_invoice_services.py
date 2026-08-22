@@ -2,13 +2,13 @@ import pytest
 from decimal import Decimal
 from django.test import TestCase
 from apps.transactions.models import Invoice, InvoiceLine, Order, OrderLine
-from apps.transactions.services.invoice_totals import compute_invoice_sell_cost_totals, _d
+from apps.transactions.services.totals import _d
 from apps.transactions.services.order_to_invoice import transfer_order_to_invoice
 from apps.core.models import Contact
 
 
 class InvoiceTotalsServiceTest(TestCase):
-    """Test cases for invoice_totals service functions."""
+    """Test cases for unified totals engine on Invoice."""
 
     def setUp(self):
         """Set up test data."""
@@ -38,27 +38,19 @@ class InvoiceTotalsServiceTest(TestCase):
         self.assertEqual(_d(10.123, places=2), Decimal('10.12'))
         self.assertEqual(_d(10.123, places=3), Decimal('10.123'))
 
-    def test_compute_invoice_sell_cost_totals_empty_invoice(self):
+    def test_totals_empty_invoice(self):
         """Test totals computation for invoice with no lines."""
-        result = compute_invoice_sell_cost_totals(self.invoice)
+        self.invoice.update_sell_cost_totals(persist=True)
+        self.invoice.refresh_from_db()
 
-        # Should return default structure with zeros
-        self.assertIn('sell', result)
-        self.assertIn('cost', result)
-        self.assertIn('totals', result)
+        totals = self.invoice.totals
+        self.assertEqual(totals['subtotal'], 0.0)
+        self.assertEqual(totals['total'], 0.0)
+        self.assertEqual(totals['cost'], 0.0)
+        self.assertEqual(totals['margin'], 0.0)
+        self.assertIsNone(totals['margin_pc'])
 
-        self.assertEqual(result['sell']['line_sum_goods'], 0.0)
-        self.assertEqual(result['sell']['total'], 0.0)
-
-        self.assertEqual(result['cost']['line_sum_goods'], 0.0)
-        self.assertEqual(result['cost']['total'], 0.0)
-
-        self.assertEqual(result['totals']['total'], 0.0)
-        self.assertEqual(result['totals']['cost'], 0.0)
-        self.assertEqual(result['totals']['margin'], 0.0)
-        self.assertIsNone(result['totals']['margin_pc'])
-
-    def test_compute_invoice_sell_cost_totals_single_line(self):
+    def test_totals_single_line(self):
         """Test totals computation for invoice with single line item."""
         # Create a line item
         InvoiceLine.objects.create(
@@ -69,22 +61,20 @@ class InvoiceTotalsServiceTest(TestCase):
             cost={"extended": 16.00, "tax": 1.60}
         )
 
-        result = compute_invoice_sell_cost_totals(self.invoice)
+        self.invoice.update_sell_cost_totals(persist=True)
+        self.invoice.refresh_from_db()
 
+        totals = self.invoice.totals
         # Check sell totals
-        self.assertEqual(result['sell']['line_sum_goods'], 20.00)
-        self.assertEqual(result['sell']['total'], 20.00)
+        self.assertEqual(totals['subtotal'], 20.00)
+        self.assertEqual(totals['total'], 20.00)
 
-        # Check cost totals
-        self.assertEqual(result['cost']['line_sum_goods'], 16.00)
-        self.assertEqual(result['cost']['line_sum_tax'], 1.60)
-        self.assertEqual(result['cost']['total'], 17.60)  # 16 + 1.60
+        # Check cost total
+        self.assertEqual(totals['cost'], 17.60)  # 16 + 1.60
 
         # Check margin calculations
-        self.assertEqual(result['totals']['total'], 20.00)
-        self.assertEqual(result['totals']['cost'], 17.60)
-        self.assertEqual(result['totals']['margin'], 2.40)
-        self.assertAlmostEqual(result['totals']['margin_pc'], 12.00, places=2)
+        self.assertEqual(totals['margin'], 2.40)
+        self.assertAlmostEqual(totals['margin_pc'], 12.00, places=2)
 
 
 class OrderToInvoiceServiceTest(TestCase):
