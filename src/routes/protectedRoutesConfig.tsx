@@ -4,32 +4,26 @@ import React from "react";
 import { Navigate } from "react-router";
 import { PageRoutes } from "./Routes";
 import {
-  CustomerDetailPage,
-  CustomerAddPage,
-  CustomerEditPage,
   KanbanBoardDataPage,
   KanbanBoardPage,
   NotionTrackerPage,
   UnifiedGanttPage,
   UserProfiles,
-  CoreContactDetail,
 } from "../pages/wrapperPage";
 import DataBrowser from "../pages/admin/DataBrowser";
 import JsonViewer from "../pages/admin/JsonViewer";
 import CommerceDashboard from "../pages/admin/CommerceDashboard";
 import AliceTraining from "../pages/admin/AliceTraining";
 import FlightSimConsole from "../pages/admin/FlightSimConsole";
-import UserActivityDashboard from "../pages/admin/UserActivityDashboard";
 import TeamDashboard from "../pages/admin/TeamDashboard";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import FormParade from "../pages/tools/FormParade";
 import SelectListBrowser from "../pages/tools/SelectListBrowser";
 import AgendaView from "../pages/admin/AgendaView";
 import JsonTreeApplet from "../pages/tools/JsonTreeApplet";
-import ItemDetailJson from "../apps/products/pages/ItemDetailJson";
+import JsonSchemaReference from "../pages/tools/JsonSchemaReference";
 import DDCardDashboard from "../pages/Dashboard/DDCardDashboard";
-// All model-specific detail pages replaced by UiDetail / OrgDetailJson / ItemDetailJson
-// Old imports archived to src/archive/replaced-2026-08-03/
+// All model-specific detail pages replaced by UiDetail / ModelDetailPage
 import ApplyPayments from "../apps/transactions/pages/ApplyPayments";
 import AllModelsWorkbench from "../apps/utils/scaffold/AllModelsWorkbench";
 import AliceDashboard from "../pages/admin/AliceDashboard";
@@ -42,16 +36,18 @@ import InventoryDashboard from "../pages/admin/InventoryDashboard";
 import ActionDailyDashboard from "../apps/common/components/panels/ActionDailyDashboard";
 import Placeholder from "../pages/Placeholder";
 import UiDetail from "../apps/transactions/components/TransactionDetail";
-import OrgDetailJson from "../apps/orgs/components/OrgDetail.json";
+import ModelDetailPage from "../components/common/ModelDetailPage";
+import PortalDashboard from "../pages/Dashboard/PortalDashboard";
 
 export const protectedRoutesConfig = [
   { path: "/", element: <DDCardDashboard dashboardName="sales" /> },
   { path: PageRoutes.dashboard, element: <DDCardDashboard dashboardName="sales" /> },
+  { path: "/portal", element: <PortalDashboard /> },
   { path: PageRoutes.profile, element: <UserProfiles /> },
 
   // User-facing: Contact
   { path: PageRoutes.coreContactList, element: <Navigate to="/contact" replace /> },
-  { path: PageRoutes.coreContactDetail, element: <CoreContactDetail /> },
+  { path: PageRoutes.coreContactDetail, element: <ModelDetailPage modelName="contact" /> },
 
   // User-facing: Customer
   { path: "/org/customer", element: <Navigate to="/customer" replace /> },
@@ -60,9 +56,9 @@ export const protectedRoutesConfig = [
   { path: "/org/rep", element: <Navigate to="/rep" replace /> },
   { path: "/org/manufacturer", element: <Navigate to="/manufacturer" replace /> },
   { path: PageRoutes.customerList, element: <Navigate to="/customer" replace /> },
-  { path: `${PageRoutes.customerDetail}/:id`, element: <CustomerDetailPage /> },
-  { path: PageRoutes.customerAdd, element: <CustomerAddPage /> },
-  { path: `${PageRoutes.customerEdit}/:id`, element: <CustomerEditPage /> },
+  { path: `${PageRoutes.customerDetail}/:id`, element: <ModelDetailPage modelName="customer" /> },
+  { path: PageRoutes.customerAdd, element: <ModelDetailPage modelName="customer" /> },
+  { path: `${PageRoutes.customerEdit}/:id`, element: <ModelDetailPage modelName="customer" /> },
 
   // User-facing: Actions
   { path: PageRoutes.actionList, element: <Navigate to="/action" replace /> },
@@ -75,8 +71,8 @@ export const protectedRoutesConfig = [
   { path: "/products", element: <DDCardDashboard dashboardName="products" /> },
   { path: PageRoutes.products, element: <Navigate to="/products" replace /> },
   { path: PageRoutes.productsItemList, element: <Navigate to="/item" replace /> },
-  { path: PageRoutes.productsItemDetail, element: <ItemDetailJson /> },
-  { path: "/item/:id", element: <ItemDetailJson /> },
+  { path: PageRoutes.productsItemDetail, element: <ModelDetailPage modelName="item" /> },
+  { path: "/item/:id", element: <ModelDetailPage modelName="item" /> },
 
   // User-facing: Transactions — app dashboard
   { path: "/transactions", element: <DDCardDashboard dashboardName="transactions" /> },
@@ -127,12 +123,12 @@ export const protectedRoutesConfig = [
   { path: "/receipt/:id", element: <UiDetail modelName="receipt" /> },
   { path: "/requisition/:id", element: <UiDetail modelName="requisition" /> },
   { path: "/payment/:id", element: <UiDetail modelName="payment" /> },
-  { path: "/contact/:id", element: <CoreContactDetail /> },
-  { path: "/customer/:id", element: <OrgDetailJson modelName="customer" /> },
-  { path: "/vendor/:id", element: <OrgDetailJson modelName="vendor" /> },
-  { path: "/manufacturer/:id", element: <OrgDetailJson modelName="manufacturer" /> },
-  { path: "/employee/:id", element: <OrgDetailJson modelName="employee" /> },
-  { path: "/rep/:id", element: <OrgDetailJson modelName="rep" /> },
+  { path: "/contact/:id", element: <ModelDetailPage modelName="contact" /> },
+  { path: "/customer/:id", element: <ModelDetailPage modelName="customer" /> },
+  { path: "/vendor/:id", element: <ModelDetailPage modelName="vendor" /> },
+  { path: "/manufacturer/:id", element: <ModelDetailPage modelName="manufacturer" /> },
+  { path: "/employee/:id", element: <ModelDetailPage modelName="employee" /> },
+  { path: "/rep/:id", element: <ModelDetailPage modelName="rep" /> },
 
   // Report Parade — onboarding tool, walks through reports with sample data
   { path: "/parade", element: <ParadeOfReportsPage /> },
@@ -154,6 +150,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.selectLists, element: <SelectListBrowser /> },
   { path: PageRoutes.agenda, element: <AgendaView /> },
   { path: "/json-tree", element: <JsonTreeApplet /> },
+  { path: "/json-schema", element: <JsonSchemaReference /> },
   { path: "/alice-dashboard", element: <AliceDashboard /> },
   { path: "/admin-tools", element: <AdminTools /> },
   { path: "/help", element: <HelpDashboard /> },
@@ -163,7 +160,7 @@ export const protectedRoutesConfig = [
   { path: "/action-dashboard", element: <ActionDailyDashboard /> },
   { path: "/submit-bonus", element: <Placeholder title="Submit for Bonus" /> },
   { path: PageRoutes.coreApiLogList, element: <Navigate to="/apilog" replace /> },
-  { path: PageRoutes.coreUserActivityDashboard, element: <UserActivityDashboard /> },
+  { path: PageRoutes.coreUserActivityDashboard, element: <Navigate to="/agenda" replace /> },
   { path: PageRoutes.coreTeamDashboard, element: <TeamDashboard /> },
 
   // Placeholders

@@ -9,8 +9,7 @@
 import { lazy } from 'react';
 
 const customPages: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
-  // Example:
-  // VendorScorecard: lazy(() => import('./pages/VendorScorecard')),
+  SegaPartsPage: lazy(() => import('./pages/SegaPartsPage')),
 };
 
 export default customPages;

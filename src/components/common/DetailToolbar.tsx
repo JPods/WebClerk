@@ -15,6 +15,8 @@ import type { ReportRecord } from './PrintReportDropdown';
 import ToolbarIcon from './ToolbarIcon';
 import { TB } from './toolbarActions';
 import { WorkflowSelect } from './WorkflowSelect';
+import { manageAction } from '@/api/wcapi';
+import { CurrencyDollar } from '@phosphor-icons/react';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -42,6 +44,10 @@ export interface DetailToolbarProps {
   onDelete?: () => void;
   onToggleDesign?: () => void;
   onWorkflowComplete?: (result?: any) => void;
+  /** Add Payment (order) — creates a new payment record */
+  onAddPayment?: () => void;
+  /** Apply Payment (invoice) — applies existing payment to this invoice */
+  onApplyPayment?: () => void;
   className?: string;
 }
 
@@ -57,17 +63,48 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
   onEdit, onAddNew, onSave, onCancel, onDelete,
   designMode, userRole, onToggleDesign,
   onWorkflowComplete,
+  onAddPayment, onApplyPayment,
   className = '',
 }) => {
   const dispatch = useDispatch();
   const isEditing = modeProp ? modeProp !== 'view' : (isEditingProp ?? false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
-  const handlePrintSelect = (report: ReportRecord) => {
+  const handlePrintSelect = async (report: ReportRecord) => {
     const rec = currentData || data;
     if (!rec?.id) return;
 
-    const printForm = report.config?.form;
+    const config = report.config || {};
+
+    // Action-type report — calls a manage action
+    if (config.action) {
+      const confirmMsg = config.confirm as string;
+      if (confirmMsg && !confirm(confirmMsg)) return;
+
+      // Build params from record fields
+      const paramsMap = (config.params_from_record || {}) as Record<string, string>;
+      const params: Record<string, unknown> = {};
+      for (const [paramKey, recordField] of Object.entries(paramsMap)) {
+        params[paramKey] = rec[recordField as string];
+      }
+      // Merge any static params
+      if (config.params) Object.assign(params, config.params);
+
+      try {
+        const result = await manageAction(config.action as string, params);
+        const resData = result?.data?.data ?? result?.data ?? result;
+        const msg = resData?.error
+          ? `Error: ${resData.error}`
+          : `${report.name}: ${resData?.total_created ?? resData?.created ?? 0} GL entries created`;
+        dispatch(showToast({ message: msg, type: resData?.error ? 'error' : 'success' }));
+        onWorkflowComplete?.(resData);
+      } catch (e: any) {
+        dispatch(showToast({ message: `${report.name} failed: ${e.message || e}`, type: 'error' }));
+      }
+      return;
+    }
+
+    const printForm = config.form;
     if (printForm) {
       // Report has a form.json — use UniversalPrint
       openUniversalPrint(rec, companyInfo, printForm);
@@ -99,6 +136,28 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
 
       <WorkflowSelect modelName={modelName} record={data} onComplete={onWorkflowComplete || (() => {})} />
 
+      {/* Payment buttons */}
+      {onAddPayment && data?.id && (
+        <button
+          onClick={onAddPayment}
+          className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 transition-colors"
+          title="Enter a single payment"
+        >
+          <CurrencyDollar size={16} weight="bold" />
+          Enter Payment
+        </button>
+      )}
+      {onApplyPayment && data?.id && (
+        <button
+          onClick={onApplyPayment}
+          className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 transition-colors"
+          title="Apply payments to invoices"
+        >
+          <CurrencyDollar size={16} weight="bold" />
+          Apply Payments
+        </button>
+      )}
+
       {/* Status + total + balance badges */}
       <span className="flex-1" />
       {data?.status && (
@@ -107,8 +166,8 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
       {data?.totals?.total != null && (
         <span className="text-xs text-slate-500">Total: <span className="font-medium">${(data.totals.total ?? 0).toLocaleString()}</span></span>
       )}
-      {(data?.totals?.balance ?? data?.balance ?? 0) > 0 && (
-        <span className="text-xs text-red-500">Bal: <span className="font-medium">${((data.totals?.balance ?? data?.balance ?? 0)).toLocaleString()}</span></span>
+      {(data?.totals?.balance ?? 0) > 0 && (
+        <span className="text-xs text-red-500">Bal: <span className="font-medium">${(data.totals?.balance ?? 0).toLocaleString()}</span></span>
       )}
       {data?.id && <span className="text-xs font-mono text-slate-400 dark:text-slate-500">#{data.id}</span>}
 

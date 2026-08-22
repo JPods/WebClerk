@@ -178,24 +178,21 @@ export default function SignUpForm() {
                   </div>
                 </div>
           
-                {/* <!-- Role --> */}
-                {/* <div>
+                {/* Portal Role */}
+                <div>
                   <Label>
-                    Role<span className="text-error-500">* { errors.role && errors.role.message}</span>
+                    Account Type
                   </Label>
-                   <Controller
-                      name="role"
-                      control={control}
-                      defaultValue={["USER"]}
-                      render={({ field }) => (
-                        <MultiSelect
-                          options={selectOption}                          
-                          onChange={field.onChange}
-                          defaultSelected={Array.isArray(field.value) ? field.value : [field.value]}
-                        />
-                      )}
-                    />                 
-                </div> */}
+                  <select
+                    {...register('portal_role')}
+                    className="w-full px-4 py-3 text-sm border rounded-lg bg-transparent border-gray-300 dark:border-gray-700 text-gray-800 dark:text-white/90 focus:border-brand-500 focus:ring-brand-500"
+                  >
+                    <option value="">Employee (internal)</option>
+                    <option value="customer">Customer</option>
+                    <option value="vendor">Vendor / Supplier</option>
+                    <option value="rep">Sales Representative</option>
+                  </select>
+                </div>
                 {/* <!-- Checkbox --> */}
                 {/* <div className="flex items-center gap-3">
                   <Checkbox

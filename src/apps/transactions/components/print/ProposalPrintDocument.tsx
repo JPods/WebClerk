@@ -63,11 +63,8 @@ export interface ProposalPrintData {
   actionBy?: string;
   contractDetailTag?: string;
   
-  // Financials
-  amount?: number;
-  salesTax?: number;
-  shipTotal?: number;
-  total?: number;
+  // Financials — JSON envelope is source of truth
+  totals?: Record<string, number>;
   
   // Comments
   comment?: string;
@@ -163,10 +160,10 @@ const transformProposalData = (data: ProposalPrintData, lines?: ProposalLineData
   }));
 
   const totals: PrintTotals = {
-    salesAmount: data.amount,
-    salesTax: data.salesTax,
-    shipping: data.shipTotal,
-    total: data.total,
+    salesAmount: data.totals?.subtotal,
+    salesTax: data.totals?.tax,
+    shipping: data.totals?.shipping,
+    total: data.totals?.total,
   };
 
   const comments: PrintComments = {

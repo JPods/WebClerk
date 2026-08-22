@@ -41,6 +41,31 @@ interface TransactionRow {
   [key: string]: unknown;
 }
 
+interface PaymentRow {
+  type: "payment" | "payment_application";
+  label: string;
+  model?: string;
+  record_id?: number;
+  values: {
+    amount?: string;
+    applied?: string;
+    available?: string;
+    method?: string;
+    status?: string;
+  };
+  processed?: boolean;
+}
+
+interface GlRow {
+  type: "gl_header" | "gl_entry";
+  label: string;
+  values: {
+    debit?: string;
+    credit?: string;
+    source?: string;
+  };
+}
+
 interface SimulationDef {
   id: string;
   label: string;
@@ -228,7 +253,13 @@ const FlightSimConsole: React.FC = () => {
 
   // Transaction array
   const [rows, setRows] = useState<TransactionRow[]>([]);
+  const [paymentRows, setPaymentRows] = useState<PaymentRow[]>([]);
+  const [glRows, setGlRows] = useState<GlRow[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Section heights (percentages of left panel)
+  const [sectionHeights, setSectionHeights] = useState<[number, number, number]>([50, 25, 25]);
+  const [vDragging, setVDragging] = useState<number | null>(null); // which handle (0 or 1)
 
   // Right panel
   const [rightModel, setRightModel] = useState<string | null>(null);
@@ -236,6 +267,7 @@ const FlightSimConsole: React.FC = () => {
   const [convertedLines, setConvertedLines] = useState<any[] | null>(null);
 
   const splitRef = useRef<HTMLDivElement>(null);
+  const leftRef = useRef<HTMLDivElement>(null);
   const handleMouseDown = useCallback(() => setDragging(true), []);
 
   // Auto-start simulation from URL path (e.g., /flight-sim/inventory)
@@ -265,6 +297,42 @@ const FlightSimConsole: React.FC = () => {
     return () => { document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); };
   }, [dragging]);
 
+  // Vertical section drag
+  useEffect(() => {
+    if (vDragging === null) return;
+    const onMove = (e: MouseEvent) => {
+      const container = leftRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const totalHeight = rect.height;
+      if (totalHeight <= 0) return;
+      const y = e.clientY - rect.top;
+      const pct = (y / totalHeight) * 100;
+
+      setSectionHeights(prev => {
+        const next: [number, number, number] = [...prev];
+        if (vDragging === 0) {
+          // Dragging between inventory and payments
+          const newTop = Math.max(15, Math.min(pct, 100 - next[2] - 15));
+          next[1] = 100 - newTop - next[2];
+          next[0] = newTop;
+        } else {
+          // Dragging between payments and GL
+          const topFixed = next[0];
+          const remaining = 100 - topFixed;
+          const midPct = Math.max(15, Math.min(pct - topFixed, remaining - 15));
+          next[1] = midPct;
+          next[2] = remaining - midPct;
+        }
+        return next;
+      });
+    };
+    const onUp = () => setVDragging(null);
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+    return () => { document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); };
+  }, [vDragging]);
+
   /** Refresh transaction array */
   const refreshArray = useCallback(async () => {
     if (!itemId) return;
@@ -274,6 +342,8 @@ const FlightSimConsole: React.FC = () => {
       const data = res?.data?.data ?? res?.data ?? res;
       if (data && !data.error) {
         setRows(transformRows(data));
+        setPaymentRows(data.payment_rows || []);
+        setGlRows(data.gl_rows || []);
         if (data.item) {
           setItemIda(data.item.ida || "");
           setItemName(data.item.name || "");
@@ -404,6 +474,41 @@ const FlightSimConsole: React.FC = () => {
   /*  Simulation Select List (initial state)                           */
   /* ---------------------------------------------------------------- */
 
+  /** Audit mode — enter an invoice number, load its full picture */
+  const startAudit = async (invoiceIda: string) => {
+    if (!invoiceIda.trim()) return;
+    setLoading(true);
+    setActiveSim({ id: "audit", label: `Audit: Invoice ${invoiceIda}`, description: "Transaction audit view", itemIda: "", firstModel: "invoice" });
+    setConvertedLines(null);
+    try {
+      const res = await manageAction("get_flight_by_invoice", { invoice_ida: invoiceIda.trim() });
+      const data = res?.data?.data ?? res?.data ?? res;
+      if (data?.error) {
+        setActiveSim(null);
+        alert(data.error);
+        return;
+      }
+      setRows(transformRows(data));
+      setPaymentRows(data.payment_rows || []);
+      setGlRows(data.gl_rows || []);
+      if (data.item) {
+        setItemId(data.item.id);
+        setItemIda(data.item.ida || "");
+        setItemName(data.item.name || "");
+        setItemQty(data.item.quantity || {});
+      }
+      if (data.invoice) {
+        setRightModel("invoice");
+        setRightRecordId(data.invoice.id);
+      }
+    } catch (e) {
+      console.error("Audit load failed:", e);
+      setActiveSim(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!activeSim) {
     return (
       <div className="fs-select-root">
@@ -415,6 +520,28 @@ const FlightSimConsole: React.FC = () => {
             real transactions while watching quantities, pending records, and GL accounts change.
           </p>
         </div>
+
+        {/* Audit mode — enter an invoice number */}
+        <div className="fs-audit-bar">
+          <span className="fs-audit-label">Audit</span>
+          <input
+            className="fs-audit-input"
+            placeholder="Invoice # (e.g. DEV-107)"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") startAudit((e.target as HTMLInputElement).value);
+            }}
+          />
+          <button
+            className="fs-btn"
+            onClick={() => {
+              const input = document.querySelector('.fs-audit-input') as HTMLInputElement;
+              if (input) startAudit(input.value);
+            }}
+          >
+            Look Up
+          </button>
+        </div>
+
         <div className="fs-select-grid">
           {SIMULATIONS.map((sim) => (
             <button
@@ -462,7 +589,7 @@ const FlightSimConsole: React.FC = () => {
       {/* Main content — left/right split */}
       <div className={`fs-split ${dragging ? "fs-split--dragging" : ""}`}>
         {/* Left panel — Item summary + Transaction Array */}
-        <div className="fs-left" style={{ width: splitWidth }}>
+        <div className="fs-left" ref={leftRef} style={{ width: splitWidth }}>
           {/* Item opening quantities */}
           {itemId && (
             <div className="fs-item-summary">
@@ -481,56 +608,167 @@ const FlightSimConsole: React.FC = () => {
             </div>
           )}
 
-          {rows.length > 0 ? (
-            <div className="fs-transaction-table">
-              <div className="fs-tx-header">
-                <span className="fs-tx-cell fs-tx-event">Event</span>
-                {QUANTITY_FIELDS.map((f) => (
-                  <span key={f} className="fs-tx-cell fs-tx-qty">{QUANTITY_LABELS[f]}</span>
-                ))}
-                <span className="fs-tx-cell fs-tx-gl">GL Impact</span>
+          {/* Three vertically-stacked sections with drag handles */}
+          <div className={`fs-left-sections ${vDragging !== null ? "fs-split--dragging" : ""}`}>
+            {/* Section 1: Inventory */}
+            <div className="fs-section" style={{ height: `${sectionHeights[0]}%` }}>
+              <div className="fs-section-header">
+                Inventory <span>{rows.length} rows</span>
               </div>
-              {rows.map((row) => {
-                const isItem = row.type === "item";
-                const isPending = row.type === "pending";
-                const isLine = row.type.endsWith("_line");
-                const rowClass = isItem ? "fs-tx-row--item"
-                  : isPending && row.processed ? "fs-tx-row--pending-applied"
-                  : isPending ? "fs-tx-row--pending-unapplied"
-                  : "fs-tx-row--line";
-                return (
-                  <div
-                    key={row.id}
-                    className={`fs-tx-row ${rowClass}`}
-                    onClick={() => handleRowSelect(row)}
-                  >
-                    <span className="fs-tx-cell fs-tx-event">
-                      {isItem ? "■ " : isPending ? "● " : isLine ? "▶ " : ""}
-                      {row.label}
-                    </span>
-                    {QUANTITY_FIELDS.map((f) => {
-                      const val = row[f];
-                      if (val === undefined || val === null || val === "" || val === 0) {
-                        return <span key={f} className="fs-tx-cell fs-tx-qty fs-tx-empty">—</span>;
-                      }
-                      const s = String(val);
-                      const cls = s.startsWith("+") ? "fs-qty-positive"
-                        : s.startsWith("-") ? "fs-qty-negative"
-                        : "fs-qty-static";
-                      return <span key={f} className={`fs-tx-cell fs-tx-qty ${cls}`}>{s}</span>;
+              <div className="fs-section-content">
+                {rows.length > 0 ? (
+                  <div className="fs-transaction-table">
+                    <div className="fs-tx-header">
+                      <span className="fs-tx-cell fs-tx-event">Event</span>
+                      {QUANTITY_FIELDS.map((f) => (
+                        <span key={f} className="fs-tx-cell fs-tx-qty">{QUANTITY_LABELS[f]}</span>
+                      ))}
+                      <span className="fs-tx-cell fs-tx-gl">GL Impact</span>
+                    </div>
+                    {rows.map((row) => {
+                      const isItem = row.type === "item";
+                      const isPending = row.type === "pending";
+                      const isLine = row.type.endsWith("_line");
+                      const rowClass = isItem ? "fs-tx-row--item"
+                        : isPending && row.processed ? "fs-tx-row--pending-applied"
+                        : isPending ? "fs-tx-row--pending-unapplied"
+                        : "fs-tx-row--line";
+                      return (
+                        <div
+                          key={row.id}
+                          className={`fs-tx-row ${rowClass}`}
+                          onClick={() => handleRowSelect(row)}
+                        >
+                          <span className="fs-tx-cell fs-tx-event">
+                            {isItem ? "■ " : isPending ? "● " : isLine ? "▶ " : ""}
+                            {row.label}
+                          </span>
+                          {QUANTITY_FIELDS.map((f) => {
+                            const val = row[f];
+                            if (val === undefined || val === null || val === "" || val === 0) {
+                              return <span key={f} className="fs-tx-cell fs-tx-qty fs-tx-empty">—</span>;
+                            }
+                            const s = String(val);
+                            const cls = s.startsWith("+") ? "fs-qty-positive"
+                              : s.startsWith("-") ? "fs-qty-negative"
+                              : "fs-qty-static";
+                            return <span key={f} className={`fs-tx-cell fs-tx-qty ${cls}`}>{s}</span>;
+                          })}
+                          <span className="fs-tx-cell fs-tx-gl">
+                            {row.gl_summary || "—"}
+                          </span>
+                        </div>
+                      );
                     })}
-                    <span className="fs-tx-cell fs-tx-gl">
-                      {row.gl_summary || "—"}
-                    </span>
                   </div>
-                );
-              })}
+                ) : (
+                  <div className="fs-section-empty">
+                    {loading ? "Loading..." : "No inventory events yet"}
+                  </div>
+                )}
+              </div>
             </div>
-          ) : (
-            <div className="fs-empty">
-              {loading ? "Loading item..." : "Waiting for training item..."}
+
+            {/* Drag handle 1 */}
+            <div
+              className={`fs-vhandle ${vDragging === 0 ? "fs-vhandle--active" : ""}`}
+              onMouseDown={() => setVDragging(0)}
+            />
+
+            {/* Section 2: Payments */}
+            <div className="fs-section" style={{ height: `${sectionHeights[1]}%` }}>
+              <div className="fs-section-header">
+                Payments <span>{paymentRows.length} rows</span>
+              </div>
+              <div className="fs-section-content">
+                {paymentRows.length > 0 ? (
+                  <div className="fs-pay-table">
+                    <div className="fs-pay-header">
+                      <span className="fs-pay-cell fs-pay-label">Payment</span>
+                      <span className="fs-pay-cell fs-pay-amount">Amount</span>
+                      <span className="fs-pay-cell fs-pay-amount">Applied</span>
+                      <span className="fs-pay-cell fs-pay-amount">Available</span>
+                      <span className="fs-pay-cell fs-pay-status">Status</span>
+                    </div>
+                    {paymentRows.map((row, idx) => {
+                      const isApp = row.type === "payment_application";
+                      return (
+                        <div
+                          key={`pay-${idx}`}
+                          className={`fs-pay-row ${isApp ? "fs-pay-row--application" : "fs-pay-row--payment"}`}
+                          onClick={() => {
+                            if (row.model && row.record_id) {
+                              setRightModel(row.model);
+                              setRightRecordId(row.record_id);
+                            }
+                          }}
+                        >
+                          <span className="fs-pay-cell fs-pay-label">{row.label}</span>
+                          <span className="fs-pay-cell fs-pay-amount">{row.values.amount || "—"}</span>
+                          <span className="fs-pay-cell fs-pay-amount">{row.values.applied || "—"}</span>
+                          <span className="fs-pay-cell fs-pay-amount">{row.values.available || "—"}</span>
+                          <span className="fs-pay-cell fs-pay-status">{row.values.status || "—"}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="fs-section-empty">No payments yet</div>
+                )}
+              </div>
             </div>
-          )}
+
+            {/* Drag handle 2 */}
+            <div
+              className={`fs-vhandle ${vDragging === 1 ? "fs-vhandle--active" : ""}`}
+              onMouseDown={() => setVDragging(1)}
+            />
+
+            {/* Section 3: GL Journals */}
+            <div className="fs-section" style={{ height: `${sectionHeights[2]}%` }}>
+              <div className="fs-section-header">
+                GL Journals <span>{glRows.length} rows</span>
+              </div>
+              <div className="fs-section-content">
+                {glRows.length > 0 ? (
+                  <div className="fs-gl-table">
+                    <div className="fs-gl-header-row">
+                      <span className="fs-gl-cell fs-gl-account">Account</span>
+                      <span className="fs-gl-cell fs-gl-debit">Debit</span>
+                      <span className="fs-gl-cell fs-gl-credit">Credit</span>
+                      <span className="fs-gl-cell fs-gl-source">Source</span>
+                    </div>
+                    {glRows.map((row, idx) => {
+                      const isHeader = row.type === "gl_header";
+                      return (
+                        <div
+                          key={`gl-${idx}`}
+                          className={`fs-gl-row ${isHeader ? "fs-gl-row--header" : "fs-gl-row--entry"}`}
+                        >
+                          <span className="fs-gl-cell fs-gl-account">{row.label}</span>
+                          {isHeader ? (
+                            <>
+                              <span className="fs-gl-cell fs-gl-debit" />
+                              <span className="fs-gl-cell fs-gl-credit" />
+                              <span className="fs-gl-cell fs-gl-source" />
+                            </>
+                          ) : (
+                            <>
+                              <span className="fs-gl-cell fs-gl-debit">{row.values.debit || ""}</span>
+                              <span className="fs-gl-cell fs-gl-credit">{row.values.credit || ""}</span>
+                              <span className="fs-gl-cell fs-gl-source">{row.values.source || ""}</span>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="fs-section-empty">No GL journals yet</div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Drag handle */}

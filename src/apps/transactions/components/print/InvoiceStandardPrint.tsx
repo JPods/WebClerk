@@ -34,12 +34,8 @@ export interface InvoiceStandardData {
   jobNumber?: string;
   // Lines
   lines?: InvoiceStandardLine[];
-  // Totals
-  amount?: number;
-  salesTax?: number;
-  freight?: number;
-  total?: number;
-  balanceDue?: number;
+  // Financials — JSON envelope is source of truth
+  totals?: Record<string, number>;
   // Comments
   comment?: string;
   serialNumbers?: string;
@@ -202,16 +198,16 @@ export default function InvoiceStandardPrint({
         <div className="w-52 text-[10px]">
           <table className="w-full">
             <tbody>
-              <tr><td className="py-0.5 text-right pr-3">Amount</td><td className="py-0.5 text-right">{formatCurrency(data.amount)}</td></tr>
-              <tr><td className="py-0.5 text-right pr-3">Tax</td><td className="py-0.5 text-right">{formatCurrency(data.salesTax || 0)}</td></tr>
-              <tr><td className="py-0.5 text-right pr-3">Freight</td><td className="py-0.5 text-right">{formatCurrency(data.freight || 0)}</td></tr>
+              <tr><td className="py-0.5 text-right pr-3">Amount</td><td className="py-0.5 text-right">{formatCurrency(data.totals?.subtotal)}</td></tr>
+              <tr><td className="py-0.5 text-right pr-3">Tax</td><td className="py-0.5 text-right">{formatCurrency(data.totals?.tax ?? 0)}</td></tr>
+              <tr><td className="py-0.5 text-right pr-3">Freight</td><td className="py-0.5 text-right">{formatCurrency(data.totals?.shipping ?? 0)}</td></tr>
               <tr className="border-t border-gray-400 font-semibold">
                 <td className="py-1 text-right pr-3">Invoice Total</td>
-                <td className="py-1 text-right">{formatCurrency(data.total)}</td>
+                <td className="py-1 text-right">{formatCurrency(data.totals?.total)}</td>
               </tr>
               <tr className="font-semibold">
                 <td className="py-0.5 text-right pr-3">Balance Due</td>
-                <td className="py-0.5 text-right">{formatCurrency(data.balanceDue)}</td>
+                <td className="py-0.5 text-right">{formatCurrency(data.totals?.balance)}</td>
               </tr>
             </tbody>
           </table>

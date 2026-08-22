@@ -31,6 +31,8 @@ import { DetailToolbar } from '@/components/common/DetailToolbar';
 import ManageActionPanel from '@/components/common/ManageActionPanel';
 import TransactionFlowIndicator from './detail/TransactionFlowIndicator';
 import DesignMode from './detail/DesignMode';
+import AddPaymentModal from './AddPaymentModal';
+import { useNavigate } from 'react-router-dom';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -83,6 +85,8 @@ const UiDetail: React.FC<UiDetailProps> = ({
   const [activeTab, setActiveTab] = useState('summary');
   const [designMode, setDesignMode] = useState(false);
   const [designLayout, setDesignLayout] = useState<any>(null);
+  const [showAddPayment, setShowAddPayment] = useState(false);
+  const navigate = useNavigate();
 
   // Active layout — design mode uses local copy, normal mode uses cached
   const activeLayout = designMode && designLayout ? designLayout : layout;
@@ -380,6 +384,7 @@ const UiDetail: React.FC<UiDetailProps> = ({
                   isEditing={isEditing}
                   isLocked={editTier === 'closed'}
                   onLinesChange={handleLinesChange}
+                  onEnterPayment={['order', 'invoice'].includes(modelName) ? () => setShowAddPayment(true) : undefined}
                 />
               );
             case 'tabs':
@@ -426,6 +431,19 @@ const UiDetail: React.FC<UiDetailProps> = ({
           }
         })}
       </div>
+
+      {/* Enter Payment modal */}
+      <AddPaymentModal
+        isOpen={showAddPayment}
+        onClose={() => setShowAddPayment(false)}
+        order_id={modelName === 'order' ? data?.id : undefined}
+        invoice_id={modelName === 'invoice' ? data?.id : undefined}
+        customer_id={data?.customer_id || data?.customer || data?.refs?.links?.customer?.id}
+        contact_id={data?.contact_id || data?.contact || data?.refs?.links?.contact?.id || data?.refs?.links?.customer?.id}
+        customer_name={data?.customer_company || data?.customer_name || data?.refs?.links?.customer?.company || data?.refs?.links?.customer?.display_name || data?.refs?.links?.customer?.attention || ''}
+        orderTotal={modelName === 'invoice' ? (data?.totals?.balance ?? data?.totals?.total ?? 0) : (data?.totals?.total ?? 0)}
+        onPaymentAdded={fetchData}
+      />
     </div>
   );
 };

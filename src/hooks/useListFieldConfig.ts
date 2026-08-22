@@ -1,9 +1,8 @@
 /**
  * useListFieldConfig — unified column configuration for any list page.
  *
- * Single hook that manages field selection, ordering, widths, and saved layouts.
- * Works with DataGrid columns.
- * Stores everything in workbench_fields Settings (same as DataBrowser).
+ * Single source of truth: wc:model Setting → config.layout.list.default
+ * Columns carry field, label, width, format, visible, align.
  *
  * Usage:
  *   const columns = useMemo(() => [...], []);
@@ -24,14 +23,22 @@ type TableColumn<T = any> = {
   [key: string]: any;
 };
 import {
-  getWorkbenchFieldsSetting,
-  saveWorkbenchFieldsSetting,
   getRecords,
 } from '@/api/wcapi';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+/** Column spec as stored in wc:model layout.list.default.columns */
+export interface ListColumnSpec {
+  field: string;
+  label?: string;
+  width?: number;
+  format?: string;
+  align?: string;
+  visible?: boolean;
+}
 
 export interface SavedLayout {
   name: string;
@@ -40,9 +47,10 @@ export interface SavedLayout {
   listWidths?: Record<string, number>;
 }
 
-interface WorkbenchData {
-  list: string[];
-  detail: string[];
+interface ListLayoutDefault {
+  columns?: ListColumnSpec[];
+  form?: string;
+  detail?: string;
   views?: SavedLayout[];
 }
 
@@ -71,18 +79,30 @@ export function useListFieldConfig<T>(
   const [fieldBehaviors, setFieldBehaviors] = useState<Record<string, any>>({});
   const [settingId, setSettingId] = useState<number | undefined>();
 
-  // Load saved config + field behaviors
+  // Load from wc:model Setting → config.layout.list.default
   useEffect(() => {
     if (!modelName || loaded) return;
     (async () => {
       try {
-        const setting = await getWorkbenchFieldsSetting(modelName);
+        const res = await getRecords('setting', {
+          parent_model: modelName,
+          purpose: 'wc:model',
+          limit: 1,
+        }) as any;
+        const setting = res?.results?.[0] ?? res?.records?.[0];
         if (setting) {
           setSettingId(setting.id);
-          const data = setting.config as WorkbenchData;
-          if (data?.list?.length) setVisibleKeys(data.list);
-          if (data?.views) setSavedLayouts(data.views);
-          if ((setting as any).listWidths) setColWidths((setting as any).listWidths);
+          const listLayout = setting?.config?.layout?.list?.default as ListLayoutDefault | undefined;
+          if (listLayout?.columns?.length) {
+            const visibleCols = listLayout.columns.filter((c: ListColumnSpec) => c.visible !== false);
+            setVisibleKeys(visibleCols.map((c: ListColumnSpec) => c.field));
+            const widths: Record<string, number> = {};
+            for (const c of listLayout.columns) {
+              if (c.width) widths[c.field] = c.width;
+            }
+            setColWidths(widths);
+          }
+          if (listLayout?.views) setSavedLayouts(listLayout.views);
         }
       } catch { /* no saved config */ }
 
@@ -110,28 +130,65 @@ export function useListFieldConfig<T>(
       .filter((c): c is TableColumn<T> => !!c);
   }, [allColumns, visibleKeys]);
 
-  // Persist to Settings
+  // Persist to wc:model Setting → config.layout.list.default
   const persist = useCallback(async (
     keys?: string[],
     widths?: Record<string, number>,
     layouts?: SavedLayout[],
   ) => {
-    if (!modelName) return;
+    if (!modelName || !settingId) return;
     try {
-      const existing = await getWorkbenchFieldsSetting(modelName);
-      const data: WorkbenchData = existing?.data as WorkbenchData ?? { list: [], detail: [] };
-      if (keys) data.list = keys;
-      if (layouts) data.views = layouts;
-      await saveWorkbenchFieldsSetting({
-        id: existing?.id,
-        model_name: modelName,
-        purpose: 'wc:workbench_fields',
-        config: { ...data },
-      });
+      // Re-fetch current wc:model Setting to avoid clobbering other layout sections
+      const res = await getRecords('setting', {
+        parent_model: modelName,
+        purpose: 'wc:model',
+        limit: 1,
+      }) as any;
+      const setting = res?.results?.[0] ?? res?.records?.[0];
+      if (!setting) return;
+
+      const config = { ...setting.config };
+      const layout = { ...config.layout };
+      const list = { ...layout.list };
+      const listDefault = { ...(list.default || {}) };
+
+      // Update columns with new keys/widths
+      if (keys || widths) {
+        const existingCols: ListColumnSpec[] = listDefault.columns || [];
+        const colMap = new Map(existingCols.map(c => [c.field, c]));
+        if (keys) {
+          // Reorder columns: keys first (visible), then remaining (hidden)
+          const ordered: ListColumnSpec[] = keys.map(k =>
+            colMap.get(k) ?? { field: k, label: k, visible: true }
+          );
+          for (const c of existingCols) {
+            if (!keys.includes(c.field)) {
+              ordered.push({ ...c, visible: false });
+            }
+          }
+          listDefault.columns = ordered;
+        }
+        if (widths) {
+          for (const col of (listDefault.columns || [])) {
+            if (widths[col.field] !== undefined) {
+              col.width = widths[col.field];
+            }
+          }
+        }
+      }
+      if (layouts) listDefault.views = layouts;
+
+      list.default = listDefault;
+      layout.list = list;
+      config.layout = layout;
+
+      // Save back via wcapi
+      const { saveRecord } = await import('@/api/wcapi');
+      await saveRecord('setting', { ...setting, config });
     } catch (e) {
-      console.error('Failed to save field config:', e);
+      console.error('Failed to save list config:', e);
     }
-  }, [modelName]);
+  }, [modelName, settingId]);
 
   // Update list fields
   const updateListFields = useCallback((keys: string[]) => {

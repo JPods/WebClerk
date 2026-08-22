@@ -1,61 +1,25 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+/* LastChecked: 2026-08-21 | WhereUsed: Router.tsx | WhoCreated: Bill+Claude */
 /**
  * WcapiRouteHandler - Universal route handler for /wcapi/get/ style URLs
- * 
- * This component reads model_name and id from query parameters and renders
- * the appropriate detail or list component.
- * 
- * Usage: /wcapi/get/?model_name=purchase&id=38 -> renders PurchaseDetail
+ *
+ * Reads model_name and id from query parameters, renders ModelDetailPage
+ * for contact/org/item models, UiDetail for transactions.
+ *
+ * Usage: /wcapi/get/?model_name=purchase&id=38
  */
 import React, { Suspense, lazy } from "react";
 import { useSearchParams } from "react-router-dom";
 
-// Lazy load detail components to avoid circular imports
-const PurchaseDetail = lazy(() => import("../apps/transactions/models/purchase/pages/PurchaseDetail"));
-const OrderDetail = lazy(() => import("../apps/transactions/models/order/pages/OrderDetail"));
-const InvoiceDetail = lazy(() => import("../apps/transactions/models/invoice/pages/InvoiceDetail"));
-const ProposalDetail = lazy(() => import("../apps/transactions/models/proposal/pages/ProposalDetail"));
-const ItemDetail = lazy(() => import("../apps/products/models/item/pages/ItemDetail"));
-const CustomerDetailPage = lazy(() => import("../apps/orgs/models/customer/pages/CustomerDetail"));
-const VendorDetail = lazy(() => import("../apps/orgs/models/vendor/pages/VendorDetail"));
-const ContactDetail = lazy(() => import("../apps/core/models/contact/pages/ContactDetail"));
+const ModelDetailPage = lazy(() => import("../components/common/ModelDetailPage"));
+const UiDetail = lazy(() => import("../apps/transactions/components/TransactionDetail"));
 
-// Model name to component mapping
-const MODEL_DETAIL_MAP: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
-  // Transactions
-  "purchase": PurchaseDetail,
-  "order": OrderDetail,
-  "invoice": InvoiceDetail,
-  "proposal": ProposalDetail,
-  "quote": ProposalDetail,
-  
-  // Products
-  "item": ItemDetail,
-  "product": ItemDetail,
-  
-  // Organizations
-  "customer": CustomerDetailPage,
-  "vendor": VendorDetail,
-  
-  // Core
-  "contact": ContactDetail,
-};
-
-// Loading fallback
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center h-64">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-    <span className="ml-2 text-gray-600">Loading...</span>
-  </div>
-);
+const TRANSACTION_MODELS = new Set(['purchase', 'order', 'invoice', 'proposal', 'quote', 'receipt', 'workorder', 'requisition', 'payment']);
 
 export default function WcapiRouteHandler() {
   const [searchParams] = useSearchParams();
-  
   const modelName = searchParams.get("model_name");
   const id = searchParams.get("id");
-  
-  // If no model_name, show error
+
   if (!modelName) {
     return (
       <div className="p-4 text-red-600">
@@ -64,30 +28,16 @@ export default function WcapiRouteHandler() {
       </div>
     );
   }
-  
-  // Normalize model name
-  const normalizedModel = modelName.toLowerCase().replace(/-/g, "_");
-  
-  // Find the component
-  const DetailComponent = MODEL_DETAIL_MAP[normalizedModel];
-  
-  if (!DetailComponent) {
-    return (
-      <div className="p-4 text-red-600">
-        <h2 className="text-lg font-semibold">Unknown model: {modelName}</h2>
-        <p>Supported models: {Object.keys(MODEL_DETAIL_MAP).join(", ")}</p>
-      </div>
-    );
-  }
-  
-  // Render the component with id passed as prop or via URL params
-  // Most detail components read id from URL params, so we need to handle this
+
+  const normalized = modelName.toLowerCase().replace(/-/g, "_");
+  const recordId = id ? parseInt(id, 10) : undefined;
+
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <DetailComponent 
-        recordId={id ? parseInt(id, 10) : undefined}
-        id={id ? parseInt(id, 10) : undefined}
-      />
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" /></div>}>
+      {TRANSACTION_MODELS.has(normalized)
+        ? <UiDetail modelName={normalized === 'quote' ? 'proposal' : normalized} recordId={recordId} />
+        : <ModelDetailPage modelName={normalized} recordId={recordId} />
+      }
     </Suspense>
   );
 }

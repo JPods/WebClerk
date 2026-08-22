@@ -59,9 +59,8 @@ export interface ReceiptPrintData {
   receivedBy?: string;
 
   // Financials
-  amountReceived?: number;
+  totals?: Record<string, number>;
   amountApplied?: number;
-  balanceDue?: number;
 
   // Comments
   comment?: string;
@@ -141,9 +140,9 @@ const transformReceiptData = (data: ReceiptPrintData, lines?: ReceiptLineData[])
   }));
 
   const totals: PrintTotals = {
-    amountReceived: data.amountReceived,
+    amountReceived: data.totals?.received,
     amountApplied: data.amountApplied,
-    balanceDue: data.balanceDue,
+    balanceDue: data.totals?.balance,
   };
 
   const comments: PrintComments = {

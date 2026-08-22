@@ -1027,3 +1027,55 @@ span.flatpickr-weekday,
   border-radius: var(--react-international-phone-border-radius, 7px);
   font-size: var(--react-international-phone-font-size, 13px);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Portal Dashboard
+   ═══════════════════════════════════════════════════════════════════ */
+.wc-portal-dashboard { padding: 16px; max-width: 1200px; }
+.wc-portal-header { margin-bottom: 24px; }
+.wc-portal-header h2 { font-size: 24px; font-weight: 600; color: var(--wc-text, #111); margin: 0; }
+.wc-portal-company { font-size: 14px; color: var(--wc-text-muted, #666); }
+.wc-portal-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.wc-portal-card { padding: 16px; border-radius: 8px; background: var(--wc-surface, #fff); border: 1px solid var(--wc-border, #e5e7eb); }
+.wc-portal-card-title { font-size: 12px; text-transform: uppercase; color: var(--wc-text-muted, #666); margin-bottom: 4px; }
+.wc-portal-card-value { font-size: 24px; font-weight: 700; color: var(--wc-text, #111); }
+.wc-portal-card-subtitle { font-size: 11px; color: var(--wc-text-muted, #999); margin-top: 4px; }
+.wc-portal-section { margin-bottom: 24px; }
+.wc-portal-section-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--wc-text, #111); }
+.wc-portal-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.wc-portal-table th { text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--wc-border, #e5e7eb); font-weight: 600; color: var(--wc-text-muted, #666); }
+.wc-portal-table td { padding: 8px 12px; border-bottom: 1px solid var(--wc-border, #e5e7eb); color: var(--wc-text, #111); }
+.wc-portal-table tr.wc-clickable:hover { background: var(--wc-hover, #f9fafb); cursor: pointer; }
+.wc-portal-empty { color: var(--wc-text-muted, #999); font-size: 14px; padding: 16px 0; }
+.wc-portal-loading { padding: 40px; text-align: center; color: var(--wc-text-muted, #666); }
+
+/* Kanban bar */
+.wc-kanban-bar { position: relative; height: 20px; background: var(--wc-border, #e5e7eb); border-radius: 4px; overflow: hidden; min-width: 120px; }
+.wc-kanban-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+.wc-kanban-label { position: absolute; top: 0; left: 6px; line-height: 20px; font-size: 11px; color: #333; white-space: nowrap; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SEGA Spare Parts Viewer
+   ═══════════════════════════════════════════════════════════════════ */
+.wc-sega-viewer { padding: 16px; }
+.wc-sega-title { font-size: 22px; font-weight: 600; margin-bottom: 16px; color: var(--wc-text, #111); }
+.wc-sega-layout { display: flex; gap: 16px; min-height: 500px; }
+.wc-sega-diagram { flex: 1; border: 1px solid var(--wc-border, #e5e7eb); border-radius: 8px; overflow: auto; background: #fafafa; padding: 8px; }
+.wc-sega-diagram svg { width: 100%; height: auto; }
+.wc-sega-diagram .sega-part { transition: opacity 0.15s; }
+.wc-sega-diagram .sega-part:hover { opacity: 0.7; filter: drop-shadow(0 0 4px var(--color-brand-500, #3b82f6)); }
+.wc-sega-panel { width: 320px; flex-shrink: 0; border: 1px solid var(--wc-border, #e5e7eb); border-radius: 8px; background: var(--wc-surface, #fff); padding: 16px; transition: opacity 0.2s; }
+.wc-sega-panel:not(.wc-sega-panel--open) .wc-sega-detail { display: none; }
+.wc-sega-close { float: right; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--wc-text-muted, #999); line-height: 1; }
+.wc-sega-part-name { font-size: 18px; font-weight: 600; margin: 0 0 4px; color: var(--wc-text, #111); }
+.wc-sega-part-sku { font-size: 13px; color: var(--wc-text-muted, #666); margin-bottom: 12px; }
+.wc-sega-part-desc { font-size: 13px; color: var(--wc-text, #333); margin-bottom: 12px; }
+.wc-sega-part-price { font-size: 22px; font-weight: 700; color: var(--wc-text, #111); margin-bottom: 4px; }
+.wc-sega-part-avail { font-size: 13px; color: var(--color-success-500, #22c55e); margin-bottom: 16px; }
+.wc-sega-order { display: flex; align-items: center; gap: 12px; }
+.wc-sega-qty-input { width: 60px; padding: 6px 8px; border: 1px solid var(--wc-border, #e5e7eb); border-radius: 6px; font-size: 14px; margin-left: 6px; }
+.wc-sega-add-btn { padding: 8px 20px; background: var(--color-brand-500, #3b82f6); color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.wc-sega-add-btn:hover { background: var(--color-brand-600, #2563eb); }
+.wc-sega-placeholder { color: var(--wc-text-muted, #999); font-size: 14px; text-align: center; padding: 40px 16px; }
+.wc-sega-loading { color: var(--wc-text-muted, #666); font-size: 14px; text-align: center; padding: 20px; }
+.wc-sega-hover-label { position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 4px 12px; border-radius: 4px; font-size: 12px; pointer-events: none; z-index: 100; }

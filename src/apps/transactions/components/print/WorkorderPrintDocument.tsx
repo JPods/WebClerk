@@ -62,12 +62,10 @@ export interface WorkorderPrintData {
   fob?: string;
   workDescription?: string;
 
-  // Financials
-  amount?: number;
+  // Financials — JSON envelope is source of truth
+  totals?: Record<string, number>;
   laborCost?: number;
   materialCost?: number;
-  salesTax?: number;
-  total?: number;
 
   // Comments
   comment?: string;
@@ -155,11 +153,11 @@ const transformWorkorderData = (data: WorkorderPrintData, lines?: WorkorderLineD
   }));
 
   const totals: PrintTotals = {
-    salesAmount: data.amount,
+    salesAmount: data.totals?.subtotal,
     subtotal: data.laborCost,
     shipping: data.materialCost,
-    salesTax: data.salesTax,
-    total: data.total,
+    salesTax: data.totals?.tax,
+    total: data.totals?.total,
   };
 
   const comments: PrintComments = {

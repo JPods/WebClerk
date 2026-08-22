@@ -141,7 +141,12 @@ export function formatPhone(normalized: string, homeCountry?: string): string {
   const digits = stripToDigits(normalized);
   if (digits.length < 7) return normalized;
 
-  const [code, number] = detectCountryCode(digits);
+  // Only detect country codes on numbers that had a + prefix or > 10 digits.
+  // A 10-digit number without + is always domestic (US/CA area code, not a country code).
+  const hadPlus = normalized.trim().startsWith('+');
+  const [code, number] = (hadPlus || digits.length > 10)
+    ? detectCountryCode(digits)
+    : (digits.length === 10 ? ["1", digits] as [string, string] : detectCountryCode(digits));
   if (!code) return normalized;
 
   const fmt = PHONE_COUNTRY_FORMATS[code];

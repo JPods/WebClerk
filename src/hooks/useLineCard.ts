@@ -42,21 +42,21 @@ export interface UseLineCardOptions {
 // ---------------------------------------------------------------------------
 
 const linesTheme = {
-  surface: '#ffffff',
-  surfaceAlt: '#e8edf3',
-  text: '#1e293b',
-  textMuted: '#64748b',
-  border: '#e2e8f0',
-  borderLight: '#f1f5f9',
+  surface: 'var(--wc-surface, #ffffff)',
+  surfaceAlt: 'var(--wc-surface-alt, #e8edf3)',
+  text: 'var(--wc-text, #1e293b)',
+  textMuted: 'var(--wc-text-muted, #64748b)',
+  border: 'var(--wc-border, #e2e8f0)',
+  borderLight: 'var(--wc-border-light, #f1f5f9)',
   accent: '#2563eb',
   accentGold: '#d97706',
   accentRed: '#dc2626',
   rowActive: '#2563eb',
-  rowChecked: '#eff6ff',
-  rowHover: '#f8fafc',
-  inputBg: '#fff',
-  inputBorder: '#cbd5e1',
-  resizeHandle: '#94a3b8',
+  rowChecked: 'color-mix(in srgb, var(--wc-accent, #2563eb) 10%, var(--wc-surface, #fff))',
+  rowHover: 'var(--wc-surface-alt, #f8fafc)',
+  inputBg: 'var(--wc-surface, #fff)',
+  inputBorder: 'var(--wc-border, #cbd5e1)',
+  resizeHandle: 'var(--wc-text-muted, #94a3b8)',
 };
 
 // ---------------------------------------------------------------------------

@@ -581,7 +581,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 className="text-slate-500 dark:text-slate-400"
               />
               <dd className="font-mono text-slate-900 dark:text-white">
-                {formatCurrency(data.sell?.line_sum_goods ?? data.totals?.subtotal ?? data.subtotal)}
+                {formatCurrency(data.sell?.line_sum_goods ?? data.totals?.subtotal)}
               </dd>
             </div>
             <div className="flex justify-between items-center">
@@ -661,7 +661,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 className="text-slate-700 dark:text-slate-200 text-base"
               />
               <dd className="text-lg font-bold text-slate-900 dark:text-white">
-                {formatCurrency(data.totals?.total ?? data.total)}
+                {formatCurrency(data.totals?.total)}
               </dd>
             </div>
 
