@@ -135,8 +135,8 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
       {data?.totals?.total != null && (
         <span className="text-xs text-slate-500">Total: <span className="font-medium">${(data.totals.total ?? 0).toLocaleString()}</span></span>
       )}
-      {(data?.totals?.balance ?? data?.balance ?? 0) > 0 && (
-        <span className="text-xs text-red-500">Bal: <span className="font-medium">${((data.totals?.balance ?? data?.balance ?? 0)).toLocaleString()}</span></span>
+      {(data?.totals?.balance ?? 0) > 0 && (
+        <span className="text-xs text-red-500">Bal: <span className="font-medium">${(data.totals?.balance ?? 0).toLocaleString()}</span></span>
       )}
       {data?.id && <span className="text-xs font-mono text-slate-400 dark:text-slate-500">#{data.id}</span>}
 

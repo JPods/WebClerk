@@ -300,13 +300,11 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
   const sell = data?.sell || {};
   const cost = data?.cost || {};
 
-  const totalExtended = lines.reduce((sum: number, line: any) => {
-    if (isSellSide) return sum + Number(line.price?.extended ?? 0);
-    return sum + Number(line.cost?.extended ?? 0);
-  }, 0);
-  const totalCost = lines.reduce((sum: number, line: any) => sum + Number(line.cost?.extended ?? 0), 0);
-  const margin = totalExtended - totalCost;
-  const marginPct = totalExtended > 0 ? (margin / totalExtended) * 100 : 0;
+  // All values from json.path.value — never compute independently
+  const totalExtended = Number(totals.total ?? totals.subtotal ?? 0);
+  const totalCost = Number(totals.cost ?? cost.total ?? 0);
+  const margin = Number(totals.margin ?? 0);
+  const marginPct = Number(totals.margin_pc ?? 0);
 
   const fmt = (v: number | null | undefined) => v == null ? '—' : `$${Number(v).toFixed(2)}`;
 
@@ -339,9 +337,10 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
     })();
   }, [data?.id]);
 
-  const totalPayments = payments.reduce((s: number, d: any) => s + Number(d.total ?? d.totals?.total ?? 0), 0);
-  const totalInvoiced = invoices.reduce((s: number, d: any) => s + Number(d.total ?? d.totals?.total ?? 0), 0);
-  const totalUnapplied = invoices.reduce((s: number, d: any) => s + Number(d.balance ?? d.totals?.balance ?? 0), 0);
+  // json.path.value — read from each record's totals envelope, never scalar
+  const totalPayments = payments.reduce((s: number, d: any) => s + Number(d.totals?.total ?? 0), 0);
+  const totalInvoiced = invoices.reduce((s: number, d: any) => s + Number(d.totals?.total ?? 0), 0);
+  const totalUnapplied = invoices.reduce((s: number, d: any) => s + Number(d.totals?.balance ?? 0), 0);
 
   return (
     <div className="grid grid-cols-3 gap-6 text-xs">
@@ -350,21 +349,21 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
         <div className="text-xs font-bold text-[var(--db-text,#212529)] mb-2">Order Totals</div>
         <div className="space-y-0.5">
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Lines</span><span className="font-mono">{lines.length}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Sell Amount</span><span className="font-mono">{fmt(sell.line_sum_goods || totalExtended)}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Discount</span><span className="font-mono">{fmt(sell.discount || totals.discount)}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Sell Total</span><span className="font-mono font-medium">{fmt(sell.total || totalExtended)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Sell Amount</span><span className="font-mono">{fmt(sell.line_sum_goods ?? totals.subtotal)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Discount</span><span className="font-mono">{fmt(totals.discount)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Sell Total</span><span className="font-mono font-medium">{fmt(sell.total ?? totals.subtotal)}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Taxable</span><span className="font-mono">{fmt(totals.taxable)}</span></div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Tax</span><span className="font-mono">{fmt(totals.tax)}</span></div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Shipping</span><span className="font-mono">{fmt(totals.shipping)}</span></div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Other</span><span className="font-mono">{fmt(totals.other)}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
-          <div className="flex justify-between font-bold"><span>Total</span><span className="font-mono">{fmt(totals.total || totalExtended)}</span></div>
+          <div className="flex justify-between font-bold"><span>Total</span><span className="font-mono">{fmt(totals.total)}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Cost</span><span className="font-mono">{fmt(cost.line_sum_goods || totalCost)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Cost</span><span className="font-mono">{fmt(cost.line_sum_goods ?? totals.cost)}</span></div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Freight</span><span className="font-mono">{fmt(cost.freight)}</span></div>
           {isStaff && <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Commissions</span><span className="font-mono">{fmt(cost.commissions)}</span></div>}
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Cost Total</span><span className="font-mono">{fmt(cost.total || totalCost)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Cost Total</span><span className="font-mono">{fmt(cost.total ?? totals.cost)}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
           <div className="flex justify-between">
             <span className="text-[var(--db-text-muted,#6c757d)]">Margin</span>
@@ -373,7 +372,7 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Payments</span><span className="font-mono">{data?.finance?.payment_count ?? totals.payment_count ?? 0}</span></div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Received</span><span className="font-mono">{fmt(totals.received)}</span></div>
-          <div className="flex justify-between font-medium"><span>Balance</span><span className="font-mono">{fmt(totals.balance || data?.balance)}</span></div>
+          <div className="flex justify-between font-medium"><span>Balance</span><span className="font-mono">{fmt(totals.balance)}</span></div>
         </div>
       </div>
 
@@ -406,10 +405,10 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
       <div>
         <div className="text-xs font-bold text-[var(--db-text,#212529)] mb-2">Flow</div>
         <div className="space-y-0.5">
-          <div className="flex justify-between font-medium"><span>Total</span><span className="font-mono">{fmt(totalInvoiced || totals.total || totalExtended)}</span></div>
+          <div className="flex justify-between font-medium"><span>Total</span><span className="font-mono">{fmt(totalInvoiced || totals.total)}</span></div>
           <div className="flex justify-between font-medium">
             <span className={totalUnapplied > 0 ? 'text-red-600' : 'text-[var(--db-text-muted,#6c757d)]'}>Unapplied</span>
-            <span className={`font-mono ${totalUnapplied > 0 ? 'text-red-600 font-bold' : ''}`}>{fmt(totalUnapplied || totals.balance || data?.balance)}</span>
+            <span className={`font-mono ${totalUnapplied > 0 ? 'text-red-600 font-bold' : ''}`}>{fmt(totalUnapplied || totals.balance)}</span>
           </div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
 

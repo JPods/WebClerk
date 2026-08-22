@@ -188,31 +188,31 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
   }
 
   const footerBar = (
-    <div className="px-2 py-2" style={{ background: 'var(--db-surface-alt, #f8f9fa)', borderTop: '2px solid var(--db-border, #dee2e6)', fontSize: 'inherit' }}>
+    <div className="px-2 py-2" style={{ background: 'var(--wc-surface-alt, #f8f9fa)', borderTop: '2px solid var(--wc-border, #dee2e6)', fontSize: 'inherit' }}>
       <div className="flex items-center gap-3 mb-1">
         {/* Tools — left side (user's focus) */}
         {lc.canEdit && (
           <button type="button" onClick={() => setShowItemSearch(prev => !prev)}
-            className={`px-2 py-0.5 font-medium rounded transition-colors ${showItemSearch ? 'bg-green-600 text-white' : 'text-green-600 hover:bg-green-50 border border-green-300'}`}
+            className={`px-2 py-0.5 font-medium rounded transition-colors ${showItemSearch ? 'bg-green-600 text-white' : 'text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 border border-green-300 dark:border-green-700'}`}
             style={{ fontSize: 'inherit' }}
             title="Search and add items">+ Item</button>
         )}
         <span className="flex items-center gap-1 font-bold">
           <button type="button" onClick={() => lc.togglePanel('inventory')}
-            className={`px-1.5 py-0.5 rounded transition-colors ${lc.activePanel === 'inventory' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`}
+            className={`px-1.5 py-0.5 rounded transition-colors ${lc.activePanel === 'inventory' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30'}`}
             title="Inventory lookup (L)">L</button>
           <button type="button" onClick={() => lc.togglePanel('spec')}
-            className={`px-1.5 py-0.5 rounded transition-colors ${lc.activePanel === 'spec' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`}
+            className={`px-1.5 py-0.5 rounded transition-colors ${lc.activePanel === 'spec' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30'}`}
             title="Specification (S)">S</button>
           <button type="button" onClick={() => lc.togglePanel('xref')}
-            className={`px-1.5 py-0.5 rounded transition-colors ${lc.activePanel === 'xref' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`}
+            className={`px-1.5 py-0.5 rounded transition-colors ${lc.activePanel === 'xref' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30'}`}
             title="Cross-references (XR)">XR</button>
           <button type="button" onClick={() => lc.togglePanel('margin')}
-            className={`px-1.5 py-0.5 rounded transition-colors ${lc.activePanel === 'margin' ? 'bg-green-600 text-white' : 'text-slate-500 hover:text-green-600 hover:bg-green-50'}`}
+            className={`px-1.5 py-0.5 rounded transition-colors ${lc.activePanel === 'margin' ? 'bg-green-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30'}`}
             title="Margin view (M)">M</button>
           {isSellSide && isStaff && (
             <button type="button" onClick={() => lc.setShowCommission(!lc.showCommission)}
-              className={`px-1.5 py-0.5 rounded transition-colors ${lc.showCommission ? 'bg-purple-600 text-white' : 'text-slate-500 hover:text-purple-600 hover:bg-purple-50'}`}
+              className={`px-1.5 py-0.5 rounded transition-colors ${lc.showCommission ? 'bg-purple-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30'}`}
               title="Commission columns (C)">C</button>
           )}
         </span>
@@ -222,13 +222,13 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
               className="px-1.5 py-0.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded" title="Edit line details">edit</button>
             {lc.canEdit && (
               <button type="button" onClick={() => { lc.selectedLineIds.forEach(id => onLinesChange?.(lines.filter((_: any, i: number) => lc.records[i]?.id !== id))); lc.setSelectedLineIds(new Set()); }}
-                className="px-1.5 py-0.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded" title="Delete selected (Del)">del</button>
+                className="px-1.5 py-0.5 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded" title="Delete selected (Del)">del</button>
             )}
           </span>
         )}
         {lc.canEdit && lc.selectedId != null && (
           <span className="flex items-center gap-0.5 ml-1">
-            <span className="text-slate-400 mr-0.5">Type:</span>
+            <span className="text-slate-400 dark:text-slate-500 mr-0.5">Type:</span>
             {LINE_TYPE_OPTIONS.map(opt => {
               const isActive = selectedLineType === opt.value;
               const colorMap = { blue: 'bg-blue-500 text-white', amber: 'bg-amber-500 text-white', red: 'bg-red-500 text-white' };
@@ -238,7 +238,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
                   className={`px-1.5 py-0.5 rounded transition-colors border-b-2 ${
                     isActive
                       ? `${colorMap[opt.color]} border-${opt.color}-700`
-                      : `text-slate-500 border-transparent ${hoverMap[opt.color]}`
+                      : `text-slate-500 dark:text-slate-400 border-transparent ${hoverMap[opt.color]}`
                   }`}
                   title={`${isActive ? 'Revert to product' : `Mark as ${opt.value}`} line`}>
                   {opt.label}
@@ -249,57 +249,57 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
         )}
         {/* Line summary — right side */}
         <span className="flex-1" />
-        <span className="font-medium text-[var(--db-text-muted,#6c757d)]">Lns: {lc.lineCount}</span>
-        <span className="text-[var(--db-text-muted,#6c757d)]">Items: {formatNumber(footerQty)}</span>
+        <span className="font-medium text-[var(--wc-text-muted,#6c757d)]">Lns: {lc.lineCount}</span>
+        <span className="text-[var(--wc-text-muted,#6c757d)]">Items: {formatNumber(footerQty)}</span>
         {selectionLabel && <span className="text-blue-600 font-medium">{selectionLabel}</span>}
       </div>
       <div className="flex items-center gap-2 italic justify-end" style={{ fontSize: 'inherit' }}>
-        <span className="text-slate-400">Tax:</span>
-        <span className="font-mono text-slate-600 w-14 text-right">{formatCurrency(data?.totals?.tax ?? 0)}</span>
-        <span className="text-slate-400">Ship:</span>
-        <span className="font-mono text-slate-600 w-14 text-right">{formatCurrency(data?.totals?.shipping ?? 0)}</span>
-        <span className="text-slate-400">Other:</span>
-        <span className="font-mono text-slate-600 w-14 text-right">{formatCurrency(data?.totals?.other ?? 0)}</span>
+        <span className="text-slate-400 dark:text-slate-500">Tax:</span>
+        <span className="font-mono text-slate-600 dark:text-slate-300 w-14 text-right">{formatCurrency(data?.totals?.tax ?? 0)}</span>
+        <span className="text-slate-400 dark:text-slate-500">Ship:</span>
+        <span className="font-mono text-slate-600 dark:text-slate-300 w-14 text-right">{formatCurrency(data?.totals?.shipping ?? 0)}</span>
+        <span className="text-slate-400 dark:text-slate-500">Other:</span>
+        <span className="font-mono text-slate-600 dark:text-slate-300 w-14 text-right">{formatCurrency(data?.totals?.other ?? 0)}</span>
         {lc.showCommission && isStaff && (
           <>
-            <span className="text-purple-400">Comm:</span>
-            <span className="font-mono text-purple-600 w-14 text-right">{formatCurrency(data?.commission?.total ?? activeRecords.reduce((s: number, r: any) => s + (r.comm_total ?? 0), 0))}</span>
+            <span className="text-purple-400 dark:text-purple-300">Comm:</span>
+            <span className="font-mono text-purple-600 dark:text-purple-300 w-14 text-right">{formatCurrency(data?.commission?.total ?? activeRecords.reduce((s: number, r: any) => s + (r.comm_total ?? 0), 0))}</span>
           </>
         )}
-        <span className="text-slate-300 not-italic">|</span>
+        <span className="text-slate-300 dark:text-slate-600 not-italic">|</span>
         {onEnterPayment ? (
           <>
             <button
               type="button"
               onClick={onEnterPayment}
-              className="not-italic px-2 py-0.5 font-medium rounded bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 transition-colors"
+              className="not-italic px-2 py-0.5 font-medium rounded bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/50 border border-green-200 dark:border-green-700 transition-colors"
               style={{ fontSize: 'inherit' }}
               title="Enter a payment or apply an existing one"
             >
               Payment
             </button>
             <span
-              className="font-mono text-green-700 w-16 text-right not-italic cursor-default"
-              title={`Paid: ${formatCurrency(data?.totals?.received ?? 0)}\nBalance: ${formatCurrency(data?.totals?.balance ?? data?.balance ?? 0)}`}
+              className="font-mono text-green-700 dark:text-green-400 w-16 text-right not-italic cursor-default"
+              title={`Paid: ${formatCurrency(data?.totals?.received ?? 0)}\nBalance: ${formatCurrency(data?.totals?.balance ?? 0)}`}
             >
-              <span className="text-slate-400 italic mr-0.5" style={{ fontSize: '0.85em' }}>Bal:</span>
-              {formatCurrency(data?.totals?.balance ?? data?.balance ?? 0)}
+              <span className="text-slate-400 dark:text-slate-500 italic mr-0.5" style={{ fontSize: '0.85em' }}>Bal:</span>
+              {formatCurrency(data?.totals?.balance ?? 0)}
             </span>
           </>
         ) : (
           <>
-            <span className="text-slate-500">Deposit:</span>
-            <span className="font-mono font-medium text-slate-800 w-16 text-right">{formatCurrency(data?.totals?.deposit ?? 0)}</span>
+            <span className="text-slate-500 dark:text-slate-400">Deposit:</span>
+            <span className="font-mono font-medium text-slate-800 dark:text-slate-200 w-16 text-right">{formatCurrency(data?.totals?.deposit ?? 0)}</span>
           </>
         )}
         {footerBacklog > 0 && (
           <>
-            <span className="text-red-500">Backlog:</span>
-            <span className="font-mono font-medium text-red-600 w-16 text-right">{formatCurrency(footerBacklog)}</span>
+            <span className="text-red-500 dark:text-red-400">Backlog:</span>
+            <span className="font-mono font-medium text-red-600 dark:text-red-400 w-16 text-right">{formatCurrency(footerBacklog)}</span>
           </>
         )}
-        <span className="text-slate-700 not-italic font-semibold">Total:</span>
-        <span className="font-bold text-slate-900 w-24 text-right not-italic">{formatCurrency(footerExtended)}</span>
+        <span className="text-slate-700 dark:text-slate-200 not-italic font-semibold">Total:</span>
+        <span className="font-bold text-slate-900 dark:text-white w-24 text-right not-italic">{formatCurrency(footerExtended)}</span>
       </div>
     </div>
   );

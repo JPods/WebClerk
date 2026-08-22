@@ -441,7 +441,7 @@ const UiDetail: React.FC<UiDetailProps> = ({
         customer_id={data?.customer_id || data?.customer || data?.refs?.links?.customer?.id}
         contact_id={data?.contact_id || data?.contact || data?.refs?.links?.contact?.id || data?.refs?.links?.customer?.id}
         customer_name={data?.customer_company || data?.customer_name || data?.refs?.links?.customer?.company || data?.refs?.links?.customer?.display_name || data?.refs?.links?.customer?.attention || ''}
-        orderTotal={modelName === 'invoice' ? (data?.totals?.balance ?? data?.balance ?? data?.totals?.total ?? data?.total) : (data?.totals?.total ?? data?.total)}
+        orderTotal={modelName === 'invoice' ? (data?.totals?.balance ?? data?.totals?.total ?? 0) : (data?.totals?.total ?? 0)}
         onPaymentAdded={fetchData}
       />
     </div>

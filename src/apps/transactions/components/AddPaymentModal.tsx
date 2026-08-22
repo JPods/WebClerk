@@ -32,6 +32,8 @@ interface AvailablePayment {
   method?: string;
   dt_created?: string;
   dt_payment?: string;
+  parent_id?: number;
+  parent_model?: string;
 }
 
 interface AddPaymentModalProps {
@@ -84,8 +86,9 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
   const [selectedPayment, setSelectedPayment] = useState<AvailablePayment | null>(null);
   const [applyAmount, setApplyAmount] = useState('');
 
-  // Adjustment controls (invoice only)
+  // Adjustment controls
   const [discountPct, setDiscountPct] = useState('');
+  const [discountAmt, setDiscountAmt] = useState('');
   const [dismissBalance, setDismissBalance] = useState(false);
 
   // Load payment methods + available payments when modal opens
@@ -102,8 +105,8 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
       })
       .catch(console.error);
 
-    // Load available payments for this customer (invoice context only)
-    if (invoice_id && customer_id) {
+    // Load available payments for this customer (invoice or order context)
+    if ((invoice_id || order_id) && customer_id) {
       setLoadingPayments(true);
       getRecords('payment', {
         customer_id: customer_id,
@@ -112,17 +115,17 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
       })
         .then((response) => {
           const payments = (response?.results || response || []) as AvailablePayment[];
-          // Filter to payments with available balance > 0
+          // Filter to payments with available balance != 0
           const withBalance = payments.filter((p) => {
             const avail = p.available ?? p.amount ?? 0;
-            return avail > 0;
+            return avail !== 0;
           });
           setAvailablePayments(withBalance);
         })
         .catch(console.error)
         .finally(() => setLoadingPayments(false));
     }
-  }, [isOpen, customer_id, invoice_id]);
+  }, [isOpen, customer_id, invoice_id, order_id]);
 
   // Reset form when modal closes
   useEffect(() => {
@@ -134,16 +137,45 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
       setSelectedPayment(null);
       setApplyAmount('');
       setDiscountPct('');
+      setDiscountAmt('');
       setDismissBalance(false);
     }
   }, [isOpen]);
 
-  // Set default amount to order/invoice total
+  // Load prior payments for this order/invoice and compute received total
+  const [priorReceived, setPriorReceived] = useState(0);
   useEffect(() => {
-    if (isOpen && orderTotal && !amount) {
-      setAmount(orderTotal.toFixed(2));
+    if (!isOpen) { setPriorReceived(0); return; }
+    // json.path.value — read totals.received from the transaction envelope
+    const fetchPrior = async () => {
+      try {
+        const model = invoice_id ? 'invoice' : order_id ? 'order' : null;
+        const id = invoice_id || order_id;
+        if (model && id) {
+          const res = await getRecords(model, { id, limit: 1 });
+          const record = (res?.results || [])[0];
+          const received = record?.totals?.received ?? 0;
+          setPriorReceived(Number(received));
+        }
+      } catch { /* ignore */ }
+    };
+    fetchPrior();
+  }, [isOpen, order_id, invoice_id]);
+
+  // Effective balance: for invoices, orderTotal is already the balance (passed as
+  // totals.balance from TransactionDetail). For orders, it's the full total.
+  const effectiveBalance = invoice_id
+    ? (orderTotal ?? 0)                    // already net of received
+    : (orderTotal ?? 0) - priorReceived;   // full total minus what's been paid
+
+  // Default amount = balance due. Update whenever priorReceived changes (async load).
+  const [amountTouched, setAmountTouched] = useState(false);
+  useEffect(() => {
+    if (!isOpen) { setAmountTouched(false); return; }
+    if (!amountTouched && effectiveBalance > 0) {
+      setAmount(effectiveBalance.toFixed(2));
     }
-  }, [isOpen, orderTotal]);
+  }, [isOpen, effectiveBalance, amountTouched]);
 
   // When selecting an existing payment, default apply amount to min(available, balance)
   useEffect(() => {
@@ -163,25 +195,28 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
 
     setSaving(true);
     try {
+      // parent_id/parent_model = where this payment was entered
+      const parentModel = invoice_id ? 'invoice' : order_id ? 'order' : customer_id ? 'customer' : '';
+      const parentId = invoice_id || order_id || customer_id || null;
+
       const paymentData: Record<string, unknown> = {
         amount: parseFloat(amount),
         contact_id,
+        customer_id: customer_id || null,
         dt_payment: new Date(paymentDate).toISOString(),
         paymentmethod_id: paymentMethodId,
         reference_number: referenceNumber,
         notes,
         status: 'completed',
         gateway: 'manual',
+        parent_id: parentId,
+        parent_model: parentModel,
         refs: {
           order_ids: order_id ? [order_id] : [],
           invoice_ids: invoice_id ? [invoice_id] : [],
           customer_id: customer_id || null,
           contact_id: contact_id || null,
-          source: order_id
-            ? { type: 'order', id: order_id }
-            : invoice_id
-              ? { type: 'invoice', id: invoice_id }
-              : undefined,
+          source: { type: parentModel, id: parentId },
         },
       };
       if (invoice_id) paymentData.invoice_id = invoice_id;
@@ -196,19 +231,28 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
           invoice_id: invoice_id,
           amount: parseFloat(amount),
         };
-        if (discountPct && parseFloat(discountPct) > 0) {
-          applyParams.discount_pct = parseFloat(discountPct);
-        }
         if (dismissBalance) {
           applyParams.dismiss_balance = true;
         }
         await manageAction('apply_payment_to_invoice', applyParams);
 
         const parts = [`Payment of ${formatCurrency(parseFloat(amount))} applied`];
-        if (applyParams.discount_pct) parts.push(`${discountPct}% discount`);
-        if (dismissBalance) parts.push('balance dismissed');
+        if (dismissBalance) parts.push('balance dismissed (write-off payment)');
         dispatch(showToast({
           message: parts.join(' + '),
+          type: 'success',
+        }));
+      } else if (order_id) {
+        // Update order totals.received and balance
+        try {
+          const payAmt = parseFloat(amount);
+          await manageAction('recalculate_totals', {
+            transaction_id: order_id,
+            model_name: 'order',
+          });
+        } catch { /* best effort */ }
+        dispatch(showToast({
+          message: `Payment of ${formatCurrency(parseFloat(amount))} recorded against order`,
           type: 'success',
         }));
       } else {
@@ -281,7 +325,7 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
             )}
             {orderTotal != null && (
               <span className="text-sm font-mono text-slate-600 dark:text-slate-300">
-                {formatCurrency(orderTotal)}
+                {formatCurrency(effectiveBalance)}
               </span>
             )}
             <button
@@ -345,81 +389,80 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
           </div>
         </div>
 
-        {/* Numbers block — amount, discount, summary, button — all together */}
+        {/* Numbers block — amount, dismiss, summary, button */}
         <div className="px-6 pb-4 space-y-2">
           {(() => {
-            const invoiceDue = orderTotal ?? 0;
+            const invoiceDue = effectiveBalance;
             const payAmt = parseFloat(amount) || 0;
-            const discPct = parseFloat(discountPct) || 0;
-            const discVal = discPct > 0 ? Math.round(invoiceDue * discPct) / 100 : 0;
-            const remainder = invoiceDue - discVal - payAmt;
+            const remainder = invoiceDue - payAmt;
             const finalBal = dismissBalance ? 0 : Math.max(0, remainder);
 
             return (
               <>
-                {/* Amount + Discount + Dismiss — one row */}
-                <div className="flex items-end gap-3">
-                  <div className="flex-1">
+                {/* Bal Due + Amount — side by side */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Balance Due</label>
+                    <div className={`px-3 py-2 rounded-lg border text-sm font-medium font-mono ${
+                      invoiceDue > 0
+                        ? 'border-red-300 text-red-600 bg-red-50 dark:border-red-700 dark:text-red-400 dark:bg-red-900/20'
+                        : 'border-green-300 text-green-600 bg-green-50 dark:border-green-700 dark:text-green-400 dark:bg-green-900/20'
+                    }`}>
+                      {formatCurrency(invoiceDue)}
+                    </div>
+                  </div>
+                  <div>
                     <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Amount</label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
                       <input
                         type="number" step="0.01" min="0"
                         value={amount}
-                        onChange={(e) => { setAmount(e.target.value); setSelectedPayment(null); }}
+                        onChange={(e) => { setAmount(e.target.value); setAmountTouched(true); setSelectedPayment(null); }}
                         placeholder="0.00"
                         className="w-full pl-7 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                       />
                     </div>
                   </div>
-                  {invoice_id && (
-                    <>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Discount</label>
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="number" step="0.5" min="0" max="100"
-                            value={discountPct}
-                            onChange={(e) => setDiscountPct(e.target.value)}
-                            placeholder="%"
-                            className="w-16 px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-right text-sm"
-                          />
-                          <span className="text-xs text-slate-400">%</span>
-                        </div>
-                      </div>
-                      <label className="flex items-center gap-1.5 cursor-pointer pb-2">
-                        <input
-                          type="checkbox"
-                          checked={dismissBalance}
-                          onChange={(e) => setDismissBalance(e.target.checked)}
-                          className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
-                        />
-                        <span className="text-xs text-slate-500 dark:text-slate-400">Dismiss</span>
-                      </label>
-                    </>
-                  )}
                 </div>
 
+                {/* Dismiss row */}
+                <label className="flex items-center gap-1.5 cursor-pointer" title="Creates a write-off payment for the remaining balance">
+                  <input
+                    type="checkbox"
+                    checked={dismissBalance}
+                    onChange={(e) => setDismissBalance(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                  />
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Dismiss balance — too little value to chase</span>
+                </label>
+
                 {/* Live summary — immediately below the numbers */}
-                {invoice_id && (
+                {(invoice_id || order_id) && (
                   <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-3 text-sm font-mono space-y-1">
+                    {priorReceived > 0 && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">{invoice_id ? 'Invoice' : 'Order'} total</span>
+                          <span className="text-slate-900 dark:text-white">{formatCurrency(orderTotal)}</span>
+                        </div>
+                        <div className="flex justify-between text-green-600">
+                          <span>Received</span>
+                          <span>-{formatCurrency(priorReceived)}</span>
+                        </div>
+                      </>
+                    )}
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Invoice due</span>
+                      <span className="text-slate-500">{priorReceived > 0 ? 'Balance due' : (invoice_id ? 'Invoice due' : 'Order due')}</span>
                       <span className="text-slate-900 dark:text-white">{formatCurrency(invoiceDue)}</span>
                     </div>
-                    {discVal > 0 && (
-                      <div className="flex justify-between text-green-600">
-                        <span>Discount ({discPct}%)</span>
-                        <span>-{formatCurrency(discVal)}</span>
-                      </div>
-                    )}
                     <div className="flex justify-between">
                       <span className="text-slate-500">Payment</span>
                       <span className="text-slate-900 dark:text-white">-{formatCurrency(payAmt)}</span>
                     </div>
                     {remainder > 0 && dismissBalance && (
                       <div className="flex justify-between text-amber-600">
-                        <span>Write-off</span>
+                        <span>Write-off — separate payment</span>
                         <span>-{formatCurrency(remainder)}</span>
                       </div>
                     )}
@@ -452,7 +495,7 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
         </div>
 
         {/* Available payments panel — invoice context only */}
-        {invoice_id && (
+        {(invoice_id || order_id) && (
           <div className="border-t border-slate-200 dark:border-slate-700">
             <div className="px-6 py-3">
               <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -474,6 +517,7 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
                   <thead>
                     <tr className="text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
                       <th className="py-1 text-left font-medium">Reference</th>
+                      <th className="py-1 text-left font-medium">Source</th>
                       <th className="py-1 text-right font-medium">Available</th>
                       <th className="py-1 text-right font-medium">Original</th>
                       <th className="py-1 text-left font-medium">Date</th>
@@ -483,6 +527,14 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
                     {availablePayments.map((p) => {
                       const avail = p.available ?? p.amount ?? 0;
                       const isSelected = selectedPayment?.id === p.id;
+                      const pm = p.parent_model || '';
+                      const pid = p.parent_id || '';
+                      // Highlight if this payment was entered on the current document
+                      const isThisDoc = (pm === 'order' && pid === order_id) || (pm === 'invoice' && pid === invoice_id);
+                      const sourceLabel = pm === 'customer' ? 'Customer'
+                        : pm === 'order' ? `Order #${pid}`
+                        : pm === 'invoice' ? `Inv #${pid}`
+                        : pm ? `${pm} #${pid}` : '—';
                       return (
                         <tr
                           key={p.id}
@@ -493,11 +545,16 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
                           className={`cursor-pointer border-b border-slate-100 dark:border-slate-700/50 transition-colors ${
                             isSelected
                               ? 'bg-blue-50 dark:bg-blue-900/20'
-                              : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                              : isThisDoc
+                                ? 'bg-green-50/50 dark:bg-green-900/10'
+                                : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                           }`}
                         >
                           <td className="py-1.5 font-mono text-slate-900 dark:text-white">
                             {p.reference_number || p.ida || `#${p.id}`}
+                          </td>
+                          <td className={`py-1.5 text-xs ${isThisDoc ? 'text-green-600 dark:text-green-400 font-medium' : 'text-slate-400 dark:text-slate-500'}`}>
+                            {sourceLabel}
                           </td>
                           <td className="py-1.5 text-right font-mono text-green-600 dark:text-green-400 font-medium">
                             {formatCurrency(avail)}
