@@ -45,10 +45,13 @@ FINANCIAL COMPLIANCE:
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -369,32 +372,22 @@ def apply_terms_for_invoice(invoice, total: Optional[Decimal] = None, term=None,
     if term is None:
         return []
 
-    # Resolve total
-    # TransactionBaseModel has two fields:
-    #   total  — DecimalField (denormalized scalar)
-    #   totals — JSONField   (dict with subtotal, total, cost, etc.)
+    # Resolve total — JSON envelope is the single source of truth.
     if total is None:
-        # Try scalar DecimalField first
-        scalar_total = getattr(invoice, 'total', None)
-        if scalar_total is not None and not isinstance(scalar_total, dict):
-            try:
-                total = D(str(scalar_total))
-            except Exception:
-                total = D('0')
-        else:
-            # Fallback: try JSON totals dict
-            totals_map = getattr(invoice, 'totals', {}) or {}
-            total_val = totals_map.get('total') or totals_map.get('amount') or 0
+        totals_map = getattr(invoice, 'totals', None) or {}
+        if isinstance(totals_map, dict):
+            total_val = totals_map.get('total', 0)
             try:
                 total = D(str(total_val))
             except Exception:
                 total = D('0')
-        if total <= 0:
-            from apps.transactions.aggregation import compute_line_aggregate
-            agg = compute_line_aggregate(parent_id=getattr(invoice, 'id'), model_key='invoice-line')
-            total = D(agg.get('total_price_extended', '0'))
-            if total <= 0:
-                return []
+        if not total or total <= 0:
+            inv_id = getattr(invoice, 'id', '?')
+            logger.error(
+                "terms_ledger: invoice %s has no totals.total in JSON envelope. "
+                "Run update_sell_cost_totals() to repair.", inv_id,
+            )
+            return []
 
     # AUDIT: replace=True provides idempotency by clearing existing ledgers
     if replace:

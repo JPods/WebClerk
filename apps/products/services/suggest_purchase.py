@@ -425,9 +425,9 @@ def create_draft_purchase(vendor_id: int, items: List[Dict[str, Any]]) -> Dict[s
         line_count += 1
         total_cost += extended
 
-    # Update header total
-    purchase.total = total_cost
-    purchase.save(update_fields=['total', 'dt_modified', 'version'])
+    # Recompute totals from lines via the single totals engine.
+    # JSON is the source of truth; scalar `total` is synced by the engine.
+    purchase.update_sell_cost_totals(persist=True)
 
     logger.info(
         "Created draft purchase #%s for vendor %s (%s lines, total=%s)",
