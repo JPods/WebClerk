@@ -293,24 +293,9 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
           </div>
         </div>
 
-        {/* New payment entry */}
-        <div className="px-6 py-4 space-y-3">
+        {/* Text fields — top */}
+        <div className="px-6 py-3 space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            {/* Amount */}
-            <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Amount</label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-                <input
-                  type="number" step="0.01" min="0"
-                  value={amount}
-                  onChange={(e) => { setAmount(e.target.value); setSelectedPayment(null); }}
-                  placeholder="0.00"
-                  className="w-full pl-7 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                />
-              </div>
-            </div>
-
             {/* Payment Method */}
             <div>
               <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Method</label>
@@ -346,100 +331,124 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </div>
-          </div>
 
-          {/* Notes */}
-          <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Notes</label>
-            <textarea
-              value={notes} onChange={(e) => setNotes(e.target.value)}
-              rows={2} placeholder="Optional..."
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
-            />
+            {/* Notes */}
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Notes</label>
+              <input
+                type="text" value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Optional..."
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
           </div>
+        </div>
 
-          {/* Adjustments + live summary — invoice only */}
-          {invoice_id && (() => {
+        {/* Numbers block — amount, discount, summary, button — all together */}
+        <div className="px-6 pb-4 space-y-2">
+          {(() => {
             const invoiceDue = orderTotal ?? 0;
             const payAmt = parseFloat(amount) || 0;
             const discPct = parseFloat(discountPct) || 0;
             const discVal = discPct > 0 ? Math.round(invoiceDue * discPct) / 100 : 0;
-            const afterDiscount = invoiceDue - discVal;
-            const remainder = afterDiscount - payAmt;
+            const remainder = invoiceDue - discVal - payAmt;
             const finalBal = dismissBalance ? 0 : Math.max(0, remainder);
 
             return (
               <>
-                <div className="flex items-center gap-4 pt-1">
-                  <div className="flex items-center gap-1">
-                    <label className="text-xs text-slate-500 dark:text-slate-400">Discount</label>
-                    <input
-                      type="number" step="0.5" min="0" max="100"
-                      value={discountPct}
-                      onChange={(e) => setDiscountPct(e.target.value)}
-                      placeholder="%"
-                      className="w-16 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-right text-sm"
-                    />
-                    <span className="text-xs text-slate-400">%</span>
+                {/* Amount + Discount + Dismiss — one row */}
+                <div className="flex items-end gap-3">
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Amount</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+                      <input
+                        type="number" step="0.01" min="0"
+                        value={amount}
+                        onChange={(e) => { setAmount(e.target.value); setSelectedPayment(null); }}
+                        placeholder="0.00"
+                        className="w-full pl-7 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      />
+                    </div>
                   </div>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={dismissBalance}
-                      onChange={(e) => setDismissBalance(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
-                    />
-                    <span className="text-xs text-slate-500 dark:text-slate-400">Dismiss balance</span>
-                  </label>
+                  {invoice_id && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Discount</label>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number" step="0.5" min="0" max="100"
+                            value={discountPct}
+                            onChange={(e) => setDiscountPct(e.target.value)}
+                            placeholder="%"
+                            className="w-16 px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-right text-sm"
+                          />
+                          <span className="text-xs text-slate-400">%</span>
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-1.5 cursor-pointer pb-2">
+                        <input
+                          type="checkbox"
+                          checked={dismissBalance}
+                          onChange={(e) => setDismissBalance(e.target.checked)}
+                          className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                        />
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Dismiss</span>
+                      </label>
+                    </>
+                  )}
                 </div>
 
-                {/* Live summary — no calculator needed */}
-                <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-3 text-sm font-mono space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Invoice due</span>
-                    <span className="text-slate-900 dark:text-white">{formatCurrency(invoiceDue)}</span>
-                  </div>
-                  {discVal > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Discount ({discPct}%)</span>
-                      <span>-{formatCurrency(discVal)}</span>
+                {/* Live summary — immediately below the numbers */}
+                {invoice_id && (
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-3 text-sm font-mono space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Invoice due</span>
+                      <span className="text-slate-900 dark:text-white">{formatCurrency(invoiceDue)}</span>
                     </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Payment</span>
-                    <span className="text-slate-900 dark:text-white">-{formatCurrency(payAmt)}</span>
-                  </div>
-                  {remainder > 0 && dismissBalance && (
-                    <div className="flex justify-between text-amber-600">
-                      <span>Write-off</span>
-                      <span>-{formatCurrency(remainder)}</span>
+                    {discVal > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Discount ({discPct}%)</span>
+                        <span>-{formatCurrency(discVal)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Payment</span>
+                      <span className="text-slate-900 dark:text-white">-{formatCurrency(payAmt)}</span>
                     </div>
-                  )}
-                  <div className="flex justify-between border-t border-slate-300 dark:border-slate-600 pt-1 font-semibold">
-                    <span className={finalBal === 0 ? 'text-green-700' : 'text-red-600'}>
-                      {finalBal === 0 ? 'Paid in full' : 'Remaining'}
-                    </span>
-                    <span className={finalBal === 0 ? 'text-green-700' : 'text-red-600'}>
-                      {formatCurrency(finalBal)}
-                    </span>
+                    {remainder > 0 && dismissBalance && (
+                      <div className="flex justify-between text-amber-600">
+                        <span>Write-off</span>
+                        <span>-{formatCurrency(remainder)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between border-t border-slate-300 dark:border-slate-600 pt-1 font-semibold">
+                      <span className={finalBal === 0 ? 'text-green-700' : 'text-red-600'}>
+                        {finalBal === 0 ? 'Paid in full' : 'Remaining'}
+                      </span>
+                      <span className={finalBal === 0 ? 'text-green-700' : 'text-red-600'}>
+                        {formatCurrency(finalBal)}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Button — right after the numbers */}
+                <button
+                  onClick={handleSaveNew}
+                  disabled={saving || !amount || parseFloat(amount) <= 0 || !!selectedPayment}
+                  className="w-full px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  {saving && !selectedPayment ? (
+                    <><FaSpinner className="animate-spin" size={14} /> Saving...</>
+                  ) : (
+                    <><FaCheck size={14} /> Enter Payment {amount ? formatCurrency(parseFloat(amount)) : ''}</>
+                  )}
+                </button>
               </>
             );
           })()}
-
-          {/* Save new payment button */}
-          <button
-            onClick={handleSaveNew}
-            disabled={saving || !amount || parseFloat(amount) <= 0 || !!selectedPayment}
-            className="w-full px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center gap-2"
-          >
-            {saving && !selectedPayment ? (
-              <><FaSpinner className="animate-spin" size={14} /> Saving...</>
-            ) : (
-              <><FaCheck size={14} /> Enter Payment {amount ? formatCurrency(parseFloat(amount)) : ''}</>
-            )}
-          </button>
         </div>
 
         {/* Available payments panel — invoice context only */}
