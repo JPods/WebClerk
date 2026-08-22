@@ -382,6 +382,56 @@ def create_payment_ledger(sender, instance: Payment, created, **kwargs):
         )
 
 
+@receiver(post_save, sender=Payment)
+def update_order_received(sender, instance: Payment, created, **kwargs):
+    """When a payment references an order, update order.totals.received and balance."""
+    if not created:
+        return
+    try:
+        refs = instance.refs if isinstance(instance.refs, dict) else {}
+        order_ids = refs.get('order_ids', [])
+        source = refs.get('source', {})
+        if source.get('type') == 'order' and source.get('id'):
+            oid = source['id']
+            if oid not in order_ids:
+                order_ids = list(order_ids) + [oid]
+        if not order_ids:
+            return
+
+        from decimal import Decimal
+        for oid in order_ids:
+            try:
+                order = Order.objects.get(pk=oid)
+            except Order.DoesNotExist:
+                continue
+            # Sum all completed payments linked to this order
+            all_payments = Payment.objects.filter(
+                status='completed', is_active=True,
+            )
+            total_received = Decimal('0')
+            for p in all_payments:
+                p_refs = p.refs if isinstance(p.refs, dict) else {}
+                p_order_ids = p_refs.get('order_ids', [])
+                p_source = p_refs.get('source', {})
+                if oid in p_order_ids or (p_source.get('type') == 'order' and p_source.get('id') == oid):
+                    total_received += Decimal(str(p.amount or 0))
+
+            totals = order.totals if isinstance(order.totals, dict) else {}
+            order_total = Decimal(str(totals.get('total', 0)))
+            totals['received'] = float(total_received)
+            totals['balance'] = float(order_total - total_received)
+            # Use queryset update to avoid version conflicts with open browser sessions
+            Order.objects.filter(pk=oid).update(
+                totals=totals,
+                balance=order_total - total_received,
+            )
+    except Exception:
+        import logging
+        logging.getLogger('transactions.signals').warning(
+            "Failed to update order received for payment #%s", instance.pk, exc_info=True
+        )
+
+
 # =============================================================================
 # ALLIE CAPTURE — development process + transaction monitoring
 # Fire-and-forget. These receivers never block the request cycle.

@@ -116,10 +116,11 @@ def calculate_campaign_roi(campaign_id: int) -> Dict:
     order_count = orders.count()
     invoice_count = invoices.count()
 
-    # Sum revenue from invoices
+    # Sum revenue from invoices — json.path.value only
     total_revenue = Decimal('0')
     for inv in invoices:
-        total_revenue += _dec(inv.total)
+        totals = inv.totals if isinstance(inv.totals, dict) else {}
+        total_revenue += _dec(totals.get('total', 0))
 
     spent = _dec(data.get('spent', 0))
     budget = _dec(data.get('budget', 0))

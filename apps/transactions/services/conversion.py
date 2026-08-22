@@ -511,11 +511,51 @@ def _do_convert(
             f"No convertible lines (all have remaining <= 0)"
         )
 
+    # ── Forward payments from source to target ────────────────────────
+    # Invoice knows its parent (parent_id, parent_model). Find payments
+    # linked to the parent order via refs.source and re-link to the invoice.
+    payments_forwarded = 0
+    if source_type == "order" and target_type == "invoice":
+        Payment = _get_model("payment")
+        # Find payments whose parent is this order
+        order_payments = Payment.objects.filter(
+            is_active=True,
+            parent_model="order",
+            parent_id=source_id,
+        )
+        for pay in order_payments:
+            pay.invoice_id = target.pk
+            refs = pay.refs if isinstance(pay.refs, dict) else {}
+            inv_ids = refs.get("invoice_ids", [])
+            if target.pk not in inv_ids:
+                refs["invoice_ids"] = list(inv_ids) + [target.pk]
+                pay.refs = refs
+            pay.save(update_fields=["invoice_id", "refs", "dt_modified", "version"])
+            payments_forwarded += 1
+
+        # Update invoice totals.received and balance
+        if payments_forwarded > 0:
+            total_received = sum(
+                Decimal(str(p.amount or 0))
+                for p in Payment.objects.filter(
+                    invoice_id=target.pk, status="completed", is_active=True,
+                )
+            )
+            target_totals = target.totals if isinstance(target.totals, dict) else {}
+            target_total = Decimal(str(target_totals.get("total", 0)))
+            target_totals["received"] = float(total_received)
+            target_totals["balance"] = float(target_total - total_received)
+            TargetModel.objects.filter(pk=target.pk).update(
+                totals=target_totals,
+                balance=target_total - total_received,
+            )
+
     return {
         f"{target_type}_id": target.pk,
         f"{target_type}_ida": getattr(target, "ida", ""),
         "lines_for_review": lines_available,
         "lines": lines_for_review,
+        "payments_forwarded": payments_forwarded,
     }
 
 

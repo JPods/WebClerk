@@ -86,10 +86,11 @@ def accrue_manufacturer_rebate(
         dt_created__lte=period_end_ms,
     )
 
+    # json.path.value — read from totals envelope, never scalar
     purchases_total = Decimal('0')
     for p in purchases:
-        amt = _dec(p.total) if p.total else Decimal('0')
-        purchases_total += amt
+        totals = p.totals if isinstance(p.totals, dict) else {}
+        purchases_total += _dec(totals.get('total', 0))
 
     rebate_earned = (purchases_total * rebate_rate_pct) / Decimal('100')
 

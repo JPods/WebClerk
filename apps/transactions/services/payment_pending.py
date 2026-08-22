@@ -37,6 +37,54 @@ SYS_WRITEOFF = 'SYS-WRITEOFF'
 SYS_FXDIFF = 'SYS-FXDIFF'
 
 
+def _create_discount_line(
+    invoice, disc_value: Decimal, discount_pct: float, source_payment=None,
+) -> None:
+    """Create a negative invoice line for the discount amount.
+
+    Discount reduces the invoice total (not a separate payment).
+    The line has line_type='discount' and purpose='payment_discount'.
+    After creating the line, recalculate invoice totals.
+    """
+    from apps.transactions.models import InvoiceLine
+
+    # Find next line number
+    last_line = (
+        InvoiceLine.objects.filter(invoice_id=invoice.pk)
+        .order_by('-line_number')
+        .values_list('line_number', flat=True)
+        .first()
+    ) or 0
+    next_line = (last_line // 10 + 1) * 10
+
+    reason = f'{discount_pct}% payment discount' if discount_pct > 0 else 'Payment discount'
+
+    InvoiceLine.objects.create(
+        invoice_id=invoice.pk,
+        line_number=next_line,
+        line_type='discount',
+        purpose='payment_discount',
+        item={'name': reason, 'ida': SYS_DISCOUNT},
+        quantity={'active': 1},
+        price={
+            'unit': float(-disc_value),
+            'extended': float(-disc_value),
+        },
+        metadata={
+            'discount_pct': discount_pct,
+            'discount_amt': float(disc_value),
+            'source_payment_id': source_payment.pk if source_payment else None,
+        },
+    )
+
+    # Recalculate invoice totals so balance reflects the discount
+    invoice.update_sell_cost_totals(persist=True)
+    invoice.refresh_from_db()
+
+    logger.info("Created discount line on invoice %s: -$%s (%s)",
+                invoice.pk, disc_value, reason)
+
+
 def _create_adjustment_payment(
     invoice, method: str, amount: Decimal, reason: str = '',
     source_payment=None,
@@ -93,6 +141,7 @@ def apply_payment_to_invoice(
     reason: str = '',
     contact_id: Optional[int] = None,
     discount_pct: float = 0,
+    discount_amt: float = 0,
     dismiss_balance: bool = False,
     fx_difference: float = 0,
 ) -> Dict[str, Any]:
@@ -101,9 +150,8 @@ def apply_payment_to_invoice(
     If the invoice is not locked, applies immediately (reduce invoice balance,
     update payment). If locked, queues for celery.
 
-    Adjustments (discount, dismiss, fx) add SYS-* lines to the invoice
-    before applying the payment. The lines reduce the invoice total through
-    normal totals recalculation.
+    Discount creates an invoice line (reduces invoice total).
+    Dismiss creates a separate write-off payment with its own GL.
 
     Returns:
         {pending_id, state, amount, applied, adjustments}
@@ -120,17 +168,18 @@ def apply_payment_to_invoice(
 
     adjustments = []
 
-    # ── Discount (payment-side — separate Payment record) ─────────
-    if discount_pct > 0:
+    # ── Discount — creates an invoice line that reduces the total ────
+    disc_value = Decimal('0')
+    if discount_amt > 0:
+        disc_value = Decimal(str(discount_amt))
+    elif discount_pct > 0:
         totals = invoice.totals or {}
-        invoice_total = Decimal(str(totals.get('total') or invoice.total or 0))
-        discount_amt = (invoice_total * Decimal(str(discount_pct)) / 100).quantize(Decimal('0.01'))
-        _create_adjustment_payment(
-            invoice, 'discount', discount_amt,
-            reason=f'{discount_pct}% payment discount',
-            source_payment=payment,
-        )
-        adjustments.append({'type': 'discount', 'amount': float(discount_amt)})
+        invoice_total = Decimal(str(totals.get('total', 0)))
+        disc_value = (invoice_total * Decimal(str(discount_pct)) / 100).quantize(Decimal('0.01'))
+
+    if disc_value > 0:
+        _create_discount_line(invoice, disc_value, discount_pct, payment)
+        adjustments.append({'type': 'discount', 'amount': float(disc_value)})
 
     # ── FX difference (payment-side) ────────────────────────────────
     if fx_difference != 0:
@@ -170,7 +219,7 @@ def apply_payment_to_invoice(
     # ── Dismiss remaining balance ───────────────────────────────────
     if dismiss_balance and applied:
         invoice.refresh_from_db()
-        remaining = Decimal(str((invoice.totals or {}).get('balance') or invoice.balance or 0))
+        remaining = Decimal(str((invoice.totals or {}).get('balance', 0)))
         if remaining > 0:
             _create_adjustment_payment(
                 invoice, 'write_off', remaining,
