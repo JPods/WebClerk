@@ -28,6 +28,7 @@ import { TouchBar, TOUCH_MODELS } from './TouchBar';
 import { BOMPanel } from './BOMPanel';
 import { MatchCandidatesPanel } from './MatchCandidatesPanel';
 import { GroupedDetailFields } from './GroupedDetailFields';
+import { JsonSchemaTree, ENVELOPE_SCHEMAS } from '../../components/widgets/JsonSchemaTree';
 import { themes, type ThemeKey } from './dbThemes';
 import { APP_DETAIL_ROUTES, APP_DETAIL_COMPONENTS } from './dbRoutes';
 import './DataBrowser.css';
@@ -233,6 +234,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   const [showDupes, setShowDupes] = useState(false);
   const [showDedup, setShowDedup] = useState(false);
   const [showMarkdownTemplate, setShowMarkdownTemplate] = useState<'list' | 'detail' | null>(null);
+  const [showSchemaTree, setShowSchemaTree] = useState(false);
   const [mdTemplateContent, setMdTemplateContent] = useState('');
   const [mdTemplateName, setMdTemplateName] = useState('');
   const [dedupAllIds, setDedupAllIds] = useState<number[]>([]);
@@ -494,8 +496,12 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
       {/* ═══ Header — model picker + search + date range + who ═══ */}
       <header data-wc="db-header" className="db-header" data-zone="db.header | .db-header | DataBrowser.tsx">
         <button data-wc="db-model-picker" className="db-btn db-model-picker-btn"
-          onClick={() => { setShowModelPicker((p) => { const n = !p; if (n) setTimeout(() => modelInputRef.current?.focus(), 50); return n; }); }}
-          title="Cmd/Ctrl+Shift+M">{db.modelLabel} <span className="db-model-count">({db.modelNames.length})</span></button>
+          onClick={(e) => {
+            if (e.shiftKey) { e.preventDefault(); e.stopPropagation(); setShowSchemaTree(s => !s); return; }
+            setShowModelPicker((p) => { const n = !p; if (n) setTimeout(() => modelInputRef.current?.focus(), 50); return n; });
+          }}
+          onMouseDown={(e) => { if (e.shiftKey) { e.preventDefault(); } }}
+          title="Cmd/Ctrl+Shift+M · Shift+click: JSON schema">{db.modelLabel} <span className="db-model-count">({db.modelNames.length})</span></button>
         <input data-wc="db-search" className="db-search" type="text" placeholder="Search records..." value={db.searchTerm} onChange={(e) => db.setSearchTerm(e.target.value)} />
 
         {/* Date range */}
@@ -561,6 +567,20 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
             </div>
             <div className="db-model-count">{filteredModels.length}/{db.modelNames.length} · Cmd/Ctrl+Shift+M</div>
           </div>
+        </div>
+      )}
+
+      {/* JSON Schema Tree — shift-click model name */}
+      {showSchemaTree && (
+        <div className="db-model-picker-panel" style={{ width: '70%', maxWidth: 'none', padding: 12, maxHeight: '80vh', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>JSON Envelope Schema — {db.modelLabel}</span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <a href="/json-schema" target="_blank" rel="noopener" style={{ fontSize: 11, color: '#2563eb', textDecoration: 'none' }}>Print Reference ↗</a>
+              <button className="db-btn" onClick={() => setShowSchemaTree(false)} style={{ fontSize: 11 }}>✕ Close</button>
+            </div>
+          </div>
+          <JsonSchemaTree modelName={db.selectedModel} />
         </div>
       )}
 

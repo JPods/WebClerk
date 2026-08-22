@@ -66,15 +66,10 @@ export interface InvoicePrintData {
   packedBy?: string;
   contractDetailTag?: string;
   
-  // Financials
-  amount?: number;
-  salesTax?: number;
-  shipTotal?: number;
-  total?: number;
+  // Financials — JSON envelope is source of truth
+  totals?: Record<string, number>;
   downPayment?: number;
-  amountPaid?: number;
-  balanceDue?: number;
-  invoices_BalanceDue?: number; // Legacy field name
+  invoices_BalanceDue?: number;
   
   // Comments
   comment?: string;
@@ -173,13 +168,13 @@ const transformInvoiceData = (data: InvoicePrintData, lines?: InvoiceLineData[])
   }));
 
   const totals: PrintTotals = {
-    salesAmount: data.amount,
-    salesTax: data.salesTax,
-    shipping: data.shipTotal,
-    total: data.total,
+    salesAmount: data.totals?.subtotal,
+    salesTax: data.totals?.tax,
+    shipping: data.totals?.shipping,
+    total: data.totals?.total,
     downPayment: data.downPayment || data.invoices_BalanceDue,
-    amountPaid: data.amountPaid,
-    balanceDue: data.balanceDue,
+    amountPaid: data.totals?.received,
+    balanceDue: data.totals?.balance,
   };
 
   const comments: PrintComments = {

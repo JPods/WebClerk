@@ -39,13 +39,9 @@ export interface InvoiceShippingData {
   packedBy?: string;
   // Lines
   lines?: InvoiceShippingLine[];
-  // Totals
-  salesAmount?: number;
-  salesTax?: number;
-  shipping?: number;
-  total?: number;
+  // Financials — JSON envelope is source of truth
+  totals?: Record<string, number>;
   downPayment?: number;
-  balanceDue?: number;
   // Comments
   comment?: string;
   contractDetail?: string;
@@ -221,19 +217,19 @@ export default function InvoiceShippingPrint({
             <tbody>
               <tr className="border-b border-gray-200">
                 <td className="py-1 font-semibold">Sales Amount</td>
-                <td className="py-1 text-right">{formatCurrency(data.salesAmount)}</td>
+                <td className="py-1 text-right">{formatCurrency(data.totals?.subtotal)}</td>
               </tr>
               <tr className="border-b border-gray-200">
                 <td className="py-1 font-semibold">Sales Tax</td>
-                <td className="py-1 text-right">{formatCurrency(data.salesTax || 0)}</td>
+                <td className="py-1 text-right">{formatCurrency(data.totals?.tax ?? 0)}</td>
               </tr>
               <tr className="border-b border-gray-200">
                 <td className="py-1 font-semibold">Shipping/Handling*</td>
-                <td className="py-1 text-right">{formatCurrency(data.shipping || 0)}</td>
+                <td className="py-1 text-right">{formatCurrency(data.totals?.shipping ?? 0)}</td>
               </tr>
               <tr className="border-b border-gray-200 font-bold">
                 <td className="py-1">Invoice Total</td>
-                <td className="py-1 text-right">{formatCurrency(data.total)}</td>
+                <td className="py-1 text-right">{formatCurrency(data.totals?.total)}</td>
               </tr>
               {data.downPayment !== undefined && (
                 <tr className="border-b border-gray-200">
@@ -243,7 +239,7 @@ export default function InvoiceShippingPrint({
               )}
               <tr className="font-bold">
                 <td className="py-1">Balance Due</td>
-                <td className="py-1 text-right">{formatCurrency(data.balanceDue)}</td>
+                <td className="py-1 text-right">{formatCurrency(data.totals?.balance)}</td>
               </tr>
             </tbody>
           </table>

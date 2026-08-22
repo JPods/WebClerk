@@ -14,18 +14,18 @@ import DataBrowser from "../pages/admin/DataBrowser";
 import NotFoundPage from "../pages/NotFoundPage";
 import DDCardDashboard from "../pages/Dashboard/DDCardDashboard";
 
+const PortalDashboard = React.lazy(() => import("../pages/Dashboard/PortalDashboard"));
 const UiDetail = React.lazy(() => import("../apps/transactions/components/TransactionDetail"));
 const ShoppingCart = React.lazy(() => import("../apps/transactions/components/ShoppingCart"));
 const AliceDashboard = React.lazy(() => import("../pages/admin/AliceDashboard"));
 const AdminTools = React.lazy(() => import("../pages/admin/AdminTools"));
 const HelpDashboard = React.lazy(() => import("../pages/admin/HelpDashboard"));
 const InventoryDashboard = React.lazy(() => import("../pages/admin/InventoryDashboard"));
-const ContactDetailJson = React.lazy(() => import("../apps/core/models/contact/pages/ContactDetailJson"));
-const OrgDetailJson = React.lazy(() => import("../apps/orgs/components/OrgDetail.json"));
-const ItemDetailJson = React.lazy(() => import("../apps/products/pages/ItemDetailJson"));
+const ModelDetailPage = React.lazy(() => import("../components/common/ModelDetailPage"));
 const KanbanBoardPage = React.lazy(() => import("../apps/utils/kanban/KanbanBoardPage"));
 const UnifiedGanttPage = React.lazy(() => import("../apps/utils/gantt/UnifiedGanttPage"));
 const JsonTreeApplet = React.lazy(() => import("../pages/tools/JsonTreeApplet"));
+const JsonSchemaReference = React.lazy(() => import("../pages/tools/JsonSchemaReference"));
 const InventoryAdjust = React.lazy(() => import("../apps/products/pages/InventoryAdjust"));
 const CycleCountMobile = React.lazy(() => import("../apps/products/pages/CycleCountMobile"));
 const CustomPageLoader = React.lazy(() => import("./CustomPageLoader"));
@@ -37,6 +37,19 @@ const FlightSimConsole = React.lazy(() => import("../pages/admin/FlightSimConsol
 const S: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <React.Suspense fallback={<div style={{padding:40}}>Loading...</div>}>{children}</React.Suspense>
 );
+
+/** Redirect portal users to /portal, employees to /dashboard */
+const HomeRedirect: React.FC = () => {
+  // Read from localStorage to avoid flash — Redux may still be loading
+  try {
+    const raw = localStorage.getItem('userProfile');
+    if (raw) {
+      const u = JSON.parse(raw);
+      if (u.is_portal) return <Navigate to="/portal" replace />;
+    }
+  } catch { /* ignore */ }
+  return <Navigate to="/dashboard" replace />;
+};
 
 // Transaction models — use UiDetail
 const TRANSACTION_MODELS = [
@@ -71,11 +84,13 @@ const Router: React.FC = () => {
         <Route path="/register" element={<SignUp />} />
         <Route path="/cart" element={<S><ShoppingCart items={[]} onUpdateQuantity={() => {}} onRemoveItem={() => {}} onCheckout={() => {}} onContinueShopping={() => {}} /></S>} />
         <Route path="/json-tree" element={<S><JsonTreeApplet /></S>} />
+        <Route path="/json-schema" element={<S><JsonSchemaReference /></S>} />
 
         {/* Protected */}
         <Route element={<PrivateRoute />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route index element={<HomeRedirect />} />
           <Route path="dashboard" element={<DDCardDashboard dashboardName="sales" />} />
+          <Route path="portal" element={<S><PortalDashboard /></S>} />
           <Route path="browser" element={<DataBrowser />} />
           <Route path="profile" element={<UserProfiles />} />
           <Route path="alice-dashboard" element={<S><AliceDashboard /></S>} />
@@ -104,10 +119,8 @@ const Router: React.FC = () => {
 
           {/* /:model = list, /:model/:id = record */}
           {TRANSACTION_MODELS.map(m => <Route key={`${m}-id`} path={`${m}/:id`} element={<S><UiDetail modelName={m} /></S>} />)}
-          <Route path="contact/:id" element={<S><ContactDetailJson /></S>} />
-          <Route path="item/:id" element={<S><ItemDetailJson /></S>} />
-          {['customer', 'vendor', 'manufacturer', 'employee', 'rep'].map(m =>
-            <Route key={`${m}-id`} path={`${m}/:id`} element={<S><OrgDetailJson modelName={m} /></S>} />
+          {['contact', 'item', 'customer', 'vendor', 'manufacturer', 'employee', 'rep', 'action', 'touch'].map(m =>
+            <Route key={`${m}-id`} path={`${m}/:id`} element={<S><ModelDetailPage modelName={m} /></S>} />
           )}
           {/* /td/:model/:id — alternate record route */}
           <Route path="td/:model/:id" element={<S><UiDetail /></S>} />

@@ -23,11 +23,7 @@ export function mapJsonToOrderPrintData(json: any): {
       : undefined,
     dateShipped: undefined,
     terms: json.terms,
-    total: json.totals?.total,
-    amount: json.totals?.subtotal,
-    salesTax: json.totals?.tax,
-    shipTotal: json.totals?.shipping,
-    balanceDueEstimated: json.totals?.balance,
+    totals: json.totals,
     comment: json.comments?.public,
     contractDetail: json.conditions_description,
     pvTermState: undefined,
@@ -125,12 +121,8 @@ export interface OrderPrintData {
   contractDetailTag?: string;
   packedBy?: string;
 
-  // Financials
-  amount?: number;
-  salesTax?: number;
-  shipTotal?: number;
-  total?: number;
-  balanceDueEstimated?: number;
+  // Financials — JSON envelope is source of truth
+  totals?: Record<string, number>;
 
   // Comments
   comment?: string;
@@ -167,11 +159,7 @@ const dummyData = {
   salesNameId: "S-001",
   terms: "Net 30",
   fob: "Jamestown",
-  amount: 1000,
-  salesTax: 80,
-  shipTotal: 50,
-  total: 1130,
-  balanceDueEstimated: 1130,
+  totals: { subtotal: 1000, tax: 80, shipping: 50, total: 1130, balance: 1130 },
   comment: "Thank you for your business.",
   contractDetail: "Standard contract applies.",
   pvTermState: "MO",
@@ -290,11 +278,11 @@ const transformOrderData = (data: OrderPrintData, lines?: OrderLineData[]) => {
   );
 
   const totals: PrintTotals = {
-    salesAmount: data.amount,
-    salesTax: data.salesTax,
-    shipping: data.shipTotal,
-    total: data.total,
-    balanceDue: data.balanceDueEstimated,
+    salesAmount: data.totals?.subtotal,
+    salesTax: data.totals?.tax,
+    shipping: data.totals?.shipping,
+    total: data.totals?.total,
+    balanceDue: data.totals?.balance,
   };
 
   const comments: PrintComments = {

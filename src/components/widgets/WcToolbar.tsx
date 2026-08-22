@@ -52,11 +52,11 @@ export const WcToolbar: React.FC<WcToolbarProps> = ({ buttons, record, className
           {record.ida && <span className="text-sm font-mono text-slate-700 dark:text-slate-200">{record.ida}</span>}
           {record.status && <WcBadge value={record.status} />}
           <span className="flex-1" />
-          {record.total != null && (
-            <span className="text-xs text-slate-500">Total: <span className="font-medium text-slate-900 dark:text-white">{formatCurrency(record.total)}</span></span>
+          {record.totals?.total != null && (
+            <span className="text-xs text-slate-500">Total: <span className="font-medium text-slate-900 dark:text-white">{formatCurrency(record.totals.total)}</span></span>
           )}
-          {record.balance != null && record.balance > 0 && (
-            <span className="text-xs text-slate-500 ml-2">Bal: <span className="font-medium text-red-600">{formatCurrency(record.balance)}</span></span>
+          {record.totals?.balance != null && record.totals.balance > 0 && (
+            <span className="text-xs text-slate-500 ml-2">Bal: <span className="font-medium text-red-600">{formatCurrency(record.totals.balance)}</span></span>
           )}
         </div>
       )}

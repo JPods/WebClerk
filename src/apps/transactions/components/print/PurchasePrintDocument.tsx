@@ -72,11 +72,8 @@ export interface PurchasePrintData {
   shipToZip?: string;
   shipToCountry?: string;
   
-  // Financials
-  subtotal?: number;
-  salesTax?: number;
-  freight?: number;
-  total?: number;
+  // Financials — JSON envelope is source of truth
+  totals?: Record<string, number>;
   
   // Comments
   comment?: string;
@@ -165,10 +162,10 @@ const transformPurchaseData = (data: PurchasePrintData, lines?: PurchaseLineData
   }));
 
   const totals: PrintTotals = {
-    subtotal: data.subtotal,
-    salesTax: data.salesTax,
-    shipping: data.freight,
-    total: data.total,
+    subtotal: data.totals?.subtotal,
+    salesTax: data.totals?.tax,
+    shipping: data.totals?.shipping,
+    total: data.totals?.total,
   };
 
   const comments: PrintComments = {

@@ -39,12 +39,8 @@ export interface InvoiceServiceData {
   instructions?: string;
   // Lines
   lines?: InvoiceServiceLine[];
-  // Totals — can use simple or detailed
-  salesAmount?: number;
-  salesTax?: number;
-  shipping?: number;
-  total?: number;
-  balanceDue?: number;
+  // Financials — JSON envelope is source of truth
+  totals?: Record<string, number>;
   simpleTotal?: boolean; // true = show only "Total Due"
   // Comments
   comment?: string;
@@ -249,18 +245,18 @@ export default function InvoiceServicePrint({
               <tbody>
                 <tr className="font-bold">
                   <td className="py-1 text-right pr-3">Total Due</td>
-                  <td className="py-1 text-right">{formatCurrency(data.total || data.balanceDue)}</td>
+                  <td className="py-1 text-right">{formatCurrency(data.totals?.total ?? data.totals?.balance)}</td>
                 </tr>
               </tbody>
             </table>
           ) : (
             <table className="w-full">
               <tbody>
-                <tr><td className="py-0.5 text-right pr-3">Sales Amount</td><td className="py-0.5 text-right">{formatCurrency(data.salesAmount)}</td></tr>
-                <tr><td className="py-0.5 text-right pr-3">Tax</td><td className="py-0.5 text-right">{formatCurrency(data.salesTax || 0)}</td></tr>
-                <tr><td className="py-0.5 text-right pr-3">Ship/Handling</td><td className="py-0.5 text-right">{formatCurrency(data.shipping || 0)}</td></tr>
-                <tr className="font-bold"><td className="py-1 text-right pr-3">Invoice Total</td><td className="py-1 text-right">{formatCurrency(data.total)}</td></tr>
-                <tr className="font-bold"><td className="py-0.5 text-right pr-3">Balance Due</td><td className="py-0.5 text-right">{formatCurrency(data.balanceDue)}</td></tr>
+                <tr><td className="py-0.5 text-right pr-3">Sales Amount</td><td className="py-0.5 text-right">{formatCurrency(data.totals?.subtotal)}</td></tr>
+                <tr><td className="py-0.5 text-right pr-3">Tax</td><td className="py-0.5 text-right">{formatCurrency(data.totals?.tax ?? 0)}</td></tr>
+                <tr><td className="py-0.5 text-right pr-3">Ship/Handling</td><td className="py-0.5 text-right">{formatCurrency(data.totals?.shipping ?? 0)}</td></tr>
+                <tr className="font-bold"><td className="py-1 text-right pr-3">Invoice Total</td><td className="py-1 text-right">{formatCurrency(data.totals?.total)}</td></tr>
+                <tr className="font-bold"><td className="py-0.5 text-right pr-3">Balance Due</td><td className="py-0.5 text-right">{formatCurrency(data.totals?.balance)}</td></tr>
               </tbody>
             </table>
           )}
