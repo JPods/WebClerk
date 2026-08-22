@@ -109,7 +109,32 @@ class TransactionBaseModel(BaseModel):
     """Abstract Django base for transaction headers.
 
     Minimal fields only; JSON envelopes and lifecycle come from common.BaseModel.
+
+    Totals: ONE engine — recalculate_totals() in services/totals.py.
+    JSON is the source of truth. Denormalized total/balance are indexes into it.
     """
+
+    def update_sell_cost_totals(self, persist: bool = True) -> dict:
+        """Recompute all totals from line data using the single totals engine.
+
+        JSON is computed from line data. Display values are projections of JSON.
+        Never the reverse.
+        """
+        from apps.transactions.services.totals import recalculate_totals
+        model_name = self._meta.model_name
+        if persist:
+            # recalculate_totals persists internally (totals, total, balance, metadata)
+            result = recalculate_totals(self.pk, model_name)
+            self.refresh_from_db(fields=['totals', 'total', 'balance'])
+            return result
+        else:
+            # Dry run — compute without saving (for previews)
+            from apps.transactions.services.totals import _resolve_header_and_lines, _d, _is_sell_side
+            # For non-persist, delegate to the old per-model compute for backward compat
+            # TODO: refactor recalculate_totals to support dry_run mode
+            result = recalculate_totals(self.pk, model_name)
+            self.refresh_from_db(fields=['totals', 'total', 'balance'])
+            return result
 
     STATUS_PLANNED = "planned"
     STATUS_RELEASED = "released"
