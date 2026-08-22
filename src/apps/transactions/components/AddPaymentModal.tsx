@@ -1,22 +1,37 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+/* LastChecked: 2026-08-21 | WhereUsed: TransactionDetail toolbar | WhoCreated: Claude */
 /**
- * AddPaymentModal - Modal for adding a new payment to an order
- * 
- * Used from OrderDetail to record payments received at order time.
- * These payments are not applied to an invoice until the invoice ships.
+ * PaymentCard — Enter a new payment or apply an existing one.
+ *
+ * Top:    Payment entry fields (amount, method, reference, date, notes)
+ * Bottom: Panel of available payments from this customer — click to apply
+ *
+ * From an Order: enter payment → amount = available (not yet applied to invoice)
+ * From an Invoice: enter new OR pick existing → applies via PendingPaymentApplication
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaTimes, FaDollarSign, FaCheck, FaSpinner } from 'react-icons/fa';
 import { useDispatch } from 'react-redux';
-import apiClient from '@/api/axios';
-import { getRecords } from '@/api/wcapi';
+import { getRecords, saveRecord, manageAction } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
+import { formatDt } from '@/utils/fieldFormatters';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface PaymentMethod {
   id: number;
   name: string;
   is_active: boolean;
+}
+
+interface AvailablePayment {
+  id: number;
+  ida?: string;
+  amount: number;
+  available?: number;
+  reference_number?: string;
+  status?: string;
+  method?: string;
+  dt_created?: string;
+  dt_payment?: string;
 }
 
 interface AddPaymentModalProps {
@@ -33,6 +48,11 @@ interface AddPaymentModalProps {
   defaultType?: 'received' | 'expense';
 }
 
+const formatCurrency = (value?: number | null) => {
+  if (value == null) return '--';
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+};
+
 const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
   isOpen,
   onClose,
@@ -42,38 +62,67 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
   contact_id,
   customer_name,
   orderTotal,
-  onPaymentAdded
+  onPaymentAdded,
 }) => {
   const dispatch = useDispatch();
-  
+
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [availablePayments, setAvailablePayments] = useState<AvailablePayment[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
   const [saving, setSaving] = useState(false);
-  
-  // Form state
+
+  // New payment form state
   const [amount, setAmount] = useState('');
   const [paymentMethodId, setPaymentMethodId] = useState<number | null>(null);
   const [referenceNumber, setReferenceNumber] = useState('');
   const [notes, setNotes] = useState('');
-  const [paymentDate, setPaymentDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  });
+  const [paymentDate, setPaymentDate] = useState(() =>
+    new Date().toISOString().split('T')[0]
+  );
 
-  // Load payment methods when modal opens
+  // Apply existing payment state
+  const [selectedPayment, setSelectedPayment] = useState<AvailablePayment | null>(null);
+  const [applyAmount, setApplyAmount] = useState('');
+
+  // Adjustment controls (invoice only)
+  const [discountPct, setDiscountPct] = useState('');
+  const [dismissBalance, setDismissBalance] = useState(false);
+
+  // Load payment methods + available payments when modal opens
   useEffect(() => {
-    if (isOpen) {
-      getRecords('paymentmethod', { is_active: true, limit: 50 })
+    if (!isOpen) return;
+
+    getRecords('paymentmethod', { is_active: true, limit: 50 })
+      .then((response) => {
+        const methods = response?.results || response || [];
+        setPaymentMethods(methods);
+        if (methods.length > 0 && !paymentMethodId) {
+          setPaymentMethodId(methods[0].id);
+        }
+      })
+      .catch(console.error);
+
+    // Load available payments for this customer (invoice context only)
+    if (invoice_id && customer_id) {
+      setLoadingPayments(true);
+      getRecords('payment', {
+        customer_id: customer_id,
+        status: 'completed',
+        limit: 50,
+      })
         .then((response) => {
-          const methods = response?.results || response || [];
-          setPaymentMethods(methods);
-          // Default to first method if available
-          if (methods.length > 0 && !paymentMethodId) {
-            setPaymentMethodId(methods[0].id);
-          }
+          const payments = (response?.results || response || []) as AvailablePayment[];
+          // Filter to payments with available balance > 0
+          const withBalance = payments.filter((p) => {
+            const avail = p.available ?? p.amount ?? 0;
+            return avail > 0;
+          });
+          setAvailablePayments(withBalance);
         })
-        .catch(console.error);
+        .catch(console.error)
+        .finally(() => setLoadingPayments(false));
     }
-  }, [isOpen]);
+  }, [isOpen, customer_id, invoice_id]);
 
   // Reset form when modal closes
   useEffect(() => {
@@ -82,24 +131,33 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
       setReferenceNumber('');
       setNotes('');
       setPaymentDate(new Date().toISOString().split('T')[0]);
+      setSelectedPayment(null);
+      setApplyAmount('');
+      setDiscountPct('');
+      setDismissBalance(false);
     }
   }, [isOpen]);
 
-  // Set default amount to order total
+  // Set default amount to order/invoice total
   useEffect(() => {
     if (isOpen && orderTotal && !amount) {
       setAmount(orderTotal.toFixed(2));
     }
   }, [isOpen, orderTotal]);
 
-  const handleSave = useCallback(async () => {
-    if (!amount || parseFloat(amount) <= 0) {
-      dispatch(showToast({ message: 'Please enter a valid amount', type: 'error' }));
-      return;
+  // When selecting an existing payment, default apply amount to min(available, balance)
+  useEffect(() => {
+    if (selectedPayment) {
+      const avail = selectedPayment.available ?? selectedPayment.amount ?? 0;
+      const balance = orderTotal ?? 0;
+      setApplyAmount(Math.min(avail, balance).toFixed(2));
     }
+  }, [selectedPayment, orderTotal]);
 
-    if (!contact_id) {
-      dispatch(showToast({ message: 'Transaction must have a customer to record payment', type: 'error' }));
+  // ── Save new payment ──────────────────────────────────────────────
+  const handleSaveNew = useCallback(async () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      dispatch(showToast({ message: 'Enter a valid amount', type: 'error' }));
       return;
     }
 
@@ -107,11 +165,11 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
     try {
       const paymentData: Record<string, unknown> = {
         amount: parseFloat(amount),
-        contact_id: contact_id,
+        contact_id,
         dt_payment: new Date(paymentDate).toISOString(),
         paymentmethod_id: paymentMethodId,
         reference_number: referenceNumber,
-        notes: notes,
+        notes,
         status: 'completed',
         gateway: 'manual',
         refs: {
@@ -126,183 +184,362 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
               : undefined,
         },
       };
-      if (invoice_id) {
-        paymentData.invoice_id = invoice_id;
-      }
+      if (invoice_id) paymentData.invoice_id = invoice_id;
 
-      const response = await apiClient.post('/wcapi/transactions/payments/', paymentData);
-      
-      if (response.data) {
-        dispatch(showToast({ 
-          message: `Payment of $${parseFloat(amount).toFixed(2)} recorded successfully`, 
-          type: 'success' 
+      const saved = await saveRecord('payment', paymentData) as any;
+      const newPaymentId = saved?.record?.id || saved?.id;
+
+      // If from an invoice, apply the payment immediately (with adjustments)
+      if (invoice_id && newPaymentId) {
+        const applyParams: Record<string, unknown> = {
+          payment_id: newPaymentId,
+          invoice_id: invoice_id,
+          amount: parseFloat(amount),
+        };
+        if (discountPct && parseFloat(discountPct) > 0) {
+          applyParams.discount_pct = parseFloat(discountPct);
+        }
+        if (dismissBalance) {
+          applyParams.dismiss_balance = true;
+        }
+        await manageAction('apply_payment_to_invoice', applyParams);
+
+        const parts = [`Payment of ${formatCurrency(parseFloat(amount))} applied`];
+        if (applyParams.discount_pct) parts.push(`${discountPct}% discount`);
+        if (dismissBalance) parts.push('balance dismissed');
+        dispatch(showToast({
+          message: parts.join(' + '),
+          type: 'success',
         }));
-        onPaymentAdded?.();
-        onClose();
+      } else {
+        dispatch(showToast({
+          message: `Payment of ${formatCurrency(parseFloat(amount))} recorded`,
+          type: 'success',
+        }));
       }
+      onPaymentAdded?.();
+      onClose();
     } catch (error: any) {
-      console.error('Error creating payment:', error);
-      const errorMessage = error.response?.data?.detail || 
-                          error.response?.data?.message ||
-                          'Failed to create payment';
-      dispatch(showToast({ message: errorMessage, type: 'error' }));
+      const msg = error.response?.data?.detail || error.response?.data?.message || 'Failed to create payment';
+      dispatch(showToast({ message: msg, type: 'error' }));
     } finally {
       setSaving(false);
     }
   }, [amount, contact_id, customer_id, paymentDate, paymentMethodId, referenceNumber, notes, order_id, invoice_id, dispatch, onPaymentAdded, onClose]);
 
+  // ── Apply existing payment ────────────────────────────────────────
+  const handleApplyExisting = useCallback(async () => {
+    if (!selectedPayment || !invoice_id) return;
+    const amt = parseFloat(applyAmount);
+    if (isNaN(amt) || amt <= 0) return;
+
+    setSaving(true);
+    try {
+      await manageAction('apply_payment_to_invoice', {
+        payment_id: selectedPayment.id,
+        invoice_id: invoice_id,
+        amount: amt,
+      });
+      dispatch(showToast({
+        message: `Applied ${formatCurrency(amt)} from ${selectedPayment.reference_number || selectedPayment.ida || `#${selectedPayment.id}`}`,
+        type: 'success',
+      }));
+      onPaymentAdded?.();
+      onClose();
+    } catch (error: any) {
+      const msg = error.response?.data?.error || error.message || 'Failed to apply payment';
+      dispatch(showToast({ message: msg, type: 'error' }));
+    } finally {
+      setSaving(false);
+    }
+  }, [selectedPayment, invoice_id, applyAmount, dispatch, onPaymentAdded, onClose]);
+
   if (!isOpen) return null;
 
-  const formatCurrency = (value?: number | null) => {
-    if (value === undefined || value === null) return '--';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value);
-  };
+  const applyAmountNum = parseFloat(applyAmount) || 0;
+  const selectedAvail = selectedPayment
+    ? (selectedPayment.available ?? selectedPayment.amount ?? 0)
+    : 0;
+  const isValidApply = selectedPayment && applyAmountNum > 0
+    && applyAmountNum <= selectedAvail
+    && applyAmountNum <= (orderTotal ?? Infinity);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-      />
-      
-      {/* Modal */}
-      <div className="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
+      <div className="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
             <FaDollarSign className="text-green-500" />
-            Add Payment
+            Enter Payment
           </h2>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-          >
-            <FaTimes size={18} />
-          </button>
+          <div className="flex items-center gap-3">
+            {customer_name && (
+              <span className="text-sm text-slate-500 dark:text-slate-400">{customer_name}</span>
+            )}
+            {orderTotal != null && (
+              <span className="text-sm font-mono text-slate-600 dark:text-slate-300">
+                {formatCurrency(orderTotal)}
+              </span>
+            )}
+            <button
+              onClick={onClose}
+              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+            >
+              <FaTimes size={18} />
+            </button>
+          </div>
         </div>
 
-        {/* Content */}
-        <div className="px-6 py-4 space-y-4">
-          {/* Transaction/Customer Info */}
-          <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-slate-500 dark:text-slate-400">Customer:</span>
-              <span className="font-medium text-slate-900 dark:text-white">{customer_name || '--'}</span>
+        {/* New payment entry */}
+        <div className="px-6 py-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            {/* Amount */}
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Amount</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+                <input
+                  type="number" step="0.01" min="0"
+                  value={amount}
+                  onChange={(e) => { setAmount(e.target.value); setSelectedPayment(null); }}
+                  placeholder="0.00"
+                  className="w-full pl-7 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
+              </div>
             </div>
-            <div className="flex justify-between mt-1">
-              <span className="text-slate-500 dark:text-slate-400">{invoice_id ? 'Invoice Total:' : 'Order Total:'}</span>
-              <span className="font-medium text-slate-900 dark:text-white">{formatCurrency(orderTotal)}</span>
-            </div>
-          </div>
 
-          {/* Amount */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Amount *
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+            {/* Payment Method */}
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Method</label>
+              <select
+                value={paymentMethodId || ''}
+                onChange={(e) => setPaymentMethodId(e.target.value ? parseInt(e.target.value) : null)}
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="">Select...</option>
+                {paymentMethods.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date */}
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Date</label>
               <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                className="w-full pl-7 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                type="date" value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
+
+            {/* Reference */}
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Reference / Check #</label>
+              <input
+                type="text" value={referenceNumber}
+                onChange={(e) => setReferenceNumber(e.target.value)}
+                placeholder="Check #, trans ID..."
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </div>
           </div>
 
-          {/* Payment Method */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Payment Method
-            </label>
-            <select
-              value={paymentMethodId || ''}
-              onChange={(e) => setPaymentMethodId(e.target.value ? parseInt(e.target.value) : null)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Select method...</option>
-              {paymentMethods.map(method => (
-                <option key={method.id} value={method.id}>{method.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Payment Date */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Payment Date
-            </label>
-            <input
-              type="date"
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-
-          {/* Reference Number */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Reference / Check #
-            </label>
-            <input
-              type="text"
-              value={referenceNumber}
-              onChange={(e) => setReferenceNumber(e.target.value)}
-              placeholder="Check number, transaction ID, etc."
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Notes
-            </label>
+            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Notes</label>
             <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-              placeholder="Optional notes about this payment..."
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              value={notes} onChange={(e) => setNotes(e.target.value)}
+              rows={2} placeholder="Optional..."
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
             />
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving || !amount || parseFloat(amount) <= 0}
-            className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {saving ? (
+          {/* Adjustments + live summary — invoice only */}
+          {invoice_id && (() => {
+            const invoiceDue = orderTotal ?? 0;
+            const payAmt = parseFloat(amount) || 0;
+            const discPct = parseFloat(discountPct) || 0;
+            const discVal = discPct > 0 ? Math.round(invoiceDue * discPct) / 100 : 0;
+            const afterDiscount = invoiceDue - discVal;
+            const remainder = afterDiscount - payAmt;
+            const finalBal = dismissBalance ? 0 : Math.max(0, remainder);
+
+            return (
               <>
-                <FaSpinner className="animate-spin" size={14} />
-                Saving...
+                <div className="flex items-center gap-4 pt-1">
+                  <div className="flex items-center gap-1">
+                    <label className="text-xs text-slate-500 dark:text-slate-400">Discount</label>
+                    <input
+                      type="number" step="0.5" min="0" max="100"
+                      value={discountPct}
+                      onChange={(e) => setDiscountPct(e.target.value)}
+                      placeholder="%"
+                      className="w-16 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-right text-sm"
+                    />
+                    <span className="text-xs text-slate-400">%</span>
+                  </div>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={dismissBalance}
+                      onChange={(e) => setDismissBalance(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Dismiss balance</span>
+                  </label>
+                </div>
+
+                {/* Live summary — no calculator needed */}
+                <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-3 text-sm font-mono space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Invoice due</span>
+                    <span className="text-slate-900 dark:text-white">{formatCurrency(invoiceDue)}</span>
+                  </div>
+                  {discVal > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount ({discPct}%)</span>
+                      <span>-{formatCurrency(discVal)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Payment</span>
+                    <span className="text-slate-900 dark:text-white">-{formatCurrency(payAmt)}</span>
+                  </div>
+                  {remainder > 0 && dismissBalance && (
+                    <div className="flex justify-between text-amber-600">
+                      <span>Write-off</span>
+                      <span>-{formatCurrency(remainder)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between border-t border-slate-300 dark:border-slate-600 pt-1 font-semibold">
+                    <span className={finalBal === 0 ? 'text-green-700' : 'text-red-600'}>
+                      {finalBal === 0 ? 'Paid in full' : 'Remaining'}
+                    </span>
+                    <span className={finalBal === 0 ? 'text-green-700' : 'text-red-600'}>
+                      {formatCurrency(finalBal)}
+                    </span>
+                  </div>
+                </div>
               </>
+            );
+          })()}
+
+          {/* Save new payment button */}
+          <button
+            onClick={handleSaveNew}
+            disabled={saving || !amount || parseFloat(amount) <= 0 || !!selectedPayment}
+            className="w-full px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            {saving && !selectedPayment ? (
+              <><FaSpinner className="animate-spin" size={14} /> Saving...</>
             ) : (
-              <>
-                <FaCheck size={14} />
-                Add Payment
-              </>
+              <><FaCheck size={14} /> Enter Payment {amount ? formatCurrency(parseFloat(amount)) : ''}</>
             )}
           </button>
         </div>
+
+        {/* Available payments panel — invoice context only */}
+        {invoice_id && (
+          <div className="border-t border-slate-200 dark:border-slate-700">
+            <div className="px-6 py-3">
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Available Payments from {customer_name || 'Customer'}
+              </h3>
+            </div>
+
+            {loadingPayments ? (
+              <div className="flex items-center justify-center py-6 text-slate-400 text-sm">
+                <FaSpinner className="animate-spin mr-2" /> Loading...
+              </div>
+            ) : availablePayments.length === 0 ? (
+              <div className="text-center py-6 text-slate-400 text-sm">
+                No available payments
+              </div>
+            ) : (
+              <div className="px-6 pb-2">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                      <th className="py-1 text-left font-medium">Reference</th>
+                      <th className="py-1 text-right font-medium">Available</th>
+                      <th className="py-1 text-right font-medium">Original</th>
+                      <th className="py-1 text-left font-medium">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {availablePayments.map((p) => {
+                      const avail = p.available ?? p.amount ?? 0;
+                      const isSelected = selectedPayment?.id === p.id;
+                      return (
+                        <tr
+                          key={p.id}
+                          onClick={() => {
+                            setSelectedPayment(isSelected ? null : p);
+                            if (isSelected) setApplyAmount('');
+                          }}
+                          className={`cursor-pointer border-b border-slate-100 dark:border-slate-700/50 transition-colors ${
+                            isSelected
+                              ? 'bg-blue-50 dark:bg-blue-900/20'
+                              : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                          }`}
+                        >
+                          <td className="py-1.5 font-mono text-slate-900 dark:text-white">
+                            {p.reference_number || p.ida || `#${p.id}`}
+                          </td>
+                          <td className="py-1.5 text-right font-mono text-green-600 dark:text-green-400 font-medium">
+                            {formatCurrency(avail)}
+                          </td>
+                          <td className="py-1.5 text-right font-mono text-slate-500 dark:text-slate-400">
+                            {formatCurrency(p.amount)}
+                          </td>
+                          <td className="py-1.5 text-slate-500 dark:text-slate-400">
+                            {formatDt(p.dt_payment || p.dt_created, 'date')}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {/* Apply selected payment */}
+                {selectedPayment && (
+                  <div className="mt-3 flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        Apply amount
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+                        <input
+                          type="number" step="0.01" min="0.01"
+                          max={Math.min(selectedAvail, orderTotal ?? Infinity)}
+                          value={applyAmount}
+                          onChange={(e) => setApplyAmount(e.target.value)}
+                          className="w-full pl-7 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleApplyExisting}
+                      disabled={saving || !isValidApply}
+                      className="mt-5 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      {saving && selectedPayment ? (
+                        <><FaSpinner className="animate-spin" size={14} /> Applying...</>
+                      ) : (
+                        <><FaCheck size={14} /> Apply</>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

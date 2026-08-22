@@ -276,7 +276,15 @@ export function TransactionItemSearch({
         onSubmit={handleSearch}
         className="flex flex-col gap-3 md:flex-row md:items-end"
       >
-        <label className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-200">
+        <button
+          type="submit"
+          className="rounded-md bg-green-600 px-3 py-1.5 font-medium text-white hover:bg-green-700 focus:outline-hidden focus:ring-2 focus:ring-green-400 shrink-0"
+          style={{ fontSize: 'inherit' }}
+          disabled={loading}
+        >
+          {loading ? "Searching…" : "Search"}
+        </button>
+        <label className="flex-1 font-medium text-gray-700 dark:text-gray-200" style={{ fontSize: 'inherit' }}>
           Item search
           <input
             type="text"
@@ -284,17 +292,11 @@ export function TransactionItemSearch({
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(e) => { if (e.key === 'Tab' && query.trim()) { e.preventDefault(); handleSearch(); } }}
             placeholder="Search by key tags, item #, or description"
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            style={{ fontSize: 'inherit' }}
             autoFocus
           />
         </label>
-        <button
-          type="submit"
-          className="h-10 rounded-md bg-blue-500 px-4 text-sm font-medium text-white hover:bg-blue-600 focus:outline-hidden focus:ring-2 focus:ring-blue-400"
-          disabled={loading}
-        >
-          {loading ? "Searching…" : "Search"}
-        </button>
       </form>
 
       {error && (
@@ -307,12 +309,12 @@ export function TransactionItemSearch({
         <table className="min-w-full text-left text-sm">
           <thead className="bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-200">
             <tr>
+              <th className="px-3 py-2"></th>
               <th className="px-3 py-2">Item</th>
               <th className="px-3 py-2">Description</th>
               <th className="px-3 py-2 text-right">On Hand</th>
               <th className="px-3 py-2 text-right">{priceHeader}</th>
               <th className="px-3 py-2 text-right">Quantity</th>
-              <th className="px-3 py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -338,6 +340,21 @@ export function TransactionItemSearch({
                     key={rowKey}
                     className="border-b border-gray-100 last:border-none dark:border-gray-700"
                   >
+                    <td className="px-3 py-2">
+                      <button
+                        type="button"
+                        onClick={() => handleAddItem(item)}
+                        disabled={!itemKey}
+                        className={`rounded-md px-3 py-1 font-medium text-white focus:outline-hidden focus:ring-2 focus:ring-green-400 ${
+                          itemKey
+                            ? "bg-green-500 hover:bg-green-600"
+                            : "cursor-not-allowed bg-gray-400 dark:bg-gray-700"
+                        }`}
+                        style={{ fontSize: 'inherit' }}
+                      >
+                        Add
+                      </button>
+                    </td>
                     <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
                       {resolveItemCode(item) || "--"}
                     </td>
@@ -362,22 +379,9 @@ export function TransactionItemSearch({
                         onChange={(event) =>
                           handleQuantityChange(itemKey, event.target.value)
                         }
-                        className="h-9 w-24 rounded border border-gray-300 px-2 text-right text-sm focus:border-blue-400 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        className="h-9 w-24 rounded border border-gray-300 px-2 text-right focus:border-blue-400 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        style={{ fontSize: 'inherit' }}
                       />
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleAddItem(item)}
-                        disabled={!itemKey}
-                        className={`rounded-md px-3 py-1 text-sm font-medium text-white focus:outline-hidden focus:ring-2 focus:ring-green-400 ${
-                          itemKey
-                            ? "bg-green-500 hover:bg-green-600"
-                            : "cursor-not-allowed bg-gray-400 dark:bg-gray-700"
-                        }`}
-                      >
-                        Add
-                      </button>
                     </td>
                   </tr>
                 );

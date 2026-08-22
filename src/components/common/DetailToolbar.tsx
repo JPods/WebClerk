@@ -15,6 +15,7 @@ import type { ReportRecord } from './PrintReportDropdown';
 import ToolbarIcon from './ToolbarIcon';
 import { TB } from './toolbarActions';
 import { WorkflowSelect } from './WorkflowSelect';
+import { CurrencyDollar } from '@phosphor-icons/react';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -42,6 +43,10 @@ export interface DetailToolbarProps {
   onDelete?: () => void;
   onToggleDesign?: () => void;
   onWorkflowComplete?: (result?: any) => void;
+  /** Add Payment (order) — creates a new payment record */
+  onAddPayment?: () => void;
+  /** Apply Payment (invoice) — applies existing payment to this invoice */
+  onApplyPayment?: () => void;
   className?: string;
 }
 
@@ -57,6 +62,7 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
   onEdit, onAddNew, onSave, onCancel, onDelete,
   designMode, userRole, onToggleDesign,
   onWorkflowComplete,
+  onAddPayment, onApplyPayment,
   className = '',
 }) => {
   const dispatch = useDispatch();
@@ -98,6 +104,28 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
       />
 
       <WorkflowSelect modelName={modelName} record={data} onComplete={onWorkflowComplete || (() => {})} />
+
+      {/* Payment buttons */}
+      {onAddPayment && data?.id && (
+        <button
+          onClick={onAddPayment}
+          className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 transition-colors"
+          title="Enter a single payment"
+        >
+          <CurrencyDollar size={16} weight="bold" />
+          Enter Payment
+        </button>
+      )}
+      {onApplyPayment && data?.id && (
+        <button
+          onClick={onApplyPayment}
+          className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 transition-colors"
+          title="Apply payments to invoices"
+        >
+          <CurrencyDollar size={16} weight="bold" />
+          Apply Payments
+        </button>
+      )}
 
       {/* Status + total + balance badges */}
       <span className="flex-1" />
