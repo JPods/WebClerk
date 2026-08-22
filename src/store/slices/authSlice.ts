@@ -7,6 +7,8 @@ export interface User {
   uuid?: string;
   email: string;
   role: string | string[];
+  roles?: string[];
+  is_portal?: boolean;
   name_first: string;
   name_middle?: string | null;
   name_last: string;

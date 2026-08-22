@@ -38,8 +38,11 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
     { key: 'link_transaction_to_campaign', label: 'Link Campaign', needsDialog: true },
   ],
   invoice: [
-    { key: 'journalize_invoice', label: 'Journalize',
+    { key: 'journalize_invoice', label: 'Journalize Invoice',
       confirm: 'Post GL journal entries + accrue commission? This locks the invoice.',
+      params: (r) => ({ invoice_id: r.id, ida_prefix: '' }) },
+    { key: 'journalize_invoice_and_payments', label: 'Journalize Invoice + Payments',
+      confirm: 'Post GL journals for this invoice AND all linked payments? This locks both.',
       params: (r) => ({ invoice_id: r.id, ida_prefix: '' }) },
     { key: 'consume_inventory', label: 'Consume Inventory', needsDialog: true },
     { key: 'assign_serial_on_ship', label: 'Assign Serial', needsDialog: true },
@@ -63,6 +66,11 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
       confirm: 'Duplicate this proposal with fresh dates?',
       params: (r) => ({ model_name: 'proposal', record_id: r.id, include_children: true }) },
     { key: 'link_transaction_to_campaign', label: 'Link Campaign', needsDialog: true },
+  ],
+  payment: [
+    { key: 'journalize_payment', label: 'Journalize',
+      confirm: 'Post GL journal entries for this payment? This locks the payment.',
+      params: (r) => ({ payment_id: r.id, ida_prefix: '' }) },
   ],
   work_order: [
     { key: 'record_production_action', label: 'Add Production Note', needsDialog: true },

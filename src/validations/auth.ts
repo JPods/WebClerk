@@ -19,9 +19,9 @@ export type LoginFormData = z.infer<typeof loginSchema>;
 // Register schema (extends login with additional fields)
 export const registerSchema = loginSchema.extend({
     email:  z.string().min(1, 'Email is required'),
-    name_first: z.string().min(1, 'First name is required'),  
+    name_first: z.string().min(1, 'First name is required'),
     name_last: z.string().min(1, 'Last name is required'),
-    //role: z.array(z.string()).min(1, "Select at least one item"),
+    portal_role: z.enum(['', 'customer', 'vendor', 'rep']).optional(),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
   })
   .refine(data => data.password === data.confirmPassword, {

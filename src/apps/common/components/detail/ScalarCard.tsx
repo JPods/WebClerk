@@ -10,6 +10,16 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import InfoRow from "./InfoRow";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
+/** Field names that auto-detect linkType for click-to-dial, mailto, and map links */
+const LINK_TYPE_MAP: Record<string, "phone" | "email" | "address"> = {
+  phone: "phone",
+  fax: "phone",
+  phone_cell: "phone",
+  phoneCell: "phone",
+  email: "email",
+  address_full: "address",
+};
+
 export interface ScalarField {
   /** Label — should match schema field name exactly */
   label: string;
@@ -21,6 +31,11 @@ export interface ScalarField {
   isCurrency?: boolean;
   /** Number of grid columns this field should span (default: 1) */
   colSpan?: 1 | 2 | 3;
+  /** Make the value a clickable link: email→mailto, phone→tel, address→Google Maps.
+   *  Auto-detected from field name if not set. */
+  linkType?: "email" | "phone" | "address";
+  /** Original field name from the data model (used for auto-detecting linkType) */
+  fieldName?: string;
 }
 
 export interface ScalarCardProps {
@@ -83,6 +98,10 @@ const ScalarCard: React.FC<ScalarCardProps> = ({
                     ? "col-span-3"
                     : "col-span-2"
                   : undefined;
+              // Auto-detect linkType from field name or label
+              const linkType = f.linkType
+                || LINK_TYPE_MAP[f.fieldName || ""]
+                || LINK_TYPE_MAP[f.label.toLowerCase().replace(/\s+/g, "_")];
               return span ? (
                 <div key={f.label} className={span}>
                   <InfoRow
@@ -90,6 +109,7 @@ const ScalarCard: React.FC<ScalarCardProps> = ({
                     value={f.value as React.ReactNode}
                     highlight={f.highlight}
                     isCurrency={f.isCurrency}
+                    linkType={linkType}
                   />
                 </div>
               ) : (
@@ -99,6 +119,7 @@ const ScalarCard: React.FC<ScalarCardProps> = ({
                   value={f.value as React.ReactNode}
                   highlight={f.highlight}
                   isCurrency={f.isCurrency}
+                  linkType={linkType}
                 />
               );
             })}

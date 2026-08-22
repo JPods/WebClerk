@@ -42,9 +42,11 @@ export interface PrintReportDropdownProps {
 
 // ── Category display ──────────────────────────────────────────────────
 
-const CATEGORY_ORDER = ['report', 'form', 'list', 'summary', 'statement', 'letter', 'label', 'export', 'utility'] as const;
+const CATEGORY_ORDER = ['customer_facing', 'operations', 'report', 'form', 'list', 'summary', 'statement', 'letter', 'label', 'export', 'function', 'admin_tool', 'vendor_facing', 'utility'] as const;
 
 const CATEGORY_LABELS: Record<string, string> = {
+  customer_facing: "Documents",
+  operations: "Operations",
   form: "Forms",
   report: "Reports",
   list: "Lists",
@@ -53,6 +55,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   letter: "Letters",
   label: "Labels",
   export: "Exports",
+  function: "Functions",
+  admin_tool: "Admin Tools",
+  vendor_facing: "Vendor Documents",
   utility: "Utilities",
 };
 
@@ -77,12 +82,11 @@ const PrintReportDropdown: React.FC<PrintReportDropdownProps> = ({
     if (!open || loaded) return;
     getRecords('report', {
       model_name_filter: modelKey,
-      output_type: 'print',
       is_active: true,
       limit: 200,
     }).then((result: any) => {
       const rows = result?.records || result?.results || result?.data?.records || result?.data?.results || [];
-      setReports(rows.filter((r: any) => r.is_active !== false));
+      setReports(rows.filter((r: any) => r.is_active !== false && r.output_type !== 'screen'));
       setLoaded(true);
     }).catch(() => setLoaded(true));
   }, [open, loaded, modelKey]);
@@ -126,7 +130,10 @@ const PrintReportDropdown: React.FC<PrintReportDropdownProps> = ({
   for (const items of grouped.values()) {
     items.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   }
-  const orderedCategories = CATEGORY_ORDER.filter(c => grouped.has(c));
+  // Known categories in order, then any unknown categories at the end
+  const knownCats = CATEGORY_ORDER.filter(c => grouped.has(c));
+  const unknownCats = [...grouped.keys()].filter(c => !CATEGORY_ORDER.includes(c as any));
+  const orderedCategories = [...knownCats, ...unknownCats];
 
   return (
     <>

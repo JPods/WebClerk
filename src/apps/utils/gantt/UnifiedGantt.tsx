@@ -2965,7 +2965,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
           )}
           
           {/* Gantt Chart */}
-          <DualScrollbar className="min-w-0 min-h-0 flex-1 rounded-b-2xl" scrollSelector="[data-wc='GanttTimeline']" style={chartZoom !== 1 ? { zoom: chartZoom } : undefined}>
+          <DualScrollbar className="min-w-0 min-h-0 flex-1 rounded-b-2xl" scrollSelector="[data-wc='GanttTimeline']">
             {selectedProjectIds.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center">
                 <svg
@@ -3034,6 +3034,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                     start={dateRange.start}
                     end={dateRange.end}
                     cellHeight={38 + ganttFontScale}
+                    cellWidth={Math.round(40 * chartZoom)}
                     taskTemplate={GanttTaskTemplate}
                     sprintEndDates={sprintEndDates}
                     onUpdateTask={handleUpdateTaskDrag}
@@ -3079,7 +3080,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                     }}
                     title="Drag to resize"
                   />
-                  <div ref={listPanelRef} className="shrink-0 overflow-auto border-t border-gray-200 dark:border-gray-700" style={{ height: `${listHeightVh}vh`, ...(chartZoom !== 1 ? { zoom: 0.8 / chartZoom } : {}) }}>
+                  <div ref={listPanelRef} className="shrink-0 overflow-auto border-t border-gray-200 dark:border-gray-700" style={{ height: `${listHeightVh}vh` }}>
                     <DataGrid
                       records={ganttData.tasks.map(t => ({
                         ...t,

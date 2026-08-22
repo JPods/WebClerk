@@ -15,6 +15,7 @@ import type { ReportRecord } from './PrintReportDropdown';
 import ToolbarIcon from './ToolbarIcon';
 import { TB } from './toolbarActions';
 import { WorkflowSelect } from './WorkflowSelect';
+import { manageAction } from '@/api/wcapi';
 import { CurrencyDollar } from '@phosphor-icons/react';
 
 // ---------------------------------------------------------------------------
@@ -69,11 +70,41 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
   const isEditing = modeProp ? modeProp !== 'view' : (isEditingProp ?? false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
-  const handlePrintSelect = (report: ReportRecord) => {
+  const handlePrintSelect = async (report: ReportRecord) => {
     const rec = currentData || data;
     if (!rec?.id) return;
 
-    const printForm = report.config?.form;
+    const config = report.config || {};
+
+    // Action-type report — calls a manage action
+    if (config.action) {
+      const confirmMsg = config.confirm as string;
+      if (confirmMsg && !confirm(confirmMsg)) return;
+
+      // Build params from record fields
+      const paramsMap = (config.params_from_record || {}) as Record<string, string>;
+      const params: Record<string, unknown> = {};
+      for (const [paramKey, recordField] of Object.entries(paramsMap)) {
+        params[paramKey] = rec[recordField as string];
+      }
+      // Merge any static params
+      if (config.params) Object.assign(params, config.params);
+
+      try {
+        const result = await manageAction(config.action as string, params);
+        const resData = result?.data?.data ?? result?.data ?? result;
+        const msg = resData?.error
+          ? `Error: ${resData.error}`
+          : `${report.name}: ${resData?.total_created ?? resData?.created ?? 0} GL entries created`;
+        dispatch(showToast({ message: msg, type: resData?.error ? 'error' : 'success' }));
+        onWorkflowComplete?.(resData);
+      } catch (e: any) {
+        dispatch(showToast({ message: `${report.name} failed: ${e.message || e}`, type: 'error' }));
+      }
+      return;
+    }
+
+    const printForm = config.form;
     if (printForm) {
       // Report has a form.json — use UniversalPrint
       openUniversalPrint(rec, companyInfo, printForm);

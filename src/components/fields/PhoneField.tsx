@@ -11,7 +11,7 @@ export default function PhoneField(props: FieldWidgetProps) {
   const [editValue, setEditValue] = useState('');
 
   const normalized = String(value ?? '');
-  const displayed = formatPhone(normalized, 'local', 'US');
+  const displayed = formatPhone(normalized);
   const href = normalized ? `tel:${normalized}` : undefined;
 
   const handleFocus = useCallback(() => {

@@ -377,6 +377,7 @@ export const GanttTimeline: FC<GanttTimelineProps> = ({
                 height: task.$h,
                 backgroundColor: colors?.bg || "#dbeafe",
                 borderLeft: `3px solid ${colors?.border || "#3b82f6"}`,
+                color: colors?.text || "#111827",
                 cursor: onUpdateTask ? "grab" : "pointer",
                 minWidth: 4,
               }}

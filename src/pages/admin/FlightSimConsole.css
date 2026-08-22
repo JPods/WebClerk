@@ -282,6 +282,43 @@
   line-height: 1.5;
 }
 
+/* ── Audit bar ──────────────────────────────────────────────────── */
+
+.fs-audit-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding: 14px 20px;
+  border: 1px solid var(--db-border, #3c3c3c);
+  border-radius: 6px;
+  background: var(--db-surface, #252526);
+}
+
+.fs-audit-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--db-text, #ececec);
+  flex-shrink: 0;
+}
+
+.fs-audit-input {
+  flex: 1;
+  max-width: 280px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-family: monospace;
+  border: 1px solid var(--db-border, #555);
+  border-radius: 4px;
+  background: var(--db-bg, #1e1e1e);
+  color: var(--db-text, #fff);
+}
+
+.fs-audit-input:focus {
+  outline: none;
+  border-color: var(--db-accent, #9cdcfe);
+}
+
 .fs-select-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
@@ -335,6 +372,63 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--db-text, #ececec);
+}
+
+/* ── Left panel sections (vertically stacked, resizable) ────────── */
+
+.fs-left-sections {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.fs-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 60px;
+  overflow: hidden;
+}
+
+.fs-section-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: var(--db-surface-alt, #252526);
+  border-bottom: 1px solid var(--db-border, #3c3c3c);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--db-text-muted, #a0a0a0);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fs-section-header span {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--db-text-dim, #777);
+}
+
+.fs-section-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Horizontal drag handle (between vertical sections) */
+.fs-vhandle {
+  height: 5px;
+  flex-shrink: 0;
+  cursor: row-resize;
+  background: var(--db-border, #333);
+  transition: background 0.15s;
+}
+
+.fs-vhandle:hover,
+.fs-vhandle--active {
+  background: var(--db-accent, #3b82f6);
 }
 
 /* ── Transaction Table (left panel) ─────────────────────────────── */
@@ -417,4 +511,154 @@
 
 .fs-tx-empty {
   color: var(--db-text-dim, #555);
+}
+
+/* ── Payment Table ─────────────────────────────────────────────── */
+
+.fs-pay-table {
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.fs-pay-header {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--db-border, #3c3c3c);
+  background: var(--db-surface-alt, #252526);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--db-text-muted, #a0a0a0);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.fs-pay-row {
+  display: flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--db-border, #2a2a2a);
+  cursor: pointer;
+}
+
+.fs-pay-row:hover {
+  background: var(--db-surface-alt, #2d2d2d);
+}
+
+.fs-pay-row--payment {
+  font-weight: 600;
+  color: var(--db-text, #ececec);
+}
+
+.fs-pay-row--application {
+  color: var(--db-accent-gold, #f59e0b);
+  padding-left: 16px;
+}
+
+.fs-pay-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-pay-label {
+  flex: 1;
+  min-width: 140px;
+}
+
+.fs-pay-amount {
+  width: 80px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.fs-pay-status {
+  width: 80px;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 10px;
+}
+
+/* ── GL Journal Table ──────────────────────────────────────────── */
+
+.fs-gl-table {
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.fs-gl-header-row {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--db-border, #3c3c3c);
+  background: var(--db-surface-alt, #252526);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--db-text-muted, #a0a0a0);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.fs-gl-row {
+  display: flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--db-border, #2a2a2a);
+}
+
+.fs-gl-row--header {
+  font-weight: 700;
+  color: var(--db-text, #ececec);
+  background: var(--db-surface, #1e1e1e);
+}
+
+.fs-gl-row--entry {
+  color: var(--db-text-muted, #ccc);
+  padding-left: 16px;
+}
+
+.fs-gl-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-gl-account {
+  flex: 1;
+  min-width: 160px;
+}
+
+.fs-gl-debit {
+  width: 80px;
+  flex-shrink: 0;
+  text-align: right;
+  color: var(--db-accent-green, #22c55e);
+}
+
+.fs-gl-credit {
+  width: 80px;
+  flex-shrink: 0;
+  text-align: right;
+  color: var(--db-accent-red, #ef4444);
+}
+
+.fs-gl-source {
+  width: 80px;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 10px;
+  color: var(--db-text-dim, #777);
+}
+
+.fs-section-empty {
+  padding: 12px;
+  color: var(--db-text-dim, #777);
+  font-size: 12px;
+  font-style: italic;
 }

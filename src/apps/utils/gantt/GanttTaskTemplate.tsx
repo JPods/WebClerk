@@ -222,7 +222,7 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
             marginLeft: "6px",
             whiteSpace: "nowrap",
             fontSize: "inherit",
-            color: "#111827",
+            color: "inherit",
             overflow: "visible",
           }}
         >
@@ -390,7 +390,7 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
             whiteSpace: "nowrap",
             flex: 1,
             fontSize: "inherit",
-            color: "#111827",
+            color: "inherit",
             pointerEvents: "auto",
           }}
         >
@@ -402,7 +402,8 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
           <span
             style={{
               fontSize: "0.8em",
-              color: "#374151",
+              color: "inherit",
+              opacity: 0.7,
               flexShrink: 0,
               pointerEvents: "auto",
             }}

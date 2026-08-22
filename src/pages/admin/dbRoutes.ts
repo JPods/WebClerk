@@ -27,16 +27,18 @@ export const APP_DETAIL_ROUTES: Record<string, string> = {
  *  Models NOT mapped fall through to Admin mode (BehaviorField grid). */
 export const APP_DETAIL_COMPONENTS: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
   // Core
-  contact: React.lazy(() => import('@/apps/core/models/contact/pages/ContactDetailJson')),
+  contact: React.lazy(() => import('@/components/common/ModelDetailPage')),
+  action: React.lazy(() => import('@/components/common/ModelDetailPage')),
+  touch: React.lazy(() => import('@/components/common/ModelDetailPage')),
   report: React.lazy(() => import('@/apps/core/models/report/pages/ReportDisplay')),
   // Orgs
-  customer: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
-  vendor: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
-  manufacturer: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
-  employee: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
-  rep: React.lazy(() => import('@/apps/orgs/components/OrgDetail.json')),
+  customer: React.lazy(() => import('@/components/common/ModelDetailPage')),
+  vendor: React.lazy(() => import('@/components/common/ModelDetailPage')),
+  manufacturer: React.lazy(() => import('@/components/common/ModelDetailPage')),
+  employee: React.lazy(() => import('@/components/common/ModelDetailPage')),
+  rep: React.lazy(() => import('@/components/common/ModelDetailPage')),
   // Products
-  item: React.lazy(() => import('@/apps/products/pages/ItemDetailJson')),
+  item: React.lazy(() => import('@/components/common/ModelDetailPage')),
   serial_log: React.lazy(() => import('@/apps/products/models/serial/pages/SerialDisplay')),
   // Transactions
   proposal: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
