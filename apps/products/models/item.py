@@ -165,7 +165,7 @@ FLAGS_SCHEMA_DESC = {
     "tally_by_type": "Aggregate counts by subtype classification"
 }
 
-QUANTITY_CANONICAL_KEYS = {"on_hand", "allocated", "available", "on_so", "on_po", "on_p", "on_reciept", "on_in", "on_wo", "inventory_min", "inventory_max"}
+QUANTITY_CANONICAL_KEYS = {"on_hand", "allocated", "available", "on_so", "on_po", "on_p", "on_reciept", "on_in", "on_wo", "inventory_min", "inventory_max", "vendor_min", "vendor_max"}
 
 
 def default_tax():

@@ -465,8 +465,9 @@ def journalize_payment(payment_id: int, ida_prefix: str = '') -> dict:
     amount = Decimal(str(getattr(payment, 'amount', 0) or 0))
     if amount == 0:
         now = _now_ms()
+        from django.utils import timezone
         Payment.objects.filter(pk=payment_id).update(
-            dt_journaled=now, is_locked=True, dt_modified=now,
+            is_locked=True, dt_processed=timezone.now(), dt_modified=now,
         )
         return {'created': 0, 'status': 'auto_completed', 'payment_ida': payment.ida,
                 'message': 'Zero-amount payment auto-completed without GL entry'}
@@ -545,11 +546,12 @@ def journalize_payment(payment_id: int, ida_prefix: str = '') -> dict:
         created += 1
         posting_list.append({'account': credit_account, 'debit': 0, 'credit': float(abs_amount), 'purpose': credit_purpose})
 
-        # Mark payment as journalized — dt_journaled non-zero = locked
+        # Mark payment as journalized — is_locked
         now = _now_ms()
+        from django.utils import timezone
         Payment.objects.filter(pk=payment_id).update(
-            dt_journaled=now,
             is_locked=True,
+            dt_processed=timezone.now(),
             dt_modified=now,
         )
 
@@ -670,6 +672,66 @@ def journalize_purchase(purchase_id: int, ida_prefix: str = '') -> dict:
         )
 
     return {'created': created, 'postings': posting_list, 'purchase_ida': purchase.ida}
+
+
+def journalize_invoice_and_payments(invoice_id: int, ida_prefix: str = '') -> dict:
+    """Journalize an invoice AND all its linked payments in one call.
+
+    Walks the invoice's payments (via invoice_id FK and parent_model/parent_id),
+    journals the invoice first, then each un-journalized payment.
+
+    Returns:
+        {invoice: {...}, payments: [{...}], total_created: int}
+    """
+    Payment = dj_apps.get_model('transactions', 'Payment')
+    Invoice = dj_apps.get_model('transactions', 'Invoice')
+
+    try:
+        invoice = Invoice.objects.get(pk=invoice_id)
+    except Invoice.DoesNotExist:
+        return {'error': f'Invoice {invoice_id} not found', 'total_created': 0}
+
+    # Journal the invoice
+    inv_result = journalize_invoice(invoice_id, ida_prefix)
+
+    # Find all payments linked to this invoice
+    from django.db.models import Q
+    payments = Payment.objects.filter(
+        Q(invoice_id=invoice_id) |
+        Q(parent_model='invoice', parent_id=invoice_id),
+        is_active=True, is_deleted=False,
+    ).distinct()
+
+    # Also find payments linked via the parent order
+    parent_id = getattr(invoice, 'parent_id', None)
+    parent_model = getattr(invoice, 'parent_model', '') or ''
+    if parent_model == 'order' and parent_id:
+        payments = Payment.objects.filter(
+            Q(invoice_id=invoice_id) |
+            Q(parent_model='invoice', parent_id=invoice_id) |
+            Q(parent_model='order', parent_id=parent_id),
+            is_active=True, is_deleted=False,
+        ).distinct()
+
+    pay_results = []
+    for pay in payments:
+        pay_result = journalize_payment(pay.pk, ida_prefix)
+        pay_results.append({
+            'payment_id': pay.pk,
+            'payment_ida': pay.ida,
+            **pay_result,
+        })
+
+    total = (inv_result.get('created', 0) or 0) + sum(
+        r.get('created', 0) or 0 for r in pay_results
+    )
+
+    return {
+        'invoice': inv_result,
+        'payments': pay_results,
+        'total_created': total,
+        'invoice_ida': invoice.ida,
+    }
 
 
 def batch_journalize(ida_prefix: str = 'zzz-', run_by_id: int = None) -> dict:

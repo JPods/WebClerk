@@ -85,6 +85,7 @@ def _get_model(model_name: str):
         "order": "Order",
         "invoice": "Invoice",
         "purchase": "Purchase",
+        "payment": "Payment",
     }
     cls_name = name_map.get(model_name)
     if not cls_name:

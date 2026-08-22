@@ -117,9 +117,13 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
                 },
                 "view_fields": [
                     "id", "ida", "name", "description", "sku",
-                    "inventory.on_hand", "inventory.available",
+                    "quantity.on_hand", "quantity.available", "quantity.on_po",
+                    "quantity.inventory_min", "quantity.inventory_max",
+                    "quantity.vendor_min", "quantity.vendor_max",
                 ],
-                "edit_fields": [],
+                "edit_fields": [
+                    "quantity.vendor_min", "quantity.vendor_max",
+                ],
                 "allow_create": False,
                 "allow_delete": False,
             },

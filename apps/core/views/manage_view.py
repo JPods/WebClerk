@@ -925,6 +925,12 @@ _ACTION_DISPATCH = {
     ).get_flight_transactions(
         item_id=int(params['item_id']),
     ),
+    "get_flight_by_invoice": lambda params: __import__(
+        'apps.products.services.inventory_flight_sim',
+        fromlist=['get_flight_by_invoice']
+    ).get_flight_by_invoice(
+        invoice_ida=str(params['invoice_ida']),
+    ),
     "get_collections_dashboard": lambda params: __import__(
         'apps.accounts.services.collections_dashboard',
         fromlist=['get_collections_dashboard']
@@ -973,11 +979,12 @@ _ACTION_DISPATCH = {
     "save_layout_pending": lambda p: __import__('apps.ai_assistant.services.layout_pending', fromlist=['save_layout_pending']).save_layout_pending(p),
     # ── Journalize (GL Posting) ──
     "journalize_invoice": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_invoice']).journalize_invoice(p['invoice_id'], p.get('ida_prefix', '')),
+    "journalize_invoice_and_payments": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_invoice_and_payments']).journalize_invoice_and_payments(p['invoice_id'], p.get('ida_prefix', '')),
     "journalize_payment": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_payment']).journalize_payment(p['payment_id'], p.get('ida_prefix', '')),
     "journalize_purchase": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_purchase']).journalize_purchase(p['purchase_id'], p.get('ida_prefix', '')),
     "batch_journalize": lambda p: __import__('apps.accounts.services.journalize', fromlist=['batch_journalize']).batch_journalize(p.get('ida_prefix', 'zzz-')),
     # ── Payment Pending (One Path) ──
-    "apply_payment_to_invoice": lambda p: __import__('apps.transactions.services.payment_pending', fromlist=['apply_payment_to_invoice']).apply_payment_to_invoice(p['payment_id'], p['invoice_id'], p['amount'], p.get('reason', ''), p.get('contact_id'), discount_pct=p.get('discount_pct', 0), dismiss_balance=p.get('dismiss_balance', False), fx_difference=p.get('fx_difference', 0)),
+    "apply_payment_to_invoice": lambda p: __import__('apps.transactions.services.payment_pending', fromlist=['apply_payment_to_invoice']).apply_payment_to_invoice(p['payment_id'], p['invoice_id'], p['amount'], p.get('reason', ''), p.get('contact_id'), discount_pct=p.get('discount_pct', 0), discount_amt=p.get('discount_amt', 0), dismiss_balance=p.get('dismiss_balance', False), fx_difference=p.get('fx_difference', 0)),
     "apply_pending_payments": lambda p: __import__('apps.transactions.services.payment_pending', fromlist=['apply_pending_for_invoice']).apply_pending_for_invoice(p['invoice_id']),
     # ── Commission ──
     "populate_commission": lambda p: __import__('apps.transactions.services.commission', fromlist=['populate_transaction_commission']).populate_transaction_commission(p['transaction_id'], p['model_name']),

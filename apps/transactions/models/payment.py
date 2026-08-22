@@ -76,6 +76,17 @@ class Payment(BaseModel):
         help_text="Required. Received=money in, Expense=money out. Category tells the rest."
     )
 
+    # Where this payment was created — polymorphic parent
+    parent_id = models.BigIntegerField(
+        blank=True, null=True, db_index=True,
+        help_text="ID of the document where this payment was entered (order, invoice, customer)"
+    )
+    parent_model = models.CharField(
+        max_length=20, blank=True, default='',
+        db_index=True,
+        help_text="Model of the parent document: order, invoice, customer, purchase"
+    )
+
     # Parent transaction references
     invoice = models.ForeignKey(
         'transactions.Invoice',

@@ -270,12 +270,240 @@ def get_flight_transactions(item_id: int) -> Dict[str, Any]:
                 'values': {col: int(running[col]) for col in COLUMNS},
             })
 
+    # ── Payment rows ──────────────────────────────────────────────────
+    # Find invoices and orders linked to this item, then find payments.
+    payment_rows = _get_payment_rows(tx_lines)
+
+    # ── GL journal rows ───────────────────────────────────────────────
+    gl_rows = _get_gl_rows(tx_lines)
+
     return {
         'columns': COLUMNS,
         'rows': rows,
+        'payment_rows': payment_rows,
+        'gl_rows': gl_rows,
         'item': item_dict,
         'row_count': len(rows),
     }
+
+
+def get_flight_by_invoice(invoice_ida: str) -> Dict[str, Any]:
+    """Audit mode — enter an invoice number, see inventory, cash, and GL.
+
+    Finds the invoice, gets its line items, finds the item(s),
+    then returns the same 3-section data as get_flight_transactions.
+    """
+    Invoice = dj_apps.get_model('transactions', 'Invoice')
+    InvoiceLine = dj_apps.get_model('transactions', 'InvoiceLine')
+
+    # Find invoice by ida, partial ida, or numeric id
+    invoice = None
+    # Exact ida match
+    invoice = Invoice.objects.filter(ida=invoice_ida).first()
+    if not invoice:
+        # Try numeric id
+        try:
+            invoice = Invoice.objects.filter(pk=int(invoice_ida)).first()
+        except (ValueError, TypeError):
+            pass
+    if not invoice:
+        # Try ida ending with the input (e.g. "107" matches "DEV-107")
+        invoice = Invoice.objects.filter(ida__iendswith=f'-{invoice_ida}').first()
+    if not invoice:
+        # Try ida containing the input
+        invoice = Invoice.objects.filter(ida__icontains=invoice_ida).first()
+    if not invoice:
+        return {'error': f'Invoice "{invoice_ida}" not found'}
+
+    # Get item IDs from invoice lines — check FK first, then JSON envelope
+    lines = InvoiceLine.objects.filter(invoice=invoice, is_active=True, is_deleted=False)
+    item_ids = set()
+    for line in lines:
+        if line.item_fk_id:
+            item_ids.add(line.item_fk_id)
+        else:
+            # Fallback: item_id in JSON item field
+            item_data = getattr(line, 'item', None)
+            if isinstance(item_data, dict) and item_data.get('item_id'):
+                item_ids.add(int(item_data['item_id']))
+    item_ids = list(item_ids)
+
+    if not item_ids:
+        return {'error': f'Invoice {invoice.ida} has no line items with identifiable products'}
+
+    # Use first item for the inventory display (most common case: single-item invoice)
+    # For multi-item invoices, we still show all payments and GL for the whole invoice
+    primary_item_id = item_ids[0]
+
+    # Get the standard flight transactions for the item
+    result = get_flight_transactions(primary_item_id)
+    if result.get('error'):
+        return result
+
+    # Add invoice-specific context
+    result['audit_mode'] = True
+    result['invoice'] = {
+        'id': invoice.pk,
+        'ida': invoice.ida,
+        'status': getattr(invoice, 'status', ''),
+        'total': float(getattr(invoice, 'total', 0) or 0),
+    }
+    result['item_count'] = len(item_ids)
+
+    return result
+
+
+def _get_payment_rows(tx_lines: list) -> List[Dict[str, Any]]:
+    """Build payment display rows from transaction lines.
+
+    Finds all invoices/orders linked to the item's transaction lines,
+    then finds payments and payment application pending records.
+    """
+    Payment = dj_apps.get_model('transactions', 'Payment')
+    Pending = dj_apps.get_model('core', 'Pending')
+
+    # Collect parent invoice and order IDs from transaction lines
+    invoice_ids = set()
+    order_ids = set()
+    for tx in tx_lines:
+        if tx['type'] == 'invoice_line' and tx.get('record_id'):
+            invoice_ids.add(tx['record_id'])
+        elif tx['type'] == 'order_line' and tx.get('record_id'):
+            order_ids.add(tx['record_id'])
+
+    if not invoice_ids and not order_ids:
+        return []
+
+    # Find payments linked to these invoices or orders
+    from django.db.models import Q
+    q = Q()
+    if invoice_ids:
+        q |= Q(invoice_id__in=invoice_ids)
+        q |= Q(parent_model='invoice', parent_id__in=invoice_ids)
+    if order_ids:
+        q |= Q(parent_model='order', parent_id__in=order_ids)
+
+    payments = Payment.objects.filter(q, is_active=True, is_deleted=False).order_by('dt_created')
+
+    rows = []
+    for pay in payments:
+        amount = float(pay.amount or 0)
+        available = float(pay.available or 0)
+        applied = amount - available
+        method = getattr(pay, 'method', '') or ''
+        status = getattr(pay, 'status', '') or ''
+
+        rows.append({
+            'type': 'payment',
+            'label': f'Payment #{pay.ida or pay.pk}',
+            'model': 'payment',
+            'record_id': pay.pk,
+            'values': {
+                'amount': f'${amount:.2f}',
+                'applied': f'${applied:.2f}' if applied else '',
+                'available': f'${available:.2f}',
+                'method': method,
+                'status': status,
+            },
+        })
+
+        # Find payment application pending records
+        pay_pending = Pending.objects.filter(
+            purpose='payment_application',
+            name__icontains=str(pay.pk),
+        ).order_by('dt_created')
+
+        # Also check by changes content
+        if not pay_pending.exists():
+            pay_pending = Pending.objects.filter(
+                purpose='payment_application',
+            ).order_by('dt_created')
+
+        for pp in pay_pending:
+            changes = pp.changes if isinstance(pp.changes, dict) else {}
+            if changes.get('payment_id') != pay.pk:
+                continue
+            app_amount = float(changes.get('amount', 0) or 0)
+            inv_id = changes.get('invoice_id')
+            state = changes.get('state', 'pending')
+            rows.append({
+                'type': 'payment_application',
+                'label': f'  Apply ${app_amount:.2f} → Invoice #{inv_id}',
+                'values': {
+                    'amount': f'-${app_amount:.2f}',
+                    'applied': f'${app_amount:.2f}',
+                    'available': '',
+                    'method': '',
+                    'status': state,
+                },
+                'processed': state == 'applied',
+            })
+
+    return rows
+
+
+def _get_gl_rows(tx_lines: list) -> List[Dict[str, Any]]:
+    """Build GL journal display rows from transaction lines.
+
+    Finds GlJournal entries linked to the item's invoices, payments, purchases.
+    """
+    try:
+        GlJournal = dj_apps.get_model('accounts', 'GlJournal')
+    except LookupError:
+        return []
+
+    # Collect source documents from transaction lines
+    from django.db.models import Q
+    q = Q()
+    source_docs = set()
+    for tx in tx_lines:
+        if tx.get('record_id') and tx['type'] in ('invoice_line', 'order_line', 'purchase_line'):
+            model = tx['type'].replace('_line', '')
+            source_docs.add((model, tx['record_id']))
+            q |= Q(source_model=model, source_id=tx['record_id'])
+
+    # Also find GL entries for payments linked to these invoices
+    invoice_ids = {doc_id for model, doc_id in source_docs if model == 'invoice'}
+    if invoice_ids:
+        Payment = dj_apps.get_model('transactions', 'Payment')
+        pay_ids = list(Payment.objects.filter(
+            invoice_id__in=invoice_ids, is_active=True, is_deleted=False
+        ).values_list('pk', flat=True))
+        for pid in pay_ids:
+            q |= Q(source_model='payment', source_id=pid)
+
+    if not q:
+        return []
+
+    journals = GlJournal.objects.filter(q).order_by('dt_created')
+
+    rows = []
+    # Group by batch_id for cleaner display
+    current_batch = None
+    for gl in journals:
+        batch = gl.batch_id or ''
+        if batch != current_batch:
+            current_batch = batch
+            source_label = f'{gl.source_model or ""} #{gl.source_id or ""}'
+            rows.append({
+                'type': 'gl_header',
+                'label': f'Journal: {batch or source_label}',
+                'values': {},
+            })
+
+        debit = float(gl.debit or 0)
+        credit = float(gl.credit or 0)
+        rows.append({
+            'type': 'gl_entry',
+            'label': f'  {gl.account}',
+            'values': {
+                'debit': f'${debit:.2f}' if debit else '',
+                'credit': f'${credit:.2f}' if credit else '',
+                'source': f'{gl.source_model}',
+            },
+        })
+
+    return rows
 
 
 def get_item_by_ida(ida: str) -> Dict[str, Any]:

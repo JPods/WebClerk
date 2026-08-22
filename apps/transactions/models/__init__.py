@@ -33,7 +33,8 @@ _MAPPING = {
     'PaymentTerm': ('payment', 'PaymentTerm'),
     'StatementLine': ('statement_line', 'StatementLine'),
     'PaymentApplication': ('payment_application', 'PaymentApplication'),
-    'PendingPaymentApplication': ('pending_payment', 'PendingPaymentApplication'),
+    # PendingPaymentApplication removed — all payment applications use
+    # core.Pending with purpose='payment_application'. One model, one path.
     'Project': ('project', 'Project'),
 }
 

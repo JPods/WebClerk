@@ -56,6 +56,11 @@ RegisterRequestSerializer = inline_serializer(
         'name_last': serializers.CharField(help_text='Last name', required=False),
         'company': serializers.CharField(help_text='Company name', required=False),
         'title': serializers.CharField(help_text='Job title', required=False),
+        'portal_role': serializers.ChoiceField(
+            choices=['customer', 'vendor', 'rep'],
+            help_text='Portal role: customer, vendor, or rep',
+            required=False,
+        ),
     }
 )
 
@@ -116,10 +121,12 @@ class AuthLoginView(APIView):
         # Add role to token claims
         access["role"] = getattr(user, "role", "user")
         refresh["role"] = getattr(user, "role", "user")
-        # Look up Contact record for this user's email to get prefs + config
+        # Look up Contact record for this user's email to get prefs + config + roles
         contact_prefs = {}
         contact_config = {}
         contact_id = user.pk
+        roles = []
+        is_portal = False
         try:
             from apps.core.models import Contact
             contact = Contact.objects.filter(email__iexact=getattr(user, "email", "")).first()
@@ -127,8 +134,25 @@ class AuthLoginView(APIView):
                 contact_prefs = contact.prefs or {}
                 contact_config = contact.config or {}
                 contact_id = contact.pk
+                refs = contact.refs or {}
+                roles = refs.get("roles", [])
+                is_portal = any(r.startswith("user_") and r != "user_sales"
+                               and r != "user_accounting" and r != "user_production"
+                               and r != "user_warehouse"
+                               for r in roles)
         except Exception:
             pass
+
+        # Also check UserProfile for cached roles
+        if not roles:
+            try:
+                profile = user.profile
+                roles = profile.get_roles()
+                is_portal = any(r in ("user_customer", "user_vendor",
+                                      "user_manufacturer", "user_rep")
+                                for r in roles)
+            except Exception:
+                pass
 
         data = {
             "user": {
@@ -136,6 +160,8 @@ class AuthLoginView(APIView):
                 "email": getattr(user, "email", None),
                 "username": getattr(user, "username", None),
                 "role": getattr(user, "role", None),
+                "roles": roles,
+                "is_portal": is_portal,
                 "name_first": getattr(user, "first_name", None),
                 "name_last": getattr(user, "last_name", None),
                 "is_staff": getattr(user, "is_staff", False),
@@ -190,11 +216,13 @@ class AuthMeView(APIView):
         if not request.user.is_authenticated:
             return api_response(data=None, message="unauthenticated", status_code=401)
         
-        # Get user data — look up Contact for prefs + config
+        # Get user data — look up Contact for prefs + config + roles
         user = request.user
         contact_prefs = {}
         contact_config = {}
         contact_id = user.pk
+        roles = []
+        is_portal = False
         try:
             from apps.core.models import Contact
             contact = Contact.objects.filter(email__iexact=getattr(user, "email", "")).first()
@@ -202,8 +230,21 @@ class AuthMeView(APIView):
                 contact_prefs = contact.prefs or {}
                 contact_config = contact.config or {}
                 contact_id = contact.pk
+                refs = contact.refs or {}
+                roles = refs.get("roles", [])
         except Exception:
             pass
+
+        if not roles:
+            try:
+                profile = user.profile
+                roles = profile.get_roles()
+            except Exception:
+                pass
+
+        is_portal = any(r in ("user_customer", "user_vendor",
+                              "user_manufacturer", "user_rep")
+                        for r in roles)
 
         data = {
             "id": contact_id,
@@ -213,6 +254,8 @@ class AuthMeView(APIView):
             "company": getattr(user, "company", None),
             "title": getattr(user, "title", None),
             "role": getattr(user, "role", None),
+            "roles": roles,
+            "is_portal": is_portal,
             "is_staff": getattr(user, "is_staff", False),
             "is_superuser": getattr(user, "is_superuser", False),
             "is_active": getattr(user, "is_active", False),
@@ -246,10 +289,19 @@ class AuthRegisterView(APIView):
         name_last = (body.get("name_last") or "").strip()
         company = (body.get("company") or "").strip()
         title = (body.get("title") or "").strip()
+        portal_role = (body.get("portal_role") or "").strip()
 
         # Validate required fields
         if not email or not password:
             return api_response(data=None, message="email and password are required", status_code=400)
+
+        # Validate portal_role if provided
+        valid_portal_roles = {"customer", "vendor", "rep"}
+        if portal_role and portal_role not in valid_portal_roles:
+            return api_response(
+                data=None, message=f"portal_role must be one of: {', '.join(valid_portal_roles)}",
+                status_code=400,
+            )
 
         # Check if email already exists
         if User.objects.filter(email__iexact=email).exists():
@@ -273,7 +325,7 @@ class AuthRegisterView(APIView):
                 name_last=name_last or "Account",
                 company=company,
                 title=title,
-                role='user'  # Default role is user; admin/employee must be set by admin
+                role='user'
             )
         except Exception as e:
             return api_response(
@@ -281,24 +333,83 @@ class AuthRegisterView(APIView):
                 error={"code": "create_failed", "details": str(e)},
             )
 
+        # Create Contact + UserProfile + org link for portal users
+        contact = None
+        roles = []
+        is_portal = False
+        if portal_role:
+            try:
+                from apps.core.models import Contact, Customer, Vendor
+                from apps.core.models.rbac import UserProfile
+
+                # Create or find Contact
+                contact = Contact.objects.filter(email__iexact=email).first()
+                if not contact:
+                    contact = Contact.objects.create(
+                        email=email,
+                        name_first=name_first or "User",
+                        name_last=name_last or "Account",
+                        company=company,
+                        title=title,
+                    )
+
+                # Set role in refs
+                rbac_role = f"user_{portal_role}"
+                refs = contact.refs or {}
+                existing_roles = refs.get("roles", [])
+                if rbac_role not in existing_roles:
+                    existing_roles.append(rbac_role)
+                refs["roles"] = existing_roles
+                contact.refs = refs
+                roles = existing_roles
+                is_portal = True
+
+                # Link to org if customer or vendor
+                if portal_role == "customer" and company and not contact.customer_id:
+                    cust, _ = Customer.objects.get_or_create(
+                        company=company,
+                        defaults={"email": email},
+                    )
+                    contact.customer_id = cust.pk
+                elif portal_role == "vendor" and company and not contact.vendor_id:
+                    vendor, _ = Vendor.objects.get_or_create(
+                        company=company,
+                        defaults={"email": email},
+                    )
+                    contact.vendor_id = vendor.pk
+
+                contact.save()
+
+                # Create UserProfile
+                UserProfile.objects.get_or_create(
+                    user=user,
+                    defaults={
+                        "contact": contact,
+                        "cached_roles": existing_roles,
+                    },
+                )
+            except Exception:
+                pass  # Portal setup is best-effort; user still created
+
         # Auto-login user and issue JWT tokens
         try:
             user = authenticate(request, username=email, password=password)
             if user and getattr(user, "is_active", True):
-                # Issue JWT tokens with role claim
                 refresh = RefreshToken.for_user(user)
                 access = refresh.access_token
                 access["role"] = getattr(user, "role", "user")
                 refresh["role"] = getattr(user, "role", "user")
                 data = {
                     "user": {
-                        "id": user.pk, 
-                        "email": getattr(user, "email", None), 
+                        "id": contact.pk if contact else user.pk,
+                        "email": getattr(user, "email", None),
                         "name_first": getattr(user, "name_first", None),
                         "name_last": getattr(user, "name_last", None),
                         "company": getattr(user, "company", None),
                         "title": getattr(user, "title", None),
                         "role": getattr(user, "role", None),
+                        "roles": roles,
+                        "is_portal": is_portal,
                     },
                     "access": str(access),
                 }

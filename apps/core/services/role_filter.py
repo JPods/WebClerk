@@ -160,20 +160,24 @@ def get_role_filter_config(
     # Try database first
     if use_db:
         try:
-            db_config = ModelRoleConfig.objects.filter(
-                role__role=role,
-                model_name=model_name,
-                role__is_active=True
-            ).select_related('role').first()
-            
-            if db_config:
-                return {
-                    "query_filters": db_config.query_filters or {},
-                    "view_fields": db_config.view_fields or [],
-                    "edit_fields": db_config.edit_fields or [],
-                    "allow_create": db_config.allow_create,
-                    "allow_delete": db_config.allow_delete,
-                }
+            # Check role is active via RoleConfig
+            role_active = RoleConfig.objects.filter(
+                role=role, is_active=True
+            ).exists()
+            if role_active:
+                db_config = ModelRoleConfig.objects.filter(
+                    role=role,
+                    model_name=model_name,
+                ).first()
+
+                if db_config:
+                    return {
+                        "query_filters": db_config.query_filters or {},
+                        "view_fields": db_config.view_fields or [],
+                        "edit_fields": db_config.edit_fields or [],
+                        "allow_create": db_config.allow_create,
+                        "allow_delete": db_config.allow_delete,
+                    }
         except Exception:
             pass  # Fall back to defaults
     
