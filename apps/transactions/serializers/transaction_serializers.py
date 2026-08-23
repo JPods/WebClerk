@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from decimal import Decimal
 
 from common.base_serializers import RoleAwareModelSerializer
 
@@ -34,14 +33,16 @@ class ProposalLineSerializer(RoleAwareModelSerializer):
 
 
 class ProposalSerializer(RoleAwareModelSerializer):
-    """Serializer for Proposal transactions."""
+    """Serializer for Proposal transactions.
 
-    total_amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+    totals JSON envelope is the source of truth for all computed values
+    (total, margin, margin_pc, balance, etc.). No flattening — React
+    reads totals.total, totals.margin, totals.margin_pc directly.
+    """
+
     line_count = serializers.IntegerField(read_only=True)
     customer_name = serializers.SerializerMethodField(read_only=True)
     vendor_name = serializers.SerializerMethodField(read_only=True)
-    margin_amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
-    margin_percentage = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
     lines = ProposalLineSerializer(many=True, read_only=True)
 
     class Meta:
@@ -49,13 +50,14 @@ class ProposalSerializer(RoleAwareModelSerializer):
         fields = [
             'id', 'uuid', 'ida', 'status', 'customer_id', 'vendor_id',
             'customer_name', 'vendor_name',
-            'cost', 'sell', 'finance', 'flow', 'source', 'action', 'refs', 'prefs', 'metadata',
-            'total_amount', 'line_count', 'margin_amount', 'margin_percentage', 'lines',
+            'cost', 'sell', 'totals', 'total', 'balance',
+            'finance', 'flow', 'source', 'action', 'refs', 'prefs', 'metadata',
+            'line_count', 'lines',
             'dt_created', 'dt_modified', 'version'
         ]
         read_only_fields = [
             'id', 'uuid', 'dt_created', 'dt_modified', 'version', 'customer_name',
-            'vendor_name', 'total_amount', 'line_count', 'margin_amount', 'margin_percentage', 'lines'
+            'vendor_name', 'totals', 'total', 'balance', 'line_count', 'lines'
         ]
 
     def get_customer_name(self, obj):
@@ -78,32 +80,11 @@ class ProposalSerializer(RoleAwareModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-
-        if hasattr(instance, 'sell') and instance.sell:
-            sell_data = instance.sell or {}
-            sell_total = Decimal(str(sell_data.get('total', 0) or 0))
-            data['total_amount'] = str(sell_total)
-
         if hasattr(instance, 'lines'):
             try:
                 data['line_count'] = instance.lines.count()
             except Exception:
                 data['line_count'] = len(data.get('lines', []) or [])
-
-        total_sell = Decimal(str(data.get('total_amount', 0) or 0))
-        total_cost = Decimal('0')
-        if hasattr(instance, 'cost') and instance.cost:
-            total_cost = Decimal(str(instance.cost.get('total', 0) or 0))
-
-        margin_amount = (total_sell - total_cost).quantize(Decimal('0.01'))
-        data['margin_amount'] = str(margin_amount)
-
-        if total_sell:
-            margin_percentage = ((margin_amount / total_sell) * Decimal('100')).quantize(Decimal('0.01'))
-            data['margin_percentage'] = str(margin_percentage)
-        else:
-            data['margin_percentage'] = str(Decimal('0.00'))
-
         return data
 
     def validate_status(self, value):
@@ -165,14 +146,15 @@ class PurchaseLineSerializer(RoleAwareModelSerializer):
 
 
 class OrderSerializer(RoleAwareModelSerializer):
-    """Serializer for Order transactions."""
+    """Serializer for Order transactions.
 
-    total_amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+    totals JSON envelope is the source of truth for all computed values.
+    No flattening — React reads totals.total, totals.margin, totals.margin_pc.
+    """
+
     line_count = serializers.IntegerField(read_only=True)
     customer_name = serializers.SerializerMethodField(read_only=True)
     vendor_name = serializers.SerializerMethodField(read_only=True)
-    margin_amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
-    margin_percentage = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
     lines = OrderLineSerializer(many=True, read_only=True)
 
     class Meta:
@@ -180,11 +162,13 @@ class OrderSerializer(RoleAwareModelSerializer):
         fields = [
             'id', 'uuid', 'ida', 'status', 'priority', 'price_level',
             'customer_id', 'manufacturer_id', 'vendor_id',
-            'cost', 'sell', 'finance', 'flow', 'source', 'action', 'refs', 'prefs', 'metadata',
-            'total_amount', 'line_count', 'customer_name', 'vendor_name', 'margin_amount', 'margin_percentage', 'lines',
+            'cost', 'sell', 'totals', 'total', 'balance',
+            'finance', 'flow', 'source', 'action', 'refs', 'prefs', 'metadata',
+            'line_count', 'customer_name', 'vendor_name', 'lines',
             'dt_created', 'dt_modified', 'version'
         ]
-        read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version', 'total_amount', 'line_count', 'customer_name', 'vendor_name', 'margin_amount', 'margin_percentage', 'lines']
+        read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version',
+            'totals', 'total', 'balance', 'line_count', 'customer_name', 'vendor_name', 'lines']
 
     def get_customer_name(self, obj):
         """Get customer name from OrgBase model."""
@@ -207,30 +191,9 @@ class OrderSerializer(RoleAwareModelSerializer):
         return None
 
     def to_representation(self, instance):
-        """Add computed fields to the representation."""
         data = super().to_representation(instance)
-
-        # Add computed totals
-        if hasattr(instance, 'sell') and instance.sell:
-            sell_data = instance.sell
-            data['total_amount'] = sell_data.get('total', 0)
-
-        # Add line count
         if hasattr(instance, 'lines'):
             data['line_count'] = instance.lines.count()
-
-        # Add margin calculations
-        total_sell = data.get('total_amount', 0) or 0
-        total_cost = 0
-        if hasattr(instance, 'cost') and instance.cost:
-            total_cost = instance.cost.get('total', 0) or 0
-
-        data['margin_amount'] = float(Decimal(str(total_sell)) - Decimal(str(total_cost)))
-        if total_sell > 0:
-            data['margin_percentage'] = float((Decimal(str(data['margin_amount'])) / Decimal(str(total_sell))) * 100)
-        else:
-            data['margin_percentage'] = 0
-
         return data
 
     def validate_status(self, value):
@@ -267,9 +230,12 @@ class OrderSerializer(RoleAwareModelSerializer):
 
 
 class PurchaseSerializer(RoleAwareModelSerializer):
-    """Serializer for Purchase transactions."""
+    """Serializer for Purchase transactions.
 
-    total_amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+    totals JSON envelope is the source of truth for all computed values.
+    No flattening — React reads totals.total, totals.cost, totals.balance.
+    """
+
     line_count = serializers.IntegerField(read_only=True)
     customer_name = serializers.SerializerMethodField(read_only=True)
     vendor_name = serializers.SerializerMethodField(read_only=True)
@@ -281,11 +247,13 @@ class PurchaseSerializer(RoleAwareModelSerializer):
             'id', 'uuid', 'ida', 'status', 'priority', 'price_level',
             'customer_id', 'manufacturer_id', 'vendor_id',
             'customer_name', 'vendor_name',
-            'cost', 'sell', 'finance', 'flow', 'source', 'action', 'refs', 'metadata',
-            'total_amount', 'line_count', 'lines',
+            'cost', 'sell', 'totals', 'total', 'balance',
+            'finance', 'flow', 'source', 'action', 'refs', 'metadata',
+            'line_count', 'lines',
             'dt_created', 'dt_modified', 'version'
         ]
-        read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version', 'total_amount', 'line_count', 'customer_name', 'vendor_name', 'lines']
+        read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version',
+            'totals', 'total', 'balance', 'line_count', 'customer_name', 'vendor_name', 'lines']
 
     def get_customer_name(self, obj):
         """Get customer name from Contact model."""
@@ -308,32 +276,29 @@ class PurchaseSerializer(RoleAwareModelSerializer):
         return None
 
     def to_representation(self, instance):
-        """Add computed fields to the representation."""
         data = super().to_representation(instance)
-
-        # Add computed totals
-        if hasattr(instance, 'cost') and instance.cost:
-            cost_data = instance.cost
-            data['total_amount'] = cost_data.get('total', 0)
-
-        # Add line count
         if hasattr(instance, 'purchaseline_set'):
             data['line_count'] = instance.purchaseline_set.count()
-
         return data
 
 
 class InvoiceSerializer(RoleAwareModelSerializer):
-    """Serializer for Invoice transactions."""
+    """Serializer for Invoice transactions.
+
+    totals JSON envelope is the source of truth for all computed values.
+    No flattening — React reads totals.total, totals.balance, totals.margin.
+    """
 
     class Meta:
         model = Invoice
         fields = [
             'id', 'uuid', 'ida', 'status', 'customer_id', 'vendor_id',
-            'cost', 'sell', 'finance', 'flow', 'source', 'action',
+            'cost', 'sell', 'totals', 'total', 'balance',
+            'finance', 'flow', 'source', 'action',
             'dt_created', 'dt_modified', 'version'
         ]
-        read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version']
+        read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version',
+            'totals', 'total', 'balance']
 
 
 class PaymentSerializer(RoleAwareModelSerializer):

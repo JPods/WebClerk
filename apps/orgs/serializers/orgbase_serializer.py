@@ -1,11 +1,14 @@
 from rest_framework import serializers
 
 from apps.orgs.models import OrgBase, Employee, Manufacturer, Rep, Vendor
-from apps.orgs.models.constants import flatten_financial_for_type
 
 
 class OrgBaseSerializer(serializers.ModelSerializer):
-    """Serializer for OrgBase with company/display_name aliasing."""
+    """Serializer for OrgBase with company/display_name aliasing.
+
+    PJPV: financial JSON envelope travels intact. No flattening.
+    React reads financial.common.*, financial.customer.*, etc. by path.
+    """
 
     company = serializers.CharField(source="display_name", required=False, allow_blank=True)
     display_name = serializers.SerializerMethodField()
@@ -60,48 +63,24 @@ class OrgBaseSerializer(serializers.ModelSerializer):
 
 
 class VendorSerializer(OrgBaseSerializer):
-    """Vendor serializer (OrgBase proxy)."""
-
-    financial = serializers.SerializerMethodField()
-
-    def get_financial(self, obj):
-        return flatten_financial_for_type(getattr(obj, "financial", None), "vendor")
-
+    """Vendor serializer — financial envelope intact (PJPV)."""
     class Meta(OrgBaseSerializer.Meta):
         model = Vendor
 
 
 class RepSerializer(OrgBaseSerializer):
-    """Rep serializer (OrgBase proxy)."""
-
-    financial = serializers.SerializerMethodField()
-
-    def get_financial(self, obj):
-        return flatten_financial_for_type(getattr(obj, "financial", None), "rep")
-
+    """Rep serializer — financial envelope intact (PJPV)."""
     class Meta(OrgBaseSerializer.Meta):
         model = Rep
 
 
 class EmployeeSerializer(OrgBaseSerializer):
-    """Employee serializer (OrgBase proxy)."""
-
-    financial = serializers.SerializerMethodField()
-
-    def get_financial(self, obj):
-        return flatten_financial_for_type(getattr(obj, "financial", None), "employee")
-
+    """Employee serializer — financial envelope intact (PJPV)."""
     class Meta(OrgBaseSerializer.Meta):
         model = Employee
 
 
 class ManufacturerSerializer(OrgBaseSerializer):
-    """Manufacturer serializer (OrgBase proxy)."""
-
-    financial = serializers.SerializerMethodField()
-
-    def get_financial(self, obj):
-        return flatten_financial_for_type(getattr(obj, "financial", None), "manufacturer")
-
+    """Manufacturer serializer — financial envelope intact (PJPV)."""
     class Meta(OrgBaseSerializer.Meta):
         model = Manufacturer

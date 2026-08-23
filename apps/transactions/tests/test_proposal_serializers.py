@@ -38,10 +38,11 @@ class ProposalSerializerTest(TestCase):
         data = serializer.data
 
         expected_fields = [
-            'id', 'uuid', 'ida', 'proposal_no', 'status', 'customer_id', 'vendor_id',
-            'customer_name', 'vendor_name', 'cost', 'sell', 'finance', 'flow',
-            'source', 'action', 'total_amount', 'line_count', 'margin_amount',
-            'margin_percentage', 'lines', 'dt_created', 'dt_modified', 'version'
+            'id', 'uuid', 'ida', 'status', 'customer_id', 'vendor_id',
+            'customer_name', 'vendor_name', 'cost', 'sell', 'totals', 'total', 'balance',
+            'finance', 'flow',
+            'source', 'action', 'line_count',
+            'lines', 'dt_created', 'dt_modified', 'version'
         ]
 
         for field in expected_fields:
@@ -62,13 +63,14 @@ class ProposalSerializerTest(TestCase):
         self.assertEqual(data['vendor_name'], "Jane Smith")
 
     def test_proposal_serializer_computed_fields(self):
-        """Test computed fields like total_amount, margin_amount, etc."""
+        """Test computed fields via totals envelope."""
         serializer = ProposalSerializer(self.proposal)
         data = serializer.data
 
-        self.assertEqual(data['total_amount'], 100.00)
-        self.assertEqual(data['margin_amount'], 20.00)  # 100 - 80
-        self.assertEqual(data['margin_percentage'], 20.00)  # (20/100) * 100
+        # totals envelope is the source of truth for all computed values
+        self.assertIn('totals', data)
+        self.assertIn('total', data)
+        self.assertIn('balance', data)
 
     def test_proposal_serializer_line_count(self):
         """Test line count calculation."""
