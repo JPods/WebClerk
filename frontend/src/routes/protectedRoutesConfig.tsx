@@ -1,0 +1,186 @@
+/* LastChecked: 2026-08-06 | WhereUsed: WindowManager route resolution | WhoCreated: Unknown */
+/* Routes for WindowManager — /:model catch-all renders databrowser */
+import React from "react";
+import { Navigate } from "react-router";
+import { PageRoutes } from "./Routes";
+import {
+  KanbanBoardDataPage,
+  KanbanBoardPage,
+  NotionTrackerPage,
+  UnifiedGanttPage,
+  UserProfiles,
+} from "../pages/wrapperPage";
+import DataBrowser from "../pages/admin/DataBrowser";
+import JsonViewer from "../pages/admin/JsonViewer";
+import CommerceDashboard from "../pages/admin/CommerceDashboard";
+import AliceTraining from "../pages/admin/AliceTraining";
+import FlightSimConsole from "../pages/admin/FlightSimConsole";
+import TeamDashboard from "../pages/admin/TeamDashboard";
+import WhitelistTester from "../pages/tools/WhitelistTester";
+import FormParade from "../pages/tools/FormParade";
+import SelectListBrowser from "../pages/tools/SelectListBrowser";
+import AgendaView from "../pages/admin/AgendaView";
+import JsonTreeApplet from "../pages/tools/JsonTreeApplet";
+import JsonSchemaReference from "../pages/tools/JsonSchemaReference";
+import DDCardDashboard from "../pages/Dashboard/DDCardDashboard";
+// All model-specific detail pages replaced by UiDetail / ModelDetailPage
+import ApplyPayments from "../apps/transactions/pages/ApplyPayments";
+import AllModelsWorkbench from "../apps/utils/scaffold/AllModelsWorkbench";
+import AliceDashboard from "../pages/admin/AliceDashboard";
+import AdminTools from "../pages/admin/AdminTools";
+import HelpDashboard from "../pages/admin/HelpDashboard";
+import TestDashboard from "../pages/admin/TestDashboard";
+import ReportDesigner from "../pages/admin/ReportDesigner";
+import ParadeOfReportsPage from "../pages/admin/ParadeOfReportsPage";
+import InventoryDashboard from "../pages/admin/InventoryDashboard";
+import ActionDailyDashboard from "../apps/common/components/panels/ActionDailyDashboard";
+import Placeholder from "../pages/Placeholder";
+import UiDetail from "../apps/transactions/components/TransactionDetail";
+import ModelDetailPage from "../components/common/ModelDetailPage";
+import PortalDashboard from "../pages/Dashboard/PortalDashboard";
+
+export const protectedRoutesConfig = [
+  { path: "/", element: <DDCardDashboard dashboardName="sales" /> },
+  { path: PageRoutes.dashboard, element: <DDCardDashboard dashboardName="sales" /> },
+  { path: "/portal", element: <PortalDashboard /> },
+  { path: PageRoutes.profile, element: <UserProfiles /> },
+
+  // User-facing: Contact
+  { path: PageRoutes.coreContactList, element: <Navigate to="/contact" replace /> },
+  { path: PageRoutes.coreContactDetail, element: <ModelDetailPage modelName="contact" /> },
+
+  // User-facing: Customer
+  { path: "/org/customer", element: <Navigate to="/customer" replace /> },
+  { path: "/org/vendor", element: <Navigate to="/vendor" replace /> },
+  { path: "/org/employee", element: <Navigate to="/employee" replace /> },
+  { path: "/org/rep", element: <Navigate to="/rep" replace /> },
+  { path: "/org/manufacturer", element: <Navigate to="/manufacturer" replace /> },
+  { path: PageRoutes.customerList, element: <Navigate to="/customer" replace /> },
+  { path: `${PageRoutes.customerDetail}/:id`, element: <ModelDetailPage modelName="customer" /> },
+  { path: PageRoutes.customerAdd, element: <ModelDetailPage modelName="customer" /> },
+  { path: `${PageRoutes.customerEdit}/:id`, element: <ModelDetailPage modelName="customer" /> },
+
+  // User-facing: Actions
+  { path: PageRoutes.actionList, element: <Navigate to="/action" replace /> },
+  { path: PageRoutes.actionDetail, element: <Navigate to="/action" replace /> },
+
+  // User-facing: Documents
+  { path: PageRoutes.docs, element: <Placeholder title="Documents" /> },
+
+  // User-facing: Products — app dashboard, lists via DataBrowser, detail via custom page
+  { path: "/products", element: <DDCardDashboard dashboardName="products" /> },
+  { path: PageRoutes.products, element: <Navigate to="/products" replace /> },
+  { path: PageRoutes.productsItemList, element: <Navigate to="/item" replace /> },
+  { path: PageRoutes.productsItemDetail, element: <ModelDetailPage modelName="item" /> },
+  { path: "/item/:id", element: <ModelDetailPage modelName="item" /> },
+
+  // User-facing: Transactions — app dashboard
+  { path: "/transactions", element: <DDCardDashboard dashboardName="transactions" /> },
+
+  // User-facing: Orgs — app dashboard
+  { path: "/orgs", element: <DDCardDashboard dashboardName="orgs" /> },
+
+  // User-facing: Operations — unified Accounting + Support + Sync
+  { path: "/operations", element: <DDCardDashboard dashboardName="operations" /> },
+  { path: "/administration", element: <DDCardDashboard dashboardName="operations" /> },
+  { path: "/sync", element: <Navigate to="/operations?tab=sync" replace /> },
+  { path: "/support", element: <Navigate to="/operations?tab=support" replace /> },
+  { path: "/accounting", element: <DDCardDashboard dashboardName="accounting" /> },
+
+  // User-facing: Transactions — lists via DataBrowser, details via custom pages
+  { path: PageRoutes.transactionsProposalList, element: <Navigate to="/proposal" replace /> },
+  { path: PageRoutes.transactionsProposalDetail, element: <UiDetail modelName="proposal" /> },
+  { path: PageRoutes.transactionsOrderList, element: <Navigate to="/order" replace /> },
+  { path: PageRoutes.transactionsOrderDetail, element: <UiDetail modelName="order" /> },
+  { path: PageRoutes.transactionsInvoiceList, element: <Navigate to="/invoice" replace /> },
+  { path: PageRoutes.transactionsInvoiceDetail, element: <UiDetail modelName="invoice" /> },
+  { path: PageRoutes.transactionsApplyPayments, element: <ApplyPayments /> },
+  { path: PageRoutes.transactionsPaymentList, element: <Navigate to="/payment" replace /> },
+  { path: PageRoutes.transactionsPaymentDetail, element: <UiDetail modelName="payment" /> },
+  { path: PageRoutes.transactionsPurchaseList, element: <Navigate to="/purchase" replace /> },
+  { path: PageRoutes.transactionsPurchaseDetail, element: <UiDetail modelName="purchase" /> },
+  { path: PageRoutes.transactionsWorkOrderList, element: <Navigate to="/workorder" replace /> },
+  { path: PageRoutes.transactionsWorkOrderDetail, element: <UiDetail modelName="workorder" /> },
+  { path: PageRoutes.transactionsReceiptList, element: <Navigate to="/receipt" replace /> },
+  { path: PageRoutes.transactionsReceiptDetail, element: <UiDetail modelName="receipt" /> },
+  { path: PageRoutes.transactionsAdjustmentList, element: <Navigate to="/inventory-dashboard" replace /> },
+
+  // Tools
+  { path: PageRoutes.notionTracker, element: <NotionTrackerPage /> },
+  { path: PageRoutes.kanbanBoard, element: <KanbanBoardPage /> },
+  { path: PageRoutes.kanbanBoardData, element: <KanbanBoardDataPage /> },
+  { path: PageRoutes.gantt, element: <UnifiedGanttPage /> },
+  { path: PageRoutes.kanbanGantt, element: <Navigate to="/gantt" replace /> },
+  { path: PageRoutes.svarGantt, element: <Navigate to="/gantt" replace /> },
+  { path: PageRoutes.multiProjectGantt, element: <Navigate to="/gantt" replace /> },
+
+  // /:model/:id = record detail pages
+  { path: "/order/:id", element: <UiDetail modelName="order" /> },
+  { path: "/invoice/:id", element: <UiDetail modelName="invoice" /> },
+  { path: "/proposal/:id", element: <UiDetail modelName="proposal" /> },
+  { path: "/purchase/:id", element: <UiDetail modelName="purchase" /> },
+  { path: "/work_order/:id", element: <UiDetail modelName="work_order" /> },
+  { path: "/receipt/:id", element: <UiDetail modelName="receipt" /> },
+  { path: "/requisition/:id", element: <UiDetail modelName="requisition" /> },
+  { path: "/payment/:id", element: <UiDetail modelName="payment" /> },
+  { path: "/contact/:id", element: <ModelDetailPage modelName="contact" /> },
+  { path: "/customer/:id", element: <ModelDetailPage modelName="customer" /> },
+  { path: "/vendor/:id", element: <ModelDetailPage modelName="vendor" /> },
+  { path: "/manufacturer/:id", element: <ModelDetailPage modelName="manufacturer" /> },
+  { path: "/employee/:id", element: <ModelDetailPage modelName="employee" /> },
+  { path: "/rep/:id", element: <ModelDetailPage modelName="rep" /> },
+
+  // Report Parade — onboarding tool, walks through reports with sample data
+  { path: "/parade", element: <ParadeOfReportsPage /> },
+
+  // /:model catch-all — any model renders databrowser
+  { path: "/:model", element: <DataBrowser /> },
+
+  // Admin tools
+  { path: PageRoutes.adminWorkbench, element: <DataBrowser /> },
+  { path: PageRoutes.jsonViewer, element: <JsonViewer /> },
+  { path: PageRoutes.commerceDashboard, element: <CommerceDashboard /> },
+  { path: PageRoutes.aliceTraining, element: <AliceTraining /> },
+  { path: PageRoutes.flightSimulator, element: <FlightSimConsole /> },
+  { path: PageRoutes.flightSim, element: <FlightSimConsole /> },
+  { path: PageRoutes.flightSimInventory, element: <FlightSimConsole /> },
+  { path: PageRoutes.modelWorkbench, element: <AllModelsWorkbench /> },
+  { path: PageRoutes.whitelist, element: <WhitelistTester /> },
+  { path: PageRoutes.formParade, element: <FormParade /> },
+  { path: PageRoutes.selectLists, element: <SelectListBrowser /> },
+  { path: PageRoutes.agenda, element: <AgendaView /> },
+  { path: "/json-tree", element: <JsonTreeApplet /> },
+  { path: "/json-schema", element: <JsonSchemaReference /> },
+  { path: "/alice-dashboard", element: <AliceDashboard /> },
+  { path: "/admin-tools", element: <AdminTools /> },
+  { path: "/help", element: <HelpDashboard /> },
+  { path: "/test-dashboard", element: <TestDashboard /> },
+  { path: "/report-designer", element: <ReportDesigner /> },
+  { path: "/inventory-dashboard", element: <InventoryDashboard /> },
+  { path: "/action-dashboard", element: <ActionDailyDashboard /> },
+  { path: "/submit-bonus", element: <Placeholder title="Submit for Bonus" /> },
+  { path: PageRoutes.coreApiLogList, element: <Navigate to="/apilog" replace /> },
+  { path: PageRoutes.coreUserActivityDashboard, element: <Navigate to="/agenda" replace /> },
+  { path: PageRoutes.coreTeamDashboard, element: <TeamDashboard /> },
+
+  // Placeholders
+  { path: "/core/audit/list", element: <Placeholder title="Core Audit" /> },
+  { path: "/core/notification/list", element: <Placeholder title="Notifications" /> },
+  { path: "/core/pending/list", element: <Placeholder title="Pending Items" /> },
+];
+
+export const resolveWindowElement = (path: string) => {
+  const cleanPath = path.split("?")[0];
+  // Check exact paths first, then parameterized. Prevents /:model catch-all
+  // from swallowing /alice-dashboard, /help, /test-dashboard, etc.
+  const exact = protectedRoutesConfig.find((r) =>
+    r.path && !r.path.includes(":") && r.path === cleanPath
+  );
+  if (exact) return exact.element;
+  const paramMatch = protectedRoutesConfig.find((r) => {
+    if (!r.path?.includes(":")) return false;
+    const base = r.path.split(":")[0];
+    return cleanPath.startsWith(base) && cleanPath.length > base.length;
+  });
+  return paramMatch?.element ?? null;
+};

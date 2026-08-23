@@ -1,0 +1,369 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+/**
+ * RawDataPanel - Display raw JSON data for admin/developer debugging
+ *
+ * Role-based access:
+ * - View: Admin only (default)
+ * - Edit: Admin only (default)
+ *
+ * @example
+ * <RawDataPanel
+ *   entityType="contact"
+ *   entityId={123}
+ *   data={contact}
+ * />
+ */
+import React, { useState, useMemo } from "react";
+import {
+  FaCode,
+  FaChevronDown,
+  FaChevronUp,
+  FaCopy,
+  FaCheck,
+  FaDownload,
+  FaEdit,
+  FaSave,
+  FaTimes,
+} from "react-icons/fa";
+import { usePermissions } from "./usePermissions";
+import type { BasePanelProps } from "./types";
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
+import { HighlightedJson } from "../syntaxHighlightJson";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface RawDataPanelProps extends BasePanelProps<unknown> {
+  /** Sections to highlight (e.g., ['metadata', 'refs', 'prefs']) */
+  highlightSections?: string[];
+  /** Max height for JSON display */
+  maxHeight?: string;
+  /** Callback when data is saved in edit mode (admin only) */
+  onSave?: (updatedData: unknown) => void;
+}
+
+// ---------------------------------------------------------------------------
+// Section Navigator
+// ---------------------------------------------------------------------------
+
+interface SectionNavProps {
+  sections: string[];
+  onNavigate: (section: string) => void;
+}
+
+const SectionNav: React.FC<SectionNavProps> = ({ sections, onNavigate }) => {
+  if (sections.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1 mb-3">
+      {sections.map((section) => (
+        <button
+          key={section}
+          onClick={() => onNavigate(section)}
+          className="px-2 py-0.5 text-xs rounded"
+          style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}
+        >
+          .{section}
+        </button>
+      ))}
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Main RawDataPanel Component
+// ---------------------------------------------------------------------------
+
+const RawDataPanel: React.FC<RawDataPanelProps> = ({
+  entityType,
+  entityId,
+  data,
+  readOnly: _readOnly = true, // Raw data is typically read-only
+  viewRoles,
+  editRoles,
+  className = "",
+  compact = false,
+  title = "Raw Data",
+  defaultCollapsed = false,
+  highlightSections = ["metadata", "refs", "prefs", "comments", "financials"],
+  maxHeight = "400px",
+  onSave,
+}) => {
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const [copied, setCopied] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
+
+  // Check permissions (admin only by default)
+  const { canView, canEdit } = usePermissions({
+    panelType: "rawData",
+    viewRoles,
+    editRoles,
+    forceReadOnly: false,
+  });
+
+  // Don't render if user can't view
+  if (!canView) return null;
+
+  // Format JSON
+  const jsonString = useMemo(() => {
+    try {
+      return JSON.stringify(data, null, 2);
+    } catch {
+      return "Unable to serialize data";
+    }
+  }, [data]);
+
+  // Find available sections
+  const availableSections = useMemo(() => {
+    if (typeof data !== "object" || data === null) return [];
+    return highlightSections.filter(
+      (section) => section in (data as Record<string, unknown>),
+    );
+  }, [data, highlightSections]);
+
+  // Filter JSON if search term provided
+  const displayJson = useMemo(() => {
+    if (!searchTerm) return jsonString;
+
+    const lines = jsonString.split("\n");
+    const matchingLines: number[] = [];
+
+    lines.forEach((line, idx) => {
+      if (line.toLowerCase().includes(searchTerm.toLowerCase())) {
+        // Include surrounding context
+        for (
+          let i = Math.max(0, idx - 2);
+          i <= Math.min(lines.length - 1, idx + 2);
+          i++
+        ) {
+          if (!matchingLines.includes(i)) matchingLines.push(i);
+        }
+      }
+    });
+
+    if (matchingLines.length === 0) return jsonString;
+
+    matchingLines.sort((a, b) => a - b);
+    return matchingLines.map((i) => lines[i]).join("\n");
+  }, [jsonString, searchTerm]);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(jsonString);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${entityType}_${entityId}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleNavigateToSection = (section: string) => {
+    const el = document.getElementById(`raw-section-${section}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    setSearchTerm(`"${section}":`);
+  };
+
+  const handleStartEdit = () => {
+    setEditValue(jsonString);
+    setEditError(null);
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditValue("");
+    setEditError(null);
+  };
+
+  const handleSaveEdit = () => {
+    try {
+      const parsed = JSON.parse(editValue);
+      setEditError(null);
+      setIsEditing(false);
+      onSave?.(parsed);
+    } catch (err: any) {
+      setEditError(`Invalid JSON: ${err.message}`);
+    }
+  };
+
+  return (
+    <div
+      className={`rounded-lg border ${className}`}
+      style={{ background: 'var(--db-surface)', borderColor: 'var(--db-border)' }}
+    >
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-4 py-3 border-b cursor-pointer rounded-t-lg"
+        style={{ background: 'var(--db-surface-alt)', borderColor: 'var(--db-border)' }}
+        onClick={() => setIsCollapsed(!isCollapsed)}
+      >
+        <div className="flex items-center gap-2">
+          <FaCode className="text-teal-500" size={14} />
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
+            {title}
+          </h3>
+          <span className="px-1.5 py-0.5 text-xs rounded" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
+            Admin/Dev
+          </span>
+          <span className="text-xs text-teal-500">
+            {jsonString.length.toLocaleString()} chars
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {!isCollapsed && (
+            <>
+              {canEdit && onSave && !isEditing && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStartEdit();
+                  }}
+                  className="p-1 rounded"
+                  style={{ color: 'var(--db-text-muted)' }}
+                  title="Edit JSON (Admin)"
+                >
+                  <FaEdit size={12} />
+                </button>
+              )}
+              {isEditing && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSaveEdit();
+                    }}
+                    className="p-1 text-green-500 rounded"
+                    title="Save changes"
+                  >
+                    <FaSave size={12} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCancelEdit();
+                    }}
+                    className="p-1 text-red-500 rounded"
+                    title="Cancel editing"
+                  >
+                    <FaTimes size={12} />
+                  </button>
+                </>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCopy();
+                }}
+                className="p-1 rounded"
+                style={{ color: 'var(--db-text-muted)' }}
+                title="Copy to clipboard"
+              >
+                {copied ? (
+                  <FaCheck size={12} className="text-green-500" />
+                ) : (
+                  <FaCopy size={12} />
+                )}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownload();
+                }}
+                className="p-1 rounded"
+                style={{ color: 'var(--db-text-muted)' }}
+                title="Download JSON"
+              >
+                <FaDownload size={12} />
+              </button>
+            </>
+          )}
+          {isCollapsed ? (
+            <FaChevronDown size={12} />
+          ) : (
+            <FaChevronUp size={12} />
+          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      {!isCollapsed && (
+        <div className={`${compact ? "p-2" : "p-4"}`}>
+          {/* Section Navigator */}
+          <SectionNav
+            sections={availableSections}
+            onNavigate={handleNavigateToSection}
+          />
+
+          {/* Search */}
+          <div className="mb-3">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search JSON..."
+              className="w-full px-2 py-1 text-xs rounded"
+              style={{ background: 'var(--db-input-bg)', border: '1px solid var(--db-input-border)' }}
+            />
+          </div>
+
+          {/* JSON Display */}
+          {isEditing ? (
+            <div className="rounded border" style={{ borderColor: 'var(--db-input-border)' }}>
+              <textarea
+                value={editValue}
+                onChange={(e) => {
+                  setEditValue(e.target.value);
+                  setEditError(null);
+                }}
+                className="w-full p-3 text-xs font-mono leading-relaxed rounded resize-y focus:outline-none focus:ring-2 focus:ring-blue-400"
+                style={{ background: 'var(--db-input-bg)', minHeight: "200px", maxHeight }}
+                spellCheck={false}
+              />
+              {editError && (
+                <div className="px-3 py-2 text-xs text-red-600 border-t" style={{ borderColor: 'var(--db-border)' }}>
+                  {editError}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div
+              className="overflow-auto rounded border"
+              style={{ background: 'var(--db-surface-alt)', borderColor: 'var(--db-border)', maxHeight }}
+            >
+              <pre className="p-3 text-xs font-mono leading-relaxed">
+                <HighlightedJson json={displayJson} />
+              </pre>
+            </div>
+          )}
+
+          {/* Stats */}
+          <div className="mt-2 flex items-center gap-4 text-xs" style={{ color: 'var(--db-text-dim)' }}>
+            <span>Entity: {entityType}</span>
+            <span>ID: {entityId}</span>
+            <span>Sections: {availableSections.length}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default withDevIdentifier(RawDataPanel, "RawDataPanel", "teal", 'apps/common/components/panels/RawDataPanel.tsx');

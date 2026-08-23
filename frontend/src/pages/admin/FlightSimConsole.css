@@ -1,0 +1,664 @@
+/**
+ * FlightSimConsole.css — Flight Simulator styles.
+ * Uses --db-* CSS variables from DataBrowser.css (theme-aware).
+ */
+
+/* Container */
+.fs-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Header bar */
+.fs-header {
+  flex-shrink: 0;
+  background: var(--db-surface, #1e1e1e);
+  color: var(--db-text, #fff);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fs-header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.fs-header-meta {
+  color: var(--db-text-muted, #9ca3af);
+  font-size: 14px;
+}
+
+/* Toolbar */
+.fs-toolbar {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--db-border, #333);
+  background: var(--db-surface-alt, #252526);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fs-toolbar-label {
+  font-size: 12px;
+  color: var(--db-text-muted, #9ca3af);
+}
+
+.fs-toolbar-input {
+  width: 100px;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-family: monospace;
+  border: 1px solid var(--db-border, #555);
+  border-radius: 4px;
+  background: var(--db-surface, #1e1e1e);
+  color: var(--db-text, #fff);
+}
+
+.fs-toolbar-input:focus {
+  outline: none;
+  border-color: var(--db-accent, #9cdcfe);
+}
+
+.fs-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid var(--db-border, #555);
+  border-radius: 4px;
+  background: var(--db-surface, #1e1e1e);
+  color: var(--db-text-muted, #ccc);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fs-btn:hover {
+  background: var(--db-surface-alt, #2d2d2d);
+  border-color: var(--db-accent, #9cdcfe);
+}
+
+.fs-btn-tx {
+  color: var(--db-accent, #9cdcfe);
+}
+
+.fs-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--db-border, #555);
+}
+
+/* Split pane */
+.fs-split {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.fs-split--dragging {
+  user-select: none;
+  cursor: col-resize;
+}
+
+/* Left panel */
+.fs-left {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Drag handle */
+.fs-handle {
+  width: 6px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: var(--db-border, #333);
+  transition: background 0.15s;
+}
+
+.fs-handle:hover,
+.fs-handle--active {
+  background: var(--db-accent, #3b82f6);
+}
+
+/* Right panel */
+.fs-right {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+/* Empty states */
+.fs-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--db-text-muted, #9ca3af);
+  font-size: 14px;
+}
+
+.fs-empty-box {
+  text-align: center;
+  max-width: 400px;
+}
+
+.fs-empty-title {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.fs-empty-desc {
+  font-size: 14px;
+}
+
+/* Quantity cell styling */
+.fs-qty-positive {
+  color: var(--db-accent-green, #22c55e);
+  font-weight: 700;
+  font-family: monospace;
+}
+
+.fs-qty-negative {
+  color: var(--db-accent-red, #ef4444);
+  font-weight: 700;
+  font-family: monospace;
+}
+
+.fs-qty-static {
+  font-family: monospace;
+}
+
+/* Row type indicators */
+.fs-indicator-pending {
+  color: var(--db-accent-gold, #f59e0b);
+}
+
+.fs-indicator-state {
+  color: var(--db-text-muted, #6b7280);
+  font-weight: 600;
+}
+
+.fs-indicator-tx {
+  color: var(--db-accent, #3b82f6);
+}
+
+/* GL summary */
+.fs-gl-none {
+  color: var(--db-text-dim, #9ca3af);
+}
+
+.fs-gl-summary {
+  font-size: 11px;
+}
+
+/* ── Item Summary (top of left panel) ────────────────────────────── */
+
+.fs-item-summary {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--db-border, #3c3c3c);
+  padding: 12px 16px;
+  background: var(--db-surface, #252526);
+}
+
+.fs-item-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.fs-item-ida {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: monospace;
+  color: var(--db-accent, #9cdcfe);
+}
+
+.fs-item-name {
+  font-size: 13px;
+  color: var(--db-text-muted, #a0a0a0);
+}
+
+.fs-item-quantities {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.fs-item-qty-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 64px;
+  padding: 6px 10px;
+  border: 1px solid var(--db-border, #3c3c3c);
+  border-radius: 4px;
+  background: var(--db-bg, #1e1e1e);
+}
+
+.fs-item-qty-label {
+  font-size: 10px;
+  color: var(--db-text-muted, #a0a0a0);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fs-item-qty-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: monospace;
+  color: var(--db-text, #ececec);
+}
+
+/* ── Simulation Select List ──────────────────────────────────────── */
+
+.fs-select-root {
+  padding: 40px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.fs-select-header {
+  margin-bottom: 32px;
+}
+
+.fs-select-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--db-text, #ececec);
+  margin: 0 0 8px 0;
+}
+
+.fs-select-desc {
+  font-size: 14px;
+  color: var(--db-text-muted, #a0a0a0);
+  line-height: 1.5;
+}
+
+/* ── Audit bar ──────────────────────────────────────────────────── */
+
+.fs-audit-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding: 14px 20px;
+  border: 1px solid var(--db-border, #3c3c3c);
+  border-radius: 6px;
+  background: var(--db-surface, #252526);
+}
+
+.fs-audit-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--db-text, #ececec);
+  flex-shrink: 0;
+}
+
+.fs-audit-input {
+  flex: 1;
+  max-width: 280px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-family: monospace;
+  border: 1px solid var(--db-border, #555);
+  border-radius: 4px;
+  background: var(--db-bg, #1e1e1e);
+  color: var(--db-text, #fff);
+}
+
+.fs-audit-input:focus {
+  outline: none;
+  border-color: var(--db-accent, #9cdcfe);
+}
+
+.fs-select-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 12px;
+}
+
+.fs-sim-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 16px 20px;
+  border: 1px solid var(--db-border, #3c3c3c);
+  border-radius: 6px;
+  background: var(--db-surface, #252526);
+  color: var(--db-text, #ececec);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.fs-sim-card:hover {
+  border-color: var(--db-accent, #9cdcfe);
+  background: var(--db-surface-alt, #2d2d2d);
+}
+
+.fs-sim-card .fs-sim-label {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.fs-sim-card .fs-sim-desc {
+  font-size: 12px;
+  color: var(--db-text-muted, #a0a0a0);
+  line-height: 1.4;
+}
+
+/* ── Sim info bar (active simulation) ───────────────────────────── */
+
+.fs-sim-bar {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--db-border, #333);
+  background: var(--db-surface-alt, #252526);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.fs-sim-bar-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--db-text, #ececec);
+}
+
+/* ── Left panel sections (vertically stacked, resizable) ────────── */
+
+.fs-left-sections {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.fs-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 60px;
+  overflow: hidden;
+}
+
+.fs-section-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: var(--db-surface-alt, #252526);
+  border-bottom: 1px solid var(--db-border, #3c3c3c);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--db-text-muted, #a0a0a0);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fs-section-header span {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--db-text-dim, #777);
+}
+
+.fs-section-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Horizontal drag handle (between vertical sections) */
+.fs-vhandle {
+  height: 5px;
+  flex-shrink: 0;
+  cursor: row-resize;
+  background: var(--db-border, #333);
+  transition: background 0.15s;
+}
+
+.fs-vhandle:hover,
+.fs-vhandle--active {
+  background: var(--db-accent, #3b82f6);
+}
+
+/* ── Transaction Table (left panel) ─────────────────────────────── */
+
+.fs-transaction-table {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.fs-tx-header {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--db-border, #3c3c3c);
+  background: var(--db-surface-alt, #252526);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--db-text-muted, #a0a0a0);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.fs-tx-row {
+  display: flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--db-border, #2a2a2a);
+  cursor: pointer;
+}
+
+.fs-tx-row:hover {
+  background: var(--db-surface-alt, #2d2d2d);
+}
+
+.fs-tx-row--item {
+  background: var(--db-surface, #1e1e1e);
+  font-weight: 600;
+  color: var(--db-text, #ececec);
+}
+
+.fs-tx-row--pending-applied {
+  color: var(--db-accent-gold, #f59e0b);
+}
+
+.fs-tx-row--pending-unapplied {
+  color: var(--db-accent-red, #ef4444);
+}
+
+.fs-tx-row--line {
+  color: var(--db-accent, #3b82f6);
+}
+
+.fs-tx-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-tx-event {
+  flex: 1;
+  min-width: 160px;
+}
+
+.fs-tx-qty {
+  width: 60px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.fs-tx-gl {
+  width: 180px;
+  flex-shrink: 0;
+  font-size: 10px;
+}
+
+.fs-tx-empty {
+  color: var(--db-text-dim, #555);
+}
+
+/* ── Payment Table ─────────────────────────────────────────────── */
+
+.fs-pay-table {
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.fs-pay-header {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--db-border, #3c3c3c);
+  background: var(--db-surface-alt, #252526);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--db-text-muted, #a0a0a0);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.fs-pay-row {
+  display: flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--db-border, #2a2a2a);
+  cursor: pointer;
+}
+
+.fs-pay-row:hover {
+  background: var(--db-surface-alt, #2d2d2d);
+}
+
+.fs-pay-row--payment {
+  font-weight: 600;
+  color: var(--db-text, #ececec);
+}
+
+.fs-pay-row--application {
+  color: var(--db-accent-gold, #f59e0b);
+  padding-left: 16px;
+}
+
+.fs-pay-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-pay-label {
+  flex: 1;
+  min-width: 140px;
+}
+
+.fs-pay-amount {
+  width: 80px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.fs-pay-status {
+  width: 80px;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 10px;
+}
+
+/* ── GL Journal Table ──────────────────────────────────────────── */
+
+.fs-gl-table {
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.fs-gl-header-row {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--db-border, #3c3c3c);
+  background: var(--db-surface-alt, #252526);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--db-text-muted, #a0a0a0);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.fs-gl-row {
+  display: flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--db-border, #2a2a2a);
+}
+
+.fs-gl-row--header {
+  font-weight: 700;
+  color: var(--db-text, #ececec);
+  background: var(--db-surface, #1e1e1e);
+}
+
+.fs-gl-row--entry {
+  color: var(--db-text-muted, #ccc);
+  padding-left: 16px;
+}
+
+.fs-gl-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-gl-account {
+  flex: 1;
+  min-width: 160px;
+}
+
+.fs-gl-debit {
+  width: 80px;
+  flex-shrink: 0;
+  text-align: right;
+  color: var(--db-accent-green, #22c55e);
+}
+
+.fs-gl-credit {
+  width: 80px;
+  flex-shrink: 0;
+  text-align: right;
+  color: var(--db-accent-red, #ef4444);
+}
+
+.fs-gl-source {
+  width: 80px;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 10px;
+  color: var(--db-text-dim, #777);
+}
+
+.fs-section-empty {
+  padding: 12px;
+  color: var(--db-text-dim, #777);
+  font-size: 12px;
+  font-style: italic;
+}

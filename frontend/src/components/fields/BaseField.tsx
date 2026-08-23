@@ -1,0 +1,76 @@
+/**
+ * BaseField — shared wrapper for all field widgets.
+ * Handles: label rendering, error display, span2 layout, disabled state,
+ * Shift-for-Help on all labels, Cmd+Shift+click for behavior override (admin).
+ */
+import React, { useState } from 'react';
+import type { FieldWidgetProps } from './types';
+import { openFieldHelp } from '../common/HelpMenu';
+import BehaviorOverrideDialog from './BehaviorOverrideDialog';
+
+interface BaseFieldRenderProps {
+  props: FieldWidgetProps;
+  labelColor?: string;      // CSS class suffix: actionable, select, lookup, readonly, default
+  labelSuffix?: React.ReactNode;
+  labelHref?: string;
+  labelOnClick?: () => void; // for behaviors like JSON → open viewer
+  model?: string;           // model name for Shift-for-Help + data-wc-model
+  children: React.ReactNode;
+}
+
+export default function BaseField({ props, labelColor = 'default', labelSuffix, labelHref, labelOnClick, model: modelOverride, children }: BaseFieldRenderProps) {
+  const { name, label, error, className, span2, model: propsModel } = props;
+  const displayLabel = label || name;
+  const model = modelOverride || propsModel;
+  const [behaviorOpen, setBehaviorOpen] = useState(false);
+
+  const handleLabelClick = (e: React.MouseEvent) => {
+    // Cmd+Shift+click → behavior override dialog (admin)
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      setBehaviorOpen(true);
+      return;
+    }
+    // Shift+click → field help
+    if (e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      openFieldHelp(model || 'system', name);
+      return;
+    }
+    if (labelOnClick) labelOnClick();
+  };
+
+  const labelEl = labelHref ? (
+    <a href={labelHref} target={labelHref.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer"
+      className={`db-label db-label--${labelColor}`} onClick={handleLabelClick}>
+      {displayLabel}{labelSuffix && <> {labelSuffix}</>}
+    </a>
+  ) : (
+    <span className={`db-label db-label--${labelColor}`} onClick={handleLabelClick}
+      style={labelOnClick ? { cursor: 'pointer' } : undefined}>
+      {displayLabel}{labelSuffix && <> {labelSuffix}</>}
+    </span>
+  );
+
+  const wcAttrs: Record<string, string> = { 'data-wc': `field-${name}`, 'data-wc-field': name };
+  if (model) wcAttrs['data-wc-model'] = model;
+
+  return (
+    <div className={`db-field ${span2 ? 'db-field--span2' : ''} ${className || ''}`} {...wcAttrs}>
+      {labelEl}
+      {children}
+      {error && <div className="db-field-error">{error}</div>}
+      {behaviorOpen && model && (
+        <BehaviorOverrideDialog
+          open={behaviorOpen}
+          onClose={() => setBehaviorOpen(false)}
+          onReload={() => window.dispatchEvent(new CustomEvent('wc:reload-behaviors'))}
+          model={model}
+          fieldName={name}
+        />
+      )}
+    </div>
+  );
+}

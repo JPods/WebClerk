@@ -1,0 +1,192 @@
+/**
+ * JsonTreeApplet.css — JSON Tree editor styles
+ *
+ * Two themes via [data-jt-theme="dark"] and [data-jt-theme="light"].
+ * Public page (webclerk.com/json-tree) — uses its own theme variables,
+ * not --wc-* or --db-*, since it runs without login.
+ */
+
+/* Theme variables */
+[data-jt-theme="dark"] {
+  --jt-bg: #0f172a;
+  --jt-surface: #1e293b;
+  --jt-surface-alt: #334155;
+  --jt-border: #334155;
+  --jt-text: #f1f5f9;
+  --jt-text-muted: #94a3b8;
+  --jt-text-dim: #64748b;
+  --jt-primary: #60a5fa;
+  --jt-danger: #f87171;
+  --jt-success: #4ade80;
+  --jt-input-bg: #1e293b;
+  --jt-code-bg: #1e293b;
+  --jt-code-text: #e2e8f0;
+  --jt-drop-highlight: rgba(96,165,250,0.08);
+}
+[data-jt-theme="light"] {
+  --jt-bg: #ffffff;
+  --jt-surface: #f8fafc;
+  --jt-surface-alt: #f1f5f9;
+  --jt-border: #e2e8f0;
+  --jt-text: #0f172a;
+  --jt-text-muted: #64748b;
+  --jt-text-dim: #94a3b8;
+  --jt-primary: #465fff;
+  --jt-danger: #dc2626;
+  --jt-success: #16a34a;
+  --jt-input-bg: #ffffff;
+  --jt-code-bg: #f8fafc;
+  --jt-code-text: #334155;
+  --jt-drop-highlight: rgba(70,95,255,0.06);
+}
+
+/* Layout */
+.jt-root {
+  min-height: 100vh;
+  background: var(--jt-bg);
+  color: var(--jt-text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.jt-header {
+  border-bottom: 1px solid var(--jt-border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--jt-surface);
+}
+.jt-header h1 { font-size: 18px; font-weight: 700; margin: 0; }
+.jt-header h1 span { color: var(--jt-primary); }
+.jt-header-file {
+  font-size: 12px;
+  font-family: monospace;
+  background: var(--jt-surface-alt);
+  padding: 2px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--jt-border);
+}
+.jt-header-sub { font-size: 11px; color: var(--jt-text-dim); }
+.jt-header-right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.jt-stats {
+  font-size: 10px;
+  color: var(--jt-text-dim);
+  font-family: monospace;
+  margin-right: 8px;
+}
+
+/* Toolbar */
+.jt-toolbar {
+  border-bottom: 1px solid var(--jt-border);
+  padding: 6px 24px;
+  display: flex;
+  gap: 6px;
+  background: var(--jt-surface);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.jt-toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--jt-border);
+  align-self: center;
+}
+.jt-toolbar-msg {
+  font-size: 12px;
+  font-family: monospace;
+  align-self: center;
+  margin-left: 4px;
+}
+.jt-toolbar-error {
+  font-size: 12px;
+  color: var(--jt-danger);
+  font-family: monospace;
+  align-self: center;
+  margin-left: 8px;
+}
+
+/* Buttons */
+.jt-btn {
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--jt-border);
+  background: var(--jt-surface);
+  color: var(--jt-text);
+  transition: background 150ms;
+}
+.jt-btn:hover { opacity: 0.85; }
+.jt-btn--primary { background: var(--jt-primary); color: #fff; border: none; }
+.jt-btn--success { background: var(--jt-success); color: #fff; border: none; }
+.jt-btn--copied { background: var(--jt-success); color: #fff; border: none; }
+
+/* Drop zone */
+.jt-dropzone {
+  margin: 8px 24px;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  border: 2px dashed var(--jt-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--jt-text-dim);
+  font-size: 12px;
+  transition: all 150ms;
+}
+.jt-dropzone--active {
+  padding: 16px;
+  border-color: var(--jt-primary);
+  background: var(--jt-drop-highlight);
+  color: var(--jt-primary);
+}
+
+/* Split pane */
+.jt-split { display: flex; height: calc(100vh - 175px); overflow: hidden; }
+.jt-pane-label {
+  padding: 4px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--jt-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--jt-surface-alt);
+  border-bottom: 1px solid var(--jt-border);
+  flex-shrink: 0;
+}
+.jt-code-pane { display: flex; flex-direction: column; border-right: 1px solid var(--jt-border); }
+.jt-code-editor {
+  flex: 1;
+  resize: none;
+  border: none;
+  outline: none;
+  padding: 16px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  background: var(--jt-code-bg);
+  color: var(--jt-code-text);
+  tab-size: 2;
+}
+.jt-splitter {
+  width: 5px;
+  cursor: col-resize;
+  background: var(--jt-border);
+  flex-shrink: 0;
+  transition: background 150ms;
+}
+.jt-tree-pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.jt-tree-body { flex: 1; overflow: auto; padding: 8px; padding-bottom: 60px; }
+.jt-tree-empty { padding: 32px; text-align: center; color: var(--jt-text-dim); font-size: 13px; }
+
+/* Footer */
+.jt-footer {
+  padding: 4px 24px;
+  font-size: 10px;
+  color: var(--jt-text-dim);
+  background: var(--jt-surface);
+  border-top: 1px solid var(--jt-border);
+  display: flex;
+  justify-content: space-between;
+}

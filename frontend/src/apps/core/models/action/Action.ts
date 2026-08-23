@@ -1,0 +1,49 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+// WC3 ↔ R25 TypeScript alignment interface for Action
+export interface Action {
+  id: number;
+  uuid?: string;
+  ida?: string;
+  dt_created?: number;
+  dt_modified?: number;
+  version?: number;
+  is_active?: boolean;
+  is_deleted?: boolean;
+  is_archived?: boolean;
+  action_id?: string;
+  action?: Record<string, string>;
+  description?: Record<string, string>;
+  languages?: string[];
+  assigned_to?: Array<{ id: number; name: string; email?: string }>;
+  contact_id?: number;
+  project_name?: string;
+  project_id?: number;
+  project_metadata?: Record<string, any>;
+  linkage?: number;
+  sequence?: number;
+  kanban_column?: string;
+  priority?: number;
+  difficulty?: number;
+  status?: string;
+  percent_complete?: number;
+  burndown?: number;
+  dt_start?: number;
+  dt_expected?: number;
+  dt_deadline?: number;
+  dt_completed?: number;
+  dt_updated?: number;
+  duration?: number;
+  created_by?: Array<any>;
+  updated_by?: Array<any>;
+  expected_by?: Array<any>;
+  due_by?: Array<any>;
+  completed_by?: Array<any>;
+  start_by?: Array<any>;
+  end_by?: Array<any>;
+  metadata?: Record<string, any>;
+  refs?: Record<string, any>;
+  prefs?: Record<string, any>;
+  comments?: Record<string, any>;
+  actions?: Record<string, any>;
+  health_rating?: number;
+}

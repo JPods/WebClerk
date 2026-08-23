@@ -1,0 +1,487 @@
+/**
+ * fields.css — styles for the reusable field widget suite.
+ * Uses CSS custom properties from the nearest .db-root ancestor.
+ * Can also be used standalone with its own variable definitions.
+ */
+
+/* ---------------------------------------------------------------------------
+   Field wrapper
+   --------------------------------------------------------------------------- */
+
+.db-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.db-field--span2 {
+  grid-column: 1 / -1;
+}
+
+/* ---------------------------------------------------------------------------
+   Labels
+   --------------------------------------------------------------------------- */
+
+.db-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+
+.db-label--actionable { color: var(--db-accent, #0d6efd); cursor: pointer; }
+.db-label--select { color: var(--db-accent-green, #198754); }
+.db-label--lookup { color: var(--db-accent-purple, #6f42c1); }
+.db-label--readonly { color: var(--db-text-dim, #adb5bd); }
+.db-label--default { color: var(--db-text-muted, #6c757d); }
+
+.db-label-hint {
+  font-weight: 400;
+  text-transform: none;
+  color: var(--db-text-dim, #adb5bd);
+}
+
+/* ---------------------------------------------------------------------------
+   Inputs
+   --------------------------------------------------------------------------- */
+
+.db-input {
+  background: var(--db-input-bg, #fff);
+  border: 1px solid var(--db-input-border, #ced4da);
+  border-radius: 4px;
+  color: var(--db-text, #212529);
+  font-size: inherit;
+  padding: 4px 8px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.db-input:focus {
+  border-color: var(--db-accent, #0d6efd);
+}
+
+.db-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.db-input--mono {
+  font-family: monospace;
+}
+
+.db-input--right {
+  text-align: right;
+}
+
+.db-input--readonly {
+  background: var(--db-surface-alt, #f8f9fa);
+  border-color: var(--db-border, #dee2e6);
+  color: var(--db-text-muted, #6c757d);
+  font-family: monospace;
+}
+
+.db-input--select {
+  cursor: pointer;
+}
+
+.db-input--textarea {
+  resize: vertical;
+  font-family: monospace;
+}
+
+.db-input--error {
+  border-color: var(--db-accent-red, #dc3545);
+}
+
+/* ---------------------------------------------------------------------------
+   Error display
+   --------------------------------------------------------------------------- */
+
+.db-field-error {
+  font-size: 10px;
+  color: var(--db-accent-red, #dc3545);
+  margin-top: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+   Currency wrapper
+   --------------------------------------------------------------------------- */
+
+.db-currency-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.db-currency-symbol {
+  color: var(--db-text-muted, #6c757d);
+  font-size: inherit;
+}
+
+/* ---------------------------------------------------------------------------
+   Boolean
+   --------------------------------------------------------------------------- */
+
+.db-boolean-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------------------
+   JSON field summary + viewer launch
+   --------------------------------------------------------------------------- */
+
+.db-json-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.db-json-preview {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--db-text-dim, #adb5bd);
+  cursor: pointer;
+  padding: 3px 8px;
+  background: var(--db-surface-alt, #f1f3f5);
+  border: 1px solid var(--db-border, #dee2e6);
+  border-radius: 4px;
+}
+
+.db-json-preview:hover {
+  color: var(--db-accent, #0d6efd);
+  border-color: var(--db-accent, #0d6efd);
+}
+
+.db-json-btn {
+  font-size: 10px;
+  color: var(--db-text-muted, #6c757d);
+  background: none;
+  border: 1px solid var(--db-border, #dee2e6);
+  border-radius: 3px;
+  padding: 1px 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.db-json-btn:hover {
+  color: var(--db-accent, #0d6efd);
+  border-color: var(--db-accent, #0d6efd);
+}
+
+/* ---------------------------------------------------------------------------
+   Select with allow_custom
+   --------------------------------------------------------------------------- */
+
+.db-select-custom-wrap {
+  display: flex;
+  gap: 4px;
+}
+
+.db-select-custom-wrap select,
+.db-select-custom-wrap input {
+  flex: 1;
+}
+
+/* ---------------------------------------------------------------------------
+   Lookup search dropdown
+   --------------------------------------------------------------------------- */
+
+.db-lookup-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: var(--db-input-bg, #fff);
+  border: 1px solid var(--db-input-border, #ced4da);
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,.2);
+}
+
+.db-lookup-option {
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--db-text, #212529);
+  border-bottom: 1px solid var(--db-border, #dee2e6);
+}
+
+.db-lookup-option:hover {
+  background: var(--db-surface-alt, #f8f9fa);
+}
+
+.db-lookup-name {
+  font-weight: 600;
+}
+
+.db-lookup-hint {
+  margin-left: 8px;
+  color: var(--db-text-muted, #6c757d);
+  font-size: 10px;
+}
+
+.db-lookup-add {
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--db-accent-green, #198754);
+  font-weight: 600;
+  border-top: 1px solid var(--db-border, #dee2e6);
+}
+
+.db-lookup-add:hover {
+  background: var(--db-surface-alt, #f8f9fa);
+}
+
+.db-lookup-empty {
+  padding: 6px 10px;
+  color: var(--db-text-muted, #6c757d);
+  font-size: 11px;
+}
+
+/* ---------------------------------------------------------------------------
+   JSON floating editor
+   --------------------------------------------------------------------------- */
+
+.db-json-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.5);
+}
+
+.db-json-editor {
+  width: 90vw;
+  max-width: 1200px;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--db-input-bg, #fff);
+  border: 1px solid var(--db-border, #dee2e6);
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+.db-json-editor-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--db-surface-alt, #f8f9fa);
+  border-bottom: 1px solid var(--db-border, #dee2e6);
+  flex-shrink: 0;
+}
+
+.db-json-editor-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.db-json-editor-title span:first-child {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--db-text, #212529);
+}
+
+.db-json-editor-error {
+  font-size: 11px;
+  color: #f87171;
+  font-family: monospace;
+}
+
+.db-json-editor-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.db-json-editor-save {
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 4px;
+  border: none;
+  background: var(--db-accent, #465fff);
+  color: #fff;
+  cursor: pointer;
+}
+
+.db-json-editor-save:disabled {
+  background: #64748b;
+  cursor: not-allowed;
+}
+
+.db-json-editor-close {
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid var(--db-border, #dee2e6);
+  background: var(--db-surface-alt, #f8f9fa);
+  color: var(--db-text, #212529);
+  cursor: pointer;
+}
+
+.db-json-editor-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.db-json-editor-code {
+  width: 45%;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--db-border, #dee2e6);
+}
+
+.db-json-editor-tree {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.db-json-editor-pane-label {
+  padding: 3px 10px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--db-text-muted, #6c757d);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--db-surface-alt, #f8f9fa);
+  border-bottom: 1px solid var(--db-border, #dee2e6);
+  flex-shrink: 0;
+}
+
+.db-json-editor-textarea {
+  flex: 1;
+  resize: none;
+  border: none;
+  outline: none;
+  padding: 12px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  background: var(--db-input-bg, #fff);
+  color: var(--db-text, #212529);
+  tab-size: 2;
+}
+
+.db-json-editor-tree-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+}
+
+.db-json-editor-tree-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--db-text-muted, #6c757d);
+  font-size: 12px;
+}
+
+/* ---------------------------------------------------------------------------
+   Behavior Override Dialog (Cmd+Shift+click on field labels)
+   --------------------------------------------------------------------------- */
+
+.bov-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.bov-dialog {
+  background: var(--db-bg, #1e1e1e); color: var(--db-text, #d4d4d4);
+  border: 1px solid var(--db-border, #333); border-radius: 8px;
+  width: 420px; max-height: 80vh; display: flex; flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.bov-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px; border-bottom: 1px solid var(--db-border, #333);
+}
+
+.bov-title { font-size: 13px; flex: 1; }
+.bov-model { font-size: 11px; color: var(--db-text-muted, #6c757d); }
+.bov-close {
+  background: none; border: none; color: var(--db-text-muted, #6c757d);
+  font-size: 18px; cursor: pointer; padding: 0 4px; line-height: 1;
+}
+.bov-close:hover { color: var(--db-text, #d4d4d4); }
+
+.bov-body { padding: 16px; overflow-y: auto; flex: 1; }
+
+.bov-section { margin-bottom: 16px; }
+.bov-section-label {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--db-text-muted, #6c757d);
+  margin-bottom: 8px;
+}
+
+.bov-computed { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.bov-tag {
+  font-size: 11px; padding: 2px 8px; border-radius: 4px;
+  background: var(--db-accent, #0d6efd); color: #fff;
+}
+.bov-tag--action { background: var(--db-accent-green, #198754); }
+.bov-tag--lookup { background: var(--db-accent-purple, #6f42c1); }
+.bov-tag--label { background: var(--db-border, #444); color: var(--db-text, #d4d4d4); }
+.bov-tag--opts { background: var(--db-border, #444); color: var(--db-text, #d4d4d4); }
+
+.bov-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.bov-field-label {
+  font-size: 11px; width: 90px; flex-shrink: 0;
+  color: var(--db-text-muted, #6c757d);
+}
+
+.bov-select, .bov-input, .bov-textarea {
+  flex: 1; font-size: 12px; padding: 4px 8px;
+  background: var(--db-input-bg, #2d2d2d); color: var(--db-text, #d4d4d4);
+  border: 1px solid var(--db-border, #444); border-radius: 4px;
+}
+.bov-select:focus, .bov-input:focus, .bov-textarea:focus {
+  outline: none; border-color: var(--db-accent, #0d6efd);
+}
+.bov-textarea { resize: vertical; font-family: monospace; }
+
+.bov-message {
+  font-size: 11px; padding: 6px 10px; border-radius: 4px; margin-top: 8px;
+  background: var(--db-border, #444); color: var(--db-text, #d4d4d4);
+}
+.bov-message--ok { background: rgba(25, 135, 84, 0.2); color: var(--db-accent-green, #198754); }
+
+.bov-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-top: 1px solid var(--db-border, #333);
+}
+.bov-footer-right { display: flex; gap: 8px; }
+
+.bov-btn {
+  font-size: 12px; padding: 5px 14px; border-radius: 4px; cursor: pointer;
+  background: var(--db-border, #444); color: var(--db-text, #d4d4d4);
+  border: 1px solid var(--db-border, #555);
+}
+.bov-btn:hover { background: var(--db-border-hover, #555); }
+.bov-btn:disabled { opacity: 0.5; cursor: default; }
+.bov-btn--save { background: var(--db-accent, #0d6efd); color: #fff; border-color: var(--db-accent, #0d6efd); }
+.bov-btn--save:hover { background: #0b5ed7; }
+.bov-btn--reset { background: transparent; border-color: transparent; color: var(--db-text-muted, #6c757d); }
+.bov-btn--reset:hover { color: var(--db-text, #d4d4d4); }

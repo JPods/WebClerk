@@ -1,0 +1,41 @@
+/**
+ * FlightSimCard.css — styles for the flight simulator dd-card launcher.
+ * Uses --db-* CSS variables (theme-aware).
+ */
+
+.dd-card-flight-sim {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.fs-sim-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--db-border, #3c3c3c);
+  border-radius: 4px;
+  background: var(--db-surface, #252526);
+  color: var(--db-text, #ececec);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.fs-sim-btn:hover {
+  border-color: var(--db-accent, #9cdcfe);
+  background: var(--db-surface-alt, #2d2d2d);
+}
+
+.fs-sim-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fs-sim-desc {
+  font-size: 11px;
+  color: var(--db-text-muted, #a0a0a0);
+}

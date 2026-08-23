@@ -1,0 +1,137 @@
+  Plan: DesignMode for Reports — PrintLayout Visual Editor
+
+     Context
+
+     Reports use PrintLayout JSON (sections-based, rendered by UniversalPrint) as
+     the standard format. Bill says "only use print.json unless very special
+     circumstances." Currently, editing a report layout requires raw JSON editing
+     via the Setting record in databrowser. We need a visual editor so users can
+     drag/reorder sections, add/remove fields, change properties, and see a live
+     preview.
+
+     Architecture
+
+     Entry point: Shift-click a report row in ReportsDialog (or "Design" button in
+     footer).
+
+     Layout: ReportsDialog widens to 1200px. Left pane = report list (480px). Right
+      pane = PrintLayoutDesigner (split: section editor top-left, live preview
+     bottom-right).
+
+     Data flow: Load report.config.form (or fallback via fetchPrintLayout) → deep
+     clone into local state → edit sections/fields → debounced live preview via
+     generatePrintHtml → Save writes to Report.config.form via saveRecord.
+
+     Files to Create/Modify
+
+     1. UniversalPrint.ts — Extract generatePrintHtml (+20 lines)
+
+     - Export generatePrintHtml(data, companyInfo, layout): string — pure HTML
+     generation
+     - Export PRINT_CSS constant
+     - openUniversalPrint calls generatePrintHtml internally (no behavior change)
+
+     2. PrintLayoutDesigner.tsx — NEW (~380 lines)
+
+     - Main container with toolbar, section card list, preview iframe
+     - Props: report, model, theme, companyInfo, sampleData, onSave, onClose
+     - Local state: layout (working copy), selectedSectionIndex, dirty flag
+     - Section drag-reorder via HTML5 drag (same pattern as DynamicDetail)
+     - Debounced preview: generatePrintHtml → iframe srcdoc
+     - Toolbar: Save, + Section, Close
+
+     3. SectionCard.tsx — NEW (~280 lines)
+
+     Three editing shapes based on section type:
+     - Toggle sections (company_header): click-to-toggle options (logo,
+     show_address, show_contact)
+     - Source sections (comments, conditions): text input for source path + label
+     - Field-list sections (meta_row, footer, line_items, totals, data_table,
+     address_blocks): draggable FieldEditor rows, add/remove, section-specific
+     options
+     - Expandable/collapsible accordion per section
+     - Drag handle + delete button on header
+
+     4. FieldEditor.tsx — NEW (~140 lines)
+
+     Inline row: grip | field_input | label_input | align_cycle | format_select |
+     width_input | delete
+     - Click align to cycle left/center/right
+     - Format is tiny select (text/currency/date/number/percent)
+     - All inline, no popups
+
+     5. SectionTypePicker.tsx — NEW (~90 lines)
+
+     Dropdown with all 10 section types + descriptions. Each type has a factory
+     function returning a blank section with sensible defaults.
+
+     6. ReportsDialog.tsx — Add design mode (+55 lines)
+
+     - New state: designMode, designReport
+     - Shift-click report row → enter design mode
+     - "Design" button in footer
+     - When active: dialog widens, right pane = PrintLayoutDesigner
+     - Save handler merges layout into report.config.form
+
+     Style Rules
+
+     - Inline styles with theme prop (matching ReportsDialog exactly — no Tailwind)
+     - data-wc attributes for DOM identification
+     - No checkboxes — click to toggle
+     - Amber for drag/arrange indicators
+     - Dark mode via theme prop colors
+     - fontSize prop for relative sizing
+
+     Implementation Sequence
+
+     1. UniversalPrint.ts — extract generatePrintHtml (pure refactor)
+     2. FieldEditor.tsx — standalone
+     3. SectionTypePicker.tsx — standalone
+     4. SectionCard.tsx — depends on FieldEditor
+     5. PrintLayoutDesigner.tsx — depends on SectionCard, SectionTypePicker,
+     generatePrintHtml
+     6. ReportsDialog.tsx — wire in design mode
+
+     Verification
+
+     1. Open any detail page → open ReportsDialog
+     2. Shift-click a print report → designer opens in right pane
+     3. Drag sections to reorder → preview updates
+     4. Expand a section → edit field properties → preview updates
+     5. Add a new section → appears in editor and preview
+     6. Delete a section → removed from both
+     7. Save → refresh → reopen designer → layout persists
+     8. Normal print still works (UniversalPrint refactor is transparent)
+
+
+
+
+❯ [Image #7] Here is a layout of wc2. List of available tables at the bottom       
+right, on the left in our editor, list of available fields from the selected table 
+ above it. I could double click on a field or select and drag fields to the top    
+right to add them to the form. drag them up and down the list to change their      
+order. Add them to the listbox on the left or the detail in the middle             
+  ⎿  [Image #7]
+
+⏺ Got it. The WC2 pattern is clear — I can see the proven UX:
+
+  - Available fields (bottom right) with fieldName + type — double-click or drag to
+   add
+  - Used fields (top right) in desired order — drag to reorder
+  - Live result (left) updates as you change the field list
+  - Table selector (bottom right) to switch models
+
+  Our current version has the same two-list concept but with small H/L/F badges
+  instead of double-click. The WC2 approach is better — double-click to add, drag
+  to reorder, field type visible.
+
+  Key improvements to match WC2:
+  1. Double-click available field → adds to Used (default zone based on field type)
+  2. Show field type next to each available field (string, date, number, currency)
+  3. Drag reorder in Used list (we have grip handles, but need smoother drag)
+  4. Zone assignment via right-click or a small dropdown, not tiny badge buttons
+
+  This is a solid first pass though. Want me to refine the double-click interaction
+   and field types now, or commit what we have and iterate next session? We've
+  built a lot today — the core architecture is in place.
+

@@ -1,0 +1,384 @@
+/**
+ * DedupPanel.css — styles for the DedupPanel component.
+ * Uses CSS custom properties from the nearest .db-root ancestor (set by DataBrowser.css).
+ * Class prefix: dp-
+ */
+
+/* ---------------------------------------------------------------------------
+   Root container
+   --------------------------------------------------------------------------- */
+
+.dp-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--db-bg, #1e1e1e);
+  color: var(--db-text, #d4d4d4);
+  font-size: var(--dp-fs, 13px);
+}
+
+/* ---------------------------------------------------------------------------
+   Header
+   --------------------------------------------------------------------------- */
+
+.dp-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--db-border, #3c3c3c);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dp-title {
+  font-size: calc(var(--dp-fs, 13px) + 1px);
+  font-weight: 700;
+}
+
+.dp-stats {
+  font-size: 11px;
+  color: var(--db-text-muted, #888);
+  margin-left: 8px;
+}
+
+.dp-header-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ---------------------------------------------------------------------------
+   Shared button styles
+   --------------------------------------------------------------------------- */
+
+.dp-btn {
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: var(--dp-fs, 13px);
+  padding: 4px 16px;
+}
+
+.dp-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.dp-btn--scan {
+  font-size: calc(var(--dp-fs, 13px) - 2px);
+  padding: 3px 10px;
+  background: var(--db-btn-primary, #0e639c);
+  color: #fff;
+  border: none;
+}
+
+.dp-btn--scan:hover {
+  filter: brightness(1.15);
+}
+
+.dp-btn--font {
+  font-size: calc(var(--dp-fs, 13px) - 2px);
+  padding: 2px 6px;
+  background: transparent;
+  color: var(--db-text-muted, #888);
+  border: 1px solid var(--db-border, #3c3c3c);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.dp-btn--font:hover {
+  border-color: var(--db-accent, #9cdcfe);
+  color: var(--db-accent, #9cdcfe);
+}
+
+.dp-btn--close {
+  font-size: 11px;
+  padding: 3px 8px;
+  background: transparent;
+  color: var(--db-text-muted, #888);
+  border: 1px solid var(--db-border, #3c3c3c);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.dp-btn--close:hover {
+  border-color: var(--db-accent, #9cdcfe);
+  color: var(--db-accent, #9cdcfe);
+}
+
+.dp-btn--nav {
+  padding: 4px 14px;
+  border: 1px solid var(--db-border, #3c3c3c);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--db-text, #d4d4d4);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: var(--dp-fs, 13px);
+}
+
+.dp-btn--nav:hover:not(:disabled) {
+  border-color: var(--db-accent, #9cdcfe);
+  color: var(--db-accent, #9cdcfe);
+}
+
+.dp-btn--delete-all {
+  background: var(--db-btn-danger, #6b1a1a);
+  color: #fff;
+}
+
+.dp-btn--delete-all:hover {
+  filter: brightness(1.2);
+}
+
+.dp-btn--skip {
+  background: var(--db-btn-primary, #0e639c);
+  color: #fff;
+}
+
+.dp-btn--skip:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+
+.dp-btn--merge {
+  background: var(--db-btn-save, #1a6b2e);
+  color: #fff;
+}
+
+.dp-btn--merge:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+
+.dp-btn--delete {
+  font-size: var(--dp-fs, 13px);
+  padding: 3px 10px;
+  background: var(--db-btn-danger, #6b1a1a);
+  color: var(--db-accent-red, #e05252);
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.dp-btn--delete:hover {
+  filter: brightness(1.2);
+}
+
+.dp-btn--note {
+  font-size: var(--dp-fs, 13px);
+  padding: 3px 10px;
+  background: #854d0e;
+  color: var(--db-accent-gold, #e8c870);
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.dp-btn--note:hover {
+  filter: brightness(1.2);
+}
+
+.dp-btn--edit {
+  font-size: var(--dp-fs, 13px);
+  padding: 3px 10px;
+  background: color-mix(in srgb, var(--db-btn-primary, #0e639c) 60%, transparent);
+  color: var(--db-accent, #9cdcfe);
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.dp-btn--edit:hover {
+  filter: brightness(1.2);
+}
+
+.dp-btn--research {
+  font-size: var(--dp-fs, 13px);
+  padding: 3px 8px;
+  background: transparent;
+  color: var(--db-accent, #9cdcfe);
+  border: 1px solid var(--db-border, #3c3c3c);
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.dp-btn--research:hover {
+  border-color: var(--db-accent, #9cdcfe);
+  background: color-mix(in srgb, var(--db-accent, #9cdcfe) 10%, transparent);
+}
+
+/* ---------------------------------------------------------------------------
+   Select / inputs
+   --------------------------------------------------------------------------- */
+
+.dp-select {
+  font-size: calc(var(--dp-fs, 13px) - 2px);
+  padding: 3px 6px;
+  background: var(--db-input-bg, #2a2a2a);
+  color: var(--db-text, #d4d4d4);
+  border: 1px solid var(--db-border, #3c3c3c);
+  border-radius: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+   Navigation bar
+   --------------------------------------------------------------------------- */
+
+.dp-nav {
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--db-surface-alt, #2d2d2d);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--dp-fs, 13px);
+  color: var(--db-text-muted, #888);
+}
+
+.dp-nav-label {
+  font-size: var(--dp-fs, 13px);
+}
+
+.dp-nav-match-key {
+  color: var(--db-accent-gold, #e8c870);
+  font-weight: 700;
+}
+
+.dp-nav-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ---------------------------------------------------------------------------
+   Content area
+   --------------------------------------------------------------------------- */
+
+.dp-content {
+  flex: 1;
+  overflow: auto;
+  padding: 14px;
+}
+
+.dp-loading,
+.dp-empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--db-text-dim, #666);
+}
+
+/* ---------------------------------------------------------------------------
+   Record cards
+   --------------------------------------------------------------------------- */
+
+.dp-card {
+  border: 2px solid var(--db-border, #3c3c3c);
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: var(--db-surface-alt, #2d2d2d);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.dp-card:hover {
+  border-color: var(--db-text-muted, #888);
+}
+
+.dp-card--winner {
+  border-color: var(--db-accent-green, #4ec98c);
+  background: color-mix(in srgb, var(--db-accent-green, #4ec98c) 10%, var(--db-bg, #1e1e1e));
+}
+
+.dp-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.dp-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dp-card-id {
+  font-size: var(--dp-fs, 13px);
+  font-weight: 600;
+}
+
+.dp-card-ida {
+  font-size: calc(var(--dp-fs, 13px) - 2px);
+  color: var(--db-text-dim, #666);
+}
+
+/* ---------------------------------------------------------------------------
+   Badges
+   --------------------------------------------------------------------------- */
+
+.dp-badge {
+  font-size: calc(var(--dp-fs, 13px) - 3px);
+  padding: 1px 6px;
+  border-radius: 10px;
+  color: #fff;
+}
+
+.dp-badge--score-high {
+  background: var(--db-btn-save, #1a6b2e);
+}
+
+.dp-badge--score-mid {
+  background: #854d0e;
+}
+
+.dp-badge--score-low {
+  background: var(--db-btn-danger, #6b1a1a);
+}
+
+.dp-badge--recommended {
+  background: var(--db-btn-primary, #0e639c);
+}
+
+.dp-badge--keep {
+  background: var(--db-accent-green, #4ec98c);
+  color: #000;
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------------------------
+   Card fields grid
+   --------------------------------------------------------------------------- */
+
+.dp-fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  font-size: calc(var(--dp-fs, 13px) - 1px);
+}
+
+.dp-field-label {
+  color: var(--db-text-dim, #666);
+  font-weight: 500;
+}
+
+.dp-field-value {
+  word-break: break-all;
+}
+
+.dp-field-empty {
+  color: var(--db-text-dim, #666);
+}
+
+/* ---------------------------------------------------------------------------
+   Footer
+   --------------------------------------------------------------------------- */
+
+.dp-footer {
+  padding: 6px 14px;
+  border-top: 1px solid var(--db-border, #3c3c3c);
+  font-size: 10px;
+  color: var(--db-text-dim, #666);
+  text-align: center;
+}

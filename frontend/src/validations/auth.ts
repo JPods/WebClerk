@@ -1,0 +1,47 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import { z } from 'zod';
+
+// Base login schema that can be extended
+export const loginSchema = z.object({
+  //  role: z.string()
+  //   .min(1, 'Role is required'),
+  email: z.string()
+    .min(1, 'Email is required'),
+  password: z.string()
+    .min(6, 'Password must be at least 6 char.')
+    .max(32, 'Password must be less than 32 char.'),
+  //rememberMe: z.boolean().optional(),
+});
+
+// Type for TypeScript
+export type LoginFormData = z.infer<typeof loginSchema>;
+
+// Register schema (extends login with additional fields)
+export const registerSchema = loginSchema.extend({
+    email:  z.string().min(1, 'Email is required'),
+    name_first: z.string().min(1, 'First name is required'),
+    name_last: z.string().min(1, 'Last name is required'),
+    portal_role: z.enum(['', 'customer', 'vendor', 'rep']).optional(),
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  })
+  .refine(data => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ['confirmPassword'],
+});
+
+export type RegisterFormData = z.infer<typeof registerSchema>;
+
+export const emailVerifySchema = z.object({
+  email: z
+    .string()
+    .min(1, { message: 'Email is required' })
+    .email({ message: 'Invalid email address' }),
+
+  code: z
+    .string()
+    .min(8, { message: 'Code must be exactly 8 digits' })
+    .max(8, { message: 'Code must be exactly 8 digits' })
+    //.regex(/^\d{8}$/, { message: 'Code must be a 8-digit number' }),
+});
+
+export type EmailVerifyFormData = z.infer<typeof emailVerifySchema>;

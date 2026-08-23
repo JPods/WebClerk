@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <!-- Printer icon -->
+  <rect x="6" y="12" width="20" height="12" rx="1" fill="#ddd" stroke="#000" stroke-width="2"/>
+  <rect x="10" y="8" width="12" height="6" fill="#ddd" stroke="#000" stroke-width="2"/>
+  <rect x="12" y="18" width="8" height="4" fill="#fff" stroke="#000" stroke-width="1"/>
+  <!-- Paper feed lines -->
+  <rect x="8" y="24" width="16" height="2" fill="#000"/>
+</svg>

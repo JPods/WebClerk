@@ -1,0 +1,337 @@
+# API Migration: REST to WCAPI
+
+This document tracks the migration from individual RESTful API calls to the unified wcapi endpoints.
+
+## WCAPI Endpoint Reference
+
+All data access should use these standardized endpoints:
+
+| Operation | Endpoint | Method | Parameters |
+|-----------|----------|--------|------------|
+| **List** | `/wcapi/get/` | GET | `model_name`, `limit?`, `offset?`, `search?`, `filters?` |
+| **Detail** | `/wcapi/get/` | GET | `model_name`, `id` |
+| **Create** | `/wcapi/save/` | POST | Body: `{ model_name, data }` |
+| **Update** | `/wcapi/save/` | POST | Body: `{ model_name, id, data }` |
+| **Delete** | `/wcapi/delete/` | GET/POST | `?model_name=X&id=Y` or Body: `{ model_name, id }` |
+
+---
+
+## Current API File Audit
+
+### Summary (Updated: Mar 5, 2026)
+
+| Category | Count | Status |
+|----------|-------|--------|
+| ✅ Using centralized wcapi | 21 | **Good - No changes needed** |
+| ✅ Delete patterns fixed | 37 | **COMPLETED** |
+| ✅ Hybrid migration | 4 | **COMPLETED** |
+| ✅ Axios REST→wcapi interceptor | 1 | **COMPLETED** |
+| 🔶 Direct apiClient + PostLoginURL | 1 | **orgApi.ts - Factory pattern, lower priority** |
+| 📌 Custom endpoints | 2 | **OK - Special cases** |
+
+> **Migration Status:** 
+> - All 37 files with broken `apiClient.delete()` patterns migrated ✅
+> - All 4 hybrid files (emailApi, phoneApi, addressApi, connectionApi) fully migrated ✅
+
+---
+
+## ✅ Files Already Using WCAPI (No Changes Needed)
+
+These files properly import from `@/api/wcapi`:
+
+- `src/apps/accounts/models/term/services/termApi.ts`
+- `src/apps/accounts/models/currency/services/currencyApi.ts`
+- `src/apps/accounts/models/audit/services/auditApi.ts`
+- `src/apps/core/models/action/services/actionApi.ts`
+- `src/apps/transactions/models/invoice/services/invoiceApi.ts`
+- `src/apps/transactions/models/invoice_line/services/invoiceLineApi.ts`
+- `src/apps/transactions/models/order/services/orderApi.ts`
+- `src/apps/transactions/models/order_line/services/orderLineApi.ts`
+- `src/apps/transactions/models/proposal/services/proposalApi.ts`
+- `src/apps/transactions/models/proposal_line/services/proposalLineApi.ts`
+- `src/apps/transactions/models/project/services/projectApi.ts`
+- `src/apps/transactions/models/purchase/services/purchaseApi.ts`
+- `src/apps/transactions/models/purchase_line/services/purchaseLineApi.ts`
+- `src/apps/transactions/models/receipt/services/purchaseReceiptApi.ts`
+- `src/apps/transactions/models/workorder/services/workorderApi.ts`
+- `src/apps/transactions/models/workorder_line/services/workOrderLineApi.ts`
+- `src/apps/transactions/models/requisition/services/requisitionApi.ts`
+- `src/apps/communications/models/email/services/emailApi.ts` *(migrated Feb 2026)*
+- `src/apps/communications/models/phone/services/phoneApi.ts` *(migrated Feb 2026)*
+- `src/apps/communications/models/address/services/addressApi.ts` *(migrated Feb 2026)*
+- `src/apps/sync/connection/services/connectionApi.ts` *(migrated Feb 2026)*
+
+---
+
+## ✅ Completed: Delete Pattern Migration
+
+All files that previously used `apiClient.delete()` have been migrated to use `deleteRecord()` from `@/api/wcapi`.
+
+### Migration Applied:
+
+**Before (Wrong):**
+```typescript
+// ❌ WRONG - This was failing!
+const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
+```
+
+**After (Correct):**
+```typescript
+// ✅ CORRECT - Now using wcapi.deleteRecord()
+import { deleteRecord } from '@/api/wcapi';
+
+export const deleteItem = async (id: number) => {
+  return deleteRecord("item", id);
+};
+```
+
+### Files Migrated (37 total):
+
+| File | Model |
+|------|-------|
+| `src/apps/communications/models/domain/services/domainApi.ts` | domain |
+| `src/apps/sync/models/bundle/services/bundleApi.ts` | bundle |
+| `src/apps/sync/models/connection/services/connectionApi.ts` | connection |
+| `src/apps/accounts/models/exchange_rate/services/exchangeRateApi.ts` | exchange_rate |
+| `src/apps/accounts/models/gl_account/services/glAccountApi.ts` | gl_account |
+| `src/apps/accounts/models/exchange_transaction/services/exchangeTransactionApi.ts` | exchange_transaction |
+| `src/apps/accounts/models/gl_journal/services/glJournalApi.ts` | gl_journal |
+| `src/apps/orgs/models/customer/services/customerApi.ts` | customer |
+| `src/apps/orgs/models/vendor/services/vendorApi.ts` | vendor |
+| `src/apps/orgs/models/employee/services/employeeApi.ts` | employee |
+| `src/apps/orgs/models/rep/services/repApi.ts` | rep |
+| `src/apps/orgs/models/organization/services/organizationApi.ts` | organization |
+| `src/apps/orgs/models/manufacturer/services/manufacturerApi.ts` | manufacturer |
+| `src/apps/docs/models/question_answer/services/questionAnswerApi.ts` | question_answer |
+| `src/apps/docs/models/tag/services/tagApi.ts` | tag |
+| `src/apps/docs/models/document/services/documentApi.ts` | document |
+| `src/apps/core/models/setting/services/settingApi.ts` | setting |
+| `src/apps/core/models/notification/services/notificationApi.ts` | notification |
+| `src/apps/core/models/contact/services/contactApi.ts` | contact |
+| `src/apps/core/models/report/services/reportApi.ts` | report |
+| `src/apps/core/models/template/services/templateApi.ts` | template |
+| `src/apps/products/models/flow/services/flowApi.ts` | flow |
+| `src/apps/products/models/item_xref/services/itemXrefApi.ts` | item_xref |
+| `src/apps/products/models/serial/services/serialApi.ts` | serial |
+| `src/apps/products/models/warehouse/services/warehouseApi.ts` | warehouse |
+| `src/apps/products/models/service/services/serviceApi.ts` | service |
+| `src/apps/products/models/bill_of_material/services/billOfMaterialApi.ts` | bill_of_material |
+| `src/apps/products/models/variant/services/variantApi.ts` | variant |
+| `src/apps/products/models/item/services/itemApi.ts` | item |
+| `src/apps/products/models/specification/services/specificationApi.ts` | specification |
+| `src/apps/products/models/catalog/services/catalogApi.ts` | catalog |
+| `src/apps/products/models/usage/services/usageApi.ts` | usage |
+| `src/apps/products/models/org_item/services/orgItemApi.ts` | org_item |
+| `src/apps/products/models/matrics/services/matricsApi.ts` | matrics |
+| `src/apps/support/models/campaign/services/campaignApi.ts` | campaign |
+
+---
+
+## Migration Template
+
+Replace individual API files with this standard pattern:
+
+```typescript
+/**
+ * {ModelName} API - Uses centralized wcapi endpoints
+ */
+import { getRecords, getRecord, saveRecord, deleteRecord } from '@/api/wcapi';
+
+const MODEL_NAME = 'model_name';
+
+// List all records
+export async function fetch{ModelName}s(params?: { limit?: number; offset?: number; search?: string }) {
+  return getRecords(MODEL_NAME, params);
+}
+
+// Get single record by ID
+export async function fetch{ModelName}(id: number) {
+  return getRecord(MODEL_NAME, id);
+}
+
+// Create new record
+export async function create{ModelName}(data: Create{ModelName}Request) {
+  return saveRecord(MODEL_NAME, data);
+}
+
+// Update existing record
+export async function update{ModelName}(id: number, data: Update{ModelName}Request) {
+  return saveRecord(MODEL_NAME, { id, ...data });
+}
+
+// Delete record
+export async function delete{ModelName}(id: number) {
+  return deleteRecord(MODEL_NAME, id);
+}
+```
+
+---
+
+## Utility: REST to WCAPI Route Map
+
+A new utility has been created to help with migration:
+
+**Location:** `src/api/restToWcapi.ts`
+
+### Key Functions:
+
+```typescript
+import { 
+  convertRestToWcapi,
+  getWcapiEndpoint,
+  buildSaveBody,
+  REST_PATH_TO_MODEL 
+} from '@/api/restToWcapi';
+
+// Convert a RESTful path to wcapi request
+convertRestToWcapi('/api/orgs/customer/42', 'GET');
+// { endpoint: '/wcapi/get/', method: 'GET', params: { model_name: 'customer', id: 42 } }
+
+convertRestToWcapi('/api/orgs/customer/42', 'DELETE');
+// { endpoint: '/wcapi/delete/', method: 'GET', params: { model_name: 'customer', id: 42 } }
+
+// Get endpoint for operation
+getWcapiEndpoint('detail', 'customer', 42);
+// { url: '/wcapi/get/?model_name=customer&id=42', method: 'GET' }
+
+// Build delete body (for POST)
+buildDeleteBody('customer', 42);
+// { model_name: 'customer', id: 42 }
+```
+
+---
+
+## Path Pattern Reference
+
+| REST Path Pattern | WCAPI model_name |
+|-------------------|------------------|
+| `/api/orgs/customer/*` | `customer` |
+| `/api/orgs/vendor/*` | `vendor` |
+| `/api/orgs/employee/*` | `employee` |
+| `/api/transactions/order/*` | `order` |
+| `/api/transactions/invoice/*` | `invoice` |
+| `/api/transactions/purchase/*` | `purchase` |
+| `/api/transactions/proposal/*` | `proposal` |
+| `/api/transactions/workorder/*` | `workorder` |
+| `/api/products/item/*` | `item` |
+| `/api/products/service/*` | `service` |
+| `/api/products/warehouse/*` | `warehouse` |
+| `/api/communications/email/*` | `email` |
+| `/api/communications/phone/*` | `phone` |
+| `/api/communications/address/*` | `address` |
+| `/api/accounts/gl-account/*` | `gl_account` |
+| `/api/accounts/currency/*` | `currency` |
+| `/api/docs/document/*` | `document` |
+| `/api/docs/tag/*` | `tag` |
+
+See `src/api/restToWcapi.ts` for complete mapping.
+
+---
+
+## Migration Priority
+
+1. **URGENT**: Fix 36 files with wrong delete pattern
+2. **High**: Consolidate hybrid files to use wcapi consistently  
+3. **Medium**: Migrate remaining direct apiClient files
+4. **Low**: Clean up duplicate files (e.g., `sync/connection` vs `sync/models/connection`)
+
+---
+
+## Testing After Migration
+
+After migrating a file, verify:
+
+1. List/index pages load correctly
+2. Detail pages load single records
+3. Create operations work (check network tab for `POST /wcapi/save/`)
+4. Update operations work
+5. Delete operations work (uses `/wcapi/delete/` endpoint)
+
+---
+
+## REST → WCAPI Automatic Conversion (Dual Layer)
+
+Developers can continue writing RESTful-style API calls — both the frontend and backend will transparently convert them to standardized `/wcapi/…` endpoints. This "strangler fig" approach lets legacy code work while all traffic flows through the wcapi gateway.
+
+### Layer 1: Frontend — Axios Request Interceptor
+
+**File:** `src/api/axios.ts` → `attachRestToWcapiInterceptor()`
+
+The Axios client intercepts outbound requests **before they leave the browser**. Any URL matching a known REST pattern (e.g. `/api/orgs/customer/42`, `/communications/phones/`) is rewritten to the equivalent wcapi call. This eliminates the extra 301 round-trip that would otherwise occur.
+
+**How it works:**
+
+```
+Developer writes:  apiClient.get('/api/orgs/customer/42')
+Interceptor sees:  GET /api/orgs/customer/42
+Rewrites to:       GET /wcapi/get/?model_name=customer&id=42
+Network sends:     GET /wcapi/get/?model_name=customer&id=42  ← direct, no redirect
+```
+
+**Conversion rules:**
+
+| Original Method | Original Path | → WCAPI Endpoint | → Method |
+|----------------|---------------|-------------------|----------|
+| GET | `/api/orgs/customer/` | `/wcapi/get/?model_name=customer` | GET |
+| GET | `/api/orgs/customer/42` | `/wcapi/get/?model_name=customer&id=42` | GET |
+| POST | `/api/orgs/customer/` | `/wcapi/save/` (body: `{model_name, data}`) | POST |
+| PUT | `/api/orgs/customer/42` | `/wcapi/save/` (body: `{model_name, id, data}`) | POST |
+| DELETE | `/api/orgs/customer/42` | `/wcapi/delete/?model_name=customer&id=42` | GET |
+
+**Skipped paths** (not rewritten):
+- `/wcapi/…` — already using wcapi
+- `/admin/…` — Django admin
+- `/integrations/…` — Notion etc.
+- `/kanban/…` — Kanban board
+- `/static/…`, `/media/…` — Static files
+
+**DEV mode logging:**
+In development, conversions are logged to the console:
+```
+[REST→WCAPI] GET /api/orgs/customer/42  →  GET /wcapi/get/ { model_name: 'customer', id: 42 }
+```
+
+### Layer 2: Backend — Django Middleware (Safety Net)
+
+**File:** `wc3 common/middleware/rest_redirect.py`
+
+If a REST call somehow bypasses the frontend interceptor (direct HTTP calls, third-party tools, etc.), the server-side middleware catches it and returns a **301 redirect** to the equivalent `/wcapi/…` URL. Covered by 46 tests.
+
+```
+Browser sends:     GET /api/orgs/customer/42
+Middleware returns: 301 → /wcapi/get/?model_name=customer&id=42
+Browser follows:   GET /wcapi/get/?model_name=customer&id=42
+```
+
+### Why Two Layers?
+
+| Concern | Frontend Interceptor | Backend Middleware |
+|---------|---------------------|--------------------|
+| **Round-trips** | Zero extra (rewrite before send) | +1 redirect (301) |
+| **Coverage** | Only Axios calls from R25 | All HTTP clients |
+| **Debugging** | Console logs in DEV | Server logs |
+| **Fallback** | Graceful (passes through if unknown) | Returns 301 or 404 |
+
+**Best practice:** Write new code using `/wcapi/…` directly. The interceptors exist as a safety net for legacy patterns, not as an excuse to keep writing REST paths.
+
+---
+
+## Related Files
+
+### Backend (webClerk3)
+
+| File | Purpose |
+|------|---------|
+| `common/middleware/rest_redirect.py` | Server-side middleware — 301-redirects `/api/…` → `/wcapi/…` |
+| `tests/test_rest_redirect.py` | 46 tests for the redirect middleware |
+| `readmes/03-wcapi-gateway.md` | Gateway overview, endpoint reference, model registry |
+| `apps/core/services/wcapi_registry.py` | Runtime model registry |
+
+### Frontend (React2025)
+
+| File | Purpose |
+|------|---------|
+| `src/api/axios.ts` | Axios client with REST→wcapi request interceptor *(added Mar 2026)* |
+| `src/api/restToWcapi.ts` | Client-side REST→wcapi converter (used by interceptor) |
+| `src/api/modelNameResolver.ts` | Canonical model-name resolution |
+| `src/pages/tools/WhitelistTester.tsx` | Interactive API tester with REST + wcapi presets |

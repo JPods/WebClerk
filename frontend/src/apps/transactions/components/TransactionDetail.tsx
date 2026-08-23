@@ -1,0 +1,451 @@
+/* LastChecked: 2026-08-02 | WhereUsed: DataBrowser, Router | WhoCreated: Claude */
+/**
+ * UiDetail — JSON-driven transaction detail renderer.
+ *
+ * Thin orchestrator: fetches data, manages edit state, delegates rendering
+ * to sub-components in ./detail/.
+ */
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
+import { getRecord, saveRecord, saveTransactionWithLines } from '@/api/wcapi';
+import { showToast } from '@/store/slices/toastSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import type { RootState } from '@/store';
+import { useWindowManager } from '@/context/WindowManagerContext';
+import { useDetailLayout } from '@/hooks/useDetailLayout';
+import { applyCustomerDefaults } from '@/apps/transactions/utils/applyCustomerDefaults';
+import { populateCommission } from '@/api/wcapi';
+import { getNextLineNumber } from '../utils/lineHelpers';
+import type { TransactionLine } from '../types/transactionTypes';
+import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
+
+import { useCustomerSearch } from './detail/CustomerSearch';
+import HeaderRenderer from './detail/HeaderRenderer';
+import LineCardRenderer from './detail/LineCardRenderer';
+import TabsRenderer from './detail/TabsRenderer';
+import PanelSectionRenderer from './detail/PanelSectionRenderer';
+import JsonSectionRenderer from './detail/JsonSectionRenderer';
+// Ensure card components are registered
+import '@/components/cards';
+import { DetailToolbar } from '@/components/common/DetailToolbar';
+import ManageActionPanel from '@/components/common/ManageActionPanel';
+import TransactionFlowIndicator from './detail/TransactionFlowIndicator';
+import DesignMode from './detail/DesignMode';
+import AddPaymentModal from './AddPaymentModal';
+import { useNavigate } from 'react-router-dom';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface UiDetailProps {
+  modelName?: string;
+  recordId?: number;
+  onClose?: () => void;
+  /** When true, rendered inside DataBrowser — hide toolbar (DB has its own) */
+  inline?: boolean;
+  [key: string]: unknown;  // accept extra props from DataBrowser
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+const UiDetail: React.FC<UiDetailProps> = ({
+  modelName: propModelName,
+  recordId: propRecordId,
+  onClose,
+  inline,
+  onAfterSave,
+  onWorkflowComplete,
+  initialLines,
+  ...rest
+}) => {
+  const params = useParams<{ model?: string; id?: string }>();
+  const modelName = propModelName || params.model || 'order';
+  const recordId = propRecordId || (params.id ? Number(params.id) : 0);
+
+  const dispatch = useDispatch();
+  const windowManager = useWindowManager();
+  const authUser = useSelector((s: RootState) => s.auth?.user);
+  const companyInfo = useSelector(selectCompanyInfo);
+  const logos = useSelector(selectLogos);
+  const documentText = useSelector((s: RootState) => (s as any).company?.document_text) || {};
+  const loggedInUserName = authUser?.name || authUser?.email || 'User';
+
+  // ── Layout ───────────────────────────────────────────────────────
+  const { layout, loading: layoutLoading, invalidate: invalidateLayout } = useDetailLayout(modelName);
+
+  // ── Record state ─────────────────────────────────────────────────
+  const [data, setData] = useState<any>(null);
+  const [editData, setEditData] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState('summary');
+  const [designMode, setDesignMode] = useState(false);
+  const [designLayout, setDesignLayout] = useState<any>(null);
+  const [showAddPayment, setShowAddPayment] = useState(false);
+  const navigate = useNavigate();
+
+  // Active layout — design mode uses local copy, normal mode uses cached
+  const activeLayout = designMode && designLayout ? designLayout : layout;
+
+  // ── Fetch record ─────────────────────────────────────────────────
+  const fetchData = useCallback(async () => {
+    if (!recordId) return;
+    setLoading(true);
+    try {
+      const response = await getRecord(modelName, recordId);
+      const record = response?.record || response;
+
+      // Fetch customer config if customer_id exists
+      const custId = record?.customer_id || record?.customer;
+      if (custId) {
+        try {
+          const custResp = await getRecord('customer', custId);
+          const cust = custResp?.record || custResp;
+          if (cust?.config) record.customer_config = cust.config;
+          record.customer_company = cust?.company || cust?.display_name || cust?.name || '';
+          if (!record.price_level && cust?.price_level) record.price_level = cust.price_level;
+          if (!record.terms && cust?.terms) record.terms = cust.terms;
+        } catch { /* customer not found */ }
+      }
+
+      setData(record);
+      setEditData(record);
+    } catch (err) {
+      dispatch(showToast({ message: `Failed to load ${modelName}`, type: 'error' }));
+    } finally {
+      setLoading(false);
+    }
+  }, [modelName, recordId, dispatch]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // ── Inject initial lines from conversion (user reviews before saving) ──
+  useEffect(() => {
+    if (initialLines && Array.isArray(initialLines) && initialLines.length > 0 && data) {
+      setEditData((prev: any) => prev ? { ...prev, lines: initialLines } : prev);
+      setIsEditing(true);
+    }
+  }, [initialLines, data]);
+
+  // ── Edit state ───────────────────────────────────────────────────
+  const editTier = useMemo((): 'open' | 'pend' | 'closed' => {
+    if (!data || !layout) return 'closed';
+    const rules = layout.edit_rules as any;
+    const statusField = rules.status_field || 'status';
+    const status = String(data[statusField] || '').toLowerCase();
+
+    if (rules.closed_statuses?.includes(status)) return 'closed';
+    if (rules.pend_statuses?.includes(status)) return 'pend';
+    if (rules.open_statuses?.includes(status)) return 'open';
+    if (rules.locked_statuses?.includes(status)) return 'closed';
+    return 'open';
+  }, [data, layout]);
+
+  const canEdit = editTier !== 'closed';
+  const isPendMode = editTier === 'pend';
+
+  // Auto-edit
+  const autoEdit = authUser?.prefs?.layout?.detail?.auto_edit === true;
+  useEffect(() => {
+    if (autoEdit && canEdit && data && !isEditing) {
+      setEditData({ ...data });
+      setIsEditing(true);
+    }
+  }, [autoEdit, canEdit, data]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleEdit = () => {
+    if (canEdit) { setEditData({ ...data }); setIsEditing(true); }
+  };
+
+  const handleAddNew = async () => {
+    try {
+      const res = await saveRecord(modelName, { status: 'open' });
+      const newId = res?.record?.id || res?.id;
+      if (newId) windowManager.ensureWindow(`/${modelName}/${newId}`, `${modelName} #${newId}`);
+    } catch {
+      dispatch(showToast({ message: `Failed to create ${modelName}`, type: 'error' }));
+    }
+  };
+
+  const handleCancel = () => { setEditData(data); setIsEditing(false); };
+
+  const handleFieldChange = useCallback((field: string, value: unknown) => {
+    setEditData((prev: any) => {
+      if (!prev) return prev;
+      if (!field.includes('.')) return { ...prev, [field]: value };
+      // Nested write: config.ship_to.company → prev.config.ship_to.company
+      const parts = field.split('.');
+      const clone = JSON.parse(JSON.stringify(prev));
+      let obj = clone;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (obj[parts[i]] == null || typeof obj[parts[i]] !== 'object') obj[parts[i]] = {};
+        obj = obj[parts[i]];
+      }
+      obj[parts[parts.length - 1]] = value;
+      return clone;
+    });
+
+    if ((field === 'customer' || field === 'customer_id') && value) {
+      const custId = typeof value === 'number' ? value : Number(value);
+      if (custId > 0) {
+        applyCustomerDefaults(custId).then(defaults => {
+          console.log('[TD] applyCustomerDefaults result:', { company: defaults.company, phone: defaults.phone, ship_to: defaults.config?.ship_to?.company });
+          setEditData((prev: any) => {
+            if (!prev) return prev;
+            const merged = { ...prev, ...defaults, config: { ...(prev.config || {}), ...(defaults.config || {}) } };
+            console.log('[TD] editData merged:', { company: merged.company, phone: merged.phone, isEditing });
+            return merged;
+          });
+          const isStaff = authUser?.is_staff || authUser?.is_superuser;
+          const repMsg = (defaults.has_reps && isStaff) ? ' (commission will populate on save)' : '';
+          dispatch(showToast({ message: `Customer defaults applied: ${defaults.company}${repMsg}`, type: 'success' }));
+        }).catch(() => {
+          dispatch(showToast({ message: 'Could not load customer defaults', type: 'error' }));
+        });
+      }
+    }
+  }, [dispatch]);
+
+  const handleLinesChange = useCallback((lines: TransactionLine[]) => {
+    setEditData((prev: any) => prev ? { ...prev, lines } : prev);
+  }, []);
+
+  const handleAddLine = () => {
+    const lines = (isEditing ? editData : data)?.lines || [];
+    const newLine: TransactionLine = {
+      line_number: getNextLineNumber(lines),
+      item_code: '', description: '', qty: 1, remain: 1, unit_price: 0, extended: 0,
+    } as any;
+    handleLinesChange([...lines, newLine]);
+  };
+
+  const handleSave = async () => {
+    if (!editData) return;
+    setSaving(true);
+    try {
+      const dirtyLines = (editData.lines || []).filter((l: any) => l._dirty || l._new);
+      const hasLinesToSave = dirtyLines.length > 0;
+      console.log('[TransactionDetail] Saving:', { modelName, id: editData.id, hasLinesToSave, totalLines: editData.lines?.length, dirtyLines: dirtyLines.length });
+      if (hasLinesToSave) { await saveTransactionWithLines(modelName, editData); }
+      else { await saveRecord(modelName, editData); }
+      dispatch(showToast({ message: `${modelName} saved`, type: 'success' }));
+      // Auto-populate commission if customer has reps — staff only
+      const txId = editData.id;
+      const sellModels = ['order', 'proposal', 'invoice'];
+      const isStaff = authUser?.is_staff || authUser?.is_superuser;
+      if (isStaff && editData.has_reps && txId && sellModels.includes(modelName)) {
+        try {
+          const commResult = await populateCommission(modelName, txId);
+          if (commResult.lines_updated > 0) {
+            dispatch(showToast({
+              message: `Commission populated: ${commResult.reps?.map((r: any) => r.name).join(', ') || 'reps assigned'}`,
+              type: 'info',
+            }));
+          }
+        } catch { /* commission populate is best-effort */ }
+      }
+      setIsEditing(false);
+      fetchData();
+      if (typeof onAfterSave === 'function') onAfterSave();
+    } catch (err: any) {
+      const resp = err?.response?.data;
+      const detail = resp?.detail || resp?.message || resp?.error?.details || err?.message || String(err);
+      console.error('[TransactionDetail] Save failed:', { err, response: resp, status: err?.response?.status, url: err?.config?.url, method: err?.config?.method });
+      dispatch(showToast({ message: `Save failed: ${typeof detail === 'string' ? detail : JSON.stringify(detail)}`, type: 'error' }));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Customer search hook ────────────────────────────────────────
+  const custSearch = useCustomerSearch(handleFieldChange);
+
+  // ── Current data (edit or read) ─────────────────────────────────
+  const currentData = isEditing ? editData : data;
+
+  // ── Loading states ──────────────────────────────────────────────
+  if (layoutLoading || loading) {
+    return (
+      <div className="flex items-center justify-center py-20 text-slate-400">
+        Loading {modelName}...
+      </div>
+    );
+  }
+
+  if (!data || !layout) {
+    return (
+      <div className="flex items-center justify-center py-20 text-slate-400">
+        Record not found
+      </div>
+    );
+  }
+
+  // ── Render ──────────────────────────────────────────────────────
+  return (
+    <div className="flex flex-col h-full overflow-hidden" data-wc={`${modelName}-detail`}>
+      {/* Header bar */}
+      <div className="flex items-center gap-2 px-4 py-1 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0 no-print">
+        <span className="text-sm font-bold text-slate-900 dark:text-white capitalize">{modelName}</span>
+        <span className="text-sm font-mono text-slate-600 dark:text-slate-400">{data.ida || `#${data.id}`}</span>
+        {data.status && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+            {data.status}
+          </span>
+        )}
+        {isPendMode && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+            journalized — changes pend
+          </span>
+        )}
+        {editTier === 'closed' && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+            closed
+          </span>
+        )}
+        {designMode && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
+            DESIGN
+          </span>
+        )}
+      </div>
+
+      {/* Toolbar — hidden when inline (DataBrowser has its own) */}
+      {!inline && (
+        <DetailToolbar
+          data={data}
+          currentData={currentData}
+          modelName={modelName}
+          layout={activeLayout}
+          isEditing={isEditing}
+          canEdit={canEdit}
+          saving={saving}
+          companyInfo={companyInfo}
+          logos={logos}
+          documentText={documentText}
+          onAddNew={handleAddNew}
+          onSave={handleSave}
+          onCancel={handleCancel}
+          onWorkflowComplete={onWorkflowComplete as ((result?: any) => void) | undefined}
+        />
+      )}
+
+      {/* Design mode panel */}
+      {designMode && activeLayout && (
+        <div className="px-4 pt-3">
+          <DesignMode
+            layout={activeLayout}
+            modelName={modelName}
+            onLayoutChange={(newLayout) => setDesignLayout(newLayout)}
+          />
+        </div>
+      )}
+
+      {/* Document lineage — shows chain when this record has parent/children */}
+      {currentData && (
+        <TransactionFlowIndicator modelName={modelName} record={currentData} onNavigate={rest.onNavigate as any} />
+      )}
+
+      {/* Content — scrollable */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+        {activeLayout.sections.map((section, idx) => {
+          switch (section.type) {
+            case 'header':
+              return (
+                <HeaderRenderer
+                  key={idx}
+                  section={section}
+                  data={currentData}
+                  isEditing={isEditing}
+                  modelName={modelName}
+                  onChange={handleFieldChange}
+                  cardSpecs={activeLayout.card}
+                  custSearch={{
+                    open: custSearch.open,
+                    query: custSearch.query,
+                    results: custSearch.results,
+                    searching: custSearch.searching,
+                    inputRef: custSearch.inputRef,
+                    onToggle: custSearch.toggle,
+                    onSearch: custSearch.search,
+                    onSelect: custSearch.select,
+                  }}
+                />
+              );
+            case 'line_card':
+              return (
+                <LineCardRenderer
+                  key={idx}
+                  section={section}
+                  data={currentData}
+                  isEditing={isEditing}
+                  isLocked={editTier === 'closed'}
+                  onLinesChange={handleLinesChange}
+                  onEnterPayment={['order', 'invoice'].includes(modelName) ? () => setShowAddPayment(true) : undefined}
+                />
+              );
+            case 'tabs':
+              return (
+                <TabsRenderer
+                  key={idx}
+                  section={section}
+                  data={currentData}
+                  isEditing={isEditing}
+                  modelName={modelName}
+                  activeTab={activeTab}
+                  onTabChange={setActiveTab}
+                  onChange={handleFieldChange}
+                  onRefresh={fetchData}
+                  loggedInUserName={loggedInUserName}
+                />
+              );
+            case 'panel':
+              return (
+                <PanelSectionRenderer
+                  key={idx}
+                  section={section as any}
+                  data={currentData}
+                  isEditing={isEditing}
+                  modelName={modelName}
+                  onChange={handleFieldChange}
+                  onRefresh={fetchData}
+                  loggedInUserName={loggedInUserName}
+                />
+              );
+            case 'json_tree':
+              return (
+                <JsonSectionRenderer
+                  key={idx}
+                  section={section as any}
+                  data={currentData}
+                  isEditing={isEditing}
+                  modelName={modelName}
+                  onChange={handleFieldChange}
+                />
+              );
+            default:
+              return null;
+          }
+        })}
+      </div>
+
+      {/* Enter Payment modal */}
+      <AddPaymentModal
+        isOpen={showAddPayment}
+        onClose={() => setShowAddPayment(false)}
+        order_id={modelName === 'order' ? data?.id : undefined}
+        invoice_id={modelName === 'invoice' ? data?.id : undefined}
+        customer_id={data?.customer_id || data?.customer || data?.refs?.links?.customer?.id}
+        contact_id={data?.contact_id || data?.contact || data?.refs?.links?.contact?.id || data?.refs?.links?.customer?.id}
+        customer_name={data?.customer_company || data?.customer_name || data?.refs?.links?.customer?.company || data?.refs?.links?.customer?.display_name || data?.refs?.links?.customer?.attention || ''}
+        orderTotal={modelName === 'invoice' ? (data?.totals?.balance ?? data?.totals?.total ?? 0) : (data?.totals?.total ?? 0)}
+        onPaymentAdded={fetchData}
+      />
+    </div>
+  );
+};
+
+export default UiDetail;
