@@ -62,9 +62,9 @@ class RoleAwareModelSerializer(serializers.ModelSerializer):
         return self._ensure_uuid_if_api(instance)
 
     # --- Commission data is internal-only ---
-    # Strip commission fields from cost/finance/commission envelopes for non-staff users.
-    # These are JSON fields so field-level RBAC doesn't catch the nested keys.
-    _COMMISSION_ENVELOPE_KEYS = {'commissions', 'commission_total', 'commission_rate'}
+    # Non-staff users: remove the commission field entirely.
+    # The cost and finance envelopes travel INTACT — never mutate JSON
+    # envelopes in serialization (round-trip data loss on PATCH).
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -75,10 +75,5 @@ class RoleAwareModelSerializer(serializers.ModelSerializer):
                 getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False)
             )
             if not is_staff:
-                for envelope_key in ('cost', 'finance', 'commission'):
-                    envelope = data.get(envelope_key)
-                    if isinstance(envelope, dict):
-                        for k in self._COMMISSION_ENVELOPE_KEYS:
-                            envelope.pop(k, None)
-                        data[envelope_key] = envelope
+                data.pop('commission', None)
         return data

@@ -855,13 +855,17 @@ def save_transaction_with_lines(
     pending_deltas: List[Dict[str, Any]] = []
 
     with db_transaction.atomic():
-        # Verify calculations before saving (fail fast)
+        # Backend is the source of truth — always recompute extended values.
+        # Frontend sends qty and unit_price; backend computes extended.
+        for line_data in lines_data:
+            computed = calculate_line_extended(line_data)
+            price = line_data.setdefault('price', {})
+            cost = line_data.setdefault('cost', {})
+            price['extended'] = float(computed['extended'])
+            price['discount_amount'] = float(computed['discount_amount'])
+            cost['extended'] = float(computed['cost_extended'])
+
         if verify_calculations:
-            for line_data in lines_data:
-                is_dirty = line_data.get('_dirty', True)
-                if is_dirty or not save_only_dirty:
-                    line_id = line_data.get('id')
-                    verify_line_calculations(line_data, line_id)
             verify_header_calculations(header_data, lines_data)
 
         # Save header
