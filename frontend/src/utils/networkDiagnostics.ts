@@ -53,7 +53,7 @@ export async function runNetworkDiagnostics(
 
   // Test 1: Check if backend is reachable
   try {
-    const resp = await fetch(`${apiBaseUrl}/wcapi/system-info/`);
+    const resp = await fetch(`${apiBaseUrl}/wcapi/_system_info/`);
     report.backend.isReachable = resp.ok;
     if (resp.ok) {
       report.backend.systemInfo = await resp.json();

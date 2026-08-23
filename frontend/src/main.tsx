@@ -25,7 +25,7 @@ console.log(
 );
 
 // Fetch and display backend database mode (optional - endpoint may not exist)
-fetch("/wcapi/dev/config/")
+fetch("/wcapi/_dev_config/")
   .then((res) => (res.ok ? res.json() : null))
   .then((data) => {
     const configData = data?.data?.data || data?.data;

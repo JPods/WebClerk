@@ -1,7 +1,7 @@
 /**
  * PendingHealthBadge — warns when unprocessed pending records are stale (> 3 min).
  *
- * Polls /wcapi/system-info/ every 60 seconds. Shows a red badge with count
+ * Polls /wcapi/_system_info/ every 60 seconds. Shows a red badge with count
  * and oldest age. Click navigates to the DataBrowser pending list filtered
  * to unprocessed records.
  */
@@ -28,7 +28,7 @@ export const PendingHealthBadge: React.FC = () => {
 
   const fetchHealth = useCallback(async () => {
     try {
-      const res = await fetch("/wcapi/system-info/");
+      const res = await fetch("/wcapi/_system_info/");
       if (!res.ok) return;
       const data = await res.json();
       if (data.pending) {

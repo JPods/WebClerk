@@ -213,7 +213,7 @@ const SelectListBrowser: React.FC = () => {
           (apiClient as any).defaults?.headers?.Authorization || '';
         const headers: Record<string, string> = { 'Accept': 'application/json' };
         if (token) headers['Authorization'] = String(token);
-        const res = await window.fetch('/wcapi/selectlists/', { headers, credentials: 'include' });
+        const res = await window.fetch('/wcapi/_selectlists/', { headers, credentials: 'include' });
         if (cancelled) return;
         const json = await res.json();
         const r = json?.data?.rows || json?.rows || [];

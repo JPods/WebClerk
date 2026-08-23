@@ -158,7 +158,7 @@ export default function DDCard({ model, config }: DDCardProps) {
 
         if (config.server_action) {
           // Server-computed metrics via manage endpoint
-          const res = await apiClient.post("/wcapi/manage/", {
+          const res = await apiClient.post("/wcapi/_manage/", {
             action: config.server_action,
             params: { ...config.filters, ...dateFilters },
           });

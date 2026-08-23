@@ -534,7 +534,7 @@ def _do_convert(
             pay.save(update_fields=["invoice_id", "refs", "dt_modified", "version"])
             payments_forwarded += 1
 
-        # Update invoice totals.received and balance
+        # Update invoice totals.received and balance via PJPV single engine
         if payments_forwarded > 0:
             total_received = sum(
                 Decimal(str(p.amount or 0))
@@ -542,14 +542,9 @@ def _do_convert(
                     invoice_id=target.pk, status="completed", is_active=True,
                 )
             )
-            target_totals = target.totals if isinstance(target.totals, dict) else {}
-            target_total = Decimal(str(target_totals.get("total", 0)))
-            target_totals["received"] = float(total_received)
-            target_totals["balance"] = float(target_total - total_received)
-            TargetModel.objects.filter(pk=target.pk).update(
-                totals=target_totals,
-                balance=target_total - total_received,
-            )
+            from apps.transactions.services.totals import update_received
+            target.refresh_from_db()
+            update_received(target, total_received)
 
     return {
         f"{target_type}_id": target.pk,

@@ -399,6 +399,7 @@ def update_order_received(sender, instance: Payment, created, **kwargs):
             return
 
         from decimal import Decimal
+        from apps.transactions.services.totals import update_received
         for oid in order_ids:
             try:
                 order = Order.objects.get(pk=oid)
@@ -416,15 +417,8 @@ def update_order_received(sender, instance: Payment, created, **kwargs):
                 if oid in p_order_ids or (p_source.get('type') == 'order' and p_source.get('id') == oid):
                     total_received += Decimal(str(p.amount or 0))
 
-            totals = order.totals if isinstance(order.totals, dict) else {}
-            order_total = Decimal(str(totals.get('total', 0)))
-            totals['received'] = float(total_received)
-            totals['balance'] = float(order_total - total_received)
-            # Use queryset update to avoid version conflicts with open browser sessions
-            Order.objects.filter(pk=oid).update(
-                totals=totals,
-                balance=order_total - total_received,
-            )
+            # PJPV: use totals engine for received/balance update
+            update_received(order, total_received)
     except Exception:
         import logging
         logging.getLogger('transactions.signals').warning(

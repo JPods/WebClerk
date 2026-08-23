@@ -35,7 +35,7 @@ interface PrintLayoutDesignerProps {
   onClose: () => void;
 }
 
-// Report field registry response shape (from /wcapi/report-fields/)
+// Report field registry response shape (from /wcapi/_report_fields/)
 interface RegistryField {
   field: string;
   label: string;
@@ -289,7 +289,7 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
       setActiveModel(m);
       return;
     }
-    fetch(`/wcapi/report-fields/?model=${encodeURIComponent(m)}`, { credentials: 'include' })
+    fetch(`/wcapi/_report_fields/?model=${encodeURIComponent(m)}`, { credentials: 'include' })
       .then(r => r.json())
       .then(data => {
         if (data && !data.error) {

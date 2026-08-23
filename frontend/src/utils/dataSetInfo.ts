@@ -48,8 +48,8 @@ export function getFrontendDataSet(): DataSetInfo {
 export async function fetchBackendSystemInfo(
   apiBaseUrl: string = "",
 ): Promise<SystemInfo | null> {
-  // Try /wcapi/system-info/ first, fall back to me endpoint for basic info
-  const primaryUrl = `${apiBaseUrl}/wcapi/system-info/`;
+  // Try /wcapi/_system_info/ first, fall back to me endpoint for basic info
+  const primaryUrl = `${apiBaseUrl}/wcapi/_system_info/`;
   const fallbackUrl = `${apiBaseUrl}/wcapi/me/`;
 
   try {

@@ -7,11 +7,11 @@
  * Mobile: tabs within one view
  *
  * Data sources:
- *   POST /wcapi/manage/ { action: "get_sales_dashboard", params: {...} }
- *   POST /wcapi/manage/ { action: "get_purchasing_dashboard", params: {...} }
- *   POST /wcapi/manage/ { action: "get_inventory_summary", params: {...} }
- *   POST /wcapi/manage/ { action: "get_velocity_report", params: {...} }
- *   POST /wcapi/manage/ { action: "get_accounting_dashboard", params: {...} }
+ *   POST /wcapi/_manage/ { action: "get_sales_dashboard", params: {...} }
+ *   POST /wcapi/_manage/ { action: "get_purchasing_dashboard", params: {...} }
+ *   POST /wcapi/_manage/ { action: "get_inventory_summary", params: {...} }
+ *   POST /wcapi/_manage/ { action: "get_velocity_report", params: {...} }
+ *   POST /wcapi/_manage/ { action: "get_accounting_dashboard", params: {...} }
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { getUI, setUI } from '@/utils/contactUI';
@@ -80,7 +80,7 @@ export default function CommerceDashboard() {
         velocity: 'get_velocity_report',
         accounting: 'get_accounting_dashboard',
       };
-      const resp = await apiClient.post('/wcapi/manage/', {
+      const resp = await apiClient.post('/wcapi/_manage/', {
         action: actionMap[activeTab],
         params: {
           period_days: filters.period_days,
@@ -534,7 +534,7 @@ function AccountingTab({ data }: { data: any }) {
 
   const handleExport = async (format: string) => {
     try {
-      const resp = await apiClient.post('/wcapi/manage/', {
+      const resp = await apiClient.post('/wcapi/_manage/', {
         action: 'export_gl_journals',
         params: { format },
       });

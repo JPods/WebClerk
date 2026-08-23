@@ -52,11 +52,10 @@ def apply_payment_to_invoice(
 
     apply_amount = min(apply_amount, remaining_payment)
 
-    # Get current invoice balance
+    # Get current invoice balance — read from envelope, don't recompute (PJPV)
     invoice_totals = invoice.totals or {}
-    total_due = Decimal(str(invoice_totals.get('total', 0)))
     payments_received = Decimal(str(invoice_totals.get('received', 0)))
-    current_balance = total_due - payments_received
+    current_balance = Decimal(str(invoice_totals.get('balance', 0)))
 
     if current_balance <= 0:
         raise PaymentApplicationError("Invoice is already fully paid")
@@ -80,13 +79,11 @@ def apply_payment_to_invoice(
         'application_id': application.id
     })
 
-    # Update invoice totals
+    # Update invoice totals via PJPV single engine
+    from apps.transactions.services.totals import update_received
     new_received = payments_received + actual_apply
-    new_balance = total_due - new_received
-
-    invoice_totals['received'] = float(new_received)
-    invoice_totals['balance'] = float(new_balance)
-    invoice.totals = invoice_totals
+    result = update_received(invoice, new_received)
+    new_balance = Decimal(str(result['balance']))
 
     # Update invoice status
     if new_balance <= 0:
@@ -94,7 +91,7 @@ def apply_payment_to_invoice(
     elif new_received > 0:
         invoice.status = 'partially_paid'
 
-    invoice.save(update_fields=['totals', 'status', 'dt_modified', 'version'])
+    invoice.save(update_fields=['status', 'dt_modified', 'version'])
 
     # Update payment status if fully applied
     payment_total_applied = total_applied + actual_apply
@@ -158,16 +155,14 @@ def unapply_payment_from_invoice(
 
     unapply_amount = Decimal(str(application.amount))
 
-    # Update invoice totals
+    # Update invoice totals via PJPV single engine
+    from apps.transactions.services.totals import update_received
     invoice_totals = invoice.totals or {}
     payments_received = Decimal(str(invoice_totals.get('received', 0)))
-    new_received = max(0, payments_received - unapply_amount)
-    total_due = Decimal(str(invoice_totals.get('total', 0)))
-    new_balance = total_due - new_received
-
-    invoice_totals['received'] = float(new_received)
-    invoice_totals['balance'] = float(new_balance)
-    invoice.totals = invoice_totals
+    new_received = max(Decimal('0'), payments_received - unapply_amount)
+    result = update_received(invoice, new_received)
+    new_balance = Decimal(str(result['balance']))
+    total_due = Decimal(str(result['total']))
 
     # Update invoice status
     if new_balance >= total_due:
@@ -175,7 +170,7 @@ def unapply_payment_from_invoice(
     elif new_balance > 0:
         invoice.status = 'partially_paid'
 
-    invoice.save(update_fields=['totals', 'status', 'dt_modified', 'version'])
+    invoice.save(update_fields=['status', 'dt_modified', 'version'])
 
     # Restore payment.available and update status
     payment.available = payment.available + unapply_amount
@@ -213,7 +208,7 @@ def get_invoice_payment_status(invoice: Invoice) -> Dict[str, any]:
     totals = invoice.totals or {}
     total_due = float(totals.get('total', 0))
     total_paid = float(totals.get('received', 0))
-    balance = total_due - total_paid
+    balance = float(totals.get('balance', 0))  # PJPV: read from envelope, don't recompute
 
     payments = []
     for application in invoice.payment_applications.select_related('payment').order_by('-applied_at'):

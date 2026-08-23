@@ -91,7 +91,7 @@ const TokenBuilder: React.FC<TokenBuilderProps> = ({ model: initialModel, onClos
       setActiveModel(m);
       return;
     }
-    fetch(`/wcapi/report-fields/?model=${encodeURIComponent(m)}`, { credentials: 'include' })
+    fetch(`/wcapi/_report_fields/?model=${encodeURIComponent(m)}`, { credentials: 'include' })
       .then(r => r.json())
       .then(data => {
         if (data && !data.error) {

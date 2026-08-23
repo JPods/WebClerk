@@ -21,7 +21,7 @@ export interface ModelPermissions {
   delete: boolean;
 }
 
-/** User's complete permissions response from /wcapi/permissions/ */
+/** User's complete permissions response from /wcapi/_permissions/ */
 export interface UserPermissions {
   /** Django user ID */
   user_id: number;

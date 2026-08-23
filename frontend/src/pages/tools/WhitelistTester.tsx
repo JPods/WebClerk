@@ -54,7 +54,7 @@ const PRESETS: Preset[] = [
   {
     label: 'Models (GET)',
     method: 'GET',
-    url: '/wcapi/model_name/list/',
+    url: '/wcapi/_model_list/',
     body: {},
     info: {
       description: 'Returns whitelisted model names from registry.',
@@ -64,7 +64,7 @@ const PRESETS: Preset[] = [
   {
     label: 'Choice Catalog (GET)',
     method: 'GET',
-    url: '/wcapi/choices/',
+    url: '/wcapi/_choices/',
     body: {},
     info: {
       description: 'Aggregates DEFAULT_SELECT_LISTS from all app-level choices modules.',
@@ -78,7 +78,7 @@ const PRESETS: Preset[] = [
   {
     label: 'Model Detail (GET)',
     method: 'GET',
-    url: '/wcapi/model_name/detail/?model_name=contact',
+    url: '/wcapi/_model_detail/?model_name=contact',
     body: {},
     info: {
       description: 'Returns model metadata including fields.',
@@ -393,7 +393,7 @@ const colBase = 'h-[calc(100vh-140px)] overflow-auto border border-gray-200 roun
 
 const WhitelistTester: React.FC = () => {
   const [method, setMethod] = useState<HttpMethod>('GET');
-  const [url, setUrl] = useState<string>('/wcapi/model_name/list/');
+  const [url, setUrl] = useState<string>('/wcapi/_model_list/');
   const [body, setBody] = useState<string>('{}');
   const [headers, setHeaders] = useState<string>('{}');
   const [loading, setLoading] = useState(false);

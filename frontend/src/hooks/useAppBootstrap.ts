@@ -84,7 +84,7 @@ export function useAppBootstrap(isAuthenticated: boolean) {
 
     try {
       const { default: apiClient } = await import('@/api/axios');
-      const resp = await apiClient.post('/wcapi/manage/', {
+      const resp = await apiClient.post('/wcapi/_manage/', {
         action: 'get_app_bootstrap',
         params: {},
       });
@@ -143,7 +143,7 @@ export function useAppBootstrap(isAuthenticated: boolean) {
     const interval = setInterval(async () => {
       try {
         const { default: apiClient } = await import('@/api/axios');
-        const resp = await apiClient.post('/wcapi/manage/', {
+        const resp = await apiClient.post('/wcapi/_manage/', {
           action: 'get_bootstrap_dt', params: {},
         });
         const serverDt = resp.data?.data?.dt_changed || 0;

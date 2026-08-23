@@ -53,7 +53,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
 
   const checkBackendHealth = useCallback(async (): Promise<boolean> => {
     try {
-      await apiClient.get('/wcapi/system-info/');
+      await apiClient.get('/wcapi/_system_info/');
       return true;
     } catch {
       return false;
@@ -72,7 +72,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     setIsLoading(true);
     try {
       // Try dedicated dev_config endpoint first
-      const response = await apiClient.get('/wcapi/dev/config/');
+      const response = await apiClient.get('/wcapi/_dev_config/');
       const json = response.data;
       // Handle nested response: { data: { data: { ... } } } or { data: { ... } }
       const configData = json.data?.data || json.data || json;
@@ -165,7 +165,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     if (!isSyncing) return;
     const poll = setInterval(async () => {
       try {
-        const response = await apiClient.get('/wcapi/dev/sync-status/');
+        const response = await apiClient.get('/wcapi/_dev_sync_status/');
         const json = response.data;
         const data = json.data?.data || json.data || {};
         const progress = Number(data.progress ?? 0);
@@ -188,7 +188,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     setMessage(null);
     
     try {
-      const response = await apiClient.post('/wcapi/dev/switch/', { mode: newMode });
+      const response = await apiClient.post('/wcapi/_dev_switch/', { mode: newMode });
       const json = response.data;
       // Handle nested response structure
       const data = json.data?.data || json.data || json;
@@ -219,7 +219,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     setIsSyncing(true);
 
     try {
-      const response = await apiClient.post('/wcapi/dev/sync/', { direction });
+      const response = await apiClient.post('/wcapi/_dev_sync/', { direction });
       const json = response.data;
       setMessage({ type: 'success', text: json.message || `Sync started (${label})` });
     } catch (err: any) {
@@ -238,7 +238,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     setMessage({ type: 'success', text: 'Restarting servers...' });
     
     try {
-      const response = await apiClient.post('/wcapi/dev/restart/');
+      const response = await apiClient.post('/wcapi/_dev_restart/');
       const json = response.data;
       const data = json.data?.data || json.data || json;
       if (data?.same_console_required) {

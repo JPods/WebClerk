@@ -173,11 +173,9 @@ def validate_invoice_for_payment(invoice: Invoice) -> ValidationResult:
     elif invoice.status == 'draft':
         warnings.append("Invoice is still in draft status")
 
-    # Balance check
+    # Balance check — read from envelope, don't recompute (PJPV)
     totals = invoice.totals or {}
-    total = totals.get('total', 0)
-    received = totals.get('received', 0)
-    balance = total - received
+    balance = totals.get('balance', 0)
     data['balance'] = balance
 
     if balance <= 0:

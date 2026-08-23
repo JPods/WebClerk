@@ -63,7 +63,7 @@ interface PackingPanelProps {
 
 async function callManage(action: string, params: Record<string, unknown>): Promise<any> {
   const { default: apiClient } = await import('@/api/axios');
-  const res = await apiClient.post('/wcapi/manage/', { action, params });
+  const res = await apiClient.post('/wcapi/_manage/', { action, params });
   return res.data?.data;
 }
 

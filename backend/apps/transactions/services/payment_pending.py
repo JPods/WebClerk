@@ -271,24 +271,20 @@ def apply_payment_pending(pending) -> bool:
             if getattr(invoice, 'is_locked', False):
                 return False
 
-            # ── Update invoice totals ───────────────────────────────
+            # ── Update invoice totals via PJPV single engine ────────
+            from apps.transactions.services.totals import update_received
             totals = invoice.totals or {}
-            total_due = Decimal(str(totals.get('total') or 0))
             received = Decimal(str(totals.get('received') or 0))
             new_received = received + amount
-            new_balance = total_due - new_received
-
-            totals['received'] = float(new_received)
-            totals['balance'] = float(new_balance)
-            invoice.totals = totals
-            invoice.balance = new_balance
+            result = update_received(invoice, new_received)
+            new_balance = Decimal(str(result['balance']))
 
             if new_balance <= 0:
                 invoice.status = 'paid'
             elif new_received > 0:
                 invoice.status = 'partially_paid'
 
-            invoice.save(update_fields=['totals', 'balance', 'status', 'dt_modified', 'version'])
+            invoice.save(update_fields=['status', 'dt_modified', 'version'])
 
             # ── Decrement payment.available ─────────────────────────
             payment.available = max(Decimal('0'), payment.available - amount)

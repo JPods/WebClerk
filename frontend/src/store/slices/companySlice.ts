@@ -2,7 +2,7 @@
 /**
  * companySlice — company-level configuration loaded once at startup.
  *
- * Fetched from /wcapi/bootstrap/. Versioned — only re-downloads when
+ * Fetched from /wcapi/_bootstrap/. Versioned — only re-downloads when
  * the company-profile Setting changes on the server.
  */
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
@@ -69,7 +69,7 @@ export const fetchBootstrap = createAsyncThunk(
     const currentVersion = state.company?.version || localStorage.getItem('wc_bootstrap_version') || '';
 
     try {
-      const res = await apiClient.get('/wcapi/bootstrap/', {
+      const res = await apiClient.get('/wcapi/_bootstrap/', {
         params: currentVersion ? { v: currentVersion } : undefined,
       });
 

@@ -83,7 +83,7 @@ class OrderSerializer(ModelSerializer):
         read_only_fields = ['totals', 'total', 'balance']
 ```
 
-The `total` and `balance` scalar fields are denormalized indexes for database
+The `total` and `balance` scalar fields are shadow fields (query indexes) for database
 queries. They are never read as authoritative — the `totals` envelope is.
 
 ### 3. Path resolution replaces property access
@@ -283,7 +283,26 @@ know this unless told. This readme is that telling.
 | Commission envelope mutation fixed | 1 (RoleAwareModelSerializer) | Fixed |
 | React local computations audited | 27 total | 23 legitimate (selection-aware), 1 fixed, 3 dead code |
 | React path references updated | 4 files | Fixed |
-| Dead code identified | 2 files (OrderLineEditor, InvoiceLineEditor — not imported) | Noted |
+| Dead code identified | 2 files (OrderLineEditor, InvoiceLineEditor — not imported) | Deleted 2026-08-23 |
+
+## Compliance Enforcement (2026-08-23)
+
+Full compliance audit and schema buildout completed. See `pjpv-process.md` for
+the complete arc: what was found, what was fixed, and what was built.
+
+| Milestone | Status | Date |
+|-----------|--------|------|
+| Totals engine single-owner (`update_received()`) | Done | 2026-08-23 |
+| All payment flows through engine | Done | 2026-08-23 |
+| Margin formula fixed (subtotal - cost, not total - cost) | Done | 2026-08-23 |
+| 21 Pydantic schemas for all envelopes | Done | 2026-08-23 |
+| `TransactionTotals` validation in totals engine | **Fail-hard** | 2026-08-23 |
+| `LEAF_BEHAVIORS` schema-derived | Done | 2026-08-23 |
+| `/wcapi/_pjpv_fields/` endpoint | Done | 2026-08-23 |
+| Alice weekly schema review | TODO | — |
+| Remaining schemas (ItemPrice, ItemCost, etc.) | Done | 2026-08-23 |
+| Promote validation to fail-hard | Done | 2026-08-23 |
+| React consuming `/wcapi/_pjpv_fields/` | TODO | — |
 
 ## Public Site
 
@@ -293,10 +312,10 @@ and pjpv.io (developer front door). Hosted on Hostinger.
 
 ## See Also
 
+- `pjpv-process.md` — Full audit and fix arc (2026-08-23)
+- `pjpv-denormalized-fields.md` — Shadow field registry (scalars that shadow JSON envelopes)
 - `readmes/topics/architecture/data-library-ecosystem.md` — Three data types, library model
-- Scars #62, #63, #64 — JSON source of truth lessons (leftshoe identity store)
-- `feedback_pydpv_architecture.md` — PJPV architecture (Allie memory)
-- `feedback_pydantic_field_behaviors.md` — Pydantic owns field behaviors (Allie memory)
-- `feedback_json_source_of_truth.md` — JSON envelope discipline (Allie memory)
-- `feedback_json_fail_not_fallback.md` — No scalar fallbacks (Allie memory)
+- Scars #62, #63, #64, #65 — JSON source of truth lessons (leftshoe identity store)
+- `common/schemas/transaction_envelopes.py` — The 7 business envelope schemas
+- `apps/core/views/schema_fields_view.py` — `/wcapi/_pjpv_fields/` endpoint
 - `pjpv.io` — Public site explaining the pattern to developers and capital

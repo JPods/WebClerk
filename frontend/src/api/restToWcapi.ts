@@ -219,8 +219,8 @@ export const WCAPI_ENDPOINTS = {
   DELETE: '/wcapi/delete/',     // POST with body: { model_name, id }
   
   // Model metadata endpoints
-  MODEL_LIST: '/wcapi/model_name/list/',
-  MODEL_DETAIL: '/wcapi/model_name/detail/',
+  MODEL_LIST: '/wcapi/_model_list/',
+  MODEL_DETAIL: '/wcapi/_model_detail/',
   
   // Auth endpoints
   LOGIN: '/wcapi/login/',

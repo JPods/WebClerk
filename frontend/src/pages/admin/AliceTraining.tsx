@@ -200,7 +200,7 @@ export default function AliceTraining() {
     setCurrentStep(-1);
 
     try {
-      const res = await apiClient.post("/wcapi/manage/", {
+      const res = await apiClient.post("/wcapi/_manage/", {
         action: "run_training_flow",
         params: {
           customer_id: trainingCustomer.id,
@@ -222,7 +222,7 @@ export default function AliceTraining() {
 
   const cleanup = async () => {
     try {
-      await apiClient.post("/wcapi/manage/", { action: "cleanup_training", params: {} });
+      await apiClient.post("/wcapi/_manage/", { action: "cleanup_training", params: {} });
       setSteps([]);
       setCurrentStep(-1);
       refreshInventory();

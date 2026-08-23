@@ -8,7 +8,7 @@
  *   - Last payment
  *   - Open invoices
  *
- * Data source: POST /wcapi/manage/ { action: "get_customer_health", params: { customer_id } }
+ * Data source: POST /wcapi/_manage/ { action: "get_customer_health", params: { customer_id } }
  *
  * LastChecked: 2026-08-10 | WhereUsed: OrgPage (customer detail) | WhoCreated: Bill+Claude
  */
@@ -58,7 +58,7 @@ const CustomerHealthCard: React.FC<Props> = ({ customerId }) => {
   useEffect(() => {
     if (!customerId) return;
     setLoading(true);
-    apiClient.post('/wcapi/manage/', {
+    apiClient.post('/wcapi/_manage/', {
       action: 'get_customer_health',
       params: { customer_id: customerId },
     }).then(res => {

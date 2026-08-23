@@ -5,6 +5,7 @@ totals consistent. Works with all transaction types (proposal, order,
 invoice, purchase, workorder).
 
 All calculations are server-side authoritative (Axiom: backend is source of truth).
+Output validated against TransactionTotals Pydantic schema (PJPV Layer 1).
 
 See: readmes/topics/transactions/transactions-totals.md
 """
@@ -14,6 +15,18 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+
+def _validate_totals(totals: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate totals dict against TransactionTotals Pydantic schema.
+
+    Fail-hard: if the schema rejects the data, the save fails. If we fail,
+    we fix. Soft fallbacks hide problems — hard failures surface them.
+    Promoted from fail-open 2026-08-23.
+    """
+    from common.schemas.transaction_envelopes import TransactionTotals
+    validated = TransactionTotals(**totals)
+    return validated.model_dump()
 
 
 def _d(x: Any, places: int = 2) -> Decimal:
@@ -280,6 +293,9 @@ def recalculate_totals(
         }
         header.metadata = meta
 
+    # ── Validate against Pydantic schema (PJPV Layer 1) ─────────
+    totals = _validate_totals(totals)
+
     # ── Persist to header ──────────────────────────────────────────
     header.totals = totals
     header.total = _d(total)
@@ -305,6 +321,48 @@ def recalculate_totals(
         'margin': float(margin),
         'margin_pc': margin_pc,
         'lines_recalculated': lines_recalculated,
+    }
+
+
+# ---------------------------------------------------------------------------
+# update_received — payment-side balance update (PJPV single engine)
+# ---------------------------------------------------------------------------
+
+def update_received(
+    header,
+    new_received: Decimal,
+) -> Dict[str, Any]:
+    """Update the received amount and recompute balance on a transaction header.
+
+    Called by payment_application, payment_pending, and signals after a payment
+    is applied or unapplied. This is the ONLY function that should modify
+    totals.received and totals.balance outside of recalculate_totals().
+
+    Does NOT re-sum lines — only updates the payment side of the envelope.
+    """
+    new_received = _d(new_received)
+    totals = getattr(header, 'totals', None) or {}
+    total = _d(totals.get('total', 0))
+    new_balance = _d(total - new_received)
+
+    totals['received'] = float(new_received)
+    totals['balance'] = float(new_balance)
+    totals = _validate_totals(totals)
+    header.totals = totals
+    header.total = _d(total)
+    header.balance = new_balance
+
+    header.save(update_fields=['totals', 'total', 'balance'])
+
+    logger.info(
+        "Updated received for %s #%s: received=%.2f balance=%.2f",
+        header._meta.model_name, header.pk, float(new_received), float(new_balance),
+    )
+
+    return {
+        'total': float(total),
+        'received': float(new_received),
+        'balance': float(new_balance),
     }
 
 

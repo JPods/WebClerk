@@ -5,7 +5,7 @@
  * aging summary (balance due / current / 1-30 / 31-60 / 61+),
  * transaction detail (type / number / date / total / balance / aging / finance / days).
  *
- * Data source: POST /wcapi/manage/ { action: "get_customer_statement", params: { customer_id } }
+ * Data source: POST /wcapi/_manage/ { action: "get_customer_statement", params: { customer_id } }
  * Print: window.print() with print.css
  */
 import React from 'react';

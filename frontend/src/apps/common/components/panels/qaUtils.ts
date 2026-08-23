@@ -365,7 +365,7 @@ export async function applyQuestionGroup(
   parentId: number
 ): Promise<ApplyQuestionGroupResponse> {
   try {
-    const res = await apiClient.post<{ data: ApplyQuestionGroupResponse }>('/wcapi/qa/apply/', {
+    const res = await apiClient.post<{ data: ApplyQuestionGroupResponse }>('/wcapi/_qa_apply/', {
       question_group: questionGroup,
       setting_id: settingId,
       parent_model: parent_model,

@@ -78,63 +78,45 @@ LINE_TYPE_OPTIONS = [
 
 
 # ── JSON leaf behaviors ─────────────────────────────────────────────────
+# PJPV: derived from Pydantic schemas in common/schemas/transaction_envelopes.py.
+# The schema is the single source of truth for types, labels, and formatting.
+# Comments envelope is not a business envelope — stays hardcoded.
 
-LEAF_BEHAVIORS = {
-    'totals': {
-        'subtotal':  {'type': 'currency', 'label': 'Subtotal'},
-        'discount':  {'type': 'currency', 'label': 'Discount'},
-        'taxable':   {'type': 'currency', 'label': 'Taxable'},
-        'tax':       {'type': 'currency', 'label': 'Tax'},
-        'shipping':  {'type': 'currency', 'label': 'Shipping'},
-        'other':     {'type': 'currency', 'label': 'Other'},
-        'total':     {'type': 'currency', 'label': 'Total'},
-        'cost':      {'type': 'currency', 'label': 'Cost'},
-        'margin':    {'type': 'currency', 'label': 'Margin'},
-        'margin_pc': {'type': 'number',   'label': 'Margin %'},
-        'received':  {'type': 'currency', 'label': 'Received'},
-        'balance':   {'type': 'currency', 'label': 'Balance'},
-    },
-    'quantity': {
-        'active':      {'type': 'number', 'label': 'Qty Active'},
-        'staged':      {'type': 'number', 'label': 'Qty Staged'},
-        'remaining':   {'type': 'number', 'label': 'Qty Remaining'},
-        'is_fixed':    {'type': 'boolean', 'label': 'Qty Fixed'},
-        'is_complete': {'type': 'boolean', 'label': 'Qty Complete'},
-        'precision':   {'type': 'number', 'label': 'Qty Precision'},
-        'is_blanket':  {'type': 'boolean', 'label': 'Blanket'},
-        'increment':   {'type': 'number', 'label': 'Increment'},
-    },
-    'price': {
-        'unit':             {'type': 'currency', 'label': 'Unit Price'},
-        'unit_base':        {'type': 'currency', 'label': 'Base Price'},
-        'discount_percent': {'type': 'number',   'label': 'Disc %'},
-        'discount_amount':  {'type': 'currency', 'label': 'Disc Amt'},
-        'extended':         {'type': 'currency', 'label': 'Extended'},
-        'is_fixed':         {'type': 'boolean',  'label': 'Price Fixed'},
-        'precision':        {'type': 'number',   'label': 'Price Precision'},
-    },
-    'cost': {
-        'unit':              {'type': 'currency', 'label': 'Unit Cost'},
-        'extended':          {'type': 'currency', 'label': 'Extended Cost'},
-        'shipping':          {'type': 'currency', 'label': 'Cost: Shipping'},
-        'handling':          {'type': 'currency', 'label': 'Cost: Handling'},
-        'freight':           {'type': 'currency', 'label': 'Cost: Freight'},
-        'commissions':       {'type': 'currency', 'label': 'Commissions'},
-        'tax_rate':          {'type': 'number',   'label': 'Cost Tax Rate'},
-        'tax':               {'type': 'currency', 'label': 'Cost: Tax'},
-        'total':             {'type': 'currency', 'label': 'Cost Total'},
-        'line_sum_goods':    {'type': 'currency', 'label': 'Line Sum Goods'},
-        'line_sum_tax':      {'type': 'currency', 'label': 'Line Sum Tax'},
-        'line_sum_shipping': {'type': 'currency', 'label': 'Line Sum Shipping'},
-        'line_sum_handling': {'type': 'currency', 'label': 'Line Sum Handling'},
-    },
-    'comments': {
+def _build_leaf_behaviors():
+    """Build LEAF_BEHAVIORS from Pydantic schemas + comments (non-schema)."""
+    try:
+        from common.schemas.transaction_envelopes import get_all_leaf_behaviors
+        behaviors = get_all_leaf_behaviors()
+    except Exception:
+        # Fallback if schemas not yet available (e.g., during migrations)
+        behaviors = {}
+
+    # Comments envelope is structural, not business — no Pydantic schema needed
+    behaviors['comments'] = {
         'public':  {'type': 'json-tree', 'label': 'Public Comments'},
         'process': {'type': 'json-tree', 'label': 'Process Notes'},
         'partner': {'type': 'json-tree', 'label': 'Partner Notes'},
         'notes':   {'type': 'json-tree', 'label': 'Internal Notes'},
-    },
-}
+    }
+
+    # Header-level cost envelope uses TransactionCost schema but is mapped
+    # to the 'cost' key alongside LineCost fields. Merge both.
+    if 'cost' in behaviors:
+        try:
+            from common.schemas.transaction_envelopes import (
+                TransactionCost, schema_to_leaf_behaviors,
+            )
+            header_cost = schema_to_leaf_behaviors(TransactionCost)
+            # LineCost fields take precedence; header-only fields get added
+            for k, v in header_cost.items():
+                if k not in behaviors['cost']:
+                    behaviors['cost'][k] = v
+        except Exception:
+            pass
+
+    return behaviors
+
+LEAF_BEHAVIORS = _build_leaf_behaviors()
 
 LEAF_MAP = {
     'order': ['totals'],

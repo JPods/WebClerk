@@ -41,7 +41,7 @@ export function SettingsBootstrap({ children }: Props) {
     setChecking(true);
     setError(null);
     try {
-      const res = await fetch('/wcapi/settings-health/');
+      const res = await fetch('/wcapi/_settings_health/');
       if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
       const json = await res.json();
       const data: HealthReport = json?.data ?? json;
@@ -64,7 +64,7 @@ export function SettingsBootstrap({ children }: Props) {
     try {
       const text = await file.text();
       const bundle = JSON.parse(text);
-      const res = await fetch('/wcapi/settings-bootstrap/', {
+      const res = await fetch('/wcapi/_settings_bootstrap/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bundle),
@@ -89,7 +89,7 @@ export function SettingsBootstrap({ children }: Props) {
     setImportResult(null);
     setError(null);
     try {
-      const res = await fetch('/wcapi/settings-fetch-hq/', {
+      const res = await fetch('/wcapi/_settings_fetch_hq/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ athena_token: athenaToken.trim() }),

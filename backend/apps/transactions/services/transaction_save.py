@@ -739,8 +739,8 @@ def calculate_header_totals(lines: List[Dict[str, Any]], header_data: Dict[str, 
     
     total = taxable + tax + shipping + other
     
-    margin = total - cost_total
-    margin_pc = (margin / total * Decimal("100")) if total > 0 else Decimal("0")
+    margin = subtotal - cost_total
+    margin_pc = (margin / subtotal * Decimal("100")) if subtotal > 0 else Decimal("0")
     
     received = _d(totals.get('received', 0))
     balance = total - received

@@ -44,7 +44,7 @@ function SprintBurndown({ projectId, compact = false }: SprintBurndownProps) {
 
   useEffect(() => {
     if (!projectId) return;
-    apiClient.get(`/wcapi/burndown/${projectId}/`)
+    apiClient.get(`/wcapi/_burndown/${projectId}/`)
       .then((resp) => {
         const d = resp.data?.data || resp.data;
         if (d?.error) {

@@ -6,7 +6,7 @@ import apiClient from "../../api/axios";
 interface PdfDesignerProps {
   /** Report record — if provided, loads its pdfme_template from config */
   report?: { id: number; name: string; config?: Record<string, unknown> };
-  /** Model name — if provided, fetches fields from /wcapi/report-fields/ */
+  /** Model name — if provided, fetches fields from /wcapi/_report_fields/ */
   model?: string;
 }
 
@@ -58,7 +58,7 @@ const PdfDesigner: React.FC<PdfDesignerProps> = ({ report, model } = {}) => {
       // Fetch model fields to populate columns (available field names)
       if (model) {
         try {
-          const res = await fetch(`/wcapi/report-fields/?model=${encodeURIComponent(model)}`, { credentials: 'include' });
+          const res = await fetch(`/wcapi/_report_fields/?model=${encodeURIComponent(model)}`, { credentials: 'include' });
           const data = await res.json();
           if (data && !data.error) {
             const fields: string[] = [];

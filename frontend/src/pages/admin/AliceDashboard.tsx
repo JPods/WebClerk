@@ -975,7 +975,7 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
           <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">Reports — MVP Print Templates</h3>
           <p className="text-gray-500 text-xs">
             13 printable report templates. Edit visually at <a href="/report-designer" className="text-blue-500 hover:underline font-medium">/report-designer</a>.
-            Field registry API: <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded">/wcapi/report-fields/?model=order</code>
+            Field registry API: <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded">/wcapi/_report_fields/?model=order</code>
           </p>
 
           <div className="flex gap-3">

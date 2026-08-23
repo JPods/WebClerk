@@ -52,7 +52,7 @@ export function trackNavigation(path: string): void {
 
 /**
  * Track manage action calls (ring buffer, max 20).
- * Call this after every POST /wcapi/manage/.
+ * Call this after every POST /wcapi/_manage/.
  */
 export function trackAction(actionName: string): void {
   try {

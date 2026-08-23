@@ -9,6 +9,7 @@ from drf_spectacular.views import (
     SpectacularSwaggerView
 )
 from apps.docs.urls import upload_urlpatterns
+# SystemDispatchView registered in apps.core.urls (after specific _ routes)
 
 urlpatterns = [
     # Root redirect → Swagger docs
@@ -23,11 +24,11 @@ urlpatterns = [
     path('wcapi/', include(upload_urlpatterns)),
 
     # Settings bootstrap — available before full auth (database may be empty)
-    path('wcapi/settings-health/', __import__('apps.core.views.settings_bootstrap_view', fromlist=['SettingsHealthView']).SettingsHealthView.as_view(), name='settings-health'),
-    path('wcapi/settings-bootstrap/', __import__('apps.core.views.settings_bootstrap_view', fromlist=['SettingsBootstrapView']).SettingsBootstrapView.as_view(), name='settings-bootstrap'),
-    path('wcapi/settings-fetch-hq/', __import__('apps.core.views.settings_bootstrap_view', fromlist=['SettingsFetchHqView']).SettingsFetchHqView.as_view(), name='settings-fetch-hq'),
+    path('wcapi/_settings_health/', __import__('apps.core.views.settings_bootstrap_view', fromlist=['SettingsHealthView']).SettingsHealthView.as_view(), name='settings-health'),
+    path('wcapi/_settings_bootstrap/', __import__('apps.core.views.settings_bootstrap_view', fromlist=['SettingsBootstrapView']).SettingsBootstrapView.as_view(), name='settings-bootstrap'),
+    path('wcapi/_settings_fetch_hq/', __import__('apps.core.views.settings_bootstrap_view', fromlist=['SettingsFetchHqView']).SettingsFetchHqView.as_view(), name='settings-fetch-hq'),
 
-    # Core API endpoints
+    # Core API endpoints (includes _ prefixed system plumbing)
     path('', include('apps.core.urls')),
     path('wcapi/ai/', include('apps.ai_assistant.urls')),
     path('wcapi/jpods/', include('apps.jpods.urls')),

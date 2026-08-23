@@ -11,7 +11,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "refs", "metadata", "totals",
             "dt_created", "dt_modified"
         ]
-        read_only_fields = ["id", "dt_created", "dt_modified"]
+        read_only_fields = ["id", "totals", "dt_created", "dt_modified"]
 
 
 class InvoiceLineSerializer(serializers.ModelSerializer):

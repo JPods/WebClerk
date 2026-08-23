@@ -1,14 +1,16 @@
-# PJPV Denormalized Field Registry
+# PJPV Shadow Field Registry
 
 **Established:** 2026-08-22
-**Rule:** Denormalized fields exist for database queries and list-view display ONLY.
+**Terminology updated:** 2026-08-23 — "shadow fields" is the standard term
+**Rule:** Shadow fields exist for database queries and list-view display ONLY.
 They must NEVER be used for calculations — not on the backend, not on the frontend.
 
 ## The Rule
 
-Denormalized scalar fields shadow values that live authoritatively in JSON envelopes.
-They exist because PostgreSQL can index a `DecimalField` or `CharField` but cannot
-efficiently index a key inside a `JSONField` for `ORDER BY`, `WHERE`, or aggregate queries.
+**Shadow fields** are scalar database fields that shadow values living
+authoritatively in JSON envelopes. They exist because PostgreSQL can index a
+`DecimalField` or `CharField` but cannot efficiently index a key inside a
+`JSONField` for `ORDER BY`, `WHERE`, or aggregate queries.
 
 **Allowed uses:**
 - Database `filter()`, `exclude()`, `order_by()` — query performance

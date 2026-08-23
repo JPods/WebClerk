@@ -576,7 +576,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
       let resultTotal = 0;
 
       if (isView) {
-        // VIEW path — query /wcapi/view/ with raw SQL
+        // VIEW path — query /wcapi/_view/ with raw SQL
         const viewConfig = viewConfigs[selectedModel];
         fields = (viewConfig.columns || []).map((c: any) => c.field || c);
         setAllFields(fields);
@@ -605,7 +605,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
         }
 
         const qs = new URLSearchParams(params).toString();
-        const res = await fetch(`/wcapi/view/?${qs}`, { credentials: 'include' });
+        const res = await fetch(`/wcapi/_view/?${qs}`, { credentials: 'include' });
         const json = await res.json();
         if (modelChangeRef.current !== fetchId) { dbLog('fetchRecords:stale (model changed)'); return; }
 

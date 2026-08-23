@@ -686,7 +686,7 @@ export async function saveWorkbenchFieldsSetting(setting: SettingRecord) {
 }
 
 /**
- * Call the /wcapi/manage/ endpoint to run an administrative action.
+ * Call the /wcapi/_manage/ endpoint to run an administrative action.
  *
  * @param action  - The action name (e.g. "generate_kanban_projects")
  * @param params  - Action-specific parameters
@@ -695,7 +695,7 @@ export async function manageAction(
   action: string,
   params: Record<string, any> = {},
 ) {
-  return wcapiPost<any>("manage/", { action, params });
+  return wcapiPost<any>("_manage/", { action, params });
 }
 
 /**
@@ -712,7 +712,7 @@ export async function logRefsMismatch(payload: {
   caller: string;
 }) {
   try {
-    await apiClient.post("/wcapi/refs-mismatch/", payload);
+    await apiClient.post("/wcapi/_refs_mismatch/", payload);
   } catch (err) {
     console.warn("[wcapi.logRefsMismatch] Failed to log mismatch:", err);
   }

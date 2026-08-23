@@ -60,7 +60,7 @@ const FormParade: React.FC = () => {
   /* Fetch manifest on mount */
   useEffect(() => {
     apiClient
-      .get("/wcapi/parade-manifest/")
+      .get("/wcapi/_parade_manifest/")
       .then((res) => {
         const data: ParadeManifest = res.data?.data ?? res.data;
         setManifest(data);
@@ -85,7 +85,7 @@ const FormParade: React.FC = () => {
     if (!report.has_sample_data) return;
     setSelectedReport(report);
     setNotes(feedbackMap[report.id]?.notes ?? "");
-    setPreviewUrl(`/wcapi/parade-preview/?report_id=${report.id}`);
+    setPreviewUrl(`/wcapi/_parade_preview/?report_id=${report.id}`);
   };
 
   /* Submit feedback */
@@ -93,7 +93,7 @@ const FormParade: React.FC = () => {
     if (!selectedReport) return;
     setSaving(true);
     try {
-      await apiClient.post("/wcapi/parade-feedback/", {
+      await apiClient.post("/wcapi/_parade_feedback/", {
         report_id: selectedReport.id,
         feedback: choice,
         notes,

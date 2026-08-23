@@ -1,7 +1,7 @@
 /**
  * useDashboardCounts — single API call for all dashboard period comparisons.
  *
- * Replaces N×M individual /wcapi/get/ calls with one POST to /wcapi/manage/.
+ * Replaces N×M individual /wcapi/get/ calls with one POST to /wcapi/_manage/.
  * Falls back to staggered individual fetches if the batch endpoint fails.
  */
 import { useEffect, useState } from 'react';
@@ -42,7 +42,7 @@ export function useDashboardCounts(modelNames: string[]): {
 
     const fetchBatch = async () => {
       try {
-        const res = await apiClient.post('/wcapi/manage/', {
+        const res = await apiClient.post('/wcapi/_manage/', {
           action: 'get_dashboard_counts',
           params: {
             models: modelNames,

@@ -285,7 +285,7 @@ const QueryBuilderPanel: React.FC<QueryBuilderPanelProps> = ({
     if (!aliceIntent.text.trim()) return;
     try {
       const { default: apiClient } = await import('@/api/axios');
-      await apiClient.post('/wcapi/manage/', {
+      await apiClient.post('/wcapi/_manage/', {
         action: 'alice_observe',
         params: {
           event: 'search_intent',

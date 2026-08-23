@@ -3,7 +3,7 @@
  *
  * Each tool is a Report record with category='utility', model_name='setting'.
  * The Report.config holds the management command name, default args, and
- * parameter definitions. Tools run via /wcapi/manage/ action=run_admin_tool.
+ * parameter definitions. Tools run via /wcapi/_manage/ action=run_admin_tool.
  *
  * Superuser only.
  */
@@ -107,7 +107,7 @@ export default function AdminTools() {
       });
 
       const { default: apiClient } = await import('@/api/axios');
-      const resp = await apiClient.post('/wcapi/manage/', {
+      const resp = await apiClient.post('/wcapi/_manage/', {
         action: 'run_admin_tool',
         params: { command: tool.config.command, args },
       });
