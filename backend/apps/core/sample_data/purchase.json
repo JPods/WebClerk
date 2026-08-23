@@ -1,0 +1,136 @@
+{
+  "_meta": {
+    "model": "purchase",
+    "description": "Sample purchase order for report parade — buying inventory from a vendor",
+    "version": 1
+  },
+  "ida": "PO-2026-0394",
+  "status": "sent",
+  "dt_created": 1785196800000,
+  "attention": "Accounts Receivable",
+  "company": "Milwaukee Tool Distribution",
+  "address_full": "13135 W Lisbon Rd\nBrookfield, WI 53005",
+  "phone": "(800) 555-0462",
+  "email": "orders@milwaukeetool-dist.com",
+  "terms": "2% 10 Net 30",
+  "conditions_description": "Purchase orders are subject to our standard terms. Vendor agrees to ship within 10 business days of PO date. Short shipments must be noted on BOL.",
+  "comments": {
+    "public": "Annual restock — please ship complete. Confirm availability before shipping."
+  },
+  "config": {
+    "ship_to": {
+      "attention": "Receiving — Bay 3",
+      "company": "Our Warehouse",
+      "address": "500 Commerce Way\nPortland, OR 97209",
+      "phone": "(503) 555-0122"
+    },
+    "ship_via": "UPS Freight",
+    "ship_date": 1785801600000
+  },
+  "source": {
+    "campaign_name": ""
+  },
+  "refs": {
+    "links": {
+      "contact": {"id": 56, "name": "Milwaukee Tool Distribution", "ida": "MTD-56"}
+    }
+  },
+  "totals": {
+    "subtotal": 12460.00,
+    "tax": 0.00,
+    "shipping": 345.00,
+    "total": 12805.00,
+    "balance": 12805.00
+  },
+  "sell": {},
+  "cost": {},
+  "finance": {},
+  "flow": {},
+  "metadata": {},
+  "lines": [
+    {
+      "line_number": 1,
+      "item": {
+        "ida_item": "MIL-2804-22",
+        "description": "M18 FUEL 1/2\" Hammer Drill/Driver Kit",
+        "uom": "Each"
+      },
+      "quantity": {"active": 12},
+      "price": {
+        "unit": 249.00,
+        "discount_percent": 20,
+        "extended": 2390.40
+      }
+    },
+    {
+      "line_number": 2,
+      "item": {
+        "ida_item": "MIL-2737-21",
+        "description": "M18 FUEL 5\" / 6\" Grinder, Paddle Switch Kit",
+        "uom": "Each"
+      },
+      "quantity": {"active": 8},
+      "price": {
+        "unit": 299.00,
+        "discount_percent": 20,
+        "extended": 1913.60
+      }
+    },
+    {
+      "line_number": 3,
+      "item": {
+        "ida_item": "MIL-48-22-8426",
+        "description": "PACKOUT Rolling Tool Box",
+        "uom": "Each"
+      },
+      "quantity": {"active": 15},
+      "price": {
+        "unit": 199.00,
+        "discount_percent": 15,
+        "extended": 2537.25
+      }
+    },
+    {
+      "line_number": 4,
+      "item": {
+        "ida_item": "MIL-49-56-9295",
+        "description": "BIG HAWG 9-Piece Hole Saw Kit",
+        "uom": "Kit"
+      },
+      "quantity": {"active": 20},
+      "price": {
+        "unit": 89.99,
+        "discount_percent": 25,
+        "extended": 1349.85
+      }
+    },
+    {
+      "line_number": 5,
+      "item": {
+        "ida_item": "MIL-48-11-1850",
+        "description": "M18 REDLITHIUM XC5.0 Battery 2-Pack",
+        "uom": "Pack"
+      },
+      "quantity": {"active": 24},
+      "price": {
+        "unit": 199.00,
+        "discount_percent": 22,
+        "extended": 3725.28
+      }
+    },
+    {
+      "line_number": 6,
+      "item": {
+        "ida_item": "MIL-2357-20",
+        "description": "M18 RADIUS Site Light w/ ONE-KEY",
+        "uom": "Each"
+      },
+      "quantity": {"active": 4},
+      "price": {
+        "unit": 349.00,
+        "discount_percent": 15,
+        "extended": 1186.60
+      }
+    }
+  ]
+}

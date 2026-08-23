@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/orgs/migrations/0001_initial.py
+# hypothesis_version: 6.138.7
+
+[255, 'Customer', 'CustomerOrg', 'Customers', 'Employee', 'EmployeeOrg', 'Employees', 'Manufacturer', 'ManufacturerOrg', 'Manufacturers', 'OrgBase', 'Organization', 'Organizations', 'Other', 'Rep', 'RepOrg', 'Reps', 'Vendor', 'VendorOrg', 'Vendors', 'comments', 'connections', 'constraints', 'contacts', 'created_dt', 'customer', 'data', 'display_name', 'docs', 'domains', 'emails', 'employee', 'financial', 'gl_accounts', 'health_rating', 'id', 'ida', 'indexes', 'is_active', 'is_archived', 'is_deleted', 'locations', 'manufacturer', 'metadata', 'metrics', 'modified_dt', 'org_contacts_gin', 'org_domains_gin', 'org_financial_gin', 'org_rel_gin', 'org_type', 'orgs.orgbase', 'other', 'phones', 'prefs', 'proxy', 'refs', 'relations', 'rep', 'status', 'uuid', 'vendor', 'verbose_name', 'verbose_name_plural', 'version']

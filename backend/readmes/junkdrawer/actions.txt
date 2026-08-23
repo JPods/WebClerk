@@ -1,0 +1,89 @@
+    1 # Action Daily Dashboard — Plan
+      2
+      3 ## What Bill Is Saying
+      4
+      5 Staff members need a dashboard that answers: **"What did I work o
+        n today, and what was it worth?"**
+      6
+      7 Actions are the work log. Each action has `refs.links` pointing t
+        o the transactions it touched — orders, invoices, purchases, paym
+        ents, customers. The dashboard pulls those links and denormalizes
+         the essential numbers (totals, balances, status) into summary ca
+        rds. Clicking a card opens that transaction in a new window.
+      8
+      9 This is the staff member's daily cockpit — not a report, a live v
+        iew of their work and its dollar value.
+     … +157 lines (ctrl+o to expand)
+
+
+Actions are the spine. Staff creates actions as they work. Each action's
+  refs.links points to whatever they touched (order, invoice, purchase,
+  customer). The dashboard reads those links and aggregates the dollar values
+  into summary cards. Click a card → see the transactions. Click a transaction →
+   opens in new window.
+
+  No new API endpoints — it's just wcapi/get/action filtered by staff + date,
+  then client-side aggregation from the refs.links arrays.
+
+  The denormalized summary in refs.links is a cache written at link-time —
+  acceptable staleness, truth lives in the transaction record.
+
+Staff and actions seeded. The data tells a story:
+
+  ┌───────────────────┬─────────────┬───────────────────────────────────────┐
+  │       Staff       │    Role     │         Actions with $ links          │
+  ├───────────────────┼─────────────┼───────────────────────────────────────┤
+  │ Jenny Torres      │ Sales       │ SO $899.50, 3 customer contacts       │
+  │ (qq_s1)           │             │                                       │
+  ├───────────────────┼─────────────┼───────────────────────────────────────┤
+  │ Dave Kim (qq_s2)  │ Purchasing  │ PO $563.11, SO $899.50, vendor        │
+  │                   │             │ contacts                              │
+  ├───────────────────┼─────────────┼───────────────────────────────────────┤
+  │ Rachel Ortiz      │ Fulfillment │ SO $899.50, PO $563.11 (waiting on    │
+  │ (qq_s3)           │             │ both)                                 │
+  ├───────────────────┼─────────────┼───────────────────────────────────────┤
+  │ James Cooper      │ Accounting  │ SO $899.50 (to invoice), PO $563.11   │
+  │ (qq_s4)           │             │ (to pay)                              │
+  └───────────────────┴─────────────┴───────────────────────────────────────┘
+
+  All four staff members' actions link back to the same SO and PO — so the
+  dashboard will show the same transactions from different staff perspectives.
+  That's realistic and testable.
+
+⏺ 49 stragglers across 8 files (down from 625). The agents got the majority —
+  these are edge cases they left behind. Good enough for now; they can be
+  cleaned up incrementally.
+
+
+   Clean build. The ActionDailyDashboard is live at /action-dashboard.
+
+  What you'll see:
+  - Staff picker (Jenny, Dave, Rachel, James)
+  - Date presets (Today, Yesterday, Week, Month)
+  - Summary cards: Orders ($899), Purchases ($563) — click to expand and see
+  individual transactions
+  - Action list with priority indicators, status, and clickable transaction
+  badges
+  - Click any transaction badge or expanded card row → opens in new window
+
+  Go to http://localhost:8000/app/action-dashboard to try it. You may need to
+  widen the date range to "month" since the actions were seeded today.
+
+⏺ leftshoe - log_session (MCP)(entry: "Built ActionDailyDashboard component and
+                              added route at /action-dashboard. Staff picker,
+                              date presets, summary cards (aggregate $ from
+                              action refs.links), action list with clickable
+                              transaction badges. Click transaction → opens in
+                              new window. Uses DbCard micro-component +
+                              db-list-row/db-section-header CSS. All --db-*
+                              themed. Build clean at 12.7s.", category:
+                              "action")
+
+⏺ Session state is saved. Handoff, team memory, scars, and Allie all updated.
+  Ready for you to test /action-dashboard in the browser. Let me know what you
+  see.
+
+ .mov, .mp4, .cmproj can all be moved to Andi_5t and 
+
+
+We should have alread moved stored searches from setting to reports.  

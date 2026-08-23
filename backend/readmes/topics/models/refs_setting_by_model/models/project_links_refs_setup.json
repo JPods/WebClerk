@@ -1,0 +1,10 @@
+{
+    "self_fields": [
+        "model_code"
+    ],
+    "related_keywords": {},
+    "related_models": [
+        "project"
+    ],
+    "jjj_comment": "setting model_name=\"project_links\" purpose=\"refs_setup\""
+}

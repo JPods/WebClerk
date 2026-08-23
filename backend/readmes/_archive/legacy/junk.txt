@@ -1,0 +1,3 @@
+Let's clean up the action data. It is disconnected from the contact data.
+
+Loop thru action records set the contact_id and 

@@ -1,0 +1,104 @@
+
+rite(readmes/82-flight-simulator-next-steps.md)                              
+  ⎿  Wrote 129 lines to readmes/82-flight-simulator-next-steps.md 
+       1 # Flight Simulator — Next Steps (2026-08-20)                           
+       2                      
+       3 ## What Works Now                                                      
+       4                                                          
+       5 The **Inventory Quantity Tracking** simulation works end-to-end:       
+       6 - Reset on card click (reset_flight_simulator manage action)
+       7 - Auto-start from URL (/flight-sim/inventory)
+       8 - Proposal: add item → save → on_p pending fires
+       9 - Proposal → Order: conversion creates header + line array, user
+          reviews, saves → on_so pending fires → proposal adjusts → on_p
+         release fires
+      10 - Order → Invoice: same pattern → on_hand pending fires → order
+         adjusts → on_so release fires
+     … +119 lines (ctrl+o to expand)
+
+⏺ That's the complete roadmap. Everything needed to build the remaining 7
+  simulations is documented — architecture rules, key files, what each
+  simulation needs, and how to build one step by step.         
+
+
+
+Build 2 and 3 as out lined and add a training tab in product for tracting
+  the flow of inventory on a specific item.  So the db.list will show
+  ida-bb200 (example) with its starting inventory of on_hand, on_p (proposal),
+  on_so (order), on_i, (invoice), on_po (purchase), on_wo (work_order), on_r
+  (receipt - check pydantic schema), on_adj (adjustment). The user then adds a 
+  proposal for 15 units and saves it. The db.list changes to show the           
+  proposal_line and the pending records. The user then creases an order from    
+  the proposal for 9 of the units. Saving updates the proposal line record,     
+  and adds the order_line record and pending. Then the user create an purchase  
+  from the order for 14 and an invoice for 4. Then the user makes a receipt     
+  from the purchase for 11.  The db.list show all the lines and pendings and    
+  changes in the item record at each stage. Am I making sense? I want to teach  
+  how to think about inventory flows and the importance of pending. 
+
+  This db.list can also show how that line would be converted into gl amounts and accounts -- and where there is no gl impact
+
+
+  We can have them add a partial payment, a discount, and dismisal of small 
+   amount to who those gl behaviors                                           
+─────────────────────────────────────
+
+ Do you understand there is one row per transaction event Row 1 initial item
+  data, Row 2 is the saving of the proposal_line. Row 3 is the pending record  
+  created by the proposal_line, Row 4 is the item again with the pending        
+  record applied to its values. Through order, purchase, invoice,  
+
+  ┌─────┬───────────────┬────────────────────────────────────────────────┐
+  │ Row │     Type      │                      What                      │
+  ├─────┼───────────────┼────────────────────────────────────────────────┤
+  │ 1   │ item          │ initial state (on_hand=100, everything else 0) │
+  ├─────┼───────────────┼────────────────────────────────────────────────┤
+  │ 2   │ proposal_line │ line saved — 15 units of qqBB200               │      
+  ├─────┼───────────────┼────────────────────────────────────────────────┤      
+  │ 3   │ pending       │ on_p +15                                       │      
+  ├─────┼───────────────┼────────────────────────────────────────────────┤      
+  │ 4   │ item          │ on_hand=100, on_p=15                           │
+  ├─────┼───────────────┼────────────────────────────────────────────────┤
+  │ 5   │ order_line    │ 9 units converted from proposal                │
+  ├─────┼───────────────┼────────────────────────────────────────────────┤      
+  │ 6   │ pending       │ on_p -9, on_so +9                              │
+  ├─────┼───────────────┼────────────────────────────────────────────────┤      
+  │ 7   │ item          │ on_hand=100, on_p=6, on_so=9                   │
+  ├─────┼───────────────┼────────────────────────────────────────────────┤
+  │ 8   │ invoice_line  │ ship 4 units                                   │
+  ├─────┼───────────────┼────────────────────────────────────────────────┤      
+  │ 9   │ pending       │ on_so -4, on_hand -4 + GL entries              │
+  ├─────┼───────────────┼────────────────────────────────────────────────┤      
+  │ 10  │ item          │ on_hand=96, on_p=6, on_so=5                    │
+  └─────┴───────────────┴────────────────────────────────────────────────┘      
+  
+❯ It should not save automatically as the users may want to change quantities. Also, a
+  proposal can be used to create multiple orders. If they are a blanket order, create based
+  on the quantity.increment. If they are  
+
+
+open -a "Chrome Debug"                                                        
+   
+  Or from the command line with flags:                                          
+                                                                  
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \--remote-debugging-port=9222\user-data-dir="$HOME/.chrome-debug-profile"
+
+⏺ React build passed clean. Here are your open items for next session:               
+                                                                                     
+  1. Test TouchBar in browser — refresh localhost:5173, open contact/action detail,  
+  verify Call/Email/Text buttons appear                           
+  2. Test Touch save — click a button, fill the form, confirm record saves to        
+  database                                                                           
+  3. Touch report backend — Call Summary, Email Draft, Visit Report need server-side 
+  implementation                                                                     
+  4. Verify org.type in databrowser for all org models            
+  5. Clean up stacked VS Code terminals from my build attempts                       
+                                                                Your todo list:                                                               
+                                                                
+  1. bash scripts/deploy-codemap.sh — push to webclerk.com/codemap/             
+  2. Convert thumbnails from JPG to PNG (to match the standard we set)
+  3. Purchase codemap.guru domain                                               
+  4. Expand codemap.json node coverage (many flowcharts still at 0 mapped nodes)
+  5. Teach Alice the image library resolution pipeline                          
+                                                                
+  Good session. Sleep well.         

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Allie capture hook — calls shared script
+# Installed by: ~/Allie/scripts/install-git-hooks.sh
+SHARED="$HOME/Allie/scripts/git-post-commit.sh"
+[[ -f "$SHARED" ]] && bash "$SHARED"
+exit 0

@@ -1,0 +1,17 @@
+  1. Console is bloated — 14 pages. Many of these (AgendaView, TeamDashboard,
+  UserActivityDashboard, TestDashboard, QualityDashboard, SyncDashboard) might
+  be consolidatable into a single Console with tabs or should be reclassified as
+   Cards/Panels.
+  2. Tools (JsonTreeApplet, WhitelistTester, TokenBuilderPage) don't fit any of
+  the 10 categories cleanly — are these Console subcategories or their own
+  layout type?
+
+
+Consolidate:   1. Console is bloated — 14 pages. Many of these (AgendaView, TeamDashboard,
+  UserActivityDashboard, TestDashboard, QualityDashboard, SyncDashboard) might
+  be consolidatable into a single Console with tabs or should be reclassified as
+   Cards/Panels.
+   
+
+  3. Cards vs Panels boundary is blurry — ItemDashboard is listed as both.
+  My view is that cards are similar to form, but a floating or other special data entry areas and panels are lists. 

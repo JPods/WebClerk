@@ -1,0 +1,25 @@
+The dashboards are highly focused on date ranges so the first task is to create the 
+
+
+ Shall we do dashboards? The date-card [Image #1] Maybe a select list for     
+  last year to date, this year to date, last quarter to date, this quarter to   
+  date, last month to date, this month to date. last week, this week.           
+  yesterday, today, tomorrow, next week, next month, next quarter (action       
+  records).  This is likely overkill. what we had in wc2 was a calendar we      
+  could click a day, select a range, or enter dates. We could also select who   
+  was the Responsible Person. What this       
+
+
+   Shall we do dashboards? The date-card [Image #1] Maybe a select list for     
+  last year to date, this year to date, last quarter to date, this quarter to   
+  date, last month to date, this month to date. last week, this week.           
+  yesterday, today, tomorrow, next week, next month, next quarter (action       
+  records).  This is likely overkill. what we had in wc2 was a calendar we      
+  could click a day, select a range, or enter dates. We could also select who   
+  was the Responsible Person. What this would do is search of transactions      
+  (need to pick which date value) in that date range and open action items in   
+  that date range. Double clicking on the model-card would open those records   
+  in another window. Clicking once on the action.list would show the            
+  action.detail/display on the right. In that the user to open any associated   
+  model in its own window. An action will use .refs.links to connect to the     
+  contact, customer, proposal, order...... Can you write a plan for this?   

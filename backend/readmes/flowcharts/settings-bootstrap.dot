@@ -1,0 +1,98 @@
+digraph settings_bootstrap {
+    rankdir=TB
+    fontname="Helvetica"
+    node [fontname="Helvetica" fontsize=11 shape=box style="rounded,filled" fillcolor="#f8fafc" color="#334155"]
+    edge [fontname="Helvetica" fontsize=9 color="#64748b"]
+
+    // Title
+    labelloc=t
+    label="Settings Bootstrap Architecture\nSettings are the operating system — fix or don't run"
+    fontsize=14
+
+    // Startup
+    subgraph cluster_startup {
+        label="Startup Flow"
+        style="dashed" color="#94a3b8"
+
+        app_mount [label="React App\nmounts" fillcolor="#dbeafe"]
+        health_check [label="GET /wcapi/\nsettings-health/" fillcolor="#e0f2fe" shape=diamond]
+        healthy [label="Render App" fillcolor="#dcfce7"]
+        blocked [label="BLOCKED\nBootstrap Dialog" fillcolor="#fef3c7" shape=doubleoctagon]
+
+        app_mount -> health_check
+        health_check -> healthy [label="healthy=true" color="#22c55e"]
+        health_check -> blocked [label="healthy=false" color="#ef4444"]
+    }
+
+    // Dialog choices
+    subgraph cluster_dialog {
+        label="Bootstrap Dialog — No Dismiss"
+        style="dashed" color="#94a3b8"
+
+        show_issues [label="Show:\nmissing + corrupt\nSettings list" fillcolor="#fef3c7"]
+        fix_git [label="Fix from Git\n(upload bundle)" fillcolor="#dbeafe"]
+        fix_hq [label="Fix from WC_HQ\n(Athena token)" fillcolor="#dbeafe"]
+        quit [label="Quit" fillcolor="#fecaca"]
+
+        blocked -> show_issues
+        show_issues -> fix_git
+        show_issues -> fix_hq
+        show_issues -> quit
+    }
+
+    // Git path
+    subgraph cluster_git {
+        label="Git Path"
+        style="dashed" color="#3b82f6"
+
+        file_pick [label="User picks\nsettings-bundle.json" fillcolor="#f0f9ff"]
+        post_bootstrap [label="POST /wcapi/\nsettings-bootstrap/" fillcolor="#e0f2fe"]
+        import_bundle [label="import_settings_bundle()\nbaseline merge" fillcolor="#f0f9ff"]
+
+        fix_git -> file_pick -> post_bootstrap -> import_bundle
+    }
+
+    // WC_HQ path
+    subgraph cluster_hq {
+        label="WC_HQ Path (server-to-server)"
+        style="dashed" color="#8b5cf6"
+
+        token_input [label="User enters\nAthena token" fillcolor="#f5f3ff"]
+        post_fetch [label="POST /wcapi/\nsettings-fetch-hq/" fillcolor="#ede9fe"]
+        wc3_backend [label="WC3 Backend\nrequests.get()" fillcolor="#ede9fe"]
+        wchq [label="webclerk.com/wcapi/\nsettings-bundle/" fillcolor="#e9d5ff" shape=cylinder]
+        import_hq [label="import_settings_bundle()\nbaseline merge" fillcolor="#f5f3ff"]
+
+        fix_hq -> token_input -> post_fetch -> wc3_backend -> wchq
+        wchq -> wc3_backend [label="JSON" style=dashed]
+        wc3_backend -> import_hq
+    }
+
+    // Re-check
+    recheck [label="Re-run\nhealth check" fillcolor="#e0f2fe" shape=diamond]
+    import_bundle -> recheck
+    import_hq -> recheck
+    recheck -> healthy [label="healthy=true" color="#22c55e"]
+    recheck -> show_issues [label="still unhealthy" color="#ef4444"]
+
+    // Quit path
+    quit -> app_stops [label="" color="#ef4444"]
+    app_stops [label="App stops\n'Restart after fixing'" fillcolor="#fecaca"]
+
+    // Merge rule callout
+    merge_rule [label="Merge Rule\n─────────────\nAdd missing keys\nNever replace existing\nPrefs: never touched\nUser customizations win" shape=note fillcolor="#fef9c3" color="#ca8a04"]
+    import_bundle -> merge_rule [style=dotted arrowhead=none]
+
+    // Pack side
+    subgraph cluster_pack {
+        label="Pack (WC_HQ side)"
+        style="dashed" color="#059669"
+
+        hq_db [label="WC_HQ\nDatabase\n(master)" fillcolor="#d1fae5" shape=cylinder]
+        pack_cmd [label="manage.py\npack_settings_bundle" fillcolor="#ecfdf5"]
+        bundle_file [label="settings-bundle.json\n(git snapshot)" fillcolor="#ecfdf5" shape=note]
+
+        hq_db -> pack_cmd -> bundle_file
+        hq_db -> wchq [label="on demand" style=dashed]
+    }
+}

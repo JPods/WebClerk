@@ -1,0 +1,75 @@
+action: description, status, contact_id, project_id, dt_completed, dt_start, action, action_type, assigned_to, burndown, completed_by, created_by, deadline_by, difficulty, duration, end_by, expected_by, impact, kanban_column, languages, linkage, parent_action, percent_complete, priority, project_ida, project_metadata, project_name, retrospection, sequence, start_by, updated_by, dt_deadline, dt_end_original, dt_expected, dt_start_original, dt_updated
+address: address1, city, country, state, zip, address2, address3, address_type, contact, district, full, instructions, latitude, longitude, postal_name
+alice_coaching_log: notes, category, document_id, drill_id, dt_completed, dt_started, completed, contact, drill_name, duration_seconds, passed, score
+alice_observation: detail, message, category, record_id, dt_acknowledged, acknowledged, acknowledged_by, contact, dedup_key, model_name, priority, resolution, resolved, source
+alice_preset: name, description, created_by, model_name, preset_type, source, use_count
+audit: name, changes, conflicts, is_completed, priority, rating, recommendations
+bill_of_material: quantity, alternate_group, change_reason, child_description, child_ida, child_item, cost_snapshot, is_alternate, is_optional, op_data, parent_description, parent_ida, parent_item, revision, scrap_factor, sequence, yield_pct, dt_effective_from, dt_effective_to, dt_last_recalc
+bundle: status, alert, conflicts, connection, direction, duration, encryption, maps, payload, response, rules, size, dt_processed
+catalog: name, applies_to, code, connection, currency, customer_orgbase, employee_orgbase, is_universal_pct, manufacturer_orgbase, margin_floor, metrics, orgbase, priority, rep_orgbase, universal_pct, dt_effective_end, dt_effective_start
+connection: name, comment, status, type, action, changes, conflicts, encryption, maps, relationships, rules, scripts
+contact: company, name_first, name_last, title, comment, email, phone, role, address_id, domain_id, email_id, phone_id, address_full, attention, customer, department, domain, employee, groups, is_staff, is_superuser, last_login, manufacturer, name_middle, name_prefix, name_suffix, password, rep, source_name, user_permissions, vendor, dt_joined
+currency: name, code, precision, symbol
+customer: display_name, email, phone, status, type, address_id, domain_id, email_id, phone_id, address_full, addresses, attention, connections, contact, contacts, docs, domain, domains, emails, financial, gl_accounts, metrics, org_type, phones, price_level, relations, relationship_stats, stats, tax_exempt_code, tax_jurisdiction, terms, terms_fk
+delivery_line: status, delivered_qty, delivery_visit, loaded_qty, orgitem, planned_qty, skipped_reason
+delivery_visit: notes, status, dt_completed, catalog, customer_orgbase, orgbase, dt_arrived, dt_scheduled
+document: name, comment, description, path, status, body, checksum, confidential, copyright, count_accessed, mime_type, retention_period, sequence, size_bytes, slug
+domain: comment, path, status, type, contact, count_accessed, sequence
+email: name, email, type, attention, contact, is_primary, is_verified, opt_out
+employee: display_name, email, phone, status, type, address_id, domain_id, email_id, phone_id, address_full, addresses, attention, connections, contact, contacts, docs, domain, domains, emails, financial, gl_accounts, metrics, org_type, phones, price_level, relations, relationship_stats, stats, tax_exempt_code, tax_jurisdiction, terms, terms_fk
+gl_account: name, comment, category, type, type_id, account_credit, account_debit, division, used_for
+gl_journal: type, batch_id, source_id, account, credit, date_posted, debit, division, is_posted, note, source, source_model
+inventory_adjustment_run: stack_id, dt_started, applied, attempted, canceled, dry_run, duration_s, insufficient, reserved_conflict_skipped, run_type, skipped_locked, still_locked, summary, dt_finished
+inventory_check: notes, status, catalog, orgbase, user, dt_performed
+inventory_check_line: description, auto_flag, counted_qty, inventory_check, item_ida, orgitem, prior_qty, variance_qty
+inventory_metrics_snapshot: metrics
+inventory_reservation: description, state, qty, dt_expires, context, inventory_layer, item, item_ida, reason, warehouse, dt_committed, dt_released
+invoice: company, email, phone, status, balance, cost, sell, total, conditions_id, parent_id, address_full, attention, commission, conditions_description, contact, customer, finance, flow, invoice_type, is_commission, line_increment, manufacturer, parent_model, price_level, priority, ship_via, source, source_name, terms, terms_fk, totals, vendor, dt_needed
+invoice_line: status, cost, price, quantity, tax, commission, invoice, item, item_fk, line_number, line_type, physical, price_level
+item: name, description, kind, cost, price, quantity, specification_id, annual_turns, base_uom, catalog, flags, gls, manufacturer, margin_pct, margin_velocity, qr_code, row_version, sku, stats, tax_code, uom, velocity_category, vendor
+item_usage: description, status, item, item_ida, metrics, month, year
+item_xref: status, cost, source_id, external_sku, external_uuid, is_preferred, item, source, source_model_name, source_name
+journal_batch: status, dt_completed, dt_started, batch_type, count_absorbed, count_exceptions, count_posted, count_skipped, period_month, period_year, run_by, total_credit, total_debit
+ledger: parent_id, dt_due, dt_posted, discount_potential, gl_account, invoice, is_cleared, is_settled, is_void, model_name, org, source, term, value_available, value_original, dt_discount_due, dt_recorded, dt_settled
+linkage: name, role, group_id, record_id, model_name, note, sequence
+manufacturer: display_name, email, phone, status, type, address_id, domain_id, email_id, phone_id, address_full, addresses, attention, connections, contact, contacts, docs, domain, domains, emails, financial, gl_accounts, metrics, org_type, phones, price_level, relations, relationship_stats, stats, tax_exempt_code, tax_jurisdiction, terms, terms_fk
+notification: name, record_id, model_name
+order: company, email, phone, status, balance, cost, sell, total, conditions_id, parent_id, address_full, attention, commission, conditions_description, contact, customer, finance, flow, is_commission, line_increment, manufacturer, parent_model, price_level, priority, ship_via, source, source_name, terms, terms_fk, totals, vendor, dt_needed
+order_line: status, cost, price, quantity, tax, commission, item, item_fk, line_number, line_type, order, physical, price_level
+org_item: description, status, availability_state, catalog, inventory_frequency, item, item_ida, metrics, orgbase, quantity_maximum, quantity_minimum, dt_last_checked, dt_next_check
+other_org: display_name, email, phone, status, type, address_id, domain_id, email_id, phone_id, address_full, addresses, attention, connections, contact, contacts, docs, domain, domains, emails, financial, gl_accounts, metrics, org_type, phones, price_level, relations, relationship_stats, stats, tax_exempt_code, tax_jurisdiction, terms, terms_fk
+payment: notes, category, status, type, amount, contact, customer, fee_amount, gateway, gateway_response, id_gateway_payment_intent, id_gateway_transaction, invoice, method, payment_term, purchase, reconciled, reference_number, vendor, dt_payment, dt_processed, dt_reconciliation
+payment_application: notes, amount, applied_at, invoice, payment
+payment_method: name, description
+payment_term: name, description, days
+pending_inventory_adjustment: state, qty, cancel_reason, inventory_layer, reason, request_ref, dt_applied
+pending_payment_application: state, amount, cancel_reason, invoice, payment, reason, request_ref, dt_applied
+phone: name, attention, contact, country_code, format, number, opt_out
+project: name, category, status, dt_end, dt_start, attention, burndown, id_contact, id_parent, intent, logistics, objective, percent_complete, priority, profit, profit_velocity, situation, slug, tasks, dt_kanban
+project_association: object_id, model_code, project
+proposal: company, email, phone, status, balance, cost, sell, total, conditions_id, parent_id, dt_due, address_full, attention, commission, conditions_description, contact, customer, finance, flow, is_commission, line_increment, manufacturer, parent_model, price_level, priority, ship_via, source, source_name, terms, terms_fk, totals, vendor, dt_needed
+proposal_line: status, cost, price, quantity, tax, commission, item, item_fk, line_number, line_type, physical, price_level, proposal
+purchase: company, email, phone, status, balance, cost, sell, total, conditions_id, parent_id, address_full, attention, commission, conditions_description, contact, customer, finance, flow, is_commission, line_increment, manufacturer, parent_model, price_level, priority, ship_via, source, source_name, terms, terms_fk, totals, vendor, dt_needed
+purchase_line: status, cost, quantity, tax, commission, item, item_fk, line_number, line_type, physical, price_level, purchase
+question_answer: status, answer_id, parent_id, question_id, answer, answered_by, count_accessed, document, parent_model, question, sequence
+receipt: notes, dt_received, allocation_method, duty, handling, purchase, source_type, vat, vendor_invoice_amount, vendor_invoice_freight, workorder
+receipt_line: status, cost, quantity, tax, adjustment_reason, commission, inventory_layer, item, item_fk, line_number, line_type, lot, physical, price_level, purchase_line, receipt, serial_batch, warehouse, workorder_line
+rep: display_name, email, phone, status, type, address_id, domain_id, email_id, phone_id, address_full, addresses, attention, connections, contact, contacts, docs, domain, domains, emails, financial, gl_accounts, metrics, org_type, phones, price_level, relations, relationship_stats, stats, tax_exempt_code, tax_jurisdiction, terms, terms_fk
+report: name, description, explanation, category, record_id, content, editor_type, model_name, output_type, paths, role_required, script_after, script_before, script_during, sort_order
+requisition: name, status
+requisition_line: status, cost, quantity, tax, commission, item, item_fk, line_number, line_type, physical, price_level, requisition
+serial: description, status, inventory_layer, item, item_ida, model_ida, qr_code, serial_ida, site, warranty
+serial_log: action, dt, serial
+service: description, category, status, billing, billing_audit, default_duration_minutes, display, item, process, row_version, travel
+setting: name, explanation, role, contact_id, org_id, parent_model, paths, scope
+statement_line: description, category, amount, batch_id, payment_id, classification, contact, ledger, merchant, promoted, raw_text, source, statement_date, vendor, dt_transaction
+tag: name, status, record_id, count_accessed, model_name, sequence
+tax_jurisdiction: gl_account_payable, scripts, service_provider, tax_jurisdiction, tax_name, tax_rate_cost, tax_rate_on_shipping, tax_rate_sales
+term: name, description, approved_by, day_cut_off_due, day_cut_off_invoice, days_discount, days_due, days_in_period, discount_rate, period_count, dt_begin
+touch: subject, email_message_id, org_id, project_id, action, channel, contact, direction, duration, logged_by, org_model, summary
+variant: description, attrs, canonical_key, item, item_ida, parent_item, set_uuid, variant_uuid
+vendor: display_name, email, phone, status, type, address_id, domain_id, email_id, phone_id, address_full, addresses, attention, connections, contact, contacts, docs, domain, domains, emails, financial, gl_accounts, metrics, org_type, phones, price_level, relations, relationship_stats, stats, tax_exempt_code, tax_jurisdiction, terms, terms_fk
+warehouse: name, code, count, location, priority, site_code
+work_order: company, email, phone, status, balance, cost, sell, total, conditions_id, parent_id, address_full, attention, commission, conditions_description, contact, customer, finance, flow, is_commission, line_increment, manufacturer, parent_model, price_level, priority, ship_via, source, source_name, terms, terms_fk, totals, vendor, dt_needed
+work_order_line: status, cost, quantity, tax, commission, item, item_fk, line_number, line_type, physical, price_level, workorder
+workspace: name, description, component, icon, nav_group, nav_order, required_role, route, show_in_nav

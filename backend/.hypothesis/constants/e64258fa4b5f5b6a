@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/docs/serializers/qa_serializers.py
+# hypothesis_version: 6.138.7
+
+['answer', 'answered_by_contact', 'answered_by_name', 'count_accessed', 'created_dt', 'highlight_snippet', 'id', 'is_active', 'modified_dt', 'question', 'question_setting', 'security_level', 'sequence', 'status', 'uuid', 'version']

@@ -1,0 +1,29 @@
+{"constants":{
+    "name":"setting_baseline"
+    },
+    "precision": {
+        "cost_precision": 2,
+        "quantity_precision": 3,
+        "weight_precision": 3,
+        "dimension_precision": 2,
+        "volume_precision": 3,
+        "currency_precision": 2,
+        "tax_rate_precision": 4
+    },
+    "customer_new": {
+        "currency": "USD",
+        "language": "en",
+        "terms": "Net 30",
+        "payment_method": "Credit Card",
+        "shipping_method": "UPS Ground",
+        "cod_terms": "None",
+        "pricing_tier": "Retail",
+        "credit_limit": 0.00,
+        "tax_status": "taxable",
+        "response_days": 7,
+        "is_active": true,
+        "data_source": "manual",
+        "prospect":"lead"
+    }
+}
+

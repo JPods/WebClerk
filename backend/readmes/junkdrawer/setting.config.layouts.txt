@@ -1,0 +1,5 @@
+We need to similarly add to each setting.model record the default           
+  .config.layout.list and .design. 
+  
+  Lets outline lists first. And transactions first of those. For purchase, proposal, order, invoice, workorder, what do you think of. 
+: ida, purpose, status, priority, attention, company, email, phone, balance, total, address_full, comment.process

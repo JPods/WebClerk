@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/communications/serializers/address.py
+# hypothesis_version: 6.138.7
+
+['PATCH', 'POST', 'PUT', 'Preferences', 'References and links', 'address1', 'address2', 'address_type', 'addresses', 'city', 'comment', 'country', 'dt_verified', 'edit', 'full', 'id', 'instructions', 'latitude', 'longitude', 'metadata', 'prefs', 'refs', 'request', 'state', 'user', 'uuid', 'view', 'zip']

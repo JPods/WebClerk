@@ -1,0 +1,137 @@
+{
+  "_meta": {
+    "model": "order",
+    "description": "Sample order for report parade — realistic multi-line order with shipping",
+    "version": 1
+  },
+  "ida": "ORD-2026-1203",
+  "status": "confirmed",
+  "dt_created": 1785369600000,
+  "attention": "James Chen",
+  "company": "Pacific Coast Building Materials",
+  "address_full": "1200 Harbor Blvd, Suite 300\nOakland, CA 94607",
+  "phone": "(510) 555-0288",
+  "email": "jchen@pacificcoastbm.com",
+  "terms": "Net 45",
+  "price_level": "Contractor",
+  "conditions_description": "Orders over $5,000 qualify for free freight. Contractor pricing requires valid license on file. Backorders ship as available unless cancelled in writing.",
+  "comments": {
+    "public": "Project: Alameda Point Phase 2. Deliver Mon-Fri 7am-3pm only. Call 30 min before arrival.",
+    "shipping": "Construction site — forklift on site. No liftgate needed."
+  },
+  "config": {
+    "ship_to": {
+      "attention": "Site Foreman — Tony Reyes",
+      "company": "Alameda Point Phase 2",
+      "address": "2100 Main Street\nAlameda, CA 94501",
+      "phone": "(510) 555-0341"
+    },
+    "ship_via": "Will Call / Company Truck",
+    "ship_date": 1785628800000
+  },
+  "source": {
+    "campaign_name": "PO-PCBM-7892"
+  },
+  "refs": {
+    "links": {
+      "contact": {"id": 287, "name": "Pacific Coast Building Materials", "ida": "PCBM-287"}
+    }
+  },
+  "totals": {
+    "subtotal": 8642.00,
+    "tax": 753.97,
+    "shipping": 0.00,
+    "total": 9395.97
+  },
+  "sell": {},
+  "cost": {},
+  "finance": {},
+  "flow": {},
+  "metadata": {},
+  "lines": [
+    {
+      "line_number": 1,
+      "item": {
+        "ida_item": "PLY-BC-4x8",
+        "description": "3/4\" BC Plywood, 4x8 Sheet",
+        "uom": "Sheet"
+      },
+      "quantity": {"active": 48},
+      "price": {
+        "unit": 52.50,
+        "discount_percent": 0,
+        "extended": 2520.00
+      }
+    },
+    {
+      "line_number": 2,
+      "item": {
+        "ida_item": "LBR-2x6-12",
+        "description": "Douglas Fir 2x6x12 #2 & Better, Kiln Dried",
+        "uom": "Each"
+      },
+      "quantity": {"active": 120},
+      "price": {
+        "unit": 14.85,
+        "discount_percent": 8,
+        "extended": 1639.44
+      }
+    },
+    {
+      "line_number": 3,
+      "item": {
+        "ida_item": "SIM-30AR",
+        "description": "Simpson Strong-Tie A35 Framing Angle",
+        "uom": "Box/50"
+      },
+      "quantity": {"active": 6},
+      "price": {
+        "unit": 127.50,
+        "discount_percent": 0,
+        "extended": 765.00
+      }
+    },
+    {
+      "line_number": 4,
+      "item": {
+        "ida_item": "INS-R30-24",
+        "description": "Owens Corning R-30 Unfaced Batts, 24\" OC",
+        "uom": "Bag"
+      },
+      "quantity": {"active": 30},
+      "price": {
+        "unit": 68.90,
+        "discount_percent": 5,
+        "extended": 1963.65
+      }
+    },
+    {
+      "line_number": 5,
+      "item": {
+        "ida_item": "DW-SCREW-3",
+        "description": "GRK R4 Multi-Purpose Screws, #9 x 3\", 700ct",
+        "uom": "Box"
+      },
+      "quantity": {"active": 8},
+      "price": {
+        "unit": 94.50,
+        "discount_percent": 0,
+        "extended": 756.00
+      }
+    },
+    {
+      "line_number": 6,
+      "item": {
+        "ida_item": "TAP-GRN-60",
+        "description": "Shurtape Green Painters Tape, 2\" x 60yd",
+        "uom": "Case/24"
+      },
+      "quantity": {"active": 2},
+      "price": {
+        "unit": 498.96,
+        "discount_percent": 0,
+        "extended": 997.92
+      }
+    }
+  ]
+}

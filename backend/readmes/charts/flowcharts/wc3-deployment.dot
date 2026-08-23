@@ -1,0 +1,109 @@
+// WC3 Deployment Architecture — dev server vs production server
+// Created 2026-08-09
+// Render: dot -Tpdf wc3-deployment.dot -o wc3-deployment.pdf
+
+digraph wc3_deployment {
+    rankdir=TB
+    fontname="Helvetica Neue"
+    fontsize=12
+    bgcolor="#FAFAFA"
+    node [fontname="Helvetica Neue" fontsize=10 style="filled,rounded" shape=box
+          color="#CCCCCC" penwidth=0.8]
+    edge [fontname="Helvetica Neue" fontsize=8 color="#888888" penwidth=0.8]
+    label="WebClerk 3 — Deployment Architecture\nDevelopment vs Production"
+    labelloc=t
+    fontsize=15
+    pad=0.6
+
+    // ── Development (your Mac) ──
+    subgraph cluster_dev {
+        label="Development — Your Mac"
+        style="filled,rounded"
+        fillcolor="#E8EAF6"
+        color="#9FA8DA"
+        fontsize=11
+        fontcolor="#303F9F"
+
+        dev_browser [label="Browser\nlocalhost:8000" shape=parallelogram fillcolor="#BBDEFB" color="#64B5F6"]
+        dev_runserver [label="manage.py runserver\n(development server)\n✓ auto-reload on save\n✓ verbose error pages\n✓ serves static files" fillcolor="#C8E6C9" color="#81C784"]
+        dev_celery [label="Celery\nworker + beat" fillcolor="#FFF9C4" color="#FFF176"]
+        dev_postgres [label="PostgreSQL\ncommerce_expert\n(local)" shape=cylinder fillcolor="#FFECB3" color="#FFD54F"]
+        dev_code [label="Edit code\n↓ save .py file\n↓ server restarts\nautomatically" shape=note fillcolor="#F3E5F5" color="#CE93D8"]
+
+        dev_browser -> dev_runserver [label="HTTP :8000"]
+        dev_runserver -> dev_postgres [label="SQL"]
+        dev_runserver -> dev_celery [label="tasks" style=dashed]
+        dev_code -> dev_runserver [label="auto-reload" style=dashed color="#4CAF50"]
+    }
+
+    // ── Rsync deploy ──
+    rsync [label="rsync -avz\n(never --delete)\nSSH key auth" shape=hexagon fillcolor="#FFCDD2" color="#EF9A9A" fontsize=9]
+
+    // ── Production (your server) ──
+    subgraph cluster_prod {
+        label="Production — Your Server"
+        style="filled,rounded"
+        fillcolor="#E0F2F1"
+        color="#80CBC4"
+        fontsize=11
+        fontcolor="#00695C"
+
+        internet [label="Internet\n(customers)" shape=parallelogram fillcolor="#B3E5FC" color="#4FC3F7"]
+        cloudflare [label="Cloudflare\nSSL termination\n(optional)" fillcolor="#BBDEFB" color="#64B5F6"]
+        nginx [label="Nginx\nreverse proxy\nstatic files\n:80" fillcolor="#B2DFDB" color="#4DB6AC"]
+        gunicorn [label="Gunicorn\n(production WSGI)\n3–4 workers\n:8000" fillcolor="#C8E6C9" color="#81C784"]
+        celery_prod [label="Celery\nworker + beat" fillcolor="#FFF9C4" color="#FFF176"]
+        postgres_prod [label="PostgreSQL\ncommerce_expert\n(production)" shape=cylinder fillcolor="#FFECB3" color="#FFD54F"]
+
+        // Static files
+        static [label="/static/\ncollectstatic" shape=folder fillcolor="#EEEEEE" color="#BDBDBD" fontsize=8]
+        react [label="/app/\nReact SPA" shape=folder fillcolor="#EEEEEE" color="#BDBDBD" fontsize=8]
+        landing [label="/\nLanding page" shape=folder fillcolor="#EEEEEE" color="#BDBDBD" fontsize=8]
+
+        internet -> cloudflare [label="HTTPS"]
+        cloudflare -> nginx [label="HTTP\n+ X-Forwarded-Proto: https"]
+        nginx -> gunicorn [label="/wcapi/\n/admin/" color="#303F9F"]
+        nginx -> static [label="/static/" style=dashed]
+        nginx -> react [label="/app/" style=dashed]
+        nginx -> landing [label="/" style=dashed]
+        gunicorn -> postgres_prod [label="SQL"]
+        gunicorn -> celery_prod [label="tasks" style=dashed]
+    }
+
+    // ── Systemd ──
+    subgraph cluster_systemd {
+        label="systemd services (boot-enabled)"
+        style="filled,rounded"
+        fillcolor="#FFF3E0"
+        color="#FFCC80"
+        fontsize=9
+        fontcolor="#E65100"
+
+        svc_gunicorn [label="webclerk3.service" shape=component fillcolor="#FFE0B2" color="#FFB74D" fontsize=8]
+        svc_celery [label="webclerk3-celery.service" shape=component fillcolor="#FFE0B2" color="#FFB74D" fontsize=8]
+        svc_nginx [label="nginx.service" shape=component fillcolor="#FFE0B2" color="#FFB74D" fontsize=8]
+    }
+
+    svc_gunicorn -> gunicorn [style=dashed arrowhead=none color="#FFB74D"]
+    svc_celery -> celery_prod [style=dashed arrowhead=none color="#FFB74D"]
+    svc_nginx -> nginx [style=dashed arrowhead=none color="#FFB74D"]
+
+    // ── Deploy flow ──
+    dev_runserver -> rsync [label="code changes\ntested locally" ltail=cluster_dev color="#E53935"]
+    rsync -> gunicorn [label="deploy to\nproduction" lhead=cluster_prod color="#E53935"]
+
+    // ── Legend ──
+    subgraph cluster_legend {
+        label="Key Difference"
+        style="filled,rounded"
+        fillcolor="#FAFAFA"
+        color="#E0E0E0"
+        fontsize=9
+        fontcolor="#616161"
+
+        legend_dev [label="runserver\n• auto-reloads on code change\n• shows debug error pages\n• serves static files\n• single-threaded\n• NOT for production" fillcolor="#C8E6C9" color="#81C784" fontsize=8]
+        legend_prod [label="Gunicorn + Nginx\n• multi-worker (parallel requests)\n• no auto-reload (stable)\n• Nginx serves static files\n• systemd restarts on crash\n• production-ready" fillcolor="#B2DFDB" color="#4DB6AC" fontsize=8]
+
+        legend_dev -> legend_prod [label="rsync\n+ restart" color="#E53935" fontcolor="#E53935"]
+    }
+}

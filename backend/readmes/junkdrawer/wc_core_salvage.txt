@@ -1,0 +1,75 @@
+WC2 Pattern: WCapi_Service
+  What it does: Full RMA/service tracking with customer lookup, date ranges,
+  open
+    items
+  WC3 Gap: GAP-08 — this is the missing service model
+
+Mostly built in our denormalizing into .refs.keywords
+There must be an existing deep query engine in react/django. Can we use it.
+
+  ────────────────────────────────────────
+  WC2 Pattern: WCapi_CallReports
+  What it does: Sales activity tracking linked to customers
+  WC3 Gap: GAP-14 — call reports missing
+
+Mananaged better by action records.
+
+  ────────────────────────────────────────
+  WC2 Pattern: WCapiTask_Between
+  What it does: Date range queries with zip code and date-proposed variants
+  WC3 Gap: WC3 has basic filtering but not these compound range queries
+
+It might be nice to ahave a Restful phrase converted to a search. Something like /model/dt_created/date1/date2
+
+
+  ────────────────────────────────────────
+  WC2 Pattern: WCapiTask_ActionBy
+  What it does: Who did what — action attribution
+  WC3 Gap: Partially in WC3 actions but not as a query pattern
+
+Managed by actions. We had action fields in wc2. it was weak.
+
+  ────────────────────────────────────────
+  WC2 Pattern: WCapiTask_KeyTags
+  What it does: Free-text search via keyTags built from alpha fields
+  WC3 Gap: WC3 has config but no auto-generated search index
+
+In BASEMODEL is .refs.tags for users to add addition word not in the data fields that users can add. Example I met someone at a wedding, refs.tag["wedding_kathy's"]. As refs.keywords are denormalized from the data, tags are added.
+
+  ────────────────────────────────────────
+  WC2 Pattern: contractDetailTag → contractDetail
+  What it does: Template-based terms/conditions lookup
+  WC3 Gap: Not in WC3 — terms are manual
+
+We have this as the condition: 
+    you can review our handling of this.
+    apps/transactions/models/base_transaction_model.py
+    conditions_id = models.IntegerField(blank=True, null=True)
+    conditions_description = models.CharField(max_length=255, blank=True, null=True)
+
+  ────────────────────────────────────────
+  WC2 Pattern: Balance calculations in RecordToObject
+  What it does: Every record with a customerID gets openPayments, openInvoices,
+    balance appended on read
+  WC3 Gap: WC3 has header.totals.balance but not this cross-record customer
+    balance
+
+    Alice need a fuction that creates a stack of saved records that need to update related, .refs.links.. .refs.keywords and what ever else
+
+    As she has time she loops through these. If they are locked, she skips and tries again next celery cycle. 
+
+  ────────────────────────────────────────
+  WC2 Pattern: TallyMasterCall fallback                                         
+  What it does: Dynamic script execution from DB-stored code
+  WC3 Gap: Not in WC3 — and probably shouldn't be (security)    
+
+    These are now a report record that gets called and passed the required payload and authority. Needs documentation in Alice Dashboard and examples
+
+  ────────────────────────────────────────                        
+  WC2 Pattern: "Delete is not a web function"                                   
+  What it does: Hard rule — no deletes via API
+  WC3 Gap: WC3 has is_deleted soft delete but the hard rule isn't enforced at   
+    wcapi     
+
+
+Better managed in Django.             

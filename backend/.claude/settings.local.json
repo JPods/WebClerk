@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /Volumes/Allie/archive/readmes)",
+      "Bash(mv /Volumes/Allie/readmes/07-security-network-webclerk-stub.md /Volumes/Allie/archive/readmes/)",
+      "Bash(python3:*)",
+      "Bash(pdftotext /Users/williamjames/Documents/01_WebClerk/DesktopHosting/Desktop_Hosting_All.pdf -)",
+      "Bash(pip3 install:*)",
+      "Read(//Volumes/Allie/allie/**)",
+      "Read(//Volumes/Allie/knowledge/**)",
+      "Read(//Volumes/Allie/readmes/**)",
+      "Read(/Users/williamjames/Documents/CommerceExpert/webClerk3/**)",
+      "Read(/Users/williamjames/Documents/CommerceExpert/React2025/**)",
+      "Bash(cd /Users/williamjames/Documents/CommerceExpert/webClerk3 && ./bin/python manage.py:*)",
+      "Bash(curl -s * http://localhost:8000/*)",
+      "WebFetch(domain:jpods.com)",
+      "WebFetch(domain:www.dividedsovereignty.com)",
+      "WebFetch(domain:www.postroads.com)",
+      "WebFetch(domain:www.tyrannyofthemajority.com)",
+      "WebFetch(domain:www.jpods.com)",
+      "Bash(brew upgrade:*)",
+      "Bash(npm install:*)",
+      "Bash(claude:*)"
+    ]
+  }
+}

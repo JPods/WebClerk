@@ -1,0 +1,83 @@
+// WC3 Service & RMA — support loop with Pareto analysis
+// From wc2 page 16: Service records linked to all entities, Action routing
+// Render: dot -Tpdf wc3-service-rma.dot -o wc3-service-rma.pdf
+
+digraph wc3_service_rma {
+    rankdir=TB
+    fontname="Helvetica Neue"
+    fontsize=12
+    bgcolor="#FAFAFA"
+    node [fontname="Helvetica Neue" fontsize=10 style="filled,rounded" shape=box
+          color="#CCCCCC" penwidth=0.8]
+    edge [fontname="Helvetica Neue" fontsize=8 color="#888888" penwidth=0.8]
+    label="WC3 — Service & RMA\nSupport loop: track, route, resolve, learn"
+    labelloc=t
+    fontsize=15
+    pad=0.6
+    nodesep=0.6
+    ranksep=0.8
+
+    // ── Source records ──
+    subgraph cluster_sources {
+        label="Service can attach to any record"
+        style="filled,rounded"
+        fillcolor="#F0F4F8"
+        color="#B0BEC5"
+        fontsize=9
+        fontcolor="#546E7A"
+
+        leads [label="Leads" fillcolor="#E8EAF6" color="#9FA8DA"]
+        customers [label="Customers" fillcolor="#E8EAF6" color="#9FA8DA"]
+        proposals [label="Proposals" fillcolor="#E8EAF6" color="#9FA8DA"]
+        orders [label="Orders" fillcolor="#E8EAF6" color="#9FA8DA"]
+        invoices [label="Invoices" fillcolor="#E8EAF6" color="#9FA8DA"]
+    }
+
+    // ── Service record ──
+    service [label="Service Record\n(Action model)\n\nRMA tracking\nProcess & Causes\nMarketing feedback"
+            fillcolor="#FFCDD2" color="#EF9A9A" fontsize=11]
+
+    // ── Activity view ──
+    my_sales [label="My Sales & Service\nDate/Time View\n(calendar)" shape=octagon
+              fillcolor="#B3E5FC" color="#4FC3F7"]
+
+    // ── Routing ──
+    action [label="Action\nRoute to owner" shape=diamond fillcolor="#FFF9C4"
+            color="#FFF176" fontsize=11]
+
+    pass [label="Pass Action\nto another" fillcolor="#FFE0B2" color="#FFB74D" fontsize=9]
+
+    // ── Resolution ──
+    complete [label="Complete\nResolve service" fillcolor="#C8E6C9" color="#81C784"]
+
+    // ── Analysis ──
+    subgraph cluster_analysis {
+        label="Pattern Analysis"
+        style="filled,rounded"
+        fillcolor="#F3E5F5"
+        color="#CE93D8"
+        fontsize=9
+        fontcolor="#7B1FA2"
+
+        pareto [label="Pareto Analysis\n(problem prevention)\n80/20 rule" fillcolor="#E1BEE7" color="#BA68C8"]
+        alice [label="Alice\npattern recognition\nSmall-Stings" fillcolor="#B3E5FC" color="#4FC3F7"]
+    }
+
+    // ── Edges ──
+    leads -> service [style=dashed color="#9FA8DA"]
+    customers -> service [color="#7986CB"]
+    proposals -> service [style=dashed color="#9FA8DA"]
+    orders -> service [color="#7986CB"]
+    invoices -> service [color="#7986CB"]
+
+    service -> my_sales [color="#29B6F6"]
+    service -> action [color="#FFB300"]
+
+    action -> pass [label="reassign" color="#FF8F00"]
+    action -> complete [label="resolved" color="#66BB6A"]
+    pass -> action [style=dashed color="#FF8F00"]
+
+    service -> pareto [label="categorize\ncauses" style=dashed color="#AB47BC"]
+    pareto -> alice [color="#AB47BC"]
+    alice -> customers [label="flag\npatterns" style=dashed color="#29B6F6"]
+}

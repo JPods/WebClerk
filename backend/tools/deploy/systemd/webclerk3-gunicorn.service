@@ -1,0 +1,24 @@
+[Unit]
+Description=WebClerk3 Django (gunicorn)
+After=network.target
+
+[Service]
+Type=simple
+User=webclerk
+Group=webclerk
+WorkingDirectory=/srv/webclerk3
+EnvironmentFile=/srv/webclerk3/.env
+
+ExecStart=/srv/webclerk3/bin/gunicorn \
+    webclerk3_api.wsgi:application \
+    --bind 127.0.0.1:8000 \
+    --workers 4 \
+    --timeout 60 \
+    --access-logfile /var/log/webclerk3/gunicorn-access.log \
+    --error-logfile  /var/log/webclerk3/gunicorn-error.log
+
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

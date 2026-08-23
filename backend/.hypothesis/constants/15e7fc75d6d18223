@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/views/unified.py
+# hypothesis_version: 6.138.7
+
+['-id', 'invoice', 'kind', 'line_pk', 'order', 'parent', 'pk', 'proposal', 'purchase', 'requisition', 'workorder']

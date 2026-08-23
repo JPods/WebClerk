@@ -1,0 +1,12 @@
+.git
+.env
+venv/
+__pycache__
+*.pyc
+node_modules/
+.DS_Store
+logs/
+uploads/
+*_backup_*.json
+tools/dev-config.json
+tools/.sync_status.json

@@ -1,0 +1,86 @@
+Add now (simple):                                                                    
+  1. ChromaDB vector store — same as Alice's. Install in Allie's venv
+  (~/Allie/source/), create ~/Allie/scripts/allie-vectorstore.py. Index all of         
+  knowledge/, readmes/, thoughts/, handoff/ files. Allie's nightly allie-reflect.py
+  would auto-index new content.                                                        
+  2. Semantic search — instead of Allie only reading files by name, she can search by
+  meaning. "What do we know about commission splits?" finds relevant content across all
+   her files.                                                                          
+   
+  Add soon (medium effort):                                                            
+  3. Ollama function calling — Allie's allie:latest model can call tools (wcapi, vector
+   search, file read) if we add a tool-use layer. Right now she generates text; with   
+  tools she can look things up mid-response.
+  4. Structured memory DB — SQLite or PostgreSQL for Allie's facets, lessons,          
+  understandings. Currently JSON files — works but not queryable across agents.        
+   
+  Alice — Currently has RAG but limited agency                                         
+                                                                     
+  Add now:                                                                             
+  5. More training corpus — we're doing this right now (the chromadb indexing)
+  6. Pattern detection on transaction data — Alice can query the DB for patterns (same 
+  customer always overriding credit limits, vendor always late, rep commission         
+  declining)                                                                           
+                                                                                       
+  Add soon:                                                          
+  7. Scheduled analysis — Alice runs nightly analysis on transaction patterns, posts
+  observations as Action records                                                       
+  8. Coaching responses — when a user does something unusual (prices below MAP, credit
+  override without reason), Alice surfaces training drill                              
+                                                                     
+  Tools to install                                                                     
+                                                                     
+  ┌───────────────────────┬─────────────────────────────┬──────────────────────────┐   
+  │         Tool          │        What it does         │         For whom         │
+  ├───────────────────────┼─────────────────────────────┼──────────────────────────┤   
+  │ chromadb              │ Vector store for semantic   │ Both (Alice has it now,  │
+  │                       │ search                      │ Allie needs it)          │
+  ├───────────────────────┼─────────────────────────────┼──────────────────────────┤   
+  │ sentence-transformers │ Better embeddings than      │ Both — more accurate     │
+  │                       │ chromadb default            │ search                   │   
+  ├───────────────────────┼─────────────────────────────┼──────────────────────────┤
+  │ langchain             │ Tool-use orchestration for  │ Allie — enables function │   
+  │                       │ LLMs                        │  calling                 │   
+  ├───────────────────────┼─────────────────────────────┼──────────────────────────┤
+  │ pgvector              │ PostgreSQL vector extension │ Both — vectors in the    │   
+  │                       │                             │ same DB as data          │   
+  └───────────────────────┴─────────────────────────────┴──────────────────────────┘
+                                                                                       
+  pgvector is worth considering — it would put Allie's and Alice's vector stores right 
+  in PostgreSQL alongside the commerce data. One database, one backup, one query
+  language. ChromaDB is fine for now but pgvector is the long-term answer for a        
+  commerce system.                                                   
+
+  Want me to set up Allie's vector store now while we wait for Alice's indexing to     
+  finish?
+
+
+  ┌───────────────┬─────────────┬───────────────────────────────────────────┐          
+  │     Table     │    Owner    │                  Purpose                  │          
+  ├───────────────┼─────────────┼───────────────────────────────────────────┤          
+  │ sessions      │ Claude Code │ Session logs across conversations         │          
+  ├───────────────┼─────────────┼───────────────────────────────────────────┤          
+  │ claude_memory │ Claude Code │ Structured cross-session memory           │          
+  ├───────────────┼─────────────┼───────────────────────────────────────────┤          
+  │ tfts          │ Any agent   │ Try-fail-try-succeed records              │          
+  ├───────────────┼─────────────┼───────────────────────────────────────────┤          
+  │ observations  │ Any agent   │ Patterns, risks, WhatIf items             │
+  ├───────────────┼─────────────┼───────────────────────────────────────────┤          
+  │ agent_facets  │ Allie       │ Current agent state (queryable)           │
+  ├───────────────┼─────────────┼───────────────────────────────────────────┤          
+  │ vector_index  │ All stores  │ Tracks what's indexed in ChromaDB         │
+  ├───────────────┼─────────────┼───────────────────────────────────────────┤          
+  │ noelle_log    │ Noelle      │ Build faults, validation, network health  │
+  ├───────────────┼─────────────┼───────────────────────────────────────────┤          
+  │ natalie_log   │ Natalie     │ Route plans, dispatch, trip completion    │
+  ├───────────────┼─────────────┼───────────────────────────────────────────┤          
+  │ sally_log     │ Sally       │ Slot management, parking, dwell           │
+  ├───────────────┼─────────────┼───────────────────────────────────────────┤          
+  │ nora_log      │ Nora        │ Telemetry, sensors, motor events          │
+  ├───────────────┼─────────────┼───────────────────────────────────────────┤          
+  │ alice_log     │ Alice       │ Transaction patterns, coaching, anomalies │
+  └───────────────┴─────────────┴───────────────────────────────────────────┘          
+   
+  Today: all in one PostgreSQL. Tomorrow: each agent takes their schema to their own   
+  processor and syncs back. The schema is the contract — the database location is an
+  implementation detail.     

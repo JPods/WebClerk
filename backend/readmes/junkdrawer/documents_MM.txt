@@ -1,0 +1,19 @@
+model_name is a keyword in wc3's wcapi. Should not be a field name in document model.
+
+There should be no 
+REF:     model_name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        choices=DOCUMENT_MODEL_CHOICES,
+        db_index=True,
+    )
+
+REF: "Document config stores: city, state, stations, circles, miles, contact_id,  
+  contact_email" 
+  
+No, put in .refs.keywords. AND add as name; value pairs
+
+We can also add .refs.published = TRUE if published. We have  security_level = models.IntegerField in every record.  Value 0 is unpublished, 1 is published, 5000 requires superuser.   
+
+I might have set publish or se

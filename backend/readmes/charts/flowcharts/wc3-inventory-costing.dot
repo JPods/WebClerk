@@ -1,0 +1,96 @@
+// WC3 Inventory Costing — layer-based cost evaluation
+// From wc2 page 10: InvStacks with LIFO/FIFO/Weighted Average
+// Render: dot -Tpdf wc3-inventory-costing.dot -o wc3-inventory-costing.pdf
+
+digraph wc3_inventory_costing {
+    rankdir=TB
+    fontname="Helvetica Neue"
+    fontsize=12
+    bgcolor="#FAFAFA"
+    node [fontname="Helvetica Neue" fontsize=10 style="filled,rounded" shape=box
+          color="#CCCCCC" penwidth=0.8]
+    edge [fontname="Helvetica Neue" fontsize=8 color="#888888" penwidth=0.8]
+    label="WC3 — Inventory Costing\nLayer-based: LIFO / FIFO / Weighted Average"
+    labelloc=t
+    fontsize=15
+    pad=0.6
+    nodesep=0.8
+    ranksep=0.9
+
+    // ── Purchase flow ──
+    po [label="Purchase\nOrder" fillcolor="#E3F2FD" color="#90CAF9"]
+    po_lines [label="PO Lines\nqty ordered per item" fillcolor="#BBDEFB" color="#64B5F6"]
+    receiving [label="Receiving" shape=diamond fillcolor="#C8E6C9" color="#81C784"
+              fontsize=11]
+
+    // ── Layers created ──
+    subgraph cluster_layers {
+        label="Inventory Layers (one per receipt)"
+        style="filled,rounded"
+        fillcolor="#F3E5F5"
+        color="#CE93D8"
+        fontsize=9
+        fontcolor="#7B1FA2"
+
+        layer1 [label="Layer 1\n15 rec'd · 15 avail\n@ $12.00" fillcolor="#E1BEE7"
+                color="#BA68C8" fontsize=9]
+        layer2 [label="Layer 2\n5 rec'd · 5 avail\n@ $15.00" fillcolor="#E1BEE7"
+                color="#BA68C8" fontsize=9]
+        layer3 [label="Layer 3\n7 rec'd · 7 avail\n@ $20.00" fillcolor="#E1BEE7"
+                color="#BA68C8" fontsize=9]
+    }
+
+    // ── Evaluation ──
+    eval_method [label="Evaluation Method\n(Setting per company)" shape=diamond
+                fillcolor="#FFF9C4" color="#FFF176" fontsize=10]
+
+    fifo [label="FIFO\nsell oldest first\n→ Layer 1, then 2, then 3"
+          fillcolor="#DCEDC8" color="#AED581" fontsize=9]
+    lifo [label="LIFO\nsell newest first\n→ Layer 3, then 2, then 1"
+          fillcolor="#FFE0B2" color="#FFB74D" fontsize=9]
+    wtd_avg [label="Weighted Average\n(15×12 + 5×15 + 7×20) ÷ 27\n= $14.63"
+             fillcolor="#B3E5FC" color="#4FC3F7" fontsize=9]
+
+    // ── Item record ──
+    item [label="Item Record\nqty on_hand: 27\navg cost: $14.63\ncompare methods" fillcolor="#E8EAF6"
+          color="#9FA8DA" fontsize=10]
+
+    // ── Invoice consumption ──
+    invoice [label="Invoice Line\nship 18 units\ncost assigned\nfrom layers" fillcolor="#FFCDD2"
+            color="#EF9A9A"]
+
+    // ── After shipment ──
+    subgraph cluster_after {
+        label="After shipping 18 units (FIFO)"
+        style="filled,rounded"
+        fillcolor="#FBE9E7"
+        color="#FFAB91"
+        fontsize=9
+        fontcolor="#BF360C"
+
+        after1 [label="Layer 1\n15 rec'd · 0 avail\n@ $12.00" fillcolor="#FFCCBC"
+                color="#FF8A65" fontsize=9]
+        after2 [label="Layer 2\n5 rec'd · 2 avail\n@ $15.00" fillcolor="#FFCCBC"
+                color="#FF8A65" fontsize=9]
+        after3 [label="Layer 3\n7 rec'd · 7 avail\n@ $20.00" fillcolor="#FFCCBC"
+                color="#FF8A65" fontsize=9]
+    }
+
+    // ── Edges ──
+    po -> po_lines
+    po_lines -> receiving
+    receiving -> layer1 [color="#AB47BC"]
+    receiving -> layer2 [color="#AB47BC"]
+    receiving -> layer3 [color="#AB47BC"]
+
+    layer1 -> eval_method [style=invis]
+    eval_method -> fifo
+    eval_method -> lifo
+    eval_method -> wtd_avg
+
+    {layer1 layer2 layer3} -> item [style=dashed color="#7E57C2"]
+
+    item -> invoice [label="ship from\nlayers" color="#E57373"]
+    invoice -> after1 [label="consumed" color="#E57373"]
+    invoice -> after2 [label="partial" color="#E57373"]
+}

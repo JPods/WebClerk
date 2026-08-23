@@ -1,0 +1,29 @@
+{% extends "base_email.html" %}
+
+{% block subject %}Payment Received - Thank You{% endblock %}
+
+{% block content %}
+<h2>Payment Received</h2>
+
+<p>Dear {{ contact.get_full_name }},</p>
+
+<p>We have received your payment. Thank you!</p>
+
+<h3>Payment Details:</h3>
+<ul>
+    <li><strong>Amount:</strong> ${{ payment.amount|floatformat:2 }}</li>
+    <li><strong>Reference:</strong> {{ payment.reference_number|default:"N/A" }}</li>
+    <li><strong>Method:</strong> {{ payment.payment_method.name|default:"N/A" }}</li>
+    <li><strong>Date:</strong> {{ payment.payment_date|date:"F j, Y, g:i a" }}</li>
+    <li><strong>Invoice:</strong> {{ payment.invoice_id.name }} (ID: {{ payment.invoice_id.id }})</li>
+</ul>
+
+{% if payment.invoice_id.totals.balance %}
+<p>Your remaining balance for this invoice is ${{ payment.invoice_id.totals.balance|floatformat:2 }}.</p>
+{% else %}
+<p>This invoice is now fully paid. Thank you for your prompt payment!</p>
+{% endif %}
+
+<p>Best regards,<br>
+{{ company_name|default:"WebClerk3 Team" }}</p>
+{% endblock %}

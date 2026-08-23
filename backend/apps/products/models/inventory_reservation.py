@@ -1,0 +1,111 @@
+from __future__ import annotations
+
+from django.db import models, transaction
+from django.utils import timezone
+from decimal import Decimal
+
+from apps.products.choices import INVENTORY_RESERVATION_STATE_CHOICES
+from .inventory_layer import InventoryLayer
+from .item import Item
+from .warehouse import Warehouse
+
+
+def default_context():  # simple JSONField default
+    return {}
+
+
+class InventoryReservation(models.Model):
+    """Soft hold of inventory for a limited time (cart/seat style reservation).
+
+    States:
+      pending    - actively holding quantity from availability (not yet converted)
+      committed  - converted to real issue (inventory permanently deducted)
+      canceled   - released before commitment (put back)
+      expired    - system reclaimed after ttl
+
+    Reservation does NOT immediately reduce stack.quantity.issued; instead we
+    track reserved qty per stack in this table and subtract logically when computing
+    availability. On commit we convert to an actual issue; on release we simply drop.
+    """
+
+    STATE_PENDING = 'pending'
+    STATE_COMMITTED = 'committed'
+    STATE_CANCELED = 'canceled'
+    STATE_EXPIRED = 'expired'
+    STATES = INVENTORY_RESERVATION_STATE_CHOICES
+
+    item_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this reservation")
+    description = models.CharField(max_length=255, blank=True, help_text="Description for this reservation")
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='reservations', db_column='item_id')
+
+    @property
+    def ida(self):
+        return str(self.pk)
+
+    @property
+    def item_ida_value(self):
+        return self.item_ida or str(self.pk)
+
+    @property
+    def description_value(self):
+        return self.description or f"Reservation for item {self.item.pk if self.item else 'unknown'}"
+    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name='reservations', db_column='warehouse_id')
+    inventory_layer = models.ForeignKey(InventoryLayer, on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations', db_column='inventorylayer_id')
+    qty = models.DecimalField(max_digits=14, decimal_places=4)
+    state = models.CharField(max_length=20, choices=STATES, default=STATE_PENDING, db_index=True)
+    dt_expires = models.DateTimeField(db_index=True)
+    dt_committed = models.DateTimeField(null=True, blank=True)
+    dt_released = models.DateTimeField(null=True, blank=True)
+    context = models.JSONField(default=default_context, blank=True)
+    reason = models.CharField(max_length=80, blank=True)
+    # dt_created is inherited from BaseModel/CoreModel
+    dt_modified = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Reservation {self.id} ({self.state})"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=("state", "dt_expires"), name="invres_state_exp_idx"),
+            models.Index(fields=("item_id", "warehouse_id", "state"), name="invres_item_wh_state_idx"),
+        ]
+
+    # --- Core transitions -------------------------------------------------
+    def commit(self):
+        if self.state != self.STATE_PENDING:
+            return False
+        with transaction.atomic():
+            # lock self row
+            r = type(self).objects.select_for_update().get(pk=self.pk)
+            if r.state != self.STATE_PENDING:
+                return False
+            # Convert to real issue from stack (if still available)
+            if r.inventory_layer and r.inventory_layer.remaining_qty() >= self.qty:
+                r.inventory_layer.mark_issue(self.qty)
+                r.inventory_layer.save(update_fields=['quantity', 'dt_modified', 'version'])
+            r.state = self.STATE_COMMITTED
+            r.dt_committed = timezone.now()
+            r.save(update_fields=['state', 'dt_committed'])
+        return True
+
+    def release(self, reason: str = 'canceled'):
+        if self.state != self.STATE_PENDING:
+            return False
+        self.state = self.STATE_CANCELED
+        self.dt_released = timezone.now()
+        self.reason = reason[:80]
+        self.save(update_fields=['state', 'dt_released', 'reason'])
+        return True
+
+    def mark_expired(self):
+        if self.state != self.STATE_PENDING:
+            return False
+        self.state = self.STATE_EXPIRED
+        self.dt_released = timezone.now()
+        self.save(update_fields=['state', 'dt_released'])
+        return True
+
+    # --- Helpers ----------------------------------------------------------
+    @property
+    def is_active(self):
+        return self.state == self.STATE_PENDING and self.dt_expires > timezone.now()

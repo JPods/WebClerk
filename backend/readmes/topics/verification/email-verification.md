@@ -1,0 +1,62 @@
+# Email verification via sync connections
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [Email verification via sync connections](#email-verification-via-sync-connections)
+  - [Table of Contents](#table-of-contents)
+
+<!-- TOC END -->
+
+This project supports a provider-agnostic email verification flow that uses the `sync` app for configuration and exchange logging.
+
+What you get:
+
+- Store provider settings and secrets in `sync.Connection` (type `email_verification`).
+- Each verification attempt logs a `sync.Bundle` with masked config, payload, normalized response, and duration.
+- Communications tasks update `Email.metadata.versioning.validation` and set `Email.is_verified` based on the normalized result.
+
+Quick start (stub mode, no external calls):
+
+1. Create a connection (via admin/API/fixtures):
+
+- type: `email_verification`
+- name: `default`
+- config: `{ "provider": "stub", "mode": "stub" }`
+
+1. Trigger validation:
+
+- Call the Celery task `validate_email_format(email_id)` after creating an Email, or from the admin.
+
+Safety alert connection:
+
+- The `reseed --full` command auto-seeds a `sync.Connection` with `name="alert"`, `type="safety_alert"`, `purpose="webclerk.com"`, and `status="safe"`. This is reserved for incident signaling; if the local system detects an assault, it can trigger an Bundle via this connection to notify webclerk.com for verification and coordinated communication.
+
+Result schema (normalized):
+
+```json
+{"provider": "stub", "status": "stubbed", "deliverability": "unknown", "reason": "stub_mode"}
+```
+
+How it works:
+
+- The task calls `apps.sync.services.email_verification.verify_email_via_connection(email)`, which:
+
+  - picks a `Connection` with `type='email_verification'` (by name if specified),
+  - performs a stubbed provider call (no network),
+  - creates an `Bundle` row with masked config and response,
+  - returns a normalized result for the task to persist on `Email`.
+
+Going beyond stub mode:
+Additional steps for live providers:
+
+- Add real provider calls inside `email_verification.verify_email_via_connection()`.
+- Normalize provider responses to `{provider, status, deliverability, reason}`.
+- Keep secrets in `Connection.config` and they will be masked when logged to `Bundle.config`.
+
+Notes:
+Notes:
+
+- This flow does not make external requests by default. It is safe to enable in local/dev and can be toggled to live providers later.
+- Bundles are lightweight audit logs; they do not store raw provider payloads unless added explicitly.

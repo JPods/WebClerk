@@ -1,0 +1,66 @@
+// WC3 Contact — central identity model
+// Contact references any record; denormalizes into reference.keywords
+// Render: dot -Tpdf wc3-contact.dot -o wc3-contact.pdf
+
+digraph wc3_contact {
+    rankdir=TB
+    fontname="Helvetica"
+    fontsize=11
+    node [fontname="Helvetica" fontsize=10 style=filled]
+    edge [fontname="Helvetica" fontsize=8]
+    label="WC3 — Contact Model\nCentral identity; references any record"
+    labelloc=t
+    fontsize=14
+    pad=0.5
+
+    // Contact
+    contact [label="Contact\n\nOne-to-Many\nMany-to-Many\nMany-to-One" shape=box fillcolor="#F9E79F" fontsize=11]
+
+    // Linkage
+    linkage [label="LinkageEntry\n\nshared by lines\nrelated data\nspecs\ndata at time of action" shape=box fillcolor="#82E0AA"]
+
+    // Record types
+    customer [label="Customer" shape=box fillcolor="#F4D03F"]
+    vendor [label="Vendor" shape=box fillcolor="#E59866"]
+    proposals [label="Proposals" shape=box fillcolor="#FCF3CF"]
+    sos [label="SOs" shape=box fillcolor="#ABEBC6"]
+    pos [label="POs" shape=box fillcolor="#D6EAF8"]
+    item_rec [label="Item" shape=box fillcolor="#E8DAEF"]
+    qa_rec [label="QA" shape=box fillcolor="#AED6F1"]
+    resource [label="Resource" shape=box fillcolor="#D5D8DC"]
+    dots [label="..." shape=box fillcolor="#F2F3F4"]
+
+    // Any record
+    any_record [label="Any or multiple\ntablenames/collections\nrecord/document" shape=box fillcolor="#E59866" fontcolor=white]
+
+    // Rules
+    rules [label="Add into reference.contacts\na collection of contacts\nassociated with any record\n\nkeep only idNum\n\nDenormalize into\nreference.keywords" shape=note fillcolor="#FDFEFE" fontsize=9]
+
+    // Role types
+    customers_role [label="customers" shape=box fillcolor="#82E0AA"]
+    employees_role [label="employees" shape=box fillcolor="#82E0AA"]
+    reps_role [label="reps" shape=box fillcolor="#82E0AA"]
+    vendors_role [label="vendors" shape=box fillcolor="#82E0AA"]
+
+    // Edges — Contact to records
+    contact -> customer [color="#27AE60" style=bold]
+    contact -> vendor [color="#27AE60" style=bold]
+    contact -> any_record [color="#E59866"]
+    any_record -> proposals [style=invis]
+    any_record -> sos [style=invis]
+    any_record -> pos [style=invis]
+    any_record -> item_rec [style=invis]
+    any_record -> qa_rec [style=invis]
+    any_record -> resource [style=invis]
+
+    contact -> linkage [color="#27AE60"]
+    linkage -> customer [color="#27AE60" style=dashed]
+
+    contact -> rules [style=dotted]
+
+    // Roles
+    contact -> customers_role [label="linked by id\nin references" color="#27AE60"]
+    contact -> employees_role [color="#27AE60"]
+    contact -> reps_role [color="#27AE60"]
+    contact -> vendors_role [color="#27AE60"]
+}

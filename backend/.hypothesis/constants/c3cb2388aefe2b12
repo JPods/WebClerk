@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/communications/migrations/0003_remove_email_comment_remove_location_comment_and_more.py
+# hypothesis_version: 6.138.7
+
+['General notes', 'comment', 'comments', 'communications', 'created_dt', 'domain', 'email', 'ida', 'location', 'metadata', 'modified_dt', 'phone', 'prefs', 'refs', 'version']

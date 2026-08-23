@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/views/save_view.py
+# hypothesis_version: 6.138.7
+
+[400, 404, 500, 15000, 'Record not found', 'error', 'id', 'lang', 'message', 'messages', 'metadata', 'notes', 'pre_save_hook', 'prefs', 'record', 'refs', 's', 'status', 'success', 'table_name', 'tags', 'theme', 'utf-8']

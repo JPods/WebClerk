@@ -1,0 +1,26 @@
+{
+    "self_fields": [
+        "ida_item",
+        "description",
+        "price_level",
+        "status"
+    ],
+    "related_keywords": {
+        "item": [
+            "name",
+            "description",
+            "sku"
+        ],
+        "proposal": [
+            "ida",
+            "status",
+            "priority"
+        ]
+    },
+    "related_models": [
+        "item",
+        "proposal",
+        "customer"
+    ],
+    "jjj_comment": "setting model_name=\"proposal_line\" purpose=\"refs_setup\""
+}

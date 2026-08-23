@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/serializers/requisition.py
+# hypothesis_version: 6.138.7
+
+['__all__', 'created_dt', 'id', 'modified_dt', 'requisitions', 'uuid', 'version']

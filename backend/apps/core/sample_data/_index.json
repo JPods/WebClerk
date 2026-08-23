@@ -1,0 +1,72 @@
+{
+  "_meta": {
+    "description": "Index of sample data files for report parade onboarding. Each file provides polished, realistic data for rendering reports. WC_HQ will eventually serve these; for now they are local proven files.",
+    "version": 1
+  },
+  "models": {
+    "invoice": {
+      "file": "invoice.json",
+      "reports": ["Invoice - Standard", "Invoice - Shipping", "Invoice - With Photos", "Invoice - International"],
+      "business_type": ["all"]
+    },
+    "order": {
+      "file": "order.json",
+      "reports": ["Order Confirmation", "Packing Slip", "Pick Ticket", "Bill of Lading", "Work Order"],
+      "business_type": ["all"]
+    },
+    "purchase": {
+      "file": "purchase.json",
+      "reports": ["Purchase Order - Standard", "Purchase Order - Blanket", "Receiving Report"],
+      "business_type": ["all"]
+    },
+    "payment": {
+      "file": "payment.json",
+      "reports": ["Payment Receipt", "Payment Remittance", "Payment Application"],
+      "business_type": ["all"]
+    },
+    "proposal": {
+      "file": "proposal.json",
+      "reports": ["Proposal", "Quote", "Estimate"],
+      "business_type": ["service", "retail", "contractor"]
+    },
+    "statement": {
+      "file": "statement.json",
+      "reports": ["Statement - Standard", "Statement - Aging Detail"],
+      "business_type": ["all"]
+    },
+    "contact": {
+      "file": "contact.json",
+      "reports": ["Customer Profile", "Vendor Profile", "Contact Labels"],
+      "business_type": ["all"]
+    },
+    "item": {
+      "file": "item.json",
+      "reports": ["Item Detail", "Price List", "Inventory Status"],
+      "business_type": ["all"]
+    },
+    "requisition": {
+      "file": "requisition.json",
+      "reports": ["Purchase Requisition", "Requisition Approval"],
+      "business_type": ["all"]
+    },
+    "workorder": {
+      "file": "workorder.json",
+      "reports": ["Work Order", "Service Report", "Field Service Ticket"],
+      "business_type": ["service", "contractor"]
+    },
+    "aging": {
+      "file": "aging.json",
+      "reports": ["AR Aging Summary", "AR Aging Detail", "Collections Report"],
+      "business_type": ["all"]
+    }
+  },
+  "parade_sequence": {
+    "onboarding": [
+      {"group": "Selling", "models": ["invoice", "order", "proposal"]},
+      {"group": "Getting Paid", "models": ["payment", "statement", "aging"]},
+      {"group": "Buying", "models": ["purchase", "requisition"]},
+      {"group": "Service", "models": ["workorder"]},
+      {"group": "Catalog", "models": ["item", "contact"]}
+    ]
+  }
+}

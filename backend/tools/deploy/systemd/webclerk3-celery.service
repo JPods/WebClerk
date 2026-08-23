@@ -1,0 +1,22 @@
+[Unit]
+Description=WebClerk3 Celery Worker
+After=network.target redis.service
+
+[Service]
+Type=simple
+User=webclerk
+Group=webclerk
+WorkingDirectory=/srv/webclerk3
+EnvironmentFile=/srv/webclerk3/.env
+
+ExecStart=/srv/webclerk3/bin/celery \
+    -A webclerk3_api \
+    worker \
+    --loglevel=info \
+    --logfile=/var/log/webclerk3/celery-worker.log
+
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,19 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  /* Keep changelist headers exactly as provided by ModelAdmin labels. */
+  #changelist table thead th,
+  #changelist table thead th a,
+  #changelist table thead th .text,
+  #result_list thead th,
+  #result_list thead th a,
+  #result_list thead th .text,
+  .results thead th,
+  .results thead th a,
+  .results thead th .text {
+    text-transform: none !important;
+  }
+</style>
+{% endblock %}

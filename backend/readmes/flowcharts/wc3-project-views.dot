@@ -1,0 +1,69 @@
+// WC3 Project Views — How projects, actions, and touches flow through Gantt, Kanban, and search
+// Status: Draft — try explaining it to someone. Split into separate charts if too dense.
+digraph project_views {
+  rankdir=TB
+  compound=true
+  node [shape=box style="rounded,filled" fontsize=10 fontname="Helvetica"]
+  edge [fontsize=9 fontname="Helvetica"]
+
+  // ─── Data Layer ───
+  subgraph cluster_data {
+    label="Data" labeljust=l fontsize=11 fontname="Helvetica-Bold"
+    style="rounded,dashed" color="#94a3b8"
+
+    project [label="Project\nname, status, dates\nrefs.links.contacts[authority]" fillcolor="#dbeafe"]
+    action [label="Action\nassigned_to, priority\nstatus, dates, %complete" fillcolor="#dbeafe"]
+    touch [label="Touch\nchannel, direction\nsubject, contact" fillcolor="#dbeafe"]
+    document [label="Document\nphoto/video/file\nattached to action" fillcolor="#dbeafe"]
+
+    project -> action [label="has many"]
+    action -> touch [label="has many"]
+    action -> document [label="has many"]
+  }
+
+  // ─── Views ───
+  subgraph cluster_views {
+    label="Views" labeljust=l fontsize=11 fontname="Helvetica-Bold"
+    style="rounded,dashed" color="#94a3b8"
+
+    gantt [label="Gantt Chart\ntimeline bars\npriority/status/% encoding\nzoom control" fillcolor="#d4edda"]
+    kanban [label="Kanban Board\ncolumns by status\ndrag to change" fillcolor="#d4edda"]
+    list [label="db.list\nsearch box (98%+)\nquery builder (power)" fillcolor="#d4edda"]
+  }
+
+  // ─── Interactions ───
+  subgraph cluster_interact {
+    label="Interactions" labeljust=l fontsize=11 fontname="Helvetica-Bold"
+    style="rounded,dashed" color="#94a3b8"
+
+    detail [label="Action Detail\nfloating window\nedit fields, save" fillcolor="#fff3cd"]
+    touch_badge [label="Touch Badge\ncount in title bar\nclick → touch list" fillcolor="#fff3cd"]
+    file_upload [label="Photo/Video/File\nupload panel" fillcolor="#fff3cd"]
+    share [label="Share\nmanage contacts\nread_only / read_write\nadd_to_comment" fillcolor="#fff3cd"]
+  }
+
+  // ─── Data → Views ───
+  project -> gantt [label="?project=id" style=bold]
+  project -> kanban [label="?project=id" style=bold]
+  action -> list [label="model=action"]
+  action -> gantt [label="tasks" style=dotted]
+  action -> kanban [label="cards" style=dotted]
+
+  // ─── Views → Interactions ───
+  gantt -> detail [label="double-click bar"]
+  kanban -> detail [label="double-click card"]
+  list -> detail [label="double-click row"]
+  gantt -> share [label="people icon\n(single project)"]
+
+  // ─── Detail → Data ───
+  detail -> touch_badge
+  detail -> file_upload
+  touch_badge -> touch [label="lists touches\nfor this action" style=dashed]
+  file_upload -> document [label="creates\nDocument record" style=dashed]
+
+  // ─── External Access ───
+  external [label="External Contact\n(customer, partner)\nsigns into project" fillcolor="#fde2e4" shape=ellipse]
+  external -> share [label="authority\ncontrols access"]
+  share -> gantt [label="read_only\nor read_write" style=dashed]
+  share -> kanban [label="read_only\nor read_write" style=dashed]
+}

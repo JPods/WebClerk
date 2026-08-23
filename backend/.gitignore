@@ -1,0 +1,40 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+!static/
+!static/images/
+!static/images/**
+.local/
+.vscode/
+.env
+.env-example
+bin/
+lib/
+include/
+.lock
+*.cfg
+**/__pycache__/
+.celery_started
+/Scripts
+venv/
+logs/
+tools/.pids/
+
+# Write-through / local DB artifacts
+local_data/
+*.sqlite3
+db.sqlite3
+
+# macOS Finder duplicate files (e.g. "foo 2.py")
+* 2.*
+* 2
+
+# AI Assistant vector store (rebuild with: python manage.py index_docs)
+.chroma_db/
+
+# Dataset switching / local dev config
+tools/dev-config.json
+tools/.sync_status.json
+share/man/man1/isympy.1
+uploads/
+
+# Session backup files
+*_backup_*.json

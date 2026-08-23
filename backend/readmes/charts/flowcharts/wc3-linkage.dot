@@ -1,0 +1,141 @@
+// WC3 Linkage — data package: project inheritance, transaction promotion, item families
+// Three axes: project (top-down), transaction chain (horizontal), item family (vertical)
+// Render: dot -Tpdf wc3-linkage.dot -o wc3-linkage.pdf
+
+digraph wc3_linkage {
+    rankdir=TB
+    fontname="Helvetica Neue"
+    fontsize=12
+    bgcolor="#FAFAFA"
+    node [fontname="Helvetica Neue" fontsize=10 style="filled,rounded" shape=box
+          color="#CCCCCC" penwidth=0.8]
+    edge [fontname="Helvetica Neue" fontsize=8 color="#888888" penwidth=0.8]
+    label="WC3 — Linkage\nThree axes: project inheritance, transaction promotion, item families"
+    labelloc=t
+    fontsize=15
+    pad=0.6
+    nodesep=0.5
+    ranksep=0.7
+
+    // ═══════════════════════════════════════════
+    // AXIS 1: Project (top-down inheritance)
+    // ═══════════════════════════════════════════
+
+    project [label="Project\n\nLinkage records at\nproject level are\ninherited by all\ntransactions below"
+             fillcolor="#C8E6C9" color="#66BB6A" fontsize=11 penwidth=1.2]
+
+    // ═══════════════════════════════════════════
+    // AXIS 2: Transaction Promotion Chain
+    // ═══════════════════════════════════════════
+
+    subgraph cluster_chain {
+        label="Transaction Promotion Chain\nenter once — travels through lifecycle; inherits from Project"
+        style="filled,rounded"
+        fillcolor="#F0F4F8"
+        color="#B0BEC5"
+        fontsize=9
+        fontcolor="#37474F"
+
+        proposal [label="Proposal" fillcolor="#E8EAF6" color="#9FA8DA"]
+        order [label="Order" fillcolor="#C5CAE9" color="#7986CB"]
+        po [label="Purchase\nOrder" fillcolor="#BBDEFB" color="#64B5F6"]
+        wo [label="Work\nOrder" fillcolor="#B2DFDB" color="#80CBC4"]
+        invoice [label="Invoice" fillcolor="#B3E5FC" color="#4FC3F7"]
+
+        proposal -> order [label="promote" color="#5C6BC0" style=bold]
+        order -> invoice [label="promote" color="#5C6BC0" style=bold]
+        order -> po [label="materials" color="#5C6BC0" style=dashed]
+        order -> wo [label="production" color="#5C6BC0" style=dashed]
+    }
+
+    // ── The Linkage record ──
+    linkage [label="Linkage\n(LinkageEntry)\n\nShared by lines\nInherited from Project\nTravels with promotion\nConnects item families\n\nMany-to-One · One-to-One · One-to-Many"
+             fillcolor="#A5D6A7" color="#43A047" fontsize=11
+             shape=box penwidth=1.5]
+
+    // ── What Linkage carries ──
+    subgraph cluster_contents {
+        label="What Linkage Carries"
+        style="filled,rounded"
+        fillcolor="#FFF8E1"
+        color="#FFE082"
+        fontsize=9
+        fontcolor="#F57F17"
+
+        qa [label="QA Answers\ninspection results\nsurvey responses" fillcolor="#FFF9C4" color="#FFF176" fontsize=9]
+        docs [label="Documents\ndrawings, certs\ntest reports" fillcolor="#FFF9C4" color="#FFF176" fontsize=9]
+        specs [label="Specifications\nrequirements\ntechnical data" fillcolor="#FFF9C4" color="#FFF176" fontsize=9]
+        contacts_rel [label="Related Contacts\nengineers, inspectors\napprovers" fillcolor="#FFF9C4" color="#FFF176" fontsize=9]
+        assets [label="Assets\nequipment, tools\nfixtures" fillcolor="#FFF9C4" color="#FFF176" fontsize=9]
+        snapshot [label="Data at Time\nof Action\nfrozen values" fillcolor="#FFF9C4" color="#FFF176" fontsize=9]
+    }
+
+    // ═══════════════════════════════════════════
+    // AXIS 3: Item Family
+    // ═══════════════════════════════════════════
+
+    subgraph cluster_family {
+        label="Item Family\nshared specs, QA standards, documents across related products"
+        style="filled,rounded"
+        fillcolor="#F3E5F5"
+        color="#CE93D8"
+        fontsize=9
+        fontcolor="#6A1B9A"
+
+        item_a [label="Item A" fillcolor="#E1BEE7" color="#BA68C8" fontsize=9]
+        item_b [label="Item B" fillcolor="#E1BEE7" color="#BA68C8" fontsize=9]
+        item_c [label="Item C" fillcolor="#E1BEE7" color="#BA68C8" fontsize=9]
+        item_d [label="Item D" fillcolor="#E1BEE7" color="#BA68C8" fontsize=9]
+    }
+
+    // ── Any record reference ──
+    subgraph cluster_any {
+        label="References Any Record"
+        style="filled,rounded"
+        fillcolor="#E3F2FD"
+        color="#90CAF9"
+        fontsize=9
+        fontcolor="#1565C0"
+
+        customer [label="Customer" fillcolor="#BBDEFB" color="#64B5F6" fontsize=9]
+        vendor [label="Vendor" fillcolor="#BBDEFB" color="#64B5F6" fontsize=9]
+        resource [label="Resource" fillcolor="#BBDEFB" color="#64B5F6" fontsize=9]
+        any [label="..." fillcolor="#BBDEFB" color="#64B5F6" fontsize=9]
+    }
+
+    // ═══ Edges ═══
+
+    // Project → Linkage (top-down inheritance)
+    project -> linkage [label="project-level\nlinkage inherited\nby all transactions" color="#43A047" style=bold penwidth=1.2]
+
+    // Project → transactions (creates under project)
+    project -> proposal [label="create under\nproject" color="#66BB6A" style=dashed]
+    project -> wo [style=dashed color="#66BB6A"]
+
+    // Transaction chain → Linkage
+    proposal -> linkage [label="attach +\ninherit project" color="#5C6BC0"]
+    order -> linkage [label="carries\nforward" color="#5C6BC0" style=dashed]
+    invoice -> linkage [label="carries\nforward" color="#5C6BC0" style=dashed]
+    po -> linkage [style=dashed color="#5C6BC0"]
+    wo -> linkage [style=dashed color="#5C6BC0"]
+
+    // Linkage → contents
+    linkage -> qa [color="#FFB300"]
+    linkage -> docs [color="#FFB300"]
+    linkage -> specs [color="#FFB300"]
+    linkage -> contacts_rel [color="#FFB300"]
+    linkage -> assets [color="#FFB300"]
+    linkage -> snapshot [color="#FFB300"]
+
+    // Item family → Linkage
+    item_a -> linkage [label="shared family" color="#AB47BC"]
+    item_b -> linkage [color="#AB47BC"]
+    item_c -> linkage [color="#AB47BC"]
+    item_d -> linkage [color="#AB47BC"]
+
+    // Linkage → any record
+    linkage -> customer [style=dashed color="#42A5F5"]
+    linkage -> vendor [style=dashed color="#42A5F5"]
+    linkage -> resource [style=dashed color="#42A5F5"]
+    linkage -> any [style=dashed color="#42A5F5"]
+}

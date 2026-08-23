@@ -1,0 +1,26 @@
+{
+    "self_fields": [
+        "name",
+        "purpose",
+        "note"
+    ],
+    "related_keywords": {
+        "contact": [
+            "email",
+            "name_first",
+            "name_last",
+            "company"
+        ],
+        "project": [
+            "situation",
+            "description",
+            "attention",
+            "category"
+        ]
+    },
+    "related_models": [
+        "contact",
+        "project"
+    ],
+    "jjj_comment": "setting model_name=\"linkage\" purpose=\"refs_setup\""
+}

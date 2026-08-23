@@ -1,0 +1,168 @@
+from __future__ import annotations
+
+"""Flow (delivery & field execution) domain models.
+
+Why the name "flow"?
+    We group operational, in-the-field execution objects (delivery visits, the
+    lines within them, future potential extensions like pickups / returns /
+    merchandising actions) under a neutral, *marketing-friendly* banner. These
+    represent directional movement of product and related observational data
+    (quantities, confirmations, adjustments) between a vendor org and a
+    customer org.
+
+Conceptual distinctions:
+    * DeliveryVisit vs InventoryCheck: a DeliveryVisit is a routed / scheduled
+      operational stop (with optional fulfillment activity). An InventoryCheck
+      is a focused quantitative audit event. A visit might embed a lightweight
+      spot verification but its primary purpose is executing a logistic flow.
+    * DeliveryLine captures the intent + outcome for a single org_item on that
+      stop (planned, loaded, delivered, skipped, partial) and carries flexible
+      JSON for device / pricing / adjustment metadata.
+
+Data / migration note:
+    This file was renamed from delivery.py to flow.py. We intentionally kept the
+    model class names (DeliveryVisit, DeliveryLine) unchanged to avoid a noisy
+    RenameModel migration and preserve existing table names & constraints. If a
+    true rename becomes desirable later (e.g., FlowVisit), create an explicit
+    migration with Django's RenameModel plus any index / constraint renames.
+
+Forward-looking:
+    Additional flow-scoped activity types (returns, reverse logistics, pickup
+    consolidations) can co-locate here or in sibling modules (e.g. returns.py)
+    while sharing higher-level orchestration / status semantics.
+"""
+
+from django.db import models
+
+from common.models import BaseModel
+from apps.products.choices import (
+    DELIVERY_LINE_STATUS_CHOICES,
+    DELIVERY_VISIT_STATUS_CHOICES,
+)
+
+
+class DeliveryVisit(BaseModel):
+    @property
+    def ida(self):
+        return str(self.pk)
+
+    @property
+    def description(self):
+        return self.notes
+
+    """A routed stop (planned -> en_route -> arrived -> closed/canceled) between vendor & customer.
+
+    Purpose:
+        Represents an operational window where product may be delivered, counts
+        confirmed, exceptions noted, or ancillary actions (device scans, photo
+        capture) performed.
+
+    Status lifecycle (typical):
+        planned -> en_route -> arrived -> (closed | canceled)
+        ("arrived" is optional if system auto-closes upon completion.)
+
+    Catalog linkage:
+        If provided, constrains or contextualizes permissible org items &
+        pricing snapshots. Validation enforces catalog org alignment.
+
+    Migration rationale:
+        Class name retained after module rename to avoid implicit table rename.
+    """
+
+    STATUS_PLANNED = "planned"
+    STATUS_EN_ROUTE = "en_route"
+    STATUS_ARRIVED = "arrived"
+    STATUS_CLOSED = "closed"
+    STATUS_CANCELED = "canceled"
+    STATUSES = DELIVERY_VISIT_STATUS_CHOICES
+
+    orgbase = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_vendor', db_column='orgbase_id')
+    customer_orgbase = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_customer', db_column='customer_orgbase_id')
+    catalog = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_visits', db_column='catalog_id')
+    dt_scheduled = models.BigIntegerField(help_text="Epoch ms scheduled time window start")
+    dt_arrived = models.BigIntegerField(null=True, blank=True)
+    dt_completed = models.BigIntegerField(null=True, blank=True)
+    status = models.CharField(max_length=16, choices=STATUSES, default=STATUS_PLANNED, db_index=True)
+    notes = models.TextField(blank=True)
+    config = models.JSONField(default=dict, blank=True, help_text="Flexible metadata: route info, geo, truck id, etc.")
+
+    def __str__(self):
+        return f"DeliveryVisit {self.id} ({self.status})"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=("orgbase", "dt_scheduled"), name="delv_vendor_sched_idx"),
+            models.Index(fields=("customer_orgbase", "dt_scheduled"), name="delv_customer_sched_idx"),
+            models.Index(fields=("status",), name="delv_status_idx"),
+        ]
+
+    def clean(self):  # pragma: no cover simple validation
+        from django.core.exceptions import ValidationError
+        # Check if catalog is set (access FK object, not raw id)
+        catalog = getattr(self, "catalog", None)
+        if catalog:
+            # Access FK PKs via the related object's pk property for clarity
+            vendor_org_id = catalog.vendor_org_id.pk if hasattr(catalog, 'vendor_org_id') and catalog.vendor_org_id else None
+            customer_org_id = catalog.customer_org_id.pk if hasattr(catalog, 'customer_org_id') and catalog.customer_org_id else None
+            self_vendor_id = self.orgbase.pk if self.orgbase else None  # type: ignore[attr-defined]
+            self_customer_id = self.customer_orgbase.pk if self.customer_orgbase else None  # type: ignore[attr-defined]
+            if vendor_org_id and vendor_org_id != self_vendor_id:
+                raise ValidationError("catalog.vendor_org mismatch with visit.vendor_org")
+            if customer_org_id and customer_org_id != self_customer_id:
+                raise ValidationError("catalog.customer_org mismatch with visit.customer_org")
+        return super().clean()
+
+
+class DeliveryLine(BaseModel):
+    @property
+    def ida(self):
+        return str(self.pk)
+
+    @property
+    def description(self):
+        return self.notes
+
+    """Intent + execution record for a single org item on a DeliveryVisit.
+
+    Quantity semantics:
+        * planned_qty  - expectation (route planning / allocation)
+        * loaded_qty   - what was physically loaded prior to departure
+        * delivered_qty- actual confirmed transfer to customer location
+        Variance / exceptions (skipped / partial) are expressed via status and
+        optional data payload (e.g., device captures, signatures, photos).
+
+    Skipping vs Partial:
+        skipped  -> zero delivered; reason captured in skipped_reason.
+        partial  -> delivered_qty < planned_qty but > 0.
+
+    Metadata (data JSON):
+        Space for ephemeral or structured snapshots (pricing, lot/serials,
+        geo positions, capture device identifiers) without schema churn.
+    """
+
+    STATUS_PLANNED = "planned"
+    STATUS_LOADED = "loaded"
+    STATUS_DELIVERED = "delivered"
+    STATUS_SKIPPED = "skipped"
+    STATUS_PARTIAL = "partial"
+    STATUSES = DELIVERY_LINE_STATUS_CHOICES
+
+    delivery_visit = models.ForeignKey(DeliveryVisit, on_delete=models.CASCADE, related_name='lines', db_column='deliveryvisit_id')
+    orgitem = models.ForeignKey('products.OrgItem', on_delete=models.CASCADE, related_name='delivery_lines', db_column='orgitem_id')
+    planned_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
+    loaded_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
+    delivered_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
+    skipped_reason = models.CharField(max_length=120, blank=True)
+    status = models.CharField(max_length=16, choices=STATUSES, default=STATUS_PLANNED, db_index=True)
+    config = models.JSONField(default=dict, blank=True, help_text="Aux data: pricing snapshot, adjustments, device capture")
+
+    def __str__(self):
+        return f"DeliveryLine {self.id} on visit {self.delivery_visit_id}"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=("delivery_visit", "orgitem"), name="uniq_delivery_visit_orgitem"),
+        ]
+        indexes = [
+            models.Index(fields=("status",), name="delvline_status_idx"),
+        ]

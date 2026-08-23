@@ -1,0 +1,124 @@
+{% load i18n admin_list admin_urls %}
+
+<div
+  id="tp-list-inner"
+  class="tp-list-inner"
+  data-app-label="{{ threepane_app_label }}"
+  data-model-name="{{ threepane_model_name }}"
+  data-list-url="{{ threepane_list_url }}"
+>
+  {% if media %}{{ media }}{% endif %}
+  <div class="tp-list-header" style="display:flex; align-items:center; gap:8px; justify-content:space-between; margin-bottom:12px;">
+    <h2 style="margin:0; font-size:15px;">{{ cl.opts.verbose_name_plural }}</h2>
+    <div style="display:flex; gap:6px; align-items:center;">
+      {% if has_add_permission %}
+        <a class="button" data-tp-static="1" href="{% url cl.opts|admin_urlname:'add' %}" target="_blank">{% trans "Add" %}</a>
+      {% endif %}
+      <span style="font-size:12px; color:var(--body-quiet-color, #777);">{{ cl.result_count }} {% trans "items" %}</span>
+    </div>
+  </div>
+
+  {% if cl.search_fields %}
+    <form
+      id="tp-search-form"
+      class="tp-search-form"
+      role="search"
+      hx-get="{{ threepane_list_url }}"
+      hx-target="#tp-list"
+      hx-push-url="true"
+      style="display:flex; gap:6px; margin-bottom:12px;"
+    >
+      <input
+        type="search"
+        name="{{ cl.search_var }}"
+        value="{{ cl.query }}"
+        aria-label="{% blocktranslate with name=cl.opts.verbose_name_plural %}Search {{ name }}{% endblocktranslate %}"
+        placeholder="{% blocktranslate with name=cl.opts.verbose_name_plural %}Search {{ name }}{% endblocktranslate %}"
+        style="flex:1; padding:6px 8px; border-radius:4px; border:1px solid var(--hairline-color, #ccc);"
+      >
+      {% for key, value in cl.params.items %}
+        {% if key != cl.search_var %}
+          <input type="hidden" name="{{ key }}" value="{{ value }}">
+        {% endif %}
+      {% endfor %}
+      <button type="submit" class="button">{% trans "Search" %}</button>
+      {% if cl.query %}
+        <a
+          class="button"
+          href="{{ threepane_list_url }}"
+          hx-get="{{ threepane_list_url }}"
+          hx-target="#tp-list"
+          hx-push-url="true"
+        >{% trans "Clear" %}</a>
+      {% endif %}
+    </form>
+  {% endif %}
+
+  {% if cl.filter_specs %}
+    <div class="tp-filters" style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
+      {% for spec in cl.filter_specs %}
+        {% if spec.has_output %}
+          <details {% if spec.used_parameters %}open{% endif %} style="border:1px solid var(--hairline-color, #ddd); border-radius:6px; padding:6px 8px;">
+            <summary style="cursor:pointer; font-weight:600;">{{ spec.title }}</summary>
+            <ul style="list-style:none; margin:6px 0 0; padding:0; display:flex; flex-direction:column; gap:4px;">
+              {% for choice in spec.choices %}
+                <li>
+                  <a
+                    class="tp-link{% if choice.selected %} is-active{% endif %}"
+                    href="{{ threepane_list_url }}{{ choice.query_string }}"
+                    hx-get="{{ threepane_list_url }}{{ choice.query_string }}"
+                    hx-target="#tp-list"
+                    hx-push-url="true"
+                    {% if choice.selected %}aria-current="true"{% endif %}
+                  >
+                    {{ choice.display }}
+                  </a>
+                </li>
+              {% endfor %}
+            </ul>
+          </details>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="tp-list-body" hx-boost="true" hx-target="#tp-list" hx-push-url="true">
+    <form
+      id="tp-changelist-form"
+      method="post"
+      novalidate
+      {% if cl.formset and cl.formset.is_multipart %}enctype="multipart/form-data"{% endif %}
+    >
+      {% csrf_token %}
+      {% if cl.formset %}
+        {{ cl.formset.management_form }}
+      {% endif %}
+
+      {% if action_form and actions_on_top and cl.full_result_count %}
+        {% admin_actions %}
+      {% endif %}
+
+      {% result_list cl %}
+
+      {% if action_form and actions_on_bottom and cl.full_result_count %}
+        {% admin_actions %}
+      {% endif %}
+
+      {% if cl.formset %}
+        {% for form in cl.formset.forms %}
+          {% for hidden in form.hidden_fields %}
+            {{ hidden }}
+          {% endfor %}
+        {% endfor %}
+      {% endif %}
+
+      {% for hidden in result_hidden_fields %}
+        {{ hidden }}
+      {% endfor %}
+    </form>
+    {% pagination cl %}
+  </div>
+  {% if cl.result_list %}
+    <div id="tp-first-record" data-detail-url="{% url 'admin:threepane_model_detail' threepane_app_label threepane_model_name cl.result_list.0.pk %}" hidden></div>
+  {% endif %}
+</div>

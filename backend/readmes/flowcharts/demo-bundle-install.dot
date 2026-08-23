@@ -1,0 +1,105 @@
+digraph demo_bundle_install {
+    rankdir=TB
+    fontname="Helvetica"
+    node [fontname="Helvetica" fontsize=11 shape=box style="rounded,filled" fillcolor="#f8f9fa" color="#dee2e6"]
+    edge [fontname="Helvetica" fontsize=9 color="#495057"]
+
+    // ── Title ──
+    labelloc=t
+    label="WebClerk3 — Install & Demo Bundle Flow"
+    fontsize=16
+
+    // ── Install Path ──
+    subgraph cluster_install {
+        label="Installation"
+        style="rounded,dashed"
+        color="#6c757d"
+        fontcolor="#6c757d"
+
+        git_clone [label="git clone\nwebClerk3 + React2025" fillcolor="#d4edda"]
+        choose [label="Choose path" shape=diamond fillcolor="#fff3cd"]
+        native [label="bash install-webclerk.sh\n(Mac / Linux)" fillcolor="#cce5ff"]
+        docker [label="docker compose up\n(Mac / Linux / Windows)" fillcolor="#cce5ff"]
+    }
+
+    // ── First Run ──
+    subgraph cluster_firstrun {
+        label="First-Run Entrypoint"
+        style="rounded,dashed"
+        color="#6c757d"
+        fontcolor="#6c757d"
+
+        detect [label="Empty database?" shape=diamond fillcolor="#fff3cd"]
+        migrate [label="manage.py migrate" fillcolor="#d4edda"]
+        seed [label="seed_freshstart\n(Settings, GL, Terms, RBAC)" fillcolor="#d4edda"]
+        demo_q [label="LOAD_DEMO_DATA=1?" shape=diamond fillcolor="#fff3cd"]
+        load_demo [label="load_demo_data\n(from demo-bundle.json)" fillcolor="#d4edda"]
+        skip_demo [label="Skip demo data" fillcolor="#f8f9fa"]
+        running [label="WebClerk3 running\nhttp://localhost:8000" fillcolor="#d4edda" color="#28a745" penwidth=2]
+    }
+
+    // ── Bundle Internals ──
+    subgraph cluster_bundle {
+        label="Demo Bundle — FK Resolution via uuid"
+        style="rounded,dashed"
+        color="#0d6efd"
+        fontcolor="#0d6efd"
+
+        bundle_json [label="demo-bundle.json\n85 Settings + 80 data records" fillcolor="#e7f1ff"]
+        import_contacts [label="1. Import contacts + orgs\n(no FK deps)" fillcolor="#e7f1ff"]
+        build_map [label="2. Build uuid→new_pk array\n{uuid: new_id} per model" fillcolor="#e7f1ff"]
+        import_items [label="3. Import items + BOM\n(remap item FK via uuid)" fillcolor="#e7f1ff"]
+        import_tx [label="4. Import transactions\ncustomer_id: old→uuid→new" fillcolor="#e7f1ff"]
+        import_lines [label="5. Import lines + payments + GL\n(remap parent + item FKs)" fillcolor="#e7f1ff"]
+        tagged [label="All records tagged\nrefs.source = demo-baseline" fillcolor="#e7f1ff"]
+    }
+
+    // ── Three Identifiers ──
+    subgraph cluster_ids {
+        label="Three Identifiers"
+        style="rounded,dashed"
+        color="#6f42c1"
+        fontcolor="#6f42c1"
+
+        id_field [label="id (BigAutoField)\nDatabase-local PK\nFast but not portable" fillcolor="#f0e6ff"]
+        uuid_field [label="uuid (UUIDField)\nUniversal bridge\nPortable across databases" fillcolor="#f0e6ff"]
+        ida_field [label="ida (CharField)\nHuman-readable\nBAT-01, INV-01, CON-01" fillcolor="#f0e6ff"]
+    }
+
+    // ── Remove Path ──
+    remove [label="manage.py remove_demo_data\nDELETE WHERE refs.source = demo-baseline\n(Settings preserved)" fillcolor="#f8d7da" color="#dc3545"]
+
+    // ── Edges: Install ──
+    git_clone -> choose
+    choose -> native [label="Mac/Linux"]
+    choose -> docker [label="any platform"]
+    native -> detect
+    docker -> detect
+
+    // ── Edges: First Run ──
+    detect -> migrate [label="yes"]
+    detect -> running [label="no\n(pending migrations only)"]
+    migrate -> seed
+    seed -> demo_q
+    demo_q -> load_demo [label="yes"]
+    demo_q -> skip_demo [label="no"]
+    load_demo -> running
+    skip_demo -> running
+
+    // ── Edges: Bundle ──
+    load_demo -> bundle_json [style=dashed]
+    bundle_json -> import_contacts
+    import_contacts -> build_map
+    build_map -> import_items
+    import_items -> build_map [label="extend array" style=dashed color="#0d6efd"]
+    import_items -> import_tx
+    import_tx -> build_map [label="extend array" style=dashed color="#0d6efd"]
+    import_tx -> import_lines
+    import_lines -> tagged
+
+    // ── Edges: Identifiers ──
+    uuid_field -> build_map [style=dashed label="uuid is\nthe bridge" color="#6f42c1"]
+
+    // ── Edges: Remove ──
+    running -> remove [label="when ready\nfor real data" style=dashed]
+}
