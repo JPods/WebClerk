@@ -1,7 +1,7 @@
 /* LastChecked: 2026-08-09 | WhereUsed: All Gantt components | WhoCreated: Bill+Claude */
 /**
- * Native Gantt types — replaces @svar-ui/react-gantt types.
- * Part of the Data-Driven UI architecture: JSON-configurable Gantt chart.
+ * Native Gantt types — JSON-configurable Gantt chart.
+ * Part of the Data-Driven UI architecture.
  */
 import React from "react";
 

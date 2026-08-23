@@ -105,9 +105,9 @@ export const invoiceSchema = baseInvoiceTransactionSchema
       .optional(),
     subtotal: z.number().nonnegative().optional(),
     tax_amount: z.number().nonnegative().optional(),
-    total_amount: z.number().nonnegative().optional(),
-    paid_amount: z.number().nonnegative().optional(),
+    total: z.number().nonnegative().optional(),
     balance: z.number().optional(),
+    totals: z.any().optional(),
 
     payment_method: z
       .string()
@@ -158,18 +158,17 @@ export const invoiceSchema = baseInvoiceTransactionSchema
   )
   .refine(
     (data) => {
-      if (
-        data.total_amount !== undefined &&
-        data.paid_amount !== undefined &&
-        data.balance !== undefined
-      ) {
-        const calculatedBalance = data.total_amount - data.paid_amount;
-        return data.balance === calculatedBalance;
+      // Balance validation uses totals envelope when available
+      const total = data.totals?.total ?? data.total;
+      const received = data.totals?.received ?? 0;
+      const balance = data.totals?.balance ?? data.balance;
+      if (total !== undefined && balance !== undefined) {
+        return Math.abs(balance - (total - received)) < 0.01;
       }
       return true;
     },
     {
-      message: "Balance must equal total amount minus paid amount",
+      message: "Balance must equal total minus received",
       path: ["balance"],
     }
   )

@@ -327,17 +327,15 @@ const BASE_COLUMNS: ColumnDef[] = [
     value: (rec) =>
       formatWholeNumber(
         getNumberFromPaths(rec, [
-          "total",
-          "total_amount",
           "totals.total",
+          "total",
           "amount",
         ]),
       ),
     resolvedPath: (rec) =>
       getResolvedNumberPath(rec, [
-        "total",
-        "total_amount",
         "totals.total",
+        "total",
         "amount",
       ]),
   },
@@ -504,10 +502,9 @@ const LEDGER_COLUMNS: ColumnDef[] = [
     value: (rec) =>
       formatWholeNumber(
         getNumberFromPaths(rec, [
-          "total",
-          "total_amount",
-          "amount",
           "totals.total",
+          "total",
+          "amount",
           "debit",
           "totals.debit",
           "amount_debit",
@@ -515,10 +512,9 @@ const LEDGER_COLUMNS: ColumnDef[] = [
       ),
     resolvedPath: (rec) =>
       getResolvedNumberPath(rec, [
-        "total",
-        "total_amount",
-        "amount",
         "totals.total",
+        "total",
+        "amount",
         "debit",
         "totals.debit",
         "amount_debit",
