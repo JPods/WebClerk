@@ -312,12 +312,12 @@ const FlightSimConsole: React.FC = () => {
       setSectionHeights(prev => {
         const next: [number, number, number] = [...prev];
         if (vDragging === 0) {
-          // Dragging between inventory and payments
+          // Dragging between counts and money
           const newTop = Math.max(15, Math.min(pct, 100 - next[2] - 15));
           next[1] = 100 - newTop - next[2];
           next[0] = newTop;
         } else {
-          // Dragging between payments and GL
+          // Dragging between money and GL
           const topFixed = next[0];
           const remaining = 100 - topFixed;
           const midPct = Math.max(15, Math.min(pct - topFixed, remaining - 15));
@@ -610,10 +610,10 @@ const FlightSimConsole: React.FC = () => {
 
           {/* Three vertically-stacked sections with drag handles */}
           <div className={`fs-left-sections ${vDragging !== null ? "fs-split--dragging" : ""}`}>
-            {/* Section 1: Inventory */}
+            {/* Section 1: Counts */}
             <div className="fs-section" style={{ height: `${sectionHeights[0]}%` }}>
               <div className="fs-section-header">
-                Inventory <span>{rows.length} rows</span>
+                Counts <span>{rows.length} rows</span>
               </div>
               <div className="fs-section-content">
                 {rows.length > 0 ? (
@@ -663,7 +663,7 @@ const FlightSimConsole: React.FC = () => {
                   </div>
                 ) : (
                   <div className="fs-section-empty">
-                    {loading ? "Loading..." : "No inventory events yet"}
+                    {loading ? "Loading..." : "No count events yet"}
                   </div>
                 )}
               </div>
@@ -675,10 +675,10 @@ const FlightSimConsole: React.FC = () => {
               onMouseDown={() => setVDragging(0)}
             />
 
-            {/* Section 2: Payments */}
+            {/* Section 2: Money */}
             <div className="fs-section" style={{ height: `${sectionHeights[1]}%` }}>
               <div className="fs-section-header">
-                Payments <span>{paymentRows.length} rows</span>
+                Money <span>{paymentRows.length} rows</span>
               </div>
               <div className="fs-section-content">
                 {paymentRows.length > 0 ? (
@@ -713,7 +713,7 @@ const FlightSimConsole: React.FC = () => {
                     })}
                   </div>
                 ) : (
-                  <div className="fs-section-empty">No payments yet</div>
+                  <div className="fs-section-empty">No money events yet</div>
                 )}
               </div>
             </div>

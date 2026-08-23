@@ -126,7 +126,9 @@ const UiDetail: React.FC<UiDetailProps> = ({
   // ── Inject initial lines from conversion (user reviews before saving) ──
   useEffect(() => {
     if (initialLines && Array.isArray(initialLines) && initialLines.length > 0 && data) {
-      setEditData((prev: any) => prev ? { ...prev, lines: initialLines } : prev);
+      // Mark converted lines as dirty so saveTransactionWithLines is used (strips read-only fields)
+      const markedLines = initialLines.map((l: any) => ({ ...l, _dirty: true }));
+      setEditData((prev: any) => prev ? { ...prev, lines: markedLines } : prev);
       setIsEditing(true);
     }
   }, [initialLines, data]);
@@ -134,6 +136,7 @@ const UiDetail: React.FC<UiDetailProps> = ({
   // ── Edit state ───────────────────────────────────────────────────
   const editTier = useMemo((): 'open' | 'pend' | 'closed' => {
     if (!data || !layout) return 'closed';
+    if (data.is_locked === true) return 'closed';
     const rules = layout.edit_rules as any;
     const statusField = rules.status_field || 'status';
     const status = String(data[statusField] || '').toLowerCase();
