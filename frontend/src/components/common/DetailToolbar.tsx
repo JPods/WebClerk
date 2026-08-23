@@ -164,10 +164,10 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${data.status === 'open' || data.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>{data.status}</span>
       )}
       {data?.totals?.total != null && (
-        <span className="text-xs text-slate-500">Total: <span className="font-medium">${(data.totals.total ?? 0).toLocaleString()}</span></span>
+        <span className="text-xs text-slate-500">total: <span className="font-medium">${(data.totals.total ?? 0).toLocaleString()}</span></span>
       )}
       {(data?.totals?.balance ?? 0) > 0 && (
-        <span className="text-xs text-red-500">Bal: <span className="font-medium">${(data.totals?.balance ?? 0).toLocaleString()}</span></span>
+        <span className="text-xs text-red-500">bal: <span className="font-medium">${(data.totals?.balance ?? 0).toLocaleString()}</span></span>
       )}
       {data?.id && <span className="text-xs font-mono text-slate-400 dark:text-slate-500">#{data.id}</span>}
 

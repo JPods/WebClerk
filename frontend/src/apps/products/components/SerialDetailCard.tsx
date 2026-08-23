@@ -6,6 +6,7 @@
 import React, { useEffect, useState } from "react";
 import { getRecords } from "@/api/wcapi";
 import { formatDt } from '@/utils/fieldFormatters';
+import { formatCurrency } from '@/utils/stringUtils';
 
 const STATUS_COLORS: Record<string, string> = {
   available: "bg-green-600",
@@ -79,8 +80,8 @@ export default function SerialDetailCard({ data }: Props) {
         <div className="space-y-3">
           <div className="bg-slate-800/50 rounded p-2 space-y-1">
             <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Financials</div>
-            <Row label="Cost" value={cfg.cost ? `$${Number(cfg.cost).toFixed(2)}` : "--"} />
-            <Row label="Price" value={cfg.price ? `$${Number(cfg.price).toFixed(2)}` : "--"} />
+            <Row label="Cost" value={formatCurrency(cfg.cost) || "--"} />
+            <Row label="Price" value={formatCurrency(cfg.price) || "--"} />
             <Row label="Discount" value={cfg.discount ? `${cfg.discount}%` : "--"} />
           </div>
 

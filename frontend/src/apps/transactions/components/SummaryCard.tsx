@@ -34,6 +34,7 @@ const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
 import { FaLock, FaShoppingCart, FaMoneyBillWave, FaUser } from "react-icons/fa";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import { formatDt } from '@/utils/fieldFormatters';
+import { formatCurrency, formatPercent } from '@/utils/stringUtils';
 
 interface SummaryCardProps {
   data: any;
@@ -68,15 +69,6 @@ interface SummaryCardProps {
   /** Denormalized org snapshots from refs.links */
   orgLinks?: { customer?: OrgLinkSnapshot | null; vendor?: OrgLinkSnapshot | null; manufacturer?: OrgLinkSnapshot | null };
 }
-// Utility functions
-const formatCurrency = (value?: number | null): string => {
-  if (value === undefined || value === null) return "--";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(value);
-};
 
 const formatNumber = (value?: number | null): string => {
   if (value === undefined || value === null) return "--";
@@ -604,7 +596,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 className="text-slate-500 dark:text-slate-400"
               />
               <dd className="font-mono text-slate-900 dark:text-white">
-                {formatCurrency(data.sell?.total ?? data.totals?.subtotal)}
+                {formatCurrency(data.sell?.total ?? 0)}
               </dd>
             </div>
 
@@ -628,7 +620,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                 className="text-slate-500 dark:text-slate-400"
               />
               <dd className="font-mono text-slate-900 dark:text-white">
-                {formatCurrency(data.totals?.tax ?? data.tax)}
+                {formatCurrency(data.totals?.tax ?? 0)}
               </dd>
             </div>
             {showShipping && (
@@ -707,7 +699,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                     className="text-slate-500 dark:text-slate-400"
                   />
                   <dd className="font-mono text-slate-600 dark:text-slate-400">
-                    {formatCurrency(data.cost?.total ?? data.totals?.cost)}
+                    {formatCurrency(data.cost?.total ?? 0)}
                   </dd>
                 </div>
 
@@ -728,7 +720,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
                     {formatCurrency(data.totals?.margin)}
                     {data.totals?.margin_pc != null && (
                       <span className="ml-1 text-xs">
-                        ({data.totals.margin_pc.toFixed(1)}%)
+                        ({formatPercent(data.totals.margin_pc)})
                       </span>
                     )}
                   </dd>

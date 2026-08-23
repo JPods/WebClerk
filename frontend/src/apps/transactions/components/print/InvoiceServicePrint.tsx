@@ -245,7 +245,7 @@ export default function InvoiceServicePrint({
               <tbody>
                 <tr className="font-bold">
                   <td className="py-1 text-right pr-3">Total Due</td>
-                  <td className="py-1 text-right">{formatCurrency(data.totals?.total ?? data.totals?.balance)}</td>
+                  <td className="py-1 text-right">{formatCurrency(data.totals?.total ?? 0)}</td>
                 </tr>
               </tbody>
             </table>

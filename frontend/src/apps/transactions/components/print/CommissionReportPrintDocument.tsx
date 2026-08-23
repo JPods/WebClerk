@@ -9,6 +9,7 @@
  */
 import React from 'react';
 import { formatCurrency } from './printTypes';
+import { formatPercent } from '@/utils/stringUtils';
 import { formatDt } from '@/utils/fieldFormatters';
 
 // ---------------------------------------------------------------------------
@@ -77,15 +78,15 @@ function CompanySummary({ data }: { data: CommissionReportData }) {
       <table className="print-table-lg">
         <thead>
           <tr className="print-thead-row">
-            <th className="print-th">Representative</th>
-            <th className="print-th-c">Basis</th>
-            <th className="print-th-r">Rate</th>
-            <th className="print-th-r">Invoices</th>
-            <th className="print-th-r">Sales Credited</th>
-            <th className="print-th-r">Commission</th>
-            <th className="print-th-r">Accrued</th>
-            <th className="print-th-r">Paid</th>
-            <th className="print-th-r">Pending</th>
+            <th className="print-th">representative</th>
+            <th className="print-th-c">basis</th>
+            <th className="print-th-r">rate</th>
+            <th className="print-th-r">invoices</th>
+            <th className="print-th-r">sales credited</th>
+            <th className="print-th-r">commission</th>
+            <th className="print-th-r">accrued</th>
+            <th className="print-th-r">paid</th>
+            <th className="print-th-r">pending</th>
           </tr>
         </thead>
         <tbody>
@@ -96,7 +97,7 @@ function CompanySummary({ data }: { data: CommissionReportData }) {
                 <div className="print-text-xs print-text-dim">{rep.rep_ida}</div>
               </td>
               <td className="print-td print-center print-text-sm">{rep.basis}</td>
-              <td className="print-td-r">{rep.rate_pct.toFixed(1)}%</td>
+              <td className="print-td-r">{formatPercent(rep.rate_pct)}</td>
               <td className="print-td-r">{rep.invoice_count}</td>
               <td className="print-td-mono">{fmt(rep.sales_credited)}</td>
               <td className="print-td-bold-mono">{fmt(rep.commission_earned)}</td>
@@ -134,6 +135,7 @@ function RepStatement({ data }: { data: CommissionReportData }) {
   if (!rep) return <div>No commission data for this rep in this period.</div>;
 
   const detail = rep.detail || [];
+  // Aggregate of server-provided detail values — no server-side detail aggregate available
   const totalCredited = detail.reduce((s, d) => s + d.credited, 0);
   const totalComm = detail.reduce((s, d) => s + d.commission, 0);
 
@@ -153,15 +155,15 @@ function RepStatement({ data }: { data: CommissionReportData }) {
       <table className="print-table-lg">
         <thead>
           <tr className="print-thead-row">
-            <th className="print-th">Invoice</th>
-            <th className="print-th">Date</th>
-            <th className="print-th">Customer</th>
-            <th className="print-th-r">Sale</th>
-            <th className="print-th-r">Credited</th>
-            <th className="print-th-r">Rate</th>
-            <th className="print-th-r">Eff Rate</th>
-            <th className="print-th-r">Commission</th>
-            <th className="print-th-c">Accrued</th>
+            <th className="print-th">invoice</th>
+            <th className="print-th">date</th>
+            <th className="print-th">customer</th>
+            <th className="print-th-r">sale</th>
+            <th className="print-th-r">credited</th>
+            <th className="print-th-r">rate</th>
+            <th className="print-th-r">eff rate</th>
+            <th className="print-th-r">commission</th>
+            <th className="print-th-c">accrued</th>
           </tr>
         </thead>
         <tbody>
@@ -172,8 +174,8 @@ function RepStatement({ data }: { data: CommissionReportData }) {
               <td className="print-td">{d.customer}</td>
               <td className="print-td-mono">{fmt(d.sale_amount)}</td>
               <td className="print-td-mono">{fmt(d.credited)}</td>
-              <td className="print-td-r">{d.rate_pct.toFixed(1)}%</td>
-              <td className="print-td-r">{(d.effective_rate || 0).toFixed(2)}%</td>
+              <td className="print-td-r">{formatPercent(d.rate_pct)}</td>
+              <td className="print-td-r">{formatPercent(d.effective_rate || 0, 2)}</td>
               <td className="print-td-bold-mono">{fmt(d.commission)}</td>
               <td className="print-td print-center print-text-sm">{d.accrued ? '✓' : '—'}</td>
             </tr>

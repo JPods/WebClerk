@@ -29,6 +29,7 @@ import {
   getModelWindowTitle,
 } from "@/apps/common/components/panels/getModelDetailPath";
 import { formatDt } from '@/utils/fieldFormatters';
+import { formatCurrency } from '@/utils/stringUtils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -160,17 +161,6 @@ const formatDate = (ts?: number) => {
   return formatDt(ts, 'date');
 };
 
-const formatCurrency = (value?: number, currency?: string) => {
-  if (value == null) return "—";
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency || "USD",
-    }).format(value);
-  } catch {
-    return `${currency || "$"}${value.toFixed(2)}`;
-  }
-};
 
 // Safely extract a numeric quantity from possible structured quantity objects
 const formatLineQuantity = (qty: any): string => {
@@ -247,40 +237,23 @@ const deriveLineDisplay = (
     line?.item?.unit_measure;
 
   const qtyActive = formatLineQuantity(
-    line?.quantity?.active ?? line?.qty ?? line?.quantity ?? line?.active,
+    line?.quantity?.active,
   );
   const qtyRemaining = formatLineQuantity(
-    line?.quantity?.remaining ?? line?.remaining ?? line?.children_active?.sum,
+    line?.quantity?.remaining,
   );
 
   const unitPrice = extractNumber(
     line?.price?.unit,
-    line?.price?.sell,
-    line?.price?.base,
-    line?.price?.retail,
-    line?.unit_price,
-    line?.price,
   );
   const unitCost = extractNumber(
     line?.cost?.unit,
-    line?.cost?.avg,
-    line?.cost?.last,
-    line?.unit_cost,
-    line?.cost,
   );
   const priceExtended = extractNumber(
     line?.price?.extended,
-    line?.extended,
-    line?.total,
-    typeof unitPrice === "number" && typeof line?.quantity?.active === "number"
-      ? unitPrice * line.quantity.active
-      : undefined,
   );
   const costExtended = extractNumber(
     line?.cost?.extended,
-    typeof unitCost === "number" && typeof line?.quantity?.active === "number"
-      ? unitCost * line.quantity.active
-      : undefined,
   );
   const extended = priceExtended ?? costExtended;
 
@@ -547,7 +520,7 @@ const TransactionTabs: React.FC<TransactionTabsProps> = ({
                       </span>
                     )}
                     <span className="text-slate-600 dark:text-slate-300">
-                      {formatCurrency(rec.total, rec.currency)}
+                      {formatCurrency(rec.total)}
                     </span>
                     <span className="text-slate-400">
                       {formatDate(rec.dt_created)}

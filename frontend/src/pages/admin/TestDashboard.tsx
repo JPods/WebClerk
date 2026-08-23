@@ -10,6 +10,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { getRecords, getRecord, manageAction } from '@/api/wcapi';
 import { formatDt } from '@/utils/fieldFormatters';
 import RecordLink from '@/components/common/RecordLink';
+import { formatCurrency } from '@/utils/stringUtils';
 
 interface InventoryImpact {
   type: string;        // 'invoice_line', 'order_line', 'purchase_line', 'proposal_line', 'inventory_layer', 'pending_adjustment'
@@ -115,8 +116,8 @@ function GLJournalSection() {
               <tr key={e.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800">
                 <td className="py-1.5 pr-2 font-mono text-gray-600">{e.ida || '—'}</td>
                 <td className="py-1.5 pr-2 font-mono font-semibold">{e.account}</td>
-                <td className="py-1.5 pr-2 text-right font-mono text-green-600">{e.debit ? `$${Number(e.debit).toFixed(2)}` : ''}</td>
-                <td className="py-1.5 pr-2 text-right font-mono text-red-600">{e.credit ? `$${Number(e.credit).toFixed(2)}` : ''}</td>
+                <td className="py-1.5 pr-2 text-right font-mono text-green-600">{e.debit ? formatCurrency(e.debit) : ''}</td>
+                <td className="py-1.5 pr-2 text-right font-mono text-red-600">{e.credit ? formatCurrency(e.credit) : ''}</td>
                 <td className="py-1.5 pr-2">
                   <span className={`text-[9px] px-1 py-0.5 rounded font-bold uppercase ${
                     e.type === 'sales' ? 'bg-yellow-100 text-yellow-700' :
@@ -130,6 +131,7 @@ function GLJournalSection() {
             ))}
           </tbody>
           <tfoot>
+            {/* Admin audit tool — GL balance verification requires client-side sum */}
             <tr className="border-t-2 border-gray-300 dark:border-gray-600 font-bold">
               <td className="py-2 pr-2" colSpan={2}>Totals</td>
               <td className="py-2 pr-2 text-right font-mono text-green-700">
@@ -143,7 +145,7 @@ function GLJournalSection() {
                   const d = glEntries.reduce((s: number, e: any) => s + (e.debit || 0), 0);
                   const c = glEntries.reduce((s: number, e: any) => s + (e.credit || 0), 0);
                   const diff = Math.abs(d - c);
-                  return diff < 0.01 ? '✓ Balanced' : `⚠ Out of balance by $${diff.toFixed(2)}`;
+                  return diff < 0.01 ? '✓ Balanced' : `⚠ Out of balance by ${formatCurrency(diff)}`;
                 })()}
               </td>
             </tr>

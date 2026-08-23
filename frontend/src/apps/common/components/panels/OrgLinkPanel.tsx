@@ -117,27 +117,27 @@ interface OrgRecordFieldDef {
 const ORG_RECORD_FIELDS: OrgRecordFieldDef[] = [
   {
     key: "display_name",
-    label: "Display Name",
+    label: "display name",
     width: "full",
     placeholder: "Company or person name",
   },
   {
     key: "company",
-    label: "Company",
+    label: "company",
     width: "half",
     placeholder: "Company alias",
   },
   {
     key: "attention",
-    label: "Attention",
+    label: "attention",
     width: "half",
     placeholder: "Attn line",
   },
-  { key: "email", label: "Email", width: "half", placeholder: "Primary email" },
-  { key: "phone", label: "Phone", width: "half", placeholder: "Primary phone" },
+  { key: "email", label: "email", width: "half", placeholder: "Primary email" },
+  { key: "phone", label: "phone", width: "half", placeholder: "Primary phone" },
   {
     key: "status",
-    label: "Status",
+    label: "status",
     width: "half",
     inputType: "select",
     options: [
@@ -151,11 +151,11 @@ const ORG_RECORD_FIELDS: OrgRecordFieldDef[] = [
   },
   {
     key: "price_level",
-    label: "Price Level",
+    label: "price level",
     width: "half",
     placeholder: "retail, wholesale…",
   },
-  { key: "notes", label: "Notes", width: "full", placeholder: "Notes" },
+  { key: "notes", label: "notes", width: "full", placeholder: "Notes" },
 ];
 
 // ---------------------------------------------------------------------------

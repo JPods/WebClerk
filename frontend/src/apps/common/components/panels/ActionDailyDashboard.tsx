@@ -16,6 +16,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getRecords } from '@/api/wcapi';
 import { getModelDetailPath } from './getModelDetailPath';
+import { formatCurrency } from '@/utils/stringUtils';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -80,9 +81,6 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function formatCurrency(n: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
-}
 
 function aggregateLinks(actions: ActionRecord[]): CardSummary[] {
   const map = new Map<string, { records: LinkedRecord[]; seen: Set<number> }>();
@@ -106,7 +104,7 @@ function aggregateLinks(actions: ActionRecord[]): CardSummary[] {
     .filter((m) => map.has(m))
     .map((m) => {
       const { records } = map.get(m)!;
-      const total = records.reduce((sum, r) => sum + (r.totals?.total ?? r.amount ?? 0), 0);
+      const total = records.reduce((sum, r) => sum + (r.totals?.total ?? 0), 0);
       return {
         model: m,
         label: MODEL_LABELS[m] || m,
@@ -327,9 +325,9 @@ const ActionDailyDashboard: React.FC<ActionDailyDashboardProps> = ({
                   <span className="db-text-muted" style={{ flex: 1 }}>
                     {r.company || r.name || ''}
                   </span>
-                  {(r.totals?.total ?? r.amount) != null && (
+                  {r.totals?.total != null && (
                     <span style={{ fontWeight: 600, marginLeft: 8 }}>
-                      {formatCurrency(r.totals?.total ?? r.amount ?? 0)}
+                      {formatCurrency(r.totals?.total ?? 0)}
                     </span>
                   )}
                   {r.status && (
@@ -370,7 +368,7 @@ const ActionDailyDashboard: React.FC<ActionDailyDashboardProps> = ({
             .filter(([, v]) => Array.isArray(v) && v.length > 0)
             .map(([model, records]) => {
               const r = (records as LinkedRecord[])[0];
-              const value = r.totals?.total ?? r.amount;
+              const value = r.totals?.total;
               return { model, ida: r.ida, value, id: r.id };
             });
 

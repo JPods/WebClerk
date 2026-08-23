@@ -495,14 +495,14 @@ const ActionCard: React.FC<ActionCardProps> = ({
 
 /** Column metadata for ColumnSetupDialog */
 const ACTION_COLUMN_METAS = [
-  { key: "ida", label: "IDA" },
-  { key: "action", label: "Action" },
-  { key: "project", label: "Project" },
-  { key: "status", label: "Status" },
-  { key: "progress", label: "Progress" },
-  { key: "priority", label: "Priority" },
-  { key: "difficulty", label: "Difficulty" },
-  { key: "assigned", label: "Assigned" },
+  { key: "ida", label: "ida" },
+  { key: "action", label: "action" },
+  { key: "project", label: "project" },
+  { key: "status", label: "status" },
+  { key: "progress", label: "progress" },
+  { key: "priority", label: "priority" },
+  { key: "difficulty", label: "difficulty" },
+  { key: "assigned", label: "assigned" },
 ];
 
 interface ActionsTableProps {
@@ -570,15 +570,15 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
       <table className="w-full text-xs">
         <thead className="sticky top-0 z-10 db-bg-surface">
           <tr className="text-left db-border-bottom db-text-muted">
-            {(!visibleColumns || visibleColumns.has("ida")) && <th className="py-2 px-2 font-medium">IDA</th>}
-            {(!visibleColumns || visibleColumns.has("action")) && <th className="py-2 px-2 font-medium">Action</th>}
-            {(!visibleColumns || visibleColumns.has("project")) && <th className="py-2 px-2 font-medium">Project</th>}
-            {(!visibleColumns || visibleColumns.has("status")) && <th className="py-2 px-2 font-medium">Status</th>}
-            {(!visibleColumns || visibleColumns.has("progress")) && <th className="py-2 px-2 font-medium">Progress</th>}
-            {(!visibleColumns || visibleColumns.has("priority")) && <th className="py-2 px-2 font-medium">Priority</th>}
-            {(!visibleColumns || visibleColumns.has("difficulty")) && <th className="py-2 px-2 font-medium">Difficulty</th>}
-            {(!visibleColumns || visibleColumns.has("assigned")) && <th className="py-2 px-2 font-medium">Assigned</th>}
-            {isEditing && <th className="py-2 px-2 font-medium">Actions</th>}
+            {(!visibleColumns || visibleColumns.has("ida")) && <th className="py-2 px-2 font-medium">ida</th>}
+            {(!visibleColumns || visibleColumns.has("action")) && <th className="py-2 px-2 font-medium">action</th>}
+            {(!visibleColumns || visibleColumns.has("project")) && <th className="py-2 px-2 font-medium">project</th>}
+            {(!visibleColumns || visibleColumns.has("status")) && <th className="py-2 px-2 font-medium">status</th>}
+            {(!visibleColumns || visibleColumns.has("progress")) && <th className="py-2 px-2 font-medium">progress</th>}
+            {(!visibleColumns || visibleColumns.has("priority")) && <th className="py-2 px-2 font-medium">priority</th>}
+            {(!visibleColumns || visibleColumns.has("difficulty")) && <th className="py-2 px-2 font-medium">difficulty</th>}
+            {(!visibleColumns || visibleColumns.has("assigned")) && <th className="py-2 px-2 font-medium">assigned</th>}
+            {isEditing && <th className="py-2 px-2 font-medium">actions</th>}
           </tr>
         </thead>
         <tbody>

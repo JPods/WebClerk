@@ -23,6 +23,7 @@ import {
   getModelDetailPath,
   getModelWindowTitle,
 } from "@/apps/common/components/panels/getModelDetailPath";
+import { formatCurrency } from "@/utils/stringUtils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -74,17 +75,6 @@ export interface ItemTabsProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const formatCurrency = (value?: number, currency?: string) => {
-  if (value == null) return "—";
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency || "USD",
-    }).format(value);
-  } catch {
-    return `${currency || "$"}${value.toFixed(2)}`;
-  }
-};
 
 const formatQty = (value?: number) =>
   value != null ? value.toLocaleString() : "—";
@@ -285,10 +275,10 @@ const ItemTabs: React.FC<ItemTabsProps> = ({
                       {formatQty(line.quantity)}
                     </span>
                     <span className="text-slate-600 dark:text-slate-300">
-                      {formatCurrency(line.unit_price, line.currency)}
+                      {formatCurrency(line.unit_price)}
                     </span>
                     <span className="font-medium text-slate-700 dark:text-slate-200">
-                      {formatCurrency(line.total, line.currency)}
+                      {formatCurrency(line.total)}
                     </span>
                     {line.source_ida && (
                       <span className="text-slate-400 font-mono">

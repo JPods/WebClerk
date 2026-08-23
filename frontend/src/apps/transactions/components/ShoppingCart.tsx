@@ -1,5 +1,6 @@
 /* LastChecked: 2026-08-01 | WhereUsed: Router | WhoCreated: Claude */
 import React from "react";
+import { formatCurrency } from "@/utils/stringUtils";
 
 interface CartItem {
   id: number;
@@ -18,8 +19,6 @@ interface ShoppingCartProps {
   onContinueShopping: () => void;
 }
 
-const formatCurrency = (amount: number): string =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
 
 const ShoppingCart: React.FC<ShoppingCartProps> = ({
   items,
@@ -28,8 +27,12 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({
   onCheckout,
   onContinueShopping,
 }) => {
+  // PJPV violation — client-side pricing engine. Needs a server-side cart totals
+  // endpoint that returns {subtotal, tax, total} in a JSON envelope. Until that
+  // endpoint exists, this client-side computation is the only source of truth.
+  // TODO: replace with server-provided totals once cart API returns them.
   const subtotal = items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
-  const taxRate = 0.0; // placeholder
+  const taxRate = 0.0; // placeholder — server must compute tax
   const tax = subtotal * taxRate;
   const total = subtotal + tax;
 

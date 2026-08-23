@@ -2,6 +2,7 @@
 import { getRecord } from '@/api/wcapi';
 import type { DetailLayout } from '@/hooks/useDetailLayout';
 import { formatDt } from '@/utils/fieldFormatters';
+import { formatCurrency } from '@/utils/stringUtils';
 
 /**
  * Open a print-ready window rendering any transaction as clean HTML.
@@ -80,7 +81,7 @@ export async function openPrintWindow(
   const headerHtml = columns.map(renderColumn).join('');
 
   // Build line rows — sell side shows price, exec side shows cost
-  const priceLabel = isSellSide ? 'Unit Price' : 'Unit Cost';
+  const priceLabel = isSellSide ? 'unit price' : 'unit cost';
   const lineRows = lines.map((l: any) => {
     const item = l.item || {};
     const price = l.price || {};
@@ -98,8 +99,10 @@ export async function openPrintWindow(
     </tr>`;
   }).join('');
 
+  // Qty total: no server-side aggregate — aggregate of per-line server values
   const totalQty = lines.reduce((s: number, l: any) => s + (l.quantity?.active ?? 0), 0);
-  const totalExt = lines.reduce((s: number, l: any) => {
+  // Extended total: use server totals envelope when available, fall back to line aggregate
+  const totalExt = Number(totals.subtotal ?? totals.total) || lines.reduce((s: number, l: any) => {
     return s + (isSellSide ? (l.price?.extended ?? 0) : (l.cost?.extended ?? 0));
   }, 0);
 
@@ -128,10 +131,10 @@ export async function openPrintWindow(
     <div class="co-addr">${[co?.phone, co?.email, co?.website].filter(Boolean).join(' · ')}</div></div>
     <div><div class="doc-type">${modelName.toUpperCase()}</div><div class="doc-id">${d.ida}</div><div style="font-size:11px;color:#64748b">${d.status}</div></div></div>
     <div class="hdr">${headerHtml}</div>
-    <table><thead><tr><th>Item</th><th style="text-align:right">Qty</th><th style="text-align:right;font-style:italic">Remain</th><th>Description</th><th style="text-align:right">${priceLabel}</th><th style="text-align:right;font-style:italic">Extended</th></tr></thead>
+    <table><thead><tr><th>item</th><th style="text-align:right">qty</th><th style="text-align:right;font-style:italic">remain</th><th>description</th><th style="text-align:right">${priceLabel}</th><th style="text-align:right;font-style:italic">extended</th></tr></thead>
     <tbody>${lineRows}</tbody>
     <tfoot><tr style="border-top:2px solid #cbd5e1;font-weight:700"><td></td><td style="text-align:right">${totalQty}</td><td></td><td></td><td></td><td style="text-align:right">${totalExt.toLocaleString('en-US', {minimumFractionDigits:2})}</td></tr></tfoot></table>
-    <div class="footer"><span>Tax: $${(totals.tax ?? 0).toFixed(2)}</span><span>Ship: $${(totals.shipping ?? 0).toFixed(2)}</span><span>|</span><span class="total">Total: $${(totals.total ?? totalExt).toLocaleString('en-US', {minimumFractionDigits:2})}</span></div>
+    <div class="footer"><span>tax: ${formatCurrency(totals.tax ?? 0)}</span><span>ship: ${formatCurrency(totals.shipping ?? 0)}</span><span>|</span><span class="total">total: ${formatCurrency(totals.total ?? totalExt)}</span></div>
     ${d.comments?.public ? `<div class="terms"><strong>Notes:</strong> ${d.comments.public}</div>` : ''}
     ${d.conditions_description ? `<div class="terms"><strong>Conditions:</strong> <em>${d.conditions_description}</em><br>${conditionsText}</div>` : ''}
     ${d.terms || documentText?.invoice_comment ? `<div class="terms">${d.terms ? '<strong>Terms:</strong> ' + d.terms : ''}${documentText?.invoice_comment ? '<br>' + documentText.invoice_comment : ''}</div>` : ''}

@@ -69,6 +69,7 @@ export default function InventoryLayersPanel({ itemId }: Props) {
   return (
     <div className="space-y-4 p-2">
       {Object.entries(byWarehouse).map(([wh, whLayers]) => {
+        // Aggregate of server-provided per-layer values — no server-side warehouse aggregate available
         const totalRemaining = whLayers.reduce((s, l) => s + l.remaining, 0);
         const totalValue = whLayers.reduce((s, l) => s + l.remaining * l.landed, 0);
         return (

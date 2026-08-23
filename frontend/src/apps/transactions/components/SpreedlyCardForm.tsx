@@ -21,6 +21,7 @@ import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
 import { fetchGatewayConfig, processGatewayPayment } from '../models/payment/services/paymentApi';
 import { FaLock, FaSpinner } from 'react-icons/fa';
+import { formatCurrency } from '@/utils/stringUtils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -159,7 +160,7 @@ export default function SpreedlyCardForm({
       const result = await processGatewayPayment(invoiceId, amount, paymentMethodToken);
       if (result.status === 'completed') {
         dispatch(showToast({
-          message: `Payment of $${amount.toFixed(2)} processed successfully`,
+          message: `Payment of ${formatCurrency(amount)} processed successfully`,
           type: 'success',
         }));
         onSuccess?.(result.payment_id);

@@ -16,6 +16,7 @@ import type { ItemSearchResult } from '../TransactionItemSearch';
 import { getNextLineNumber } from '../../utils/lineHelpers';
 import type { LineCardSection } from '@/hooks/useDetailLayout';
 import type { TransactionLine } from '../../types/transactionTypes';
+import { formatCurrency } from '@/utils/stringUtils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -144,7 +145,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
     },
   });
 
-  const formatCurrency = (v: number) => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   const formatNumber = (v: number) => v.toLocaleString();
 
   // ── Line type toggle ─────────────────────────────────────────────
@@ -254,16 +255,16 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
         {selectionLabel && <span className="text-blue-600 font-medium">{selectionLabel}</span>}
       </div>
       <div className="flex items-center gap-2 italic justify-end" style={{ fontSize: 'inherit' }}>
-        <span className="text-slate-400 dark:text-slate-500">Tax:</span>
+        <span className="text-slate-400 dark:text-slate-500">tax:</span>
         <span className="font-mono text-slate-600 dark:text-slate-300 w-14 text-right">{formatCurrency(data?.totals?.tax ?? 0)}</span>
-        <span className="text-slate-400 dark:text-slate-500">Ship:</span>
+        <span className="text-slate-400 dark:text-slate-500">ship:</span>
         <span className="font-mono text-slate-600 dark:text-slate-300 w-14 text-right">{formatCurrency(data?.totals?.shipping ?? 0)}</span>
-        <span className="text-slate-400 dark:text-slate-500">Other:</span>
+        <span className="text-slate-400 dark:text-slate-500">other:</span>
         <span className="font-mono text-slate-600 dark:text-slate-300 w-14 text-right">{formatCurrency(data?.totals?.other ?? 0)}</span>
         {lc.showCommission && isStaff && (
           <>
-            <span className="text-purple-400 dark:text-purple-300">Comm:</span>
-            <span className="font-mono text-purple-600 dark:text-purple-300 w-14 text-right">{formatCurrency(data?.commission?.total ?? activeRecords.reduce((s: number, r: any) => s + (r.comm_total ?? 0), 0))}</span>
+            <span className="text-purple-400 dark:text-purple-300">comm:</span>
+            <span className="font-mono text-purple-600 dark:text-purple-300 w-14 text-right">{formatCurrency(data?.commission?.total ?? 0)}</span>
           </>
         )}
         <span className="text-slate-300 dark:text-slate-600 not-italic">|</span>
@@ -282,23 +283,23 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
               className="font-mono text-green-700 dark:text-green-400 w-16 text-right not-italic cursor-default"
               title={`Paid: ${formatCurrency(data?.totals?.received ?? 0)}\nBalance: ${formatCurrency(data?.totals?.balance ?? 0)}`}
             >
-              <span className="text-slate-400 dark:text-slate-500 italic mr-0.5" style={{ fontSize: '0.85em' }}>Bal:</span>
+              <span className="text-slate-400 dark:text-slate-500 italic mr-0.5" style={{ fontSize: '0.85em' }}>bal:</span>
               {formatCurrency(data?.totals?.balance ?? 0)}
             </span>
           </>
         ) : (
           <>
-            <span className="text-slate-500 dark:text-slate-400">Deposit:</span>
+            <span className="text-slate-500 dark:text-slate-400">deposit:</span>
             <span className="font-mono font-medium text-slate-800 dark:text-slate-200 w-16 text-right">{formatCurrency(data?.totals?.deposit ?? 0)}</span>
           </>
         )}
         {footerBacklog > 0 && (
           <>
-            <span className="text-red-500 dark:text-red-400">Backlog:</span>
+            <span className="text-red-500 dark:text-red-400">backlog:</span>
             <span className="font-mono font-medium text-red-600 dark:text-red-400 w-16 text-right">{formatCurrency(footerBacklog)}</span>
           </>
         )}
-        <span className="text-slate-700 dark:text-slate-200 not-italic font-semibold">Total:</span>
+        <span className="text-slate-700 dark:text-slate-200 not-italic font-semibold">total:</span>
         <span className="font-bold text-slate-900 dark:text-white w-24 text-right not-italic">{formatCurrency(footerExtended)}</span>
       </div>
     </div>

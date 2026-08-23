@@ -4,14 +4,15 @@
  * Displays items that were recently added to orders for fast repeat selection
  */
 import React, { useState } from 'react';
-import { 
-  FaClock, 
+import {
+  FaClock,
   FaPlus,
   FaStar,
   FaHistory,
   FaChevronRight,
   FaChevronDown
 } from 'react-icons/fa';
+import { formatCurrency } from '@/utils/stringUtils';
 
 interface RecentItem {
   id: number;
@@ -104,13 +105,6 @@ const QuickAddRecent: React.FC<QuickAddRecentProps> = ({
     return 'Just now';
   };
 
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
 
   // Render item row
   const renderItem = (item: RecentItem) => (

@@ -152,6 +152,7 @@ export default function CycleCountPanel({ itemId, itemCode }: Props) {
   if (rows.length === 0) return <div className="p-4 text-xs text-slate-400">No active inventory layers for cycle count.</div>;
 
   const hasVariances = rows.some((r) => r.counted_qty !== null && r.variance !== 0);
+  // Aggregate of user-entered variance values — no server-side aggregate available
   const totalVariance = rows.reduce((s, r) => s + r.variance, 0);
 
   return (

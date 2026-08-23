@@ -3,6 +3,7 @@
 // Shows vendor/manufacturer cross-references for the selected line's item.
 import React from 'react';
 import { getRecords } from '@/api/wcapi';
+import { formatCurrency } from '@/utils/stringUtils';
 
 interface XRefPanelProps {
   itemId: number | null;
@@ -17,10 +18,6 @@ interface XRefRow {
   lead: number | null;
 }
 
-const formatCurrency = (v: number | null | undefined): string => {
-  if (v == null) return '—';
-  return `$${v.toFixed(2)}`;
-};
 
 const XRefPanel: React.FC<XRefPanelProps> = ({ itemId, itemCode }) => {
   const [xrefs, setXrefs] = React.useState<XRefRow[]>([]);

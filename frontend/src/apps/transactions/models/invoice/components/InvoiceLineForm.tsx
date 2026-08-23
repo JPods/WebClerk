@@ -37,6 +37,7 @@ export default function InvoiceLineForm({
     onSave(formData);
   };
 
+  // Preview only — server recalculates on save
   const calculateTotal = () => {
     return formData.quantity * formData.price.sell - formData.discount_amount;
   };

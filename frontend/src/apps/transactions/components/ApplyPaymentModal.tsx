@@ -9,6 +9,7 @@ import { FaTimes, FaDollarSign, FaCheck, FaSpinner } from 'react-icons/fa';
 import usePaymentApplication, { PaymentRecord, InvoiceRecord } from '../hooks/usePaymentApplication';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import { formatDt } from '@/utils/fieldFormatters';
+import { formatCurrency } from '@/utils/stringUtils';
 
 interface ApplyPaymentModalProps {
   isOpen: boolean;
@@ -92,14 +93,6 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
     }
   }, [selectedPayment, applyAmount, invoice.id, applyPaymentToInvoice, onPaymentApplied, onClose]);
 
-  // Format currency
-  const formatCurrency = (value: number | undefined | null): string => {
-    if (value == null) return '$0.00';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(value);
-  };
 
   // Format date
   const formatDate = (dateStr?: string | null): string => {

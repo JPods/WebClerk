@@ -39,6 +39,13 @@ export const formatCurrency = (n: number | string | null | undefined, symbol = '
   return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
+/** Format percent: 32.456 → "32.5%" (default 1 decimal) */
+export const formatPercent = (n: number | string | null | undefined, decimals = 1): string => {
+  const num = typeof n === 'string' ? parseFloat(n) : n;
+  if (num == null || isNaN(num)) return '';
+  return `${num.toFixed(decimals)}%`;
+};
+
 /** Format date from epoch ms: 1783000000000 → "Jul 2, 2026" */
 export const formatDate = (epochMs: number | null | undefined): string => {
   if (!epochMs) return '';

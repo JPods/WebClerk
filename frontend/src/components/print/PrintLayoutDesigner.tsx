@@ -100,10 +100,9 @@ function guessWidth(field: string, format: string): string | undefined {
 function autoLabel(field: string): string {
   const last = field.includes('.') ? field.split('.').pop()! : field;
   return last
-    .replace(/^dt_/, 'Date ')
-    .replace(/^ida$/, 'ID')
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, c => c.toUpperCase());
+    .replace(/^dt_/, 'date ')
+    .replace(/^ida$/, 'id')
+    .replace(/_/g, ' ');
 }
 
 function makePrintField(field: string): PrintField {
@@ -159,29 +158,29 @@ const PANEL_TEMPLATES: Record<string, () => PrintLayoutSection> = {
     type: 'address_blocks',
     columns: [
       { title: 'Bill To', fields: [
-        { field: 'attention', label: 'Attn' },
-        { field: 'company', label: 'Company' },
-        { field: 'address_full', label: 'Address' },
+        { field: 'attention', label: 'attn' },
+        { field: 'company', label: 'company' },
+        { field: 'address_full', label: 'address' },
       ]},
       { title: 'Ship To', fields: [
-        { field: 'config.ship_to.company', label: 'Company' },
-        { field: 'config.ship_to.attention', label: 'Attn' },
-        { field: 'config.ship_to.address1', label: 'Address' },
+        { field: 'config.ship_to.company', label: 'company' },
+        { field: 'config.ship_to.attention', label: 'attn' },
+        { field: 'config.ship_to.address1', label: 'address' },
       ]},
       { title: 'Info', fields: [
-        { field: 'ida', label: 'Order #' },
-        { field: 'status', label: 'Status' },
-        { field: 'dt_created', label: 'Date', format: 'date' as const },
-        { field: 'terms', label: 'Terms' },
+        { field: 'ida', label: 'order #' },
+        { field: 'status', label: 'status' },
+        { field: 'dt_created', label: 'date', format: 'date' as const },
+        { field: 'terms', label: 'terms' },
       ]},
     ],
   }),
   meta_row: () => ({
     type: 'meta_row',
     fields: [
-      { field: 'ida', label: 'ID' },
-      { field: 'status', label: 'Status' },
-      { field: 'dt_created', label: 'Date', format: 'date' as const },
+      { field: 'ida', label: 'id' },
+      { field: 'status', label: 'status' },
+      { field: 'dt_created', label: 'date', format: 'date' as const },
     ],
   }),
   detail_fields: () => ({ type: 'detail_fields', fields: [] }),
@@ -189,11 +188,11 @@ const PANEL_TEMPLATES: Record<string, () => PrintLayoutSection> = {
   line_items: () => ({
     type: 'line_items',
     columns: [
-      { field: 'item.ida_item', label: 'Item', align: 'left' as const },
-      { field: 'item.description', label: 'Description', align: 'left' as const, width: '40%' },
-      { field: 'quantity.active', label: 'Qty', align: 'right' as const },
-      { field: 'price.unit', label: 'Unit Price', align: 'right' as const, format: 'currency' as const },
-      { field: 'price.extended', label: 'Extended', align: 'right' as const, format: 'currency' as const },
+      { field: 'item.ida_item', label: 'item', align: 'left' as const },
+      { field: 'item.description', label: 'description', align: 'left' as const, width: '40%' },
+      { field: 'quantity.active', label: 'qty', align: 'right' as const },
+      { field: 'price.unit', label: 'unit price', align: 'right' as const, format: 'currency' as const },
+      { field: 'price.extended', label: 'extended', align: 'right' as const, format: 'currency' as const },
     ],
     show_footer_totals: true,
   }),
@@ -201,10 +200,10 @@ const PANEL_TEMPLATES: Record<string, () => PrintLayoutSection> = {
   totals: () => ({
     type: 'totals',
     rows: [
-      { field: 'totals.subtotal', label: 'Subtotal', format: 'currency' as const },
-      { field: 'totals.tax', label: 'Tax', format: 'currency' as const },
-      { field: 'totals.shipping', label: 'Shipping', format: 'currency' as const },
-      { field: 'totals.total', label: 'Total', format: 'currency' as const, bold: true },
+      { field: 'totals.subtotal', label: 'subtotal', format: 'currency' as const },
+      { field: 'totals.tax', label: 'tax', format: 'currency' as const },
+      { field: 'totals.shipping', label: 'shipping', format: 'currency' as const },
+      { field: 'totals.total', label: 'total', format: 'currency' as const, bold: true },
     ],
     left_text: 'Thank you for your business.',
   }),
@@ -217,8 +216,8 @@ const PANEL_TEMPLATES: Record<string, () => PrintLayoutSection> = {
   footer: () => ({
     type: 'footer',
     fields: [
-      { field: 'ida', label: 'Order #' },
-      { field: 'customer_id', label: 'Customer #' },
+      { field: 'ida', label: 'order #' },
+      { field: 'customer_id', label: 'customer #' },
     ],
   }),
   conditional_text: () => ({ type: 'conditional_text', source: 'statement.comments' } as any),

@@ -28,6 +28,7 @@ import { withDevIdentifier } from "@/components/common/DevIdentifier";
 import { PanelTable } from "./PanelTable";
 import type { PanelColumnDef } from "./PanelTable";
 import { formatDt } from '@/utils/fieldFormatters';
+import { formatCurrency } from '@/utils/stringUtils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -106,17 +107,6 @@ const formatDate = (ts?: number) => {
   return formatDt(ts, 'date');
 };
 
-const formatCurrency = (value?: number, currency?: string) => {
-  if (value == null) return "—";
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency || "USD",
-    }).format(value);
-  } catch {
-    return `${currency || "$"}${value.toFixed(2)}`;
-  }
-};
 
 // ---------------------------------------------------------------------------
 // Component
@@ -186,7 +176,7 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
         label: "total",
         cellClassName: "w-[90px] text-right",
         cellStyle: { color: 'var(--db-text)' },
-        render: (r) => formatCurrency(r.total, r.currency),
+        render: (r) => formatCurrency(r.total),
       },
       {
         key: "dt_created",

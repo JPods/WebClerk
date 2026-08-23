@@ -15,6 +15,7 @@ import { getRecords, saveRecord, manageAction } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
 import { formatDt } from '@/utils/fieldFormatters';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { formatCurrency } from '@/utils/stringUtils';
 
 interface PaymentMethod {
   id: number;
@@ -50,10 +51,6 @@ interface AddPaymentModalProps {
   defaultType?: 'received' | 'expense';
 }
 
-const formatCurrency = (value?: number | null) => {
-  if (value == null) return '--';
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
-};
 
 const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
   isOpen,
@@ -302,7 +299,7 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
 
   const applyAmountNum = parseFloat(applyAmount) || 0;
   const selectedAvail = selectedPayment
-    ? (selectedPayment.available ?? selectedPayment.amount ?? 0)
+    ? (selectedPayment.available ?? 0)
     : 0;
   const isValidApply = selectedPayment && applyAmountNum > 0
     && applyAmountNum <= selectedAvail

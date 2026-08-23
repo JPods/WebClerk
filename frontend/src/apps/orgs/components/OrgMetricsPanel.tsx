@@ -2,6 +2,7 @@
 import React from "react";
 import { FaChartLine, FaClock, FaShoppingCart, FaDollarSign } from "react-icons/fa";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
+import { formatCurrency } from "@/utils/stringUtils";
 
 interface OrgMetricsPanelProps {
   orgType?: "customer" | "vendor";
@@ -9,15 +10,6 @@ interface OrgMetricsPanelProps {
   className?: string;
 }
 
-const formatCurrency = (value?: number | null): string => {
-  if (value === undefined || value === null) return "--";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-};
 
 const formatDays = (value?: number | null): string => {
   if (value === undefined || value === null) return "--";

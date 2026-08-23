@@ -7,6 +7,7 @@ import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
 import FinancialsPanel from '@/apps/common/components/panels/FinancialsPanel';
 import { PanelTable, type PanelColumnDef } from '@/apps/common/components/panels/PanelTable';
 import type { TabsSection } from '@/hooks/useDetailLayout';
+import { formatCurrency, formatPercent } from '@/utils/stringUtils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -301,12 +302,12 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
   const cost = data?.cost || {};
 
   // All values from json.path.value — never compute independently
-  const totalExtended = Number(totals.total ?? totals.subtotal ?? 0);
-  const totalCost = Number(totals.cost ?? cost.total ?? 0);
+  const totalExtended = Number(totals.total ?? 0);
+  const totalCost = Number(totals.cost ?? 0);
   const margin = Number(totals.margin ?? 0);
   const marginPct = Number(totals.margin_pc ?? 0);
 
-  const fmt = (v: number | null | undefined) => v == null ? '—' : `$${Number(v).toFixed(2)}`;
+  const fmt = (v: number | null | undefined) => formatCurrency(v) || '—';
 
   // Customer data from refs links OR from the record's customer config
   const customerLink = data?.refs?.links?.customer?.[0] || {};
@@ -337,7 +338,7 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
     })();
   }, [data?.id]);
 
-  // json.path.value — read from each record's totals envelope, never scalar
+  // Aggregate of server-provided envelope values — no server-side cross-record aggregate available
   const totalPayments = payments.reduce((s: number, d: any) => s + Number(d.totals?.total ?? 0), 0);
   const totalInvoiced = invoices.reduce((s: number, d: any) => s + Number(d.totals?.total ?? 0), 0);
   const totalUnapplied = invoices.reduce((s: number, d: any) => s + Number(d.totals?.balance ?? 0), 0);
@@ -346,68 +347,68 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
     <div className="grid grid-cols-3 gap-6 text-xs">
       {/* Left: Order Totals */}
       <div>
-        <div className="text-xs font-bold text-[var(--db-text,#212529)] mb-2">Order Totals</div>
+        <div className="text-xs font-bold text-[var(--db-text,#212529)] mb-2">order totals</div>
         <div className="space-y-0.5">
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Lines</span><span className="font-mono">{lines.length}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Sell Amount</span><span className="font-mono">{fmt(sell.line_sum_goods ?? totals.subtotal)}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Discount</span><span className="font-mono">{fmt(totals.discount)}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Sell Total</span><span className="font-mono font-medium">{fmt(sell.total ?? totals.subtotal)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">lines</span><span className="font-mono">{lines.length}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">sell amount</span><span className="font-mono">{fmt(sell.line_sum_goods ?? 0)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">discount</span><span className="font-mono">{fmt(totals.discount)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">sell total</span><span className="font-mono font-medium">{fmt(sell.total ?? 0)}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Taxable</span><span className="font-mono">{fmt(totals.taxable)}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Tax</span><span className="font-mono">{fmt(totals.tax)}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Shipping</span><span className="font-mono">{fmt(totals.shipping)}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Other</span><span className="font-mono">{fmt(totals.other)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">taxable</span><span className="font-mono">{fmt(totals.taxable)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">tax</span><span className="font-mono">{fmt(totals.tax)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">shipping</span><span className="font-mono">{fmt(totals.shipping)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">other</span><span className="font-mono">{fmt(totals.other)}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
-          <div className="flex justify-between font-bold"><span>Total</span><span className="font-mono">{fmt(totals.total)}</span></div>
+          <div className="flex justify-between font-bold"><span>total</span><span className="font-mono">{fmt(totals.total)}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Cost</span><span className="font-mono">{fmt(cost.line_sum_goods ?? totals.cost)}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Freight</span><span className="font-mono">{fmt(cost.freight)}</span></div>
-          {isStaff && <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Commissions</span><span className="font-mono">{fmt(cost.commissions)}</span></div>}
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Cost Total</span><span className="font-mono">{fmt(cost.total ?? totals.cost)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">cost</span><span className="font-mono">{fmt(cost.line_sum_goods ?? 0)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">freight</span><span className="font-mono">{fmt(cost.freight)}</span></div>
+          {isStaff && <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">commissions</span><span className="font-mono">{fmt(cost.commissions)}</span></div>}
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">cost total</span><span className="font-mono">{fmt(cost.total ?? 0)}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
           <div className="flex justify-between">
-            <span className="text-[var(--db-text-muted,#6c757d)]">Margin</span>
-            <span className="font-mono text-green-600">{fmt(margin)} ({marginPct.toFixed(1)}%)</span>
+            <span className="text-[var(--db-text-muted,#6c757d)]">margin</span>
+            <span className="font-mono text-green-600">{fmt(margin)} ({formatPercent(marginPct)})</span>
           </div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Payments</span><span className="font-mono">{data?.finance?.payment_count ?? totals.payment_count ?? 0}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Received</span><span className="font-mono">{fmt(totals.received)}</span></div>
-          <div className="flex justify-between font-medium"><span>Balance</span><span className="font-mono">{fmt(totals.balance)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">payments</span><span className="font-mono">{data?.finance?.payment_count ?? totals.payment_count ?? 0}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">received</span><span className="font-mono">{fmt(totals.received)}</span></div>
+          <div className="flex justify-between font-medium"><span>balance</span><span className="font-mono">{fmt(totals.balance)}</span></div>
         </div>
       </div>
 
       {/* Right: Customer */}
       <div>
-        <div className="text-xs font-bold text-[var(--db-text,#212529)] mb-2">Customer</div>
+        <div className="text-xs font-bold text-[var(--db-text,#212529)] mb-2">customer</div>
         <div className="space-y-0.5">
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Company</span><span className="font-mono">{data?.company || data?.customer_company || customerData.company || customerData.display_name || '—'}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Price Level</span><span className="font-mono">{data?.price_level || '—'}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Terms</span><span className="font-mono">{data?.terms || '—'}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">company</span><span className="font-mono">{data?.company || data?.customer_company || customerData.company || customerData.display_name || '—'}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">price level</span><span className="font-mono">{data?.price_level || '—'}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">terms</span><span className="font-mono">{data?.terms || '—'}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
           <div className="text-[10px] font-medium text-[var(--db-text-dim,#adb5bd)] mb-1">Credit</div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Credit Limit</span><span className="font-mono">{fmt(customerData.credit_limit)}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Available</span><span className="font-mono">{fmt(customerData.credit_available)}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Balance Due</span><span className="font-mono">{fmt(customerData.balance_due)}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Current</span><span className="font-mono">{fmt(customerData.balance_current)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">credit limit</span><span className="font-mono">{fmt(customerData.credit_limit)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">available</span><span className="font-mono">{fmt(customerData.credit_available)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">balance due</span><span className="font-mono">{fmt(customerData.balance_due)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">current</span><span className="font-mono">{fmt(customerData.balance_current)}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
           <div className="text-[10px] font-medium text-[var(--db-text-dim,#adb5bd)] mb-1">Sales History</div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">MTD</span><span className="font-mono">{fmt(customerData.sales_mtd)}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">YTD</span><span className="font-mono">{fmt(customerData.sales_ytd)}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Lifetime</span><span className="font-mono">{fmt(customerData.sales_lifetime)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">mtd</span><span className="font-mono">{fmt(customerData.sales_mtd)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">ytd</span><span className="font-mono">{fmt(customerData.sales_ytd)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">lifetime</span><span className="font-mono">{fmt(customerData.sales_lifetime)}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
           <div className="text-[10px] font-medium text-[var(--db-text-dim,#adb5bd)] mb-1">Payment</div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Avg Days</span><span className="font-mono">{customerData.avg_pay_days ?? '—'}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">Last Payment</span><span className="font-mono">{fmt(customerData.last_payment_amount)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">avg days</span><span className="font-mono">{customerData.avg_pay_days ?? '—'}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">last payment</span><span className="font-mono">{fmt(customerData.last_payment_amount)}</span></div>
         </div>
       </div>
 
       {/* Right: Payments then Invoices */}
       <div>
-        <div className="text-xs font-bold text-[var(--db-text,#212529)] mb-2">Flow</div>
+        <div className="text-xs font-bold text-[var(--db-text,#212529)] mb-2">flow</div>
         <div className="space-y-0.5">
-          <div className="flex justify-between font-medium"><span>Total</span><span className="font-mono">{fmt(totalInvoiced || totals.total)}</span></div>
+          <div className="flex justify-between font-medium"><span>total</span><span className="font-mono">{fmt(totalInvoiced || totals.total)}</span></div>
           <div className="flex justify-between font-medium">
-            <span className={totalUnapplied > 0 ? 'text-red-600' : 'text-[var(--db-text-muted,#6c757d)]'}>Unapplied</span>
+            <span className={totalUnapplied > 0 ? 'text-red-600' : 'text-[var(--db-text-muted,#6c757d)]'}>unapplied</span>
             <span className={`font-mono ${totalUnapplied > 0 ? 'text-red-600 font-bold' : ''}`}>{fmt(totalUnapplied || totals.balance)}</span>
           </div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
@@ -424,7 +425,7 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
                   title="Double-click to open"
                 >
                   <span className="font-mono text-[var(--db-text,#212529)]">{doc.ida || `#${doc.id}`}</span>
-                  <span className="font-mono text-green-600">{fmt(doc.total ?? doc.totals?.total)}</span>
+                  <span className="font-mono text-green-600">{fmt(doc.totals?.total ?? 0)}</span>
                 </div>
               ))}
             </div>
@@ -444,9 +445,9 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
                   title="Double-click to open"
                 >
                   <span className="font-mono text-[var(--db-text,#212529)]">{doc.ida || `#${doc.id}`}</span>
-                  <span className="font-mono">{fmt(doc.total ?? doc.totals?.total)}</span>
-                  <span className={`font-mono ${Number(doc.balance ?? doc.totals?.balance ?? 0) > 0 ? 'text-red-500' : 'text-green-600'}`}>
-                    {fmt(doc.balance ?? doc.totals?.balance)}
+                  <span className="font-mono">{fmt(doc.totals?.total ?? 0)}</span>
+                  <span className={`font-mono ${Number(doc.totals?.balance ?? 0) > 0 ? 'text-red-500' : 'text-green-600'}`}>
+                    {fmt(doc.totals?.balance ?? 0)}
                   </span>
                 </div>
               ))}
@@ -509,10 +510,10 @@ export const ShippingTabContent: React.FC<{ data: any }> = ({ data }) => {
     <table className="w-full text-xs border-collapse">
       <thead>
         <tr className="bg-[var(--db-surface-alt,#f1f3f5)] text-[var(--db-text,#212529)]">
-          <th className="text-left px-2 py-1.5 font-medium">Carrier</th>
-          <th className="text-left px-2 py-1.5 font-medium">Shipment ID</th>
-          <th className="text-right px-2 py-1.5 font-medium">Mass</th>
-          <th className="text-left px-2 py-1.5 font-medium">Status</th>
+          <th className="text-left px-2 py-1.5 font-medium">carrier</th>
+          <th className="text-left px-2 py-1.5 font-medium">shipment id</th>
+          <th className="text-right px-2 py-1.5 font-medium">mass</th>
+          <th className="text-left px-2 py-1.5 font-medium">status</th>
         </tr>
       </thead>
       <tbody>

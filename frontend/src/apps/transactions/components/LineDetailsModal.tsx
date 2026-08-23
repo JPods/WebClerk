@@ -23,6 +23,7 @@ import {
 import type { TransactionLine } from "../types/transactionTypes";
 import { getRecord } from "@/api/wcapi";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
+import { formatPercent } from "@/utils/stringUtils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -771,7 +772,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                     </td>
                     <td className={`px-1 py-1 text-right ${val}`}>{fmtCurrency(costObj.unit_base)}</td>
                     <td className={`px-1 py-1 text-right ${val}`}>
-                      {costObj.discount_percent != null ? `${Number(costObj.discount_percent).toFixed(1)}%` : "--"}
+                      {costObj.discount_percent != null ? formatPercent(costObj.discount_percent) : "--"}
                     </td>
                     <td className={`px-1 py-1 text-right ${val}`}>{fmtCurrency(costObj.discount_amount)}</td>
                     <td className={`pl-1 py-1 text-right font-semibold ${val}`}>{fmtCurrency(costObj.extended)}</td>
@@ -795,7 +796,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                         : "text-red-600 dark:text-red-400"
                     }`}>
                       {priceObj.margin_pc != null
-                        ? `${Number(priceObj.margin_pc).toFixed(1)}%`
+                        ? formatPercent(priceObj.margin_pc)
                         : "--"}
                     </td>
                   </tr>
@@ -814,14 +815,14 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                     <span className={lbl}>Sales Tax</span>
                     <span className={val}>{fmtCurrency(taxObj.sales)}</span>
                     {taxObj.sales_rate != null && (
-                      <span className="text-xs text-slate-400 ml-0.5">({Number(taxObj.sales_rate).toFixed(2)}%)</span>
+                      <span className="text-xs text-slate-400 ml-0.5">({formatPercent(taxObj.sales_rate, 2)})</span>
                     )}
                   </span>
                   <span className="line-row-cost">
                     <span className={lbl}>Cost Tax</span>
                     <span className={val}>{fmtCurrency(taxObj.cost)}</span>
                     {taxObj.cost_rate != null && (
-                      <span className="text-xs text-slate-400 ml-0.5">({Number(taxObj.cost_rate).toFixed(2)}%)</span>
+                      <span className="text-xs text-slate-400 ml-0.5">({formatPercent(taxObj.cost_rate, 2)})</span>
                     )}
                   </span>
                 </div>

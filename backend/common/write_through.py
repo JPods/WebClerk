@@ -303,7 +303,6 @@ def forward_transaction_and_store(
     try:
         from apps.transactions.services.transaction_save import (
             save_transaction_with_lines,
-            calculate_header_totals,
         )
         from apps.core.utils import registry
 
@@ -348,10 +347,6 @@ def forward_transaction_and_store(
                 save_only_dirty=options.get("save_only_dirty", True),
             )
 
-            recalc_totals = calculate_header_totals(lines_data, record_data)
-            result['recalculated_totals'] = {
-                k: float(v) for k, v in recalc_totals.items()
-            }
         finally:
             # ── Restore the original default DB ──────────────────────
             settings.DATABASES['default'] = original_default
@@ -367,6 +362,11 @@ def forward_transaction_and_store(
                 try:
                     remote_header = HeaderModel.objects.using(remote_alias).get(pk=header_id)
                     _store_bundle_locally(HeaderModel, remote_header, _serialize_record(remote_header))
+
+                    # Authoritative totals from saved record (PJPV: JSON envelope is source of truth)
+                    totals_env = getattr(remote_header, 'totals', None)
+                    if isinstance(totals_env, dict):
+                        result['recalculated_totals'] = totals_env
 
                     # Sync lines too
                     LineModel = registry.resolve(f"{model_key}line")

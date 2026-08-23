@@ -119,12 +119,14 @@ def _po_exposure(
         v_id = vendor.id if vendor else 0
         v_name = str(vendor) if vendor else "Unknown"
 
-        # Sum cost.total from the purchase header; fall back to totals.cost
-        cost_blob = purchase.cost if isinstance(purchase.cost, dict) else {}
+        # PJPV: single authoritative path — totals.cost
         totals_blob = purchase.totals if isinstance(purchase.totals, dict) else {}
-        po_value = _safe_decimal(
-            cost_blob.get("total") or totals_blob.get("cost") or totals_blob.get("total") or 0
-        )
+        po_value = _safe_decimal(totals_blob.get('cost', 0))
+        if not po_value and totals_blob:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Purchase %s missing totals.cost — PJPV violation", purchase.id
+            )
 
         total_value += po_value
         if v_id not in vendor_rows:

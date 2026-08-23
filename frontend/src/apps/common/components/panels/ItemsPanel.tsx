@@ -25,6 +25,7 @@ import { withDevIdentifier } from "@/components/common/DevIdentifier";
 import { PanelTable } from "./PanelTable";
 import type { PanelColumnDef } from "./PanelTable";
 import { formatDt } from '@/utils/fieldFormatters';
+import { formatCurrency } from '@/utils/stringUtils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -88,17 +89,6 @@ export interface ItemsPanelProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const formatCurrency = (value?: number, currency?: string) => {
-  if (value == null) return "—";
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency || "USD",
-    }).format(value);
-  } catch {
-    return `${currency || "$"}${value.toFixed(2)}`;
-  }
-};
 
 const formatQty = (value?: number) =>
   value != null ? value.toLocaleString() : "—";
@@ -189,13 +179,13 @@ const ItemsPanel: React.FC<ItemsPanelProps> = ({
         key: "unit_price",
         label: "unit_price",
         cellClassName: "w-[80px] text-right",
-        render: (r) => <span className="db-text">{formatCurrency(r.unit_price, r.currency)}</span>,
+        render: (r) => <span className="db-text">{formatCurrency(r.unit_price)}</span>,
       },
       {
         key: "total",
         label: "total",
         cellClassName: "font-medium w-[80px] text-right",
-        render: (r) => <span className="db-text">{formatCurrency(r.total, r.currency)}</span>,
+        render: (r) => <span className="db-text">{formatCurrency(r.total)}</span>,
       },
       {
         key: "status",

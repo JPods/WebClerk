@@ -6,6 +6,7 @@
  * Label on left (fixed width), value on right.
  */
 import React from "react";
+import { formatCurrency } from "@/utils/stringUtils";
 
 export interface InfoRowProps {
   /** Field label — should match schema name exactly */
@@ -26,7 +27,7 @@ export function formatDisplayValue(val: unknown, isCurrency = false): string {
   if (val === null || val === undefined) return "—";
   if (typeof val === "boolean") return val ? "Yes" : "No";
   if (typeof val === "number") {
-    if (isCurrency) return `$${val.toFixed(2)}`;
+    if (isCurrency) return formatCurrency(val);
     return val.toLocaleString();
   }
   if (Array.isArray(val)) {

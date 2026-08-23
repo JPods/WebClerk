@@ -1149,6 +1149,7 @@ function ReconcileTab() {
     }
   };
 
+  // Aggregate of user-entered variance values — no server-side aggregate available
   const totalVariance = rows.reduce((sum, r) => sum + (r.variance || 0), 0);
   const countedRows = rows.filter((r) => r.physical_count !== null);
   const varianceRows = rows.filter((r) => r.variance !== null && r.variance !== 0);

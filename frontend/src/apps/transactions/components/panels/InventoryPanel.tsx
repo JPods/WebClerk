@@ -3,6 +3,7 @@
 // Shows inventory for selected (or all) line items in a compact table below the grid.
 import React from 'react';
 import { getRecords } from '@/api/wcapi';
+import { formatCurrency } from '@/utils/stringUtils';
 
 interface InventoryPanelProps {
   /** Item IDs to show inventory for */
@@ -26,10 +27,6 @@ interface InventoryRow {
 const formatNum = (v: number | null | undefined): string =>
   v == null ? '—' : v.toLocaleString();
 
-const formatCurrency = (v: number | null | undefined): string => {
-  if (v == null) return '—';
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(v);
-};
 
 const InventoryPanel: React.FC<InventoryPanelProps> = ({ itemIds }) => {
   const [rows, setRows] = React.useState<InventoryRow[]>([]);

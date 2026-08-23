@@ -4,6 +4,7 @@
 // Selection-aware totals: "Totals are for all lines if no lines are selected
 // or only the lines selected." — WC2 behavior.
 import React from 'react';
+import { formatCurrency, formatPercent } from '@/utils/stringUtils';
 
 interface MarginPanelProps {
   lines: any[];
@@ -11,8 +12,6 @@ interface MarginPanelProps {
   isSellSide: boolean;
 }
 
-const formatCurrency = (v: number): string =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(v);
 
 const marginStyle = (margin: number): React.CSSProperties =>
   margin > 0
@@ -64,12 +63,12 @@ const MarginPanel: React.FC<MarginPanelProps> = ({ lines, selectedIds, isSellSid
       <table className="w-full text-xs border-collapse">
         <thead>
           <tr style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
-            <th className="text-left px-2 py-1.5 font-medium">Item</th>
-            <th className="text-left px-2 py-1.5 font-medium">Description</th>
-            <th className="text-right px-2 py-1.5 font-medium">Qty</th>
-            <th className="text-right px-2 py-1.5 font-medium">Price</th>
-            <th className="text-right px-2 py-1.5 font-medium">Cost</th>
-            <th className="text-right px-2 py-1.5 font-medium">Margin</th>
+            <th className="text-left px-2 py-1.5 font-medium">item</th>
+            <th className="text-left px-2 py-1.5 font-medium">description</th>
+            <th className="text-right px-2 py-1.5 font-medium">qty</th>
+            <th className="text-right px-2 py-1.5 font-medium">price</th>
+            <th className="text-right px-2 py-1.5 font-medium">cost</th>
+            <th className="text-right px-2 py-1.5 font-medium">margin</th>
           </tr>
         </thead>
         <tbody>
@@ -100,20 +99,20 @@ const MarginPanel: React.FC<MarginPanelProps> = ({ lines, selectedIds, isSellSid
         <div className="mb-1" style={{ color: 'var(--db-text-dim)' }}>{selectionNote}</div>
         <div className="grid grid-cols-4 gap-4 text-right">
           <div>
-            <div style={{ color: 'var(--db-text-muted)' }}>Amount</div>
+            <div style={{ color: 'var(--db-text-muted)' }}>amount</div>
             <div className="font-bold" style={{ color: 'var(--db-text)' }}>{formatCurrency(totalPrice)}</div>
           </div>
           <div>
-            <div style={{ color: 'var(--db-text-muted)' }}>Cost</div>
+            <div style={{ color: 'var(--db-text-muted)' }}>cost</div>
             <div className="font-bold" style={{ color: 'var(--db-text)' }}>{formatCurrency(totalCost)}</div>
           </div>
           <div>
-            <div style={{ color: 'var(--db-text-muted)' }}>Margin</div>
+            <div style={{ color: 'var(--db-text-muted)' }}>margin</div>
             <div className="font-bold" style={{ color: 'var(--db-accent-green)' }}>{formatCurrency(totalMargin)}</div>
           </div>
           <div>
-            <div style={{ color: 'var(--db-text-muted)' }}>Margin %</div>
-            <div className="font-bold" style={{ color: 'var(--db-accent-green)' }}>{marginPct.toFixed(2)}%</div>
+            <div style={{ color: 'var(--db-text-muted)' }}>margin %</div>
+            <div className="font-bold" style={{ color: 'var(--db-accent-green)' }}>{formatPercent(marginPct, 2)}</div>
           </div>
         </div>
       </div>

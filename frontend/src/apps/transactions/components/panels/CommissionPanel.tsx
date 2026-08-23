@@ -3,6 +3,7 @@
 // Selection-aware totals matching MarginPanel pattern.
 // Hidden unless C toggle is active in footer bar.
 import React from 'react';
+import { formatCurrency, formatPercent } from '@/utils/stringUtils';
 
 interface CommissionPanelProps {
   lines: any[];
@@ -10,8 +11,6 @@ interface CommissionPanelProps {
   headerCommission?: any;
 }
 
-const formatCurrency = (v: number): string =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(v);
 
 const CommissionPanel: React.FC<CommissionPanelProps> = ({ lines, selectedIds, headerCommission }) => {
   // Build rows from lines — one row per line, showing primary rep info
@@ -91,9 +90,9 @@ const CommissionPanel: React.FC<CommissionPanelProps> = ({ lines, selectedIds, h
                   {rep.override && <span className="ml-1 text-[9px] db-text-gold">(override)</span>}
                 </div>
                 <div className="flex gap-3 mt-0.5 db-text-muted">
-                  <span>Rate: {rep.rate.toFixed(1)}%</span>
-                  {rep.split < 100 && <span>Split: {rep.split.toFixed(0)}%</span>}
-                  <span>Eff: {rep.effRate.toFixed(2)}%</span>
+                  <span>Rate: {formatPercent(rep.rate)}</span>
+                  {rep.split < 100 && <span>Split: {formatPercent(rep.split, 0)}</span>}
+                  <span>Eff: {formatPercent(rep.effRate, 2)}</span>
                   <span className="font-medium db-text-purple">{formatCurrency(rep.amount)}</span>
                   <span className="db-text-dim">{rep.basis}</span>
                 </div>
@@ -135,7 +134,7 @@ const CommissionPanel: React.FC<CommissionPanelProps> = ({ lines, selectedIds, h
                     : r.reps.map((rep: any) => rep.name || rep.rep_ida).join(', ')}
                 </td>
                 <td className="px-2 py-1 text-right">{primaryRep ? `${primaryRep.rate_pct}%` : '—'}</td>
-                <td className="px-2 py-1 text-right">{primaryRep ? `${primaryRep.effective_rate?.toFixed(2)}%` : '—'}</td>
+                <td className="px-2 py-1 text-right">{primaryRep ? formatPercent(primaryRep.effective_rate, 2) : '—'}</td>
                 <td className={`px-2 py-1 text-right font-medium db-text-purple ${hasOverride ? 'italic' : ''}`}>
                   {r.total > 0 ? formatCurrency(r.total) : '—'}
                 </td>
@@ -159,7 +158,7 @@ const CommissionPanel: React.FC<CommissionPanelProps> = ({ lines, selectedIds, h
           </div>
           <div>
             <div className="db-text-muted">Effective %</div>
-            <div className="font-bold db-text-purple">{commPct.toFixed(2)}%</div>
+            <div className="font-bold db-text-purple">{formatPercent(commPct, 2)}</div>
           </div>
         </div>
       </div>

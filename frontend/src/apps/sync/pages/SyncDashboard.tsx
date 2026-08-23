@@ -29,7 +29,7 @@ export default function SyncDashboard() {
     Promise.all(
       STAT_MODELS.map(m =>
         apiClient.get(`/wcapi/get/?model_name=${m}&limit=1`)
-          .then(r => [m, r.data?.data?.total ?? r.data?.data?.count ?? 0] as [string, number])
+          .then(r => [m, r.data?.data?.total ?? 0] as [string, number])
           .catch(() => [m, 0] as [string, number])
       )
     ).then(pairs => {

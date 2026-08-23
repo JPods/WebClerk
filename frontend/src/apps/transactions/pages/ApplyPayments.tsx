@@ -31,6 +31,7 @@ import usePaymentApplication, {
   InvoiceRecord,
 } from '../hooks/usePaymentApplication';
 import PaymentDialog from '../components/PaymentDialog';
+import { formatCurrency } from '@/utils/stringUtils';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -48,13 +49,6 @@ type SearchPayload = Pick<GetListPayload, 'results'> & { items?: unknown[] };
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-const formatCurrency = (value: number | undefined | null): string => {
-  if (value == null) return '$0.00';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(value);
-};
 
 const formatDate = (dateStr?: string | null): string => {
   if (!dateStr) return '--';
@@ -272,7 +266,7 @@ const ApplyPayments: React.FC = () => {
     if (totalApplied > paymentAvailable + 0.005) {
       dispatch(
         showToast({
-          message: `Applied total ($${totalApplied.toFixed(2)}) exceeds available ($${paymentAvailable.toFixed(2)})`,
+          message: `Applied total (${formatCurrency(totalApplied)}) exceeds available (${formatCurrency(paymentAvailable)})`,
           type: 'error',
         }),
       );
@@ -703,6 +697,7 @@ const ApplyPayments: React.FC = () => {
                           >
                             Totals
                           </td>
+                          {/* Aggregate of server-provided invoice balances — no server-side aggregate available */}
                           <td className="p-1.5 text-right font-mono font-medium text-amber-600 dark:text-amber-400 text-xs">
                             {formatCurrency(
                               invoices.reduce(

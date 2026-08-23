@@ -6,6 +6,7 @@
  * Context-aware: shows warranty on invoices, cost on purchases.
  */
 import type { PrintSerial } from './printTypes';
+import { formatCurrency } from '@/utils/stringUtils';
 
 interface SerialPrintSectionProps {
   serials: PrintSerial[];
@@ -74,9 +75,7 @@ export default function SerialPrintSection({
               )}
               {showCost && (
                 <td className="py-0.5 pr-3 text-right text-slate-600">
-                  {serial.cost != null
-                    ? `$${serial.cost.toFixed(2)}`
-                    : ''}
+                  {formatCurrency(serial.cost)}
                 </td>
               )}
             </tr>

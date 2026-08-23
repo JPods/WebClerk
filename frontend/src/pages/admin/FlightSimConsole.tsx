@@ -17,6 +17,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { manageAction, saveRecord } from "../../api/wcapi";
 import { FaSync } from "react-icons/fa";
 import "./FlightSimConsole.css";
+import { formatCurrency } from "@/utils/stringUtils";
 
 const UiDetail = React.lazy(() => import("../../apps/transactions/components/TransactionDetail"));
 
@@ -207,7 +208,7 @@ function transformRows(data: any): TransactionRow[] {
     let glSummary = "";
     if (row.gl && row.gl.length > 0) {
       glSummary = row.gl
-        .map((e: any) => `${e.side === "debit" ? "DR" : "CR"} ${e.account.split("-").slice(-2, -1)[0]} $${e.amount.toFixed(2)}`)
+        .map((e: any) => `${e.side === "debit" ? "DR" : "CR"} ${e.account.split("-").slice(-2, -1)[0]} ${formatCurrency(e.amount)}`)
         .join(", ");
     }
     return {

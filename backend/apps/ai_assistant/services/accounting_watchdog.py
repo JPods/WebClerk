@@ -99,11 +99,19 @@ def check_invoice_balances() -> dict:
     # Get all non-void invoices with a total (include demo data — users learn there)
     invoices = Invoice.objects.exclude(
         status__in=['void', 'cancelled', 'draft']
-    ).filter(total__isnull=False).only('id', 'ida', 'total', 'balance', 'status')
+    ).filter(total__isnull=False).only('id', 'ida', 'total', 'balance', 'status', 'totals')
 
     for inv in invoices[:500]:  # batch limit
-        total = Decimal(str(inv.total or 0))
-        recorded_balance = Decimal(str(inv.balance or 0))
+        # PJPV: read from JSON envelope, not scalar index fields
+        totals_env = inv.totals if isinstance(inv.totals, dict) else {}
+        if not totals_env:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Invoice %s missing totals JSON envelope — PJPV violation, skipping", inv.id
+            )
+            continue
+        total = Decimal(str(totals_env.get('total', 0)))
+        recorded_balance = Decimal(str(totals_env.get('balance', 0)))
 
         # Sum payments applied to this invoice
         pay_filter = Q(invoice_id=inv.id)

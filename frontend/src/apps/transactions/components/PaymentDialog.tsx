@@ -30,6 +30,7 @@ import { getRecords } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import SpreedlyCardForm from './SpreedlyCardForm';
+import { formatCurrency } from '@/utils/stringUtils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -248,7 +249,7 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
         const displayAmount = isCredit ? -parsedAmount : parsedAmount;
         dispatch(
           showToast({
-            message: `Payment of $${Math.abs(displayAmount).toFixed(2)} recorded`,
+            message: `Payment of ${formatCurrency(Math.abs(displayAmount))} recorded`,
             type: 'success',
           }),
         );
@@ -274,13 +275,6 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
 
   if (!isOpen) return null;
 
-  const formatCurrency = (v?: number | null) => {
-    if (v == null) return '--';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(v);
-  };
 
   const inputClass =
     'w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm';

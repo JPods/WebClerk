@@ -49,6 +49,8 @@ interface DDCardProps {
 // Metric computation
 // ---------------------------------------------------------------------------
 
+// Config-driven widget aggregations — server_action path preferred; client fallback
+// for dd_card configs without a server_action endpoint
 function computeMetrics(records: any[], metrics: MetricDef[]): { label: string; value: string }[] {
   return metrics.map((m) => {
     let raw: number;

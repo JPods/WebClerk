@@ -205,8 +205,8 @@ const normalizeRecords = (records: any[]): TransactionRecord[] =>
   records.map((r) => ({
     ...r,
     priority: r?.priority ?? r?.metadata?.priority ?? "",
-    total: Number(r?.total ?? r?.totals?.total ?? 0),
-    balance: Number(r?.balance ?? r?.totals?.balance ?? 0),
+    total: Number(r?.totals?.total ?? 0),
+    balance: Number(r?.totals?.balance ?? 0),
     attention: r?.attention ?? r?.to?.attention ?? r?.from?.attention ?? "",
     phone: r?.phone ?? r?.to?.phone ?? r?.from?.phone ?? "",
   }));

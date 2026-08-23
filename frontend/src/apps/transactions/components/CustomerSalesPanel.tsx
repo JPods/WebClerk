@@ -31,6 +31,7 @@ import { useWindowManager } from "@/context/WindowManagerContext";
 import { getModelDetailPath, getModelWindowTitle } from "@/apps/common/components/panels/getModelDetailPath";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import { formatDt } from '@/utils/fieldFormatters';
+import { formatCurrency } from '@/utils/stringUtils';
 
 // ---------- Constants ----------
 
@@ -159,15 +160,6 @@ export interface CustomerSalesPanelProps {
 
 // ---------- Utility functions ----------
 
-const formatCurrency = (value?: number | null): string => {
-  if (value === undefined || value === null) return "--";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-};
 
 const formatDate = (dateStr?: string | null): string => {
   if (!dateStr) return "--";

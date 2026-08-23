@@ -44,6 +44,7 @@ export default function OrderLineForm({ line, onSave, onCancel, onChange }: Orde
     onSave(formData);
   };
 
+  // Preview only — server recalculates on save
   const calculateTotal = () => {
     return (formData.quantity * formData.price.sell) - formData.discount_amount;
   };

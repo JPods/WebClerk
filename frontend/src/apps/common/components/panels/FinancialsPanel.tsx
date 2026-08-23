@@ -18,6 +18,7 @@ import type {
   TransactionSell,
 } from "@/apps/transactions/types/transactionTypes";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { formatCurrency, formatPercent } from '@/utils/stringUtils';
 
 interface FinancialsPanelProps {
   totals?: TransactionTotals;
@@ -28,19 +29,6 @@ interface FinancialsPanelProps {
   isEditing?: boolean;
 }
 
-const formatCurrency = (value?: number, currency: string = "USD"): string => {
-  if (value === undefined || value === null) return "--";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(value);
-};
-
-const formatPercent = (value?: number): string => {
-  if (value === undefined || value === null) return "--";
-  return `${value.toFixed(2)}%`;
-};
 
 const StatBox: React.FC<{
   label: string;
@@ -119,37 +107,37 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatBox
             label="Line Goods"
-            value={formatCurrency(sell.line_sum_goods, currency)}
+            value={formatCurrency(sell.line_sum_goods)}
             sublabel="Σ extended"
             mandatory
           />
           <StatBox
             label="Discount"
-            value={formatCurrency(sell.discount, currency)}
+            value={formatCurrency(sell.discount)}
             sublabel="Line discounts"
           />
           <StatBox
             label="Tax"
-            value={formatCurrency(sell.tax, currency)}
+            value={formatCurrency(sell.tax)}
           />
           <StatBox
             label="Sell Total"
-            value={formatCurrency(sell.total, currency)}
+            value={formatCurrency(sell.total)}
             highlight
           />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
           <StatBox
             label="Shipping"
-            value={formatCurrency(sell.shipping, currency)}
+            value={formatCurrency(sell.shipping)}
           />
           <StatBox
             label="Handling"
-            value={formatCurrency(sell.handling, currency)}
+            value={formatCurrency(sell.handling)}
           />
           <StatBox
             label="Other"
-            value={formatCurrency(sell.other, currency)}
+            value={formatCurrency(sell.other)}
           />
         </div>
       </div>
@@ -162,38 +150,38 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <StatBox
             label="Line Goods"
-            value={formatCurrency(cost.line_sum_goods, currency)}
+            value={formatCurrency(cost.line_sum_goods)}
             sublabel="Σ cost extended"
           />
           <StatBox
             label="Shipping"
-            value={formatCurrency(cost.line_sum_shipping, currency)}
+            value={formatCurrency(cost.line_sum_shipping)}
           />
           <StatBox
             label="Handling"
-            value={formatCurrency(cost.line_sum_handling, currency)}
+            value={formatCurrency(cost.line_sum_handling)}
           />
           <StatBox
             label="Freight"
-            value={formatCurrency(cost.freight, currency)}
+            value={formatCurrency(cost.freight)}
           />
           <StatBox
             label="Commissions"
-            value={formatCurrency(cost.commissions, currency)}
+            value={formatCurrency(cost.commissions)}
           />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
           <StatBox
             label="Tax"
-            value={formatCurrency(cost.tax, currency)}
+            value={formatCurrency(cost.tax)}
           />
           <StatBox
             label="Tax Rate"
-            value={cost.tax_rate != null ? formatPercent(cost.tax_rate) : "--"}
+            value={cost.tax_rate != null ? formatPercent(cost.tax_rate, 2) : "--"}
           />
           <StatBox
             label="Total Cost"
-            value={formatCurrency(cost.total, currency)}
+            value={formatCurrency(cost.total)}
             highlight
             mandatory
             locked
@@ -210,22 +198,22 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatBox
             label="Grand Total"
-            value={formatCurrency(totals.total, currency)}
+            value={formatCurrency(totals.total)}
             highlight
             mandatory
           />
           <StatBox
             label="Total Cost"
-            value={formatCurrency(totals.cost, currency)}
+            value={formatCurrency(totals.cost)}
           />
           <StatBox
             label="Margin $"
-            value={formatCurrency(marginAmount, currency)}
+            value={formatCurrency(marginAmount)}
             trend={marginTrend}
           />
           <StatBox
             label="Margin %"
-            value={marginPercent != null ? formatPercent(marginPercent) : "--"}
+            value={marginPercent != null ? formatPercent(marginPercent, 2) : "--"}
             trend={marginTrend}
             highlight
           />
@@ -240,11 +228,11 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
           <StatBox
             label="Received"
-            value={formatCurrency(totals.received ?? 0, currency)}
+            value={formatCurrency(totals.received ?? 0)}
           />
           <StatBox
             label="Balance"
-            value={formatCurrency(totals.balance ?? 0, currency)}
+            value={formatCurrency(totals.balance ?? 0)}
             trend={(totals.balance ?? 0) <= 0 ? "up" : "down"}
           />
         </div>

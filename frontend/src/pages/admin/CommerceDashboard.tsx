@@ -19,6 +19,7 @@ import apiClient from '../../api/axios';
 import { getRecords } from '../../api/wcapi';
 import DataGrid from '../../components/common/DataGrid';
 import './CommerceDashboard.css';
+import { formatCurrency, formatPercent } from '@/utils/stringUtils';
 
 type TabKey = 'sales' | 'purchasing' | 'inventory' | 'velocity' | 'accounting';
 
@@ -216,7 +217,7 @@ function MarginDistribution({ distribution }: { distribution: any }) {
   const { buckets, total, totals } = distribution;
   if (!buckets || buckets.length === 0 || !total) return null;
 
-  const $ = (v: number) => `$${(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const $ = (v: number) => formatCurrency(v ?? 0);
   const colors = ['#e05252', '#e8c870', '#4ec98c', '#9cdcfe'];
 
   return (
@@ -275,7 +276,7 @@ function MarginDistribution({ distribution }: { distribution: any }) {
               <td className="cd-align-right">{$(totals.tax)}</td>
               <td className="cd-align-right">{$(totals.commission)}</td>
               <td className="cd-align-right">{$(totals.margin)}</td>
-              <td className="cd-align-right">{totals.revenue ? `${((totals.margin / totals.revenue) * 100).toFixed(1)}%` : '—'}</td>
+              <td className="cd-align-right">{totals.revenue ? formatPercent((totals.margin / totals.revenue) * 100) : '—'}</td>
             </tr>
           </tfoot>
         )}
@@ -376,17 +377,17 @@ function SalesTab({ data, filters, themeKey }: { data: any; filters: Filters; th
   return (
     <div className="cd-tab-content">
       <div className="cd-metrics-row">
-        <MetricCard label="Orders" value={tx.orders?.count || 0} sub={`$${(tx.orders?.total || 0).toLocaleString()}`}
+        <MetricCard label="Orders" value={tx.orders?.count ?? 0} sub={formatCurrency(tx.orders?.total ?? 0)}
           active={selected === 'order'} onClick={() => toggle('order')} />
-        <MetricCard label="Invoices" value={tx.invoices?.count || 0} sub={`$${(tx.invoices?.total || 0).toLocaleString()}`}
+        <MetricCard label="Invoices" value={tx.invoices?.count ?? 0} sub={formatCurrency(tx.invoices?.total ?? 0)}
           active={selected === 'invoice'} onClick={() => toggle('invoice')} />
-        <MetricCard label="Proposals" value={tx.proposals?.count || 0} sub={`$${(tx.proposals?.total || 0).toLocaleString()}`}
+        <MetricCard label="Proposals" value={tx.proposals?.count ?? 0} sub={formatCurrency(tx.proposals?.total ?? 0)}
           active={selected === 'proposal'} onClick={() => toggle('proposal')} />
       </div>
       <div className="cd-metrics-row">
-        <MetricCard label="Avg Margin" value={`${(margin.avg_pct || 0).toFixed(1)}%`} />
-        <MetricCard label="Above Margin" value={margin.above_count || 0} />
-        <MetricCard label="Below Margin" value={margin.below_count || 0} sub={`Floor: ${margin.floor || 20}%`} />
+        <MetricCard label="Avg Margin" value={formatPercent(margin.avg_pct ?? 0)} />
+        <MetricCard label="Above Margin" value={margin.above_count ?? 0} />
+        <MetricCard label="Below Margin" value={margin.below_count ?? 0} sub={`Floor: ${margin.floor ?? 20}%`} />
       </div>
       {margin.distribution?.buckets?.length > 0 && (
         <MarginDistribution distribution={margin.distribution} />
@@ -415,25 +416,25 @@ function PurchasingTab({ data, filters }: { data: any; filters: Filters }) {
   return (
     <div className="cd-tab-content">
       <div className="cd-metrics-row">
-        <MetricCard label="POs Open" value={po.open || 0}
+        <MetricCard label="POs Open" value={po.open ?? 0}
           active={selected?.model === 'purchase' && selected?.status === 'open'} onClick={() => toggle('purchase', 'open')} />
-        <MetricCard label="POs Partial" value={po.partial || 0}
+        <MetricCard label="POs Partial" value={po.partial ?? 0}
           active={selected?.model === 'purchase' && selected?.status === 'partial'} onClick={() => toggle('purchase', 'partial')} />
-        <MetricCard label="POs Received" value={po.received || 0}
+        <MetricCard label="POs Received" value={po.received ?? 0}
           active={selected?.model === 'purchase' && selected?.status === 'released'} onClick={() => toggle('purchase', 'released')} />
-        <MetricCard label="POs Total" value={po.total || 0}
+        <MetricCard label="POs Total" value={po.total ?? 0}
           active={selected?.model === 'purchase' && !selected?.status} onClick={() => toggle('purchase')} />
       </div>
       <div className="cd-metrics-row">
-        <MetricCard label="WOs Open" value={wo.open || 0}
+        <MetricCard label="WOs Open" value={wo.open ?? 0}
           active={selected?.model === 'work_order' && selected?.status === 'open'} onClick={() => toggle('work_order', 'open')} />
-        <MetricCard label="WOs In Progress" value={wo.in_progress || 0} />
-        <MetricCard label="WOs Completed" value={wo.completed || 0} />
+        <MetricCard label="WOs In Progress" value={wo.in_progress ?? 0} />
+        <MetricCard label="WOs Completed" value={wo.completed ?? 0} />
       </div>
       <div className="cd-metrics-row">
-        <MetricCard label="Receipts" value={receipts.count || 0} sub={`Qty: ${receipts.qty || 0}`} />
-        <MetricCard label="Layers Created" value={layers.created || 0} />
-        <MetricCard label="Unreconciled" value={layers.unreconciled || 0} sub="Layers >30 days" />
+        <MetricCard label="Receipts" value={receipts.count ?? 0} sub={`Qty: ${receipts.qty ?? 0}`} />
+        <MetricCard label="Layers Created" value={layers.created ?? 0} />
+        <MetricCard label="Unreconciled" value={layers.unreconciled ?? 0} sub="Layers >30 days" />
       </div>
       {selected && (
         <MetricList modelName={selected.model} filters={listFilters} period_days={filters.period_days} />
@@ -469,7 +470,7 @@ function InventoryTab({ data, filters }: { data: any; filters: Filters }) {
         <MetricCard label="Low Stock" value={data?.low_stock_count || 0} />
       </div>
       <div className="cd-metrics-row">
-        <MetricCard label="Inventory Value" value={`$${(data?.total_value || 0).toLocaleString()}`} />
+        <MetricCard label="Inventory Value" value={formatCurrency(data?.total_value ?? 0)} />
         <MetricCard label="Avg Turns" value={(data?.avg_turns || 0).toFixed(1)} />
       </div>
       {selected && (
@@ -494,7 +495,7 @@ function VelocityTab({ data }: { data: any }) {
                 <td>{item.ida}</td>
                 <td>{(item.name || '').slice(0, 30)}</td>
                 <td>{(item.margin_velocity || 0).toFixed(2)}</td>
-                <td>{(item.margin_pct || 0).toFixed(1)}%</td>
+                <td>{formatPercent(item.margin_pct || 0)}</td>
                 <td>{(item.annual_turns || 0).toFixed(1)}</td>
               </tr>
             ))}
@@ -524,8 +525,9 @@ function AccountingTab({ data }: { data: any }) {
   const summary = data?.account_summary || [];
   const docs = data?.document_counts || {};
   const stale = data?.unaccounted_prior || {};
-  const totalDebit = summary.reduce((s: number, r: any) => s + (r.debit || 0), 0);
-  const totalCredit = summary.reduce((s: number, r: any) => s + (r.credit || 0), 0);
+  // Aggregate of server-provided GL rows — balance check requires client-side sum
+  const totalDebit = summary.reduce((s: number, r: any) => s + (r.debit ?? 0), 0);
+  const totalCredit = summary.reduce((s: number, r: any) => s + (r.credit ?? 0), 0);
   const balanced = Math.abs(totalDebit - totalCredit) < 0.01;
 
   const openStaleInDbr = (model: string) => {
@@ -554,12 +556,12 @@ function AccountingTab({ data }: { data: any }) {
       {/* AR Aging summary */}
       {(data?.aging) && (
         <div className="cd-metrics-row">
-          <MetricCard label="Future" value={`$${(data.aging.future || 0).toLocaleString()}`} sub="Not yet due" />
-          <MetricCard label="Current" value={`$${(data.aging.current || 0).toLocaleString()}`} sub="Due ≤ 30 days" />
-          <MetricCard label="1-30 Past Due" value={`$${(data.aging.period_1 || 0).toLocaleString()}`} />
-          <MetricCard label="31-60 Past Due" value={`$${(data.aging.period_2 || 0).toLocaleString()}`} />
-          <MetricCard label="60+ Past Due" value={`$${(data.aging.period_3 || 0).toLocaleString()}`} />
-          <MetricCard label="Total AR" value={`$${(data.aging.total || 0).toLocaleString()}`} />
+          <MetricCard label="Future" value={formatCurrency(data.aging.future ?? 0)} sub="Not yet due" />
+          <MetricCard label="Current" value={formatCurrency(data.aging.current ?? 0)} sub="Due ≤ 30 days" />
+          <MetricCard label="1-30 Past Due" value={formatCurrency(data.aging.period_1 ?? 0)} />
+          <MetricCard label="31-60 Past Due" value={formatCurrency(data.aging.period_2 ?? 0)} />
+          <MetricCard label="60+ Past Due" value={formatCurrency(data.aging.period_3 ?? 0)} />
+          <MetricCard label="Total AR" value={formatCurrency(data.aging.total ?? 0)} />
         </div>
       )}
 
@@ -567,8 +569,8 @@ function AccountingTab({ data }: { data: any }) {
       {(data?.credit_metrics) && (
         <div className="cd-metrics-row">
           <MetricCard label="Avg Days to Pay" value={data.credit_metrics.days_avg_paid || '—'} />
-          <MetricCard label="High Credit" value={`$${(data.credit_metrics.high_credit || 0).toLocaleString()}`} sub="Peak balance ever" />
-          <MetricCard label="Total Exposure" value={`$${(data.credit_metrics.total_exposure || 0).toLocaleString()}`} sub="AR + open orders" />
+          <MetricCard label="High Credit" value={formatCurrency(data.credit_metrics.high_credit ?? 0)} sub="Peak balance ever" />
+          <MetricCard label="Total Exposure" value={formatCurrency(data.credit_metrics.total_exposure ?? 0)} sub="AR + open orders" />
         </div>
       )}
 
@@ -632,8 +634,8 @@ function AccountingTab({ data }: { data: any }) {
               <tr key={i}>
                 <td className="cd-mono">{row.account}</td>
                 <td>{row.account_name}</td>
-                <td className="cd-align-right cd-mono">{row.debit ? `$${row.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : ''}</td>
-                <td className="cd-align-right cd-mono">{row.credit ? `$${row.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : ''}</td>
+                <td className="cd-align-right cd-mono">{row.debit ? formatCurrency(row.debit) : ''}</td>
+                <td className="cd-align-right cd-mono">{row.credit ? formatCurrency(row.credit) : ''}</td>
               </tr>
             ))}
           </tbody>
@@ -645,7 +647,7 @@ function AccountingTab({ data }: { data: any }) {
             </tr>
             <tr>
               <td colSpan={4} className="cd-balance-status">
-                {balanced ? '✓ Balanced' : `⚠ Out of balance: $${(totalDebit - totalCredit).toFixed(2)}`}
+                {balanced ? '✓ Balanced' : `⚠ Out of balance: ${formatCurrency(totalDebit - totalCredit)}`}
               </td>
             </tr>
           </tfoot>

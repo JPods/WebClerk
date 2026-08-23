@@ -18,6 +18,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getRecords } from '../../api/wcapi';
+import { formatCurrency } from '@/utils/stringUtils';
 
 interface PartMapping {
   /** SVG element ID or data-part value */
@@ -54,8 +55,7 @@ interface SegaPartsViewerProps {
   onAddToCart?: (item: ItemDetail, qty: number) => void;
 }
 
-const fmt = (n?: number) =>
-  n != null ? `$${n.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '';
+const fmt = (n?: number) => formatCurrency(n);
 
 const SegaPartsViewer: React.FC<SegaPartsViewerProps> = ({
   svgUrl,

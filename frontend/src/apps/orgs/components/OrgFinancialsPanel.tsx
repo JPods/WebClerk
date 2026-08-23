@@ -20,6 +20,7 @@ import type {
 } from '../types/orgTypes';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import { formatDt } from '@/utils/fieldFormatters';
+import { formatCurrency, formatPercent } from '@/utils/stringUtils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -54,20 +55,6 @@ type FinancialTabKey = 'common' | 'customer' | 'vendor' | 'rep' | 'employee' | '
 // Helpers
 // ---------------------------------------------------------------------------
 
-const formatCurrency = (value: number | undefined | null, currency: string = 'USD'): string => {
-  if (value === undefined || value === null) return '--';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-};
-
-const formatPercent = (value: number | undefined | null): string => {
-  if (value === undefined || value === null) return '--';
-  return `${value.toFixed(2)}%`;
-};
 
 const formatNumber = (value: number | undefined | null): string => {
   if (value === undefined || value === null) return '--';
@@ -172,7 +159,7 @@ const CommonTab: React.FC<{ data?: OrgFinancialCommon; currency: string }> = ({ 
       </Section>
       
       <Section title="Settings" icon={<FaCreditCard size={12} />}>
-        <LineItem label="Discount %" value={formatPercent(data.settings?.discount_pct)} />
+        <LineItem label="Discount %" value={formatPercent(data.settings?.discount_pct, 2)} />
         <LineItem label="Tax Exempt" value={data.settings?.tax_exempt ? 'Yes' : 'No'} />
         {data.settings?.tax_exempt_id && (
           <>
@@ -197,58 +184,58 @@ const CustomerTab: React.FC<{ data?: OrgFinancialCustomer; currency: string }> =
   return (
     <div className="space-y-2">
       <Section title="Credit & Balances" icon={<FaCreditCard size={12} />}>
-        <LineItem label="Credit Limit" value={formatCurrency(data.credit?.limit, currency)} />
-        <LineItem label="High Balance" value={formatCurrency(data.credit?.high, currency)} />
-        <LineItem label="Available" value={formatCurrency(data.credit?.available, currency)} />
+        <LineItem label="Credit Limit" value={formatCurrency(data.credit?.limit)} />
+        <LineItem label="High Balance" value={formatCurrency(data.credit?.high)} />
+        <LineItem label="Available" value={formatCurrency(data.credit?.available)} />
         <div className="border-t border-slate-100 dark:border-slate-700 my-2" />
-        <LineItem label="Balance Due" value={formatCurrency(data.balances?.due, currency)} isHeader />
-        <LineItem label="Current" value={formatCurrency(data.balances?.current, currency)} indent />
-        <LineItem label="Open Orders" value={formatCurrency(data.balances?.open_orders, currency)} indent />
-        <LineItem label="Total Exposure" value={formatCurrency(data.balances?.total_exposure, currency)} />
+        <LineItem label="Balance Due" value={formatCurrency(data.balances?.due)} isHeader />
+        <LineItem label="Current" value={formatCurrency(data.balances?.current)} indent />
+        <LineItem label="Open Orders" value={formatCurrency(data.balances?.open_orders)} indent />
+        <LineItem label="Total Exposure" value={formatCurrency(data.balances?.total_exposure)} />
       </Section>
 
       {hasAging && (
         <Section title="Aging" icon={<FaClock size={12} />}>
-          <LineItem label="Future" value={formatCurrency(data.aging?.future, currency)} />
-          <LineItem label="1-30 Days" value={formatCurrency(data.aging?.period_1, currency)} />
-          <LineItem label="31-60 Days" value={formatCurrency(data.aging?.period_2, currency)} warning={!!data.aging?.period_2} />
-          <LineItem label="61-90+ Days" value={formatCurrency(data.aging?.period_3, currency)} warning={!!data.aging?.period_3} />
+          <LineItem label="Future" value={formatCurrency(data.aging?.future)} />
+          <LineItem label="1-30 Days" value={formatCurrency(data.aging?.period_1)} />
+          <LineItem label="31-60 Days" value={formatCurrency(data.aging?.period_2)} warning={!!data.aging?.period_2} />
+          <LineItem label="61-90+ Days" value={formatCurrency(data.aging?.period_3)} warning={!!data.aging?.period_3} />
         </Section>
       )}
 
       <Section title="Sales Activity" icon={<FaChartLine size={12} />}>
-        <LineItem label="Sales MTD" value={formatCurrency(data.sales?.mtd, currency)} />
-        <LineItem label="Sales YTD" value={formatCurrency(data.sales?.ytd, currency)} />
-        <LineItem label="Lifetime Sales" value={formatCurrency(data.sales?.lifetime, currency)} isHeader />
+        <LineItem label="Sales MTD" value={formatCurrency(data.sales?.mtd)} />
+        <LineItem label="Sales YTD" value={formatCurrency(data.sales?.ytd)} />
+        <LineItem label="Lifetime Sales" value={formatCurrency(data.sales?.lifetime)} isHeader />
         <LineItem label="Last Sale" value={formatDate(data.sales?.dt_last_sale)} />
-        <LineItem label="Last Amount" value={formatCurrency(data.sales?.last_sale_amount, currency)} />
+        <LineItem label="Last Amount" value={formatCurrency(data.sales?.last_sale_amount)} />
       </Section>
 
       <Section title="Margin" icon={<FaPercent size={12} />} defaultOpen={false}>
-        <LineItem label="Margin MTD" value={formatCurrency(data.margin?.mtd, currency)} />
-        <LineItem label="Margin YTD" value={formatCurrency(data.margin?.ytd, currency)} />
-        <LineItem label="Margin %" value={formatPercent(data.margin?.pct)} />
+        <LineItem label="Margin MTD" value={formatCurrency(data.margin?.mtd)} />
+        <LineItem label="Margin YTD" value={formatCurrency(data.margin?.ytd)} />
+        <LineItem label="Margin %" value={formatPercent(data.margin?.pct, 2)} />
       </Section>
 
       <Section title="Payment History" icon={<FaMoneyCheckAlt size={12} />} defaultOpen={false}>
         <LineItem label="Avg Days to Pay" value={`${data.payment?.days_avg_paid ?? '--'} days`} />
         <LineItem label="Terms (Days)" value={`${data.payment?.days_pay ?? '--'} days`} />
         <LineItem label="Last Payment" value={formatDate(data.payment?.dt_last_payment)} />
-        <LineItem label="Last Amount" value={formatCurrency(data.payment?.last_payment_amount, currency)} />
+        <LineItem label="Last Amount" value={formatCurrency(data.payment?.last_payment_amount)} />
       </Section>
 
       {(data.collection?.cost_alltime ?? 0) > 0 && (
         <Section title="Collection Costs" icon={<FaExclamationTriangle size={12} />} defaultOpen={false}>
-          <LineItem label="Cost MTD" value={formatCurrency(data.collection?.cost_mtd, currency)} isNegative />
-          <LineItem label="Cost YTD" value={formatCurrency(data.collection?.cost_ytd, currency)} isNegative />
-          <LineItem label="Cost All-Time" value={formatCurrency(data.collection?.cost_alltime, currency)} isNegative />
+          <LineItem label="Cost MTD" value={formatCurrency(data.collection?.cost_mtd)} isNegative />
+          <LineItem label="Cost YTD" value={formatCurrency(data.collection?.cost_ytd)} isNegative />
+          <LineItem label="Cost All-Time" value={formatCurrency(data.collection?.cost_alltime)} isNegative />
         </Section>
       )}
 
       {data.small_stings && (
         <Section title="Small Stings" icon={<FaBalanceScale size={12} />} defaultOpen={false}>
-          <LineItem label="Received (Our Errors)" value={`${data.small_stings.received?.count ?? 0} / ${formatCurrency(data.small_stings.received?.value, currency)}`} isNegative />
-          <LineItem label="Issued (Their Errors)" value={`${data.small_stings.issued?.count ?? 0} / ${formatCurrency(data.small_stings.issued?.value, currency)}`} />
+          <LineItem label="Received (Our Errors)" value={`${data.small_stings.received?.count ?? 0} / ${formatCurrency(data.small_stings.received?.value)}`} isNegative />
+          <LineItem label="Issued (Their Errors)" value={`${data.small_stings.issued?.count ?? 0} / ${formatCurrency(data.small_stings.issued?.value)}`} />
         </Section>
       )}
     </div>
@@ -261,34 +248,34 @@ const VendorTab: React.FC<{ data?: OrgFinancialVendor; currency: string }> = ({ 
   return (
     <div className="space-y-2">
       <Section title="Payables" icon={<FaFileInvoice size={12} />}>
-        <LineItem label="Balance Due" value={formatCurrency(data.balances?.due, currency)} isHeader />
-        <LineItem label="Current" value={formatCurrency(data.balances?.current, currency)} indent />
-        <LineItem label="Open POs" value={formatCurrency(data.balances?.open_pos, currency)} indent />
+        <LineItem label="Balance Due" value={formatCurrency(data.balances?.due)} isHeader />
+        <LineItem label="Current" value={formatCurrency(data.balances?.current)} indent />
+        <LineItem label="Open POs" value={formatCurrency(data.balances?.open_pos)} indent />
       </Section>
 
       <Section title="Aging" icon={<FaClock size={12} />}>
-        <LineItem label="Future" value={formatCurrency(data.aging?.future, currency)} />
-        <LineItem label="1-30 Days" value={formatCurrency(data.aging?.period_1, currency)} />
-        <LineItem label="31-60 Days" value={formatCurrency(data.aging?.period_2, currency)} />
-        <LineItem label="61-90+ Days" value={formatCurrency(data.aging?.period_3, currency)} />
+        <LineItem label="Future" value={formatCurrency(data.aging?.future)} />
+        <LineItem label="1-30 Days" value={formatCurrency(data.aging?.period_1)} />
+        <LineItem label="31-60 Days" value={formatCurrency(data.aging?.period_2)} />
+        <LineItem label="61-90+ Days" value={formatCurrency(data.aging?.period_3)} />
       </Section>
 
       <Section title="Purchases" icon={<FaChartLine size={12} />}>
-        <LineItem label="Purchases MTD" value={formatCurrency(data.purchases?.mtd, currency)} />
-        <LineItem label="Purchases YTD" value={formatCurrency(data.purchases?.ytd, currency)} />
-        <LineItem label="Lifetime Purchases" value={formatCurrency(data.purchases?.lifetime, currency)} isHeader />
+        <LineItem label="Purchases MTD" value={formatCurrency(data.purchases?.mtd)} />
+        <LineItem label="Purchases YTD" value={formatCurrency(data.purchases?.ytd)} />
+        <LineItem label="Lifetime Purchases" value={formatCurrency(data.purchases?.lifetime)} isHeader />
       </Section>
 
       <Section title="Payments Made" icon={<FaMoneyCheckAlt size={12} />} defaultOpen={false}>
-        <LineItem label="Paid MTD" value={formatCurrency(data.payments_made?.mtd, currency)} />
-        <LineItem label="Paid YTD" value={formatCurrency(data.payments_made?.ytd, currency)} />
+        <LineItem label="Paid MTD" value={formatCurrency(data.payments_made?.mtd)} />
+        <LineItem label="Paid YTD" value={formatCurrency(data.payments_made?.ytd)} />
         <LineItem label="Last Payment" value={formatDate(data.payments_made?.dt_last_payment)} />
       </Section>
 
       {data.small_stings && (
         <Section title="Small Stings" icon={<FaBalanceScale size={12} />} defaultOpen={false}>
-          <LineItem label="Received (Our Errors)" value={`${data.small_stings.received?.count ?? 0} / ${formatCurrency(data.small_stings.received?.value, currency)}`} isNegative />
-          <LineItem label="Issued (Their Errors)" value={`${data.small_stings.issued?.count ?? 0} / ${formatCurrency(data.small_stings.issued?.value, currency)}`} />
+          <LineItem label="Received (Our Errors)" value={`${data.small_stings.received?.count ?? 0} / ${formatCurrency(data.small_stings.received?.value)}`} isNegative />
+          <LineItem label="Issued (Their Errors)" value={`${data.small_stings.issued?.count ?? 0} / ${formatCurrency(data.small_stings.issued?.value)}`} />
         </Section>
       )}
     </div>
@@ -304,19 +291,19 @@ const RepTab: React.FC<{ data?: OrgFinancialRep; currency: string }> = ({ data, 
     <div className="space-y-2">
       {staff && (
       <Section title="Commissions" icon={<FaHandHoldingUsd size={12} />}>
-        <LineItem label="Commission MTD" value={formatCurrency(data.commissions?.mtd, currency)} />
-        <LineItem label="Commission YTD" value={formatCurrency(data.commissions?.ytd, currency)} />
-        <LineItem label="Lifetime" value={formatCurrency(data.commissions?.lifetime, currency)} isHeader />
-        <LineItem label="Pending" value={formatCurrency(data.commissions?.pending, currency)} />
-        <LineItem label="Paid" value={formatCurrency(data.commissions?.paid, currency)} />
-        <LineItem label="Rate" value={formatPercent(data.commissions?.rate_pct)} />
+        <LineItem label="Commission MTD" value={formatCurrency(data.commissions?.mtd)} />
+        <LineItem label="Commission YTD" value={formatCurrency(data.commissions?.ytd)} />
+        <LineItem label="Lifetime" value={formatCurrency(data.commissions?.lifetime)} isHeader />
+        <LineItem label="Pending" value={formatCurrency(data.commissions?.pending)} />
+        <LineItem label="Paid" value={formatCurrency(data.commissions?.paid)} />
+        <LineItem label="Rate" value={formatPercent(data.commissions?.rate_pct, 2)} />
       </Section>
       )}
 
       <Section title="Sales Credited" icon={<FaChartLine size={12} />}>
-        <LineItem label="Sales MTD" value={formatCurrency(data.sales_credited?.mtd, currency)} />
-        <LineItem label="Sales YTD" value={formatCurrency(data.sales_credited?.ytd, currency)} />
-        <LineItem label="Lifetime" value={formatCurrency(data.sales_credited?.lifetime, currency)} isHeader />
+        <LineItem label="Sales MTD" value={formatCurrency(data.sales_credited?.mtd)} />
+        <LineItem label="Sales YTD" value={formatCurrency(data.sales_credited?.ytd)} />
+        <LineItem label="Lifetime" value={formatCurrency(data.sales_credited?.lifetime)} isHeader />
         <LineItem label="Customer Count" value={formatNumber(data.customers_count)} />
       </Section>
     </div>
@@ -329,15 +316,15 @@ const EmployeeTab: React.FC<{ data?: OrgFinancialEmployee; currency: string }> =
   return (
     <div className="space-y-2">
       <Section title="Payroll" icon={<FaDollarSign size={12} />}>
-        <LineItem label="Salary" value={formatCurrency(data.payroll?.salary, currency)} />
-        <LineItem label="Hourly Rate" value={formatCurrency(data.payroll?.rate_hourly, currency)} />
+        <LineItem label="Salary" value={formatCurrency(data.payroll?.salary)} />
+        <LineItem label="Hourly Rate" value={formatCurrency(data.payroll?.rate_hourly)} />
         <LineItem label="Type" value={data.payroll?.rate_type || '--'} />
       </Section>
 
       <Section title="Expenses" icon={<FaFileInvoice size={12} />}>
-        <LineItem label="Expenses MTD" value={formatCurrency(data.expenses?.mtd, currency)} />
-        <LineItem label="Expenses YTD" value={formatCurrency(data.expenses?.ytd, currency)} />
-        <LineItem label="Pending" value={formatCurrency(data.expenses?.pending, currency)} />
+        <LineItem label="Expenses MTD" value={formatCurrency(data.expenses?.mtd)} />
+        <LineItem label="Expenses YTD" value={formatCurrency(data.expenses?.ytd)} />
+        <LineItem label="Pending" value={formatCurrency(data.expenses?.pending)} />
       </Section>
 
       <Section title="Time" icon={<FaClock size={12} />} defaultOpen={false}>
@@ -354,22 +341,22 @@ const ManufacturerTab: React.FC<{ data?: OrgFinancialManufacturer; currency: str
   return (
     <div className="space-y-2">
       <Section title="Purchases" icon={<FaChartLine size={12} />}>
-        <LineItem label="Purchases MTD" value={formatCurrency(data.purchases?.mtd, currency)} />
-        <LineItem label="Purchases YTD" value={formatCurrency(data.purchases?.ytd, currency)} />
-        <LineItem label="Lifetime" value={formatCurrency(data.purchases?.lifetime, currency)} isHeader />
+        <LineItem label="Purchases MTD" value={formatCurrency(data.purchases?.mtd)} />
+        <LineItem label="Purchases YTD" value={formatCurrency(data.purchases?.ytd)} />
+        <LineItem label="Lifetime" value={formatCurrency(data.purchases?.lifetime)} isHeader />
       </Section>
 
       <Section title="Rebates" icon={<FaHandHoldingUsd size={12} />}>
-        <LineItem label="Earned YTD" value={formatCurrency(data.rebates?.earned_ytd, currency)} />
-        <LineItem label="Received YTD" value={formatCurrency(data.rebates?.received_ytd, currency)} />
-        <LineItem label="Pending" value={formatCurrency(data.rebates?.pending, currency)} />
+        <LineItem label="Earned YTD" value={formatCurrency(data.rebates?.earned_ytd)} />
+        <LineItem label="Received YTD" value={formatCurrency(data.rebates?.received_ytd)} />
+        <LineItem label="Pending" value={formatCurrency(data.rebates?.pending)} />
       </Section>
 
       <Section title="Terms" icon={<FaIndustry size={12} />}>
         <LineItem label="Pricing Tier" value={data.pricing_tier || '--'} />
         <LineItem label="Lead Time" value={`${data.lead_time_days ?? '--'} days`} />
         <LineItem label="Freight Terms" value={data.freight_terms || '--'} />
-        <LineItem label="Min Order" value={formatCurrency(data.min_order, currency)} />
+        <LineItem label="Min Order" value={formatCurrency(data.min_order)} />
       </Section>
     </div>
   );

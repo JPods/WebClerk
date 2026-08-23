@@ -166,7 +166,6 @@ class WCAPITransactionSaveView(APIView):
     def post(self, request, *args, **kwargs):
         from apps.transactions.services.transaction_save import (
             save_transaction_with_lines,
-            calculate_header_totals,
             CalculationMismatchError,
             ItemIdChangeError,
             TransferQuantityError,
@@ -215,14 +214,10 @@ class WCAPITransactionSaveView(APIView):
                 save_only_dirty=options.get("save_only_dirty", True),
             )
             
-            # Calculate and return authoritative totals
-            recalc_totals = calculate_header_totals(lines_data, record_data)
-            result['recalculated_totals'] = {
-                k: float(v) for k, v in recalc_totals.items()
-            }
-
             # Re-fetch the full saved record so the frontend gets a complete
             # Transaction object (with all fields & nested lines).
+            # Post-save signal runs the real totals engine; re-fetched record
+            # has authoritative totals (PJPV: one compute engine, read from JSON).
             saved_id = result.get('header', {}).get('id')
             if saved_id is not None:
                 try:
@@ -240,6 +235,10 @@ class WCAPITransactionSaveView(APIView):
                             line_qs = LineModel.objects.filter(**{parent_fk: saved_id}).order_by('id')
                             record_dict['lines'] = [to_dict(ln) for ln in line_qs]
                         result['record'] = record_dict
+                        # Authoritative totals from the saved record (PJPV: JSON envelope is source of truth)
+                        totals_env = record_dict.get('totals')
+                        if isinstance(totals_env, dict):
+                            result['recalculated_totals'] = totals_env
                 except Exception as fetch_err:
                     logger.warning("Failed to re-fetch saved record %s: %s", saved_id, fetch_err)
 

@@ -47,43 +47,8 @@ export function toNumber(value: unknown, fallback = 0): number {
 // Currency / display formatting
 // ============================================================================
 
-const CURRENCY_FORMATTER_CACHE = new Map<string, Intl.NumberFormat>();
-
-/**
- * Format a number as a currency string (e.g. "$1,234.56").
- *
- * Centralised so every component uses the same locale + currency.
- */
-export function formatCurrency(
-  value: number | null | undefined,
-  currency = 'USD',
-  locale = 'en-US',
-): string {
-  if (value === null || value === undefined) return '--';
-  const key = `${locale}:${currency}`;
-  let fmt = CURRENCY_FORMATTER_CACHE.get(key);
-  if (!fmt) {
-    fmt = new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    CURRENCY_FORMATTER_CACHE.set(key, fmt);
-  }
-  return fmt.format(value);
-}
-
-/**
- * Format a percentage value for display (e.g. "32.00%").
- */
-export function formatPercent(
-  value: number | null | undefined,
-  decimals = 2,
-): string {
-  if (value === null || value === undefined) return '--';
-  return `${value.toFixed(decimals)}%`;
-}
+// Canonical formatters — re-exported from stringUtils
+export { formatCurrency, formatPercent } from '@/utils/stringUtils';
 
 /**
  * Format a plain number with locale grouping (e.g. "1,234").

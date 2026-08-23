@@ -20,6 +20,7 @@
 import React from 'react';
 import { WcButton, type WcButtonProps } from './WcButton';
 import { WcBadge } from './WcBadge';
+import { formatCurrency } from '@/utils/stringUtils';
 
 export interface ToolbarButton extends WcButtonProps {
   id: string;
@@ -37,8 +38,6 @@ export interface WcToolbarProps {
   className?: string;
 }
 
-const formatCurrency = (v?: number) =>
-  v == null ? '' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
 
 export const WcToolbar: React.FC<WcToolbarProps> = ({ buttons, record, className }) => {
   const leftButtons = buttons.filter(b => b.position !== 'right');

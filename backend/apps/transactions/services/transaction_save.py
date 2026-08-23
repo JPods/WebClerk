@@ -706,8 +706,13 @@ def verify_line_calculations(line_data: Dict[str, Any], line_id: Optional[int] =
 
 
 def calculate_header_totals(lines: List[Dict[str, Any]], header_data: Dict[str, Any]) -> Dict[str, Decimal]:
-    """Calculate header totals from lines.
-    
+    """Calculate header totals from lines — PRE-SAVE VERIFICATION ONLY.
+
+    Used by verify_header_calculations() to compare R25's frontend math
+    against WC3's backend math before committing. Never use for post-save
+    authoritative totals — read from the JSON envelope after the real
+    totals engine (services/totals.py) runs via post_save signal.
+
     Returns:
         Dict with calculated header totals
     """

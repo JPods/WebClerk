@@ -15,6 +15,7 @@ import {
 } from "../../../../../components/ui/table";
 import Badge from "../../../../../components/ui/badge/Badge";
 import { fetchBOMLines, type BOMLine } from "../services/bomApi";
+import { formatCurrency, formatPercent } from "@/utils/stringUtils";
 
 // ============================================================================
 // Types
@@ -30,12 +31,6 @@ interface BOMSectionProps {
 // ============================================================================
 
 function BOMTable({ lines }: { lines: BOMLine[] }) {
-  const formatCurrency = (val: number | string | null | undefined): string => {
-    if (val === null || val === undefined || val === "") return "—";
-    const num = typeof val === "string" ? parseFloat(val) : val;
-    if (isNaN(num)) return "—";
-    return `$${num.toFixed(2)}`;
-  };
 
   const formatQty = (val: number | string): string => {
     const num = typeof val === "string" ? parseFloat(val) : val;
@@ -43,7 +38,7 @@ function BOMTable({ lines }: { lines: BOMLine[] }) {
     return num % 1 === 0 ? num.toString() : num.toFixed(2);
   };
 
-  // Calculate totals
+  // Aggregate of per-line server-provided values — no server-side BOM total available
   const totalExtended = lines.reduce((sum, line) => {
     const cost = typeof line.extended_cost === "string" 
       ? parseFloat(line.extended_cost) 
@@ -57,22 +52,22 @@ function BOMTable({ lines }: { lines: BOMLine[] }) {
         <TableHeader className="bg-gray-50 dark:bg-gray-800">
           <TableRow>
             <TableCell isHeader className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              SKU
+              sku
             </TableCell>
             <TableCell isHeader className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Description
+              description
             </TableCell>
             <TableCell isHeader className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Qty
+              qty
             </TableCell>
             <TableCell isHeader className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Unit Cost
+              unit cost
             </TableCell>
             <TableCell isHeader className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Extended
+              extended
             </TableCell>
             <TableCell isHeader className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Flags
+              flags
             </TableCell>
           </TableRow>
         </TableHeader>
@@ -116,7 +111,7 @@ function BOMTable({ lines }: { lines: BOMLine[] }) {
                       : line.scrap_factor;
                     return scrap > 0 ? (
                       <Badge color="error" size="sm">
-                        +{(scrap * 100).toFixed(0)}% scrap
+                        +{formatPercent(scrap * 100, 0)} scrap
                       </Badge>
                     ) : null;
                   })()}

@@ -25,6 +25,7 @@ import {
   getModelWindowTitle,
 } from "@/apps/common/components/panels/getModelDetailPath";
 import { formatDt } from '@/utils/fieldFormatters';
+import { formatCurrency } from '@/utils/stringUtils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -70,17 +71,6 @@ const formatDate = (ts?: number) => {
   return formatDt(ts, 'date');
 };
 
-const formatCurrency = (value?: number, currency?: string) => {
-  if (value == null) return "—";
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency || "USD",
-    }).format(value);
-  } catch {
-    return `${currency || "$"}${value.toFixed(2)}`;
-  }
-};
 
 const modelLabel = (model: string): string => {
   const labels: Record<string, string> = {
@@ -247,7 +237,7 @@ const RelatedTransactions: React.FC<RelatedTransactionsProps> = ({
                           </span>
                         )}
                         <span className="text-slate-600 dark:text-slate-300">
-                          {formatCurrency(rel.record.total, rel.record.currency)}
+                          {formatCurrency(rel.record.totals?.total ?? rel.record.total)}
                         </span>
                         <span className="text-slate-400">
                           {formatDate(rel.record.dt_created)}
@@ -302,7 +292,7 @@ const RelatedTransactions: React.FC<RelatedTransactionsProps> = ({
                           </span>
                         )}
                         <span className="text-slate-600 dark:text-slate-300">
-                          {formatCurrency(rel.record.total, rel.record.currency)}
+                          {formatCurrency(rel.record.totals?.total ?? rel.record.total)}
                         </span>
                         <span className="text-slate-400">
                           {formatDate(rel.record.dt_created)}

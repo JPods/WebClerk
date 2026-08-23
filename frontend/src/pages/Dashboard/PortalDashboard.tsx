@@ -7,6 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAppSelector } from '../../store/hooks';
 import { getRecords } from '../../api/wcapi';
+import { formatCurrency } from '@/utils/stringUtils';
 
 interface PortalCard {
   title: string;
@@ -37,7 +38,7 @@ interface PortalRecord {
 }
 
 /* ── helpers ── */
-const fmt = (n?: number) => n != null ? `$${n.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '$0.00';
+const fmt = (n?: number) => formatCurrency(n) || '$0.00';
 
 const statusColor = (s?: string) => {
   if (!s) return 'var(--color-gray-400)';
@@ -125,6 +126,7 @@ const CustomerDashboard: React.FC = () => {
   if (loading) return <div className="wc-portal-loading">Loading...</div>;
 
   const openInvoices = invoices.filter(i => i.status !== 'paid' && i.status !== 'void');
+  // Aggregate of server-provided envelope values — no server-side aggregate available
   const totalBalance = openInvoices.reduce((s, i) => s + (i.totals?.balance ?? 0), 0);
   const recentOrders = orders.slice(0, 5);
 
@@ -141,9 +143,9 @@ const CustomerDashboard: React.FC = () => {
         records={recentOrders}
         columns={[
           { key: 'ida', label: 'Order #' },
-          { key: 'status', label: 'Status', render: r => <span style={{ color: statusColor(r.status) }}>{r.status}</span> },
-          { key: 'total', label: 'Total', render: r => fmt(r.totals?.total) },
-          { key: 'dt_created', label: 'Date', render: r => r.dt_created ? new Date(r.dt_created).toLocaleDateString() : '' },
+          { key: 'status', label: 'status', render: r => <span style={{ color: statusColor(r.status) }}>{r.status}</span> },
+          { key: 'total', label: 'total', render: r => fmt(r.totals?.total) },
+          { key: 'dt_created', label: 'date', render: r => r.dt_created ? new Date(r.dt_created).toLocaleDateString() : '' },
         ]}
       />
       <RecordList
@@ -151,9 +153,9 @@ const CustomerDashboard: React.FC = () => {
         records={openInvoices}
         columns={[
           { key: 'ida', label: 'Invoice #' },
-          { key: 'status', label: 'Status', render: r => <span style={{ color: statusColor(r.status) }}>{r.status}</span> },
-          { key: 'balance', label: 'Balance', render: r => fmt(r.totals?.balance) },
-          { key: 'dt_created', label: 'Date', render: r => r.dt_created ? new Date(r.dt_created).toLocaleDateString() : '' },
+          { key: 'status', label: 'status', render: r => <span style={{ color: statusColor(r.status) }}>{r.status}</span> },
+          { key: 'balance', label: 'balance', render: r => fmt(r.totals?.balance) },
+          { key: 'dt_created', label: 'date', render: r => r.dt_created ? new Date(r.dt_created).toLocaleDateString() : '' },
         ]}
       />
     </>
@@ -197,16 +199,16 @@ const VendorDashboard: React.FC = () => {
           title="Items Below Minimum — Needs Replenishment"
           records={belowMin}
           columns={[
-            { key: 'ida', label: 'SKU' },
-            { key: 'name', label: 'Item' },
-            { key: 'kanban', label: 'Inventory Level', render: r => (
+            { key: 'ida', label: 'sku' },
+            { key: 'name', label: 'item' },
+            { key: 'kanban', label: 'inventory level', render: r => (
               <KanbanBar
                 qty={r.quantity?.on_hand ?? 0}
                 min={r.quantity?.vendor_min ?? r.quantity?.inventory_min ?? 0}
                 max={r.quantity?.vendor_max ?? r.quantity?.inventory_max ?? 100}
               />
             )},
-            { key: 'on_po', label: 'On PO', render: r => r.quantity?.on_po ?? 0 },
+            { key: 'on_po', label: 'on po', render: r => r.quantity?.on_po ?? 0 },
           ]}
         />
       )}
@@ -214,9 +216,9 @@ const VendorDashboard: React.FC = () => {
         title="All Supplied Items"
         records={items}
         columns={[
-          { key: 'ida', label: 'SKU' },
-          { key: 'name', label: 'Item' },
-          { key: 'kanban', label: 'Inventory Level', render: r => {
+          { key: 'ida', label: 'sku' },
+          { key: 'name', label: 'item' },
+          { key: 'kanban', label: 'inventory level', render: r => {
             const min = r.quantity?.vendor_min ?? r.quantity?.inventory_min ?? 0;
             const max = r.quantity?.vendor_max ?? r.quantity?.inventory_max ?? 100;
             return min > 0
@@ -230,9 +232,9 @@ const VendorDashboard: React.FC = () => {
         records={purchases.slice(0, 10)}
         columns={[
           { key: 'ida', label: 'PO #' },
-          { key: 'status', label: 'Status', render: r => <span style={{ color: statusColor(r.status) }}>{r.status}</span> },
-          { key: 'total', label: 'Total', render: r => fmt(r.totals?.total) },
-          { key: 'dt_created', label: 'Date', render: r => r.dt_created ? new Date(r.dt_created).toLocaleDateString() : '' },
+          { key: 'status', label: 'status', render: r => <span style={{ color: statusColor(r.status) }}>{r.status}</span> },
+          { key: 'total', label: 'total', render: r => fmt(r.totals?.total) },
+          { key: 'dt_created', label: 'date', render: r => r.dt_created ? new Date(r.dt_created).toLocaleDateString() : '' },
         ]}
       />
     </>
@@ -258,6 +260,7 @@ const RepDashboard: React.FC = () => {
   if (loading) return <div className="wc-portal-loading">Loading...</div>;
 
   const openOrders = orders.filter(o => o.status === 'open');
+  // Aggregate of server-provided envelope values — no server-side aggregate available
   const totalSales = orders.reduce((s, o) => s + (o.totals?.total ?? 0), 0);
 
   return (
@@ -272,7 +275,7 @@ const RepDashboard: React.FC = () => {
         title="My Customers"
         records={customers}
         columns={[
-          { key: 'company', label: 'Company' },
+          { key: 'company', label: 'company' },
           { key: 'ida', label: 'Account #' },
         ]}
       />
@@ -281,9 +284,9 @@ const RepDashboard: React.FC = () => {
         records={orders.slice(0, 10)}
         columns={[
           { key: 'ida', label: 'Order #' },
-          { key: 'status', label: 'Status', render: r => <span style={{ color: statusColor(r.status) }}>{r.status}</span> },
-          { key: 'total', label: 'Total', render: r => fmt(r.totals?.total) },
-          { key: 'dt_created', label: 'Date', render: r => r.dt_created ? new Date(r.dt_created).toLocaleDateString() : '' },
+          { key: 'status', label: 'status', render: r => <span style={{ color: statusColor(r.status) }}>{r.status}</span> },
+          { key: 'total', label: 'total', render: r => fmt(r.totals?.total) },
+          { key: 'dt_created', label: 'date', render: r => r.dt_created ? new Date(r.dt_created).toLocaleDateString() : '' },
         ]}
       />
     </>

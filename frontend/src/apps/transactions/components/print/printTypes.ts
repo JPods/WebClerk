@@ -5,6 +5,10 @@
  */
 import type { CompanyInfo } from '@/hooks/useDefaultCompany';
 import { formatDt } from '@/utils/fieldFormatters';
+import { formatCurrency as _fc } from '@/utils/stringUtils';
+/** Print documents show $0.00 for missing values, not blank */
+export const formatCurrency = (n: number | string | null | undefined): string =>
+  _fc(n) || '$0.00';
 
 // Paper size definitions (US Letter is 8.5" x 11")
 export type PaperSize = 'letter' | 'a4';
@@ -138,15 +142,6 @@ export interface PrintDocumentProps {
   logoUrl?: string;
 }
 
-// Currency formatter utility
-export const formatCurrency = (value: number | undefined | null): string => {
-  if (value === undefined || value === null) return '$0.00';
-  return value.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-  });
-};
 
 // Date formatter utility
 export const formatDate = (dateStr: string | undefined | null): string => {

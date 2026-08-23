@@ -11,6 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
 import { saveRecord, deleteRecord } from '@/api/wcapi';
+import { formatPercent } from '@/utils/stringUtils';
 
 export interface BomCardProps {
   data: any;
@@ -67,7 +68,7 @@ const BomCard: React.FC<BomCardProps> = ({
 
   const childCode = data.child_ida || data.config?.child_item_code || data.child_item_code || data.ida || '';
   const childDesc = data.child_description || data.config?.child_description || '';
-  const qty = data.quantity ?? data.config?.quantity ?? 0;
+  const qty = data.quantity ?? 0;
   const scrap = data.scrap_factor ?? 0;
   const seq = data.sequence ?? 0;
   const isOpt = data.is_optional ?? false;
@@ -116,7 +117,7 @@ const BomCard: React.FC<BomCardProps> = ({
           <input type="number" step="0.01" min="0" max="0.99" value={editData.scrap_factor ?? ''} onChange={(e) => setField('scrap_factor', parseFloat(e.target.value) || 0)}
             className={`w-16 text-right ${inputClass}`} title="Scrap factor (0-0.99)" />
         ) : (
-          <span className="text-right w-16 text-slate-400">{scrap > 0 ? `${(scrap * 100).toFixed(1)}%` : '—'}</span>
+          <span className="text-right w-16 text-slate-400">{scrap > 0 ? formatPercent(scrap * 100) : '—'}</span>
         )}
 
         {/* UOM */}

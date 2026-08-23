@@ -26,6 +26,7 @@ import { formatDt } from '@/utils/fieldFormatters';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { getModelDetailPath, getModelWindowTitle } from './getModelDetailPath';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { formatCurrency } from '@/utils/stringUtils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -80,13 +81,6 @@ const PAYMENT_COLUMN_METAS = [
 ];
 
 // Helpers
-const formatCurrency = (v?: number | null) => {
-  if (v == null) return '--';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(v);
-};
 
 const formatDate = (d?: string | null) => {
   if (!d) return '--';
@@ -257,7 +251,7 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
     [windowManager],
   );
 
-  // Totals
+  // Aggregate of server-provided per-record values — no server-side aggregate available
   const totalAmount = useMemo(
     () => payments.reduce((s, p) => s + (p.amount ?? 0), 0),
     [payments],

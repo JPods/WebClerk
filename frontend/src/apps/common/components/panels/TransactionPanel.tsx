@@ -9,6 +9,7 @@
  * a combined record summary + action toolbar.
  */
 import React from "react";
+import { formatCurrency } from "@/utils/stringUtils";
 import TransactionToolbar, {
   type TransactionToolbarProps,
 } from "@/apps/common/components/TransactionToolbar";
@@ -30,14 +31,6 @@ export interface TransactionPanelProps extends TransactionToolbarProps {
   record?: TransactionHeaderData;
 }
 
-const formatCurrency = (value?: number | null): string => {
-  if (value == null) return "--";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(value);
-};
 
 const statusColors: Record<string, { bg: string; color: string }> = {
   planned: { bg: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' },

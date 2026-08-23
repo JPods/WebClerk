@@ -13,6 +13,7 @@ import { useDispatch } from 'react-redux';
 import { getRecords } from "@/api/wcapi";
 import apiClient from "@/api/axios";
 import { showToast } from '../../../store/slices/toastSlice';
+import { formatCurrency } from '@/utils/stringUtils';
 
 export interface PaymentRecord {
   id: number;
@@ -165,7 +166,7 @@ export function usePaymentApplication() {
 
       if (result.success) {
         dispatch(showToast({ 
-          message: `Applied $${result.amount_applied.toFixed(2)} to invoice`, 
+          message: `Applied ${formatCurrency(result.amount_applied)} to invoice`, 
           type: 'success' 
         }));
       }
@@ -210,7 +211,7 @@ export function usePaymentApplication() {
 
       if (result.success) {
         dispatch(showToast({ 
-          message: `Applied $${result.amount_applied.toFixed(2)} to invoice`, 
+          message: `Applied ${formatCurrency(result.amount_applied)} to invoice`, 
           type: 'success' 
         }));
       }

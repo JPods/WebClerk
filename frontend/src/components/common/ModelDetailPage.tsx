@@ -37,73 +37,73 @@ const DEFAULT_SECTIONS: Record<string, any[]> = {
   action: [
     { type: 'header', columns: [
       { title: 'Task', fields: [
-        { field: 'ida', label: 'ID', type: 'readonly' },
-        { field: 'action', label: 'Action', type: 'json-text' },
-        { field: 'description', label: 'Description', type: 'json-text' },
+        { field: 'ida', label: 'id', type: 'readonly' },
+        { field: 'action', label: 'action', type: 'json-text' },
+        { field: 'description', label: 'description', type: 'json-text' },
       ]},
       { title: 'Assignment', fields: [
-        { field: 'assigned_to', label: 'Assigned To', type: 'contact-select' },
-        { field: 'project_name', label: 'Project', type: 'readonly' },
-        { field: 'status', label: 'Status', type: 'select', options: [
+        { field: 'assigned_to', label: 'assigned to', type: 'contact-select' },
+        { field: 'project_name', label: 'project', type: 'readonly' },
+        { field: 'status', label: 'status', type: 'select', options: [
           { value: 'open', label: 'Open' }, { value: 'in_progress', label: 'In Progress' },
           { value: 'complete', label: 'Complete' }, { value: 'on_hold', label: 'On Hold' },
           { value: 'cancelled', label: 'Cancelled' },
         ]},
-        { field: 'kanban_column', label: 'Column' },
+        { field: 'kanban_column', label: 'column' },
       ]},
       { title: 'Schedule', fields: [
-        { field: 'priority', label: 'Priority', type: 'select', options: [
+        { field: 'priority', label: 'priority', type: 'select', options: [
           { value: 1, label: '1 - Highest' }, { value: 2, label: '2 - High' },
           { value: 3, label: '3 - Medium' }, { value: 4, label: '4 - Normal' },
           { value: 5, label: '5 - Low' }, { value: 6, label: '6 - Lowest' },
         ]},
-        { field: 'difficulty', label: 'Difficulty', type: 'select', options: [
+        { field: 'difficulty', label: 'difficulty', type: 'select', options: [
           { value: 1, label: 'Easy (1)' }, { value: 4, label: 'Average (4)' },
           { value: 8, label: 'Hard (8)' }, { value: 13, label: 'Complex (13)' },
           { value: 21, label: 'Expert (21)' },
         ]},
-        { field: 'percent_complete', label: '% Complete', type: 'select', options: [
+        { field: 'percent_complete', label: '% complete', type: 'select', options: [
           { value: 0, label: '0%' }, { value: 20, label: '20%' },
           { value: 50, label: '50%' }, { value: 70, label: '70%' },
           { value: 100, label: '100%' },
         ]},
-        { field: 'dt_start', label: 'Start', type: 'date' },
-        { field: 'dt_deadline', label: 'Deadline', type: 'date' },
-        { field: 'dt_completed', label: 'Completed', type: 'date' },
+        { field: 'dt_start', label: 'start', type: 'date' },
+        { field: 'dt_deadline', label: 'deadline', type: 'date' },
+        { field: 'dt_completed', label: 'completed', type: 'date' },
       ]},
     ]},
   ],
   touch: [
     { type: 'header', columns: [
       { title: 'Touch', fields: [
-        { field: 'ida', label: 'ID', type: 'readonly' },
-        { field: 'channel', label: 'Channel', type: 'select', options: [
+        { field: 'ida', label: 'id', type: 'readonly' },
+        { field: 'channel', label: 'channel', type: 'select', options: [
           { value: 'call', label: 'Call' }, { value: 'email', label: 'Email' },
           { value: 'visit', label: 'Visit' }, { value: 'text', label: 'Text' },
           { value: 'meeting', label: 'Meeting' },
         ]},
-        { field: 'direction', label: 'Direction', type: 'select', options: [
+        { field: 'direction', label: 'direction', type: 'select', options: [
           { value: 'out', label: 'Outbound' }, { value: 'in', label: 'Inbound' },
         ]},
-        { field: 'subject', label: 'Subject' },
-        { field: 'summary', label: 'Summary', type: 'textarea' },
+        { field: 'subject', label: 'subject' },
+        { field: 'summary', label: 'summary', type: 'textarea' },
       ]},
       { title: 'Result', fields: [
-        { field: 'outcome', label: 'Outcome', type: 'select', options: [
+        { field: 'outcome', label: 'outcome', type: 'select', options: [
           { value: '', label: '—' }, { value: 'connected', label: 'Connected' },
           { value: 'voicemail', label: 'Voicemail' }, { value: 'no_answer', label: 'No Answer' },
           { value: 'bounced', label: 'Bounced' }, { value: 'rescheduled', label: 'Rescheduled' },
         ]},
-        { field: 'purpose', label: 'Purpose' },
-        { field: 'impact', label: 'Impact', type: 'number' },
-        { field: 'duration', label: 'Duration (min)', type: 'number' },
-        { field: 'plan', label: 'Follow-up (days)', type: 'number' },
+        { field: 'purpose', label: 'purpose' },
+        { field: 'impact', label: 'impact', type: 'number' },
+        { field: 'duration', label: 'duration (min)', type: 'number' },
+        { field: 'plan', label: 'follow-up (days)', type: 'number' },
       ]},
       { title: 'People', fields: [
-        { field: 'contact_id', label: 'Contact', type: 'readonly' },
-        { field: 'logged_by', label: 'Logged By', type: 'readonly' },
-        { field: 'dt_created', label: 'Created', type: 'date' },
-        { field: 'dt_next', label: 'Next Touch', type: 'date' },
+        { field: 'contact_id', label: 'contact', type: 'readonly' },
+        { field: 'logged_by', label: 'logged by', type: 'readonly' },
+        { field: 'dt_created', label: 'created', type: 'date' },
+        { field: 'dt_next', label: 'next touch', type: 'date' },
       ]},
     ]},
   ],
