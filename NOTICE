@@ -1,0 +1,417 @@
+WebClerk — Open Source Commerce Platform
+Copyright 2024-2026 JPods LLC
+
+This product includes software developed by JPods LLC.
+https://webclerk.com
+
+=========================================================================
+
+This project uses the following open source software:
+
+=========================================================================
+Language and Runtime
+=========================================================================
+
+Python
+  License: PSF License
+  Copyright: Python Software Foundation
+  https://www.python.org
+
+=========================================================================
+Backend — Core Framework
+=========================================================================
+
+Django
+  License: BSD 3-Clause
+  Copyright: Django Software Foundation
+  https://www.djangoproject.com
+
+Django REST Framework (djangorestframework)
+  License: BSD 3-Clause
+  Copyright: Encode OSS Ltd.
+  https://www.django-rest-framework.org
+
+drf-spectacular
+  License: BSD 3-Clause
+  Copyright: T. Franzel
+  https://github.com/tfranzel/drf-spectacular
+
+django-filter
+  License: BSD 3-Clause
+  Copyright: Alex Gaynor and contributors
+  https://github.com/carltongibson/django-filter
+
+django-cors-headers
+  License: MIT
+  Copyright: Otto Yiu and contributors
+  https://github.com/adamchainz/django-cors-headers
+
+django-extensions
+  License: MIT
+  Copyright: Bas van Oostveen and contributors
+  https://github.com/django-extensions/django-extensions
+
+django-json-widget
+  License: MIT
+  Copyright: Juan Diego Botero
+  https://github.com/jmrivas86/django-json-widget
+
+django-timezone-field
+  License: BSD 2-Clause
+  Copyright: Mike Fogel
+  https://github.com/mfogel/django-timezone-field
+
+djangorestframework-simplejwt
+  License: MIT
+  Copyright: David Sanders
+  https://github.com/jazzband/djangorestframework-simplejwt
+
+=========================================================================
+Backend — Database
+=========================================================================
+
+PostgreSQL
+  License: PostgreSQL License (BSD-like)
+  Copyright: The PostgreSQL Global Development Group
+  https://www.postgresql.org
+
+psycopg2
+  License: LGPL 3.0
+  Copyright: Federico Di Gregorio and Daniele Varrazzo
+  https://github.com/psycopg/psycopg2
+
+Redis
+  License: MIT
+  Copyright: Redis contributors
+  https://github.com/redis/redis-py
+
+=========================================================================
+Backend — Task Queue
+=========================================================================
+
+Celery
+  License: BSD 3-Clause
+  Copyright: Ask Solem and contributors
+  https://github.com/celery/celery
+
+django-celery-beat
+  License: BSD 3-Clause
+  Copyright: Ask Solem and contributors
+  https://github.com/celery/django-celery-beat
+
+django-celery-results
+  License: BSD 3-Clause
+  Copyright: Ask Solem and contributors
+  https://github.com/celery/django-celery-results
+
+Flower (Celery monitoring)
+  License: BSD 3-Clause
+  Copyright: Mher Movsisyan
+  https://github.com/mher/flower
+
+Kombu
+  License: BSD 3-Clause
+  Copyright: Ask Solem and contributors
+  https://github.com/celery/kombu
+
+=========================================================================
+Backend — Data and Validation
+=========================================================================
+
+Pydantic
+  License: MIT
+  Copyright: Samuel Colvin and contributors
+  https://github.com/pydantic/pydantic
+
+Pillow
+  License: HPND (open source)
+  Copyright: Jeffrey A. Clark and contributors
+  https://github.com/python-pillow/Pillow
+
+WeasyPrint
+  License: BSD 3-Clause
+  Copyright: Kozea
+  https://github.com/Kozea/WeasyPrint
+
+openpyxl
+  License: MIT
+  Copyright: Eric Gazoni and Charlie Clark
+  https://github.com/theorchard/openpyxl
+
+python-docx
+  License: MIT
+  Copyright: Steve Canny
+  https://github.com/python-openxml/python-docx
+
+python-barcode
+  License: MIT
+  Copyright: Thorsten Weimann
+  https://github.com/WhyNotHugo/python-barcode
+
+qrcode
+  License: BSD 3-Clause
+  Copyright: Lincoln Loop
+  https://github.com/lincolnloop/python-qrcode
+
+num2words
+  License: LGPL 2.1
+  Copyright: Taro Ogawa and contributors
+  https://github.com/savoirfairelinux/num2words
+
+Faker
+  License: MIT
+  Copyright: Daniele Faraglia
+  https://github.com/joke2k/faker
+
+humanize
+  License: MIT
+  Copyright: Jason Moiron
+  https://github.com/jmoiron/humanize
+
+jsonschema
+  License: MIT
+  Copyright: Julian Berman
+  https://github.com/python-jsonschema/jsonschema
+
+PyYAML
+  License: MIT
+  Copyright: Kirill Simonov
+  https://github.com/yaml/pyyaml
+
+=========================================================================
+Backend — Payments and Google APIs
+=========================================================================
+
+Stripe
+  License: MIT
+  Copyright: Stripe, Inc.
+  https://github.com/stripe/stripe-python
+
+PayPal REST SDK (paypalrestsdk)
+  License: PayPal SDK License
+  Copyright: PayPal, Inc.
+  https://github.com/paypal/PayPal-Python-SDK
+
+Google API Python Client
+  License: Apache 2.0
+  Copyright: Google LLC
+  https://github.com/googleapis/google-api-python-client
+
+google-auth / google-auth-oauthlib
+  License: Apache 2.0
+  Copyright: Google LLC
+  https://github.com/googleapis/google-auth-library-python
+
+=========================================================================
+Backend — HTTP, Crypto, Monitoring
+=========================================================================
+
+httpx
+  License: BSD 3-Clause
+  Copyright: Encode OSS Ltd.
+  https://github.com/encode/httpx
+
+Requests
+  License: Apache 2.0
+  Copyright: Kenneth Reitz
+  https://github.com/psf/requests
+
+cryptography
+  License: Apache 2.0 / BSD 3-Clause
+  Copyright: The Python Cryptographic Authority
+  https://github.com/pyca/cryptography
+
+pyOpenSSL
+  License: Apache 2.0
+  Copyright: The pyOpenSSL contributors
+  https://github.com/pyca/pyopenssl
+
+PyJWT
+  License: MIT
+  Copyright: Jose Padilla
+  https://github.com/jpadilla/pyjwt
+
+Sentry SDK
+  License: MIT
+  Copyright: Sentry (Functional Software, Inc.)
+  https://github.com/getsentry/sentry-python
+
+python-decouple
+  License: MIT
+  Copyright: Henrique Bastos
+  https://github.com/HBNetwork/python-decouple
+
+=========================================================================
+Backend — AI and Search
+=========================================================================
+
+ChromaDB
+  License: Apache 2.0
+  Copyright: Chroma, Inc.
+  https://github.com/chroma-core/chroma
+
+sentence-transformers
+  License: Apache 2.0
+  Copyright: Nils Reimers and contributors
+  https://github.com/UKPLab/sentence-transformers
+
+=========================================================================
+Frontend (React / TypeScript)
+=========================================================================
+
+React
+  License: MIT
+  Copyright: Meta Platforms, Inc.
+  https://github.com/facebook/react
+
+React Router
+  License: MIT
+  Copyright: Remix Software, Inc.
+  https://github.com/remix-run/react-router
+
+Redux Toolkit (@reduxjs/toolkit)
+  License: MIT
+  Copyright: Redux contributors
+  https://github.com/reduxjs/redux-toolkit
+
+React Redux
+  License: MIT
+  Copyright: Redux contributors
+  https://github.com/reduxjs/react-redux
+
+react-dnd
+  License: MIT
+  Copyright: React DnD contributors
+  https://github.com/react-dnd/react-dnd
+
+react-dnd-html5-backend
+  License: MIT
+  Copyright: React DnD contributors
+  https://github.com/react-dnd/react-dnd
+
+Axios
+  License: MIT
+  Copyright: Matt Zabriskie and contributors
+  https://github.com/axios/axios
+
+ApexCharts / react-apexcharts
+  License: MIT
+  Copyright: ApexCharts
+  https://github.com/apexcharts/apexcharts.js
+
+date-fns
+  License: MIT
+  Copyright: Sasha Koss and contributors
+  https://github.com/date-fns/date-fns
+
+Zod
+  License: MIT
+  Copyright: Colin McDonnell
+  https://github.com/colinhacks/zod
+
+React Hook Form
+  License: MIT
+  Copyright: Beier (Bill) Luo
+  https://github.com/react-hook-form/react-hook-form
+
+@hookform/resolvers
+  License: MIT
+  Copyright: Beier (Bill) Luo
+  https://github.com/react-hook-form/resolvers
+
+Tailwind CSS
+  License: MIT
+  Copyright: Tailwind Labs, Inc.
+  https://github.com/tailwindlabs/tailwindcss
+
+clsx
+  License: MIT
+  Copyright: Luke Edwards
+  https://github.com/lukeed/clsx
+
+tailwind-merge
+  License: MIT
+  Copyright: Dany Castillo
+  https://github.com/dcastil/tailwind-merge
+
+Lucide React
+  License: ISC
+  Copyright: Lucide contributors
+  https://github.com/lucide-icons/lucide
+
+React Icons
+  License: MIT
+  Copyright: React Icons contributors
+  https://github.com/react-icons/react-icons
+
+Phosphor Icons (@phosphor-icons/react)
+  License: MIT
+  Copyright: Phosphor Icons contributors
+  https://github.com/phosphor-icons/react
+
+@uiw/react-md-editor
+  License: MIT
+  Copyright: uiw contributors
+  https://github.com/uiwjs/react-md-editor
+
+react-international-phone
+  License: MIT
+  Copyright: Tymur Lvov
+  https://github.com/goveo/react-international-phone
+
+react-helmet-async
+  License: Apache 2.0
+  Copyright: Scott Taylor
+  https://github.com/staylor/react-helmet-async
+
+Sass
+  License: MIT
+  Copyright: Google Inc.
+  https://github.com/sass/dart-sass
+
+@pdfme/common, @pdfme/generator, @pdfme/schemas, @pdfme/ui
+  License: MIT
+  Copyright: pdfme contributors
+  https://github.com/pdfme/pdfme
+
+=========================================================================
+Build Tools
+=========================================================================
+
+Vite
+  License: MIT
+  Copyright: Evan You and Vite contributors
+  https://github.com/vitejs/vite
+
+TypeScript
+  License: Apache 2.0
+  Copyright: Microsoft Corporation
+  https://github.com/microsoft/TypeScript
+
+ESLint
+  License: MIT
+  Copyright: OpenJS Foundation
+  https://github.com/eslint/eslint
+
+Vitest
+  License: MIT
+  Copyright: Vitest contributors
+  https://github.com/vitest-dev/vitest
+
+PostCSS
+  License: MIT
+  Copyright: Andrey Sitnik
+  https://github.com/postcss/postcss
+
+=========================================================================
+AI Services
+=========================================================================
+
+Claude (Anthropic)
+  Used via API — commercial license
+  https://anthropic.com
+
+Ollama (local LLM runtime)
+  License: MIT
+  Copyright: Ollama
+  https://ollama.com
