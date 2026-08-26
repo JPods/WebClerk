@@ -1,5 +1,7 @@
 /* LastChecked: 2026-08-17 | WhereUsed: TouchBar (dialog), ActionFloatingWindow (inline) | WhoCreated: Bill+Claude */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ContactPanel, normalizeRefsLinksContact } from '@/apps/common/components/panels/ContactPanel';
+import type { RefContact } from '@/apps/common/components/panels/ContactPanel';
 
 // ---------------------------------------------------------------------------
 // TouchForm — unified touch entry form, two rendering modes
@@ -213,6 +215,7 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
   const [fromContact, setFromContact] = useState({ id: loggedByUser, name: loggedByName, phone: '', email: '' });
   const [toContact, setToContact] = useState({ id: ctx.contactId, name: ctx.contactName, phone: ctx.contactPhone, email: ctx.contactEmail });
   const [saving, setSaving] = useState(false);
+  const [linkedContacts, setLinkedContacts] = useState<RefContact[]>([]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -234,6 +237,14 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
         action: ctx.model === 'action' ? ctx.recordId : null,
       };
 
+      const contactLinks = linkedContacts.map(c => ({
+        id: c.contact_id,
+        purpose: c.purpose || 'primary',
+        attention: c.attention,
+        email: c.email,
+        phone: c.phone,
+      }));
+
       await saveRecord('touch', {
         contact_id: externalContactId || null,
         channel,
@@ -252,7 +263,7 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
         project_id: null,
         linkage_id: ctx.linkageId || null,
         logged_by: fromContact.id || loggedByUser,
-        refs: { parents },
+        refs: { parents, links: { contact: contactLinks } },
       });
 
       onSaved?.();
@@ -456,6 +467,18 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
                 placeholder="<abc123@mail.example.com>" style={{ fontSize }} />
             </div>
           )}
+        </div>
+
+        {/* Contacts panel — additional people in this touch */}
+        <div style={{ padding: '0 16px 12px' }}>
+          <ContactPanel
+            contacts={linkedContacts}
+            isEditing={true}
+            parent_model="touch"
+            onChange={setLinkedContacts}
+            title="Contacts"
+            defaultCollapsed={linkedContacts.length === 0}
+          />
         </div>
 
         {/* Footer removed — Save/Cancel in header per WC3 standard: actions top-down by priority */}

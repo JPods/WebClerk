@@ -1,33 +1,29 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+/* LastChecked: 2026-08-26 | WhereUsed: DynamicDetail, CoreTabPanel, ActionFloatingWindow, TouchForm | WhoCreated: Bill+Claude */
 /**
- * ContactPanel - Flat list display of contacts linked to a record
+ * ContactPanel — contacts linked to any record via refs.links.contact.
  *
- * Shows contacts as rows in a compact list with purpose, name, email, phone
- * and an "open" button to launch the contact detail in a floating window.
- *
- * This replaces the older grouped-by-purpose card layout (now ContactPanelx2).
- *
- * @see ContactPanelx2 for the legacy grouped layout
+ * Built on DbColumns (PanelTable) for consistent column config, hamburger,
+ * section header, collapse, add/remove. Same pattern as every other panel.
  */
 import React, { useCallback, useEffect, useState } from "react";
 import { useWindowManager } from "@/context/WindowManagerContext";
 import {
-  FaChevronDown,
-  FaChevronUp,
-  FaEdit,
   FaEnvelope,
   FaExternalLinkAlt,
   FaPhone,
-  FaPlus,
-  FaSpinner,
   FaStar,
-  FaSyncAlt,
   FaTimes,
-  FaUser,
 } from "react-icons/fa";
 import { getRecord } from "@/api/wcapi";
 import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
-// RefContact type — moved from archived ContactPanelx2
+import { DbColumns } from "./DbColumns";
+import type { DbColumnDef } from "./DbColumns";
+import { withDevIdentifier } from "@/components/common/DevIdentifier";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
 export interface RefContact {
   contact_id: number;
   purpose: string;
@@ -37,6 +33,10 @@ export interface RefContact {
   full?: string | string[];
   domain?: string | { id: any; name: any; value: any }[];
   address?: any;
+  /** Runtime — resolved display values (fetched from contact record if inline data missing) */
+  _resolved_name?: string;
+  _resolved_email?: string;
+  _resolved_phone?: string;
 }
 
 export function normalizeRefsLinksContact(apiContacts: any[]): RefContact[] {
@@ -56,61 +56,40 @@ export function normalizeRefsLinksContact(apiContacts: any[]): RefContact[] {
     return { contact_id, purpose, attention: base.attention, email: base.email, phone: base.phone, full: base.full || base.address, domain: base.domain, address: base.address };
   });
 }
-import { withDevIdentifier } from "@/components/common/DevIdentifier";
 
 // ---------------------------------------------------------------------------
-// Types
+// Props
 // ---------------------------------------------------------------------------
 
 interface ContactPanelProps {
   contacts: RefContact[];
   isEditing?: boolean;
-  /** Generic parent model name for persistence (e.g. 'order', 'invoice', 'vendor') */
   parent_model?: string;
-  /** Generic parent record ID for persistence */
   parentId?: number;
-  /** Back-compat for transaction/order callers */
   order_id?: number;
-  /** Customer ID from parent transaction – used when creating a new contact */
   customer_id?: number;
-  /** Customer display name – pre-fills company on new contact */
   customer_name?: string;
   onAdd?: (purpose: string) => void;
   onRemove?: (contactId: number) => void;
   onEdit?: (contact: RefContact) => void;
   onChange?: (contacts: RefContact[]) => void;
   onSaveSuccess?: () => void;
-  /** Callback to manually refresh FK-based contact list */
   onRefresh?: () => void;
-  /** Whether the contact list is currently loading */
   loading?: boolean;
-  /** Allow Create Contact button even when isEditing is false */
   allowCreate?: boolean;
-  /** The contact_id currently set as primary on the parent record */
   primaryContactId?: number | null;
-  /** Callback when user clicks "Set as Primary" on a contact row */
   onSetPrimary?: (contact: RefContact) => void;
-  /** Panel title override */
   title?: string;
-  /** Start collapsed */
   defaultCollapsed?: boolean;
 }
 
 // Standard purposes in display order
 const STANDARD_PURPOSES = [
-  "billto",
-  "shipto",
-  "attention",
-  "approver",
-  "buyer",
-  "cc",
-  "notify",
-  "support",
-  "rep",
-  "sales",
+  "billto", "shipto", "attention", "approver", "buyer",
+  "cc", "notify", "support", "rep", "sales",
 ];
 
-// Purpose badge styles using CSS custom properties
+// Purpose badge styles
 const PURPOSE_STYLES: Record<string, React.CSSProperties> = {
   billto: { background: 'var(--db-badge-blue-bg)', color: 'var(--db-badge-blue-text)' },
   shipto: { background: 'var(--db-badge-green-bg)', color: 'var(--db-badge-green-text)' },
@@ -127,249 +106,142 @@ const DEFAULT_PURPOSE_STYLE: React.CSSProperties = {
 const purposeBadgeStyle = (purpose: string): React.CSSProperties =>
   PURPOSE_STYLES[purpose] ?? DEFAULT_PURPOSE_STYLE;
 
-/** Column metadata for ColumnSetupDialog */
-const CONTACT_COLUMN_METAS = [
-  { key: "purpose", label: "purpose" },
-  { key: "contact_id", label: "#" },
-  { key: "name", label: "name" },
-  { key: "email", label: "email" },
-  { key: "phone", label: "phone" },
-];
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Extract a single display email string from the polymorphic email field */
 const extractEmail = (field: RefContact["email"]): string => {
   if (!field) return "";
   if (typeof field === "string") return field;
   if (Array.isArray(field) && field.length > 0) {
     const first = field[0];
-    return typeof first === "object"
-      ? first.value ?? first.name ?? ""
-      : String(first);
+    return typeof first === "object" ? first.value ?? first.name ?? "" : String(first);
   }
   return "";
 };
 
-/** Extract a single display phone string */
 const extractPhone = (field: RefContact["phone"]): string => {
   if (!field) return "";
   if (typeof field === "string") return field;
   if (Array.isArray(field) && field.length > 0) {
     const first = field[0];
-    return typeof first === "object"
-      ? first.value ?? first.name ?? ""
-      : String(first);
+    return typeof first === "object" ? first.value ?? first.name ?? "" : String(first);
   }
   return "";
 };
 
 // ---------------------------------------------------------------------------
-// ContactRow - fetches communications from contact model when needed
+// Column definitions for DbColumns
 // ---------------------------------------------------------------------------
 
-interface ContactRowComms {
-  email: string;
-  phone: string;
-  name: string;
+function buildColumns(
+  isEditing: boolean,
+  primaryContactId: number | null | undefined,
+  onSetPrimary: ((contact: RefContact) => void) | undefined,
+  onRemove: (contactId: number) => void,
+  onOpen: (contact: RefContact) => void,
+): DbColumnDef<RefContact>[] {
+  return [
+    {
+      key: "purpose",
+      label: "purpose",
+      width: "72px",
+      render: (c) => (
+        <span
+          className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+          style={purposeBadgeStyle(c.purpose)}
+        >
+          {c.purpose || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "contact_id",
+      label: "#",
+      width: "48px",
+      className: "font-mono text-right",
+      render: (c) => <span>#{c.contact_id}</span>,
+    },
+    {
+      key: "name",
+      label: "name",
+      width: "180px",
+      render: (c) => (
+        <span className="truncate">
+          {c._resolved_name || c.attention || `Contact #${c.contact_id}`}
+        </span>
+      ),
+    },
+    {
+      key: "email",
+      label: "email",
+      render: (c) => {
+        const email = c._resolved_email || extractEmail(c.email);
+        return email ? (
+          <span className="truncate flex items-center gap-1" style={{ color: 'var(--db-text-muted)' }}>
+            <FaEnvelope size={9} className="shrink-0" style={{ color: 'var(--db-text-dim)' }} />
+            {email}
+          </span>
+        ) : null;
+      },
+    },
+    {
+      key: "phone",
+      label: "phone",
+      width: "130px",
+      render: (c) => {
+        const phone = c._resolved_phone || extractPhone(c.phone);
+        return phone ? (
+          <span className="truncate flex items-center gap-1" style={{ color: 'var(--db-text-muted)' }}>
+            <FaPhone size={9} className="shrink-0" style={{ color: 'var(--db-text-dim)' }} />
+            {phone}
+          </span>
+        ) : null;
+      },
+    },
+    {
+      key: "actions",
+      label: "",
+      width: "72px",
+      render: (c) => (
+        <span className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          {onSetPrimary && (
+            <button
+              type="button"
+              title={primaryContactId === c.contact_id ? "Primary contact" : "Set as primary"}
+              className={`p-1 rounded transition-colors ${primaryContactId === c.contact_id ? 'db-text-gold' : 'db-text-dim'}`}
+              onClick={() => { if (primaryContactId !== c.contact_id) onSetPrimary(c); }}
+              disabled={primaryContactId === c.contact_id}
+            >
+              <FaStar size={10} />
+            </button>
+          )}
+          {isEditing && (
+            <button
+              type="button"
+              title="Remove contact"
+              className="p-1 rounded transition-colors db-text-dim"
+              onClick={() => onRemove(c.contact_id)}
+            >
+              <FaTimes size={10} />
+            </button>
+          )}
+          <button
+            type="button"
+            title="Open contact"
+            className="p-1 rounded transition-colors db-text-dim"
+            onClick={() => onOpen(c)}
+          >
+            <FaExternalLinkAlt size={10} />
+          </button>
+        </span>
+      ),
+    },
+  ];
 }
 
-const ContactRow: React.FC<{
-  contact: RefContact;
-  isEditing?: boolean;
-  isPrimary?: boolean;
-  visibleColumns?: Set<string>;
-  onRemove?: () => void;
-  onEdit?: () => void;
-  onOpen?: () => void;
-  onSetPrimary?: () => void;
-}> = ({
-  contact,
-  isEditing,
-  isPrimary,
-  visibleColumns,
-  onRemove,
-  onEdit,
-  onOpen,
-  onSetPrimary,
-}) => {
-  const [comms, setComms] = useState<ContactRowComms | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  // Derive inline values first
-  const inlineEmail = extractEmail(contact.email);
-  const inlinePhone = extractPhone(contact.phone);
-  const displayName = contact.attention ?? `Contact #${contact.contact_id}`;
-
-  // Fetch from contact model only when inline data is missing
-  useEffect(() => {
-    if (inlineEmail || inlinePhone) return; // already have data
-    if (!contact.contact_id || contact.contact_id <= 0) return;
-
-    let cancelled = false;
-    setLoading(true);
-
-    getRecord("contact", contact.contact_id)
-      .then((result: any) => {
-        if (cancelled) return;
-        const data = result?.record ?? result;
-        const c = data?.communications;
-        setComms({
-          email: c?.emails?.[0]?.email ?? "",
-          phone: c?.phones?.[0]?.number ?? "",
-          name:
-            data?.attention ??
-            data?.name ??
-            [data?.name_first, data?.name_last].filter(Boolean).join(" ") ??
-            "",
-        });
-      })
-      .catch(() => {
-        if (!cancelled) setComms({ email: "", phone: "", name: "" });
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [contact.contact_id, inlineEmail, inlinePhone]);
-
-  const email = inlineEmail || comms?.email || "";
-  const phone = inlinePhone || comms?.phone || "";
-  const name =
-    displayName !== `Contact #${contact.contact_id}`
-      ? displayName
-      : comms?.name || displayName;
-
-  return (
-    <div className="db-list-row flex items-center gap-3 px-3 py-2 text-xs group">
-      {/* Purpose badge */}
-      {(!visibleColumns || visibleColumns.has("purpose")) && (
-        <span
-          className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide shrink-0 min-w-[56px] text-center"
-          style={purposeBadgeStyle(contact.purpose)}
-        >
-          {contact.purpose || "—"}
-        </span>
-      )}
-
-      {/* Contact ID */}
-      {(!visibleColumns || visibleColumns.has("contact_id")) && (
-        <span className="font-mono shrink-0 w-10 text-right db-text-dim">
-          #{contact.contact_id}
-        </span>
-      )}
-
-      {/* Name */}
-      {(!visibleColumns || visibleColumns.has("name")) && (
-        <span className="truncate min-w-[100px] max-w-[180px] db-text">
-          {loading ? (
-            <FaSpinner className="inline animate-spin db-text-dim" size={10} />
-          ) : (
-            name
-          )}
-        </span>
-      )}
-
-      {/* Email */}
-      {(!visibleColumns || visibleColumns.has("email")) && (
-        <span className="truncate min-w-0 flex-1 flex items-center gap-1 db-text-muted">
-          {email && (
-            <>
-              <FaEnvelope size={9} className="shrink-0 db-text-dim" />
-              <span className="truncate">{email}</span>
-            </>
-          )}
-        </span>
-      )}
-
-      {/* Phone */}
-      {(!visibleColumns || visibleColumns.has("phone")) && (
-        <span className="truncate w-[120px] shrink-0 flex items-center gap-1 db-text-muted">
-          {phone && (
-            <>
-              <FaPhone size={9} className="shrink-0 db-text-dim" />
-              <span className="truncate">{phone}</span>
-            </>
-          )}
-        </span>
-      )}
-
-      {/* Address */}
-      {(!visibleColumns || visibleColumns.has("address")) && (
-        <span className="truncate min-w-0 flex-1 flex items-center gap-1 db-text-muted">
-          {(() => {
-            const addr = contact.address;
-            const addrStr = Array.isArray(addr) ? addr[0]?.full : (typeof addr === 'string' ? addr : addr?.full);
-            return addrStr ? <span className="truncate">{addrStr}</span> : null;
-          })()}
-        </span>
-      )}
-
-      {/* Actions */}
-      <div className="flex items-center gap-1 shrink-0">
-        {onSetPrimary && (
-          <button
-            type="button"
-            title={isPrimary ? "Primary contact" : "Set as primary contact"}
-            className={`p-1 rounded transition-colors ${isPrimary ? 'db-text-gold' : 'db-text-dim'}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!isPrimary) onSetPrimary();
-            }}
-            disabled={isPrimary}
-          >
-            <FaStar size={10} />
-          </button>
-        )}
-        {isEditing && onEdit && (
-          <button
-            type="button"
-            title="Edit contact link"
-            className="p-1 rounded transition-colors db-text-dim"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
-          >
-            <FaEdit size={10} />
-          </button>
-        )}
-        {isEditing && onRemove && (
-          <button
-            type="button"
-            title="Remove contact"
-            className="p-1 rounded transition-colors db-text-dim"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemove();
-            }}
-          >
-            <FaTimes size={10} />
-          </button>
-        )}
-        <button
-          type="button"
-          title="Open contact in floating window"
-          className="p-1 rounded transition-colors db-text-dim"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpen?.();
-          }}
-        >
-          <FaExternalLinkAlt size={10} />
-        </button>
-      </div>
-    </div>
-  );
-};
-
 // ---------------------------------------------------------------------------
-// ContactPanel (list format)
+// ContactPanel
 // ---------------------------------------------------------------------------
 
 const ContactPanel: React.FC<ContactPanelProps> = ({
@@ -377,58 +249,55 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
   isEditing = false,
   parent_model,
   parentId,
-  order_id: _order_id,
   customer_id,
   customer_name,
   onRemove,
-  onEdit,
   onChange,
   onSaveSuccess,
-  onRefresh,
-  loading: externalLoading,
-  allowCreate,
   primaryContactId,
   onSetPrimary,
   title = "Contacts",
   defaultCollapsed = false,
 }) => {
-  console.log("contacts", contacts);
-  // Reserved for future edit/create modals
-  // const effectiveParentModel = parent_model || (order_id ? "order" : undefined);
-  // const effectiveParentId = parentId ?? order_id;
   const windowManager = useWindowManager();
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
-  // All columns visible
-  const visibleCols = new Set(CONTACT_COLUMN_METAS.map((m) => m.key));
+  const [resolvedContacts, setResolvedContacts] = useState<RefContact[]>([]);
 
-  // ---------------------------------------------------------------------------
-  // Auto-refresh when ContactDetail dispatches a "contact-saved" event
-  // ---------------------------------------------------------------------------
-  const handleContactSaved = useCallback(
-    (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      // Refresh if this panel matches the saved contact's parent
-      if (
-        detail &&
-        parent_model &&
-        parentId &&
-        detail.parentModel === parent_model &&
-        detail.parentId === parentId
-      ) {
-        onSaveSuccess?.();
-      }
-    },
-    [parent_model, parentId, onSaveSuccess],
-  );
-
+  // Resolve missing contact data from backend
   useEffect(() => {
-    window.addEventListener("contact-saved", handleContactSaved);
-    return () =>
-      window.removeEventListener("contact-saved", handleContactSaved);
-  }, [handleContactSaved]);
+    let cancelled = false;
+    const resolve = async () => {
+      const resolved = await Promise.all(
+        contacts.map(async (c) => {
+          const inlineEmail = extractEmail(c.email);
+          const inlinePhone = extractPhone(c.phone);
+          const hasName = c.attention && c.attention !== `Contact #${c.contact_id}`;
+          if ((inlineEmail || inlinePhone) && hasName) {
+            return { ...c, _resolved_name: c.attention, _resolved_email: inlineEmail, _resolved_phone: inlinePhone };
+          }
+          if (!c.contact_id || c.contact_id <= 0) return c;
+          try {
+            const result = await getRecord("contact", c.contact_id);
+            const data = result?.record ?? result;
+            const comms = data?.communications;
+            return {
+              ...c,
+              _resolved_name: c.attention || data?.attention || data?.name || [data?.name_first, data?.name_last].filter(Boolean).join(" ") || undefined,
+              _resolved_email: inlineEmail || comms?.emails?.[0]?.email || "",
+              _resolved_phone: inlinePhone || comms?.phones?.[0]?.number || "",
+            };
+          } catch {
+            return c;
+          }
+        })
+      );
+      if (!cancelled) setResolvedContacts(resolved);
+    };
+    resolve();
+    return () => { cancelled = true; };
+  }, [contacts]);
 
-  // Sort contacts: standard purposes first, then alphabetical
-  const sorted = [...contacts].sort((a, b) => {
+  // Sort: standard purposes first, then alphabetical
+  const sorted = [...resolvedContacts].sort((a, b) => {
     const idxA = STANDARD_PURPOSES.indexOf(a.purpose);
     const idxB = STANDARD_PURPOSES.indexOf(b.purpose);
     const orderA = idxA >= 0 ? idxA : STANDARD_PURPOSES.length;
@@ -437,152 +306,63 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
     return (a.purpose || "").localeCompare(b.purpose || "");
   });
 
+  // Auto-refresh on contact-saved event
+  const handleContactSaved = useCallback(
+    (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && parent_model && parentId && detail.parentModel === parent_model && detail.parentId === parentId) {
+        onSaveSuccess?.();
+      }
+    },
+    [parent_model, parentId, onSaveSuccess],
+  );
+
+  useEffect(() => {
+    window.addEventListener("contact-saved", handleContactSaved);
+    return () => window.removeEventListener("contact-saved", handleContactSaved);
+  }, [handleContactSaved]);
+
   const handleOpen = (contact: RefContact) => {
     const path = getModelDetailPath("contact", contact.contact_id);
-    const label = getModelWindowTitle(
-      "contact",
-      contact.contact_id,
-      undefined,
-      contact.attention,
-    );
+    const label = getModelWindowTitle("contact", contact.contact_id, undefined, contact.attention);
     windowManager.ensureWindow(path, label, { maximized: false });
   };
 
-  const handleRemoveContact = (contactId: number) => {
-    if (onChange) {
-      onChange(contacts.filter((c) => c.contact_id !== contactId));
-    }
-    if (onRemove) {
-      onRemove(contactId);
-    }
+  const handleRemove = (contactId: number) => {
+    if (onChange) onChange(contacts.filter((c) => c.contact_id !== contactId));
+    if (onRemove) onRemove(contactId);
   };
 
-  const handleEditContact = (contact: RefContact) => {
-    if (onEdit) {
-      onEdit(contact);
-    }
+  const handleAdd = () => {
+    const qs = new URLSearchParams();
+    if (parent_model) qs.set("parent_model", parent_model);
+    if (parentId) qs.set("parent_id", String(parentId));
+    if (customer_id) qs.set("customer_id", String(customer_id));
+    if (customer_name) qs.set("customer_name", customer_name);
+    const query = qs.toString();
+    const path = `/core/contact/detail/${query ? `?${query}` : ""}`;
+    windowManager.ensureWindow(path, "New Contact", { maximized: false });
   };
+
+  const columns = buildColumns(isEditing, primaryContactId, onSetPrimary, handleRemove, handleOpen);
 
   return (
-    <div className="rounded-lg db-panel">
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer db-border-bottom"
-        onClick={() => setIsCollapsed(!isCollapsed)}
-      >
-        <div className="flex items-center gap-2">
-          <FaUser className="db-text-dim" size={14} />
-          <h3 className="text-sm font-semibold db-text">
-            {title}
-          </h3>
-          {contacts.length > 0 && (
-            <span className="px-1.5 py-0.5 text-xs rounded-full db-surface-alt-text">
-              {contacts.length}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {(isEditing || allowCreate) && !isCollapsed && (
-            <button
-              type="button"
-              className="px-2 py-1 text-xs font-medium rounded transition-colors flex items-center gap-1 db-text-accent"
-              onClick={(e) => {
-                e.stopPropagation();
-                // Open a blank ContactDetail for creating a new contact.
-                // Pass parent context via query params so the form auto-populates
-                // the appropriate parent_id and syncs refs.links on save.
-                const qs = new URLSearchParams();
-                if (parent_model) qs.set("parent_model", parent_model);
-                if (parentId) qs.set("parent_id", String(parentId));
-                if (customer_id) qs.set("customer_id", String(customer_id));
-                if (customer_name) qs.set("customer_name", customer_name);
-                const query = qs.toString();
-                // Trailing slash needed so resolveWindowElement matches the :id? route
-                const path = `/core/contact/detail/${query ? `?${query}` : ""}`;
-                windowManager.ensureWindow(path, "New Contact", {
-                  maximized: false,
-                });
-              }}
-            >
-              <FaPlus size={8} />
-              Add
-            </button>
-          )}
-          {/* Refresh button */}
-          {onRefresh && !isCollapsed && (
-            <button
-              type="button"
-              title="Refresh contacts"
-              className="px-2 py-1 text-xs font-medium rounded transition-colors flex items-center gap-1 db-text-muted"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRefresh();
-              }}
-              disabled={externalLoading}
-            >
-              <FaSyncAlt
-                size={10}
-                className={externalLoading ? "animate-spin" : ""}
-              />
-            </button>
-          )}
-          {isCollapsed ? (
-            <FaChevronDown size={12} className="db-text-dim" />
-          ) : (
-            <FaChevronUp size={12} className="db-text-dim" />
-          )}
-        </div>
-      </div>
-
-      {/* List */}
-      {!isCollapsed && (
-        <div>
-          {sorted.length === 0 ? (
-            <p className="text-sm text-center py-6 italic db-text-dim">
-              {externalLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <FaSpinner className="animate-spin" size={12} />
-                  Loading contacts…
-                </span>
-              ) : (
-                "No contacts linked"
-              )}
-            </p>
-          ) : (
-            <div>
-              {/* Column headers */}
-              <div className="flex items-center gap-3 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider db-surface-alt-muted db-border-bottom-light">
-                {visibleCols.has("purpose") && <span className="min-w-[56px] shrink-0 text-center">purpose</span>}
-                {visibleCols.has("contact_id") && <span className="w-10 text-right shrink-0">#</span>}
-                {visibleCols.has("name") && <span className="min-w-[100px] max-w-[180px]">name</span>}
-                {visibleCols.has("email") && <span className="flex-1 min-w-0">email</span>}
-                {visibleCols.has("phone") && <span className="w-[120px] shrink-0">phone</span>}
-                <span className="shrink-0 w-[72px]" />
-              </div>
-              {sorted.map((contact, idx) => (
-                <ContactRow
-                  key={`${contact.contact_id}-${contact.purpose}-${idx}`}
-                  contact={contact}
-                  isEditing={isEditing}
-                  isPrimary={
-                    !!primaryContactId &&
-                    contact.contact_id === primaryContactId
-                  }
-                  visibleColumns={visibleCols}
-                  onRemove={() => handleRemoveContact(contact.contact_id)}
-                  onEdit={() => handleEditContact(contact)}
-                  onOpen={() => handleOpen(contact)}
-                  onSetPrimary={
-                    onSetPrimary ? () => onSetPrimary(contact) : undefined
-                  }
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+    <DbColumns<RefContact>
+      storageKey={`panel:${parent_model || 'generic'}:contacts`}
+      columns={columns}
+      data={sorted}
+      rowKey={(c) => `${c.contact_id}-${c.purpose}`}
+      onSelectRow={handleOpen}
+      sectionLabel={title}
+      sectionIcon="👤"
+      onAdd={(isEditing) ? handleAdd : undefined}
+      defaultCollapsed={defaultCollapsed}
+      compact
+      emptyMessage="No contacts linked"
+    />
   );
 };
 
-export default withDevIdentifier(ContactPanel, "ContactPanel", "teal", 'apps/common/components/panels/ContactPanel.tsx');
+const ContactPanelWrapped = withDevIdentifier(ContactPanel, "ContactPanel", "teal", 'apps/common/components/panels/ContactPanel.tsx');
+export { ContactPanelWrapped as ContactPanel };
+export default ContactPanelWrapped;

@@ -100,9 +100,13 @@ export type { CoreTabPanelProps } from "./CoreTabPanel";
 export { DbColumns } from "./DbColumns";
 export type { DbColumnDef, DbColumnsProps } from "./DbColumns";
 
-// Backward-compatible aliases
+// PanelTable wraps DbColumns
 export { PanelTable } from "./PanelTable";
 export type { PanelColumnDef, PanelTableProps } from "./PanelTable";
+
+// LinkedRecordsPanel — universal panel for linking any model to any record
+export { LinkedRecordsPanel } from "./LinkedRecordsPanel";
+export type { default as LinkedRecordsPanelDefault } from "./LinkedRecordsPanel";
 
 // Q&A utilities and types
 export {
@@ -117,7 +121,6 @@ export {
   saveQAAnswer,
   deleteQAAnswer,
   getEffectiveOptions,
-  uploadQAImage,
   applyQuestionGroup,
 } from "./qaUtils";
 export type {

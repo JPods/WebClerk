@@ -29,6 +29,10 @@ import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import { FileUploadPanel } from './FileUploadPanel';
+import { ContactPanel, normalizeRefsLinksContact } from '@/apps/common/components/panels/ContactPanel';
+import type { RefContact } from '@/apps/common/components/panels/ContactPanel';
+import { LinkedRecordsPanel } from '@/apps/common/components/panels/LinkedRecordsPanel';
+import { getModelNames } from '@/api/wcapi';
 
 // ── Field type registry ─────────────────────────────────────────────
 
@@ -82,7 +86,7 @@ function inferFieldType(value: any): FieldConfig["type"] {
   return "text";
 }
 
-// ── Legacy hardcoded registries (kept for backward compat) ──────────
+// ── Hardcoded field registries ──────────
 
 const ACTION_FIELDS: Record<string, FieldConfig> = {
   action: { type: "json-text", label: "action" },
@@ -215,8 +219,41 @@ function DynamicDetail({
   const [layoutReportId, setLayoutReportId] = useState<number | null>(null);
   const [fontScale, setFontScale] = useState(0);
   const [dragRow, setDragRow] = useState<number | null>(null);
+  const [linkedContacts, setLinkedContacts] = useState<RefContact[]>([]);
+  const [linkedPanelModels, setLinkedPanelModels] = useState<string[]>([]);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [showModelPicker, setShowModelPicker] = useState(false);
 
   const fontSize = 12 + fontScale;
+
+  // Standard panels always shown (even if empty) — besides contacts which uses ContactPanel
+  const STANDARD_PANELS = ['action', 'touch', 'document'];
+
+  // Models that use specialized panels (ContactPanel handles contacts)
+  const SPECIALIZED = ['contact'];
+
+  // Load available model names for "+ Link..." selector
+  useEffect(() => {
+    getModelNames().then((res: any) => {
+      const names: string[] = Array.isArray(res?.model_names) ? res.model_names : [];
+      setAvailableModels(names.sort());
+    }).catch(() => {});
+  }, []);
+
+  // Self-discover panels from refs.links keys + standard panels
+  useEffect(() => {
+    if (!data) return;
+    const refsLinks = data?.refs?.links || {};
+    const discoveredKeys = Object.keys(refsLinks).filter(k =>
+      !SPECIALIZED.includes(k)
+    );
+    // Merge: standard panels + discovered keys (deduplicated, standard first)
+    const merged = [...STANDARD_PANELS];
+    for (const k of discoveredKeys) {
+      if (!merged.includes(k)) merged.push(k);
+    }
+    setLinkedPanelModels(merged);
+  }, [data, modelName]);
 
   // Merged field registry: Report config.fields > legacy hardcoded > auto-inferred
   const fieldRegistry = useMemo(() => {
@@ -312,6 +349,8 @@ function DynamicDetail({
       const r = resp?.record || resp;
       if (!r) return;
       setData(r);
+      const contacts = r?.refs?.links?.contact || [];
+      setLinkedContacts(normalizeRefsLinksContact(contacts));
     }).catch(() => {});
   }, [modelName, recordId]);
 
@@ -586,6 +625,90 @@ function DynamicDetail({
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ── Standard panels — every record type ─────────────────── */}
+
+      {/* Contacts — uses ContactPanel (specialized for refs.links.contact) */}
+      <ContactPanel
+        contacts={linkedContacts}
+        isEditing={editing}
+        parent_model={modelName}
+        parentId={Number(recordId)}
+        onChange={async (updated: RefContact[]) => {
+          setLinkedContacts(updated);
+          try {
+            const contactLinks = updated.map(c => ({
+              id: c.contact_id,
+              purpose: c.purpose || 'primary',
+              attention: c.attention,
+              email: c.email,
+              phone: c.phone,
+            }));
+            await saveRecord(modelName, {
+              id: Number(recordId),
+              'refs.links.contact': contactLinks,
+            });
+          } catch (err) {
+            console.error('Failed to save contacts:', err);
+          }
+        }}
+        title="Contacts"
+        defaultCollapsed={true}
+      />
+
+      {/* ── Self-discovered panels — from refs.links keys + standards ── */}
+      {linkedPanelModels.map(panel => (
+        <LinkedRecordsPanel
+          key={panel}
+          linkedModel={panel}
+          parentModel={modelName}
+          parentId={Number(recordId)}
+          defaultCollapsed={true}
+          editable={editing}
+        />
+      ))}
+
+      {/* ── "+ Link..." — add a panel for any model ────────────── */}
+      {editing && (
+        <div style={{ padding: '4px 12px' }}>
+          {showModelPicker ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <select
+                className="db-input"
+                style={{ fontSize: 11, flex: 1, padding: '2px 6px' }}
+                value=""
+                onChange={(e) => {
+                  const model = e.target.value;
+                  if (model && !linkedPanelModels.includes(model) && !SPECIALIZED.includes(model)) {
+                    // Adding a model panel creates an empty refs.links entry so the panel persists
+                    saveRecord(modelName, {
+                      id: Number(recordId),
+                      [`refs.links.${model}`]: [],
+                    }).catch(() => {});
+                    setLinkedPanelModels(prev => [...prev, model]);
+                  }
+                  setShowModelPicker(false);
+                }}
+              >
+                <option value="">Select model to link...</option>
+                {availableModels
+                  .filter(m => !SPECIALIZED.includes(m) && !linkedPanelModels.includes(m))
+                  .map(m => <option key={m} value={m}>{m}</option>)
+                }
+              </select>
+              <button onClick={() => setShowModelPicker(false)} className="db-text-dim" style={{ fontSize: 11 }}>Cancel</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowModelPicker(true)}
+              className="w-full rounded border border-dashed py-1 text-[10px] transition-colors"
+              style={{ borderColor: 'var(--db-border)', color: 'var(--db-text-dim)' }}
+            >
+              + Link...
+            </button>
+          )}
         </div>
       )}
 

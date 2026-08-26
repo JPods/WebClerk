@@ -13,6 +13,8 @@ import { formatDt } from "@/utils/fieldFormatters";
 import { useDispatch } from "react-redux";
 import { showToast } from "@/store/slices/toastSlice";
 import { TouchForm, type TouchFormContext } from "@/pages/admin/TouchForm";
+import { ContactPanel, normalizeRefsLinksContact } from "@/apps/common/components/panels/ContactPanel";
+import type { RefContact } from "@/apps/common/components/panels/ContactPanel";
 
 interface Props {
   actionId: string;
@@ -29,17 +31,47 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
   const [touches, setTouches] = useState<any[]>([]);
   const [showTouches, setShowTouches] = useState(false);
   const [addingTouch, setAddingTouch] = useState<string | null>(null); // channel type or null
+  const [actionContacts, setActionContacts] = useState<RefContact[]>([]);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const resizeRef = useRef<{ startX: number; startY: number; origW: number; origH: number } | null>(null);
   const windowRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<DynamicDetailActions | null>(null);
   const dispatch = useDispatch();
 
-  // Fetch touch records for this action
-  useEffect(() => {
-    getRecords('touch', { action: actionId }).then((res: any) => {
-      setTouches(res?.records || res?.results || []);
-    }).catch(() => {});
+  // Fetch touch records and contacts for this action
+  const loadActionData = useCallback(async () => {
+    try {
+      const touchRes = await getRecords('touch', { action: actionId });
+      setTouches(touchRes?.records || touchRes?.results || []);
+    } catch {}
+    try {
+      const { getRecord } = await import('@/api/wcapi');
+      const rec = await getRecord('action', Number(actionId));
+      const record = rec?.record || rec;
+      const linked = record?.refs?.links?.contact || [];
+      setActionContacts(normalizeRefsLinksContact(linked));
+    } catch {}
+  }, [actionId]);
+
+  useEffect(() => { loadActionData(); }, [loadActionData]);
+
+  const handleContactsChange = useCallback(async (updated: RefContact[]) => {
+    setActionContacts(updated);
+    try {
+      const contactLinks = updated.map(c => ({
+        id: c.contact_id,
+        purpose: c.purpose || 'primary',
+        attention: c.attention,
+        email: c.email,
+        phone: c.phone,
+      }));
+      await saveRecord('action', {
+        id: Number(actionId),
+        'refs.links.contact': contactLinks,
+      });
+    } catch (err) {
+      console.error('Failed to save action contacts:', err);
+    }
   }, [actionId]);
 
   const handleDelete = useCallback(async () => {
@@ -251,6 +283,19 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
           ) : null}
         </div>
       )}
+
+      {/* Contacts panel — collapsed by default */}
+      <div className="shrink-0 border-b border-gray-200 dark:border-gray-700">
+        <ContactPanel
+          contacts={actionContacts}
+          isEditing={true}
+          parent_model="action"
+          parentId={Number(actionId)}
+          onChange={handleContactsChange}
+          title="Contacts"
+          defaultCollapsed={true}
+        />
+      </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-3 py-2">
