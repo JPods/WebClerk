@@ -17,7 +17,7 @@ class Domain(BaseModel):
     
     path = models.CharField(max_length=255, blank=True, db_index=True, help_text="URL or handle (indexed)")
     type = models.CharField(max_length=50, blank=True, choices=DOMAIN_TYPE_CHOICES, default="", db_index=True)
-    status = models.CharField(max_length=30, blank=True, choices=DOMAIN_STATUS_CHOICES, default='active', db_index=True)
+    status = models.CharField(max_length=32, blank=True, choices=DOMAIN_STATUS_CHOICES, default='active', db_index=True)
     sequence = models.PositiveIntegerField(default=0, db_index=True, help_text="Custom ordering value")
     count_accessed = models.PositiveIntegerField(default=0, help_text="Access counter")
 

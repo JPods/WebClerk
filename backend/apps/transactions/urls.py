@@ -32,7 +32,7 @@ from apps.transactions.views.transaction_views import (
     InvoiceViewSet,
     PaymentViewSet,
 )
-from apps.transactions.views.order_views import OrderToPurchaseView
+from apps.transactions.views.actions import OrderToPurchaseView
 
 router = DefaultRouter()
 router.register(r'proposals', ProposalViewSet, basename='proposal')

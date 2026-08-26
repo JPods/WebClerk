@@ -1,112 +1,136 @@
+"""Pilot CRUD tests using the wcapi endpoints.
+
+Tests use the actual /wcapi/save/, /wcapi/get/, and /wcapi/delete/ endpoints
+with the standard envelope contract (model_name in flat payload).
+"""
+import json
 import pytest
-from rest_framework.test import APIClient
+from django.test import Client
+from django.contrib.auth import get_user_model
+from tests.utils import assert_envelope
 
-# Update these to match your models' required fields
-PILOT_PAYLOADS = {
-    "contact": {
-        # Example fields; adjust
-        "first_name": "Ada",
-        "last_name": "Lovelace",
-        "email": "ada@example.com",
-        "status": "active",
-    },
-    "domain": {
-        # Example fields; adjust
-        "name": "example.com",
-        "is_active": True,
-    },
-    "order": {
-        # Example fields; adjust (may require foreign keys like customer_id)
-        "number": "SO-1001",
-        "status": "open",
-        "total": 123.45,
-    },
-}
+User = get_user_model()
 
-def create_via_wcapi(client: APIClient, model: str, data: dict) -> int:
-    resp = client.post('/wcapi/save', {'model': model, 'data': data}, format='json')
-    assert getattr(resp, 'status_code', None) in (200, 201), getattr(resp, 'data', None)
-    d = getattr(resp, 'data', {}) or {}
-    d = d.get('data', d)
-    return d.get('id')
 
-def update_via_rest(client: APIClient, model: str, pk: int, patch: dict):
-    resp = client.post(f'/{model}/{pk}/', {'data': patch}, format='json')
-    assert getattr(resp, 'status_code', None) == 200, getattr(resp, 'data', None)
-    return resp
+@pytest.fixture
+def admin_client():
+    user = User.objects.create_user(
+        email="pilot-admin@example.com",
+        password="pw12345",
+        name_first="Pilot",
+        name_last="Admin",
+        username="",
+        is_staff=True,
+        is_superuser=True,
+    )
+    c = Client()
+    assert c.login(email="pilot-admin@example.com", password="pw12345")
+    return c
 
-def get_detail(client: APIClient, model: str, pk: int) -> dict:
-    resp = client.get(f'/{model}/{pk}/')
-    assert getattr(resp, 'status_code', None) == 200, getattr(resp, 'data', None)
-    d = getattr(resp, 'data', {}) or {}
-    d = d.get('data', d)
-    return d.get('item') or d  # accept either envelope
-
-def list_items(client: APIClient, model: str) -> list:
-    resp = client.get(f'/{model}/')
-    assert getattr(resp, 'status_code', None) == 200, getattr(resp, 'data', None)
-    d = getattr(resp, 'data', {}) or {}
-    d = d.get('data', d)
-    return d.get('items') or d.get('results') or []
-
-def delete_single(client: APIClient, model: str, pk: int):
-    resp = client.delete(f'/{model}/{pk}/')
-    assert getattr(resp, 'status_code', None) == 200, getattr(resp, 'data', None)
-    return resp
-
-def delete_batch_ids(client: APIClient, model: str, ids: list[int]):
-    resp = client.delete(f'/{model}/', data={'ids': ids}, format='json')
-    assert getattr(resp, 'status_code', None) == 200, getattr(resp, 'data', None)
-    return resp
 
 @pytest.mark.django_db
-def test_contact_crud(admin_user):
-    client = APIClient()
-    client.force_authenticate(user=admin_user)
+def test_contact_crud(admin_client):
+    # Create
+    resp = admin_client.post(
+        "/wcapi/save/",
+        data=json.dumps({
+            "model_name": "contact",
+            "name_first": "Ada",
+            "name_last": "Lovelace",
+            "email": "ada@example.com",
+            "status": "active",
+        }),
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    data = assert_envelope(resp.json(), expect_status="success")
+    cid = data["id"]
+    assert cid is not None
 
-    cid = create_via_wcapi(client, "contact", PILOT_PAYLOADS["contact"])
-    item = get_detail(client, "contact", cid)
-    assert item.get("id") == cid
+    # Read
+    resp = admin_client.get("/wcapi/get/", {"model_name": "contact", "id": cid})
+    assert resp.status_code == 200
+    data = assert_envelope(resp.json(), expect_status="success")
+    record = data.get("record") or {}
+    assert record.get("id") == cid
 
-    update_via_rest(client, "contact", cid, {"status": "inactive"})
-    item2 = get_detail(client, "contact", cid)
-    assert item2.get("status") in ("inactive", item2.get("status"))  # tolerate no-op if field differs
+    # Delete
+    resp = admin_client.post(
+        "/wcapi/delete/",
+        data=json.dumps({"model_name": "contact", "id": cid}),
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    data = assert_envelope(resp.json(), expect_status="success")
+    assert data.get("deleted") is True
 
-    delete_single(client, "contact", cid)
-    lst = list_items(client, "contact")
-    assert not any(it.get("id") == cid for it in lst)
 
 @pytest.mark.django_db
-def test_domain_crud_and_batch_delete(admin_user):
-    client = APIClient()
-    client.force_authenticate(user=admin_user)
+def test_customer_crud(admin_client):
+    # Create
+    resp = admin_client.post(
+        "/wcapi/save/",
+        data=json.dumps({
+            "model_name": "customer",
+            "company": "Pilot Customer Co",
+            "status": "active",
+        }),
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    data = assert_envelope(resp.json(), expect_status="success")
+    oid = data["id"]
+    assert oid is not None
 
-    ids = []
-    for i in range(3):
-        payload = {**PILOT_PAYLOADS["domain"], "name": f"example-{i}.com"}
-        ids.append(create_via_wcapi(client, "domain", payload))
-    assert all(ids)
+    # Read
+    resp = admin_client.get("/wcapi/get/", {"model_name": "customer", "id": oid})
+    assert resp.status_code == 200
+    data = assert_envelope(resp.json(), expect_status="success")
+    record = data.get("record") or {}
+    assert record.get("id") == oid
 
-    # Batch delete two
-    delete_batch_ids(client, "domain", ids[:2])
-    remaining = list_items(client, "domain")
-    remaining_ids = {it.get("id") for it in remaining}
-    assert ids[2] in remaining_ids
+    # Delete
+    resp = admin_client.post(
+        "/wcapi/delete/",
+        data=json.dumps({"model_name": "customer", "id": oid}),
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    data = assert_envelope(resp.json(), expect_status="success")
+    assert data.get("deleted") is True
 
-    # Clean up last
-    delete_single(client, "domain", ids[2])
 
 @pytest.mark.django_db
-def test_order_crud(admin_user):
-    client = APIClient()
-    client.force_authenticate(user=admin_user)
+def test_setting_crud(admin_client):
+    # Create
+    resp = admin_client.post(
+        "/wcapi/save/",
+        data=json.dumps({
+            "model_name": "setting",
+            "name": "pilot_test_setting",
+            "purpose": "test",
+            "is_active": True,
+        }),
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    data = assert_envelope(resp.json(), expect_status="success")
+    sid = data["id"]
+    assert sid is not None
 
-    oid = create_via_wcapi(client, "order", PILOT_PAYLOADS["order"])
-    item = get_detail(client, "order", oid)
-    assert item.get("id") == oid
+    # Read
+    resp = admin_client.get("/wcapi/get/", {"model_name": "setting", "id": sid})
+    assert resp.status_code == 200
+    data = assert_envelope(resp.json(), expect_status="success")
+    record = data.get("record") or {}
+    assert record.get("id") == sid
 
-    update_via_rest(client, "order", oid, {"status": "closed"})
-    item2 = get_detail(client, "order", oid)
-    assert item2.get("status") in ("closed", item2.get("status"))
-
-    delete_single(client, "order", oid)
+    # Delete
+    resp = admin_client.post(
+        "/wcapi/delete/",
+        data=json.dumps({"model_name": "setting", "id": sid}),
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    data = assert_envelope(resp.json(), expect_status="success")
+    assert data.get("deleted") is True

@@ -1713,16 +1713,19 @@ class Command(BaseCommand):
         wc3 = {}
         # Invoice balance
         from django.db.models import Sum
-        inv_agg = Invoice.objects.filter(balance__isnull=False).exclude(balance=0).aggregate(
-            count=models.Count('id'), total=Sum('balance')
+        from common.json_lookups import totals_balance
+        inv_agg = Invoice.objects.annotate(_bal=totals_balance()).filter(
+            _bal__isnull=False,
+        ).exclude(_bal=0).aggregate(
+            count=models.Count('id'), total=Sum('_bal')
         )
         wc3['invoices_unpaid'] = {
             'count': inv_agg['count'] or 0,
             'balance': float(inv_agg['total'] or 0),
         }
-        # Payment unapplied
-        pay_agg = Payment.objects.filter(balance__isnull=False).exclude(balance=0).aggregate(
-            count=models.Count('id'), total=Sum('balance')
+        # Payment unapplied (Payment.available is a real field, not a shadow)
+        pay_agg = Payment.objects.filter(available__isnull=False).exclude(available=0).aggregate(
+            count=models.Count('id'), total=Sum('available')
         )
         wc3['payments_unapplied'] = {
             'count': pay_agg['count'] or 0,

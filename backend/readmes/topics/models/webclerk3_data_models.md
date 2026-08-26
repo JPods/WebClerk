@@ -239,7 +239,7 @@ classDiagram
         +subtotal: DecimalField
         +tax_amount: DecimalField
         +discount_amount: DecimalField
-        +total: DecimalField
+        +total: @property (from totals JSON)
         +sell: JSONField
         +cost: JSONField
         +totals: JSONField

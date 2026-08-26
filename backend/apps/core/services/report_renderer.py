@@ -90,7 +90,7 @@ def _get_company_info() -> Dict[str, str]:
 def _get_model_class(model_name: str):
     """Resolve a model class from a slug using the wcapi registry."""
     try:
-        from apps.core.services.wcapi_registry import get_model
+        from apps.core.constants.model_registry import get_model
         return get_model(model_name)
     except Exception:
         return None

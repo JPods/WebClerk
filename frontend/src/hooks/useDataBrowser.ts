@@ -23,7 +23,11 @@ import {
   getWorkbenchFieldsSetting,
   saveWorkbenchFieldsSetting,
   getAllWorkbenchFieldsSettings,
+  getResolvedSelectlists,
 } from '@/api/wcapi';
+import type { PjpvFieldMeta } from '@/api/wcapi';
+import { useSchemaFormats, type SchemaFormatMap } from '@/hooks/useSchemaFormats';
+import { getSelectOptions } from '@/config/selectLists';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -46,13 +50,66 @@ export type FieldSpec = {
   frozen?: boolean;
   summary?: 'sum' | 'avg' | 'count' | null;
   alice_note?: string;
-  typeHint?: string;  // overrides auto-detected widget type from field_behaviors
+  // typeHint removed — behavioral property belongs in Pydantic schema
+  // (json_schema_extra.widget). Renderer reads from schema field_behaviors.
 };
 
 // ---------------------------------------------------------------------------
-// Smart defaults by field name — ported from wc2 listboxK._setColumnName
+// Schema-to-format mapping — converts PJPV widget to FieldSpec format
 // ---------------------------------------------------------------------------
-export function getDefaultFieldSpec(field: string): Partial<FieldSpec> {
+
+const WIDGET_TO_FORMAT: Record<string, FieldSpec['format']> = {
+  currency: 'currency',
+  percent: 'percent',
+  number: 'number',
+  date: 'date',
+  phone: 'phone',
+  json: 'json',
+  masked: 'masked',
+};
+
+const WIDGET_TO_ALIGN: Record<string, FieldSpec['align']> = {
+  currency: 'right',
+  percent: 'right',
+  number: 'right',
+};
+
+/**
+ * Look up schema-declared format for a field.
+ * Tries exact path first (e.g. "totals.total"), then bare leaf name.
+ */
+function schemaFormat(field: string, schemaMap?: SchemaFormatMap): Partial<FieldSpec> | null {
+  if (!schemaMap || !Object.keys(schemaMap).length) return null;
+
+  // Try exact match (works for both "totals.total" and bare "total")
+  let meta: PjpvFieldMeta | undefined = schemaMap[field];
+
+  // For dot-path fields, also try bare leaf as fallback
+  if (!meta && field.includes('.')) {
+    const leaf = field.split('.').pop() || '';
+    meta = schemaMap[leaf];
+  }
+
+  if (!meta) return null;
+
+  const format = WIDGET_TO_FORMAT[meta.widget] || null;
+  const align = WIDGET_TO_ALIGN[meta.widget];
+  const result: Partial<FieldSpec> = {};
+  if (format) result.format = format;
+  if (align) result.align = align;
+  if (format === 'currency') result.width = 100;
+  if (format === 'percent') result.width = 80;
+  if (format === 'number') result.width = 70;
+  if (meta.selectlist_key) (result as any).selectlist_key = meta.selectlist_key;
+  return Object.keys(result).length ? result : null;
+}
+
+// ---------------------------------------------------------------------------
+// Smart defaults by field name — FALLBACK when schema metadata is unavailable.
+// Ported from wc2 listboxK._setColumnName.
+// ---------------------------------------------------------------------------
+
+function _nameGuessFieldSpec(field: string): Partial<FieldSpec> {
   const fl = field.toLowerCase();
 
   // WHO fields — wider for names
@@ -117,7 +174,7 @@ export function getDefaultFieldSpec(field: string): Partial<FieldSpec> {
   // UUID
   if (fl === 'uuid') return { width: 100, align: 'left' };
 
-  // JSON blobs — narrow in list (just show {…})
+  // JSON blobs — narrow in list (just show {...})
   if (fl === 'metadata' || fl === 'refs' || fl === 'prefs' || fl === 'actions' || fl === 'stats')
     return { width: 60, align: 'left', format: 'json' };
 
@@ -144,9 +201,29 @@ export function getDefaultFieldSpec(field: string): Partial<FieldSpec> {
   return {};
 }
 
+/**
+ * Get default field spec: schema metadata first, name-guessing fallback.
+ *
+ * Priority: Pydantic schema widget → name-pattern guess → empty.
+ * Schema provides format/align/width for fields it knows about.
+ * Name-guessing covers everything else (contacts, dates, booleans, etc.)
+ * and fields not declared in any Pydantic schema (user-defined custom fields).
+ */
+export function getDefaultFieldSpec(field: string, schemaMap?: SchemaFormatMap): Partial<FieldSpec> {
+  const fromSchema = schemaFormat(field, schemaMap);
+  const fromName = _nameGuessFieldSpec(field);
+
+  if (fromSchema) {
+    // Schema wins for format/align/width; name-guess fills layout-only props
+    return { ...fromName, ...fromSchema };
+  }
+
+  return fromName;
+}
+
 /** Apply smart defaults to a FieldSpec — user-set values always win */
-export function applyFieldDefaults(spec: FieldSpec): FieldSpec {
-  const defaults = getDefaultFieldSpec(spec.field);
+export function applyFieldDefaults(spec: FieldSpec, schemaMap?: SchemaFormatMap): FieldSpec {
+  const defaults = getDefaultFieldSpec(spec.field, schemaMap);
   return {
     ...defaults,
     ...spec,
@@ -156,10 +233,10 @@ export function applyFieldDefaults(spec: FieldSpec): FieldSpec {
 }
 
 /** Convert between string[] and FieldSpec[] — applies smart defaults */
-export const toFieldSpecs = (fields: (string | FieldSpec)[]): FieldSpec[] =>
+export const toFieldSpecs = (fields: (string | FieldSpec)[], schemaMap?: SchemaFormatMap): FieldSpec[] =>
   fields.map((f) => typeof f === 'string'
-    ? applyFieldDefaults({ field: f, visible: true })
-    : applyFieldDefaults(f));
+    ? applyFieldDefaults({ field: f, visible: true }, schemaMap)
+    : applyFieldDefaults(f, schemaMap));
 
 export const toFieldNames = (specs: (string | FieldSpec)[]): string[] =>
   specs.map((f) => typeof f === 'string' ? f : f.field);
@@ -174,7 +251,7 @@ export type NamedView = {
   name: string;
   list: (string | FieldSpec)[];
   detail: (string | FieldSpec)[];
-  listWidths?: Record<string, number>;  // backward compat — prefer FieldSpec.width
+  listWidths?: Record<string, number>;  // prefer FieldSpec.width
 };
 
 export type FieldGroup = {
@@ -200,12 +277,11 @@ export type SortSpec = { field: string; direction: 'asc' | 'desc' } | null;
  * Old format has layout.list as a flat array:
  *   { list: [...], detail: [...], views: [...] }
  *
- * Backward compatible with old keys: 'dynamic' (now 'detail'), 'display' (now 'form').
  */
 function namedLayoutToWorkbench(layout: any): WorkbenchFieldsSetting | null {
   if (!layout || typeof layout !== 'object') return null;
 
-  // Old format — layout.list is an array (or missing)
+  // Flat format — layout.list is an array (or missing)
   if (!layout.list || Array.isArray(layout.list)) {
     return { list: layout.list || [], detail: layout.detail || [], views: layout.views || [] };
   }
@@ -214,13 +290,11 @@ function namedLayoutToWorkbench(layout: any): WorkbenchFieldsSetting | null {
   const active = layout.active || { list: 'default' };
   const activeName = active.list || 'default';
   const namedList: Record<string, any> = layout.list || {};
-  // Canonical key is 'detail'; fall back to old 'dynamic' for backward compat
-  const namedDetail: Record<string, any> = layout.detail || layout.dynamic || {};
+  const namedDetail: Record<string, any> = layout.detail || {};
 
   // Resolve active list layout
   const activeListLayout = namedList[activeName] || namedList['default'] || {};
-  // Pairing key: 'detail' (canonical) or 'dynamic' (old)
-  const activeDetailName = activeListLayout.detail || activeListLayout.dynamic || active.detail || active.dynamic || 'default';
+  const activeDetailName = activeListLayout.detail || active.detail || 'default';
   const activeDetailLayout = namedDetail[activeDetailName] || namedDetail['default'] || {};
 
   // Convert all named list layouts to NamedView[] for the layout selector
@@ -289,6 +363,11 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
   // When the user explicitly picks a model, the toolbar owns that choice.
   // URL sync must not override it — the toolbar is independent of the console.
   const userSelectedModelRef = useRef(false);
+
+  // PJPV schema metadata — loaded once per session, provides authoritative
+  // field formats (currency, percent, etc.) from Pydantic schemas.
+  // Empty {} while loading — callers fall through to name-guessing.
+  const schemaFormats = useSchemaFormats();
 
   // Determine if this DataBrowser instance is in the active window.
   // Inactive windows should not react to URL changes or fire API calls.
@@ -412,17 +491,17 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
 
   // Raw field specs (may be strings or FieldSpec objects)
   const listFieldSpecs = useMemo((): FieldSpec[] => {
-    if (workbenchSetting?.list?.length) return toFieldSpecs(workbenchSetting.list);
+    if (workbenchSetting?.list?.length) return toFieldSpecs(workbenchSetting.list, schemaFormats);
     const fallback = allFields.filter((f) => f !== 'id' && f !== 'uuid' && f !== 'version' && f !== 'is_deleted' && f !== 'is_archived' && f !== 'is_locked' && f !== 'security_level' && f !== 'search_vector').slice(0, 6);
-    return toFieldSpecs(fallback.length ? fallback : ['ida']);
-  }, [workbenchSetting?.list, allFields]);
+    return toFieldSpecs(fallback.length ? fallback : ['ida'], schemaFormats);
+  }, [workbenchSetting?.list, allFields, schemaFormats]);
 
   const detailFieldSpecs = useMemo((): FieldSpec[] => {
-    if (workbenchSetting?.detail?.length) return toFieldSpecs(workbenchSetting.detail);
-    return toFieldSpecs(allFields);
-  }, [workbenchSetting?.detail, allFields]);
+    if (workbenchSetting?.detail?.length) return toFieldSpecs(workbenchSetting.detail, schemaFormats);
+    return toFieldSpecs(allFields, schemaFormats);
+  }, [workbenchSetting?.detail, allFields, schemaFormats]);
 
-  // String arrays for components that need just field names (backward compat)
+  // String arrays for components that need just field names
   const visibleListFields = useMemo(() => toFieldNames(listFieldSpecs.filter(s => s.visible !== false)), [listFieldSpecs]);
   const visibleDetailFields = useMemo(() => toFieldNames(detailFieldSpecs.filter(s => s.visible !== false)), [detailFieldSpecs]);
 
@@ -795,6 +874,26 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
           };
         }
 
+        // PJPV selectlist_key auto-lookup: for select fields where PJPV declares
+        // a selectlist_key but no Setting/behavior has provided options yet,
+        // pull options from the frontend SELECT_LIST_MAP.
+        if (schemaFormats && Object.keys(schemaFormats).length) {
+          for (const [field, meta] of Object.entries(schemaFormats)) {
+            const m = meta as PjpvFieldMeta;
+            if (m.selectlist_key && (!behaviors[field]?.options || !(behaviors[field] as any).options?.length)) {
+              const opts = getSelectOptions(m.selectlist_key);
+              if (opts.length) {
+                behaviors[field] = {
+                  ...(behaviors[field] || {}),
+                  type: 'select',
+                  options: opts,
+                  selectlist_key: m.selectlist_key,
+                };
+              }
+            }
+          }
+        }
+
         setFieldBehaviors(behaviors);
         setFieldDefaults(faRec?.prefs?.defaults || {});
         setFieldGroups(faRec?.config?.field_groups || []);
@@ -883,6 +982,62 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
       }).catch(() => {});
     })();
   }, [selectedModel, selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---------------------------------------------------------------------------
+  // Record-level selectlist override (three-tier inheritance)
+  // When a record has config.selectlist_profile or config.selectlists,
+  // merge those into fieldBehaviors (profile overrides model, record overrides profile).
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (!selectedRecord || !selectedModel) return;
+    const config = (selectedRecord as any).config;
+    if (!config || typeof config !== 'object') return;
+
+    const hasProfile = config.selectlist_profile && typeof config.selectlist_profile === 'object' && config.selectlist_profile.id;
+    const hasInline = config.selectlists && typeof config.selectlists === 'object';
+
+    if (!hasProfile && !hasInline) return;
+
+    // If there's a profile, fetch resolved lists from backend (all three tiers merged).
+    // If only inline, apply directly without a network call.
+    if (hasProfile) {
+      const recordId = (selectedRecord as any).id;
+      if (!recordId) return;
+      getResolvedSelectlists(selectedModel, recordId).then((resolved) => {
+        if (!resolved || !Object.keys(resolved).length) return;
+        setFieldBehaviors((prev) => {
+          const next = { ...prev };
+          for (const [field, info] of Object.entries(resolved)) {
+            next[field] = {
+              ...(next[field] || {} as any),
+              type: 'select',
+              options: info.options,
+              _selectlist_source: info.source,
+              _selectlist_detail: info.source_detail,
+            };
+          }
+          return next;
+        });
+      });
+    } else if (hasInline) {
+      // Record-level inline selectlists only (no profile to fetch)
+      setFieldBehaviors((prev) => {
+        const next = { ...prev };
+        for (const [field, opts] of Object.entries(config.selectlists)) {
+          if (Array.isArray(opts) && opts.length > 0) {
+            next[field] = {
+              ...(next[field] || {} as any),
+              type: 'select',
+              options: opts,
+              _selectlist_source: 'record',
+              _selectlist_detail: `record.config.selectlists.${field}`,
+            };
+          }
+        }
+        return next;
+      });
+    }
+  }, [selectedRecord, selectedModel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------------------------------------------------------------------------
   // Field operations
@@ -1104,7 +1259,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
     const views = [...(cur.views || [])];
     const idx = views.findIndex((v) => v.name === name.trim());
     // Convert fields to FieldSpec objects, merge with effective widths
-    const specs = fields ? toFieldSpecs(fields).map(s => ({
+    const specs = fields ? toFieldSpecs(fields, schemaFormats).map(s => ({
       ...s,
       width: s.width || effectiveWidths[s.field] || undefined,
     })) : undefined;
@@ -1117,7 +1272,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
     setWorkbenchSetting(next); setWorkbenchSettingsMap((p) => ({ ...p, [selectedModel]: next }));
     setActiveViewName(name.trim());
     await persistSetting(selectedModel, next);
-  }, [selectedModel, workbenchSetting, colWidths, persistSetting, isSuperuser]);
+  }, [selectedModel, workbenchSetting, colWidths, persistSetting, isSuperuser, schemaFormats]);
 
   const loadView = useCallback(async (v: NamedView) => {
     if (!selectedModel) return;
@@ -1230,26 +1385,26 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
     if (!selectedModel) return;
     const effectiveWidths = { ...colWidths, ...(dialogWidths || {}) };
     const cur = workbenchSetting ?? { list: [], detail: [] };
-    const specs = toFieldSpecs(fields).map(s => ({
+    const specs = toFieldSpecs(fields, schemaFormats).map(s => ({
       ...s, width: s.width || effectiveWidths[s.field] || undefined,
     }));
     const next: WorkbenchFieldsSetting = { ...cur, list: specs };
     setWorkbenchSetting(next);
     setWorkbenchSettingsMap((p) => ({ ...p, [selectedModel]: next }));
     await persistSetting(selectedModel, next);
-  }, [selectedModel, workbenchSetting, colWidths, persistSetting]);
+  }, [selectedModel, workbenchSetting, colWidths, persistSetting, schemaFormats]);
 
   // Update detail fields — persists to data.detail but does NOT touch named views.
   const updateDetailLayout = useCallback(async (fields: (string | FieldSpec)[], sizes: Record<string, number>) => {
     if (!selectedModel) return;
     const cur = workbenchSetting ?? { list: [], detail: [] };
-    const specs = toFieldSpecs(fields);
+    const specs = toFieldSpecs(fields, schemaFormats);
     const next: WorkbenchFieldsSetting = { ...cur, detail: specs };
     setWorkbenchSetting(next);
     setWorkbenchSettingsMap((p) => ({ ...p, [selectedModel]: next }));
     setDetailRowSizes(sizes);
     await persistSetting(selectedModel, next);
-  }, [selectedModel, workbenchSetting, colWidths, persistSetting]);
+  }, [selectedModel, workbenchSetting, colWidths, persistSetting, schemaFormats]);
 
   return {
     // Model

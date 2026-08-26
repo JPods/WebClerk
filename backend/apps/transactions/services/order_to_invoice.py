@@ -120,7 +120,8 @@ def _resolve_order_party(order: Order) -> Any:
     
 def _prepare_invoice_refs(order: Order, invoice_type: str) -> Dict[str, Any]:
     refs = dict(order.refs or {})
-    src = refs.setdefault("source", {})
+    src = refs.get("source") or {}
+    refs["source"] = src
     src["converted_from"] = "order"
     src["original_id"] = order.id
     src["invoice_type"] = invoice_type
@@ -131,7 +132,8 @@ def _prepare_invoice_refs(order: Order, invoice_type: str) -> Dict[str, Any]:
 
 def _prepare_invoice_metadata(order: Order, invoice_type: str) -> Dict[str, Any]:
     md = dict(order.metadata or {})
-    conv = md.setdefault("conversion", {})
+    conv = md.get("conversion") or {}
+    md["conversion"] = conv
     conv["from_order"] = order.id
     conv["transfer_type"] = "order_to_invoice"
     conv["invoice_type"] = invoice_type
@@ -141,7 +143,8 @@ def _prepare_invoice_metadata(order: Order, invoice_type: str) -> Dict[str, Any]
 
 def _prepare_line_refs(ol: OrderLine) -> Dict[str, Any]:
     refs = dict(ol.refs or {})
-    src = refs.setdefault("source", {})
+    src = refs.get("source") or {}
+    refs["source"] = src
     src["order_line_id"] = ol.id
     if "order_id" not in src:
         src["order_id"] = getattr(ol, "order_id", None)

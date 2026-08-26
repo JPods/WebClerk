@@ -105,7 +105,7 @@ export interface DataGridProps {
   onLoadView?: (viewName: string) => void;
 
   // --- List-page convenience props (auto-managed state) ---
-  /** Alias for records — pass data here for backward compat */
+  /** Alias for records */
   data?: any[];
   /** Legacy TableColumn-style column defs; auto-mapped to richColumns */
   legacyColumns?: Array<{
@@ -167,7 +167,7 @@ export interface DataGridProps {
   /** Disable right-click "Add Column" */
   disableAddColumn?: boolean;
 
-  // --- Ignored props (accepted but unused, for backward compat during migration) ---
+  // --- Props accepted for toolbar/sub-component passthrough ---
   title?: string;
   storageKey?: string;
   enableExport?: boolean;

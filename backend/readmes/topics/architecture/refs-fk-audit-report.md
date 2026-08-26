@@ -16,7 +16,7 @@ The `refs` JSONField is a `models.JSONField` present on every model inheriting `
     "tags": [],           # user-created tags
     "links": {"contact": [], "item": []},  # denormalized relationship buckets
     "parents": [],        # Gantt dependency IDs (action parent→child)
-    "depends_on": {},     # execution gating: {"action": [1,2], "work_order": [5]}
+    "depends_on": {},     # execution gating: {"action": [1,2], "workorder": [5]}
     "categories": [],
     "related_ids": [],
 }

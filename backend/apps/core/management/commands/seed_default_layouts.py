@@ -137,7 +137,7 @@ TRANSACTION_HEADER_MODELS = {'order', 'invoice', 'proposal', 'purchase', 'requis
 # Sell-side lines (BaseSellLineModel) — have quantity + price + cost
 SELL_LINE_MODELS = {'order_line', 'invoice_line', 'proposal_line'}
 # Exec-side lines (BaseExecLineModel) — have quantity + cost, NO price
-EXEC_LINE_MODELS = {'purchase_line', 'requisition_line', 'receipt_line', 'work_order_line'}
+EXEC_LINE_MODELS = {'purchase_line', 'requisition_line', 'receipt_line', 'workorder_line'}
 
 ITEM_MODELS = {'item'}
 
@@ -309,8 +309,7 @@ class Command(BaseCommand):
 
             # Must be in new named format
             list_layouts = layout.get('list', {})
-            # Canonical key is 'detail'; fall back to old 'dynamic' for backward compat
-            detail_layouts = layout.get('detail', layout.get('dynamic', {}))
+            detail_layouts = layout.get('detail', {})
             if not isinstance(list_layouts, dict):
                 skipped += 1
                 self.stdout.write(f'  SKIP  {setting.parent_model} (id={setting.id}) — not in named format')

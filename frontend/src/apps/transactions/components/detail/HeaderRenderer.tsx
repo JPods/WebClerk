@@ -64,8 +64,16 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
 
   // ── Three-column layout (legacy: section.columns inline) ──
   if (section.layout === 'three-column' && section.columns) {
+    const colCount = section.columns.length;
+    // Weight columns: use col.weight if specified, otherwise auto-weight by field count
+    const weights = section.columns.map((col: any) => {
+      if (col.weight) return col.weight;
+      const fieldCount = (col.fields || []).length;
+      return Math.max(fieldCount, 2);  // minimum 2 so link-only columns aren't crushed
+    });
+    const templateCols = weights.map((w: number) => `${w}fr`).join(' ');
     return (
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid gap-3" style={{ gridTemplateColumns: colCount <= 1 ? '1fr' : templateCols }}>
         {section.columns.map((col: any, colIdx: number) => (
           <div key={colIdx} className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
             <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 border-b border-slate-100 dark:border-slate-700 pb-1 flex items-center gap-2">

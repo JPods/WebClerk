@@ -5,8 +5,29 @@ from common.base_serializers import RoleAwareModelSerializer
 from apps.transactions.models import (
     Proposal, ProposalLine, Order, OrderLine, Purchase, PurchaseLine, Invoice, Payment, PaymentApplication
 )
-from apps.core.models import Contact
 from apps.orgs.models import OrgBase
+
+
+def _name_from_refs(obj, role):
+    """Read display_name from refs.links denormalized envelope.
+
+    Falls back to FK relationship if refs data is missing.
+    Never does a raw OrgBase.objects.get() query — that is an N+1 pattern.
+    """
+    # Primary: denormalized refs.links (zero queries)
+    refs = getattr(obj, 'refs', None) or {}
+    name = (refs.get('links', {}).get(role, {}).get('display_name') or '').strip()
+    if name:
+        return name
+
+    # Fallback: FK relationship (uses select_related if queryset configured it)
+    fk_id = getattr(obj, f'{role}_id', None)
+    if fk_id:
+        fk_obj = getattr(obj, role, None)
+        if fk_obj is not None:
+            return getattr(fk_obj, 'display_name', '') or f"Org #{fk_id}"
+        return f"Org #{fk_id}"
+    return None
 
 
 # system fields inherited from BaseModel (read-only)
@@ -50,33 +71,21 @@ class ProposalSerializer(RoleAwareModelSerializer):
         fields = [
             'id', 'uuid', 'ida', 'status', 'customer_id', 'vendor_id',
             'customer_name', 'vendor_name',
-            'cost', 'sell', 'totals', 'total', 'balance',
-            'finance', 'flow', 'source', 'action', 'refs', 'prefs', 'metadata',
+            'cost', 'sell', 'totals',
+            'finance', 'flow', 'source', 'refs', 'prefs', 'metadata',
             'line_count', 'lines',
             'dt_created', 'dt_modified', 'version'
         ]
         read_only_fields = [
             'id', 'uuid', 'dt_created', 'dt_modified', 'version', 'customer_name',
-            'vendor_name', 'totals', 'total', 'balance', 'line_count', 'lines'
+            'vendor_name', 'totals', 'line_count', 'lines'
         ]
 
     def get_customer_name(self, obj):
-        if obj.customer_id:
-            try:
-                org = OrgBase.objects.get(id=obj.customer_id)
-                return org.display_name
-            except OrgBase.DoesNotExist:
-                return f"Org #{obj.customer_id}"
-        return None
+        return _name_from_refs(obj, 'customer')
 
     def get_vendor_name(self, obj):
-        if obj.vendor_id:
-            try:
-                org = OrgBase.objects.get(id=obj.vendor_id)
-                return org.display_name
-            except OrgBase.DoesNotExist:
-                return f"Org #{obj.vendor_id}"
-        return None
+        return _name_from_refs(obj, 'vendor')
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -162,33 +171,19 @@ class OrderSerializer(RoleAwareModelSerializer):
         fields = [
             'id', 'uuid', 'ida', 'status', 'priority', 'price_level',
             'customer_id', 'manufacturer_id', 'vendor_id',
-            'cost', 'sell', 'totals', 'total', 'balance',
-            'finance', 'flow', 'source', 'action', 'refs', 'prefs', 'metadata',
+            'cost', 'sell', 'totals',
+            'finance', 'flow', 'source', 'refs', 'prefs', 'metadata',
             'line_count', 'customer_name', 'vendor_name', 'lines',
             'dt_created', 'dt_modified', 'version'
         ]
         read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version',
-            'totals', 'total', 'balance', 'line_count', 'customer_name', 'vendor_name', 'lines']
+            'totals', 'line_count', 'customer_name', 'vendor_name', 'lines']
 
     def get_customer_name(self, obj):
-        """Get customer name from OrgBase model."""
-        if obj.customer_id:
-            try:
-                org = OrgBase.objects.get(id=obj.customer_id)
-                return org.display_name
-            except OrgBase.DoesNotExist:
-                return f"Org #{obj.customer_id}"
-        return None
+        return _name_from_refs(obj, 'customer')
 
     def get_vendor_name(self, obj):
-        """Get vendor name from OrgBase model."""
-        if obj.vendor_id:
-            try:
-                org = OrgBase.objects.get(id=obj.vendor_id)
-                return org.display_name
-            except OrgBase.DoesNotExist:
-                return f"Org #{obj.vendor_id}"
-        return None
+        return _name_from_refs(obj, 'vendor')
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -247,33 +242,19 @@ class PurchaseSerializer(RoleAwareModelSerializer):
             'id', 'uuid', 'ida', 'status', 'priority', 'price_level',
             'customer_id', 'manufacturer_id', 'vendor_id',
             'customer_name', 'vendor_name',
-            'cost', 'sell', 'totals', 'total', 'balance',
-            'finance', 'flow', 'source', 'action', 'refs', 'metadata',
+            'cost', 'sell', 'totals',
+            'finance', 'flow', 'source', 'refs', 'metadata',
             'line_count', 'lines',
             'dt_created', 'dt_modified', 'version'
         ]
         read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version',
-            'totals', 'total', 'balance', 'line_count', 'customer_name', 'vendor_name', 'lines']
+            'totals', 'line_count', 'customer_name', 'vendor_name', 'lines']
 
     def get_customer_name(self, obj):
-        """Get customer name from Contact model."""
-        if obj.customer_id:
-            try:
-                contact = Contact.objects.get(id=obj.customer_id)
-                return f"{contact.name_first} {contact.name_last}".strip()
-            except Contact.DoesNotExist:
-                return f"Contact #{obj.customer_id}"
-        return None
+        return _name_from_refs(obj, 'customer')
 
     def get_vendor_name(self, obj):
-        """Get vendor name from Contact model."""
-        if obj.vendor_id:
-            try:
-                contact = Contact.objects.get(id=obj.vendor_id)
-                return f"{contact.name_first} {contact.name_last}".strip()
-            except Contact.DoesNotExist:
-                return f"Contact #{obj.vendor_id}"
-        return None
+        return _name_from_refs(obj, 'vendor')
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -293,12 +274,12 @@ class InvoiceSerializer(RoleAwareModelSerializer):
         model = Invoice
         fields = [
             'id', 'uuid', 'ida', 'status', 'customer_id', 'vendor_id',
-            'cost', 'sell', 'totals', 'total', 'balance',
-            'finance', 'flow', 'source', 'action',
+            'cost', 'sell', 'totals',
+            'finance', 'flow', 'source',
             'dt_created', 'dt_modified', 'version'
         ]
         read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version',
-            'totals', 'total', 'balance']
+            'totals']
 
 
 class PaymentSerializer(RoleAwareModelSerializer):

@@ -8,9 +8,12 @@ ChoiceList = Tuple[Choice, ...]
 TRANSACTION_STATUS_CHOICES: Final[ChoiceList] = (
     ("", "---------"),
     ("planned", "Planned"),
+    ("signoff_request", "SignOff Request"),
     ("released", "Released"),
     ("in_progress", "In Progress"),
     ("hold", "Hold"),
+    ("consigned", "Consigned"),
+    ("deferred", "Deferred"),
     ("complete", "Complete"),
     ("canceled", "Canceled"),
 )

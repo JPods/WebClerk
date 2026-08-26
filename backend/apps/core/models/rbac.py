@@ -93,7 +93,7 @@ class ModelRoleConfig(BaseModel):
     model_name = models.CharField(
         max_length=100, 
         db_index=True,
-        help_text="Model name as registered in wcapi_registry"
+        help_text="Model name as registered in model_registry"
     )
     role = models.CharField(
         max_length=50, 

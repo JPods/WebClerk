@@ -60,7 +60,7 @@ def test_manage_tally_sales_by_customer_month(client):
     ).count()
 
     resp = client.post(
-        "/wcapi/manage/",
+        "/wcapi/_manage/",
         data={
             "action": "get_tally_sales_by_customer_month",
             "params": {
@@ -106,7 +106,7 @@ def test_manage_tally_sales_by_manufacturer_month(client):
     _create_invoice_with_date(manufacturer_id=manufacturer_a.id, dt=date(2026, 1, 19), total=60.0)
 
     resp = client.post(
-        "/wcapi/manage/",
+        "/wcapi/_manage/",
         data={
             "action": "get_tally_sales_by_manufacturer_month",
             "params": {
@@ -151,7 +151,7 @@ def test_manage_tally_sales_by_customer_year(client):
     ).count()
 
     resp = client.post(
-        "/wcapi/manage/",
+        "/wcapi/_manage/",
         data={
             "action": "get_tally_sales_by_customer_year",
             "params": {

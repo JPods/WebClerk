@@ -270,7 +270,7 @@ Primary models: `org` and role facades (`customer`, `vendor`, `manufacturer`, `e
 
 ### 6) Transactions App
 
-Primary models: `proposal`, `order`, `invoice`, `purchase`, `work_order`, `requisition` and line models
+Primary models: `proposal`, `order`, `invoice`, `purchase`, `workorder`, `requisition` and line models
 
 - Source of truth:
   - Header FKs: customer/vendor/manufacturer/contact/rep/employee where present

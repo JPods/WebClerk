@@ -3467,7 +3467,6 @@ export interface InvoiceRecord {
   actions?: Record<string, any>;
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   comments: Record<string, any>;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
@@ -3498,7 +3497,6 @@ export interface InvoiceRecord {
   status: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
   version: number;  // read-only
@@ -3508,7 +3506,6 @@ export interface CreateInvoiceRequest {
   ida?: string;  // max_length=40
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
   contact_id?: number | null;  // FK → core.Contact
@@ -3529,7 +3526,6 @@ export interface CreateInvoiceRequest {
   status?: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
 }
@@ -3539,7 +3535,6 @@ export interface UpdateInvoiceRequest {
   ida?: string;  // max_length=40
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
   contact_id?: number | null;  // FK → core.Contact
@@ -3560,7 +3555,6 @@ export interface UpdateInvoiceRequest {
   status?: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
 }
@@ -4025,7 +4019,6 @@ export interface ProposalRecord {
   actions?: Record<string, any>;
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   comments: Record<string, any>;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
@@ -4056,7 +4049,6 @@ export interface ProposalRecord {
   status: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
   version: number;  // read-only
@@ -4066,7 +4058,6 @@ export interface CreateProposalRequest {
   ida?: string;  // max_length=40
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
   contact_id?: number | null;  // FK → core.Contact
@@ -4087,7 +4078,6 @@ export interface CreateProposalRequest {
   status?: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
 }
@@ -4097,7 +4087,6 @@ export interface UpdateProposalRequest {
   ida?: string;  // max_length=40
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
   contact_id?: number | null;  // FK → core.Contact
@@ -4118,7 +4107,6 @@ export interface UpdateProposalRequest {
   status?: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
 }
@@ -4198,7 +4186,6 @@ export interface PurchaseRecord {
   actions?: Record<string, any>;
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   comments: Record<string, any>;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
@@ -4229,7 +4216,6 @@ export interface PurchaseRecord {
   status: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
   version: number;  // read-only
@@ -4239,7 +4225,6 @@ export interface CreatePurchaseRequest {
   ida?: string;  // max_length=40
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
   contact_id?: number | null;  // FK → core.Contact
@@ -4260,7 +4245,6 @@ export interface CreatePurchaseRequest {
   status?: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
 }
@@ -4270,7 +4254,6 @@ export interface UpdatePurchaseRequest {
   ida?: string;  // max_length=40
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
   contact_id?: number | null;  // FK → core.Contact
@@ -4291,7 +4274,6 @@ export interface UpdatePurchaseRequest {
   status?: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
 }
@@ -4519,7 +4501,6 @@ export interface OrderRecord {
   actions?: Record<string, any>;
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   comments: Record<string, any>;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
@@ -4550,7 +4531,6 @@ export interface OrderRecord {
   status: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
   version: number;  // read-only
@@ -4560,7 +4540,6 @@ export interface CreateOrderRequest {
   ida?: string;  // max_length=40
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
   contact_id?: number | null;  // FK → core.Contact
@@ -4581,7 +4560,6 @@ export interface CreateOrderRequest {
   status?: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
 }
@@ -4591,7 +4569,6 @@ export interface UpdateOrderRequest {
   ida?: string;  // max_length=40
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
   contact_id?: number | null;  // FK → core.Contact
@@ -4612,7 +4589,6 @@ export interface UpdateOrderRequest {
   status?: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
 }
@@ -4692,7 +4668,6 @@ export interface TransactionRecord {
   actions?: Record<string, any>;
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   comments: Record<string, any>;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
@@ -4723,7 +4698,6 @@ export interface TransactionRecord {
   status: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
   version: number;  // read-only
@@ -4733,7 +4707,6 @@ export interface CreateTransactionRequest {
   ida?: string;  // max_length=40
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
   contact_id?: number | null;  // FK → core.Contact
@@ -4754,7 +4727,6 @@ export interface CreateTransactionRequest {
   status?: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
 }
@@ -4764,7 +4736,6 @@ export interface UpdateTransactionRequest {
   ida?: string;  // max_length=40
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
   contact_id?: number | null;  // FK → core.Contact
@@ -4785,7 +4756,6 @@ export interface UpdateTransactionRequest {
   status?: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
 }
@@ -4801,7 +4771,6 @@ export interface WorkOrderRecord {
   actions?: Record<string, any>;
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   comments: Record<string, any>;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
@@ -4832,7 +4801,6 @@ export interface WorkOrderRecord {
   status: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
   version: number;  // read-only
@@ -4842,7 +4810,6 @@ export interface CreateWorkOrderRequest {
   ida?: string;  // max_length=40
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
   contact_id?: number | null;  // FK → core.Contact
@@ -4863,7 +4830,6 @@ export interface CreateWorkOrderRequest {
   status?: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
 }
@@ -4873,7 +4839,6 @@ export interface UpdateWorkOrderRequest {
   ida?: string;  // max_length=40
   address_full?: string | null;  // max_length=500
   attention?: string | null;  // max_length=255
-  balance?: number | string | null;
   conditions_description?: string | null;  // max_length=255
   conditions_id?: number | null;
   contact_id?: number | null;  // FK → core.Contact
@@ -4894,7 +4859,6 @@ export interface UpdateWorkOrderRequest {
   status?: string;  // choices: , planned, released, in_progress, hold, complete, canceled | max_length=32
   terms?: string | null;  // max_length=30
   terms_fk_id?: number | null;  // FK → transactions.PaymentTerm
-  total?: number | string | null;
   totals?: Record<string, any>;
   vendor_id?: number | null;  // FK → orgs.OrgBase
 }

@@ -96,14 +96,13 @@ class WCAPIGetView(APIView):
 
     http_method_names = ["get", "options", "head"]
 
-    LINE_MODEL_KEYS = {"proposal", "order", "invoice", "purchase", "workorder"}
-    LINE_MODEL_MAP = {
-        "proposal": "proposal_line",
-        "order": "order_line",
-        "invoice": "invoice_line",
-        "purchase": "purchase_line",
-        "workorder": "workorderline",
-    }
+    @staticmethod
+    def _get_line_key(header_key: str) -> Optional[str]:
+        """Derive line registry key from header key via model registry."""
+        from apps.core.constants.model_registry import get_model_meta
+        line_key = f"{header_key}_line"
+        meta = get_model_meta(line_key)
+        return line_key if meta else None
 
     def _action_attachments_map(self, action_ids: List[int]) -> Dict[int, List[Dict[str, Any]]]:
         if not action_ids:
@@ -185,7 +184,7 @@ class WCAPIGetView(APIView):
         return (model_key or "").replace("/", "").replace("_", "").lower()
 
     def _should_include_lines(self, model_key: str | None) -> bool:
-        return self._normalize_model_key(model_key) in self.LINE_MODEL_KEYS
+        return self._get_line_key(self._normalize_model_key(model_key)) is not None
 
     def _serialize_lines(self, obj, request) -> List[Dict[str, Any]]:
         logger.debug("_serialize_lines: obj.id=%s", getattr(obj, 'id', '?'))
@@ -223,7 +222,7 @@ class WCAPIGetView(APIView):
     def _line_model_key(self, model_key: str | None) -> Optional[str]:
         if not model_key:
             return None
-        return self.LINE_MODEL_MAP.get(self._normalize_model_key(model_key))
+        return self._get_line_key(self._normalize_model_key(model_key))
 
     def _merge_line_dicts(self, primary: Dict[str, Any], secondary: Dict[str, Any]) -> Dict[str, Any]:
         merged = dict(primary or {})

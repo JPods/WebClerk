@@ -151,7 +151,7 @@ export const STATUS_CONFIG: Record<string, StatusConfig> = {
     transitions: [],
     isFinal: true,
   },
-  // Legacy statuses (for backwards compatibility)
+  // Additional statuses
   draft: {
     label: "Draft",
     color: "text-gray-600 dark:text-gray-400",

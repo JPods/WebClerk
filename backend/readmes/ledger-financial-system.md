@@ -291,14 +291,14 @@ def create_payment_ledger(sender, instance, **kwargs):
 
 ### Total Resolution
 
-`TransactionBaseModel` has two total-related fields:
-- `total` — `DecimalField` (denormalized scalar for indexing)
+`TransactionBaseModel` has one total-related field:
 - `totals` — `JSONField` (dict with subtotal, discount, tax, shipping, total, cost, margin)
 
+`total` and `balance` are `@property` methods that read from the `totals` envelope.
+
 `apply_terms_for_invoice()` resolves the total by:
-1. Trying `invoice.total` (DecimalField scalar) first
-2. Falling back to `invoice.totals['total']` (JSONField dict)
-3. Last resort: calling `compute_line_aggregate()` to sum lines
+1. Reading `invoice.total` (@property, reads from `totals['total']`)
+2. Last resort: calling `compute_line_aggregate()` to sum lines
 
 ---
 
@@ -540,7 +540,7 @@ python -m pytest apps/accounts/tests/test_ledger.py -v --no-header -o "addopts="
 **Bug fixes** (`terms_ledger.py`):
 - Fixed metadata strategy referencing undefined `invoice` instead of `invoice_id` param
 - Added `org_id` population in both `create_ledger_records()` and `record_payment()`
-- Fixed total resolution to handle `total` (DecimalField scalar) vs `totals` (JSONField dict)
+- Fixed total resolution (`total` is now an @property reading from `totals` JSONField)
 
 **Bug fixes** (`ledger_balance.py`):
 - Fixed org lookup: `invoice.org` → `invoice.customer` (actual FK name)

@@ -33,13 +33,8 @@ class Document(BaseModel):
 
     name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     slug = models.SlugField(max_length=255, blank=True, null=True, unique=True, help_text="Stable slug (for readmes / API consumption)")
-    status = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-        choices=DOCUMENT_STATUS_CHOICES,
-        db_index=True,
-    )
+    # status inherited from BaseModel (max_length=100)
+    # Choices enforced at application level via DOCUMENT_STATUS_CHOICES
     description = models.CharField(max_length=255, blank=True, null=True)
     body = models.TextField(blank=True, null=True)
     config = models.JSONField(blank=True, null=True)

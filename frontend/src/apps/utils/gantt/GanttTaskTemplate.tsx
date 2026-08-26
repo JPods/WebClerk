@@ -100,7 +100,7 @@ const getAssigneeInitials = (user: AssignedUser, badgePrefsContext: any): string
     if (prefs?.initials) return prefs.initials;
   }
   if (user.config?.ui?.badge?.initials) return user.config.ui.badge.initials;
-  if (user.prefs?.badge?.initials) return user.prefs.badge.initials; // legacy fallback
+  if (user.prefs?.badge?.initials) return user.prefs.badge.initials;
   return getInitials(user.name);
 };
 

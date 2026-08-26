@@ -28,7 +28,7 @@ console_logger = logging.getLogger('console')  # Console logger for debugging
 from django.db import models, transaction, IntegrityError
 from rest_framework.views import APIView  # type: ignore
 from common.decorators import allow_write
-from apps.core.services.wcapi_registry import get_model, normalize_table_key, to_model_name  # explicit registry lookup (replaces dynamic app scan)
+from apps.core.constants.model_registry import get_model, normalize_table_key, to_model_name  # explicit registry lookup
 from apps.core.utils import policy
 from apps.core.constants.model_registry import get_model_meta
 import json
@@ -78,66 +78,7 @@ def deep_merge_dict(a: dict, b: dict) -> dict:
     return a
 
 
-def get_nested_value(obj, path: str):
-    """Get a nested value from object using dot notation."""
-    parts = path.split('.')
-    current = obj
-    for part in parts:
-        if hasattr(current, part):
-            current = getattr(current, part)
-        elif isinstance(current, dict) and part in current:
-            current = current[part]
-        else:
-            return None
-    return current
-
-
-def set_nested_value(obj, path: str, value):
-    """Set a nested value on object using dot notation."""
-    parts = path.split('.')
-    current = obj
-    for part in parts[:-1]:
-        if hasattr(current, part):
-            next_obj = getattr(current, part)
-            if not isinstance(next_obj, (dict, list)):
-                setattr(current, part, {})
-                next_obj = getattr(current, part)
-            current = next_obj
-        elif isinstance(current, dict):
-            if part not in current or not isinstance(current[part], dict):
-                current[part] = {}
-            current = current[part]
-        else:
-            return False
-    last = parts[-1]
-    if hasattr(current, last):
-        setattr(current, last, value)
-    elif isinstance(current, dict):
-        current[last] = value
-    else:
-        return False
-    return True
-
-
-def delete_nested_value(obj, path: str):
-    """Delete a nested value on object using dot notation."""
-    parts = path.split('.')
-    current = obj
-    for part in parts[:-1]:
-        if hasattr(current, part):
-            current = getattr(current, part)
-        elif isinstance(current, dict) and part in current:
-            current = current[part]
-        else:
-            return False
-    last = parts[-1]
-    if hasattr(current, last):
-        setattr(current, last, None)
-    elif isinstance(current, dict) and last in current:
-        del current[last]
-    else:
-        return False
-    return True
+from common.json_path import get_nested_value, set_nested_value, delete_nested_value
 
 
 def coerce_int(value):
@@ -153,7 +94,7 @@ def coerce_int(value):
                 return value
     return value
 
-# Deprecated: dynamic model discovery replaced by explicit allow-list registry (see wcapi_registry.py)
+# Deprecated: dynamic model discovery replaced by explicit allow-list registry (see model_registry.py)
 # def find_model_for_table(model_name: str):
 #     QQQ confirm no remaining callers, then fully remove
 #     ...

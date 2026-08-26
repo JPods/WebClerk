@@ -9,7 +9,10 @@ from rest_framework.permissions import BasePermission as DRFBasePermission
 
 def _all_fields(model) -> List[str]:
     try:
-        return [f.name for f in getattr(model, '_meta', {}).get('fields', [])]
+        meta = getattr(model, '_meta', None)
+        if meta is None:
+            return []
+        return [f.name for f in meta.get_fields()]
     except Exception:
         return []
 
@@ -33,12 +36,12 @@ def get_role_field_rules(model, role: str) -> Dict[str, List[str]]:
     if not model:
         return {'view': [], 'edit': []}
 
-    model_name = getattr(model, '_meta', {}).get('model_name', '').lower()
+    meta = getattr(model, '_meta', None)
+    model_name = (getattr(meta, 'model_name', '') or '').lower()
 
     base_fields = ['id', 'uuid', 'dt_created', 'dt_modified']
     ownership_fields = ['created_by', 'owner', 'contact', 'user', 'assigned_to', 'assignee']
 
-    model_name = getattr(model, '_meta', {}).get('model_name', '').lower()
     all_fields = _all_fields(model)
 
     default_rules = {

@@ -25,7 +25,7 @@ CHILDREN_MAP = {
     'invoice': ('InvoiceLine', 'invoice'),
     'proposal': ('ProposalLine', 'proposal'),
     'purchase': ('PurchaseLine', 'purchase'),
-    'work_order': ('WorkOrderLine', 'workorder'),
+    'workorder': ('WorkOrderLine', 'workorder'),
 }
 
 # Fields to reset on cloned records
@@ -56,7 +56,7 @@ def clone_record(model_name: str, record_id: int, include_children: bool = True,
     - Lines copied with fresh ids and line numbers
 
     Args:
-        model_name: 'order', 'invoice', 'proposal', 'purchase', 'work_order', or any model
+        model_name: 'order', 'invoice', 'proposal', 'purchase', 'workorder', or any model
         record_id: PK of the record to clone
         include_children: if True, also clone child lines
         contact_id: who initiated the clone (for audit)
@@ -69,7 +69,7 @@ def clone_record(model_name: str, record_id: int, include_children: bool = True,
         'invoice': ('transactions', 'Invoice'),
         'proposal': ('transactions', 'Proposal'),
         'purchase': ('transactions', 'Purchase'),
-        'work_order': ('transactions', 'WorkOrder'),
+        'workorder': ('transactions', 'WorkOrder'),
         'item': ('products', 'Item'),
         'customer': ('orgs', 'OrgBase'),
         'contact': ('core', 'Contact'),

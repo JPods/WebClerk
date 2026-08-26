@@ -2,6 +2,8 @@
 
 **Established:** 2026-08-22
 **Terminology updated:** 2026-08-23 — "shadow fields" is the standard term
+**Updated:** 2026-08-24 — removed 13 deleted scalar columns (6 TransactionBaseModel,
+4 OrgBase, 3 Contact); 7 shadow fields remain across 5 models
 **Rule:** Shadow fields exist for database queries and list-view display ONLY.
 They must NEVER be used for calculations — not on the backend, not on the frontend.
 
@@ -51,30 +53,22 @@ const profit = (data?.totals?.total ?? 0) - (data?.totals?.cost ?? 0);  // YES
 
 | Scalar Field | JSON Source | Purpose | Model Line |
 |-------------|-----------|---------|------------|
-| `total` | `totals.total` | Query: filter/sort by transaction total | base_transaction_model.py:149 |
-| `balance` | `totals.balance` | Query: filter/sort by outstanding balance | base_transaction_model.py:151 |
-| `address_full` | Contact/OrgBase addresses aspect | Display: show address in list views | base_transaction_model.py:190 |
-| `email` | Contact/OrgBase emails aspect | Display: show email in list views | base_transaction_model.py:191 |
-| `phone` | Contact/OrgBase phones aspect | Display: show phone in list views | base_transaction_model.py:192 |
-| `company` | OrgBase.display_name | Display: show company in list views | base_transaction_model.py:188 |
 | `source_name` | `.source` JSON envelope | Query: filter by attribution source | base_transaction_model.py:222 |
+
+**Removed fields (2026-08-24):** `total`, `balance`, `company`, `address_full`,
+`email`, `phone` — these DB columns were deleted. `total` and `balance` are now
+`@property` methods reading from the `totals` JSON envelope. The others are accessed
+via their respective JSON aspect envelopes.
 
 ### OrgBase (Customer, Vendor, Rep, Employee, Manufacturer)
 
-| Scalar Field | JSON Source | Purpose | Model Line |
-|-------------|-----------|---------|------------|
-| `address_full` | `addresses` aspect JSON | Display/search: full address string | base.py:61 |
-| `email` | `emails` aspect JSON | Display/search: primary email | base.py:62 |
-| `phone` | `phones` aspect JSON | Display/search: primary phone | base.py:65 |
-| `domain` | `domains` aspect JSON | Display/search: primary domain | base.py:68 |
+No shadow fields remain. `address_full`, `email`, `phone`, and `domain` DB columns
+were deleted (2026-08-24). Values are accessed via their respective JSON aspect envelopes.
 
 ### Contact
 
-| Scalar Field | JSON Source | Purpose | Model Line |
-|-------------|-----------|---------|------------|
-| `address_full` | `addresses` aspect JSON | Display/search: full address string | contact.py:102 |
-| `phone` | `phones` aspect JSON | Display/search: primary phone | contact.py:104 |
-| `domain` | Email-derived | Display/search: email domain | contact.py:106 |
+No shadow fields remain. `address_full`, `phone`, and `domain` DB columns were
+deleted (2026-08-24). Values are accessed via their respective JSON aspect envelopes.
 
 ### BillOfMaterial
 
@@ -102,28 +96,23 @@ const profit = (data?.totals?.total ?? 0) - (data?.totals?.cost ?? 0);  // YES
 |-------------|-----------|---------|------------|
 | `refs.keywords` | Various config fields | Search: keyword search across settings | setting.py:98 |
 
-## How the Totals Engine Keeps Scalars in Sync
+## How the Totals Engine Works
 
-The totals engine (`services/totals.py`) writes both the JSON envelope AND the
-denormalized scalars in a single `save()`:
-
-```python
-header.totals = totals          # JSON envelope — source of truth
-header.total = _d(total)        # scalar index — for queries only
-header.balance = _d(balance)    # scalar index — for queries only
-header.save(update_fields=['totals', 'total', 'balance'])
-```
-
-If the scalar and the JSON disagree, the JSON wins. Run `backfill_totals` to
-resync: `python manage.py backfill_totals --all`
+The totals engine (`services/totals.py`) writes only to the `totals` JSONField
+envelope — there are no scalar `total` or `balance` columns. Backward-compatible
+read access is provided by `@property` methods on TransactionBaseModel that read
+from the JSON envelope. Run `backfill_totals` to recompute envelopes from line
+data: `python manage.py backfill_totals --all`
 
 ## Alice Enforcement
 
 Alice's code standards scanner watches for:
-- `record.total` or `record.balance` used in arithmetic (not comparison for display)
-- `instance.total` in Python business logic (should be `instance.totals.get(...)`)
+- `instance.totals['total']` or direct dict access without `.get()` and a default
+  (should be `instance.totals.get('total', 0)`)
 - Any new `DecimalField` with `db_index=True` that shadows a JSONField key without
   being documented in this registry
+- Code that assumes `total` or `balance` are database columns (they are `@property`
+  methods — cannot be used in `filter()`, `order_by()`, or `update_fields`)
 
-When a new denormalized field is added, it MUST be added to this registry with its
+When a new shadow field is added, it MUST be added to this registry with its
 JSON source, purpose, and model line number.

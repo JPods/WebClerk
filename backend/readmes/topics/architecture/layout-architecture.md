@@ -42,7 +42,7 @@ Array of `{field, label, width, visible, align?, format?}`. Every model has `com
 
 | Family | Models | Column count |
 |--------|--------|-------------|
-| Transactions | order, proposal, invoice, purchase, work_order, requisition, receipt | 14 |
+| Transactions | order, proposal, invoice, purchase, workorder, requisition, receipt | 14 |
 | Orgs | customer, vendor, manufacturer, employee, rep | 13 |
 | Items | item | 14 |
 | Contacts | contact | 11 |

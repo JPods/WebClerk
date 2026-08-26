@@ -112,7 +112,7 @@ def split_order_by_vendor(order_id: int) -> Dict[str, Any]:
     header_fields: Dict[str, Any] = {}
     for field in (
         "customer_id", "contact_id", "price_level",
-        "attention", "address_full", "email", "phone",
+        "attention",
         "terms", "terms_fk_id", "conditions_id", "conditions_description",
     ):
         val = getattr(source, field, None)

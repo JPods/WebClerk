@@ -110,9 +110,7 @@ const TABLE_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
   purchase: FiPackage,
   purchase_line: FiPackage,
   workorder: FiTruck,
-  work_order: FiTruck,
   workorder_line: FiTruck,
-  work_order_line: FiTruck,
   item: FiBox,
   document: FiFileText,
   contact: FiUsers,
@@ -131,8 +129,6 @@ const DEFAULT_TABLE_NAMES: Record<string, string> = {
   purchase_line: 'Purchase Lines',
   workorder: 'Work Orders',
   workorder_line: 'Work Order Lines',
-  work_order: 'Work Orders',
-  work_order_line: 'Work Order Lines',
   item: 'Items',
   document: 'Documents',
   contact: 'Contacts',
@@ -149,9 +145,7 @@ const DEFAULT_FLOW_ORDER = [
   'purchase',
   'purchase_line',
   'workorder',
-  'work_order',
   'workorder_line',
-  'work_order_line',
 ];
 
 // ---------------------------------------------------------------------------

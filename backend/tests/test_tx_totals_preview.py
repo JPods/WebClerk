@@ -20,19 +20,19 @@ def _auth(user):
 def test_preview_totals_scoped_to_kind(django_user_model):
     # Minimal permissions for headers so BasePermission passes
     for mn in ('proposal', 'order'):
-        Setting.objects.create(purpose='wc:view_edit', model_target=mn, is_active=True, data={"USER": {"view": ["id"], "edit": ["id"]}})
+        Setting.objects.create(purpose='wc:view_edit', parent_model=mn, is_active=True, config={"USER": {"view": ["id"], "edit": ["id"]}})
 
     user = django_user_model.objects.create_user(email='preview@example.com', password='pass12345', role='USER')
     client = _auth(user)
 
     # Create a proposal with two lines
     p = Proposal.objects.create(name='PX')
-    ProposalLine.objects.create(parent=p, parent_ref_id=p.pk, price={"extended": "10.00"}, cost={"extended": "5.00"})
-    ProposalLine.objects.create(parent=p, parent_ref_id=p.pk, price={"extended": "2.50"}, cost={"extended": "1.00"})
+    ProposalLine.objects.create(proposal=p, price={"extended": "10.00"}, cost={"extended": "5.00"})
+    ProposalLine.objects.create(proposal=p, price={"extended": "2.50"}, cost={"extended": "1.00"})
 
     # Also create a separate SO with a line to ensure scoping works
     so = Order.objects.create(order_no='SO-X')
-    OrderLine.objects.create(parent=so, parent_ref_id=so.pk, price={"extended": "7.00"}, cost={"extended": "3.00"})
+    OrderLine.objects.create(order=so, price={"extended": "7.00"}, cost={"extended": "3.00"})
 
     r = client.get(f'/tx/proposal/{p.pk}/preview-totals/?include_breakdown=1')
     assert r.status_code == 200  # type: ignore[attr-defined]

@@ -25,7 +25,7 @@ const response = await wcapi.saveTransaction({
 """
 
 from __future__ import annotations
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 import logging
 
@@ -231,13 +231,7 @@ def _create_pending_from_deltas(
     logger.info("Created %d pending records for %s #%s", created_count, model_key, header_obj.pk)
     return created_count
 
-def _d(val: Any, places: int = 2) -> Decimal:
-    """Convert value to Decimal with specified precision."""
-    try:
-        d = Decimal(str(val) if val is not None else "0")
-        return d.quantize(Decimal(10) ** -places, rounding=ROUND_HALF_UP)
-    except Exception:
-        return Decimal("0")
+from common.decimals import safe_decimal as _d  # noqa: E302
 
 
 def _compare_values(expected: Any, actual: Any, tolerance: Decimal = CALC_TOLERANCE) -> bool:
@@ -601,9 +595,6 @@ def _update_source_lines_after_transfer(
             # Recompute remaining = active − children_active.sum
             q['remaining'] = max(0.0, active - children_sum)
 
-            # Also keep transferred for backward compat
-            q['transferred'] = float(q.get('transferred', 0) or 0) + child_active
-
             src_line.quantity = q
 
             save_fields = ['quantity', 'dt_modified', 'version']
@@ -623,10 +614,15 @@ def _update_source_lines_after_transfer(
 
 
 def calculate_line_extended(line_data: Dict[str, Any]) -> Dict[str, Decimal]:
-    """Calculate line-level extended values from inputs.
-    
+    """Calculate line-level extended values from dict inputs (for verification only).
+
+    NOTE: This is NOT the authoritative computation path. The single source of truth
+    is the model's save() → ensure_json_defaults() → _calculate_extended_cost() and
+    _calculate_extended_price(). This function is retained solely for
+    verify_line_calculations() which compares R25-submitted values against WC3 math.
+
     Returns:
-        Dict with calculated values: gross, discount_amount, extended, 
+        Dict with calculated values: gross, discount_amount, extended,
         gross_cost, discount_cost, cost_extended
     """
     qty_data = line_data.get('quantity', {}) or {}
@@ -860,15 +856,9 @@ def save_transaction_with_lines(
     pending_deltas: List[Dict[str, Any]] = []
 
     with db_transaction.atomic():
-        # Backend is the source of truth — always recompute extended values.
-        # Frontend sends qty and unit_price; backend computes extended.
-        for line_data in lines_data:
-            computed = calculate_line_extended(line_data)
-            price = line_data.setdefault('price', {})
-            cost = line_data.setdefault('cost', {})
-            price['extended'] = float(computed['extended'])
-            price['discount_amount'] = float(computed['discount_amount'])
-            cost['extended'] = float(computed['cost_extended'])
+        # Extended values are computed authoritatively by the model's save()
+        # method via ensure_json_defaults() → _calculate_extended_cost() and
+        # _calculate_extended_price(). No pre-computation needed here.
 
         if verify_calculations:
             verify_header_calculations(header_data, lines_data)
@@ -1134,10 +1124,10 @@ def save_transaction_with_lines(
         dispatch_pending_processing(limit=200, caller='transaction_save')
 
     # ── Phase 4b: Tax & shipping ──────────────────────────────────────
-    # Currently fixed values entered by user on the invoice. Tax service
-    # (tax_service.py) exists with Avalara/TaxJar/builtin support but is
-    # not wired in until API option is offered. Totals calculation in
-    # calculate_header_totals() already includes tax and shipping fields.
+    # Currently fixed values entered by user on the invoice. Tax lookup
+    # (tax_lookup.py) resolves rates; totals engine (totals.py) is the
+    # single authority for tax computation. calculate_header_totals() is
+    # pre-save verification only.
 
     # ── Phase 5: Ledger / AR hooks (invoice only) ────────────────────
     # Creates ledger records based on payment terms, updates org aging.

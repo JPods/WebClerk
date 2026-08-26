@@ -12,8 +12,7 @@ def test_wcapi_save_create_org():
     user = User.objects.create_user(email='saveorg@example.com', password='pw12345', name_first='Saver', name_last='User', username='')
     c = Client(); assert c.login(email='saveorg@example.com', password='pw12345')
     payload = {
-        'model_name': 'org',  #chaned from t_n
-        'org_type': 'customer',
+        'model_name': 'customer',
         'company': 'Save Created Co',
         'status': 'active'
     }
@@ -30,7 +29,7 @@ def test_wcapi_save_update_org_with_version():
     org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company='Update Co', status='active')
     v = org.version
     payload = {
-        'model_name': 'org',  #chaned from t_n
+        'model_name': 'customer',
         'id': org.id,
         'version': v,
         'company': 'Update Co Renamed'

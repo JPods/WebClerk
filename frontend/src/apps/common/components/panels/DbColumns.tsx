@@ -268,6 +268,6 @@ export function DbColumns<T extends Record<string, unknown>>({
   );
 }
 
-// Re-export types for backward compatibility
+// Re-export types under panel naming convention
 export type PanelColumnDef<T = Record<string, unknown>> = DbColumnDef<T>;
 export type PanelTableProps<T = Record<string, unknown>> = DbColumnsProps<T>;

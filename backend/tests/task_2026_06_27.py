@@ -32,7 +32,7 @@ import pytest
 from tests.test_gl_posting import TestPostStagedGlEntries  # noqa: F401
 
 # ─────────────────────────────────────────────────────────────────────
-# GL Manage Action — POST /wcapi/manage/ {action: "post_gl_entries"}
+# GL Manage Action — POST /wcapi/_manage/ {action: "post_gl_entries"}
 # User-initiated journalizing: posts GL entries + locks record
 # ─────────────────────────────────────────────────────────────────────
 from tests.test_gl_manage_action import TestPostGLManageAction  # noqa: F401

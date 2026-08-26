@@ -46,12 +46,11 @@ export function GroupedDetailFields({ fields, record, fieldGroups, collapsedKeys
     <BehaviorField key={f} name={f} value={resolveDotPath(record, f)} behavior={fieldBehaviors[f] || {}}
       onChange={(v: unknown) => updateField(f, v)} record={record}
       fontSize={fontSize} theme={theme} rowSize={detailRowSizes[f]}
-      typeHint={detailFieldSpecs.find(s => s.field === f)?.typeHint}
       leaf={leafDeclarations[f]}
       error={validationErrors[f]} />
   );
 
-  // No groups defined — flat layout (backward compatible)
+  // No groups defined — flat layout
   if (!fieldGroups.length) {
     return <div className="db-detail-grid">{presentFields.map(renderField)}</div>;
   }

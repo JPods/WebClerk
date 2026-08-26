@@ -283,7 +283,7 @@ def _normalize_result(
 # ---------------------------------------------------------------------------
 
 def get_verification_connection(name: str | None = None):
-    """Get a Connection record for address verification (legacy compat)."""
+    """Get a Connection record for address verification."""
     Connection = apps.get_model("sync", "Connection")
     qs = Connection.objects.filter(type="address_verification")
     if name:
@@ -426,17 +426,6 @@ def _geocode_freeform(address_parts: Dict[str, str]) -> Dict[str, Optional[float
         logger.warning("Freeform geocode failed: %s", e)
 
     return {"latitude": None, "longitude": None}
-
-
-def verify_address_via_connection(
-    address_payload: Dict[str, Any],
-    connection_name: str | None = None,
-) -> Dict[str, Any]:
-    """Legacy entry point — routes to the supervisor.
-
-    Keeps backward compatibility with tasks.py and Address.queue_verification().
-    """
-    return verify_address(address_payload, preferred_carrier=None)
 
 
 def _record_bundle(

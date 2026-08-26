@@ -1,6 +1,6 @@
-"""Backward-compatible proxy model imports.
+"""Proxy model re-exports.
 
-Canonical per-type model definitions now live in:
+Per-type model definitions live in:
   customer.py, vendor.py, rep.py, employee.py, manufacturer.py
 """
 

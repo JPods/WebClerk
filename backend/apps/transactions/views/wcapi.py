@@ -457,7 +457,7 @@ class WCAPISaveView(APIView):
 
         # ── Status guard: validate transitions and journalized locks ───
         GUARDED_MODELS = {
-            'proposal', 'order', 'invoice', 'purchase', 'work_order',
+            'proposal', 'order', 'invoice', 'purchase', 'workorder',
             'requisition', 'payment', 'invoice_line', 'purchase_line',
             'receipt_line',
         }

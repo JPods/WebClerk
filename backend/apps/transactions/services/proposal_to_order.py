@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from decimal import Decimal
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from django.db import transaction
 
@@ -12,7 +11,7 @@ from apps.transactions.models import (
     Order,
     OrderLine,
 )
-from .transfer_utils import build_line_payload
+from .transfer_utils import build_line_payload, sum_price_extended
 
 import logging
 logger = logging.getLogger(__name__)
@@ -21,17 +20,6 @@ logger = logging.getLogger(__name__)
 class ProposalToOrderTransferError(Exception):
     """Business-rule violation during proposal-to-order transfer."""
 
-
-def _sum_price_extended(lines: Iterable[ProposalLine]) -> float:
-    total = Decimal(0)
-    for ln in lines:
-        p = (ln.price or {})
-        try:
-            total += Decimal(str(p.get("extended", 0) or 0))
-        except Exception:
-            # Be forgiving if price is malformed
-            total += Decimal(0)
-    return float(total)
 
 
 def validate_proposal_for_transfer(
@@ -45,7 +33,7 @@ def validate_proposal_for_transfer(
         'errors': [str],
         'warnings': [str],
         'line_count': int,
-        'total_amount': float,
+        'total': float,
       }
     """
     errors: List[str] = []
@@ -57,7 +45,7 @@ def validate_proposal_for_transfer(
             "errors": ["Proposal not found"],
             "warnings": [],
             "line_count": 0,
-            "total_amount": 0.0,
+            "total": 0.0,
         }
 
     qs = ProposalLine.objects.filter(proposal=proposal)
@@ -80,7 +68,7 @@ def validate_proposal_for_transfer(
     if transferred_cnt:
         warnings.append("Some lines already transferred" if transferred_cnt > 1 else "Line already transferred")
 
-    total_amount = _sum_price_extended(qs)
+    total_amount = sum_price_extended(qs)
 
     can_transfer = len(errors) == 0
     return {
@@ -88,7 +76,7 @@ def validate_proposal_for_transfer(
         "errors": errors,
         "warnings": warnings,
         "line_count": line_count,
-        "total_amount": total_amount,
+        "total": total_amount,
     }
 
 
@@ -178,8 +166,9 @@ def transfer_proposal_to_order(
     order = Order.objects.create(**order_kwargs)
 
     # Copy customer/contact/party fields from proposal to order
-    for field in ('customer', 'contact', 'company', 'attention', 'address_full',
-                  'email', 'phone', 'price_level', 'terms', 'terms_fk'):
+    # address_full, email, phone are properties (read from FK records), not settable
+    for field in ('customer', 'contact', 'attention',
+                  'price_level', 'terms', 'terms_fk'):
         val = getattr(proposal, field, None)
         if val is not None and hasattr(order, field):
             setattr(order, field, val)

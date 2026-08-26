@@ -39,7 +39,7 @@ def test_manage_tally_summary_by_period_success(client):
     Order.objects.create(totals={"total": 80.75})
 
     resp = client.post(
-        "/wcapi/manage/",
+        "/wcapi/_manage/",
         data={
             "action": "get_tally_summary_by_period",
             "params": {},
@@ -78,7 +78,7 @@ def test_manage_tally_summary_by_period_invalid_dates(client):
     client.force_login(user)
 
     resp = client.post(
-        "/wcapi/manage/",
+        "/wcapi/_manage/",
         data={
             "action": "get_tally_summary_by_period",
             "params": {

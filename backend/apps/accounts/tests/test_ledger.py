@@ -82,7 +82,6 @@ def invoice(org, term_net30):
     inv = Invoice.objects.create(
         status='planned',
         customer=org,
-        total=Decimal('1000'),
         totals={'subtotal': 1000, 'total': 1000},
         prefs={'payment_terms': {'id': str(term_net30.id), 'name': 'Net 30 Days'}},
     )
@@ -183,7 +182,7 @@ class TestCreateLedgerRecords:
         inv = Invoice.objects.create(
             status='planned',
             customer=org,
-            total=Decimal('900'),
+            totals={'total': 900, 'subtotal': 900},
             prefs={'payment_terms': {'id': str(term_3pay90.id)}},
         )
         ledgers = apply_terms_for_invoice(inv, term=term_3pay90, replace=True)
@@ -218,7 +217,7 @@ class TestCreateLedgerRecords:
         inv = Invoice.objects.create(
             status='planned',
             customer=org,
-            total=Decimal('500'),
+            totals={'total': 500, 'subtotal': 500},
             prefs={},
         )
         ledgers = apply_terms_for_invoice(inv)
@@ -232,7 +231,7 @@ class TestCreateLedgerRecords:
         inv = Invoice.objects.create(
             status='planned',
             customer=org,
-            total=Decimal('750'),
+            totals={'total': 750, 'subtotal': 750},
             prefs={'payment_terms': {'name': 'Net 30 Days'}},
         )
         ledgers = apply_terms_for_invoice(inv)
@@ -293,7 +292,7 @@ class TestAgingBuckets:
         inv = Invoice.objects.create(
             status='planned',
             customer=org,
-            total=Decimal('500'),
+            totals={'total': 500, 'subtotal': 500},
             prefs={'payment_terms': {'id': str(term_net30.id)}},
         )
         apply_terms_for_invoice(inv, term=term_net30, replace=True)
@@ -333,7 +332,7 @@ class TestOnInvoiceSave:
         inv = Invoice.objects.create(
             status='planned',
             customer=org,
-            total=Decimal('2000'),
+            totals={'total': 2000, 'subtotal': 2000},
             prefs={'payment_terms': {'id': str(term_net30.id)}},
         )
 
@@ -359,7 +358,7 @@ class TestOnInvoiceSave:
         inv = Invoice.objects.create(
             status='planned',
             customer=org,
-            total=Decimal('1500'),
+            totals={'total': 1500, 'subtotal': 1500},
             prefs={'payment_terms': {'id': str(term_net30.id)}},
         )
 

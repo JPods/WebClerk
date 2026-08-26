@@ -1,7 +1,7 @@
 """Tests for the post_gl_entries manage action.
 
 Validates the user-initiated GL posting workflow:
-  POST /wcapi/manage/ { action: "post_gl_entries", params: { model_name, id } }
+  POST /wcapi/_manage/ { action: "post_gl_entries", params: { model_name, id } }
 """
 import pytest
 from tests.conftest import InvoiceFactory

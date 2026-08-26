@@ -100,7 +100,7 @@ export function getWidget(typeName: string): React.ComponentType<any> {
  * @param value - current value
  * @param behavior - from Setting.config.field_behaviors[name]
  * @param onChange - value change handler
- * @param opts - additional props (error, disabled, typeHint, record, etc.)
+ * @param opts - additional props (error, disabled, record, etc.)
  */
 export function renderField(
   name: string,
@@ -108,7 +108,7 @@ export function renderField(
   behavior: Record<string, any>,
   onChange: (value: unknown) => void,
   opts?: {
-    error?: string; disabled?: boolean; typeHint?: string;
+    error?: string; disabled?: boolean;
     record?: Record<string, unknown>; span2?: boolean; model?: string;
     rowSize?: number; leaf?: { type: string; extract?: string };
   },
@@ -127,9 +127,8 @@ export function renderField(
   const effectiveValue = isI18n && objKey ? objValue : value;
   const isLong = typeof effectiveValue === 'string' && (effectiveValue as string).length > 100;
 
-  // Determine widget type — i18n fields are never json trees
-  const typeName = opts?.typeHint
-    || (isI18n ? '' : behavior.type)
+  // Determine widget type — schema behavior.type is authoritative
+  const typeName = (isI18n ? '' : behavior.type)
     || (typeof effectiveValue === 'boolean' ? 'boolean' : '')
     || (isJson && !isI18n ? 'json' : '')
     || (isLong ? 'textarea' : '')

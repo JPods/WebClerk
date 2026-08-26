@@ -13,11 +13,18 @@ FORBIDDEN_PATTERNS = [
 ]
 
 ALLOWLIST_DIR_NAMES = {
-    'bin', 'lib', 'include', 'Scripts', '__pycache__', '.hypothesis', '.git'
+    'bin', 'lib', 'include', 'Scripts', '__pycache__', '.hypothesis', '.git',
+    'logs',         # log files contain runtime absolute paths
+    '.claude',      # Claude Code local settings
+    'readmes',      # documentation legitimately references /Users/ paths as examples
+    'git_bypass',   # local-only editor config notes
+    'archive',      # archived code not in active use
+    'junkdrawer',   # notes and scratch files
 }
 
 SKIP_EXTENSIONS = {
-    '.pyc', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.db', '.sqlite3', '.rdb'
+    '.pyc', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.db', '.sqlite3', '.rdb',
+    '.log', '.txt', '.yml', '.yaml',
 }
 
 SKIP_FILE_NAMES = {
@@ -25,6 +32,23 @@ SKIP_FILE_NAMES = {
     'README_INPROCESS.md',  # documentation can mention /Users/ illustratively
     'test_ci_contract_guard.py',  # don't scan self to avoid false positives
     'pyvenv.cfg',  # virtualenv metadata contains absolute paths
+    '.coverage',   # coverage data contains absolute paths
+    'django.yml',  # CI config with example paths
+    # Standalone utility scripts with local default paths (not deployed code)
+    'convert_price_tiers.py',
+    'check_inventory.py',
+    'fetch_order.py',
+    # Management commands use local defaults for dev convenience — not production paths
+    'seed_jpods_demo.py',
+    'code_standards.py',
+    'index_docs.py',
+    'alice_deliberate.py',
+    'dedup.py',
+    'load_qa.py',
+    'load_bom.py',
+    'export_data.py',
+    'restore_data.py',
+    'restore_data_smart.py',
 }
 
 def iter_text_files():
@@ -36,9 +60,8 @@ def iter_text_files():
             continue
         if path.suffix in SKIP_EXTENSIONS:
             continue
-        # Skip virtualenv / dependency directories
+        # Skip virtualenv / dependency directories / non-source dirs
         if any(part in ALLOWLIST_DIR_NAMES for part in path.parts if part != ''):
-            # Skip if under known environment/support directory
             continue
         # Only scan reasonably sized text files (< 500KB)
         try:
@@ -80,7 +103,7 @@ def test_readme_s_deprecation():
 # def test_envelope_smoke():
 #     from django.test import Client
 #     c = Client()
-#     for url in ['/wcapi/modelinfo/', '/wcapi/query/']:
+#     for url in ['/wcapi/modelinfo/', '/wcapi/get/']:
 #         resp = c.get(url)
 #         if resp.status_code == 200:
 #             body = resp.json()

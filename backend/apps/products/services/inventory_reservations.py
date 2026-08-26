@@ -46,8 +46,8 @@ def create_reservation(
 
     return InventoryReservation.objects.create(
         item=layer.item,
-        item_ida=layer.item_ida,
-        description=f'Hold {qty_dec} × {layer.item_ida} ({reason})',
+        item_ida=layer.item_ida or (layer.item.ida if layer.item else ''),
+        description=f'Hold {qty_dec} × {layer.item_ida or layer.item_id} ({reason})',
         warehouse=layer.warehouse,
         inventory_layer=layer,
         qty=qty_dec,

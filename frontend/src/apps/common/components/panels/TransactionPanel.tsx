@@ -68,7 +68,7 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({
   ...toolbarProps
 }) => {
   const r = record;
-  const hasHeader = r && (r.ida || r.status || r.attention || r.email || r.phone || r.total != null || r.balance != null || r.priority);
+  const hasHeader = r && (r.ida || r.status || r.attention || r.email || r.phone || r.totals?.total != null || r.totals?.balance != null || r.priority);
 
   return (
     <div className={`flex flex-col gap-0 ${className ?? ""}`}>
@@ -113,18 +113,18 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({
           <div className="flex-1" />
 
           {/* total */}
-          {r.total != null && (
+          {r.totals?.total != null && (
             <div style={{ color: 'var(--db-text)' }}>
               <span style={{ color: 'var(--db-text-muted)' }}>Total:</span>{" "}
-              <span className="font-medium">{formatCurrency(r.total)}</span>
+              <span className="font-medium">{formatCurrency(r.totals.total)}</span>
             </div>
           )}
 
           {/* balance */}
-          {r.balance != null && (
+          {r.totals?.balance != null && (
             <div style={{ color: 'var(--db-text)' }}>
               <span style={{ color: 'var(--db-text-muted)' }}>Bal:</span>{" "}
-              <span className="font-medium">{formatCurrency(r.balance)}</span>
+              <span className="font-medium">{formatCurrency(r.totals.balance)}</span>
             </div>
           )}
 

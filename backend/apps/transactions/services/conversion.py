@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 # Customer data transfers — same party through the sell chain.
 _HEADER_COPY_FIELDS_SELL = (
     "customer", "customer_id", "contact_id",
-    "company", "attention", "address_full", "email", "phone", "ship_via",
+    "attention", "ship_via",
     "price_level", "terms", "terms_fk_id",
     "is_commission", "conditions_id", "conditions_description",
     "config", "source",

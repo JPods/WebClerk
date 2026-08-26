@@ -154,9 +154,7 @@ classes across 7 files:
 |---|---|
 | `apps/products/views/inventory.py` | `ReservationListView`, `ReservationDetailView`, `ReservationCommitView`, `ReservationActionView` |
 | `apps/products/views/inventory_views.py` | `InventoryReservationActionView`, `InventoryPrometheusMetricsView` |
-| `apps/transactions/views/purchase_views.py` | `ReceivePurchaseView` |
-| `apps/transactions/views/linkage_views.py` | `LinkageCommentsView` |
-| `apps/transactions/views/order_views.py` | `OrderToInvoiceView`, `OrderToPurchaseView` |
+| `apps/transactions/views/actions.py` | `OrderToInvoiceView`, `OrderToPurchaseView` (service-layer versions; standalone duplicates deleted 2026-08-24) |
 | `apps/transactions/views/project_views.py` | `ProjectListView` |
 | `apps/sync/views/connection.py` | `ConnectionListView` |
 
@@ -242,11 +240,8 @@ method filters `is_active=True, is_deleted=False, is_archived=False`.
 | `apps/transactions/views/line_views.py` | 27 querysets across all transaction list/detail views |
 | `apps/transactions/views/transaction_views.py` | `ProposalViewSet`, `OrderViewSet`, `PurchaseViewSet`, `InvoiceViewSet`, `PaymentViewSet` |
 | `apps/transactions/views/actions.py` | `ProposalToOrderView`, `OrderToInvoiceView`, `OrderToPurchaseView`, `ReceivePurchaseView`, `WorkOrderTransitionView`, `WorkOrderLineTransitionView` |
-| `apps/transactions/views/unified.py` | `TransactionHeaderListCreate`, `TransactionHeaderDetail`, `TransactionTotalsPreview`, `LinkageCommentsView` |
+| `apps/transactions/views/unified.py` | `TransactionHeaderListCreate`, `TransactionHeaderDetail`, `TransactionTotalsPreview` |
 | `apps/transactions/views/wcapi.py` | `WCAPIGetView`, `WCAPISyncView` |
-| `apps/transactions/views/order_views.py` | `OrderViewSet`, `OrderLineViewSet` |
-| `apps/transactions/views/invoice_views.py` | `InvoiceViewSet`, `InvoiceLineViewSet` |
-| `apps/transactions/views/proposal_views.py` | `ProposalViewSet`, `ProposalLineViewSet` |
 | `apps/transactions/views/payment_views.py` | `PaymentViewSet` |
 | `apps/transactions/views/requisition.py` | `RequisitionListView`, `RequisitionDetailView` |
 | `apps/transactions/views/project_views.py` | `ProjectListView` |
@@ -338,10 +333,7 @@ preserved.
 | File | ViewSets converted |
 |---|---|
 | `apps/orgs/views/customer_viewset.py` | `OrgBaseViewSet`, `CustomerViewSet`, `VendorViewSet`, `RepViewSet`, `EmployeeViewSet`, `ManufacturerViewSet` |
-| `apps/transactions/views/transaction_views.py` | `ProposalViewSet`, `OrderViewSet`, `PurchaseViewSet`, `InvoiceViewSet`, `PaymentViewSet` |
-| `apps/transactions/views/proposal_views.py` | `ProposalViewSet`, `ProposalLineViewSet` |
-| `apps/transactions/views/order_views.py` | `OrderViewSet`, `OrderLineViewSet` |
-| `apps/transactions/views/invoice_views.py` | `InvoiceViewSet`, `InvoiceLineViewSet` |
+| `apps/transactions/views/transaction_views.py` | `ProposalViewSet`, `OrderViewSet`, `PurchaseViewSet`, `InvoiceViewSet`, `PaymentViewSet` (standalone duplicates in order_views/proposal_views/invoice_views deleted 2026-08-24) |
 | `apps/transactions/views/payment_views.py` | `PaymentViewSet` |
 | `apps/core/views/action_views.py` | `ActionViewSet` |
 

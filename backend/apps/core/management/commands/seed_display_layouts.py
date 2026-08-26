@@ -159,7 +159,7 @@ SELL_TABS = [
     {'label': 'Related', 'content': 'related_transactions'},
 ]
 
-# ── Exec-side tabs (purchase, requisition, work_order) ─────────────────
+# ── Exec-side tabs (purchase, requisition, workorder) ─────────────────
 
 EXEC_TABS = [
     {'label': 'Summary', 'content': 'summary'},
@@ -236,7 +236,7 @@ MODELS = {
         'tabs': EXEC_TABS,
         'locked_statuses': ['completed', 'cancelled', 'void'],
     },
-    'work_order': {
+    'workorder': {
         'family': 'exec',
         'cards': {
             'bill_to': BILL_TO_CARD,

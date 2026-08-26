@@ -17,7 +17,7 @@ def make_item(name: str):
 def test_alternate_requires_group():
     parent = make_item('AltParent')
     comp = make_item('AltComp')
-    bill_of_material = BillOfMaterial(parent=parent, component=comp, quantity=Decimal('1'), is_alternate=True)
+    bill_of_material = BillOfMaterial(parent_item=parent, child_item=comp, quantity=Decimal('1'), is_alternate=True)
     with pytest.raises(ValidationError):
         bill_of_material.full_clean()
     bill_of_material.alternate_group = 'G1'
@@ -33,7 +33,7 @@ def test_scrap_factor_range_and_yield_derivation():
     parent = make_item('ScrapParent')
     comp = make_item('ScrapComp')
     # invalid negative
-    bill_of_material = BillOfMaterial(parent=parent, component=comp, quantity=Decimal('1'), scrap_factor=Decimal('-0.1'))
+    bill_of_material = BillOfMaterial(parent_item=parent, child_item=comp, quantity=Decimal('1'), scrap_factor=Decimal('-0.1'))
     with pytest.raises(ValidationError):
         bill_of_material.full_clean()
     # invalid >=1
@@ -55,11 +55,11 @@ def test_effective_date_window_validation():
     from datetime import date, timedelta
     today = date.today()
     yesterday = today - timedelta(days=1)
-    bill_of_material = BillOfMaterial(parent=parent, component=comp, quantity=Decimal('1'), effective_from=today, effective_to=yesterday)
+    bill_of_material = BillOfMaterial(parent_item=parent, child_item=comp, quantity=Decimal('1'), dt_effective_from=today, dt_effective_to=yesterday)
     with pytest.raises(ValidationError):
         bill_of_material.full_clean()
     # swap to valid
-    bill_of_material.effective_to = today + timedelta(days=5)
+    bill_of_material.dt_effective_to = today + timedelta(days=5)
     bill_of_material.full_clean()  # should pass
 
 
@@ -68,16 +68,16 @@ def test_effective_date_window_validation():
 def test_unique_parent_component_constraint():
     parent = make_item('UniParent')
     comp = make_item('UniComp')
-    BillOfMaterial.objects.create(parent=parent, component=comp, quantity=Decimal('1'))
+    BillOfMaterial.objects.create(parent_item=parent, child_item=comp, quantity=Decimal('1'))
     with pytest.raises(IntegrityError):
-        BillOfMaterial.objects.create(parent=parent, component=comp, quantity=Decimal('2'))
+        BillOfMaterial.objects.create(parent_item=parent, child_item=comp, quantity=Decimal('2'))
 
 
 @pytest.mark.bill_of_material
 @pytest.mark.fast
 def test_parent_cannot_equal_component():
     item = make_item('SelfItem')
-    bill_of_material = BillOfMaterial(parent=item, component=item, quantity=Decimal('1'))
+    bill_of_material = BillOfMaterial(parent_item=item, child_item=item, quantity=Decimal('1'))
     with pytest.raises(ValidationError):
         bill_of_material.full_clean()
 
@@ -93,9 +93,9 @@ def test_bom_alternate_and_scrap_factor_rollup_interaction():
         c.cost.update({"avg": v, "currency": "USD"})
         c.save(update_fields=["cost"])
     # Primary line with scrap factor 0.10 (qty 5 -> effective 5 * 1.10)
-    l1 = BillOfMaterial.objects.create(parent=parent, component=comp_primary, quantity=Decimal('5'), scrap_factor=Decimal('0.10'))
+    l1 = BillOfMaterial.objects.create(parent_item=parent, child_item=comp_primary, quantity=Decimal('5'), scrap_factor=Decimal('0.10'))
     # Alternate line in same group (should not alter roll-up since alternates are not auto-excluded here but both counted unless later logic filters)
-    l2 = BillOfMaterial.objects.create(parent=parent, component=comp_alt, quantity=Decimal('5'), is_alternate=True, alternate_group='G1')
+    l2 = BillOfMaterial.objects.create(parent_item=parent, child_item=comp_alt, quantity=Decimal('5'), is_alternate=True, alternate_group='G1')
     BillOfMaterial.recalc_parent_cost(parent.id)
     parent.refresh_from_db()
     total = parent.cost['components']['snapshot_total']

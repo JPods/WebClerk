@@ -79,12 +79,12 @@ def to_representation(self, instance):
 # Serializer passes envelope as-is
 class OrderSerializer(ModelSerializer):
     class Meta:
-        fields = [..., 'totals', 'total', 'balance', 'sell', 'cost', ...]
-        read_only_fields = ['totals', 'total', 'balance']
+        fields = [..., 'totals', 'sell', 'cost', ...]
+        read_only_fields = ['totals']
 ```
 
-The `total` and `balance` scalar fields are shadow fields (query indexes) for database
-queries. They are never read as authoritative — the `totals` envelope is.
+`total` and `balance` are `@property` methods that read from the `totals` JSONField
+envelope. They are not database columns — do not include them in serializer fields.
 
 ### 3. Path resolution replaces property access
 
@@ -222,8 +222,8 @@ Alice's code standards scanner checks for `pjpv-reversion` violations:
 # CORRECT
 class OrderSerializer(ModelSerializer):
     class Meta:
-        fields = [..., 'totals', 'total', 'balance', 'sell', 'cost']
-        read_only_fields = ['totals', 'total', 'balance']
+        fields = [..., 'totals', 'sell', 'cost']
+        read_only_fields = ['totals']
 
 # WRONG — this is what Claude will try to write
 class OrderSerializer(ModelSerializer):

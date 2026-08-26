@@ -12,13 +12,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 
-def _d(x: Any, places: int = 2) -> Decimal:
-    """Safe Decimal coercion."""
-    try:
-        d = Decimal(str(x))
-        return d.quantize(Decimal(10) ** -places) if places >= 0 else d
-    except Exception:
-        return Decimal(0)
+from common.decimals import safe_decimal as _d  # noqa: E302
 
 
 def _get_tax_config() -> Dict[str, Any]:
@@ -133,103 +127,6 @@ def calculate_line_tax(
         'cost_tax': cost_tax,
         'exempt': exempt,
         'exempt_reason': exempt_reason,
-    }
-
-
-# ---------------------------------------------------------------------------
-# calculate_transaction_tax — all lines for a transaction
-# ---------------------------------------------------------------------------
-
-def calculate_transaction_tax(
-    transaction_id: int,
-    model_name: str,
-) -> Dict[str, Any]:
-    """Calculate tax for all lines of a transaction.
-
-    For each line, calculates tax using the transaction's
-    finance.sales_tax_id or default. Updates each line's tax JSON.
-
-    Returns: {total_tax, lines_updated, tax_rate_used}
-    """
-    from django.apps import apps as dj_apps
-    from apps.core.constants.model_registry import get_model_meta
-
-    # Resolve header model
-    meta = get_model_meta(model_name)
-    if not meta:
-        raise ValueError(f"Unknown model: {model_name}")
-
-    HeaderModel = meta.import_model()
-    try:
-        header = HeaderModel.objects.get(pk=transaction_id)
-    except HeaderModel.DoesNotExist:
-        raise ValueError(f"{model_name} #{transaction_id} not found")
-
-    # Get tax jurisdiction — cascade: header.finance → customer org fields → default
-    finance = getattr(header, 'finance', None) or {}
-    tax_jurisdiction_id = finance.get('sales_tax_id') or None
-    if tax_jurisdiction_id and int(tax_jurisdiction_id) <= 0:
-        tax_jurisdiction_id = None
-    header_tax_rate = finance.get('sales_tax_rate')
-    customer_exempt_code = ''
-
-    # Pull from customer org if not on the header
-    customer = getattr(header, 'customer', None)
-    if customer:
-        if not tax_jurisdiction_id and getattr(customer, 'tax_jurisdiction_id', None):
-            tax_jurisdiction_id = customer.tax_jurisdiction_id
-        customer_exempt_code = getattr(customer, 'tax_exempt_code', '') or ''
-
-    # Get lines
-    if not hasattr(header, 'lines'):
-        raise ValueError(f"{model_name} #{transaction_id} has no lines relation")
-
-    lines = header.lines.all()
-    total_tax = Decimal(0)
-    lines_updated = 0
-    tax_rate_used = None
-
-    for line in lines:
-        # Get line extended price
-        price_data = getattr(line, 'price', None) or {}
-        extended = price_data.get('extended', 0) or 0
-
-        # Check item taxability
-        item_taxable = True
-        item_data = getattr(line, 'item', None) or {}
-        if isinstance(item_data, dict):
-            tax_code = item_data.get('tax_code') or {}
-            if isinstance(tax_code, dict) and tax_code.get('code', '').lower() in ('notax', 'no tax', 'exempt'):
-                item_taxable = False
-
-        # Calculate tax for this line
-        result = calculate_line_tax(
-            line_price_extended=float(extended),
-            tax_jurisdiction_id=int(tax_jurisdiction_id) if tax_jurisdiction_id else None,
-            tax_rate=float(header_tax_rate) if header_tax_rate is not None else None,
-            item_taxable=item_taxable,
-            customer_exempt_code=customer_exempt_code,
-        )
-
-        # Update line tax JSON
-        if not isinstance(line.tax, dict):
-            line.tax = {}
-        line.tax['sales_rate'] = result['tax_rate']
-        line.tax['sales'] = result['tax_amount']
-        # Preserve cost-side tax if present
-        line.tax.setdefault('cost_rate', None)
-        line.tax.setdefault('cost', None)
-
-        line.save(update_fields=['tax'])
-        total_tax += _d(result['tax_amount'])
-        lines_updated += 1
-        if tax_rate_used is None:
-            tax_rate_used = result['tax_rate']
-
-    return {
-        'total_tax': float(total_tax),
-        'lines_updated': lines_updated,
-        'tax_rate_used': tax_rate_used,
     }
 
 

@@ -119,19 +119,19 @@ def _build_leaf_behaviors():
 LEAF_BEHAVIORS = _build_leaf_behaviors()
 
 LEAF_MAP = {
-    'order': ['totals'],
-    'invoice': ['totals'],
-    'proposal': ['totals'],
-    'purchase': ['totals'],
+    'order': ['totals', 'shipping'],
+    'invoice': ['totals', 'shipping'],
+    'proposal': ['totals', 'shipping'],
+    'purchase': ['totals', 'shipping'],
     'requisition': ['totals'],
-    'work_order': ['totals'],
+    'workorder': ['totals', 'shipping'],
     'order_line': ['quantity', 'price', 'cost'],
     'invoice_line': ['quantity', 'price', 'cost'],
     'proposal_line': ['quantity', 'price', 'cost'],
     'purchase_line': ['quantity', 'cost'],
     'requisition_line': ['quantity', 'cost'],
     'receipt_line': ['quantity', 'cost'],
-    'work_order_line': ['quantity', 'cost'],
+    'workorder_line': ['quantity', 'cost'],
     'item': ['quantity', 'price'],
 }
 
@@ -248,7 +248,7 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
                 'gljournal': 'gl_journal', 'paymentmethod': 'payment_method',
                 'paymentterm': 'term', 'warehouse': 'warehouse', 'setting': 'setting',
                 'catalog': 'catalog', 'taxjurisdiction': 'tax_jurisdiction',
-                'workorder': 'work_order', 'workorderline': 'work_order_line',
+                'workorder': 'workorder', 'workorderline': 'workorder_line',
                 'purchaseline': 'purchase_line', 'inventorycheck': 'inventory_check',
                 'inventorylayer': 'inventory_layer', 'orgitem': 'org_item',
                 'deliveryvisit': 'delivery_visit',
@@ -262,7 +262,7 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
         if name == 'status' and model_key in ('customer', 'vendor', 'manufacturer', 'employee', 'rep'):
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': STATUS_OPTIONS}
             continue
-        if name == 'status' and model_key in ('invoice', 'order', 'proposal', 'purchase', 'work_order', 'requisition'):
+        if name == 'status' and model_key in ('invoice', 'order', 'proposal', 'purchase', 'workorder', 'requisition'):
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': TX_STATUS_OPTIONS}
             continue
         if name == 'price_level':

@@ -161,9 +161,6 @@ class ItemUsageSerializer(serializers.ModelSerializer):
         read_only_fields = _BASE_RO
 
 
-# Backward-compatible alias for code that imports UsageSerializer
-UsageSerializer = ItemUsageSerializer
-
 
 class InventoryReservationSerializer(serializers.ModelSerializer):
     """InventoryReservation does NOT extend BaseModel — limited system fields."""

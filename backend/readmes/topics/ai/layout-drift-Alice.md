@@ -757,9 +757,7 @@ Django fields: 48 | Pages: detail(1), list(1)
 - 🔵 **attention** (`unrendered_field`): Django has 'attention' (CharField) but no layout references it. Optional field — may be intentionally hidden.
   - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
   - To dismiss: `manage.py ai_intelligence --task layout --dismiss invoice:attention:unrendered_field`
-- 🔵 **balance** (`unrendered_field`): Django has 'balance' (DecimalField) but no layout references it. Optional field — may be intentionally hidden.
-  - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
-  - To dismiss: `manage.py ai_intelligence --task layout --dismiss invoice:balance:unrendered_field`
+- ℹ️  **balance** (`not_a_db_field`): `balance` is an @property reading from `totals` JSON — not a renderable DB column. Alice should not flag it as unrendered.
 - 🔵 **conditions_description** (`unrendered_field`): Django has 'conditions_description' (CharField) but no layout references it. Optional field — may be intentionally hidden.
   - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
   - To dismiss: `manage.py ai_intelligence --task layout --dismiss invoice:conditions_description:unrendered_field`
@@ -1116,9 +1114,7 @@ Django fields: 45 | Pages: detail(1), list(1)
 - 🔵 **attention** (`unrendered_field`): Django has 'attention' (CharField) but no layout references it. Optional field — may be intentionally hidden.
   - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
   - To dismiss: `manage.py ai_intelligence --task layout --dismiss order:attention:unrendered_field`
-- 🔵 **balance** (`unrendered_field`): Django has 'balance' (DecimalField) but no layout references it. Optional field — may be intentionally hidden.
-  - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
-  - To dismiss: `manage.py ai_intelligence --task layout --dismiss order:balance:unrendered_field`
+- ℹ️  **balance** (`not_a_db_field`): `balance` is an @property reading from `totals` JSON — not a renderable DB column. Alice should not flag it as unrendered.
 - 🔵 **conditions_description** (`unrendered_field`): Django has 'conditions_description' (CharField) but no layout references it. Optional field — may be intentionally hidden.
   - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
   - To dismiss: `manage.py ai_intelligence --task layout --dismiss order:conditions_description:unrendered_field`
@@ -1337,9 +1333,7 @@ Django fields: 45 | Pages: detail(2), list(2)
 - 🔵 **attention** (`unrendered_field`): Django has 'attention' (CharField) but no layout references it. Optional field — may be intentionally hidden.
   - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
   - To dismiss: `manage.py ai_intelligence --task layout --dismiss proposal:attention:unrendered_field`
-- 🔵 **balance** (`unrendered_field`): Django has 'balance' (DecimalField) but no layout references it. Optional field — may be intentionally hidden.
-  - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
-  - To dismiss: `manage.py ai_intelligence --task layout --dismiss proposal:balance:unrendered_field`
+- ℹ️  **balance** (`not_a_db_field`): `balance` is an @property reading from `totals` JSON — not a renderable DB column. Alice should not flag it as unrendered.
 - 🔵 **conditions_description** (`unrendered_field`): Django has 'conditions_description' (CharField) but no layout references it. Optional field — may be intentionally hidden.
   - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
   - To dismiss: `manage.py ai_intelligence --task layout --dismiss proposal:conditions_description:unrendered_field`
@@ -1385,9 +1379,7 @@ Django fields: 45 | Pages: detail(2), list(2)
 - 🔵 **terms** (`unrendered_field`): Django has 'terms' (CharField) but no layout references it. Optional field — may be intentionally hidden.
   - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
   - To dismiss: `manage.py ai_intelligence --task layout --dismiss proposal:terms:unrendered_field`
-- 🔵 **total** (`unrendered_field`): Django has 'total' (DecimalField) but no layout references it. Optional field — may be intentionally hidden.
-  - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
-  - To dismiss: `manage.py ai_intelligence --task layout --dismiss proposal:total:unrendered_field`
+- ℹ️  **total** (`not_a_db_field`): `total` is an @property reading from `totals` JSON — not a renderable DB column. Alice should not flag it as unrendered.
 - 🔵 **totals** (`unrendered_field`): Django has 'totals' (JSONField) but no layout references it. Optional field — may be intentionally hidden.
   - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
   - To dismiss: `manage.py ai_intelligence --task layout --dismiss proposal:totals:unrendered_field`
@@ -1427,9 +1419,7 @@ Django fields: 46 | Pages: detail(1), list(1)
 - 🔵 **attention** (`unrendered_field`): Django has 'attention' (CharField) but no layout references it. Optional field — may be intentionally hidden.
   - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
   - To dismiss: `manage.py ai_intelligence --task layout --dismiss purchase:attention:unrendered_field`
-- 🔵 **balance** (`unrendered_field`): Django has 'balance' (DecimalField) but no layout references it. Optional field — may be intentionally hidden.
-  - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
-  - To dismiss: `manage.py ai_intelligence --task layout --dismiss purchase:balance:unrendered_field`
+- ℹ️  **balance** (`not_a_db_field`): `balance` is an @property reading from `totals` JSON — not a renderable DB column. Alice should not flag it as unrendered.
 - 🔵 **conditions_description** (`unrendered_field`): Django has 'conditions_description' (CharField) but no layout references it. Optional field — may be intentionally hidden.
   - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
   - To dismiss: `manage.py ai_intelligence --task layout --dismiss purchase:conditions_description:unrendered_field`
@@ -1484,9 +1474,7 @@ Django fields: 46 | Pages: detail(1), list(1)
 - 🔵 **terms** (`unrendered_field`): Django has 'terms' (CharField) but no layout references it. Optional field — may be intentionally hidden.
   - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
   - To dismiss: `manage.py ai_intelligence --task layout --dismiss purchase:terms:unrendered_field`
-- 🔵 **total** (`unrendered_field`): Django has 'total' (DecimalField) but no layout references it. Optional field — may be intentionally hidden.
-  - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
-  - To dismiss: `manage.py ai_intelligence --task layout --dismiss purchase:total:unrendered_field`
+- ℹ️  **total** (`not_a_db_field`): `total` is an @property reading from `totals` JSON — not a renderable DB column. Alice should not flag it as unrendered.
 - 🔵 **totals** (`unrendered_field`): Django has 'totals' (JSONField) but no layout references it. Optional field — may be intentionally hidden.
   - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
   - To dismiss: `manage.py ai_intelligence --task layout --dismiss purchase:totals:unrendered_field`
@@ -2110,9 +2098,7 @@ Django fields: 46 | Pages: detail(1), list(1)
 - 🔵 **attention** (`unrendered_field`): Django has 'attention' (CharField) but no layout references it. Optional field — may be intentionally hidden.
   - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
   - To dismiss: `manage.py ai_intelligence --task layout --dismiss workorder:attention:unrendered_field`
-- 🔵 **balance** (`unrendered_field`): Django has 'balance' (DecimalField) but no layout references it. Optional field — may be intentionally hidden.
-  - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
-  - To dismiss: `manage.py ai_intelligence --task layout --dismiss workorder:balance:unrendered_field`
+- ℹ️  **balance** (`not_a_db_field`): `balance` is an @property reading from `totals` JSON — not a renderable DB column. Alice should not flag it as unrendered.
 - 🔵 **conditions_description** (`unrendered_field`): Django has 'conditions_description' (CharField) but no layout references it. Optional field — may be intentionally hidden.
   - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
   - To dismiss: `manage.py ai_intelligence --task layout --dismiss workorder:conditions_description:unrendered_field`
@@ -2167,9 +2153,7 @@ Django fields: 46 | Pages: detail(1), list(1)
 - 🔵 **terms** (`unrendered_field`): Django has 'terms' (CharField) but no layout references it. Optional field — may be intentionally hidden.
   - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
   - To dismiss: `manage.py ai_intelligence --task layout --dismiss workorder:terms:unrendered_field`
-- 🔵 **total** (`unrendered_field`): Django has 'total' (DecimalField) but no layout references it. Optional field — may be intentionally hidden.
-  - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
-  - To dismiss: `manage.py ai_intelligence --task layout --dismiss workorder:total:unrendered_field`
+- ℹ️  **total** (`not_a_db_field`): `total` is an @property reading from `totals` JSON — not a renderable DB column. Alice should not flag it as unrendered.
 - 🔵 **totals** (`unrendered_field`): Django has 'totals' (JSONField) but no layout references it. Optional field — may be intentionally hidden.
   - 💡 *Add a form input (register/Controller) or ScalarCard entry for this field in the Detail page, or a column in the List page.  If intentionally hidden, dismiss it.*
   - To dismiss: `manage.py ai_intelligence --task layout --dismiss workorder:totals:unrendered_field`

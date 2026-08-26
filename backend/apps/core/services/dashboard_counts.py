@@ -21,71 +21,15 @@ Returns:
     }
 """
 import logging
-from django.apps import apps
 from django.utils import timezone
+from apps.core.constants.model_registry import import_model
 
 logger = logging.getLogger(__name__)
 
-# Models that can be queried — prevents arbitrary table enumeration
-MODEL_REGISTRY = {
-    # Transactions
-    'order': 'transactions.Order',
-    'invoice': 'transactions.Invoice',
-    'proposal': 'transactions.Proposal',
-    'purchase': 'transactions.Purchase',
-    'payment': 'transactions.Payment',
-    'receipt': 'transactions.Receipt',
-    'workorder': 'transactions.WorkOrder',
-    'requisition': 'transactions.Requisition',
-    # Products
-    'item': 'products.Item',
-    'variant': 'products.Variant',
-    'bill_of_material': 'products.BillOfMaterial',
-    'catalog': 'products.Catalog',
-    'serial': 'products.Serial',
-    'specification': 'products.Specification',
-    'warehouse': 'products.Warehouse',
-    # Orgs
-    'contact': 'core.Contact',
-    'customer': 'orgs.Customer',
-    'vendor': 'orgs.Vendor',
-    'manufacturer': 'orgs.Manufacturer',
-    'employee': 'orgs.Employee',
-    'rep': 'orgs.Rep',
-    # Admin
-    'action': 'core.Action',
-    'setting': 'core.Setting',
-    'report': 'core.Report',
-    'document': 'docs.Document',
-    'audit': 'accounts.Audit',
-    'project': 'transactions.Project',
-    # Accounts
-    'gl_journal': 'accounts.GlJournal',
-    'ledger': 'accounts.Ledger',
-    # Sync
-    'connection': 'sync.Connection',
-    'bundle': 'sync.Bundle',
-    'conversion_project': 'conversion.ConversionProject',
-    # Support
-    'campaign': 'support.Campaign',
-    # Communications
-    'email': 'communications.Email',
-    'phone': 'communications.Phone',
-    'address': 'communications.Address',
-    'domain': 'communications.Domain',
-}
-
 
 def _resolve_model(name: str):
-    """Resolve a model name to a Django model class."""
-    app_model = MODEL_REGISTRY.get(name)
-    if not app_model:
-        return None
-    try:
-        app_label, model_name = app_model.rsplit('.', 1)
-        return apps.get_model(app_label, model_name)
-    except Exception:
-        return None
+    """Resolve a model name to a Django model class via the canonical registry."""
+    return import_model(name)
 
 
 def get_dashboard_counts(params: dict) -> dict:

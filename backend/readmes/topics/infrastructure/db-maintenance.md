@@ -135,7 +135,7 @@ class CustomerListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Customer
-        fields = ["id", "company", "status", "phone", "email", "address_full"]
+        fields = ["id", "company", "status", "email"]
 ```
 
 And use `get_serializer_class()` in the ViewSet to switch based on action:

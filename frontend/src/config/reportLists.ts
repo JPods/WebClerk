@@ -4,8 +4,8 @@
  * Print templates now live in Setting records (purpose='print_template').
  * PrintReportDropdown reads Settings directly.
  *
- * This file provides backward-compatible stubs for components that still
- * reference it. Migrate those to Setting-based lookup, then delete this file.
+ * Components still reference this file. Migrate to Setting-based lookup,
+ * then delete this file.
  */
 
 export type ReportOutputType = 'print' | 'email' | 'api' | 'json' | 'export' | 'label' | 'merge';

@@ -18,7 +18,7 @@ from apps.transactions.services.status_guard import (
 
 
 def _make_instance(model_name='Order', status='planned', metadata=None,
-                   commission=None, customer_id=None):
+                   commission=None, customer_id=None, dt_journaled=0):
     """Create a mock instance for testing."""
     obj = MagicMock()
     obj.__class__ = type(model_name, (), {})
@@ -27,6 +27,7 @@ def _make_instance(model_name='Order', status='planned', metadata=None,
     obj.metadata = metadata or {}
     obj.commission = commission or {}
     obj.customer_id = customer_id
+    obj.dt_journaled = dt_journaled
     obj.pk = 1
     return obj
 
@@ -68,7 +69,7 @@ class TestTransitionMatrix(TestCase):
 
     def test_all_models_have_transitions(self):
         for model in ('proposal', 'order', 'invoice', 'purchase',
-                       'work_order', 'requisition', 'payment'):
+                       'workorder', 'requisition', 'payment'):
             self.assertIn(model, TRANSITIONS, f'{model} missing from TRANSITIONS')
 
     def test_proposal_has_sent_accepted(self):

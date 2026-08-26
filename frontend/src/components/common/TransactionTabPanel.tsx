@@ -527,10 +527,10 @@ const LEDGER_COLUMNS: ColumnDef[] = [
     align: "right",
     value: (rec) =>
       formatWholeNumber(
-        getNumberFromPaths(rec, ["balance", "totals.balance", "running_balance"]),
+        getNumberFromPaths(rec, ["totals.balance", "running_balance"]),
       ),
     resolvedPath: (rec) =>
-      getResolvedNumberPath(rec, ["balance", "totals.balance", "running_balance"]),
+      getResolvedNumberPath(rec, ["totals.balance", "running_balance"]),
   },
   {
     key: "attention",

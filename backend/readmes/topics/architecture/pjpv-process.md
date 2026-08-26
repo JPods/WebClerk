@@ -179,7 +179,7 @@ knowing what it is.
 | React frontend | 99.5% | Zero critical violations; print template labels acceptable |
 | Pydantic schemas (business) | 100% | All 7 business envelopes have schemas |
 | Pydantic schemas (structural) | 100% | All 79 models have .config/.metadata/.prefs/.refs schemas |
-| Totals engine validation | Active | Fail-open; promote to fail-hard after edge case review |
+| Totals engine validation | Done | Fail-hard (2026-08-23) |
 | `/wcapi/_pjpv_fields/` endpoint | Active | Available for React consumption |
 | `LEAF_BEHAVIORS` | Schema-derived | No more parallel hardcoded dict |
 

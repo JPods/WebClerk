@@ -254,7 +254,7 @@ def purchasing_dashboard_to_dict(d: PurchasingDashboard) -> dict:
             'closed': d.po_closed,
             'total': d.po_total,
         },
-        'work_orders': {
+        'workorders': {
             'open': d.wo_open,
             'in_progress': d.wo_in_progress,
             'completed': d.wo_completed,

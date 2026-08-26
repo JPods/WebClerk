@@ -26,13 +26,23 @@ from .envelopes import ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, Sour
 # ── DataBrowser layout types ─────────────────────────────────────────────
 
 class DbFieldSpec(BaseModel):
-    """One field in a list, column, or detail layout."""
+    """One field in a list, column, or detail layout.
+
+    Layout properties only — which fields, how wide, how arranged.
+    Behavioral properties (type, widget, precision) belong in the Pydantic
+    schema via json_schema_extra.  The renderer reads from the schema first;
+    ``format`` here is an optional user-preference override for cases where
+    one layout wants a different display (e.g. currency in one view, plain
+    number in another).  When format is None the schema is authoritative.
+    """
     field: str
     width: Optional[int] = None              # px — user sets via drag or type
     min_width: Optional[int] = None
     max_width: Optional[int] = None
     align: Optional[Literal['left', 'center', 'right']] = None
     visible: bool = True
+    # User-preference display override.  Schema (json_schema_extra.widget)
+    # is the authority; this overrides only when explicitly set per layout.
     format: Optional[Literal[
         'currency', 'percent', 'date', 'number',
         'json', 'phone', 'masked'
@@ -41,7 +51,6 @@ class DbFieldSpec(BaseModel):
     frozen: bool = False                     # sticky left
     summary: Optional[Literal['sum', 'avg', 'count']] = None
     alice_note: Optional[str] = None         # Alice's annotation
-    type_hint: Optional[str] = None          # override auto-detected widget type
 
     class Config:
         extra = 'forbid'

@@ -43,9 +43,9 @@ REPORTS = [
     {'model_name': 'purchase', 'name': 'Purchase Line Export', 'description': 'CSV export of PO lines', 'output_type': 'export', 'category': 'export', 'sort_order': 20, 'config': {'template': 'purchase_lines_csv'}},
 
     # ── Work Orders ──
-    {'model_name': 'work_order', 'name': 'Work Order', 'description': 'Work order with task list, materials, and labor', 'output_type': 'print', 'category': 'report', 'sort_order': 1, 'config': {'template': 'work_order'}},
-    {'model_name': 'work_order', 'name': 'Service Report', 'description': 'Completed service report with findings and recommendations', 'output_type': 'print', 'category': 'report', 'sort_order': 2, 'config': {'template': 'service_report'}},
-    {'model_name': 'work_order', 'name': 'Time & Materials Summary', 'description': 'Summary of labor hours and materials used', 'output_type': 'print', 'category': 'summary', 'sort_order': 3, 'config': {'template': 'time_materials'}},
+    {'model_name': 'workorder', 'name': 'Work Order', 'description': 'Work order with task list, materials, and labor', 'output_type': 'print', 'category': 'report', 'sort_order': 1, 'config': {'template': 'work_order'}},
+    {'model_name': 'workorder', 'name': 'Service Report', 'description': 'Completed service report with findings and recommendations', 'output_type': 'print', 'category': 'report', 'sort_order': 2, 'config': {'template': 'service_report'}},
+    {'model_name': 'workorder', 'name': 'Time & Materials Summary', 'description': 'Summary of labor hours and materials used', 'output_type': 'print', 'category': 'summary', 'sort_order': 3, 'config': {'template': 'time_materials'}},
 
     # ── Customers ──
     {'model_name': 'customer', 'name': 'Customer Statement', 'description': 'Account statement with open invoices and aging', 'output_type': 'print', 'category': 'statement', 'sort_order': 1, 'config': {'template': 'customer_statement'}},

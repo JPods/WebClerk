@@ -12,8 +12,7 @@ def test_wcapi_org_create_validation_enabled_success():
     user = User.objects.create_user(username='valsucc@example.com', email='valsucc@example.com', password='pw12345', name_first='Val', name_last='User')
     c = Client(); assert c.login(email='valsucc@example.com', password='pw12345')
     payload = {
-        'model_name': 'org',  #chaned from t_n
-        'org_type': 'customer',
+        'model_name': 'customer',
         'company': 'Valid Co',
         'status': 'active'
     }
@@ -29,7 +28,7 @@ def test_wcapi_org_create_validation_enabled_failure():
     c = Client(); assert c.login(email='valfail@example.com', password='pw12345')
     # invalid org_type
     payload = {
-        'model_name': 'org',  #chaned from t_n
+        'model_name': 'customer',
         'org_type': 'notatype',
         'company': 'Bad Co',
         'status': 'active'
@@ -50,7 +49,7 @@ def test_wcapi_org_partial_update_validation_failure():
     org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company='Patch Co', status='active')
     # supply invalid domains list entry (missing dot TLD)
     payload = {
-        'model_name': 'org',  #chaned from t_n
+        'model_name': 'customer',
         'id': org.id,
         'version': org.version,
         'domains': [{'domain': 'invalid_domain'}]
@@ -69,7 +68,7 @@ def test_wcapi_org_partial_update_validation_success():
     c = Client(); assert c.login(email='valpartial2@example.com', password='pw12345')
     org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company='Patch Co2', status='active')
     payload = {
-        'model_name': 'org',  #chaned from t_n
+        'model_name': 'customer',
         'id': org.id,
         'version': org.version,
         'domains': [{'domain': 'example.com'}]

@@ -194,7 +194,3 @@ class LinkageEntry(BaseModel):
         if model_name:
             qs = qs.filter(model_name=model_name)
         return list(qs.values_list('record_id', flat=True))
-
-
-# Convenience alias for backward compatibility during migration
-LinkageHub = LinkageEntry  # Can query LinkageHub.get_group_entries(group_id)

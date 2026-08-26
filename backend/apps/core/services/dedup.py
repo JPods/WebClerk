@@ -73,11 +73,13 @@ def _journal_record(model_name: str, record, action: str, context: str = ''):
 
 
 def normalize_phone(val):
-    """Strip to digits, drop leading 1 for US numbers."""
-    digits = re.sub(r'\D', '', str(val or ''))
-    if len(digits) == 11 and digits[0] == '1':
-        digits = digits[1:]
-    return digits if len(digits) >= 7 else ''
+    """Normalize phone for dedup matching using the canonical normalizer.
+
+    Returns digits-only with country code (e.g. "14055551234").
+    Single-arg wrapper so it fits in the NORMALIZERS dict.
+    """
+    from apps.core.services.phone_normalizer import normalize_phone as _canonical
+    return _canonical(str(val or ''), default_country="US")
 
 
 def normalize_email(val):

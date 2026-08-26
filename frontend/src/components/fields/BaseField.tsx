@@ -24,11 +24,22 @@ export default function BaseField({ props, labelColor = 'default', labelSuffix, 
   const model = modelOverride || propsModel;
   const [behaviorOpen, setBehaviorOpen] = useState(false);
 
+  const [behaviorPreset, setBehaviorPreset] = useState<string | undefined>(undefined);
+
   const handleLabelClick = (e: React.MouseEvent) => {
-    // Cmd+Shift+click → behavior override dialog (admin)
+    // Cmd+Shift+click → full behavior override dialog (admin)
     if ((e.metaKey || e.ctrlKey) && e.shiftKey) {
       e.preventDefault();
       e.stopPropagation();
+      setBehaviorPreset(undefined);
+      setBehaviorOpen(true);
+      return;
+    }
+    // Cmd/Ctrl+click → quick select list editor (pre-set type to "select")
+    if (e.metaKey || e.ctrlKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      setBehaviorPreset('select');
       setBehaviorOpen(true);
       return;
     }
@@ -65,10 +76,11 @@ export default function BaseField({ props, labelColor = 'default', labelSuffix, 
       {behaviorOpen && model && (
         <BehaviorOverrideDialog
           open={behaviorOpen}
-          onClose={() => setBehaviorOpen(false)}
+          onClose={() => { setBehaviorOpen(false); setBehaviorPreset(undefined); }}
           onReload={() => window.dispatchEvent(new CustomEvent('wc:reload-behaviors'))}
           model={model}
           fieldName={name}
+          presetType={behaviorPreset}
         />
       )}
     </div>

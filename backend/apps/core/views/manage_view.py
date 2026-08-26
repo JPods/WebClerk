@@ -188,7 +188,7 @@ def _log_tally_observation(request, action_name: str, params: Dict[str, Any], re
             "end_date": params.get("end_date") or result.get("end_date"),
             "row_count": len(rows) if isinstance(rows, list) else 0,
             "total_count": (totals or {}).get("count", 0) if isinstance(totals, dict) else 0,
-            "total_amount": (totals or {}).get("total", 0) if isinstance(totals, dict) else 0,
+            "total": (totals or {}).get("total", 0) if isinstance(totals, dict) else 0,
             "missing_models": result.get("missing_models", []),
             "source": "wcapi.manage",
         }
@@ -939,6 +939,30 @@ _ACTION_DISPATCH = {
         'apps.accounts.services.collections_dashboard',
         fromlist=['get_customer_health']
     ).get_customer_health(params.get('customer_id')),
+    "export_vcard": lambda params: __import__(
+        'apps.core.services.vcard_service',
+        fromlist=['export_vcard']
+    ).export_vcard(params),
+    "export_vcards": lambda params: __import__(
+        'apps.core.services.vcard_service',
+        fromlist=['export_vcards']
+    ).export_vcards(params),
+    "preview_vcard": lambda params: __import__(
+        'apps.core.services.vcard_service',
+        fromlist=['preview_vcard']
+    ).preview_vcard(params),
+    "import_vcard": lambda params: __import__(
+        'apps.core.services.vcard_service',
+        fromlist=['import_vcard']
+    ).import_vcard(params),
+    "check_collisions": lambda params: __import__(
+        'apps.core.services.vcard_service',
+        fromlist=['check_collisions']
+    ).check_collisions(params),
+    "import_bundle": lambda params: __import__(
+        'apps.core.services.vcard_service',
+        fromlist=['import_bundle']
+    ).import_bundle(params),
     "generate_kanban_projects": _generate_kanban_projects,
     "get_receivable_aging": _get_receivable_aging,
     "get_tally_summary_by_period": _get_tally_summary_by_period,
@@ -951,7 +975,7 @@ _ACTION_DISPATCH = {
     "execute_tally_report": _execute_tally_report,
     "export_tally_report": _export_tally_report,
     # ── Order Production (GAP-01) ──
-    "spawn_work_order": lambda p: __import__('apps.transactions.services.order_production', fromlist=['spawn_work_order']).spawn_work_order(p['order_id']),
+    "spawn_workorder": lambda p: __import__('apps.transactions.services.order_production', fromlist=['spawn_workorder']).spawn_workorder(p['order_id']),
     "record_production_action": lambda p: __import__('apps.transactions.services.order_production', fromlist=['record_production_action']).record_production_action(p['order_id'], p['action_text'], p.get('assigned_to')),
     "partial_ship": lambda p: __import__('apps.transactions.services.order_production', fromlist=['partial_ship']).partial_ship(p['order_id'], p['shipped_lines']),
     "complete_order": lambda p: __import__('apps.transactions.services.order_production', fromlist=['complete_order']).complete_order(p['order_id']),
@@ -1018,7 +1042,7 @@ _ACTION_DISPATCH = {
     "apply_line_pricing": lambda p: __import__('apps.products.services.pricing', fromlist=['apply_line_pricing']).apply_line_pricing(p['model_name'], p['line_id'], p.get('customer_id'), p.get('qty')),
     # ── Tax Calculation ──
     "calculate_line_tax": lambda p: __import__('apps.accounts.services.tax_calculation', fromlist=['calculate_line_tax']).calculate_line_tax(p['line_price_extended'], p.get('tax_jurisdiction_id'), p.get('tax_rate')),
-    "calculate_transaction_tax": lambda p: __import__('apps.accounts.services.tax_calculation', fromlist=['calculate_transaction_tax']).calculate_transaction_tax(p['transaction_id'], p['model_name']),
+    # calculate_transaction_tax removed — use recalculate_totals (single engine)
     "get_tax_jurisdictions": lambda p: __import__('apps.accounts.services.tax_calculation', fromlist=['get_tax_jurisdictions']).get_tax_jurisdictions(),
     # ── Totals Recalculation ──
     "recalculate_totals": lambda p: __import__('apps.transactions.services.totals', fromlist=['recalculate_totals']).recalculate_totals(p['transaction_id'], p['model_name']),

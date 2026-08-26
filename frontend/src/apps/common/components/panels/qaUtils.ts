@@ -377,34 +377,3 @@ export async function applyQuestionGroup(
     throw err;
   }
 }
-
-/**
- * Upload image for Q&A answer
- * 
- * @deprecated Use uploadDocument from './documentUpload' for full Document record tracking.
- * This function is kept for backward compatibility but will upload without creating
- * a Document record. Prefer using uploadDocument with purpose='qa_image'.
- */
-export async function uploadQAImage(
-  file: File,
-  parent_model: string,
-  parentId: number
-): Promise<{ path: string; filename: string }> {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('parent_model', parent_model);
-  formData.append('parent_id', String(parentId));
-  formData.append('purpose', 'qa_image');
-
-  const res = await apiClient.post<{ data: { path: string; filename: string } }>(
-    '/wcapi/upload/',
-    formData,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }
-  );
-
-  return res.data.data;
-}

@@ -44,7 +44,6 @@ def proposal(org):
     return Proposal.objects.create(
         status='planned',
         customer=org,
-        total=Decimal('1000'),
         totals={
             'subtotal': 1000, 'discount': 0, 'total': 1000,
             'cost': 600, 'margin': 400, 'margin_pc': 40,
@@ -61,7 +60,6 @@ def order_from_proposal(org, proposal):
         customer=org,
         parent_id=proposal.id,
         parent_model='proposal',
-        total=Decimal('1000'),
         totals={
             'subtotal': 1000, 'discount': 0, 'total': 1000,
             'cost': 650, 'margin': 350, 'margin_pc': 35,
@@ -78,7 +76,6 @@ def invoice_from_order(org, order_from_proposal):
         customer=org,
         parent_id=order_from_proposal.id,
         parent_model='order',
-        total=Decimal('1000'),
         totals={
             'subtotal': 1000, 'discount': 0, 'total': 1000,
             'cost': 690, 'margin': 310, 'margin_pc': 31,
@@ -93,7 +90,6 @@ def invoice_with_discount(org):
     return Invoice.objects.create(
         status='planned',
         customer=org,
-        total=Decimal('950'),
         totals={
             'subtotal': 1000, 'discount': 50, 'total': 950,
             'cost': 600, 'margin': 350, 'margin_pc': 36.84,
@@ -165,13 +161,11 @@ class TestMarginErosion:
 
         order = Order.objects.create(
             status='planned', customer=org,
-            total=Decimal('1000'),
             totals={'total': 1000, 'cost': 700, 'margin': 300, 'margin_pc': 30},
         )
         invoice = Invoice.objects.create(
             status='planned', customer=org,
             parent_id=order.id, parent_model='order',
-            total=Decimal('1000'),
             totals={'total': 1000, 'cost': 600, 'margin': 400, 'margin_pc': 40},
         )
 
@@ -199,7 +193,6 @@ class TestMarginErosion:
 
         invoice = Invoice.objects.create(
             status='planned', customer=org,
-            total=Decimal('1000'),
             totals={'total': 1000, 'cost': 600, 'margin': 400, 'margin_pc': 40},
         )
         events = detect_margin_erosion(invoice)
@@ -218,7 +211,7 @@ class TestLatePaymentErosion:
 
         invoice = Invoice.objects.create(
             status='planned', customer=org,
-            total=Decimal('1000'),
+            totals={'total': 1000, 'subtotal': 1000},
             prefs={'payment_terms': {'id': str(term_net30.id)}},
         )
         apply_terms_for_invoice(invoice, term=term_net30, replace=True)
@@ -253,7 +246,7 @@ class TestLatePaymentErosion:
 
         invoice = Invoice.objects.create(
             status='planned', customer=org,
-            total=Decimal('1000'),
+            totals={'total': 1000, 'subtotal': 1000},
             prefs={'payment_terms': {'id': str(term_net30.id)}},
         )
         apply_terms_for_invoice(invoice, term=term_net30, replace=True)
@@ -292,7 +285,6 @@ class TestDiscountErosion:
 
         invoice = Invoice.objects.create(
             status='planned', customer=org,
-            total=Decimal('1000'),
             totals={'total': 1000, 'cost': 600, 'margin': 400, 'discount': 0},
         )
         erosion = detect_discount_erosion(invoice)

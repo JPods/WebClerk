@@ -46,7 +46,7 @@ class Action(BaseModel):
         ))
     priority = models.PositiveIntegerField(default=1)
     difficulty = models.PositiveIntegerField(choices=ACTION_DIFFICULTY_LEVELS, default=4)
-    status = models.CharField(max_length=100, blank=True, null=True)
+    # status inherited from BaseModel
     percent_complete = models.PositiveIntegerField(default=0)
     #set value between 0-100 based on difficulty and percent_complete
     burndown = models.SmallIntegerField(default=0)

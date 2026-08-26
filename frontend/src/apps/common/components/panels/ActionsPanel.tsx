@@ -262,13 +262,41 @@ const apiToActionEntry = (action: ApiActionItem): ActionEntry => {
     difficulty: action.difficulty,
     project_name: action.project_name,
     assigned_to: action.assigned_to,
+    // Dependency fields
+    depends_on_display: extractDependencyDisplay(action),
+    ida: action.ida,
   } as ActionEntry & {
     progress?: number;
     difficulty?: number;
     project_name?: string;
     ida?: string;
     assigned_to?: Array<{ id: number | string; name: string }>;
+    depends_on_display?: string[];
   };
+};
+
+/** Extract dependency display labels from refs.parents or metadata */
+const extractDependencyDisplay = (action: ApiActionItem): string[] => {
+  const deps: string[] = [];
+  const raw = action as any;
+  // Check refs.parents[]
+  if (raw.refs?.parents) {
+    for (const p of raw.refs.parents) {
+      if (typeof p === 'object' && p.ida) deps.push(p.ida);
+      else if (typeof p === 'object' && p.id) deps.push(`#${p.id}`);
+      else if (typeof p === 'number') deps.push(`#${p}`);
+      else if (typeof p === 'string') deps.push(p);
+    }
+  }
+  // Check metadata.depends_on
+  if (raw.metadata?.depends_on) {
+    const arr = Array.isArray(raw.metadata.depends_on) ? raw.metadata.depends_on : [raw.metadata.depends_on];
+    for (const d of arr) {
+      const s = String(d);
+      if (!deps.includes(s)) deps.push(s);
+    }
+  }
+  return deps;
 };
 
 // ---------------------------------------------------------------------------
@@ -578,6 +606,8 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
             {(!visibleColumns || visibleColumns.has("priority")) && <th className="py-2 px-2 font-medium">priority</th>}
             {(!visibleColumns || visibleColumns.has("difficulty")) && <th className="py-2 px-2 font-medium">difficulty</th>}
             {(!visibleColumns || visibleColumns.has("assigned")) && <th className="py-2 px-2 font-medium">assigned</th>}
+            {(!visibleColumns || visibleColumns.has("depends")) && <th className="py-2 px-2 font-medium">depends</th>}
+            {(!visibleColumns || visibleColumns.has("critical")) && <th className="py-2 px-2 font-medium">path</th>}
             {isEditing && <th className="py-2 px-2 font-medium">actions</th>}
           </tr>
         </thead>
@@ -659,6 +689,35 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
                 ) : (
                   "--"
                 )}
+              </td>
+              )}
+              {(!visibleColumns || visibleColumns.has("depends")) && (
+              <td className="py-2 px-2">
+                {action.depends_on_display?.length ? (
+                  <div className="flex flex-wrap gap-1">
+                    {action.depends_on_display.map((dep: string, di: number) => (
+                      <span key={di} className="px-1 py-0.5 rounded text-[10px] font-mono db-surface-alt-text"
+                            title={`Depends on: ${dep}`}>
+                        &#8592;{dep}
+                      </span>
+                    ))}
+                  </div>
+                ) : "--"}
+              </td>
+              )}
+              {(!visibleColumns || visibleColumns.has("critical")) && (
+              <td className="py-2 px-2 text-center">
+                {action.is_critical ? (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                        style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}
+                        title={`Critical path${action.slack != null ? ` — ${action.slack}d slack` : ''}`}>
+                    CP
+                  </span>
+                ) : action.slack != null && action.slack > 0 ? (
+                  <span className="db-text-muted text-[10px]" title={`${action.slack}d slack`}>
+                    {action.slack}d
+                  </span>
+                ) : "--"}
               </td>
               )}
               {isEditing && (

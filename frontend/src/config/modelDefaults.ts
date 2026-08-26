@@ -78,7 +78,7 @@ export const MODEL_DEFAULTS: Record<string, ModelDefaultEntry> = {
       status: 'active',
     },
   },
-  work_order: {
+  workorder: {
     label: 'Work Order',
     defaults: {
       terms: '',

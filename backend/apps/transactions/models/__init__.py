@@ -33,8 +33,8 @@ _MAPPING = {
     'PaymentTerm': ('payment', 'PaymentTerm'),
     'StatementLine': ('statement_line', 'StatementLine'),
     'PaymentApplication': ('payment_application', 'PaymentApplication'),
-    # PendingPaymentApplication removed — all payment applications use
-    # core.Pending with purpose='payment_application'. One model, one path.
+    # PendingPaymentApplication not exported here — imported directly from
+    # pending_payment.py by payment_application.py and pending_archive.py.
     'Project': ('project', 'Project'),
 }
 

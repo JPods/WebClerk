@@ -149,23 +149,6 @@ export function matchesFragments(
   );
 }
 
-/**
- * Backward-compatible wrapper: parse + match in one call.
- * For use in components that just need a simple filter predicate.
- */
-export function rowMatchesSearch(
-  row: Record<string, unknown>,
-  searchInput: string,
-): boolean {
-  const fragments = parseFragments(searchInput);
-  return matchesFragments(row, fragments);
-}
-
-/**
- * Backward-compatible: parse comma-separated terms as flat string array.
- * Preserves @ prefix in the value for components that send raw strings to the backend.
- * @deprecated Use parseFragments() for typed fragment matching.
- */
 export function parseSearchTerms(input: string): string[] {
   if (!input || !input.trim()) return [];
   return input

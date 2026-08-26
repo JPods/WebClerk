@@ -159,9 +159,9 @@ export const invoiceSchema = baseInvoiceTransactionSchema
   .refine(
     (data) => {
       // Balance validation uses totals envelope when available
-      const total = data.totals?.total ?? data.total;
+      const total = data.totals?.total;
       const received = data.totals?.received ?? 0;
-      const balance = data.totals?.balance ?? data.balance;
+      const balance = data.totals?.balance;
       if (total !== undefined && balance !== undefined) {
         return Math.abs(balance - (total - received)) < 0.01;
       }

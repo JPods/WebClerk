@@ -9,19 +9,27 @@ from apps.transactions.models import Proposal, Order, Invoice, Purchase, WorkOrd
 class ValidationResult:
     """Result of a validation check."""
 
-    def __init__(self, can_proceed: bool, errors: List[str] = None, warnings: List[str] = None, data: Dict = None):
+    def __init__(self, can_proceed: bool, errors: List[str] = None, warnings: List[str] = None,
+                 data: Dict = None, redirect_status: str = None, approval: Dict = None):
         self.can_proceed = can_proceed
         self.errors = errors or []
         self.warnings = warnings or []
         self.data = data or {}
+        self.redirect_status = redirect_status  # if set, use this status instead of requested
+        self.approval = approval  # approval gate details
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        result = {
             'can_proceed': self.can_proceed,
             'errors': self.errors,
             'warnings': self.warnings,
-            'data': self.data
+            'data': self.data,
         }
+        if self.redirect_status:
+            result['redirect_status'] = self.redirect_status
+        if self.approval:
+            result['approval'] = self.approval
+        return result
 
 
 def validate_proposal_for_conversion(proposal: Proposal) -> ValidationResult:
@@ -35,7 +43,7 @@ def validate_proposal_for_conversion(proposal: Proposal) -> ValidationResult:
     """
     errors = []
     warnings = []
-    data = {'line_count': 0, 'total_amount': 0.0}
+    data = {'line_count': 0, 'total': 0.0}
 
     if not proposal:
         return ValidationResult(False, ["Proposal not found"])
@@ -76,7 +84,7 @@ def validate_proposal_for_conversion(proposal: Proposal) -> ValidationResult:
 
         total_amount += Decimal(str(extended))
 
-    data['total_amount'] = float(total_amount)
+    data['total'] = float(total_amount)
 
     if invalid_lines > 0:
         errors.append(f"{invalid_lines} line(s) have invalid quantity or pricing")
@@ -100,7 +108,7 @@ def validate_order_for_invoicing(order: Order) -> ValidationResult:
     """
     errors = []
     warnings = []
-    data = {'fulfillable_lines': 0, 'total_amount': 0.0}
+    data = {'fulfillable_lines': 0, 'total': 0.0}
 
     if not order:
         return ValidationResult(False, ["Order not found"])
@@ -138,7 +146,7 @@ def validate_order_for_invoicing(order: Order) -> ValidationResult:
             total_amount += Decimal(str(unit_price)) * Decimal(str(qty_to_invoice))
 
     data['fulfillable_lines'] = fulfillable
-    data['total_amount'] = float(total_amount)
+    data['total'] = float(total_amount)
 
     if fulfillable == 0:
         errors.append("No lines have remaining quantity to invoice")

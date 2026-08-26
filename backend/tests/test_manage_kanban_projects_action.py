@@ -27,7 +27,7 @@ def test_generate_kanban_projects_snaps_to_wednesday(client):
     client.force_login(user)
 
     resp = client.post(
-        "/wcapi/manage/",
+        "/wcapi/_manage/",
         data={
             "action": "generate_kanban_projects",
             "params": {

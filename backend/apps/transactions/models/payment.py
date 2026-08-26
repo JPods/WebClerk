@@ -179,7 +179,7 @@ class Payment(BaseModel):
         help_text="Payment intent ID from Stripe or equivalent"
     )
     status = models.CharField(
-        max_length=20,
+        max_length=32,
         choices=PAYMENT_STATUS_CHOICES,
         default='pending',
         help_text="Current payment status"

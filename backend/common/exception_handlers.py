@@ -64,6 +64,4 @@ def api_exception_handler(exc: Exception, context: dict[str, Any]):
     code = _code_for(exc)
     error_block = {'code': code, 'details': structured}
     resp_obj = api_response(success=False, status_code=response.status_code, message=message, error=error_block)
-    # Backwards compatibility: bubble field keys onto top-level envelope (Response.data['field'])
-    # No legacy bubbling; field errors remain in error.details
     return resp_obj

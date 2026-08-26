@@ -35,6 +35,7 @@ from apps.core.views.image_view import ImageView
 from apps.core.views.template_views import ResolveTemplateView, TemplateFieldsView
 from apps.core.views.sample_data_view import SampleDataView
 from apps.core.views.parade_preview_view import ParadePreviewView, ParadeManifestView, ParadeFeedbackView
+from apps.core.views.setting_parade_view import SettingParadeManifestView, SettingParadePreviewView, SettingParadeFeedbackView
 from apps.core.views.system_dispatch import SystemDispatchView
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
 from apps.docs.views_qa import ApplyQuestionsView, ListQuestionGroupsView, ParentQAView
@@ -92,6 +93,10 @@ urlpatterns = [
     path("wcapi/_parade_preview/", ParadePreviewView.as_view(), name="wcapi-parade-preview"),
     path("wcapi/_parade_manifest/", ParadeManifestView.as_view(), name="wcapi-parade-manifest"),
     path("wcapi/_parade_feedback/", ParadeFeedbackView.as_view(), name="wcapi-parade-feedback"),
+    # Setting parade
+    path("wcapi/_setting_parade_manifest/", SettingParadeManifestView.as_view(), name="wcapi-setting-parade-manifest"),
+    path("wcapi/_setting_parade_preview/", SettingParadePreviewView.as_view(), name="wcapi-setting-parade-preview"),
+    path("wcapi/_setting_parade_feedback/", SettingParadeFeedbackView.as_view(), name="wcapi-setting-parade-feedback"),
     # Template resolution
     path("wcapi/_resolve_template/", ResolveTemplateView.as_view(), name="wcapi-resolve-template"),
     path("wcapi/_template_fields/", TemplateFieldsView.as_view(), name="wcapi-template-fields"),

@@ -44,7 +44,7 @@ class InvoiceLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
 
 
 urlpatterns = [
-    # Orders (formerly Sales Orders - URLs kept for backwards compatibility)
+    # Orders
     path('sales-orders/',
          generics.ListCreateAPIView.as_view(
              queryset=Order.objects.all().order_by('-id'),

@@ -15,32 +15,32 @@ def user2(django_user_model):
 
 @pytest.mark.django_db
 def test_wcapi_missing_model_name_get(client, user1):
+    """GET /wcapi/get/ with no model_name returns 400 with detail message."""
     client.force_login(user1)
-    resp = client.get('/wcapi/query/')
+    resp = client.get('/wcapi/get/')
     assert resp.status_code == 400
     body = resp.json()
-    assert_envelope(body, expect_status='fail')
-    assert 'Missing model_name' in body['message']  #chaned from t_n
+    # GET view returns raw DRF Response (not api_response envelope)
+    assert 'model_name parameter is required' in (body.get('detail') or body.get('message', ''))
 
 
 @pytest.mark.django_db
-def test_wcapi_unknown_table_post(client, user1):
+def test_wcapi_unknown_table_get(client, user1):
+    """GET /wcapi/get/ with unknown model_name returns 400."""
     client.force_login(user1)
-    resp = client.post('/wcapi/query/', data=json.dumps({'model_name': 'nope'}), content_type='application/json')  #chaned from t_n
+    resp = client.get('/wcapi/get/', {'model_name': 'nope'})
     assert resp.status_code == 400
     body = resp.json()
     assert_envelope(body, expect_status='fail')
-    assert body['message'] == 'Unknown model'  #chaned from t_n
+    assert 'invalid model' in body['message'].lower()
 
 
 @pytest.mark.django_db
-def test_wcapi_invalid_json_post(client, user1):
+def test_wcapi_get_rejects_post(client, user1):
+    """POST to /wcapi/get/ returns 405 — endpoint is GET-only."""
     client.force_login(user1)
-    resp = client.post('/wcapi/query/', data='{"bad"', content_type='application/json')
-    assert resp.status_code == 400
-    body = resp.json()
-    assert_envelope(body, expect_status='fail')
-    assert 'Invalid JSON' in body['message']
+    resp = client.post('/wcapi/get/', data=json.dumps({'model_name': 'nope'}), content_type='application/json')
+    assert resp.status_code == 405
 
 
 @pytest.mark.django_db
@@ -56,11 +56,11 @@ def test_save_missing_table(client, user2):
 @pytest.mark.django_db
 def test_save_unknown_table(client, user2):
     client.force_login(user2)
-    resp = client.post('/wcapi/save/', data=json.dumps({'model_name': 'nope'}), content_type='application/json')  #chaned from t_n
+    resp = client.post('/wcapi/save/', data=json.dumps({'model_name': 'nope'}), content_type='application/json')
     assert resp.status_code == 400
     body = resp.json()
     assert_envelope(body, expect_status='fail')
-    assert 'Unknown model' in body['message']  #chaned from t_n
+    assert 'Unknown model' in body['message']
 
 
 @pytest.mark.django_db
@@ -70,4 +70,4 @@ def test_save_invalid_json(client, user2):
     assert resp.status_code == 400
     body = resp.json()
     assert_envelope(body, expect_status='fail')
-    assert 'Invalid JSON' in body['message']
+    assert 'JSON parse error' in body['message']

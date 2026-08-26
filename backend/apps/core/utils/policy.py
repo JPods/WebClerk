@@ -228,7 +228,7 @@ def get_accessible_fields(model_name: str, mode: str, user) -> Optional[List[str
     # Model-specific field allowances
     model_specific = {
         'invoice': ['amount', 'tax', 'total', 'sales_tax'],
-        'order': ['order_no', 'total_amount'],
+        'order': ['order_no', 'total'],
         'proposal': ['proposal_no', 'estimated_total'],
         'purchase': ['po_number', 'vendor_id']
     }

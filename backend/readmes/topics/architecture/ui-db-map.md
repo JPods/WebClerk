@@ -33,8 +33,8 @@ Only ui.json models tracked here. db.json is universal (always available). ui.ts
 | invoice_line | transactions | Line card | 2026-08-02 |
 | purchase | transactions | 3-col + lines | 2026-08-02 |
 | purchase_line | transactions | Line card | 2026-08-02 |
-| work_order | transactions | 3-col + lines | — |
-| work_order_line | transactions | Line card | — |
+| workorder | transactions | 3-col + lines | — |
+| workorder_line | transactions | Line card | — |
 | receipt | transactions | 2-col + lines | — |
 | receipt_line | transactions | Line card | — |
 | requisition | transactions | 2-col + lines | — |

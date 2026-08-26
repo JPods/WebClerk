@@ -237,7 +237,7 @@ const RelatedTransactions: React.FC<RelatedTransactionsProps> = ({
                           </span>
                         )}
                         <span className="text-slate-600 dark:text-slate-300">
-                          {formatCurrency(rel.record.totals?.total ?? rel.record.total)}
+                          {formatCurrency(rel.record.totals?.total)}
                         </span>
                         <span className="text-slate-400">
                           {formatDate(rel.record.dt_created)}
@@ -292,7 +292,7 @@ const RelatedTransactions: React.FC<RelatedTransactionsProps> = ({
                           </span>
                         )}
                         <span className="text-slate-600 dark:text-slate-300">
-                          {formatCurrency(rel.record.totals?.total ?? rel.record.total)}
+                          {formatCurrency(rel.record.totals?.total)}
                         </span>
                         <span className="text-slate-400">
                           {formatDate(rel.record.dt_created)}

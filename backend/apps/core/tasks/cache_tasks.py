@@ -4,7 +4,7 @@ Cache-related tasks and async operations.
 
 import logging
 from apps.core.constants.save_hooks import execute_save_hook
-from apps.core.services.wcapi_registry import get_model
+from apps.core.constants.model_registry import get_model
 
 logger = logging.getLogger(__name__)
 

@@ -38,8 +38,17 @@ class TestSequence002(TestCase):
         Contact = apps.get_model('core', 'Contact')
         Item = apps.get_model('products', 'Item')
 
-        # Ensure item 308 exists
-        self.item = Item.objects.get(pk=308)
+        # Create test item (was hardcoded to pk=308 in dev DB)
+        self.item, _ = Item.objects.get_or_create(
+            pk=308,
+            defaults={
+                'name': 'zzz Test Item 308',
+                'ida': 'zzz-item-308',
+                'sku': 'ZZZ-308',
+                'price': {'base': 25.0},
+                'cost': {'standard': 12.0},
+            }
+        )
 
         # Create or get test rep
         self.rep, _ = OrgBase.objects.get_or_create(
@@ -91,7 +100,7 @@ class TestSequence002(TestCase):
             customer=self.customer,
             status='planned',
             price_level='retail',
-            total=Decimal('0'),
+            totals={'total': 0, 'subtotal': 0},
         )
 
         # Line 1: qty 5 @ $25

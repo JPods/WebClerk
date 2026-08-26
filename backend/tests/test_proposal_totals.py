@@ -13,12 +13,12 @@ def test_proposal_update_sell_cost_totals():
     """Test proposal header totals aggregation from lines."""
     pr = Proposal.objects.create()
     ProposalLine.objects.create(
-        parent=pr,
+        proposal=pr,
         price={"extended": 200.0, "discount_amount": 10.0, "unit": 200.0, "precision": 2},
         cost={"extended": 120.0, "tax": 0.0, "shipping": 5.0, "handling": 0.0, "freight": 0.0, "commissions": 0.0, "precision": 2},
     )
     ProposalLine.objects.create(
-        parent=pr,
+        proposal=pr,
         price={"extended": 50.0, "discount_amount": 0.0, "unit": 50.0, "precision": 2},
         cost={"extended": 30.0, "tax": 0.0, "shipping": 0.0, "handling": 0.0, "freight": 0.0, "commissions": 0.0, "precision": 2},
     )
@@ -236,15 +236,15 @@ class TestProposalToOrderTransfer:
     def test_transfer_all_lines_success(self):
         """Test successful transfer of all proposal lines to order."""
         # Create proposal with lines
-        proposal = Proposal.objects.create(status='approved', party_id=123)
+        proposal = Proposal.objects.create(status='approved',)
         line1 = ProposalLine.objects.create(
-            parent=proposal,
+            proposal=proposal,
             price={'extended': 100.0, 'unit': 100.0, 'precision': 2},
             cost={'extended': 60.0, 'unit': 60.0, 'precision': 2},
             quantity={'ordered': 1, 'remaining': 1, 'is_blanket': False, 'increment': 0}
         )
         line2 = ProposalLine.objects.create(
-            parent=proposal,
+            proposal=proposal,
             price={'extended': 200.0, 'unit': 200.0, 'precision': 2},
             cost={'extended': 120.0, 'unit': 120.0, 'precision': 2},
             quantity={'ordered': 2, 'remaining': 2, 'is_blanket': False, 'increment': 0}
@@ -273,7 +273,7 @@ class TestProposalToOrderTransfer:
             assert party_id == 123
         assert order.refs['source']['proposal_id'] == proposal.id
         # Check lines were transferred
-        order_lines = OrderLine.objects.filter(parent=order)
+        order_lines = OrderLine.objects.filter(order=order)
         for order_line in order_lines:
             quantity = order_line.quantity or {}
             assert quantity.get('invoiced', 0) == 0
@@ -284,19 +284,19 @@ class TestProposalToOrderTransfer:
     
     def test_transfer_selected_lines_only(self):
         """Test transfer of selected lines only."""
-        proposal = Proposal.objects.create(status='approved', party_id=456)
+        proposal = Proposal.objects.create(status='approved',)
         line1 = ProposalLine.objects.create(
-            parent=proposal,
+            proposal=proposal,
             price={'extended': 100.0, 'unit': 100.0, 'precision': 2},
             quantity={'ordered': 1, 'remaining': 1}
         )
         line2 = ProposalLine.objects.create(
-            parent=proposal,
+            proposal=proposal,
             price={'extended': 200.0, 'unit': 200.0, 'precision': 2},
             quantity={'ordered': 2, 'remaining': 2}
         )
         line3 = ProposalLine.objects.create(
-            parent=proposal,
+            proposal=proposal,
             price={'extended': 50.0, 'unit': 50.0, 'precision': 2},
             quantity={'ordered': 1, 'remaining': 1}
         )
@@ -318,7 +318,7 @@ class TestProposalToOrderTransfer:
         assert line2.id not in result['line_mapping']
         # Check order has only 2 lines
         order = Order.objects.get(id=result['order_id'])
-        assert OrderLine.objects.filter(parent=order).count() == 2
+        assert OrderLine.objects.filter(order=order).count() == 2
         
         # Check transferred lines are marked
         # Check transferred lines are marked
@@ -333,9 +333,9 @@ class TestProposalToOrderTransfer:
     
     def test_transfer_without_preserving_proposal(self):
         """Test transfer that marks proposal as converted."""
-        proposal = Proposal.objects.create(status='approved', party_id=789)
+        proposal = Proposal.objects.create(status='approved',)
         ProposalLine.objects.create(
-            parent=proposal,
+            proposal=proposal,
             price={'extended': 100.0, 'unit': 100.0, 'precision': 2},
             quantity={'ordered': 1, 'remaining': 1}
         )
@@ -355,7 +355,7 @@ class TestProposalToOrderTransfer:
     
     def test_transfer_validation_errors(self):
         """Test various validation error conditions."""
-        proposal = Proposal.objects.create(status='approved', party_id=100)
+        proposal = Proposal.objects.create(status='approved',)
         
         # Test missing line_ids when transfer_all=False
         with pytest.raises(ProposalToOrderTransferError, match="Must specify line_ids"):
@@ -382,9 +382,9 @@ class TestProposalToOrderTransfer:
     
     def test_quantity_conversion(self):
         """Test quantity structure conversion from proposal to order."""
-        proposal = Proposal.objects.create(status='approved', party_id=200)
+        proposal = Proposal.objects.create(status='approved',)
         line = ProposalLine.objects.create(
-            parent=proposal,
+            proposal=proposal,
             price={'extended': 300.0, 'unit': 100.0, 'precision': 2},
             quantity={
                 # placed is the base quantity value for proposals
@@ -399,7 +399,7 @@ class TestProposalToOrderTransfer:
         
         result = transfer_proposal_to_order(proposal=proposal, transfer_all=True)
         order = Order.objects.get(id=result['order_id'])
-        order_line = OrderLine.objects.filter(parent=order).first()
+        order_line = OrderLine.objects.filter(order=order).first()
         assert order_line is not None, "Expected at least one OrderLine to be created"
         # Check quantity conversion
         quantity = order_line.quantity or {}
@@ -413,8 +413,7 @@ class TestProposalToOrderTransfer:
         converted = quantity.get('converted_from_proposal', {})
         assert converted.get('is_blanket') is True
         assert converted.get('increment') == 1
-        # Accept either original_placed or original_ordered for backward compatibility
-        base_original = converted.get('original_placed', converted.get('original_ordered'))
+        base_original = converted.get('original_placed')
         assert base_original == 3
         assert converted.get('original_remaining', 3) == 3
 
@@ -425,13 +424,13 @@ class TestProposalTransferValidation:
     
     def test_validation_success(self):
         """Test successful validation."""
-        proposal = Proposal.objects.create(status='approved', party_id=123)
+        proposal = Proposal.objects.create(status='approved',)
         ProposalLine.objects.create(
-            parent=proposal,
+            proposal=proposal,
             price={'extended': 100.0, 'unit': 100.0, 'precision': 2}
         )
         ProposalLine.objects.create(
-            parent=proposal,
+            proposal=proposal,
             price={'extended': 200.0, 'unit': 200.0, 'precision': 2}
         )
         
@@ -440,17 +439,17 @@ class TestProposalTransferValidation:
         assert result['can_transfer'] is True
         assert len(result['errors']) == 0
         assert result['line_count'] == 2
-        assert result['total_amount'] == 300.0
+        assert result['total'] == 300.0
     
     def test_validation_warnings(self):
         """Test validation with warnings."""
-        proposal = Proposal.objects.create(status='converted', party_id=123)
+        proposal = Proposal.objects.create(status='converted',)
         line1 = ProposalLine.objects.create(
-            parent=proposal,
+            proposal=proposal,
             price={'extended': 100.0, 'unit': 100.0, 'precision': 2}
         )
         line2 = ProposalLine.objects.create(
-            parent=proposal,
+            proposal=proposal,
             status='transferred',
             price={'extended': 200.0, 'unit': 200.0, 'precision': 2}
         )
@@ -470,13 +469,13 @@ class TestProposalTransferValidation:
         assert 'Proposal not found' in result['errors']
         
         # Test no lines
-        proposal = Proposal.objects.create(status='approved', party_id=123)
+        proposal = Proposal.objects.create(status='approved',)
         result = validate_proposal_for_transfer(proposal)
         assert result['can_transfer'] is False
         assert 'No lines to transfer' in result['errors']
         
         # Test invalid line IDs
-        ProposalLine.objects.create(parent=proposal, price={'extended': 100.0})
+        ProposalLine.objects.create(proposal=proposal, price={'extended': 100.0})
         result = validate_proposal_for_transfer(proposal, line_ids=[999])
         assert result['can_transfer'] is False
         assert 'Line IDs not found' in result['errors'][0]
@@ -555,7 +554,7 @@ class TestProposalTransferValidation:
 #     'errors': [],
 #     'warnings': ['Proposal status is expired'],
 #     'line_count': 3,
-#     'total_amount': 1500.0
+#     'total': 1500.0
 # }
 # ```
 

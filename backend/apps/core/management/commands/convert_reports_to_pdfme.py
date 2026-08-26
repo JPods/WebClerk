@@ -178,7 +178,7 @@ TEMPLATES = {
         'title': 'REQUISITION',
         'fields': COMPANY_HEADER + DOCUMENT_TITLE + BILL_TO + LINE_ITEMS + FOOTER,
     },
-    'work_order': {
+    'workorder': {
         'title': 'WORK ORDER',
         'fields': COMPANY_HEADER + DOCUMENT_TITLE + BILL_TO + LINE_ITEMS + FOOTER,
     },
@@ -198,7 +198,7 @@ REPORT_NAME_MAP = {
     'Statement': 'statement',
     'Aging Report': 'aging',
     'Requisition': 'requisition',
-    'Work Order': 'work_order',
+    'Work Order': 'workorder',
 }
 
 

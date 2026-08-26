@@ -290,11 +290,11 @@ LAYOUTS = {
         "edit_rules": EXEC_EDIT_RULES,
     },
 
-    "work_order": {
-        "model": "work_order",
+    "workorder": {
+        "model": "workorder",
         "family": "exec",
         "sections": [
-            _exec_header("work_order"),
+            _exec_header("workorder"),
             {"type": "line_card", "family": "exec", "toolbar": ["L", "S", "XR", "M"],
              "actions": ["clone"]},
             *EXEC_PANELS,
@@ -613,9 +613,12 @@ LAYOUTS = {
                     _f("profit_velocity"),
                 ]},
             ]},
-            {"type": "panel", "content": "actions", "label": "actions"},
-            {"type": "panel", "content": "notes", "label": "comments"},
-            {"type": "panel", "content": "documents", "label": "documents"},
+            {"type": "tabs", "tabs": [
+                {"label": "actions", "content": "actions"},
+                {"label": "gantt", "content": "gantt"},
+                {"label": "documents", "content": "documents"},
+                {"label": "notes", "content": "notes"},
+            ]},
             {"type": "json_tree", "label": "json", "collapsed": True,
              "fields": ["objective", "tasks", "logistics",
                         "config", "metadata", "refs", "prefs"]},

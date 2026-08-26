@@ -57,7 +57,6 @@ const ICON_MAP: Record<string, LucideIcon> = {
   purchase: CreditCard,
   receipt: Receipt,
   requisition: ScrollText,
-  work_order: Wrench,
   workorder: Wrench,
   item: Package,
   products: Package,
@@ -81,6 +80,9 @@ const ICON_MAP: Record<string, LucideIcon> = {
   "flight-sim": Plane,
   databrowser: Database,
   json: Braces,
+  "form-parade": FileText,
+  "setting-parade": Settings,
+  selectlists: ClipboardList,
 };
 
 function iconFor(name: string): React.ReactNode {
@@ -108,6 +110,9 @@ const ROUTE_MAP: Record<string, string> = {
   databrowser: "/databrowser",
   json: "/json-tree",
   adjust: "/inventory-adjust",
+  "form-parade": "/form-parade",
+  "setting-parade": "/setting-parade",
+  selectlists: "/selectlists",
 };
 
 function routeFor(name: string): string {
@@ -130,9 +135,12 @@ const DISPLAY_NAMES: Record<string, string> = {
   alice: "Alice",
   "flight-simulator": "Flight Sim",
   "flight-sim": "Flight Sim",
-  work_order: "Work Order",
+  workorder: "Work Order",
   gantt: "Gantt",
   kanban: "Kanban",
+  "form-parade": "Form Parade",
+  "setting-parade": "Setting Parade",
+  selectlists: "Select Lists",
 };
 
 function displayName(name: string): string {

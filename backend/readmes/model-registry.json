@@ -536,7 +536,7 @@
     ]
   },
   {
-    "key": "work_order",
+    "key": "workorder",
     "app": "transactions",
   "model": "apps.transactions.models.WorkOrder",
     "endpoint": "work-orders",
@@ -546,7 +546,7 @@
     ]
   },
   {
-    "key": "work_order_line",
+    "key": "workorder_line",
     "app": "transactions",
   "model": "apps.transactions.models.WorkOrderLine",
     "endpoint": "workorder-lines",

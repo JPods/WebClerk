@@ -173,7 +173,7 @@ export const ORG_CONFIGS: Record<string, OrgTypeConfig> = {
     ],
     related: [
       { label: 'Tasks', model: 'action', filterField: 'contact_id', listFields: ['action', 'status', 'kanban_column', 'priority', 'dt_deadline'] },
-      { label: 'Work Orders', model: 'work_order', filterField: 'contact_id', listFields: ['ida', 'status', 'total', 'dt_created'] },
+      { label: 'Work Orders', model: 'workorder', filterField: 'contact_id', listFields: ['ida', 'status', 'total', 'dt_created'] },
     ],
   },
 

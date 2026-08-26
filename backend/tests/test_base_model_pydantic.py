@@ -23,8 +23,8 @@ class BaseModelPydanticTests(SimpleTestCase):
             self.assertIn(key, data)
         self.assertIn('history', data['metadata'])
         self.assertIn('created', data['metadata']['history'])
-        # comments structure
-        self.assertIn('notes', data['comments'])
+        # comments structure (general/records keys)
+        self.assertIn('general', data['comments'])
 
     def test_keywords_pending_flag(self):
         obj = TempModel(name='Flag Test')

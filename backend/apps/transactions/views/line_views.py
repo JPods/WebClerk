@@ -16,19 +16,22 @@ from apps.transactions.models import (
     WorkOrder, WorkOrderLine,
     Requisition, RequisitionLine,
 )
+from apps.transactions.serializers.transaction_serializers import (
+    ProposalSerializer, OrderSerializer, InvoiceSerializer, PurchaseSerializer,
+)
 from apps.transactions.serializers.line_serializers import (
-    ProposalSerializer, ProposalLineSerializer,
-    OrderSerializer, OrderLineSerializer,
-    InvoiceSerializer, InvoiceLineSerializer,
-    PurchaseSerializer, PurchaseLineSerializer,
-    WorkOrderSerializer, WorkOrderLineSerializer,
-    RequisitionSerializer, RequisitionLineSerializer,
+    ProposalLineSerializer, OrderLineSerializer, InvoiceLineSerializer,
+    PurchaseLineSerializer, WorkOrderLineSerializer, RequisitionLineSerializer,
     ProjectSerializer,
 )
+# WorkOrderSerializer not in transaction_serializers — use minimal version
+from apps.transactions.serializers.workorder_serializers import WorkOrderSerializer
+# RequisitionSerializer — use the dedicated one
+from apps.transactions.serializers.requisition import RequisitionSerializer
 from rest_framework.views import APIView
 from apps.core.permissions import get_role_field_rules
 from apps.transactions.aggregation import compute_line_aggregate, DEFAULT_CACHE_TTL_SECONDS
-from apps.transactions.models.projects import Project
+from apps.transactions.models.project import Project
 from apps.core.constants.model_registry import get_model_meta, import_model
 from apps.transactions.pagination import TransactionPagination
 from apps.transactions.response_envelope import EnvelopeResponseMixin, ListResponseEnvelopeMixin
@@ -625,7 +628,7 @@ class RequisitionLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin
     parameters=[
         OpenApiParameter(name='parent_id', description='Parent id', required=True, type=int),
     OpenApiParameter(name='model', description='Optional line model code to scope aggregation (e.g., proposal-line)', required=False, type=str,
-              enum=['proposal-line','sales-order-line','invoice-line','purchase-order-line','workorder-line','requisition-line']),
+              enum=['proposal-line','order-line','invoice-line','purchase-order-line','workorder-line','requisition-line']),
         OpenApiParameter(name='ttl', description='Override cache TTL seconds (min 5). Default '+str(DEFAULT_CACHE_TTL_SECONDS), required=False, type=int),
         OpenApiParameter(name='include_breakdown', description='Include per-model breakdown even when scoped (0/1)', required=False, type=bool),
     ],
@@ -667,7 +670,7 @@ class LineAggregateView(views.APIView):
     summary="Return authorized view/edit fields for a model",
     parameters=[OpenApiParameter(
         name='model', description='Model code', required=True, type=str,
-      enum=['proposal-line','sales-order-line','invoice-line','purchase-order-line','workorder-line','requisition-line',
+      enum=['proposal-line','order-line','invoice-line','purchase-order-line','workorder-line','requisition-line',
           'proposal','sales-order','invoice','purchase-order','workorder','requisition']
     )],
     responses={200: OpenApiResponse(description='Role field permissions')}

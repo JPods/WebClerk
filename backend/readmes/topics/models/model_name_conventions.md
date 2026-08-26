@@ -26,7 +26,7 @@ Endpoints to model_name mapping (examples)
 - /tx/order-lines/ -> order_lines -> stored as order_line
 - /tx/invoice-lines/ -> invoice_line
 - /tx/purchase-order-lines/ -> purchase_lines -> stored as purchase_line
-- /tx/workorder-lines/ -> work_order_lines -> stored as work_order_line
+- /tx/workorder-lines/ -> work_order_lines -> stored as workorder_line
 - /tx/requisition-lines/ -> requisition_line
 
 ## Endpoints
@@ -51,7 +51,7 @@ Example responses
 {
   "ok": true,
   "data": {
-    "model_names": ["invoice_line", "purchase_line", "order_line", "work_order_line"],
+    "model_names": ["invoice_line", "purchase_line", "order_line", "workorder_line"],
     "count": 4
   }
 }

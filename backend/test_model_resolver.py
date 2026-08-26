@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webclerk3_api.settings')
 django.setup()
 
-from apps.core.utils.model_name_resolver import resolve_model_name, parse_restful_path
+from apps.core.constants.model_registry import resolve_model_name, parse_restful_path
 
 # Test various formats
 tests = [

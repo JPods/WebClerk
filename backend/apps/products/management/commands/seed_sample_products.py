@@ -26,7 +26,7 @@ class Command(BaseCommand):
                 vendor_org=vendor,
                 defaults={
                     "customer_org": customer,
-                    "effective_dt_start": now_ms,
+                    "dt_effective_start": now_ms,
                     "name": "Sample Catalog",
                 },
             )

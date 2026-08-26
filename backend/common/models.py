@@ -319,7 +319,7 @@ def default_refs() -> dict:
         "parents": [],
 
         # Execution gating: identify upstream dependencies by model keys.
-        # Example: {"action": [1,2], "work_order": [5], "work_order_line": [9,10]}
+        # Example: {"action": [1,2], "workorder": [5], "workorder_line": [9,10]}
         "depends_on": {},
         "categories": [],
         "related_ids": [],
@@ -477,9 +477,10 @@ class CoreModel(models.Model):
 
 
 class LifecycleMixin(models.Model):
-    """Soft-delete / archive / lock flags (reversible lifecycle state)."""
+    """Soft-delete / archive / lock flags + status (reversible lifecycle state)."""
 
     feature_flags = {"lifecycle"}
+    status = models.CharField(max_length=100, blank=True, default='', db_index=True)
     is_deleted = models.BooleanField(default=False, db_index=True)
     is_archived = models.BooleanField(default=False, db_index=True)
     is_locked = models.BooleanField(default=False, db_index=True, help_text="Record is locked and cannot be edited (admin override required)")
@@ -962,10 +963,6 @@ class CommentsMixin(models.Model):
         self.save(update_fields=['comments', 'dt_modified', 'version'])  # type: ignore[attr-defined]
         return entry
 
-    # Backwards compatibility wrapper
-    def add_note(self, note_type: str, text: str, by: int | str = "system"):
-        return self.add_comment(channel=note_type, text=text, by=by, scope='general')
-
     def aggregated_comments(self) -> dict:
         """Return linkage aggregated comments if linkage present, else local."""
         linkage_id = self._get_linkage_id()
@@ -1175,8 +1172,7 @@ class AtomicJSONMixin(models.Model):
     ):
         """Append an element to a JSON array path atomically.
 
-        Convenience instance wrapper around classmethod atomic_list_append
-        retaining backwards compatibility with older method name expected by tests.
+        Instance wrapper around classmethod atomic_list_append.
         """
         new_version = type(self).atomic_list_append(
             self.pk, field, path, element, max_length=max_length, expected_version=expected_version  # type: ignore[arg-type]

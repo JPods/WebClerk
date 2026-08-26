@@ -101,7 +101,7 @@ class ProposalE2ETestScenarios:
                 'expected_results': {
                     'proposal_created': True,
                     'line_items_count': 1,
-                    'total_amount': 125.00,
+                    'total': 125.00,
                     'status': 'planned'
                 }
             },
@@ -193,7 +193,7 @@ class ProposalE2ETestScenarios:
                 ],
                 'expected_results': {
                     'line_items_count': 2,
-                    'total_amount': 975.00,  # (10 * 25 - 25) + 500
+                    'total': 975.00,  # (10 * 25 - 25) + 500
                     'priority': 'high'
                 }
             },

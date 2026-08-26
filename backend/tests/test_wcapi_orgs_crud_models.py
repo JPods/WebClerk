@@ -17,7 +17,7 @@ User = get_user_model()
 @pytest.mark.parametrize(
     "model_name, org_type",
     [
-        ("org", OrgType.CUSTOMER),
+        ("orgbase", OrgType.CUSTOMER),
         ("customer", OrgType.CUSTOMER),
         ("vendor", OrgType.VENDOR),
         ("rep", OrgType.REP),
@@ -38,10 +38,10 @@ def test_wcapi_org_model_crud(model_name, org_type):
 
     payload = {
         "model_name": model_name,
-        "company": f"{model_name} co",
+        "display_name": f"{model_name} co",
         "status": "active",
     }
-    if model_name == "org":
+    if model_name == "orgbase":
         payload["org_type"] = org_type
 
     resp = client.post("/wcapi/save/", data=json.dumps(payload), content_type="application/json")
@@ -51,7 +51,7 @@ def test_wcapi_org_model_crud(model_name, org_type):
 
     org = OrgBase.objects.get(pk=record_id)
     assert org.company == f"{model_name} co"
-    if model_name == "org":
+    if model_name == "orgbase":
         assert org.org_type == org_type
 
     # GET detail
@@ -65,7 +65,7 @@ def test_wcapi_org_model_crud(model_name, org_type):
     update_payload = {
         "model_name": model_name,
         "id": record_id,
-        "company": f"{model_name} co updated",
+        "display_name": f"{model_name} co updated",
     }
     resp = client.post("/wcapi/save/", data=json.dumps(update_payload), content_type="application/json")
     assert resp.status_code == 200
@@ -174,7 +174,7 @@ def test_wcapi_get_applies_saved_search_for_matching_role(client):
         purpose="wc:search",
         parent_model="customer",
         role="sales",
-        data={
+        config={
             "keyword": "zzsaved-role",
             "filters": {"status": "active"},
             "ordering": "company",
@@ -219,7 +219,7 @@ def test_wcapi_get_saved_search_rejects_other_roles(client):
         purpose="wc:search",
         parent_model="customer",
         role="sales",
-        data={"keyword": "zzsaved-role"},
+        config={"keyword": "zzsaved-role"},
         is_active=True,
     )
 
@@ -327,7 +327,7 @@ def test_wcapi_search_presets_lists_role_visible_and_global(client):
         purpose="wc:search",
         parent_model="customer",
         role="sales",
-        data={"keyword": "pipeline"},
+        config={"keyword": "pipeline"},
         is_active=True,
     )
     visible_global = Setting.objects.create(
@@ -335,7 +335,7 @@ def test_wcapi_search_presets_lists_role_visible_and_global(client):
         purpose="wc:search",
         parent_model="customer",
         role="all",
-        data={"keyword": "customer"},
+        config={"keyword": "customer"},
         is_active=True,
     )
     hidden_support = Setting.objects.create(
@@ -343,7 +343,7 @@ def test_wcapi_search_presets_lists_role_visible_and_global(client):
         purpose="wc:search",
         parent_model="customer",
         role="support",
-        data={"keyword": "ticket"},
+        config={"keyword": "ticket"},
         is_active=True,
     )
 
@@ -376,7 +376,7 @@ def test_wcapi_search_presets_admin_sees_all_roles(client):
         purpose="wc:search",
         parent_model="customer",
         role="support",
-        data={"keyword": "support"},
+        config={"keyword": "support"},
         is_active=True,
     )
 
@@ -422,7 +422,7 @@ def test_wcapi_get_saved_search_uses_request_keyword_and_period_params(client):
         purpose="wc:search",
         parent_model="customer",
         role="all",
-        data={
+        config={
             "request_keyword": "company_token",
             "search_fields": ["display_name"],
             "request_filters": {
@@ -486,7 +486,7 @@ def test_wcapi_get_saved_search_uses_relative_period_defaults(client):
         purpose="wc:search",
         parent_model="customer",
         role="all",
-        data={
+        config={
             "relative_period": {"field": "dt_created", "preset": "current_month"},
             "search_fields": ["display_name"],
             "keyword": "zz",

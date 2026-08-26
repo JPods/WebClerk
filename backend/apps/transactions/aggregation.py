@@ -3,37 +3,26 @@ from functools import lru_cache
 from decimal import Decimal, InvalidOperation
 from typing import Optional, Dict, Any, List
 from django.conf import settings
-from apps.transactions.models import (
-    ProposalLine, OrderLine, InvoiceLine, PurchaseLine, WorkOrderLine, RequisitionLine
-)
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from apps.core.services.cache_service import cache_service
+from apps.core.constants.model_registry import MODEL_REGISTRY
+from common.decimals import safe_decimal as _cast_decimal
 
-LINE_MODEL_MAP = {
-    'proposal-line': ProposalLine,
-    'order-line': OrderLine,
-    'sales-order-line': OrderLine,  # backwards compatibility alias
-    'invoice-line': InvoiceLine,
-    'purchase-line': PurchaseLine,
-    'workorder-line': WorkOrderLine,
-    'requisition-line': RequisitionLine,
-}
+
+def _build_line_model_map():
+    """Derive line model map from the canonical model registry."""
+    result = {}
+    for key, meta in MODEL_REGISTRY.items():
+        if meta.kind == 'line':
+            # e.g. 'order_line' -> 'order-line' key, model class
+            dash_key = key.replace('_', '-')
+            result[dash_key] = meta.import_model()
+    return result
+
+
+LINE_MODEL_MAP = _build_line_model_map()
 ALL_MODELS: List[type] = list(LINE_MODEL_MAP.values())
-
-
-def _cast_decimal(val) -> Decimal:
-    if isinstance(val, (int, float, Decimal)):
-        try:
-            return Decimal(str(val))
-        except InvalidOperation:
-            return Decimal('0')
-    if isinstance(val, str):
-        try:
-            return Decimal(val)
-        except InvalidOperation:
-            return Decimal('0')
-    return Decimal('0')
 
 
 DEFAULT_CACHE_TTL_SECONDS = getattr(settings, 'TX_AGGREGATE_TTL_SECONDS', 60)  # fallback if setting not provided
@@ -125,12 +114,6 @@ def compute_line_aggregate(parent_id: int,
     return data
 
 
-@receiver([post_save, post_delete], sender=ProposalLine)
-@receiver([post_save, post_delete], sender=OrderLine)
-@receiver([post_save, post_delete], sender=InvoiceLine)
-@receiver([post_save, post_delete], sender=PurchaseLine)
-@receiver([post_save, post_delete], sender=WorkOrderLine)
-@receiver([post_save, post_delete], sender=RequisitionLine)
 def clear_aggregate_cache(sender, instance, **kwargs):  # pragma: no cover - simple invalidation
     # Clear LRU cache
     _compute_line_aggregate_internal.cache_clear()
@@ -138,3 +121,8 @@ def clear_aggregate_cache(sender, instance, **kwargs):  # pragma: no cover - sim
     # Invalidate Redis cache for this parent_id
     if hasattr(instance, 'parent_id'):
         cache_service.invalidate_namespace('aggregation')
+
+
+# Register signal receivers for all line models from the registry
+for _line_model in ALL_MODELS:
+    receiver([post_save, post_delete], sender=_line_model)(clear_aggregate_cache)

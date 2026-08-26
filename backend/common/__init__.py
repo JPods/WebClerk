@@ -28,6 +28,3 @@ class CommonConfig(AppConfig):
 		except Exception:
 			# Silent fail during migrate / first setup
 			pass
-
-# Backward compatibility (Django <3.2 style) if INSTALLED_APPS uses 'common'
-default_app_config = 'common.CommonConfig'

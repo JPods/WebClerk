@@ -7,7 +7,7 @@ Requisitions → Action Decision (partial/complete) → Invoice.
 All functions are single-purpose. Called from wcapi/manage.
 
 Flow:
-  1. spawn_work_order(order_id) → creates WO from order lines
+  1. spawn_workorder(order_id) → creates WO from order lines
   2. spawn_requisition(order_id, lines) → creates requisition for items to purchase
   3. record_production_action(order_id, action, lines) → partial ship or complete
   4. partial_ship(order_id, shipped_lines) → creates invoice for shipped, backorder for remainder
@@ -26,13 +26,13 @@ def _now_ms():
     return int(time.time() * 1000)
 
 
-def spawn_work_order(order_id: int) -> Dict:
+def spawn_workorder(order_id: int) -> Dict:
     """Create a Work Order from an Order's lines.
 
     Each order line becomes a WO line. The WO inherits customer,
     vendor, contact, and terms from the order.
 
-    Returns: {work_order_id, line_count, status}
+    Returns: {workorder_id, line_count, status}
     """
     order = Order.objects.get(pk=order_id)
     order_lines = OrderLine.objects.filter(parent_id=order.pk)
@@ -48,9 +48,6 @@ def spawn_work_order(order_id: int) -> Dict:
             vendor=order.vendor,
             contact=order.contact,
             attention=order.attention,
-            address_full=order.address_full,
-            email=order.email,
-            phone=order.phone,
             terms=order.terms,
             priority=order.priority,
             dt_created=now,
@@ -75,12 +72,12 @@ def spawn_work_order(order_id: int) -> Dict:
         # Link WO back to order via flow
         flow = order.flow or {}
         children = flow.get('children', [])
-        children.append({'type': 'work_order', 'id': wo.pk})
+        children.append({'type': 'workorder', 'id': wo.pk})
         flow['children'] = children
         order.flow = flow
         order.save(update_fields=['flow', 'dt_modified'])
 
-    return {'work_order_id': wo.pk, 'line_count': line_count, 'status': 'planned'}
+    return {'workorder_id': wo.pk, 'line_count': line_count, 'status': 'planned'}
 
 
 def record_production_action(order_id: int, action_text: str, assigned_to: int = None) -> Dict:
@@ -138,9 +135,6 @@ def partial_ship(order_id: int, shipped_lines: List[Dict]) -> Dict:
             vendor=order.vendor,
             contact=order.contact,
             attention=order.attention,
-            address_full=order.address_full,
-            email=order.email,
-            phone=order.phone,
             terms=order.terms,
             price_level=order.price_level,
             source=order.source or {},

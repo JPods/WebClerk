@@ -61,13 +61,7 @@ export function useTransactionDefaults(modelKey = 'order') {
     [overrides, modelKey],
   );
 
-  // refresh is now handled by useAppConfig().syncToBackend() at the app level.
-  // Kept here as a no-op for backward compatibility.
-  const refresh = async () => {
-    console.info('[useTransactionDefaults] refresh() is deprecated. Use useAppConfig().syncToBackend() instead.');
-  };
-
-  return { defaults, loading, refresh };
+  return { defaults, loading };
 }
 
 /** Compute due_date by adding `due_date_period` days to `dt`. */

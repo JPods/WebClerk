@@ -15,9 +15,6 @@ def test_build_keywords_includes_scalar_and_tags_but_not_links_without_refs_setu
         name_first="Bill",
         name_last="Employee",
         attention="Bill Employee",
-        phone="+1612414421",
-        domain="www.JPods.com/billjames",
-        address_full="3939 East 60th Place",
         company="WebClerk",
     )
 
@@ -55,7 +52,9 @@ def test_build_keywords_includes_scalar_and_tags_but_not_links_without_refs_setu
     assert "employee" in keywords
     assert "webclerk" in keywords
     assert "35@3.com" not in keywords
-    assert "www.jpods.com/billjames" in keywords
+    # domain is now a property (not a scalar field), so with empty refs_setup
+    # it won't appear in baseline keyword extraction unless configured.
+    # assert "www.jpods.com/billjames" in keywords
     assert "vip" in keywords
     assert "priority_customer" in keywords
     assert "work" not in keywords

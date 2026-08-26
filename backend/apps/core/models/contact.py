@@ -84,7 +84,15 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     Contact model with Universal API metadata support and Django authentication
     Uses JSON metadata field instead of inheriting BaseModel to avoid dt_created conflicts
     """
-    
+
+    # Fields snapshot into refs.links when this model appears in another
+    # record's denormalized links.  Authoritative — denorm_registry falls
+    # back to this when present.
+    DENORM_FIELDS = [
+        "id", "ida", "display_name",
+        "company", "title", "role", "email", "phone", "attention",
+    ]
+
     # Core Identity Fields - Django auto-creates 'id' as primary key
     # REMOVED: id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
  
@@ -99,12 +107,10 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
 
     email = models.EmailField(unique=True, null=True, blank=True, help_text="Primary email address — required for login, null for record-only contacts")
     email_id = models.BigIntegerField(blank=True, null=True, help_text="Optional FK to primary email record if needed")
-    address_full = models.CharField(max_length=500, blank=True, null=True)  # optional denormalized full address for quick display/search
     address_id = models.BigIntegerField(blank=True, null=True, help_text="Optional FK to primary address record if needed")
-    phone = models.CharField(max_length=50, blank=True, null=True)  # optional primary phone (could be denormalized from phones aspect)
     phone_id = models.BigIntegerField(blank=True, null=True, help_text="Optional FK to primary phone record if needed")
-    domain = models.CharField(max_length=255, blank=True, null=True, help_text="Primary domain extracted from email for quick search")
     domain_id = models.BigIntegerField(blank=True, null=True, help_text="Optional FK to primary domain record if needed")
+    # address_full, phone, domain removed — read from FK pointer records (PJPV)
     company = models.CharField(max_length=200, blank=True, help_text="Company name")
     title = models.CharField(max_length=100, blank=True, help_text="Job title")
     department = models.CharField(max_length=100, blank=True, help_text="Department")
@@ -142,9 +148,7 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         help_text="Associated sales rep org",
     )
     # other_id removed — use refs for general-purpose relations (Q9 decision 2026-07-01)
-    company = models.CharField(max_length=200, blank=True, help_text="Company name")
-    title = models.CharField(max_length=100, blank=True, help_text="Job title")
-    department = models.CharField(max_length=100, blank=True, help_text="Department")
+    # company, title, department declared above (lines 114-116)
     # Source attribution — where did this contact come from?
     source_name = models.CharField(max_length=80, blank=True, default='', db_index=True,
         help_text="How this contact originated: Facebook, Referral, Walk-in, Trade Show, etc.")
@@ -174,10 +178,9 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         ordering = ['name_last', 'name_first']
     
     def __str__(self):
-        """String representation of contact"""
         if self.name_first or self.name_last:
-            return f"{self.name_first} {self.name_last}".strip()
-        return self.email
+            return f"{self.name_first or ''} {self.name_last or ''}".strip()
+        return self.email or self.ida or f"Contact #{self.pk}"
     
     def get_full_name(self):
         """Return full name with proper formatting"""
@@ -199,20 +202,35 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         if self.name_first:
             return self.name_first
         return self.email.split('@')[0]
-    # Backward compatibility properties for legacy code/tests referencing first_name/last_name
     @property
-    def first_name(self):  # pragma: no cover - simple alias
-        return self.name_first
-    @first_name.setter
-    def first_name(self, value):  # pragma: no cover
-        self.name_first = value
+    def address_full(self):
+        """Read from primary address record via FK pointer."""
+        if self.address_id:
+            from apps.communications.models import Address
+            addr = Address.objects.filter(pk=self.address_id).values_list('full', flat=True).first()
+            return addr or ''
+        return ''
+
     @property
-    def last_name(self):  # pragma: no cover
-        return self.name_last
-    @last_name.setter
-    def last_name(self, value):  # pragma: no cover
-        self.name_last = value
-    
+    def phone(self):
+        """Read from primary phone record via FK pointer."""
+        if self.phone_id:
+            from apps.communications.models import Phone
+            ph = Phone.objects.filter(pk=self.phone_id).values_list('number', flat=True).first()
+            return ph or ''
+        return ''
+
+    @property
+    def domain(self):
+        """Read from primary domain record via FK pointer."""
+        if self.domain_id:
+            from apps.communications.models import Domain
+            dom = Domain.objects.filter(pk=self.domain_id).values_list('path', flat=True).first()
+            return dom or ''
+        # Fall back to extracting from email
+        if self.email and '@' in self.email:
+            return self.email.split('@')[1]
+        return ''
 
     def save(self, *args, **kwargs):  # ensure role and attention sync
         self.attention = f"{self.name_first} {self.name_last}".strip()
@@ -249,12 +267,19 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         return model_cls.objects.create(**payload)
 
     def _sync_primary_communication_links(self):
-        """Synchronize primary scalar comm values with communication models and refs.links."""
+        """Synchronize email with Email records and rebuild refs.links from communication tables.
+
+        Shadow fields (phone, domain, address_full) have been removed — PJPV.
+        Communication records are now edited directly. This method:
+        1. Syncs email (the only remaining scalar) with Email records
+        2. Rebuilds refs.links from all communication tables
+        """
         try:
             from apps.communications.models import Address, Domain, Email, Phone
 
             updates = {}
 
+            # Email is the only remaining scalar field — sync it to Email records
             normalized_email = self._norm_comm_value(self.email).lower()
             if normalized_email:
                 email_obj = self._find_or_create_comm_record(
@@ -270,50 +295,17 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
                 if self.email_id != email_obj.id:
                     updates['email_id'] = email_obj.id
 
-            normalized_phone = self._norm_comm_value(self.phone)
-            if normalized_phone:
-                phone_obj = self._find_or_create_comm_record(
-                    Phone,
-                    {'number': normalized_phone},
-                    {'number': normalized_phone, 'name': 'primary'},
-                )
-                if self.phone_id != phone_obj.id:
-                    updates['phone_id'] = phone_obj.id
-
-            normalized_domain = self._norm_comm_value(self.domain)
-            if normalized_domain:
-                domain_obj = self._find_or_create_comm_record(
-                    Domain,
-                    {'path': normalized_domain},
-                    {'path': normalized_domain, 'type': 'website', 'status': 'active'},
-                )
-                if self.domain_id != domain_obj.id:
-                    updates['domain_id'] = domain_obj.id
-
-            normalized_address_full = self._norm_comm_value(self.address_full)
-            if normalized_address_full:
-                own_addr = Address.objects.filter(
-                    contact_id=self.pk,
-                ).filter(Q(full=normalized_address_full) | Q(address1=normalized_address_full)).first()
-                if own_addr:
-                    address_obj = own_addr
-                else:
-                    unowned_addr = Address.objects.filter(contact__isnull=True).filter(
-                        Q(full=normalized_address_full) | Q(address1=normalized_address_full),
-                    ).first()
-                    if unowned_addr:
-                        unowned_addr.contact_id = self.pk
-                        unowned_addr.save(update_fields=['contact', 'dt_modified'])
-                        address_obj = unowned_addr
-                    else:
-                        address_obj = Address.objects.create(
-                            contact_id=self.pk,
-                            address1=normalized_address_full,
-                            full=normalized_address_full,
-                        )
-
-                if self.address_id != address_obj.id:
-                    updates['address_id'] = address_obj.id
+            # Extract domain from email if no domain_id is set
+            if not self.domain_id and normalized_email and '@' in normalized_email:
+                domain_part = normalized_email.split('@')[1]
+                if domain_part:
+                    domain_obj = self._find_or_create_comm_record(
+                        Domain,
+                        {'path': domain_part},
+                        {'path': domain_part, 'type': 'website', 'status': 'active'},
+                    )
+                    if self.domain_id != domain_obj.id:
+                        updates['domain_id'] = domain_obj.id
 
             refs = self.refs if isinstance(self.refs, dict) else {}
             links = refs.get('links', {})
@@ -404,14 +396,6 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
             logger = logging.getLogger(__name__)
             logger.warning(f"Failed to sync communication links for contact {self.pk}: {e}")
     
-    def _ensure_account_email_linked(self):
-        """
-        If the account email (self.email) is not already in refs.links.email,
-        create an Email record and link it with name='account'.
-        """
-        # Kept for backward compatibility. Primary comm sync now handles this.
-        self._sync_primary_communication_links()
-    
     @property
     def display_name(self):
         """Property for template display"""
@@ -449,18 +433,13 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
 
     def save_after(self, data):
         """Ensure bidirectional refs between contact and linked orgs."""
-        org_fields = [
-            ('customer', 'customer'),
-            ('vendor', 'vendor'),
-            ('manufacturer', 'manufacturer'),
-            ('employee', 'employee'),
-            ('rep', 'rep'),
-        ]
-        for fk_field, org_type in org_fields:
-            org = getattr(self, fk_field, None)
+        ROLE_FIELDS = ('customer', 'vendor', 'manufacturer', 'employee', 'rep')
+
+        # --- Bidirectional refs sync ---
+        for field in ROLE_FIELDS:
+            org = getattr(self, field, None)
             if org is None:
                 continue
-            # Ensure org.refs.links.contact includes this contact
             try:
                 refs = getattr(org, 'refs', None) or {}
                 if not isinstance(refs, dict):

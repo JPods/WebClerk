@@ -297,7 +297,7 @@ export interface OrgFinancial {
   employee?: OrgFinancialEmployee;
   manufacturer?: OrgFinancialManufacturer;
   fx?: OrgFx;
-  // Legacy flat fields for backwards compatibility
+  // Flat aggregate fields
   credit?: OrgCredit;
   balances?: OrgBalances;
   due_buckets?: OrgDueBucket[];

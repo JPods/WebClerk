@@ -77,7 +77,7 @@ class MarginTracker:
                 "sku": item.sku or "",
                 "base_price": float(base_price),
                 "avg_cost": float(avg_cost),
-                "margin_amount": float(margin_amount),
+                "margin": float(margin_amount),
                 "margin_pct": float(margin_pct),
             }
             items_data.append(item_info)

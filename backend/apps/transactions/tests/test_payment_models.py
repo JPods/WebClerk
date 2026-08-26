@@ -4,6 +4,7 @@ from django.test import TestCase
 from django.utils import timezone
 from apps.transactions.models import Payment, PaymentMethod, PaymentTerm, Invoice
 from apps.core.models import Contact
+from apps.orgs.models import OrgBase
 
 
 class PaymentModelTest(TestCase):
@@ -11,15 +12,18 @@ class PaymentModelTest(TestCase):
 
     def setUp(self):
         """Set up test data."""
-        self.customer = Contact.objects.create(
+        self.customer = OrgBase.objects.create(
+            display_name="John Doe",
+            org_type="customer"
+        )
+        self.vendor = OrgBase.objects.create(
+            display_name="Jane Smith",
+            org_type="vendor"
+        )
+        self.contact = Contact.objects.create(
             name_first="John",
             name_last="Doe",
             email="john.doe@example.com"
-        )
-        self.vendor = Contact.objects.create(
-            name_first="Jane",
-            name_last="Smith",
-            email="jane.smith@example.com"
         )
         self.invoice = Invoice.objects.create(
             status="sent",
@@ -41,14 +45,14 @@ class PaymentModelTest(TestCase):
         """Test basic payment creation."""
         payment = Payment.objects.create(
             invoice=self.invoice,
-            contact=self.customer,
+            contact=self.contact,
             amount=50.00,
             gateway="stripe",
             status="pending"
         )
 
         self.assertEqual(payment.invoice, self.invoice)
-        self.assertEqual(payment.contact, self.customer)
+        self.assertEqual(payment.contact, self.contact)
         self.assertEqual(payment.amount, 50.00)
         self.assertEqual(payment.gateway, "stripe")
         self.assertEqual(payment.status, "pending")
@@ -59,19 +63,19 @@ class PaymentModelTest(TestCase):
         """Test string representation of payment."""
         payment = Payment.objects.create(
             invoice=self.invoice,
-            contact=self.customer,
+            contact=self.contact,
             amount=75.50,
             status="completed"
         )
 
-        expected_str = f"Payment #{payment.id} - 75.50 (completed) for Invoice #{self.invoice.id}"
+        expected_str = f"Payment #{payment.id} - +75.50 (completed) for Invoice #{self.invoice.id}"
         self.assertEqual(str(payment), expected_str)
 
     def test_payment_refs_and_metadata_defaults(self):
         """Test that refs and metadata have proper defaults."""
         payment = Payment.objects.create(
             invoice=self.invoice,
-            contact=self.customer,
+            contact=self.contact,
             amount=25.00
         )
 
@@ -84,7 +88,7 @@ class PaymentModelTest(TestCase):
         """Test adding invoice reference."""
         payment = Payment.objects.create(
             invoice=self.invoice,
-            contact=self.customer,
+            contact=self.contact,
             amount=25.00
         )
 
@@ -101,7 +105,7 @@ class PaymentModelTest(TestCase):
         """Test adding order reference."""
         payment = Payment.objects.create(
             invoice=self.invoice,
-            contact=self.customer,
+            contact=self.contact,
             amount=25.00
         )
 
@@ -114,7 +118,7 @@ class PaymentModelTest(TestCase):
         """Test setting source reference."""
         payment = Payment.objects.create(
             invoice=self.invoice,
-            contact=self.customer,
+            contact=self.contact,
             amount=25.00
         )
 
@@ -128,7 +132,7 @@ class PaymentModelTest(TestCase):
         """Test adding reconciliation note."""
         payment = Payment.objects.create(
             invoice=self.invoice,
-            contact=self.customer,
+            contact=self.contact,
             amount=25.00
         )
 
@@ -141,7 +145,7 @@ class PaymentModelTest(TestCase):
         """Test adding audit entry."""
         payment = Payment.objects.create(
             invoice=self.invoice,
-            contact=self.customer,
+            contact=self.contact,
             amount=25.00
         )
 
@@ -157,7 +161,7 @@ class PaymentModelTest(TestCase):
         """Test marking payment as completed."""
         payment = Payment.objects.create(
             invoice=self.invoice,
-            contact=self.customer,
+            contact=self.contact,
             amount=25.00,
             status="processing"
         )
@@ -172,7 +176,7 @@ class PaymentModelTest(TestCase):
         """Test marking payment as failed."""
         payment = Payment.objects.create(
             invoice=self.invoice,
-            contact=self.customer,
+            contact=self.contact,
             amount=25.00,
             status="processing"
         )
@@ -187,7 +191,7 @@ class PaymentModelTest(TestCase):
         """Test reconciling payment."""
         payment = Payment.objects.create(
             invoice=self.invoice,
-            contact=self.customer,
+            contact=self.contact,
             amount=25.00,
             status="completed",
             reconciled=False

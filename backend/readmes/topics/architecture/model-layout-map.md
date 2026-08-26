@@ -32,7 +32,7 @@ These get form layouts in `config.layout.form`, Design Mode, print templates, wi
 | proposal | 3-col: Customer \| Ship To \| Proposal | sell | Done |
 | invoice | 3-col: Customer \| Ship To \| Invoice | sell | Done |
 | purchase | 3-col: Vendor \| Receive At \| Purchase | exec | Done |
-| work_order | 3-col: Customer \| Location \| Work Order | exec | Pending |
+| workorder | 3-col: Customer \| Location \| Work Order | exec | Pending |
 | receipt | 2-col: Vendor \| Receipt | exec | Pending |
 | requisition | 2-col: Requestor \| Requisition | exec | Pending |
 | payment | 2-col: Payer \| Payment | special | Pending |
@@ -45,7 +45,7 @@ These get form layouts in `config.layout.form`, Design Mode, print templates, wi
 | proposal_line | proposal | sell | Done |
 | invoice_line | invoice | sell | Done |
 | purchase_line | purchase | exec | Done |
-| work_order_line | work_order | exec | Pending |
+| workorder_line | workorder | exec | Pending |
 | receipt_line | receipt | exec | Pending |
 | requisition_line | requisition | exec | Pending |
 

@@ -20,6 +20,7 @@ import "./FlightSimConsole.css";
 import { formatCurrency } from "@/utils/stringUtils";
 
 const UiDetail = React.lazy(() => import("../../apps/transactions/components/TransactionDetail"));
+const VCardImportDialog = React.lazy(() => import("../../components/common/VCardImportDialog"));
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -136,7 +137,7 @@ const SIMULATIONS: SimulationDef[] = [
     label: "Bill of Materials",
     description: "BOM explosion, component availability, buildable quantity, cost rollup",
     itemIda: "qqBB200",
-    firstModel: "work_order",
+    firstModel: "workorder",
   },
   {
     id: "p2p",
@@ -251,6 +252,9 @@ const FlightSimConsole: React.FC = () => {
 
   // Item quantities (opening state)
   const [itemQty, setItemQty] = useState<Record<string, number>>({});
+
+  // vCard import dialog
+  const [showVcardImport, setShowVcardImport] = useState(false);
 
   // Transaction array
   const [rows, setRows] = useState<TransactionRow[]>([]);
@@ -384,6 +388,10 @@ const FlightSimConsole: React.FC = () => {
     setActiveSim(sim);
     setLoading(true);
     setConvertedLines(null);
+    // Phase 1 sims have no item — narrow the left panel to give the form more room
+    if (!sim.itemIda) {
+      setSplitWidth(280);
+    }
     try {
       // Company profile sim — find the Setting by ida and open it
       if (sim.id === 'company-profile') {
@@ -585,11 +593,17 @@ const FlightSimConsole: React.FC = () => {
         <button className="fs-btn" onClick={refreshArray} disabled={loading}>
           <FaSync size={10} className={loading ? "animate-spin" : ""} /> Refresh
         </button>
+        {activeSim?.id === 'first-customer' && (
+          <button className="fs-btn fs-btn-tx" onClick={() => setShowVcardImport(true)}>
+            Import from Contacts
+          </button>
+        )}
       </div>
 
       {/* Main content — left/right split */}
       <div className={`fs-split ${dragging ? "fs-split--dragging" : ""}`}>
-        {/* Left panel — Item summary + Transaction Array */}
+        {/* Left panel — Item summary + Transaction Array (hidden for Phase 1 sims with no item) */}
+        {activeSim?.itemIda && (<>
         <div className="fs-left" ref={leftRef} style={{ width: splitWidth }}>
           {/* Item opening quantities */}
           {itemId && (
@@ -778,6 +792,7 @@ const FlightSimConsole: React.FC = () => {
           className={`fs-handle ${dragging ? "fs-handle--active" : ""}`}
           onMouseDown={handleMouseDown}
         />
+        </>)}
 
         {/* Right panel — Transaction Form */}
         <div className="fs-right">
@@ -825,6 +840,21 @@ const FlightSimConsole: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* vCard import dialog */}
+      {showVcardImport && (
+        <Suspense fallback={null}>
+          <VCardImportDialog
+            isOpen={showVcardImport}
+            onClose={() => setShowVcardImport(false)}
+            onImported={(contactId, orgId) => {
+              setShowVcardImport(false);
+              setRightModel('contact');
+              setRightRecordId(contactId);
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

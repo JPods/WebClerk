@@ -1,26 +1,10 @@
 /**
  * CommerceDashboard.css — unified 5-tab commerce view.
- * Reuses the same CSS custom properties as DataBrowser.
+ * Core --db-* theme variables inherited from theme.css (:root scope).
+ * Dashboard-specific variables only below.
  */
 
-.cd-root[data-theme="dark"] {
-  --db-bg: #1e1e1e; --db-surface: #252526; --db-surface-alt: #2d2d2d;
-  --db-border: #3c3c3c; --db-border-light: #4d4d4d;
-  --db-text: #d4d4d4; --db-text-muted: #888; --db-text-dim: #666;
-  --db-accent: #9cdcfe; --db-accent-green: #4ec98c; --db-accent-gold: #e8c870;
-  --db-accent-red: #e05252; --db-accent-purple: #c8a8e8;
-  --db-btn-bg: #2d2d2d; --db-input-bg: #2a2a2a; --db-input-border: #555;
-  --db-row-hover: #2a2d2e; --db-row-active: #094771;
-}
-.cd-root[data-theme="light"] {
-  --db-bg: #f8f9fa; --db-surface: #ffffff; --db-surface-alt: #f1f3f5;
-  --db-border: #dee2e6; --db-border-light: #e9ecef;
-  --db-text: #212529; --db-text-muted: #6c757d; --db-text-dim: #adb5bd;
-  --db-accent: #0d6efd; --db-accent-green: #198754; --db-accent-gold: #fd7e14;
-  --db-accent-red: #dc3545; --db-accent-purple: #6f42c1;
-  --db-btn-bg: #ffffff; --db-input-bg: #ffffff; --db-input-border: #ced4da;
-  --db-row-hover: #f1f3f5; --db-row-active: #cfe2ff;
-}
+/* All --db-* variables inherited from theme.css — no local overrides needed */
 
 .cd-root {
   display: flex; flex-direction: column; height: 100vh;

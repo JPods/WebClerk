@@ -36,14 +36,15 @@ from apps.transactions.models import (
     WorkOrder, WorkOrderLine,
     Requisition, RequisitionLine,
 )
-from apps.transactions.serializers.line_serializers import (
-    ProposalSerializer, ProposalLineSerializer,
-    OrderSerializer, OrderLineSerializer,
-    InvoiceSerializer, InvoiceLineSerializer,
-    PurchaseSerializer, PurchaseLineSerializer,
-    WorkOrderSerializer, WorkOrderLineSerializer,
-    RequisitionSerializer, RequisitionLineSerializer,
+from apps.transactions.serializers.transaction_serializers import (
+    ProposalSerializer, OrderSerializer, InvoiceSerializer, PurchaseSerializer,
 )
+from apps.transactions.serializers.line_serializers import (
+    ProposalLineSerializer, OrderLineSerializer, InvoiceLineSerializer,
+    PurchaseLineSerializer, WorkOrderLineSerializer, RequisitionLineSerializer,
+)
+from apps.transactions.serializers.workorder_serializers import WorkOrderSerializer
+from apps.transactions.serializers.requisition import RequisitionSerializer
 from apps.transactions.views.line_views import BasePermission, DefaultPagination
 from apps.transactions.aggregation import compute_line_aggregate
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
@@ -217,7 +218,7 @@ class TransactionTotalsPreview(_KindMixin, generics.GenericAPIView):
     def get(self, request, *args, **kwargs):  # noqa: D401
         """Return aggregate totals for this header's lines.
 
-        By default, scopes aggregation to this kind's line model (e.g., sales-order-line).
+        By default, scopes aggregation to this kind's line model (e.g., order-line).
         Pass include_breakdown=1 to include per-model breakdown (useful if future variants
         also link to the same header id).
         """
@@ -253,94 +254,6 @@ def _resolve_models(token: str):
         return MODEL_MAP[key]
     except KeyError:
         raise Http404(f'Unsupported model in this endpoint: {key}')
-
-
-class LinkageCommentsView(generics.GenericAPIView):
-    """
-    GET /tx/linkages/<linkage_id>/comments/
-    Returns: { data: { items: [ {source_model, source_id, text} ] } }
-    """
-    http_method_names = ["get", "options", "head"]
-
-    def get(self, request, linkage_id: int, *args, **kwargs):
-        try:
-            lid = int(linkage_id)
-        except Exception:
-            return api_response(success=False, status_code=400, message="invalid_linkage_id")
-
-        # Models to scan for linkage refs and comments
-        model_names = [
-            ("transactions", "ProposalLine"),
-            ("transactions", "OrderLine"),
-            ("transactions", "InvoiceLine"),
-            ("transactions", "PurchaseLine"),
-        ]
-        items: List[Dict[str, Any]] = []
-
-        for app_label, model_name in model_names:
-            try:
-                Model = apps.get_model(app_label, model_name)
-            except Exception:
-                continue
-            # Only fetch relevant JSON fields if present
-            fields = ["id"]
-            for f in ("refs", "comments"):
-                try:
-                    Model._meta.get_field(f)  # type: ignore[attr-defined]
-                    fields.append(f)
-                except Exception:
-                    pass
-
-            qs = Model.objects.active()
-            if len(fields) > 1:
-                try:
-                    qs = qs.only(*fields)
-                except Exception:
-                    pass
-
-            for obj in qs:
-                refs = getattr(obj, "refs", None) or {}
-                try:
-                    linkage_list = (refs.get("links") or {}).get("linkage") or []
-                except Exception:
-                    linkage_list = []
-                has_linkage = False
-                try:
-                    has_linkage = lid in linkage_list
-                except Exception:
-                    # fallback if stored as strings
-                    try:
-                        has_linkage = str(lid) in [str(x) for x in linkage_list]
-                    except Exception:
-                        has_linkage = False
-                if not has_linkage:
-                    continue
-
-                cm = getattr(obj, "comments", None) or {}
-                # support both dict {'public': '...'} and plain string
-                if isinstance(cm, dict):
-                    comments_payload = cm
-                else:
-                    comments_payload = {"public": str(cm)} if cm else {}
-
-                items.append({
-                    "source_model": model_name,
-                    "source_id": getattr(obj, "id", None),
-                    "comments": comments_payload,
-                })
-
-        # Aggregate root comments (e.g., collect all public comments)
-        comments_root: Dict[str, Any] = {"general": {}}
-        public_comments = [
-             it.get("comments", {}).get("public")
-             for it in items
-             if isinstance(it.get("comments"), dict) and it.get("comments", {}).get("public")
-         ]
-        # Always expose 'general.public' key for clients/tests
-        comments_root["general"]["public"] = public_comments
-
-        # Return raw payload; envelope middleware will set {"data": {...}}
-        return response.Response({"items": items, "comments": comments_root}, status=status.HTTP_200_OK)
 
 
 class WCAIPSaveView(views.APIView):

@@ -260,6 +260,7 @@
 
 .dg-row {
   border-bottom: 1px solid var(--db-border, #dee2e6);
+  background: var(--db-bg, #ffffff);
   cursor: pointer;
 }
 

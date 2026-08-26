@@ -16,18 +16,16 @@ interface BehaviorFieldProps {
   fontSize?: number;
   theme?: Record<string, string>;  // kept for API compat; CSS vars drive styling
   rowSize?: number;
-  typeHint?: string;
   error?: string;
   leaf?: { type: string; extract?: string };
 }
 
 export default function BehaviorField({
-  name, value, behavior, onChange, record, rowSize, typeHint, error, leaf,
+  name, value, behavior, onChange, record, rowSize, error, leaf,
 }: BehaviorFieldProps) {
   const wcModel = (record as any)?._model || '';
 
   return renderField(name, value, behavior, onChange, {
-    typeHint,
     error,
     record,
     model: wcModel,

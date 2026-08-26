@@ -96,9 +96,9 @@ print('-' * 50)
 service = LineItemService(create_pending=False)
 print(f'\n  LINE_MODEL_MAP keys: {sorted(service.__class__.__dict__.get("LINE_MODEL_MAP", {}).keys()) if hasattr(service, "LINE_MODEL_MAP") else "N/A"}')
 
-from apps.transactions.services.line_item_service import LINE_MODEL_MAP, LINE_FK_FIELD_MAP
-print(f'  LINE_MODEL_MAP: {LINE_MODEL_MAP}')
-print(f'  LINE_FK_FIELD_MAP: {LINE_FK_FIELD_MAP}')
+from apps.core.constants.model_registry import MODEL_REGISTRY
+line_models = {k: v.model for k, v in MODEL_REGISTRY.items() if v.kind == 'line'}
+print(f'  Line models from registry: {line_models}')
 
 # 5. Verify _normalize_line_kind mappings
 print('\n')

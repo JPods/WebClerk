@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.db import models
 from typing import Callable, Dict, Any
 from common.models import BaseModel
@@ -105,6 +106,86 @@ def default_source() -> Dict[str, Any]:
     }
 
 
+def default_shipping() -> Dict[str, Any]:
+    """Shipping envelope — tracks packages, carrier, costs, and fulfillment status.
+
+    WC2 lineage: LoadTag (container) + LoadItem (item-in-container).
+    WC3: single JSON envelope on transaction header. packages[] replaces LoadTag table,
+    each package.items[] replaces LoadItem table.
+
+    Hierarchy: item → package (box) → pallet → shipment.
+    A package with type="pallet" contains child package IDs, not items directly.
+    """
+    return {
+        "status": "",                # "" | partial | shipped | delivered
+        "carrier": "",               # UPS, FedEx, USPS, freight, etc.
+        "carrier_account": "",       # carrier account number (3rd party billing)
+        "service": "",               # Ground, 2Day, NextDay, etc.
+        "ship_to": {},               # snapshot of shipping address at time of ship
+        "packages": [
+            # Each package is a LoadTag equivalent:
+            # {
+            #     "id": "uuid or sequential",
+            #     "type": "box",           # box | pallet | container
+            #     "parent_id": "",         # pallet ID if this box is on a pallet
+            #     "tracking": "",          # carrier tracking number
+            #     "status": "packed",      # packed | shipped | delivered
+            #     "weight": {
+            #         "gross": 0.0,        # total weight (product + tare)
+            #         "tare": 0.0,         # packaging weight
+            #         "unit": "lbs"
+            #     },
+            #     "dimensions": {
+            #         "length": 0.0, "width": 0.0, "height": 0.0, "unit": "in"
+            #     },
+            #     "value": 0.0,            # declared value for insurance
+            #     "insured": False,
+            #     "costs": {
+            #         "freight": 0.0,
+            #         "fuel_surcharge": 0.0,
+            #         "insurance": 0.0,
+            #         "handling": 0.0,
+            #         "total": 0.0
+            #     },
+            #     "dt_packed": "",         # ISO 8601 UTC
+            #     "dt_shipped": "",        # ISO 8601 UTC
+            #     "items": [
+            #         # Each item is a LoadItem equivalent:
+            #         # {
+            #         #     "line_number": 10,       # matches invoice/order line_number
+            #         #     "item_id": 0,            # FK to Item
+            #         #     "item_ida": "",           # item ida for display
+            #         #     "description": "",
+            #         #     "qty": 0,
+            #         #     "unit_weight": 0.0,
+            #         #     "extended_weight": 0.0,
+            #         #     "is_dunnage": False,      # packing material, not product
+            #         #     "hazmat_class": ""
+            #         # }
+            #     ],
+            #     "child_ids": []          # for pallets: list of box package IDs
+            # }
+        ],
+        "costs": {                   # header-level shipping cost summary
+            "freight": 0.0,          # base carrier freight
+            "fuel_surcharge": 0.0,
+            "insurance": 0.0,
+            "handling": 0.0,
+            "estimated": 0.0,        # pre-ship estimate
+            "actual": 0.0,           # what we paid the carrier
+            "customer": 0.0          # what we charge the customer (→ totals.shipping)
+        },
+        "weight": {                  # header-level weight summary
+            "gross": 0.0,
+            "unit": "lbs"
+        },
+        "package_count": 0,
+        "dt_shipped": "",            # ISO 8601 UTC — when last package shipped
+        "dt_delivered": "",          # ISO 8601 UTC — carrier delivery confirmation
+        "notes": ""
+    }
+
+
 class TransactionBaseModel(BaseModel):
     """Abstract Django base for transaction headers.
 
@@ -122,21 +203,14 @@ class TransactionBaseModel(BaseModel):
         """
         from apps.transactions.services.totals import recalculate_totals
         model_name = self._meta.model_name
-        if persist:
-            # recalculate_totals persists internally (totals, total, balance, metadata)
-            result = recalculate_totals(self.pk, model_name)
-            self.refresh_from_db(fields=['totals', 'total', 'balance'])
-            return result
-        else:
-            # Dry run — compute without saving (for previews)
-            from apps.transactions.services.totals import _resolve_header_and_lines, _d, _is_sell_side
-            # For non-persist, delegate to the old per-model compute for backward compat
-            # TODO: refactor recalculate_totals to support dry_run mode
-            result = recalculate_totals(self.pk, model_name)
-            self.refresh_from_db(fields=['totals', 'total', 'balance'])
-            return result
+        # recalculate_totals always persists — persist param is accepted but
+        # currently ignored (TODO: add dry_run mode to recalculate_totals)
+        result = recalculate_totals(self.pk, model_name)
+        self.refresh_from_db(fields=['totals'])
+        return result
 
     STATUS_PLANNED = "planned"
+    STATUS_SIGNOFF_REQUEST = "signoff_request"
     STATUS_RELEASED = "released"
     STATUS_IN_PROGRESS = "in_progress"
     STATUS_HOLD = "hold"
@@ -145,15 +219,13 @@ class TransactionBaseModel(BaseModel):
     STATUS_CHOICES = TRANSACTION_STATUS_CHOICES
 
     PARENT_MODEL_CHOICES = TRANSACTION_PARENT_MODEL_CHOICES
-    #denormalized from record.totals.total for indexing and quick queries
-    total = models.DecimalField(max_digits=18, decimal_places=6, blank=True, null=True, db_index=True)
-    #denormalized from record.totals.balance for indexing and quick queries
-    balance = models.DecimalField(max_digits=18, decimal_places=6, blank=True, null=True, db_index=True)
+    # total and balance removed — read from totals JSON envelope (PJPV)
+    # Functional indexes on totals->>'total' and totals->>'balance' handle queries.
     # Counter for the next line_number to assign to new lines (increments by 10)
     line_increment = models.IntegerField(default=10)
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default=STATUS_PLANNED, db_index=True)
     priority = models.CharField(max_length=32, blank=True, null=True)
-    price_level = models.CharField(max_length=50, blank=True, null=True)
+    price_level = models.CharField(max_length=50, blank=True, default='retail')
     dt_needed = models.BigIntegerField(blank=True, null=True, db_index=True, help_text="Date needed (UTC epoch ms) — when customer needs the order")
     ship_via = models.CharField(max_length=50, blank=True, null=True, help_text="Carrier/shipping method (US Postal, UPS, FedEx, etc.)")
     # Commission orders routed by manufacturer (refs.links.manufacturer[].commission_based=True)
@@ -185,14 +257,9 @@ class TransactionBaseModel(BaseModel):
         blank=True, null=True,
         db_column='contact_id', related_name='%(class)s_as_contact',
     )
-    company = models.CharField(max_length=255, blank=True, null=True)  # optional attention line for mailing
     attention = models.CharField(max_length=255, blank=True, null=True)  # optional attention line for mailing
-    address_full = models.CharField(max_length=500, blank=True, null=True)  # optional denormalized full address for quick display/search
-    email = models.EmailField(blank=True, null=True)  # optional primary email (could be denormalized from emails aspect)
-    phone = models.CharField(max_length=50, blank=True, null=True)  # optional primary phone (could be denormalized from phones aspect)
-	# New alias property: prefer `company` in code, `display_name` remains the DB column until an explicit migration is performed.
-	# Keep `display_name` as the actual DB-backed field for now for smooth migrations; provide a `company` property to use in code.
-    price_level = models.CharField(max_length=30, blank=True, null=True)  # e.g. retail, wholesale; optional for future use
+    # company, address_full, email, phone removed — read from contact FK or refs.links (PJPV)
+    price_level = models.CharField(max_length=30, blank=True, default='retail')
     terms = models.CharField(max_length=30, blank=True, null=True)  # e.g. retail, wholesale; optional for future use
     terms_fk = models.ForeignKey(
         'transactions.PaymentTerm', on_delete=models.SET_NULL,
@@ -223,8 +290,8 @@ class TransactionBaseModel(BaseModel):
         help_text="How this transaction originated: Facebook, Referral, Walk-in, Trade Show, etc.")
     # pulled from .refs to track related entities without FK constraints; updated by Celery tasks on save
     actions = models.JSONField(default=dict, blank=True, null=True)
-    
-    
+    shipping = models.JSONField(default=default_shipping, blank=True, null=True)
+
     # FK columns that must be NULL (not 0) when empty.  Zero would violate
     # the foreign-key constraint; negative values are never valid.
     _FK_COLUMNS = ("customer_id", "vendor_id", "manufacturer_id", "contact_id")
@@ -236,6 +303,63 @@ class TransactionBaseModel(BaseModel):
             if val is not None and int(val) <= 0:
                 setattr(self, col, None)
         super().save(*args, **kwargs)
+
+    # ── Read-only properties — replaced scalar shadow fields ────────
+    # These read from the JSON envelope or FK relationships.
+    # Used by admin list_display and serializers.
+
+    @property
+    def total(self):
+        t = self.totals if isinstance(self.totals, dict) else {}
+        val = t.get('total')
+        return Decimal(str(val)) if val is not None else None
+
+    @property
+    def balance(self):
+        t = self.totals if isinstance(self.totals, dict) else {}
+        val = t.get('balance')
+        return Decimal(str(val)) if val is not None else None
+
+    @property
+    def company(self):
+        if self.customer_id:
+            return getattr(self.customer, 'display_name', '') if self.customer else ''
+        refs = self.refs if isinstance(self.refs, dict) else {}
+        links = refs.get('links', {})
+        cust = links.get('customer', {})
+        return cust.get('display_name', '')
+
+    @property
+    def address_full(self):
+        refs = self.refs if isinstance(self.refs, dict) else {}
+        links = refs.get('links', {})
+        for role in ('customer', 'vendor', 'manufacturer'):
+            r = links.get(role, {})
+            if r.get('address_full'):
+                return r['address_full']
+        return ''
+
+    @property
+    def email(self):
+        if self.contact_id and self.contact:
+            return self.contact.email or ''
+        refs = self.refs if isinstance(self.refs, dict) else {}
+        links = refs.get('links', {})
+        for role in ('customer', 'vendor', 'manufacturer'):
+            r = links.get(role, {})
+            if r.get('email'):
+                return r['email']
+        return ''
+
+    @property
+    def phone(self):
+        refs = self.refs if isinstance(self.refs, dict) else {}
+        links = refs.get('links', {})
+        for role in ('customer', 'vendor', 'manufacturer'):
+            r = links.get(role, {})
+            if r.get('phone'):
+                return r['phone']
+        return ''
 
     class Meta:
         abstract = True

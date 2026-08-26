@@ -96,10 +96,11 @@ def check_invoice_balances() -> dict:
     observations = 0
     mismatches = []
 
-    # Get all non-void invoices with a total (include demo data — users learn there)
+    # Get all non-void invoices with a totals JSON envelope
+    from common.json_lookups import totals_total
     invoices = Invoice.objects.exclude(
         status__in=['void', 'cancelled', 'draft']
-    ).filter(total__isnull=False).only('id', 'ida', 'total', 'balance', 'status', 'totals')
+    ).annotate(_total=totals_total()).filter(_total__isnull=False).only('id', 'ida', 'status', 'totals')
 
     for inv in invoices[:500]:  # batch limit
         # PJPV: read from JSON envelope, not scalar index fields

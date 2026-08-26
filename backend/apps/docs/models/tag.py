@@ -17,7 +17,7 @@ class Tag(BaseModel):
     """
 
     name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
-    status = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+    # status inherited from BaseModel
     # canonical identifier for attached model (replaces legacy table_!name)
     model_name = models.CharField(max_length=255, blank=True, null=True, db_index=True, help_text="Source model this tag decorates")  #chaned from t_n
     record_id = models.IntegerField(blank=True, null=True, db_index=True, help_text="ID in source table")

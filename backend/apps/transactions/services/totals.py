@@ -29,13 +29,7 @@ def _validate_totals(totals: Dict[str, Any]) -> Dict[str, Any]:
     return validated.model_dump()
 
 
-def _d(x: Any, places: int = 2) -> Decimal:
-    """Safe Decimal coercion with rounding."""
-    try:
-        d = Decimal(str(x))
-        return d.quantize(Decimal(10) ** -places) if places >= 0 else d
-    except Exception:
-        return Decimal(0)
+from common.decimals import safe_decimal as _d  # noqa: E302
 
 
 # ---------------------------------------------------------------------------
@@ -65,10 +59,21 @@ def _resolve_header_and_lines(transaction_id: int, model_name: str):
     return header, header.lines.all()
 
 
-def _is_sell_side(model_name: str) -> bool:
-    """Determine if this is a sell-side transaction (has price envelope on lines)."""
-    sell_types = {'proposal', 'order', 'invoice', 'proposal_line', 'order_line', 'invoice_line'}
-    return model_name.lower().replace('-', '_') in sell_types
+def is_sell_side(model_name: str) -> bool:
+    """Determine if this is a sell-side transaction (has price envelope on lines).
+
+    Single source of truth for sell-side detection by model name.
+    Sell-side = proposal, order, invoice (and their line variants).
+    Exec-side = purchase, workorder, receipt (no price envelope).
+
+    For line-level detection on a model instance, prefer:
+        hasattr(line, 'price')
+    which is always accurate since BaseSellLineModel defines the price field.
+    """
+    from apps.transactions.models.base_line_model import _normalize_line_kind
+    kind = _normalize_line_kind(model_name)
+    return kind in ('proposal', 'order', 'invoice')
+
 
 
 # ---------------------------------------------------------------------------
@@ -94,7 +99,7 @@ def recalculate_totals(
     (purchase/workorder) transactions.
     """
     header, lines = _resolve_header_and_lines(transaction_id, model_name)
-    is_sell = _is_sell_side(model_name)
+    is_sell = is_sell_side(model_name)
 
     # Accumulators
     subtotal = Decimal(0)       # sum of line extended sell prices
@@ -298,10 +303,8 @@ def recalculate_totals(
 
     # ── Persist to header ──────────────────────────────────────────
     header.totals = totals
-    header.total = _d(total)
-    header.balance = _d(balance)
 
-    update_fields = ['totals', 'total', 'balance']
+    update_fields = ['totals']
     if tax_decisions:
         update_fields.append('metadata')
     header.save(update_fields=update_fields)
@@ -349,10 +352,8 @@ def update_received(
     totals['balance'] = float(new_balance)
     totals = _validate_totals(totals)
     header.totals = totals
-    header.total = _d(total)
-    header.balance = new_balance
 
-    header.save(update_fields=['totals', 'total', 'balance'])
+    header.save(update_fields=['totals'])
 
     logger.info(
         "Updated received for %s #%s: received=%.2f balance=%.2f",
@@ -376,8 +377,9 @@ def recalculate_line(
 ) -> Dict[str, Any]:
     """Recalculate a single line's extended values and update parent totals.
 
-    Recomputes price.extended and cost.extended from qty and unit values,
-    then calls recalculate_totals on the parent transaction.
+    Delegates extended computation to the model's save() method, which calls
+    ensure_json_defaults() → _calculate_extended_cost() (all lines) and
+    _calculate_extended_price() (sell-side lines). Single source of truth.
 
     Returns the line-level result plus the parent totals result.
     """
@@ -393,52 +395,29 @@ def recalculate_line(
     except LineModel.DoesNotExist:
         raise ValueError(f"{model_name} #{line_id} not found")
 
-    # Get quantity
-    qty_data = getattr(line, 'quantity', None) or {}
-    qty = _d(qty_data.get('staged', 0) or qty_data.get('active', 0) or 0)
-
-    line_result = {'line_id': line_id, 'quantity': float(qty)}
-
-    # Recalc price.extended (sell-side lines)
-    if hasattr(line, 'price') and isinstance(line.price, dict):
-        unit_price = _d(line.price.get('unit', 0))
-        discount_pct = _d(line.price.get('discount_percent', 0))
-        gross = _d(qty * unit_price)
-        discount_amt = _d(gross * discount_pct / 100) if discount_pct else _d(line.price.get('discount_amount', 0))
-        extended = float(_d(gross - discount_amt))
-        line.price['discount_amount'] = float(discount_amt)
-        line.price['extended'] = extended
-        line_result['price_extended'] = extended
-
-    # Recalc cost.extended
-    if hasattr(line, 'cost') and isinstance(line.cost, dict):
-        unit_cost = _d(line.cost.get('unit', 0))
-        cost_discount_pct = _d(line.cost.get('discount_percent', 0))
-        gross_cost = _d(qty * unit_cost)
-        cost_discount_amt = _d(gross_cost * cost_discount_pct / 100) if cost_discount_pct else _d(line.cost.get('discount_amount', 0))
-        cost_extended = float(_d(gross_cost - cost_discount_amt))
-        line.cost['discount_amount'] = float(cost_discount_amt)
-        line.cost['extended'] = cost_extended
-        line_result['cost_extended'] = cost_extended
-
-    # Save the line
-    update_fields = []
+    # Save the line — ensure_json_defaults() recomputes all extended values
+    update_fields = ['cost']
     if hasattr(line, 'price'):
         update_fields.append('price')
-    if hasattr(line, 'cost'):
-        update_fields.append('cost')
-    if update_fields:
-        line.save(update_fields=update_fields)
+    line.save(update_fields=update_fields)
+
+    # Build result from the model's computed values
+    qty_data = getattr(line, 'quantity', None) or {}
+    qty = _d(qty_data.get('staged', 0) or qty_data.get('active', 0) or 0)
+    line_result = {'line_id': line_id, 'quantity': float(qty)}
+
+    if hasattr(line, 'price') and isinstance(line.price, dict):
+        line_result['price_extended'] = line.price.get('extended', 0)
+    if hasattr(line, 'cost') and isinstance(line.cost, dict):
+        line_result['cost_extended'] = line.cost.get('extended', 0)
 
     # Now recalculate parent totals
     parent = getattr(line, 'parent', None)
     if parent is None:
         return {'line': line_result, 'totals': None, 'message': 'No parent transaction found'}
 
-    # Determine parent model_name from the parent object
     parent_model_name = parent._meta.model_name
     parent_id = parent.pk
-
     totals_result = recalculate_totals(parent_id, parent_model_name)
 
     return {

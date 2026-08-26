@@ -15,9 +15,12 @@ def get_vendor_summary(params: dict = None) -> dict:
     active = Vendor.objects.filter(status='active').count()
 
     # Open purchase orders
-    open_pos = Purchase.objects.filter(is_active=True).aggregate(
+    from common.json_lookups import totals_total
+    open_pos = Purchase.objects.filter(is_active=True).annotate(
+        _total=totals_total(),
+    ).aggregate(
         count=Sum('id', default=0),
-        total=Sum('total', default=0),
+        total=Sum('_total', default=0),
     )
     po_count = Purchase.objects.filter(is_active=True).count()
     po_total = open_pos.get('total') or 0

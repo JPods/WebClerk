@@ -102,7 +102,7 @@ class InventoryCheck(BaseModel):
     catalog = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, null=True, blank=True, related_name='inventory_checks', db_column='catalog_id')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='inventory_checks', db_column='user_id')
     dt_performed = models.BigIntegerField(help_text="Epoch ms when the primary count occurred / was finalized")
-    status = models.CharField(max_length=20, choices=STATUSES, default=STATUS_PLANNED, db_index=True)
+    status = models.CharField(max_length=32, choices=STATUSES, default=STATUS_PLANNED, db_index=True)
     notes = models.TextField(blank=True)
     config = models.JSONField(default=dict, blank=True, help_text="Optional metadata envelope (device info, geo, method, etc.)")
 

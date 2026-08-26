@@ -4,36 +4,31 @@ SelectListCatalogView — scans all Settings for select list arrays.
 Returns a flat index of every options/choices array found in Settings,
 plus the Setting ID and path so the frontend can edit in place.
 
-Four config paths scanned:
-  - config.lists.<name>.choices          (purpose=wc:admin)
-  - config.behaviors.<field>.options     (purpose=wc:model)
-  - config.field_behaviors.<field>.options (purpose=wc:field_access)
-  - config.select_lists.<name>.options   (purpose=wc:company_profile)
+Three-tier inheritance (most specific wins):
+  1. Model-level:    Setting(parent_model=X, purpose='wc:model').config.selectlists
+  2. Category-level: record.config.selectlist_profile → Setting.config.selectlists
+  3. Record-level:   record.config.selectlists (inline on the record itself)
+
+Use ?model_name=&record_id= to get resolved lists for a specific record.
 """
-import json
+import logging
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from apps.core.models import Setting
 
+logger = logging.getLogger(__name__)
+
 
 def _extract_options(config: dict) -> list:
     """Walk a Setting config and extract all select list arrays.
 
-    Primary path: config.selectlists.<field> = [{value, label}]
-    Legacy fallback paths (read-only, for backward compat):
-      - config.behaviors.<field>.options
-      - config.field_behaviors.<field>.options
-      - config.lists.<name>.choices
-      - config.select_lists.<name>.options
+    Canonical path: config.selectlists.<field> = [{value, label}]
     """
     entries = []
     if not isinstance(config, dict):
         return entries
 
-    seen_fields = set()
-
-    # Primary: config.selectlists.<field> — canonical location
     selectlists = config.get('selectlists')
     if isinstance(selectlists, dict):
         for field, opts in selectlists.items():
@@ -44,84 +39,98 @@ def _extract_options(config: dict) -> list:
                     'options': opts,
                     'count': len(opts),
                 })
-                seen_fields.add(field)
-
-    # Legacy fallback: config.behaviors.<field>.options
-    behaviors = config.get('behaviors')
-    if isinstance(behaviors, dict):
-        for field, spec in behaviors.items():
-            if field in seen_fields:
-                continue
-            if isinstance(spec, dict):
-                options = spec.get('options')
-                if isinstance(options, list) and len(options) > 0:
-                    entries.append({
-                        'field': field,
-                        'path': f'behaviors.{field}.options',
-                        'options': options,
-                        'count': len(options),
-                    })
-                    seen_fields.add(field)
-
-    # Legacy fallback: config.field_behaviors.<field>.options
-    fb = config.get('field_behaviors')
-    if isinstance(fb, dict):
-        for field, spec in fb.items():
-            if field in seen_fields:
-                continue
-            if isinstance(spec, dict):
-                options = spec.get('options')
-                if isinstance(options, list) and len(options) > 0:
-                    entries.append({
-                        'field': field,
-                        'path': f'field_behaviors.{field}.options',
-                        'options': options,
-                        'count': len(options),
-                    })
-                    seen_fields.add(field)
-
-    # Legacy fallback: config.lists.<name>.choices
-    lists = config.get('lists')
-    if isinstance(lists, dict):
-        for name, lst in lists.items():
-            if name in seen_fields:
-                continue
-            if isinstance(lst, dict):
-                choices = lst.get('choices')
-                if isinstance(choices, list) and len(choices) > 0:
-                    entries.append({
-                        'field': name,
-                        'path': f'lists.{name}.choices',
-                        'options': choices,
-                        'count': len(choices),
-                    })
-                    seen_fields.add(name)
-
-    # Legacy fallback: config.select_lists.<name>.options
-    sl = config.get('select_lists')
-    if isinstance(sl, dict):
-        for name, spec in sl.items():
-            if name in seen_fields:
-                continue
-            if isinstance(spec, dict):
-                options = spec.get('options')
-                if isinstance(options, list) and len(options) > 0:
-                    entries.append({
-                        'field': name,
-                        'path': f'select_lists.{name}.options',
-                        'options': options,
-                        'count': len(options),
-                    })
-                    seen_fields.add(name)
 
     return entries
+
+
+def resolve_selectlists(model_name, record=None):
+    """Three-tier select list resolution.
+
+    Returns: {field: {options: [...], source: 'model'|'profile'|'record', source_detail: str}}
+
+    Tier 1 (model):    Setting(parent_model=model_name).config.selectlists
+    Tier 2 (profile):  record.config.selectlist_profile → Setting.config.selectlists
+    Tier 3 (record):   record.config.selectlists (inline)
+
+    Most specific wins per field.
+    """
+    merged = {}
+
+    # Tier 1: model-level Setting selectlists
+    model_settings = Setting.objects.filter(
+        parent_model=model_name, is_active=True,
+    ).only('id', 'ida', 'config')
+    for s in model_settings:
+        cfg = s.config if isinstance(s.config, dict) else {}
+        sl = cfg.get('selectlists')
+        if isinstance(sl, dict):
+            for field, opts in sl.items():
+                if isinstance(opts, list) and len(opts) > 0:
+                    merged[field] = {
+                        'options': opts,
+                        'source': 'model',
+                        'source_detail': f'Setting {s.ida} (id={s.id})',
+                    }
+
+    if not record:
+        return merged
+
+    # Get record config
+    record_config = getattr(record, 'config', None)
+    if not isinstance(record_config, dict):
+        return merged
+
+    # Tier 2: selectlist_profile → another Setting
+    profile = record_config.get('selectlist_profile')
+    if isinstance(profile, dict) and profile.get('id'):
+        try:
+            profile_setting = Setting.objects.only('id', 'ida', 'config').get(
+                id=profile['id'], is_active=True,
+            )
+            pcfg = profile_setting.config if isinstance(profile_setting.config, dict) else {}
+            sl = pcfg.get('selectlists')
+            if isinstance(sl, dict):
+                for field, opts in sl.items():
+                    if isinstance(opts, list) and len(opts) > 0:
+                        merged[field] = {
+                            'options': opts,
+                            'source': 'profile',
+                            'source_detail': f'Setting {profile_setting.ida} (id={profile_setting.id})',
+                        }
+        except Setting.DoesNotExist:
+            logger.warning("selectlist_profile points to missing Setting id=%s", profile.get('id'))
+
+    # Tier 3: record's own inline selectlists
+    record_sl = record_config.get('selectlists')
+    if isinstance(record_sl, dict):
+        for field, opts in record_sl.items():
+            if isinstance(opts, list) and len(opts) > 0:
+                merged[field] = {
+                    'options': opts,
+                    'source': 'record',
+                    'source_detail': f'record.config.selectlists.{field}',
+                }
+
+    return merged
 
 
 class SelectListCatalogView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        """Return flat index of all select lists found in Settings."""
+        """Return select lists — flat catalog or resolved for a specific record.
+
+        Without params: flat index of all select lists across Settings.
+        With ?model_name=&record_id=: three-tier resolved lists for that record.
+        """
+        model_name = request.query_params.get('model_name')
+        record_id = request.query_params.get('record_id')
+
+        # ── Resolved mode: three-tier for a specific record ──
+        if model_name and record_id:
+            return self._resolve_for_record(model_name, record_id)
+
+        # ── Catalog mode: flat index of all selectlists ──
         rows = []
         for s in Setting.objects.filter(is_active=True).only('id', 'ida', 'name', 'parent_model', 'purpose', 'config'):
             if not s.config or not isinstance(s.config, dict):
@@ -156,4 +165,28 @@ class SelectListCatalogView(APIView):
             'rows': rows,
             'total': len(rows),
             'unique_fields': len(field_groups),
+        })
+
+    def _resolve_for_record(self, model_name, record_id):
+        """Resolve three-tier selectlists for a specific record."""
+        from apps.core.constants.model_registry import get_model_meta
+
+        meta = get_model_meta(model_name)
+        if not meta:
+            return Response({'error': f'Unknown model: {model_name}'}, status=404)
+
+        try:
+            record = meta.model_class.objects.only('id', 'config').get(id=record_id)
+        except meta.model_class.DoesNotExist:
+            return Response({'error': f'{model_name} {record_id} not found'}, status=404)
+
+        merged = resolve_selectlists(model_name, record)
+
+        return Response({
+            'model_name': model_name,
+            'record_id': int(record_id),
+            'selectlists': {
+                field: info for field, info in merged.items()
+            },
+            'total': len(merged),
         })

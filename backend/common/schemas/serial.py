@@ -29,7 +29,7 @@ class SerialAction(BaseModel):
     """
     name: str = Field(..., description="Full sentence action name: 'Received on purchase order', 'Issued in invoice'")
     status_result: str = Field(..., description="Status the serial moves to after this action: available, received, reserved, issued, returned, referenced, warranty, damaged, scrapped")
-    document_type: str = Field("", description="Document type that triggers this action: order, invoice, purchase, work_order, or empty for manual")
+    document_type: str = Field("", description="Document type that triggers this action: order, invoice, purchase, workorder, or empty for manual")
     direction: str = Field("", description="Movement direction: inbound (receiving), outbound (shipping/issuing), internal (status change only), or empty")
     clears_customer: bool = Field(False, description="Whether this action clears customer assignment (returns, voids)")
     clears_vendor: bool = Field(False, description="Whether this action clears vendor assignment")
@@ -75,7 +75,7 @@ class SerialActionEntry(BaseModel):
     dt: int = Field(..., description="Unix timestamp (epoch ms) — UTC (Axiom 14)")
     status_before: Optional[str] = Field(None, description="Status before this action")
     status_after: str = Field(..., description="Status after this action")
-    doc_type: str = Field("", description="Document type: purchase, order, invoice, work_order, or empty")
+    doc_type: str = Field("", description="Document type: purchase, order, invoice, workorder, or empty")
     doc_id: Optional[int] = Field(None, description="Document ID that triggered this action")
     cost: Optional[float] = Field(None, description="Cost at time of action")
     price: Optional[float] = Field(None, description="Price at time of action")

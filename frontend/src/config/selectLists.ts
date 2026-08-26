@@ -364,14 +364,6 @@ export function getSelectOptions(key: string): SelectOption[] {
 }
 
 /**
- * Convert SelectOption[] to the legacy [value, label][] format
- * for backward compatibility with staticLists consumers.
- */
-export function toLegacyPairs(options: SelectOption[]): [string, string][] {
-  return options.map((o) => [o.value, o.label]);
-}
-
-/**
  * All editable (dynamic) list keys — used by sync to know what to push to wc3.
  */
 export function editableListKeys(): string[] {

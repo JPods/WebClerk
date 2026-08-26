@@ -140,6 +140,6 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Seeded search presets: created={created}, updated={updated}, transaction_models={len(transaction_models)}"
+                f"Seeded search presets: created={created}, updated={updated}, total={len(SEARCH_PRESETS)}"
             )
         )

@@ -17,7 +17,7 @@ refs = {
         "<role>": [{id, ...display_fields}],
     },
     "parents": [],            # Gantt parent IDs (actions)
-    "depends_on": {},         # Execution gating: {"action": [1,2], "work_order": [5]}
+    "depends_on": {},         # Execution gating: {"action": [1,2], "workorder": [5]}
     "related_ids": [],        # Generic related record IDs
 }
 ```

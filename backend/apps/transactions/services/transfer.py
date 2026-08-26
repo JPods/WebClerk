@@ -207,7 +207,7 @@ def _build_header_kwargs(
         for field in (
             "customer_id", "vendor_id", "manufacturer_id",
             "contact_id", "price_level",
-            "attention", "address_full", "email", "phone",
+            "attention",
             "terms", "terms_fk_id", "conditions_id", "conditions_description",
         ):
             val = getattr(source, field, None)

@@ -12,33 +12,15 @@ their logic genuinely differs per model.
 from __future__ import annotations
 import json
 import logging
-import subprocess
-import pathlib
 from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 from django.db.models.signals import post_save, pre_save, post_delete
-
-_ALLIE_CAPTURE = pathlib.Path.home() / "Allie" / "scripts" / "allie-capture.py"
-
-def _allie(event: str, message: str = "", data: dict | None = None):
-    """Fire-and-forget Allie event capture. Never raises, never blocks request cycle."""
-    if not _ALLIE_CAPTURE.exists():
-        return
-    try:
-        args = ["python3", str(_ALLIE_CAPTURE),
-                "--source", "webclerk3",
-                "--event",  event,
-                "--message", message]
-        if data:
-            args += ["--data", json.dumps(data)]
-        subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        pass
+from common.allie_capture import allie_capture as _allie
 from django.dispatch import receiver
 from apps.transactions.models import (
     ProposalLine, OrderLine, InvoiceLine, PurchaseLine, WorkOrderLine,
-    Proposal, Order, Invoice, Payment, Purchase,
+    Proposal, Order, Invoice, Payment, Purchase, WorkOrder,
 )
 from apps.transactions.services.email_notifications import TransactionEmailService
 
@@ -525,3 +507,52 @@ def bus_payment_saved(sender, instance, created, **kwargs):
                              'event': event, 'status': status})
     except Exception:
         pass
+
+
+# =============================================================================
+# ALICE AGGREGATE TRACKER — delta updates for dashboard Sum() queries
+# Replaces scalar shadow field aggregates with Alice-managed collections.
+# =============================================================================
+
+_AGGREGATE_MODELS = [
+    (Order, 'order'),
+    (Invoice, 'invoice'),
+    (Proposal, 'proposal'),
+    (Purchase, 'purchase'),
+    (WorkOrder, 'workorder'),
+]
+
+
+def _stash_old_totals(sender, instance, **kwargs):
+    """pre_save: stash current totals and status for delta computation."""
+    if instance.pk:
+        try:
+            old = sender.objects.filter(pk=instance.pk).values('totals', 'status').first()
+            if old:
+                instance._old_totals = old['totals'] or {}
+                instance._old_status = old['status'] or ''
+                return
+        except Exception:
+            pass
+    instance._old_totals = {}
+    instance._old_status = ''
+
+
+def _apply_aggregate_delta(sender, instance, **kwargs):
+    """post_save: apply delta to Alice's aggregate Setting."""
+    try:
+        from apps.ai_assistant.services.aggregate_tracker import apply_delta
+        model_name = sender._meta.model_name
+        old_totals = getattr(instance, '_old_totals', {})
+        new_totals = getattr(instance, 'totals', None) or {}
+        old_status = getattr(instance, '_old_status', '')
+        new_status = getattr(instance, 'status', '')
+        apply_delta(model_name, old_totals, new_totals, new_status, old_status)
+    except Exception:
+        logger.debug("Aggregate delta failed for %s #%s", sender.__name__,
+                     instance.pk, exc_info=True)
+
+
+for _agg_model, _agg_name in _AGGREGATE_MODELS:
+    pre_save.connect(_stash_old_totals, sender=_agg_model, weak=False)
+    post_save.connect(_apply_aggregate_delta, sender=_agg_model, weak=False)

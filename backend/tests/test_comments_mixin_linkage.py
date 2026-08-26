@@ -7,7 +7,7 @@ def test_comments_mixin_routes_to_linkage(django_user_model):
     from apps.core.models.setting import Setting
 
     # minimal permission for proposal
-    Setting.objects.create(purpose='wc:view_edit', parent_model='proposal', data={'USER': {'view':['id'], 'edit':['id']}})
+    Setting.objects.create(purpose='wc:view_edit', parent_model='proposal', config={'USER': {'view':['id'], 'edit':['id']}})
     prop = Proposal.objects.create(name='CMT-PROP')
     pl = ProposalLine.objects.create(proposal=prop, status='OPEN')
     # simulate linkage attachment

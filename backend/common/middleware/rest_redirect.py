@@ -22,7 +22,7 @@ Strategy:
 Related files:
   wc3  readmes/03-wcapi-gateway.md          – gateway overview & endpoint reference
   wc3  tests/test_rest_redirect.py           – 46 tests for this middleware
-  wc3  apps/core/services/wcapi_registry.py  – runtime model registry
+  wc3  apps/core/constants/model_registry.py  – canonical model registry
   r25  src/api/restToWcapi.ts                – client-side REST→wcapi converter
   r25  src/api/modelNameResolver.ts          – canonical model-name resolution
   r25  src/pages/tools/WhitelistTester.tsx    – interactive REST + wcapi tester

@@ -19,6 +19,8 @@ from typing import Optional
 
 from django.apps import apps as dj_apps
 from django.db import models
+from django.db.models.fields.json import KeyTextTransform
+from django.db.models.functions import Cast
 
 
 def _to_date(dt) -> Optional[date]:
@@ -188,7 +190,9 @@ def aged_receivables_report(
     open_orders_qs = Order.objects.filter(
         customer_id__in=org_ids,
         status__in=['planned', 'released', 'in_progress'],
-    ).values('customer_id').annotate(total=models.Sum('total'))
+    ).values('customer_id').annotate(
+        _total=Cast(KeyTextTransform('total', 'totals'), output_field=models.DecimalField(max_digits=18, decimal_places=6)),
+    ).annotate(total=models.Sum('_total'))
     open_orders_map = {
         row['customer_id']: Decimal(str(row['total'] or 0))
         for row in open_orders_qs

@@ -233,6 +233,27 @@ def _get_category_gl(category: str) -> str:
     return 'EXP-MISC-000'
 
 
+def _update_org_fx_metrics(org_id: int, fx_amount: float):
+    """Update org financial.fx gain/loss metrics after FX settlement.
+
+    fx_amount is signed: positive = gain, negative = loss.
+    Updates mtd, ytd, and alltime accumulators.
+    """
+    OrgBase = dj_apps.get_model('orgs', 'OrgBase')
+    org = OrgBase.objects.filter(pk=org_id).first()
+    if not org:
+        return
+    financial = org.financial if isinstance(org.financial, dict) else {}
+    fx = financial.get('fx', {})
+    if not isinstance(fx, dict):
+        fx = {}
+    fx['gain_loss_mtd'] = float(fx.get('gain_loss_mtd', 0)) + fx_amount
+    fx['gain_loss_ytd'] = float(fx.get('gain_loss_ytd', 0)) + fx_amount
+    fx['gain_loss_alltime'] = float(fx.get('gain_loss_alltime', 0)) + fx_amount
+    financial['fx'] = fx
+    OrgBase.objects.filter(pk=org_id).update(financial=financial)
+
+
 # Default fallback accounts
 DEFAULTS = {
     'ar': 'ASSET-AR-000',
@@ -241,6 +262,7 @@ DEFAULTS = {
     'revenue': 'REV-SALES-000',
     'cogs': 'COGS-PRODUCTS-000',
     'inventory': 'ASSET-INVENTORY-000',
+    'fx_gain_loss': 'OTHER-FXGAINLOSS-000',
 }
 
 
@@ -274,11 +296,19 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
 
     # Skip consignment invoices — revenue not yet earned (wc2 pattern).
     # Any invoice with status 'consigned' is skipped until status changes.
-    # User can compile a list of consigned items and values for tracking.
     inv_status = getattr(invoice, 'status', '') or ''
     if inv_status.lower() == 'consigned':
         return {'created': 0, 'status': 'skipped_consigned',
                 'error': 'Consigned invoice — revenue deferred until status changes'}
+
+    # Skip deferred invoices — revenue recognition delayed until dt_needed.
+    # dt_needed serves as the "recognize after" date for deferred revenue.
+    if inv_status.lower() == 'deferred':
+        dt_needed = getattr(invoice, 'dt_needed', None) or 0
+        if dt_needed > _now_ms():
+            return {'created': 0, 'status': 'skipped_deferred',
+                    'error': 'Deferred invoice — revenue not recognized until deferred date'}
+        # Date has passed — allow journalization to proceed
 
     # Guard against double-posting
     if GlJournal.objects.filter(source_id=invoice_id, source_model='invoice').exists():
@@ -358,8 +388,8 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
         return {'created': 0, 'error': 'No amounts to post'}
 
     # Verify balance — with FX rounding absorption for foreign currency
-    pricing = invoice.pricing if isinstance(getattr(invoice, 'pricing', None), dict) else {}
-    has_fx = bool(pricing.get('exchange_rate') and pricing.get('exchange_rate') != 1)
+    sell = invoice.sell if isinstance(getattr(invoice, 'sell', None), dict) else {}
+    has_fx = bool(sell.get('exchange_rate') and sell.get('exchange_rate') != 1)
     balance_check = _check_balance(postings, has_exchange_rate=has_fx)
     if not balance_check['balanced']:
         return {
@@ -555,7 +585,134 @@ def journalize_payment(payment_id: int, ida_prefix: str = '') -> dict:
             dt_modified=now,
         )
 
-    return {'created': created, 'postings': posting_list, 'payment_ida': payment.ida}
+    # FX settlement — if payment is against a foreign-currency invoice,
+    # compare the rate captured at invoice time to the current rate and
+    # post a GL entry for the gain/loss.
+    fx_result = None
+    invoice_id = getattr(payment, 'invoice_id', None)
+    if is_received and invoice_id:
+        try:
+            Invoice = dj_apps.get_model('transactions', 'Invoice')
+            invoice = Invoice.objects.get(pk=invoice_id)
+            sell = invoice.sell if isinstance(getattr(invoice, 'sell', None), dict) else {}
+            captured_rate = sell.get('exchange_rate')
+            currency = sell.get('exchange_currency')
+
+            if captured_rate and currency and captured_rate != 1:
+                from apps.accounts.services.exchange_rates import get_rate
+                current_rate = get_rate(currency)
+
+                if current_rate is not None:
+                    captured = Decimal(str(captured_rate))
+                    current = Decimal(str(float(current_rate)))
+
+                    if captured != current:
+                        # FX difference on the payment amount
+                        base_at_captured = abs_amount / captured if captured else abs_amount
+                        base_at_current = abs_amount / current if current else abs_amount
+                        fx_amount = (base_at_current - base_at_captured).quantize(Decimal('0.01'))
+
+                        if fx_amount != 0:
+                            direction = 'gain' if fx_amount > 0 else 'loss'
+                            fx_account = DEFAULTS['fx_gain_loss']
+
+                            # Post FX gain/loss GL entry
+                            fx_ida = f'{ida_prefix}FX-{payment.ida}' if ida_prefix else f'FX-{payment.ida}'
+
+                            if fx_amount > 0:
+                                # FX gain: debit AR (we received more value), credit FX gain/loss
+                                GlJournal.objects.create(
+                                    ida=f'{fx_ida}-{fx_account}',
+                                    account=fx_account,
+                                    debit=None,
+                                    credit=float(abs(fx_amount)),
+                                    source='automation',
+                                    type='general',
+                                    source_id=payment_id,
+                                    source_model='payment',
+                                    note=f'FX {direction}: {currency} {captured}→{current}',
+                                )
+                            else:
+                                # FX loss: debit FX gain/loss, credit AR (we received less value)
+                                GlJournal.objects.create(
+                                    ida=f'{fx_ida}-{fx_account}',
+                                    account=fx_account,
+                                    debit=float(abs(fx_amount)),
+                                    credit=None,
+                                    source='automation',
+                                    type='general',
+                                    source_id=payment_id,
+                                    source_model='payment',
+                                    note=f'FX {direction}: {currency} {captured}→{current}',
+                                )
+                            created += 1
+                            posting_list.append({
+                                'account': fx_account,
+                                'debit': float(abs(fx_amount)) if fx_amount < 0 else 0,
+                                'credit': float(abs(fx_amount)) if fx_amount > 0 else 0,
+                                'purpose': f'fx_{direction}',
+                            })
+
+                            # Document FX in the payment record
+                            pay_sell = payment.sell if isinstance(getattr(payment, 'sell', None), dict) else {}
+                            pay_sell['fx'] = {
+                                'captured_rate': float(captured),
+                                'current_rate': float(current),
+                                'currency': currency,
+                                'direction': direction,
+                                'amount': float(fx_amount),
+                                'invoice_id': invoice_id,
+                            }
+                            Payment.objects.filter(pk=payment_id).update(sell=pay_sell)
+
+                            fx_result = {
+                                'fx_amount': float(fx_amount),
+                                'direction': direction,
+                                'currency': currency,
+                                'captured_rate': float(captured),
+                                'current_rate': float(current),
+                            }
+
+                            # Auto-create Erosion record for FX loss
+                            if direction == 'loss':
+                                try:
+                                    from apps.accounts.services.erosion import _safe_decimal
+                                    Erosion = dj_apps.get_model('accounts', 'Erosion')
+                                    Erosion.objects.create(
+                                        category='fx_loss',
+                                        amount=abs(fx_amount),
+                                        org_id=getattr(invoice, 'customer_id', None),
+                                        contact_id=getattr(invoice, 'contact_id', None),
+                                        source_model='payment',
+                                        source_id=payment_id,
+                                        parent_model='invoice',
+                                        parent_id=invoice_id,
+                                        dt_event=timezone.now(),
+                                        notes=f'FX loss: {currency} rate {captured}→{current} on payment {payment.ida}',
+                                        is_auto=True,
+                                    )
+                                except Exception as e:
+                                    logger.warning('FX erosion record failed: %s', e)
+
+                            # Update org financial.fx metrics
+                            try:
+                                customer_id = getattr(invoice, 'customer_id', None)
+                                if customer_id:
+                                    _update_org_fx_metrics(customer_id, float(fx_amount))
+                            except Exception as e:
+                                logger.warning('Org FX metric update failed: %s', e)
+
+                            logger.info(
+                                'FX settlement: payment %s — %s %.2f (%s rate %.4f→%.4f)',
+                                payment_id, direction, abs(fx_amount), currency, captured, current,
+                            )
+        except Exception as e:
+            logger.warning('FX settlement check failed for payment %s: %s', payment_id, e)
+
+    result = {'created': created, 'postings': posting_list, 'payment_ida': payment.ida}
+    if fx_result:
+        result['fx'] = fx_result
+    return result
 
 
 def journalize_purchase(purchase_id: int, ida_prefix: str = '') -> dict:
@@ -619,8 +776,8 @@ def journalize_purchase(purchase_id: int, ida_prefix: str = '') -> dict:
         return {'created': 0, 'error': 'No amounts to post'}
 
     # Verify balance — purchases can have FX too
-    pricing = purchase.pricing if isinstance(getattr(purchase, 'pricing', None), dict) else {}
-    has_fx = bool(pricing.get('exchange_rate') and pricing.get('exchange_rate') != 1)
+    sell = purchase.sell if isinstance(getattr(purchase, 'sell', None), dict) else {}
+    has_fx = bool(sell.get('exchange_rate') and sell.get('exchange_rate') != 1)
     balance_check = _check_balance(postings, has_exchange_rate=has_fx)
     if not balance_check['balanced']:
         return {
@@ -786,7 +943,7 @@ def batch_journalize(ida_prefix: str = 'zzz-', run_by_id: int = None) -> dict:
             result['doc_type'] = doc_type
             result['doc_ida'] = doc_ida
             results['exceptions'].append(result)
-        elif status in ('skipped_hold', 'skipped_consigned', 'auto_completed'):
+        elif status in ('skipped_hold', 'skipped_consigned', 'skipped_deferred', 'auto_completed'):
             result['doc_type'] = doc_type
             result['doc_ida'] = doc_ida
             results['skipped'].append(result)

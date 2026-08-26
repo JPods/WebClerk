@@ -1,5 +1,8 @@
 """Canonical model registry keyed by singular model_name.
 
+Single source of truth for all model-name resolution in WC3.
+Replaces the former model_name_resolver.py and dashboard_counts local registry.
+
 Each entry describes:
  - model: dotted path to Django model class
  - human labels: singular/plural
@@ -17,8 +20,11 @@ Resolvers accept:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
+import logging
 import re
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -85,7 +91,7 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'tag': ModelMeta('tag', 'apps.docs.models.tag.Tag', 'Doc Tag', 'Doc Tags', 'doc-tags', kind='support', aliases=['tags']),
 
     # --- products --- (A->Z by key)
-    'item': ModelMeta('item', 'apps.products.models.item.Item', 'Item', 'Items', 'items', kind='support', aliases=['items']),
+    'item': ModelMeta('item', 'apps.products.models.item.Item', 'Item', 'Items', 'items', kind='support', aliases=['items', 'product']),
     'bill_of_material': ModelMeta('bill_of_material', 'apps.products.models.bill_of_material.BillOfMaterial', 'Bill Of Material', 'Bill Of Materials', 'bills-of-material', kind='support', aliases=['bill_of_materials', 'bill_of_material']),
     'catalog': ModelMeta('catalog', 'apps.products.models.catalog.Catalog', 'Catalog', 'Catalogs', 'catalogs', kind='support', aliases=['catalogs']),
     'delivery_line': ModelMeta('delivery_line', 'apps.products.models.flow.DeliveryLine', 'Delivery Line', 'Delivery Lines', 'delivery-lines', kind='support', aliases=['delivery_lines']),
@@ -113,10 +119,10 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'invoice_line': ModelMeta('invoice_line', 'apps.transactions.models.InvoiceLine', 'Invoice Line', 'Invoice Lines', 'invoice-lines', kind='line', aliases=['invoice_lines']),
     'project': ModelMeta('project', 'apps.transactions.models.project.Project', 'Project', 'Projects', 'projects', kind='support', aliases=['projects']),
     'project_association': ModelMeta('project_association', 'apps.transactions.models.project_links.ProjectAssociation', 'Project Association', 'Project Associations', 'project-associations', kind='support', aliases=['project_associations']),
-    'proposal': ModelMeta('proposal', 'apps.transactions.models.Proposal', 'Proposal', 'Proposals', 'proposals', kind='header', aliases=['proposals']),
-    'proposal_line': ModelMeta('proposal_line', 'apps.transactions.models.ProposalLine', 'Proposal Line', 'Proposal Lines', 'proposal-lines', kind='line', aliases=['proposal_lines']),
-    'purchase': ModelMeta('purchase', 'apps.transactions.models.Purchase', 'Purchase', 'Purchases', 'purchases', kind='header', aliases=['purchases']),
-    'purchase_line': ModelMeta('purchase_line', 'apps.transactions.models.PurchaseLine', 'Purchase Line', 'Purchase Lines', 'purchase-lines', kind='line', aliases=['purchase_lines']),
+    'proposal': ModelMeta('proposal', 'apps.transactions.models.Proposal', 'Proposal', 'Proposals', 'proposals', kind='header', aliases=['proposals', 'quote']),
+    'proposal_line': ModelMeta('proposal_line', 'apps.transactions.models.ProposalLine', 'Proposal Line', 'Proposal Lines', 'proposal-lines', kind='line', aliases=['proposal_lines', 'quoteline']),
+    'purchase': ModelMeta('purchase', 'apps.transactions.models.Purchase', 'Purchase', 'Purchases', 'purchases', kind='header', aliases=['purchases', 'po']),
+    'purchase_line': ModelMeta('purchase_line', 'apps.transactions.models.PurchaseLine', 'Purchase Line', 'Purchase Lines', 'purchase-lines', kind='line', aliases=['purchase_lines', 'poline']),
     # 'purchase_receipt': ModelMeta('purchase_receipt', 'apps.transactions.models.purchase_receipt.PurchaseReceipt', 'Purchase Receipt', 'Purchase Receipts', 'purchase-receipts', kind='support', aliases=['purchase_receipts']),  # model not yet created
     'requisition': ModelMeta(
         'requisition',
@@ -125,7 +131,7 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
         'Requisitions',
         'requisitions',
         kind='header',
-        aliases=['requisitions']  # TitleCase no longer needed; resolver normalizes it
+        aliases=['requisitions', 'req']
     ),
     'requisition_line': ModelMeta(
         'requisition_line',
@@ -134,7 +140,7 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
         'Requisition Lines',
         'requisition-lines',
         kind='line',
-        aliases=['requisition_lines', 'requisition-line', 'requisition-lines']  # minimal; rest auto-derived
+        aliases=['requisition_lines', 'requisition-line', 'requisition-lines', 'reqline']
     ),
     'pending_payment_application': ModelMeta('pending_payment_application', 'apps.transactions.models.pending_payment.PendingPaymentApplication', 'Pending Payment Application', 'Pending Payment Applications', 'pending-payment-applications', kind='support', aliases=['pending_payment_applications']),
     # Alice
@@ -143,8 +149,8 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'alice_coaching_log': ModelMeta('alice_coaching_log', 'apps.ai_assistant.models_alice.AliceCoachingLog', 'Alice Coaching Log', 'Alice Coaching Logs', 'alice-coaching-logs', kind='support', aliases=['alice_coaching_logs']),
     'order': ModelMeta('order', 'apps.transactions.models.Order', 'Order', 'Orders', 'orders', kind='header', aliases=['orders']),
     'order_line': ModelMeta('order_line', 'apps.transactions.models.OrderLine', 'Order Line', 'Order Lines', 'order-lines', kind='line', aliases=['order_lines']),
-    'work_order': ModelMeta('work_order', 'apps.transactions.models.WorkOrder', 'Work Order', 'Work Orders', 'work-orders', kind='header', aliases=['work_orders']),
-    'work_order_line': ModelMeta('work_order_line', 'apps.transactions.models.WorkOrderLine', 'Work Order Line', 'Work Order Lines', 'workorder-lines', kind='line', aliases=['work_order_lines']),
+    'workorder': ModelMeta('workorder', 'apps.transactions.models.WorkOrder', 'Work Order', 'Work Orders', 'workorders', kind='header', aliases=['workorders', 'wo', 'work']),
+    'workorder_line': ModelMeta('workorder_line', 'apps.transactions.models.WorkOrderLine', 'Work Order Line', 'Work Order Lines', 'workorder-lines', kind='line', aliases=['workorder_lines', 'woline']),
     'payment': ModelMeta('payment', 'apps.transactions.models.Payment', 'Payment', 'Payments', 'payments', kind='header', aliases=['payments']),
     'statement_line': ModelMeta('statement_line', 'apps.transactions.models.StatementLine', 'Statement Line', 'Statement Lines', 'statement-lines', kind='header', aliases=['statement_lines', 'statements']),
     'payment_application': ModelMeta('payment_application', 'apps.transactions.models.PaymentApplication', 'Payment Application', 'Payment Applications', 'payment-applications', kind='support', aliases=['payment_applications']),
@@ -225,9 +231,177 @@ def import_model(name: str):
 
 VALID_MODEL_NAMES: List[str] = list(MODEL_REGISTRY.keys())
 
+# --- Transaction type subset (for routing) ---
+TRANSACTION_TYPES = frozenset({
+    'order', 'invoice', 'purchase', 'proposal', 'workorder', 'requisition',
+})
+
+
+# --- Functions formerly in model_name_resolver.py ---
+
+def resolve_model_name(input_str: str, strict: bool = False) -> str:
+    """Resolve any name variant to canonical model_registry key.
+
+    Wrapper around get_model_meta that returns the key string
+    (or the normalized input as fallback when strict=False).
+    """
+    if not input_str:
+        raise ValueError('Model name is required')
+    meta = get_model_meta(input_str)
+    if meta:
+        return meta.key
+    if strict:
+        raise ValueError(f'Unknown model name: {input_str}')
+    norm = _normalize_token(input_str)
+    logger.warning(f'[resolve_model_name] Unknown model "{input_str}", using normalized: "{norm}"')
+    return norm
+
+
+def get_model_class(model_name: str):
+    """Return the Django model class for *model_name*, or None."""
+    return import_model(model_name)
+
+
+def model_name_to_url(model_name: str) -> str:
+    """Convert a canonical key to its kebab-case endpoint slug."""
+    meta = get_model_meta(model_name)
+    if meta:
+        return meta.endpoint
+    return model_name.replace('_', '-')
+
+
+def get_transaction_type(model_name: str) -> str:
+    """Return the base transaction type for routing, or the resolved name."""
+    resolved = resolve_model_name(model_name)
+    # Strip _line suffix to get header type
+    base = resolved.replace('_line', '')
+    return base if base in TRANSACTION_TYPES else resolved
+
+
+def parse_restful_path(path: str) -> Dict[str, Any]:
+    """Extract model_name and optional id from a RESTful URL path.
+
+    Handles patterns like:
+        /api/transactions/order/22
+        /transactions/purchase/detail/22
+        /api/invoice/22
+    """
+    segments = [s for s in path.strip('/').split('/') if s]
+
+    # Extract numeric segment as id
+    id_value: Optional[int] = None
+    numeric_indices = [i for i, s in enumerate(segments) if s.isdigit()]
+    if numeric_indices:
+        id_value = int(segments[numeric_indices[0]])
+        segments = [s for i, s in enumerate(segments) if i not in numeric_indices]
+
+    # Remove common URL noise
+    filtered = [s for s in segments if s.lower() not in ('api', 'wcapi', 'detail', 'list', 'edit', 'new')]
+
+    path_part = '/'.join(filtered)
+    model_name = resolve_model_name(path_part) if path_part else ''
+
+    result: Dict[str, Any] = {'model_name': model_name}
+    if id_value is not None:
+        result['id'] = id_value
+    return result
+
+
+def validate_model_name(model_name: str) -> bool:
+    """Return True if *model_name* resolves to a known registry entry."""
+    try:
+        resolve_model_name(model_name, strict=True)
+        return True
+    except ValueError:
+        return False
+
+
+# --- Compatibility layer (formerly in wcapi_registry.py) ---
+
+def get_model(model_key: str):
+    """Resolve a model class from a slug, canonical key, alias, or dotpath.
+
+    Tries the static MODEL_REGISTRY first, then falls back to scanning
+    Django's installed models for names not in the registry.
+    """
+    if not model_key:
+        return None
+    # 1) Try the static registry
+    cls = import_model(model_key)
+    if cls is not None:
+        return cls
+    # 2) Fallback: scan Django installed models by model_name
+    from django.apps import apps as django_apps
+    norm = _normalize_token(model_key)
+    for m in django_apps.get_models():
+        if m._meta.model_name == norm:
+            return m
+    # 3) Singularize and retry
+    singular = norm
+    if singular.endswith('ies'):
+        singular = singular[:-3] + 'y'
+    elif singular.endswith('ses'):
+        singular = singular[:-2]
+    elif singular.endswith('s'):
+        singular = singular[:-1]
+    if singular != norm:
+        for m in django_apps.get_models():
+            if m._meta.model_name == singular:
+                return m
+    # 4) Dotpath "app_label.ModelName"
+    if '.' in model_key:
+        try:
+            return django_apps.get_model(*model_key.rsplit('.', 1))
+        except Exception:
+            pass
+    return None
+
+
+def to_model_name(model_cls) -> Optional[str]:
+    """Return the Django model_name for a model class."""
+    try:
+        return model_cls._meta.model_name
+    except Exception:
+        return None
+
+
+def normalize_table_key(k: str) -> str:
+    """Normalize a table key (strip, lowercase, remove slashes)."""
+    return (k or '').strip().strip('/').lower()
+
+
+def _discover_allowed_keys():
+    from django.apps import apps as django_apps
+    keys = set()
+    for m in django_apps.get_models():
+        mn = m._meta.model_name
+        keys.add(mn)
+        if not mn.endswith('s'):
+            if mn.endswith('y'):
+                keys.add(mn[:-1] + 'ies')
+            else:
+                keys.add(mn + 's')
+    return sorted(keys)
+
+
+# Lazy — only computed when accessed
+_allowed_table_keys = None
+
+
+def get_allowed_table_keys():
+    global _allowed_table_keys
+    if _allowed_table_keys is None:
+        _allowed_table_keys = _discover_allowed_keys()
+    return _allowed_table_keys
+
+
 # Re-export helpers
 __all__ = [
     'ModelMeta', 'MODEL_REGISTRY',
     'get_model_meta', 'get_model_meta_by_endpoint', 'import_model',
-    'VALID_MODEL_NAMES',
+    'get_model_class', 'resolve_model_name', 'model_name_to_url',
+    'get_transaction_type', 'parse_restful_path', 'validate_model_name',
+    'VALID_MODEL_NAMES', 'TRANSACTION_TYPES',
+    'get_model', 'to_model_name', 'normalize_table_key',
+    'get_allowed_table_keys',
 ]

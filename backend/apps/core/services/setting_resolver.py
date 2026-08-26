@@ -4,8 +4,8 @@ Setting resolver — walks the scope hierarchy to find the effective setting.
 Precedence (most specific wins):
     user (contact_id) → role → org (org_id) → system
 
-For legacy purposes that have been consolidated into wc:model, the resolver
-transparently extracts the correct config section from the wc:model record.
+For purposes stored as sections within wc:model, the resolver
+extracts the correct config section from the wc:model record.
 
 Usage:
     from apps.core.services.setting_resolver import resolve_setting
@@ -26,7 +26,7 @@ from apps.core.models.setting import Setting
 
 logger = logging.getLogger("core.settings")
 
-# Legacy purposes now stored as sections within wc:model config
+# Purpose keys stored as sections within wc:model config
 _WC_MODEL_SECTIONS = {
     'wc:detail_layout': 'layout',
     'wc:schema_map': 'schema',
@@ -98,7 +98,7 @@ def resolve_setting(
         logger.debug("resolve_setting: system match id=%s for %s/%s", match.id, purpose, parent_model)
         return match.config
 
-    # 5. Legacy fallback — extract section from wc:model record
+    # 5. Extract section from wc:model record
     section_key = _WC_MODEL_SECTIONS.get(purpose)
     if section_key and parent_model:
         model_setting = Setting.objects.filter(
@@ -187,7 +187,7 @@ def resolve_setting_with_source(
     if match:
         return match.config, "system"
 
-    # Legacy fallback — extract section from wc:model record
+    # Extract section from wc:model record
     section_key = _WC_MODEL_SECTIONS.get(purpose)
     if section_key and parent_model:
         model_setting = Setting.objects.filter(

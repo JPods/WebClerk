@@ -12,6 +12,7 @@ import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 from django.db import models as dj_models
+from common.json_path import get_nested_value as _deep_get
 
 logger = logging.getLogger(__name__)
 
@@ -20,37 +21,9 @@ PLACEHOLDER_RE = re.compile(r'\{\{(\w+(?:\.\w+)*)\}\}')
 
 
 def _get_model_class(model_name: str):
-    """Resolve model class from slug via wcapi registry."""
-    from apps.core.services.wcapi_registry import get_model
+    """Resolve model class from slug via model registry."""
+    from apps.core.constants.model_registry import get_model
     return get_model(model_name)
-
-
-def _deep_get(obj, dotpath: str) -> Any:
-    """Walk a dot-separated path on an object or dict.
-
-    Handles: Django model fields, JSON dict fields, nested dicts.
-    Returns None if any segment is missing.
-    """
-    parts = dotpath.split('.')
-    current = obj
-    for part in parts:
-        if current is None:
-            return None
-        if isinstance(current, dict):
-            current = current.get(part)
-        elif hasattr(current, part):
-            val = getattr(current, part)
-            # If it's a FK, get the related object
-            if callable(val) and not isinstance(val, str):
-                try:
-                    current = val()
-                except Exception:
-                    current = None
-            else:
-                current = val
-        else:
-            return None
-    return current
 
 
 def _format_value(value: Any) -> str:

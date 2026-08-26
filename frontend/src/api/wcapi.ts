@@ -123,13 +123,91 @@ async function wcapiPost<T>(path: string, body: any): Promise<T> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// PJPV schema field metadata — cached in memory for the session
+// ---------------------------------------------------------------------------
+
+/**
+ * Field metadata from Pydantic schemas (served by /wcapi/_pjpv_fields/).
+ * Maps envelope.field → {widget, type, label, precision, ...}
+ */
+export type PjpvFieldMeta = {
+  type: string;
+  label: string;
+  widget: string;        // 'currency' | 'percent' | 'number' | 'text' | ...
+  precision?: number;
+  readonly?: boolean;
+  description?: string;
+  min?: number;
+  max?: number;
+  selectlist_key?: string;  // key into SELECT_LIST_MAP for select widgets
+};
+
+export type PjpvCatalog = Record<string, Record<string, PjpvFieldMeta>>;
+
+let _pjpvCache: PjpvCatalog | null = null;
+let _pjpvPromise: Promise<PjpvCatalog> | null = null;
+
+/**
+ * Fetch the full PJPV field catalog.  Cached — only one network call per
+ * session.  Returns {envelopeName: {fieldName: PjpvFieldMeta}}.
+ *
+ * The schema endpoint is public (AllowAny) so this works even before login.
+ */
+export async function getPjpvFieldsCatalog(): Promise<PjpvCatalog> {
+  if (_pjpvCache) return _pjpvCache;
+  if (_pjpvPromise) return _pjpvPromise;
+
+  _pjpvPromise = (async () => {
+    try {
+      // System dispatch endpoint — returns raw JSON, not ApiEnvelope
+      const res = await apiClient.get('/wcapi/_pjpv_fields/');
+      const data = res.data;
+      _pjpvCache = data?.envelopes || {};
+      return _pjpvCache!;
+    } catch (err) {
+      // Fallback: try /api/ prefix
+      try {
+        const res2 = await apiClient.get('/api/wcapi/_pjpv_fields/');
+        const data2 = res2.data;
+        _pjpvCache = data2?.envelopes || {};
+        return _pjpvCache!;
+      } catch {
+        console.warn('[PJPV] Schema endpoint unavailable — name-guessing only');
+        _pjpvCache = {};
+        return _pjpvCache;
+      }
+    } finally {
+      _pjpvPromise = null;
+    }
+  })();
+
+  return _pjpvPromise;
+}
+
+/**
+ * Build a flat lookup: "envelope.field" → PjpvFieldMeta from the catalog.
+ * Also includes bare field names for top-level matches.
+ */
+export function flattenPjpvCatalog(catalog: PjpvCatalog): Record<string, PjpvFieldMeta> {
+  const flat: Record<string, PjpvFieldMeta> = {};
+  for (const [envelope, fields] of Object.entries(catalog)) {
+    for (const [field, meta] of Object.entries(fields)) {
+      flat[`${envelope}.${field}`] = meta;
+      // Bare field name — first writer wins (envelope-qualified takes priority at lookup)
+      if (!flat[field]) flat[field] = meta;
+    }
+  }
+  return flat;
+}
+
 export async function getModelNames() {
-  return wcapiGet<ModelNamesPayload>("model_name/list/");
+  return wcapiGet<ModelNamesPayload>("_model_list/");
 }
 
 export async function getModelDetail(model_name: string) {
   const resolved = resolveModelName(model_name);
-  return wcapiGet<ModelDetailPayload>("model_name/detail/", {
+  return wcapiGet<ModelDetailPayload>("_model_detail/", {
     params: { model_name: resolved },
   });
 }
@@ -599,7 +677,7 @@ export async function getSearchPresets(
   const resolved = resolveModelName(model_name);
 
   const data = await wcapiGet<{ results: SearchPresetRecord[] }>(
-    "search-presets/",
+    "_search_presets/",
     { params: { model_name: resolved } },
   );
   return data.results || [];
@@ -715,6 +793,36 @@ export async function logRefsMismatch(payload: {
     await apiClient.post("/wcapi/_refs_mismatch/", payload);
   } catch (err) {
     console.warn("[wcapi.logRefsMismatch] Failed to log mismatch:", err);
+  }
+}
+
+/**
+ * Resolve three-tier selectlists for a specific record.
+ * Returns: {selectlists: {field: {options, source, source_detail}}, ...}
+ *
+ * Three-tier inheritance (most specific wins):
+ *   1. Model-level Setting selectlists
+ *   2. record.config.selectlist_profile → Setting selectlists
+ *   3. record.config.selectlists (inline on the record)
+ */
+export interface ResolvedSelectList {
+  options: { value: string; label: string }[];
+  source: 'model' | 'profile' | 'record';
+  source_detail: string;
+}
+
+export async function getResolvedSelectlists(
+  modelName: string,
+  recordId: number,
+): Promise<Record<string, ResolvedSelectList>> {
+  try {
+    const res = await apiClient.get('/wcapi/_selectlists/', {
+      params: { model_name: modelName, record_id: recordId },
+    });
+    const data = res.data;
+    return data?.selectlists ?? {};
+  } catch {
+    return {};
   }
 }
 

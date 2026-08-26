@@ -76,6 +76,20 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
 
     const config = report.config || {};
 
+    // URL-type report — opens a page
+    if (config.action === 'open_url' && config.url) {
+      window.open(config.url as string, '_blank');
+      return;
+    }
+
+    // Dialog-type report — emit custom event for parent to handle
+    if (config.action === 'import_vcard_dialog') {
+      window.dispatchEvent(new CustomEvent('wc:open-vcard-import', {
+        detail: { recordId: rec.id, modelName },
+      }));
+      return;
+    }
+
     // Action-type report — calls a manage action
     if (config.action) {
       const confirmMsg = config.confirm as string;
@@ -93,10 +107,25 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
       try {
         const result = await manageAction(config.action as string, params);
         const resData = result?.data?.data ?? result?.data ?? result;
-        const msg = resData?.error
-          ? `Error: ${resData.error}`
-          : `${report.name}: ${resData?.total_created ?? resData?.created ?? 0} GL entries created`;
-        dispatch(showToast({ message: msg, type: resData?.error ? 'error' : 'success' }));
+
+        // Download-type action — result contains file content
+        if (config.download && resData && !resData.error) {
+          const content = resData[config.download_field as string || 'vcard'] || resData.content || '';
+          const filename = resData.filename || `${report.name || 'export'}.${config.download_ext || 'txt'}`;
+          const mime = (config.download_mime as string) || 'text/vcard';
+          const blob = new Blob([content], { type: mime });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(a.href);
+          dispatch(showToast({ message: `Downloaded ${filename}`, type: 'success' }));
+        } else {
+          const msg = resData?.error
+            ? `Error: ${resData.error}`
+            : resData?.message || `${report.name}: done`;
+          dispatch(showToast({ message: msg, type: resData?.error ? 'error' : 'success' }));
+        }
         onWorkflowComplete?.(resData);
       } catch (e: any) {
         dispatch(showToast({ message: `${report.name} failed: ${e.message || e}`, type: 'error' }));

@@ -30,6 +30,7 @@ const DocumentsPanel = lazy(() => import('@/apps/common/components/panels/Docume
 const CommentsPanel = lazy(() => import('@/apps/common/components/panels/CommentsPanel'));
 const ProjectKanbanPanel = lazy(() => import('@/apps/common/components/panels/ProjectKanbanPanel'));
 const ProjectGanttPanel = lazy(() => import('@/apps/common/components/panels/ProjectGanttPanel'));
+const ProjectActionGantt = lazy(() => import('@/apps/common/components/panels/ProjectActionGantt'));
 const BomPanel = lazy(() => import('@/apps/products/components/BomPanel'));
 const SerialPanel = lazy(() => import('@/apps/products/components/SerialPanel'));
 const ProductListPanel = lazy(() => import('@/apps/products/components/ProductListPanel'));
@@ -94,6 +95,14 @@ const registry: Record<string, PanelRenderer> = {
   },
 
   gantt: (ctx) => {
+    // For projects: show action-level Gantt with dependencies + critical path
+    if (ctx.modelName === 'project' || ctx.modelName === 'tx_projects') {
+      return wrap(createElement(ProjectActionGantt, {
+        projectId: ctx.data.id,
+        projectName: ctx.data.name,
+      }));
+    }
+    // For contacts: show project-level timeline
     const contactId = ctx.modelName === 'contact' ? ctx.data.id : ctx.data.contact_id;
     if (!contactId) return placeholder('No contact linked');
     return wrap(createElement(ProjectGanttPanel, { contactId }));
@@ -242,6 +251,20 @@ export function registerPanel(content: string, renderer: PanelRenderer): void {
 // ── Default tab configs per model (used when layout JSON has no tabs section) ──
 
 export const DEFAULT_TABS: Record<string, Array<{ label: string; content: string }>> = {
+  // Project tabs — Setting record is source of truth (seed_detail_layouts.py).
+  // These are fallbacks only if no Setting exists.
+  project: [
+    { label: 'actions', content: 'actions' },
+    { label: 'gantt', content: 'gantt' },
+    { label: 'documents', content: 'documents' },
+    { label: 'notes', content: 'notes' },
+  ],
+  tx_projects: [
+    { label: 'actions', content: 'actions' },
+    { label: 'gantt', content: 'gantt' },
+    { label: 'documents', content: 'documents' },
+    { label: 'notes', content: 'notes' },
+  ],
   contact: [
     { label: 'Communications', content: 'communications' },
     { label: 'Actions', content: 'actions' },

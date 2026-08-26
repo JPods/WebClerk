@@ -65,7 +65,7 @@ def test_envelope_presence_core_endpoints(api_client):
     assert 'status' in bom_list2.json()
 
     # Universal API (wcapi) manage view should already be enveloped
-    manage_url = '/wcapi/manage/?model_name=contact'
+    manage_url = '/wcapi/_manage/?model_name=contact'
     manage_resp = api_client.get(manage_url)
     if manage_resp.status_code == 200:  # allow 200 only; other codes would still include status
         assert 'status' in manage_resp.json(), manage_resp.json()

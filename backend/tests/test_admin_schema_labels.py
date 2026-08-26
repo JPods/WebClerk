@@ -13,7 +13,7 @@ def test_schema_labels_mixin_rewrites_plain_field_list_headers():
     list_display = model_admin.get_list_display(request)
 
     assert callable(list_display[0])
-    assert getattr(list_display[0], "short_description", None) == "id"
+    assert getattr(list_display[0], "short_description", None) == "ida"
 
 
 def test_schema_labels_mixin_keeps_explicit_admin_methods():
@@ -22,7 +22,12 @@ def test_schema_labels_mixin_keeps_explicit_admin_methods():
 
     list_display = model_admin.get_list_display(request)
 
-    assert "totals_total" in list_display
+    # Verify the mixin preserves non-field entries (strings that are admin methods)
+    display_names = [
+        getattr(f, 'short_description', f) if callable(f) else f
+        for f in list_display
+    ]
+    assert "address_full" in display_names
 
 
 def test_schema_labels_mixin_sets_form_labels_to_field_names():

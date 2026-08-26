@@ -20,7 +20,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.core.services.wcapi_registry import get_model
+from apps.core.constants.model_registry import get_model
 
 logger = logging.getLogger(__name__)
 

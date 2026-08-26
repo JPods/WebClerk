@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
 
 from apps.core.services.role_filter import get_allowed_fields
+from common.json_path import get_nested_value, set_nested_value
 
 
 # =============================================================================
@@ -56,58 +57,6 @@ def is_field_allowed(field_path: str, allowed_fields: list) -> bool:
             return True
     
     return False
-
-
-def get_nested_value(data: dict, path: str) -> Any:
-    """
-    Get a value from nested dict using dotted path.
-    
-    Args:
-        data: Source dictionary
-        path: Dotted path like "totals.total"
-    
-    Returns:
-        Value at path, or None if not found
-    """
-    if not data or not path:
-        return None
-    
-    parts = path.split(".")
-    current = data
-    
-    for part in parts:
-        if not isinstance(current, dict):
-            return None
-        if part not in current:
-            return None
-        current = current[part]
-    
-    return current
-
-
-def set_nested_value(data: dict, path: str, value: Any) -> None:
-    """
-    Set a value in nested dict using dotted path.
-    
-    Creates intermediate dicts as needed.
-    
-    Args:
-        data: Target dictionary (modified in place)
-        path: Dotted path like "totals.total"
-        value: Value to set
-    """
-    if not path:
-        return
-    
-    parts = path.split(".")
-    current = data
-    
-    for part in parts[:-1]:
-        if part not in current:
-            current[part] = {}
-        current = current[part]
-    
-    current[parts[-1]] = value
 
 
 # =============================================================================

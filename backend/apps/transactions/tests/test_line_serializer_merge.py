@@ -21,6 +21,19 @@ def api_factory():
 
 
 @pytest.fixture
+def superuser(db):
+    """Create a superuser for request context."""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    user = User.objects.create_superuser(
+        email='merge-test@example.com', password='pass12345'
+    )
+    user.role = 'admin'
+    user.save(update_fields=['role'])
+    return user
+
+
+@pytest.fixture
 def test_item(db):
     """Create a test item for use in line tests."""
     return Item.objects.create(
@@ -47,7 +60,7 @@ def test_invoice(db):
 class TestOrderLineSerializerMerge:
     """Test JSON deep-merge behavior for OrderLineSerializer."""
 
-    def test_update_transferred_preserves_staged(self, api_factory, test_item, test_order):
+    def test_update_transferred_preserves_staged(self, api_factory, test_item, test_order, superuser):
         """PATCH with only transferred should preserve existing staged value."""
         # Create initial line
         line = OrderLine.objects.create(
@@ -59,7 +72,8 @@ class TestOrderLineSerializerMerge:
 
         # Simulate PATCH request context
         request = api_factory.patch('/fake/')
-        
+        request.user = superuser
+
         # Update only transferred
         serializer = OrderLineSerializer(
             instance=line,
@@ -76,7 +90,7 @@ class TestOrderLineSerializerMerge:
         # remaining should be recalculated by normalize_quantity_map
         assert updated_line.quantity["remaining"] == 5.0
 
-    def test_update_price_unit_preserves_extended(self, api_factory, test_item, test_order):
+    def test_update_price_unit_preserves_extended(self, api_factory, test_item, test_order, superuser):
         """PATCH with only price.unit should preserve existing price keys."""
         line = OrderLine.objects.create(
             order=test_order,
@@ -86,7 +100,8 @@ class TestOrderLineSerializerMerge:
         )
 
         request = api_factory.patch('/fake/')
-        
+        request.user = superuser
+
         serializer = OrderLineSerializer(
             instance=line,
             data={"price": {"unit": 150}},
@@ -100,7 +115,7 @@ class TestOrderLineSerializerMerge:
         assert updated_line.price["unit"] == 150
         assert updated_line.price["discount_percent"] == 10
 
-    def test_update_item_description_preserves_item_id(self, api_factory, test_item, test_order):
+    def test_update_item_description_preserves_item_id(self, api_factory, test_item, test_order, superuser):
         """PATCH with only item.description should preserve existing item_id."""
         line = OrderLine.objects.create(
             order=test_order,
@@ -110,7 +125,8 @@ class TestOrderLineSerializerMerge:
         )
 
         request = api_factory.patch('/fake/')
-        
+        request.user = superuser
+
         serializer = OrderLineSerializer(
             instance=line,
             data={"item": {"description": "Updated Desc"}},
@@ -129,7 +145,7 @@ class TestOrderLineSerializerMerge:
 class TestInvoiceLineSerializerMerge:
     """Test JSON deep-merge behavior for InvoiceLineSerializer."""
 
-    def test_invoice_remaining_always_zero(self, api_factory, test_item, test_invoice):
+    def test_invoice_remaining_always_zero(self, api_factory, test_item, test_invoice, superuser):
         """Invoice lines should always have remaining = 0 after any update."""
         line = InvoiceLine.objects.create(
             invoice=test_invoice,
@@ -139,7 +155,8 @@ class TestInvoiceLineSerializerMerge:
         )
 
         request = api_factory.patch('/fake/')
-        
+        request.user = superuser
+
         serializer = InvoiceLineSerializer(
             instance=line,
             data={"quantity": {"transferred": 5}},

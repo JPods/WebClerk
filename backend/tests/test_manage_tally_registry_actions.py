@@ -32,7 +32,7 @@ def test_get_tally_report_registry_lists_named_reports(client):
     client.force_login(user)
 
     resp = client.post(
-        "/wcapi/manage/",
+        "/wcapi/_manage/",
         data={
             "action": "get_tally_report_registry",
             "params": {},
@@ -60,7 +60,7 @@ def test_execute_tally_report_by_key(client):
     invoice.save(update_fields=["dt_created"])
 
     resp = client.post(
-        "/wcapi/manage/",
+        "/wcapi/_manage/",
         data={
             "action": "execute_tally_report",
             "params": {
@@ -91,7 +91,7 @@ def test_export_tally_report_csv(client):
     invoice.save(update_fields=["dt_created"])
 
     resp = client.post(
-        "/wcapi/manage/",
+        "/wcapi/_manage/",
         data={
             "action": "export_tally_report",
             "params": {

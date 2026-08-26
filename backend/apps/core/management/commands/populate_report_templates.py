@@ -515,13 +515,13 @@ class Command(BaseCommand):
                     cfg["pdfme_template"] = build_statement_template()
                     stats["generated"] += 1
                 elif model in ("invoice", "order", "proposal", "purchase",
-                               "receipt", "requisition", "workorder", "work_order"):
+                               "receipt", "requisition", "workorder"):
                     # Transaction document
                     title_map = {
                         "invoice": "Invoice", "order": "Order",
                         "proposal": "Proposal", "purchase": "Purchase Order",
                         "receipt": "Receipt", "requisition": "Requisition",
-                        "workorder": "Work Order", "work_order": "Work Order",
+                        "workorder": "Work Order",
                     }
                     doc_title = title_map.get(model, name)
                     # Use report name if it's more specific than the generic

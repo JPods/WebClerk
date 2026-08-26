@@ -38,7 +38,7 @@ Key methods:
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from django.utils import timezone
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional, Dict, Any
@@ -278,10 +278,11 @@ def update_org_balances(org: 'OrgBase', save: bool = True) -> Dict[str, Any]:
         # Open orders exposure
         try:
             Order = dj_apps.get_model('transactions', 'Order')
+            from common.json_lookups import totals_total
             open_order_total = Order.objects.filter(
                 customer_id=org_id,
                 status__in=['planned', 'released', 'in_progress'],
-            ).aggregate(total=models.Sum('total'))['total'] or Decimal('0')
+            ).annotate(_total=totals_total()).aggregate(total=models.Sum('_total'))['total'] or Decimal('0')
             role_financial['open_orders'] = float(open_order_total)
             avail_pay = role_financial.get('available_payments', 0)
             role_financial['total_exposure'] = float(buckets['total']) + float(open_order_total) - avail_pay

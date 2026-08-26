@@ -25,6 +25,12 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	heterogeneous data per org_type. Proxies provide ergonomic type scoping.
 	"""
 
+	# Fields snapshot into refs.links when this model appears in another
+	# record's denormalized links.  Authoritative — denorm_registry falls
+	# back to this when present.  All org-role keys (customer, vendor,
+	# manufacturer, rep, employee) resolve here.
+	DENORM_FIELDS = ["ida", "display_name", "email", "phone", "address_full", "attention", "status"]
+
 	feature_flags = BaseModel.feature_flags | {"org", "stats", "relationship_stats"}
 
 	# Per-aspect item count soft limits (govern snapshot size). Tune as needed.
@@ -58,15 +64,11 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 
 	attention = models.CharField(max_length=255, blank=True, null=True)  # optional attention line for mailing
 	address_id = models.IntegerField(blank=True, null=True)  # optional FK to an Address record for the primary address
-	address_full = models.CharField(max_length=500, blank=True, null=True)  # optional denormalized full address for quick display/search
 	email = models.EmailField(blank=True, null=True)  # optional primary email (could be denormalized from emails aspect)
 	email_id = models.IntegerField(blank=True, null=True)  # optional FK to an Email record for the primary email
 	phone_id = models.IntegerField(blank=True, null=True)  # optional FK to a Phone record for the primary phone
-	phone = models.CharField(max_length=50, blank=True, null=True)  # optional primary phone (could be denormalized from phones aspect)
-	# New alias property: prefer `company` in code, `display_name` remains the DB column until an explicit migration is performed.
-	# Keep `display_name` as the actual DB-backed field for now for smooth migrations; provide a `company` property to use in code.
-	domain = models.CharField(max_length=255, blank=True, null=True)  # optional primary domain (could be denormalized from domains aspect)
 	domain_id = models.IntegerField(blank=True, null=True)  # optional FK to a Domain record for the primary domain
+	# address_full, phone, domain removed — read from FK pointer records (PJPV)
 	price_level = models.CharField(max_length=30, blank=True, null=True)  # e.g. retail, wholesale; optional for future use
 	terms = models.CharField(max_length=30, blank=True, null=True)  # e.g. retail, wholesale; optional for future use
 	terms_fk = models.ForeignKey(
@@ -75,7 +77,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		db_column='terms_id', related_name='orgs_with_terms',
 	)
 	status = models.CharField(
-		max_length=30,
+		max_length=32,
 		blank=True,
 		choices=ORG_STATUS_CHOICES,
 		db_index=True,
@@ -90,16 +92,40 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	def company(self, value: str) -> None:
 		setattr(self, 'display_name', value)
 
+	@property
+	def address_full(self):
+		"""Read from primary address record via FK pointer."""
+		if self.address_id:
+			from apps.communications.models import Address
+			addr = Address.objects.filter(pk=self.address_id).values_list('full', flat=True).first()
+			return addr or ''
+		return ''
+
+	@property
+	def phone(self):
+		"""Read from primary phone record via FK pointer."""
+		if self.phone_id:
+			from apps.communications.models import Phone
+			ph = Phone.objects.filter(pk=self.phone_id).values_list('number', flat=True).first()
+			return ph or ''
+		return ''
+
+	@property
+	def domain(self):
+		"""Read from primary domain record via FK pointer."""
+		if self.domain_id:
+			from apps.communications.models import Domain
+			dom = Domain.objects.filter(pk=self.domain_id).values_list('path', flat=True).first()
+			return dom or ''
+		return ''
+
 	def __repr__(self) -> str:
 		"""Dev-friendly repr showing key value pairs for data cleanup."""
 		pairs = [
 			f"id={self.pk}",
 			f"display_name={self.display_name!r}",
 			f"attention={self.attention!r}",
-			f"phone={self.phone!r}",
 			f"email={self.email!r}",
-			f"address_full={self.address_full!r}",
-			f"domain={self.domain!r}",
 		]
 		return f"<OrgBase({', '.join(pairs)})>"
 

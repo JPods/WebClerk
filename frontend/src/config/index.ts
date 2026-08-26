@@ -36,7 +36,6 @@ export {
   SELECT_LIST_MAP,
   getSelectList,
   getSelectOptions,
-  toLegacyPairs,
   editableListKeys,
   type SelectOption,
   type SelectListDef,

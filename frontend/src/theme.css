@@ -1,0 +1,231 @@
+/* ==========================================================================
+   WC3 Unified Theme — Single source of truth for all --db-* variables.
+
+   Every component (DataGrid, DataBrowser, CommerceDashboard, JsonViewer,
+   Gantt, Kanban, ActionsPanel, panels, cards, fields) reads from these
+   variables. No component may re-declare --db-* variables locally.
+
+   Two themes: light (default) and dark (.dark class on :root).
+
+   Usage:
+     color: var(--db-text);
+     background: var(--db-surface);
+     border: 1px solid var(--db-border);
+
+   Convention:
+     --db-bg          Page background
+     --db-surface     Card/panel background (1 level up from bg)
+     --db-surface-alt Alternate surface (striped rows, secondary panels)
+     --db-border      Primary border
+     --db-border-light Subtle border (inner dividers)
+     --db-text        Primary text
+     --db-text-muted  Secondary text (labels, timestamps)
+     --db-text-dim    Tertiary text (placeholders, disabled)
+     --db-accent      Primary action color (links, buttons)
+     --db-accent-*    Semantic accents (green, gold, red, purple)
+     --db-row-*       Row states (hover, checked, selected)
+     --db-input-*     Form inputs
+     --db-badge-*     Status badges
+
+   LastChecked: 2026-08-24 | WhoCreated: Bill+Claude
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Light Theme (default)
+   --------------------------------------------------------------------------- */
+:root {
+  /* Backgrounds */
+  --db-bg: #f8f9fa;
+  --db-surface: #ffffff;
+  --db-surface-alt: #f1f3f5;
+
+  /* Borders */
+  --db-border: #dee2e6;
+  --db-border-light: #e9ecef;
+
+  /* Text */
+  --db-text: #212529;
+  --db-text-muted: #6c757d;
+  --db-text-dim: #adb5bd;
+
+  /* Accents */
+  --db-accent: #0d6efd;
+  --db-accent-green: #198754;
+  --db-accent-gold: #fd7e14;
+  --db-accent-red: #dc3545;
+  --db-accent-purple: #6f42c1;
+  --db-accent-cyan: #0dcaf0;
+
+  /* Row states */
+  --db-row-hover: #e9ecef;
+  --db-row-checked: #fff3cd;
+  --db-row-selected: #cfe2ff;
+
+  /* Inputs */
+  --db-input-bg: #ffffff;
+  --db-input-border: #ced4da;
+  --db-input-focus: #86b7fe;
+  --db-input-disabled-bg: #e9ecef;
+
+  /* Badges */
+  --db-badge-green-bg: #d1e7dd;
+  --db-badge-green-text: #0f5132;
+  --db-badge-gold-bg: #fff3cd;
+  --db-badge-gold-text: #664d03;
+  --db-badge-red-bg: #f8d7da;
+  --db-badge-red-text: #842029;
+  --db-badge-blue-bg: #cfe2ff;
+  --db-badge-blue-text: #084298;
+  --db-badge-muted-bg: #e9ecef;
+  --db-badge-muted-text: #6c757d;
+
+  /* Buttons */
+  --db-btn-bg: #ffffff;
+  --db-btn-text: #212529;
+  --db-btn-border: #dee2e6;
+  --db-btn-hover: #e9ecef;
+  --db-btn-primary: #0d6efd;
+  --db-btn-primary-text: #ffffff;
+  --db-btn-primary-hover: #0b5ed7;
+  --db-btn-save: #198754;
+  --db-btn-save-text: #ffffff;
+  --db-btn-save-border: #157347;
+  --db-btn-save-hover: #146c43;
+  --db-btn-danger: #dc3545;
+  --db-btn-danger-text: #ffffff;
+  --db-btn-danger-border: #dc3545;
+  --db-btn-danger-hover: #bb2d3b;
+  --db-btn-outline: transparent;
+  --db-btn-outline-text: #6c757d;
+  --db-btn-outline-border: #dee2e6;
+  --db-btn-outline-hover: #f1f3f5;
+  --db-btn-disabled-bg: #e9ecef;
+  --db-btn-disabled-text: #adb5bd;
+
+  /* Row active (keyboard/selection) */
+  --db-row-active: #cfe2ff;
+
+  /* Resize handle */
+  --db-resize-handle: #0d6efd;
+
+  /* Scrollbar */
+  --db-scrollbar-track: #f1f3f5;
+  --db-scrollbar-thumb: #ced4da;
+
+  /* Overlay */
+  --db-overlay: rgba(0, 0, 0, 0.3);
+  --db-spinner-overlay: rgba(255, 255, 255, 0.5);
+
+  /* Header */
+  --db-header-bg: #f8f9fa;
+  --db-header-text: #495057;
+  --db-header-border: #dee2e6;
+
+  /* Sidebar */
+  --db-sidebar-bg: #ffffff;
+  --db-sidebar-hover: #e9ecef;
+  --db-sidebar-active: #cfe2ff;
+  --db-sidebar-text: #495057;
+  --db-sidebar-text-muted: #adb5bd;
+}
+
+
+/* ---------------------------------------------------------------------------
+   Dark Theme
+   --------------------------------------------------------------------------- */
+:root[data-theme="dark"],
+:root.dark {
+  /* Backgrounds */
+  --db-bg: #1e1e1e;
+  --db-surface: #252526;
+  --db-surface-alt: #2d2d2d;
+
+  /* Borders */
+  --db-border: #3c3c3c;
+  --db-border-light: #4d4d4d;
+
+  /* Text */
+  --db-text: #d4d4d4;
+  --db-text-muted: #a0a0a0;
+  --db-text-dim: #787878;
+
+  /* Accents */
+  --db-accent: #9cdcfe;
+  --db-accent-green: #4ec98c;
+  --db-accent-gold: #e8c870;
+  --db-accent-red: #f87171;
+  --db-accent-purple: #c084fc;
+  --db-accent-cyan: #67e8f9;
+
+  /* Row states */
+  --db-row-hover: #2a2d2e;
+  --db-row-checked: #3d3520;
+  --db-row-selected: #1e3a5c;
+
+  /* Inputs */
+  --db-input-bg: #3c3c3c;
+  --db-input-border: #4d4d4d;
+  --db-input-focus: #9cdcfe;
+  --db-input-disabled-bg: #2d2d2d;
+
+  /* Badges */
+  --db-badge-green-bg: rgba(22, 101, 52, 0.3);
+  --db-badge-green-text: #4ade80;
+  --db-badge-gold-bg: rgba(146, 64, 14, 0.3);
+  --db-badge-gold-text: #fbbf24;
+  --db-badge-red-bg: rgba(153, 27, 27, 0.3);
+  --db-badge-red-text: #f87171;
+  --db-badge-blue-bg: rgba(30, 64, 175, 0.3);
+  --db-badge-blue-text: #60a5fa;
+  --db-badge-muted-bg: #3c3c3c;
+  --db-badge-muted-text: #a0a0a0;
+
+  /* Buttons */
+  --db-btn-bg: #2d2d2d;
+  --db-btn-text: #d4d4d4;
+  --db-btn-border: #4d4d4d;
+  --db-btn-hover: #3c3c3c;
+  --db-btn-primary: #0e639c;
+  --db-btn-primary-text: #ffffff;
+  --db-btn-primary-hover: #1177bb;
+  --db-btn-save: #1a6b2e;
+  --db-btn-save-text: #ffffff;
+  --db-btn-save-border: #2f8f45;
+  --db-btn-save-hover: #238c3c;
+  --db-btn-danger: #6b1a1a;
+  --db-btn-danger-text: #f87171;
+  --db-btn-danger-border: #964040;
+  --db-btn-danger-hover: #7f2222;
+  --db-btn-outline: transparent;
+  --db-btn-outline-text: #a0a0a0;
+  --db-btn-outline-border: #4d4d4d;
+  --db-btn-outline-hover: #3c3c3c;
+  --db-btn-disabled-bg: #2d2d2d;
+  --db-btn-disabled-text: #787878;
+
+  /* Row active (keyboard/selection) */
+  --db-row-active: #094771;
+
+  /* Resize handle */
+  --db-resize-handle: #4a9eff;
+
+  /* Scrollbar */
+  --db-scrollbar-track: #2d2d2d;
+  --db-scrollbar-thumb: #555;
+
+  /* Overlay */
+  --db-overlay: rgba(0, 0, 0, 0.6);
+  --db-spinner-overlay: rgba(30, 30, 30, 0.5);
+
+  /* Header */
+  --db-header-bg: #252526;
+  --db-header-text: #d4d4d4;
+  --db-header-border: #3c3c3c;
+
+  /* Sidebar */
+  --db-sidebar-bg: #252526;
+  --db-sidebar-hover: #2d2d2d;
+  --db-sidebar-active: #1e3a5c;
+  --db-sidebar-text: #d4d4d4;
+  --db-sidebar-text-muted: #787878;
+}

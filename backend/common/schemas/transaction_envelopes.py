@@ -820,7 +820,7 @@ class OrgAddress(BaseModel):
     type: Optional[str] = Field(
         None, title="Type",
         description="billing, shipping, office, warehouse, other",
-        json_schema_extra={'widget': 'select'},
+        json_schema_extra={'widget': 'select', 'selectlist_key': 'address_type'},
     )
     address1: Optional[str] = Field(None, title="Address 1", json_schema_extra={'widget': 'text'})
     address2: Optional[str] = Field(None, title="Address 2", json_schema_extra={'widget': 'text'})
@@ -885,6 +885,98 @@ class OrgDomain(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════
+# Transaction Shipping — logistics envelope (not the dollar amount; that's totals.shipping)
+# ═══════════════════════════════════════════════════════════════════════
+
+class TransactionShipping(BaseModel):
+    """Shipping logistics — carrier, tracking, costs, weight, fulfillment status.
+
+    packages[] is the operational array (LoadTag/LoadItem from WC2) but is not
+    schema-declared here — it's a variable-length nested structure. Only the
+    header-level summary fields are in this schema for PJPV display.
+    """
+    status: str = Field(
+        '', title="Status",
+        description="Fulfillment status: partial, shipped, delivered",
+        json_schema_extra={'widget': 'select', 'selectlist_key': 'shipping_status'},
+    )
+    carrier: str = Field(
+        '', title="Carrier",
+        description="UPS, FedEx, USPS, freight, etc.",
+        json_schema_extra={'widget': 'select', 'selectlist_key': 'shipping_carrier'},
+    )
+    carrier_account: str = Field(
+        '', title="Carrier Account",
+        description="Carrier account number for third-party billing",
+        json_schema_extra={'widget': 'text'},
+    )
+    service: str = Field(
+        '', title="Service",
+        description="Ground, 2Day, NextDay, etc.",
+        json_schema_extra={'widget': 'select', 'selectlist_key': 'shipping_service'},
+    )
+    package_count: int = Field(
+        0, ge=0, title="Package Count",
+        description="Number of packages in this shipment",
+        json_schema_extra={'widget': 'number'},
+    )
+    freight: float = Field(
+        0.0, ge=0, title="Freight",
+        description="Base carrier freight cost",
+        json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
+    fuel_surcharge: float = Field(
+        0.0, ge=0, title="Fuel Surcharge",
+        json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
+    insurance: float = Field(
+        0.0, ge=0, title="Insurance",
+        json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
+    handling: float = Field(
+        0.0, ge=0, title="Handling",
+        json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
+    estimated: float = Field(
+        0.0, ge=0, title="Estimated",
+        description="Pre-ship estimate",
+        json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
+    actual: float = Field(
+        0.0, ge=0, title="Actual",
+        description="What we paid the carrier",
+        json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
+    customer_charge: float = Field(
+        0.0, ge=0, title="Customer Charge",
+        description="What we charge the customer (mirrors totals.shipping)",
+        json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
+    gross_weight: float = Field(
+        0.0, ge=0, title="Gross Weight",
+        json_schema_extra={'widget': 'number', 'precision': 1},
+    )
+    weight_unit: str = Field(
+        'lbs', title="Weight Unit",
+        json_schema_extra={'widget': 'select', 'selectlist_key': 'weight_unit'},
+    )
+    dt_shipped: str = Field(
+        '', title="Date Shipped",
+        description="When last package shipped (ISO 8601 UTC)",
+        json_schema_extra={'widget': 'date'},
+    )
+    dt_delivered: str = Field(
+        '', title="Date Delivered",
+        description="Carrier delivery confirmation (ISO 8601 UTC)",
+        json_schema_extra={'widget': 'date'},
+    )
+    notes: str = Field(
+        '', title="Notes",
+        json_schema_extra={'widget': 'textarea'},
+    )
+
+
 # Schema → LEAF_BEHAVIORS bridge
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -895,6 +987,7 @@ ENVELOPE_SCHEMA_MAP = {
     # Transaction header envelopes
     'totals': TransactionTotals,
     'finance': TransactionFinance,
+    'shipping': TransactionShipping,
     # Line-level envelopes
     'quantity': LineQuantity,
     'price': LinePrice,
@@ -945,6 +1038,8 @@ def schema_to_leaf_behaviors(schema_cls: type[BaseModel]) -> dict:
             entry['readonly'] = True
         if field_info.description:
             entry['description'] = field_info.description
+        if 'selectlist_key' in extra:
+            entry['selectlist_key'] = extra['selectlist_key']
         behaviors[name] = entry
     return behaviors
 

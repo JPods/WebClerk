@@ -62,7 +62,7 @@ PANEL_COLUMNS = {
         f('cost', width=80, align='right', format='currency'),
         f('extended', width=90, align='right', format='currency'),
     ],
-    'work_order_line': [
+    'workorder_line': [
         f('ida', width=70),
         f('item_code', width=100),
         f('description', width=200),
@@ -133,7 +133,7 @@ PANEL_COLUMNS = {
         f('total', width=90, align='right', format='currency'),
         f('dt_created', width=90, format='date'),
     ],
-    'work_order': [
+    'workorder': [
         f('ida', width=80),
         f('status', width=70),
         f('total', width=90, align='right', format='currency'),

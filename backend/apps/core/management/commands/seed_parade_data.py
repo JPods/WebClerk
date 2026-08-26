@@ -383,7 +383,7 @@ def _customize_for_report(base_data: dict, report_name: str, model_name: str) ->
             data["_list_mode"] = True
 
     # ── Work order ──
-    elif model_name in ("work_order", "workorder"):
+    elif model_name in ("workorder",):
         data = {
             "ida": "WO-2026-0389",
             "status": "in_progress",
@@ -617,7 +617,6 @@ def _load_base(model_name: str) -> dict | None:
         "vendor": "contact",
         "invoice_line": "invoice",
         "order_line": "order",
-        "work_order": "order",
         "workorder": "order",
         "inventory": "item",
         "inventory_layer": "item",

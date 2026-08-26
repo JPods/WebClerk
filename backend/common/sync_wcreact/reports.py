@@ -437,9 +437,9 @@ REPORT_DEFS: dict[str, list[dict]] = {
     ],
 
     # ===================================================================
-    # WORK ORDER reports (new-style model_name='work_order')
+    # WORK ORDER reports (new-style model_name='workorder')
     # ===================================================================
-    "work_order": [
+    "workorder": [
         {"name": "Work Order",                     "description": "Print work order form",                             "output_type": "print",  "category": "report",  "sort_order": 10},
         {"name": "Service Report",                 "description": "Service report from work order",                    "output_type": "print",  "category": "report",  "sort_order": 20},
         {"name": "Time & Materials Summary",       "description": "Time and materials summary for work order",        "output_type": "print",  "category": "summary", "sort_order": 30},

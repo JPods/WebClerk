@@ -49,7 +49,7 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
     { key: 'convert_order_to_purchase', label: 'Convert to PO', icon: '🛒', variant: 'success',
       confirm: 'Create a purchase order from this order?',
       params: (r) => ({ order_id: r.id, vendor_id: r.vendor_id || r.vendor }) },
-    { key: 'spawn_work_order', label: 'Create Work Order', icon: '🔧',
+    { key: 'spawn_workorder', label: 'Create Work Order', icon: '🔧',
       confirm: 'Create a work order from this order?',
       params: (r) => ({ order_id: r.id }) },
     { key: 'ship_order', label: 'Ship Order', icon: '📦', variant: 'success', needsDialog: true },
@@ -92,7 +92,7 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
     { key: 'get_inventory_summary', label: 'Inventory Summary', icon: '📊', variant: 'default',
       params: (r) => ({ item_id: r.id }) },
   ],
-  work_order: [
+  workorder: [
     { key: 'record_production_action', label: 'Add Production Note', icon: '📝', needsDialog: true },
   ],
 };

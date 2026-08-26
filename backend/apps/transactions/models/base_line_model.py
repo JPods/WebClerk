@@ -262,12 +262,7 @@ def default_price() -> Dict[str, Any]:
         "precision": 2,
     }
 
-def _to_decimal(val: Any, places: int = 2) -> Decimal:
-    try:
-        d = Decimal(str(val))
-        return d.quantize(Decimal(10) ** -places) if places >= 0 else d
-    except Exception:
-        return Decimal(0)
+from common.decimals import safe_decimal as _to_decimal  # noqa: E302
 
 def normalize_price_map(p: Dict[str, Any] | None) -> Dict[str, Any]:
     """Normalize price JSON to a JSON-serializable shape (floats/ints only)."""
@@ -396,7 +391,7 @@ class BaseLineCore(BaseModel):
     line_type = models.CharField(max_length=20, choices=LINE_TYPE_CHOICES, default='product', db_index=True)
 
     price_level = models.CharField(max_length=50, blank=True, null=True, db_column="price_level")
-    status = models.CharField(max_length=50, blank=True, null=True)
+    # status inherited from BaseModel
 
     # FK-first: proper ForeignKey to Item for referential integrity.
     # The `item` JSONField below holds denormalized item details (description, etc.)
@@ -483,6 +478,40 @@ class BaseLineCore(BaseModel):
         # Step 5: normalize cost strictly (fixes nulls, ensures all keys)
         self.cost = normalize_cost_map(getattr(self, "cost", None))
 
+        # Step 6: compute cost.extended from qty × unit − discount
+        # This is the single authority for cost extended calculation.
+        # BaseSellLineModel overrides ensure_json_defaults to also compute price.extended.
+        self._calculate_extended_cost()
+
+    def _calculate_extended_cost(self) -> None:
+        """Compute cost.extended from quantity.staged (or active).
+
+        Formula:
+          gross = quantity.staged × cost.unit
+          discount_amount = explicit value if set, else gross × (discount_percent / 100)
+          cost.extended = gross − discount_amount
+
+        This is the single source of truth for cost extended calculation.
+        Runs on every save via ensure_json_defaults().
+        """
+        quantity = self.quantity.get("staged", 0) or self.quantity.get("active", 0) if self.quantity else 0
+
+        if self.cost:
+            unit_cost = self.cost.get("unit", 0)
+            discount_cost_amount = self.cost.get("discount_amount", None)
+            discount_cost_percent = self.cost.get("discount_percent", 0) or 0
+            precision = self.cost.get("precision", 2)
+            gross_cost = _to_decimal(quantity * unit_cost, places=precision)
+            if discount_cost_amount is None or (discount_cost_amount == 0 and discount_cost_percent):
+                discount_cost_amount = float(_to_decimal(
+                    gross_cost * (Decimal(discount_cost_percent) / Decimal("100")), places=precision
+                ))
+            self.cost["discount_amount"] = float(_to_decimal(discount_cost_amount, places=precision))
+            extended_cost = float(_to_decimal(
+                gross_cost - Decimal(str(self.cost["discount_amount"])), places=precision
+            ))
+            self.cost["extended"] = extended_cost
+
     def save(self, *args, **kwargs):
         """Save with JSON normalization and auto line_number assignment.
 
@@ -527,17 +556,25 @@ class BaseSellLineModel(BaseLineCore):
 
     def ensure_json_defaults(self) -> None:
         """Extends BaseLineCore: also normalizes price and computes extended."""
-        super().ensure_json_defaults()           # seed + normalize cost
+        # Snapshot r25-submitted cost.extended BEFORE super() recomputes it
+        raw_cost = getattr(self, "cost", None)
+        self._submitted_cost_ext = (
+            raw_cost.get("extended") if isinstance(raw_cost, dict) else None
+        )
+        super().ensure_json_defaults()           # seed + normalize cost + compute cost.extended
         self.price = normalize_price_map(getattr(self, "price", None))  # normalize price
-        self._calculate_extended_price()         # compute extended from qty × unit
+        self._calculate_extended_price()         # compute price.extended from qty × unit
 
     def _calculate_extended_price(self) -> None:
-        """Compute price.extended and cost.extended from quantity.staged (or active).
+        """Compute price.extended from quantity.staged (or active).
 
-        Formula for both price and cost envelopes:
-          gross = quantity.staged × unit
+        Formula:
+          gross = quantity.staged × price.unit
           discount_amount = explicit value if set, else gross × (discount_percent / 100)
-          extended = gross − discount_amount
+          price.extended = gross − discount_amount
+
+        Cost extended is computed by BaseLineCore._calculate_extended_cost()
+        which runs via super().ensure_json_defaults() — one source of truth.
 
         AI Audit: captures r25-submitted extended values before recalculating,
         then compares.  Discrepancies are logged and persisted to the Audit
@@ -552,11 +589,11 @@ class BaseSellLineModel(BaseLineCore):
         submitted_price_ext = (
             self.price.get("extended") if isinstance(self.price, dict) else None
         )
-        submitted_cost_ext = (
-            self.cost.get("extended") if isinstance(self.cost, dict) else None
-        )
+        # cost.extended was already recomputed by super().ensure_json_defaults(),
+        # so use the snapshot taken in ensure_json_defaults() before super() ran.
+        submitted_cost_ext = getattr(self, '_submitted_cost_ext', None)
 
-        # quantity.staged (or active) drives both price and cost extended calculations
+        # quantity.staged (or active) drives price extended calculation
         quantity = self.quantity.get("staged", 0) or self.quantity.get("active", 0) if self.quantity else 0
 
         # --- SELL EXTENDED: price.extended = qty × price.unit − discount ---
@@ -572,18 +609,8 @@ class BaseSellLineModel(BaseLineCore):
             extended = float(_to_decimal(gross - Decimal(str(self.price["discount_amount"])), places=precision))
             self.price["extended"] = extended
 
-        # --- COST EXTENDED: cost.extended = qty × cost.unit − discount ---
-        if self.cost:
-            unit_cost = self.cost.get("unit", 0)
-            discount_cost_amount = self.cost.get("discount_amount", None)
-            discount_cost_percent = self.cost.get("discount_percent", 0) or 0
-            precision = self.cost.get("precision", 2)
-            gross_cost = _to_decimal(quantity * unit_cost, places=precision)
-            if discount_cost_amount is None or (discount_cost_amount == 0 and discount_cost_percent):
-                discount_cost_amount = float(_to_decimal(gross_cost * (Decimal(discount_cost_percent) / Decimal("100")), places=precision))
-            self.cost["discount_amount"] = float(_to_decimal(discount_cost_amount, places=precision))
-            extended_cost = float(_to_decimal(gross_cost - Decimal(str(self.cost["discount_amount"])), places=precision))
-            self.cost["extended"] = extended_cost
+        # NOTE: cost.extended is computed by BaseLineCore._calculate_extended_cost()
+        # which already ran in super().ensure_json_defaults(). No duplication here.
 
         # ── AI Audit: compare r25 submission vs wc3 recalculation ────
         try:
@@ -597,9 +624,9 @@ class BaseExecLineModel(BaseLineCore):
     """Exec-side line base for Purchase, WorkOrder, Receipt.
 
     No price envelope — exec lines track cost only.
-    Does NOT auto-compute cost.extended on save (unlike BaseSellLineModel).
-    Extended cost must be set explicitly by the caller or via
-    LineItemService._recalculate_line().
+    Auto-computes cost.extended on save via BaseLineCore._calculate_extended_cost()
+    (runs in ensure_json_defaults). Single source of truth — same computation
+    used by BaseSellLineModel for the cost side.
 
     See: readmes/topics/transactions/transactions-totals.md §1
     """

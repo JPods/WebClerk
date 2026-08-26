@@ -20,29 +20,9 @@ from __future__ import annotations
 
 import json
 import logging
-import pathlib
-import subprocess
 import uuid as uuid_module
 from django.utils import timezone
-
-
-_ALLIE_CAPTURE = pathlib.Path.home() / "Allie" / "scripts" / "allie-capture.py"
-
-
-def _allie(event: str, message: str = "", data: dict | None = None):
-    """Fire-and-forget Allie event capture. Never raises, never blocks request."""
-    if not _ALLIE_CAPTURE.exists():
-        return
-    try:
-        args = ["python3", str(_ALLIE_CAPTURE),
-                "--source", "WC3",
-                "--event",  event,
-                "--message", message[:200]]
-        if data:
-            args += ["--data", json.dumps(data)]
-        subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        pass
+from common.allie_capture import allie_capture as _allie
 
 from rest_framework.permissions import BasePermission, AllowAny
 from rest_framework.response import Response

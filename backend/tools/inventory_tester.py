@@ -477,9 +477,6 @@ def print_history():
             by_purpose = unproc.get('by_purpose', {})
             purposes_str = ', '.join([f"{k}:{v}" for k, v in by_purpose.items()]) if by_purpose else ''
             print(f"    Unapplied Pending: {total} {f'({purposes_str})' if purposes_str else ''}")
-        else:
-            # Backwards compatibility
-            print(f"    Unapplied Pending: {event.get('unprocessed_pending_count', 0)}")
         
         if event.get('delta'):
             d = event['delta']

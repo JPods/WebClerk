@@ -93,7 +93,7 @@ def save_layout_pending(params: dict) -> dict:
             'views_count': len(layout_data.get('views', [])),
         }
 
-    # Legacy fallback
+    # Fallback to wc:workbench_fields record
     setting = Setting.objects.filter(
         parent_model=model,
         purpose='wc:workbench_fields',

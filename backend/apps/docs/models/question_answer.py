@@ -49,7 +49,7 @@ class QuestionAnswer(BaseModel):
         help_text="Stores contact.id and contact.attention of who answered"
     )
 
-    status = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+    # status inherited from BaseModel
     sequence = models.IntegerField(default=0, db_index=True)
     count_accessed = models.IntegerField(default=0)
     search_vector = SearchVectorField(null=True, editable=False)

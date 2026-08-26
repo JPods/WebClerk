@@ -23,9 +23,9 @@ def test_multilevel_bom_rollup():
             itm.cost.update({"avg": cost_val, "currency": "USD"})
             itm.save(update_fields=["cost"])
     # Build BOM
-    BillOfMaterial.objects.create(parent=parent, component=mid, quantity=Decimal('2'))
-    BillOfMaterial.objects.create(parent=parent, component=leaf_a, quantity=Decimal('1'))
-    BillOfMaterial.objects.create(parent=mid, component=leaf_b, quantity=Decimal('3'))
+    BillOfMaterial.objects.create(parent_item=parent, child_item=mid, quantity=Decimal('2'))
+    BillOfMaterial.objects.create(parent_item=parent, child_item=leaf_a, quantity=Decimal('1'))
+    BillOfMaterial.objects.create(parent_item=mid, child_item=leaf_b, quantity=Decimal('3'))
     # First roll-up mid: should capture leaf_b cost snapshot (2 * 3 = 6) via fallback since mid cost_snapshot lines use component snapshots only.
     BillOfMaterial.recalc_parent_cost(mid.id)
     mid.refresh_from_db()

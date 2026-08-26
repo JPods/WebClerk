@@ -285,7 +285,6 @@ def recent_transaction_activity(*, hours: int = 24) -> dict[str, Any]:
         ("purchase", "Purchase"),
         ("proposal", "Proposal"),
         ("payment", "Payment"),
-        ("work_order", "WorkOrder"),
         ("workorder", "WorkOrder"),
         ("requisition", "Requisition"),
     ]

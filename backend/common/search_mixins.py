@@ -119,7 +119,7 @@ class PrefixAndSearchView(APIView):
                             except Exception:
                                 continue
                     return valid
-            # Legacy fallback
+            # Fallback: check wc:keywords record
             setting = (Setting.objects
                        .filter(parent_model=model_key, purpose='wc:keywords', is_active=True)
                        .order_by('-dt_modified')

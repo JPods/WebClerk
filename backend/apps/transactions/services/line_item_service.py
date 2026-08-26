@@ -2,7 +2,7 @@
 Line Item Service - Single Point of Authority for transaction line management.
 
 Handles adding, updating, and managing transaction line items across all
-transaction types (order, proposal, invoice, purchase, work_order).
+transaction types (order, proposal, invoice, purchase, workorder).
 
 Includes deferred inventory adjustment via Pending records to reduce lock contention
 on Item records. When quantity changes occur, a Pending record is created instead of
@@ -58,48 +58,47 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-# Model mapping for dynamic line creation
-LINE_MODEL_MAP = {
-    'order': 'apps.transactions.models.OrderLine',
-    'proposal': 'apps.transactions.models.ProposalLine',
-    'invoice': 'apps.transactions.models.InvoiceLine',
-    'purchase': 'apps.transactions.models.PurchaseLine',
-    'workorder': 'apps.transactions.models.WorkOrderLine',
-    'receipt': 'apps.transactions.models.ReceiptLine',
-}
-
-# FK field names for each line model (the field pointing to the parent transaction)
-# All line models now use consistent naming: order, proposal, invoice, purchase, workorder
-LINE_FK_FIELD_MAP = {
-    'orderline': 'order',
-    'proposalline': 'proposal',
-    'invoiceline': 'invoice',
-    'purchaseline': 'purchase',
-    'workorderline': 'workorder',
-    'receiptline': 'receipt',
-}
-
 
 def _get_line_model(transaction_type: str):
-    """Get the line model class for a transaction type."""
-    from django.apps import apps
-    
-    key = transaction_type.lower().replace('-', '_')
-    model_path = LINE_MODEL_MAP.get(key)
-    if not model_path:
+    """Get the line model class for a transaction type.
+
+    Derives the line model from the model registry using the canonical
+    '{type}_line' key. No hardcoded mapping — single source of truth.
+    """
+    from apps.core.constants.model_registry import get_model_meta
+
+    kind = _normalize_line_kind(transaction_type)
+    line_key = f'{kind}_line'
+    meta = get_model_meta(line_key)
+    if not meta:
         raise ValueError(f"Unknown transaction type: {transaction_type}")
-    
-    app_label, model_name = model_path.rsplit('.', 1)
-    # Extract just the app name from the full path
-    app_name = app_label.split('.')[-1]  # 'apps.transactions.models' -> 'models' -> need 'transactions'
-    app_name = 'transactions'
-    return apps.get_model(app_name, model_name)
+    return meta.import_model()
+
+
+def _get_line_fk_field(line_model) -> str:
+    """Discover the FK field name on a line model that points to its parent header.
+
+    Uses Django model introspection — no hardcoded mapping needed.
+    Falls back to the parent header's model_name if introspection fails.
+    """
+    from django.db.models import ForeignKey
+    from apps.transactions.models.base_transaction_model import BaseTransactionModel
+
+    for f in line_model._meta.get_fields():
+        if isinstance(f, ForeignKey) and issubclass(f.related_model, BaseTransactionModel):
+            return f.name
+    # Fallback: strip 'line' suffix from model name (e.g. 'orderline' -> 'order')
+    model_name = line_model._meta.model_name.lower()
+    return model_name.replace('line', '')
 
 
 def _is_sales_transaction(transaction_type: str) -> bool:
-    """Determine if a transaction type is sales-side (uses price) vs exec-side (uses cost)."""
-    kind = _normalize_line_kind(transaction_type)
-    return kind in ('proposal', 'order', 'invoice')
+    """Determine if a transaction type is sales-side (uses price) vs exec-side (uses cost).
+
+    Delegates to the single source of truth: totals.is_sell_side().
+    """
+    from apps.transactions.services.totals import is_sell_side
+    return is_sell_side(transaction_type)
 
 
 def _is_exec_transaction(transaction_type: str) -> bool:
@@ -159,7 +158,7 @@ class LineItemService:
     Single Point of Authority for managing transaction line items.
     
     Supports both sales transactions (proposal, order, invoice) 
-    and purchase transactions (purchase, work_order).
+    and purchase transactions (purchase, workorder).
     
     Key behaviors:
     - Sales transactions: price.unit is the primary value
@@ -254,8 +253,7 @@ class LineItemService:
         item_data['sequence'] = next_line_number
         
         # Determine the correct FK field name for this line model
-        model_name = LineModel._meta.model_name.lower()
-        fk_field = LINE_FK_FIELD_MAP.get(model_name, 'parent')
+        fk_field = _get_line_fk_field(LineModel)
         
         # Create the line
         line_kwargs = {
@@ -843,36 +841,13 @@ class LineItemService:
         return max_line_num + 1
     
     def _recalculate_line(self, line) -> None:
-        """Recalculate extended values on a line."""
-        quantity = 0
-        if isinstance(line.quantity, dict):
-            quantity = line.quantity.get('staged') or line.quantity.get('active', 0) or 0
-        
-        # Calculate price extended (for sell-side)
-        if hasattr(line, 'price') and isinstance(line.price, dict):
-            unit_price = line.price.get('unit', 0) or 0
-            discount_amount = line.price.get('discount_amount', None)
-            discount_percent = line.price.get('discount_percent', 0) or 0
-            precision = line.price.get('precision', 2)
-            gross = float(quantity) * float(unit_price)
-            if discount_amount is None or (discount_amount == 0 and discount_percent):
-                discount_amount = gross * float(discount_percent) / 100.0
-            line.price['discount_amount'] = round(float(discount_amount or 0), precision)
-            extended = round(gross - float(discount_amount or 0), precision)
-            line.price['extended'] = extended
+        """Recalculate extended values on a line.
 
-        # Calculate cost extended (includes cost discount)
-        if isinstance(line.cost, dict):
-            unit_cost = line.cost.get('unit', 0) or 0
-            discount_cost_amount = line.cost.get('discount_amount', None)
-            discount_cost_percent = line.cost.get('discount_percent', 0) or 0
-            precision = line.cost.get('precision', 2)
-            gross_cost = float(quantity) * float(unit_cost)
-            if discount_cost_amount is None or (discount_cost_amount == 0 and discount_cost_percent):
-                discount_cost_amount = gross_cost * float(discount_cost_percent) / 100.0
-            line.cost['discount_amount'] = round(float(discount_cost_amount or 0), precision)
-            extended_cost = round(gross_cost - float(discount_cost_amount or 0), precision)
-            line.cost['extended'] = extended_cost
+        Delegates to the model's ensure_json_defaults() which calls
+        _calculate_extended_cost() (all lines) and _calculate_extended_price()
+        (sell-side lines). Single source of truth — no independent computation.
+        """
+        line.ensure_json_defaults()
     
     def _extract_price_from_search(self, search_result: Dict[str, Any]) -> Optional[float]:
         """Extract unit price from a search result dict."""

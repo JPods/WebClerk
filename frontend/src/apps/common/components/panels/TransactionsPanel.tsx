@@ -176,7 +176,7 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
         label: "total",
         cellClassName: "w-[90px] text-right",
         cellStyle: { color: 'var(--db-text)' },
-        render: (r) => formatCurrency(r.total),
+        render: (r) => formatCurrency(r.totals?.total),
       },
       {
         key: "dt_created",

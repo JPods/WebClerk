@@ -45,7 +45,7 @@ MODEL_PRECONDITIONS = {
 
 TRANSACTION_MODELS = [
     'proposal', 'order', 'invoice', 'purchase',
-    'work_order', 'requisition', 'payment',
+    'workorder', 'requisition', 'payment',
 ]
 
 TX_STATUSES = {

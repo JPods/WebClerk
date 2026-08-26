@@ -51,7 +51,7 @@ COMPONENTS = [
         'body': (
             'TransactionDetail is the single renderer for all transaction types. It reads '
             'the detail_layout Setting for the specific model (order, invoice, proposal, '
-            'purchase, receipt, requisition, work_order) and renders the form.\n\n'
+            'purchase, receipt, requisition, workorder) and renders the form.\n\n'
             'Built from 8 single-purpose components: HeaderRenderer, FieldRow, '
             'LineCardRenderer, TabsRenderer, DesignMode, TransactionPrint, PackingPanel, '
             'CustomerSearch.\n\n'

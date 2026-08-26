@@ -31,8 +31,6 @@ const COMMON_HEADER_FIELDS: FieldDef[] = [
   { path: 'price_level', label: 'Price Level / Type Sale', type: 'text', group: 'Header' },
   { path: 'conditions_description', label: 'Conditions', type: 'text', group: 'Header' },
   { path: 'priority', label: 'Priority', type: 'text', group: 'Header' },
-  { path: 'total', label: 'Total (denorm)', type: 'currency', group: 'Header' },
-  { path: 'balance', label: 'Balance (denorm)', type: 'currency', group: 'Header' },
 
   // Dates
   { path: 'dt_created', label: 'Date Created', type: 'date', group: 'Dates' },

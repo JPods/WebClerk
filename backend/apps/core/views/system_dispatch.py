@@ -61,18 +61,23 @@ class SystemDispatchView(APIView):
         GET /wcapi/_pjpv_fields/?envelope=totals  → single envelope
         """
         try:
-            from common.schemas.transaction_envelopes import ENVELOPE_SCHEMA_MAP
+            from common.schemas.transaction_envelopes import (
+                ENVELOPE_SCHEMA_MAP, ITEM_SCHEMA_MAP, AUXILIARY_SCHEMA_MAP,
+            )
         except ImportError:
             return Response({'error': 'Schema module not available'}, status=500)
+
+        # Combined map — all schemas in one catalog
+        all_schemas = {**ENVELOPE_SCHEMA_MAP, **ITEM_SCHEMA_MAP, **AUXILIARY_SCHEMA_MAP}
 
         envelope = request.query_params.get('envelope')
 
         if envelope:
-            schema_cls = ENVELOPE_SCHEMA_MAP.get(envelope)
+            schema_cls = all_schemas.get(envelope)
             if not schema_cls:
                 return Response({
                     'error': f'Unknown envelope: {envelope}',
-                    'available': list(ENVELOPE_SCHEMA_MAP.keys()),
+                    'available': list(all_schemas.keys()),
                 }, status=404)
             return Response({
                 'envelope': envelope,
@@ -81,7 +86,7 @@ class SystemDispatchView(APIView):
 
         # Full catalog
         catalog = {}
-        for env_name, schema_cls in ENVELOPE_SCHEMA_MAP.items():
+        for env_name, schema_cls in all_schemas.items():
             catalog[env_name] = _schema_to_fields(schema_cls)
 
         return Response({'envelopes': catalog})
@@ -135,6 +140,8 @@ def _schema_to_fields(schema_cls):
             entry['precision'] = extra['precision']
         if extra.get('readonly'):
             entry['readonly'] = True
+        if 'selectlist_key' in extra:
+            entry['selectlist_key'] = extra['selectlist_key']
 
         for constraint in (field_info.metadata or []):
             if hasattr(constraint, 'ge') and constraint.ge is not None:

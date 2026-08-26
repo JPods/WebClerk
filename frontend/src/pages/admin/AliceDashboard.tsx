@@ -11,6 +11,7 @@ import { getRecords } from '@/api/wcapi';
 import { formatDt } from '@/utils/fieldFormatters';
 import { consoleCapture, type ConsoleEntry } from '@/utils/consoleCapture';
 import { useAppSelector } from '@/store/hooks';
+import { useWindowManager } from '@/context/WindowManagerContext';
 
 const AliceQuiz = React.lazy(() => import('./AliceQuiz'));
 const PdfDesigner = React.lazy(() => import('../tools/PdfDesigner'));
@@ -68,6 +69,7 @@ function DocSection({ ida, title, subtitle }: { ida: string; title: string; subt
 
 export default function AliceDashboard() {
   const { user } = useAppSelector((s) => s.auth);
+  const { ensureWindow, activateWindow } = useWindowManager();
   const [coaching, setCoaching] = useState<any>(null);
   const [actions, setActions] = useState<any[]>([]);
   const [trainingDocs, setTrainingDocs] = useState<any[]>([]);
@@ -260,6 +262,15 @@ export default function AliceDashboard() {
                   <div key={tip.id} className="mb-2 pl-3 border-l-2 border-blue-200 dark:border-blue-800">
                     <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">{tip.title}</div>
                     <div className="text-xs text-gray-600 dark:text-gray-400">{tip.body}</div>
+                    {tip.link && (
+                      <button
+                        className="mt-1 text-xs font-medium px-3 py-1 rounded"
+                        style={{ background: 'var(--db-accent)', color: 'var(--db-surface)' }}
+                        onClick={() => { ensureWindow(tip.link, tip.link_label || tip.title); activateWindow(tip.link); }}
+                      >
+                        {tip.link_label || tip.title}
+                      </button>
+                    )}
                   </div>
                 ))}
                 {/* Field help */}

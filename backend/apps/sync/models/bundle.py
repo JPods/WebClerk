@@ -16,7 +16,7 @@ class Bundle(BaseModel):
     direction = models.CharField(max_length=255, choices=BUNDLE_DIRECTION_CHOICES)
     # config inherited from CoreModel
     status = models.CharField(
-        max_length=255,
+        max_length=32,
         blank=True,
         null=True,
         choices=BUNDLE_STATUS_CHOICES,

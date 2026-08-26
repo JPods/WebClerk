@@ -52,5 +52,5 @@ tax_jurisdiction,accounts,apps.accounts.models.tax_jurisdiction.TaxJurisdiction,
 template,core,apps.core.models.template.Template,templates,support,templates
 term,accounts,apps.accounts.models.term.Term,terms,support,terms
 warehouse,products,apps.products.models.warehouse.Warehouse,warehouses,support,warehouses
-work_order,transactions,apps.transactions.models.WorkOrder,work-orders,header,work_orders
-work_order_line,transactions,apps.transactions.models.WorkOrderLine,workorder-lines,line,work_order_lines
+workorder,transactions,apps.transactions.models.WorkOrder,work-orders,header,work_orders
+workorder_line,transactions,apps.transactions.models.WorkOrderLine,workorder-lines,line,work_order_lines

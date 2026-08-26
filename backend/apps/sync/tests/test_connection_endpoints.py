@@ -1,5 +1,4 @@
 import pytest
-from django.urls import reverse
 from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
 from apps.sync.models.connection import Connection
@@ -13,7 +12,7 @@ def api_client():
 @pytest.fixture
 def staff_user(api_client):
     User = get_user_model()
-    u = User.objects.create_user(username='syncstaff', email='syncstaff@example.com', password='pw12345', name_first='Sync', name_last='Staff', role='staff')
+    u = User.objects.create_user(username='syncstaff', email='syncstaff@example.com', password='pw12345', name_first='Sync', name_last='Staff', role='staff', is_staff=True)
     api_client.force_authenticate(user=u)
     return u
 
@@ -24,32 +23,33 @@ def normal_user(api_client):
     return u
 
 
-def test_connection_list_create_and_pagination(api_client, staff_user):
-    list_url = '/domain/'
-    r = api_client.post(list_url, {'name': 'Main ERP', 'type': 'erp', 'config': {'host':'h'}}, format='json')
-    assert r.status_code in (200,201)
-    for i in range(30):
-        api_client.post(list_url, {'name': f'C{i}', 'type': 'erp', 'config': {'i': i}}, format='json')
-    page1 = api_client.get(list_url)
-    assert page1.status_code == 200
-    data = page1.json()['data']
-    assert len(data['results']) <= 25
+def test_connection_list_via_wcapi(api_client, staff_user):
+    """Test that connections can be listed via /wcapi/get/."""
+    api_client.defaults['HTTP_ACCEPT'] = 'application/json'
+    api_client.defaults['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest'
 
-
-def test_connection_search_permission_and_results(api_client, staff_user, normal_user):
-    Connection.objects.create(name='HubSpot', type='crm', config={})
-    Connection.objects.create(name='Netsuite', type='erp', config={})
-    search_url = '/domain/' + '?q=hub'
-    resp = api_client.get(search_url)
+    resp = api_client.get('/wcapi/get/', {'model_name': 'connection'})
     assert resp.status_code == 200
-    paths = [c['name'] for c in resp.json()['data']['results']]
-    assert any('HubSpot' in p for p in paths)
-    api_client.force_authenticate(user=normal_user)
-    forbidden = api_client.get(search_url)
-    assert forbidden.status_code == 403
+    body = resp.json()
+    assert body.get('status') == 'success'
 
 
-@pytest.mark.skip(reason="POST /domain/ disabled under consolidated wcapi; use /wcapi/save instead")
+def test_connection_create_via_wcapi(api_client, staff_user):
+    """Test that connections can be created via /wcapi/save/."""
+    api_client.defaults['HTTP_ACCEPT'] = 'application/json'
+    api_client.defaults['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest'
+
+    payload = {
+        'model_name': 'connection',
+        'data': {'name': 'Main ERP', 'type': 'erp', 'config': {'host': 'h'}}
+    }
+    resp = api_client.post('/wcapi/save/', payload, format='json')
+    assert resp.status_code in (200, 201)
+    body = resp.json()
+    assert body.get('status') == 'success'
+
+
+@pytest.mark.skip(reason="POST /domain/ disabled under consolidated wcapi; use /wcapi/save/ instead")
 def test_connection_atomic_patch(api_client, staff_user):
     list_url = '/domain/'
     r = api_client.post(list_url, {'name': 'PatchTarget', 'type': 'erp', 'config': {}}, format='json')

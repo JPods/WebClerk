@@ -118,23 +118,6 @@ class Catalog(BaseModel):
             ),
         ]
 
-    # Backwards compatibility aliases
-    @property
-    def effective_dt_start(self):  # pragma: no cover
-        return self.dt_effective_start
-
-    @effective_dt_start.setter
-    def effective_dt_start(self, v):  # pragma: no cover
-        self.dt_effective_start = v
-
-    @property
-    def effective_dt_end(self):  # pragma: no cover
-        return self.dt_effective_end
-
-    @effective_dt_end.setter
-    def effective_dt_end(self, v):  # pragma: no cover
-        self.dt_effective_end = v
-
     # ---------------- Pricing policy (JSON conventions to avoid migrations) -----------------
     # Conventions stored in metadata / prefs:
     # - metadata.pricing = {"tax_included": bool, "currency": "USD", "rounding": {"precision": 2}}

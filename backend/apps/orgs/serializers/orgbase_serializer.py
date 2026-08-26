@@ -12,7 +12,7 @@ class OrgBaseSerializer(serializers.ModelSerializer):
 
     company = serializers.CharField(source="display_name", required=False, allow_blank=True)
     display_name = serializers.SerializerMethodField()
-    # FK-first: terms_fk is the model field; expose as terms_id in API for backwards compat.
+    # FK-first: terms_fk is the model field; expose as terms_id in API.
     terms_id = serializers.IntegerField(source="terms_fk_id", required=False, allow_null=True)
 
     def get_display_name(self, obj):

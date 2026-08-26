@@ -33,14 +33,26 @@ def _default_scalar_keyword_fields(model):
 
 
 def _normalize_phone(value):
-    """Extract searchable phone tokens: with and without country code."""
-    digits = ''.join(c for c in value if c.isdigit())
-    if len(digits) < 7:
+    """Extract searchable phone tokens: with and without country code.
+
+    Uses the canonical normalizer to get the standard form, then produces
+    both the full number (with country code) and the local number (without)
+    so searches match either way.
+    """
+    from apps.core.services.phone_normalizer import normalize_phone, _strip_to_digits
+    normalized = normalize_phone(str(value), default_country="US")
+    if not normalized:
         return []
-    tokens = [digits]
-    # Add local number without country code
-    if len(digits) > 10:
-        tokens.append(digits[-10:])
+    tokens = [normalized]
+    # Add local number without country code for partial-match search
+    digits = _strip_to_digits(value)
+    if digits != normalized and len(digits) >= 7:
+        tokens.append(digits)
+    # Also add the bare local number (last 10 digits) if longer
+    if len(normalized) > 10:
+        local = normalized[-10:]
+        if local not in tokens:
+            tokens.append(local)
     return tokens
 
 

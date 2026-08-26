@@ -130,14 +130,14 @@ curl -s 'http://localhost:8000/wcapi/tables/?table=order_lines&include_fields=1'
 
 The registry now includes Work Orders:
 
-- work_order — app: `transactions`, endpoint: `/wcapi/work-orders/`, kind: `header`, aliases: work_orders
-- work_order_line — app: `transactions`, endpoint: `/wcapi/workorder-lines/`, kind: `line`, aliases: work_order_lines
+- workorder — app: `transactions`, endpoint: `/wcapi/work-orders/`, kind: `header`, aliases: work_orders
+- workorder_line — app: `transactions`, endpoint: `/wcapi/workorder-lines/`, kind: `line`, aliases: work_order_lines
 
 Examples:
 
 ```bash
-curl -s 'http://localhost:8000/wcapi/tables/?table=work_order&include_fields=1' | jq '.data.table'
-curl -s 'http://localhost:8000/wcapi/tables/?table=work_order_line&include_fields=1' | jq '.data.table'
+curl -s 'http://localhost:8000/wcapi/tables/?table=workorder&include_fields=1' | jq '.data.table'
+curl -s 'http://localhost:8000/wcapi/tables/?table=workorder_line&include_fields=1' | jq '.data.table'
 ```
 
 ## Gotchas

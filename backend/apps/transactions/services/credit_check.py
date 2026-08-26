@@ -17,29 +17,31 @@ def _now_ms():
     return int(time.time() * 1000)
 
 
+from common.json_path import get_nested_value as _gnv
+
+_SENTINEL = object()
+
+
 def _get_nested(d: dict, *keys, default=None):
-    """Walk a nested dict safely."""
-    for k in keys:
-        if not isinstance(d, dict):
-            return default
-        d = d.get(k)
-        if d is None:
-            return default
-    return d
+    """Walk a nested dict safely using variadic keys."""
+    result = _gnv(d, ".".join(keys), default=_SENTINEL)
+    if result is _SENTINEL or result is None:
+        return default
+    return result
 
 
 def _open_order_backlog(customer_id: int, exclude_order_id: int = None) -> float:
     """Sum of totals on open orders (not complete, not canceled) for a customer."""
+    from common.json_lookups import totals_total
     Order = dj_apps.get_model('transactions', 'Order')
     qs = Order.objects.filter(
         customer_id=customer_id,
-        total__isnull=False,
     ).exclude(
         status__in=['complete', 'canceled'],
-    )
+    ).annotate(_total=totals_total()).exclude(_total__isnull=True)
     if exclude_order_id:
         qs = qs.exclude(pk=exclude_order_id)
-    agg = qs.aggregate(backlog=models.Sum('total'))
+    agg = qs.aggregate(backlog=models.Sum('_total'))
     return float(agg['backlog'] or 0)
 
 

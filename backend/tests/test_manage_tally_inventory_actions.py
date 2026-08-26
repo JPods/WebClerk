@@ -67,7 +67,7 @@ def test_manage_tally_inventory_usage_by_month(client):
     ).count()
 
     resp = client.post(
-        "/wcapi/manage/",
+        "/wcapi/_manage/",
         data={
             "action": "get_tally_inventory_usage_by_month",
             "params": {
@@ -118,7 +118,7 @@ def test_manage_tally_inventory_yearly_summary(client):
     _movement(item=item, warehouse=warehouse, movement_type="issue", dt=date(2025, 9, 7), quantity=-2, landed_cost=4)
 
     resp = client.post(
-        "/wcapi/manage/",
+        "/wcapi/_manage/",
         data={
             "action": "get_tally_inventory_yearly_summary",
             "params": {

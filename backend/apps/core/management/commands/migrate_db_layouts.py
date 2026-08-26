@@ -22,12 +22,11 @@ def to_field_spec(item):
         # Already a FieldSpec — normalize
         spec = {'field': item['field'], 'visible': item.get('visible', True)}
         for key in ('width', 'min_width', 'max_width', 'align', 'format',
-                     'wrap', 'frozen', 'summary', 'alice_note', 'type_hint'):
+                     'wrap', 'frozen', 'summary', 'alice_note'):
             if key in item and item[key] is not None:
                 spec[key] = item[key]
-        # Handle camelCase from React (typeHint, minWidth, maxWidth)
-        if 'typeHint' in item:
-            spec['type_hint'] = item['typeHint']
+        # Handle camelCase from React (minWidth, maxWidth)
+        # type_hint / typeHint removed — behavioral; belongs in Pydantic schema
         if 'minWidth' in item:
             spec['min_width'] = item['minWidth']
         if 'maxWidth' in item:

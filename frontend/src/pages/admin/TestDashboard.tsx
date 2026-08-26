@@ -311,29 +311,29 @@ export default function TestDashboard() {
       // Proposals
       const propRes = await getRecords('proposal', { keyword: 'alice', limit: 10 }) as any;
       (propRes?.results || []).forEach((r: any) => {
-        records.push({ model: 'proposal', id: r.id, ida: r.ida || '', label: `Proposal ${r.ida}`, status: r.status, amount: r.total });
-        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Proposal created', detail: `${r.ida} total=${r.total}` });
+        records.push({ model: 'proposal', id: r.id, ida: r.ida || '', label: `Proposal ${r.ida}`, status: r.status, amount: r.totals?.total });
+        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Proposal created', detail: `${r.ida} total=${r.totals?.total}` });
       });
 
       // Orders
       const ordRes = await getRecords('order', { keyword: 'alice', limit: 10 }) as any;
       (ordRes?.results || []).forEach((r: any) => {
-        records.push({ model: 'order', id: r.id, ida: r.ida || '', label: `Order ${r.ida}`, status: r.status, amount: r.total });
-        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Order created', detail: `${r.ida} total=${r.total}` });
+        records.push({ model: 'order', id: r.id, ida: r.ida || '', label: `Order ${r.ida}`, status: r.status, amount: r.totals?.total });
+        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Order created', detail: `${r.ida} total=${r.totals?.total}` });
       });
 
       // Purchases
       const poRes = await getRecords('purchase', { keyword: 'alice', limit: 10 }) as any;
       (poRes?.results || []).forEach((r: any) => {
-        records.push({ model: 'purchase', id: r.id, ida: r.ida || '', label: `PO ${r.ida}`, status: r.status, amount: r.total });
-        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'PO created', detail: `${r.ida} total=${r.total}` });
+        records.push({ model: 'purchase', id: r.id, ida: r.ida || '', label: `PO ${r.ida}`, status: r.status, amount: r.totals?.total });
+        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'PO created', detail: `${r.ida} total=${r.totals?.total}` });
       });
 
       // Invoices
       const invRes = await getRecords('invoice', { keyword: 'alice', limit: 10 }) as any;
       (invRes?.results || []).forEach((r: any) => {
-        records.push({ model: 'invoice', id: r.id, ida: r.ida || '', label: `Invoice ${r.ida}`, status: r.status, amount: r.total });
-        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Invoice created', detail: `${r.ida} total=${r.total} balance=${r.balance}` });
+        records.push({ model: 'invoice', id: r.id, ida: r.ida || '', label: `Invoice ${r.ida}`, status: r.status, amount: r.totals?.total });
+        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Invoice created', detail: `${r.ida} total=${r.totals?.total} balance=${r.totals?.balance}` });
       });
 
       // Contacts

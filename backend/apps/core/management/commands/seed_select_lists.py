@@ -74,7 +74,7 @@ SELECT_LISTS = {
         },
     },
 
-    'work_order': {
+    'workorder': {
         'status': {
             'label': 'Work Order Status',
             'choices': [

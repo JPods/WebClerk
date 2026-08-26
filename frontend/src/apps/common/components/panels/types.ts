@@ -59,7 +59,7 @@ export type EntityType =
   | "purchase"
   | "proposal"
   | "workorder"
-  | "work_order"
+  | "workorder"
   // Products
   | "item"
   | "category"
@@ -329,6 +329,11 @@ export interface ActionEntry {
   dt_completed?: number | string;
   assigned_to?: Array<{ id: string; name: string }>;
   is_active?: boolean;
+  // Dependency & critical path fields
+  depends_on_display?: string[];  // IDA or card numbers of dependencies
+  is_critical?: boolean;          // on the critical path
+  slack?: number;                 // days of float
+  ida?: string;                   // action identifier
 }
 
 // ---------------------------------------------------------------------------

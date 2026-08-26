@@ -103,7 +103,7 @@ export default function ReportDesigner() {
     }
 
     // Resolve template: saved > default > empty
-    // Check both config.pdfme_template and config.template for backward compat
+    // Check both config.pdfme_template and config.template
     let template: Template =
       selectedReport.config?.pdfme_template ||
       selectedReport.config?.template ||

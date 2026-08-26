@@ -166,12 +166,13 @@ def _get_dso_current() -> Dict[str, Any]:
     ninety_days_ago = timezone.now() - timedelta(days=90)
     ninety_days_ago_ms = int(ninety_days_ago.timestamp() * 1000)
 
+    from common.json_lookups import totals_total
     credit_sales = Invoice.objects.filter(
         invoice_type='invoice',
         is_deleted=False, is_active=True,
         status__in=['released', 'complete'],
         dt_created__gte=ninety_days_ago_ms,
-    ).aggregate(total=Sum('total'))
+    ).annotate(_total=totals_total()).aggregate(total=Sum('_total'))
 
     total_sales = Decimal(str(credit_sales['total'] or 0))
 
@@ -374,14 +375,14 @@ def _get_open_invoices(customer_id: int) -> Dict[str, Any]:
     """Count and total of invoices with balance > 0 for a customer."""
     Invoice = dj_apps.get_model('transactions', 'Invoice')
 
+    from common.json_lookups import totals_balance
     open_inv = Invoice.objects.filter(
         customer_id=customer_id,
         invoice_type='invoice',
         is_deleted=False, is_active=True,
-        balance__gt=0,
-    ).aggregate(
+    ).annotate(_bal=totals_balance()).filter(_bal__gt=0).aggregate(
         count=Count('id'),
-        total=Sum('balance'),
+        total=Sum('_bal'),
     )
 
     return {

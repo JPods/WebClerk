@@ -46,7 +46,7 @@ class Connection(BaseModel):
         #key = models.CharField(max_length=255, blank=True, null=True)
         #pin = models.CharField(max_length=255, blank=True, null=True)
     status = models.CharField(
-        max_length=255,
+        max_length=32,
         blank=True,
         null=True,
         choices=CONNECTION_STATUS_CHOICES,

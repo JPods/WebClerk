@@ -27,7 +27,7 @@ interface StaffContact {
     };
     [key: string]: unknown;
   };
-  // Legacy fallback
+  // Flat prefs path
   prefs?: {
     badge?: BadgePrefs;
     [key: string]: unknown;

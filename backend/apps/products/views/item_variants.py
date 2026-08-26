@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import json
-import pathlib
-import subprocess
 
 from rest_framework.views import APIView  # type: ignore
 from django.db.models import Q
@@ -10,22 +8,7 @@ from django.http import HttpRequest
 from apps.core.views.get_view import OpenReadOrAuthenticated
 from common.api_responses import api_response
 from apps.products.models import Item
-
-
-_ALLIE_CAPTURE = pathlib.Path.home() / "Allie" / "scripts" / "allie-capture.py"
-
-
-def _allie(event: str, message: str = "", data: dict | None = None):
-    if not _ALLIE_CAPTURE.exists():
-        return
-    try:
-        args = ["python3", str(_ALLIE_CAPTURE),
-                "--source", "WC3", "--event", event, "--message", message[:200]]
-        if data:
-            args += ["--data", json.dumps(data)]
-        subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        pass
+from common.allie_capture import allie_capture as _allie
 from drf_spectacular.utils import extend_schema, OpenApiParameter, inline_serializer
 from rest_framework import serializers
 try:

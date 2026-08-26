@@ -38,7 +38,7 @@ Action: ensure state machines/status enums and transitions; add RMA entities; ad
 service
 Service orders/work orders (field service): assets/equipment, warranties, maintenance plans, SLAs.
 Scheduling/dispatch: calendar/time windows, resource skills.
-Action: extend work_order for service context; asset/equipment registry; warranty contracts.
+Action: extend workorder for service context; asset/equipment registry; warranty contracts.
 
 finance export (no accounting in-app)
 GL posting rules: deterministic mapping from ops events to GL (chart of accounts, cost centers, tax lines).

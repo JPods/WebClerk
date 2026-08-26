@@ -53,7 +53,7 @@ class CookieTokenRefreshView(APIView):
     def post(self, request):
         raw_token = request.COOKIES.get(REFRESH_COOKIE_NAME)
 
-        # Also accept body-based refresh for backwards compat / mobile clients
+        # Also accept body-based refresh for mobile clients
         if not raw_token:
             raw_token = (request.data or {}).get("refresh")
 

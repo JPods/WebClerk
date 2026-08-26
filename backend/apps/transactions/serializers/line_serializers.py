@@ -16,15 +16,15 @@ class BaseLineSerializer(serializers.ModelSerializer):
     cost = CostJSONField(required=False)
 
     # JSON fields that should deep-merge on PATCH/PUT (not replace)
-    JSON_MERGE_FIELDS = {'item', 'quantity', 'cost', 'price', 'tax', 'action', 'physical', 'flow', 'source'}
+    JSON_MERGE_FIELDS = {'item', 'quantity', 'cost', 'price', 'tax', 'physical'}
 
     class Meta:
         fields = [
-            'id', 'parent_id', 'status', 'type_sale', 'probability',
-            'item', 'quantity', 'cost', 'price', 'tax', 'action', 'physical', 'flow', 'source',
+            'id', 'status', 'price_level',
+            'item', 'quantity', 'cost', 'price', 'tax', 'physical',
             'dt_created', 'dt_modified'
         ]
-    read_only_fields = ['id', 'parent_id', 'dt_created', 'dt_modified']
+        read_only_fields = ['id', 'dt_created', 'dt_modified']
 
     def update(self, instance, validated_data):
         """Deep-merge JSON fields instead of replacing them entirely.
@@ -94,11 +94,9 @@ class BaseLineSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class ProposalSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Proposal
-        fields = ['id', 'name', 'dt_created']
-        read_only_fields = ['id', 'dt_created']
+# Line serializers — one per transaction line model.
+# Header serializers live in transaction_serializers.py (rich, validated).
+# Do NOT add header serializers here — previous stubs caused import collision.
 
 
 class ProposalLineSerializer(BaseLineSerializer):
@@ -109,26 +107,12 @@ class ProposalLineSerializer(BaseLineSerializer):
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 
-class OrderSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Order
-        fields = ['id', 'ida', 'dt_created']
-        read_only_fields = ['id', 'dt_created']
-
-
 class OrderLineSerializer(BaseLineSerializer):
     parent = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all(), source='order')
 
     class Meta(BaseLineSerializer.Meta):
         model = OrderLine
         fields = BaseLineSerializer.Meta.fields + ['parent']
-
-
-class InvoiceSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Invoice
-        fields = ['id', 'ida', 'dt_created']
-        read_only_fields = ['id', 'dt_created']
 
 
 class InvoiceLineSerializer(BaseLineSerializer):
@@ -139,13 +123,6 @@ class InvoiceLineSerializer(BaseLineSerializer):
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 
-class PurchaseSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Purchase
-        fields = ['id', 'ida', 'dt_created']
-        read_only_fields = ['id', 'dt_created']
-
-
 class PurchaseLineSerializer(BaseLineSerializer):
     parent = serializers.PrimaryKeyRelatedField(queryset=Purchase.objects.all(), source='purchase')
 
@@ -154,27 +131,12 @@ class PurchaseLineSerializer(BaseLineSerializer):
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 
-class WorkOrderSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = WorkOrder
-        fields = ['id', 'ida', 'dt_created']
-        read_only_fields = ['id', 'dt_created']
-
-
 class WorkOrderLineSerializer(BaseLineSerializer):
     parent = serializers.PrimaryKeyRelatedField(queryset=WorkOrder.objects.all(), source='workorder')
 
     class Meta(BaseLineSerializer.Meta):
         model = WorkOrderLine
         fields = BaseLineSerializer.Meta.fields + ['parent']
-
-
-class RequisitionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Requisition
-        fields = ['id', 'ida', 'dt_created']
-        ref_name = 'TxRequisitionHeader'
-        read_only_fields = ['id', 'dt_created']
 
 
 class RequisitionLineSerializer(BaseLineSerializer):

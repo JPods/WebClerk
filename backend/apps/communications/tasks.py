@@ -4,7 +4,7 @@ from typing import Any, Dict, cast
 from django.apps import apps
 from apps.sync.services.email_verification import verify_email_via_connection
 from apps.sync.services.phone_verification import verify_phone_via_connection
-from apps.sync.services.address_verification import verify_address_via_connection
+from apps.sync.services.address_verification import verify_address
 from apps.sync.services.domain_verification import verify_domain_via_connection
 
 def hello():

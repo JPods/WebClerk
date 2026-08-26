@@ -29,7 +29,7 @@ def load_keyword_requirements():
                 if search:
                     requirements[key] = search
 
-        # Legacy fallback — check for any remaining wc:keywords records
+        # Fallback — check for wc:keywords records
         if not requirements:
             for setting in Setting.objects.filter(purpose="wc:keywords", is_active=True):
                 key = getattr(setting, 'parent_model', None)

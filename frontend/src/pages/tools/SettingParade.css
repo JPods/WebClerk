@@ -1,0 +1,483 @@
+/* SettingParade — PJPV configuration review
+   All styling via CSS variables from theme.css for light/dark support.
+   No inline styles. */
+
+.sp-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--db-bg);
+  color: var(--db-text);
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.sp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--db-surface-alt);
+  border-bottom: 1px solid var(--db-border);
+  flex-shrink: 0;
+}
+.sp-header h1 {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--db-text);
+}
+.sp-header-stats {
+  font-size: 11px;
+  color: var(--db-text-muted);
+}
+
+/* ── Main split ──────────────────────────────────────────────── */
+.sp-main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── Left panel ──────────────────────────────────────────────── */
+.sp-left {
+  width: 320px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--db-border);
+  overflow-y: auto;
+  background: var(--db-surface);
+}
+.sp-group-header {
+  padding: 12px 12px 4px;
+}
+.sp-group-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--db-text-muted);
+  margin: 0;
+}
+.sp-group-desc {
+  font-size: 10px;
+  color: var(--db-text-dim);
+  margin: 2px 0 0;
+}
+.sp-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 12px;
+  border: none;
+  border-bottom: 1px solid var(--db-border-light);
+  background: transparent;
+  cursor: pointer;
+  color: var(--db-text);
+}
+.sp-item:hover {
+  background: var(--db-row-hover);
+}
+.sp-item.selected {
+  background: var(--db-row-selected);
+  border-left: 3px solid var(--db-accent);
+}
+.sp-item-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sp-item-name {
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sp-item-badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 10px;
+  flex-shrink: 0;
+  color: var(--db-surface);
+}
+.sp-item-badge.understood { background: var(--db-accent-green); }
+.sp-item-badge.needs_work { background: var(--db-accent-gold); }
+.sp-item-badge.dont_understand { background: var(--db-accent-red); }
+
+.sp-item-meta {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+.sp-item-model {
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--db-accent);
+}
+.sp-item-purpose {
+  font-size: 10px;
+  color: var(--db-text-dim);
+}
+.sp-item-summary {
+  font-size: 10px;
+  color: var(--db-text-dim);
+  margin-top: 1px;
+}
+
+/* ── Right panel ─────────────────────────────────────────────── */
+.sp-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────── */
+.sp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--db-border);
+  background: var(--db-surface-alt);
+  flex-shrink: 0;
+}
+.sp-toolbar-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--db-text);
+}
+.sp-toolbar-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--db-border);
+}
+.sp-fb-btn {
+  padding: 3px 10px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.sp-fb-btn:disabled { opacity: 0.5; cursor: default; }
+.sp-fb-btn.understood {
+  background: var(--db-badge-green-bg);
+  color: var(--db-badge-green-text);
+  border-color: var(--db-badge-green-text);
+}
+.sp-fb-btn.understood.active {
+  background: var(--db-accent-green);
+  color: var(--db-surface);
+}
+.sp-fb-btn.needs_work {
+  background: var(--db-badge-gold-bg);
+  color: var(--db-badge-gold-text);
+  border-color: var(--db-badge-gold-text);
+}
+.sp-fb-btn.needs_work.active {
+  background: var(--db-accent-gold);
+  color: var(--db-surface);
+}
+.sp-fb-btn.dont_understand {
+  background: var(--db-badge-red-bg);
+  color: var(--db-badge-red-text);
+  border-color: var(--db-badge-red-text);
+}
+.sp-fb-btn.dont_understand.active {
+  background: var(--db-accent-red);
+  color: var(--db-surface);
+}
+.sp-notes-input {
+  flex: 1;
+  min-width: 120px;
+  padding: 3px 8px;
+  border: 1px solid var(--db-input-border);
+  border-radius: 3px;
+  font-size: 11px;
+  background: var(--db-input-bg);
+  color: var(--db-text);
+}
+.sp-notes-input:focus {
+  outline: none;
+  border-color: var(--db-input-focus);
+}
+.sp-toolbar-status {
+  font-size: 10px;
+  color: var(--db-text-dim);
+  font-style: italic;
+}
+
+/* ── Preview area ────────────────────────────────────────────── */
+.sp-preview {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--db-surface);
+}
+.sp-preview-content {
+  padding: 16px;
+  max-width: 900px;
+}
+.sp-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--db-text-dim);
+  text-align: center;
+}
+.sp-empty p { margin: 4px 0; }
+.sp-empty .big { font-size: 15px; }
+.sp-empty .small { font-size: 12px; }
+
+/* ── Identity block ──────────────────────────────────────────── */
+.sp-identity {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--db-border-light);
+}
+.sp-identity-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.sp-ida {
+  font-family: monospace;
+  font-size: 11px;
+  background: var(--db-surface-alt);
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--db-text);
+}
+.sp-model-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--db-accent);
+}
+.sp-purpose-tag {
+  font-size: 11px;
+  color: var(--db-text-muted);
+}
+.sp-scope-tag {
+  font-size: 10px;
+  color: var(--db-text-dim);
+}
+.sp-explanation {
+  font-size: 12px;
+  color: var(--db-text-muted);
+  margin-top: 4px;
+}
+.sp-profile-refs {
+  font-size: 11px;
+  color: var(--db-accent-gold);
+  margin-top: 6px;
+}
+.sp-use-explanation {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--db-surface-alt);
+  border-left: 3px solid var(--db-accent);
+  border-radius: 0 3px 3px 0;
+  font-size: 11px;
+  color: var(--db-text-muted);
+  line-height: 1.5;
+}
+
+/* ── Sections ────────────────────────────────────────────────── */
+.sp-section {
+  margin-bottom: 16px;
+}
+.sp-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--db-text-muted);
+  margin: 0 0 6px;
+}
+
+/* ── Field groups ────────────────────────────────────────────── */
+.sp-fg-item {
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+.sp-fg-label {
+  font-weight: 600;
+  color: var(--db-text);
+}
+.sp-fg-fields {
+  margin-left: 8px;
+  font-size: 10px;
+  color: var(--db-text-dim);
+}
+
+/* ── Tables (behaviors, defaults) ────────────────────────────── */
+.sp-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+  font-size: 11px;
+}
+.sp-table th {
+  text-align: left;
+  padding: 4px 8px;
+  font-weight: 600;
+  font-size: 10px;
+  color: var(--db-text-muted);
+  background: var(--db-surface-alt);
+  border-bottom: 1px solid var(--db-border);
+}
+.sp-table td {
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--db-border-light);
+  color: var(--db-text);
+}
+.sp-table tr:hover td {
+  background: var(--db-row-hover);
+}
+.sp-field-name {
+  font-family: monospace;
+  font-size: 10px;
+}
+.sp-widget-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.sp-widget-badge.select {
+  background: var(--db-badge-blue-bg);
+  color: var(--db-badge-blue-text);
+}
+.sp-widget-badge.currency {
+  background: var(--db-badge-green-bg);
+  color: var(--db-badge-green-text);
+}
+.sp-widget-badge.readonly {
+  background: var(--db-badge-muted-bg);
+  color: var(--db-badge-muted-text);
+}
+.sp-widget-badge.default {
+  background: var(--db-surface-alt);
+  color: var(--db-text-muted);
+}
+.sp-detail-text {
+  font-size: 10px;
+  color: var(--db-text-dim);
+}
+
+/* ── Envelope group rows ─────────────────────────────────────── */
+.sp-envelope-header td {
+  background: var(--db-surface-alt);
+  border-top: 2px solid var(--db-border);
+  padding-top: 6px;
+  padding-bottom: 4px;
+}
+.sp-envelope-name {
+  font-weight: 700;
+  color: var(--db-accent);
+  font-size: 11px;
+}
+/* Indent envelope leaf rows and mark with left border */
+.sp-envelope-leaf td {
+  border-left: 3px solid var(--db-accent);
+}
+.sp-envelope-leaf td:first-child {
+  padding-left: 20px;
+}
+
+/* ── Selectlists ─────────────────────────────────────────────── */
+.sp-sl-item {
+  margin-bottom: 6px;
+  border: 1px solid var(--db-border-light);
+  border-radius: 3px;
+}
+.sp-sl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  color: var(--db-text);
+}
+.sp-sl-header:hover {
+  background: var(--db-row-hover);
+}
+.sp-sl-field {
+  font-family: monospace;
+  font-size: 11px;
+}
+.sp-sl-count {
+  font-size: 10px;
+  color: var(--db-text-dim);
+}
+.sp-sl-body {
+  padding: 4px 8px 8px;
+  border-top: 1px solid var(--db-border-light);
+}
+.sp-sl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+  margin-top: 4px;
+}
+.sp-sl-table th {
+  text-align: left;
+  padding: 2px 4px;
+  color: var(--db-text-dim);
+  font-weight: 600;
+}
+.sp-sl-table td {
+  padding: 2px 4px;
+  border-top: 1px solid var(--db-border-light);
+}
+.sp-sl-table td:first-child {
+  font-family: monospace;
+}
+.sp-tryit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.sp-tryit-label {
+  font-size: 10px;
+  color: var(--db-text-dim);
+}
+.sp-tryit-select {
+  font-size: 11px;
+  border: 1px solid var(--db-input-border);
+  border-radius: 3px;
+  padding: 2px 6px;
+  background: var(--db-input-bg);
+  color: var(--db-text);
+}
+
+/* ── Layout preview ──────────────────────────────────────────── */
+.sp-layout-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+.sp-layout-chip {
+  padding: 2px 6px;
+  background: var(--db-surface-alt);
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--db-text);
+}

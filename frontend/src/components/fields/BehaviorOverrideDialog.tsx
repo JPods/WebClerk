@@ -25,6 +25,7 @@ interface BehaviorOverrideDialogProps {
   onReload?: () => void;  // invalidate DataBrowser behavior cache after save
   model: string;
   fieldName: string;
+  presetType?: string;    // pre-set widget type (e.g. 'select' from Cmd+click)
 }
 
 interface BehaviorSpec {
@@ -39,7 +40,7 @@ interface BehaviorSpec {
   [key: string]: unknown;
 }
 
-export default function BehaviorOverrideDialog({ open, onClose, onReload, model, fieldName }: BehaviorOverrideDialogProps) {
+export default function BehaviorOverrideDialog({ open, onClose, onReload, model, fieldName, presetType }: BehaviorOverrideDialogProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settingId, setSettingId] = useState<number | null>(null);
@@ -74,7 +75,7 @@ export default function BehaviorOverrideDialog({ open, onClose, onReload, model,
         // Check if there's a stored override that differs
         // For now, show what's stored as both computed and override
         setOverride(fieldBehavior);
-        setEditType(fieldBehavior.type || '');
+        setEditType(presetType || fieldBehavior.type || '');
         setEditAction(fieldBehavior.action || '');
         setEditLabel(fieldBehavior.label || '');
         setEditLookupModel(fieldBehavior.model || '');
@@ -91,7 +92,7 @@ export default function BehaviorOverrideDialog({ open, onClose, onReload, model,
     })();
 
     return () => { cancelled = true; };
-  }, [open, model, fieldName]);
+  }, [open, model, fieldName, presetType]);
 
   const handleSave = useCallback(async () => {
     if (!settingId) {

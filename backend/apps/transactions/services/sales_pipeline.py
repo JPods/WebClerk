@@ -105,9 +105,10 @@ def get_sales_pipeline(
         is_active=True, is_deleted=False,
         **pf, **cf,
     )
+    from common.json_lookups import totals_total
     proposal_count = proposal_qs.count()
     proposal_value = float(
-        proposal_qs.aggregate(s=Sum('total'))['s'] or 0
+        proposal_qs.annotate(_total=totals_total()).aggregate(s=Sum('_total'))['s'] or 0
     )
 
     # ---- Stage 3: Orders (from proposals) ----
@@ -117,7 +118,7 @@ def get_sales_pipeline(
     )
     order_count = order_qs.count()
     order_value = float(
-        order_qs.aggregate(s=Sum('total'))['s'] or 0
+        order_qs.annotate(_total=totals_total()).aggregate(s=Sum('_total'))['s'] or 0
     )
 
     # Orders that came from proposals
@@ -126,7 +127,7 @@ def get_sales_pipeline(
     ).exclude(parent_id__isnull=True).exclude(parent_id=0)
     converted_count = orders_from_proposals.count()
     converted_value = float(
-        orders_from_proposals.aggregate(s=Sum('total'))['s'] or 0
+        orders_from_proposals.annotate(_total=totals_total()).aggregate(s=Sum('_total'))['s'] or 0
     )
 
     # ---- Stage 4: Revenue (invoiced) ----
@@ -136,7 +137,7 @@ def get_sales_pipeline(
     )
     invoice_count = invoice_qs.count()
     invoice_value = float(
-        invoice_qs.aggregate(s=Sum('total'))['s'] or 0
+        invoice_qs.annotate(_total=totals_total()).aggregate(s=Sum('_total'))['s'] or 0
     )
 
     # Invoices from orders
@@ -145,7 +146,7 @@ def get_sales_pipeline(
     ).exclude(parent_id__isnull=True).exclude(parent_id=0)
     invoiced_from_orders_count = invoices_from_orders.count()
     invoiced_from_orders_value = float(
-        invoices_from_orders.aggregate(s=Sum('total'))['s'] or 0
+        invoices_from_orders.annotate(_total=totals_total()).aggregate(s=Sum('_total'))['s'] or 0
     )
 
     # ---- Conversion rates ----

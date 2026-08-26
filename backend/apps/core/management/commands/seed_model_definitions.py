@@ -171,14 +171,14 @@ def _build_access(model_key, fields, field_map):
 
 
 def _build_query_scope(model_key):
-    if model_key in ('order', 'invoice', 'proposal', 'purchase', 'work_order', 'requisition'):
+    if model_key in ('order', 'invoice', 'proposal', 'purchase', 'workorder', 'requisition'):
         return {
             'customer': {'customer_id__in': '$user.org_ids.customer'},
             'vendor': {'vendor_id__in': '$user.org_ids.vendor'},
             'rep': {},
         }
     elif model_key in ('order_line', 'invoice_line', 'proposal_line', 'purchase_line',
-                        'work_order_line', 'requisition_line'):
+                        'workorder_line', 'requisition_line'):
         return {'customer': {}, 'vendor': {}}
     elif model_key in ('customer', 'vendor', 'manufacturer', 'employee', 'rep'):
         return {
@@ -222,7 +222,7 @@ def _lc(field, width=None, **kwargs):
     return col
 
 
-# Transactions: order, proposal, invoice, purchase, work_order
+# Transactions: order, proposal, invoice, purchase, workorder
 TX_LIST_COLUMNS = [
     _lc('ida', width=100),
     _lc('dt_needed', width=90),
@@ -571,13 +571,13 @@ DELIVERY_LIST_COLUMNS = [
 MODEL_LIST_COLUMNS = {
     # Transactions
     'order': TX_LIST_COLUMNS, 'proposal': TX_LIST_COLUMNS, 'invoice': TX_LIST_COLUMNS,
-    'purchase': TX_LIST_COLUMNS, 'work_order': TX_LIST_COLUMNS,
+    'purchase': TX_LIST_COLUMNS, 'workorder': TX_LIST_COLUMNS,
     'requisition': TX_LIST_COLUMNS, 'receipt': TX_LIST_COLUMNS,
     # Transaction lines
     'order_line': SELL_LINE_LIST_COLUMNS, 'invoice_line': SELL_LINE_LIST_COLUMNS,
     'proposal_line': SELL_LINE_LIST_COLUMNS, 'purchase_line': EXEC_LINE_LIST_COLUMNS,
     'receipt_line': EXEC_LINE_LIST_COLUMNS, 'requisition_line': EXEC_LINE_LIST_COLUMNS,
-    'work_order_line': EXEC_LINE_LIST_COLUMNS,
+    'workorder_line': EXEC_LINE_LIST_COLUMNS,
     # Orgs
     'customer': ORG_LIST_COLUMNS, 'vendor': ORG_LIST_COLUMNS,
     'manufacturer': ORG_LIST_COLUMNS, 'employee': ORG_LIST_COLUMNS,

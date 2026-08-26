@@ -12,7 +12,7 @@ Identity Model (§25 — Sync Topologies):
 The ida prefix tells users *where* a record was created:
     DEV-42   → record 42, born on the DEV database
     LOC-42   → record 42, born on a LOCAL database
-    ida-1087 → record 1087, born on PRODUCTION (backward-compatible)
+    ida-1087 → record 1087, born on PRODUCTION
 
 Sync behaviour:
     Hub & Spoke: primary's ida overwrites satellite's ida on merge.
@@ -25,7 +25,7 @@ Configuration:
         LOCAL      → "LOC"
         DEV        → "DEV"
         STAGING    → "STG"
-        PRODUCTION → "ida"   (backward-compatible with legacy format)
+        PRODUCTION → "ida"
 
 Usage:
     from common.ida import get_ida_prefix, generate_ida
@@ -47,7 +47,7 @@ _DATA_SET_PREFIX_MAP = {
     "LOCAL":      "LOC",
     "DEV":        "DEV",
     "STAGING":    "STG",
-    "PRODUCTION": "ida",   # backward-compatible with ida-{pk}
+    "PRODUCTION": "ida",
     "PROD":       "ida",
 }
 
@@ -59,7 +59,7 @@ def get_ida_prefix() -> str:
     Resolution order:
         1. IDA_PREFIX env var / settings (explicit)
         2. Derived from DATA_SET_ID via _DATA_SET_PREFIX_MAP
-        3. Fallback: "ida" (backward-compatible)
+        3. Fallback: "ida"
     """
     from django.conf import settings
 

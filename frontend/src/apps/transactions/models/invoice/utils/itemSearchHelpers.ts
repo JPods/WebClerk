@@ -56,7 +56,7 @@ export function resolveUnitPrice(
     }
   }
 
-  // Legacy fallback for non-object price fields
+  // Fallback for non-object price fields
   const candidates = [item.unit_price, item.price, item.priceA, item.price_a];
 
   for (const candidate of candidates) {

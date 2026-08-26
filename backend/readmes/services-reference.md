@@ -259,12 +259,12 @@ Open order backlog = sum of `Order.total` where status is not `complete` or `can
 
 | Function | Signature | Description |
 |----------|-----------|-------------|
-| `spawn_work_order` | `(order_id: int) -> dict` | Create WorkOrder + WorkOrderLines from order. Links via order.flow.children. |
+| `spawn_workorder` | `(order_id: int) -> dict` | Create WorkOrder + WorkOrderLines from order. Links via order.flow.children. |
 | `record_production_action` | `(order_id, action_text, assigned_to) -> dict` | Create Action record for production tracking. |
 | `partial_ship` | `(order_id, shipped_lines: list[dict]) -> dict` | Ship selected lines, create invoice for shipped qty, create backorder for remainder. Updates order status. |
 | `complete_order` | `(order_id: int) -> dict` | Close order (set status='complete'). |
 
-**Manage actions:** `spawn_work_order`, `record_production_action`, `partial_ship`, `complete_order`
+**Manage actions:** `spawn_workorder`, `record_production_action`, `partial_ship`, `complete_order`
 
 **Dependencies:** Calls `adjust_item_quantity()` from inventory_pending for on_hand decrements (one-path). Calls `create_backorder_entries()` from backorder service for remainders.
 
@@ -482,7 +482,7 @@ Within the resolved level, quantity breaks from `item.price.qty_breaks[]` apply 
 | `acknowledge_credit_override` | credit_check | `transaction_id`, `model_name`, `contact_id` |
 | `apply_payment_to_invoice` | payment_pending | `payment_id`, `invoice_id`, `amount` |
 | `apply_pending_payments` | payment_pending | `invoice_id` |
-| `spawn_work_order` | order_production | `order_id` |
+| `spawn_workorder` | order_production | `order_id` |
 | `record_production_action` | order_production | `order_id`, `action_text` |
 | `partial_ship` | order_production | `order_id`, `shipped_lines` |
 | `complete_order` | order_production | `order_id` |

@@ -143,7 +143,7 @@ REPORTS = [
         'name': 'Work Order',
         'description': 'Work order / job ticket for production or service',
         'category': 'operations',
-        'model_name': 'work_order',
+        'model_name': 'workorder',
         'config': {
             'data_source': 'workorder_detail',
             'fields': ['ida', 'dt_created', 'customer.company', 'status',

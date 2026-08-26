@@ -173,7 +173,7 @@ export interface PrintLayout {
   // --- Text rendering ---
   /** Format for rich text fields (comments, conditions, terms).
    *  'markdown' = stored as markdown, rendered to HTML at print time.
-   *  'plain' = no formatting (default for backward compatibility).
+   *  'plain' = no formatting (default).
    *  Rendered HTML injected into SVG via <foreignObject>. */
   text_format?: 'markdown' | 'plain';
 

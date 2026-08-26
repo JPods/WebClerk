@@ -158,7 +158,7 @@ Layouts move through the existing sync infrastructure:
 
 ## Open Items
 
-1. **Pending models** — work_order, receipt, requisition, payment transactions still need form layouts.
+1. **Pending models** — workorder, receipt, requisition, payment transactions still need form layouts.
 2. **Print templates** — layout-driven print is built; template library needs population.
 3. **Layout library UI at WC_HQ** — browse, preview, install flow. Alice curation logic.
 4. **Creator credit accounting** — threshold for cash payout, subscription credit rules.

@@ -18,6 +18,7 @@ import FlightSimConsole from "../pages/admin/FlightSimConsole";
 import TeamDashboard from "../pages/admin/TeamDashboard";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import FormParade from "../pages/tools/FormParade";
+import SettingParade from "../pages/tools/SettingParade";
 import SelectListBrowser from "../pages/tools/SelectListBrowser";
 import AgendaView from "../pages/admin/AgendaView";
 import JsonTreeApplet from "../pages/tools/JsonTreeApplet";
@@ -119,7 +120,7 @@ export const protectedRoutesConfig = [
   { path: "/invoice/:id", element: <UiDetail modelName="invoice" /> },
   { path: "/proposal/:id", element: <UiDetail modelName="proposal" /> },
   { path: "/purchase/:id", element: <UiDetail modelName="purchase" /> },
-  { path: "/work_order/:id", element: <UiDetail modelName="work_order" /> },
+  { path: "/workorder/:id", element: <UiDetail modelName="workorder" /> },
   { path: "/receipt/:id", element: <UiDetail modelName="receipt" /> },
   { path: "/requisition/:id", element: <UiDetail modelName="requisition" /> },
   { path: "/payment/:id", element: <UiDetail modelName="payment" /> },
@@ -147,6 +148,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.modelWorkbench, element: <AllModelsWorkbench /> },
   { path: PageRoutes.whitelist, element: <WhitelistTester /> },
   { path: PageRoutes.formParade, element: <FormParade /> },
+  { path: PageRoutes.settingParade, element: <SettingParade /> },
   { path: PageRoutes.selectLists, element: <SelectListBrowser /> },
   { path: PageRoutes.agenda, element: <AgendaView /> },
   { path: "/json-tree", element: <JsonTreeApplet /> },

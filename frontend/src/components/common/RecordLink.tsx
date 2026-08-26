@@ -26,7 +26,7 @@ const MODEL_ROUTES: Record<string, string> = {
   invoice: '/transactions/invoice/detail',
   proposal: '/transactions/proposal/detail',
   purchase: '/transactions/purchase/detail',
-  work_order: '/transactions/workorder/detail',
+  workorder: '/transactions/workorder/detail',
   payment: '/transactions/payment/detail',
   item: '/products/item/detail',
   action: '/core/action/detail',

@@ -76,7 +76,7 @@ What's built, tested, and working. Updated 2026-08-05.
 - `convert_order_to_invoice()` — handles inventory, commission carry-forward, parent/child linkage
 - `convert_proposal_to_order()` — quantity transfer, line copy
 - `convert_order_to_purchase()` — cross-side conversion
-- `spawn_work_order()` — BOM explosion
+- `spawn_workorder()` — BOM explosion
 - All through `transfer_utils.py` — one path for quantity flow
 
 ## Printing & Reports

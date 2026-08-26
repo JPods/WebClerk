@@ -401,7 +401,7 @@ function SalesTab({ data, filters, themeKey }: { data: any; filters: Filters; th
 
 function PurchasingTab({ data, filters }: { data: any; filters: Filters }) {
   const po = data?.purchase_orders || {};
-  const wo = data?.work_orders || {};
+  const wo = data?.workorders || {};
   const receipts = data?.receipts || {};
   const layers = data?.layers || {};
   const [selected, setSelected] = useState<{ model: string; status?: string } | null>(null);
@@ -427,7 +427,7 @@ function PurchasingTab({ data, filters }: { data: any; filters: Filters }) {
       </div>
       <div className="cd-metrics-row">
         <MetricCard label="WOs Open" value={wo.open ?? 0}
-          active={selected?.model === 'work_order' && selected?.status === 'open'} onClick={() => toggle('work_order', 'open')} />
+          active={selected?.model === 'workorder' && selected?.status === 'open'} onClick={() => toggle('workorder', 'open')} />
         <MetricCard label="WOs In Progress" value={wo.in_progress ?? 0} />
         <MetricCard label="WOs Completed" value={wo.completed ?? 0} />
       </div>

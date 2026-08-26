@@ -98,7 +98,7 @@ LIST_PRIORITIES = {
     'invoice':  ['ida', 'status', 'attention', 'total', 'balance', 'email', 'phone', 'terms', 'address_full', 'dt_created'],
     'purchase': ['ida', 'status', 'attention', 'total', 'email', 'terms', 'address_full', 'dt_created'],
     'proposal': ['ida', 'status', 'attention', 'total', 'email', 'phone', 'terms', 'address_full', 'dt_created'],
-    'work_order': ['ida', 'status', 'total', 'priority', 'dt_created', 'dt_modified'],
+    'workorder': ['ida', 'status', 'total', 'priority', 'dt_created', 'dt_modified'],
     'receipt':  ['ida', 'status', 'dt_created', 'dt_modified'],
     'requisition': ['ida', 'status', 'dt_created', 'dt_modified'],
 
@@ -107,7 +107,7 @@ LIST_PRIORITIES = {
     'invoice_line':  ['ida', 'description', 'qty', 'price', 'total', 'status'],
     'purchase_line': ['ida', 'description', 'qty', 'price', 'total'],
     'proposal_line': ['ida', 'description', 'qty', 'price', 'total'],
-    'work_order_line': ['ida', 'description', 'qty', 'price', 'total'],
+    'workorder_line': ['ida', 'description', 'qty', 'price', 'total'],
     'receipt_line':  ['ida', 'description', 'qty', 'dt_created'],
     'requisition_line': ['ida', 'description', 'qty', 'dt_created'],
 

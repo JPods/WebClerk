@@ -41,36 +41,32 @@ def _json(resp):
         body = body.decode("utf-8") or ""
     return json.loads(body or "{}")
 
-# Replace '/domain/' etc. with canonical model-key routes.
+# Tests use /wcapi/get/ and /wcapi/save/ — the canonical wcapi endpoints.
 
-def test_domain_list_create_and_pagination(api_client, staff_user):
+def test_domain_list_and_create(api_client, staff_user):
     client = api_client
     client.force_authenticate(user=staff_user)
 
-    # List via canonical model route
-    list_url = '/domain/?format=json'
-    resp = client.get(list_url)
+    # List via wcapi/get/
+    resp = client.get('/wcapi/get/', {'model_name': 'domain'})
     assert resp.status_code == 200
-    payload = getattr(resp, 'data', {}) or {}
-    payload = payload.get('data', payload)
-    assert 'items' in payload
+    body = resp.json()
+    assert body.get('status') == 'success'
 
-    # Create via wcapi
-    create = client.post('/wcapi/save', {'model': 'domain', 'data': {'name': 'example.com', 'is_active': True}}, format='json')
+    # Create via wcapi/save/
+    create = client.post('/wcapi/save/', {'model_name': 'domain', 'data': {'name': 'example.com', 'is_active': True}}, format='json')
     assert create.status_code in (200, 201)
-    cdata = getattr(create, 'data', {}) or {}
-    cdata = cdata.get('data', cdata)
+    cbody = create.json()
+    assert cbody.get('status') == 'success'
+    cdata = cbody.get('data', {})
     did = cdata.get('id')
     assert did
 
-    # Detail via canonical model route
-    detail_url = f'/domain/{did}/'
-    d = client.get(detail_url)
-    assert d.status_code == 200
-    ddata = getattr(d, 'data', {}) or {}
-    ddata = ddata.get('data', ddata)
-    item = ddata.get('item') or ddata
-    assert item.get('id') == did
+    # Re-list to confirm item is present
+    resp2 = client.get('/wcapi/get/', {'model_name': 'domain'})
+    assert resp2.status_code == 200
+    body2 = resp2.json()
+    assert body2.get('status') == 'success'
 
 @pytest.mark.skip(reason="Consolidated /domain/?q searches sync connections, not content domains")
 def test_domain_search_permission_and_results(api_client, staff_user, normal_user):

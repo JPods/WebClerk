@@ -113,12 +113,13 @@ def get_sales_dashboard(params):
     cutoff = _cutoff_ms(period)
     base_q = _base_filters(params) & Q(dt_created__gte=cutoff)
 
-    orders = Order.objects.filter(base_q).aggregate(
-        count=Count('id'), total=Sum('total'))
-    invoices = Invoice.objects.filter(base_q).aggregate(
-        count=Count('id'), total=Sum('total'))
-    proposals = Proposal.objects.filter(base_q).aggregate(
-        count=Count('id'), total=Sum('total'))
+    from common.json_lookups import totals_total
+    orders = Order.objects.filter(base_q).annotate(_total=totals_total()).aggregate(
+        count=Count('id'), total=Sum('_total'))
+    invoices = Invoice.objects.filter(base_q).annotate(_total=totals_total()).aggregate(
+        count=Count('id'), total=Sum('_total'))
+    proposals = Proposal.objects.filter(base_q).annotate(_total=totals_total()).aggregate(
+        count=Count('id'), total=Sum('_total'))
 
     # Margin from invoice lines — iterate and compute from price/cost JSON
     from apps.transactions.models import InvoiceLine
@@ -215,7 +216,7 @@ def get_purchasing_dashboard(params):
             'open': po_open, 'partial': po_partial,
             'received': po_received, 'total': po_total,
         },
-        'work_orders': {
+        'workorders': {
             'open': wo_open, 'in_progress': wo_in_progress,
             'completed': wo_completed,
         },
@@ -289,23 +290,26 @@ def get_accounting_dashboard(params):
     cutoff = _cutoff_ms(period)
     now_ms = int(timezone.now().timestamp() * 1000)
 
-    # AR — open invoices
-    open_invoices = Invoice.objects.filter(
-        status__in=['open', 'released'], balance__gt=0
-    ).aggregate(count=Count('id'), total=Sum('balance'))
+    # AR — open invoices (JSON path query, backed by functional index)
+    from common.json_lookups import totals_balance
+    open_qs = Invoice.objects.filter(
+        status__in=['open', 'released'],
+    ).annotate(_bal=totals_balance()).filter(_bal__gt=0)
+    open_invoices = open_qs.aggregate(count=Count('id'), total=Sum('_bal'))
 
     # Aging buckets (based on dt_created)
     day_30 = now_ms - (30 * 86400000)
     day_60 = now_ms - (60 * 86400000)
     day_90 = now_ms - (90 * 86400000)
-    ar_current = Invoice.objects.filter(status__in=['open', 'released'], balance__gt=0, dt_created__gte=day_30).aggregate(t=Sum('balance'))['t'] or 0
-    ar_30_60 = Invoice.objects.filter(status__in=['open', 'released'], balance__gt=0, dt_created__lt=day_30, dt_created__gte=day_60).aggregate(t=Sum('balance'))['t'] or 0
-    ar_60_90 = Invoice.objects.filter(status__in=['open', 'released'], balance__gt=0, dt_created__lt=day_60, dt_created__gte=day_90).aggregate(t=Sum('balance'))['t'] or 0
-    ar_over_90 = Invoice.objects.filter(status__in=['open', 'released'], balance__gt=0, dt_created__lt=day_90).aggregate(t=Sum('balance'))['t'] or 0
+    ar_base = Invoice.objects.filter(status__in=['open', 'released']).annotate(_bal=totals_balance()).filter(_bal__gt=0)
+    ar_current = ar_base.filter(dt_created__gte=day_30).aggregate(t=Sum('_bal'))['t'] or 0
+    ar_30_60 = ar_base.filter(dt_created__lt=day_30, dt_created__gte=day_60).aggregate(t=Sum('_bal'))['t'] or 0
+    ar_60_90 = ar_base.filter(dt_created__lt=day_60, dt_created__gte=day_90).aggregate(t=Sum('_bal'))['t'] or 0
+    ar_over_90 = ar_base.filter(dt_created__lt=day_90).aggregate(t=Sum('_bal'))['t'] or 0
 
-    # Payments in period
+    # Payments in period (Payment.amount is a real field, not a shadow)
     payments = Payment.objects.filter(dt_created__gte=cutoff).aggregate(
-        count=Count('id'), total=Sum('total'))
+        count=Count('id'), total=Sum('amount'))
 
     return {
         'ar': {

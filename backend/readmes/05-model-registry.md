@@ -70,8 +70,8 @@ Do not edit by hand; run `bin/python Scripts/gen_model_registry_readme.py` to re
 - template — app: `core`, endpoint: [`/wcapi/templates/`](/wcapi/templates/), kind: `support`, aliases: templates
 - term — app: `accounts`, endpoint: [`/wcapi/terms/`](/wcapi/terms/), kind: `support`, aliases: terms
 - warehouse — app: `products`, endpoint: [`/wcapi/warehouses/`](/wcapi/warehouses/), kind: `support`, aliases: warehouses
-- work_order — app: `transactions`, endpoint: [`/wcapi/work-orders/`](/wcapi/work-orders/), kind: `header`, aliases: work_orders
-- work_order_line — app: `transactions`, endpoint: [`/wcapi/workorder-lines/`](/wcapi/workorder-lines/), kind: `line`, aliases: work_order_lines
+- workorder — app: `transactions`, endpoint: [`/wcapi/work-orders/`](/wcapi/work-orders/), kind: `header`, aliases: work_orders
+- workorder_line — app: `transactions`, endpoint: [`/wcapi/workorder-lines/`](/wcapi/workorder-lines/), kind: `line`, aliases: work_order_lines
 
 ## By app (A→Z)
 
@@ -149,8 +149,8 @@ Do not edit by hand; run `bin/python Scripts/gen_model_registry_readme.py` to re
 - requisition_line — endpoint: [`/wcapi/requisition-lines/`](/wcapi/requisition-lines/), kind: `line`, aliases: requisition_lines
 - order — endpoint: [`/wcapi/orders/`](/wcapi/orders/), kind: `header`, aliases: orders
 - order_line — endpoint: [`/wcapi/order-lines/`](/wcapi/order-lines/), kind: `line`, aliases: order_lines
-- work_order — endpoint: [`/wcapi/work-orders/`](/wcapi/work-orders/), kind: `header`, aliases: work_orders
-- work_order_line — endpoint: [`/wcapi/workorder-lines/`](/wcapi/workorder-lines/), kind: `line`, aliases: work_order_lines
+- workorder — endpoint: [`/wcapi/work-orders/`](/wcapi/work-orders/), kind: `header`, aliases: work_orders
+- workorder_line — endpoint: [`/wcapi/workorder-lines/`](/wcapi/workorder-lines/), kind: `line`, aliases: work_order_lines
 
 ## Diagram
 
@@ -361,12 +361,12 @@ flowchart LR
     order_line["order_line"]
     app_transactions --> order_line
     class order_line line
-    work_order["work_order"]
-    app_transactions --> work_order
-    class work_order header
-    work_order_line["work_order_line"]
-    app_transactions --> work_order_line
-    class work_order_line line
+    workorder["workorder"]
+    app_transactions --> workorder
+    class workorder header
+    workorder_line["workorder_line"]
+    app_transactions --> workorder_line
+    class workorder_line line
   end
 ```
 

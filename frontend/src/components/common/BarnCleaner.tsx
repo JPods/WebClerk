@@ -99,7 +99,7 @@ const BarnCleaner: React.FC<BarnCleanerProps> = ({ modelFilter, onClose }) => {
 
       // Pick the best representative: has total > 0, or first available
       const representative = records.find((r: any) =>
-        r.total && parseFloat(r.total) > 0
+        r.totals?.total && parseFloat(r.totals.total) > 0
       ) || records[0];
 
       if (!representative) {

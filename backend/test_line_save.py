@@ -4,7 +4,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webclerk3_api.settings')
 django.setup()
 
 from apps.transactions.models import PurchaseLine, Purchase
-from apps.core.services.wcapi_registry import get_model
+from apps.core.constants.model_registry import get_model
 
 # Simulate saving a new line
 line_model = get_model('purchaseline')

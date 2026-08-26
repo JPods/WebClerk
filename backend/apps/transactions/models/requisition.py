@@ -11,7 +11,7 @@ class Requisition(common_models.BaseModel):
     """
 
     name = models.CharField(max_length=128, default="", db_index=True)
-    status = models.CharField(max_length=50, default="draft", blank=True, db_index=True)
+    status = models.CharField(max_length=32, default="draft", blank=True, db_index=True)
 
     def __str__(self):
         return self.name or f"Requisition {self.id}"
@@ -20,7 +20,6 @@ class Requisition(common_models.BaseModel):
         db_table = 'requisitions'
 
 
-# Backward-compatible alias expected by dynamic model loader/imports
 __all__ = ["Requisition"]
 
 # --- IGNORE ---

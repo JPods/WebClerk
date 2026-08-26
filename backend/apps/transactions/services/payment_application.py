@@ -41,11 +41,11 @@ def apply_payment_to_invoice(
     if invoice.status in ['paid', 'canceled']:
         raise PaymentApplicationError(f"Invoice status '{invoice.status}' does not allow payment application")
 
-    apply_amount = amount or Decimal(str(payment.amount))
+    apply_amount = Decimal(str(amount)) if amount else Decimal(str(payment.amount))
 
     # Check if payment is already fully applied
-    total_applied = sum(p.amount for p in payment.applications.all())
-    remaining_payment = payment.amount - total_applied
+    total_applied = sum(Decimal(str(p.amount)) for p in payment.applications.all())
+    remaining_payment = Decimal(str(payment.amount)) - total_applied
 
     if remaining_payment <= 0:
         raise PaymentApplicationError("Payment is already fully applied")

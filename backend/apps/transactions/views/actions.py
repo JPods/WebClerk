@@ -40,8 +40,8 @@ def _check_dependencies(depends_on: dict | None) -> tuple[bool, str | None]:
     Expected shape (lightweight, evolvable):
       {
         'action': [ids...],
-        'work_order': [ids...],
-        'work_order_line': [ids...]
+        'workorder': [ids...],
+        'workorder_line': [ids...]
       }
     Only present keys are evaluated. Unknown keys are ignored.
     """
@@ -58,21 +58,21 @@ def _check_dependencies(depends_on: dict | None) -> tuple[bool, str | None]:
         if pending:
             missing.append(f"actions[{', '.join(pending)}]")
     # WorkOrder dependencies -> require completed
-    wo_ids = deps.get('work_order') or []
+    wo_ids = deps.get('workorder') or []
     if isinstance(wo_ids, list) and wo_ids:
         wos = WorkOrder.objects.filter(pk__in=[i for i in wo_ids if isinstance(i, int)])
         done = {w.pk for w in wos if (w.status or '').lower() in {'completed', 'complete', 'done'}}
         pend_wo = [str(i) for i in wo_ids if isinstance(i, int) and i not in done]
         if pend_wo:
-            missing.append(f"work_orders[{', '.join(pend_wo)}]")
+            missing.append(f"workorders[{', '.join(pend_wo)}]")
     # WorkOrder line dependencies -> require done
-    wol_ids = deps.get('work_order_line') or []
+    wol_ids = deps.get('workorder_line') or []
     if isinstance(wol_ids, list) and wol_ids:
         lines = WorkOrderLine.objects.filter(pk__in=[i for i in wol_ids if isinstance(i, int)])
         done_lines = {l.pk for l in lines if (l.status or '').lower() in {'done'}}
         pend_lines = [str(i) for i in wol_ids if isinstance(i, int) and i not in done_lines]
         if pend_lines:
-            missing.append(f"work_order_lines[{', '.join(pend_lines)}]")
+            missing.append(f"workorder_lines[{', '.join(pend_lines)}]")
     if missing:
         return False, "Dependencies not satisfied: " + "; ".join(missing)
     return True, None
@@ -234,14 +234,14 @@ class WorkOrderTransitionView(APIView):
                 idem_key = f"wo:{wo.id}:{prev}->{to}:{reason}".strip()
                 # Try to find an existing action by idempotency key
                 existing = Action.objects.filter(
-                    action='transition.work_order',
+                    action='transition.workorder',
                     metadata__idempotency_key=idem_key,
                 ).first()
                 if existing:
                     action_rec = existing
                 else:
                     action_rec = Action(
-                        action='transition.work_order',
+                        action='transition.workorder',
                         action_by=str(getattr(request.user, 'id', 'system')),
                         status='done',
                         description=f"wo_status {prev}->{to}: {reason}".strip(),
@@ -251,7 +251,7 @@ class WorkOrderTransitionView(APIView):
                     # write refs: links + depends_on
                     refs = getattr(action_rec, 'refs', {}) or {}
                     links = refs.setdefault('links', {})
-                    links['work_order'] = [wo.id]
+                    links['workorder'] = [wo.id]
                     if isinstance(depends_on, dict) and depends_on:
                         refs['depends_on'] = depends_on
                     action_rec.refs = refs  # type: ignore[attr-defined]
@@ -313,14 +313,14 @@ class WorkOrderLineTransitionView(APIView):
             try:
                 idem_key = f"wol:{ln.id}:{prev}->{to}:{reason}".strip()
                 existing = Action.objects.filter(
-                    action='transition.work_order_line',
+                    action='transition.workorder_line',
                     metadata__idempotency_key=idem_key,
                 ).first()
                 if existing:
                     action_rec = existing
                 else:
                     action_rec = Action(
-                        action='transition.work_order_line',
+                        action='transition.workorder_line',
                         action_by=str(getattr(request.user, 'id', 'system')),
                         status='done',
                         description=f"line_status {prev}->{to}: {reason}".strip(),
@@ -329,7 +329,7 @@ class WorkOrderLineTransitionView(APIView):
                     )
                     refs = getattr(action_rec, 'refs', {}) or {}
                     links = refs.setdefault('links', {})
-                    links['work_order_line'] = [ln.id]
+                    links['workorder_line'] = [ln.id]
                     if isinstance(depends_on, dict) and depends_on:
                         refs['depends_on'] = depends_on
                     action_rec.refs = refs  # type: ignore[attr-defined]

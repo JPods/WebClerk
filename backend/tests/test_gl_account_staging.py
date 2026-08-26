@@ -75,7 +75,7 @@ def test_payment_gl_accounts_are_staged_as_cash_to_ar():
         contact=payer,
         amount=120.0,
         dt_payment=timezone.now() - timedelta(minutes=1),
-        payment_method=payment_method,
+        method=payment_method.name,
         status="completed",
         metadata={},
     )

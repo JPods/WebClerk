@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap")
 layer(base);
 
+@import "./theme.css";
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
@@ -174,22 +175,24 @@ layer(base);
   color utility to any element that depends on these defaults.
 */
 /* ---------------------------------------------------------------------------
-   Global theme variables — available to all components (layout, sidebar, etc.)
-   Mirrors the --db-* variables from DataBrowser.css at :root scope.
-   DataBrowser.css still scopes to .db-root for zone-level overrides.
+   Layout variables — nav, topbar, window chrome.
+   Core theme (--db-*) is in theme.css. These are layout-specific exceptions.
+   --wc-bg/surface/text/border/accent alias to --db-* for backward compat.
+   TODO: migrate all --wc-bg etc. references to --db-* then remove aliases.
    --------------------------------------------------------------------------- */
 :root[data-theme="dark"], :root.dark {
-  --wc-bg: #1e1e1e;
-  --wc-surface: #252526;
-  --wc-surface-alt: #2d2d2d;
-  --wc-border: #3c3c3c;
-  --wc-border-light: #4d4d4d;
-  --wc-text: #ececec;
-  --wc-text-muted: #a0a0a0;
-  --wc-text-dim: #787878;
-  --wc-accent: #9cdcfe;
-  --wc-accent-green: #4ec98c;
-  --wc-accent-red: #e05252;
+  --wc-bg: var(--db-bg);
+  --wc-surface: var(--db-surface);
+  --wc-surface-alt: var(--db-surface-alt);
+  --wc-border: var(--db-border);
+  --wc-border-light: var(--db-border-light);
+  --wc-text: var(--db-text);
+  --wc-text-muted: var(--db-text-muted);
+  --wc-text-dim: var(--db-text-dim);
+  --wc-accent: var(--db-accent);
+  --wc-accent-green: var(--db-accent-green);
+  --wc-accent-red: var(--db-accent-red);
+  --wc-spinner-overlay: var(--db-spinner-overlay);
   --wc-nav-bg: #1a1a2e;
   --wc-nav-active: #0e639c;
   --wc-nav-hover: rgba(255,255,255,0.05);
@@ -199,26 +202,26 @@ layer(base);
   --wc-nav-divider: #374151;
   --wc-topbar-bg: #252526;
   --wc-topbar-border: #3c3c3c;
-  --wc-topbar-text: #ececec;
+  --wc-topbar-text: #d4d4d4;
   --wc-topbar-text-muted: #a0a0a0;
   --wc-window-bg: #1e1e1e;
   --wc-window-border: #3c3c3c;
   --wc-spinner-color: #9cdcfe;
-  --wc-spinner-overlay: rgba(30,30,30,0.3);
 }
 
 :root[data-theme="light"], :root:not(.dark) {
-  --wc-bg: #f8f9fa;
-  --wc-surface: #ffffff;
-  --wc-surface-alt: #f1f3f5;
-  --wc-border: #dee2e6;
-  --wc-border-light: #e9ecef;
-  --wc-text: #212529;
-  --wc-text-muted: #6c757d;
-  --wc-text-dim: #adb5bd;
-  --wc-accent: #1e40af;
-  --wc-accent-green: #198754;
-  --wc-accent-red: #dc3545;
+  --wc-bg: var(--db-bg);
+  --wc-surface: var(--db-surface);
+  --wc-surface-alt: var(--db-surface-alt);
+  --wc-border: var(--db-border);
+  --wc-border-light: var(--db-border-light);
+  --wc-text: var(--db-text);
+  --wc-text-muted: var(--db-text-muted);
+  --wc-text-dim: var(--db-text-dim);
+  --wc-accent: var(--db-accent);
+  --wc-accent-green: var(--db-accent-green);
+  --wc-accent-red: var(--db-accent-red);
+  --wc-spinner-overlay: var(--db-spinner-overlay);
   --wc-nav-bg: #1e293b;
   --wc-nav-active: #2563eb;
   --wc-nav-hover: rgba(255,255,255,0.05);
@@ -233,7 +236,6 @@ layer(base);
   --wc-window-bg: #ffffff;
   --wc-window-border: #e5e7eb;
   --wc-spinner-color: #2563eb;
-  --wc-spinner-overlay: rgba(255,255,255,0.3);
 }
 
 @layer base {

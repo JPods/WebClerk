@@ -26,7 +26,7 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
     { key: 'convert_order_to_purchase', label: 'To Purchase',
       confirm: 'Post this order to a purchase order?',
       params: (r) => ({ order_id: r.id, vendor_id: r.vendor_id || r.vendor }) },
-    { key: 'spawn_work_order', label: 'To Work Order',
+    { key: 'spawn_workorder', label: 'To Work Order',
       confirm: 'Post this order to a work order?',
       params: (r) => ({ order_id: r.id }) },
     { key: 'complete_order', label: 'Complete',
@@ -72,7 +72,7 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
       confirm: 'Post GL journal entries for this payment? This locks the payment.',
       params: (r) => ({ payment_id: r.id, ida_prefix: '' }) },
   ],
-  work_order: [
+  workorder: [
     { key: 'record_production_action', label: 'Add Production Note', needsDialog: true },
   ],
   item: [

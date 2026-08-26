@@ -9419,1408 +9419,1456 @@
         "warehouse:site_code:unrendered_field",
         "warehouse:times_used:unrendered_field"
       ]
+    },
+    {
+      "timestamp": "2026-08-25T02:46:07.718201+00:00",
+      "models_checked": 0,
+      "total_issues": 0,
+      "severity_counts": {
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "issue_fingerprints": []
+    },
+    {
+      "timestamp": "2026-08-25T18:06:38.834502+00:00",
+      "models_checked": 0,
+      "total_issues": 0,
+      "severity_counts": {
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "issue_fingerprints": []
+    },
+    {
+      "timestamp": "2026-08-26T05:37:21.631369+00:00",
+      "models_checked": 0,
+      "total_issues": 0,
+      "severity_counts": {
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "issue_fingerprints": []
+    },
+    {
+      "timestamp": "2026-08-26T05:44:48.679301+00:00",
+      "models_checked": 0,
+      "total_issues": 0,
+      "severity_counts": {
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "issue_fingerprints": []
     }
   ],
   "corrections": [
     {
-      "model": "vendor",
-      "field": "relations",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "workorder",
-      "field": "cost",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
       "model": "manufacturer",
-      "field": "price_level",
+      "field": "address_id",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "action",
-      "field": "deadline_by",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "receipt",
-      "field": "is_locked",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "contact",
-      "field": "name_middle",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "action",
-      "field": "dt_start_original",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "invoice",
-      "field": "priority",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "employee",
-      "field": "address_full",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "invoice",
-      "field": "vendor_name",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "item",
-      "field": "stats",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "project",
-      "field": "logistics",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "item",
-      "field": "stats",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "docs",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "order",
-      "field": "source",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "vendor",
-      "field": "attention",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "phone",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "employee",
-      "field": "phones",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "vendor",
-      "field": "email_id",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "purchase",
-      "field": "purchase_no",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "item",
-      "field": "category",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "item",
-      "field": "kind",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "bundle",
-      "field": "response",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "domain",
-      "field": "comment",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "employee",
-      "field": "docs",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "relationship_stats",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "order",
-      "field": "priority",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "proposal",
-      "field": "physical",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "address",
-      "field": "full",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "proposal",
-      "field": "attention",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "employee",
-      "field": "domain_id",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "invoice",
-      "field": "conditions_description",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "item",
-      "field": "item_id",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "invoice",
-      "field": "cost",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "purchase",
-      "field": "phone",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "workorder",
-      "field": "phone",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "order",
-      "field": "cost",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "employee",
-      "field": "financial",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "project",
-      "field": "logistics",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "proposal",
-      "field": "line_number",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "employee",
-      "field": "connections",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "rep",
-      "field": "attention",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
       "model": "report",
-      "field": "data",
+      "field": "config",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "ledger",
+      "field": "is_settled",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "report",
+      "field": "paths",
       "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "employee",
-      "field": "contacts",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "action",
-      "field": "deadline_by",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "purchase",
-      "field": "flow",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "contact",
-      "field": "last_name",
+      "model": "document",
+      "field": "comment",
       "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "project",
-      "field": "tasks",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "tag",
-      "field": "data",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "order",
-      "field": "price_level",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "phones",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
       "model": "bundle",
-      "field": "size",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "purchase",
-      "field": "sell",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "contact",
-      "field": "other_id",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "phone",
-      "field": "is_locked",
+      "field": "times_used",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "action",
-      "field": "start_by",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "item",
-      "field": "is_locked",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "proposal",
-      "field": "priority",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "proposal",
-      "field": "terms",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "action",
-      "field": "dt_end_original",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "proposal",
-      "field": "quantity",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "item",
-      "field": "quantity",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "employee",
-      "field": "contacts",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "item",
-      "field": "specification_id",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "vendor",
-      "field": "email",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "action",
-      "field": "start_by",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "contact",
-      "field": "notes",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
       "model": "audit",
-      "field": "description",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "email",
-      "field": "is_locked",
+      "field": "rating",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
       "model": "manufacturer",
-      "field": "attention",
+      "field": "terms",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "action",
-      "field": "dt_expected",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "project",
-      "field": "data",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "project",
-      "field": "attention",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "attention",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "email",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "purchase",
-      "field": "finance",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
       "model": "rep",
-      "field": "price_level",
+      "field": "times_used",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "template",
-      "field": "is_locked",
+      "model": "report",
+      "field": "explanation",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "invoice",
-      "field": "is_locked",
+      "model": "manufacturer",
+      "field": "tax_exempt_code",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "requisition",
-      "field": "requisition_no",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "model": "specification",
+      "field": "unit",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "catalog",
+      "field": "is_universal_pct",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "relationship_stats",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
       "model": "bundle",
+      "field": "data",
+      "issue_type": "phantom_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "stats",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "phones",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "address_full",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "warehouse",
+      "field": "priority",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "audit",
       "field": "conflicts",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "employee",
-      "field": "domains",
+      "model": "audit",
+      "field": "priority",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "proposal",
-      "field": "customer_name",
+      "model": "service",
+      "field": "process",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "variant",
+      "field": "times_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "warehouse",
+      "field": "config",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "specification",
+      "field": "status",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "term",
+      "field": "dt_approved",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "times_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "contact",
+      "field": "name_first",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "relations",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "docs",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "gl_accounts",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "catalog",
+      "field": "config",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "warehouse",
+      "field": "dt_approved",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "domain_id",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "contact",
+      "field": "source_name",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "term",
+      "field": "dt_last_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "setting",
+      "field": "contact_id",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "specification",
+      "field": "docs",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "specification",
+      "field": "dt_last_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "warehouse",
+      "field": "code",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "specification",
+      "field": "applies_to",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "report",
+      "field": "config",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "variant",
+      "field": "variant_uuid",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "currency",
+      "field": "code",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "contact",
+      "field": "name_prefix",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "ledger",
+      "field": "dt_approved",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "document",
+      "field": "config",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "ledger",
+      "field": "config",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "report",
+      "field": "output_type",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "catalog",
+      "field": "priority",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "variant",
+      "field": "config",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "serial",
+      "field": "warranty",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "report",
+      "field": "script_during",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "relationship_stats",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "serial",
+      "field": "dt_last_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "org_type",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "contact",
+      "field": "domain_id",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "setting",
+      "field": "role",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "setting",
+      "field": "parent_model",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "serial",
+      "field": "dt_approved",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "metrics",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "audit",
+      "field": "config",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "catalog",
+      "field": "purpose",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "serial",
+      "field": "purpose",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "service",
+      "field": "cost",
       "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "setting",
+      "field": "paths",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "domains",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "config",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "specification",
+      "field": "times_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "service",
+      "field": "date",
+      "issue_type": "phantom_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "serial",
+      "field": "item_ida",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "domain",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "report",
+      "field": "script_after",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "catalog",
+      "field": "code",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "ledger",
+      "field": "dt_recorded",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
       "model": "bundle",
-      "field": "payload",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "invoice",
-      "field": "source",
+      "field": "purpose",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "domain",
-      "field": "type",
+      "model": "audit",
+      "field": "dt_approved",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "action",
-      "field": "end_by",
+      "model": "rep",
+      "field": "addresses",
       "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "action",
-      "field": "dt_completed",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "employee",
-      "field": "emails",
+      "model": "variant",
+      "field": "config",
       "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "proposal",
-      "field": "finance",
+      "model": "setting",
+      "field": "dt_last_used",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "setting",
+      "field": "config",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "addresses",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "document",
+      "field": "model_name",
+      "issue_type": "phantom_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "specification",
+      "field": "dt_approved",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "report",
+      "field": "category",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "audit",
+      "field": "is_completed",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "audit",
+      "field": "times_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
       "model": "contact",
       "field": "title",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "employee",
-      "field": "financial",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "project",
-      "field": "data",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "workorder",
-      "field": "source",
+      "model": "currency",
+      "field": "times_used",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "invoice",
-      "field": "sell",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "order",
-      "field": "conditions_description",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
+      "model": "manufacturer",
       "field": "connections",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "stats",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "domain",
-      "field": "status",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "action",
-      "field": "updated_by",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "proposal",
-      "field": "totals",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "order",
-      "field": "terms",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "email",
-      "field": "status_display",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "bundle",
-      "field": "alert",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "address",
-      "field": "zip",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "receipt",
-      "field": "status",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "project",
-      "field": "profit_velocity",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "domain",
-      "field": "is_locked",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "employee",
-      "field": "price_level",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "purchase",
-      "field": "terms",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "ledger",
-      "field": "name",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "item",
-      "field": "item_name",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "metrics",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "bundle",
-      "field": "rules",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "project",
-      "field": "profit",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "order",
-      "field": "phone",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "purchase",
-      "field": "balance",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "proposal",
-      "field": "item_description",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
       "model": "report",
-      "field": "description",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "proposal",
-      "field": "price",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "address",
-      "field": "address2",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "action",
-      "field": "duration",
+      "field": "record_id",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "vendor",
-      "field": "data",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "data",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "project",
-      "field": "objective",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "project",
-      "field": "end_date",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "emails",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "invoice",
-      "field": "sell",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "address_full",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "serial",
-      "field": "data",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "workorder",
-      "field": "source",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "vendor",
-      "field": "docs",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "gl_accounts",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "employee",
-      "field": "metrics",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "template",
-      "field": "data",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "contact",
-      "field": "first_name",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "tag",
-      "field": "color",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "domains",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "employee",
-      "field": "metrics",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "phone_id",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "invoice",
-      "field": "finance",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "item",
-      "field": "catalog",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "purchase",
-      "field": "source",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "action",
-      "field": "created_by",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "invoice",
-      "field": "attention",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "action",
-      "field": "dt_start",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "invoice",
-      "field": "terms",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "order",
-      "field": "parent_model",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "address",
-      "field": "state",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "action",
-      "field": "burndown",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "invoice",
-      "field": "line_increment",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "order",
-      "field": "parent_id",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "invoice",
-      "field": "source",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "price_level",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "purchase",
-      "field": "totals",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "item",
-      "field": "qr_code",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "action",
-      "field": "dt_updated",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
       "model": "manufacturer",
-      "field": "phone",
+      "field": "addresses",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "requisition",
-      "field": "name",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "contact",
-      "field": "nickname",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "proposal",
-      "field": "flow",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "action",
-      "field": "hours",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "proposal",
-      "field": "price_level",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "proposal",
-      "field": "proposal_no",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "invoice",
-      "field": "cost",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
       "model": "rep",
-      "field": "data",
+      "field": "org_type",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "workorder",
-      "field": "finance",
+      "model": "warehouse",
+      "field": "count",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "serial",
+      "field": "is_locked",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
       "model": "manufacturer",
-      "field": "data",
+      "field": "email_id",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "action",
-      "field": "difficulty",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "workorder",
-      "field": "email",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "proposal",
-      "field": "is_commission",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "contact",
-      "field": "middle_name",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "employee",
+      "model": "manufacturer",
       "field": "domains",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "currency",
+      "field": "config",
       "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
       "model": "contact",
-      "field": "cnf_password",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "field": "config",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "vendor",
+      "model": "audit",
+      "field": "recommendations",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "catalog",
+      "field": "metrics",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "variant",
+      "field": "dt_last_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "variant",
+      "field": "attributes",
+      "issue_type": "phantom_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "emails",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "document",
+      "field": "is_locked",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "document",
+      "field": "count_accessed",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "contact",
+      "field": "dt_last_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "purpose",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "contact",
       "field": "address_full",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "item",
-      "field": "segment",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "address",
-      "field": "is_locked",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "employee",
-      "field": "is_locked",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "item",
-      "field": "uom",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "action",
-      "field": "updated_by",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "proposal",
-      "field": "sell",
+      "model": "rep",
+      "field": "contacts",
       "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "order",
-      "field": "sell",
+      "model": "document",
+      "field": "dt_approved",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
-      "model": "vendor",
-      "field": "addresses",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "project",
-      "field": "objective",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "purchase",
-      "field": "conditions_id",
+      "model": "catalog",
+      "field": "dt_approved",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "ledger",
+      "field": "is_cleared",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "specification",
+      "field": "config",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "bundle",
+      "field": "dt_approved",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "report",
+      "field": "model_name",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "serial",
+      "field": "model_ida",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
       "model": "document",
       "field": "path",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "workorder",
-      "field": "is_locked",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "vendor",
-      "field": "connections",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "docs",
       "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "action",
-      "field": "expected_by",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "invoice",
-      "field": "invoice_no",
-      "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "workorder",
-      "field": "is_commission",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "order",
-      "field": "sell",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "proposal",
-      "field": "conditions_description",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
       "model": "bundle",
-      "field": "maps",
-      "issue_type": "detail_only",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "order",
-      "field": "flow",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "employee",
-      "field": "address_id",
-      "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "tag",
       "field": "description",
       "issue_type": "phantom_field",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
-    },
-    {
-      "model": "customer",
-      "field": "relationship_stats",
-      "issue_type": "unrendered_json",
-      "resolved_at": "2026-08-10T06:00:03.278827",
-      "prior_run": "2026-03-06T20:30:57.930947"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     },
     {
       "model": "contact",
-      "field": "comment",
+      "field": "address_id",
       "issue_type": "unrendered_field",
-      "resolved_at": "2026-08-19T23:08:09.290250+00:00",
-      "prior_run": "2026-08-19T15:43:37.423585+00:00"
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "document",
+      "field": "copyright",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "address_id",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "catalog",
+      "field": "applies_to",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "setting",
+      "field": "explanation",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "document",
+      "field": "purpose",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "specification",
+      "field": "config",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "domains",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "serial",
+      "field": "site",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "specification",
+      "field": "requirements",
+      "issue_type": "phantom_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "setting",
+      "field": "config",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "warehouse",
+      "field": "purpose",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "dt_approved",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "specification",
+      "field": "stats",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "currency",
+      "field": "symbol",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "currency",
+      "field": "precision",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "contacts",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "report",
+      "field": "content",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "report",
+      "field": "name",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "relations",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "report",
+      "field": "role_required",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "service",
+      "field": "times_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "specification",
+      "field": "is_locked",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "service",
+      "field": "config",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "ledger",
+      "field": "model_name",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "metrics",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "service",
+      "field": "travel",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "setting",
+      "field": "org_id",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "relations",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "bundle",
+      "field": "name",
+      "issue_type": "phantom_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "serial",
+      "field": "config",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "gl_accounts",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "catalog",
+      "field": "is_locked",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "setting",
+      "field": "name",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "catalog",
+      "field": "universal_pct",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "ledger",
+      "field": "purpose",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "setting",
+      "field": "scope",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "connections",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "phones",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "report",
+      "field": "paths",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "setting",
+      "field": "is_locked",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "config",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "bundle",
+      "field": "dt_last_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "serial",
+      "field": "config",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "dt_last_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "setting",
+      "field": "purpose",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "report",
+      "field": "editor_type",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "gl_accounts",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "variant",
+      "field": "purpose",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "contact",
+      "field": "company",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "gl_accounts",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "report",
+      "field": "times_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "specification",
+      "field": "applies_to",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "variant",
+      "field": "is_locked",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "bundle",
+      "field": "dt_processed",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "report",
+      "field": "dt_approved",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "stats",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "catalog",
+      "field": "applies_to",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "service",
+      "field": "billing_audit",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "document",
+      "field": "config",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "dt_approved",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "manufacturer",
+      "field": "emails",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "tag",
+      "field": "times_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "service",
+      "field": "process",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "service",
+      "field": "name",
+      "issue_type": "phantom_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "ledger",
+      "field": "discount_potential",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "tax_exempt_code",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "term",
+      "field": "config",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "ledger",
+      "field": "value_original",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "config",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "contact",
+      "field": "phone",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "contact",
+      "field": "name_suffix",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "term",
+      "field": "times_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "rep",
+      "field": "connections",
+      "issue_type": "unrendered_json",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "service",
+      "field": "category",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "catalog",
+      "field": "margin_floor",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "service",
+      "field": "purpose",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "report",
+      "field": "dt_last_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "currency",
+      "field": "is_locked",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "ledger",
+      "field": "dt_last_used",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
+    },
+    {
+      "model": "ledger",
+      "field": "value_available",
+      "issue_type": "unrendered_field",
+      "resolved_at": "2026-08-25T02:46:07.718201+00:00",
+      "prior_run": "2026-08-19T23:08:09.290250+00:00"
     }
   ],
   "version": 1

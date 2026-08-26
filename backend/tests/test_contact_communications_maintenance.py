@@ -7,14 +7,17 @@ from apps.core.models import Contact
 
 @pytest.mark.django_db
 def test_contact_communications_maintenance_creates_and_links_missing_rows():
+    # Create contact with email (scalar field) and comm records linked via FK pointers.
     c = Contact.objects.create(
         email="maint@example.com",
-        phone="(555) 1212",
-        domain="example.com",
-        address_full="123 Main St",
         name_first="Main",
         name_last="Contact",
     )
+    # Create comm records and link them to the contact so that the properties resolve.
+    ph = Phone.objects.create(number="(555) 1212", contact=c)
+    dom = Domain.objects.create(path="example.com", contact=c)
+    addr = Address.objects.create(full="123 Main St", address1="123 Main St", contact=c)
+    Contact.objects.filter(pk=c.pk).update(phone_id=ph.pk, domain_id=dom.pk, address_id=addr.pk)
 
     call_command("contact_communications_maintenance", contact_id=c.id)
 
@@ -48,12 +51,15 @@ def test_contact_communications_maintenance_creates_and_links_missing_rows():
 def test_contact_communications_maintenance_claims_unowned_matching_records():
     c = Contact.objects.create(
         email="claim@example.com",
-        phone="555-3333",
-        domain="claim.test",
-        address_full="500 Side Ave",
         name_first="Claim",
         name_last="Owner",
     )
+    # Create comm records linked to the contact so properties resolve.
+    ph = Phone.objects.create(number="5553333", contact=c)
+    dom = Domain.objects.create(path="claim.test", contact=c)
+    addr = Address.objects.create(full="500 Side Ave", address1="500 Side Ave", contact=c)
+    Contact.objects.filter(pk=c.pk).update(phone_id=ph.pk, domain_id=dom.pk, address_id=addr.pk)
+    c.refresh_from_db()
 
     Email.objects.create(email="claim@example.com", contact=None)
     Phone.objects.create(number="5553333", contact=None)

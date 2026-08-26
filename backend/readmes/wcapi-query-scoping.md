@@ -82,7 +82,7 @@ One Setting per model. Purpose = `field_access`. Structure:
 | Model | Customer sees | Vendor sees | Rep sees |
 |-------|--------------|-------------|----------|
 | order, invoice, proposal | customer_id = their org | vendor_id = their org | rep-linked records |
-| purchase, work_order | — | vendor_id = their org | — |
+| purchase, workorder | — | vendor_id = their org | — |
 | customer, vendor, etc. | id = their org only | id = their org only | all (view-only) |
 | payment | contact_id = their contact | contact_id = their contact | — |
 | email, phone, address | contact_id = their contact | contact_id = their contact | — |

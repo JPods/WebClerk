@@ -12,8 +12,8 @@ def _auth_client(user):
 
 @pytest.mark.django_db
 def test_field_auth_matrix_endpoint(django_user_model):
-    Setting.objects.create(purpose='wc:view_edit', model_target='proposal_line', is_active=True,
-                           data={"USER": {"view": ["id", "status"], "edit": ["status"]}})
+    Setting.objects.create(purpose='wc:view_edit', parent_model='proposal_line', is_active=True,
+                           config={"USER": {"view": ["id", "status"], "edit": ["status"]}})
     user = django_user_model.objects.create_user(email='user1@example.com', password='pass12345', role='USER')
     client = _auth_client(user)
     resp = client.get('/tx/auth/fields/?model=proposal-line')  # type: ignore
@@ -23,11 +23,11 @@ def test_field_auth_matrix_endpoint(django_user_model):
 
 @pytest.mark.django_db
 def test_serializer_field_filtering(django_user_model):
-    Setting.objects.create(purpose='wc:view_edit', model_target='proposal_line', is_active=True,
-                           data={"USER": {"view": ["id", "status"], "edit": ["status"]}})
+    Setting.objects.create(purpose='wc:view_edit', parent_model='proposal_line', is_active=True,
+                           config={"USER": {"view": ["id", "status"], "edit": ["status"]}})
     user = django_user_model.objects.create_user(email='user2@example.com', password='pass12345', role='USER')
     parent = Proposal.objects.create()
-    ProposalLine.objects.create(parent=parent, parent_ref_id=parent.pk, status='OPEN')
+    ProposalLine.objects.create(proposal=parent, status='OPEN')
     client = _auth_client(user)
     resp = client.get(f'/tx/proposal-lines/?parent_ref_id={parent.pk}')  # type: ignore
     assert resp.status_code == 200  # type: ignore[attr-defined]
@@ -37,22 +37,22 @@ def test_serializer_field_filtering(django_user_model):
 
 @pytest.mark.django_db
 def test_disallowed_edit(django_user_model):
-    Setting.objects.create(purpose='wc:view_edit', model_target='proposal_line', is_active=True,
-                           data={"USER": {"view": ["id", "status"], "edit": []}})
+    Setting.objects.create(purpose='wc:view_edit', parent_model='proposal_line', is_active=True,
+                           config={"USER": {"view": ["id", "status"], "edit": []}})
     user = django_user_model.objects.create_user(email='user3@example.com', password='pass12345', role='USER')
     parent = Proposal.objects.create()
-    line = ProposalLine.objects.create(parent=parent, parent_ref_id=parent.pk, status='OPEN')
+    line = ProposalLine.objects.create(proposal=parent, status='OPEN')
     client = _auth_client(user)
     resp = client.patch(f'/tx/proposal-lines/{line.pk}/', {'status': 'CLOSED'}, format='json')  # type: ignore
     assert resp.status_code in (400, 403)  # type: ignore[attr-defined]
 
 @pytest.mark.django_db
 def test_view_edit_cache_invalidation(django_user_model):
-    setting = Setting.objects.create(purpose='wc:view_edit', model_target='proposal_line', is_active=True,
-                                     data={"USER": {"view": ["id"], "edit": []}})
+    setting = Setting.objects.create(purpose='wc:view_edit', parent_model='proposal_line', is_active=True,
+                                     config={"USER": {"view": ["id"], "edit": []}})
     user = django_user_model.objects.create_user(email='cachetest@example.com', password='pass12345', role='USER')
     parent = Proposal.objects.create()
-    ProposalLine.objects.create(parent=parent, parent_ref_id=parent.pk, status='OPEN')
+    ProposalLine.objects.create(proposal=parent, status='OPEN')
     client = _auth_client(user)
     resp1 = client.get(f'/tx/proposal-lines/?parent_ref_id={parent.pk}')  # type: ignore
     assert resp1.status_code == 200  # type: ignore[attr-defined]
@@ -60,7 +60,7 @@ def test_view_edit_cache_invalidation(django_user_model):
     item1 = data1['results'][0]
     assert 'status' not in item1
     # Modify setting to include status
-    setting.data['USER']['view'].append('status')  # type: ignore[index]
+    setting.config['USER']['view'].append('status')  # type: ignore[index]
     setting.save()
     resp2 = client.get(f'/tx/proposal-lines/?parent_ref_id={parent.pk}')  # type: ignore
     assert resp2.status_code == 200  # type: ignore[attr-defined]

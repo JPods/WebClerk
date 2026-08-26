@@ -492,7 +492,7 @@ def repair_dangling_communications(
     # ─ Phone ─
     # Build normalized phone → contact lookup once (avoids N+1 full-table scan)
     _phone_lookup: dict[str, Contact | None] = {}
-    for contact in Contact.objects.filter(is_deleted=False).only("id", "phone").iterator(chunk_size=500):
+    for contact in Contact.objects.filter(is_deleted=False).only("id", "phone_id").iterator(chunk_size=500):
         norm_p = _norm_phone(contact.phone)
         if not norm_p:
             continue
@@ -525,8 +525,8 @@ def repair_dangling_communications(
             summary.dangling_unlinked += 1
             continue
         contacts = list(
-            Contact.objects.filter(domain__iexact=norm, is_deleted=False)
-            .order_by("id")[:2]
+            Contact.objects.filter(domains__path__iexact=norm, is_deleted=False)
+            .distinct().order_by("id")[:2]
         )
         if len(contacts) == 1:
             _link_dangling_to_contact(row, contacts[0], dry_run)
@@ -545,10 +545,10 @@ def repair_dangling_communications(
             continue
         contacts = list(
             Contact.objects.filter(
-                Q(address_full__iexact=norm),
+                Q(addresses__full__iexact=norm) | Q(addresses__address1__iexact=norm),
                 is_deleted=False,
             )
-            .order_by("id")[:2]
+            .distinct().order_by("id")[:2]
         )
         if len(contacts) == 1:
             _link_dangling_to_contact(row, contacts[0], dry_run)
