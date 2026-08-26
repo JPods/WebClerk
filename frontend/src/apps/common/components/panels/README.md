@@ -1,7 +1,145 @@
-# Panels — Canonical Location & Rules
+# Panels — Architecture & Rules
 
-> **Updated:** 2026-03-13  
-> **Rule:** All shared panels live here. No re-export shims. No legacy paths.
+> **Updated:** 2026-08-26
+> **Rule:** All shared panels live here. One canonical path per component.
+
+---
+
+## How Panels Work
+
+Every record in WC3 shows the same panel structure below its form fields. Panels are **self-discovering** — they appear automatically based on what's linked in the record's `refs.links` JSON.
+
+### The Panel Stack (every record)
+
+```
+┌─────────────────────────────────┐
+│  Form Fields (DynamicDetail)    │  ← data-driven from Report/Setting layout
+├─────────────────────────────────┤
+│  👤 Contacts (ContactPanel)     │  ← specialized: refs.links.contact
+├─────────────────────────────────┤
+│  📋 Actions (LinkedRecordsPanel)│  ← standard: always shown
+│  📞 Touches (LinkedRecordsPanel)│  ← standard: always shown
+│  📄 Documents (LinkedRecordsPanel)│ ← standard: always shown
+├─────────────────────────────────┤
+│  📦 Items (LinkedRecordsPanel)  │  ← discovered: refs.links.item exists
+│  🛒 Orders (LinkedRecordsPanel) │  ← discovered: refs.links.order exists
+│  ... any model ...              │  ← discovered from refs.links keys
+├─────────────────────────────────┤
+│  [+ Link...]                    │  ← user adds any model panel
+├─────────────────────────────────┤
+│  File Upload (FileUploadPanel)  │
+│  Open in page                   │
+└─────────────────────────────────┘
+```
+
+All panels are **collapsed by default**. Click to expand. Each panel has a hamburger for column configuration.
+
+### Self-Discovery Rules
+
+1. **Standard panels** (Actions, Touches, Documents) always appear, even if empty
+2. **Contacts** always appears (uses specialized ContactPanel with purpose/role)
+3. **Discovered panels** appear when `refs.links.{model}` has a key — even if the array is empty
+4. **User-added panels** appear via "+ Link..." which creates an empty `refs.links.{model}: []` entry
+5. **Same-model links** are allowed (order → order, contact → contact)
+6. **Self-link guard**: clicking a linked record never navigates the current view — always opens in a new window. Clicking the current record's own ID does nothing.
+
+### How a Panel Appears
+
+```
+User clicks "+ Link..." → selects "item"
+  → refs.links.item: [] saved to record
+  → DynamicDetail reads Object.keys(refs.links)
+  → LinkedRecordsPanel for "item" renders
+  → User searches and links specific items
+  → Next load: refs.links.item has entries → panel auto-discovers
+```
+
+No configuration file. No registration. The data IS the configuration.
+
+---
+
+## Two Panel Components
+
+### ContactPanel (specialized)
+
+For `refs.links.contact` only. Adds purpose badges (billto, shipto, approver, cc, etc.), primary contact star, and contact-specific data resolution (fetches email/phone from contact record when inline data is missing).
+
+Built on `DbColumns` — same hamburger, same column config, same behavior as all panels.
+
+### LinkedRecordsPanel (universal)
+
+For every other model. One component handles all of them:
+
+```tsx
+<LinkedRecordsPanel
+  linkedModel="item"           // any model name
+  parentModel="order"          // the record we're viewing
+  parentId={42}
+/>
+```
+
+Features:
+- Reads `refs.links.{linkedModel}` from parent record
+- Fetches linked records via wcapi
+- Displays in DbColumns with smart default columns (ida, name, status, plus model-specific: sku for items, channel for touches, totals for transactions)
+- Hamburger → FieldOrderDialog for column order, visibility, drag-reorder
+- "+ add" → inline type-ahead search with debounce
+- "×" per row → removes link, saves immediately
+- Click row → opens in new floating window (never navigates current view)
+- storageKey: `panel:{parentModel}:{linkedModel}` — each context gets its own column config
+
+---
+
+## Column Config — Three-Tier Inheritance
+
+`useListFieldConfig` resolves column configuration with inheritance:
+
+| Priority | Source | Who controls | Scope |
+|----------|--------|-------------|-------|
+| 1 (highest) | localStorage | User | Personal override per browser |
+| 2 | Report config | Admin | Context-specific (e.g., a dashboard report) |
+| 3 | Setting `wc:model` | Admin | System-wide default for this model |
+| 4 (lowest) | Hardcoded columns | Developer | Fallback |
+
+**User changes** save to localStorage automatically.
+**"Reset to default"** clears localStorage, falls back to Report or Setting.
+**"Save to Setting"** (admin) persists current layout as the new system default for all users.
+
+Each panel gets its own `useListFieldConfig` instance with a unique `storageKey`:
+- `panel:order:contacts` — contacts panel on an order
+- `panel:order:action` — actions panel on an order
+- `panel:action:touch` — touches panel on an action
+
+The `configSource` property tells the UI where current config came from: `'local'`, `'report'`, `'setting'`, or `'default'`.
+
+---
+
+## Base Component: DbColumns
+
+Every panel renders through `DbColumns` — the single source of truth for all tabular displays.
+
+```tsx
+<DbColumns<T>
+  storageKey="panel:order:contacts"
+  columns={columnDefs}
+  data={records}
+  rowKey={(r) => r.id}
+  sectionLabel="Contacts"
+  sectionIcon="👤"
+  onAdd={() => handleAdd()}
+  defaultCollapsed={true}
+  compact
+/>
+```
+
+DbColumns provides:
+- Section header with collapse ▶/▼, count badge, "+ add" button
+- Column headers with hamburger (FaSlidersH) → FieldOrderDialog
+- Column persistence via `useListFieldConfig` (three-tier inheritance)
+- Row rendering with selection highlighting
+- Custom row rendering via `renderRow` prop
+- Empty state message
+- Children slot (e.g., inline search form)
 
 ---
 
@@ -9,554 +147,122 @@
 
 ### 1. One canonical path per component
 
-Every panel has exactly one source file. Import it directly. Never create re-export shims or proxy files in other directories.
+Every panel has exactly one source file in `src/apps/common/components/panels/`. Import from here. Never create re-export shims.
 
-```tsx
-// CORRECT — import from canonical location
-import ContactPanel from "@/apps/common/components/panels/ContactPanel";
-import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
-import TransactionToolbar from "@/apps/common/components/TransactionToolbar";
-import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
+### 2. Panel row clicks always open in a new window
 
-// WRONG — never import from a shim or proxy
-import ContactPanel from "./ContactPanel";          // shim in transactions/
-import CommentsPanel from "../transactions/components/CommentsPanel";  // dead path
-```
+Never navigate the current detail view from a panel click. Always use `windowManager.ensureWindow()`. This prevents data loss from replacing an unsaved record.
 
-### 2. Where does it live?
+### 3. Self-link guard
 
-| Scope | Path | Examples |
-|-------|------|---------|
-| **Shared across apps** | `src/apps/common/components/panels/` | ContactPanel, CommentsPanel, PaymentPanel, FinancialsPanel, DocumentsPanel |
-| **Shared non-panel components** | `src/apps/common/components/` | TransactionToolbar, JsonFieldEditor, OrgSearchDialog |
-| **Transaction-only** | `src/apps/transactions/components/` | SummaryCard, LinesCard, TransactionDetailBase, MetadataPanel (transaction-specific) |
-| **Model-specific pages** | `src/apps/{app}/models/{model}/pages/` | PaymentListPage, PaymentDetailPage |
+If `linkedModel === parentModel && record.id === parentId`, the click does nothing. You cannot open yourself in yourself.
 
-Decision test: **"Is this used by more than one app?"**
-- Yes → `common/components/panels/` (or `common/components/` if not a panel)
-- No, transaction-only → `transactions/components/`
-- No, model-specific → `models/{model}/pages/`
+### 4. Panels don't duplicate features
 
-### 3. No barrel indirection for shims
+With self-discovering panels, the old integration matrix (which model has which panel) is obsolete. Every model gets every panel through DynamicDetail. The data determines what appears, not a configuration matrix.
 
-The barrel at `common/components/panels/index.ts` re-exports real components. Never use a barrel to re-export a shim. Every barrel entry must point to an actual source file in the same directory.
+### 5. New panels use DbColumns
 
-### 4. Transaction-specific ≠ duplicate
-
-`MetadataPanel` exists in both locations — this is correct:
-
-| File | Purpose |
-|------|---------|
-| `common/components/panels/MetadataPanel.tsx` | Generic entity metadata (key-value editor) |
-| `transactions/components/MetadataPanel.tsx` | Transaction-specific metadata (history, health, flags, versioning) |
-
-These are **different components** with different props and rendering. The naming collision is acceptable because they serve different contexts.
-
-### 5. FinancialsPanel naming
-
-`FinancialsPanel` is the component name. There is no `FinancialsCard`. The old alias was a naming mistake.
+Any new panel component must use `DbColumns` as its base. No custom table rendering. This ensures consistent column config, hamburger, and behavior across all panels.
 
 ---
 
-## Directory Structure
+## File Inventory
 
-```
-src/apps/common/components/
-├── JsonFieldEditor.tsx              # Generic JSON editor (admin)
-├── TransactionToolbar.tsx           # Action toolbar (save, clone, print)
-├── OrgSearchDialog.tsx              # Org/customer search modal
-│
-└── panels/
-    ├── README.md                    # THIS FILE — rules and inventory
-    ├── index.ts                     # Barrel exports
-    ├── types.ts                     # Shared types
-    ├── getModelDetailPath.ts        # Model → detail route mapping
-    ├── usePermissions.ts            # Permission checking hook
-    ├── documentUpload.ts            # Upload utilities
-    ├── qaUtils.ts                   # Q&A helpers
-    │
-    ├── # Entity Panels (used across all apps)
-    ├── ActionsPanel.tsx             # Tasks with status tracking
-    ├── BasicInformationPanel.tsx    # Org scalar fields
-    ├── CommentsPanel.tsx            # Comments (Public/Process/Partner/History)
-    ├── CommLinkPanel.tsx            # Communication links
-    ├── CommunicationsPanel.tsx      # Email/phone/address/domain CRUD
-    ├── ContactPanel.tsx             # Contacts grouped by purpose
-    ├── ContactPanelx2.tsx           # Contact normalization utilities
-    ├── DocumentsPanel.tsx           # File uploads, preview, download
-    ├── EmailGatePanel.tsx           # Email gateway integration
-    ├── FinancialsPanel.tsx          # Org financials (credit, aging, AR/AP)
-    ├── HistoryPanel.tsx             # Record history timeline
-    ├── ItemsPanel.tsx               # Line items display
-    ├── LinkagesPanel.tsx            # Cross-table record flow
-    ├── MetadataPanel.tsx            # Generic metadata editor
-    ├── ModelDataPanel.tsx           # Generic model data display
-    ├── OrgLinkPanel.tsx             # Org relationship links
-    ├── PanelTable.tsx               # Shared table component for panels
-    ├── PaymentPanel.tsx             # Payments linked to entity
-    ├── PrefsPanel.tsx               # User/entity preferences
-    ├── QAPanel.tsx                  # Q&A workflow
-    ├── RawDataPanel.tsx             # Raw JSON viewer
-    ├── RefsPanel.tsx                # Relationships & lineage
-    ├── SerialPanel.tsx              # Serial numbers
-    ├── ShippingPanel.tsx            # Shipping details
-    ├── TemplateQAPanel.tsx          # Template-based Q&A
-    ├── TransactionPanel.tsx         # Record header (ida/status/totals) + TransactionToolbar
-    └── TransactionsPanel.tsx        # Related transactions list
-```
+### Core infrastructure
 
-Transaction-only components (NOT shared panels):
+| File | What |
+|------|------|
+| `DbColumns.tsx` | Base list component — all panels inherit from this |
+| `PanelTable.tsx` | Re-export: `DbColumns as PanelTable` |
+| `LinkedRecordsPanel.tsx` | Universal any-model-to-any-model linking panel |
+| `ContactPanel.tsx` | Specialized contact panel with purpose/role |
+| `getModelDetailPath.ts` | Model → detail route + window size mapping |
+| `index.ts` | Barrel exports |
+| `types.ts` | Shared types |
+| `usePermissions.ts` | Role-based access hook |
+| `documentUpload.ts` | Upload utilities |
+| `qaUtils.ts` | Q&A helpers |
 
-```
-src/apps/transactions/components/
-├── TransactionDetailBase.tsx        # Base shell for transaction details
-├── SummaryCard.tsx                  # Transaction header (totals, dates)
-├── LinesCard.tsx                    # Line items grid
-├── LineDetailsModal.tsx             # Single line item editing
-├── MetadataPanel.tsx                # Transaction-specific metadata
-├── ContactLinksTable.tsx            # Spreadsheet-style contact table
-├── CustomerSalesPanel.tsx           # Customer financial data + terms
-├── PartySelector.tsx                # Customer/Vendor search dropdown
-├── TransactionItemSearch.tsx        # Item search for line items
-├── PaymentDialog.tsx                # Payment creation modal
-├── AddPaymentModal.tsx              # Quick payment against order
-├── ApplyPaymentModal.tsx            # Apply payment to invoice
-├── SplitLineModal.tsx               # Split line quantity
-├── FieldLabel.tsx                   # Label styling
-├── QATab.tsx                        # QAPanel wrapper
-├── ActivityLogTab.tsx               # Timeline view
-├── QuickAddRecent.tsx               # Recent items
-├── PrintPreviewModal.tsx            # Print preview
-├── InventoryCheckDialog.tsx         # Inventory validation
-├── TransactionTaskModal.tsx         # Task creation slide-out
-├── ActionsModal.tsx                 # Legacy task modal
-└── print/                           # Print document templates
-``` |
-| Refs | `RefsPanel` | `.refs` | admin | Relationships, lineage, system links |
-| Prefs | `PrefsPanel` | `.prefs` | admin | User/entity preferences |
-| Raw Data | `RawDataPanel` | Full entity | admin | Raw JSON viewer with syntax highlight |
+### Entity panels (specialized behavior beyond LinkedRecordsPanel)
 
----
+| File | Why it's separate from LinkedRecordsPanel |
+|------|------------------------------------------|
+| `ActionsPanel.tsx` | Kanban columns, inline status updates, embedded task creation |
+| `CommentsPanel.tsx` | Four-tab comment editor (Public/Process/Partner/Notes) |
+| `DocumentsPanel.tsx` | File upload, preview, download, virus scan |
+| `FinancialsPanel.tsx` | Margin calculation, aging summary, credit display |
+| `LinkagesPanel.tsx` | Transaction flow visualization (Proposal→Order→Invoice→Payment) |
+| `PaymentPanel.tsx` | Payment-specific actions (apply, refund) |
+| `SerialPanel.tsx` | Serial lifecycle tracking |
+| `ShippingPanel.tsx` | Carrier, tracking, freight |
 
-## Model × Panel Integration Matrix
+These exist because they have domain-specific behavior that a generic linked-records list can't provide. They should still use `DbColumns` internally.
 
-### Legend
+### Admin panels
 
-| Symbol | Meaning |
-|--------|---------|
-| ✅ | Integrated — panel is imported and wired |
-| 🔲 | Planned — should have this panel but not yet integrated |
-| ➖ | N/A — panel does not apply to this model |
-| 🔄 | Via base — provided by TransactionDetailBase or OrgDetail |
-
-### Transactions (via TransactionDetailBase)
-
-All transaction models use `TransactionDetailBase` which provides: Actions, Contact (ContactPanel + ContactLinksTable), Comments, Documents, Financials (TransactionFinancialsPanel), QA (QATab), Metadata, JsonFieldEditor, TransactionToolbar.
-
-| Model | Actions | Contact | Comments | Docs | Financials | QA | Linkage | Shipping | Lines |
-|-------|---------|---------|----------|------|------------|-----|---------|----------|-------|
-| order | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔲 | ✅ | ✅ |
-| invoice | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔲 | 🔲 | ✅ |
-| proposal | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔲 | 🔲 | ✅ |
-| purchase | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔲 | 🔲 | ✅ |
-| workorder | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔲 | 🔲 | ✅ |
-| receipt | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔲 | 🔲 | 🔲 |
-| requisition | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔲 | 🔲 | 🔲 |
-| project | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔲 | ➖ | ➖ |
-
-### Orgs
-
-| Model | Actions | Contact | Comments | Docs | Financials | QA | Linkage | Comms | Basic Info | Metadata | Refs | Prefs | Raw |
-|-------|---------|---------|----------|------|------------|-----|---------|-------|------------|----------|------|-------|-----|
-| customer | ✅ | ✅ | ✅ | ✅ | ✅ | 🔲 | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ |
-| vendor | 🔲 | ✅ | ✅ | ✅ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-| manufacturer | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-| organization | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-| employee | 🔲 | 🔲 | 🔲 | 🔲 | 🔄 | 🔲 | 🔲 | 🔲 | 🔄 | 🔲 | 🔲 | 🔲 | 🔲 |
-| rep | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-
-### Core
-
-| Model | Actions | Contact | Comments | Docs | QA | Linkage | Comms | Metadata | Refs | Prefs | Raw |
-|-------|---------|---------|----------|------|----|---------|-------|----------|------|-------|-----|
-| contact | ✅ | ➖ | ✅ | 🔲 | 🔲 | 🔲 | ✅ | ✅ | ✅ | ✅ | ✅ |
-| action | ➖ | ✅ | ✅ | ✅ | ✅ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-| report | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-| setting | 🔲 | ➖ | 🔲 | ➖ | ➖ | ➖ | ➖ | 🔲 | 🔲 | 🔲 | 🔲 |
-| template | 🔲 | ➖ | 🔲 | 🔲 | 🔲 | ➖ | ➖ | 🔲 | 🔲 | 🔲 | 🔲 |
-
-### Products
-
-| Model | Actions | Contact | Comments | Docs | QA | Linkage | JsonEditor | Refs | Metadata | Prefs | Raw |
-|-------|---------|---------|----------|------|----|---------|------------|------|----------|-------|-----|
-| item | ✅ | 🔲 | ✅ | 🔲 | 🔲 | ✅ | 🔲 | ✅ | ✅ | ✅ | ✅ |
-| catalog | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
-| variant | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
-| serial | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
-| specification | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
-| warehouse | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
-| service | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
-| flow | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
-| usage | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
-| metrics | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
-| org_item | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
-| item_xref | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
-| bill_of_material | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | ✅ | 🔲 | 🔲 | 🔲 | 🔲 |
-
-### Accounts
-
-| Model | Actions | Comments | Docs | QA | Financials | JsonEditor | Refs | Metadata | Prefs | Raw |
-|-------|---------|----------|------|----|------------|------------|------|----------|-------|-----|
-| currency | ✅ | ✅ | 🔲 | 🔲 | ➖ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-| exchange_rate | ✅ | ✅ | 🔲 | 🔲 | ➖ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-| exchange_transaction | ✅ | ✅ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-| gl_account | ✅ | ✅ | 🔲 | 🔲 | ➖ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-| gl_journal | ✅ | ✅ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-| ledger | 🔲 | 🔲 | 🔲 | 🔲 | ➖ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-| tax_jurisdiction | 🔲 | 🔲 | 🔲 | 🔲 | ➖ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-| term | 🔲 | 🔲 | 🔲 | 🔲 | ➖ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-| audit | 🔲 | 🔲 | 🔲 | 🔲 | ➖ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-
-### Docs
-
-| Model | Actions | Comments | Docs | QA | JsonEditor | Refs | Metadata | Prefs | Raw |
-|-------|---------|----------|------|----|------------|------|----------|-------|-----|
-| document | ✅ | ✅ | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
-| linkage_entry | ✅ | ✅ | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
-| question_answer | ✅ | ✅ | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
-| tag | ✅ | ✅ | ✅ | 🔲 | ✅ | ✅ | 🔲 | 🔲 | 🔲 |
-
-### Communications
-
-| Model | Actions | Contact | Comments | Docs |
-|-------|---------|---------|----------|------|
-| email | ✅ | ✅ | ✅ | ✅ |
-| phone | ✅ | ✅ | ✅ | ✅ |
-| address | ✅ | ✅ | ✅ | ✅ |
-| domain | ✅ | ✅ | ✅ | ✅ |
-
-### Support / Sync
-
-| Model | Actions | Comments | Docs | QA | JsonEditor | Refs |
-|-------|---------|----------|------|----|------------|------|
-| campaign | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-| bundle | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-| connection | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
-
----
-
-## Standard Tab Navigation
-
-Every model detail page should aim for a consistent tab set.
-
-### Universal Tabs (all models)
-
-| Tab | Panel Component | Required |
-|-----|-----------------|----------|
-| Actions | `ActionsPanel` | Yes |
-| Contact | `ContactPanel` | Yes (except settings, templates) |
-| Comments | `CommentsPanel` | Yes |
-| Documents | `DocumentsPanel` | Yes |
-| Financials | `FinancialsPanel` or `TransactionFinancialsPanel` | Context-dependent |
-| QA | `QAPanel` or `QATab` (transactions) | Yes |
-| Linkage | `LinkagesPanel` | Yes (where cross-record flow exists) |
-
-### Contextual Tabs (model-specific)
-
-| Tab | Models | Panel Component |
-|-----|--------|-----------------|
-| Ledger | order, invoice, purchase, gl_journal | *(planned)* |
-| Invoice Lines | invoice | `LinesCard` |
-| Order Lines | order | `LinesCard` |
-| Proposal Lines | proposal | `LinesCard` |
-| Purchase Lines | purchase | `LinesCard` |
-| Workorder Lines | workorder | `LinesCard` |
-| Shipping | order, invoice, purchase | `ShippingPanel` |
-| Reports | *(all)* | *(planned)* |
-| Settings | *(admin)* | *(planned)* |
-
-### Related Entity Tabs
-
-These tabs navigate to filtered list views of related records:
-
-| Tab | Applies To | Shows |
-|-----|------------|-------|
-| Employee | org models | Employees linked to org |
-| Customer | contact, org | Customer records for contact/org |
-| Vendor | contact, org | Vendor records for contact/org |
-| Manufacturer | contact, org | Manufacturer records for contact/org |
-| Rep | contact, org | Rep records for contact/org |
-| Catalog | item, variant | Catalog entries for item |
-| Inventory Layer | item, warehouse | Inventory layers |
-| Inventory Reservation | item, warehouse | Reserved quantities |
-| Item | catalog, org_item, variant | Item records |
-| Metrics | item | Usage/performance metrics |
-| Serial | item | Serial number records |
-| Specification | item | Specifications |
-| Usage | item | Usage tracking |
-| Variant | item | Variant records |
-| Warehouse | item | Warehouse locations |
-| Campaign | contact, org | Campaigns |
-| Bundle | sync | Sync bundles |
-
-### Admin Tabs (role-restricted)
-
-| Tab | Panel Component | Visible To |
-|-----|-----------------|------------|
-| JSON Editor | `JsonFieldEditor` | admin |
-| Metadata | `MetadataPanel` | admin |
-| Refs & Links | `RefsPanel` | admin |
-| Prefs | `PrefsPanel` | admin |
-| Raw Data | `RawDataPanel` | admin |
-
----
-
-## Role-Based Access Control
-
-All panels support role-based visibility and edit permissions via the `usePermissions` hook:
-
-```typescript
-interface PanelPermissions {
-  viewRoles: UserRole[];
-  editRoles: UserRole[];
-}
-
-type UserRole = 'admin' | 'superadmin' | 'super_admin' | 'administrator'
-              | 'manager' | 'user' | 'viewer' | 'guest';
-
-const ADMIN_ROLES = ['admin', 'superadmin', 'super_admin', 'administrator'];
-const MANAGER_ROLES = [...ADMIN_ROLES, 'manager'];
-const USER_ROLES = [...MANAGER_ROLES, 'user'];
-const ALL_ROLES = [...USER_ROLES, 'viewer', 'guest'];
-```
-
-### Default Permissions
-
-| Panel | View | Edit | Theme |
-|-------|------|------|-------|
-| BasicInformationPanel | all | user+ | Slate |
-| CommentsPanel | all | user+ | Blue |
-| ActionsPanel | all | user+ | Emerald |
-| DocumentsPanel | all | user+ | Slate |
-| QAPanel | all | user+ | Indigo |
-| ContactPanel | all | user+ | Blue |
-| CommunicationsPanel | all | user+ | Teal |
-| LinkagesPanel | all | admin | Violet |
-| FinancialsPanel | manager+ | admin | Green |
-| ShippingPanel | all | user+ | Slate |
-| MetadataPanel | admin | admin | Amber |
-| RefsPanel | admin | admin | Cyan |
-| PrefsPanel | user+ | admin | Purple |
-| RawDataPanel | admin | admin | Gray |
-
----
-
-## Common Props Interface
-
-All panels extend from `BasePanelProps`:
-
-```typescript
-interface BasePanelProps<T = unknown> {
-  entityType: EntityType;
-  entityId: number;
-  data: T;
-  onChange?: (data: T) => void;
-  readOnly?: boolean;
-  viewRoles?: UserRole[];
-  editRoles?: UserRole[];
-  className?: string;
-  compact?: boolean;
-  title?: string;
-  defaultCollapsed?: boolean;
-}
-```
+| File | Visible to |
+|------|-----------|
+| `MetadataPanel.tsx` | admin — `.metadata` JSON editor |
+| `RefsPanel.tsx` | admin — `.refs` JSON viewer |
+| `PrefsPanel.tsx` | admin — `.prefs` JSON editor |
+| `RawDataPanel.tsx` | admin — raw JSON viewer |
+| `HistoryPanel.tsx` | admin — record history |
 
 ---
 
 ## Django Model Alignment
 
-These panels align with the Django `BaseModel` (from `common/models.py`) JSONB fields:
+All panels read from `BaseModel` JSONB fields:
 
-### `.metadata` → MetadataPanel
-
-```typescript
-interface EntityMetadata {
-  security?: string;
-  publish?: string;
-  priority?: string;
-  version?: string;
-  access?: { view: number[]; edit: number[] };
-  history?: {
-    created: { dt: number; contact_id: number };
-    modified: { dt: number; contact_id: number };
-    accessed: { dt: number; contact_id: number };
-    verified: { dt: number; contact_id: number };
-    synced: { dt: number; contact_id: number };
-  };
-  health?: {
-    rating: number; completeness: number; accuracy: number;
-    freshness: number; consistency: number;
-  };
-  flags?: Record<string, boolean>;
-  [key: string]: unknown;
-}
-```
-
-### `.refs` → RefsPanel, ContactPanel, CommunicationsPanel, DocumentsPanel
-
-```typescript
-interface EntityRefs {
-  keywords?: string[];
-  tags?: string[];
-  categories?: string[];
-  related_ids?: number[];
-  depends_on?: Record<string, number[]>;
-  links?: {
-    contact?: ContactLink[];
-    email?: EmailLink[];
-    phone?: PhoneLink[];
-    location?: AddressLink[];
-    document?: DocumentLink[];
-    domain?: DomainLink[];
-    item?: ItemLink[];
-    [key: string]: RefLink[] | undefined;
-  };
-  lineage?: {
-    parent_id?: number; parent_type?: string;
-    source_id?: number; source_type?: string;
-  };
-}
-```
-
-### `.prefs` → PrefsPanel
-
-```typescript
-interface EntityPrefs {
-  userdefined?: Record<string, unknown>;
-  display?: {
-    layout?: 'grid' | 'list' | 'card' | 'table';
-    columns?: string[];
-    sort?: { field: string; order: 'asc' | 'desc' };
-  };
-  notifications?: {
-    email?: boolean; sms?: boolean; push?: boolean;
-    frequency?: 'immediate' | 'daily' | 'weekly';
-  };
-  defaults?: Record<string, unknown>;
-}
-```
-
-### `.comments` → CommentsPanel
-
-```typescript
-interface EntityComments {
-  public?: string | CommentEntry[];
-  process?: string | CommentEntry[];
-  partner?: string | CommentEntry[];
-  notes?: CommentEntry[];
-  general?: Record<string, CommentEntry[]>;
-}
-
-interface CommentEntry {
-  ts: string; by: string | number; text: string; source?: string;
-}
-```
-
-### `.actions` → ActionsPanel
-
-```typescript
-interface ActionEntry {
-  required?: boolean;
-  status?: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'on_hold';
-  who?: number | string;
-  when?: number | string;
-  what?: string;
-  kind?: 'task' | 'followup' | 'call' | 'email' | 'review' | 'approve' | 'ship' | 'other';
-  priority?: 'low' | 'normal' | 'high' | 'urgent';
-  extra?: object;
-}
-```
-
----
-
-## CommunicationsPanel - Direct API Integration
-
-Unlike other panels that rely on parent `onChange` handlers, `CommunicationsPanel` makes its own API calls via `wcapi`:
-
-```
-User adds/edits/deletes email, phone, address, or domain
-  → wcapi.saveRecord('email', { contact_id, email, name... })
-  → On 200: Update local state with refs.links format
-```
-
-**Required prop:** `contactId` — all CRUD operations include this for linking.
-
----
-
-## TransactionDetailBase - Internal Panel Inventory
-
-`TransactionDetailBase` is the shell for all transaction detail pages. It internally imports and provides:
-
-| Panel | Source |
+| Field | Panels |
 |-------|--------|
-| TransactionToolbar | `common/components/TransactionToolbar` (via re-export) |
-| ContactPanel | `common/panels/ContactPanel` (via re-export) |
-| ContactLinksTable | `transactions/components/ContactLinksTable` |
-| CommentsPanel | `common/panels/CommentsPanel` (via re-export) |
-| MetadataPanel | `transactions/components/MetadataPanel` (transaction-specific) |
-| FinancialsCard | `common/panels/TransactionFinancialsPanel` (via re-export) |
-| DocumentsPanel | `common/panels/DocumentsPanel` |
-| JsonFieldEditor | `common/components/JsonFieldEditor` (via re-export) |
-| QATab | `transactions/components/QATab` (wraps `common/panels/QAPanel`) |
+| `.refs.links.contact` | ContactPanel |
+| `.refs.links.{model}` | LinkedRecordsPanel (self-discovering) |
+| `.refs.links.document` | LinkedRecordsPanel or DocumentsPanel |
+| `.comments` | CommentsPanel |
+| `.metadata` | MetadataPanel |
+| `.prefs` | PrefsPanel |
+| `.config` | DynamicDetail form fields |
 
-Transaction detail pages extend this base and add model-specific components (SummaryCard, LinesCard, ShippingPanel, etc.).
+The `refs.links` pattern is the universal association mechanism:
+
+```json
+{
+  "refs": {
+    "links": {
+      "contact": [{"id": 42, "purpose": "primary"}, {"id": 43, "purpose": "cc"}],
+      "item": [{"id": 5}, {"id": 12}],
+      "order": [{"id": 100}],
+      "action": [{"id": 7}, {"id": 8}]
+    }
+  }
+}
+```
+
+Any key in `refs.links` triggers a panel. The key is the model name. The value is an array of linked record references.
 
 ---
 
 ## Quick Import Reference
 
 ```tsx
-// Standard panels
-import {
-  ActionsPanel,
-  CommentsPanel,
-  DocumentsPanel,
-  QAPanel,
-  ContactPanel,
-  FinancialsPanel,
-  TransactionFinancialsPanel,
-  LinkagesPanel,
-  ShippingPanel,
-  BasicInformationPanel,
-  CommunicationsPanel,
-} from '@/apps/common/components/panels';
+// Universal panel
+import { LinkedRecordsPanel } from '@/apps/common/components/panels';
 
-// Admin panels
-import {
-  MetadataPanel,
-  RefsPanel,
-  PrefsPanel,
-  RawDataPanel,
-} from '@/apps/common/components/panels';
+// Specialized panels
+import { ContactPanel } from '@/apps/common/components/panels';
+import { ActionsPanel } from '@/apps/common/components/panels';
+import { CommentsPanel } from '@/apps/common/components/panels';
+import { DocumentsPanel } from '@/apps/common/components/panels';
 
-// Shared components (not in panels/)
-import JsonFieldEditor from '@/apps/common/components/JsonFieldEditor';
-import TransactionToolbar from '@/apps/common/components/TransactionToolbar';
+// Base component (for building new panels)
+import { DbColumns } from '@/apps/common/components/panels';
+import type { DbColumnDef } from '@/apps/common/components/panels';
+
+// Column config hook
+import { useListFieldConfig } from '@/hooks/useListFieldConfig';
 
 // Types
-import type {
-  BasePanelProps, EntityType, UserRole,
-  EntityMetadata, EntityRefs, EntityPrefs, EntityComments,
-  ActionEntry, CommentEntry, QAEntry, DocumentEntry,
-  FinancialSummary, EmailLink, PhoneLink, AddressLink,
-  LinkageData, LinkedRecord,
-} from '@/apps/common/components/panels';
-
-// Utilities
-import {
-  usePermissions,
-  ADMIN_ROLES, MANAGER_ROLES, USER_ROLES, ALL_ROLES,
-  uploadDocument, uploadDocuments, deleteDocument,
-  getQAQuestions, getQAAnswers, applyQuestionGroup,
-} from '@/apps/common/components/panels';
+import type { RefContact } from '@/apps/common/components/panels';
 ```
