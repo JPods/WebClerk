@@ -121,6 +121,30 @@ COMPANY_PROFILE_CONFIG = {
         "wchq_level": "receive_only",  # none, receive_only, send_only, full
         "manufacturer_reporting": "none",  # none, aggregate_only, full
     },
+    # ── Onboarding profile — sent to WCHQ at registration ──────────
+    # WCHQ uses this to tailor coaching, select lists, and reports.
+    # Users fill this in during setup or later via company settings.
+    "onboarding": {
+        "contact_name": "",              # primary contact for this installation
+        "contact_email": "",             # how WCHQ reaches them
+        "contact_role": "",              # owner, admin, bookkeeper, IT, developer
+        "industry": "",                  # retail, wholesale, manufacturing, services, nonprofit, government, education, healthcare
+        "business_type": "",             # b2b, b2c, both, internal
+        "employee_count": "",            # 1-5, 6-25, 26-100, 101-500, 500+
+        "what_they_sell": "",            # products, services, both, digital, subscriptions
+        "shipping_needs": "",            # none, domestic, international, both, freight
+        "inventory_tracking": "",        # none, basic, serial, lot, warehouse
+        "current_system": "",            # spreadsheet, quickbooks, sage, other_erp, paper, none
+        "data_import_challenges": [],    # contacts, items, transactions, pricing, inventory, gl_history
+        "data_import_sources": [],       # csv, excel, quickbooks, sage, other_erp, api, manual
+        "data_volume": "",               # small (<1K records), medium (1K-50K), large (50K-500K), enterprise (500K+)
+        "what_would_help": [],           # onboarding_guide, import_help, report_templates, api_integration, training, custom_fields
+        "goals": [],                     # get_organized, replace_spreadsheets, multi_user, inventory_control, financial_reporting, customer_portal, ecommerce
+        "pain_points": [],               # data_entry, finding_info, reports, inventory_accuracy, payment_tracking, multi_location, integrations
+        "locale": "en-US",               # language-region for coaching and templates
+        "currency": "USD",               # primary currency
+        "timezone": "",                  # IANA timezone for scheduling
+    },
 }
 
 

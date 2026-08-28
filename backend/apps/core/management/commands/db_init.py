@@ -163,6 +163,21 @@ class Command(BaseCommand):
         sys_setting = Setting.objects.filter(purpose='wc:system').first()
         installation_id = str(sys_setting.uuid) if sys_setting and sys_setting.uuid else ''
 
+        # Get onboarding profile from company_profile Setting
+        profile_setting = Setting.objects.filter(purpose='wc:company_profile').first()
+        onboarding = {}
+        company_info = {}
+        if profile_setting and profile_setting.config:
+            onboarding = profile_setting.config.get('onboarding', {})
+            company = profile_setting.config.get('company', {})
+            # Send non-sensitive company info (name, industry, locale — not tax_id)
+            company_info = {
+                'name': company.get('name', ''),
+                'city': company.get('address', {}).get('city', ''),
+                'state': company.get('address', {}).get('state', ''),
+                'country': company.get('address', {}).get('country', ''),
+            }
+
         # Try WCHQ registration
         register_url = f"{base_url.rstrip('/')}/wcapi/register-installation/"
         token = None
@@ -172,6 +187,8 @@ class Command(BaseCommand):
             payload = json.dumps({
                 'installation_id': installation_id,
                 'dt_registered': datetime.now(timezone.utc).isoformat(),
+                'company': company_info,
+                'onboarding': onboarding,
             }).encode('utf-8')
             req = urllib.request.Request(
                 register_url,

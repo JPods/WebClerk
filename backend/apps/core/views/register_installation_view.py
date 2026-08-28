@@ -35,15 +35,46 @@ class RegisterInstallationView(View):
             return JsonResponse({'error': 'installation_id required'}, status=400)
 
         dt_registered = body.get('dt_registered', datetime.now(timezone.utc).isoformat())
+        company = body.get('company', {})
+        onboarding = body.get('onboarding', {})
 
         # Generate a unique token for this installation
         raw = f"{installation_id}:{secrets.token_hex(32)}:{dt_registered}"
         token = hashlib.sha256(raw.encode()).hexdigest()
 
-        # Log the registration (in production, store in a Registration model)
+        # Store registration as a Contact + Document record
+        # Contact = the installation's primary contact
+        # Document = the onboarding profile (what they need, their challenges)
+        try:
+            from apps.docs.models.document import Document
+            Document.objects.create(
+                ida=f'wchq-reg-{installation_id[:8]}',
+                name=f"Installation: {company.get('name') or installation_id[:12]}",
+                purpose='wchq-registration',
+                status='active',
+                config={
+                    'installation_id': installation_id,
+                    'token_prefix': token[:12],
+                    'dt_registered': dt_registered,
+                    'company': company,
+                    'onboarding': onboarding,
+                },
+                metadata={
+                    'industry': onboarding.get('industry', ''),
+                    'business_type': onboarding.get('business_type', ''),
+                    'locale': onboarding.get('locale', 'en-US'),
+                    'data_import_challenges': onboarding.get('data_import_challenges', []),
+                    'what_would_help': onboarding.get('what_would_help', []),
+                },
+            )
+        except Exception as e:
+            logger.warning("[WCHQ] Failed to store registration document: %s", e)
+
         logger.info(
-            "[WCHQ] Installation registered: %s token=%s...",
-            installation_id, token[:12],
+            "[WCHQ] Installation registered: %s industry=%s token=%s...",
+            installation_id,
+            onboarding.get('industry', '?'),
+            token[:12],
         )
 
         return JsonResponse({
