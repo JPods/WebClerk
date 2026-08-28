@@ -43,20 +43,6 @@ class VariantSerializer(serializers.ModelSerializer):
         read_only_fields = _BASE_RO
 
 
-class ServiceSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = _model("Service")
-        fields = [
-            "id", "uuid", "ida", "dt_created", "dt_modified", "version",
-            "is_active", "security_level", "is_deleted", "is_archived",
-            "metadata", "refs", "prefs", "comments", "health_rating",
-            "item_id", "status", "description", "purpose", "category",
-            "display", "actions", "billing", "process", "travel",
-            "default_duration_minutes", "row_version", "billing_audit",
-        ]
-        read_only_fields = _BASE_RO
-
-
 class ItemXrefSerializer(serializers.ModelSerializer):
     class Meta:
         model = _model("ItemXref")

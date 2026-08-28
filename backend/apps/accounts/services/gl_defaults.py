@@ -220,7 +220,7 @@ def assign_gl_defaults(obj, *, model_name: Optional[str] = None, purposes: Itera
     wanted = set([p.lower() for p in purposes])
     changed = 0
 
-    if t in {'items', 'services'} or obj.__class__.__name__ in {'Item', 'Service'}:
+    if t in {'items', 'services'} or obj.__class__.__name__ == 'Item':
         gls = getattr(obj, 'gls', None) or {}
         if 'sales' in wanted:
             val = _resolve_default('revenue', org_defaults)

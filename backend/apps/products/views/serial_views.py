@@ -12,7 +12,7 @@ from rest_framework import status, permissions
 from django.shortcuts import get_object_or_404
 from apps.products.models.serial import Serial
 from apps.products.models.item import Item
-from apps.products.services import serial_services as svc
+from apps.products.services.serial import serial_ops as svc
 from common.api_responses import api_response
 from drf_spectacular.utils import extend_schema, OpenApiParameter, inline_serializer
 from rest_framework import serializers

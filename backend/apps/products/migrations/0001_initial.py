@@ -5,7 +5,7 @@ import apps.products.models.inventory_layer
 import apps.products.models.item
 import apps.products.models.org_item
 import apps.products.models.serial
-import apps.products.models.service
+import apps.products.models.item  # service module removed; defaults inlined
 import apps.products.models.specification
 import apps.products.models.usage
 import apps.products.models.warehouse
@@ -669,9 +669,9 @@ class Migration(migrations.Migration):
                 ('category', models.CharField(blank=True, help_text='Service category or type', max_length=120)),
                 ('display', models.TextField(blank=True, help_text='Rich text / HTML description')),
                 ('actions', models.JSONField(blank=True, default=dict, help_text='Actionable steps and status tracking (schema_version key expected)')),
-                ('billing', models.JSONField(blank=True, default=apps.products.models.service.default_billing, help_text='Billing tiers & travel pricing JSON structure (schema_version, extensions)')),
-                ('process', models.JSONField(blank=True, default=apps.products.models.service.default_process, help_text='Workflow steps JSON structure')),
-                ('travel', models.JSONField(blank=True, default=apps.products.models.service.default_travel_details, help_text='Travel requirement JSON structure')),
+                ('billing', models.JSONField(blank=True, default=dict, help_text='Billing tiers & travel pricing JSON structure (schema_version, extensions)')),
+                ('process', models.JSONField(blank=True, default=dict, help_text='Workflow steps JSON structure')),
+                ('travel', models.JSONField(blank=True, default=dict, help_text='Travel requirement JSON structure')),
                 ('default_duration_minutes', models.PositiveIntegerField(default=0, help_text='Suggested base duration in minutes')),
                 ('row_version', models.PositiveIntegerField(default=0, help_text='Optimistic concurrency version counter')),
                 ('billing_audit', models.JSONField(blank=True, default=list, help_text='Append-only log of billing tier changes')),

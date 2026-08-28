@@ -5,8 +5,8 @@ This module provides utilities to work with parent-child relationships in Django
 particularly for hierarchical data structures like tags, categories, etc.
 """
 
-from typing import Type, Optional, List, QuerySet
-from django.db.models import Model
+from typing import Type, Optional, List
+from django.db.models import Model, QuerySet
 
 
 def _find_parent_field(model: Type[Model]) -> Optional[str]:

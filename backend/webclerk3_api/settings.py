@@ -518,7 +518,6 @@ WCAPI_BLESSED_MODELS = {
     "org_item": "products.OrgItem",
     "processor_runs": "products.InventoryAdjustmentProcessorRun",
     "serial": "products.Serial",
-    "service": "products.Service",
     "specification": "products.Specification",
     "usage": "products.ItemUsage",
     "variant": "products.Variant",

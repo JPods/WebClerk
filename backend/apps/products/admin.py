@@ -6,7 +6,7 @@ from .models import (
     Item, ItemXRef, BillOfMaterial, Warehouse, InventoryLayer, SiteInventory, 
     InventoryMovement, OrgItem, Serial, SerialLog, Catalog, CatalogLine,
     InventoryCheck, InventoryCheckLine, DeliveryVisit, DeliveryLine, ItemUsage,
-    Service, InventoryMetricsSnapshot, InventoryAdjustmentProcessorRun, Variant
+    InventoryMetricsSnapshot, InventoryAdjustmentProcessorRun, Variant
 )
 from .models.inventory_reservation import InventoryReservation
 from .models.specification import Specification
@@ -145,14 +145,6 @@ class DeliveryLineAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.
 class ItemUsageAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     # Scalar fields: description, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, is_locked, item_ida, month, security_level, status, uuid, version, year
     list_display = ("description", "status", "health_rating", "is_locked", "item_ida", "month", "is_active", "dt_created")
-    list_filter = ("is_active",)
-    search_fields = ("ida", "description")
-
-
-@admin.register(Service)
-class ServiceAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: category, default_duration_minutes, description, display, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, purpose, row_version, security_level, status, uuid, version
-    list_display = ("ida", "description", "status", "category", "default_duration_minutes", "display", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 

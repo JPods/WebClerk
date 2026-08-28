@@ -5,7 +5,7 @@ from importlib import import_module
 from django.conf import settings
 from django.db.models import Model
 
-from apps.core.services import wcapi as services
+from apps.core.services import record_serialize as services
 from apps.core.utils.policy import field_allowlist as base_policy
 
 

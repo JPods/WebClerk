@@ -9,7 +9,6 @@ from .catalog import Catalog, CatalogLine
 from .inventory_check import InventoryCheck, InventoryCheckLine
 from .flow import DeliveryVisit, DeliveryLine
 from .usage import ItemUsage
-from .service import Service
 from .metrics import InventoryMetricsSnapshot
 from .processor_runs import InventoryAdjustmentProcessorRun
 from .variant import Variant
@@ -32,7 +31,6 @@ __all__ = [
 	"DeliveryVisit",
 	"DeliveryLine",
 	"ItemUsage",
-	"Service",
 	"InventoryMetricsSnapshot",
 	"InventoryAdjustmentProcessorRun",
 	"Variant",

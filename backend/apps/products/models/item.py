@@ -168,6 +168,48 @@ FLAGS_SCHEMA_DESC = {
 QUANTITY_CANONICAL_KEYS = {"on_hand", "allocated", "available", "on_so", "on_po", "on_p", "on_reciept", "on_in", "on_wo", "inventory_min", "inventory_max", "vendor_min", "vendor_max"}
 
 
+def default_service_config():
+    """Service configuration for items with kind='service'.
+
+    Stored in item.config.service — not a separate model.
+
+    Keys:
+        billing: Pricing tiers and travel pricing
+        process: Ordered workflow steps
+        travel: Travel requirement qualifiers
+        default_duration_minutes: Suggested baseline duration
+    """
+    return {
+        "billing": {
+            "currency": "USD",
+            "tiers": [],
+            "travel": {"per_mile": 0.0, "per_hour": 0.0, "included_miles": 0, "dt_updated": 0},
+            "rounding": {"strategy": "HALF_UP", "places": 2},
+            "min_charge": None,
+            "max_charge": None,
+            "version": 1,
+        },
+        "process": {"steps": [], "version": 1, "dt_updated": 0},
+        "travel": {
+            "miles_included": 0,
+            "lodging_required": False,
+            "meal_per_diem": 0.0,
+            "notes": "",
+            "dt_updated": 0,
+        },
+        "default_duration_minutes": 0,
+    }
+
+SERVICE_CONFIG_SCHEMA_DESC = {
+    "billing": "Pricing tiers, travel rates, rounding policy, min/max charge",
+    "billing.tiers": "List of {unit, rate, cost, min_minutes, dt_effective} sorted by dt_effective",
+    "billing.travel": "Per-mile and per-hour travel surcharges",
+    "process": "Ordered workflow steps [{name, minutes}]",
+    "travel": "Logistical travel qualifiers (miles included, lodging, per diem)",
+    "default_duration_minutes": "Suggested baseline duration for quoting/scheduling",
+}
+
+
 def default_tax():
     """Default tax schema.
 

@@ -5,14 +5,9 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
 from apps.transactions.models import Proposal, Order, Invoice, Payment
-from apps.transactions.services import (
-    proposal_to_order,
-    order_to_invoice,
-    order_to_purchase,
-    payment_application,
-    inventory_flow,
-    validation
-)
+from apps.transactions.services.payment import payment_apply as payment_application
+from apps.transactions.services import inventory_flow
+from apps.transactions.services import validate_transaction as validation
 from apps.transactions.serializers.transfer_serializers import (
     TransferValidationSerializer,
     TransferValidationResponseSerializer,
@@ -233,7 +228,7 @@ def bulk_transfer_proposals(request):
         "preserve_proposals": true
     }
     """
-    from apps.transactions.services import proposal_to_order
+    from apps.transactions.services.convert import convert_proposal_to_order as proposal_to_order
 
     proposal_ids = request.data.get('proposal_ids', [])
     order_status = request.data.get('order_status', 'confirmed')
@@ -302,7 +297,7 @@ def bulk_transfer_orders(request):
         "preserve_orders": true
     }
     """
-    from apps.transactions.services import order_to_invoice
+    from apps.transactions.services.convert import convert_order_to_invoice as order_to_invoice
 
     order_ids = request.data.get('order_ids', [])
     invoice_status = request.data.get('invoice_status', 'sent')

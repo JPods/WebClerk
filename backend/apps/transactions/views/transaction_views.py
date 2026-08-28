@@ -12,7 +12,9 @@ from apps.transactions.serializers import (
     ProposalSerializer, OrderSerializer, PurchaseSerializer,
     InvoiceSerializer, PaymentSerializer
 )
-from apps.transactions.services import proposal_to_order, order_to_invoice, inventory_flow
+from apps.transactions.services.convert import convert_proposal_to_order as proposal_to_order
+from apps.transactions.services.convert import convert_order_to_invoice as order_to_invoice
+from apps.transactions.services import inventory_flow
 from apps.transactions.services.flow import receive_purchase, ReceiveLine
 from apps.transactions.services.pricing.commission_compute import populate_transaction_commission
 

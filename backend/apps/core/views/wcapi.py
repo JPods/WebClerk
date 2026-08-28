@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from django.utils import timezone
 
-from apps.core.services import wcapi as services
+from apps.core.services import record_serialize as services
 from apps.core.constants.filter_operators import ALLOWED_LOOKUPS
 from apps.core.services.role_filter import inject_role_filters
 from apps.core.services.field_projection import filter_response_data

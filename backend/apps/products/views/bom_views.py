@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 from apps.products.models.bill_of_material import BillOfMaterial
 from apps.products.models.item import Item
 from apps.products.serializers.bom_serializers import BillOfMaterialSerializer
-from apps.products.services import bom_services
+from apps.products.services import bom_ops as bom_services
 from common.api_responses import api_response
 from drf_spectacular.utils import extend_schema, OpenApiParameter, inline_serializer
 from rest_framework import serializers
