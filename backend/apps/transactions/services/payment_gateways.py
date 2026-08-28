@@ -184,8 +184,8 @@ def process_payment(payment_id: int, payment_method_token: str) -> dict:
         txn = result.get('transaction', {})
         pm = txn.get('payment_method', {})
 
-        payment.id_gateway_transaction = txn.get('token', '')
-        payment.id_gateway_payment_intent = txn.get('gateway_transaction_id', '')
+        payment.gateway_transaction_id = txn.get('token', '')
+        payment.gateway_payment_intent_id = txn.get('gateway_transaction_id', '')
         payment.dt_processed = timezone.now()
 
         # Token-in-a-token: store only the reference, last4, brand
@@ -239,11 +239,11 @@ def refund_payment(payment_id: int, amount_cents: int | None = None) -> dict:
     from apps.transactions.models import Payment
 
     payment = Payment.objects.get(pk=payment_id)
-    if not payment.id_gateway_transaction:
+    if not payment.gateway_transaction_id:
         raise ValueError("Payment has no gateway transaction to refund")
 
     svc = SpreedlyService.from_settings()
-    result = svc.refund(payment.id_gateway_transaction, amount_cents)
+    result = svc.refund(payment.gateway_transaction_id, amount_cents)
 
     txn = result.get('transaction', {})
     if txn.get('succeeded'):

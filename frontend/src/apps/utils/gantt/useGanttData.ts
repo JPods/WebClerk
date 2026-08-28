@@ -133,9 +133,9 @@ const parseProjectOption = (record: Record<string, unknown>): ProjectOption | nu
   
   if (isExplicitlyInactive) return null;
 
-  // Parse id_parent for parent-child project hierarchy
-  const rawParent = record.id_parent ?? record.parent_id ?? record.parent;
-  const id_parent = rawParent != null ? rawParent : null;
+  // Parse parent_id for parent-child project hierarchy
+  const rawParent = record.parent_id ?? record.parent ?? record.id_parent;
+  const parent_id = rawParent != null ? rawParent : null;
 
   const category = typeof record.category === 'string' ? record.category : undefined;
   const dt_start = typeof record.dt_start === 'number' ? record.dt_start : undefined;
@@ -148,7 +148,7 @@ const parseProjectOption = (record: Record<string, unknown>): ProjectOption | nu
     intent,
     ida,
     prefs,
-    id_parent: id_parent as string | number | null,
+    parent_id: parent_id as string | number | null,
     category,
     dt_start,
     dt_end,

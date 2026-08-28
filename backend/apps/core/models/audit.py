@@ -58,7 +58,7 @@ class AuditLog(BaseModel):
         blank=True,
         help_text="User agent string from the request"
     )
-    id_session = models.CharField(
+    session_id = models.CharField(
         max_length=255,
         blank=True,
         help_text="Session ID for tracking user sessions"
@@ -83,7 +83,7 @@ class AuditLog(BaseModel):
         changes=None,
         ip_address=None,
         user_agent=None,
-        id_session=None,
+        session_id=None,
         metadata=None,
         request=None
     ):
@@ -94,8 +94,8 @@ class AuditLog(BaseModel):
             ip_address = cls._get_client_ip(request)
         if request and not user_agent:
             user_agent = request.META.get('HTTP_USER_AGENT', '')
-        if request and not id_session:
-            id_session = request.session.session_key
+        if request and not session_id:
+            session_id = request.session.session_key
 
         return cls.objects.create(
             user_id=user,
@@ -105,7 +105,7 @@ class AuditLog(BaseModel):
             changes=changes or {},
             ip_address=ip_address or '',
             user_agent=user_agent or '',
-            id_session=id_session or '',
+            session_id=session_id or '',
             metadata=metadata or {}
         )
 

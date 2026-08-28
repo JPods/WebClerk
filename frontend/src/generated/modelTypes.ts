@@ -898,7 +898,7 @@ export interface AuditRecord {
   dt_created: number;  // read-only
   dt_modified: number;  // read-only
   health_rating: number;
-  id_session?: string;  // max_length=255
+  session_id?: string;  // max_length=255
   ip_address?: string | null;  // max_length=39
   is_active: boolean;
   is_archived: boolean;
@@ -918,7 +918,7 @@ export interface CreateAuditRequest {
   ida?: string;  // max_length=40
   action: string;  // max_length=50
   changes?: Record<string, any>;
-  id_session?: string;  // max_length=255
+  session_id?: string;  // max_length=255
   ip_address?: string | null;  // max_length=39
   is_active?: boolean;
   model_name: string;  // max_length=100
@@ -932,7 +932,7 @@ export interface UpdateAuditRequest {
   ida?: string;  // max_length=40
   action?: string;  // max_length=50
   changes?: Record<string, any>;
-  id_session?: string;  // max_length=255
+  session_id?: string;  // max_length=255
   ip_address?: string | null;  // max_length=39
   is_active?: boolean;
   model_name?: string;  // max_length=100
@@ -3644,8 +3644,8 @@ export interface PaymentRecord {
   gateway: string;  // choices: , manual, stripe, paypal | max_length=20
   gateway_response?: Record<string, any>;
   health_rating: number;
-  id_gateway_payment_intent?: string;  // max_length=255
-  id_gateway_transaction?: string;  // max_length=255
+  gateway_payment_intent_id?: string;  // max_length=255
+  gateway_transaction_id?: string;  // max_length=255
   invoice_id?: number | null;  // FK → transactions.Invoice
   is_active: boolean;
   is_archived: boolean;
@@ -3673,8 +3673,8 @@ export interface CreatePaymentRequest {
   fee_amount?: number | string;
   gateway?: string;  // choices: , manual, stripe, paypal | max_length=20
   gateway_response?: Record<string, any>;
-  id_gateway_payment_intent?: string;  // max_length=255
-  id_gateway_transaction?: string;  // max_length=255
+  gateway_payment_intent_id?: string;  // max_length=255
+  gateway_transaction_id?: string;  // max_length=255
   invoice_id?: number | null;  // FK → transactions.Invoice
   is_active?: boolean;
   notes?: string;
@@ -3696,8 +3696,8 @@ export interface UpdatePaymentRequest {
   fee_amount?: number | string;
   gateway?: string;  // choices: , manual, stripe, paypal | max_length=20
   gateway_response?: Record<string, any>;
-  id_gateway_payment_intent?: string;  // max_length=255
-  id_gateway_transaction?: string;  // max_length=255
+  gateway_payment_intent_id?: string;  // max_length=255
+  gateway_transaction_id?: string;  // max_length=255
   invoice_id?: number | null;  // FK → transactions.Invoice
   is_active?: boolean;
   notes?: string;
@@ -3856,7 +3856,7 @@ export interface ProjectRecord {
   dt_kanban?: string | null;
   dt_modified: number;  // read-only
   health_rating: number;
-  id_contact?: number | null;
+  contact_id?: number | null;
   intent?: string;  // max_length=255
   is_active: boolean;
   is_archived: boolean;
@@ -3885,7 +3885,7 @@ export interface CreateProjectRequest {
   category?: string;  // max_length=128
   data?: Record<string, any>;
   dt_kanban?: string | null;
-  id_contact?: number | null;
+  contact_id?: number | null;
   intent?: string;  // max_length=255
   is_active?: boolean;
   logistics?: Record<string, any>;
@@ -3908,7 +3908,7 @@ export interface UpdateProjectRequest {
   category?: string;  // max_length=128
   data?: Record<string, any>;
   dt_kanban?: string | null;
-  id_contact?: number | null;
+  contact_id?: number | null;
   intent?: string;  // max_length=255
   is_active?: boolean;
   logistics?: Record<string, any>;
@@ -3941,7 +3941,7 @@ export interface ProjectLinksRecord {
   dt_kanban?: string | null;
   dt_modified: number;  // read-only
   health_rating: number;
-  id_contact?: number | null;
+  contact_id?: number | null;
   intent?: string;  // max_length=255
   is_active: boolean;
   is_archived: boolean;
@@ -3970,7 +3970,7 @@ export interface CreateProjectLinksRequest {
   category?: string;  // max_length=128
   data?: Record<string, any>;
   dt_kanban?: string | null;
-  id_contact?: number | null;
+  contact_id?: number | null;
   intent?: string;  // max_length=255
   is_active?: boolean;
   logistics?: Record<string, any>;
@@ -3993,7 +3993,7 @@ export interface UpdateProjectLinksRequest {
   category?: string;  // max_length=128
   data?: Record<string, any>;
   dt_kanban?: string | null;
-  id_contact?: number | null;
+  contact_id?: number | null;
   intent?: string;  // max_length=255
   is_active?: boolean;
   logistics?: Record<string, any>;

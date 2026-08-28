@@ -24,7 +24,7 @@ export interface ProjectOption {
   ida?: string;
   actionCount?: number;
   prefs?: ProjectPrefs;
-  id_parent?: string | number | null;
+  parent_id?: string | number | null;
   category?: string;
   dt_start?: number;
   dt_end?: number;
@@ -150,7 +150,7 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
     let list = projects;
     // When collapsed, show only top-level projects (no parent)
     if (!showAllLevels) {
-      list = list.filter((p) => p.id_parent == null);
+      list = list.filter((p) => p.parent_id == null);
     }
     if (!searchTerm.trim()) return list;
     const lower = searchTerm.toLowerCase();
@@ -170,7 +170,7 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
     while (queue.length > 0) {
       const current = queue.shift()!;
       for (const p of projects) {
-        if (String(p.id_parent) === current && !descendants.includes(p.id)) {
+        if (String(p.parent_id) === current && !descendants.includes(p.id)) {
           descendants.push(p.id);
           queue.push(p.id);
         }
@@ -229,7 +229,7 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
     filteredProjects.length > 0 &&
     filteredProjects.every((p) => selectedIds.includes(p.id));
 
-  const hasHierarchy = projects.some((p) => p.id_parent != null);
+  const hasHierarchy = projects.some((p) => p.parent_id != null);
 
   return (
     <div className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
@@ -328,8 +328,8 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
                 ? getProjectColor(project.id, selectedIds, project.prefs?.action?.color)
                 : undefined;
 
-              const isChild = project.id_parent != null;
-              const hasChildren = projects.some(p => String(p.id_parent) === project.id);
+              const isChild = project.parent_id != null;
+              const hasChildren = projects.some(p => String(p.parent_id) === project.id);
 
               return (
                 <li key={project.id}>

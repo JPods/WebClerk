@@ -262,7 +262,7 @@ class PurchaseAdmin(SchemaLabelsAdminMixin, TransactionTotalsDisplayMixin, JSONB
 
 @admin.register(Project)
 class ProjectAdmin(SchemaLabelsAdminMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: attention, burndown, category, dt_created, dt_kanban, dt_modified, health_rating, id_contact, ida, intent, is_active, is_archived, is_deleted, is_locked, name, priority, profit, profit_velocity, security_level, situation, slug, status, uuid, version
+    # Scalar fields: attention, burndown, category, dt_created, dt_kanban, dt_modified, health_rating, contact_id, ida, intent, is_active, is_archived, is_deleted, is_locked, name, priority, profit, profit_velocity, security_level, situation, slug, status, uuid, version
     list_display = ("ida", "name", "status", "attention", "burndown", "category", "is_active", "dt_created")
     list_filter = ("status", "priority")
     search_fields = ("id", "name", "intent", "slug")
@@ -326,10 +326,10 @@ class WorkOrderAdmin(SchemaLabelsAdminMixin, TransactionTotalsDisplayMixin, JSON
 
 @admin.register(Payment)
 class PaymentAdmin(SchemaLabelsAdminMixin, JSONBFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: amount, dt_created, dt_modified, dt_payment, dt_processed, dt_reconciliation, fee_amount, gateway, health_rating, id_gateway_payment_intent, id_gateway_transaction, ida, is_active, is_archived, is_deleted, is_locked, notes, reconciled, reference_number, security_level, status, uuid, version
+    # Scalar fields: amount, dt_created, dt_modified, dt_payment, dt_processed, dt_reconciliation, fee_amount, gateway, health_rating, gateway_payment_intent_id, gateway_transaction_id, ida, is_active, is_archived, is_deleted, is_locked, notes, reconciled, reference_number, security_level, status, uuid, version
     list_display = ("ida", "status", "amount", "dt_payment", "dt_processed", "dt_reconciliation", "is_active", "dt_created")
     list_filter = ("status", "gateway", "reconciled", "is_active")
-    search_fields = ("reference_number", "id_gateway_transaction", "id_gateway_payment_intent", "notes", "ida")
+    search_fields = ("reference_number", "gateway_transaction_id", "gateway_payment_intent_id", "notes", "ida")
     readonly_fields = ("uuid", "dt_created", "dt_modified")
 
 

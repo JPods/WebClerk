@@ -2,7 +2,7 @@
  * ProjectKanbanPanel — Kanban board for projects linked to a contact.
  *
  * Columns = project status: draft → active → onhold/blocked → done/canceled
- * Cards = project records where id_contact = this contact
+ * Cards = project records where contact_id = this contact
  * Drag to change status. Click to open in DataBrowser.
  *
  * Lightweight — not the full KanbanBoardPage. Designed to embed in
@@ -14,6 +14,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { getRecords, saveRecord } from '@/api/wcapi';
+import { getUI } from '@/utils/contactUI';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -65,6 +66,8 @@ const DRAG_TYPE = 'PROJECT_CARD';
 // ---------------------------------------------------------------------------
 
 function ProjectCard({ project, onStatusChange }: { project: Project; onStatusChange: (id: number, status: string) => void }) {
+  const active = getUI<string>('theme.active', 'dark');
+  const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
   const [{ isDragging }, drag] = useDrag({
     type: DRAG_TYPE,
     item: { id: project.id, status: project.status },
@@ -87,22 +90,22 @@ function ProjectCard({ project, onStatusChange }: { project: Project; onStatusCh
       title="Double-click to open in DataBrowser"
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--db-text)' }}>{project.name}</span>
-        <span style={{ fontSize: 10, color: pctColor, fontWeight: 600 }}>{project.percent_complete}%</span>
+        <span style={{ fontWeight: 600, fontSize: baseFontSize - 1, color: 'var(--db-text)' }}>{project.name}</span>
+        <span style={{ fontSize: baseFontSize - 3, color: pctColor, fontWeight: 600 }}>{project.percent_complete}%</span>
       </div>
       {project.intent && (
-        <div style={{ fontSize: 11, color: 'var(--db-text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ fontSize: baseFontSize - 2, color: 'var(--db-text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {project.intent}
         </div>
       )}
       <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
         {project.category && (
-          <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
+          <span style={{ fontSize: baseFontSize - 4, padding: '1px 5px', borderRadius: 3, background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
             {project.category}
           </span>
         )}
         {project.attention && project.attention !== 'normal' && (
-          <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: ATTENTION_COLORS[project.attention] + '22', color: ATTENTION_COLORS[project.attention] }}>
+          <span style={{ fontSize: baseFontSize - 4, padding: '1px 5px', borderRadius: 3, background: ATTENTION_COLORS[project.attention] + '22', color: ATTENTION_COLORS[project.attention] }}>
             {project.attention}
           </span>
         )}
@@ -120,6 +123,8 @@ function KanbanCol({ colKey, label, color, projects, onDrop }: {
   projects: Project[];
   onDrop: (projectId: number, newStatus: string) => void;
 }) {
+  const active = getUI<string>('theme.active', 'dark');
+  const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
   const [{ isOver }, drop] = useDrop({
     accept: DRAG_TYPE,
     drop: (item: { id: number }) => onDrop(item.id, colKey),
@@ -137,7 +142,7 @@ function KanbanCol({ colKey, label, color, projects, onDrop }: {
       }}
     >
       <div style={{
-        fontSize: 11, fontWeight: 700, color, textTransform: 'uppercase',
+        fontSize: baseFontSize - 2, fontWeight: 700, color, textTransform: 'uppercase',
         padding: '4px 6px', marginBottom: 6, borderBottom: `2px solid ${color}33`,
         display: 'flex', justifyContent: 'space-between',
       }}>
@@ -156,12 +161,14 @@ function KanbanCol({ colKey, label, color, projects, onDrop }: {
 // ---------------------------------------------------------------------------
 
 export default function ProjectKanbanPanel({ contactId }: ProjectKanbanPanelProps) {
+  const active = getUI<string>('theme.active', 'dark');
+  const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchProjects = useCallback(async () => {
     try {
-      const res = await getRecords('project', { id_contact: contactId, is_active: true });
+      const res = await getRecords('project', { contact_id: contactId, is_active: true });
       const rows = res?.results || res?.records || res?.data?.results || [];
       setProjects(rows);
     } catch (e) {
@@ -183,12 +190,12 @@ export default function ProjectKanbanPanel({ contactId }: ProjectKanbanPanelProp
     }
   }, [fetchProjects]);
 
-  if (loading) return <div style={{ padding: 16, color: 'var(--db-text-muted)', fontSize: 12 }}>Loading projects...</div>;
-  if (projects.length === 0) return <div style={{ padding: 16, color: 'var(--db-text-dim)', fontSize: 12, textAlign: 'center' }}>No projects for this contact</div>;
+  if (loading) return <div style={{ padding: 16, color: 'var(--db-text-muted)', fontSize: baseFontSize - 1 }}>Loading projects...</div>;
+  if (projects.length === 0) return <div style={{ padding: 16, color: 'var(--db-text-dim)', fontSize: baseFontSize - 1, textAlign: 'center' }}>No projects for this contact</div>;
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div style={{ display: 'flex', gap: 4, overflowX: 'auto', padding: '4px 0', minHeight: 200 }}>
+      <div data-wc="project-kanban-panel" style={{ display: 'flex', gap: 4, overflowX: 'auto', padding: '4px 0', minHeight: 200 }}>
         {COLUMNS.map(col => (
           <KanbanCol
             key={col.key}

@@ -78,8 +78,8 @@ export interface Payment {
 
   // Gateway fields
   gateway: PaymentGateway;
-  id_gateway_transaction?: string;
-  id_gateway_payment_intent?: string;
+  gateway_transaction_id?: string;
+  gateway_payment_intent_id?: string;
   status: PaymentStatus;
   gateway_response?: Record<string, unknown>;
   dt_processed?: string;

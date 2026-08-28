@@ -182,7 +182,7 @@ function resolveContactId(entry: ContactLinkRecord): number | null {
     entry.id,
     record.id,
     record.contact_id,
-    record.id_contact,
+    record.contact_id,
     record.contactId,
   ];
   for (const candidate of candidates) {

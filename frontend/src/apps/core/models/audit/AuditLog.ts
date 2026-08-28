@@ -17,7 +17,7 @@ export interface AuditLog {
   changes?: Record<string, any>;
   ip_address?: string;
   user_agent?: string;
-  id_session?: string;
+  session_id?: string;
   metadata?: Record<string, any>;
   refs?: Record<string, any>;
   prefs?: Record<string, any>;

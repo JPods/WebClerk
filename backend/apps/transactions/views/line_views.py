@@ -768,7 +768,7 @@ class ProjectListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generi
     # Use plain IsAuthenticated to avoid needing dynamic view/edit settings for base project CRUD
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = DefaultPagination
-    filterset_fields = ['status', 'priority', 'attention', 'category', 'id_contact']
+    filterset_fields = ['status', 'priority', 'attention', 'category', 'contact_id']
     search_fields = ['situation', 'intent', 'objective']
     ordering_fields = ['id', 'priority', 'status', 'attention', 'burndown', 'profit', 'dt_modified']
     # Ensure POST allowed on list endpoint

@@ -16,7 +16,7 @@ export interface Project {
   priority?: number;
   status?: string;
   attention?: string;
-  id_contact?: number;
+  contact_id?: number;
   tasks?: Record<string, any>;
   burndown?: number;
   category?: string;

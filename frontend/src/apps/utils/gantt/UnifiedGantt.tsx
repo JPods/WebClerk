@@ -515,7 +515,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   const filteredDropdownProjects = useMemo(() => {
     // Filter: gantt weight > 0 (or no weight = show). Search overrides weight filter.
     const getWeight = (p: typeof projects[number]) =>
-      (p.prefs as any)?.gantt?.weight ?? (p.id_parent == null ? 3 : 0);
+      (p.prefs as any)?.gantt?.weight ?? (p.parent_id == null ? 3 : 0);
 
     let list: typeof projects;
     if (projectSearchTerm.trim()) {
@@ -549,7 +549,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     while (queue.length > 0) {
       const current = queue.shift()!;
       for (const p of projects) {
-        if (String(p.id_parent) === current && !descendants.includes(p.id)) {
+        if (String(p.parent_id) === current && !descendants.includes(p.id)) {
           descendants.push(p.id);
           queue.push(p.id);
         }
@@ -728,9 +728,9 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   // Precompute sprint end dates for vertical boundary lines
   const sprintEndDates = useMemo(() => {
     const dates = new Set<string>();
-    // Child projects (id_parent set) are sprints — use their deadlines
+    // Child projects (parent_id set) are sprints — use their deadlines
     const childProjectIds = new Set(
-      projects.filter(p => p.id_parent != null).map(p => p.id)
+      projects.filter(p => p.parent_id != null).map(p => p.id)
     );
     // Also match any task with "sprint" in the name
     for (const task of ganttData.tasks) {
@@ -1505,7 +1505,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       if (!proj) return '';
       const color = getProjectColor(id, selectedIds, proj.prefs?.action?.color);
       const name = proj.name || proj.intent || `Project ${id}`;
-      const isChild = proj.id_parent != null;
+      const isChild = proj.parent_id != null;
       const pca = '-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact';
       return `<span style="display:inline-flex;align-items:center;gap:3px;margin-right:12px;${isChild ? 'margin-left:12px;' : ''}">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};${pca};"></span>
@@ -1599,7 +1599,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     // Build project names header — top-level projects only
     const topLevelIds = selectedProjectIds.filter(id => {
       const proj = projects.find(p => String(p.id) === String(id));
-      return !proj?.id_parent;
+      return !proj?.parent_id;
     });
     const projectNames = (topLevelIds.length > 0 ? topLevelIds : selectedProjectIds).map(id => {
       const proj = projects.find(p => String(p.id) === String(id));
@@ -1874,7 +1874,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
 
     const topLevelIds = selectedProjectIds.filter(id => {
       const proj = projects.find(p => String(p.id) === String(id));
-      return !proj?.id_parent;
+      return !proj?.parent_id;
     });
     const projectNames = (topLevelIds.length > 0 ? topLevelIds : selectedProjectIds).map(id => {
       const proj = projects.find(p => String(p.id) === String(id));
@@ -2102,7 +2102,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     // Build project names
     const topLevelIds = selectedProjectIds.filter(id => {
       const proj = projects.find(p => String(p.id) === String(id));
-      return !proj?.id_parent;
+      return !proj?.parent_id;
     });
     const projectNames = (topLevelIds.length > 0 ? topLevelIds : selectedProjectIds).map(id => {
       const proj = projects.find(p => String(p.id) === String(id));
@@ -2284,7 +2284,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
 
     const topLevelIds = selectedProjectIds.filter(id => {
       const proj = projects.find(p => String(p.id) === String(id));
-      return !proj?.id_parent;
+      return !proj?.parent_id;
     });
     const projectNames = (topLevelIds.length > 0 ? topLevelIds : selectedProjectIds).map(id => {
       const proj = projects.find(p => String(p.id) === String(id));

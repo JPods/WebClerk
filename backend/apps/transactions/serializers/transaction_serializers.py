@@ -290,8 +290,8 @@ class PaymentSerializer(RoleAwareModelSerializer):
         fields = [
             'id', 'uuid', 'type', 'category', 'amount', 'dt_payment',
             'method', 'payment_term_id',
-            'reference_number', 'notes', 'gateway', 'id_gateway_transaction',
-            'id_gateway_payment_intent', 'status', 'gateway_response',
+            'reference_number', 'notes', 'gateway', 'gateway_transaction_id',
+            'gateway_payment_intent_id', 'status', 'gateway_response',
             'dt_processed', 'reconciled', 'dt_reconciliation', 'fee_amount',
             'contact_id', 'customer_id', 'vendor_id', 'invoice_id', 'purchase_id',
             'dt_created', 'dt_modified', 'version',

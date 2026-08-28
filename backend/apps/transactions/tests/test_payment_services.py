@@ -213,8 +213,8 @@ class StripeServiceTest(TestCase):
 
         # Check payment updated
         self.payment.refresh_from_db()
-        self.assertEqual(self.payment.id_gateway_payment_intent, 'pi_test123')
-        self.assertEqual(self.payment.id_gateway_transaction, 'pi_test123')
+        self.assertEqual(self.payment.gateway_payment_intent_id, 'pi_test123')
+        self.assertEqual(self.payment.gateway_transaction_id, 'pi_test123')
         self.assertEqual(self.payment.status, 'processing')
 
     @patch('stripe.PaymentIntent.create')
@@ -243,7 +243,7 @@ class StripeServiceTest(TestCase):
         result = service._verify_stripe_payment(self.payment)
 
         self.assertTrue(result)
-        mock_retrieve.assert_called_once_with(self.payment.id_gateway_payment_intent)
+        mock_retrieve.assert_called_once_with(self.payment.gateway_payment_intent_id)
 
 
 class PayPalServiceTest(TestCase):
@@ -284,7 +284,7 @@ class PayPalServiceTest(TestCase):
 
         # Check payment updated
         self.payment.refresh_from_db()
-        self.assertEqual(self.payment.id_gateway_transaction, 'PAY-123')
+        self.assertEqual(self.payment.gateway_transaction_id, 'PAY-123')
         self.assertEqual(self.payment.status, 'processing')
 
 

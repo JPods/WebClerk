@@ -131,7 +131,7 @@ def spreedly_webhook(request):
 
         # Find payment by Spreedly transaction token
         try:
-            payment = Payment.objects.get(id_gateway_transaction=txn_token)
+            payment = Payment.objects.get(gateway_transaction_id=txn_token)
         except Payment.DoesNotExist:
             logger.warning(f"Spreedly webhook: no payment for token {txn_token}")
             return JsonResponse({'status': 'ignored'})

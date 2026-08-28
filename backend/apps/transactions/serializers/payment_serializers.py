@@ -31,7 +31,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             "id", "invoice_id", "contact_id", "amount", "available", "tendered", "change",
             "dt_payment",
             "payment_method_id", "payment_term_id", "reference_number", "notes",
-            "gateway", "id_gateway_transaction", "id_gateway_payment_intent", "status",
+            "gateway", "gateway_transaction_id", "gateway_payment_intent_id", "status",
             "gateway_response", "dt_processed", "reconciled", "dt_reconciliation", "fee_amount",
             "refs", "metadata",
             "dt_created", "dt_modified", "version"
@@ -44,8 +44,8 @@ class PaymentSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and not getattr(request.user, 'is_staff', False):
             data.pop('gateway_response', None)
-            data.pop('id_gateway_transaction', None)
-            data.pop('id_gateway_payment_intent', None)
+            data.pop('gateway_transaction_id', None)
+            data.pop('gateway_payment_intent_id', None)
         return data
 
     def create(self, validated_data):

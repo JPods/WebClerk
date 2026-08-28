@@ -168,22 +168,17 @@ class Payment(BaseModel):
         default='manual',
         help_text="Payment gateway used"
     )
-    id_gateway_transaction = models.CharField(
+    gateway_transaction_id = models.CharField(
         max_length=255,
         blank=True,
         help_text="Transaction ID from the payment gateway"
     )
-    id_gateway_payment_intent = models.CharField(
+    gateway_payment_intent_id = models.CharField(
         max_length=255,
         blank=True,
         help_text="Payment intent ID from Stripe or equivalent"
     )
-    status = models.CharField(
-        max_length=32,
-        choices=PAYMENT_STATUS_CHOICES,
-        default='pending',
-        help_text="Current payment status"
-    )
+    # status — inherited from CoreModel
     gateway_response = models.JSONField(
         null=True,
         blank=True,
@@ -228,8 +223,8 @@ class Payment(BaseModel):
         constraints = [
             # Webhook dedup: prevent duplicate payments from the same gateway event
             models.UniqueConstraint(
-                fields=['id_gateway_payment_intent'],
-                condition=~models.Q(id_gateway_payment_intent=''),
+                fields=['gateway_payment_intent_id'],
+                condition=~models.Q(gateway_payment_intent_id=''),
                 name='uniq_payment_gateway_intent',
             ),
         ]

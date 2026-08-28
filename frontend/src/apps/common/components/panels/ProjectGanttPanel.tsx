@@ -73,7 +73,7 @@ export default function ProjectGanttPanel({ contactId }: ProjectGanttPanelProps)
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getRecords('project', { id_contact: contactId, is_active: true })
+    getRecords('project', { contact_id: contactId, is_active: true })
       .then((res: any) => {
         const rows = res?.results || res?.records || res?.data?.results || [];
         setProjects(rows.filter((p: Project) => p.dt_start || p.dt_end));
@@ -133,7 +133,7 @@ export default function ProjectGanttPanel({ contactId }: ProjectGanttPanelProps)
   const sorted = [...projects].sort((a, b) => (a.dt_start || 0) - (b.dt_start || 0) || a.priority - b.priority);
 
   return (
-    <div style={{ overflowX: 'auto', padding: '4px 0' }}>
+    <div data-wc="project-gantt-panel" style={{ overflowX: 'auto', padding: '4px 0' }}>
       {/* Timeline header */}
       <div style={{ position: 'relative', height: 20, marginLeft: 160, marginBottom: 2 }}>
         {monthMarkers.map((m, i) => (

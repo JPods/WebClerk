@@ -47,7 +47,7 @@ export interface CreateProjectRequest {
   category?: string;
   intent?: string;
   slug?: string;
-  id_contact?: number | null;
+  contact_id?: number | null;
   objective?: ProjectObjective;
   tasks?: ProjectTask;
   logistics?: ProjectLogistics;
@@ -76,7 +76,7 @@ export interface ProjectApiTask {
   category?: string;
   intent?: string;
   slug?: string;
-  id_contact?: number | null;
+  contact_id?: number | null;
   dt_kanban?: string | null;
   objective?: ProjectObjective;
   tasks?: ProjectTask;

@@ -65,9 +65,9 @@ class Project(BaseModel):
     situation = models.TextField(blank=True, default="", help_text="Current context / problem narrative")
     objective = models.JSONField(default=default_objective, help_text="Structured goal & success metrics")
     priority = models.PositiveSmallIntegerField(default=3, help_text="1 (highest) – 5 (lowest)")
-    status = models.CharField(max_length=32, choices=STATUS_CHOICES, default="draft", db_index=True)
+    # status — inherited from CoreModel
     attention = models.CharField(max_length=16, choices=ATTENTION_CHOICES, default="normal", db_index=True)
-    id_contact = models.BigIntegerField(null=True, blank=True, db_index=True, help_text="Owning / primary contact id")
+    contact_id = models.BigIntegerField(null=True, blank=True, db_index=True, help_text="Owning / primary contact id")
     tasks = models.JSONField(default=default_tasks, help_text="Backlog tasks + derived counters")
     burndown = models.PositiveSmallIntegerField(default=0, help_text="0-100 percent completion snapshot")
     category = models.CharField(max_length=128, blank=True, default="", db_index=True)
@@ -81,9 +81,9 @@ class Project(BaseModel):
     # Timeline and hierarchy (added 2026-07-29)
     dt_start = models.BigIntegerField(default=0, help_text="Project start date (epoch ms)")
     dt_end = models.BigIntegerField(default=0, help_text="Project end date (epoch ms)")
-    id_parent = models.ForeignKey(
+    parent = models.ForeignKey(
         'self', on_delete=models.SET_NULL, null=True, blank=True,
-        db_column='id_parent', related_name='children',
+        db_column='parent_id', related_name='children',
         help_text="Parent project for hierarchy",
     )
     percent_complete = models.IntegerField(default=0, help_text="0-100 completion percentage")
@@ -98,7 +98,7 @@ class Project(BaseModel):
             models.Index(fields=["priority"], name="project_priority_idx"),
             models.Index(fields=["attention"], name="project_attention_idx"),
             models.Index(fields=["category"], name="project_category_idx"),
-            models.Index(fields=["id_contact"], name="project_contact_idx"),
+            models.Index(fields=["contact_id"], name="project_contact_idx"),
             models.Index(fields=["status", "priority"], name="project_status_priority_idx"),
             models.Index(fields=["slug"], name="project_slug_idx"),
         ]
@@ -202,7 +202,7 @@ class Project(BaseModel):
             gantt = {}
         if 'weight' in gantt:
             return
-        gantt['weight'] = 0 if self.id_parent else 3
+        gantt['weight'] = 0 if self.parent_id else 3
         prefs['gantt'] = gantt
         self.prefs = prefs
 

@@ -85,6 +85,7 @@ interface ProjectOption {
   name?: string;
   intent?: string;
   contacts?: ProjectContact[];
+  dtKanban?: string | null;
 }
 
 interface ContactOption {
@@ -382,12 +383,17 @@ const createProjectOption = (record: Record<string, unknown>): ProjectOption | n
     }
   }
 
+  // Extract dt_kanban
+  const dtKanbanRaw = record.dt_kanban ?? nestedProject?.dt_kanban;
+  const dtKanban = typeof dtKanbanRaw === "string" && dtKanbanRaw ? dtKanbanRaw : null;
+
   return {
     id: parsedId,
     slug,
     name: resolvedName,
     intent,
     contacts,
+    dtKanban,
   };
 };
 
@@ -401,27 +407,107 @@ const parseProjectDateFromLabel = (label?: string): Date | null => {
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
-// Choose default project id: the project whose parsed date is the earliest date >= today
+// Choose default project id: the project whose dt_kanban is the earliest date >= today
 const findDefaultProjectId = (projects: ProjectOption[]): string | undefined => {
   if (!projects || projects.length === 0) return undefined;
   const today = new Date();
-  // normalize to UTC date-only for comparison
   const todayUtc = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
 
   let chosen: { id: string; date: Date } | undefined;
   for (const p of projects) {
-    const label = p.name ?? p.slug ?? p.id;
-    const d = parseProjectDateFromLabel(label);
+    // Prefer dt_kanban, fall back to name-based parsing
+    let d: Date | null = null;
+    if (p.dtKanban) {
+      const parsed = new Date(p.dtKanban);
+      if (!Number.isNaN(parsed.getTime())) d = parsed;
+    }
+    if (!d) {
+      const label = p.name ?? p.slug ?? p.id;
+      d = parseProjectDateFromLabel(label);
+    }
     if (!d) continue;
-    // zero-time UTC normalization
     const dUtc = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-    if (dUtc.getTime() < todayUtc.getTime()) continue; // skip past dates
+    if (dUtc.getTime() < todayUtc.getTime()) continue;
     if (!chosen || dUtc.getTime() < chosen.date.getTime()) {
       chosen = { id: p.id, date: dUtc };
     }
   }
 
   return chosen?.id;
+};
+
+// ── Segmented Project Selector helpers ──
+
+/** Get the Monday of the week containing a given date (UTC) */
+const getWeekStart = (d: Date): Date => {
+  const day = d.getUTCDay(); // 0=Sun
+  const diff = day === 0 ? -6 : 1 - day;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + diff));
+};
+
+interface ProjectSegments {
+  permanent: ProjectOption[];
+  current: ProjectOption[];
+  previous: ProjectOption[];
+  next: ProjectOption[];
+  older: ProjectOption[];
+}
+
+const segmentProjects = (projects: ProjectOption[]): ProjectSegments => {
+  const now = new Date();
+  const thisWeekStart = getWeekStart(now);
+  // Current = 4-week window centered on this week (this week + 3 more)
+  const currentStart = new Date(thisWeekStart.getTime() - 0 * 7 * 86400000);
+  const currentEnd = new Date(thisWeekStart.getTime() + 4 * 7 * 86400000);
+  const previousStart = new Date(currentStart.getTime() - 4 * 7 * 86400000);
+  const nextEnd = new Date(currentEnd.getTime() + 4 * 7 * 86400000);
+
+  const segments: ProjectSegments = {
+    permanent: [],
+    current: [],
+    previous: [],
+    next: [],
+    older: [],
+  };
+
+  for (const p of projects) {
+    let d: Date | null = null;
+    if (p.dtKanban) {
+      const parsed = new Date(p.dtKanban);
+      if (!Number.isNaN(parsed.getTime())) d = parsed;
+    }
+    if (!d) {
+      const label = p.name ?? p.slug ?? p.id;
+      d = parseProjectDateFromLabel(label);
+    }
+    if (!d) {
+      segments.permanent.push(p);
+      continue;
+    }
+    const t = d.getTime();
+    if (t >= currentStart.getTime() && t < currentEnd.getTime()) {
+      segments.current.push(p);
+    } else if (t >= previousStart.getTime() && t < currentStart.getTime()) {
+      segments.previous.push(p);
+    } else if (t >= currentEnd.getTime() && t < nextEnd.getTime()) {
+      segments.next.push(p);
+    } else {
+      segments.older.push(p);
+    }
+  }
+
+  // Sort dated segments by date descending (most recent first)
+  const byDateDesc = (a: ProjectOption, b: ProjectOption) => {
+    const da = a.dtKanban ? new Date(a.dtKanban).getTime() : 0;
+    const db = b.dtKanban ? new Date(b.dtKanban).getTime() : 0;
+    return db - da;
+  };
+  segments.current.sort(byDateDesc);
+  segments.previous.sort(byDateDesc);
+  segments.next.sort(byDateDesc);
+  segments.older.sort(byDateDesc);
+
+  return segments;
 };
 
 const parseAttachmentDocumentId = (attachment: TaskAttachment): number | null => {
@@ -1061,8 +1147,197 @@ const updateTaskFormState = (
 
 
 
+// ── Segmented Project Selector ──
 
+interface SegmentedProjectSelectorProps {
+  options: ProjectOption[];
+  selectedId: string;
+  isLoading: boolean;
+  onSelect: (id: string) => void;
+}
 
+const spsDropdownStyle: CSSProperties = {
+  position: "absolute",
+  top: "100%",
+  left: 0,
+  zIndex: 9999,
+  minWidth: 280,
+  maxHeight: 420,
+  overflowY: "auto",
+  background: "var(--color-gray-800, #1e293b)",
+  border: "1px solid var(--color-gray-600, #475569)",
+  borderRadius: 6,
+  boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+  marginTop: 2,
+  padding: "4px 0",
+};
+
+const spsItemStyle: CSSProperties = {
+  padding: "4px 10px",
+  fontSize: 11,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  color: "#d1d5db",
+};
+
+const spsItemSelectedStyle: CSSProperties = {
+  ...spsItemStyle,
+  background: "var(--color-blue-900, #1e3a5f)",
+  color: "#93c5fd",
+  fontWeight: 600,
+};
+
+const spsSectionHeaderStyle: CSSProperties = {
+  padding: "6px 10px 3px",
+  fontSize: 9,
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  color: "#9ca3af",
+  cursor: "pointer",
+  userSelect: "none",
+  display: "flex",
+  alignItems: "center",
+  gap: 4,
+};
+
+const spsSectionHeaderFixedStyle: CSSProperties = {
+  ...spsSectionHeaderStyle,
+  cursor: "default",
+};
+
+const spsDividerStyle: CSSProperties = {
+  height: 1,
+  background: "var(--color-gray-700, #374151)",
+  margin: "3px 8px",
+};
+
+const SegmentedProjectSelector: React.FC<SegmentedProjectSelectorProps> = ({
+  options,
+  selectedId,
+  isLoading,
+  onSelect,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
+    previous: true,
+    next: true,
+    older: true,
+  });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [isOpen]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [isOpen]);
+
+  const segments = useMemo(() => segmentProjects(options), [options]);
+
+  const selectedLabel = useMemo(() => {
+    if (!selectedId) return isLoading ? "Loading..." : "Project: All";
+    const found = options.find((o) => o.id === selectedId);
+    return found ? (found.name ?? found.intent ?? found.id) : selectedId;
+  }, [selectedId, options, isLoading]);
+
+  const toggleSection = (key: string) => {
+    setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleSelect = (id: string) => {
+    onSelect(id);
+    setIsOpen(false);
+  };
+
+  const renderItem = (p: ProjectOption) => {
+    const label = p.name ?? p.intent ?? p.id;
+    const isSelected = p.id === selectedId;
+    return (
+      <div
+        key={p.id}
+        style={isSelected ? spsItemSelectedStyle : spsItemStyle}
+        title={label}
+        onMouseEnter={(e) => { if (!isSelected) (e.currentTarget.style.background = "var(--color-gray-700, #334155)"); }}
+        onMouseLeave={(e) => { if (!isSelected) (e.currentTarget.style.background = "transparent"); }}
+        onClick={() => handleSelect(p.id)}
+      >
+        {label}
+      </div>
+    );
+  };
+
+  const renderSection = (
+    key: string,
+    label: string,
+    items: ProjectOption[],
+    collapsible: boolean,
+  ) => {
+    if (items.length === 0) return null;
+    const isCollapsed = collapsible && collapsedSections[key];
+    return (
+      <div key={key}>
+        <div style={spsDividerStyle} />
+        <div
+          style={collapsible ? spsSectionHeaderStyle : spsSectionHeaderFixedStyle}
+          onClick={collapsible ? () => toggleSection(key) : undefined}
+        >
+          {collapsible && <span style={{ fontSize: 8 }}>{isCollapsed ? "▶" : "▼"}</span>}
+          {label} ({items.length})
+        </div>
+        {!isCollapsed && items.map(renderItem)}
+      </div>
+    );
+  };
+
+  return (
+    <div ref={containerRef} style={{ position: "relative", display: "inline-block" }}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={isLoading}
+        className="rounded border border-slate-200 bg-white px-1 py-0.5 text-[10px] text-slate-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+        style={{ cursor: isLoading ? "default" : "pointer", minWidth: 120, textAlign: "left" }}
+      >
+        {selectedLabel} ▾
+      </button>
+      {isOpen && (
+        <div style={spsDropdownStyle}>
+          {/* All option */}
+          <div
+            style={selectedId === "" ? spsItemSelectedStyle : spsItemStyle}
+            onMouseEnter={(e) => { if (selectedId !== "") (e.currentTarget.style.background = "var(--color-gray-700, #334155)"); }}
+            onMouseLeave={(e) => { if (selectedId !== "") (e.currentTarget.style.background = "transparent"); }}
+            onClick={() => handleSelect("")}
+          >
+            Project: All
+          </div>
+          {renderSection("permanent", "Permanent", segments.permanent, false)}
+          {renderSection("current", "Current 4 Weeks", segments.current, false)}
+          {renderSection("previous", "Previous 4 Weeks", segments.previous, true)}
+          {renderSection("next", "Next 4 Weeks", segments.next, true)}
+          {renderSection("older", "Older", segments.older, true)}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const KanbanBoardPage: React.FC = () => {
   const [board, setBoard] = useState<BoardData>(() => createEmptyBoardData());
@@ -1583,10 +1858,9 @@ const KanbanBoardPage: React.FC = () => {
       });
       const rawRecords = extractRecordArray(response);
       const activeRecords = rawRecords.filter((record) => resolveProjectActivity(record));
-      const fallbackRecords = activeRecords.length ? activeRecords : rawRecords;
 
       const uniqueById = new Map<string, ProjectOption>();
-      fallbackRecords.forEach((record) => {
+      activeRecords.forEach((record) => {
         const option = createProjectOption(record);
         if (!option) {
           return;
@@ -2694,14 +2968,15 @@ const KanbanBoardPage: React.FC = () => {
         <Link to={PageRoutes.multiProjectGantt}
           style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe', textDecoration: 'none' }}
         >📋 Multi-Project</Link>
-          <select value={selectedProjectId} onChange={handleProjectFilterChange} disabled={isLoadingProjects}
-            className="rounded border border-slate-200 bg-white px-1 py-0.5 text-[10px] text-slate-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
-          >
-            <option value="">{isLoadingProjects ? "Loading..." : "Project: All"}</option>
-            {projectOptions.map((option) => (
-              <option key={option.id} value={option.id}>{option.name ?? option.intent ?? option.id}</option>
-            ))}
-          </select>
+          <SegmentedProjectSelector
+            options={projectOptions}
+            selectedId={selectedProjectId}
+            isLoading={isLoadingProjects}
+            onSelect={(id) => {
+              setSelectedProjectId(id);
+              void fetchActions({ projectId: id || undefined, contactId: selectedContactId || undefined });
+            }}
+          />
           <select value={selectedContactId} onChange={handleContactFilterChange} disabled={isLoadingContacts}
             className="rounded border border-slate-200 bg-white px-1 py-0.5 text-[10px] text-slate-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
           >
