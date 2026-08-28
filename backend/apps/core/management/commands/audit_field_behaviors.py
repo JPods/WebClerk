@@ -43,6 +43,8 @@ class Command(BaseCommand):
         parser.add_argument('--model', type=str, default=None, help='Audit one model only')
         parser.add_argument('--detail', action='store_true', help='Show every flag')
         parser.add_argument('--json', action='store_true', help='JSON output for Alice')
+        parser.add_argument('--cross-check', action='store_true',
+                            help='Verify select field heuristics match actual data semantics')
 
     def handle(self, *args, **options):
         target = options.get('model')
@@ -202,3 +204,81 @@ class Command(BaseCommand):
                 self.stdout.write(
                     f"    {marker} [{f['flag']}] {f['field']} — {f['detail']}"
                 )
+
+        # ── Cross-check: verify select heuristics match actual data ──
+        if options.get('cross_check'):
+            self.stdout.write(self.style.MIGRATE_HEADING(
+                "\n\n── Cross-check: select field heuristics vs actual data ──"
+            ))
+            xcheck_flags = []
+            for model_key in sorted(models.keys()):
+                meta = get_model_meta(model_key)
+                if not meta:
+                    continue
+                field_map = get_model_field_map(model_key)
+                if not field_map:
+                    continue
+                computed = get_field_behaviors(model_key, field_map)
+
+                try:
+                    model_cls = meta.import_model()
+                except Exception:
+                    continue
+
+                for field_name, behavior in computed.items():
+                    if behavior.get('type') != 'select' or '.' in field_name:
+                        continue
+                    opts = behavior.get('options', [])
+                    if not opts:
+                        continue
+
+                    try:
+                        model_cls._meta.get_field(field_name)
+                    except Exception:
+                        continue
+
+                    defined_values = {o['value'] for o in opts if o.get('value')}
+
+                    try:
+                        actual = set(
+                            model_cls.objects.filter(is_active=True)
+                            .exclude(**{field_name: ''})
+                            .exclude(**{f'{field_name}__isnull': True})
+                            .values_list(field_name, flat=True)
+                            .distinct()
+                        )
+                    except Exception:
+                        continue
+
+                    if not actual:
+                        continue
+
+                    # What fraction of actual values match defined options?
+                    matching = actual & defined_values
+                    match_pct = len(matching) / len(actual) * 100 if actual else 100
+
+                    if match_pct < 50:
+                        xcheck_flags.append({
+                            'model': model_key,
+                            'field': field_name,
+                            'match_pct': round(match_pct, 1),
+                            'actual_sample': sorted(actual)[:5],
+                            'defined_sample': sorted(defined_values)[:5],
+                        })
+
+            if xcheck_flags:
+                self.stdout.write(self.style.WARNING(
+                    f"\n  {len(xcheck_flags)} fields where >50% of actual values "
+                    f"don't match defined options (possible wrong heuristic):"
+                ))
+                for xf in xcheck_flags:
+                    self.stdout.write(
+                        f"\n  ! {xf['model']}.{xf['field']} — "
+                        f"{xf['match_pct']}% match"
+                    )
+                    self.stdout.write(f"      actual:  {xf['actual_sample']}")
+                    self.stdout.write(f"      defined: {xf['defined_sample']}")
+            else:
+                self.stdout.write(self.style.SUCCESS(
+                    "\n  All select fields: >50% of actual values match defined options."
+                ))

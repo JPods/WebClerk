@@ -446,6 +446,7 @@ def full_intelligence_run(limit: int = 500, use_llm: bool = False, dry_run: bool
     results["dedup"] = dedup_scan_task()
     results["accounting"] = accounting_watchdog_task()
     results["inventory"] = inventory_watchdog_task()
+    results["select_lists"] = select_list_watchdog_task()
 
     total_duration = (timezone.now() - started).total_seconds()
     results["total_duration_seconds"] = total_duration
@@ -564,4 +565,27 @@ def inventory_watchdog_task(limit: int = 1000) -> dict:
     duration = (timezone.now() - started).total_seconds()
     result['duration_seconds'] = duration
     logger.info("Inventory watchdog complete in %.1fs", duration)
+    return result
+
+
+# ─── Select List Watchdog ────────────────────────────────────────────
+
+@shared_task
+def select_list_watchdog_task(limit: int = 500) -> dict:
+    """Weekly task: detect hallucinated options and unlisted values.
+
+    Alice checks:
+    - UNLISTED: values in DB not in select options (real-world values baseline missed)
+    - UNUSED: options defined but never used (hallucination candidates, after 30+ days)
+    - COVERAGE: % of defined options actually in use per field
+    """
+    logger.info("Starting select list watchdog")
+    started = timezone.now()
+
+    from apps.ai_assistant.services.watch_select_lists import run_select_list_watchdog
+    result = run_select_list_watchdog(limit=limit)
+
+    duration = (timezone.now() - started).total_seconds()
+    result['duration_seconds'] = duration
+    logger.info("Select list watchdog complete in %.1fs", duration)
     return result

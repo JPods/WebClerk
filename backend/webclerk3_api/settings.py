@@ -1102,6 +1102,13 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.ai_assistant.tasks.inventory_watchdog_task',
         'schedule': crontab(hour=4, minute=10),
     },
+
+    # ── Alice: Select list reality check (weekly Sunday 5:00 AM) ──
+    # Unlisted values, unused options, coverage — detect hallucinated baselines
+    'alice-select-list-watchdog-weekly': {
+        'task': 'apps.ai_assistant.tasks.select_list_watchdog_task',
+        'schedule': crontab(hour=5, minute=0, day_of_week='sunday'),
+    },
 }
 
 # --- Inventory Pending Processing ---

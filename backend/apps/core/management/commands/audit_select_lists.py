@@ -55,6 +55,99 @@ class Command(BaseCommand):
         parser.add_argument('--detail', action='store_true', help='Show option values')
         parser.add_argument('--json', action='store_true', help='JSON output for Alice')
         parser.add_argument('--export', action='store_true', help='CSV export')
+        parser.add_argument('--reality', action='store_true',
+                            help='Compare defined options against actual DB values — detect hallucinated or unused options')
+
+    def _run_reality_check(self, all_selects, target=None):
+        """Compare defined select options against actual DB values.
+
+        For each select field, queries distinct values from real records
+        and reports:
+          UNUSED   — defined option never appears in any record
+          UNLISTED — value in DB has no matching option
+          COVERAGE — % of defined options actually used
+        """
+        from apps.core.constants.model_registry import get_model_meta
+
+        reality_flags = []
+        reality_stats = []
+
+        for entry in all_selects:
+            model_key = entry['model']
+            field_name = entry['field']
+            defined_opts = entry.get('options', [])
+
+            if not defined_opts:
+                continue
+
+            # Skip JSON leaf fields (dot-path) — they live inside JSON columns
+            # and need different query patterns
+            if '.' in field_name:
+                continue
+
+            meta = get_model_meta(model_key)
+            if not meta:
+                continue
+
+            try:
+                model_cls = meta.import_model()
+            except Exception:
+                continue
+
+            # Check field exists on model as a column
+            try:
+                model_cls._meta.get_field(field_name)
+            except Exception:
+                continue
+
+            # Query distinct values
+            try:
+                actual_values = set(
+                    model_cls.objects.filter(is_active=True)
+                    .exclude(**{field_name: ''})
+                    .exclude(**{f'{field_name}__isnull': True})
+                    .values_list(field_name, flat=True)
+                    .distinct()
+                )
+            except Exception:
+                continue
+
+            defined_values = {o.get('value', '') for o in defined_opts if o.get('value')}
+            total_records = model_cls.objects.filter(is_active=True).count()
+
+            unused = defined_values - actual_values
+            unlisted = actual_values - defined_values
+            used = defined_values & actual_values
+            coverage = (len(used) / len(defined_values) * 100) if defined_values else 0
+
+            stat = {
+                'model': model_key,
+                'field': field_name,
+                'defined': len(defined_values),
+                'used': len(used),
+                'unused': len(unused),
+                'unlisted': len(unlisted),
+                'coverage': round(coverage, 1),
+                'total_records': total_records,
+                'unused_values': sorted(unused),
+                'unlisted_values': sorted(unlisted),
+            }
+            reality_stats.append(stat)
+
+            for v in unused:
+                reality_flags.append({
+                    'model': model_key, 'field': field_name,
+                    'flag': 'UNUSED',
+                    'detail': f'Option "{v}" defined but never used ({total_records} records)',
+                })
+            for v in unlisted:
+                reality_flags.append({
+                    'model': model_key, 'field': field_name,
+                    'flag': 'UNLISTED',
+                    'detail': f'Value "{v}" in DB but not in select options',
+                })
+
+        return reality_stats, reality_flags
 
     def handle(self, *args, **options):
         target = options.get('model')
@@ -276,3 +369,67 @@ class Command(BaseCommand):
             for f in all_flags:
                 marker = '!' if f['flag'] in ('EMPTY', 'ORPHAN') else '?'
                 self.stdout.write(f"  {marker} [{f['flag']}] {f['model']}.{f['field']} — {f['detail']}")
+
+        # ── Reality check ──
+        if options.get('reality'):
+            reality_stats, reality_flags = self._run_reality_check(all_selects, target)
+
+            self.stdout.write(self.style.MIGRATE_HEADING(
+                f"\n\n── Reality Check: {len(reality_stats)} fields scanned ──"
+            ))
+
+            unused_count = sum(1 for f in reality_flags if f['flag'] == 'UNUSED')
+            unlisted_count = sum(1 for f in reality_flags if f['flag'] == 'UNLISTED')
+
+            self.stdout.write(f"  UNUSED options (defined but never in DB): {unused_count}")
+            self.stdout.write(f"  UNLISTED values (in DB but no matching option): {unlisted_count}")
+
+            # Coverage summary — group by coverage bracket
+            brackets = {'100%': 0, '50-99%': 0, '1-49%': 0, '0%': 0}
+            for s in reality_stats:
+                cov = s['coverage']
+                if cov == 100:
+                    brackets['100%'] += 1
+                elif cov >= 50:
+                    brackets['50-99%'] += 1
+                elif cov > 0:
+                    brackets['1-49%'] += 1
+                else:
+                    brackets['0%'] += 1
+            self.stdout.write("\n  Coverage distribution:")
+            for bracket, count in brackets.items():
+                bar = '█' * count
+                self.stdout.write(f"    {bracket:>8}: {count:>3} fields  {bar}")
+
+            # Show fields with issues
+            problem_stats = [s for s in reality_stats if s['unused'] or s['unlisted']]
+            if problem_stats:
+                self.stdout.write("\n  ── Fields with mismatches ──\n")
+                for s in sorted(problem_stats, key=lambda x: x['coverage']):
+                    self.stdout.write(
+                        f"  {s['model']}.{s['field']}  "
+                        f"coverage={s['coverage']}%  "
+                        f"used={s['used']}/{s['defined']}  "
+                        f"records={s['total_records']}"
+                    )
+                    if s['unused_values']:
+                        self.stdout.write(
+                            f"    UNUSED: {', '.join(s['unused_values'])}"
+                        )
+                    if s['unlisted_values']:
+                        self.stdout.write(
+                            f"    UNLISTED: {', '.join(s['unlisted_values'])}"
+                        )
+
+            # 0% coverage fields — these are pure hallucination candidates
+            zero_cov = [s for s in reality_stats if s['coverage'] == 0 and s['total_records'] > 0]
+            if zero_cov:
+                self.stdout.write(self.style.WARNING(
+                    f"\n  ⚠ {len(zero_cov)} fields at 0% coverage (no records use any defined option):"
+                ))
+                for s in zero_cov:
+                    self.stdout.write(
+                        f"    {s['model']}.{s['field']} — "
+                        f"{s['defined']} options defined, "
+                        f"{s['total_records']} records, none match"
+                    )
