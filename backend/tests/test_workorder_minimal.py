@@ -9,7 +9,7 @@ from django.test import RequestFactory, override_settings
 @pytest.mark.django_db
 def test_workorder_line_serializer_parent_id_create():
     from apps.transactions.models import WorkOrder, WorkOrderLine
-    from apps.transactions.serializers.workorder_serializers import WorkOrderLineSerializer
+    from apps.transactions.serializers.workorder_serializer import WorkOrderLineParentIdSerializer as WorkOrderLineSerializer
 
     wo = WorkOrder.objects.create()
     ser = WorkOrderLineSerializer(data={"parent_id": wo.id})

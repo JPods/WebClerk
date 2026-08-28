@@ -1,12 +1,19 @@
+from rest_framework import serializers
+
 from common.base_serializers import RoleAwareModelSerializer
-from apps.transactions.models import Requisition
+from apps.transactions.models import Requisition, RequisitionLine
+from .helpers import BASE_RO
+from .base_line_serializer import BaseLineSerializer
 
 
-_BASE_RO = [
-    'id', 'uuid', 'dt_created', 'dt_modified', 'version',
-    'is_deleted', 'is_archived', 'metadata', 'refs', 'prefs',
-    'actions', 'comments', 'health_rating',
-]
+class RequisitionLineSerializer(BaseLineSerializer):
+    """CRUD serializer for RequisitionLine with deep-merge and role filtering."""
+    parent = serializers.PrimaryKeyRelatedField(queryset=Requisition.objects.all())
+
+    class Meta(BaseLineSerializer.Meta):
+        model = RequisitionLine
+        fields = BaseLineSerializer.Meta.fields + ['parent']
+        ref_name = 'TxRequisitionLine'
 
 
 class RequisitionSerializer(RoleAwareModelSerializer):
@@ -21,4 +28,4 @@ class RequisitionSerializer(RoleAwareModelSerializer):
             'name', 'purpose', 'status',
         ]
         ref_name = 'TxRequisitionStd'
-        read_only_fields = _BASE_RO
+        read_only_fields = BASE_RO

@@ -9,7 +9,7 @@ from django.test import RequestFactory, override_settings
 @pytest.mark.django_db
 def test_invoice_line_serializer_parent_id_create():
     from apps.transactions.models import Invoice, InvoiceLine
-    from apps.transactions.serializers.invoice_serializers import InvoiceLineSerializer
+    from apps.transactions.serializers.invoice_serializer import InvoiceLineParentIdSerializer as InvoiceLineSerializer
 
     inv = Invoice.objects.create()
     ser = InvoiceLineSerializer(data={"parent_id": inv.id})

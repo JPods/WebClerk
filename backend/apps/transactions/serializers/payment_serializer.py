@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.transactions.models import Payment, PaymentMethod, PaymentTerm, Invoice
+from apps.transactions.models import Payment, PaymentMethod, PaymentTerm, PaymentApplication, Invoice
 from apps.core.models import Contact
 
 
@@ -18,6 +18,11 @@ class PaymentMethodSerializer(serializers.ModelSerializer):
 
 
 class PaymentSerializer(serializers.ModelSerializer):
+    """Serializer for Payment transactions.
+
+    Full CRUD with FK resolution for invoice, contact, payment_method, payment_term.
+    Gateway fields hidden from non-staff users.
+    """
     invoice_id = serializers.IntegerField(required=False, allow_null=True)
     contact_id = serializers.IntegerField(required=True)
     payment_method_id = serializers.IntegerField(required=False, allow_null=True)
@@ -128,3 +133,15 @@ class PaymentSerializer(serializers.ModelSerializer):
                 validated_data["payment_term"] = None
 
         return super().update(instance, validated_data)
+
+
+class PaymentApplicationSerializer(serializers.ModelSerializer):
+    """Serializer for Payment Application records."""
+
+    class Meta:
+        model = PaymentApplication
+        fields = [
+            'id', 'payment', 'invoice', 'amount', 'applied_at', 'notes',
+            'dt_created', 'dt_modified', 'version'
+        ]
+        read_only_fields = ['id', 'dt_created', 'dt_modified', 'version']

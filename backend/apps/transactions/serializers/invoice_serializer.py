@@ -1,20 +1,22 @@
 from rest_framework import serializers
+
+from common.base_serializers import RoleAwareModelSerializer
 from apps.transactions.models import Invoice, InvoiceLine
+from .helpers import BASE_RO
+from .base_line_serializer import BaseLineSerializer
 
 
-class InvoiceSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Invoice
-        fields = [
-            "id", "status", "customer_id", "vendor_id", "priority", "price_level",
-            "cost", "sell", "finance", "flow", "source", "action",
-            "refs", "metadata", "totals",
-            "dt_created", "dt_modified"
-        ]
-        read_only_fields = ["id", "totals", "dt_created", "dt_modified"]
+class InvoiceLineSerializer(BaseLineSerializer):
+    """CRUD serializer for InvoiceLine with deep-merge and role filtering."""
+    parent = serializers.PrimaryKeyRelatedField(queryset=Invoice.objects.all(), source='invoice')
+
+    class Meta(BaseLineSerializer.Meta):
+        model = InvoiceLine
+        fields = BaseLineSerializer.Meta.fields + ['parent']
 
 
-class InvoiceLineSerializer(serializers.ModelSerializer):
+class InvoiceLineParentIdSerializer(serializers.ModelSerializer):
+    """Legacy parent_id-based CRUD serializer for InvoiceLine."""
     # Require parent_id in API contracts; map to FK 'parent' internally
     parent_id = serializers.IntegerField(required=True)
     # Accept arbitrary action/flow/source/physical without binding to model
@@ -59,3 +61,22 @@ class InvoiceLineSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"parent_id": "Invalid invoice id"})
             validated_data["invoice"] = parent
         return super().update(instance, validated_data)
+
+
+class InvoiceSerializer(RoleAwareModelSerializer):
+    """Serializer for Invoice transactions.
+
+    totals JSON envelope is the source of truth for all computed values.
+    No flattening — React reads totals.total, totals.balance, totals.margin.
+    """
+
+    class Meta:
+        model = Invoice
+        fields = [
+            'id', 'uuid', 'ida', 'status', 'customer_id', 'vendor_id',
+            'cost', 'sell', 'totals',
+            'finance', 'flow', 'source',
+            'dt_created', 'dt_modified', 'version'
+        ]
+        read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version',
+            'totals']

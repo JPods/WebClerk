@@ -8,7 +8,7 @@ from apps.transactions.models import Proposal, Order, Invoice, Payment
 from apps.transactions.services.payment import payment_apply as payment_application
 from apps.transactions.services import inventory_flow
 from apps.transactions.services import validate_transaction as validation
-from apps.transactions.serializers.transfer_serializers import (
+from apps.transactions.serializers.transfer_serializer import (
     TransferValidationSerializer,
     TransferValidationResponseSerializer,
     TransferRequestSerializer,

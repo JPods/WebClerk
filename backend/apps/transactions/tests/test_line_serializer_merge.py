@@ -7,10 +7,8 @@ only quantity.transferred preserves the existing quantity.staged value.
 
 import pytest
 from rest_framework.test import APIRequestFactory
-from apps.transactions.serializers.line_serializers import (
-    OrderLineSerializer,
-    InvoiceLineSerializer,
-)
+from apps.transactions.serializers.order_serializer import OrderLineSerializer
+from apps.transactions.serializers.invoice_serializer import InvoiceLineSerializer
 from apps.transactions.models import Order, OrderLine, Invoice, InvoiceLine
 from apps.products.models import Item
 

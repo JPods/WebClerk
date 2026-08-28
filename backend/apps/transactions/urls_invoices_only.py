@@ -1,14 +1,14 @@
 from django.urls import path
 from rest_framework import generics, permissions
 from apps.transactions.models import Invoice, InvoiceLine, WorkOrder, WorkOrderLine, Order, OrderLine
-from apps.transactions.serializers.invoice_serializers import (
-    InvoiceSerializer, InvoiceLineSerializer,
+from apps.transactions.serializers.invoice_serializer import (
+    InvoiceSerializer, InvoiceLineParentIdSerializer as InvoiceLineSerializer,
 )
-from apps.transactions.serializers.workorder_serializers import (
-    WorkOrderSerializer, WorkOrderLineSerializer,
+from apps.transactions.serializers.workorder_serializer import (
+    WorkOrderSerializer, WorkOrderLineParentIdSerializer as WorkOrderLineSerializer,
 )
-from apps.transactions.serializers.order_serializers import (
-    OrderSerializer, OrderLineSerializer,
+from apps.transactions.serializers.order_serializer import (
+    OrderSerializer, OrderLineParentIdSerializer as OrderLineSerializer,
 )
 
 

@@ -1,25 +1,37 @@
 from rest_framework import serializers
-from apps.transactions.models import Order, OrderLine
+from apps.transactions.models import WorkOrder, WorkOrderLine
+from .base_line_serializer import BaseLineSerializer
 
 
-class OrderSerializer(serializers.ModelSerializer):
+class WorkOrderSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Order
+        model = WorkOrder
         fields = ["id", "dt_created", "dt_modified"]
         read_only_fields = ["id", "dt_created", "dt_modified"]
 
 
-class OrderLineSerializer(serializers.ModelSerializer):
+class WorkOrderLineSerializer(BaseLineSerializer):
+    """CRUD serializer for WorkOrderLine with deep-merge and role filtering."""
+    parent = serializers.PrimaryKeyRelatedField(queryset=WorkOrder.objects.all(), source='workorder')
+
+    class Meta(BaseLineSerializer.Meta):
+        model = WorkOrderLine
+        fields = BaseLineSerializer.Meta.fields + ['parent']
+
+
+class WorkOrderLineParentIdSerializer(serializers.ModelSerializer):
+    """Legacy parent_id-based CRUD serializer for WorkOrderLine."""
+    # Require parent_id in API contracts; map to FK internally
     parent_id = serializers.IntegerField(required=True)
     action = serializers.CharField(required=False, allow_blank=True, allow_null=True, write_only=True)
     flow = serializers.CharField(required=False, allow_blank=True, allow_null=True, write_only=True)
     source = serializers.CharField(required=False, allow_blank=True, allow_null=True, write_only=True)
 
     class Meta:
-        model = OrderLine
+        model = WorkOrderLine
         fields = [
             "id", "parent_id", "status", "price_level",
-            "item", "quantity", "cost", "price", "tax", "action", "physical", "flow", "source",
+            "item", "quantity", "cost", "tax", "action", "physical", "flow", "source",
             "dt_created", "dt_modified",
         ]
         read_only_fields = ["id", "dt_created", "dt_modified"]
@@ -32,10 +44,10 @@ class OrderLineSerializer(serializers.ModelSerializer):
         if parent_id is None:
             raise serializers.ValidationError({"parent_id": "This field is required."})
         try:
-            parent = Order.objects.get(pk=parent_id)
-        except Order.DoesNotExist:
-            raise serializers.ValidationError({"parent_id": "Invalid order id"})
-        validated_data["order"] = parent
+            parent = WorkOrder.objects.get(pk=parent_id)
+        except WorkOrder.DoesNotExist:
+            raise serializers.ValidationError({"parent_id": "Invalid workorder id"})
+        validated_data["workorder"] = parent
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
@@ -45,9 +57,8 @@ class OrderLineSerializer(serializers.ModelSerializer):
         if "parent_id" in validated_data:
             parent_id = validated_data.pop("parent_id")
             try:
-                parent = Order.objects.get(pk=parent_id)
-            except Order.DoesNotExist:
-                raise serializers.ValidationError({"parent_id": "Invalid order id"})
-            validated_data["order"] = parent
+                parent = WorkOrder.objects.get(pk=parent_id)
+            except WorkOrder.DoesNotExist:
+                raise serializers.ValidationError({"parent_id": "Invalid workorder id"})
+            validated_data["workorder"] = parent
         return super().update(instance, validated_data)
-

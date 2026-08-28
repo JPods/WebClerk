@@ -9,7 +9,7 @@ from django.test import RequestFactory, override_settings
 @pytest.mark.django_db
 def test_order_line_serializer_parent_id_create():
     from apps.transactions.models import Order, OrderLine
-    from apps.transactions.serializers.order_serializers import OrderLineSerializer
+    from apps.transactions.serializers.order_serializer import OrderLineParentIdSerializer as OrderLineSerializer
 
     so = Order.objects.create()
     ser = OrderLineSerializer(data={"parent_id": so.id})

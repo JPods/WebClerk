@@ -36,15 +36,12 @@ from apps.transactions.models import (
     WorkOrder, WorkOrderLine,
     Requisition, RequisitionLine,
 )
-from apps.transactions.serializers.transaction_serializers import (
-    ProposalSerializer, OrderSerializer, InvoiceSerializer, PurchaseSerializer,
-)
-from apps.transactions.serializers.line_serializers import (
-    ProposalLineSerializer, OrderLineSerializer, InvoiceLineSerializer,
-    PurchaseLineSerializer, WorkOrderLineSerializer, RequisitionLineSerializer,
-)
-from apps.transactions.serializers.workorder_serializers import WorkOrderSerializer
-from apps.transactions.serializers.requisition_serializer import RequisitionSerializer
+from apps.transactions.serializers.proposal_serializer import ProposalSerializer, ProposalLineSerializer
+from apps.transactions.serializers.order_serializer import OrderSerializer, OrderLineSerializer
+from apps.transactions.serializers.invoice_serializer import InvoiceSerializer, InvoiceLineSerializer
+from apps.transactions.serializers.purchase_serializer import PurchaseSerializer, PurchaseLineSerializer
+from apps.transactions.serializers.workorder_serializer import WorkOrderSerializer, WorkOrderLineSerializer
+from apps.transactions.serializers.requisition_serializer import RequisitionSerializer, RequisitionLineSerializer
 from apps.transactions.views.line_views import BasePermission, DefaultPagination
 from apps.transactions.services.aggregation import compute_line_aggregate
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse

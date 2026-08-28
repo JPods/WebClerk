@@ -4,7 +4,7 @@ from django.test import TestCase
 from rest_framework.test import APITestCase
 from rest_framework import serializers
 from apps.transactions.models import Proposal, ProposalLine
-from apps.transactions.serializers.transaction_serializers import ProposalSerializer, ProposalLineSerializer
+from apps.transactions.serializers.proposal_serializer import ProposalSerializer, ProposalLineRichSerializer as ProposalLineSerializer
 from apps.orgs.models import OrgBase
 
 
