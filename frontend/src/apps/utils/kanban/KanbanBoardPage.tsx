@@ -1358,6 +1358,59 @@ const KanbanBoardPage: React.FC = () => {
   );
   const selectedProjectName = selectedProject?.name ?? selectedProject?.intent ?? "";
 
+  // Build move-to-project options for task cards
+  const moveToProjectOptions = useMemo(() => {
+    if (!selectedProjectId || projectOptions.length < 2) return [];
+    const current = projectOptions.find((p) => p.id === selectedProjectId);
+    if (!current) return [];
+
+    // Parse dt_kanban for the current project to find nearby ones
+    const currentDt = current.dtKanban ? new Date(current.dtKanban).getTime() : 0;
+    const fourWeeksMs = 4 * 7 * 86400000;
+
+    type MoveOpt = { id: string; name: string; group: string };
+    const opts: MoveOpt[] = [];
+    const seen = new Set<string>();
+    seen.add(selectedProjectId); // exclude current
+
+    for (const p of projectOptions) {
+      if (seen.has(p.id)) continue;
+      seen.add(p.id);
+      const label = p.name ?? p.intent ?? p.id;
+      const pDt = p.dtKanban ? new Date(p.dtKanban).getTime() : 0;
+
+      if (currentDt && pDt && Math.abs(pDt - currentDt) <= fourWeeksMs) {
+        opts.push({ id: p.id, name: label, group: "nearby" });
+      } else {
+        opts.push({ id: p.id, name: label, group: "other" });
+      }
+    }
+
+    // Sort: nearby first (by date), then other (alpha)
+    opts.sort((a, b) => {
+      if (a.group !== b.group) return a.group === "nearby" ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    return opts;
+  }, [projectOptions, selectedProjectId]);
+
+  // Handle moving a task to a different project
+  const handleMoveToProject = useCallback(async (taskId: string | number, projectId: string, projectName: string) => {
+    try {
+      const numericProjectId = Number(projectId);
+      await saveRecord("action", {
+        id: Number(taskId),
+        project_id: Number.isNaN(numericProjectId) ? 0 : numericProjectId,
+        project_name: projectName,
+      });
+      // Refresh the board
+      void fetchActions({ projectId: selectedProjectId || undefined, contactId: selectedContactId || undefined });
+    } catch (error) {
+      console.error("Failed to move task to project:", error);
+    }
+  }, [selectedProjectId, selectedContactId, fetchActions]);
+
   useEffect(() => {
     console.log("selectedProjectId changed:", selectedProjectId, "projectOptions:", projectOptions.length);
   }, [selectedProjectId, projectOptions.length]);
@@ -2985,6 +3038,13 @@ const KanbanBoardPage: React.FC = () => {
               <option key={option.id} value={option.id}>{option.label}</option>
             ))}
           </select>
+          {selectedProjectId && (
+            <button
+              onClick={() => setIsContactManagerOpen(true)}
+              title="Manage project contacts"
+              style={{ padding: '2px 6px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#4ec98c', lineHeight: 1 }}
+            >+</button>
+          )}
           <select value={columnsPerRow} onChange={(event) => setColumnsPerRow(Number(event.target.value))}
             className="rounded border border-slate-200 bg-white px-1 py-0.5 text-[10px] text-slate-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
           >
@@ -3058,6 +3118,8 @@ const KanbanBoardPage: React.FC = () => {
                 tasks={column.task_ids.map((taskId) => board.tasks[taskId]).filter((task): task is KanbanTask => Boolean(task))}
                 onDragEnd={handleDragEnd}
                 onTaskClick={(task) => setFloatingActionId(String(task.id))}
+                moveToOptions={moveToProjectOptions}
+                onMoveToProject={handleMoveToProject}
               />
             ))}
           </div>

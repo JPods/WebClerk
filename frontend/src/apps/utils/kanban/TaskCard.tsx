@@ -1,5 +1,5 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
-import { memo, useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { getEmptyImage } from "react-dnd-html5-backend";
 import clsx from "clsx";
@@ -7,6 +7,12 @@ import type { KanbanTask, TaskPriority } from "./type/kanban";
 import { DRAG_TYPE_TASK, type DragItem, type DropResult } from "./dndTypes";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import { formatDt } from '@/utils/fieldFormatters';
+
+export interface MoveToProjectOption {
+  id: string;
+  name: string;
+  group: string; // "same-parent" | "nearby" | "other"
+}
 
 const priorityStyles: Record<TaskPriority, string> = {
   low: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200",
@@ -35,10 +41,29 @@ interface TaskCardProps {
   onDragEnd: (item: DragItem, dropResult: DropResult | null) => void;
   onTaskClick?: (task: KanbanTask) => void;
   isSubtask?: boolean;
+  moveToOptions?: MoveToProjectOption[];
+  onMoveToProject?: (taskId: string | number, projectId: string, projectName: string) => void;
 }
 
-const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onDragEnd, onTaskClick, isSubtask = false }) => {
+const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onDragEnd, onTaskClick, isSubtask = false, moveToOptions, onMoveToProject }) => {
   const ref = useRef<HTMLDivElement | null>(null);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const moveRef = useRef<HTMLDivElement>(null);
+
+  // Close move dropdown on outside click
+  useEffect(() => {
+    if (!moveOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (moveRef.current && !moveRef.current.contains(e.target as Node)) setMoveOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [moveOpen]);
+
+  const handleMove = useCallback((opt: MoveToProjectOption) => {
+    onMoveToProject?.(task.id, opt.id, opt.name);
+    setMoveOpen(false);
+  }, [task.id, onMoveToProject]);
 
   const [{ isDragging }, drag, preview] = useDrag(
     () => ({
@@ -133,7 +158,61 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
                 #{task.id}
               </span>
               {task.project_name && (
-                <p className="text-xs text-gray-600 rounded-full bg-indigo-100 px-2.5 py-0.5 dark:bg-indigo-500/20 dark:text-indigo-200">{task.project_name}</p>
+                <div ref={moveRef} style={{ position: "relative", display: "inline-block" }}>
+                  <p
+                    className="text-xs text-gray-600 rounded-full bg-indigo-100 px-2.5 py-0.5 dark:bg-indigo-500/20 dark:text-indigo-200"
+                    style={{ cursor: moveToOptions?.length ? "pointer" : "default" }}
+                    onClick={(e) => {
+                      if (!moveToOptions?.length) return;
+                      e.stopPropagation();
+                      setMoveOpen(!moveOpen);
+                    }}
+                    title={moveToOptions?.length ? "Move to another project" : undefined}
+                  >
+                    {task.project_name}
+                  </p>
+                  {moveOpen && moveToOptions && moveToOptions.length > 0 && (
+                    <div style={{
+                      position: "absolute", top: "100%", left: 0, zIndex: 9999,
+                      minWidth: 220, maxHeight: 300, overflowY: "auto",
+                      background: "var(--color-gray-800, #1e293b)",
+                      border: "1px solid var(--color-gray-600, #475569)",
+                      borderRadius: 6, boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                      marginTop: 2, padding: "4px 0",
+                    }}>
+                      {(() => {
+                        const groups: Record<string, MoveToProjectOption[]> = {};
+                        for (const opt of moveToOptions) {
+                          (groups[opt.group] ??= []).push(opt);
+                        }
+                        const groupLabels: Record<string, string> = {
+                          "same-parent": "Same Parent",
+                          "nearby": "4-Week Window",
+                          "other": "Other Active",
+                        };
+                        return Object.entries(groups).map(([group, opts], gi) => (
+                          <div key={group}>
+                            {gi > 0 && <div style={{ height: 1, background: "#374151", margin: "3px 8px" }} />}
+                            <div style={{ padding: "4px 10px 2px", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#9ca3af" }}>
+                              {groupLabels[group] ?? group}
+                            </div>
+                            {opts.map((opt) => (
+                              <div
+                                key={opt.id}
+                                style={{ padding: "4px 10px", fontSize: 11, cursor: "pointer", color: "#d1d5db", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = "#334155")}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                                onClick={(e) => { e.stopPropagation(); handleMove(opt); }}
+                              >
+                                {opt.name}
+                              </div>
+                            ))}
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">{task.title_translations?.en ?? Object.values(task.title_translations ?? {})[0]}</p>

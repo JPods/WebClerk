@@ -4,7 +4,7 @@ import { useDrop } from "react-dnd";
 import clsx from "clsx";
 import type { KanbanColumn as KanbanColumnType, KanbanTask } from "../../type/kanban";
 import { DRAG_TYPE_TASK, type DragItem, type DropResult } from "./dndTypes";
-import { TaskCard } from "./TaskCard";
+import { TaskCard, type MoveToProjectOption } from "./TaskCard";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
 interface TaskWithIndent {
@@ -19,6 +19,8 @@ interface KanbanColumnProps {
   onDragEnd: (item: DragItem, dropResult: DropResult | null) => void;
   onTaskClick?: (task: KanbanTask) => void;
   className?: string;
+  moveToOptions?: MoveToProjectOption[];
+  onMoveToProject?: (taskId: string | number, projectId: string, projectName: string) => void;
 }
 
 const organizeTasksHierarchically = (tasks: KanbanTask[]): TaskWithIndent[] => {
@@ -63,7 +65,7 @@ const organizeTasksHierarchically = (tasks: KanbanTask[]): TaskWithIndent[] => {
   return organized;
 };
 
-const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onDragEnd, onTaskClick, className }) => {
+const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onDragEnd, onTaskClick, className, moveToOptions, onMoveToProject }) => {
   const columnRef = useRef<HTMLDivElement | null>(null);
 
   const [{ isOver, canDrop }, drop] = useDrop<DragItem, DropResult, { isOver: boolean; canDrop: boolean }>(
@@ -135,14 +137,16 @@ const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onD
               }
             )}
           >
-            <TaskCard 
-              key={task.id} 
-              task={task} 
-              columnId={column.id} 
-              index={index} 
+            <TaskCard
+              key={task.id}
+              task={task}
+              columnId={column.id}
+              index={index}
               onDragEnd={onDragEnd}
               onTaskClick={onTaskClick}
               isSubtask={isSubtask}
+              moveToOptions={moveToOptions}
+              onMoveToProject={onMoveToProject}
             />
           </div>
         ))}
