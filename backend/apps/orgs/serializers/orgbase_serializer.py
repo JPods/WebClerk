@@ -1,6 +1,10 @@
 from rest_framework import serializers
 
 from apps.orgs.models import OrgBase, Employee, Manufacturer, Rep, Vendor
+from apps.core.serializers.behaviors import (
+    validate_contact_id as _validate_contact_id,
+    validate_status_transition,
+)
 
 
 class OrgBaseSerializer(serializers.ModelSerializer):
@@ -8,6 +12,7 @@ class OrgBaseSerializer(serializers.ModelSerializer):
 
     PJPV: financial JSON envelope travels intact. No flattening.
     React reads financial.common.*, financial.customer.*, etc. by path.
+    Validation delegates to core.serializers.behaviors.
     """
 
     company = serializers.CharField(source="display_name", required=False, allow_blank=True)
@@ -22,6 +27,16 @@ class OrgBaseSerializer(serializers.ModelSerializer):
         if isinstance(data, dict) and "display_name" in data and "company" not in data:
             data = {**data, "company": data.get("display_name")}
         return super().to_internal_value(data)
+
+    def validate_contact_id(self, value):
+        """Validate primary contact FK — shared behavior."""
+        return _validate_contact_id(value)
+
+    def validate_status(self, value):
+        """Validate status transition — shared behavior."""
+        if self.instance:
+            validate_status_transition(self.instance, value)
+        return value
 
     class Meta:
         model = OrgBase

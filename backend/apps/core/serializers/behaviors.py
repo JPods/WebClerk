@@ -24,15 +24,23 @@ def validate_contact_id(value):
     """Validate a contact_id FK on any model.
 
     Used by: Action, Touch, OrgBase, Transaction headers.
+    Accepts int (BigIntegerField) or model instance (ForeignKey).
     Rejects non-positive values. Verifies contact exists and is active.
     """
     if value is None:
         return value
-    if isinstance(value, (int, float)) and value <= 0:
+    # Handle model instance (DRF PrimaryKeyRelatedField resolves FK to object)
+    pk = getattr(value, 'pk', value)
+    if isinstance(pk, (int, float)) and pk <= 0:
         return None
+    # If it's already a model instance, check is_active directly
+    if hasattr(value, 'is_active'):
+        if not value.is_active:
+            raise serializers.ValidationError("Contact is inactive.")
+        return value
     from apps.core.models.contact import Contact
-    if not Contact.objects.filter(pk=value, is_active=True).exists():
-        raise serializers.ValidationError(f"Contact {value} not found or inactive.")
+    if not Contact.objects.filter(pk=pk, is_active=True).exists():
+        raise serializers.ValidationError(f"Contact {pk} not found or inactive.")
     return value
 
 
