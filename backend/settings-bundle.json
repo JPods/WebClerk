@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "source": "pack_settings_bundle",
-  "dt_exported": "2026-08-28T01:10:30.669646+00:00",
+  "dt_exported": "2026-08-28T02:43:39.545291+00:00",
   "record_count": 100,
   "settings": [
     {
@@ -9668,6 +9668,22 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "contact_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "project_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "parent_action": {
+            "why": "structural — child dies with parent",
+            "type": "fk",
+            "target": "action",
+            "on_delete": "CASCADE"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -9679,7 +9695,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -9713,7 +9729,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846048103,
+            "dt": 1787885003581,
             "contact_id": 0
           },
           "verified": {
@@ -10462,6 +10478,12 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "contact_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -10473,7 +10495,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -10507,7 +10529,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846048137,
+            "dt": 1787885003211,
             "contact_id": 0
           },
           "verified": {
@@ -14781,6 +14803,44 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "orgbase": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "connection": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "connection",
+            "on_delete": "SET_NULL"
+          },
+          "rep_orgbase": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "customer_orgbase": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "employee_orgbase": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "manufacturer_orgbase": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -14792,7 +14852,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -14826,7 +14886,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846048267,
+            "dt": 1787885003640,
             "contact_id": 0
           },
           "verified": {
@@ -16427,6 +16487,66 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "rep": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "groups": {
+            "why": "unknown",
+            "type": "fk",
+            "target": "group",
+            "on_delete": "unknown"
+          },
+          "vendor": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "customer": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "email_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "employee": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "phone_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "domain_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "address_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "manufacturer": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "user_permissions": {
+            "why": "unknown",
+            "type": "fk",
+            "target": "permission",
+            "on_delete": "unknown"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -16438,7 +16558,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -16472,7 +16592,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846048315,
+            "dt": 1787885003179,
             "contact_id": 0
           },
           "verified": {
@@ -18059,6 +18179,40 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "email_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "phone_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "terms_fk": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "paymentterm",
+            "on_delete": "SET_NULL"
+          },
+          "domain_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "address_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "contact_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "tax_jurisdiction": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "taxjurisdiction",
+            "on_delete": "SET_NULL"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -18070,7 +18224,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -18104,7 +18258,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846048344,
+            "dt": 1787885003440,
             "contact_id": 0
           },
           "verified": {
@@ -21398,6 +21552,12 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "contact_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -21409,7 +21569,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -21443,7 +21603,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846048437,
+            "dt": 1787885003670,
             "contact_id": 0
           },
           "verified": {
@@ -22105,6 +22265,12 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "contact_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -22116,7 +22282,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -22150,7 +22316,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846048456,
+            "dt": 1787885003150,
             "contact_id": 0
           },
           "verified": {
@@ -23109,6 +23275,40 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "email_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "phone_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "terms_fk": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "paymentterm",
+            "on_delete": "SET_NULL"
+          },
+          "domain_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "address_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "contact_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "tax_jurisdiction": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "taxjurisdiction",
+            "on_delete": "SET_NULL"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -23120,7 +23320,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -23154,7 +23354,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846048476,
+            "dt": 1787885003276,
             "contact_id": 0
           },
           "verified": {
@@ -29583,6 +29783,46 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "vendor": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "contact": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "contact",
+            "on_delete": "SET_NULL"
+          },
+          "customer": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "terms_fk": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "paymentterm",
+            "on_delete": "SET_NULL"
+          },
+          "parent_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "manufacturer": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "conditions_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -29594,7 +29834,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -29628,7 +29868,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846048638,
+            "dt": 1787885003481,
             "contact_id": 0
           },
           "verified": {
@@ -31531,6 +31771,24 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "vendor": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "manufacturer": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "specification_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -31542,7 +31800,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -31576,7 +31834,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846048748,
+            "dt": 1787885003501,
             "contact_id": 0
           },
           "verified": {
@@ -34337,6 +34595,36 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "org": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "term": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "term",
+            "on_delete": "SET_NULL"
+          },
+          "invoice": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "invoice",
+            "on_delete": "SET_NULL"
+          },
+          "parent_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "gl_account": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "glaccount",
+            "on_delete": "SET_NULL"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -34348,7 +34636,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -34382,7 +34670,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846048841,
+            "dt": 1787885003547,
             "contact_id": 0
           },
           "verified": {
@@ -35997,6 +36285,40 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "email_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "phone_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "terms_fk": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "paymentterm",
+            "on_delete": "SET_NULL"
+          },
+          "domain_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "address_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "contact_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "tax_jurisdiction": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "taxjurisdiction",
+            "on_delete": "SET_NULL"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -36008,7 +36330,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -36042,7 +36364,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846048883,
+            "dt": 1787885003704,
             "contact_id": 0
           },
           "verified": {
@@ -37765,6 +38087,46 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "vendor": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "contact": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "contact",
+            "on_delete": "SET_NULL"
+          },
+          "customer": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "terms_fk": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "paymentterm",
+            "on_delete": "SET_NULL"
+          },
+          "parent_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "manufacturer": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "conditions_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -37776,7 +38138,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -37810,7 +38172,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846048923,
+            "dt": 1787885003195,
             "contact_id": 0
           },
           "verified": {
@@ -41354,6 +41716,46 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "vendor": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "invoice": {
+            "why": "structural — child dies with parent",
+            "type": "fk",
+            "target": "invoice",
+            "on_delete": "CASCADE"
+          },
+          "customer": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "purchase": {
+            "why": "structural — child dies with parent",
+            "type": "fk",
+            "target": "purchase",
+            "on_delete": "CASCADE"
+          },
+          "parent_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "contact_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "payment_term": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "paymentterm",
+            "on_delete": "SET_NULL"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -41399,7 +41801,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787879239203,
+            "dt": 1787885003320,
             "contact_id": 0
           },
           "verified": {
@@ -41420,7 +41822,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787846418955
+          "keywords_dt_refreshed": 1787879700288
         },
         "audit_trail": [],
         "explanation": "",
@@ -44497,6 +44899,12 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "contact_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -44508,7 +44916,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -44542,7 +44950,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846049125,
+            "dt": 1787885003604,
             "contact_id": 0
           },
           "verified": {
@@ -45325,6 +45733,18 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "parent": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "project",
+            "on_delete": "SET_NULL"
+          },
+          "contact_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -45370,7 +45790,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787879239241,
+            "dt": 1787885003359,
             "contact_id": 0
           },
           "verified": {
@@ -45391,7 +45811,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787846424840
+          "keywords_dt_refreshed": 1787879700433
         },
         "audit_trail": [],
         "explanation": "",
@@ -47095,6 +47515,46 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "vendor": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "contact": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "contact",
+            "on_delete": "SET_NULL"
+          },
+          "customer": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "terms_fk": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "paymentterm",
+            "on_delete": "SET_NULL"
+          },
+          "parent_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "manufacturer": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "conditions_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -47106,7 +47566,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -47140,7 +47600,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846049190,
+            "dt": 1787885003294,
             "contact_id": 0
           },
           "verified": {
@@ -49212,6 +49672,46 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "vendor": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "contact": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "contact",
+            "on_delete": "SET_NULL"
+          },
+          "customer": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "terms_fk": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "paymentterm",
+            "on_delete": "SET_NULL"
+          },
+          "parent_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "manufacturer": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "conditions_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -49223,7 +49723,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -49257,7 +49757,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846049234,
+            "dt": 1787885003337,
             "contact_id": 0
           },
           "verified": {
@@ -51584,6 +52084,20 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "purchase": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "purchase",
+            "on_delete": "SET_NULL"
+          },
+          "workorder": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "workorder",
+            "on_delete": "SET_NULL"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -51595,7 +52109,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -51629,7 +52143,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846049299,
+            "dt": 1787885003258,
             "contact_id": 0
           },
           "verified": {
@@ -53571,6 +54085,40 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "email_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "phone_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "terms_fk": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "paymentterm",
+            "on_delete": "SET_NULL"
+          },
+          "domain_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "address_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "contact_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "tax_jurisdiction": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "taxjurisdiction",
+            "on_delete": "SET_NULL"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -53582,7 +54130,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -53616,7 +54164,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846049334,
+            "dt": 1787885003377,
             "contact_id": 0
           },
           "verified": {
@@ -56614,6 +57162,20 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "item": {
+            "why": "structural — child dies with parent",
+            "type": "fk",
+            "target": "item",
+            "on_delete": "CASCADE"
+          },
+          "inventory_layer": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "inventorylayer",
+            "on_delete": "SET_NULL"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -56625,7 +57187,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -56659,7 +57221,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846049423,
+            "dt": 1787885003232,
             "contact_id": 0
           },
           "verified": {
@@ -58525,6 +59087,16 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "org_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "contact_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -58536,7 +59108,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -58570,7 +59142,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846049486,
+            "dt": 1787885003685,
             "contact_id": 0
           },
           "verified": {
@@ -60632,6 +61204,12 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "record_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -60643,7 +61221,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -60677,7 +61255,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846049546,
+            "dt": 1787885003624,
             "contact_id": 0
           },
           "verified": {
@@ -62770,6 +63348,28 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "org_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "action_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "contact_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "linkage_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "project_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -62781,7 +63381,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -62815,7 +63415,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846049612,
+            "dt": 1787885003397,
             "contact_id": 0
           },
           "verified": {
@@ -63427,6 +64027,20 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "item": {
+            "why": "structural — child dies with parent",
+            "type": "fk",
+            "target": "item",
+            "on_delete": "CASCADE"
+          },
+          "parent_item": {
+            "why": "structural — child dies with parent",
+            "type": "fk",
+            "target": "item",
+            "on_delete": "CASCADE"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -63438,7 +64052,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -63472,7 +64086,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846049633,
+            "dt": 1787885003420,
             "contact_id": 0
           },
           "verified": {
@@ -64436,6 +65050,40 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "email_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "phone_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "terms_fk": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "paymentterm",
+            "on_delete": "SET_NULL"
+          },
+          "domain_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "address_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "contact_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "tax_jurisdiction": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "taxjurisdiction",
+            "on_delete": "SET_NULL"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -64447,7 +65095,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -64481,7 +65129,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846049649,
+            "dt": 1787885003656,
             "contact_id": 0
           },
           "verified": {
@@ -66878,6 +67526,46 @@
           }
         ],
         "select_lists": {},
+        "fk_discipline": {
+          "vendor": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "contact": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "contact",
+            "on_delete": "SET_NULL"
+          },
+          "customer": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "terms_fk": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "paymentterm",
+            "on_delete": "SET_NULL"
+          },
+          "parent_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          },
+          "manufacturer": {
+            "why": "independent — reference cleared on delete",
+            "type": "fk",
+            "target": "orgbase",
+            "on_delete": "SET_NULL"
+          },
+          "conditions_id": {
+            "why": "independent lifecycle — no cascade",
+            "type": "value"
+          }
+        },
         "default_collapsed": [
           "system",
           "dates",
@@ -66889,7 +67577,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -66923,7 +67611,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846049695,
+            "dt": 1787885003461,
             "contact_id": 0
           },
           "verified": {
