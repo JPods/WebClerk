@@ -140,6 +140,7 @@ function buildColumns(
   onSetPrimary: ((contact: RefContact) => void) | undefined,
   onRemove: (contactId: number) => void,
   onOpen: (contact: RefContact) => void,
+  onTouch?: (contact: RefContact, channel: 'call' | 'email' | 'text') => void,
 ): DbColumnDef<RefContact>[] {
   return [
     {
@@ -179,7 +180,10 @@ function buildColumns(
         const email = c._resolved_email || extractEmail(c.email);
         return email ? (
           <span className="truncate flex items-center gap-1" style={{ color: 'var(--db-text-muted)' }}>
-            <FaEnvelope size={9} className="shrink-0" style={{ color: 'var(--db-text-dim)' }} />
+            <FaEnvelope size={9} className="shrink-0 cursor-pointer hover:text-blue-400" style={{ color: 'var(--db-text-dim)' }}
+              onClick={(e) => { e.stopPropagation(); onTouch?.(c, 'email'); }}
+              title="Log email touch"
+            />
             {email}
           </span>
         ) : null;
@@ -193,7 +197,10 @@ function buildColumns(
         const phone = c._resolved_phone || extractPhone(c.phone);
         return phone ? (
           <span className="truncate flex items-center gap-1" style={{ color: 'var(--db-text-muted)' }}>
-            <FaPhone size={9} className="shrink-0" style={{ color: 'var(--db-text-dim)' }} />
+            <FaPhone size={9} className="shrink-0 cursor-pointer hover:text-amber-400" style={{ color: 'var(--db-text-dim)' }}
+              onClick={(e) => { e.stopPropagation(); onTouch?.(c, 'call'); }}
+              title="Log call touch"
+            />
             {phone}
           </span>
         ) : null;
@@ -202,9 +209,19 @@ function buildColumns(
     {
       key: "actions",
       label: "",
-      width: "72px",
+      width: "90px",
       render: (c) => (
         <span className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          {onTouch && (
+            <button
+              type="button"
+              title="Log touch"
+              className="p-1 rounded transition-colors db-text-dim hover:text-amber-500"
+              onClick={() => onTouch(c, 'call')}
+            >
+              <FaPhone size={10} />
+            </button>
+          )}
           {onSetPrimary && (
             <button
               type="button"
@@ -379,7 +396,15 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
 
   const handleAdd = () => setAdding(true);
 
-  const columns = buildColumns(isEditing, primaryContactId, onSetPrimary, handleRemove, handleOpen);
+  const [touchContact, setTouchContact] = useState<RefContact | null>(null);
+  const [touchChannel, setTouchChannel] = useState<string>('call');
+
+  const handleTouch = useCallback((contact: RefContact, channel: 'call' | 'email' | 'text') => {
+    setTouchChannel(channel);
+    setTouchContact(contact);
+  }, []);
+
+  const columns = buildColumns(isEditing, primaryContactId, onSetPrimary, handleRemove, handleOpen, handleTouch);
 
   return (
     <>
@@ -435,7 +460,151 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
           )}
         </div>
       )}
+      {touchContact && (
+        <TouchInlineForm
+          contact={touchContact}
+          parentModel={parent_model}
+          parentId={parentId}
+          initialChannel={touchChannel}
+          onClose={() => setTouchContact(null)}
+        />
+      )}
     </>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// TouchInlineForm — quick touch entry from a contact row
+// ---------------------------------------------------------------------------
+
+const TouchInlineForm: React.FC<{
+  contact: RefContact;
+  parentModel?: string;
+  parentId?: number;
+  initialChannel?: string;
+  onClose: () => void;
+}> = ({ contact, parentModel, parentId, initialChannel = 'call', onClose }) => {
+  const [channel, setChannel] = useState<string>(initialChannel);
+  const [direction, setDirection] = useState<string>('out');
+  const [subject, setSubject] = useState('');
+  const [summary, setSummary] = useState('');
+  const [outcome, setOutcome] = useState('connected');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const contactName = contact._resolved_name || contact.attention || `Contact #${contact.contact_id}`;
+  const email = contact._resolved_email || extractEmail(contact.email);
+  const phone = contact._resolved_phone || extractPhone(contact.phone);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { saveRecord: sr, getRecord: gr } = await import('@/api/wcapi');
+      const touchRes = await sr('touch', {
+        contact_id: contact.contact_id,
+        channel,
+        direction,
+        subject: subject || `${channel} — ${contactName}`,
+        summary,
+        outcome,
+        action_id: parentModel === 'action' ? parentId : 0,
+      });
+      // Add to parent's refs.links.touch so the TOUCHS panel count updates
+      if (parentModel && parentId) {
+        try {
+          const touchId = touchRes?.record?.id ?? touchRes?.id;
+          const parentRec = await gr(parentModel, parentId) as any;
+          const data = parentRec?.record ?? parentRec;
+          const existingTouches = Array.isArray(data?.refs?.links?.touch) ? data.refs.links.touch : [];
+          if (touchId && !existingTouches.some((t: any) => t.id === touchId)) {
+            await sr(parentModel, {
+              id: parentId,
+              'refs.links.touch': [...existingTouches, { id: touchId }],
+            });
+          }
+        } catch { /* refs.links update failed — touch still saved */ }
+      }
+      // Tell LinkedRecordsPanel (TOUCHS) to reload
+      window.dispatchEvent(new CustomEvent('refs-links-changed', { detail: { model: parentModel, id: parentId } }));
+      setSaved(true);
+      setTimeout(onClose, 800);
+    } catch (err) {
+      console.error('Failed to save touch:', err);
+      setSaving(false);
+    }
+  };
+
+  // Launch URI based on channel
+  const handleLaunch = () => {
+    if (channel === 'call' && phone) window.open(`tel:${phone}`);
+    else if (channel === 'text' && phone) window.open(`sms:${phone}`);
+    else if (channel === 'email' && email) window.open(`mailto:${email}`, '_blank');
+  };
+
+  return (
+    <div style={{ padding: '8px 12px', borderTop: '1px solid var(--db-border)', background: 'var(--db-surface-alt)' }}>
+      <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6, color: 'var(--db-text)' }}>
+        Touch — {contactName}
+      </div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+        <select value={channel} onChange={(e) => setChannel(e.target.value)}
+          className="db-input" style={{ fontSize: 11, padding: '3px 6px', width: 90 }}>
+          <option value="call">📞 Call</option>
+          <option value="email">✉ Email</option>
+          <option value="text">💬 Text</option>
+          <option value="visit">🏢 Visit</option>
+          <option value="meeting">🤝 Meeting</option>
+        </select>
+        <select value={direction} onChange={(e) => setDirection(e.target.value)}
+          className="db-input" style={{ fontSize: 11, padding: '3px 6px', width: 80 }}>
+          <option value="out">Outbound</option>
+          <option value="in">Inbound</option>
+        </select>
+        <select value={outcome} onChange={(e) => setOutcome(e.target.value)}
+          className="db-input" style={{ fontSize: 11, padding: '3px 6px', width: 100 }}>
+          <option value="connected">Connected</option>
+          <option value="voicemail">Voicemail</option>
+          <option value="no_answer">No Answer</option>
+          <option value="bounced">Bounced</option>
+          <option value="rescheduled">Rescheduled</option>
+        </select>
+        {((channel === 'call' || channel === 'text') && phone) || (channel === 'email' && email) ? (
+          <button onClick={handleLaunch} className="db-text-dim hover:text-blue-500" style={{ fontSize: 11 }} title="Launch">
+            ↗
+          </button>
+        ) : null}
+      </div>
+      <input
+        type="text"
+        value={subject}
+        onChange={(e) => setSubject(e.target.value)}
+        placeholder="subject"
+        className="db-input"
+        style={{ width: '100%', fontSize: 11, padding: '3px 8px', marginBottom: 4 }}
+      />
+      <textarea
+        value={summary}
+        onChange={(e) => setSummary(e.target.value)}
+        placeholder="summary / notes"
+        className="db-input"
+        style={{ width: '100%', fontSize: 11, padding: '3px 8px', minHeight: 40, resize: 'vertical' }}
+      />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 6 }}>
+        <button onClick={onClose} className="db-text-dim" style={{ fontSize: 11 }}>Cancel</button>
+        <button
+          onClick={handleSave}
+          disabled={saving || saved}
+          className="rounded px-3 py-1 text-xs font-medium"
+          style={{
+            background: saved ? '#22c55e' : 'var(--db-accent, #3b82f6)',
+            color: '#fff',
+            cursor: saving ? 'default' : 'pointer',
+          }}
+        >
+          {saved ? '✓ Saved' : saving ? 'Saving...' : 'Save Touch'}
+        </button>
+      </div>
+    </div>
   );
 };
 

@@ -44,19 +44,6 @@ def validate_contact_id(value):
     return value
 
 
-def validate_contact_exists(value):
-    """Validate a contact FK object reference (for ForeignKey fields).
-
-    Used by: Touch (which has a real FK, not a BigIntegerField).
-    """
-    if value is None:
-        return value
-    # DRF already resolves FK to model instance — just check active
-    if hasattr(value, 'is_active') and not value.is_active:
-        raise serializers.ValidationError("Contact is inactive.")
-    return value
-
-
 # ── Org linkage ──────────────────────────────────────────────────────
 
 def validate_org_id(value, org_model=None):

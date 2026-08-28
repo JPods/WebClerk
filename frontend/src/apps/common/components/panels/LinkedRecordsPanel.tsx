@@ -309,6 +309,18 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
     loadLinks().then(fetchRecords);
   }, [loadLinks, fetchRecords]);
 
+  // Reload when refs.links changes (e.g. touch added from ContactPanel)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.model === parentModel && detail?.id === parentId) {
+        loadLinks().then(fetchRecords);
+      }
+    };
+    window.addEventListener('refs-links-changed', handler);
+    return () => window.removeEventListener('refs-links-changed', handler);
+  }, [parentModel, parentId, loadLinks, fetchRecords]);
+
   // Save updated links to parent record
   const saveLinks = useCallback(async (newIds: number[]) => {
     const linkRefs = newIds.map(id => ({ id }));

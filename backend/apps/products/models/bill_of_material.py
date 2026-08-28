@@ -73,8 +73,8 @@ class BillOfMaterial(BaseModel):
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=["parent_item", "child_item"], name="uniq_bom_parent_component"),
-            models.CheckConstraint(check=~models.Q(parent_item=models.F('child_item')), name='ck_bom_parent_ne_component'),
-            models.CheckConstraint(check=models.Q(scrap_factor__gte=0) & models.Q(scrap_factor__lt=1), name='ck_bom_scrap_range'),
+            models.CheckConstraint(condition=~models.Q(parent_item=models.F('child_item')), name='ck_bom_parent_ne_component'),
+            models.CheckConstraint(condition=models.Q(scrap_factor__gte=0) & models.Q(scrap_factor__lt=1), name='ck_bom_scrap_range'),
         ]
         indexes = [
             models.Index(fields=("parent_item",), name="bom_parent_idx"),

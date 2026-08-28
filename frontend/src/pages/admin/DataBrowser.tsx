@@ -235,6 +235,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   const [showDedup, setShowDedup] = useState(false);
   const [showMarkdownTemplate, setShowMarkdownTemplate] = useState<'list' | 'detail' | null>(null);
   const [showSchemaTree, setShowSchemaTree] = useState(false);
+  const [showReassignDialog, setShowReassignDialog] = useState(false);
   const [mdTemplateContent, setMdTemplateContent] = useState('');
   const [mdTemplateName, setMdTemplateName] = useState('');
   const [dedupAllIds, setDedupAllIds] = useState<number[]>([]);
@@ -622,6 +623,11 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                 const [field, ...rest] = val.split(':');
                 const newValue = rest.join(':');
 
+                if (field === '__reassign_project__') {
+                  setShowReassignDialog(true);
+                  return;
+                }
+
                 if (field === '__set_field__') {
                   const fieldName = prompt('Field name:');
                   if (!fieldName) return;
@@ -677,6 +683,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                 </optgroup>
               )}
               <optgroup label="Custom">
+                <option value="__reassign_project__:1">Reassign to Project...</option>
                 <option value="__set_field__">Set any field...</option>
               </optgroup>
             </select>
@@ -728,6 +735,10 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
             <option value="__reset__">Reset to Default</option>
           </select>
           <Btn small variant="ghost" onClick={() => setShowRelatedDialog('list')}>Related</Btn>
+          <span className="db-separator">|</span>
+          <Btn small variant="ghost" onClick={() => setShowReassignDialog(true)}>
+            Reassign{db.selectedRowIds.size > 0 ? ` (${db.selectedRowIds.size})` : ''}
+          </Btn>
           <span className="db-spacer" />
           <span className="db-pagination-info">{db.totalRecords}</span>
           <Btn small variant="ghost" disabled={db.page === 0} onClick={() => db.setPage((p) => p - 1)}>←</Btn>
@@ -1125,6 +1136,16 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
         }}
       />
 
+      {/* Reassign Project dialog */}
+      {showReassignDialog && (
+        <ReassignProjectDialog
+          selectedIds={Array.from(db.selectedRowIds)}
+          model={db.selectedModel}
+          onClose={() => setShowReassignDialog(false)}
+          onDone={() => { setShowReassignDialog(false); db.fetchRecords(); }}
+        />
+      )}
+
       {/* Markdown template editor — opened from Reports (merge/template type) */}
       {showMarkdownTemplate && (
         <div
@@ -1202,5 +1223,176 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
     </div>
   );
 };
+
+// ---------------------------------------------------------------------------
+// ReassignProjectDialog — batch reassign selected records to a different project
+// ---------------------------------------------------------------------------
+
+function ReassignProjectDialog({
+  selectedIds,
+  model,
+  onClose,
+  onDone,
+}: {
+  selectedIds: number[];
+  model: string;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [weeksShift, setWeeksShift] = useState(0);
+  const [applying, setApplying] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const doSearch = useCallback(async (q: string) => {
+    if (q.length < 2) { setResults([]); return; }
+    setSearching(true);
+    try {
+      const { getRecords } = await import('@/api/wcapi');
+      const res = await getRecords('project', { keyword: q, limit: 15 }) as any;
+      setResults(res?.results || []);
+    } catch { setResults([]); }
+    setSearching(false);
+  }, []);
+
+  const handleInput = (val: string) => {
+    setQuery(val);
+    setSelectedProject(null);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSearch(val), 300);
+  };
+
+  const handleApply = async () => {
+    if (!selectedProject) return;
+    setApplying(true);
+    try {
+      const { manageAction, saveRecord: sr } = await import('@/api/wcapi');
+
+      // Reassign project
+      await manageAction('reassign_project', {
+        action_ids: selectedIds,
+        project_id: selectedProject.id,
+        project_name: selectedProject.name || selectedProject.ida,
+      });
+
+      // Shift dates if requested
+      if (weeksShift > 0) {
+        const shiftMs = weeksShift * 7 * 24 * 60 * 60 * 1000;
+        for (const id of selectedIds) {
+          try {
+            const { getRecord } = await import('@/api/wcapi');
+            const rec = await getRecord(model, id) as any;
+            const data = rec?.record ?? rec;
+            const updates: Record<string, any> = { id };
+            if (data?.dt_start) updates.dt_start = data.dt_start + shiftMs;
+            if (data?.dt_deadline) updates.dt_deadline = data.dt_deadline + shiftMs;
+            if (Object.keys(updates).length > 1) await sr(model, updates);
+          } catch (e) { console.error(`Failed to shift dates for ${id}:`, e); }
+        }
+      }
+
+      setResult(`Reassigned ${selectedIds.length} records to "${selectedProject.name}"${weeksShift > 0 ? ` and shifted dates +${weeksShift} weeks` : ''}`);
+      setTimeout(onDone, 1500);
+    } catch (e: any) {
+      setResult(`Error: ${e?.message || 'failed'}`);
+      setApplying(false);
+    }
+  };
+
+  return (
+    <div
+      className="db-md-overlay"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="db-md-dialog" style={{ maxWidth: 480, minHeight: 'auto' }}>
+        <div className="db-md-header">
+          <span className="db-md-title">Reassign {selectedIds.length} records to project</span>
+          <button onClick={onClose} className="db-md-close">&times;</button>
+        </div>
+        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Project search */}
+          <div>
+            <label className="db-text-dim" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>project</label>
+            <input
+              ref={inputRef}
+              type="text"
+              value={selectedProject ? selectedProject.name : query}
+              onChange={(e) => handleInput(e.target.value)}
+              onFocus={() => { if (selectedProject) { setSelectedProject(null); setQuery(''); } }}
+              placeholder="Search project..."
+              className="db-input"
+              style={{ width: '100%', fontSize: 13, padding: '6px 10px' }}
+            />
+            {searching && <div style={{ fontSize: 10, color: 'var(--db-text-muted)', padding: '4px 0' }}>Searching...</div>}
+            {results.length > 0 && !selectedProject && (
+              <div style={{ maxHeight: 200, overflowY: 'auto', marginTop: 4, border: '1px solid var(--db-border)', borderRadius: 4 }}>
+                {results.map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => { setSelectedProject(r); setResults([]); }}
+                    className="db-list-row"
+                    style={{ display: 'flex', gap: 8, padding: '6px 10px', width: '100%', textAlign: 'left', fontSize: 12, cursor: 'pointer' }}
+                  >
+                    <span className="font-mono" style={{ width: 60, flexShrink: 0, color: 'var(--db-text-dim)' }}>
+                      {r.ida || `#${r.id}`}
+                    </span>
+                    <span className="truncate" style={{ flex: 1 }}>{r.name || r.intent || ''}</span>
+                    <span style={{ fontSize: 10, color: 'var(--db-text-muted)' }}>{r.status}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Date shift */}
+          <div>
+            <label className="db-text-dim" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>shift dates forward</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="number"
+                min={0}
+                max={52}
+                value={weeksShift}
+                onChange={(e) => setWeeksShift(Math.max(0, parseInt(e.target.value) || 0))}
+                className="db-input"
+                style={{ width: 60, fontSize: 13, padding: '6px 10px', textAlign: 'right' }}
+              />
+              <span className="db-text-muted" style={{ fontSize: 12 }}>weeks</span>
+            </div>
+          </div>
+
+          {/* Result / Apply */}
+          {result && (
+            <div style={{ fontSize: 12, color: result.startsWith('Error') ? 'var(--db-text-error, #ef4444)' : 'var(--db-text-success, #22c55e)', padding: '4px 0' }}>
+              {result}
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 4 }}>
+            <button onClick={onClose} className="db-text-dim" style={{ fontSize: 12, padding: '6px 12px' }}>Cancel</button>
+            <button
+              onClick={handleApply}
+              disabled={!selectedProject || applying}
+              className="rounded px-3 py-1.5 text-sm font-medium"
+              style={{
+                background: selectedProject && !applying ? 'var(--db-accent, #3b82f6)' : 'var(--db-surface-alt)',
+                color: selectedProject && !applying ? '#fff' : 'var(--db-text-dim)',
+                cursor: selectedProject && !applying ? 'pointer' : 'default',
+              }}
+            >
+              {applying ? 'Applying...' : `Reassign${weeksShift > 0 ? ` + shift ${weeksShift}w` : ''}`}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default DataBrowser;

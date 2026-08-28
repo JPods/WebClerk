@@ -5,7 +5,7 @@ import json
 from rest_framework.views import APIView  # type: ignore
 from django.db.models import Q
 from django.http import HttpRequest
-from apps.core.views.get_view import OpenReadOrAuthenticated
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from common.api_responses import api_response
 from apps.products.models import Item
 from common.allie_capture import allie_capture as _allie
@@ -24,7 +24,7 @@ class ItemVariantsView(APIView):
     Optionally supports parent_uuid=<uuid> in addition to parent_id.
     """
 
-    permission_classes = [OpenReadOrAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     @extend_schema(
         operation_id="products_item_variants_retrieve",

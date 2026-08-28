@@ -32,6 +32,9 @@ class TouchConfig(BaseModel):
     text_action: str = "sms"             # sms | log_only
     auto_log: bool = True                # auto-open touch form after URI launch
 
+    class Config:
+        extra = "forbid"
+
 
 class ContactConfig(ConfigBase):
     """Structural data — import originals, touch preferences."""
@@ -55,6 +58,9 @@ class ZeroBounceValidation(BaseModel):
     did_you_mean: Optional[str] = None
     smtp_provider: str = ""
 
+    class Config:
+        extra = "forbid"
+
 
 class SearchLogEntry(BaseModel):
     dt: int = 0
@@ -62,10 +68,16 @@ class SearchLogEntry(BaseModel):
     model: str = ""
     results: int = 0
 
+    class Config:
+        extra = "forbid"
+
 
 class NavigationLogEntry(BaseModel):
     dt: int = 0
     model: str = ""
+
+    class Config:
+        extra = "forbid"
 
 
 class ContactMetadata(MetadataBase):
@@ -151,3 +163,6 @@ class ContactRefs(RefsBase):
 class ContactSettingDefaults(BaseModel):
     role: str = "user"
     is_active: bool = True
+
+    class Config:
+        extra = "forbid"

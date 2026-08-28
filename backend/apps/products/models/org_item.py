@@ -142,10 +142,10 @@ class OrgItem(ItemLinkedBase):
         # Keep existing DB constraint/index names (from original ItemCarried) after RenameModel migration
         constraints = [
             models.UniqueConstraint(fields=["item_id", "orgbase_id", "catalog_id"], name="uniq_item_org_catalog"),
-            models.CheckConstraint(check=models.Q(quantity_minimum__gte=0) | models.Q(quantity_minimum__isnull=True), name="ck_orgitem_qty_min_nonneg"),
-            models.CheckConstraint(check=models.Q(quantity_maximum__gte=0) | models.Q(quantity_maximum__isnull=True), name="ck_orgitem_qty_max_nonneg"),
+            models.CheckConstraint(condition=models.Q(quantity_minimum__gte=0) | models.Q(quantity_minimum__isnull=True), name="ck_orgitem_qty_min_nonneg"),
+            models.CheckConstraint(condition=models.Q(quantity_maximum__gte=0) | models.Q(quantity_maximum__isnull=True), name="ck_orgitem_qty_max_nonneg"),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(quantity_minimum__isnull=True)
                     | models.Q(quantity_maximum__isnull=True)
                     | models.Q(quantity_maximum__gte=models.F("quantity_minimum"))

@@ -103,8 +103,8 @@ class Project(BaseModel):
             models.Index(fields=["slug"], name="project_slug_idx"),
         ]
         constraints = [
-            models.CheckConstraint(check=models.Q(priority__gte=PRIORITY_MIN, priority__lte=PRIORITY_MAX), name="project_priority_range"),
-            models.CheckConstraint(check=models.Q(burndown__gte=0, burndown__lte=100), name="project_burndown_range"),
+            models.CheckConstraint(condition=models.Q(priority__gte=PRIORITY_MIN, priority__lte=PRIORITY_MAX), name="project_priority_range"),
+            models.CheckConstraint(condition=models.Q(burndown__gte=0, burndown__lte=100), name="project_burndown_range"),
         ]
 
     # -------- Derived / validation helpers ---------------------------------

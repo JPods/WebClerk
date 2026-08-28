@@ -225,7 +225,6 @@ class TransactionBaseModel(BaseModel):
     line_increment = models.IntegerField(default=10)
     # status — inherited from CoreModel
     priority = models.CharField(max_length=32, blank=True, null=True)
-    price_level = models.CharField(max_length=50, blank=True, default='retail')
     dt_needed = models.BigIntegerField(blank=True, null=True, db_index=True, help_text="Date needed (UTC epoch ms) — when customer needs the order")
     ship_via = models.CharField(max_length=50, blank=True, null=True, help_text="Carrier/shipping method (US Postal, UPS, FedEx, etc.)")
     # Commission orders routed by manufacturer (refs.links.manufacturer[].commission_based=True)

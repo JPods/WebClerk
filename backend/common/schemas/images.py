@@ -26,6 +26,9 @@ class ImageSet(BaseModel):
     original: Optional[str] = None  # full resolution
     alt: Optional[str] = None       # alt text for accessibility
 
+    class Config:
+        extra = "forbid"
+
 
 class ContactImages(BaseModel):
     """Contact photo + optional additional images."""

@@ -86,6 +86,9 @@ interface ProjectOption {
   intent?: string;
   contacts?: ProjectContact[];
   dtKanban?: string | null;
+  parent_id?: string | null;
+  dt_start?: number | null;
+  dt_end?: number | null;
 }
 
 interface ContactOption {
@@ -387,6 +390,12 @@ const createProjectOption = (record: Record<string, unknown>): ProjectOption | n
   const dtKanbanRaw = record.dt_kanban ?? nestedProject?.dt_kanban;
   const dtKanban = typeof dtKanbanRaw === "string" && dtKanbanRaw ? dtKanbanRaw : null;
 
+  // Extract parent_id, dt_start, dt_end for sprint hierarchy
+  const parentIdRaw = record.parent_id ?? nestedProject?.parent_id;
+  const parent_id = parentIdRaw != null ? String(parentIdRaw) : null;
+  const dt_start = typeof record.dt_start === "number" ? record.dt_start : null;
+  const dt_end = typeof record.dt_end === "number" ? record.dt_end : null;
+
   return {
     id: parsedId,
     slug,
@@ -394,6 +403,9 @@ const createProjectOption = (record: Record<string, unknown>): ProjectOption | n
     intent,
     contacts,
     dtKanban,
+    parent_id,
+    dt_start,
+    dt_end,
   };
 };
 
@@ -447,26 +459,27 @@ const getWeekStart = (d: Date): Date => {
 
 interface ProjectSegments {
   permanent: ProjectOption[];
-  current: ProjectOption[];
-  previous: ProjectOption[];
-  next: ProjectOption[];
+  thisWeek: ProjectOption[];
+  next8: ProjectOption[];
+  previous2: ProjectOption[];
+  future: ProjectOption[];
   older: ProjectOption[];
 }
 
 const segmentProjects = (projects: ProjectOption[]): ProjectSegments => {
   const now = new Date();
   const thisWeekStart = getWeekStart(now);
-  // Current = 4-week window centered on this week (this week + 3 more)
-  const currentStart = new Date(thisWeekStart.getTime() - 0 * 7 * 86400000);
-  const currentEnd = new Date(thisWeekStart.getTime() + 4 * 7 * 86400000);
-  const previousStart = new Date(currentStart.getTime() - 4 * 7 * 86400000);
-  const nextEnd = new Date(currentEnd.getTime() + 4 * 7 * 86400000);
+  const WEEK = 7 * 86400000;
+  const thisWeekEnd = new Date(thisWeekStart.getTime() + WEEK);
+  const next8End = new Date(thisWeekEnd.getTime() + 8 * WEEK);
+  const prev2Start = new Date(thisWeekStart.getTime() - 2 * WEEK);
 
   const segments: ProjectSegments = {
     permanent: [],
-    current: [],
-    previous: [],
-    next: [],
+    thisWeek: [],
+    next8: [],
+    previous2: [],
+    future: [],
     older: [],
   };
 
@@ -485,26 +498,28 @@ const segmentProjects = (projects: ProjectOption[]): ProjectSegments => {
       continue;
     }
     const t = d.getTime();
-    if (t >= currentStart.getTime() && t < currentEnd.getTime()) {
-      segments.current.push(p);
-    } else if (t >= previousStart.getTime() && t < currentStart.getTime()) {
-      segments.previous.push(p);
-    } else if (t >= currentEnd.getTime() && t < nextEnd.getTime()) {
-      segments.next.push(p);
+    if (t >= thisWeekStart.getTime() && t < thisWeekEnd.getTime()) {
+      segments.thisWeek.push(p);
+    } else if (t >= thisWeekEnd.getTime() && t < next8End.getTime()) {
+      segments.next8.push(p);
+    } else if (t >= prev2Start.getTime() && t < thisWeekStart.getTime()) {
+      segments.previous2.push(p);
+    } else if (t >= next8End.getTime()) {
+      segments.future.push(p);
     } else {
       segments.older.push(p);
     }
   }
 
-  // Sort dated segments by date descending (most recent first)
   const byDateDesc = (a: ProjectOption, b: ProjectOption) => {
     const da = a.dtKanban ? new Date(a.dtKanban).getTime() : 0;
     const db = b.dtKanban ? new Date(b.dtKanban).getTime() : 0;
     return db - da;
   };
-  segments.current.sort(byDateDesc);
-  segments.previous.sort(byDateDesc);
-  segments.next.sort(byDateDesc);
+  segments.thisWeek.sort(byDateDesc);
+  segments.next8.sort(byDateDesc);
+  segments.previous2.sort(byDateDesc);
+  segments.future.sort(byDateDesc);
   segments.older.sort(byDateDesc);
 
   return segments;
@@ -1329,9 +1344,10 @@ const SegmentedProjectSelector: React.FC<SegmentedProjectSelectorProps> = ({
             Project: All
           </div>
           {renderSection("permanent", "Permanent", segments.permanent, false)}
-          {renderSection("current", "Current 4 Weeks", segments.current, false)}
-          {renderSection("previous", "Previous 4 Weeks", segments.previous, true)}
-          {renderSection("next", "Next 4 Weeks", segments.next, true)}
+          {renderSection("thisWeek", "This Week", segments.thisWeek, false)}
+          {renderSection("next8", "Next 8 Weeks", segments.next8, false)}
+          {renderSection("previous2", "Previous 2 Weeks", segments.previous2, false)}
+          {renderSection("future", "Future", segments.future, true)}
           {renderSection("older", "Older", segments.older, true)}
         </div>
       )}
@@ -1948,18 +1964,15 @@ const KanbanBoardPage: React.FC = () => {
     try {
       const params: Record<string, string | number> = {};
       if (projectId) {
-        // Prefer numeric project_id when possible (backend expects numeric IDs)
         const numericId = Number(projectId);
         if (!Number.isNaN(numericId) && String(numericId) === String(projectId)) {
           params.project_id = numericId;
         } else {
-          // If non-numeric (slug/uuid), also provide project_slug to increase match chance
           params.project_id = projectId;
           params.project_slug = projectId;
         }
       }
       if (contactId) {
-        // Use contact_id field which is indexed on the Action model
         params.contact_id = contactId;
       }
 
@@ -1968,6 +1981,39 @@ const KanbanBoardPage: React.FC = () => {
       console.log("fetchActions - raw response:", response);
 
       let items = extractKanbanItems(response);
+
+      // If this is a sprint (has parent_id + date range), also fetch parent project
+      // actions whose dt_start falls within this sprint's window
+      if (projectId) {
+        const selectedProj = projectOptions.find((p) => p.id === projectId);
+        if (selectedProj?.parent_id && selectedProj.dt_start && selectedProj.dt_end) {
+          try {
+            const parentParams: Record<string, string | number> = {
+              project_id: Number(selectedProj.parent_id),
+            };
+            if (contactId) parentParams.contact_id = contactId;
+            const parentResponse = await getRecords("action", parentParams);
+            const parentItems = extractKanbanItems(parentResponse);
+            // Filter parent items to those whose dt_start falls in this sprint's range
+            const sprintStart = selectedProj.dt_start;
+            const sprintEnd = selectedProj.dt_end;
+            const existingIds = new Set(items.map((i: any) => i.id));
+            const filtered = parentItems.filter((item: any) => {
+              if (existingIds.has(item.id)) return false;
+              const dtStart = item.dt_start || item.dtStart;
+              if (typeof dtStart !== "number") return false;
+              return dtStart >= sprintStart && dtStart < sprintEnd;
+            });
+            if (filtered.length > 0) {
+              console.log(`fetchActions - added ${filtered.length} parent project actions within sprint range`);
+              items = [...items, ...filtered];
+            }
+          } catch (e) {
+            console.error("Failed to fetch parent project actions:", e);
+          }
+        }
+      }
+
       console.log("fetchActions - items count:", Array.isArray(items) ? items.length : 0);
       items = items.filter((item: any) => String(item.status).toLowerCase() !== "on hold");
 
@@ -1995,7 +2041,7 @@ const KanbanBoardPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [projectOptions]);
 
   // Handle moving a task to a different project
   const handleMoveToProject = useCallback(async (taskId: string | number, projectId: string, projectName: string) => {

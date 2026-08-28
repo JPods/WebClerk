@@ -157,7 +157,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 			GinIndex(fields=["domains"], name="org_domains_gin"),
 		]
 		constraints = [
-			models.CheckConstraint(check=~models.Q(display_name=""), name="org_display_name_not_empty"),
+			models.CheckConstraint(condition=~models.Q(display_name=""), name="org_display_name_not_empty"),
 		]
 		verbose_name = "Organization"
 		verbose_name_plural = "Organizations"

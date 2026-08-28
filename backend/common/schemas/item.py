@@ -80,3 +80,6 @@ class ItemSettingDefaults(BaseModel):
     is_active: bool = True
     type: str = ""
     category: str = ""
+
+    class Config:
+        extra = "forbid"

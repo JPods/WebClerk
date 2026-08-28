@@ -125,7 +125,7 @@ export function DbColumns<T extends Record<string, unknown>>({
 
   // Column config persistence
   const tableColumns = useMemo(
-    () => columns.map((c) => ({ id: c.key, name: c.label })),
+    () => columns.map((c) => ({ id: c.key, name: c.key })),
     [columns],
   );
   const fc = useListFieldConfig(storageKey, tableColumns);
@@ -133,10 +133,14 @@ export function DbColumns<T extends Record<string, unknown>>({
   // Visible columns in configured order
   const visibleColumns = useMemo(() => {
     const colMap = new Map(columns.map((c) => [c.key, c]));
-    return fc.effectiveKeys
+    const result = fc.effectiveKeys
       .map((k) => colMap.get(k))
       .filter((c): c is DbColumnDef<T> => !!c);
-  }, [fc.effectiveKeys, columns]);
+    if (result.length === 0 && columns.length > 0) {
+      console.warn(`[DbColumns] ${storageKey}: 0 visible from ${columns.length} columns. effectiveKeys:`, fc.effectiveKeys, 'colMap keys:', Array.from(colMap.keys()));
+    }
+    return result;
+  }, [fc.effectiveKeys, columns, storageKey]);
 
   const hasSectionHeader = !!sectionLabel;
   const showContent = !hasSectionHeader || !collapsible || !collapsed;

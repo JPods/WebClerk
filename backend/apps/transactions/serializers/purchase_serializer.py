@@ -70,8 +70,8 @@ class PurchaseSerializer(RoleAwareModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        if hasattr(instance, 'purchaseline_set'):
-            data['line_count'] = instance.purchaseline_set.count()
+        if hasattr(instance, 'lines'):
+            data['line_count'] = instance.lines.count()
         return data
 
     def validate_customer_id(self, value):

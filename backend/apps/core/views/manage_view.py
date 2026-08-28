@@ -827,6 +827,43 @@ def _file_small_sting(params: dict) -> dict:
     }
 
 
+def _reassign_project(params):
+    """Batch reassign actions to a different project.
+    params: { action_ids: [int], project_id: int, project_name: str }
+    """
+    from apps.core.models import Action
+    from apps.transactions.models.project import Project
+
+    action_ids = params.get('action_ids', [])
+    project_id = params.get('project_id')
+    project_name = params.get('project_name', '')
+
+    if not action_ids:
+        raise ValueError("action_ids required")
+    if not project_id:
+        raise ValueError("project_id required")
+
+    project = Project.objects.filter(id=project_id).first()
+    if not project:
+        raise ValueError(f"project {project_id} not found")
+
+    # Use project name from the record if not supplied
+    if not project_name:
+        project_name = project.name or project.ida or str(project_id)
+
+    updated = Action.objects.filter(id__in=action_ids).update(
+        project_id=project_id,
+        project_name=project_name,
+    )
+
+    return {
+        'updated': updated,
+        'project_id': project_id,
+        'project_name': project_name,
+        'action_ids': action_ids,
+    }
+
+
 _ACTION_DISPATCH = {
     "post_gl_entries": _post_gl_entries,
     "reverse_gl_entries": _reverse_gl_entries,
@@ -1146,6 +1183,8 @@ _ACTION_DISPATCH = {
     "get_inventory_summary": lambda p: __import__('apps.core.services.dashboard.dashboard_commerce', fromlist=['get_inventory_summary']).get_inventory_summary(p),
     "get_velocity_report": lambda p: __import__('apps.core.services.dashboard.dashboard_commerce', fromlist=['get_velocity_report']).get_velocity_report(p),
     "get_accounting_dashboard": lambda p: __import__('apps.core.services.dashboard.dashboard_commerce', fromlist=['get_accounting_dashboard']).get_accounting_dashboard(p),
+    # ── Batch Reassign Project ──
+    "reassign_project": lambda p: _reassign_project(p),
     # ── Admin Tools (management commands via Report records) ──
     "run_admin_tool": _run_admin_tool,
     # ── Support Q&A (search → ask → answer → score → escalate) ──
@@ -1163,6 +1202,7 @@ _STAFF_ONLY_ACTIONS = {
     "accrue_commission",
     "get_commission_report",
     "run_admin_tool",
+    "reassign_project",
 }
 
 

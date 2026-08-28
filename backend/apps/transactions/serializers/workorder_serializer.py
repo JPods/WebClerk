@@ -10,10 +10,24 @@ from .behaviors import (
 
 
 class WorkOrderSerializer(serializers.ModelSerializer):
+    line_count = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = WorkOrder
-        fields = ["id", "dt_created", "dt_modified"]
-        read_only_fields = ["id", "dt_created", "dt_modified"]
+        fields = [
+            'id', 'uuid', 'ida', 'status', 'priority', 'price_level',
+            'customer_id', 'manufacturer_id', 'vendor_id', 'contact_id',
+            'totals', 'refs', 'prefs', 'metadata',
+            'line_count',
+            'dt_created', 'dt_modified', 'version',
+        ]
+        read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version',
+            'totals', 'line_count']
+
+    def get_line_count(self, instance):
+        if hasattr(instance, 'lines'):
+            return instance.lines.count()
+        return 0
 
     def validate_customer_id(self, value):
         return _validate_customer_id(value)

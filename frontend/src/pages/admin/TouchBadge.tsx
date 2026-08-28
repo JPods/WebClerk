@@ -30,30 +30,28 @@ interface TouchSummary {
 async function fetchTouchSummary(model: string, recordId: number, contactId: number): Promise<TouchSummary> {
   const { getRecords } = await import('@/api/wcapi');
 
-  // Build filter based on model type
+  // Query touch table by authoritative FK field
   const filter: Record<string, any> = { limit: 200 };
   if (model === 'contact') {
-    filter.contact = recordId;
+    filter.contact_id = recordId;
   } else if (model === 'action') {
-    filter.action = recordId;
+    filter.action_id = recordId;
   } else if (['customer', 'vendor', 'manufacturer', 'rep', 'employee'].includes(model)) {
     filter.org_id = recordId;
     filter.org_model = model;
   } else if (contactId) {
-    filter.contact = contactId;
+    filter.contact_id = contactId;
   }
 
   try {
     const res = await getRecords('touch', filter) as any;
-    const touches = res?.results || [];
+    const touches = res?.results || res?.records || [];
     const count = touches.length;
 
     if (count === 0) return { count: 0, daysUntilNext: null };
 
-    // Find the nearest dt_next across all touches
     const now = Date.now();
     let nearestDue: number | null = null;
-
     for (const t of touches) {
       if (t.dt_next && t.dt_next > 0) {
         const daysLeft = Math.ceil((t.dt_next - now) / 86400000);

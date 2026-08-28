@@ -48,3 +48,6 @@ class CustomerSettingDefaults(BaseModel):
     terms: str = ""
     price_level: str = ""
     is_active: bool = True
+
+    class Config:
+        extra = "forbid"

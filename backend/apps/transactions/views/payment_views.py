@@ -49,7 +49,7 @@ def process_payment(request):
 
         payment = Payment.objects.create(
             invoice=invoice,
-            contact=request.user,
+            contact_id=request.user.pk,
             amount=amount,
             gateway='spreedly',
             status='pending',
@@ -162,30 +162,6 @@ stripe_webhook = spreedly_webhook
 paypal_webhook = spreedly_webhook
 
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def reconcile_payments(request):
-    """Reconcile payments with gateway statements"""
-    try:
-        start_date = request.data.get('start_date')
-        end_date = request.data.get('end_date')
-
-        service = PaymentReconciliationService()
-        reconciled_count = service.reconcile_payments(start_date, end_date)
-
-        return Response({
-            'reconciled_count': reconciled_count,
-            'message': f'Successfully reconciled {reconciled_count} payments'
-        })
-
-    except Exception as e:
-        logger.error(f"Error reconciling payments: {e}")
-        return Response(
-            {'error': 'Reconciliation failed'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def payment_status(request, payment_id):
@@ -206,7 +182,7 @@ def payment_status(request, payment_id):
             'amount': payment.amount,
             'gateway': payment.gateway,
             'gateway_transaction_id': payment.gateway_transaction_id,
-            'processed_at': payment.processed_at,
+            'processed_at': payment.dt_processed,
             'reconciled': payment.reconciled
         })
 
@@ -248,7 +224,7 @@ def payment_history(request):
                 'status': payment.status,
                 'gateway': payment.gateway,
                 'created_at': payment.dt_created,
-                'processed_at': payment.processed_at
+                'processed_at': payment.dt_processed
             })
 
         return Response({

@@ -43,6 +43,9 @@ class EscalationProtocol(BaseModel):
     pickup_trigger: str = ''
     resolution: str = ''
 
+    class Config:
+        extra = "forbid"
+
 
 class ImportLesson(BaseModel):
     """What Alice learned from processing this source.
@@ -59,6 +62,9 @@ class ImportLesson(BaseModel):
     note: str = ''                          # why this mapping — what Alice observed
     confidence: float = 1.0                 # 0.0-1.0, increases with repeated success
 
+    class Config:
+        extra = "forbid"
+
 
 class UserInstruction(BaseModel):
     """User-provided rules for this source.
@@ -71,6 +77,9 @@ class UserInstruction(BaseModel):
     instruction: str = ''                    # what the user said to do
     applies_to: str = 'all'                 # column name, field name, or 'all'
     given_by: str = ''                      # contact ida who gave instruction
+
+    class Config:
+        extra = "forbid"
 
 
 class ImportConfig(BaseModel):
@@ -94,6 +103,9 @@ class ImportConfig(BaseModel):
     last_import_count: int = 0
     last_import_errors: int = 0
     last_import_file: str = ''               # original filename for reference
+
+    class Config:
+        extra = "forbid"
 
 
 class ImportBundleHeader(BaseModel):

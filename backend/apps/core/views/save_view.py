@@ -617,202 +617,12 @@ class SaveWcapiView(APIView):
                 model_key, ", ".join(denied_fields),
             )
 
-        # Assign fields
-        field_size_errors = []
-        field_value_errors = []
-        raw_password = None
-        for field, field_data in data.items():
-            if '.' in field or '[' in field:
-                console_logger.warning(f"[SAVE_VIEW] DOT-PATH FIELD in loop: field={field} type={type(field_data).__name__}")
-            # ignore these fields
-            if field == 'password':
-                if isinstance(field_data, dict) and 'value' in field_data:
-                    raw_password = field_data['value']
-                else:
-                    raw_password = field_data
-                continue
-            if field in ('model_name', 'id', 'version', 'expected_version', 'bulk', 'lines', 'uuid', 'record', 'options'):
-                continue
-            # Skip M2M fields — cannot be set via setattr, must use .set() after save
-            if field in m2m_field_names:
-                continue
-
-            # Normalize field payload:
-            # - Operation envelope: {'mode'|'task': ..., 'value': ...}
-            # - Plain value payload (including dict/list): treat as update value directly.
-            if not isinstance(field_data, dict):
-                field_data = {'mode': 'update', 'value': field_data}
-            elif ('mode' in field_data) or ('task' in field_data):
-                # Already an operation envelope
-                pass
-            else:
-                # Plain object payload (e.g. setting.config JSON): use it as the value.
-                field_data = {'mode': 'update', 'value': field_data}
-
-            # Extract mode from 'mode' or 'task' key
-            if 'mode' in field_data:
-                mode = field_data['mode']
-            elif 'task' in field_data:
-                mode = field_data['task']
-            else:
-                mode = 'update'
-            value = field_data.get('value')
-
-            # Sanitize empty strings for numeric fields - convert to None
-            if value == '' or value == "":
-                # Check if this field is a numeric type on the model
-                try:
-                    model_field = model_cls._meta.get_field(field)
-                    field_type = type(model_field).__name__
-                    if field_type in ('DecimalField', 'FloatField', 'IntegerField', 'BigIntegerField', 'PositiveIntegerField', 'SmallIntegerField'):
-                        value = None
-                        field_data['value'] = None
-                except Exception:
-                    pass  # Field not found on model, will be handled later
-
-            if mode not in ('update', 'insert', 'delete'):
-                continue  # Invalid mode, skip
-
-            if mode == 'delete':
-                # Delete the field
-                if '.' in field:
-                    delete_nested_value(obj, field)
-                else:
-                    if hasattr(obj, field):
-                        setattr(obj, field, None)
-                    else:
-                        # Check if field is in prefs.userdefined and remove it
-                        try:
-                            prefs = getattr(obj, 'prefs', {}) or {}
-                            if isinstance(prefs, str):
-                                try:
-                                    prefs = json.loads(prefs)
-                                except json.JSONDecodeError:
-                                    prefs = {}
-                            userdefined = prefs.get('userdefined', {})
-                            if field in userdefined:
-                                del userdefined[field]
-                                # Keep userdefined even when empty — it's a required catch-all
-                                setattr(obj, 'prefs', prefs)
-                        except Exception:
-                            pass  # Ignore errors when deleting from prefs
-                continue
-
-            # For update/insert, set the value
-            if value is None:
-                continue
-
-            # Check size
-            try:
-                check_field_size(value, MAX_FIELD_SIZE, field)
-            except ValueError as e:
-                field_size_errors.append(str(e))
-                continue
-
-            try:
-                if '.' in field or '[' in field:
-                    # Nested/array field — use json_field_ops for surgical update
-                    from apps.core.services.json_field_ops import apply_json_op
-                    console_logger.warning(f"[SAVE_VIEW] JSON_OP field={field} mode={mode} key={field_data.get('key')} value_type={type(value).__name__}")
-                    result = apply_json_op(obj, field, mode, value, key=field_data.get('key'))
-                    console_logger.warning(f"[SAVE_VIEW] JSON_OP result={result}")
-                else:
-                    # Regular field — check against actual model fields, not hasattr
-                    # (hasattr can return True for non-field attributes like properties)
-                    try:
-                        model_cls._meta.get_field(field)
-                        _is_model_field = True
-                    except Exception:
-                        _is_model_field = False
-                    if _is_model_field:
-                        current = getattr(obj, field)
-                        is_json_field = field in json_field_names or isinstance(current, dict)
-                        # i18n fields: wrap plain strings in {"en": value}
-                        if is_json_field and field in _i18n_field_set and isinstance(value, str):
-                            value = {'en': value}
-                            field_data['value'] = value
-                        if isinstance(value, dict) and is_json_field:
-                            if isinstance(current, str):
-                                try:
-                                    current = json.loads(current)
-                                except json.JSONDecodeError:
-                                    current = {}
-                            if not isinstance(current, dict):
-                                current = {}
-                            merged = deep_merge_dict(current, value)
-                            setattr(obj, field, merged)
-                        elif is_json_field and not isinstance(value, (dict, list)) and value is not None:
-                            # Skip corrupted non-dict/list values for JSON fields
-                            console_logger.warning(f"[SAVE_VIEW] Skipping corrupted JSON field '{field}': got {type(value).__name__} ({value}), expected dict/list")
-                            continue
-                        else:
-                            # If model field is an integer type, coerce/clean the value
-                            try:
-                                model_field = None
-                                try:
-                                    model_field = obj._meta.get_field(field)
-                                except Exception:
-                                    model_field = None
-                                if model_field is not None:
-                                    # FK fields: if value is int/str-int, set the _id column directly
-                                    if isinstance(model_field, (models.ForeignKey, models.OneToOneField)):
-                                        # Use field_id unless field already ends with _id
-                                        id_attr = field if field.endswith('_id') else f'{field}_id'
-                                        if isinstance(value, int) or (isinstance(value, str) and value.strip().isdigit()):
-                                            setattr(obj, id_attr, int(value) if isinstance(value, str) else value)
-                                            continue
-                                        elif value is None:
-                                            setattr(obj, id_attr, None)
-                                            continue
-                                    int_field_types = (
-                                        models.AutoField,
-                                        models.IntegerField,
-                                        models.BigIntegerField,
-                                        models.SmallIntegerField,
-                                        models.PositiveIntegerField,
-                                        models.PositiveSmallIntegerField,
-                                    )
-                                    if isinstance(model_field, int_field_types):
-                                        if isinstance(value, str):
-                                            import re as _re
-                                            m = _re.search(r"(\d+)", value)
-                                            if m:
-                                                try:
-                                                    value = int(m.group(1))
-                                                except Exception:
-                                                    value = 0
-                                            else:
-                                                value = 0
-                                        elif value is None:
-                                            value = 0
-                            except Exception:
-                                pass
-                            setattr(obj, field, value)
-                    else:
-                        # Unknown field, move to prefs.userdefined
-                        try:
-                            prefs = getattr(obj, 'prefs', {}) or {}
-                            if isinstance(prefs, str):
-                                try:
-                                    prefs = json.loads(prefs)
-                                except json.JSONDecodeError:
-                                    prefs = {}
-                            userdefined = prefs.setdefault('userdefined', {})
-                            storable = value
-                            try:
-                                raw_json = json.dumps(storable)
-                                if len(raw_json.encode('utf-8')) > MAX_FIELD_SIZE:
-                                    storable = str(storable)[:UNKNOWN_FIELD_MAX_CHARS]
-                            except Exception:
-                                storable = str(storable)[:UNKNOWN_FIELD_MAX_CHARS]
-                            userdefined[field] = storable
-                            check_field_size(prefs, MAX_FIELD_SIZE, 'prefs')
-                            setattr(obj, 'prefs', prefs)
-                        except ValueError as e:
-                            field_size_errors.append(str(e))
-            except (ValueError, TypeError) as e:
-                field_value_errors.append(f"{field}: {e}")
-                continue
+        # ── Field assignment (delegated to save_field_assignment service) ──
+        from apps.core.services.save_field_assignment import assign_fields
+        _assignment = assign_fields(obj, data, model_cls, json_field_names, m2m_field_names)
+        raw_password = _assignment['raw_password']
+        field_size_errors = _assignment['field_size_errors']
+        field_value_errors = _assignment['field_value_errors']
 
         if raw_password is not None and hasattr(obj, 'set_password'):
             try:
@@ -826,7 +636,18 @@ class SaveWcapiView(APIView):
             console_logger.error(f"[SAVE_VIEW] Field coercion errors for {model_key} ID {record_id}: {err_details}")
             return api_response(success=False, status_code=400, message='Invalid field values', error={'code': 'invalid_field', 'details': err_details})
 
-        ### QQQ what is this?
+        # ── Envelope validation (Pydantic schema check on metadata/config/refs/prefs) ──
+        from apps.core.services.save_envelope import validate_and_reject
+        _envelope_fields = set(data.keys()) & {'metadata', 'config', 'refs', 'prefs'}
+        if _envelope_fields:
+            envelope_error = validate_and_reject(obj, model_key, _envelope_fields)
+            if envelope_error:
+                return api_response(
+                    success=False, status_code=400,
+                    message=f'Envelope validation failed: {envelope_error}',
+                    error={'code': 'envelope_invalid', 'details': envelope_error},
+                )
+
         # Optional model-level payload validation
         try:
             universal_flag = getattr(settings, 'UNIVERSAL_API_VALIDATE', False)
@@ -896,168 +717,12 @@ class SaveWcapiView(APIView):
         except Exception:
             pass  # non-transaction models will simply return False
 
-        # Handle associated lines for header models (order, invoice, etc.)
-        # Check for lines in data - support models even without meta.kind == 'header'
-        header_models = {'order', 'invoice', 'purchase', 'workorder', 'proposal'}
-        norm_model = model_key.replace('_', '').lower()
-        is_header_model = norm_model in {m.replace('_', '').lower() for m in header_models}
-        if is_header_model and 'lines' in data:
-            console_logger.info(
-                f"[SAVE_VIEW] Line processing: model_key={model_key}, "
-                f"lines_count={len(data['lines']) if isinstance(data.get('lines'), list) else 'N/A'}"
-            )
+        # ── Line processing (delegated to save_line_processing service) ──
+        from apps.core.services.save_line_processing import process_lines
+        _adjust_fn = getattr(self, '_adjust_source_line', None)
+        process_lines(obj, data, model_key, adjust_source_fn=_adjust_fn)
 
-        if is_header_model and 'lines' in data and isinstance(data['lines'], list):
-            console_logger.info(f"[SAVE_VIEW] Processing {len(data['lines'])} lines for {model_key}")
-            
-            # Dynamically determine line model and FK field based on parent model
-            line_model_map = {
-                'order': ('OrderLine', 'order'),
-                'invoice': ('InvoiceLine', 'invoice'),
-                'purchase': ('PurchaseLine', 'purchase'),
-                'workorder': ('WorkOrderLine', 'workorder'),
-                'proposal': ('ProposalLine', 'proposal'),
-            }
-            line_info = line_model_map.get(norm_model)
-            if not line_info:
-                console_logger.warning(f"[SAVE_VIEW] No line model mapping for {model_key}")
-            else:
-                line_model_name, fk_field_name = line_info
-                LineModel = get_model(line_model_name.lower())
-                if not LineModel:
-                    console_logger.error(f"[SAVE_VIEW] Line model {line_model_name} not found")
-                else:
-                    console_logger.info(f"[SAVE_VIEW] Using line model {LineModel.__name__} with FK field '{fk_field_name}'")
-            
-                    new_line_ids = []
-                    for idx, line_data in enumerate(data['lines']):
-                        try:
-                            line_id = line_data.get('id')
-                            is_new = (
-                                line_id is None
-                                or (isinstance(line_id, str) and line_id.startswith('temp-'))
-                                or (isinstance(line_id, (int, float)) and line_id < 0)
-                            )
-                            console_logger.info(f"[SAVE_VIEW] LINE {idx}: id={line_id} is_new={is_new}")
-                            
-                            if is_new:
-                                # Create new line using direct ORM
-                                line_obj = LineModel()
-                                # Set FK field dynamically (e.g., order_id, purchase_id, invoice_id)
-                                setattr(line_obj, f'{fk_field_name}_id', obj.id)
-                                
-                                # Copy fields from line_data
-                                skip_fields = ('id', 'model_name', fk_field_name, f'{fk_field_name}_id', 'parent', 'parent_id')
-                                # Build set of FK descriptor names to skip — use _id suffix instead
-                                _fk_descriptors = set()
-                                for f in LineModel._meta.get_fields():
-                                    if hasattr(f, 'related_model') and f.related_model is not None:
-                                        _fk_descriptors.add(f.name)  # e.g., 'item_fk'
-                                for field_name, field_value in line_data.items():
-                                    if field_name in skip_fields:
-                                        continue
-                                    # Skip FK descriptors — the _id variant handles the raw value
-                                    if field_name in _fk_descriptors and not isinstance(field_value, models.Model):
-                                        continue
-                                    if field_name.startswith('_'):
-                                        continue  # skip private/transient fields like _dirty
-                                    if hasattr(line_obj, field_name):
-                                        setattr(line_obj, field_name, field_value)
-
-                                # Derive item_fk_id from item envelope if not set directly
-                                if not getattr(line_obj, 'item_fk_id', None):
-                                    item_env = line_data.get('item') or {}
-                                    _item_id = item_env.get('item_id') or item_env.get('id') if isinstance(item_env, dict) else None
-                                    if _item_id:
-                                        line_obj.item_fk_id = _item_id
-
-                                # Mark that we're handling pending creation (prevents signal duplicate)
-                                line_obj._pending_created = True
-                                line_obj.save()
-                                new_line_ids.append(line_obj.id)
-                                console_logger.info(f"[SAVE_VIEW] Created new line ID {line_obj.id}")
-                                
-                                # Create pending inventory record for new lines
-                                try:
-                                    from apps.transactions.services.line_manage import LineItemService
-                                    service = LineItemService(create_pending=True)
-                                    service._create_pending_for_new_line(
-                                        parent=obj,
-                                        parent_model_key=model_key,
-                                        line=line_obj,
-                                        line_data=line_data,
-                                    )
-                                except Exception as pending_err:
-                                    console_logger.error(f"[SAVE_VIEW] Failed to create pending for line {line_obj.id}: {pending_err}", exc_info=True)
-
-                                # If this line was converted from a source line, update the source.
-                                # Each conversion: new line fires its pending, then tells source to adjust.
-                                # Source saves → fires its own pending (own bucket only).
-                                try:
-                                    refs = line_data.get('refs') or {}
-                                    source = refs.get('source') or {}
-                                    line_qty = float((line_obj.quantity or {}).get('active', 0) or (line_obj.quantity or {}).get('staged', 0) or 0)
-                                    if line_qty > 0:
-                                        self._adjust_source_line(source, norm_model, line_qty, line_obj)
-                                except Exception as src_err:
-                                    console_logger.warning(f"[SAVE_VIEW] Source line update failed for line {line_obj.id}: {src_err}")
-                            else:
-                                # Update existing line
-                                try:
-                                    line_obj = LineModel.objects.get(id=line_id)
-                                    skip_fields = ('id', 'model_name', fk_field_name, f'{fk_field_name}_id', 'parent', 'parent_id')
-                                    for field_name, field_value in line_data.items():
-                                        if field_name in skip_fields:
-                                            continue
-                                        if field_name in _fk_descriptors and not isinstance(field_value, models.Model):
-                                            continue
-                                        if field_name.startswith('_'):
-                                            continue
-                                        if hasattr(line_obj, field_name):
-                                            setattr(line_obj, field_name, field_value)
-                                    # Derive item_fk_id from item envelope if not set
-                                    if not getattr(line_obj, 'item_fk_id', None):
-                                        item_env = line_data.get('item') or {}
-                                        _item_id = item_env.get('item_id') or item_env.get('id') if isinstance(item_env, dict) else None
-                                        if _item_id:
-                                            line_obj.item_fk_id = _item_id
-                                    line_obj.save()
-                                    console_logger.info(f"[SAVE_VIEW] Updated existing line ID {line_id}")
-                                except LineModel.DoesNotExist:
-                                    console_logger.warning(f"[SAVE_VIEW] Line ID {line_id} not found, skipping")
-                        except Exception as e:
-                            console_logger.error(f"[SAVE_VIEW] Error saving line {idx}: {e}", exc_info=True)
-                    
-                    # Update refs.links with new line IDs
-                    # Determine the refs.links key based on line model name
-                    refs_links_key = f'{line_model_name.lower().replace("line", "_line")}'  # e.g., 'order_line', 'purchase_line'
-                    if new_line_ids:
-                        try:
-                            refs = obj.refs or {}
-                            if not isinstance(refs, dict):
-                                refs = {}
-                            links = refs.get('links', {})
-                            if not isinstance(links, dict):
-                                links = {}
-                            line_refs = links.get(refs_links_key, [])
-                            if not isinstance(line_refs, list):
-                                line_refs = []
-                            for new_id in new_line_ids:
-                                if {'id': new_id} not in line_refs:
-                                    line_refs.append({'id': new_id})
-                            links[refs_links_key] = line_refs
-                            refs['links'] = links
-                            obj.refs = refs
-                            obj.save(update_fields=['refs', 'version', 'dt_modified'])
-                            console_logger.info(f"[SAVE_VIEW] Updated refs.links with {len(new_line_ids)} new line IDs")
-                        except Exception as e:
-                            console_logger.error(f"[SAVE_VIEW] Error updating refs.links: {e}")
-
-                        # ── Pending inventory processing (Celery if worker alive, else inline)
-                        from apps.products.dispatch_pending import dispatch_pending_processing
-                        dispatch_pending_processing(limit=200, caller='save_view.lines_from_payload')
-
-        # Auto-link communication records to a Contact
+        # ── Auto-link communication records to Contact (delegated to save_contact_linking) ──
         linked = False
         contact = None
         bucket = None
@@ -1068,47 +733,11 @@ class SaveWcapiView(APIView):
                 if request.user and getattr(request.user, "is_authenticated", False):
                     contact = Contact.objects.filter(pk=getattr(request.user, "pk", None)).first()
                 if contact:
+                    from apps.core.services.save_contact_linking import link_comm_to_contact
                     fields = LINK_DENORMALIZE_FIELDS.get(bucket, ["id"]) or ["id"]
-                    denorm = {f: getattr(obj, f, None) for f in fields}
-                    refs = getattr(contact, "refs", {}) or {}
-                    links = refs.get("links") or {}
-                    bucket_list = links.get(bucket) or []
-                    existing_found = False
-                    for idx, it in enumerate(list(bucket_list)):
-                        if isinstance(it, dict) and it.get("id") == getattr(obj, "pk"):
-                            bucket_list[idx] = denorm
-                            existing_found = True
-                            linked = True
-                            break
-                        if isinstance(it, int) and it == getattr(obj, "pk"):
-                            bucket_list[idx] = denorm
-                            existing_found = True
-                            linked = True
-                            break
-                    if not existing_found:
-                        bucket_list.append(denorm)
-                        linked = True
-                    links[bucket] = bucket_list
-                    refs["links"] = links
-                    contact.refs = refs
-                    Contact.objects.filter(pk=contact.pk).update(refs=contact.refs, version=models.F('version') + 1, dt_modified=int(timezone.now().timestamp() * 1000))
-                    try:
-                        if not isinstance(getattr(obj, "refs", None), dict):
-                            obj.refs = {}
-                        obj_links = obj.refs.setdefault("links", {})
-                        contact_list = obj_links.setdefault("contact", [])
-                        if contact.pk not in contact_list:
-                            contact_list.append(contact.pk)
-                            obj.save()
-                            linked = True
-                    except Exception:
-                        pass
-                    try:
-                        ensure_bidirectional(contact, obj, kind="contact")
-                    except Exception:
-                        pass
+                    linked = link_comm_to_contact(obj, contact, bucket, fields)
         except Exception:
-            pass  # Defensive
+            pass
 
         # Append contact link for action saves
         if model_key == 'action':
@@ -1269,21 +898,15 @@ class SaveWcapiView(APIView):
                 except Exception as e:
                     console_logger.error(f"[SAVE_VIEW] Error saving deferred contact refs: {e}")
 
-                # Update obj.refs with contact link and ensure bidirectional link
+                # Update obj.refs with contact link
                 try:
-                    if not isinstance(getattr(obj, 'refs', None), dict):
-                        obj.refs = {}
-                    obj_links = obj.refs.setdefault('links', {})
-                    contact_list = obj_links.setdefault('contact', [])
-                    if contact.pk not in contact_list:
-                        contact_list.append(contact.pk)
+                    from apps.core.services.save_contact_linking import link_obj_to_contact
+                    if link_obj_to_contact(obj, contact):
                         obj.save(update_fields=['refs', 'version', 'dt_modified'])
+                    from common.refs.links import ensure_bidirectional
+                    ensure_bidirectional(contact, obj, kind='contact')
                 except Exception:
                     pass
-                    try:
-                        ensure_bidirectional(contact, obj, kind='contact')
-                    except Exception:
-                        pass
                 try:
                     delattr(contact, '_refs_pending_save')
                 except Exception:

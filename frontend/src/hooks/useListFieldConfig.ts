@@ -97,13 +97,12 @@ function colKey(col: TableColumn<any>): string {
 }
 
 /** Extract model name from storageKey for Setting lookup.
- *  "panel:order:contacts" → "order"
+ *  "panel:order:contacts" → "" (panels use their own columns, not the parent model's Setting)
  *  "customer" → "customer"
  */
 function extractModelName(storageKey: string): string {
-  const parts = storageKey.split(':');
-  if (parts.length >= 2 && parts[0] === 'panel') return parts[1];
-  return parts[0];
+  if (storageKey.startsWith('panel:')) return '';
+  return storageKey.split(':')[0];
 }
 
 /** Parse a ListLayoutDefault into keys + widths */

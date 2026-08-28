@@ -8,10 +8,10 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'uuid', 'name', 'situation', 'objective', 'priority', 'status', 'attention',
             'contact_id', 'tasks', 'burndown', 'category', 'intent', 'logistics',
-            'profit', 'profit_velocity', 'security_level', 'data', 'prefs',
+            'profit', 'profit_velocity', 'security_level', 'config', 'prefs',
             'dt_created', 'dt_modified', 'version'
         ]
-    read_only_fields = ['id', 'uuid', 'burndown', 'dt_created', 'dt_modified', 'version']
+        read_only_fields = ['id', 'uuid', 'burndown', 'dt_created', 'dt_modified', 'version']
 
     def validate_priority(self, value):  # guard even though model clean enforces
         if not (1 <= value <= 5):

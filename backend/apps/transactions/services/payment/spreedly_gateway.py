@@ -30,23 +30,64 @@ class SpreedlyService:
         self.gateway_token = gateway_token
 
     @classmethod
-    def from_settings(cls):
-        """Build from the payment_gateway Setting record."""
+    def from_gateway(cls, gateway_name: str = ''):
+        """Build from a gateway entry in the payment_gateway Setting.
+
+        Looks up the named gateway in config.gateway[], follows connection_id
+        to a Connection record that holds Spreedly credentials.
+        If no name given, uses the first Spreedly-type gateway found.
+        """
         from apps.core.models.setting import Setting
         try:
             setting = Setting.objects.get(purpose='wc:payment_gateway')
         except Setting.DoesNotExist:
             raise RuntimeError("No payment_gateway Setting found. Run: manage.py seed_payment_gateway")
+
         cfg = setting.config or {}
-        spreedly = cfg.get('spreedly', {})
+        gateways = cfg.get('gateway', [])
+
+        entry = None
+        for gw in gateways:
+            if gateway_name and gw.get('name') == gateway_name:
+                entry = gw
+                break
+            if not gateway_name and gw.get('type') == 'spreedly':
+                entry = gw
+                break
+
+        if not entry or entry.get('type') != 'spreedly':
+            raise RuntimeError("No Spreedly gateway configured")
+
+        conn_id = entry.get('connection_id')
+        if not conn_id:
+            raise RuntimeError(
+                f"Gateway '{entry['name']}' has no connection_id — "
+                "configure a Connection with Spreedly credentials"
+            )
+
+        from apps.sync.models.connection import Connection
+        try:
+            conn = Connection.objects.get(pk=conn_id, is_active=True)
+        except Connection.DoesNotExist:
+            raise RuntimeError(f"Connection {conn_id} not found or inactive")
+
+        conn_cfg = conn.config or {}
+        spreedly = conn_cfg.get('spreedly', {})
         env_key = spreedly.get('environment_key', '')
         access_secret = spreedly.get('access_secret', '')
-        gateway_token = cfg.get('active_gateway_token', '')
+        gateway_token = spreedly.get('gateway_token', '')
+
         if not env_key or not access_secret:
-            raise RuntimeError("Spreedly credentials not configured in payment_gateway Setting")
+            raise RuntimeError("Spreedly credentials not configured in Connection")
         if not gateway_token:
-            raise RuntimeError("No active_gateway_token configured in payment_gateway Setting")
+            raise RuntimeError("No gateway_token configured in Connection")
+
         return cls(env_key, access_secret, gateway_token)
+
+    @classmethod
+    def from_settings(cls):
+        """Backward-compatible wrapper — delegates to from_gateway()."""
+        return cls.from_gateway()
 
     def _request(self, method: str, path: str, body: dict | None = None) -> dict:
         """Make authenticated request to Spreedly API."""

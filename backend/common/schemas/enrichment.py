@@ -32,6 +32,9 @@ class PanelField(BaseModel):
     format: Optional[str] = None      # currency, percent, date, number, badge
     width: Optional[str] = None       # flex fraction or fixed px
 
+    class Config:
+        extra = "forbid"
+
 
 class EnrichmentPanel(BaseModel):
     """One panel on a model detail page."""
@@ -42,6 +45,9 @@ class EnrichmentPanel(BaseModel):
     read_only: bool = True            # enrichment panels are read-only by default
     collapsed: bool = False           # start expanded unless explicitly collapsed
     condition: Optional[str] = None   # optional: only show when this field is truthy
+
+    class Config:
+        extra = "forbid"
 
 
 # ── Item enrichment ──
@@ -148,6 +154,9 @@ class ItemEnrichment(BaseModel):
         ),
     ])
 
+    class Config:
+        extra = "forbid"
+
 
 # ── Contact enrichment ──
 
@@ -195,6 +204,9 @@ class ContactEnrichment(BaseModel):
             ],
         ),
     ])
+
+    class Config:
+        extra = "forbid"
 
 
 # ── Org enrichment ──
@@ -307,3 +319,6 @@ class OrgEnrichment(BaseModel):
             ],
         ),
     ])
+
+    class Config:
+        extra = "forbid"

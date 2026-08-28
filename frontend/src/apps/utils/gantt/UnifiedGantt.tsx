@@ -703,6 +703,17 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   const [colorMode, setColorMode] = useState<'project' | 'priority' | 'status' | 'assigned' | 'difficulty'>('priority');
   const [ganttKey, setGanttKey] = useState(0);
   const [ganttFontScale, setGanttFontScale] = useState(() => getUI<number>('gantt.font_scale', 0));
+  // Respond to global Font selector in TopBar
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const size = (e as CustomEvent).detail.size as number;
+      const scale = size - 12;
+      setGanttFontScale(scale);
+      import('@/utils/contactUI').then(m => m.setUI('gantt.font_scale', scale));
+    };
+    window.addEventListener('wc3-font-size-changed', handler);
+    return () => window.removeEventListener('wc3-font-size-changed', handler);
+  }, []);
   const [textOverflow, setTextOverflow] = useState(() => getUI<boolean>('gantt.show_full_text', false));
   const [criticalPathHighlight, setCriticalPathHighlight] = useState(false);
   const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
@@ -1274,27 +1285,46 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
           };
         }
 
+        // Check if the task moved into a different sprint project's date range
+        const newStartMs = task.start instanceof Date ? task.start.getTime() : null;
+        if (newStartMs && originalTask) {
+          const currentProjectId = (originalTask as any).projectId;
+          // Find the sprint project whose date range covers the new start date
+          const matchingProject = projects.find((p) =>
+            p.id !== currentProjectId &&
+            p.dt_start && p.dt_end &&
+            newStartMs >= p.dt_start && newStartMs < p.dt_end
+          );
+          if (matchingProject) {
+            const projName = matchingProject.name || matchingProject.intent || matchingProject.ida || '';
+            if (confirm(`Move to sprint "${projName}"?`)) {
+              payload["project_id"] = { mode: "update", value: Number(matchingProject.id) };
+              payload["project_name"] = { mode: "update", value: matchingProject.name || matchingProject.ida || '' };
+            }
+          }
+        }
+
         console.log("[Gantt] Saving payload:", payload);
         const { model_name: _mn2, ...dragSavePayload } = payload;
         await saveRecord("action", dragSavePayload);
         console.log("[Gantt] Save completed for task", id);
-        
+
         // Update local React state to keep ganttData in sync with the new values
         const localUpdates: { start?: Date; end?: Date; progress?: number } = {};
         if (task.start instanceof Date) localUpdates.start = task.start;
         if (task.end instanceof Date) localUpdates.end = task.end;
         if (typeof task.progress === "number") localUpdates.progress = task.progress;
-        
+
         updateTaskLocally(id, localUpdates);
         console.log("[Gantt] Local state updated for task", id);
-        
+
         return true;
       } catch (error) {
         console.error("Failed to update task:", error);
         return false;
       }
     },
-    [ganttData.tasks, pushToUndoStack, updateTaskLocally]
+    [ganttData.tasks, pushToUndoStack, updateTaskLocally, projects]
   );
 
 
@@ -1509,7 +1539,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       const pca = '-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact';
       return `<span style="display:inline-flex;align-items:center;gap:3px;margin-right:12px;${isChild ? 'margin-left:12px;' : ''}">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};${pca};"></span>
-        <span style="font-size:9px;color:${isChild ? '#6b7280' : '#374151'};font-weight:${isChild ? '400' : '600'};">${name}</span>
+        <span style="font-size:0.75em;color:${isChild ? '#6b7280' : '#374151'};font-weight:${isChild ? '400' : '600'};">${name}</span>
       </span>`;
     }).filter(Boolean).join('');
     return `<div style="display:flex;flex-wrap:wrap;gap:2px 0;margin-top:6px;">${items}</div>`;
@@ -1523,7 +1553,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     if (todayLeft < 0 || todayLeft > 100) return '';
     const pca = '-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact';
     return `<div style="position:absolute;left:${todayLeft}%;top:0;bottom:0;width:2px;background:rgb(239,68,68);z-index:5;${pca};"></div>
-      <div style="position:absolute;left:${todayLeft}%;top:-14px;transform:translateX(-50%);font-size:7px;color:rgb(239,68,68);font-weight:600;white-space:nowrap;">Today</div>`;
+      <div style="position:absolute;left:${todayLeft}%;top:-14px;transform:translateX(-50%);font-size:0.58em;color:rgb(239,68,68);font-weight:600;white-space:nowrap;">Today</div>`;
   };
 
   // Shared print bar renderer — matches on-screen GanttTaskTemplate encoding
@@ -1553,7 +1583,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       return Math.round((task.start.getTime() - task.dtStartOriginal.getTime()) / 86400000);
     })();
     const slippageHtml = slippageDays !== 0
-      ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:14px;padding:0 2px;border-radius:2px;font-size:6px;font-weight:600;background:${slippageDays > 0 ? '#fef2f2' : '#f0fdf4'};color:${slippageDays > 0 ? '#dc2626' : '#16a34a'};flex-shrink:0;${pca};">${slippageDays > 0 ? '+' : ''}${slippageDays}d</span>`
+      ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:14px;padding:0 2px;border-radius:2px;font-size:0.5em;font-weight:600;background:${slippageDays > 0 ? '#fef2f2' : '#f0fdf4'};color:${slippageDays > 0 ? '#dc2626' : '#16a34a'};flex-shrink:0;${pca};">${slippageDays > 0 ? '+' : ''}${slippageDays}d</span>`
       : '';
 
     // Milestone: diamond marker
@@ -1562,8 +1592,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     if (isMilestone) {
       return `<div style="position:absolute;left:${barLeft}%;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:4px;overflow:visible;">
         <div style="width:12px;height:12px;background:${priorityColor};transform:rotate(45deg);flex-shrink:0;border:${task.isCritical ? '2px solid #dc2626' : '1px solid rgba(0,0,0,0.2)'};${pca};"></div>
-        <span style="white-space:nowrap;font-size:8px;color:#111827;">${task.text || '—'}</span>
-        ${initials ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:14px;padding:0 3px;border-radius:2px;font-size:7px;font-weight:600;background:#dbeafe;color:#1d4ed8;flex-shrink:0;${pca};">${initials}</span>` : ''}
+        <span style="white-space:nowrap;font-size:0.67em;color:#111827;">${task.text || '—'}</span>
+        ${initials ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:14px;padding:0 3px;border-radius:2px;font-size:0.58em;font-weight:600;background:#dbeafe;color:#1d4ed8;flex-shrink:0;${pca};">${initials}</span>` : ''}
       </div>`;
     }
 
@@ -1578,12 +1608,12 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       </div>
       <!-- Content -->
       <div style="display:flex;align-items:center;gap:3px;padding:3px 6px 3px 8px;height:100%;overflow:visible;">
-        ${task.isCritical ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:14px;padding:0 2px;border-radius:2px;font-size:7px;font-weight:700;background:#dc2626;color:#fff;${pca};">CP</span>` : ''}
-        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:14px;padding:0 2px;border-radius:2px;font-size:7px;font-weight:700;background:${priorityColor};color:#fff;text-shadow:0 1px 1px rgba(0,0,0,0.3);${pca};">${pLabel}</span>
-        <span style="white-space:nowrap;font-size:8px;color:#111827;overflow:visible;">${task.text || '—'}</span>
-        ${progress > 0 && progress < 100 ? `<span style="font-size:7px;color:#374151;flex-shrink:0;">${progress}%</span>` : ''}
+        ${task.isCritical ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:14px;padding:0 2px;border-radius:2px;font-size:0.58em;font-weight:700;background:#dc2626;color:#fff;${pca};">CP</span>` : ''}
+        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:14px;padding:0 2px;border-radius:2px;font-size:0.58em;font-weight:700;background:${priorityColor};color:#fff;text-shadow:0 1px 1px rgba(0,0,0,0.3);${pca};">${pLabel}</span>
+        <span style="white-space:nowrap;font-size:0.67em;color:#111827;overflow:visible;">${task.text || '—'}</span>
+        ${progress > 0 && progress < 100 ? `<span style="font-size:0.58em;color:#374151;flex-shrink:0;">${progress}%</span>` : ''}
         ${slippageHtml}
-        ${initials ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:14px;padding:0 3px;border-radius:2px;font-size:7px;font-weight:600;background:#dbeafe;color:#1d4ed8;flex-shrink:0;${pca};">${initials}</span>` : ''}
+        ${initials ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:14px;padding:0 3px;border-radius:2px;font-size:0.58em;font-weight:600;background:#dbeafe;color:#1d4ed8;flex-shrink:0;${pca};">${initials}</span>` : ''}
       </div>
     </div>`;
   };
@@ -1680,7 +1710,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     }
 
     const timelineHeader = weekPositions.map(m =>
-      `<span style="position:absolute;left:${m.left}%;font-size:7px;color:${m.isMonth ? '#111827' : '#6b7280'};font-weight:${m.isMonth ? '700' : '400'};white-space:nowrap;">${m.label}</span>`
+      `<span style="position:absolute;left:${m.left}%;font-size:0.58em;color:${m.isMonth ? '#111827' : '#6b7280'};font-weight:${m.isMonth ? '700' : '400'};white-space:nowrap;">${m.label}</span>`
     ).join('');
 
     // Create a new window for printing
@@ -1939,7 +1969,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([, group]) =>
         `<div style="margin-top:8px;margin-bottom:4px;border-top:1px solid #d1d5db;padding-top:4px;">
-          <div style="font-size:8px;font-weight:600;color:#6b7280;margin-bottom:2px;">${group.label}</div>
+          <div style="font-size:0.67em;font-weight:600;color:#6b7280;margin-bottom:2px;">${group.label}</div>
           ${group.rows.join('')}
         </div>`
       ).join('');
@@ -1959,7 +1989,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       tempDate.setDate(tempDate.getDate() + 7);
     }
     const timelineHeader = weekPositions.map(m =>
-      `<span style="position:absolute;left:${m.left}%;font-size:8px;color:${m.isMonth ? '#111827' : '#6b7280'};font-weight:${m.isMonth ? '700' : '400'};white-space:nowrap;">${m.label}</span>`
+      `<span style="position:absolute;left:${m.left}%;font-size:0.67em;color:${m.isMonth ? '#111827' : '#6b7280'};font-weight:${m.isMonth ? '700' : '400'};white-space:nowrap;">${m.label}</span>`
     ).join('');
 
     // Week grid lines

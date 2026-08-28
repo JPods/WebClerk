@@ -134,11 +134,9 @@ All converted to values (BigIntegerField) on 2026-08-27.
 
 | Model | Field | Current | Concern |
 |-------|-------|---------|---------|
-| Payment.contact | FK CASCADE | Should a payment disappear if the contact is deleted? Likely should be SET_NULL or BigInt |
-| AliceCoachingLog.contact | FK CASCADE | Coaching history should survive contact deletion — convert to BigInt |
-| AliceInsight.contact | FK CASCADE | Insights should survive — convert to BigInt |
 | Contact.employee/customer/vendor/manufacturer/rep | FK SET_NULL | These are the WC2 value pattern. Bill used BigInt in WC2. Consider converting — but SET_NULL is safe (no data loss) |
-| DeliveryVisit.customer_orgbase | FK CASCADE | Visit history should survive customer deactivation? |
+
+*Resolved 2026-08-28:* Payment.contact → now FK SET_NULL. AliceCoachingLog.contact, AliceInsight.contact → now BigIntegerField. DeliveryVisit.customer_orgbase → now BigIntegerField (customer_orgbase_id).
 
 ## Alice Orphan Watch
 

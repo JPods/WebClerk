@@ -99,10 +99,12 @@ Lifecycle:
 4. Release (canceled) or Expire: state updated, availability restored.
 5. Expiration driven by `expires_at`; periodic task / command reclaims expired rows.
 
-Key API (service functions in `inventory_reservations.py`):
+Key API (service functions in `inventory_reserve.py`):
 
-- `create_reservation(stack, qty, ttl_seconds=900)`
-- `availability_for_stack(stack)`
+- `create_reservation(layer, qty, ttl_seconds=86400)`
+- `availability_for_layer(layer)`
+- `availability_for_item(item_id, warehouse_id=None)`
+- `reserve_for_order(item_id, qty, order_id=None, ...)`
 - `release_expired(batch=500)`
 
 ### Reservation REST Endpoints
