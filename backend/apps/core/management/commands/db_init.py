@@ -21,8 +21,10 @@ Usage:
 
 Prerequisites: migrations must be applied first (manage.py migrate).
 """
+import hashlib
 import json
 import logging
+import secrets
 import urllib.request
 import urllib.error
 from datetime import datetime, timezone
@@ -125,6 +127,94 @@ class Command(BaseCommand):
             f'  Saved to {bundle_path} ({size_kb:.0f} KB)'
         ))
 
+    def _register_with_wchq(self, base_url, timeout=30):
+        """Register this installation with WCHQ and get an Athena token.
+
+        Flow:
+        1. Generate a local installation_id (UUID from the system Setting)
+        2. POST to /wcapi/register-installation/ with the installation_id
+        3. WCHQ returns a unique token for this installation
+        4. Store the token in wchq-conn-downstream.encryption.athena_token
+        5. Add the token to the Athena integrity manifest
+
+        If WCHQ is unreachable, generates a local provisional token
+        that can be upgraded later when WCHQ becomes available.
+
+        Returns: (token, source) or (None, error_msg)
+        """
+        from apps.sync.models.connection import Connection
+
+        # Get or create the downstream Connection
+        conn = Connection.objects.filter(
+            ida='wchq-conn-downstream', is_active=True,
+        ).first()
+        if not conn:
+            return None, 'wchq-conn-downstream Connection not found'
+
+        # Check if already registered
+        encryption = conn.encryption or {}
+        existing_token = encryption.get('athena_token')
+        if existing_token:
+            self.stdout.write(f'  Already registered (token starts {existing_token[:12]}...)')
+            return existing_token, 'existing'
+
+        # Get installation UUID from system Setting
+        from apps.core.models.setting import Setting
+        sys_setting = Setting.objects.filter(purpose='wc:system').first()
+        installation_id = str(sys_setting.uuid) if sys_setting and sys_setting.uuid else ''
+
+        # Try WCHQ registration
+        register_url = f"{base_url.rstrip('/')}/wcapi/register-installation/"
+        token = None
+        source = None
+
+        try:
+            payload = json.dumps({
+                'installation_id': installation_id,
+                'dt_registered': datetime.now(timezone.utc).isoformat(),
+            }).encode('utf-8')
+            req = urllib.request.Request(
+                register_url,
+                data=payload,
+                method='POST',
+                headers={
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'WebClerk3-db_init/1.0',
+                },
+            )
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                if resp.status in (200, 201):
+                    data = json.loads(resp.read().decode('utf-8'))
+                    token = data.get('token')
+                    source = 'wchq'
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(
+                f'  WCHQ registration unavailable: {e}'
+            ))
+
+        # Fallback: generate provisional local token
+        if not token:
+            raw = f"{installation_id}:{secrets.token_hex(32)}:{datetime.now(timezone.utc).isoformat()}"
+            token = hashlib.sha256(raw.encode()).hexdigest()
+            source = 'provisional'
+            self.stdout.write('  Generated provisional token (upgrade when WCHQ available)')
+
+        # Store in Connection.encryption
+        encryption['athena_token'] = token
+        encryption['token_source'] = source
+        encryption['dt_registered'] = datetime.now(timezone.utc).isoformat()
+        encryption['installation_id'] = installation_id
+        conn.encryption = encryption
+        conn.save(update_fields=['encryption'])
+
+        # Add to Athena manifest for tamper detection
+        try:
+            call_command('athena_sign', stdout=self.stdout)
+        except Exception:
+            pass  # Athena is optional
+
+        return token, source
+
     def handle(self, *args, **options):
         offline = options['offline']
         fetch_only = options['fetch_only']
@@ -224,6 +314,24 @@ class Command(BaseCommand):
         except Exception as e:
             self.stderr.write(self.style.ERROR(f'  unpack_init_bundle failed: {e}'))
             return
+
+        # ── Step 4: Register with WCHQ ─────────────────────────────────
+
+        self.stdout.write('\n── Step 4: Register installation ──')
+        if offline:
+            self.stdout.write('  Skipped (offline mode) — register later with:')
+            self.stdout.write('    python manage.py db_init --register-only')
+        else:
+            base_url = wchq_url.rsplit('/wcapi/', 1)[0] if '/wcapi/' in wchq_url else 'https://webclerk.com'
+            token, token_source = self._register_with_wchq(base_url)
+            if token:
+                self.stdout.write(self.style.SUCCESS(
+                    f'  Registered ({token_source}). Token: {token[:12]}...'
+                ))
+            else:
+                self.stdout.write(self.style.WARNING(
+                    f'  Registration failed: {token_source}'
+                ))
 
         # ── Done ────────────────────────────────────────────────────────
 

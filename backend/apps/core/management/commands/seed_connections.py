@@ -150,6 +150,7 @@ CONNECTIONS = [
             'wchq_base_url': 'https://webclerk.com',
             'endpoints': {
                 'init_bundle': '/wcapi/init-bundle/',
+                'register': '/wcapi/register-installation/',
                 'coaching': '/wcapi/coaching/',
                 'security': '/wcapi/security-notices/',
                 'version': '/wcapi/version-check/',
