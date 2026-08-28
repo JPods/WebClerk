@@ -6,14 +6,13 @@ from common.models import BaseModel
 from apps.communications.choices import EMAIL_OPT_OUT_CHOICES, EMAIL_TYPE_CHOICES
 
 class Email(BaseModel):
-    # Direct FK to contact - explicit ownership relationship
-    contact = models.ForeignKey(
-        'core.Contact',
-        on_delete=models.CASCADE,
-        related_name='emails',
+    # Value, not FK — communications survive contact deactivation.
+    # Alice watches for orphan records.
+    contact_id = models.BigIntegerField(
         null=True,
         blank=True,
-        help_text="Contact this email belongs to"
+        db_index=True,
+        help_text="Contact id (value, not FK — no cascade)"
     )
     
     email = models.EmailField(max_length=254, blank=False, help_text="Email address")
@@ -43,7 +42,7 @@ class Email(BaseModel):
         verbose_name = 'Email Address'
         verbose_name_plural = 'Email Addresses'
         indexes = [
-            models.Index(fields=['contact']),
+            models.Index(fields=['contact_id']),
             models.Index(fields=['email']),
             models.Index(fields=['is_primary']),
             models.Index(fields=['opt_out'])

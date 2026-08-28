@@ -224,39 +224,39 @@ def seed_contact(spec):
         c.save(update_fields=['ida', 'name_first', 'name_last', 'company', 'dt_modified'])
 
     # ── Emails: exactly 4 ──
-    existing = set(Email.objects.filter(contact=c).values_list('email', flat=True))
+    existing = set(Email.objects.filter(contact_id=c.id).values_list('email', flat=True))
     for email, name in spec['emails']:
         if email not in existing:
-            Email.objects.create(contact=c, email=email, name=name)
+            Email.objects.create(contact_id=c.id, email=email, name=name)
     # Trim to 4 if over
-    for e in Email.objects.filter(contact=c).order_by('id')[4:]:
+    for e in Email.objects.filter(contact_id=c.id).order_by('id')[4:]:
         e.delete()
 
     # ── Phones: exactly 4 ──
-    existing = set(Phone.objects.filter(contact=c).values_list('number', flat=True))
+    existing = set(Phone.objects.filter(contact_id=c.id).values_list('number', flat=True))
     for number, name in spec['phones']:
         if number not in existing:
-            Phone.objects.create(contact=c, number=number, name=name)
-    for p in Phone.objects.filter(contact=c).order_by('id')[4:]:
+            Phone.objects.create(contact_id=c.id, number=number, name=name)
+    for p in Phone.objects.filter(contact_id=c.id).order_by('id')[4:]:
         p.delete()
 
     # ── Addresses: exactly 4 ──
-    count = Address.objects.filter(contact=c).count()
+    count = Address.objects.filter(contact_id=c.id).count()
     for i, (a1, a2, city, state, z, atype) in enumerate(spec['addresses']):
         if i >= count:
             Address.objects.create(
-                contact=c, address1=a1, address2=a2,
+                contact_id=c.id, address1=a1, address2=a2,
                 city=city, state=state, zip=z, address_type=atype,
             )
-    for a in Address.objects.filter(contact=c).order_by('id')[4:]:
+    for a in Address.objects.filter(contact_id=c.id).order_by('id')[4:]:
         a.delete()
 
     # ── Domains: exactly 4 ──
-    existing = set(Domain.objects.filter(contact=c).values_list('path', flat=True))
+    existing = set(Domain.objects.filter(contact_id=c.id).values_list('path', flat=True))
     for path, dtype in spec['domains']:
         if path not in existing:
-            Domain.objects.create(contact=c, path=path, type=dtype)
-    for d in Domain.objects.filter(contact=c).order_by('id')[4:]:
+            Domain.objects.create(contact_id=c.id, path=path, type=dtype)
+    for d in Domain.objects.filter(contact_id=c.id).order_by('id')[4:]:
         d.delete()
 
     # ── Documents: exactly 4, linked via refs ──
@@ -293,10 +293,10 @@ def seed_contact(spec):
 print("Seeding demo cast (Rule of 4)...")
 for spec in CAST:
     c = seed_contact(spec)
-    e = Email.objects.filter(contact=c).count()
-    p = Phone.objects.filter(contact=c).count()
-    a = Address.objects.filter(contact=c).count()
-    d = Domain.objects.filter(contact=c).count()
+    e = Email.objects.filter(contact_id=c.id).count()
+    p = Phone.objects.filter(contact_id=c.id).count()
+    a = Address.objects.filter(contact_id=c.id).count()
+    d = Domain.objects.filter(contact_id=c.id).count()
     docs = len((c.refs or {}).get('links', {}).get('document', []))
     print(f"  {c.ida:<6} {c.name_first:<8} {c.name_last:<12} {c.company:<25} e={e} p={p} a={a} d={d} docs={docs}")
 

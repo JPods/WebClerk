@@ -5,14 +5,13 @@ from common.models import BaseModel
 from apps.communications.choices import DOMAIN_STATUS_CHOICES, DOMAIN_TYPE_CHOICES
 
 class Domain(BaseModel):
-    # Direct FK to contact - explicit ownership relationship
-    contact = models.ForeignKey(
-        'core.Contact',
-        on_delete=models.CASCADE,
-        related_name='domains',
+    # Value, not FK — communications survive contact deactivation.
+    # Alice watches for orphan records.
+    contact_id = models.BigIntegerField(
         null=True,
         blank=True,
-        help_text="Contact this domain belongs to"
+        db_index=True,
+        help_text="Contact id (value, not FK — no cascade)"
     )
     
     path = models.CharField(max_length=255, blank=True, db_index=True, help_text="URL or handle (indexed)")
@@ -26,7 +25,7 @@ class Domain(BaseModel):
     class Meta:
         db_table = 'domains'
         indexes = [
-            models.Index(fields=['contact']),
+            models.Index(fields=['contact_id']),
             models.Index(fields=['path']),
             models.Index(fields=['type', 'status']),
         ]

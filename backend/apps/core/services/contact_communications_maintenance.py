@@ -176,7 +176,7 @@ def _resolve_email(contact: Contact, summary: ContactCommMaintenanceSummary, dry
     if own:
         return
 
-    unowned = Email.objects.filter(contact__isnull=True, email__iexact=value).order_by("-id").first()
+    unowned = Email.objects.filter(contact_id__isnull=True, email__iexact=value).order_by("-id").first()
     if unowned:
         _assign_contact_fk(unowned, contact.id, dry_run=dry_run)
         summary.claimed_unowned += 1
@@ -212,7 +212,7 @@ def _resolve_phone(contact: Contact, summary: ContactCommMaintenanceSummary, dry
         if _norm_phone(row.number) == value:
             return
 
-    unowned = Phone.objects.filter(contact__isnull=True).order_by("-id")
+    unowned = Phone.objects.filter(contact_id__isnull=True).order_by("-id")
     for row in unowned:
         if _norm_phone(row.number) == value:
             _assign_contact_fk(row, contact.id, dry_run=dry_run)
@@ -243,7 +243,7 @@ def _resolve_domain(contact: Contact, summary: ContactCommMaintenanceSummary, dr
     if own:
         return
 
-    unowned = Domain.objects.filter(contact__isnull=True, path__iexact=value).order_by("-id").first()
+    unowned = Domain.objects.filter(contact_id__isnull=True, path__iexact=value).order_by("-id").first()
     if unowned:
         _assign_contact_fk(unowned, contact.id, dry_run=dry_run)
         summary.claimed_unowned += 1
@@ -272,7 +272,7 @@ def _resolve_address(contact: Contact, summary: ContactCommMaintenanceSummary, d
     if own:
         return
 
-    unowned = Address.objects.filter(contact__isnull=True).filter(Q(full__iexact=value) | Q(address1__iexact=value)).order_by("-id").first()
+    unowned = Address.objects.filter(contact_id__isnull=True).filter(Q(full__iexact=value) | Q(address1__iexact=value)).order_by("-id").first()
     if unowned:
         _assign_contact_fk(unowned, contact.id, dry_run=dry_run)
         summary.claimed_unowned += 1
@@ -471,7 +471,7 @@ def repair_dangling_communications(
     }
 
     # ─ Email ─
-    for row in Email.objects.filter(contact__isnull=True):
+    for row in Email.objects.filter(contact_id__isnull=True):
         summary.dangling_found += 1
         norm = _norm_email(row.email)
         if not norm:
@@ -501,7 +501,7 @@ def repair_dangling_communications(
         else:
             _phone_lookup[norm_p] = contact
 
-    for row in Phone.objects.filter(contact__isnull=True):
+    for row in Phone.objects.filter(contact_id__isnull=True):
         summary.dangling_found += 1
         norm = _norm_phone(row.number)
         if not norm:
@@ -517,17 +517,16 @@ def repair_dangling_communications(
             summary.dangling_unlinked += 1
 
     # ─ Domain ─
-    for row in Domain.objects.filter(contact__isnull=True):
+    for row in Domain.objects.filter(contact_id__isnull=True):
         summary.dangling_found += 1
         norm = _norm_domain(row.path)
         if not norm:
             orphans["domain"].append(row.id)
             summary.dangling_unlinked += 1
             continue
-        contacts = list(
-            Contact.objects.filter(domains__path__iexact=norm, is_deleted=False)
-            .distinct().order_by("id")[:2]
-        )
+        # No FK reverse relation — find contacts that own a domain with this path
+        owner_ids = Domain.objects.filter(path__iexact=norm, contact_id__isnull=False).values_list('contact_id', flat=True).distinct()[:2]
+        contacts = list(Contact.objects.filter(pk__in=owner_ids, is_deleted=False).order_by("id")[:2])
         if len(contacts) == 1:
             _link_dangling_to_contact(row, contacts[0], dry_run)
             summary.dangling_claimed += 1
@@ -536,20 +535,19 @@ def repair_dangling_communications(
             summary.dangling_unlinked += 1
 
     # ─ Address ─
-    for row in Address.objects.filter(contact__isnull=True):
+    for row in Address.objects.filter(contact_id__isnull=True):
         summary.dangling_found += 1
         norm = _norm(row.full) or _norm(row.address1)
         if not norm:
             orphans["address"].append(row.id)
             summary.dangling_unlinked += 1
             continue
-        contacts = list(
-            Contact.objects.filter(
-                Q(addresses__full__iexact=norm) | Q(addresses__address1__iexact=norm),
-                is_deleted=False,
-            )
-            .distinct().order_by("id")[:2]
-        )
+        # No FK reverse relation — find contacts that own an address with this value
+        owner_ids = Address.objects.filter(
+            Q(full__iexact=norm) | Q(address1__iexact=norm),
+            contact_id__isnull=False,
+        ).values_list('contact_id', flat=True).distinct()[:2]
+        contacts = list(Contact.objects.filter(pk__in=owner_ids, is_deleted=False).order_by("id")[:2])
         if len(contacts) == 1:
             _link_dangling_to_contact(row, contacts[0], dry_run)
             summary.dangling_claimed += 1

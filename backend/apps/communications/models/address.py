@@ -5,14 +5,13 @@ import uuid
 from typing import Any, Dict, Optional
 
 class Address(BaseModel):
-    # Direct FK to contact - explicit ownership relationship
-    contact = models.ForeignKey(
-        'core.Contact',
-        on_delete=models.CASCADE,
-        related_name='addresses',
+    # Value, not FK — communications survive contact deactivation.
+    # Alice watches for orphan records.
+    contact_id = models.BigIntegerField(
         null=True,
         blank=True,
-        help_text="Contact this address belongs to"
+        db_index=True,
+        help_text="Contact id (value, not FK — no cascade)"
     )
     
     address1 = models.CharField(max_length=255, blank=True)
@@ -36,7 +35,7 @@ class Address(BaseModel):
         # keep the existing table name to avoid extra DB churn during rename
         db_table = 'locations'
         indexes = [
-            models.Index(fields=['contact']),
+            models.Index(fields=['contact_id']),
         ]
 
     def __str__(self):

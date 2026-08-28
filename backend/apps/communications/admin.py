@@ -41,7 +41,7 @@ class EmailAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     
     fieldsets = (
         (None, {
-            'fields': ('email', 'name', 'attention', 'contact')
+            'fields': ('email', 'name', 'attention', 'contact_id')
         }),
         ('Status', {
             'fields': ('opt_out', 'is_primary')
@@ -62,7 +62,7 @@ class PhoneAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     #readonly_fields = ('uuid')  # Add get_dt_verified
     fieldsets = (
         (None, {
-            'fields': ('number', 'country_code', 'format', 'name', 'attention', 'opt_out', 'contact')
+            'fields': ('number', 'country_code', 'format', 'name', 'attention', 'opt_out', 'contact_id')
         }),
         ('Additional Info', {
             'fields': ('comments', 'refs', 'prefs', 'metadata')
@@ -82,7 +82,7 @@ class DomainAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     #readonly_fields = ('uuid')  # Use get_dt_verified
     fieldsets = (
         (None, {
-            'fields': ('path', 'type', 'contact')
+            'fields': ('path', 'type', 'contact_id')
         }),
         ('Additional Info', {
             'fields': ('comments', 'refs', 'prefs', 'metadata')

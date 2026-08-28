@@ -5,14 +5,13 @@ from django.utils import timezone  # Add this import
 import uuid
 
 class Phone(BaseModel):
-    # Direct FK to contact - explicit ownership relationship
-    contact = models.ForeignKey(
-        'core.Contact',
-        on_delete=models.CASCADE,
-        related_name='phones',
+    # Value, not FK — communications survive contact deactivation.
+    # Alice watches for orphan records.
+    contact_id = models.BigIntegerField(
         null=True,
         blank=True,
-        help_text="Contact this phone belongs to"
+        db_index=True,
+        help_text="Contact id (value, not FK — no cascade)"
     )
     
     number = models.CharField(max_length=20, blank=True, help_text="Phone number")
@@ -30,7 +29,7 @@ class Phone(BaseModel):
         verbose_name = 'Phone Number'
         verbose_name_plural = 'Phone Numbers'
         indexes = [
-            models.Index(fields=['contact']),
+            models.Index(fields=['contact_id']),
             models.Index(fields=['number']),
         ]
         

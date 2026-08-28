@@ -14,9 +14,9 @@ def test_contact_communications_maintenance_creates_and_links_missing_rows():
         name_last="Contact",
     )
     # Create comm records and link them to the contact so that the properties resolve.
-    ph = Phone.objects.create(number="(555) 1212", contact=c)
-    dom = Domain.objects.create(path="example.com", contact=c)
-    addr = Address.objects.create(full="123 Main St", address1="123 Main St", contact=c)
+    ph = Phone.objects.create(number="(555) 1212", contact_id=c.id)
+    dom = Domain.objects.create(path="example.com", contact_id=c.id)
+    addr = Address.objects.create(full="123 Main St", address1="123 Main St", contact_id=c.id)
     Contact.objects.filter(pk=c.pk).update(phone_id=ph.pk, domain_id=dom.pk, address_id=addr.pk)
 
     call_command("contact_communications_maintenance", contact_id=c.id)
@@ -55,16 +55,16 @@ def test_contact_communications_maintenance_claims_unowned_matching_records():
         name_last="Owner",
     )
     # Create comm records linked to the contact so properties resolve.
-    ph = Phone.objects.create(number="5553333", contact=c)
-    dom = Domain.objects.create(path="claim.test", contact=c)
-    addr = Address.objects.create(full="500 Side Ave", address1="500 Side Ave", contact=c)
+    ph = Phone.objects.create(number="5553333", contact_id=c.id)
+    dom = Domain.objects.create(path="claim.test", contact_id=c.id)
+    addr = Address.objects.create(full="500 Side Ave", address1="500 Side Ave", contact_id=c.id)
     Contact.objects.filter(pk=c.pk).update(phone_id=ph.pk, domain_id=dom.pk, address_id=addr.pk)
     c.refresh_from_db()
 
-    Email.objects.create(email="claim@example.com", contact=None)
-    Phone.objects.create(number="5553333", contact=None)
-    Domain.objects.create(path="claim.test", contact=None)
-    Address.objects.create(full="500 Side Ave", address1="500 Side Ave", contact=None)
+    Email.objects.create(email="claim@example.com", contact_id=None)
+    Phone.objects.create(number="5553333", contact_id=None)
+    Domain.objects.create(path="claim.test", contact_id=None)
+    Address.objects.create(full="500 Side Ave", address1="500 Side Ave", contact_id=None)
 
     call_command("contact_communications_maintenance", contact_id=c.id)
 

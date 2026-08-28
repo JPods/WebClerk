@@ -566,7 +566,7 @@ def import_bundle(params: dict) -> dict[str, Any]:
         if phone_num:
             try:
                 from apps.core.models import Phone
-                ph = Phone.objects.create(contact=contact, number=phone_num, name='work')
+                ph = Phone.objects.create(contact_id=contact.pk, number=phone_num, name='work')
                 contact.phone_id = ph.pk
                 contact.save(update_fields=['phone_id'])
             except Exception:
@@ -578,7 +578,7 @@ def import_bundle(params: dict) -> dict[str, Any]:
             try:
                 from apps.core.models import Address
                 a = Address.objects.create(
-                    contact=contact,
+                    contact_id=contact.pk,
                     address1=addr.get('address1', ''), city=addr.get('city', ''),
                     state=addr.get('state', ''), zip=addr.get('zip', ''),
                     country=addr.get('country', ''),
