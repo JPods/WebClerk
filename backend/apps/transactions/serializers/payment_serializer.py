@@ -55,7 +55,7 @@ class PaymentSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         invoice_id = validated_data.pop("invoice_id", None)
-        contact_id = validated_data.pop("contact_id")
+        contact_id = validated_data.pop("contact_id", None)
         payment_method_id = validated_data.pop("payment_method_id", None)
         payment_term_id = validated_data.pop("payment_term_id", None)
 
@@ -69,12 +69,11 @@ class PaymentSerializer(serializers.ModelSerializer):
         else:
             validated_data["invoice"] = None
 
-        try:
-            contact = Contact.objects.get(pk=contact_id)
-        except Contact.DoesNotExist:
-            raise serializers.ValidationError({"contact_id": "Invalid contact id"})
-
-        validated_data["contact"] = contact
+        # contact_id is a plain BigIntegerField — validate existence
+        if contact_id:
+            if not Contact.objects.filter(pk=contact_id).exists():
+                raise serializers.ValidationError({"contact_id": "Invalid contact id"})
+            validated_data["contact_id"] = contact_id
 
         if payment_method_id:
             try:
@@ -106,11 +105,9 @@ class PaymentSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"invoice_id": "Invalid invoice id"})
 
         if contact_id:
-            try:
-                contact = Contact.objects.get(pk=contact_id)
-                validated_data["contact"] = contact
-            except Contact.DoesNotExist:
+            if not Contact.objects.filter(pk=contact_id).exists():
                 raise serializers.ValidationError({"contact_id": "Invalid contact id"})
+            validated_data["contact_id"] = contact_id
 
         if payment_method_id is not None:
             if payment_method_id:

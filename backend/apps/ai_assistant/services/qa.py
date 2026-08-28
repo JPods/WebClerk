@@ -278,7 +278,7 @@ def _update_frequency(topic: str, norm_key: str, raw_question: str):
 
         insight, created = AliceInsight.objects.get_or_create(
             agent='alice',
-            contact=system_contact,
+            contact_id=system_contact.pk,
             subject_type='flow',
             subject_key='qa_frequency',
             defaults={

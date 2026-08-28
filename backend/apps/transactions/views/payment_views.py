@@ -194,7 +194,7 @@ def payment_status(request, payment_id):
         payment = get_object_or_404(Payment, pk=payment_id)
 
         # Check if user has permission to view this payment
-        if payment.contact != request.user and not request.user.is_staff:
+        if payment.contact_id != request.user.pk and not request.user.is_staff:
             return Response(
                 {'error': 'Permission denied'},
                 status=status.HTTP_403_FORBIDDEN
@@ -228,7 +228,7 @@ def payment_status(request, payment_id):
 def payment_history(request):
     """Get payment history for the authenticated user"""
     try:
-        payments = Payment.objects.filter(contact=request.user).order_by('-dt_created')
+        payments = Payment.objects.filter(contact_id=request.user.pk).order_by('-dt_created')
 
         # Paginate if needed
         page = request.query_params.get('page', 1)

@@ -148,10 +148,9 @@ class AliceCoachingLog(BaseModel):
     drills they've completed, how long it took, and whether they
     passed. Feeds into user skill assessment.
     """
-    contact = models.ForeignKey(
-        'core.Contact', on_delete=models.CASCADE,
-        db_index=True,
-        related_name='coaching_log',
+    contact_id = models.BigIntegerField(
+        null=True, blank=True, db_index=True,
+        help_text="Contact id (value, not FK — coaching history survives)"
     )
     drill_id = models.CharField(max_length=50, db_index=True)  # e.g., 'TRAIN-COMM-drill-3'
     document_id = models.BigIntegerField(null=True, blank=True)  # FK to training document
@@ -172,7 +171,7 @@ class AliceCoachingLog(BaseModel):
     class Meta:
         db_table = 'alice_coaching_log'
         indexes = [
-            models.Index(fields=['contact', 'completed'], name='alicecoach_contact_done_idx'),
+            models.Index(fields=['contact_id', 'completed'], name='alicecoach_contact_done_idx'),
             models.Index(fields=['category'], name='alicecoach_category_idx'),
         ]
 
@@ -245,10 +244,9 @@ class AliceInsight(BaseModel):
         ('risk', 'Risk Assessment'),
         ('system', 'System Health'),
     ]
-    contact = models.ForeignKey(
-        'core.Contact', on_delete=models.CASCADE,
-        related_name='alice_insights',
-        help_text='The user Alice is learning about',
+    contact_id = models.BigIntegerField(
+        null=True, blank=True, db_index=True,
+        help_text="Contact id (value, not FK — insights survive contact deletion)"
     )
     subject_type = models.CharField(
         max_length=20, choices=SUBJECT_CHOICES, db_index=True,
@@ -284,14 +282,13 @@ class AliceInsight(BaseModel):
 
     class Meta:
         db_table = 'alice_insights'
-        unique_together = [('agent', 'contact', 'subject_type', 'subject_key')]
+        unique_together = [('agent', 'contact_id', 'subject_type', 'subject_key')]
         indexes = [
-            models.Index(fields=['agent', 'contact', 'subject_type'], name='aliceins_agent_ct_type_idx'),
+            models.Index(fields=['agent', 'contact_id', 'subject_type'], name='aliceins_agent_ct_type_idx'),
             models.Index(fields=['agent', 'subject_type', 'subject_key'], name='aliceins_agent_type_key_idx'),
             models.Index(fields=['dt_last_updated'], name='aliceins_last_updated_idx'),
         ]
 
     def __str__(self):
-        name = getattr(self.contact, 'attention', None) or f'Contact {self.contact_id}'
         key = f':{self.subject_key}' if self.subject_key else ''
-        return f'{self.agent} {self.subject_type}{key} — {name}'
+        return f'{self.agent} {self.subject_type}{key} — Contact {self.contact_id}'

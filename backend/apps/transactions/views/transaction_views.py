@@ -217,7 +217,7 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Payment.objects.active()
     serializer_class = PaymentSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'gateway', 'contact', 'invoice', 'payment_method']
+    filterset_fields = ['status', 'gateway', 'contact_id', 'invoice', 'payment_method']
 
 
 __all__ = [

@@ -77,7 +77,8 @@ class DeliveryVisit(BaseModel):
     STATUSES = DELIVERY_VISIT_STATUS_CHOICES
 
     orgbase = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_vendor', db_column='orgbase_id')
-    customer_orgbase = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_customer', db_column='customer_orgbase_id')
+    customer_orgbase_id = models.BigIntegerField(null=True, blank=True, db_index=True,
+        help_text="Customer org id (value, not FK — visit history survives)")
     catalog = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_visits', db_column='catalog_id')
     dt_scheduled = models.BigIntegerField(help_text="Epoch ms scheduled time window start")
     dt_arrived = models.BigIntegerField(null=True, blank=True)
@@ -92,7 +93,7 @@ class DeliveryVisit(BaseModel):
     class Meta:
         indexes = [
             models.Index(fields=("orgbase", "dt_scheduled"), name="delv_vendor_sched_idx"),
-            models.Index(fields=("customer_orgbase", "dt_scheduled"), name="delv_customer_sched_idx"),
+            models.Index(fields=("customer_orgbase_id", "dt_scheduled"), name="delv_customer_sched_idx"),
             models.Index(fields=("status",), name="delv_status_idx"),
         ]
 
@@ -105,7 +106,7 @@ class DeliveryVisit(BaseModel):
             vendor_org_id = catalog.vendor_org_id.pk if hasattr(catalog, 'vendor_org_id') and catalog.vendor_org_id else None
             customer_org_id = catalog.customer_org_id.pk if hasattr(catalog, 'customer_org_id') and catalog.customer_org_id else None
             self_vendor_id = self.orgbase.pk if self.orgbase else None  # type: ignore[attr-defined]
-            self_customer_id = self.customer_orgbase.pk if self.customer_orgbase else None  # type: ignore[attr-defined]
+            self_customer_id = self.customer_orgbase_id
             if vendor_org_id and vendor_org_id != self_vendor_id:
                 raise ValidationError("catalog.vendor_org mismatch with visit.vendor_org")
             if customer_org_id and customer_org_id != self_customer_id:

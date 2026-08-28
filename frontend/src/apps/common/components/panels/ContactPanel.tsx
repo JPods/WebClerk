@@ -5,7 +5,7 @@
  * Built on DbColumns (PanelTable) for consistent column config, hamburger,
  * section header, collapse, add/remove. Same pattern as every other panel.
  */
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useWindowManager } from "@/context/WindowManagerContext";
 import {
   FaEnvelope,
@@ -14,7 +14,7 @@ import {
   FaStar,
   FaTimes,
 } from "react-icons/fa";
-import { getRecord } from "@/api/wcapi";
+import { getRecord, getRecords } from "@/api/wcapi";
 import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
 import { DbColumns } from "./DbColumns";
 import type { DbColumnDef } from "./DbColumns";
@@ -333,33 +333,109 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
     if (onRemove) onRemove(contactId);
   };
 
-  const handleAdd = () => {
-    const qs = new URLSearchParams();
-    if (parent_model) qs.set("parent_model", parent_model);
-    if (parentId) qs.set("parent_id", String(parentId));
-    if (customer_id) qs.set("customer_id", String(customer_id));
-    if (customer_name) qs.set("customer_name", customer_name);
-    const query = qs.toString();
-    const path = `/core/contact/detail/${query ? `?${query}` : ""}`;
-    windowManager.ensureWindow(path, "New Contact", { maximized: false });
+  const [adding, setAdding] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { if (adding) searchInputRef.current?.focus(); }, [adding]);
+
+  const existingIds = new Set(contacts.map(c => c.contact_id));
+
+  const doSearch = useCallback(async (q: string) => {
+    if (q.length < 2) { setSearchResults([]); return; }
+    setSearchLoading(true);
+    try {
+      const res = await getRecords("contact", { keyword: q, limit: 10 }) as any;
+      const records = (res?.results || []).filter((r: any) => !existingIds.has(r.id));
+      setSearchResults(records);
+    } catch { setSearchResults([]); }
+    setSearchLoading(false);
+  }, [existingIds]);
+
+  const handleSearchInput = (val: string) => {
+    setSearchQuery(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSearch(val), 300);
   };
+
+  const handleSelectContact = (record: any) => {
+    if (onChange) {
+      const newContact: RefContact = {
+        contact_id: record.id,
+        purpose: "primary",
+        attention: record.attention || record.name || [record.name_first, record.name_last].filter(Boolean).join(" ") || undefined,
+        email: record.email || record.communications?.emails?.[0]?.email,
+        phone: record.phone || record.communications?.phones?.[0]?.number,
+      };
+      onChange([...contacts, newContact]);
+    }
+    setAdding(false);
+    setSearchQuery("");
+    setSearchResults([]);
+  };
+
+  const handleAdd = () => setAdding(true);
 
   const columns = buildColumns(isEditing, primaryContactId, onSetPrimary, handleRemove, handleOpen);
 
   return (
-    <DbColumns<RefContact>
-      storageKey={`panel:${parent_model || 'generic'}:contacts`}
-      columns={columns}
-      data={sorted}
-      rowKey={(c) => `${c.contact_id}-${c.purpose}`}
-      onSelectRow={handleOpen}
-      sectionLabel={title}
-      sectionIcon="👤"
-      onAdd={(isEditing) ? handleAdd : undefined}
-      defaultCollapsed={defaultCollapsed}
-      compact
-      emptyMessage="No contacts linked"
-    />
+    <>
+      <DbColumns<RefContact>
+        storageKey={`panel:${parent_model || 'generic'}:contacts`}
+        columns={columns}
+        data={sorted}
+        rowKey={(c) => `${c.contact_id}-${c.purpose}`}
+        onSelectRow={handleOpen}
+        sectionLabel={title}
+        sectionIcon="👤"
+        onAdd={(isEditing) ? handleAdd : undefined}
+        defaultCollapsed={defaultCollapsed}
+        compact
+        emptyMessage="No contacts linked"
+      />
+      {adding && (
+        <div style={{ padding: '6px 12px', borderTop: '1px solid var(--db-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearchInput(e.target.value)}
+              placeholder="Search contact..."
+              className="db-input"
+              style={{ flex: 1, fontSize: 11, padding: '3px 8px' }}
+            />
+            <button onClick={() => { setAdding(false); setSearchQuery(""); setSearchResults([]); }} className="db-text-dim" style={{ fontSize: 11 }}>Cancel</button>
+          </div>
+          {searchLoading && <div style={{ fontSize: 10, color: 'var(--db-text-muted)', padding: '4px 0' }}>Searching...</div>}
+          {searchResults.length > 0 && (
+            <div style={{ maxHeight: 160, overflowY: 'auto', marginTop: 4 }}>
+              {searchResults.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => handleSelectContact(r)}
+                  className="db-list-row"
+                  style={{ display: 'flex', gap: 8, padding: '4px 8px', width: '100%', textAlign: 'left', fontSize: 11, cursor: 'pointer' }}
+                >
+                  <span className="font-mono" style={{ width: 50, flexShrink: 0, color: 'var(--db-text-dim)' }}>
+                    #{r.id}
+                  </span>
+                  <span className="truncate" style={{ flex: 1 }}>
+                    {r.attention || r.name || [r.name_first, r.name_last].filter(Boolean).join(" ") || `Contact #${r.id}`}
+                  </span>
+                  {r.email && (
+                    <span style={{ fontSize: 10, color: 'var(--db-text-muted)' }}>{typeof r.email === 'string' ? r.email : ''}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </>
   );
 };
 

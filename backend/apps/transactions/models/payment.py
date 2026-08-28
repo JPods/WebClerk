@@ -106,14 +106,9 @@ class Payment(BaseModel):
         db_column='purchase_id',
         help_text="Purchase this payment applies to (AP — disbursed)"
     )
-    contact = models.ForeignKey(
-        'core.Contact',
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='payments',
-        db_column='contact_id',
-        help_text="Contact who made or received the payment"
+    contact_id = models.BigIntegerField(
+        null=True, blank=True, db_index=True,
+        help_text="Contact id (value, not FK — payment survives contact deletion)"
     )
     customer = models.ForeignKey(
         'orgs.OrgBase',
