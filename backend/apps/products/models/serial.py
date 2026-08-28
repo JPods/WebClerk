@@ -3,7 +3,6 @@ from __future__ import annotations
 from django.db import models
 from django.utils import timezone
 from common.models import BaseModel
-from .item_base_model import ItemLinkedBase
 from .warehouse import Warehouse
 
 
@@ -49,7 +48,7 @@ def default_serial_config() -> dict:
     }
 
 
-class Serial(ItemLinkedBase):
+class Serial(BaseModel):
     """One serialized unit of an item.
 
     WC2 lineage: [ItemSerial] table. Every physical unit with a unique
@@ -58,8 +57,16 @@ class Serial(ItemLinkedBase):
     context (who holds it, what document moved it, cost/price at time
     of transaction). SerialLog records every state change with full
     sentence descriptions.
+
+    Does NOT inherit ItemLinkedBase — serials have independent lifecycles.
+    A physical unit exists regardless of whether the catalog item is
+    discontinued. item_id is a value (BigIntegerField), not a FK.
+    Users must clean up serials separately from item records.
     """
 
+    # Value, not FK — serial survives item deletion/discontinuation.
+    item_id = models.BigIntegerField(null=True, blank=True, db_index=True,
+        help_text="Item id (value, not FK — serial survives item deletion)")
     item_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="Item identifier (copied from parent item for fast lookup)")
     description = models.CharField(max_length=255, blank=True, help_text="Description of this specific unit")
 
