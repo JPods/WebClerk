@@ -55,12 +55,10 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		help_text="Org classification: distributor, end_user, regulator, government, utility, association"
 	)
 	display_name = models.CharField(max_length=255, db_index=True)
-	# FK-first: proper ForeignKey to Contact for primary contact reference.
-	contact = models.ForeignKey(
-		'core.Contact', on_delete=models.SET_NULL,
-		blank=True, null=True,
-		db_column='contact_id', related_name='orgs_as_contact',
-	)
+	# Primary contact — value, not FK. Independent lifecycle.
+	# refs.links.contact carries denormalized display data.
+	contact_id = models.BigIntegerField(null=True, blank=True, db_index=True,
+		help_text="Primary contact id (value, not FK — no cascade)")
 
 	attention = models.CharField(max_length=255, blank=True, null=True)  # optional attention line for mailing
 	address_id = models.IntegerField(blank=True, null=True)  # optional FK to an Address record for the primary address

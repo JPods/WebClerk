@@ -27,13 +27,12 @@ class Touch(BaseModel):
         ('in', 'Inbound'),
     ]
 
-    contact = models.ForeignKey(
-        'core.Contact',
-        on_delete=models.CASCADE,
-        related_name='touches',
+    # Value, not FK — touches are historical records that survive contact deletion.
+    contact_id = models.BigIntegerField(
         null=True,
         blank=True,
-        help_text="Contact who was touched"
+        db_index=True,
+        help_text="Contact id (value, not FK — no cascade, touches survive deletion)"
     )
 
     channel = models.CharField(
@@ -74,13 +73,12 @@ class Touch(BaseModel):
         help_text="Email Message-ID header — paste from email program for cross-reference"
     )
 
-    action = models.ForeignKey(
-        'core.Action',
-        on_delete=models.SET_NULL,
-        related_name='touches',
+    # Value, not FK — touch records the interaction regardless of action lifecycle.
+    action_id = models.BigIntegerField(
         null=True,
         blank=True,
-        help_text="Action that triggered this touch (optional)"
+        db_index=True,
+        help_text="Action id that triggered this touch (value, not FK)"
     )
 
     org_id = models.BigIntegerField(
@@ -157,17 +155,17 @@ class Touch(BaseModel):
         verbose_name_plural = 'Touches'
         ordering = ['-dt_created']
         indexes = [
-            models.Index(fields=['contact']),
+            models.Index(fields=['contact_id']),
             models.Index(fields=['channel']),
             models.Index(fields=['direction']),
             models.Index(fields=['-dt_created']),
-            models.Index(fields=['action']),
+            models.Index(fields=['action_id']),
             models.Index(fields=['org_model', 'org_id']),
         ]
 
     def __str__(self):
         direction = 'to' if self.direction == 'out' else 'from'
-        contact_str = str(self.contact) if self.contact else 'unknown'
+        contact_str = f"contact #{self.contact_id}" if self.contact_id else 'unknown'
         return f"{self.get_channel_display()} {direction} {contact_str}"
 
     def pre_save_hook(self, data):
@@ -184,17 +182,18 @@ class Touch(BaseModel):
         return None
 
     def _resolve_org_from_contact(self):
-        """When contact is set, populate org_id and org_model from contact's org FKs."""
+        """When contact is set, populate org_id and org_model from contact's org links."""
         if not self.contact_id:
             return
         # Don't overwrite if both are already explicitly set
         if self.org_id and self.org_model:
             return
         try:
-            contact = self.contact
+            from apps.core.models.contact import Contact
+            contact = Contact.objects.filter(pk=self.contact_id).first()
             if not contact:
                 return
-            # Check org FKs on contact — first match wins
+            # Check org fields on contact — first match wins
             for field, model_key in [
                 ('customer_id', 'customer'),
                 ('vendor_id', 'vendor'),
