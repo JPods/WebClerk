@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "source": "pack_settings_bundle",
-  "dt_exported": "2026-08-27T15:54:19.505345+00:00",
+  "dt_exported": "2026-08-28T01:10:30.669646+00:00",
   "record_count": 100,
   "settings": [
     {
@@ -9679,7 +9679,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -9734,7 +9734,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844028540
+          "keywords_dt_refreshed": 1787846425648
         },
         "audit_trail": [],
         "explanation": "",
@@ -10473,7 +10473,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -10528,7 +10528,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844019514
+          "keywords_dt_refreshed": 1787846417955
         },
         "audit_trail": [],
         "explanation": "",
@@ -11186,7 +11186,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -11241,7 +11241,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844024940
+          "keywords_dt_refreshed": 1787846423465
         },
         "audit_trail": [],
         "explanation": "",
@@ -11924,7 +11924,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -11979,7 +11979,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844033407
+          "keywords_dt_refreshed": 1787846427750
         },
         "audit_trail": [],
         "explanation": "",
@@ -12593,7 +12593,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -12648,7 +12648,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844023655
+          "keywords_dt_refreshed": 1787846422416
         },
         "audit_trail": [],
         "explanation": "",
@@ -13251,7 +13251,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -13306,7 +13306,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844027091
+          "keywords_dt_refreshed": 1787846425174
         },
         "audit_trail": [],
         "explanation": "",
@@ -14027,7 +14027,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -14082,7 +14082,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844025128
+          "keywords_dt_refreshed": 1787846423624
         },
         "audit_trail": [],
         "explanation": "",
@@ -14792,7 +14792,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -14847,7 +14847,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844031347
+          "keywords_dt_refreshed": 1787846426776
         },
         "audit_trail": [],
         "explanation": "",
@@ -15484,7 +15484,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -15539,7 +15539,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844035824
+          "keywords_dt_refreshed": 1787846429609
         },
         "audit_trail": [],
         "explanation": "",
@@ -16438,7 +16438,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -16493,7 +16493,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844019341
+          "keywords_dt_refreshed": 1787846417787
         },
         "audit_trail": [],
         "explanation": "",
@@ -17061,7 +17061,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -17116,7 +17116,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844032556
+          "keywords_dt_refreshed": 1787846419268
         },
         "audit_trail": [],
         "explanation": "",
@@ -18070,7 +18070,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -18125,7 +18125,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844022930
+          "keywords_dt_refreshed": 1787846421917
         },
         "audit_trail": [],
         "explanation": "",
@@ -18737,7 +18737,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -18792,7 +18792,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844018723
+          "keywords_dt_refreshed": 1787846417478
         },
         "audit_trail": [],
         "explanation": "",
@@ -19369,7 +19369,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -19424,7 +19424,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844025306
+          "keywords_dt_refreshed": 1787846423785
         },
         "audit_trail": [],
         "explanation": "",
@@ -20014,7 +20014,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -20069,7 +20069,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844023891
+          "keywords_dt_refreshed": 1787846422560
         },
         "audit_trail": [],
         "explanation": "",
@@ -20773,7 +20773,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -20828,7 +20828,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844025839
+          "keywords_dt_refreshed": 1787846424102
         },
         "audit_trail": [],
         "explanation": "",
@@ -21409,7 +21409,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -21464,7 +21464,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844033746
+          "keywords_dt_refreshed": 1787846427909
         },
         "audit_trail": [],
         "explanation": "",
@@ -22116,7 +22116,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -22171,7 +22171,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844018571
+          "keywords_dt_refreshed": 1787846417151
         },
         "audit_trail": [],
         "explanation": "",
@@ -23120,7 +23120,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -23175,7 +23175,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844020641
+          "keywords_dt_refreshed": 1787846419425
         },
         "audit_trail": [],
         "explanation": "",
@@ -23787,7 +23787,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -23842,7 +23842,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844029603
+          "keywords_dt_refreshed": 1787846426478
         },
         "audit_trail": [],
         "explanation": "",
@@ -24485,7 +24485,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -24540,7 +24540,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844034953
+          "keywords_dt_refreshed": 1787846428932
         },
         "audit_trail": [],
         "explanation": "",
@@ -25144,7 +25144,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -25199,7 +25199,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844024066
+          "keywords_dt_refreshed": 1787846422710
         },
         "audit_trail": [],
         "explanation": "",
@@ -25861,7 +25861,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -25917,7 +25917,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844019819
+          "keywords_dt_refreshed": 1787846418608
         },
         "audit_trail": [],
         "explanation": "",
@@ -26486,7 +26486,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -26541,7 +26541,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844027505
+          "keywords_dt_refreshed": 1787846425323
         },
         "audit_trail": [],
         "explanation": "",
@@ -27147,7 +27147,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -27203,7 +27203,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844018401
+          "keywords_dt_refreshed": 1787846417313
         },
         "audit_trail": [],
         "explanation": "",
@@ -27722,7 +27722,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -27777,7 +27777,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844024245
+          "keywords_dt_refreshed": 1787846422863
         },
         "audit_trail": [],
         "explanation": "",
@@ -28431,7 +28431,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -28486,7 +28486,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844028737
+          "keywords_dt_refreshed": 1787846425981
         },
         "audit_trail": [],
         "explanation": "",
@@ -29594,7 +29594,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -29649,7 +29649,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844024413
+          "keywords_dt_refreshed": 1787846423006
         },
         "audit_trail": [],
         "explanation": "",
@@ -30559,7 +30559,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -30614,7 +30614,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844032720
+          "keywords_dt_refreshed": 1787846427090
         },
         "audit_trail": [],
         "explanation": "",
@@ -31542,7 +31542,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -31597,7 +31597,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844026029
+          "keywords_dt_refreshed": 1787846424285
         },
         "audit_trail": [],
         "explanation": "",
@@ -32173,7 +32173,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -32228,7 +32228,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844035123
+          "keywords_dt_refreshed": 1787846429268
         },
         "audit_trail": [],
         "explanation": "",
@@ -32842,7 +32842,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -32897,7 +32897,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844034630
+          "keywords_dt_refreshed": 1787846428780
         },
         "audit_trail": [],
         "explanation": "",
@@ -33557,7 +33557,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -33612,7 +33612,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844022013
+          "keywords_dt_refreshed": 1787846421189
         },
         "audit_trail": [],
         "explanation": "",
@@ -34348,7 +34348,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -34403,7 +34403,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844027715
+          "keywords_dt_refreshed": 1787846425485
         },
         "audit_trail": [],
         "explanation": "",
@@ -35003,7 +35003,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -35058,7 +35058,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844023289
+          "keywords_dt_refreshed": 1787846422061
         },
         "audit_trail": [],
         "explanation": "",
@@ -36008,7 +36008,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -36063,7 +36063,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844034798
+          "keywords_dt_refreshed": 1787846428612
         },
         "audit_trail": [],
         "explanation": "",
@@ -36626,7 +36626,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -36681,7 +36681,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844025479
+          "keywords_dt_refreshed": 1787846423934
         },
         "audit_trail": [],
         "explanation": "",
@@ -37776,7 +37776,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -37831,7 +37831,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844026725
+          "keywords_dt_refreshed": 1787846418148
         },
         "audit_trail": [],
         "explanation": "",
@@ -38741,7 +38741,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -38796,7 +38796,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844032873
+          "keywords_dt_refreshed": 1787846427256
         },
         "audit_trail": [],
         "explanation": "",
@@ -39442,7 +39442,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -39497,7 +39497,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844024582
+          "keywords_dt_refreshed": 1787846423159
         },
         "audit_trail": [],
         "explanation": "",
@@ -40421,7 +40421,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -40476,7 +40476,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844020466
+          "keywords_dt_refreshed": 1787846418397
         },
         "audit_trail": [],
         "explanation": "",
@@ -40585,8 +40585,8 @@
                 "reference_number",
                 "notes",
                 "gateway",
-                "id_gateway_transaction",
-                "id_gateway_payment_intent",
+                "gateway_transaction_id",
+                "gateway_payment_intent_id",
                 "status",
                 "gateway_response",
                 "dt_processed",
@@ -40629,8 +40629,8 @@
                 "reference_number",
                 "notes",
                 "gateway",
-                "id_gateway_transaction",
-                "id_gateway_payment_intent",
+                "gateway_transaction_id",
+                "gateway_payment_intent_id",
                 "status",
                 "gateway_response",
                 "dt_processed",
@@ -40669,8 +40669,8 @@
                 "reference_number",
                 "notes",
                 "gateway",
-                "id_gateway_transaction",
-                "id_gateway_payment_intent",
+                "gateway_transaction_id",
+                "gateway_payment_intent_id",
                 "status",
                 "dt_processed",
                 "dt_reconciliation"
@@ -40715,8 +40715,8 @@
                 "reference_number",
                 "notes",
                 "gateway",
-                "id_gateway_transaction",
-                "id_gateway_payment_intent",
+                "gateway_transaction_id",
+                "gateway_payment_intent_id",
                 "status",
                 "gateway_response",
                 "dt_processed",
@@ -40767,8 +40767,8 @@
                 "reference_number",
                 "notes",
                 "gateway",
-                "id_gateway_transaction",
-                "id_gateway_payment_intent",
+                "gateway_transaction_id",
+                "gateway_payment_intent_id",
                 "status",
                 "dt_processed",
                 "reconciled",
@@ -40833,8 +40833,8 @@
                 "reference_number",
                 "notes",
                 "gateway",
-                "id_gateway_transaction",
-                "id_gateway_payment_intent",
+                "gateway_transaction_id",
+                "gateway_payment_intent_id",
                 "status",
                 "gateway_response",
                 "dt_processed",
@@ -41029,8 +41029,8 @@
                 "reference_number",
                 "notes",
                 "gateway",
-                "id_gateway_transaction",
-                "id_gateway_payment_intent",
+                "gateway_transaction_id",
+                "gateway_payment_intent_id",
                 "status",
                 "dt_processed",
                 "reconciled",
@@ -41252,10 +41252,10 @@
           "dt_reconciliation": {
             "type": "date"
           },
-          "id_gateway_transaction": {
+          "gateway_transaction_id": {
             "type": "text"
           },
-          "id_gateway_payment_intent": {
+          "gateway_payment_intent_id": {
             "type": "text"
           }
         },
@@ -41289,8 +41289,8 @@
               "reference_number",
               "notes",
               "gateway",
-              "id_gateway_transaction",
-              "id_gateway_payment_intent",
+              "gateway_transaction_id",
+              "gateway_payment_intent_id",
               "reconciled",
               "fee_amount"
             ]
@@ -41399,7 +41399,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846049021,
+            "dt": 1787879239203,
             "contact_id": 0
           },
           "verified": {
@@ -41420,7 +41420,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844027929
+          "keywords_dt_refreshed": 1787846418955
         },
         "audit_trail": [],
         "explanation": "",
@@ -42010,7 +42010,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -42065,7 +42065,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844035287
+          "keywords_dt_refreshed": 1787846429097
         },
         "audit_trail": [],
         "explanation": "",
@@ -42617,7 +42617,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -42672,7 +42672,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844034255
+          "keywords_dt_refreshed": 1787846428232
         },
         "audit_trail": [],
         "explanation": "",
@@ -43235,7 +43235,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -43290,7 +43290,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844029266
+          "keywords_dt_refreshed": 1787846426133
         },
         "audit_trail": [],
         "explanation": "",
@@ -43806,7 +43806,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -43862,7 +43862,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844026205
+          "keywords_dt_refreshed": 1787846424677
         },
         "audit_trail": [],
         "explanation": "",
@@ -44508,7 +44508,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -44563,7 +44563,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844029422
+          "keywords_dt_refreshed": 1787846426340
         },
         "audit_trail": [],
         "explanation": "",
@@ -44659,7 +44659,7 @@
                 "priority",
                 "status",
                 "attention",
-                "id_contact",
+                "contact_id",
                 "tasks",
                 "burndown",
                 "category",
@@ -44671,7 +44671,7 @@
                 "config",
                 "dt_start",
                 "dt_end",
-                "id_parent",
+                "parent_id",
                 "percent_complete"
               ],
               "create": false,
@@ -44696,7 +44696,7 @@
                 "priority",
                 "status",
                 "attention",
-                "id_contact",
+                "contact_id",
                 "tasks",
                 "burndown",
                 "category",
@@ -44708,7 +44708,7 @@
                 "config",
                 "dt_start",
                 "dt_end",
-                "id_parent",
+                "parent_id",
                 "percent_complete"
               ],
               "view": "*",
@@ -44729,7 +44729,7 @@
                 "priority",
                 "status",
                 "attention",
-                "id_contact",
+                "contact_id",
                 "tasks",
                 "burndown",
                 "intent",
@@ -44740,7 +44740,7 @@
                 "config",
                 "dt_start",
                 "dt_end",
-                "id_parent",
+                "parent_id",
                 "percent_complete"
               ],
               "view": [
@@ -44772,7 +44772,7 @@
                 "priority",
                 "status",
                 "attention",
-                "id_contact",
+                "contact_id",
                 "tasks",
                 "burndown",
                 "category",
@@ -44784,7 +44784,7 @@
                 "config",
                 "dt_start",
                 "dt_end",
-                "id_parent",
+                "parent_id",
                 "percent_complete"
               ],
               "create": true,
@@ -44816,7 +44816,7 @@
                 "priority",
                 "status",
                 "attention",
-                "id_contact",
+                "contact_id",
                 "tasks",
                 "burndown",
                 "category",
@@ -44828,7 +44828,7 @@
                 "config",
                 "dt_start",
                 "dt_end",
-                "id_parent",
+                "parent_id",
                 "percent_complete"
               ],
               "view": "*",
@@ -44882,7 +44882,7 @@
                 "priority",
                 "status",
                 "attention",
-                "id_contact",
+                "contact_id",
                 "tasks",
                 "burndown",
                 "category",
@@ -44894,7 +44894,7 @@
                 "config",
                 "dt_start",
                 "dt_end",
-                "id_parent",
+                "parent_id",
                 "percent_complete"
               ],
               "create": false,
@@ -45051,7 +45051,7 @@
                 "priority",
                 "status",
                 "attention",
-                "id_contact",
+                "contact_id",
                 "burndown",
                 "category",
                 "intent",
@@ -45060,7 +45060,7 @@
                 "profit_velocity",
                 "dt_start",
                 "dt_end",
-                "id_parent",
+                "parent_id",
                 "percent_complete",
                 "metadata",
                 "refs",
@@ -45170,11 +45170,6 @@
           "dt_kanban": {
             "type": "date"
           },
-          "id_parent": {
-            "type": "lookup",
-            "model": "project",
-            "display": "name"
-          },
           "is_active": {
             "type": "boolean"
           },
@@ -45187,14 +45182,19 @@
           "objective": {
             "type": "json"
           },
+          "parent_id": {
+            "type": "lookup",
+            "model": "project",
+            "display": "name"
+          },
           "situation": {
             "type": "textarea"
           },
+          "contact_id": {
+            "type": "number"
+          },
           "dt_created": {
             "type": "readonly"
-          },
-          "id_contact": {
-            "type": "number"
           },
           "is_deleted": {
             "type": "readonly"
@@ -45261,14 +45261,14 @@
               "name",
               "situation",
               "attention",
-              "id_contact",
+              "contact_id",
               "burndown",
               "category",
               "intent",
               "slug",
               "profit",
               "profit_velocity",
-              "id_parent",
+              "parent_id",
               "percent_complete"
             ]
           },
@@ -45370,7 +45370,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787846049149,
+            "dt": 1787879239241,
             "contact_id": 0
           },
           "verified": {
@@ -45391,7 +45391,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844026556
+          "keywords_dt_refreshed": 1787846424840
         },
         "audit_trail": [],
         "explanation": "",
@@ -45942,7 +45942,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -45998,7 +45998,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844033563
+          "keywords_dt_refreshed": 1787846427414
         },
         "audit_trail": [],
         "explanation": "",
@@ -47106,7 +47106,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -47161,7 +47161,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844019663
+          "keywords_dt_refreshed": 1787846419581
         },
         "audit_trail": [],
         "explanation": "",
@@ -48071,7 +48071,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -48126,7 +48126,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844018870
+          "keywords_dt_refreshed": 1787846417624
         },
         "audit_trail": [],
         "explanation": "",
@@ -49223,7 +49223,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -49278,7 +49278,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844029763
+          "keywords_dt_refreshed": 1787846419735
         },
         "audit_trail": [],
         "explanation": "",
@@ -50122,7 +50122,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -50177,7 +50177,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844027287
+          "keywords_dt_refreshed": 1787846424993
         },
         "audit_trail": [],
         "explanation": "",
@@ -50826,7 +50826,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -50881,7 +50881,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844022198
+          "keywords_dt_refreshed": 1787846421340
         },
         "audit_trail": [],
         "explanation": "",
@@ -51595,7 +51595,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -51650,7 +51650,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844030108
+          "keywords_dt_refreshed": 1787846419889
         },
         "audit_trail": [],
         "explanation": "",
@@ -52576,7 +52576,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -52631,7 +52631,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844029098
+          "keywords_dt_refreshed": 1787846425817
         },
         "audit_trail": [],
         "explanation": "",
@@ -53582,7 +53582,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -53637,7 +53637,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844033913
+          "keywords_dt_refreshed": 1787846420044
         },
         "audit_trail": [],
         "explanation": "",
@@ -54378,7 +54378,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -54433,7 +54433,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844031696
+          "keywords_dt_refreshed": 1787846419111
         },
         "audit_trail": [],
         "explanation": "",
@@ -55060,7 +55060,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -55115,7 +55115,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844021441
+          "keywords_dt_refreshed": 1787846420340
         },
         "audit_trail": [],
         "explanation": "",
@@ -55959,7 +55959,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -56014,7 +56014,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844020962
+          "keywords_dt_refreshed": 1787846420506
         },
         "audit_trail": [],
         "explanation": "",
@@ -56625,7 +56625,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -56680,7 +56680,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844019977
+          "keywords_dt_refreshed": 1787846418807
         },
         "audit_trail": [],
         "explanation": "",
@@ -57222,7 +57222,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -57277,7 +57277,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844034410
+          "keywords_dt_refreshed": 1787846428447
         },
         "audit_trail": [],
         "explanation": "",
@@ -57917,7 +57917,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -57972,7 +57972,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844026383
+          "keywords_dt_refreshed": 1787846424524
         },
         "audit_trail": [],
         "explanation": "",
@@ -58536,7 +58536,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -58591,7 +58591,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844034080
+          "keywords_dt_refreshed": 1787846428075
         },
         "audit_trail": [],
         "explanation": "",
@@ -59293,7 +59293,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -59348,7 +59348,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844035455
+          "keywords_dt_refreshed": 1787846429423
         },
         "audit_trail": [],
         "explanation": "",
@@ -60006,7 +60006,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -60062,7 +60062,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844032231
+          "keywords_dt_refreshed": 1787846426932
         },
         "audit_trail": [],
         "explanation": "",
@@ -60643,7 +60643,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -60698,7 +60698,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844030974
+          "keywords_dt_refreshed": 1787846426623
         },
         "audit_trail": [],
         "explanation": "",
@@ -61298,7 +61298,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -61353,7 +61353,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844022575
+          "keywords_dt_refreshed": 1787846421496
         },
         "audit_trail": [],
         "explanation": "",
@@ -62005,7 +62005,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -62060,7 +62060,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844022754
+          "keywords_dt_refreshed": 1787846421722
         },
         "audit_trail": [],
         "explanation": "",
@@ -62781,7 +62781,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -62836,7 +62836,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844026904
+          "keywords_dt_refreshed": 1787846420682
         },
         "audit_trail": [],
         "explanation": "",
@@ -63438,7 +63438,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -63493,7 +63493,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844030635
+          "keywords_dt_refreshed": 1787846420844
         },
         "audit_trail": [],
         "explanation": "",
@@ -64447,7 +64447,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -64502,7 +64502,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844033233
+          "keywords_dt_refreshed": 1787846427590
         },
         "audit_trail": [],
         "explanation": "",
@@ -65082,7 +65082,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -65137,7 +65137,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844035637
+          "keywords_dt_refreshed": 1787846429796
         },
         "audit_trail": [],
         "explanation": "",
@@ -65739,7 +65739,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -65794,7 +65794,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844020141
+          "keywords_dt_refreshed": 1787846421009
         },
         "audit_trail": [],
         "explanation": "",
@@ -66889,7 +66889,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -66944,7 +66944,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844023468
+          "keywords_dt_refreshed": 1787846422223
         },
         "audit_trail": [],
         "explanation": "",
@@ -67789,7 +67789,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -67844,7 +67844,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844024765
+          "keywords_dt_refreshed": 1787846423301
         },
         "audit_trail": [],
         "explanation": "",
@@ -68473,7 +68473,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": true
+          "keywords_pending": false
         },
         "access": {
           "edit": [],
@@ -68528,7 +68528,7 @@
           "changed_fields": [
             "config"
           ],
-          "keywords_dt_refreshed": 1787844021280
+          "keywords_dt_refreshed": 1787846420195
         },
         "audit_trail": [],
         "explanation": "",
