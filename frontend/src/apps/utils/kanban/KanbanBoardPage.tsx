@@ -1399,29 +1399,9 @@ const KanbanBoardPage: React.FC = () => {
   const [selectedContactId, setSelectedContactId] = useState<string>("");
   const [isLoadingContacts, setIsLoadingContacts] = useState<boolean>(false);
 
-  // Handle moving a task to a different project
-  const handleMoveToProject = useCallback(async (taskId: string | number, projectId: string, projectName: string) => {
-    try {
-      const numericProjectId = Number(projectId);
-      await saveRecord("action", {
-        id: Number(taskId),
-        project_id: Number.isNaN(numericProjectId) ? 0 : numericProjectId,
-        project_name: projectName,
-      });
-      // Refresh the board
-      void fetchActions({ projectId: selectedProjectId || undefined, contactId: selectedContactId || undefined });
-    } catch (error) {
-      console.error("Failed to move task to project:", error);
-    }
-  }, [selectedProjectId, selectedContactId, fetchActions]);
-
   useEffect(() => {
     console.log("selectedProjectId changed:", selectedProjectId, "projectOptions:", projectOptions.length);
   }, [selectedProjectId, projectOptions.length]);
-
-  const [contactOptions, setContactOptions] = useState<ContactOption[]>([]);
-  const [selectedContactId, setSelectedContactId] = useState<string>("");
-  const [isLoadingContacts, setIsLoadingContacts] = useState<boolean>(false);
 
   const handleProjectFilterChange = (event: ChangeEvent<HTMLSelectElement>) => {
     setSelectedProjectId(event.target.value);
@@ -2016,6 +1996,22 @@ const KanbanBoardPage: React.FC = () => {
       setIsLoading(false);
     }
   }, []);
+
+  // Handle moving a task to a different project
+  const handleMoveToProject = useCallback(async (taskId: string | number, projectId: string, projectName: string) => {
+    try {
+      const numericProjectId = Number(projectId);
+      await saveRecord("action", {
+        id: Number(taskId),
+        project_id: Number.isNaN(numericProjectId) ? 0 : numericProjectId,
+        project_name: projectName,
+      });
+      // Refresh the board
+      void fetchActions({ projectId: selectedProjectId || undefined, contactId: selectedContactId || undefined });
+    } catch (error) {
+      console.error("Failed to move task to project:", error);
+    }
+  }, [selectedProjectId, selectedContactId, fetchActions]);
 
   useEffect(() => {
     void fetchProjects();

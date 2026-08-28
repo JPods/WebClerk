@@ -1,84 +1,26 @@
-"""Shared serializer behaviors for transaction types.
+"""Transaction-specific serializer behaviors.
 
-Each function is a standalone validator or field exposer that works on any
-TransactionBaseModel. Serializers call these instead of implementing inline.
-One source of truth per behavior.
-"""
-from rest_framework import serializers
+Delegates universal behaviors (contact, org, status) to core/serializers/behaviors.py.
+Adds transaction-specific field lists and any transaction-only validation.
 
-from apps.orgs.models import OrgBase
-
-
-def validate_customer_id(value):
-    """Validate customer_id for any transaction header.
-
-    Rejects non-positive values. Verifies OrgBase existence.
-    Used by: ProposalSerializer, OrderSerializer, InvoiceSerializer,
-    PurchaseSerializer, WorkOrderSerializer.
-    """
-    if value is not None and value <= 0:
-        return None
-    if value and value > 0:
-        try:
-            OrgBase.objects.get(id=value)
-        except OrgBase.DoesNotExist:
-            raise serializers.ValidationError("Customer organization does not exist.")
-    return value
-
-
-def validate_vendor_id(value):
-    """Validate vendor_id for any transaction header.
-
-    Rejects non-positive values. Verifies OrgBase existence.
-    """
-    if value is not None and value <= 0:
-        return None
-    if value and value > 0:
-        try:
-            OrgBase.objects.get(id=value)
-        except OrgBase.DoesNotExist:
-            raise serializers.ValidationError("Vendor organization does not exist.")
-    return value
-
-
-def validate_customer_vendor_different(data):
-    """Cross-field validation: customer and vendor must differ.
-
-    Call from serializer's validate() method:
-        def validate(self, data):
-            validate_customer_vendor_different(data)
-            return data
-    """
-    cid = data.get('customer_id')
-    vid = data.get('vendor_id')
-    if cid and vid and cid == vid:
-        raise serializers.ValidationError(
-            "Customer and vendor cannot be the same entity."
-        )
-
-
-def validate_status_transition(instance, new_status):
-    """Validate status transition using the centralized service.
-
-    Call from serializer's validate_status() method:
-        def validate_status(self, value):
-            if self.instance:
-                validate_status_transition(self.instance, value)
-            return value
-
-    Uses validate_status.py service — never hardcode allowed statuses.
-    """
-    if not instance:
-        return  # new record, any initial status is fine
-    from apps.transactions.services.validate_status import validate_transition
-    result = validate_transition(
-        instance=instance,
-        model_type=instance._meta.model_name,
-        to_status=new_status,
+Usage in transaction serializers:
+    from apps.transactions.serializers.behaviors import (
+        validate_customer_id, validate_vendor_id,
+        validate_customer_vendor_different, validate_status_transition,
     )
-    if not result.can_proceed:
-        reason = '; '.join(result.errors) if result.errors else 'Status transition not allowed'
-        raise serializers.ValidationError(reason)
+"""
+
+# Re-export universal behaviors so transaction serializers import from one place
+from apps.core.serializers.behaviors import (  # noqa: F401
+    validate_customer_id,
+    validate_vendor_id,
+    validate_manufacturer_id,
+    validate_customer_vendor_different,
+    validate_status_transition,
+    validate_contact_id,
+    validate_project_id,
+    name_from_refs,
+)
 
 
 # Base fields that every transaction header serializer should expose

@@ -72,7 +72,7 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({
     setError(null);
 
     try {
-      const response = await apiClient.get(`${apiBaseUrl}permissions/`);
+      const response = await apiClient.get(`${apiBaseUrl}_permissions/`);
       setPermissions(response.data);
     } catch (err: any) {
       if (err?.response?.status === 401) {
