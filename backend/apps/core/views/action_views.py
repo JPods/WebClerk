@@ -7,6 +7,11 @@ from rest_framework.response import Response
 from rest_framework import serializers
 
 from apps.core.models import Action
+from apps.core.serializers.behaviors import (
+    validate_contact_id as _validate_contact_id,
+    validate_project_id as _validate_project_id,
+    validate_status_transition,
+)
 
 console_logger = logging.getLogger('console')
 
@@ -20,8 +25,12 @@ _BASE_RO = [
 
 
 class ActionSerializer(serializers.ModelSerializer):
-    """Serializer for Action model."""
-    
+    """Serializer for Action model.
+
+    Validation delegates to core.serializers.behaviors — one source of truth
+    for contact_id, project_id, and status transitions.
+    """
+
     attachments = serializers.SerializerMethodField()
 
     class Meta:
@@ -41,6 +50,17 @@ class ActionSerializer(serializers.ModelSerializer):
             'project_metadata', 'attachments',
         ]
         read_only_fields = _BASE_RO
+
+    def validate_contact_id(self, value):
+        return _validate_contact_id(value)
+
+    def validate_project_id(self, value):
+        return _validate_project_id(value)
+
+    def validate_status(self, value):
+        if self.instance:
+            validate_status_transition(self.instance, value)
+        return value
 
     def get_attachments(self, obj):
         """Get attachments linked to this action."""

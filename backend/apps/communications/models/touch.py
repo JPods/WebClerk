@@ -173,6 +173,14 @@ class Touch(BaseModel):
     def pre_save_hook(self, data):
         if 'channel' in data and data['channel'] not in dict(self.CHANNEL_CHOICES):
             return f'channel: must be one of {", ".join(dict(self.CHANNEL_CHOICES).keys())}'
+        # Validate org_id if provided (uses shared behavior)
+        org_id = data.get('org_id')
+        if org_id:
+            from apps.core.serializers.behaviors import validate_org_id
+            try:
+                validate_org_id(org_id, org_model=data.get('org_model'))
+            except Exception as e:
+                return str(e.detail[0]) if hasattr(e, 'detail') else str(e)
         return None
 
     def _resolve_org_from_contact(self):
