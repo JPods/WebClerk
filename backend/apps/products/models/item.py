@@ -173,11 +173,46 @@ def default_service_config():
 
     Stored in item.config.service — not a separate model.
 
+    SERVICE ITEM APPROACHES
+    -----------------------
+    Businesses choose one of two approaches when setting up service items.
+    Alice should guide this choice at onboarding.
+
+    Approach 1 — Itemized (recommended)
+        Create separate Item records for each billable cost type:
+            "Consulting - On-Site"     kind=service  → GL: Revenue - Consulting
+            "Travel - Mileage"         kind=service  → GL: Revenue - Travel Reimbursable
+            "Lodging - Per Diem"       kind=service  → GL: Revenue - Lodging
+        Each line on the invoice hits the correct GL account. Margins are
+        trackable per cost type. The customer sees exactly what they pay for.
+        config.service on each item carries the billing rules for that specific
+        cost type (hourly rate for consulting, per-mile for travel, per-diem
+        for lodging).
+
+    Approach 2 — Composite
+        A single Item with travel/lodging bundled into the service rate:
+            "On-Site Consulting"       kind=service  → GL: Revenue - Services
+        Simpler for the customer — one line, one price. But the GL gets a
+        lump sum and cost-type analysis requires manual unpacking.
+
+    Approach 1 is correct for any business that bills travel separately or
+    needs cost-type visibility. Approach 2 is acceptable for businesses that
+    truly bundle everything into a single rate. Alice should flag Approach 2
+    as a lost-signal choice: once travel is lumped into the hourly rate, it
+    cannot be separated for analysis, margin tracking, or GL accuracy.
+
+    Alice's onboarding question: "Do you bill travel and expenses separately,
+    or bundle everything into your service rate?"
+    - Separately → create itemized service items (Approach 1)
+    - Bundled → single composite item (Approach 2), with a warning
+
     Keys:
         billing: Pricing tiers and travel pricing
         process: Ordered workflow steps
-        travel: Travel requirement qualifiers
+        travel: Travel requirement qualifiers (Approach 2 only — Approach 1
+                uses separate items instead)
         default_duration_minutes: Suggested baseline duration
+        approach: "itemized" or "composite" — records the user's choice
     """
     return {
         "billing": {
@@ -198,15 +233,17 @@ def default_service_config():
             "dt_updated": 0,
         },
         "default_duration_minutes": 0,
+        "approach": "itemized",
     }
 
 SERVICE_CONFIG_SCHEMA_DESC = {
     "billing": "Pricing tiers, travel rates, rounding policy, min/max charge",
     "billing.tiers": "List of {unit, rate, cost, min_minutes, dt_effective} sorted by dt_effective",
-    "billing.travel": "Per-mile and per-hour travel surcharges",
+    "billing.travel": "Per-mile and per-hour travel surcharges (Approach 2 composite only)",
     "process": "Ordered workflow steps [{name, minutes}]",
-    "travel": "Logistical travel qualifiers (miles included, lodging, per diem)",
+    "travel": "Logistical travel qualifiers — Approach 2 only; Approach 1 uses separate items",
     "default_duration_minutes": "Suggested baseline duration for quoting/scheduling",
+    "approach": "itemized (separate items per cost type, correct GL) or composite (single bundled item)",
 }
 
 
