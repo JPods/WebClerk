@@ -8,6 +8,7 @@
 
 import React from 'react';
 import { useDataSetInfo } from '../hooks/useDataSetInfo';
+import { getUI } from '@/utils/contactUI';
 
 interface DataSetBadgeProps {
   /** Show detailed info on hover/click */
@@ -32,7 +33,7 @@ const colorSchemes: Record<string, { bg: string; text: string; border: string }>
   PRODUCTION: { bg: '#ef444420', text: '#dc2626', border: '#ef4444' },
   PROD: { bg: '#ef444420', text: '#dc2626', border: '#ef4444' },
   LOCAL: { bg: '#3b82f620', text: '#2563eb', border: '#3b82f6' },
-  UNKNOWN: { bg: '#6b728020', text: '#4b5563', border: '#6b7280' },
+  UNKNOWN: { bg: 'color-mix(in srgb, var(--db-text-muted) 12%, transparent)', text: 'var(--db-text-muted)', border: 'var(--db-border)' },
 };
 
 export function DataSetBadge({ 
@@ -41,6 +42,8 @@ export function DataSetBadge({
   className = '',
 }: DataSetBadgeProps): React.ReactElement {
   const { frontend, backend, isLoading, error, isMatch } = useDataSetInfo();
+  const active = getUI<string>('theme.active', 'dark');
+  const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
   const [expanded, setExpanded] = React.useState(false);
 
   const colors = colorSchemes[frontend.id.toUpperCase()] || colorSchemes.UNKNOWN;
@@ -49,7 +52,7 @@ export function DataSetBadge({
   const baseStyle: React.CSSProperties = {
     ...posStyle,
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    fontSize: '12px',
+    fontSize: baseFontSize - 1,
     cursor: showDetails ? 'pointer' : 'default',
   };
 
@@ -76,10 +79,10 @@ export function DataSetBadge({
   const detailsStyle: React.CSSProperties = {
     marginTop: '8px',
     padding: '12px',
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'var(--db-surface-alt)',
     borderRadius: '6px',
-    border: '1px solid #e2e8f0',
-    fontSize: '11px',
+    border: '1px solid var(--db-border)',
+    fontSize: baseFontSize - 2,
     lineHeight: '1.6',
     maxWidth: '300px',
   };

@@ -163,7 +163,7 @@ CACHE_KEY_IDLE = 'inventory_clear_idle_count'
 @shared_task(bind=True)
 def process_pending_inventory_adaptive(self):
     """Process pending inventory with adaptive delay."""
-    from apps.transactions.services.pending_inventory_processor import (
+    from apps.transactions.services.inventory_pending_process import (
         process_line_item_pending
     )
     
@@ -291,7 +291,7 @@ class Command(BaseCommand):
         parser.add_argument('--daemon', action='store_true', help='Run continuously')
     
     def handle(self, *args, **options):
-        from apps.transactions.services.pending_inventory_processor import (
+        from apps.transactions.services.inventory_pending_process import (
             process_line_item_pending
         )
         
@@ -390,7 +390,7 @@ python manage.py process_inventory_adaptive --base-delay=2 --max-delay=10 --daem
 
 # 2. In another terminal, create test pending records
 python manage.py shell
->>> from apps.transactions.services.line_item_service import LineItemService
+>>> from apps.transactions.services.line_manage import LineItemService
 >>> # Create an order with lines to generate pending records
 >>> # Watch the processor output
 

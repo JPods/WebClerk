@@ -6,7 +6,7 @@ from django.db import models
 from common.base_views import BaseListCreateView, BaseOptimisticDetailView
 from rest_framework.permissions import IsAuthenticated
 from apps.sync.models.connection import Connection
-from apps.sync.serializers.connection import ConnectionSerializer
+from apps.sync.serializers.connection_serializer import ConnectionSerializer
 
 class SyncPagination(pagination.PageNumberPagination):
     page_size = 25

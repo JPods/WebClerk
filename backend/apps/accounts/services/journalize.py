@@ -448,7 +448,7 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
     comm = invoice.commission or {}
     if comm.get('reps') and not comm.get('accrued'):
         try:
-            from apps.transactions.services.commission import accrue_commission
+            from apps.transactions.services.pricing.commission_compute import accrue_commission
             commission_result = accrue_commission(invoice_id, 'invoice', ida_prefix=ida_prefix)
             created += commission_result.get('created', 0)
             posting_list.extend(commission_result.get('entries', []))
@@ -676,7 +676,7 @@ def journalize_payment(payment_id: int, ida_prefix: str = '') -> dict:
                             # Auto-create Erosion record for FX loss
                             if direction == 'loss':
                                 try:
-                                    from apps.accounts.services.erosion import _safe_decimal
+                                    from apps.accounts.services.value_erosion import _safe_decimal
                                     Erosion = dj_apps.get_model('accounts', 'Erosion')
                                     Erosion.objects.create(
                                         category='fx_loss',

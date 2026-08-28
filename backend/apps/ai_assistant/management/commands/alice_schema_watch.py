@@ -22,9 +22,9 @@ from typing import Any
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from apps.ai_assistant.services.alice_notes import create_note
-from apps.ai_assistant.services.schema_drift_detector import SchemaDriftDetector
-from apps.ai_assistant.services.to_alice_overrides import load_validated_to_alice_overrides
+from apps.ai_assistant.services.notes import create_note
+from apps.ai_assistant.services.watch_schemas import SchemaDriftDetector
+from apps.ai_assistant.services.setting_overrides import load_validated_to_alice_overrides
 
 
 SCHEMA_FILE_PATTERNS = (

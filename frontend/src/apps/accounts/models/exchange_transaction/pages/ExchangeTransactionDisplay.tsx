@@ -85,7 +85,7 @@ export default function ExchangeTransactionDisplay({
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div data-wc="exchange-transaction-display" className="p-4 space-y-4">
       <h2 className="text-xl font-semibold">
         <DevBadge label="ExchangeTransactionDisplay" className="mr-2" />
         {modeProp === "add" ? "Add Exchange Transaction" : modeProp === "edit" ? "Edit Exchange Transaction" : "View Exchange Transaction"}

@@ -56,6 +56,7 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
 
   return (
     <div
+      data-wc="mac-window-chrome"
       className={`absolute flex flex-col overflow-hidden backdrop-blur-sm ${maximized ? "rounded-none border-0 shadow-none" : "rounded-2xl border shadow-xl"} ${transitionClass} will-change-transform`}
       style={{
         ...baseStyle,

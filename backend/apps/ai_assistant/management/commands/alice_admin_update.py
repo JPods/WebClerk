@@ -22,7 +22,7 @@ from django.contrib import admin
 from django.core.management.base import BaseCommand
 from django.db import models as dj_models
 
-from apps.ai_assistant.services.to_alice_overrides import load_validated_to_alice_overrides
+from apps.ai_assistant.services.setting_overrides import load_validated_to_alice_overrides
 
 # ---------------------------------------------------------------------------
 # Field preference heuristics

@@ -1,7 +1,7 @@
 import pytest
 from apps.orgs.models import OrgBase
 from apps.transactions.models import Order, OrderLine, Invoice
-from apps.transactions.services.order_to_invoice import (
+from apps.transactions.services.convert.convert_order_to_invoice import (
     transfer_order_to_invoice,
     OrderToInvoiceTransferError,
 )

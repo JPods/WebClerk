@@ -35,7 +35,7 @@
 }
 
 .dp-stats {
-  font-size: 11px;
+  font-size: calc(var(--dp-fs, 13px) - 2px);
   color: var(--db-text-muted, #888);
   margin-left: 8px;
 }
@@ -92,7 +92,7 @@
 }
 
 .dp-btn--close {
-  font-size: 11px;
+  font-size: calc(var(--dp-fs, 13px) - 2px);
   padding: 3px 8px;
   background: transparent;
   color: var(--db-text-muted, #888);
@@ -378,7 +378,7 @@
 .dp-footer {
   padding: 6px 14px;
   border-top: 1px solid var(--db-border, #3c3c3c);
-  font-size: 10px;
+  font-size: calc(var(--dp-fs, 13px) - 3px);
   color: var(--db-text-dim, #666);
   text-align: center;
 }

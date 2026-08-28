@@ -22,7 +22,7 @@ export default function WcapiRouteHandler() {
 
   if (!modelName) {
     return (
-      <div className="p-4 text-red-600">
+      <div data-wc="wcapi-route-handler" className="p-4 text-red-600">
         <h2 className="text-lg font-semibold">Missing model_name parameter</h2>
         <p>URL should be: /wcapi/get/?model_name=&lt;model&gt;&amp;id=&lt;id&gt;</p>
       </div>
@@ -33,11 +33,13 @@ export default function WcapiRouteHandler() {
   const recordId = id ? parseInt(id, 10) : undefined;
 
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" /></div>}>
-      {TRANSACTION_MODELS.has(normalized)
-        ? <UiDetail modelName={normalized === 'quote' ? 'proposal' : normalized} recordId={recordId} />
-        : <ModelDetailPage modelName={normalized} recordId={recordId} />
-      }
-    </Suspense>
+    <div data-wc="wcapi-route-handler">
+      <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" /></div>}>
+        {TRANSACTION_MODELS.has(normalized)
+          ? <UiDetail modelName={normalized === 'quote' ? 'proposal' : normalized} recordId={recordId} />
+          : <ModelDetailPage modelName={normalized} recordId={recordId} />
+        }
+      </Suspense>
+    </div>
   );
 }

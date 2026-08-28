@@ -2,5 +2,5 @@
 import ExchangeTransactionList from "./ExchangeTransactionList";
 
 export default function ExchangeTransaction() {
-  return <ExchangeTransactionList />;
+  return <div data-wc="exchange-transaction"><ExchangeTransactionList /></div>;
 }

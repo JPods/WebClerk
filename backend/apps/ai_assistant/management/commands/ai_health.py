@@ -7,7 +7,7 @@ Usage:
     python manage.py ai_health
 """
 from django.core.management.base import BaseCommand
-from apps.ai_assistant.services.rag_service import RAGService
+from apps.ai_assistant.services.rag import RAGService
 
 
 class Command(BaseCommand):

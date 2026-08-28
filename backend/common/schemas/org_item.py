@@ -25,7 +25,7 @@ class OrgItemConfig(ConfigBase):
     checked_by_id: Optional[int] = None
 
     class Config:
-        extra = "allow"  # inventory extensions vary by org
+        extra = "forbid"
 
 
 # -- .metadata (inherits MetadataBase) --------------------------------------

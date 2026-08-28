@@ -824,7 +824,7 @@ def save_transaction_with_lines(
         ItemIdChangeError: If attempting to change item_id on existing line
     """
     from apps.core.utils import registry
-    from apps.core.services.wcapi import filter_input_fields
+    from apps.core.services.record_serialize import filter_input_fields
 
     # Resolve models
     HeaderModel = registry.resolve(model_key)
@@ -1176,7 +1176,7 @@ def save_transaction_with_lines(
     # Detects margin erosion vs ancestor proposals/orders and discount erosion.
     if model_key in ('invoice', 'order'):
         try:
-            from apps.accounts.services.erosion import detect_margin_erosion, detect_discount_erosion
+            from apps.accounts.services.value_erosion import detect_margin_erosion, detect_discount_erosion
             erosion_events = detect_margin_erosion(header_obj)
             discount_event = detect_discount_erosion(header_obj)
             total_events = len(erosion_events) + (1 if discount_event else 0)

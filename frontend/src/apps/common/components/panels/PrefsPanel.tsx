@@ -136,7 +136,7 @@ const SelectPref: React.FC<SelectPrefProps> = ({
 }) => (
   <div className="flex items-center justify-between gap-4">
     <span className="text-xs" style={{ color: 'var(--db-text)' }}>{label}</span>
-    <select
+    <select data-wc="select"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}

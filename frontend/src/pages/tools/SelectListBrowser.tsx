@@ -11,6 +11,7 @@ import { useEffect, useState, useCallback } from "react";
 import PageMeta from "@/components/common/PageMeta";
 import apiClient from "@/api/axios";
 import { saveRecord } from "@/api/wcapi";
+import { getUI } from "@/utils/contactUI";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -39,7 +40,8 @@ const OptionsEditor: React.FC<{
   saving?: boolean;
   onSave?: () => void;
   compact?: boolean;
-}> = ({ options, onChange, saving, onSave, compact }) => {
+  fontSize?: number;
+}> = ({ options, onChange, saving, onSave, compact, fontSize = 13 }) => {
   const [adding, setAdding] = useState(false);
   const [newValue, setNewValue] = useState('');
   const [newLabel, setNewLabel] = useState('');
@@ -62,7 +64,7 @@ const OptionsEditor: React.FC<{
     onChange(updated);
   };
 
-  const fs = compact ? '11px' : '12px';
+  const fs = compact ? `${fontSize - 2}px` : `${fontSize - 1}px`;
 
   return (
     <div style={{ fontSize: fs }}>
@@ -87,7 +89,7 @@ const OptionsEditor: React.FC<{
               </td>
               <td>
                 <button onClick={() => handleRemove(idx)} title="Remove"
-                  style={{ background: 'none', border: 'none', color: '#e53e3e', cursor: 'pointer', fontSize: '14px', fontWeight: 700 }}>×</button>
+                  style={{ background: 'none', border: 'none', color: '#e53e3e', cursor: 'pointer', fontSize: fontSize + 1, fontWeight: 700 }}>×</button>
               </td>
             </tr>
           ))}
@@ -104,7 +106,7 @@ const OptionsEditor: React.FC<{
                   style={{ background: 'var(--db-input-bg, var(--db-surface))', border: '1px solid var(--db-border)', borderRadius: 3, color: 'var(--db-text)', width: '100%', padding: '2px 6px', fontSize: fs }} />
               </td>
               <td>
-                <button onClick={handleAdd} style={{ background: 'none', border: 'none', color: 'var(--db-accent)', cursor: 'pointer', fontSize: '14px' }}>✓</button>
+                <button onClick={handleAdd} style={{ background: 'none', border: 'none', color: 'var(--db-accent)', cursor: 'pointer', fontSize: fontSize + 1 }}>✓</button>
               </td>
             </tr>
           )}
@@ -171,7 +173,7 @@ const SiblingPanel: React.FC<{
           width: '100%', textAlign: 'left', padding: '8px 12px',
           background: expanded ? 'color-mix(in srgb, var(--db-accent) 8%, transparent)' : 'var(--db-surface-alt)',
           border: 'none', cursor: 'pointer', color: 'var(--db-text)',
-          display: 'flex', alignItems: 'center', gap: 8, fontSize: 12,
+          display: 'flex', alignItems: 'center', gap: 8, fontSize: 'inherit',
         }}>
         <span style={{ color: 'var(--db-text-muted)' }}>{expanded ? '▾' : '▸'}</span>
         <span style={{ fontWeight: 600 }}>{row.setting_ida}</span>
@@ -195,6 +197,8 @@ const SiblingPanel: React.FC<{
 type SortKey = 'field' | 'setting_ida' | 'setting_name' | 'setting_parent_model' | 'setting_purpose' | 'count' | 'shared_count';
 
 const SelectListBrowser: React.FC = () => {
+  const active = getUI<string>('theme.active', 'dark');
+  const baseFontSize = getUI<number>(`theme.${active}.font.size`, 14);
   const [rows, setRows] = useState<SelectListRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
@@ -272,26 +276,26 @@ const SelectListBrowser: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--db-surface)' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--db-surface)', fontSize: baseFontSize }}>
       <PageMeta title="Select Lists" />
 
       {/* Left — list with sortable header */}
       <div style={{ width: 620, borderRight: '1px solid var(--db-border)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--db-border)', fontWeight: 700, fontSize: 13, color: 'var(--db-text)' }}>
+        <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--db-border)', fontWeight: 700, fontSize: baseFontSize, color: 'var(--db-text)' }}>
           Select Lists ({rows.length})
         </div>
         {/* Column header — clickable to sort */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px',
           borderBottom: '2px solid var(--db-border)', background: 'var(--db-surface-alt)',
-          fontSize: 10, fontWeight: 700, color: 'var(--db-text-muted)', textTransform: 'uppercase',
+          fontSize: baseFontSize - 3, fontWeight: 700, color: 'var(--db-text-muted)', textTransform: 'uppercase',
         }}>
           {([['field', 'Field', 100], ['setting_ida', 'IDA', 90], ['setting_name', 'Name', 0], ['setting_parent_model', 'Model', 65], ['setting_purpose', 'Purpose', 70], ['count', '#', 22], ['shared_count', '×', 22]] as const).map(([key, label, minW]) => (
             <button key={key} onClick={() => handleSort(key as SortKey)}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0',
                 color: sortKey === key ? 'var(--db-accent)' : 'var(--db-text-muted)',
-                fontWeight: 700, fontSize: 10, textTransform: 'uppercase', textAlign: 'left',
+                fontWeight: 700, fontSize: baseFontSize - 3, textTransform: 'uppercase', textAlign: 'left',
                 minWidth: minW || undefined, flex: minW === 0 ? 1 : undefined,
               }}>
               {label} {sortKey === key ? (sortAsc ? '▲' : '▼') : ''}
@@ -308,15 +312,15 @@ const SelectListBrowser: React.FC = () => {
                 display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                 padding: '5px 12px', border: 'none', borderBottom: '1px solid color-mix(in srgb, var(--db-border) 50%, transparent)',
                 background: selectedIdx === idx ? 'color-mix(in srgb, var(--db-accent) 12%, transparent)' : 'transparent',
-                cursor: 'pointer', textAlign: 'left', fontSize: 11, color: 'var(--db-text)',
+                cursor: 'pointer', textAlign: 'left', fontSize: baseFontSize - 2, color: 'var(--db-text)',
               }}>
               <span style={{ fontWeight: 600, minWidth: 100 }}>{row.field}</span>
-              <span style={{ color: 'var(--db-text-muted)', minWidth: 90, fontFamily: 'monospace', fontSize: 10 }}>{row.setting_ida}</span>
+              <span style={{ color: 'var(--db-text-muted)', minWidth: 90, fontFamily: 'monospace', fontSize: baseFontSize - 3 }}>{row.setting_ida}</span>
               <span style={{ color: 'var(--db-text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.setting_name}</span>
               <span style={{ color: 'var(--db-text-muted)', minWidth: 65 }}>{row.setting_parent_model}</span>
-              <span style={{ color: 'var(--db-text-muted)', minWidth: 70, fontSize: 10 }}>{row.setting_purpose}</span>
+              <span style={{ color: 'var(--db-text-muted)', minWidth: 70, fontSize: baseFontSize - 3 }}>{row.setting_purpose}</span>
               <span style={{ color: 'var(--db-text-muted)', minWidth: 22, textAlign: 'right' }}>{row.count}</span>
-              <span style={{ color: row.shared_count > 1 ? 'var(--db-accent)' : 'var(--db-text-muted)', minWidth: 22, textAlign: 'right', fontSize: 10, fontWeight: row.shared_count > 1 ? 600 : 400 }}>
+              <span style={{ color: row.shared_count > 1 ? 'var(--db-accent)' : 'var(--db-text-muted)', minWidth: 22, textAlign: 'right', fontSize: baseFontSize - 3, fontWeight: row.shared_count > 1 ? 600 : 400 }}>
                 {row.shared_count > 1 ? `×${row.shared_count}` : ''}
               </span>
             </button>
@@ -334,17 +338,17 @@ const SelectListBrowser: React.FC = () => {
               display: 'flex', alignItems: 'center', gap: 12,
               background: 'var(--db-surface-alt)',
             }}>
-              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--db-text)' }}>{selected.field}</span>
-              <span style={{ color: 'var(--db-text-muted)', fontSize: 12 }}>{selected.setting_ida}</span>
-              <span style={{ color: 'var(--db-text-muted)', fontSize: 11 }}>{selected.setting_purpose}</span>
+              <span style={{ fontWeight: 700, fontSize: baseFontSize + 1, color: 'var(--db-text)' }}>{selected.field}</span>
+              <span style={{ color: 'var(--db-text-muted)', fontSize: baseFontSize - 1 }}>{selected.setting_ida}</span>
+              <span style={{ color: 'var(--db-text-muted)', fontSize: baseFontSize - 2 }}>{selected.setting_purpose}</span>
               <span style={{ flex: 1 }} />
-              {dirty && <span style={{ color: 'var(--db-accent)', fontWeight: 600, fontSize: 11 }}>unsaved</span>}
+              {dirty && <span style={{ color: 'var(--db-accent)', fontWeight: 600, fontSize: baseFontSize - 2 }}>unsaved</span>}
               <button onClick={handleSave} disabled={saving || !dirty}
                 style={{
                   background: dirty ? 'var(--db-accent)' : 'var(--db-surface-alt)',
                   border: '1px solid var(--db-border)', borderRadius: 4,
                   padding: '4px 14px', color: dirty ? '#fff' : 'var(--db-text-muted)',
-                  cursor: dirty ? 'pointer' : 'default', fontWeight: 600, fontSize: 12,
+                  cursor: dirty ? 'pointer' : 'default', fontWeight: 600, fontSize: baseFontSize - 1,
                 }}>
                 {saving ? 'Saving...' : '💾 Save'}
               </button>
@@ -355,12 +359,13 @@ const SelectListBrowser: React.FC = () => {
               <OptionsEditor
                 options={editOptions}
                 onChange={(opts) => { setEditOptions(opts); setDirty(true); }}
+                fontSize={baseFontSize}
               />
 
               {/* Siblings — same field, other settings */}
               {siblings.length > 0 && (
                 <div style={{ marginTop: 24 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--db-text-muted)', marginBottom: 8 }}>
+                  <div style={{ fontSize: baseFontSize - 1, fontWeight: 600, color: 'var(--db-text-muted)', marginBottom: 8 }}>
                     Same field in other settings ({siblings.length})
                   </div>
                   {siblings.map((sib) => (
@@ -371,7 +376,7 @@ const SelectListBrowser: React.FC = () => {
             </div>
           </>
         ) : (
-          <div style={{ padding: 40, color: 'var(--db-text-muted)', textAlign: 'center', fontSize: 13 }}>
+          <div style={{ padding: 40, color: 'var(--db-text-muted)', textAlign: 'center', fontSize: baseFontSize }}>
             Select a field from the list to view and edit its options.
           </div>
         )}

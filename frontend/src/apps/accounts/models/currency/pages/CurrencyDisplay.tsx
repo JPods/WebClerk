@@ -85,7 +85,7 @@ export default function CurrencyDisplay({
   if (loading) return <LoadingSpinner size="lg" label="Loading..." />;
 
   return (
-    <div className="p-4 space-y-4">
+    <div data-wc="currency-display" className="p-4 space-y-4">
       <h3 className="text-lg font-semibold">
         {modeProp === "add" ? "Add Currency" : modeProp === "edit" ? "Edit Currency" : "View Currency"}
       </h3>

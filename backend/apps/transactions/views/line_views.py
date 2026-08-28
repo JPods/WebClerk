@@ -27,10 +27,10 @@ from apps.transactions.serializers.line_serializers import (
 # WorkOrderSerializer not in transaction_serializers — use minimal version
 from apps.transactions.serializers.workorder_serializers import WorkOrderSerializer
 # RequisitionSerializer — use the dedicated one
-from apps.transactions.serializers.requisition import RequisitionSerializer
+from apps.transactions.serializers.requisition_serializer import RequisitionSerializer
 from rest_framework.views import APIView
 from apps.core.permissions import get_role_field_rules
-from apps.transactions.aggregation import compute_line_aggregate, DEFAULT_CACHE_TTL_SECONDS
+from apps.transactions.services.aggregation import compute_line_aggregate, DEFAULT_CACHE_TTL_SECONDS
 from apps.transactions.models.project import Project
 from apps.core.constants.model_registry import get_model_meta, import_model
 from apps.transactions.pagination import TransactionPagination
@@ -72,7 +72,7 @@ class ProposalLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, g
 
     def perform_create(self, serializer):
         """Create line via LineItemService for inventory tracking (on_p forecast)."""
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
         
         instance = serializer.save()
         instance._pending_created = True
@@ -93,7 +93,7 @@ class ProposalLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateD
 
     def perform_update(self, serializer):
         """Update line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
         
         old_instance = self.get_object()
         old_qty = float((old_instance.quantity or {}).get('staged', 0) or (old_instance.quantity or {}).get('active', 0) or 0)
@@ -134,7 +134,7 @@ class ProposalLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateD
 
     def perform_destroy(self, instance):
         """Delete line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
         
         qty_to_release = float((instance.quantity or {}).get('staged', 0) or (instance.quantity or {}).get('active', 0) or 0)
         
@@ -174,7 +174,7 @@ class OrderLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, gene
 
     def perform_create(self, serializer):
         """Create line via LineItemService for inventory tracking (on_so reservation)."""
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
         
         instance = serializer.save()
         instance._pending_created = True
@@ -195,7 +195,7 @@ class OrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDest
 
     def perform_update(self, serializer):
         """Update line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
         
         old_instance = self.get_object()
         old_qty = float((old_instance.quantity or {}).get('staged', 0) or (old_instance.quantity or {}).get('active', 0) or 0)
@@ -236,7 +236,7 @@ class OrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDest
 
     def perform_destroy(self, instance):
         """Delete line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
         
         qty_to_release = float((instance.quantity or {}).get('staged', 0) or (instance.quantity or {}).get('active', 0) or 0)
         
@@ -276,7 +276,7 @@ class InvoiceLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, ge
 
     def perform_create(self, serializer):
         """Create line via LineItemService for inventory tracking (on_in issuance)."""
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
         
         instance = serializer.save()
         instance._pending_created = True
@@ -297,7 +297,7 @@ class InvoiceLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDe
 
     def perform_update(self, serializer):
         """Update line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
         
         old_instance = self.get_object()
         old_qty = float((old_instance.quantity or {}).get('staged', 0) or (old_instance.quantity or {}).get('active', 0) or 0)
@@ -338,7 +338,7 @@ class InvoiceLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDe
 
     def perform_destroy(self, instance):
         """Delete line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
         
         qty_to_release = float((instance.quantity or {}).get('staged', 0) or (instance.quantity or {}).get('active', 0) or 0)
         
@@ -378,7 +378,7 @@ class PurchaseLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, g
 
     def perform_create(self, serializer):
         """Create line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
         
         instance = serializer.save()
         # Mark as pending handled to prevent signal duplicates
@@ -401,7 +401,7 @@ class PurchaseLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateD
 
     def perform_update(self, serializer):
         """Update line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
         
         # Get old quantity before update for delta calculation
         old_instance = self.get_object()
@@ -457,7 +457,7 @@ class PurchaseLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateD
 
     def perform_destroy(self, instance):
         """Delete line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
         
         # Get quantity to release
         qty_to_release = 0
@@ -501,7 +501,7 @@ class WorkOrderLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, 
 
     def perform_create(self, serializer):
         """Create line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
         
         instance = serializer.save()
         # Mark as pending handled to prevent signal duplicates
@@ -524,7 +524,7 @@ class WorkOrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdate
 
     def perform_update(self, serializer):
         """Update line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
         
         # Get old quantity before update for delta calculation
         old_instance = self.get_object()
@@ -580,7 +580,7 @@ class WorkOrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdate
 
     def perform_destroy(self, instance):
         """Delete line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
         
         # Get quantity to release
         qty_to_release = 0

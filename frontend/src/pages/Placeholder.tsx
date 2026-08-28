@@ -13,7 +13,7 @@ export default function Placeholder({ title, description }: Props) {
   const desc = description || "This page is not yet available."
 
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 text-center">
+    <div data-wc="placeholder" className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 text-center">
       <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-500">Placeholder</p>
         <h1 className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">{label}</h1>

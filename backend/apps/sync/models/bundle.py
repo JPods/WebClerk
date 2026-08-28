@@ -15,12 +15,7 @@ class Bundle(BaseModel):
     connection = models.ForeignKey(Connection, on_delete=models.CASCADE, related_name='bundles', db_column='connection_id')
     direction = models.CharField(max_length=255, choices=BUNDLE_DIRECTION_CHOICES)
     # config inherited from CoreModel
-    status = models.CharField(
-        max_length=32,
-        blank=True,
-        null=True,
-        choices=BUNDLE_STATUS_CHOICES,
-    )
+    # status — inherited from CoreModel
     dt_processed = models.BigIntegerField(default=0, db_index=True)
     alert = models.CharField(
         max_length=255,

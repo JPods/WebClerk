@@ -2,7 +2,7 @@ import pytest
 from decimal import Decimal
 from django.test import TestCase
 from apps.transactions.models import Proposal, ProposalLine
-from apps.transactions.services.totals import _d
+from apps.transactions.services.pricing.totals_compute import _d
 from apps.orgs.models import OrgBase
 
 

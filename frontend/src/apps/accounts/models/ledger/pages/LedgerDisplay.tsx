@@ -85,7 +85,7 @@ export default function LedgerDisplay({
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div data-wc="ledger-display" className="p-4 space-y-4">
       <h2 className="text-xl font-semibold">
         <DevBadge label="LedgerDisplay" className="mr-2" />
         {modeProp === "add" ? "Add Ledger" : modeProp === "edit" ? "Edit Ledger" : "View Ledger"}

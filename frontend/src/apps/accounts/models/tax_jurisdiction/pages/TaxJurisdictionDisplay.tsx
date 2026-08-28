@@ -85,7 +85,7 @@ export default function TaxJurisdictionDisplay({
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div data-wc="tax-jurisdiction-display" className="p-4 space-y-4">
       <h2 className="text-xl font-semibold">
         <DevBadge label="TaxJurisdictionDisplay" className="mr-2" />
         {modeProp === "add" ? "Add Tax Jurisdiction" : modeProp === "edit" ? "Edit Tax Jurisdiction" : "View Tax Jurisdiction"}

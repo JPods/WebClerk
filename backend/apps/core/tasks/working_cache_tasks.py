@@ -61,7 +61,7 @@ def update_all_settings_cache_working():
             all_settings[key] = data
         
         # Cache results
-        from apps.core.services.cache_service import cache_service
+        from apps.core.services.cache import cache_service
         
         # Cache each purpose group
         cached_purposes = []

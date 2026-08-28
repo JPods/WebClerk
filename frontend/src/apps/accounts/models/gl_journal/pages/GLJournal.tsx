@@ -2,5 +2,5 @@
 import GLJournalList from "./GLJournalList";
 
 export default function GLJournal() {
-  return <GLJournalList />;
+  return <div data-wc="gl-journal"><GLJournalList /></div>;
 }

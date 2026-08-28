@@ -1,6 +1,7 @@
 /* SettingParade — PJPV configuration review
    All styling via CSS variables from theme.css for light/dark support.
-   No inline styles. */
+   No inline styles.
+   --sp-fs is set from JS (user font size preference). All sizes derive from it. */
 
 .sp-container {
   display: flex;
@@ -8,6 +9,7 @@
   height: 100vh;
   background: var(--db-bg);
   color: var(--db-text);
+  font-size: var(--sp-fs, 13px);
 }
 
 /* ── Header ──────────────────────────────────────────────────── */
@@ -21,13 +23,13 @@
   flex-shrink: 0;
 }
 .sp-header h1 {
-  font-size: 14px;
+  font-size: calc(var(--sp-fs) + 1px);
   font-weight: 700;
   margin: 0;
   color: var(--db-text);
 }
 .sp-header-stats {
-  font-size: 11px;
+  font-size: calc(var(--sp-fs) - 2px);
   color: var(--db-text-muted);
 }
 
@@ -50,7 +52,7 @@
   padding: 12px 12px 4px;
 }
 .sp-group-title {
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -58,7 +60,7 @@
   margin: 0;
 }
 .sp-group-desc {
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   color: var(--db-text-dim);
   margin: 2px 0 0;
 }
@@ -86,7 +88,7 @@
   gap: 6px;
 }
 .sp-item-name {
-  font-size: 12px;
+  font-size: calc(var(--sp-fs) - 1px);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -100,7 +102,7 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   flex-shrink: 0;
   color: var(--db-surface);
 }
@@ -114,16 +116,16 @@
   margin-top: 2px;
 }
 .sp-item-model {
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   font-family: monospace;
   color: var(--db-accent);
 }
 .sp-item-purpose {
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   color: var(--db-text-dim);
 }
 .sp-item-summary {
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   color: var(--db-text-dim);
   margin-top: 1px;
 }
@@ -148,7 +150,7 @@
   flex-shrink: 0;
 }
 .sp-toolbar-name {
-  font-size: 12px;
+  font-size: calc(var(--sp-fs) - 1px);
   font-weight: 600;
   color: var(--db-text);
 }
@@ -160,7 +162,7 @@
 .sp-fb-btn {
   padding: 3px 10px;
   border-radius: 3px;
-  font-size: 11px;
+  font-size: calc(var(--sp-fs) - 2px);
   font-weight: 600;
   border: 1px solid transparent;
   cursor: pointer;
@@ -200,7 +202,7 @@
   padding: 3px 8px;
   border: 1px solid var(--db-input-border);
   border-radius: 3px;
-  font-size: 11px;
+  font-size: calc(var(--sp-fs) - 2px);
   background: var(--db-input-bg);
   color: var(--db-text);
 }
@@ -209,7 +211,7 @@
   border-color: var(--db-input-focus);
 }
 .sp-toolbar-status {
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   color: var(--db-text-dim);
   font-style: italic;
 }
@@ -234,8 +236,8 @@
   text-align: center;
 }
 .sp-empty p { margin: 4px 0; }
-.sp-empty .big { font-size: 15px; }
-.sp-empty .small { font-size: 12px; }
+.sp-empty .big { font-size: calc(var(--sp-fs) + 2px); }
+.sp-empty .small { font-size: calc(var(--sp-fs) - 1px); }
 
 /* ── Identity block ──────────────────────────────────────────── */
 .sp-identity {
@@ -251,32 +253,32 @@
 }
 .sp-ida {
   font-family: monospace;
-  font-size: 11px;
+  font-size: calc(var(--sp-fs) - 2px);
   background: var(--db-surface-alt);
   padding: 1px 6px;
   border-radius: 3px;
   color: var(--db-text);
 }
 .sp-model-tag {
-  font-size: 11px;
+  font-size: calc(var(--sp-fs) - 2px);
   font-weight: 600;
   color: var(--db-accent);
 }
 .sp-purpose-tag {
-  font-size: 11px;
+  font-size: calc(var(--sp-fs) - 2px);
   color: var(--db-text-muted);
 }
 .sp-scope-tag {
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   color: var(--db-text-dim);
 }
 .sp-explanation {
-  font-size: 12px;
+  font-size: calc(var(--sp-fs) - 1px);
   color: var(--db-text-muted);
   margin-top: 4px;
 }
 .sp-profile-refs {
-  font-size: 11px;
+  font-size: calc(var(--sp-fs) - 2px);
   color: var(--db-accent-gold);
   margin-top: 6px;
 }
@@ -286,7 +288,7 @@
   background: var(--db-surface-alt);
   border-left: 3px solid var(--db-accent);
   border-radius: 0 3px 3px 0;
-  font-size: 11px;
+  font-size: calc(var(--sp-fs) - 2px);
   color: var(--db-text-muted);
   line-height: 1.5;
 }
@@ -296,7 +298,7 @@
   margin-bottom: 16px;
 }
 .sp-section-title {
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -307,7 +309,7 @@
 /* ── Field groups ────────────────────────────────────────────── */
 .sp-fg-item {
   margin-bottom: 4px;
-  font-size: 11px;
+  font-size: calc(var(--sp-fs) - 2px);
 }
 .sp-fg-label {
   font-weight: 600;
@@ -315,7 +317,7 @@
 }
 .sp-fg-fields {
   margin-left: 8px;
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   color: var(--db-text-dim);
 }
 
@@ -324,13 +326,13 @@
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 16px;
-  font-size: 11px;
+  font-size: calc(var(--sp-fs) - 2px);
 }
 .sp-table th {
   text-align: left;
   padding: 4px 8px;
   font-weight: 600;
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   color: var(--db-text-muted);
   background: var(--db-surface-alt);
   border-bottom: 1px solid var(--db-border);
@@ -345,13 +347,13 @@
 }
 .sp-field-name {
   font-family: monospace;
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
 }
 .sp-widget-badge {
   display: inline-block;
   padding: 1px 6px;
   border-radius: 3px;
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   font-weight: 600;
 }
 .sp-widget-badge.select {
@@ -371,7 +373,7 @@
   color: var(--db-text-muted);
 }
 .sp-detail-text {
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   color: var(--db-text-dim);
 }
 
@@ -385,7 +387,7 @@
 .sp-envelope-name {
   font-weight: 700;
   color: var(--db-accent);
-  font-size: 11px;
+  font-size: calc(var(--sp-fs) - 2px);
 }
 /* Indent envelope leaf rows and mark with left border */
 .sp-envelope-leaf td {
@@ -418,10 +420,10 @@
 }
 .sp-sl-field {
   font-family: monospace;
-  font-size: 11px;
+  font-size: calc(var(--sp-fs) - 2px);
 }
 .sp-sl-count {
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   color: var(--db-text-dim);
 }
 .sp-sl-body {
@@ -431,7 +433,7 @@
 .sp-sl-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   margin-top: 4px;
 }
 .sp-sl-table th {
@@ -454,11 +456,11 @@
   margin-top: 6px;
 }
 .sp-tryit-label {
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   color: var(--db-text-dim);
 }
 .sp-tryit-select {
-  font-size: 11px;
+  font-size: calc(var(--sp-fs) - 2px);
   border: 1px solid var(--db-input-border);
   border-radius: 3px;
   padding: 2px 6px;
@@ -477,7 +479,7 @@
   padding: 2px 6px;
   background: var(--db-surface-alt);
   border-radius: 3px;
-  font-size: 10px;
+  font-size: calc(var(--sp-fs) - 3px);
   font-family: monospace;
   color: var(--db-text);
 }

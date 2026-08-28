@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from apps.products.services.inventory_reservations import release_expired
+from apps.products.services.inventory.inventory_reserve import release_expired
 
 
 class Command(BaseCommand):

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.transactions.services.validation import ValidationResult
+from apps.transactions.services.validate_transaction import ValidationResult
 
 
 class TransferValidationSerializer(serializers.Serializer):

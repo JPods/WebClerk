@@ -332,7 +332,7 @@ python -c "
 import django, os
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webclerk3_api.settings')
 django.setup()
-from apps.transactions.services.pending_inventory_processor import process_pending_for_item
+from apps.transactions.services.inventory_pending_process import process_pending_for_item
 result = process_pending_for_item(259)
 print(f'Processed: {result}')
 "

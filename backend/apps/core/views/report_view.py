@@ -114,7 +114,7 @@ class ReportDownloadView(APIView):
             self._track_usage(report_name, model_name, request.user)
 
         try:
-            from apps.core.services.report_renderer import render_report
+            from apps.core.services.render_report import render_report
             result = render_report(
                 report_name, model_name, record_id, filters, fmt,
                 sample_data=sample_data,

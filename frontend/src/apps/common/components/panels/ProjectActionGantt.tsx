@@ -12,6 +12,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { getRecords } from '@/api/wcapi';
 import { formatDt } from '@/utils/fieldFormatters';
+import { getUI } from '@/utils/contactUI';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -206,6 +207,8 @@ function calculateCriticalPath(actions: GanttAction[]): GanttAction[] {
 // ---------------------------------------------------------------------------
 
 export default function ProjectActionGantt({ projectId, projectName }: ProjectActionGanttProps) {
+  const active = getUI<string>('theme.active', 'dark');
+  const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
   const [actions, setActions] = useState<GanttAction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCriticalOnly, setShowCriticalOnly] = useState(false);
@@ -340,7 +343,7 @@ export default function ProjectActionGantt({ projectId, projectName }: ProjectAc
   const chartHeight = displayed.length * ROW_HEIGHT + 30;
 
   return (
-    <div style={{ fontSize: 12 }}>
+    <div data-wc="project-action-gantt" style={{ fontSize: baseFontSize - 1 }}>
       {/* Toolbar */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 16, padding: '8px 12px',
@@ -387,7 +390,7 @@ export default function ProjectActionGantt({ projectId, projectName }: ProjectAc
               {/* Critical path indicator */}
               {a.isCritical && (
                 <span style={{
-                  fontSize: 8, fontWeight: 700, color: '#ef4444',
+                  fontSize: baseFontSize - 5, fontWeight: 700, color: '#ef4444',
                   background: 'rgba(239,68,68,0.15)', padding: '1px 4px', borderRadius: 3,
                 }}>CP</span>
               )}
@@ -440,7 +443,7 @@ export default function ProjectActionGantt({ projectId, projectName }: ProjectAc
                 position: 'absolute', left: `${todayPct}%`,
                 width: 2, height: '100%', background: '#ef4444', zIndex: 2,
               }}>
-                <span style={{ position: 'absolute', top: -1, left: 4, fontSize: 8, color: '#ef4444', fontWeight: 700 }}>
+                <span style={{ position: 'absolute', top: -1, left: 4, fontSize: baseFontSize - 5, color: '#ef4444', fontWeight: 700 }}>
                   today
                 </span>
               </div>

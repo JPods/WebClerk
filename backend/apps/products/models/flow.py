@@ -82,7 +82,7 @@ class DeliveryVisit(BaseModel):
     dt_scheduled = models.BigIntegerField(help_text="Epoch ms scheduled time window start")
     dt_arrived = models.BigIntegerField(null=True, blank=True)
     dt_completed = models.BigIntegerField(null=True, blank=True)
-    status = models.CharField(max_length=32, choices=STATUSES, default=STATUS_PLANNED, db_index=True)
+    # status — inherited from CoreModel
     notes = models.TextField(blank=True)
     config = models.JSONField(default=dict, blank=True, help_text="Flexible metadata: route info, geo, truck id, etc.")
 
@@ -153,7 +153,7 @@ class DeliveryLine(BaseModel):
     loaded_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     delivered_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     skipped_reason = models.CharField(max_length=120, blank=True)
-    status = models.CharField(max_length=32, choices=STATUSES, default=STATUS_PLANNED, db_index=True)
+    # status — inherited from CoreModel
     config = models.JSONField(default=dict, blank=True, help_text="Aux data: pricing snapshot, adjustments, device capture")
 
     def __str__(self):

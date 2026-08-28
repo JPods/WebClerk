@@ -324,7 +324,7 @@ def _alice_note(
 ) -> bool:
     """Emit one Alice note; swallow all exceptions so maintenance is never blocked."""
     try:
-        from apps.ai_assistant.services.alice_notes import create_note  # noqa: PLC0415
+        from apps.ai_assistant.services.notes import create_note  # noqa: PLC0415
         create_note(category, role=role, name=name, parent_model=parent_model, details=details)
         return True
     except Exception as exc:  # pragma: no cover

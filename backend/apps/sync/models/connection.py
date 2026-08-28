@@ -45,12 +45,7 @@ class Connection(BaseModel):
         #path_working = models.CharField(max_length=255, blank=True, null=True)
         #key = models.CharField(max_length=255, blank=True, null=True)
         #pin = models.CharField(max_length=255, blank=True, null=True)
-    status = models.CharField(
-        max_length=32,
-        blank=True,
-        null=True,
-        choices=CONNECTION_STATUS_CHOICES,
-    )
+    # status — inherited from CoreModel
     scripts = models.JSONField(blank=True, null=True)
     relationships = models.JSONField(blank=True, null=True)
     action = models.CharField(max_length=255, blank=True)

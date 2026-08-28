@@ -17,7 +17,7 @@
   background: var(--db-bg);
   color: var(--db-text);
   font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-  font-size: 13px;
+  font-size: var(--jv-fs, 13px);
 }
 
 .jv-header {
@@ -32,7 +32,7 @@
 .jv-title {
   font-weight: 700;
   color: var(--db-accent);
-  font-size: 13px;
+  font-size: var(--jv-fs, 13px);
 }
 
 .jv-controls {
@@ -42,7 +42,7 @@
 }
 
 .jv-depth-label {
-  font-size: 11px;
+  font-size: calc(var(--jv-fs, 13px) - 2px);
   color: var(--db-text-muted);
   display: flex;
   align-items: center;
@@ -54,7 +54,7 @@
   border: 1px solid var(--db-input-border);
   border-radius: 3px;
   color: var(--db-text);
-  font-size: 11px;
+  font-size: calc(var(--jv-fs, 13px) - 2px);
   padding: 1px 4px;
 }
 
@@ -63,7 +63,7 @@
   border: 1px solid var(--db-border-light);
   border-radius: 3px;
   color: var(--db-text-muted);
-  font-size: 11px;
+  font-size: calc(var(--jv-fs, 13px) - 2px);
   padding: 2px 8px;
   cursor: pointer;
   font-weight: 600;
@@ -103,7 +103,7 @@
 .jv-chevron {
   display: inline-block;
   width: 14px;
-  font-size: 10px;
+  font-size: calc(var(--jv-fs, 13px) - 3px);
   color: var(--db-text-dim);
   user-select: none;
 }
@@ -130,7 +130,7 @@
 
 .jv-collapsed-hint {
   color: var(--db-text-dim);
-  font-size: 11px;
+  font-size: calc(var(--jv-fs, 13px) - 2px);
   font-style: italic;
 }
 

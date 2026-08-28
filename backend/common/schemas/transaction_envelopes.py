@@ -109,9 +109,10 @@ class TransactionTotals(BaseModel):
         description="Total minus received. Updated by update_received() only.",
         json_schema_extra={'widget': 'currency', 'precision': 2},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"  # future keys don't break existing records
+        extra = "forbid"  # PJPV: unknown keys fail — use custom{} for extensions
 
 
 class TransactionFinance(BaseModel):
@@ -168,9 +169,10 @@ class TransactionFinance(BaseModel):
         None, title="Exchange Expense",
         json_schema_extra={'widget': 'currency', 'precision': 2},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class TransactionCost(BaseModel):
@@ -216,9 +218,10 @@ class TransactionCost(BaseModel):
         None, title="Cost Total",
         json_schema_extra={'widget': 'currency', 'precision': 2},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -277,9 +280,10 @@ class LineQuantity(BaseModel):
         description="Minimum order increment for blanket order fulfillment",
         json_schema_extra={'widget': 'number'},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class LinePrice(BaseModel):
@@ -323,9 +327,10 @@ class LinePrice(BaseModel):
         description="Decimal places for price math",
         json_schema_extra={'widget': 'number'},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class LineCost(BaseModel):
@@ -400,9 +405,10 @@ class LineCost(BaseModel):
         0, title="Tax Lookup ID",
         json_schema_extra={'widget': 'number'},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class LineTax(BaseModel):
@@ -435,9 +441,10 @@ class LineTax(BaseModel):
         description="Link to tax engine records",
         json_schema_extra={'widget': 'number'},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class LinePhysical(BaseModel):
@@ -478,9 +485,10 @@ class LinePhysical(BaseModel):
         False, title="Hazmat",
         json_schema_extra={'widget': 'boolean'},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -551,9 +559,10 @@ class LineItem(BaseModel):
         False, title="Archived",
         json_schema_extra={'widget': 'boolean'},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class LineCommission(BaseModel):
@@ -572,9 +581,10 @@ class LineCommission(BaseModel):
         description="Commission basis: revenue, margin, or cost",
         json_schema_extra={'widget': 'text'},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -598,9 +608,10 @@ class PriceQtyBreak(BaseModel):
         description="Delegate pricing to variant item (alternative to unit_price)",
         json_schema_extra={'widget': 'lookup', 'model': 'item'},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class CostQtyBreak(BaseModel):
@@ -613,9 +624,10 @@ class CostQtyBreak(BaseModel):
         None, ge=0, title="Unit Cost",
         json_schema_extra={'widget': 'currency', 'precision': 2},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class ItemPrice(BaseModel):
@@ -670,9 +682,10 @@ class ItemPrice(BaseModel):
         description="Recent price adjustments (bounded, not authoritative ledger)",
         json_schema_extra={'widget': 'json-tree'},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class ItemCost(BaseModel):
@@ -722,9 +735,10 @@ class ItemCost(BaseModel):
         description="Recent cost field adjustments (bounded)",
         json_schema_extra={'widget': 'json-tree'},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class ItemCatalogWeb(BaseModel):
@@ -733,9 +747,10 @@ class ItemCatalogWeb(BaseModel):
     title: str = Field("", title="Page Title", json_schema_extra={'widget': 'text'})
     short: str = Field("", title="Short Description", json_schema_extra={'widget': 'textarea'})
     seo: dict = Field(default_factory=dict, title="SEO", json_schema_extra={'widget': 'json-tree'})
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class ItemCatalog(BaseModel):
@@ -760,9 +775,10 @@ class ItemCatalog(BaseModel):
         description="Lightweight booleans: featured, seasonal, restricted",
         json_schema_extra={'widget': 'json-tree'},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -805,9 +821,10 @@ class BomOperationalData(BaseModel):
         description="General routing/assembly notes",
         json_schema_extra={'widget': 'textarea'},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -841,9 +858,10 @@ class OrgAddress(BaseModel):
         description="{'lat': float, 'lng': float}",
         json_schema_extra={'widget': 'json-tree'},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class OrgPhone(BaseModel):
@@ -853,9 +871,10 @@ class OrgPhone(BaseModel):
     number: str = Field("", title="Number", json_schema_extra={'widget': 'phone'})
     ext: Optional[str] = Field(None, title="Extension", json_schema_extra={'widget': 'text'})
     primary: bool = Field(False, title="Primary", json_schema_extra={'widget': 'boolean'})
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class OrgEmail(BaseModel):
@@ -865,9 +884,10 @@ class OrgEmail(BaseModel):
     email: str = Field("", title="Email", json_schema_extra={'widget': 'email'})
     primary: bool = Field(False, title="Primary", json_schema_extra={'widget': 'boolean'})
     bounce_count: int = Field(0, ge=0, title="Bounce Count", json_schema_extra={'widget': 'number'})
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class OrgDomain(BaseModel):
@@ -879,9 +899,10 @@ class OrgDomain(BaseModel):
         description="Epoch ms when domain was verified",
         json_schema_extra={'widget': 'timestamp'},
     )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1007,13 +1028,113 @@ ITEM_SCHEMA_MAP = {
     'item_catalog': ItemCatalog,
 }
 
-# BOM + OrgBase aspect schemas
+# ═══════════════════════════════════════════════════════════════════════
+# Financial Leaf Schemas (OrgBase.financial sub-objects)
+# ═══════════════════════════════════════════════════════════════════════
+
+class FinancialCredit(BaseModel):
+    """Credit tracking — customer or vendor."""
+    limit: float = Field(0.0, title="Credit Limit", json_schema_extra={'widget': 'currency', 'precision': 2})
+    high: float = Field(0.0, title="High Balance", json_schema_extra={'widget': 'currency', 'precision': 2})
+    available: float = Field(0.0, title="Available Credit", json_schema_extra={'widget': 'currency', 'precision': 2})
+    terms_days: int = Field(0, title="Terms Days", json_schema_extra={'widget': 'number'})
+
+    class Config:
+        extra = "forbid"
+
+
+class FinancialAging(BaseModel):
+    """AR/AP aging buckets."""
+    future: float = Field(0.0, title="Future", json_schema_extra={'widget': 'currency', 'precision': 2})
+    current: float = Field(0.0, title="Current", json_schema_extra={'widget': 'currency', 'precision': 2})
+    period_1: float = Field(0.0, title="1-30 Days", json_schema_extra={'widget': 'currency', 'precision': 2})
+    period_2: float = Field(0.0, title="31-60 Days", json_schema_extra={'widget': 'currency', 'precision': 2})
+    period_3: float = Field(0.0, title="61-90+ Days", json_schema_extra={'widget': 'currency', 'precision': 2})
+
+    class Config:
+        extra = "forbid"
+
+
+class FinancialSales(BaseModel):
+    """Sales period totals."""
+    mtd: float = Field(0.0, title="MTD", json_schema_extra={'widget': 'currency', 'precision': 2})
+    ytd: float = Field(0.0, title="YTD", json_schema_extra={'widget': 'currency', 'precision': 2})
+    lifetime: float = Field(0.0, title="Lifetime", json_schema_extra={'widget': 'currency', 'precision': 2})
+    dt_last_sale: Optional[str] = Field(None, title="Last Sale Date", json_schema_extra={'widget': 'date'})
+    last_sale_amount: float = Field(0.0, title="Last Sale Amount", json_schema_extra={'widget': 'currency', 'precision': 2})
+
+    class Config:
+        extra = "forbid"
+
+
+class FinancialPayment(BaseModel):
+    """Payment history metrics."""
+    days_avg_paid: float = Field(0.0, title="Avg Days to Pay", json_schema_extra={'widget': 'number', 'precision': 1})
+    days_pay: float = Field(0.0, title="Days Pay", json_schema_extra={'widget': 'number'})
+    dt_last_payment: Optional[str] = Field(None, title="Last Payment Date", json_schema_extra={'widget': 'date'})
+    last_payment_amount: float = Field(0.0, title="Last Payment Amount", json_schema_extra={'widget': 'currency', 'precision': 2})
+
+    class Config:
+        extra = "forbid"
+
+
+class FinancialCosts(BaseModel):
+    """Cost period totals."""
+    mtd: float = Field(0.0, title="MTD", json_schema_extra={'widget': 'currency', 'precision': 2})
+    ytd: float = Field(0.0, title="YTD", json_schema_extra={'widget': 'currency', 'precision': 2})
+    alltime: float = Field(0.0, title="All Time", json_schema_extra={'widget': 'currency', 'precision': 2})
+
+    class Config:
+        extra = "forbid"
+
+
+class FinancialCollection(BaseModel):
+    """Collection/receivables health."""
+    cost_mtd: float = Field(0.0, title="Collection Cost MTD", json_schema_extra={'widget': 'currency', 'precision': 2})
+    cost_ytd: float = Field(0.0, title="Collection Cost YTD", json_schema_extra={'widget': 'currency', 'precision': 2})
+    cost_alltime: float = Field(0.0, title="Collection Cost All Time", json_schema_extra={'widget': 'currency', 'precision': 2})
+    dt_last_statement: Optional[str] = Field(None, title="Last Statement", json_schema_extra={'widget': 'date'})
+    dt_last_contact: Optional[str] = Field(None, title="Last Collection Contact", json_schema_extra={'widget': 'date'})
+    health_score: str = Field("green", title="Health Score", json_schema_extra={'widget': 'select', 'selectlist_key': 'health_score'})
+    velocity_trend: str = Field("stable", title="Velocity Trend", json_schema_extra={'widget': 'select', 'selectlist_key': 'velocity_trend'})
+
+    class Config:
+        extra = "forbid"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Comments Schema (replaces hardcoded comments in field_behaviors.py)
+# ═══════════════════════════════════════════════════════════════════════
+
+class CommentsChannel(BaseModel):
+    """One comment channel — list of timestamped entries."""
+    public: list = Field(default_factory=list, title="Public", description="Visible to external parties")
+    process: list = Field(default_factory=list, title="Process", description="Internal process notes")
+    partner: list = Field(default_factory=list, title="Partner", description="Partner/vendor communication")
+    notes: str = Field("", title="Notes", json_schema_extra={'widget': 'textarea'})
+
+    class Config:
+        extra = "forbid"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Schema Maps — connect envelope names to Pydantic classes
+# ═══════════════════════════════════════════════════════════════════════
+
+# BOM + OrgBase aspect schemas + financial + comments
 AUXILIARY_SCHEMA_MAP = {
     'bom_op_data': BomOperationalData,
     'org_address': OrgAddress,
     'org_phone': OrgPhone,
     'org_email': OrgEmail,
     'org_domain': OrgDomain,
+    'financial_credit': FinancialCredit,
+    'financial_aging': FinancialAging,
+    'financial_sales': FinancialSales,
+    'financial_payment': FinancialPayment,
+    'financial_costs': FinancialCosts,
+    'financial_collection': FinancialCollection,
+    'comments': CommentsChannel,
 }
 
 
@@ -1049,8 +1170,12 @@ def get_all_leaf_behaviors() -> dict:
 
     Returns the same structure as the hardcoded LEAF_BEHAVIORS in
     field_behaviors.py, but derived from Pydantic schemas.
+    Includes transaction envelopes, item envelopes, financial leaves,
+    and comments.
     """
-    return {
-        envelope_name: schema_to_leaf_behaviors(schema_cls)
-        for envelope_name, schema_cls in ENVELOPE_SCHEMA_MAP.items()
-    }
+    result = {}
+    for envelope_name, schema_cls in ENVELOPE_SCHEMA_MAP.items():
+        result[envelope_name] = schema_to_leaf_behaviors(schema_cls)
+    for envelope_name, schema_cls in AUXILIARY_SCHEMA_MAP.items():
+        result[envelope_name] = schema_to_leaf_behaviors(schema_cls)
+    return result

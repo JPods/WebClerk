@@ -4,8 +4,8 @@ from django.test import TestCase
 from django.utils import timezone
 from unittest.mock import patch, MagicMock
 from apps.transactions.models import Payment, Invoice, PaymentApplication
-from apps.transactions.services.payment_application import apply_payment_to_invoice, unapply_payment_from_invoice, get_invoice_payment_status
-from apps.transactions.services.payment_gateways import StripeService, PayPalService, PaymentReconciliationService
+from apps.transactions.services.payment.payment_apply import apply_payment_to_invoice, unapply_payment_from_invoice, get_invoice_payment_status
+from apps.transactions.services.payment.spreedly_gateway import StripeService, PayPalService, PaymentReconciliationService
 from apps.core.models import Contact
 
 

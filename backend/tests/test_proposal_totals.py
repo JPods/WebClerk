@@ -1,7 +1,7 @@
 from __future__ import annotations
 import pytest
 from apps.transactions.models import Proposal, ProposalLine, Order, OrderLine
-from apps.transactions.services.proposal_to_order import (
+from apps.transactions.services.convert.convert_proposal_to_order import (
     transfer_proposal_to_order,
     validate_proposal_for_transfer,
     ProposalToOrderTransferError
@@ -492,7 +492,7 @@ class TestProposalTransferValidation:
 # Main transfer function with full control over the conversion process.
 
 # ```python
-# from apps.transactions.services.proposal_to_order import transfer_proposal_to_order
+# from apps.transactions.services.convert.convert_proposal_to_order import transfer_proposal_to_order
 
 # # Transfer all lines
 # result = transfer_proposal_to_order(
@@ -536,7 +536,7 @@ class TestProposalTransferValidation:
 # Pre-transfer validation to check readiness and identify potential issues.
 
 # ```python
-# from apps.transactions.services.proposal_to_order import validate_proposal_for_transfer
+# from apps.transactions.services.convert.convert_proposal_to_order import validate_proposal_for_transfer
 
 # validation = validate_proposal_for_transfer(proposal, line_ids=[123, 456])
 # if validation['can_transfer']:

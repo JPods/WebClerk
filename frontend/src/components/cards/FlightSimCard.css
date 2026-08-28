@@ -8,6 +8,7 @@
   flex-direction: column;
   gap: 4px;
   padding: 4px 0;
+  font-size: var(--fsc-fs, 13px);
 }
 
 .fs-sim-btn {
@@ -31,11 +32,11 @@
 }
 
 .fs-sim-label {
-  font-size: 13px;
+  font-size: var(--fsc-fs, 13px);
   font-weight: 600;
 }
 
 .fs-sim-desc {
-  font-size: 11px;
+  font-size: calc(var(--fsc-fs, 13px) - 2px);
   color: var(--db-text-muted, #a0a0a0);
 }

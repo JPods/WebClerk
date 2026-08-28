@@ -128,7 +128,7 @@ export default function CoreTabPanel({
   const dispatch = useDispatch();
 
   return (
-    <div>
+    <div data-wc="core-tab-panel">
       <DetailTabs
         entityType={entityType}
         activeTab={activeTab}

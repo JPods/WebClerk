@@ -6,7 +6,7 @@ from decimal import Decimal
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
 from apps.products.models.inventory_layer import InventoryLayer
-from apps.products.services.inventory_reservations import create_reservation
+from apps.products.services.inventory.inventory_reserve import create_reservation
 
 
 class InventoryMetricsAPITests(TestCase):

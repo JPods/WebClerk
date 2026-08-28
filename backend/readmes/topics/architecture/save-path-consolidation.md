@@ -177,7 +177,7 @@ python manage.py process_pending_inventory --skip-lines
 #### Django Shell (Ad-hoc)
 
 ```python
-from apps.transactions.services.pending_inventory_processor import process_line_item_pending
+from apps.transactions.services.inventory_pending_process import process_line_item_pending
 
 # Process all unprocessed line item pending
 result = process_line_item_pending(limit=100)
@@ -185,7 +185,7 @@ print(result)
 # {'total_found': 2, 'processed': 2, 'skipped_locked': 0, ...}
 
 # Process for specific item
-from apps.transactions.services.pending_inventory_processor import process_pending_for_item
+from apps.transactions.services.inventory_pending_process import process_pending_for_item
 result = process_pending_for_item(item_id=240)
 ```
 
@@ -198,7 +198,7 @@ from celery import shared_task
 @shared_task
 def process_inventory_pending_task():
     from apps.products.services.inventory_adjustment_processor import process_pending_inventory
-    from apps.transactions.services.pending_inventory_processor import process_line_item_pending
+    from apps.transactions.services.inventory_pending_process import process_line_item_pending
     
     stack_result = process_pending_inventory(limit=100)
     line_result = process_line_item_pending(limit=100)
@@ -244,7 +244,7 @@ Route ALL line creation through `LineItemService`:
 
 ```python
 # All endpoints should use:
-from apps.transactions.services.line_item_service import LineItemService
+from apps.transactions.services.line_manage import LineItemService
 
 service = LineItemService(create_pending=True)
 line = service.add_item_to_transaction(

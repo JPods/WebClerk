@@ -225,7 +225,7 @@ const ActivityLogTab: React.FC<ActivityLogTabProps> = ({
         {/* Filter dropdown */}
         <div className="flex items-center gap-2">
           <FaFilter className="text-slate-400" size={12} />
-          <select
+          <select data-wc="select"
             value={filter}
             onChange={(e) => setFilter(e.target.value as ActivityType | 'all')}
             className="text-sm px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

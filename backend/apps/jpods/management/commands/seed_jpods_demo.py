@@ -32,7 +32,7 @@ from apps.core.models import Contact
 from apps.orgs.models import OrgBase
 from apps.products.models import Item
 from apps.sync.models import Connection
-from apps.ai_assistant.services.alice_notes import create_note
+from apps.ai_assistant.services.notes import create_note
 
 logger = logging.getLogger(__name__)
 

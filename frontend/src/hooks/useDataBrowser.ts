@@ -105,109 +105,45 @@ function schemaFormat(field: string, schemaMap?: SchemaFormatMap): Partial<Field
 }
 
 // ---------------------------------------------------------------------------
-// Smart defaults by field name — FALLBACK when schema metadata is unavailable.
-// Ported from wc2 listboxK._setColumnName.
+// Layout-only defaults by field name — NO FORMAT GUESSING.
+// Format must come from Pydantic schema (PJPV discipline).
+// Only provides width and alignment hints for reasonable column sizing.
+// If a field renders as plain text, it needs a schema declaration.
 // ---------------------------------------------------------------------------
 
 function _nameGuessFieldSpec(field: string): Partial<FieldSpec> {
   const fl = field.toLowerCase();
 
-  // WHO fields — wider for names
-  if (fl === 'display_name' || fl === 'company' || fl === 'name') return { width: 180, align: 'left' };
-  if (fl === 'name_first' || fl === 'name_last') return { width: 120, align: 'left' };
-  if (fl === 'attention') return { width: 140, align: 'left' };
-
-  // Identifiers
-  if (fl === 'ida' || fl === 'sku') return { width: 100, align: 'left' };
-  if (fl === 'id') return { width: 60, align: 'right' };
-
-  // Contact info
-  if (fl.includes('phone')) return { width: 120, align: 'left', format: 'phone' };
-  if (fl.includes('email')) return { width: 180, align: 'left' };
-  if (fl.includes('zip') || fl.includes('postal')) return { width: 70, align: 'left' };
-  if (fl === 'state' || fl === 'province') return { width: 60, align: 'center' };
-  if (fl.includes('address') || fl === 'address_full') return { width: 220, align: 'left' };
-  if (fl === 'city') return { width: 120, align: 'left' };
-  if (fl === 'country') return { width: 80, align: 'center' };
-
-  // Description / text
-  if (fl === 'description' || fl === 'title') return { width: 220, align: 'left' };
-  if (fl === 'notes' || fl === 'comments') return { width: 200, align: 'left', wrap: true };
-
-  // Terms / level (must check before price pattern)
-  if (fl === 'terms' || fl === 'price_level') return { width: 80, align: 'left' };
-
-  // Currency / money
-  if (fl.includes('price') || fl.includes('cost') || fl === 'total' || fl === 'balance'
-    || fl === 'amount' || fl === 'debit' || fl === 'credit' || fl.includes('extended'))
-    return { width: 100, align: 'right', format: 'currency' };
-
-  // Rates / percentages
-  if (fl.includes('rate') || fl === 'discount' || fl.includes('percent') || fl === 'commission')
-    return { width: 80, align: 'right', format: 'percent' };
-
-  // Weight
-  if (fl.includes('weight') || fl.endsWith('_wt')) return { width: 60, align: 'right', format: 'number' };
-
-  // Quantities
-  if (fl === 'qty' || fl === 'quantity' || fl.startsWith('qty_') || fl === 'line_number' || fl === 'sequence')
-    return { width: 60, align: 'right' };
-
-  // Status / type / category
-  if (fl === 'status' || fl === 'type' || fl === 'category' || fl === 'kind' || fl === 'org_type'
-    || fl === 'kanban_column' || fl === 'priority')
-    return { width: 100, align: 'left' };
-
-  // Dates / timestamps
-  if (fl.startsWith('dt_') || fl.includes('date') || fl.includes('_dt') || fl === 'deadline_by'
-    || fl === 'start_by' || fl === 'end_by' || fl === 'expected_by' || fl === 'completed_by')
-    return { width: 100, align: 'center', format: 'date' };
-
-  // Booleans
-  if (fl.startsWith('is_')) return { width: 50, align: 'center' };
-
-  // Numeric scalars
-  if (fl === 'version' || fl === 'security_level' || fl === 'health_rating' || fl === 'difficulty'
-    || fl === 'burndown' || fl === 'linkage' || fl === 'count_accessed')
-    return { width: 60, align: 'right' };
-
-  // UUID
-  if (fl === 'uuid') return { width: 100, align: 'left' };
-
-  // JSON blobs — narrow in list (just show {...})
-  if (fl === 'metadata' || fl === 'refs' || fl === 'prefs' || fl === 'actions' || fl === 'stats')
-    return { width: 60, align: 'left', format: 'json' };
-
-  // UOM
-  if (fl === 'uom' || fl === 'unit_of_measure') return { width: 60, align: 'center' };
-
-  // Source
-  if (fl === 'source' || fl === 'source_model') return { width: 100, align: 'left' };
-
-  // Dot-path fields from JSON envelopes (totals.total, price.unit, etc.)
-  if (field.includes('.')) {
-    const leaf = field.split('.').pop() || '';
-    const CURRENCY_LEAVES = ['total', 'subtotal', 'tax', 'shipping', 'other', 'margin', 'balance',
-      'received', 'unit', 'unit_base', 'extended', 'discount_amount', 'handling', 'freight',
-      'commissions', 'cost', 'line_sum_goods', 'line_sum_tax', 'line_sum_shipping', 'line_sum_handling'];
-    const PERCENT_LEAVES = ['discount_percent', 'tax_rate', 'margin_pc'];
-    const NUMBER_LEAVES = ['active', 'staged', 'remaining', 'precision', 'increment'];
-    if (CURRENCY_LEAVES.includes(leaf)) return { width: 100, align: 'right', format: 'currency' };
-    if (PERCENT_LEAVES.includes(leaf)) return { width: 80, align: 'right', format: 'percent' };
-    if (NUMBER_LEAVES.includes(leaf)) return { width: 70, align: 'right', format: 'number' };
+  // Log undeclared fields in development
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(`[PJPV] No schema declaration for field: ${field} — add to Pydantic schema`);
   }
 
-  // Default
-  return {};
+  // Layout-only hints: width + alignment. NEVER format.
+  if (fl === 'display_name' || fl === 'company' || fl === 'name') return { width: 180, align: 'left' };
+  if (fl === 'name_first' || fl === 'name_last') return { width: 120, align: 'left' };
+  if (fl === 'ida' || fl === 'sku') return { width: 100, align: 'left' };
+  if (fl === 'id') return { width: 60, align: 'right' };
+  if (fl === 'description' || fl === 'title') return { width: 220, align: 'left' };
+  if (fl === 'status' || fl === 'type' || fl === 'category') return { width: 100, align: 'left' };
+  if (fl === 'uuid') return { width: 100, align: 'left' };
+  if (fl.startsWith('is_')) return { width: 50, align: 'center' };
+
+  // JSON blobs — narrow in list
+  if (fl === 'metadata' || fl === 'refs' || fl === 'prefs' || fl === 'actions' || fl === 'config'
+    || fl === 'comments' || fl === 'totals' || fl === 'financial')
+    return { width: 60, align: 'left' };
+
+  // Default: modest width, left-aligned, no format
+  return { width: 120, align: 'left' };
 }
 
 /**
- * Get default field spec: schema metadata first, name-guessing fallback.
+ * Get default field spec: schema metadata is authoritative.
  *
- * Priority: Pydantic schema widget → name-pattern guess → empty.
- * Schema provides format/align/width for fields it knows about.
- * Name-guessing covers everything else (contacts, dates, booleans, etc.)
- * and fields not declared in any Pydantic schema (user-defined custom fields).
+ * PJPV discipline: format comes from Pydantic schema only.
+ * Fallback provides layout hints (width, align) but never format.
+ * If a field renders as plain text, it needs a schema declaration.
  */
 export function getDefaultFieldSpec(field: string, schemaMap?: SchemaFormatMap): Partial<FieldSpec> {
   const fromSchema = schemaFormat(field, schemaMap);

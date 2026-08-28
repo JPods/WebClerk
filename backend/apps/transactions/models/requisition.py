@@ -11,7 +11,7 @@ class Requisition(common_models.BaseModel):
     """
 
     name = models.CharField(max_length=128, default="", db_index=True)
-    status = models.CharField(max_length=32, default="draft", blank=True, db_index=True)
+    # status — inherited from CoreModel
 
     def __str__(self):
         return self.name or f"Requisition {self.id}"

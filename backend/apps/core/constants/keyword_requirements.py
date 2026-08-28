@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from apps.core.models.setting import Setting
-from apps.core.services.cache_service import cache_service
+from apps.core.services.cache import cache_service
 
 def load_keyword_requirements():
     """Load keyword requirements from wc:model config.search sections."""

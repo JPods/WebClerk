@@ -42,6 +42,7 @@ import React, { useMemo, useState } from "react";
 import { FaSlidersH } from "react-icons/fa";
 import FieldOrderDialog from "@/components/common/FieldOrderDialog";
 import { useListFieldConfig } from "@/hooks/useListFieldConfig";
+import { getUI } from '@/utils/contactUI';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -118,6 +119,8 @@ export function DbColumns<T extends Record<string, unknown>>({
   hideHeaders = false,
   emptyMessage,
 }: DbColumnsProps<T>) {
+  const active = getUI<string>('theme.active', 'dark');
+  const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
   // Column config persistence
@@ -152,7 +155,7 @@ export function DbColumns<T extends Record<string, unknown>>({
             </span>
           )}
           {sectionIcon && (
-            <span style={{ fontSize: 10 }}>{sectionIcon}</span>
+            <span style={{ fontSize: baseFontSize - 3 }}>{sectionIcon}</span>
           )}
           <span className="db-section-header__label">{sectionLabel}</span>
           <span className="db-section-header__count">({data.length})</span>

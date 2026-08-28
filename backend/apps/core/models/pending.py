@@ -148,7 +148,7 @@ class Pending(CoreModel):
     def _apply_payment(self):
         """Apply payment to invoice. Delegates to payment_pending service."""
         try:
-            from apps.transactions.services.payment_pending import apply_payment_pending
+            from apps.transactions.services.payment.payment_pending import apply_payment_pending
             return apply_payment_pending(self)
         except Exception:
             logger.debug("Pending %s: payment apply failed, queued for celery", self.pk, exc_info=True)

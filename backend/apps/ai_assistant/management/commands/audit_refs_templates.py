@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.core.management.base import BaseCommand
 
-from apps.ai_assistant.services.alice_notes import create_note
+from apps.ai_assistant.services.notes import create_note
 from apps.core.services.link_defaults import MODEL_LINK_TEMPLATES
 from common.denorm_registry import DENORM_REGISTRY
 

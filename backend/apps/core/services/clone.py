@@ -211,8 +211,8 @@ def clone_record(model_name: str, record_id: int, include_children: bool = True,
 
             # Re-price all cloned lines with current pricing
             try:
-                from apps.products.services.pricing import apply_line_pricing
-                from apps.transactions.services.totals import recalculate_totals
+                from apps.products.services.price_resolver import apply_line_pricing
+                from apps.transactions.services.pricing.totals_compute import recalculate_totals
 
                 line_model_key = model_name + '_line'
                 customer_id = getattr(clone, 'customer_id', None)

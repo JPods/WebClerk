@@ -86,7 +86,7 @@ class Command(BaseCommand):
         ))
 
         if options['validate']:
-            from apps.core.services.settings_health import check_settings_health
+            from apps.core.services.setting_health import check_settings_health
             report = check_settings_health()
             if report['healthy']:
                 self.stdout.write(self.style.SUCCESS(f"Health check: PASSED ({report['summary']})"))

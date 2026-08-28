@@ -4,7 +4,7 @@ from apps.core.models import Pending
 from apps.products.models import InventoryLayer
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
-from apps.transactions.services.pending_inventory_processor import process_pending_for_item
+from apps.transactions.services.inventory_pending_process import process_pending_for_item
 
 pytestmark = pytest.mark.django_db
 

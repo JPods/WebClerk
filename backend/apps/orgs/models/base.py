@@ -76,12 +76,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		blank=True, null=True,
 		db_column='terms_id', related_name='orgs_with_terms',
 	)
-	status = models.CharField(
-		max_length=32,
-		blank=True,
-		choices=ORG_STATUS_CHOICES,
-		db_index=True,
-	)  # e.g. active, prospect, retired
+	# status — inherited from CoreModel
 
 	@property
 	def company(self) -> str:

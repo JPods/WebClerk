@@ -7,7 +7,7 @@ from django.contrib import admin
 from apps.transactions.admin import WorkOrderLineAdmin
 from django.contrib.messages.storage.fallback import FallbackStorage
 from apps.core.models.setting import Setting
-from apps.transactions.services.status_guard import validate_transition
+from apps.transactions.services.validate_status import validate_transition
 
 User = get_user_model()
 

@@ -201,7 +201,7 @@ class TransactionBaseModel(BaseModel):
         JSON is computed from line data. Display values are projections of JSON.
         Never the reverse.
         """
-        from apps.transactions.services.totals import recalculate_totals
+        from apps.transactions.services.pricing.totals_compute import recalculate_totals
         model_name = self._meta.model_name
         # recalculate_totals always persists — persist param is accepted but
         # currently ignored (TODO: add dry_run mode to recalculate_totals)
@@ -223,7 +223,7 @@ class TransactionBaseModel(BaseModel):
     # Functional indexes on totals->>'total' and totals->>'balance' handle queries.
     # Counter for the next line_number to assign to new lines (increments by 10)
     line_increment = models.IntegerField(default=10)
-    status = models.CharField(max_length=32, choices=STATUS_CHOICES, default=STATUS_PLANNED, db_index=True)
+    # status — inherited from CoreModel
     priority = models.CharField(max_length=32, blank=True, null=True)
     price_level = models.CharField(max_length=50, blank=True, default='retail')
     dt_needed = models.BigIntegerField(blank=True, null=True, db_index=True, help_text="Date needed (UTC epoch ms) — when customer needs the order")

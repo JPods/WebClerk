@@ -43,7 +43,7 @@ def save_layout_pending(params: dict) -> dict:
 
     # --- Step 1: Create audit record ---
     try:
-        from apps.ai_assistant.models_alice import AliceObservation
+        from apps.ai_assistant.models.alice import AliceObservation
         AliceObservation.objects.create(
             source='layout_save',
             category='layout_pending',

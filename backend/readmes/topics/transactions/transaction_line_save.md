@@ -225,7 +225,7 @@ When a new line is created, a Pending record is generated to track the inventory
 The `LineItemService._create_pending_for_new_line()` method creates pending records:
 
 ```python
-from apps.transactions.services.line_item_service import LineItemService
+from apps.transactions.services.line_manage import LineItemService
 
 service = LineItemService(create_pending=True)
 service._create_pending_for_new_line(

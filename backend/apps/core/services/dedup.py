@@ -78,7 +78,7 @@ def normalize_phone(val):
     Returns digits-only with country code (e.g. "14055551234").
     Single-arg wrapper so it fits in the NORMALIZERS dict.
     """
-    from apps.core.services.phone_normalizer import normalize_phone as _canonical
+    from apps.core.services.format_phone import normalize_phone as _canonical
     return _canonical(str(val or ''), default_country="US")
 
 

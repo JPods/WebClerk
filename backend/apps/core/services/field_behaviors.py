@@ -33,6 +33,7 @@ SYSTEM_VIEW_ONLY = [
 NEVER_EDIT = [
     'id', 'ida', 'uuid', 'dt_created', 'dt_modified', 'version',
     'is_deleted', 'is_archived', 'is_locked', 'security_level', 'search_vector',
+    'health_rating',
 ]
 
 

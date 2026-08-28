@@ -107,7 +107,7 @@ def check_alice_db():
     try:
         import django
         django.setup()
-        from apps.ai_assistant.models_alice import (
+        from apps.ai_assistant.models.alice import (
             AliceObservation, AliceCoachingLog, AliceInsight,
         )
         counts = {

@@ -23,6 +23,7 @@ import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
 import { saveRecord, deleteRecord } from '@/api/wcapi';
 import { DbColumns, type DbColumnDef } from '@/apps/common/components/panels/DbColumns';
+import { getUI } from '@/utils/contactUI';
 
 export interface CommPanelProps {
   contactId: number;
@@ -104,6 +105,8 @@ const AddRow: React.FC<{
   onCancel: () => void;
 }> = ({ contactId, onSaved, onCancel }) => {
   const dispatch = useDispatch();
+  const active = getUI<string>('theme.active', 'dark');
+  const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
   const [type, setType] = useState<'email' | 'phone' | 'address' | 'domain'>('email');
   const [value, setValue] = useState('');
   const [name, setName] = useState('');
@@ -135,11 +138,11 @@ const AddRow: React.FC<{
       style={{ padding: '6px 12px', background: 'var(--db-row-active)' }}
     >
       <div className="db-list-row__indicator" style={{ background: 'var(--db-accent)' }} />
-      <select
+      <select data-wc="select"
         value={type}
         onChange={(e) => setType(e.target.value as any)}
         style={{
-          width: 80, flexShrink: 0, fontSize: 11,
+          width: 80, flexShrink: 0, fontSize: baseFontSize - 2,
           background: 'var(--db-input-bg)', color: 'var(--db-text)',
           border: '1px solid var(--db-input-border)', borderRadius: 3, padding: '2px 4px',
         }}
@@ -155,7 +158,7 @@ const AddRow: React.FC<{
         value={value}
         onChange={(e) => setValue(e.target.value)}
         style={{
-          flex: 1, fontSize: 12,
+          flex: 1, fontSize: baseFontSize - 1,
           background: 'var(--db-input-bg)', color: 'var(--db-text)',
           border: '1px solid var(--db-input-border)', borderRadius: 3, padding: '3px 6px',
         }}
@@ -165,7 +168,7 @@ const AddRow: React.FC<{
         value={name}
         onChange={(e) => setName(e.target.value)}
         style={{
-          width: 100, fontSize: 12,
+          width: 100, fontSize: baseFontSize - 1,
           background: 'var(--db-input-bg)', color: 'var(--db-text)',
           border: '1px solid var(--db-input-border)', borderRadius: 3, padding: '3px 6px',
         }}

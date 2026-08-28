@@ -24,7 +24,7 @@ class SettingsHealthView(View):
     """GET /wcapi/settings-health/ — returns health check report."""
 
     def get(self, request):
-        from apps.core.services.settings_health import check_settings_health
+        from apps.core.services.setting_health import check_settings_health
         report = check_settings_health()
         return JsonResponse(report)
 
@@ -46,12 +46,12 @@ class SettingsBootstrapView(View):
                 status=400,
             )
 
-        from apps.core.services.settings_bootstrap import import_settings_bundle
+        from apps.core.services.setting_bootstrap import import_settings_bundle
         result = import_settings_bundle(body)
         result['success'] = not result['errors']
 
         # Re-run health check after import
-        from apps.core.services.settings_health import check_settings_health
+        from apps.core.services.setting_health import check_settings_health
         result['health'] = check_settings_health()
 
         status = 200 if result['success'] else 422
@@ -83,11 +83,11 @@ class SettingsFetchHqView(View):
                 status=401,
             )
 
-        from apps.core.services.settings_bootstrap import fetch_from_wchq
+        from apps.core.services.setting_bootstrap import fetch_from_wchq
         result = fetch_from_wchq(athena_token)
 
         # Re-run health check after fetch
-        from apps.core.services.settings_health import check_settings_health
+        from apps.core.services.setting_health import check_settings_health
         result['health'] = check_settings_health()
 
         status = 200 if result.get('success') else 422

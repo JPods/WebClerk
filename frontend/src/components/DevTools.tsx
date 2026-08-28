@@ -12,6 +12,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '@/api/axios';
+import { getUI } from '@/utils/contactUI';
 
 interface DevConfig {
   db_mode: string;
@@ -35,11 +36,13 @@ const positionStyles: Record<string, React.CSSProperties> = {
 
 // Color schemes for database modes
 const modeColors: Record<string, { bg: string; border: string; text: string; label: string }> = {
-  remote: { bg: '#166534', border: '#22c55e', text: '#f0fdf4', label: '🌐 REMOTE' },
-  local: { bg: '#1e40af', border: '#3b82f6', text: '#eff6ff', label: '💻 LOCAL' },
+  remote: { bg: '#166534', border: '#22c55e', text: 'var(--db-text)', label: '🌐 REMOTE' },
+  local: { bg: '#1e40af', border: '#3b82f6', text: 'var(--db-text)', label: '💻 LOCAL' },
 };
 
 export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.ReactElement | null {
+  const active = getUI<string>('theme.active', 'dark');
+  const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
   const [isOpen, setIsOpen] = useState(false);
   const [config, setConfig] = useState<DevConfig | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -275,7 +278,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     color: colors.text,
     border: `2px solid ${colors.border}`,
     cursor: 'pointer',
-    fontSize: '12px',
+    fontSize: baseFontSize - 1,
     fontWeight: 600,
     fontFamily: 'system-ui, -apple-system, sans-serif',
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)',
@@ -287,20 +290,20 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     ...posStyle,
     zIndex: 10001,
     width: '320px',
-    backgroundColor: '#0f172a',
-    color: '#f8fafc',
+    backgroundColor: 'var(--db-bg)',
+    color: 'var(--db-text)',
     borderRadius: '12px',
-    border: '1px solid #334155',
+    border: '1px solid var(--db-border)',
     boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    fontSize: '13px',
+    fontSize: baseFontSize,
     overflow: 'hidden',
   };
 
   const headerStyle: React.CSSProperties = {
     padding: '12px 16px',
-    backgroundColor: '#1e293b',
-    borderBottom: '1px solid #334155',
+    backgroundColor: 'var(--db-surface-alt)',
+    borderBottom: '1px solid var(--db-border)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -315,9 +318,9 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     padding: '12px',
     marginBottom: '8px',
     borderRadius: '8px',
-    border: isActive ? '2px solid #22c55e' : '1px solid #334155',
-    backgroundColor: isActive ? '#166534' : '#1e293b',
-    color: '#f8fafc',
+    border: isActive ? '2px solid #22c55e' : '1px solid var(--db-border)',
+    backgroundColor: isActive ? '#166534' : 'var(--db-surface-alt)',
+    color: 'var(--db-text)',
     cursor: isPendingSwitch ? 'not-allowed' : 'pointer',
     textAlign: 'left',
     opacity: isPendingSwitch ? 0.6 : 1,
@@ -331,7 +334,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     borderRadius: '8px',
     border: '1px solid #dc2626',
     backgroundColor: '#7f1d1d',
-    color: '#f8fafc',
+    color: 'var(--db-text)',
     cursor: 'pointer',
     fontWeight: 600,
   };
@@ -340,7 +343,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     display: 'inline-flex',
     alignItems: 'center',
     gap: '6px',
-    fontSize: '11px',
+    fontSize: baseFontSize - 2,
     fontWeight: 600,
     padding: '4px 8px',
     borderRadius: '999px',
@@ -349,7 +352,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
       backendStatus === 'live' ? '#14532d' : backendStatus === 'restarting' ? '#78350f' : '#7f1d1d',
     borderColor:
       backendStatus === 'live' ? '#22c55e' : backendStatus === 'restarting' ? '#f59e0b' : '#dc2626',
-    color: '#f8fafc',
+    color: 'var(--db-text)',
   };
 
   if (!isOpen) {
@@ -362,7 +365,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
         onMouseOut={(e) => { e.currentTarget.style.opacity = '1'; }}
       >
         <span>{colors.label}</span>
-        <span style={{ opacity: 0.7, fontSize: '10px' }}>▼</span>
+        <span style={{ opacity: 0.7, fontSize: baseFontSize - 3 }}>▼</span>
       </button>
     );
   }
@@ -376,9 +379,9 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
           style={{
             background: 'none',
             border: 'none',
-            color: '#94a3b8',
+            color: 'var(--db-text-dim)',
             cursor: 'pointer',
-            fontSize: '18px',
+            fontSize: baseFontSize + 5,
             padding: '0 4px',
           }}
         >
@@ -388,13 +391,13 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
 
       <div style={contentStyle}>
         {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>
+          <div style={{ textAlign: 'center', padding: '20px', color: 'var(--db-text-dim)' }}>
             Loading...
           </div>
         ) : config ? (
           <>
             <div style={{ marginBottom: '16px' }}>
-              <div style={{ color: '#94a3b8', fontSize: '11px', marginBottom: '4px' }}>
+              <div style={{ color: 'var(--db-text-dim)', fontSize: baseFontSize - 2, marginBottom: '4px' }}>
                 CURRENT DATA SET
               </div>
               <div style={{ fontWeight: 600 }}>
@@ -408,7 +411,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
             </div>
 
             <div style={{ marginBottom: '8px' }}>
-              <div style={{ color: '#94a3b8', fontSize: '11px', marginBottom: '8px' }}>
+              <div style={{ color: 'var(--db-text-dim)', fontSize: baseFontSize - 2, marginBottom: '8px' }}>
                 DATABASE MODE
               </div>
               
@@ -425,7 +428,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
                       <span style={{ marginLeft: '8px', color: '#22c55e' }}>✓</span>
                     )}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                  <div style={{ fontSize: baseFontSize - 2, color: 'var(--db-text-dim)' }}>
                     {info.description}
                   </div>
                 </button>
@@ -433,7 +436,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
             </div>
 
             <div style={{ marginBottom: '8px' }}>
-              <div style={{ color: '#94a3b8', fontSize: '11px', marginBottom: '8px' }}>
+              <div style={{ color: 'var(--db-text-dim)', fontSize: baseFontSize - 2, marginBottom: '8px' }}>
                 DATA SYNC
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -442,12 +445,12 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
                     flex: 1,
                     padding: '10px',
                     borderRadius: '8px',
-                    border: '1px solid #334155',
-                    backgroundColor: '#1e293b',
-                    color: '#f8fafc',
+                    border: '1px solid var(--db-border)',
+                    backgroundColor: 'var(--db-surface-alt)',
+                    color: 'var(--db-text)',
                     cursor: isPendingSwitch ? 'not-allowed' : 'pointer',
                     fontWeight: 600,
-                    fontSize: '12px',
+                    fontSize: baseFontSize - 1,
                     opacity: isPendingSwitch ? 0.6 : 1,
                     transition: 'all 0.2s',
                   }}
@@ -456,7 +459,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
                   title="Copy remote database into local"
                 >
                   ⬇ Download
-                  <div style={{ fontSize: '10px', fontWeight: 400, color: '#94a3b8', marginTop: '2px' }}>
+                  <div style={{ fontSize: baseFontSize - 3, fontWeight: 400, color: 'var(--db-text-dim)', marginTop: '2px' }}>
                     Remote → Local
                   </div>
                 </button>
@@ -465,12 +468,12 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
                     flex: 1,
                     padding: '10px',
                     borderRadius: '8px',
-                    border: '1px solid #334155',
-                    backgroundColor: '#1e293b',
-                    color: '#f8fafc',
+                    border: '1px solid var(--db-border)',
+                    backgroundColor: 'var(--db-surface-alt)',
+                    color: 'var(--db-text)',
                     cursor: isPendingSwitch ? 'not-allowed' : 'pointer',
                     fontWeight: 600,
-                    fontSize: '12px',
+                    fontSize: baseFontSize - 1,
                     opacity: isPendingSwitch ? 0.6 : 1,
                     transition: 'all 0.2s',
                   }}
@@ -479,7 +482,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
                   title="Copy local database into remote (overwrites team data)"
                 >
                   ⬆ Upload
-                  <div style={{ fontSize: '10px', fontWeight: 400, color: '#94a3b8', marginTop: '2px' }}>
+                  <div style={{ fontSize: baseFontSize - 3, fontWeight: 400, color: 'var(--db-text-dim)', marginTop: '2px' }}>
                     Local → Remote
                   </div>
                 </button>
@@ -493,7 +496,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
                   borderRadius: '6px',
                   backgroundColor: message.type === 'success' ? '#166534' : '#7f1d1d',
                   marginBottom: '8px',
-                  fontSize: '12px',
+                  fontSize: baseFontSize - 1,
                 }}
               >
                 {message.text}
@@ -516,7 +519,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
                     transition: 'width 0.35s ease'
                   }} />
                 </div>
-                <div style={{ marginTop: '6px', fontSize: '11px', color: '#94a3b8' }}>
+                <div style={{ marginTop: '6px', fontSize: baseFontSize - 2, color: 'var(--db-text-dim)' }}>
                   {syncMessage || (syncDirection === 'local-to-remote' ? 'Syncing local data to remote...' : 'Syncing remote data to local...')} ({syncProgress}%)
                 </div>
               </div>
@@ -524,7 +527,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
 
           </>
         ) : (
-          <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>
+          <div style={{ textAlign: 'center', padding: '20px', color: 'var(--db-text-dim)' }}>
             Failed to load config
           </div>
         )}

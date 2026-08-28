@@ -1,7 +1,7 @@
 import importlib
 
 # Import submodule so its constants are defined
-flow = importlib.import_module("apps.transactions.flow")
+flow = importlib.import_module("apps.transactions.services.transaction_flow")
 
 # Ensure LINE_JSON_FIELDS_TO_COPY includes "actions"
 try:

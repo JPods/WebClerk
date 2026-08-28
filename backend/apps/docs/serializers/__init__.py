@@ -1,11 +1,11 @@
 """Docs app serializers."""
 
-from .question_answer import (
+from .question_answer_serializer import (
     QuestionAnswerSerializer,
     QuestionAnswerCreateSerializer,
     QuestionAnswerUpdateSerializer,
 )
-from .linkage_entry import (
+from .linkage_entry_serializer import (
     LinkageEntrySerializer,
     LinkageEntryCreateSerializer,
     LinkageEntryUpdateSerializer,

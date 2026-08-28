@@ -5,11 +5,14 @@ Usage:
     ./manage.py audit_schema_compliance --fix        # Alice mode: fix violations
     ./manage.py audit_schema_compliance --records     # also check record envelopes
     ./manage.py audit_schema_compliance --model contact  # check one model's records
+    ./manage.py audit_schema_compliance --enforce    # PJPV: reshape all records to current schema
+    ./manage.py audit_schema_compliance --enforce --dry-run  # show what would change
 """
 from django.core.management.base import BaseCommand
-from apps.core.services.schema_compliance import (
+from apps.core.services.schema_validate import (
     audit_all_schema_settings,
     validate_record_envelopes,
+    enforce_pjpv_schemas,
 )
 
 
@@ -27,15 +30,44 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             '--model', type=str, default=None,
-            help='Check records for this model only (requires --records).',
+            help='Check records for this model only (requires --records or --enforce).',
         )
         parser.add_argument(
             '--limit', type=int, default=100,
             help='Max records to check per model (default 100).',
         )
+        parser.add_argument(
+            '--enforce', action='store_true',
+            help='PJPV: reshape all JSON envelopes to current Pydantic schema. '
+                 'Unknown keys → userdefined{}. Missing keys → defaults.',
+        )
+        parser.add_argument(
+            '--dry-run', action='store_true',
+            help='Show what --enforce would change without saving.',
+        )
 
     def handle(self, *args, **options):
         fix = options.get('fix', False)
+
+        # ── PJPV Enforce mode — reshape all records to current schema ──
+        if options.get('enforce'):
+            self.stdout.write(self.style.MIGRATE_HEADING(
+                '\n=== PJPV Schema Enforcement ===\n'
+            ))
+            result = enforce_pjpv_schemas(
+                model_filter=options.get('model'),
+                dry_run=options.get('dry_run', False),
+                stdout=self.stdout,
+                style=self.style,
+            )
+            self.stdout.write(f"\nRecords checked: {result['total_records']}")
+            self.stdout.write(f"Records reshaped: {result['reshaped']}")
+            self.stdout.write(f"Unknown keys moved to userdefined: {result['unknown_keys_moved']}")
+            self.stdout.write(f"Missing keys filled: {result['missing_keys_filled']}")
+            self.stdout.write(f"Errors: {result['errors']}")
+            if options.get('dry_run'):
+                self.stdout.write(self.style.WARNING('\n  DRY RUN — no changes saved.\n'))
+            return
 
         # ── Layer 1: Setting schema compliance ──
         self.stdout.write(self.style.MIGRATE_HEADING(

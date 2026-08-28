@@ -23,8 +23,8 @@ from rest_framework.views import APIView
 
 from common.api_responses import api_response
 from .models import Conversation, Message
-from .services.rag_service import RAGService
-from .services.alice_notes import (
+from .services.rag import RAGService
+from .services.notes import (
     create_note,
     resolve_pending,
     get_report,
@@ -380,7 +380,7 @@ class DiagnoseView(APIView):
 
     def _check_alice_db(self):
         try:
-            from .models_alice import AliceObservation, AliceCoachingLog, AliceInsight
+            from .models.alice import AliceObservation, AliceCoachingLog, AliceInsight
             counts = {
                 'observations': AliceObservation.objects.count(),
                 'coaching_logs': AliceCoachingLog.objects.count(),
@@ -394,7 +394,7 @@ class DiagnoseView(APIView):
         """Check if Alice has produced any output in the last 24 hours."""
         try:
             import time
-            from .models_alice import AliceObservation
+            from .models.alice import AliceObservation
             cutoff = int((time.time() - 86400) * 1000)  # epoch millis, 24h ago
             recent = AliceObservation.objects.filter(dt_created__gte=cutoff).count()
             if recent > 0:

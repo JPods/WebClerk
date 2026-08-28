@@ -16,7 +16,7 @@ class Command(BaseCommand):
         parser.add_argument("--limit", type=int, default=10, help="Records to sample per model")
 
     def handle(self, *args, **options):
-        from apps.ai_assistant.services.schema_audit import audit_model_schemas
+        from apps.ai_assistant.services.watch_envelopes import audit_model_schemas
 
         result = audit_model_schemas(
             model_names=options.get("model"),

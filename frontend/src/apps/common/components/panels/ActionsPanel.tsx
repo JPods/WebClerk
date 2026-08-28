@@ -595,7 +595,7 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
 
   return (
     <div className="overflow-auto max-h-80">
-      <table className="w-full text-xs">
+      <table data-wc="table" className="w-full text-xs">
         <thead className="sticky top-0 z-10 db-bg-surface">
           <tr className="text-left db-border-bottom db-text-muted">
             {(!visibleColumns || visibleColumns.has("ida")) && <th className="py-2 px-2 font-medium">ida</th>}
@@ -1022,7 +1022,7 @@ const ActionEditModal: React.FC<ActionEditModalProps> = ({
             <label className="text-xs font-medium tracking-wide db-text-muted">
               type
             </label>
-            <select
+            <select data-wc="select"
               value={formData.kind || "task"}
               onChange={(e) =>
                 setFormData({ ...formData, kind: e.target.value as ActionKind })

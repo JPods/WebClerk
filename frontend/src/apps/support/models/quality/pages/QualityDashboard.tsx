@@ -69,7 +69,7 @@ export default function QualityDashboard() {
   }
 
   return (
-    <div className="p-4">
+    <div data-wc="quality-dashboard" className="p-4">
       <PageBreadcrumb
         pageTitle="Quality — Get It Done Today"
         items={[{ label: 'Support', path: '/support' }]}

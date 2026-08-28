@@ -127,13 +127,20 @@ export function renderField(
   const effectiveValue = isI18n && objKey ? objValue : value;
   const isLong = typeof effectiveValue === 'string' && (effectiveValue as string).length > 100;
 
-  // Determine widget type — schema behavior.type is authoritative
-  const typeName = (isI18n ? '' : behavior.type)
+  // Determine widget type — schema behavior.type is authoritative (PJPV)
+  const declaredType = isI18n ? '' : behavior.type;
+  const autoType = declaredType
     || (typeof effectiveValue === 'boolean' ? 'boolean' : '')
     || (isJson && !isI18n ? 'json' : '')
     || (isLong ? 'textarea' : '')
-    || ((typeof effectiveValue === 'number' && !name.startsWith('dt_')) ? 'number' : '')
-    || 'text';
+    || ((typeof effectiveValue === 'number' && !name.startsWith('dt_')) ? 'number' : '');
+  const typeName = autoType || 'text';
+
+  // PJPV: log undeclared fields in development — they need schema declarations
+  if (!declaredType && typeName === 'text' && effectiveValue != null && effectiveValue !== ''
+    && process.env.NODE_ENV === 'development') {
+    console.warn(`[PJPV] Undeclared field behavior: ${name} — rendering as text. Add to Pydantic schema.`);
+  }
   const Widget = getWidget(typeName);
 
   // For i18n objects, wrap onChange to preserve the key

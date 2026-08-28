@@ -5,6 +5,7 @@
 
 /* Container */
 .fs-root {
+  font-size: var(--fsc-fs, 13px);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -22,14 +23,14 @@
 }
 
 .fs-header h1 {
-  font-size: 18px;
+  font-size: calc(var(--fsc-fs, 13px) + 5px);
   font-weight: 600;
   margin: 0;
 }
 
 .fs-header-meta {
   color: var(--db-text-muted, #9ca3af);
-  font-size: 14px;
+  font-size: calc(var(--fsc-fs, 13px) + 1px);
 }
 
 /* Toolbar */
@@ -45,14 +46,14 @@
 }
 
 .fs-toolbar-label {
-  font-size: 12px;
+  font-size: calc(var(--fsc-fs, 13px) - 1px);
   color: var(--db-text-muted, #9ca3af);
 }
 
 .fs-toolbar-input {
   width: 100px;
   padding: 4px 8px;
-  font-size: 13px;
+  font-size: var(--fsc-fs, 13px);
   font-family: monospace;
   border: 1px solid var(--db-border, #555);
   border-radius: 4px;
@@ -67,7 +68,7 @@
 
 .fs-btn {
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: calc(var(--fsc-fs, 13px) - 1px);
   border: 1px solid var(--db-border, #555);
   border-radius: 4px;
   background: var(--db-surface, #1e1e1e);
@@ -141,7 +142,7 @@
   justify-content: center;
   height: 100%;
   color: var(--db-text-muted, #9ca3af);
-  font-size: 14px;
+  font-size: calc(var(--fsc-fs, 13px) + 1px);
 }
 
 .fs-empty-box {
@@ -150,12 +151,12 @@
 }
 
 .fs-empty-title {
-  font-size: 18px;
+  font-size: calc(var(--fsc-fs, 13px) + 5px);
   margin-bottom: 8px;
 }
 
 .fs-empty-desc {
-  font-size: 14px;
+  font-size: calc(var(--fsc-fs, 13px) + 1px);
 }
 
 /* Quantity cell styling */
@@ -195,7 +196,7 @@
 }
 
 .fs-gl-summary {
-  font-size: 11px;
+  font-size: calc(var(--fsc-fs, 13px) - 2px);
 }
 
 /* ── Item Summary (top of left panel) ────────────────────────────── */
@@ -215,14 +216,14 @@
 }
 
 .fs-item-ida {
-  font-size: 16px;
+  font-size: calc(var(--fsc-fs, 13px) + 3px);
   font-weight: 700;
   font-family: monospace;
   color: var(--db-accent, #9cdcfe);
 }
 
 .fs-item-name {
-  font-size: 13px;
+  font-size: var(--fsc-fs, 13px);
   color: var(--db-text-muted, #a0a0a0);
 }
 
@@ -244,14 +245,14 @@
 }
 
 .fs-item-qty-label {
-  font-size: 10px;
+  font-size: calc(var(--fsc-fs, 13px) - 3px);
   color: var(--db-text-muted, #a0a0a0);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .fs-item-qty-value {
-  font-size: 18px;
+  font-size: calc(var(--fsc-fs, 13px) + 5px);
   font-weight: 700;
   font-family: monospace;
   color: var(--db-text, #ececec);
@@ -270,14 +271,14 @@
 }
 
 .fs-select-title {
-  font-size: 24px;
+  font-size: calc(var(--fsc-fs, 13px) + 11px);
   font-weight: 700;
   color: var(--db-text, #ececec);
   margin: 0 0 8px 0;
 }
 
 .fs-select-desc {
-  font-size: 14px;
+  font-size: calc(var(--fsc-fs, 13px) + 1px);
   color: var(--db-text-muted, #a0a0a0);
   line-height: 1.5;
 }
@@ -296,7 +297,7 @@
 }
 
 .fs-audit-label {
-  font-size: 14px;
+  font-size: calc(var(--fsc-fs, 13px) + 1px);
   font-weight: 700;
   color: var(--db-text, #ececec);
   flex-shrink: 0;
@@ -306,7 +307,7 @@
   flex: 1;
   max-width: 280px;
   padding: 6px 12px;
-  font-size: 14px;
+  font-size: calc(var(--fsc-fs, 13px) + 1px);
   font-family: monospace;
   border: 1px solid var(--db-border, #555);
   border-radius: 4px;
@@ -346,12 +347,12 @@
 }
 
 .fs-sim-card .fs-sim-label {
-  font-size: 15px;
+  font-size: calc(var(--fsc-fs, 13px) + 2px);
   font-weight: 600;
 }
 
 .fs-sim-card .fs-sim-desc {
-  font-size: 12px;
+  font-size: calc(var(--fsc-fs, 13px) - 1px);
   color: var(--db-text-muted, #a0a0a0);
   line-height: 1.4;
 }
@@ -369,7 +370,7 @@
 }
 
 .fs-sim-bar-title {
-  font-size: 14px;
+  font-size: calc(var(--fsc-fs, 13px) + 1px);
   font-weight: 600;
   color: var(--db-text, #ececec);
 }
@@ -399,7 +400,7 @@
   padding: 4px 8px;
   background: var(--db-surface-alt, #252526);
   border-bottom: 1px solid var(--db-border, #3c3c3c);
-  font-size: 11px;
+  font-size: calc(var(--fsc-fs, 13px) - 2px);
   font-weight: 700;
   color: var(--db-text-muted, #a0a0a0);
   text-transform: uppercase;
@@ -407,7 +408,7 @@
 }
 
 .fs-section-header span {
-  font-size: 10px;
+  font-size: calc(var(--fsc-fs, 13px) - 3px);
   font-weight: 400;
   color: var(--db-text-dim, #777);
 }
@@ -436,7 +437,7 @@
 .fs-transaction-table {
   flex: 1;
   overflow-y: auto;
-  font-size: 12px;
+  font-size: calc(var(--fsc-fs, 13px) - 1px);
   font-family: monospace;
 }
 
@@ -446,7 +447,7 @@
   padding: 4px 8px;
   border-bottom: 1px solid var(--db-border, #3c3c3c);
   background: var(--db-surface-alt, #252526);
-  font-size: 10px;
+  font-size: calc(var(--fsc-fs, 13px) - 3px);
   font-weight: 600;
   color: var(--db-text-muted, #a0a0a0);
   text-transform: uppercase;
@@ -506,7 +507,7 @@
 .fs-tx-gl {
   width: 180px;
   flex-shrink: 0;
-  font-size: 10px;
+  font-size: calc(var(--fsc-fs, 13px) - 3px);
 }
 
 .fs-tx-empty {
@@ -516,7 +517,7 @@
 /* ── Payment Table ─────────────────────────────────────────────── */
 
 .fs-pay-table {
-  font-size: 12px;
+  font-size: calc(var(--fsc-fs, 13px) - 1px);
   font-family: monospace;
 }
 
@@ -526,7 +527,7 @@
   padding: 4px 8px;
   border-bottom: 1px solid var(--db-border, #3c3c3c);
   background: var(--db-surface-alt, #252526);
-  font-size: 10px;
+  font-size: calc(var(--fsc-fs, 13px) - 3px);
   font-weight: 600;
   color: var(--db-text-muted, #a0a0a0);
   text-transform: uppercase;
@@ -579,13 +580,13 @@
   width: 80px;
   flex-shrink: 0;
   text-align: center;
-  font-size: 10px;
+  font-size: calc(var(--fsc-fs, 13px) - 3px);
 }
 
 /* ── GL Journal Table ──────────────────────────────────────────── */
 
 .fs-gl-table {
-  font-size: 12px;
+  font-size: calc(var(--fsc-fs, 13px) - 1px);
   font-family: monospace;
 }
 
@@ -595,7 +596,7 @@
   padding: 4px 8px;
   border-bottom: 1px solid var(--db-border, #3c3c3c);
   background: var(--db-surface-alt, #252526);
-  font-size: 10px;
+  font-size: calc(var(--fsc-fs, 13px) - 3px);
   font-weight: 600;
   color: var(--db-text-muted, #a0a0a0);
   text-transform: uppercase;
@@ -652,13 +653,13 @@
   width: 80px;
   flex-shrink: 0;
   text-align: center;
-  font-size: 10px;
+  font-size: calc(var(--fsc-fs, 13px) - 3px);
   color: var(--db-text-dim, #777);
 }
 
 .fs-section-empty {
   padding: 12px;
   color: var(--db-text-dim, #777);
-  font-size: 12px;
+  font-size: calc(var(--fsc-fs, 13px) - 1px);
   font-style: italic;
 }

@@ -15,7 +15,7 @@ Usage:
 """
 from django.core.management.base import BaseCommand
 from apps.core.models import Setting
-from apps.transactions.services.status_guard import TRANSITIONS, TERMINAL, JOURNALIZABLE_MODELS
+from apps.transactions.services.validate_status import TRANSITIONS, TERMINAL, JOURNALIZABLE_MODELS
 
 
 # Pre-condition rules — human-readable, stored for documentation and future UI

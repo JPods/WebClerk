@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 import json
 
-from apps.products.services.inventory_metrics import summarize_inventory_metrics
+from apps.products.services.inventory.inventory_metrics import summarize_inventory_metrics
 
 
 class Command(BaseCommand):

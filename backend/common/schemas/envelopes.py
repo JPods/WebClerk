@@ -150,7 +150,7 @@ class SavedSearch(BaseModel):
     dt_saved: int = 0
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class RecordPrefsBase(BaseModel):
@@ -237,7 +237,7 @@ class WcuiPrefs(BaseModel):
     font_size: int = 12
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class DatabrowserPrefs(BaseModel):
@@ -259,7 +259,7 @@ class LayoutPrefs(BaseModel):
     active_view: dict[str, str] = Field(default_factory=dict)  # model → named view
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class StaffPrefsMixin(BaseModel):
@@ -286,7 +286,7 @@ class RepPrefsMixin(BaseModel):
     notifications: dict = Field(default_factory=dict)
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -301,7 +301,7 @@ class EmployeePrefsMixin(BaseModel):
     dashboard: str = ""
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -318,7 +318,7 @@ class CartPrefsMixin(BaseModel):
     saved_addresses: list[dict] = Field(default_factory=list)
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 # ═══════════════════════════════════════════════════════════════════════

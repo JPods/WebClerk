@@ -28,7 +28,7 @@ def check_setting_schema_compliance(sender, instance, **kwargs):
         return
 
     try:
-        from apps.core.services.schema_compliance import validate_schema_setting
+        from apps.core.services.schema_validate import validate_schema_setting
         violations = validate_schema_setting(instance)
         if violations:
             model_name = getattr(instance, 'parent_model', '') or ''
@@ -55,7 +55,7 @@ def check_schema_compliance_after_migrate(sender, **kwargs):
         return  # Only trigger on core app migration to avoid running N times
 
     try:
-        from apps.core.services.schema_compliance import audit_all_schema_settings
+        from apps.core.services.schema_validate import audit_all_schema_settings
         result = audit_all_schema_settings(fix=False)
         if result['violations']:
             logger.warning(

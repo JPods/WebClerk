@@ -85,7 +85,7 @@ export default function ExchangeRateDisplay({
   if (loading) return <LoadingSpinner size="lg" label="Loading..." />;
 
   return (
-    <div className="p-4 space-y-4">
+    <div data-wc="exchange-rate-display" className="p-4 space-y-4">
       <h3 className="text-lg font-semibold">
         {modeProp === "add" ? "Add Exchange Rate" : modeProp === "edit" ? "Edit Exchange Rate" : "View Exchange Rate"}
       </h3>

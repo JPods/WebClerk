@@ -20,7 +20,7 @@ class CarrierCredentials(BaseModel):
     account_number: str = ''
 
     class Config:
-        extra = "allow"  # carrier-specific fields
+        extra = "forbid"  # carrier-specific fields
 
 
 class CarrierSettings(BaseModel):
@@ -32,7 +32,7 @@ class CarrierSettings(BaseModel):
     markup_percent: float = 0.0
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class EscalationProtocol(BaseModel):
@@ -140,7 +140,7 @@ class ImportBundleHeader(BaseModel):
     skip_log: list[str] = Field(default_factory=list)  # why each skipped row was skipped
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class ConnectionConfig(ConfigBase):
@@ -173,7 +173,7 @@ class ConnectionConfig(ConfigBase):
     escalation_protocol: Optional[EscalationProtocol] = None
 
     class Config:
-        extra = "allow"  # channel-specific extensions
+        extra = "forbid"  # channel-specific extensions
 
 
 # -- .metadata (inherits MetadataBase) --------------------------------------

@@ -23,7 +23,7 @@ from apps.transactions.models import (
     Purchase, PurchaseLine, 
     Receipt, ReceiptLine
 )
-from apps.transactions.services.line_item_service import LineItemService
+from apps.transactions.services.line_manage import LineItemService
 from apps.core.models import Pending
 
 

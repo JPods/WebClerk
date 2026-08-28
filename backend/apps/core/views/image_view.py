@@ -12,7 +12,7 @@ Returns PNG bytes with cache headers. Falls through:
 from django.http import HttpResponse, HttpResponseNotFound
 from rest_framework.views import APIView
 
-from apps.core.services.image_library import resolve_image, VALID_SIZES
+from apps.core.services.resolve_image import resolve_image, VALID_SIZES
 
 
 class ImageView(APIView):

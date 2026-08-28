@@ -1,7 +1,7 @@
 from decimal import Decimal
 from django.test import TestCase
 from apps.transactions.models import Purchase, PurchaseLine, Order, OrderLine
-from apps.transactions.services.order_to_purchase import transfer_order_to_purchase
+from apps.transactions.services.convert.convert_order_to_purchase import transfer_order_to_purchase
 from apps.orgs.models import OrgBase
 
 

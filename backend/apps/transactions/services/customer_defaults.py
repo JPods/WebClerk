@@ -104,7 +104,7 @@ def get_customer_defaults(customer: Any, contact: Any = None) -> dict:
                         zip_code = candidate
 
     if zip_code:
-        from apps.transactions.services.tax_lookup import apply_tax_to_finance
+        from apps.transactions.services.pricing.tax_resolve import apply_tax_to_finance
         finance = {}
         apply_tax_to_finance(finance, zip_code=zip_code)
         if finance.get('sales_tax_rate'):

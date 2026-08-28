@@ -140,6 +140,66 @@ Returns `{healthy, total, missing, corrupt, summary}`.
 | `React2025/src/components/SettingsBootstrap.tsx` | Blocking startup dialog |
 | `settings-bundle.json` | The canonical bundle (git-tracked) |
 
+## Setting Protection Wall
+
+Settings represent days of careful refinement — layouts, behaviors, selectlists, schema maps. They are protected against accidental or automated modification.
+
+### Three Layers
+
+1. **Model-level guard** — `Setting.save()` blocks any `config` change on existing records unless `_setting_update_authorized = True` is set on the instance. Unauthorized attempts raise `ValidationError` and log a WARNING.
+
+2. **Enforcement exclusion** — `audit_schema_compliance --enforce` skips the `setting` model entirely. Schema enforcement never touches Settings.
+
+3. **Bundle confirmation** — `unpack_settings_bundle --replace` requires double confirmation:
+   - First: "Are you sure?" (yes/no)
+   - Second: Type "REPLACE" to confirm
+
+### Approved Paths Through the Wall
+
+| Path | Authorization | Use Case |
+|------|--------------|----------|
+| `unpack_settings_bundle` | Auto-authorized (approved bootstrap) | Restore from bundle |
+| `unpack_settings_bundle --replace` | Double confirmation + auto-authorized | Full restore from known-good state |
+| `settings-bootstrap` API | Auto-authorized (startup recovery) | React health-check dialog |
+| `fetch_from_wchq` | Auto-authorized (WC_HQ source) | Fetch from headquarters |
+| `seed_model_definitions` | Auto-authorized (initial setup) | First-time dev setup |
+| Direct ORM with flag | `record._setting_update_authorized = True` | Code that knows what it's doing |
+
+### What Triggers the Wall
+
+```python
+# This FAILS with ValidationError:
+setting.config['layout']['list']['default'] = new_columns
+setting.save(update_fields=['config', 'dt_modified'])
+
+# This WORKS — explicit authorization:
+setting._setting_update_authorized = True
+setting.config['layout']['list']['default'] = new_columns
+setting.save(update_fields=['config', 'dt_modified'])
+# Flag auto-resets after save
+```
+
+### Recovery from Corruption
+
+If Settings are corrupted or missing:
+
+```bash
+# Option 1: Baseline merge (adds missing, preserves existing)
+python manage.py unpack_settings_bundle
+
+# Option 2: Full replace (double confirmation required)
+python manage.py unpack_settings_bundle --replace
+
+# Option 3: React startup dialog (blocks app, offers fix)
+# Browser shows health check results + fix buttons
+```
+
+The bundle file (`settings-bundle.json`) is git-tracked. After any successful Setting refinement session, re-pack:
+
+```bash
+python manage.py pack_settings_bundle --validate
+```
+
 ## Design Decisions
 
 - **webclerk.com IS the path** — hardcoded, not configurable. No token, no fetch.

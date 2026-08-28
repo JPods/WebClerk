@@ -221,7 +221,7 @@ export default function SpreedlyCardForm({
   }
 
   return (
-    <div className="space-y-4">
+    <div data-wc="spreedly-card-form" className="space-y-4">
       {/* Test mode banner */}
       {testMode && (
         <div className="px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg">

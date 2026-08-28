@@ -2,5 +2,5 @@
 import EmailList from "./EmailList";
 
 export default function Email() {
-  return <EmailList />;
+  return <div data-wc="email"><EmailList /></div>;
 }

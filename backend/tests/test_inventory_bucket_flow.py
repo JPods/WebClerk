@@ -133,7 +133,7 @@ class TestInventoryBucketFlow:
         - PO for 10: on_po=10
         - Receive 8: on_hand=25, on_po=2
         """
-        from apps.products.services.inventory_availability import get_item_availability
+        from apps.products.services.inventory.inventory_available import get_item_availability
         from apps.products.models import InventoryLayer
 
         item, wh, customer = self._setup_item_with_inventory()

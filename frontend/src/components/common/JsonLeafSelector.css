@@ -4,7 +4,7 @@
 
 .jls-tree {
   font-family: var(--db-font-mono, 'SF Mono', 'Consolas', monospace);
-  font-size: 11px;
+  font-size: var(--jls-fs, 13px);
 }
 
 .jls-row {
@@ -39,7 +39,7 @@
   cursor: pointer;
   color: var(--db-text-muted, #6c757d);
   padding: 0;
-  font-size: 9px;
+  font-size: calc(var(--jls-fs, 13px) - 4px);
   flex-shrink: 0;
 }
 
@@ -79,7 +79,7 @@
 .jls-type {
   color: var(--db-text-muted, #6c757d);
   margin-left: 4px;
-  font-size: 10px;
+  font-size: calc(var(--jls-fs, 13px) - 3px);
 }
 
 /* ── Display mode ───────────────────────────────────────────────────── */
@@ -89,12 +89,12 @@
   align-items: baseline;
   gap: 4px;
   font-family: var(--db-font-mono, 'SF Mono', 'Consolas', monospace);
-  font-size: 12px;
+  font-size: calc(var(--jls-fs, 13px) - 1px);
 }
 
 .jls-display-label {
   color: var(--db-text-muted, #8b949e);
-  font-size: 10px;
+  font-size: calc(var(--jls-fs, 13px) - 3px);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }

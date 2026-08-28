@@ -1,5 +1,5 @@
 import pytest
-from apps.transactions.services.line_item_service import LineItemService
+from apps.transactions.services.line_manage import LineItemService
 from apps.products.models import Item
 from apps.transactions.models import Order, OrderLine
 

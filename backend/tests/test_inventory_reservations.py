@@ -7,7 +7,7 @@ from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
 from apps.products.models.inventory_layer import InventoryLayer
 from apps.products.models.inventory_reservation import InventoryReservation
-from apps.products.services.inventory_reservations import (
+from apps.products.services.inventory.inventory_reserve import (
     create_reservation,
     availability_for_stack,
     release_expired,

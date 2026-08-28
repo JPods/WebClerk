@@ -6,7 +6,7 @@ quantity breaks, and fallback behavior.
 import pytest
 from decimal import Decimal
 
-from apps.products.services.pricing import (
+from apps.products.services.price_resolver import (
     resolve_price_level,
     resolve_unit_price,
     get_price_for_line,

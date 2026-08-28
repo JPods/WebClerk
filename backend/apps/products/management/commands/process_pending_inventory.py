@@ -27,7 +27,7 @@ class Command(BaseCommand):
 
     def _run_once(self, opts):
         """Single processing run — retry unprocessed Pending records."""
-        from apps.transactions.services.pending_inventory_processor import process_line_item_pending
+        from apps.transactions.services.inventory_pending_process import process_line_item_pending
         limit = opts['limit']
         dry_run = bool(opts.get('dry_run'))
 

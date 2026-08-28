@@ -93,6 +93,7 @@ export default function InvoiceServicePrint({
 
   return (
     <div
+      data-wc="invoice-service-print"
       className="print-document bg-white text-black font-sans"
       style={{ width: dims.width, minHeight: dims.height, padding: '0.5in 0.6in', boxSizing: 'border-box', fontSize: 10 }}
     >

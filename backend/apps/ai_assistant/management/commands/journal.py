@@ -54,7 +54,7 @@ class Command(BaseCommand):
         error_parser.add_argument('--category', type=str, default='runtime', help='Error category')
 
     def handle(self, *args, **options):
-        from apps.ai_assistant.services.coding_journal import CodingJournal
+        from apps.ai_assistant.services.journal import CodingJournal
         
         journal = CodingJournal()
         action = options.get('action')

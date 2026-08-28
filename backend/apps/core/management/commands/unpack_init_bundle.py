@@ -36,7 +36,7 @@ class Command(BaseCommand):
         parser.add_argument('--dry-run', action='store_true', help='Show what would change without writing')
 
     def _import_settings(self, records, dry_run):
-        from apps.core.services.settings_bootstrap import import_settings_bundle
+        from apps.core.services.setting_bootstrap import import_settings_bundle
         if dry_run:
             from apps.core.models.setting import Setting
             created, updated = 0, 0

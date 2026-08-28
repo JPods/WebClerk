@@ -1,10 +1,10 @@
 from django.urls import path
-from . import views_stats
-from .views_upload import DocumentUploadView, DocumentDownloadView, DocumentDeleteView
-from .views_qa import ApplyQuestionsView, ListQuestionGroupsView, ParentQAView
+from .views.upload_view import DocumentUploadView, DocumentDownloadView, DocumentDeleteView
+from .views.qa_view import ApplyQuestionsView, ListQuestionGroupsView, ParentQAView
+from .views.stats_view import DocsStatsView
 
 urlpatterns = [
-    path('stats/', views_stats.DocsStatsView.as_view(), name='docs-stats'),
+    path('stats/', DocsStatsView.as_view(), name='docs-stats'),
     # QA endpoints
     path('qa/apply/', ApplyQuestionsView.as_view(), name='qa-apply'),
     path('qa/groups/', ListQuestionGroupsView.as_view(), name='qa-groups'),

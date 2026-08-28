@@ -44,7 +44,7 @@ export default function App() {
           <StaffBadgePrefsProvider>
             <AuthInitializer />
             <PrimeCompanyBootstrap />
-            <div className="min-h-screen bg-slate-50 text-slate-900">
+            <div data-wc="app" className="min-h-screen bg-slate-50 text-slate-900">
               {isSmallScreen && !smallScreenDismissed && (
                 <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-between bg-amber-50 px-4 py-2 text-sm text-amber-800 shadow-sm">
                   <span>Your screen is small — some features may be hard to use.</span>

@@ -8,7 +8,7 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from apps.transactions.models import Proposal, Order, Purchase, WorkOrder, WorkOrderLine
 from apps.core.models.action import Action
-from apps.transactions.serializers.actions import (
+from apps.transactions.serializers.convert_serializer import (
     ConvertRequestSerializer,
     ReceivePurchaseSerializer,
     TransitionRequestSerializer,

@@ -176,7 +176,7 @@ class Command(BaseCommand):
     def _run_drift(self, use_llm, model, report):
         self.stdout.write(self.style.HTTP_INFO("\n▶ 5D: Schema Drift Detection"))
 
-        from apps.ai_assistant.services.schema_drift_detector import SchemaDriftDetector
+        from apps.ai_assistant.services.watch_schemas import SchemaDriftDetector
         detector = SchemaDriftDetector(use_llm=use_llm)
 
         if model:
@@ -288,7 +288,7 @@ class Command(BaseCommand):
                      dismiss="", undismiss="", reason="", history=False):
         self.stdout.write(self.style.HTTP_INFO("\n▶ 5H: Layout Drift Detection"))
 
-        from apps.ai_assistant.services.layout_drift_detector import LayoutDriftDetector
+        from apps.ai_assistant.services.watch_layouts import LayoutDriftDetector
         detector = LayoutDriftDetector(use_llm=use_llm)
 
         # Handle dismiss/undismiss/history sub-commands

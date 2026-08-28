@@ -13,7 +13,7 @@ class TestOrphanDetection:
 
     def test_counts_structure(self):
         """get_orphan_counts returns correct structure."""
-        from apps.core.services.orphan_detection import get_orphan_counts
+        from apps.core.services.record_orphans import get_orphan_counts
 
         results = get_orphan_counts()
         assert isinstance(results, list)
@@ -26,7 +26,7 @@ class TestOrphanDetection:
 
     def test_detail_structure(self):
         """get_orphan_detail returns correct structure."""
-        from apps.core.services.orphan_detection import get_orphan_detail
+        from apps.core.services.record_orphans import get_orphan_detail
 
         result = get_orphan_detail('transactions', 'OrderLine', 'order_id')
         assert 'total' in result
@@ -64,14 +64,14 @@ class TestOrphanDetection:
 
     def test_invalid_model_returns_error(self):
         """get_orphan_detail with invalid model returns error."""
-        from apps.core.services.orphan_detection import get_orphan_detail
+        from apps.core.services.record_orphans import get_orphan_detail
 
         result = get_orphan_detail('transactions', 'FakeModel', 'fake_id')
         assert 'error' in result
 
     def test_relationship_registry_complete(self):
         """All registered relationships reference real models."""
-        from apps.core.services.orphan_detection import REQUIRED_FK_RELATIONSHIPS
+        from apps.core.services.record_orphans import REQUIRED_FK_RELATIONSHIPS
 
         for child_app, child_model, fk_field, parent_app, parent_model in REQUIRED_FK_RELATIONSHIPS:
             try:

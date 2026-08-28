@@ -188,7 +188,7 @@ def _try_carrier_validation(
     Carriers give more precise results for shipping addresses (apartment
     numbers, suite corrections, residential vs commercial classification).
     """
-    from apps.transactions.services.carriers.base import (
+    from apps.transactions.services.fulfillment.carriers.base import (
         Address as CarrierAddress,
         get_carrier,
     )

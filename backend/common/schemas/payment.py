@@ -21,7 +21,7 @@ class PaymentConfig(ConfigBase):
     """Structural config on a Payment record."""
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 # ── Payment .metadata ───────────────────────────────────────────────

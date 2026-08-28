@@ -626,7 +626,7 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
                   </span>
                   {isEditing ? (
                     sf.type === "select" && sf.options ? (
-                      <select
+                      <select data-wc="select"
                         value={sf.value || ""}
                         onChange={(e) =>
                           onScalarFieldChange?.(sf.fieldName, e.target.value)
@@ -905,7 +905,7 @@ function OrgRecordEditor({
                 <label className="block text-[11px] font-medium mb-0.5 db-text-muted">
                   {fd.label}
                 </label>
-                <select
+                <select data-wc="select"
                   value={values[fd.key] ?? ""}
                   onChange={(e) => onChange(fd.key, e.target.value)}
                   className="w-full px-2 py-1 text-sm rounded db-panel-input-text"

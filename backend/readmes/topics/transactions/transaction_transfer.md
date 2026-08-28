@@ -282,7 +282,7 @@ Pre-flight check.  Returns `can_transfer`, `errors`, `warnings`.
 Service: `apps/transactions/services/transfer.py`
 
 ```python
-from apps.transactions.services.transfer import execute_transfer
+from apps.transactions.services.convert.convert_engine import execute_transfer
 
 result = execute_transfer(
     source_type="proposal",

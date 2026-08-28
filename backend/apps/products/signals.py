@@ -5,7 +5,7 @@ from django.dispatch import receiver
 from django.db import transaction
 
 from apps.products.models.inventory_layer import InventoryLayer
-from apps.transactions.services.pending_inventory_processor import process_pending_for_item
+from apps.transactions.services.inventory_pending_process import process_pending_for_item
 
 
 @receiver(pre_save, sender=InventoryLayer)

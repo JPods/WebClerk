@@ -27,7 +27,7 @@ Usage:
 import logging
 from typing import Dict, Any, Optional
 
-from apps.core.services.cache_service import cache_service
+from apps.core.services.cache import cache_service
 from apps.core.models.setting import Setting
 
 logger = logging.getLogger(__name__)

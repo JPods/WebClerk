@@ -36,7 +36,7 @@ def populate_cache_lazily():
     """
     try:
         # Check if cache key exists
-        from apps.core.services.cache_service import cache_service
+        from apps.core.services.cache import cache_service
         cache_key = cache_service.make_key('settings', 'all')
         
         if not cache_service.exists(cache_key):

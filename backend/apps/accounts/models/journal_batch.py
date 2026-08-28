@@ -29,10 +29,7 @@ class JournalBatch(BaseModel):
         ('purchase', 'Purchases Only'),
     ]
 
-    status = models.CharField(
-        max_length=32, choices=STATUS_CHOICES,
-        default=STATUS_PROCESSING, db_index=True,
-    )
+    # status — inherited from CoreModel
     batch_type = models.CharField(
         max_length=32, choices=TYPE_CHOICES, default='full',
     )

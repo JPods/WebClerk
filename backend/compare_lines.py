@@ -17,7 +17,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webclerk3_api.settings')
 django.setup()
 
 from apps.transactions.models.base_line_model import default_quantity, _normalize_line_kind
-from apps.transactions.services.line_item_service import LineItemService
+from apps.transactions.services.line_manage import LineItemService
 
 print('=' * 70)
 print('COMPARISON: Lineitem Quantity Structures')

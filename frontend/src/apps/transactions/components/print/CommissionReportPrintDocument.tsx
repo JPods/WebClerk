@@ -278,7 +278,7 @@ function Footer({ company }: { company: CommissionReportData['company'] }) {
 
 export default function CommissionReportPrintDocument({ data }: { data: CommissionReportData }) {
   if (data.rep_name || (data.reps.length === 1 && data.reps[0]?.detail?.length)) {
-    return <RepStatement data={data} />;
+    return <div data-wc="commission-report-print-document"><RepStatement data={data} /></div>;
   }
-  return <CompanySummary data={data} />;
+  return <div data-wc="commission-report-print-document"><CompanySummary data={data} /></div>;
 }

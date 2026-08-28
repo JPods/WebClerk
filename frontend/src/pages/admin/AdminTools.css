@@ -1,13 +1,14 @@
 /* AdminTools — admin utility runner */
 
 .at-root {
+  font-size: var(--at-fs, 13px);
   padding: 20px; max-width: 1200px; margin: 0 auto;
   color: var(--db-text, #d4d4d4);
 }
 
 .at-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; }
-.at-title { font-size: 18px; font-weight: 600; margin: 0; }
-.at-subtitle { font-size: 12px; color: var(--db-text-muted, #6c757d); }
+.at-title { font-size: calc(var(--at-fs, 13px) + 5px); font-weight: 600; margin: 0; }
+.at-subtitle { font-size: calc(var(--at-fs, 13px) - 1px); color: var(--db-text-muted, #6c757d); }
 .at-denied { padding: 40px; text-align: center; color: var(--db-text-muted, #6c757d); }
 .at-loading { padding: 20px; color: var(--db-text-muted, #6c757d); }
 
@@ -24,10 +25,10 @@
 .at-card:hover { border-color: var(--db-border-hover, #555); }
 .at-card--active { border-color: var(--db-accent, #0d6efd); background: var(--db-bg-hover, #2a2d2e); }
 
-.at-card-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-.at-card-desc { font-size: 11px; color: var(--db-text-muted, #6c757d); margin-bottom: 6px; }
+.at-card-name { font-size: var(--at-fs, 13px); font-weight: 600; margin-bottom: 4px; }
+.at-card-desc { font-size: calc(var(--at-fs, 13px) - 2px); color: var(--db-text-muted, #6c757d); margin-bottom: 6px; }
 .at-card-cmd {
-  font-size: 10px; font-family: monospace;
+  font-size: calc(var(--at-fs, 13px) - 3px); font-family: monospace;
   color: var(--db-accent, #0d6efd); opacity: 0.7;
 }
 
@@ -35,30 +36,30 @@
 .at-runner { flex: 1; min-width: 0; }
 
 .at-runner-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
-.at-runner-header h3 { font-size: 15px; font-weight: 600; margin: 0; }
+.at-runner-header h3 { font-size: calc(var(--at-fs, 13px) + 2px); font-weight: 600; margin: 0; }
 .at-runner-cmd {
-  font-size: 11px; padding: 2px 8px; border-radius: 4px;
+  font-size: calc(var(--at-fs, 13px) - 2px); padding: 2px 8px; border-radius: 4px;
   background: var(--db-bg-card, #252526); color: var(--db-accent, #0d6efd);
 }
 
 .at-runner-explain {
-  font-size: 12px; color: var(--db-text-muted, #6c757d);
+  font-size: calc(var(--at-fs, 13px) - 1px); color: var(--db-text-muted, #6c757d);
   margin-bottom: 16px; line-height: 1.5;
 }
 
 /* Parameters */
 .at-params { margin-bottom: 16px; }
 .at-param-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.at-param-label { font-size: 12px; width: 140px; flex-shrink: 0; }
+.at-param-label { font-size: calc(var(--at-fs, 13px) - 1px); width: 140px; flex-shrink: 0; }
 .at-param-input {
-  flex: 1; font-size: 12px; padding: 4px 8px;
+  flex: 1; font-size: calc(var(--at-fs, 13px) - 1px); padding: 4px 8px;
   background: var(--db-input-bg, #2d2d2d); color: var(--db-text, #d4d4d4);
   border: 1px solid var(--db-border, #444); border-radius: 4px;
 }
 .at-param-input:focus { outline: none; border-color: var(--db-accent, #0d6efd); }
 
 .at-run-btn {
-  font-size: 12px; padding: 6px 20px; border-radius: 4px; cursor: pointer;
+  font-size: calc(var(--at-fs, 13px) - 1px); padding: 6px 20px; border-radius: 4px; cursor: pointer;
   background: var(--db-accent, #0d6efd); color: #fff;
   border: 1px solid var(--db-accent, #0d6efd);
 }
@@ -67,19 +68,19 @@
 
 .at-error {
   margin-top: 12px; padding: 8px 12px; border-radius: 4px;
-  background: rgba(220, 53, 69, 0.15); color: #dc3545; font-size: 12px;
+  background: rgba(220, 53, 69, 0.15); color: #dc3545; font-size: calc(var(--at-fs, 13px) - 1px);
 }
 
 /* Results */
 .at-result { margin-top: 16px; }
 .at-result-header {
-  font-size: 11px; color: var(--db-text-muted, #6c757d);
+  font-size: calc(var(--at-fs, 13px) - 2px); color: var(--db-text-muted, #6c757d);
   margin-bottom: 8px;
 }
 .at-result-header code { color: var(--db-accent, #0d6efd); }
 
 .at-result-json {
-  font-size: 11px; font-family: monospace; line-height: 1.5;
+  font-size: calc(var(--at-fs, 13px) - 2px); font-family: monospace; line-height: 1.5;
   padding: 12px; border-radius: 6px; overflow: auto; max-height: 500px;
   background: var(--db-bg-card, #252526);
   border: 1px solid var(--db-border, #333);

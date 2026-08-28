@@ -43,7 +43,7 @@ class SerialAction(BaseModel):
     notes_required: bool = Field(False, description="Whether notes are required for this action")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class SerialActionList(BaseModel):
@@ -51,7 +51,7 @@ class SerialActionList(BaseModel):
     serial_actions: list[SerialAction] = Field(default_factory=list)
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 # -- Serial.config (transaction context on the serial record) ---------------
@@ -62,7 +62,7 @@ class FloorPlan(BaseModel):
     plan_line: Optional[int] = None
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class SerialActionEntry(BaseModel):
@@ -84,7 +84,7 @@ class SerialActionEntry(BaseModel):
     by: str = Field("", description="Who/what performed the action")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class SerialConfig(ConfigBase):
@@ -115,7 +115,7 @@ class SerialConfig(ConfigBase):
     actions: list[SerialActionEntry] = Field(default_factory=list, description="Embedded action history — self-contained on the serial record")
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 # -- Serial.metadata -------------------------------------------------------

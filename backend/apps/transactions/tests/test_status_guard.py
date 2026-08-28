@@ -7,7 +7,7 @@ For integration tests that hit PostgreSQL, use PYTEST_FORCE_DB=1.
 from unittest.mock import MagicMock
 from django.test import TestCase
 
-from apps.transactions.services.status_guard import (
+from apps.transactions.services.validate_status import (
     validate_transition,
     validate_modification,
     is_journalized,

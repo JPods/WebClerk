@@ -53,9 +53,6 @@
   overflow: hidden;
 }
 
-.db-root[data-fontsize="S"] { --db-font-size: 12px; }
-.db-root[data-fontsize="M"] { --db-font-size: 14px; }
-.db-root[data-fontsize="L"] { --db-font-size: 16px; }
 
 /* ---------------------------------------------------------------------------
    Header / toolbar
@@ -87,7 +84,7 @@
   border: 1px solid var(--db-border-light);
   border-radius: 3px;
   padding: 4px 12px;
-  font-size: 12px;
+  font-size: calc(var(--db-font-size, 13px) - 1px);
   font-weight: 600;
   cursor: pointer;
   background: var(--db-btn-bg);
@@ -102,7 +99,7 @@
 
 .db-btn--small {
   padding: 1px 6px;
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
 }
 
 .db-btn--primary {
@@ -144,7 +141,7 @@
 }
 
 .db-layout-label {
-  font-size: 10px;
+  font-size: calc(var(--db-font-size, 13px) - 3px);
   color: var(--db-text-muted);
   font-weight: 600;
   text-transform: uppercase;
@@ -156,7 +153,7 @@
   border: 1px solid var(--db-border-light);
   border-radius: 3px;
   padding: 2px 8px;
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   font-weight: 600;
   cursor: pointer;
   background: var(--db-btn-bg);
@@ -199,7 +196,7 @@
   border-radius: 4px;
   color: var(--db-text);
   padding: 3px 6px;
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   outline: none;
   width: 120px;
 }
@@ -216,7 +213,7 @@
   border-radius: 3px;
   color: var(--db-text);
   padding: 2px 4px;
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   cursor: pointer;
   outline: none;
 }
@@ -233,7 +230,7 @@
 
 .db-clear-filters {
   padding: 2px 6px;
-  font-size: 13px;
+  font-size: var(--db-font-size, 13px);
   font-weight: 700;
   color: var(--db-text-muted);
   background: transparent;
@@ -266,7 +263,7 @@
 }
 
 .db-query-combine-label {
-  font-size: 10px;
+  font-size: calc(var(--db-font-size, 13px) - 3px);
   font-weight: 600;
   text-transform: uppercase;
   color: var(--db-text-muted);
@@ -282,7 +279,7 @@
   border: 1px solid var(--db-input-border);
   border-radius: 3px;
   color: var(--db-text);
-  font-size: 10px;
+  font-size: calc(var(--db-font-size, 13px) - 3px);
   padding: 2px 2px;
   cursor: pointer;
 }
@@ -294,7 +291,7 @@
   border: 1px solid var(--db-input-border);
   border-radius: 3px;
   color: var(--db-text);
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   padding: 3px 4px;
   cursor: pointer;
 }
@@ -306,7 +303,7 @@
   border: 1px solid var(--db-input-border);
   border-radius: 3px;
   color: var(--db-text-muted);
-  font-size: 10px;
+  font-size: calc(var(--db-font-size, 13px) - 3px);
   padding: 3px 4px;
   cursor: pointer;
 }
@@ -318,7 +315,7 @@
   border: 1px solid var(--db-input-border);
   border-radius: 3px;
   color: var(--db-text);
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   padding: 3px 4px;
   cursor: pointer;
 }
@@ -330,7 +327,7 @@
   border: 1px solid var(--db-input-border);
   border-radius: 3px;
   color: var(--db-text);
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   padding: 3px 6px;
   outline: none;
 }
@@ -349,7 +346,7 @@
   border: 1px solid var(--db-border);
   border-radius: 3px;
   color: var(--db-text-muted);
-  font-size: 13px;
+  font-size: var(--db-font-size, 13px);
   font-weight: 700;
   cursor: pointer;
   padding: 1px 6px;
@@ -380,7 +377,7 @@
   border: 1px solid var(--db-input-border);
   border-radius: 3px;
   color: var(--db-text);
-  font-size: 10px;
+  font-size: calc(var(--db-font-size, 13px) - 3px);
   font-family: monospace;
   padding: 3px 6px;
 }
@@ -390,7 +387,7 @@
   border: 1px solid var(--db-border);
   border-radius: 3px;
   color: var(--db-text);
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   padding: 2px 4px;
   cursor: pointer;
   max-width: 160px;
@@ -411,7 +408,7 @@
   border: 1px solid var(--db-input-border);
   border-radius: 4px;
   color: var(--db-text);
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   padding: 4px 8px;
   outline: none;
   font-style: italic;
@@ -541,7 +538,7 @@
   align-items: center;
   gap: 5px;
   padding: 3px 8px;
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   color: var(--db-text-muted);
 }
 
@@ -669,7 +666,7 @@
 }
 
 .db-field-error {
-  font-size: 10px;
+  font-size: calc(var(--db-font-size, 13px) - 3px);
   color: var(--db-accent-red);
   margin-top: 2px;
 }
@@ -680,7 +677,7 @@
 
 .db-label {
   display: block;
-  font-size: 10px;
+  font-size: calc(var(--db-font-size, 13px) - 3px);
   font-weight: 600;
   margin-bottom: 3px;
   text-transform: uppercase;
@@ -710,19 +707,19 @@
   user-select: none;
 }
 .db-section-header__label {
-  font-size: 10px;
+  font-size: calc(var(--db-font-size, 13px) - 3px);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--db-text-muted);
 }
 .db-section-header__count {
-  font-size: 9px;
+  font-size: calc(var(--db-font-size, 13px) - 4px);
   color: var(--db-text-dim);
 }
 .db-section-header__action {
   margin-left: auto;
-  font-size: 9px;
+  font-size: calc(var(--db-font-size, 13px) - 4px);
   font-weight: 500;
   color: var(--db-accent-green);
   background: none;
@@ -744,7 +741,7 @@
   border-bottom: 1px solid var(--db-border);
 }
 .db-list-header__cell {
-  font-size: 10px;
+  font-size: calc(var(--db-font-size, 13px) - 3px);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -819,7 +816,7 @@
   color: var(--db-text-dim);
 }
 .db-list-empty {
-  font-size: 10px;
+  font-size: calc(var(--db-font-size, 13px) - 3px);
   font-style: italic;
   color: var(--db-text-dim);
   padding: 8px 12px;
@@ -836,7 +833,7 @@
   padding: 6px 12px;
   background: var(--db-surface);
   border-top: 1px solid var(--db-border);
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   color: var(--db-text-muted);
 }
 
@@ -872,14 +869,14 @@
   border: 1px solid var(--db-border-light);
   border-radius: 4px;
   padding: 3px 8px;
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   color: var(--db-text-muted);
   cursor: pointer;
   font-weight: 700;
 }
 
 .db-model-count {
-  font-size: 10px;
+  font-size: calc(var(--db-font-size, 13px) - 3px);
   color: var(--db-text-dim);
   font-weight: 600;
 }
@@ -898,7 +895,7 @@
 }
 
 .db-unsaved-badge {
-  font-size: 10px;
+  font-size: calc(var(--db-font-size, 13px) - 3px);
   font-weight: 700;
   color: var(--db-accent-gold);
   padding: 1px 5px;
@@ -932,7 +929,7 @@
 }
 
 .db-pagination-info {
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   color: var(--db-text-muted);
 }
 
@@ -959,12 +956,12 @@
 
 .db-bom-title {
   font-weight: 700;
-  font-size: 12px;
+  font-size: calc(var(--db-font-size, 13px) - 1px);
   color: var(--db-accent);
 }
 
 .db-bom-control {
-  font-size: 10px;
+  font-size: calc(var(--db-font-size, 13px) - 3px);
   color: var(--db-text-muted);
   font-weight: 600;
   text-transform: uppercase;
@@ -978,14 +975,14 @@
   border: 1px solid var(--db-input-border);
   border-radius: 3px;
   color: var(--db-text);
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   padding: 2px 4px;
   width: 60px;
 }
 
 .db-bom-total {
   font-weight: 700;
-  font-size: 13px;
+  font-size: var(--db-font-size, 13px);
   color: var(--db-accent-green);
   margin-left: auto;
 }
@@ -1007,7 +1004,7 @@
 }
 
 .db-spawn-label {
-  font-size: 10px;
+  font-size: calc(var(--db-font-size, 13px) - 3px);
   font-weight: 600;
   color: var(--db-text-muted);
   text-transform: uppercase;
@@ -1103,9 +1100,9 @@
 
 /* --- Font helpers --- */
 .db-font-mono { font-family: monospace; }
-.db-font-xs   { font-size: 10px; }
-.db-font-sm   { font-size: 11px; }
-.db-font-base { font-size: 12px; }
+.db-font-xs   { font-size: calc(var(--db-font-size, 13px) - 3px); }
+.db-font-sm   { font-size: calc(var(--db-font-size, 13px) - 2px); }
+.db-font-base { font-size: calc(var(--db-font-size, 13px) - 1px); }
 .db-font-bold { font-weight: 600; }
 .db-font-bolder { font-weight: 700; }
 
@@ -1150,7 +1147,7 @@
    --------------------------------------------------------------------------- */
 
 .db-apply-select {
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   padding: 2px 4px;
   background: var(--db-surface-alt);
   color: var(--db-text);
@@ -1208,7 +1205,7 @@
   background: none;
   border: none;
   color: var(--db-text-muted);
-  font-size: 18px;
+  font-size: calc(var(--db-font-size, 13px) + 5px);
   cursor: pointer;
 }
 
@@ -1228,7 +1225,7 @@
   padding: 4px 8px;
   background: var(--db-surface-alt);
   border-bottom: 1px solid var(--db-border);
-  font-size: 12px;
+  font-size: calc(var(--db-font-size, 13px) - 1px);
 }
 
 .db-harvest-label {
@@ -1240,7 +1237,7 @@
 .db-harvest-input {
   flex: 1;
   padding: 3px 8px;
-  font-size: 12px;
+  font-size: calc(var(--db-font-size, 13px) - 1px);
   background: var(--db-input-bg);
   color: var(--db-text);
   border: 1px solid var(--db-border);
@@ -1249,7 +1246,7 @@
 
 .db-harvest-btn {
   padding: 3px 12px;
-  font-size: 12px;
+  font-size: calc(var(--db-font-size, 13px) - 1px);
   font-weight: 600;
   background: #ea580c;
   color: #fff;
@@ -1291,7 +1288,7 @@
 }
 
 .db-match-title {
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   font-weight: 700;
   color: var(--db-text-muted);
   text-transform: uppercase;
@@ -1300,7 +1297,7 @@
 
 .db-match-delete-btn {
   padding: 4px 12px;
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   font-weight: 600;
   background: #991b1b;
   color: #fff;
@@ -1310,7 +1307,7 @@
 }
 
 .db-match-loading {
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   color: var(--db-text-muted);
   padding: 8px;
 }
@@ -1334,25 +1331,25 @@
 
 .db-match-card-name {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--db-font-size, 13px);
   color: var(--db-text);
 }
 
 .db-match-card-id {
-  font-size: 10px;
+  font-size: calc(var(--db-font-size, 13px) - 3px);
   color: var(--db-text-muted);
   margin-left: 8px;
 }
 
 .db-match-card-reason {
-  font-size: 10px;
+  font-size: calc(var(--db-font-size, 13px) - 3px);
   color: var(--db-accent-gold);
   margin-left: 8px;
 }
 
 .db-match-merge-btn {
   padding: 3px 10px;
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   font-weight: 600;
   background: #166534;
   color: #fff;
@@ -1363,7 +1360,7 @@
 
 .db-match-open-btn {
   padding: 3px 8px;
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
   background: transparent;
   color: var(--db-text-muted);
   border: 1px solid var(--db-border);
@@ -1375,7 +1372,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px 8px;
-  font-size: 11px;
+  font-size: calc(var(--db-font-size, 13px) - 2px);
 }
 
 .db-match-field-label {

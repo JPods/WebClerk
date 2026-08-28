@@ -75,7 +75,7 @@ def execute_transfer(request):
       sell ↔ purchase (cross-type).
     See: readmes/topics/transactions/transaction_transfer.md
     """
-    from apps.transactions.services.transfer import (
+    from apps.transactions.services.convert.convert_engine import (
         execute_transfer as do_transfer,
         TransferError,
     )

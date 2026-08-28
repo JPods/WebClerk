@@ -429,7 +429,7 @@ class ParadeManifestView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        from apps.core.services.parade_of_reports import build_parade_manifest
+        from apps.core.services.report_parade import build_parade_manifest
         base_url = request.build_absolute_uri('/').rstrip('/')
         manifest = build_parade_manifest(base_url=base_url)
         from common.api_responses import api_response
@@ -441,7 +441,7 @@ class ParadeFeedbackView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        from apps.core.services.parade_of_reports import save_parade_feedback
+        from apps.core.services.report_parade import save_parade_feedback
         report_id = request.data.get("report_id")
         feedback = request.data.get("feedback", "")
         notes = request.data.get("notes", "")

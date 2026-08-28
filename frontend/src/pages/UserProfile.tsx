@@ -7,7 +7,7 @@ import PageMeta from "../components/common/PageMeta";
 
 export default function UserProfiles() {
   return (
-    <>
+    <div data-wc="user-profile">
       <PageMeta
         title="React.js Profile Dashboard | WebClerk - Next.js Admin Dashboard Template"
         description="This is React.js Profile Dashboard page for WebClerk - React.js Tailwind CSS Admin Dashboard Template"
@@ -23,6 +23,6 @@ export default function UserProfiles() {
           <UserAddressCard />
         </div>
       </div>
-    </>
+    </div>
   );
 }

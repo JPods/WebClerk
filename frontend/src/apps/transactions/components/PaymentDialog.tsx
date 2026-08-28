@@ -436,7 +436,7 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>Payment Method</label>
-              <select
+              <select data-wc="select"
                 value={paymentMethodId ?? ''}
                 onChange={(e) =>
                   setPaymentMethodId(e.target.value ? parseInt(e.target.value) : null)

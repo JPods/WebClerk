@@ -29,6 +29,7 @@ import type { DbColumnDef } from "./DbColumns";
 import { getModelDetailPath, getModelWindowTitle, getModelWindowPreset } from "./getModelDetailPath";
 import { FaTimes, FaExternalLinkAlt } from "react-icons/fa";
 import { formatDt } from "@/utils/fieldFormatters";
+import { getUI } from '@/utils/contactUI';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -189,6 +190,8 @@ const RecordSearchInline: React.FC<{
   onSelect: (record: Rec) => void;
   onClose: () => void;
 }> = ({ linkedModel, excludeIds, parentId, onSelect, onClose }) => {
+  const active = getUI<string>('theme.active', 'dark');
+  const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Rec[]>([]);
   const [searching, setSearching] = useState(false);
@@ -224,9 +227,9 @@ const RecordSearchInline: React.FC<{
           onChange={(e) => handleInput(e.target.value)}
           placeholder={`Search ${linkedModel}...`}
           className="db-input"
-          style={{ flex: 1, fontSize: 11, padding: '3px 8px' }}
+          style={{ flex: 1, fontSize: baseFontSize - 2, padding: '3px 8px' }}
         />
-        <button onClick={onClose} className="db-text-dim" style={{ fontSize: 11 }}>Cancel</button>
+        <button onClick={onClose} className="db-text-dim" style={{ fontSize: baseFontSize - 2 }}>Cancel</button>
       </div>
       {searching && <div style={{ fontSize: 10, color: 'var(--db-text-muted)', padding: '4px 0' }}>Searching...</div>}
       {results.length > 0 && (
@@ -236,7 +239,7 @@ const RecordSearchInline: React.FC<{
               key={r.id}
               onClick={() => { onSelect(r); setQuery(""); setResults([]); }}
               className="db-list-row"
-              style={{ display: 'flex', gap: 8, padding: '4px 8px', width: '100%', textAlign: 'left', fontSize: 11, cursor: 'pointer' }}
+              style={{ display: 'flex', gap: 8, padding: '4px 8px', width: '100%', textAlign: 'left', fontSize: baseFontSize - 2, cursor: 'pointer' }}
             >
               <span className="font-mono" style={{ width: 60, flexShrink: 0, color: 'var(--db-text-dim)' }}>
                 {r.ida || `#${r.id}`}

@@ -44,9 +44,9 @@ from apps.transactions.serializers.line_serializers import (
     PurchaseLineSerializer, WorkOrderLineSerializer, RequisitionLineSerializer,
 )
 from apps.transactions.serializers.workorder_serializers import WorkOrderSerializer
-from apps.transactions.serializers.requisition import RequisitionSerializer
+from apps.transactions.serializers.requisition_serializer import RequisitionSerializer
 from apps.transactions.views.line_views import BasePermission, DefaultPagination
-from apps.transactions.aggregation import compute_line_aggregate
+from apps.transactions.services.aggregation import compute_line_aggregate
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from apps.core.constants.model_registry import get_model_meta, import_model
 

@@ -130,7 +130,7 @@ class TestSequence002(TestCase):
 
     def test_02_populate_commission(self):
         """Populate commission on the proposal from rep assignment."""
-        from apps.transactions.services.commission import populate_transaction_commission
+        from apps.transactions.services.pricing.commission_compute import populate_transaction_commission
 
         self.test_01_create_proposal()
 
@@ -144,7 +144,7 @@ class TestSequence002(TestCase):
 
     def test_03_convert_proposal_to_order(self):
         """Convert proposal to order — commission flows forward, inventory adjusts."""
-        from apps.transactions.services.conversion import convert_proposal_to_order
+        from apps.transactions.services.convert.convert import convert_proposal_to_order
 
         self.test_02_populate_commission()
 
@@ -163,7 +163,7 @@ class TestSequence002(TestCase):
 
     def test_04_convert_order_to_invoice(self):
         """Convert order to invoice."""
-        from apps.transactions.services.conversion import convert_order_to_invoice
+        from apps.transactions.services.convert.convert import convert_order_to_invoice
 
         self.test_03_convert_proposal_to_order()
 
@@ -196,7 +196,7 @@ class TestSequence002(TestCase):
 
     def test_06_apply_payment(self):
         """Create and apply a payment to the invoice."""
-        from apps.transactions.services.payment_pending import apply_payment_to_invoice
+        from apps.transactions.services.payment.payment_pending import apply_payment_to_invoice
 
         self.test_05_journalize_invoice()
 
@@ -267,7 +267,7 @@ class TestSequence002(TestCase):
 
     def test_09_convert_order_to_purchase(self):
         """Convert order to purchase order."""
-        from apps.transactions.services.conversion import convert_order_to_purchase
+        from apps.transactions.services.convert.convert import convert_order_to_purchase
 
         self.test_03_convert_proposal_to_order()
 
@@ -290,7 +290,7 @@ class TestSequence002(TestCase):
 
     def test_10_conversion_history(self):
         """Trace the full conversion chain."""
-        from apps.transactions.services.conversion import get_conversion_history
+        from apps.transactions.services.convert.convert import get_conversion_history
 
         self.test_04_convert_order_to_invoice()
 
@@ -315,10 +315,10 @@ class TestSequence002(TestCase):
 
         # Re-create proposal for the full chain (setUp runs fresh each test)
         self.test_01_create_proposal()
-        from apps.transactions.services.commission import populate_transaction_commission
+        from apps.transactions.services.pricing.commission_compute import populate_transaction_commission
         populate_transaction_commission(self.proposal.pk, 'proposal')
 
-        from apps.transactions.services.conversion import convert_proposal_to_order, convert_order_to_invoice
+        from apps.transactions.services.convert.convert import convert_proposal_to_order, convert_order_to_invoice
         from apps.accounts.services.journalize import journalize_invoice
         from apps.core.services.clone import clone_record
 

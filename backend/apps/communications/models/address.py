@@ -153,7 +153,7 @@ class Address(BaseModel):
 
         # Rebuild full from components using country-specific template
         try:
-            from apps.core.services.address_formatter import format_address_full
+            from apps.core.services.format_address import format_address_full
             self.full = format_address_full(
                 address1=self.address1, address2=self.address2,
                 city=self.city, state=self.state, zip_code=self.zip,

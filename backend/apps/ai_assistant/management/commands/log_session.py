@@ -77,7 +77,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        from apps.ai_assistant.services.coding_journal import CodingJournal
+        from apps.ai_assistant.services.journal import CodingJournal
         
         journal = CodingJournal()
         

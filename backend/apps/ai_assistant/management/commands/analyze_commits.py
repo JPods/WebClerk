@@ -24,7 +24,7 @@ Usage:
 from django.core.management.base import BaseCommand
 
 from apps.ai_assistant.models import GitEvent, SchemaDrift
-from apps.ai_assistant.services.git_observer import GitObserver
+from apps.ai_assistant.services.watch_git import GitObserver
 
 
 class Command(BaseCommand):

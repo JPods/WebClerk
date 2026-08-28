@@ -110,7 +110,7 @@ def schema_drift_task(use_llm: bool = False) -> dict:
     logger.info("Starting schema drift detection")
     started = timezone.now()
 
-    from apps.ai_assistant.services.schema_drift_detector import SchemaDriftDetector
+    from apps.ai_assistant.services.watch_schemas import SchemaDriftDetector
 
     detector = SchemaDriftDetector(use_llm=use_llm)
     report = detector.detect_all()
@@ -289,7 +289,7 @@ def layout_drift_task(use_llm: bool = False) -> dict:
     logger.info("Starting layout drift detection")
     started = timezone.now()
 
-    from apps.ai_assistant.services.layout_drift_detector import LayoutDriftDetector
+    from apps.ai_assistant.services.watch_layouts import LayoutDriftDetector
 
     detector = LayoutDriftDetector(use_llm=use_llm)
     report = detector.detect_all()
@@ -474,7 +474,7 @@ def dedup_scan_task(limit_per_model: int = 500, auto_extract: bool = False) -> d
     logger.info("Starting dedup scan (limit=%d, auto_extract=%s)", limit_per_model, auto_extract)
     started = timezone.now()
 
-    from apps.ai_assistant.services.dedup_service import DedupService
+    from apps.ai_assistant.services.dedup import DedupService
 
     svc = DedupService()
     scan_results = svc.scan_all(limit_per_model=limit_per_model)
@@ -513,7 +513,7 @@ def alice_inbox_task(batch_size: int = 50) -> dict:
     creates AliceObservation records for anomalies, marks messages read.
     This is Alice's real-time awareness layer.
     """
-    from apps.ai_assistant.services.alice_inbox import process_inbox
+    from apps.ai_assistant.services.inbox import process_inbox
     return process_inbox(batch_size=batch_size)
 
 
@@ -533,7 +533,7 @@ def accounting_watchdog_task() -> dict:
     logger.info("Starting accounting watchdog")
     started = timezone.now()
 
-    from apps.ai_assistant.services.accounting_watchdog import run_accounting_watchdog
+    from apps.ai_assistant.services.watch_accounting import run_accounting_watchdog
     result = run_accounting_watchdog()
 
     duration = (timezone.now() - started).total_seconds()
@@ -558,7 +558,7 @@ def inventory_watchdog_task(limit: int = 1000) -> dict:
     logger.info("Starting inventory watchdog")
     started = timezone.now()
 
-    from apps.ai_assistant.services.inventory_watchdog import run_inventory_watchdog
+    from apps.ai_assistant.services.watch_inventory import run_inventory_watchdog
     result = run_inventory_watchdog(limit=limit)
 
     duration = (timezone.now() - started).total_seconds()

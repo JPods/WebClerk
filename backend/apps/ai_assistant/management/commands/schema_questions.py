@@ -19,7 +19,7 @@ class Command(BaseCommand):
         parser.add_argument("--stats", action="store_true", help="Show count by model")
 
     def handle(self, *args, **options):
-        from apps.ai_assistant.models_alice import AliceObservation
+        from apps.ai_assistant.models.alice import AliceObservation
 
         qs = AliceObservation.objects.filter(category='schema', acknowledged=False)
 

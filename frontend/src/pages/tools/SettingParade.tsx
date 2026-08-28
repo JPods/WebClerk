@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
 import apiClient from "../../api/axios";
 import { getPjpvFieldsCatalog, type PjpvFieldMeta } from "@/api/wcapi";
+import { getUI } from "@/utils/contactUI";
 import "./SettingParade.css";
 
 /* ------------------------------------------------------------------ */
@@ -384,6 +385,8 @@ const PjpvEnvelopesSection: React.FC<{ catalog: Record<string, Record<string, Pj
 /* ------------------------------------------------------------------ */
 
 const SettingParade: React.FC = () => {
+  const active = getUI<string>('theme.active', 'dark');
+  const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
   const [manifest, setManifest] = useState<ParadeManifest | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -493,7 +496,7 @@ const SettingParade: React.FC = () => {
     <>
       <PageMeta title="Setting Parade" description="PJPV configuration reference" />
 
-      <div className="sp-container">
+      <div className="sp-container" style={{ '--sp-fs': `${baseFontSize}px` } as React.CSSProperties}>
         {/* Header */}
         <div className="sp-header">
           <h1>setting parade</h1>

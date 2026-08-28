@@ -140,7 +140,7 @@ def request_field_change(
 
     # 3. Send agent message to Alice
     try:
-        from apps.core.services.agent_bus_bridge import send_to_bus
+        from apps.core.services.agent_bus import send_to_bus
         send_to_bus(
             'user', 'alice',
             f'Field change request: {model}.{field}',

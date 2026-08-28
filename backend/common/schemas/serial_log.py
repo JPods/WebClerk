@@ -21,7 +21,7 @@ class SerialLogConfig(ConfigBase):
     notes: str = ''
 
     class Config:
-        extra = "allow"  # action-specific context varies
+        extra = "forbid"
 
 
 # -- .metadata (inherits MetadataBase) --------------------------------------

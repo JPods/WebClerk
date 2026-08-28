@@ -52,6 +52,7 @@ export default function MacTopBar({ activePath }: Props) {
 
   return (
     <div
+      data-wc="mac-top-bar"
       className="sticky top-0 z-200 flex items-center gap-4 border-b px-4 text-sm backdrop-blur"
       style={{
         height: 40,
@@ -129,7 +130,7 @@ export default function MacTopBar({ activePath }: Props) {
         <HelpMenu />
         <TaskManagerIndicator />
 
-        <select className="topbar-ctl" title="App: business forms (ui.json) | Admin: field grid (db.json)" value={detailView}
+        <select data-wc="select" className="topbar-ctl" title="App: business forms (ui.json) | Admin: field grid (db.json)" value={detailView}
           onChange={(e) => {
             const v = e.target.value as 'app' | 'admin';
             setUI('detail.default_view', v);
@@ -141,7 +142,7 @@ export default function MacTopBar({ activePath }: Props) {
           <option value="admin">View: Admin</option>
         </select>
 
-        <select className="topbar-ctl" title="Font size"
+        <select data-wc="select" className="topbar-ctl" title="Font size"
           defaultValue={String(getUI('theme.' + getUI('theme.active', 'dark') + '.font.size', 14))}
           onChange={(e) => {
             const size = Number(e.target.value);
@@ -157,7 +158,7 @@ export default function MacTopBar({ activePath }: Props) {
           <option value="18">Font: 18</option>
         </select>
 
-        <select className="topbar-ctl" title="Color mode"
+        <select data-wc="select" className="topbar-ctl" title="Color mode"
           defaultValue=""
           onChange={(e) => {
             const mode = e.target.value as 'dark' | 'light';

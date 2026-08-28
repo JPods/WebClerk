@@ -1,5 +1,5 @@
 from apps.core.constants.keyword_requirements import get_keyword_requirements
-from apps.core.services.cache_service import cache_service
+from apps.core.services.cache import cache_service
 from django.apps import apps
 from django.db import models
 from common.ignore_fields import IGNORE_WORDS
@@ -39,7 +39,7 @@ def _normalize_phone(value):
     both the full number (with country code) and the local number (without)
     so searches match either way.
     """
-    from apps.core.services.phone_normalizer import normalize_phone, _strip_to_digits
+    from apps.core.services.format_phone import normalize_phone, _strip_to_digits
     normalized = normalize_phone(str(value), default_country="US")
     if not normalized:
         return []

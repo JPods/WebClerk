@@ -32,7 +32,7 @@ class ContactImages(BaseModel):
     photo: Optional[ImageSet] = None
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class OrgImages(BaseModel):
@@ -42,7 +42,7 @@ class OrgImages(BaseModel):
     icon: Optional[ImageSet] = None   # favicon-sized, for nav/tabs
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class ItemImages(BaseModel):
@@ -51,4 +51,4 @@ class ItemImages(BaseModel):
     gallery: Optional[List[ImageSet]] = Field(default_factory=list)
 
     class Config:
-        extra = "allow"
+        extra = "forbid"

@@ -14,7 +14,7 @@ from apps.transactions.serializers import (
 )
 from apps.transactions.services import proposal_to_order, order_to_invoice, inventory_flow
 from apps.transactions.services.flow import receive_purchase, ReceiveLine
-from apps.transactions.services.commission import populate_transaction_commission
+from apps.transactions.services.pricing.commission_compute import populate_transaction_commission
 
 
 def _require_staff(request):
@@ -95,7 +95,7 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=['post'])
     def create_purchase(self, request, pk=None):
         """Create purchase from order."""
-        from apps.transactions.services.order_to_purchase import transfer_order_to_purchase
+        from apps.transactions.services.convert.convert_order_to_purchase import transfer_order_to_purchase
 
         order = self.get_object()
         group_by_vendor = request.data.get('group_by_vendor', True)

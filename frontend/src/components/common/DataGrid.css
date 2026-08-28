@@ -149,7 +149,7 @@
 
 .dg-sort-order {
   margin-left: 2px;
-  font-size: 9px;
+  font-size: calc(var(--dg-fs, 13px) - 4px);
   color: var(--db-accent, #0d6efd);
 }
 
@@ -194,7 +194,7 @@
   position: absolute;
   right: 10px;
   top: 1px;
-  font-size: 9px;
+  font-size: calc(var(--dg-fs, 13px) - 4px);
   color: var(--db-text-dim, #adb5bd);
   cursor: text;
   opacity: 0;

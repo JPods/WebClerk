@@ -2,5 +2,5 @@
 import AuditList from "./AuditList";
 
 export default function Audit() {
-  return <AuditList />;
+  return <div data-wc="audit"><AuditList /></div>;
 }

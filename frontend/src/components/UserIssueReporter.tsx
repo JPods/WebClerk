@@ -213,7 +213,7 @@ export function UserIssueReporter() {
                     Category
                   </label>
                   <div className="relative">
-                    <select
+                    <select data-wc="select"
                       value={category}
                       onChange={(e) => setCategory(e.target.value as IssueCategory)}
                       className="w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2 pr-8 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
@@ -236,7 +236,7 @@ export function UserIssueReporter() {
                     Priority
                   </label>
                   <div className="relative">
-                    <select
+                    <select data-wc="select"
                       value={priority}
                       onChange={(e) => setPriority(Number(e.target.value) as IssuePriority)}
                       className="w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2 pr-8 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"

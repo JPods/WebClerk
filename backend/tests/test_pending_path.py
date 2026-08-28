@@ -69,7 +69,7 @@ item.is_locked = False
 item.save(update_fields=['is_locked'])
 print(f'\n--- ITEM UNLOCKED ---')
 
-from apps.transactions.services.pending_inventory_processor import process_pending_for_item
+from apps.transactions.services.inventory_pending_process import process_pending_for_item
 result = process_pending_for_item(item_id=308)
 print(f'Processed: {result["processed"]}, skipped_locked: {result["skipped_locked"]}')
 

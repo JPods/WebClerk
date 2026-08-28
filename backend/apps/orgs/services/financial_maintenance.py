@@ -353,7 +353,7 @@ def write_daily_alice_observation(
     }
 
     try:
-        from apps.ai_assistant.services.alice_notes import create_note
+        from apps.ai_assistant.services.notes import create_note
 
         note = create_note(
             "log",

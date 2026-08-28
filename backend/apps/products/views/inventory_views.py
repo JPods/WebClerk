@@ -10,14 +10,14 @@ from typing import cast
 from common.api_responses import api_response
 from apps.products.models.inventory_layer import InventoryLayer
 from apps.products.models.inventory_reservation import InventoryReservation
-from apps.products.services.inventory_reservations import (
+from apps.products.services.inventory.inventory_reserve import (
     availability_for_stack, create_reservation,
 )
 from apps.products.serializers.reservation_serializers import (
     InventoryReservationSerializer, ReservationCreateSerializer, ReservationActionSerializer,
 )
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample, OpenApiResponse
-from apps.products.services.inventory_metrics import summarize_inventory_metrics
+from apps.products.services.inventory.inventory_metrics import summarize_inventory_metrics
 from rest_framework.permissions import IsAuthenticated
 
 # Prefer project BaseJSONAPIView; fallback to DRF APIView

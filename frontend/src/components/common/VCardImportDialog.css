@@ -21,6 +21,7 @@
   max-height: 80vh;
   overflow-y: auto;
   color: var(--db-text, #ececec);
+  font-size: var(--vci-fs, 13px);
 }
 
 .vcard-header {
@@ -32,7 +33,7 @@
 }
 
 .vcard-title {
-  font-size: 16px;
+  font-size: calc(var(--vci-fs, 13px) + 3px);
   font-weight: 700;
 }
 
@@ -40,7 +41,7 @@
   background: none;
   border: none;
   color: var(--db-text-muted, #a0a0a0);
-  font-size: 18px;
+  font-size: calc(var(--vci-fs, 13px) + 5px);
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;
@@ -60,7 +61,7 @@
   min-height: 160px;
   padding: 12px;
   font-family: monospace;
-  font-size: 12px;
+  font-size: calc(var(--vci-fs, 13px) - 1px);
   border: 2px dashed var(--db-border, #555);
   border-radius: 6px;
   background: var(--db-bg, #1a1a1a);
@@ -80,7 +81,7 @@
 
 .vcard-dropzone-hint {
   text-align: center;
-  font-size: 12px;
+  font-size: calc(var(--vci-fs, 13px) - 1px);
   color: var(--db-text-dim, #777);
   margin-top: 8px;
 }
@@ -90,7 +91,7 @@
 }
 
 .vcard-preview-label {
-  font-size: 11px;
+  font-size: calc(var(--vci-fs, 13px) - 2px);
   font-weight: 700;
   text-transform: uppercase;
   color: var(--db-text-muted, #a0a0a0);
@@ -102,7 +103,7 @@
   display: grid;
   grid-template-columns: 100px 1fr;
   gap: 4px 12px;
-  font-size: 13px;
+  font-size: var(--vci-fs, 13px);
 }
 
 .vcard-preview-field {
@@ -124,7 +125,7 @@
 }
 
 .vcard-match-title {
-  font-size: 13px;
+  font-size: var(--vci-fs, 13px);
   font-weight: 600;
   color: var(--db-accent, #3b82f6);
   margin-bottom: 8px;
@@ -135,7 +136,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 0;
-  font-size: 13px;
+  font-size: var(--vci-fs, 13px);
   cursor: pointer;
 }
 
@@ -149,7 +150,7 @@
   border: 1px solid var(--db-accent-gold, #f59e0b);
   border-radius: 6px;
   background: rgba(245, 158, 11, 0.08);
-  font-size: 12px;
+  font-size: calc(var(--vci-fs, 13px) - 1px);
   color: var(--db-accent-gold, #f59e0b);
 }
 
@@ -163,7 +164,7 @@
 
 .vcard-btn {
   padding: 8px 16px;
-  font-size: 13px;
+  font-size: var(--vci-fs, 13px);
   border-radius: 4px;
   cursor: pointer;
   border: 1px solid var(--db-border, #555);
@@ -196,12 +197,12 @@
 }
 
 .vcard-success-icon {
-  font-size: 32px;
+  font-size: calc(var(--vci-fs, 13px) + 19px);
   margin-bottom: 8px;
 }
 
 .vcard-success-message {
-  font-size: 14px;
+  font-size: calc(var(--vci-fs, 13px) + 1px);
   color: var(--db-accent-green, #22c55e);
   font-weight: 600;
 }

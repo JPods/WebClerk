@@ -17,7 +17,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 
 def _get_upload_helpers():
-    from apps.docs.views_upload import (
+    from apps.docs.views.upload_view import (
         _compute_checksum,
         _safe_filename,
         _build_storage_path,

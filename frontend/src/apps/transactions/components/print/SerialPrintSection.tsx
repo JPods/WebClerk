@@ -25,7 +25,7 @@ export default function SerialPrintSection({
   // Compact mode — comma-separated list
   if (compact) {
     return (
-      <div className="text-xs text-slate-600 mt-0.5 pl-4 print:text-[7pt]">
+      <div data-wc="serial-print-section" className="text-xs text-slate-600 mt-0.5 pl-4 print:text-[7pt]">
         <span className="font-medium">S/N: </span>
         {serials.map((s) => s.serialIda).join(', ')}
       </div>
@@ -38,7 +38,7 @@ export default function SerialPrintSection({
   const showCost = context === 'purchase' && serials.some((s) => s.cost);
 
   return (
-    <div className="ml-4 mt-1 mb-2 print:ml-2">
+    <div data-wc="serial-print-section" className="ml-4 mt-1 mb-2 print:ml-2">
       <table className="w-full text-xs print:text-[7pt] border-collapse">
         <thead>
           <tr className="text-left text-slate-500 border-b border-slate-200">

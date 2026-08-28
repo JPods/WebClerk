@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from apps.products.services.inventory_metrics import snapshot_inventory_metrics
+from apps.products.services.inventory.inventory_metrics import snapshot_inventory_metrics
 import json
 
 

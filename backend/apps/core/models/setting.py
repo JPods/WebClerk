@@ -67,19 +67,51 @@ class Setting(BaseModel):
         # Store canonical singular key
         self.parent_model = meta.key
     
+    # ── WALL: Settings are NEVER bulk-modified ──
+    # These records represent days of careful refinement — layouts, behaviors,
+    # selectlists, schema maps. Any automated process that wants to modify
+    # Setting.config must set _setting_update_authorized = True on the instance
+    # before calling save(). Without this flag, config changes are rejected.
+    _setting_update_authorized = False
+
     def save(self, *args, **kwargs):
         """Ensure parent_model is normalized/validated even when created directly.
 
         Django doesn't call clean() automatically on save. We enforce it here so
         records created via ORM (bypassing serializers) still store canonical parent_model.
         """
-        # Use full_clean to include clean() and field validation; ignore unique checks at DB level.
+        # Guard: block unauthorized config changes on existing records
+        if self.pk and not self._setting_update_authorized:
+            update_fields = kwargs.get('update_fields')
+            if update_fields and 'config' in update_fields:
+                # Check if config actually changed
+                try:
+                    orig = Setting.objects.filter(pk=self.pk).values_list('config', flat=True).first()
+                    if orig is not None and orig != self.config:
+                        import logging
+                        logger = logging.getLogger('setting')
+                        logger.warning(
+                            'BLOCKED: unauthorized config change on Setting #%s (%s). '
+                            'Set _setting_update_authorized=True to proceed.',
+                            self.pk, self.name or self.ida,
+                        )
+                        raise ValidationError(
+                            'Setting.config changes require explicit authorization. '
+                            'Set record._setting_update_authorized = True before save().'
+                        )
+                except Setting.DoesNotExist:
+                    pass
+
+        # Use full_clean to include clean() and field validation
         try:
             self.full_clean()
         except ValidationError:
-            # Re-raise to surface up to callers (API should translate to 400)
             raise
-        return super().save(*args, **kwargs)
+
+        result = super().save(*args, **kwargs)
+        # Reset flag after save
+        self._setting_update_authorized = False
+        return result
     
     # Treat "comment" as a virtual field backed by data["comment"]
     @property

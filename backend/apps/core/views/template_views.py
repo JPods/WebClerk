@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from apps.core.services.template_resolver import resolve_template, get_template_fields
+from apps.core.services.format_template import resolve_template, get_template_fields
 
 logger = logging.getLogger(__name__)
 

@@ -551,7 +551,7 @@ def get_latest_pending_for_item():
 def create_order(quantity: float):
     """Create an Order with item 240 using LineItemService."""
     from apps.transactions.models import Order
-    from apps.transactions.services.line_item_service import LineItemService
+    from apps.transactions.services.line_manage import LineItemService
     
     with transaction.atomic():
         order = Order.objects.create(status='draft')
@@ -587,7 +587,7 @@ def create_order(quantity: float):
 def create_purchase(quantity: float, unit_cost: float = 10.0):
     """Create a Purchase with item 240 using LineItemService."""
     from apps.transactions.models import Purchase
-    from apps.transactions.services.line_item_service import LineItemService
+    from apps.transactions.services.line_manage import LineItemService
     
     with transaction.atomic():
         purchase = Purchase.objects.create(status='draft')
@@ -624,7 +624,7 @@ def create_purchase(quantity: float, unit_cost: float = 10.0):
 def create_proposal(quantity: float):
     """Create a Proposal with item 240 using LineItemService."""
     from apps.transactions.models import Proposal
-    from apps.transactions.services.line_item_service import LineItemService
+    from apps.transactions.services.line_manage import LineItemService
     
     with transaction.atomic():
         proposal = Proposal.objects.create(status='draft')
@@ -660,7 +660,7 @@ def create_proposal(quantity: float):
 def create_invoice(quantity: float):
     """Create an Invoice with item 240 using LineItemService."""
     from apps.transactions.models import Invoice
-    from apps.transactions.services.line_item_service import LineItemService
+    from apps.transactions.services.line_manage import LineItemService
     
     with transaction.atomic():
         invoice = Invoice.objects.create(status='draft')
@@ -696,7 +696,7 @@ def create_invoice(quantity: float):
 def create_workorder(quantity: float):
     """Create a WorkOrder with item 240 using LineItemService."""
     from apps.transactions.models import WorkOrder
-    from apps.transactions.services.line_item_service import LineItemService
+    from apps.transactions.services.line_manage import LineItemService
     
     with transaction.atomic():
         workorder = WorkOrder.objects.create(status='draft')
@@ -737,7 +737,7 @@ def create_receipt(quantity: float):
     this creates a standalone receipt for testing the on_r pending flow.
     """
     from apps.transactions.models.receipt import Receipt
-    from apps.transactions.services.line_item_service import LineItemService
+    from apps.transactions.services.line_manage import LineItemService
     
     with transaction.atomic():
         receipt = Receipt.objects.create()
@@ -791,7 +791,7 @@ def create_receipt(quantity: float):
 
 def process_pending():
     """Process pending inventory records for item 240."""
-    from apps.transactions.services.pending_inventory_processor import process_pending_for_item
+    from apps.transactions.services.inventory_pending_process import process_pending_for_item
     
     # Get pending records BEFORE processing
     unprocessed_before = get_unprocessed_pending_summary()

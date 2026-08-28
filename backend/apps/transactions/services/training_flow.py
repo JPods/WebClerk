@@ -77,7 +77,7 @@ class TrainingFlow:
 
     def _snapshot_inventory(self) -> Dict[str, float]:
         """Current inventory state for this item."""
-        from apps.products.services.inventory_availability import get_item_availability
+        from apps.products.services.inventory.inventory_available import get_item_availability
         return get_item_availability(self.item.pk)
 
     def step_1_create_proposal(self, quantity: int = 10) -> Dict[str, Any]:
@@ -199,7 +199,7 @@ class TrainingFlow:
     def step_4_record_payment(self, amount: Optional[float] = None) -> Dict[str, Any]:
         """Record payment against invoice."""
         from apps.transactions.models import Payment
-        from apps.transactions.services.payment_pending import apply_payment_to_invoice
+        from apps.transactions.services.payment.payment_pending import apply_payment_to_invoice
         from apps.core.models import Contact
 
         if amount is None and self.invoice:

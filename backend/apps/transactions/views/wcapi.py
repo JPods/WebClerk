@@ -221,7 +221,7 @@ class WCAPITransactionSaveView(APIView):
             saved_id = result.get('header', {}).get('id')
             if saved_id is not None:
                 try:
-                    from apps.core.services.wcapi import get_item
+                    from apps.core.services.record_serialize import get_item
                     saved_obj = get_item(model_key.lower(), request=request, id=saved_id)
                     if saved_obj is not None:
                         record_dict = to_dict(saved_obj)
@@ -463,7 +463,7 @@ class WCAPISaveView(APIView):
         }
         if model_key in GUARDED_MODELS and record_id is not None:
             try:
-                from apps.transactions.services.status_guard import (
+                from apps.transactions.services.validate_status import (
                     validate_transition, validate_modification,
                 )
                 existing = ModelCls.objects.get(pk=record_id)
@@ -501,7 +501,7 @@ class WCAPISaveView(APIView):
 
         # Delegate to core save_item to centralize save behavior (including linking hooks)
         try:
-            from apps.core.services.wcapi import save_item as core_save_item
+            from apps.core.services.record_serialize import save_item as core_save_item
             obj_id, action, linked = core_save_item(model_key, request=request, data=data, id=record_id)
             status_code = status.HTTP_200_OK if action == "updated" else status.HTTP_201_CREATED
             return Response({"id": obj_id, "action": action, "linked": bool(linked)}, status=status_code)
@@ -542,7 +542,7 @@ class WCAPIDeleteView(APIView):
         if model_key in ('invoice', 'payment', 'purchase', 'invoice_line',
                          'purchase_line', 'receipt_line'):
             try:
-                from apps.transactions.services.status_guard import is_journalized
+                from apps.transactions.services.validate_status import is_journalized
                 if is_journalized(obj):
                     return Response(
                         {"detail": f"Cannot delete — {model_key} has been journalized."},

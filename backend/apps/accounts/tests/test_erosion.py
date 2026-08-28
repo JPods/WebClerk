@@ -126,7 +126,7 @@ class TestMarginErosion:
     """Tests for detect_margin_erosion()."""
 
     def test_detects_erosion_invoice_vs_order(self, invoice_from_order, order_from_proposal):
-        from apps.accounts.services.erosion import detect_margin_erosion
+        from apps.accounts.services.value_erosion import detect_margin_erosion
         from apps.accounts.models import Erosion
 
         events = detect_margin_erosion(invoice_from_order)
@@ -141,7 +141,7 @@ class TestMarginErosion:
         assert order_erosion[0].org_id == invoice_from_order.customer_id
 
     def test_walks_full_chain_invoice_to_proposal(self, invoice_from_order, order_from_proposal, proposal):
-        from apps.accounts.services.erosion import detect_margin_erosion
+        from apps.accounts.services.value_erosion import detect_margin_erosion
 
         events = detect_margin_erosion(invoice_from_order)
 
@@ -157,7 +157,7 @@ class TestMarginErosion:
     def test_no_erosion_when_margin_improves(self, org):
         """If invoice margin is higher than order, no erosion should be recorded."""
         from apps.transactions.models import Order, Invoice
-        from apps.accounts.services.erosion import detect_margin_erosion
+        from apps.accounts.services.value_erosion import detect_margin_erosion
 
         order = Order.objects.create(
             status='planned', customer=org,
@@ -174,7 +174,7 @@ class TestMarginErosion:
 
     def test_idempotent_replace(self, invoice_from_order, order_from_proposal):
         """Running detect_margin_erosion twice replaces, not duplicates."""
-        from apps.accounts.services.erosion import detect_margin_erosion
+        from apps.accounts.services.value_erosion import detect_margin_erosion
         from apps.accounts.models import Erosion
 
         detect_margin_erosion(invoice_from_order)
@@ -189,7 +189,7 @@ class TestMarginErosion:
     def test_no_parent_returns_empty(self, org):
         """Invoice without parent chain → no erosion."""
         from apps.transactions.models import Invoice
-        from apps.accounts.services.erosion import detect_margin_erosion
+        from apps.accounts.services.value_erosion import detect_margin_erosion
 
         invoice = Invoice.objects.create(
             status='planned', customer=org,
@@ -207,7 +207,7 @@ class TestLatePaymentErosion:
     def test_detects_late_payment(self, org, term_net30, contact):
         from apps.transactions.models import Invoice, Payment
         from apps.accounts.services.terms_ledger import apply_terms_for_invoice
-        from apps.accounts.services.erosion import detect_late_payment
+        from apps.accounts.services.value_erosion import detect_late_payment
 
         invoice = Invoice.objects.create(
             status='planned', customer=org,
@@ -242,7 +242,7 @@ class TestLatePaymentErosion:
         """Payment before due date → no erosion."""
         from apps.transactions.models import Invoice, Payment
         from apps.accounts.services.terms_ledger import apply_terms_for_invoice
-        from apps.accounts.services.erosion import detect_late_payment
+        from apps.accounts.services.value_erosion import detect_late_payment
 
         invoice = Invoice.objects.create(
             status='planned', customer=org,
@@ -269,7 +269,7 @@ class TestDiscountErosion:
     """Tests for detect_discount_erosion()."""
 
     def test_detects_discount(self, invoice_with_discount):
-        from apps.accounts.services.erosion import detect_discount_erosion
+        from apps.accounts.services.value_erosion import detect_discount_erosion
 
         erosion = detect_discount_erosion(invoice_with_discount)
 
@@ -281,7 +281,7 @@ class TestDiscountErosion:
     def test_no_discount_no_erosion(self, org):
         """Invoice with no discount → no erosion."""
         from apps.transactions.models import Invoice
-        from apps.accounts.services.erosion import detect_discount_erosion
+        from apps.accounts.services.value_erosion import detect_discount_erosion
 
         invoice = Invoice.objects.create(
             status='planned', customer=org,
@@ -297,7 +297,7 @@ class TestOrgErosionSummary:
     """Tests for get_org_erosion_summary()."""
 
     def test_summary_aggregates(self, invoice_from_order, order_from_proposal, proposal, invoice_with_discount):
-        from apps.accounts.services.erosion import (
+        from apps.accounts.services.value_erosion import (
             detect_margin_erosion, detect_discount_erosion, get_org_erosion_summary,
         )
 
@@ -321,7 +321,7 @@ class TestMetadataErosionSync:
 
     def test_sync_creates_erosion_and_writes_back_id(self, org):
         """Pending metadata entry → Erosion record created → erosion_id written back."""
-        from apps.accounts.services.erosion import sync_metadata_erosions
+        from apps.accounts.services.value_erosion import sync_metadata_erosions
         from apps.accounts.models import Erosion
 
         org.metadata.setdefault('small_stings', [])
@@ -348,7 +348,7 @@ class TestMetadataErosionSync:
 
     def test_sync_skips_already_synced_entries(self, org):
         """Entries with existing erosion_id should not be re-created."""
-        from apps.accounts.services.erosion import sync_metadata_erosions
+        from apps.accounts.services.value_erosion import sync_metadata_erosions
 
         org.metadata.setdefault('erosions', [])
         org.metadata['erosions'].append({
@@ -365,7 +365,7 @@ class TestMetadataErosionSync:
 
     def test_sync_handles_both_arrays(self, org):
         """Both small_stings and erosions arrays are processed."""
-        from apps.accounts.services.erosion import sync_metadata_erosions
+        from apps.accounts.services.value_erosion import sync_metadata_erosions
         from apps.accounts.models import Erosion
 
         org.metadata.setdefault('small_stings', [])
@@ -393,7 +393,7 @@ class TestMetadataErosionSync:
 
     def test_sync_ignores_zero_amount(self, org):
         """Entries with zero or negative amount are skipped."""
-        from apps.accounts.services.erosion import sync_metadata_erosions
+        from apps.accounts.services.value_erosion import sync_metadata_erosions
 
         org.metadata.setdefault('small_stings', [])
         org.metadata['small_stings'].append({

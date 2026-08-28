@@ -214,6 +214,7 @@ export default function OrgSearchDialog({
 
   return (
     <div
+      data-wc="org-search-dialog"
       data-backdrop="true"
       onClick={handleBackdropClick}
       className="fixed inset-0 z-[9999] flex items-start justify-center pt-[10vh] bg-black/40 backdrop-blur-sm"
@@ -296,7 +297,7 @@ export default function OrgSearchDialog({
                 : "Enter a search term or browse records"}
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <table data-wc="table" className="w-full text-sm">
               <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800 z-10">
                 <tr className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   <th className="px-5 py-2 font-medium">Name</th>

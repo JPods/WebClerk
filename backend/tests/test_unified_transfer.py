@@ -16,7 +16,7 @@ from apps.transactions.models import (
     WorkOrder, WorkOrderLine,
 )
 from apps.orgs.models import OrgBase
-from apps.transactions.services.transfer import execute_transfer, TransferError
+from apps.transactions.services.convert.convert_engine import execute_transfer, TransferError
 
 
 @pytest.fixture

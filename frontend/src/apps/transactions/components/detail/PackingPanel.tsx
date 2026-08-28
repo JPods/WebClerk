@@ -20,6 +20,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { useScale, type ScaleStatus } from '@/hooks/useScale';
+import { getUI } from '@/utils/contactUI';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -71,29 +72,34 @@ async function callManage(action: string, params: Record<string, unknown>): Prom
 // Styles — layout-only; colors via db-* CSS utility classes
 // ---------------------------------------------------------------------------
 
-const S = {
-  step: {
-    display: 'inline-flex', alignItems: 'center', gap: 6,
-    padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600,
-  } as React.CSSProperties,
-  body: { padding: '12px 16px', maxHeight: 500, overflowY: 'auto' } as React.CSSProperties,
-  table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 } as React.CSSProperties,
-  th: {
-    textAlign: 'left' as const, padding: '6px 8px',
-    fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const,
-  },
-  td: { padding: '6px 8px' } as React.CSSProperties,
-  btn: {
-    padding: '6px 16px', borderRadius: 4, cursor: 'pointer',
-    fontSize: 13, fontWeight: 600, border: 'none',
-  } as React.CSSProperties,
-};
+function makeStyles(baseFontSize: number) {
+  return {
+    step: {
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: '3px 10px', borderRadius: 12, fontSize: baseFontSize - 1, fontWeight: 600,
+    } as React.CSSProperties,
+    body: { padding: '12px 16px', maxHeight: 500, overflowY: 'auto' } as React.CSSProperties,
+    table: { width: '100%', borderCollapse: 'collapse', fontSize: baseFontSize } as React.CSSProperties,
+    th: {
+      textAlign: 'left' as const, padding: '6px 8px',
+      fontSize: baseFontSize - 2, fontWeight: 700, textTransform: 'uppercase' as const,
+    },
+    td: { padding: '6px 8px' } as React.CSSProperties,
+    btn: {
+      padding: '6px 16px', borderRadius: 4, cursor: 'pointer',
+      fontSize: baseFontSize, fontWeight: 600, border: 'none',
+    } as React.CSSProperties,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function PackingPanel({ orderId, orderIda, onComplete, onClose }: PackingPanelProps) {
+  const active = getUI<string>('theme.active', 'dark');
+  const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
+  const S = makeStyles(baseFontSize);
   const [step, setStep] = useState<'pick' | 'pack' | 'ship'>('pick');
   const [pickList, setPickList] = useState<PickLine[]>([]);
   const [pickedLines, setPickedLines] = useState<Set<number>>(new Set());
@@ -258,20 +264,20 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
     return (
       <div className="db-panel db-text" style={{ borderRadius: 8, overflow: 'hidden' }}>
         <div className="db-border-bottom db-flex-between" style={{ padding: '10px 16px' }}>
-          <span className="db-text-accent db-font-bolder" style={{ fontSize: 15 }}>Shipment Complete</span>
+          <span className="db-text-accent db-font-bolder" style={{ fontSize: baseFontSize + 2 }}>Shipment Complete</span>
         </div>
         <div style={{ ...S.body, textAlign: 'center', padding: '32px 16px' }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>&#x2714;</div>
-          <div className="db-font-bold" style={{ fontSize: 16, marginBottom: 8 }}>
+          <div style={{ fontSize: baseFontSize + 35, marginBottom: 12 }}>&#x2714;</div>
+          <div className="db-font-bold" style={{ fontSize: baseFontSize + 3, marginBottom: 8 }}>
             Invoice {shipResult.invoice_ida || `#${shipResult.invoice_id}`} created
           </div>
-          <div className="db-text-muted" style={{ fontSize: 13 }}>
+          <div className="db-text-muted" style={{ fontSize: baseFontSize }}>
             {shipResult.lines_shipped} lines shipped
             {shipResult.lines_remaining > 0 &&
               ` · ${shipResult.lines_remaining} lines remaining on order`}
           </div>
           {trackingNumber && (
-            <div className="db-text-accent" style={{ marginTop: 8, fontSize: 13 }}>
+            <div className="db-text-accent" style={{ marginTop: 8, fontSize: baseFontSize }}>
               Tracking: {trackingNumber}
             </div>
           )}
@@ -287,10 +293,10 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
   }
 
   return (
-    <div className="db-panel db-text" style={{ borderRadius: 8, overflow: 'hidden' }}>
+    <div data-wc="packing-panel" className="db-panel db-text" style={{ borderRadius: 8, overflow: 'hidden' }}>
       {/* Header with step indicator */}
       <div className="db-border-bottom db-flex-between" style={{ padding: '10px 16px' }}>
-        <span className="db-text-accent db-font-bolder" style={{ fontSize: 15 }}>
+        <span className="db-text-accent db-font-bolder" style={{ fontSize: baseFontSize + 2 }}>
           Pack &amp; Ship — {orderIda || `Order #${orderId}`}
         </span>
         <div style={{ display: 'flex', gap: 4 }}>
@@ -312,14 +318,14 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
         </div>
         {onClose && (
           <button onClick={onClose} className="db-text-muted" style={{
-            background: 'none', border: 'none', cursor: 'pointer', fontSize: 18,
+            background: 'none', border: 'none', cursor: 'pointer', fontSize: baseFontSize + 5,
           }}>&times;</button>
         )}
       </div>
 
       {/* Error bar */}
       {error && (
-        <div className="db-text-red" style={{ padding: '6px 16px', background: 'color-mix(in srgb, var(--db-accent-red) 15%, transparent)', fontSize: 13 }}>
+        <div className="db-text-red" style={{ padding: '6px 16px', background: 'color-mix(in srgb, var(--db-accent-red) 15%, transparent)', fontSize: baseFontSize }}>
           {error}
         </div>
       )}
@@ -372,7 +378,7 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
             )}
           </div>
           <div className="db-border-top db-flex-between" style={{ padding: '10px 16px', gap: 8 }}>
-            <span className="db-text-muted" style={{ fontSize: 13 }}>
+            <span className="db-text-muted" style={{ fontSize: baseFontSize }}>
               {totalPicked} of {totalToPick} picked
             </span>
             <button
@@ -400,12 +406,12 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
                 <button key={box.id}
                   onClick={() => setActiveBoxId(box.id)}
                   className={box.id === activeBoxId ? 'db-btn db-btn--primary' : 'db-btn'}
-                  style={{ ...S.btn, padding: '4px 12px', fontSize: 12 }}
+                  style={{ ...S.btn, padding: '4px 12px', fontSize: baseFontSize - 1 }}
                 >
                   {box.label} ({box.lines.length})
                 </button>
               ))}
-              <button onClick={addBox} className="db-btn" style={{ ...S.btn, padding: '4px 8px', fontSize: 12 }}>
+              <button onClick={addBox} className="db-btn" style={{ ...S.btn, padding: '4px 8px', fontSize: baseFontSize - 1 }}>
                 + Box
               </button>
             </div>
@@ -413,7 +419,7 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
             {/* Add picked items to active box */}
             {pickedLines.size > 0 && (
               <div style={{ marginBottom: 12 }}>
-                <button onClick={addToBox} className="db-btn" style={{ ...S.btn, fontSize: 12 }}>
+                <button onClick={addToBox} className="db-btn" style={{ ...S.btn, fontSize: baseFontSize - 1 }}>
                   Add picked items to {boxes.find(b => b.id === activeBoxId)?.label || 'box'}
                 </button>
               </div>
@@ -424,10 +430,10 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
               <div key={box.id}>
                 {/* Weight input */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <label className="db-text-muted" style={{ fontSize: 12 }}>Weight:</label>
+                  <label className="db-text-muted" style={{ fontSize: baseFontSize - 1 }}>Weight:</label>
                   <input
                     className="db-input"
-                    style={{ width: 80, fontSize: 13 }}
+                    style={{ width: 80, fontSize: baseFontSize }}
                     type="number" step="0.1" placeholder="lbs"
                     value={box.weight}
                     onChange={e => setBoxWeight(box.id, e.target.value)}
@@ -435,7 +441,7 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
                 </div>
 
                 {box.lines.length === 0 ? (
-                  <div className="db-text-dim" style={{ fontSize: 13, padding: '16px 0', textAlign: 'center' }}>
+                  <div className="db-text-dim" style={{ fontSize: baseFontSize, padding: '16px 0', textAlign: 'center' }}>
                     No items in this box. Pick items first, then click "Add picked items."
                   </div>
                 ) : (
@@ -459,14 +465,14 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
                               value={bl.qty_packed}
                               onChange={e => setQtyPacked(box.id, bl.line_id, parseFloat(e.target.value) || 0)}
                               className="db-input"
-                              style={{ width: 60, textAlign: 'right', fontSize: 13 }}
+                              style={{ width: 60, textAlign: 'right', fontSize: baseFontSize }}
                             />
                           </td>
                           <td className="db-border-bottom-light" style={S.td}>
                             <button
                               onClick={() => removeFromBox(box.id, bl.line_id)}
                               className="db-text-red"
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: baseFontSize + 1 }}
                               title="Remove from box"
                             >&times;</button>
                           </td>
@@ -480,7 +486,7 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
 
             {/* All boxes summary */}
             {boxes.length > 1 && (
-              <div className="db-text-muted" style={{ marginTop: 12, fontSize: 12 }}>
+              <div className="db-text-muted" style={{ marginTop: 12, fontSize: baseFontSize - 1 }}>
                 {boxes.map(b => `${b.label}: ${b.lines.length} items${b.weight ? ', ' + b.weight + ' lbs' : ''}`).join(' · ')}
               </div>
             )}
@@ -489,7 +495,7 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
             <button className="db-btn" style={S.btn} onClick={() => setStep('pick')}>
               Back to Pick
             </button>
-            <span className="db-text-muted" style={{ fontSize: 13 }}>
+            <span className="db-text-muted" style={{ fontSize: baseFontSize }}>
               {totalPacked} items in {boxes.filter(b => b.lines.length > 0).length} box(es)
             </span>
             <button
@@ -508,25 +514,25 @@ export default function PackingPanel({ orderId, orderIda, onComplete, onClose }:
       {step === 'ship' && (
         <>
           <div style={S.body}>
-            <div className="db-text-muted" style={{ fontSize: 13, marginBottom: 16 }}>
+            <div className="db-text-muted" style={{ fontSize: baseFontSize, marginBottom: 16 }}>
               Pack confirmed. Enter shipping details to create the invoice.
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '10px 12px', alignItems: 'center', maxWidth: 400 }}>
-              <label className="db-text-muted" style={{ fontSize: 13 }}>Carrier:</label>
-              <input className="db-input" style={{ fontSize: 13 }} value={carrier} onChange={e => setCarrier(e.target.value)} placeholder="UPS, FedEx, USPS..." />
+              <label className="db-text-muted" style={{ fontSize: baseFontSize }}>Carrier:</label>
+              <input className="db-input" style={{ fontSize: baseFontSize }} value={carrier} onChange={e => setCarrier(e.target.value)} placeholder="UPS, FedEx, USPS..." />
 
-              <label className="db-text-muted" style={{ fontSize: 13 }}>Tracking #:</label>
-              <input className="db-input" style={{ fontSize: 13 }} value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} placeholder="Tracking number" />
+              <label className="db-text-muted" style={{ fontSize: baseFontSize }}>Tracking #:</label>
+              <input className="db-input" style={{ fontSize: baseFontSize }} value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} placeholder="Tracking number" />
 
-              <label className="db-text-muted" style={{ fontSize: 13 }}>Ship Date:</label>
-              <input className="db-input" style={{ fontSize: 13 }} type="date" value={shipDate} onChange={e => setShipDate(e.target.value)} />
+              <label className="db-text-muted" style={{ fontSize: baseFontSize }}>Ship Date:</label>
+              <input className="db-input" style={{ fontSize: baseFontSize }} type="date" value={shipDate} onChange={e => setShipDate(e.target.value)} />
 
-              <label className="db-text-muted" style={{ fontSize: 13 }}>Freight Cost:</label>
-              <input className="db-input" style={{ fontSize: 13 }} type="number" step="0.01" value={freightCost} onChange={e => setFreightCost(e.target.value)} placeholder="0.00" />
+              <label className="db-text-muted" style={{ fontSize: baseFontSize }}>Freight Cost:</label>
+              <input className="db-input" style={{ fontSize: baseFontSize }} type="number" step="0.01" value={freightCost} onChange={e => setFreightCost(e.target.value)} placeholder="0.00" />
             </div>
 
             {/* Box summary */}
-            <div className="db-bg-surface-alt" style={{ marginTop: 16, padding: '10px 12px', borderRadius: 6, fontSize: 13 }}>
+            <div className="db-bg-surface-alt" style={{ marginTop: 16, padding: '10px 12px', borderRadius: 6, fontSize: baseFontSize }}>
               <div className="db-text-accent db-font-bold" style={{ marginBottom: 6 }}>Packed:</div>
               {boxes.filter(b => b.lines.length > 0).map(b => (
                 <div key={b.id} className="db-text">
@@ -572,6 +578,9 @@ function ScaleBar({ scale, onReadWeight }: {
   scale: ReturnType<typeof useScale>;
   onReadWeight: (weight: number) => void;
 }) {
+  const active = getUI<string>('theme.active', 'dark');
+  const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
+  const S = makeStyles(baseFontSize);
   const color = SCALE_COLORS[scale.status] || '#666';
 
   return (
@@ -590,19 +599,19 @@ function ScaleBar({ scale, onReadWeight }: {
       {scale.connected ? (
         <>
           {/* Live weight */}
-          <span className="db-font-mono db-font-bolder" style={{ fontSize: 18, color, minWidth: 80 }}>
+          <span className="db-font-mono db-font-bolder" style={{ fontSize: baseFontSize + 5, color, minWidth: 80 }}>
             {scale.weightScale.toFixed(3)}
           </span>
           <span className="db-text-muted db-font-sm">lbs</span>
 
           {/* Deviation */}
           {scale.status === 'mismatch' && (
-            <span className="db-text-red" style={{ fontSize: 12, marginLeft: 8 }}>
+            <span className="db-text-red" style={{ fontSize: baseFontSize - 1, marginLeft: 8 }}>
               {scale.message}
             </span>
           )}
           {scale.status === 'ok' && scale.weightScale > 0 && (
-            <span className="db-text-green" style={{ fontSize: 12 }}>OK</span>
+            <span className="db-text-green" style={{ fontSize: baseFontSize - 1 }}>OK</span>
           )}
 
           {/* Stable indicator */}
@@ -639,12 +648,12 @@ function ScaleBar({ scale, onReadWeight }: {
         </>
       ) : (
         <>
-          <span className="db-text-muted" style={{ fontSize: 12 }}>{scale.message}</span>
+          <span className="db-text-muted" style={{ fontSize: baseFontSize - 1 }}>{scale.message}</span>
           <div className="db-spacer" />
           <button
             onClick={scale.connect}
             className="db-btn db-btn--primary"
-            style={{ ...S.btn, padding: '3px 12px', fontSize: 12 }}
+            style={{ ...S.btn, padding: '3px 12px', fontSize: baseFontSize - 1 }}
           >
             Connect Scale
           </button>

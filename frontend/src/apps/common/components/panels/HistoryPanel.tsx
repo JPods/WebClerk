@@ -286,7 +286,7 @@ const AddKeyModal: React.FC<AddKeyModalProps> = ({
             <label className="block text-xs mb-1 db-text-muted">
               Type
             </label>
-            <select
+            <select data-wc="select"
               value={valueType}
               onChange={(e) => setValueType(e.target.value as typeof valueType)}
               className="w-full px-2 py-1.5 text-sm rounded db-panel-text"
@@ -311,7 +311,7 @@ const AddKeyModal: React.FC<AddKeyModalProps> = ({
                 placeholder='{"key": "value"}'
               />
             ) : valueType === "boolean" ? (
-              <select
+              <select data-wc="select"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 className="w-full px-2 py-1.5 text-sm rounded db-panel-text"

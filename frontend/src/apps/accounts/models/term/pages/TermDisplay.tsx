@@ -124,7 +124,7 @@ export default function TermDisplay({
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div data-wc="term-display" className="p-4 space-y-4">
       {/* Header with Title and Column Selector */}
       <div className="flex items-center justify-between border-b pb-3">
         <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-200">

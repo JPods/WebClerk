@@ -276,7 +276,7 @@ const QATab: React.FC<QATabProps> = ({
         <label className="text-sm font-medium text-slate-600 dark:text-slate-400">
           Question Group:
         </label>
-        <select
+        <select data-wc="select"
           value={selectedGroup}
           onChange={(e) => handleGroupSelect(e.target.value)}
           className="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 min-w-[200px]"

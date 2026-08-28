@@ -85,7 +85,7 @@ export default function GLJournalDisplay({
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div data-wc="gl-journal-display" className="p-4 space-y-4">
       <h2 className="text-xl font-semibold">
         <DevBadge label="GLJournalDisplay" className="mr-2" />
         {modeProp === "add" ? "Add GL Journal" : modeProp === "edit" ? "Edit GL Journal" : "View GL Journal"}

@@ -256,15 +256,15 @@ const dialogStyle: React.CSSProperties = {
 };
 
 const titleStyle: React.CSSProperties = {
-  color: '#f8fafc', fontSize: '1.5rem', fontWeight: 700, margin: '0 0 8px',
+  color: 'var(--db-text)', fontSize: '1.5rem', fontWeight: 700, margin: '0 0 8px',
 };
 
 const subTitleStyle: React.CSSProperties = {
-  color: '#94a3b8', fontSize: '0.875rem', fontWeight: 600, margin: '0 0 4px',
+  color: 'var(--db-text-dim)', fontSize: '0.875rem', fontWeight: 600, margin: '0 0 4px',
 };
 
 const textStyle: React.CSSProperties = {
-  color: '#94a3b8', fontSize: '0.875rem', lineHeight: 1.5, margin: '0 0 16px',
+  color: 'var(--db-text-dim)', fontSize: '0.875rem', lineHeight: 1.5, margin: '0 0 16px',
 };
 
 const sectionStyle: React.CSSProperties = {
@@ -273,7 +273,7 @@ const sectionStyle: React.CSSProperties = {
 };
 
 const listStyle: React.CSSProperties = {
-  margin: 0, padding: '0 0 0 16px', color: '#cbd5e1', fontSize: '0.8125rem',
+  margin: 0, padding: '0 0 0 16px', color: 'var(--db-text-muted)', fontSize: '0.8125rem',
 };
 
 const itemStyle: React.CSSProperties = {
@@ -291,7 +291,7 @@ const btnPrimary: React.CSSProperties = {
 };
 
 const btnSecondary: React.CSSProperties = {
-  backgroundColor: '#334155', color: '#cbd5e1', border: '1px solid #475569',
+  backgroundColor: 'var(--db-surface-alt)', color: 'var(--db-text-muted)', border: '1px solid var(--db-border)',
   borderRadius: '6px', padding: '10px 20px', fontSize: '0.875rem',
   cursor: 'pointer',
 };
@@ -304,7 +304,7 @@ const btnDanger: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '8px 12px', borderRadius: '6px',
-  border: '1px solid #475569', backgroundColor: '#0f172a',
-  color: '#f8fafc', fontSize: '0.875rem', marginTop: '4px',
+  border: '1px solid var(--db-border)', backgroundColor: 'var(--db-bg)',
+  color: 'var(--db-text)', fontSize: '0.875rem', marginTop: '4px',
   boxSizing: 'border-box',
 };

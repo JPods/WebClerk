@@ -83,20 +83,21 @@ export function DevIdentifier({ name, variant = 'indigo', source, children }: De
     <div
       className="relative"
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseLeave={() => { setHovered(false); setShiftHeld(false); }}
       onMouseMove={(e) => setShiftHeld(e.shiftKey)}
     >
-      {/* Hover badge – top-right, fades in/out */}
+      {/* Shift+hover badge – top-right, only visible when Shift is held.
+          Plain hover does nothing — prevents blocking action buttons like +add. */}
       <div
         className={`absolute top-0 right-0 z-[9999] transition-opacity duration-150 ${
-          hovered ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          hovered && shiftHeld ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       >
         <span
           onClick={handleBadgeClick}
           className={`inline-block px-1.5 py-0.5 text-[10px] font-mono font-medium tracking-wide rounded-bl shadow-sm whitespace-nowrap cursor-pointer ${VARIANT_CLASSES[variant]}`}
         >
-          {hovered && shiftHeld && source ? source : name}
+          {source || name}
         </span>
       </div>
       {children}

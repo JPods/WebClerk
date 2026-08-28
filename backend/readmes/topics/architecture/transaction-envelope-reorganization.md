@@ -175,22 +175,50 @@ LineItem, LineCommission) are already correct. Only review needed:
 This is a data migration, not just a schema change. Existing JSON data
 in `finance` needs to move to `tax`. Options:
 
-### Option A — Lazy migration (recommended)
+### Big bang migration (no legacy to protect)
+
+There is no production data to preserve. Force all transactions to update now.
 
 1. Create new schemas (`TransactionTax`, `TransactionCommission`, etc.)
 2. Add to ENVELOPE_SCHEMA_MAP and LEAF_MAP
-3. Backend reads from new location, falls back to old
-4. On any save, migrate data to new location automatically
-5. Management command to batch-migrate existing records
-6. After migration complete, remove fallback reads
+3. Write Django migration that moves JSON data in-place (finance → tax)
+4. Management command to force-update all existing transactions
+5. Update all code to read from new locations only — no fallback reads
+6. Delete old paths
 
-### Option B — Big bang migration
+No lazy migration, no fallback, no backwards compatibility. Clean break.
 
-1. Create schemas
-2. Write Django migration that moves JSON data in-place
-3. Update all code at once
+## UI Audit — All Value Pairs Updated
 
-Option A is safer — records migrate gradually, no downtime, fallback if anything breaks.
+After migration, every UI surface that reads transaction JSON must be verified.
+No surface should reference old paths (e.g., `finance.sales_tax_rate` when it
+moved to `tax.sales_rate`).
+
+| Surface | What to check |
+|---------|--------------|
+| **print templates** | All Report records with transaction models — SVG/PDF templates reading envelope paths |
+| **db.list** | Column specs in Setting(purpose='wc:list_column_config') — any dot-path column referencing old locations |
+| **db.column** | Field specs in workbench Settings — column widths, formats, visibility for moved fields |
+| **db.detail** | Detail view field lists — envelope leaf fields displayed in right panel |
+| **forms** | DynamicDetail, TouchForm, any model-specific form — field rendering with behaviors |
+| **panels** | ContactPanel, TotalsPanel, ShippingPanel, FinancePanel — hardcoded envelope reads |
+| **dialogs** | BehaviorOverrideDialog, any modal that reads/writes envelope data |
+| **reports/dashboards** | Dashboard cards, KPI widgets, Alice dashboard — any computed display from envelope paths |
+| **API serializers** | Serializer fields that flatten envelope data for API responses |
+| **totals engine** | services/totals.py — must only read `totals`, not domain envelopes (verify no cross-reads) |
+| **search/filter** | Any search preset or filter that references envelope dot-paths |
+
+## Status Field — Add to All Layouts
+
+`status` was added to BaseModel (all models have it). Every `setting.model`
+layout must include `status` in both list and detail views.
+
+Action items:
+1. Query all Settings with `purpose='wc:list_column_config'` — add `status` column if missing
+2. Query all Settings with `purpose='wc:workbench_fields'` — add `status` to list and detail arrays
+3. Query all Settings with `purpose='wc:model'` — add `status` behavior (type: 'select', selectlist_key: 'status')
+4. Management command: `add_status_to_layouts` — batch update all layout Settings
+5. Seed default `status` select list if not present: active, hold, closed, cancelled, archived
 
 ## Order of Work
 

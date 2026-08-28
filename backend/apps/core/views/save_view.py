@@ -979,7 +979,7 @@ class SaveWcapiView(APIView):
                                 
                                 # Create pending inventory record for new lines
                                 try:
-                                    from apps.transactions.services.line_item_service import LineItemService
+                                    from apps.transactions.services.line_manage import LineItemService
                                     service = LineItemService(create_pending=True)
                                     service._create_pending_for_new_line(
                                         parent=obj,
@@ -1113,7 +1113,7 @@ class SaveWcapiView(APIView):
         # Append contact link for action saves
         if model_key == 'action':
             try:
-                from apps.core.services.action_service import append_contact_link
+                from apps.core.services.action_links import append_contact_link
                 user_id = getattr(request.user, 'id', None)
                 if user_id:
                     append_contact_link(obj, user_id)
@@ -1124,7 +1124,7 @@ class SaveWcapiView(APIView):
             # Auto-schedule action based on parent dependencies (Finish-to-Start)
             # When refs.parents is set, update dt_start to latest parent's dt_end
             try:
-                from apps.core.services.action_service import auto_schedule_from_parents
+                from apps.core.services.action_links import auto_schedule_from_parents
                 refs_data = data.get('refs.parents') or data.get('refs', {})
                 if isinstance(refs_data, dict) and refs_data.get('value'):
                     refs_data = refs_data.get('value')
@@ -1141,7 +1141,7 @@ class SaveWcapiView(APIView):
             
             # Cascading reschedule: if this action's dates changed, push children forward
             try:
-                from apps.core.services.action_service import check_and_reschedule_children
+                from apps.core.services.action_links import check_and_reschedule_children
                 # Check if dt_start or duration was updated
                 dt_start_changed = 'dt_start' in data
                 duration_changed = 'duration' in data

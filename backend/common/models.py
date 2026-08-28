@@ -404,6 +404,7 @@ class CoreModel(models.Model):
     times_used = models.BigIntegerField(default=0, db_index=True, help_text="Lifetime use count")
     dt_last_used = models.BigIntegerField(default=0, db_index=True, help_text="Epoch ms of last use; 0 = never used")
     purpose = models.CharField(max_length=255, blank=True, null=True, db_index=True, help_text="Why this record exists: team_memory, alice_pending, search, template, etc.")
+    status = models.CharField(max_length=50, blank=True, null=True, db_index=True, help_text="Current status of the record")
     config = models.JSONField(
         default=dict,
         blank=True,
@@ -480,7 +481,7 @@ class LifecycleMixin(models.Model):
     """Soft-delete / archive / lock flags + status (reversible lifecycle state)."""
 
     feature_flags = {"lifecycle"}
-    status = models.CharField(max_length=100, blank=True, default='', db_index=True)
+    # status removed — now on CoreModel (canonical, max_length=50)
     is_deleted = models.BooleanField(default=False, db_index=True)
     is_archived = models.BooleanField(default=False, db_index=True)
     is_locked = models.BooleanField(default=False, db_index=True, help_text="Record is locked and cannot be edited (admin override required)")
@@ -1610,7 +1611,7 @@ class BaseModel(
                     if has_pending:
                         break
                 if has_pending:
-                    from apps.accounts.services.erosion import sync_metadata_erosions
+                    from apps.accounts.services.value_erosion import sync_metadata_erosions
                     count = sync_metadata_erosions(self)
                     if count:
                         messages.append(f'{count} erosion record(s) created')

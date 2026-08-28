@@ -174,7 +174,7 @@ export default function TransactionFlowIndicator({ modelName, record, onNavigate
   };
 
   return (
-    <div className="flex items-center gap-1 px-1 py-1.5 text-xs no-print">
+    <div data-wc="transaction-flow-indicator" className="flex items-center gap-1 px-1 py-1.5 text-xs no-print">
       {nodes.map((node, i) => {
         const label = MODEL_LABELS[node.model] || node.model;
         const display = node.ida || `#${node.id}`;

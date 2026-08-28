@@ -95,7 +95,7 @@
   background: none;
   border: none;
   color: var(--db-text-muted, #6c757d);
-  font-size: 18px;
+  font-size: calc(var(--rd-fs, 13px) + 5px);
   cursor: pointer;
   padding: 0 4px;
 }

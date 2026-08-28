@@ -688,7 +688,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Project
                   </label>
-                  <select
+                  <select data-wc="select"
                     className={controlClass}
                     value={formState.projectId ?? ""}
                     onChange={(event) =>
@@ -767,7 +767,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
               </label>
               <div className="flex flex-wrap items-end gap-3">
                 <div className="flex-1 min-w-[180px] space-y-1">
-                  <select
+                  <select data-wc="select"
                     className={controlClass}
                     value={activeTranslation?.id || ""}
                     onChange={(event) =>
@@ -815,7 +815,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                         <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                           selection
                         </label>
-                        <select
+                        <select data-wc="select"
                           className={controlBaseClass}
                           value={languagePickerState.selection}
                           onChange={(event) =>

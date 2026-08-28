@@ -43,7 +43,7 @@ export default function TaxReportPrintDocument({ data }: { data: TaxReportData }
   const { company, lines, period_label, total_tax, total_invoices } = data;
 
   return (
-    <div className="print-page">
+    <div data-wc="tax-report-print-document" className="print-page">
 
       {/* Header */}
       <div className="print-header">

@@ -274,7 +274,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 <span className="text-sm text-slate-700 dark:text-slate-300">
                   Paper:
                 </span>
-                <select
+                <select data-wc="select"
                   value={options.paperSize}
                   onChange={(e) =>
                     updateOption("paperSize", e.target.value as "letter" | "a4")

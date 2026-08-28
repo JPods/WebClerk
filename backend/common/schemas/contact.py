@@ -40,7 +40,7 @@ class ContactConfig(ConfigBase):
     touch: TouchConfig = Field(default_factory=TouchConfig)
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 # ── .metadata (inherits MetadataBase) ──────────────────────────────
@@ -132,7 +132,7 @@ class ContactRefsLinks(BaseModel):
     manufacturer: list = Field(default_factory=list)
 
     class Config:
-        extra = "allow"
+        extra = "forbid"
 
 
 class ContactRefs(RefsBase):

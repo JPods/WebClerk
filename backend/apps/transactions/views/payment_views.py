@@ -12,9 +12,9 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.response import Response
 from apps.transactions.models import Payment, Invoice
 from apps.transactions.serializers.payment_serializers import PaymentSerializer
-from apps.transactions.services.payment_gateways import SpreedlyService, SpreedlyError, process_payment as spreedly_process, refund_payment as spreedly_refund
-from apps.transactions.services.payment_pending import apply_payment_to_invoice
-from apps.transactions.services.payment_application import get_invoice_payment_status
+from apps.transactions.services.payment.spreedly_gateway import SpreedlyService, SpreedlyError, process_payment as spreedly_process, refund_payment as spreedly_refund
+from apps.transactions.services.payment.payment_pending import apply_payment_to_invoice
+from apps.transactions.services.payment.payment_apply import get_invoice_payment_status
 from apps.core.services import wcapi
 
 logger = logging.getLogger(__name__)

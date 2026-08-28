@@ -89,7 +89,7 @@ class TestLineForeignKeys:
 ```python
 # tests/test_parent_lineage.py
 import pytest
-from apps.transactions.services.proposal_to_order import transfer_proposal_to_order
+from apps.transactions.services.convert.convert_proposal_to_order import transfer_proposal_to_order
 
 @pytest.mark.django_db
 class TestParentLineage:
@@ -99,7 +99,7 @@ class TestParentLineage:
         assert order.parent_id == proposal_with_lines.pk
 
     def test_order_to_invoice_sets_parent(self, order_with_lines):
-        from apps.transactions.services.order_to_invoice import transfer_order_to_invoice
+        from apps.transactions.services.convert.convert_order_to_invoice import transfer_order_to_invoice
         invoice = transfer_order_to_invoice(order_with_lines)
         assert invoice.parent_model == "order"
         assert invoice.parent_id == order_with_lines.pk
@@ -184,7 +184,7 @@ class TestQuantityFlow:
 
     def test_partial_transfer(self, order_with_lines):
         """Transfer only 6 of 10 staged on order to invoice."""
-        from apps.transactions.services.order_to_invoice import transfer_order_to_invoice
+        from apps.transactions.services.convert.convert_order_to_invoice import transfer_order_to_invoice
         invoice = transfer_order_to_invoice(order_with_lines, quantity_override=6)
 
         source_line = order_with_lines.lines.first()
@@ -369,7 +369,7 @@ class TestSellSideE2E:
 class TestExecSideE2E:
     def test_order_to_purchase_to_receipt(self, order_with_lines, vendor_org):
         # 1. Transfer to Purchase
-        from apps.transactions.services.order_to_purchase import transfer_order_to_purchase
+        from apps.transactions.services.convert.convert_order_to_purchase import transfer_order_to_purchase
         purchase = transfer_order_to_purchase(order_with_lines, vendor=vendor_org)
         assert purchase.parent_model == "order"
         assert purchase.vendor == vendor_org

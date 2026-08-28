@@ -7,8 +7,8 @@ on_hand should NOT change until WO is completed.
 from django.db import transaction
 from apps.transactions.models import WorkOrder, WorkOrderLine
 from apps.products.models import Item
-from apps.transactions.services.line_item_service import LineItemService
-from apps.transactions.services.pending_inventory_processor import process_line_item_pending
+from apps.transactions.services.line_manage import LineItemService
+from apps.transactions.services.inventory_pending_process import process_line_item_pending
 from apps.transactions.services.trace_debug import enable_trace, disable_trace
 
 # Test items

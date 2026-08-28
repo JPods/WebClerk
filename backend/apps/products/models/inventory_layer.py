@@ -127,7 +127,7 @@ class InventoryLayer(ItemLinkedBase):
         self.dt_locked = None
         self.save(update_fields=['is_locked', 'dt_locked', 'dt_modified', 'version'])
         # Drain the pending queue — the whole reason pending exists
-        from apps.transactions.services.pending_inventory_processor import process_pending_for_item
+        from apps.transactions.services.inventory_pending_process import process_pending_for_item
         process_pending_for_item(item_id=self.item_id)
 
     # Override LifecycleMixin so admin lock/unlock also honors the pending contract

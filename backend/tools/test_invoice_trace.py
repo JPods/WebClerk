@@ -78,7 +78,7 @@ for item_id in [249, 250, 251]:
 
 # Now process the pending records
 print("\n--- PROCESSING PENDING RECORDS ---")
-from apps.transactions.services.pending_inventory_processor import process_line_item_pending
+from apps.transactions.services.inventory_pending_process import process_line_item_pending
 
 with transaction.atomic():
     summary = process_line_item_pending(item_id=249)

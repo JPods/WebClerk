@@ -22,7 +22,7 @@ from apps.transactions.models import (
     ProposalLine, OrderLine, InvoiceLine, PurchaseLine, WorkOrderLine,
     Proposal, Order, Invoice, Payment, Purchase, WorkOrder,
 )
-from apps.transactions.services.email_notifications import TransactionEmailService
+from apps.transactions.services.notify_email import TransactionEmailService
 
 
 # =============================================================================
@@ -121,7 +121,7 @@ def register_line_inventory_signals(
         if getattr(instance, '_pending_created', False):
             return
 
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
 
         item_id = _resolve_item_id(instance)
         if not item_id:
@@ -177,7 +177,7 @@ def register_line_inventory_signals(
 
     @receiver(post_delete, sender=line_model)
     def update_inventory_on_delete(sender, instance, **kwargs):
-        from apps.transactions.services.line_item_service import LineItemService
+        from apps.transactions.services.line_manage import LineItemService
 
         item_id = _resolve_item_id(instance)
         if not item_id:
@@ -355,7 +355,7 @@ def create_payment_ledger(sender, instance: Payment, created, **kwargs):
         )
     # Detect late-payment erosion (carrying cost)
     try:
-        from apps.accounts.services.erosion import detect_late_payment
+        from apps.accounts.services.value_erosion import detect_late_payment
         detect_late_payment(instance)
     except Exception:
         import logging
@@ -381,7 +381,7 @@ def update_order_received(sender, instance: Payment, created, **kwargs):
             return
 
         from decimal import Decimal
-        from apps.transactions.services.totals import update_received
+        from apps.transactions.services.pricing.totals_compute import update_received
         for oid in order_ids:
             try:
                 order = Order.objects.get(pk=oid)
@@ -460,7 +460,7 @@ def allie_payment_event(sender, instance: Payment, created, **kwargs):
 def _bus_notify(model_name, instance, created):
     """Send transaction event to Alice via the agent message bus."""
     try:
-        from apps.core.services.agent_bus_bridge import send_to_bus
+        from apps.core.services.agent_bus import send_to_bus
         event = 'created' if created else 'updated'
         ida = getattr(instance, 'ida', '') or f'{model_name}({instance.pk})'
         status = getattr(instance, 'status', '')
@@ -498,7 +498,7 @@ def bus_purchase_saved(sender, instance, created, **kwargs):
 @receiver(post_save, sender=Payment)
 def bus_payment_saved(sender, instance, created, **kwargs):
     try:
-        from apps.core.services.agent_bus_bridge import send_to_bus
+        from apps.core.services.agent_bus import send_to_bus
         event = 'created' if created else 'updated'
         status = getattr(instance, 'status', '')
         send_to_bus('wc3', 'alice', f'Payment #{instance.pk} {event}',

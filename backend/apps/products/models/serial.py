@@ -66,7 +66,7 @@ class Serial(ItemLinkedBase):
     serial_ida = models.CharField(max_length=120, unique=False, help_text="Serial number as printed on the unit")
     model_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="Model number or variant identifier")
     warranty = models.JSONField(default=dict, blank=True, help_text="Warranty details: days, dt_start, dt_end, terms")
-    status = models.CharField(max_length=32, choices=SERIAL_STATUS_CHOICES, default='received', db_index=True)
+    # status — inherited from CoreModel
     site = models.JSONField(default=dict, blank=True, help_text="Current location: warehouse code, bin, zone, geo")
     inventory_layer = models.ForeignKey(
         'products.InventoryLayer', on_delete=models.SET_NULL,

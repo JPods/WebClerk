@@ -9,7 +9,7 @@
 .cd-root {
   display: flex; flex-direction: column; height: 100vh;
   background: var(--db-bg); color: var(--db-text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: var(--cd-fs, 13px);
 }
 
 /* Header */
@@ -17,27 +17,27 @@
   display: flex; align-items: center; justify-content: space-between;
   padding: 8px 16px; background: var(--db-surface); border-bottom: 1px solid var(--db-border);
 }
-.cd-title { font-size: 16px; font-weight: 700; color: var(--db-accent); margin: 0; }
+.cd-title { font-size: calc(var(--cd-fs, 13px) + 3px); font-weight: 700; color: var(--db-accent); margin: 0; }
 .cd-header-right { display: flex; gap: 8px; }
 
 /* Buttons */
 .cd-btn {
   border: 1px solid var(--db-border-light); border-radius: 3px;
-  padding: 4px 12px; font-size: 12px; font-weight: 600;
+  padding: 4px 12px; font-size: calc(var(--cd-fs, 13px) - 1px); font-weight: 600;
   cursor: pointer; background: var(--db-btn-bg); color: var(--db-text);
 }
 .cd-btn--ghost { background: transparent; border-color: var(--db-accent); color: var(--db-accent); }
-.cd-btn--small { padding: 2px 8px; font-size: 11px; }
+.cd-btn--small { padding: 2px 8px; font-size: calc(var(--cd-fs, 13px) - 2px); }
 
 /* Filter bar */
 .cd-filter-bar {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   padding: 8px 16px; background: var(--db-surface-alt); border-bottom: 1px solid var(--db-border);
 }
-.cd-filter { display: flex; flex-direction: column; gap: 2px; font-size: 10px; color: var(--db-text-muted); font-weight: 600; text-transform: uppercase; }
+.cd-filter { display: flex; flex-direction: column; gap: 2px; font-size: calc(var(--cd-fs, 13px) - 3px); color: var(--db-text-muted); font-weight: 600; text-transform: uppercase; }
 .cd-filter select, .cd-filter input {
   background: var(--db-input-bg); border: 1px solid var(--db-input-border); border-radius: 3px;
-  color: var(--db-text); padding: 3px 6px; font-size: 12px; width: 80px;
+  color: var(--db-text); padding: 3px 6px; font-size: calc(var(--cd-fs, 13px) - 1px); width: 80px;
 }
 .cd-filter select { width: 100px; }
 
@@ -47,7 +47,7 @@
   background: var(--db-surface);
 }
 .cd-tab {
-  padding: 8px 20px; font-size: 13px; font-weight: 600; cursor: pointer;
+  padding: 8px 20px; font-size: var(--cd-fs, 13px); font-weight: 600; cursor: pointer;
   border: none; background: transparent; color: var(--db-text-muted);
   border-bottom: 2px solid transparent; margin-bottom: -2px;
 }
@@ -65,22 +65,22 @@
   flex: 1; min-width: 120px; padding: 12px 16px;
   background: var(--db-surface); border: 1px solid var(--db-border); border-radius: 6px;
 }
-.cd-metric-value { font-size: 24px; font-weight: 700; color: var(--db-accent); }
-.cd-metric-label { font-size: 11px; color: var(--db-text-muted); text-transform: uppercase; font-weight: 600; margin-top: 4px; }
-.cd-metric-sub { font-size: 11px; color: var(--db-text-dim); margin-top: 2px; }
+.cd-metric-value { font-size: calc(var(--cd-fs, 13px) + 11px); font-weight: 700; color: var(--db-accent); }
+.cd-metric-label { font-size: calc(var(--cd-fs, 13px) - 2px); color: var(--db-text-muted); text-transform: uppercase; font-weight: 600; margin-top: 4px; }
+.cd-metric-sub { font-size: calc(var(--cd-fs, 13px) - 2px); color: var(--db-text-dim); margin-top: 2px; }
 
 /* Sections */
 .cd-section { background: var(--db-surface); border: 1px solid var(--db-border); border-radius: 6px; padding: 12px; }
 .cd-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.cd-section-title { font-size: 13px; font-weight: 700; color: var(--db-text); margin: 0 0 8px 0; }
+.cd-section-title { font-size: var(--cd-fs, 13px); font-weight: 700; color: var(--db-text); margin: 0 0 8px 0; }
 .cd-export-btns { display: flex; gap: 6px; }
 
 /* Tables */
-.cd-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.cd-table th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--db-border); color: var(--db-text-muted); font-weight: 600; font-size: 10px; text-transform: uppercase; }
+.cd-table { width: 100%; border-collapse: collapse; font-size: calc(var(--cd-fs, 13px) - 1px); }
+.cd-table th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--db-border); color: var(--db-text-muted); font-weight: 600; font-size: calc(var(--cd-fs, 13px) - 3px); text-transform: uppercase; }
 .cd-table td { padding: 5px 8px; border-bottom: 1px solid var(--db-border-light); }
 .cd-table tr:hover { background: var(--db-row-hover); }
-.cd-table--accounting td { font-size: 13px; }
+.cd-table--accounting td { font-size: var(--cd-fs, 13px); }
 .cd-table-footer td { font-weight: 700; border-top: 2px solid var(--db-border); padding-top: 8px; }
 .cd-align-right { text-align: right; }
 .cd-mono { font-family: 'SF Mono', 'Consolas', monospace; }
@@ -96,9 +96,9 @@
 .cd-margin-dist { margin-top: 12px; }
 .cd-margin-dist-bar { display: flex; height: 28px; border-radius: 4px; overflow: hidden; border: 1px solid var(--db-border); }
 .cd-margin-dist-segment { display: flex; align-items: center; justify-content: center; min-width: 2px; transition: width 0.3s; }
-.cd-margin-dist-label { font-size: 11px; font-weight: 700; color: #000; text-shadow: 0 0 2px rgba(255,255,255,0.5); }
+.cd-margin-dist-label { font-size: calc(var(--cd-fs, 13px) - 2px); font-weight: 700; color: #000; text-shadow: 0 0 2px rgba(255,255,255,0.5); }
 .cd-margin-dist-legend { display: flex; gap: 16px; margin-top: 6px; flex-wrap: wrap; }
-.cd-margin-dist-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--db-text-muted); }
+.cd-margin-dist-item { display: flex; align-items: center; gap: 4px; font-size: calc(var(--cd-fs, 13px) - 2px); color: var(--db-text-muted); }
 .cd-margin-dist-dot { width: 8px; height: 8px; border-radius: 2px; }
 
 /* Inline record list below metric cards */

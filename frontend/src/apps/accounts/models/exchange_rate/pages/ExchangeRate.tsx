@@ -2,5 +2,5 @@
 import ExchangeRateList from "./ExchangeRateList";
 
 export default function ExchangeRate() {
-  return <ExchangeRateList />;
+  return <div data-wc="exchange-rate"><ExchangeRateList /></div>;
 }

@@ -75,7 +75,7 @@ def dispatch_pending_processing(limit: int = 200, caller: str = '') -> dict:
 
     # ── Inline fallback ──────────────────────────────────────────────
     try:
-        from apps.transactions.services.pending_inventory_processor import (
+        from apps.transactions.services.inventory_pending_process import (
             process_line_item_pending,
         )
         summary = process_line_item_pending(limit=limit)

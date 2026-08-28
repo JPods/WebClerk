@@ -10,7 +10,7 @@ class TestInventoryAvailability:
     """Inventory availability: on_hand - reserved = available."""
 
     def test_single_layer_availability(self):
-        from apps.products.services.inventory_availability import get_item_availability
+        from apps.products.services.inventory.inventory_available import get_item_availability
         from apps.products.models import InventoryLayer
 
         item = ItemFactory()
@@ -28,7 +28,7 @@ class TestInventoryAvailability:
         assert result['available'] == 100.0  # no reservations
 
     def test_multiple_layers_aggregate(self):
-        from apps.products.services.inventory_availability import get_item_availability
+        from apps.products.services.inventory.inventory_available import get_item_availability
         from apps.products.models import InventoryLayer
 
         item = ItemFactory()
@@ -47,7 +47,7 @@ class TestInventoryAvailability:
         assert result['on_so'] == 15.0
 
     def test_filter_by_warehouse(self):
-        from apps.products.services.inventory_availability import get_item_availability
+        from apps.products.services.inventory.inventory_available import get_item_availability
         from apps.products.models import InventoryLayer
 
         item = ItemFactory()
@@ -69,7 +69,7 @@ class TestInventoryAvailability:
         assert result_wh2['on_hand'] == 200.0
 
     def test_no_layers_returns_zeros(self):
-        from apps.products.services.inventory_availability import get_item_availability
+        from apps.products.services.inventory.inventory_available import get_item_availability
 
         item = ItemFactory()
         result = get_item_availability(item.pk)
@@ -77,7 +77,7 @@ class TestInventoryAvailability:
         assert result['available'] == 0.0
 
     def test_availability_by_warehouse_breakdown(self):
-        from apps.products.services.inventory_availability import get_item_availability_by_warehouse
+        from apps.products.services.inventory.inventory_available import get_item_availability_by_warehouse
         from apps.products.models import InventoryLayer
 
         item = ItemFactory()

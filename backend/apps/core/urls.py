@@ -38,7 +38,7 @@ from apps.core.views.parade_preview_view import ParadePreviewView, ParadeManifes
 from apps.core.views.setting_parade_view import SettingParadeManifestView, SettingParadePreviewView, SettingParadeFeedbackView
 from apps.core.views.system_dispatch import SystemDispatchView
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
-from apps.docs.views_qa import ApplyQuestionsView, ListQuestionGroupsView, ParentQAView
+from apps.docs.views.qa_view import ApplyQuestionsView, ListQuestionGroupsView, ParentQAView
 
 urlpatterns = [
     # ── Auth (no prefix — user-facing) ─────────────────────────────

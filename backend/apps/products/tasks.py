@@ -8,8 +8,8 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 
-from apps.transactions.services.pending_inventory_processor import process_line_item_pending as process_pending_inventory
-from apps.products.services.inventory_reservations import release_expired
+from apps.transactions.services.inventory_pending_process import process_line_item_pending as process_pending_inventory
+from apps.products.services.inventory.inventory_reserve import release_expired
 
 logger = logging.getLogger('inventory')
 
@@ -189,7 +189,7 @@ def process_pending_inventory_adaptive(
     Returns:
         Dict with processing results and next delay info
     """
-    from apps.transactions.services.pending_inventory_processor import process_line_item_pending
+    from apps.transactions.services.inventory_pending_process import process_line_item_pending
     
     # Get current adaptive state
     state = get_adaptive_state()

@@ -243,7 +243,7 @@ export function DevIssueReporter() {
                     Severity
                   </label>
                   <div className="relative">
-                    <select
+                    <select data-wc="select"
                       value={severity}
                       onChange={(e) => setSeverity(e.target.value as DevSeverity)}
                       className="w-full appearance-none rounded-lg border border-slate-300 bg-white px-2 py-1.5 pr-7 text-sm text-slate-800 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
@@ -266,7 +266,7 @@ export function DevIssueReporter() {
                     Category
                   </label>
                   <div className="relative">
-                    <select
+                    <select data-wc="select"
                       value={category}
                       onChange={(e) => setCategory(e.target.value as IssueCategory)}
                       className="w-full appearance-none rounded-lg border border-slate-300 bg-white px-2 py-1.5 pr-7 text-sm text-slate-800 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"

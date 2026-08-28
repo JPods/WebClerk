@@ -325,7 +325,7 @@ export const TransactionTaskModal: React.FC<TransactionTaskModalProps> = ({
               {/* Task Type */}
               <div>
                 <FieldLabel label="Type" />
-                <select
+                <select data-wc="select"
                   value={formState.kind}
                   onChange={(e) =>
                     handleFieldChange("kind", e.target.value as TaskKind)
@@ -352,7 +352,7 @@ export const TransactionTaskModal: React.FC<TransactionTaskModalProps> = ({
                     />
                   }
                 />
-                <select
+                <select data-wc="select"
                   value={formState.priority}
                   onChange={(e) =>
                     handleFieldChange(
@@ -374,7 +374,7 @@ export const TransactionTaskModal: React.FC<TransactionTaskModalProps> = ({
               {/* Status */}
               <div>
                 <FieldLabel label="Status" />
-                <select
+                <select data-wc="select"
                   value={formState.status}
                   onChange={(e) =>
                     handleFieldChange("status", e.target.value as TaskStatus)
@@ -558,7 +558,7 @@ export const TransactionTaskModal: React.FC<TransactionTaskModalProps> = ({
                   label="Project"
                   icon={<FaProjectDiagram size={10} />}
                 />
-                <select
+                <select data-wc="select"
                   value={formState.project_id ?? ""}
                   onChange={(e) => {
                     const id = e.target.value

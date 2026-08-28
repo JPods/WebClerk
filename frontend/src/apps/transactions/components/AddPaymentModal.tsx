@@ -340,7 +340,7 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
             {/* Payment Method */}
             <div>
               <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Method</label>
-              <select
+              <select data-wc="select"
                 value={paymentMethodId || ''}
                 onChange={(e) => setPaymentMethodId(e.target.value ? parseInt(e.target.value) : null)}
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"

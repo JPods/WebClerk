@@ -53,7 +53,7 @@ export default function StatementPrintDocument({ data }: { data: StatementData }
   const { company, customer, aging_summary: aging, lines, statement_date, message } = data;
 
   return (
-    <div className="print-page">
+    <div data-wc="statement-print-document" className="print-page">
 
       {/* Header */}
       <div className="print-header-plain">
