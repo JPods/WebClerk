@@ -4,6 +4,12 @@ from common.base_serializers import RoleAwareModelSerializer
 from apps.transactions.models import Invoice, InvoiceLine
 from .helpers import BASE_RO
 from .base_line_serializer import BaseLineSerializer
+from .behaviors import (
+    validate_customer_id as _validate_customer_id,
+    validate_vendor_id as _validate_vendor_id,
+    validate_customer_vendor_different,
+    validate_status_transition,
+)
 
 
 class InvoiceLineSerializer(BaseLineSerializer):
@@ -80,3 +86,17 @@ class InvoiceSerializer(RoleAwareModelSerializer):
         ]
         read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version',
             'totals']
+
+    def validate_customer_id(self, value):
+        return _validate_customer_id(value)
+
+    def validate_vendor_id(self, value):
+        return _validate_vendor_id(value)
+
+    def validate_status(self, value):
+        validate_status_transition(self.instance, value)
+        return value
+
+    def validate(self, data):
+        validate_customer_vendor_different(data)
+        return data

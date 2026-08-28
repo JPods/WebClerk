@@ -4,6 +4,12 @@ from common.base_serializers import RoleAwareModelSerializer
 from apps.transactions.models import Purchase, PurchaseLine
 from .helpers import _name_from_refs, BASE_RO
 from .base_line_serializer import BaseLineSerializer
+from .behaviors import (
+    validate_customer_id as _validate_customer_id,
+    validate_vendor_id as _validate_vendor_id,
+    validate_customer_vendor_different,
+    validate_status_transition,
+)
 
 
 class PurchaseLineRichSerializer(RoleAwareModelSerializer):
@@ -66,4 +72,18 @@ class PurchaseSerializer(RoleAwareModelSerializer):
         data = super().to_representation(instance)
         if hasattr(instance, 'purchaseline_set'):
             data['line_count'] = instance.purchaseline_set.count()
+        return data
+
+    def validate_customer_id(self, value):
+        return _validate_customer_id(value)
+
+    def validate_vendor_id(self, value):
+        return _validate_vendor_id(value)
+
+    def validate_status(self, value):
+        validate_status_transition(self.instance, value)
+        return value
+
+    def validate(self, data):
+        validate_customer_vendor_different(data)
         return data

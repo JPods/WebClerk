@@ -2,9 +2,14 @@ from rest_framework import serializers
 
 from common.base_serializers import RoleAwareModelSerializer
 from apps.transactions.models import Order, OrderLine
-from apps.orgs.models import OrgBase
 from .helpers import _name_from_refs, BASE_RO
 from .base_line_serializer import BaseLineSerializer
+from .behaviors import (
+    validate_customer_id as _validate_customer_id,
+    validate_vendor_id as _validate_vendor_id,
+    validate_customer_vendor_different,
+    validate_status_transition,
+)
 
 
 class OrderLineRichSerializer(RoleAwareModelSerializer):
@@ -112,33 +117,16 @@ class OrderSerializer(RoleAwareModelSerializer):
             data['line_count'] = instance.lines.count()
         return data
 
-    def validate_status(self, value):
-        """Validate status transitions."""
-        valid_statuses = ['planned', 'released', 'in_progress', 'hold', 'complete', 'canceled']
-        if value not in valid_statuses:
-            raise serializers.ValidationError(f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
-        return value
-
     def validate_customer_id(self, value):
-        """Validate customer exists."""
-        if value and value > 0:
-            try:
-                OrgBase.objects.get(id=value)
-            except OrgBase.DoesNotExist:
-                raise serializers.ValidationError("Customer organization does not exist.")
-        return value
+        return _validate_customer_id(value)
 
     def validate_vendor_id(self, value):
-        """Validate vendor exists."""
-        if value and value > 0:
-            try:
-                OrgBase.objects.get(id=value)
-            except OrgBase.DoesNotExist:
-                raise serializers.ValidationError("Vendor organization does not exist.")
+        return _validate_vendor_id(value)
+
+    def validate_status(self, value):
+        validate_status_transition(self.instance, value)
         return value
 
     def validate(self, data):
-        """Cross-field validation."""
-        if data.get('customer_id') and data.get('vendor_id') and data['customer_id'] == data['vendor_id']:
-            raise serializers.ValidationError("Customer and vendor cannot be the same entity.")
+        validate_customer_vendor_different(data)
         return data

@@ -1,6 +1,12 @@
 from rest_framework import serializers
 from apps.transactions.models import WorkOrder, WorkOrderLine
 from .base_line_serializer import BaseLineSerializer
+from .behaviors import (
+    validate_customer_id as _validate_customer_id,
+    validate_vendor_id as _validate_vendor_id,
+    validate_customer_vendor_different,
+    validate_status_transition,
+)
 
 
 class WorkOrderSerializer(serializers.ModelSerializer):
@@ -8,6 +14,20 @@ class WorkOrderSerializer(serializers.ModelSerializer):
         model = WorkOrder
         fields = ["id", "dt_created", "dt_modified"]
         read_only_fields = ["id", "dt_created", "dt_modified"]
+
+    def validate_customer_id(self, value):
+        return _validate_customer_id(value)
+
+    def validate_vendor_id(self, value):
+        return _validate_vendor_id(value)
+
+    def validate_status(self, value):
+        validate_status_transition(self.instance, value)
+        return value
+
+    def validate(self, data):
+        validate_customer_vendor_different(data)
+        return data
 
 
 class WorkOrderLineSerializer(BaseLineSerializer):

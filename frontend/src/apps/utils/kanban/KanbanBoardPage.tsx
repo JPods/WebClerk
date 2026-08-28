@@ -1395,6 +1395,10 @@ const KanbanBoardPage: React.FC = () => {
     return opts;
   }, [projectOptions, selectedProjectId]);
 
+  const [contactOptions, setContactOptions] = useState<ContactOption[]>([]);
+  const [selectedContactId, setSelectedContactId] = useState<string>("");
+  const [isLoadingContacts, setIsLoadingContacts] = useState<boolean>(false);
+
   // Handle moving a task to a different project
   const handleMoveToProject = useCallback(async (taskId: string | number, projectId: string, projectName: string) => {
     try {
