@@ -16,10 +16,15 @@ class ItemLinkedBase(BaseModel):
 	item_ida and description are display fields for humans looking at records.
 	They are populated from the parent Item on save if not already set.
 	All DB operations (joins, filters, FKs) use item_id, never item_ida.
+
+	PROTECT not CASCADE: you cannot delete an Item that has linked records
+	(serials, inventory layers, xrefs, etc.). Handle linked records first.
+	Serials especially have independent lifecycles — a physical unit exists
+	regardless of whether the catalog item is discontinued.
 	"""
 
 	item = models.ForeignKey(
-		'products.Item', on_delete=models.CASCADE,
+		'products.Item', on_delete=models.PROTECT,
 		related_name="%(class)s_related", db_column='item_id',
 	)
 	item_ida = models.CharField(
