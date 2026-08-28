@@ -483,6 +483,7 @@ ONBOARDING_ACTIONS = [
     {'action': {'en': 'Print an invoice'}, 'description': {'en': 'Open an invoice, click Reports (🖨), select Invoice. Review the print format.'}, 'sequence': 6, 'priority': 2},
     {'action': {'en': 'Explore field behaviors'}, 'description': {'en': 'In the DataBrowser detail pane, notice color-coded labels. Click blue labels (email, phone, address) to test actions.'}, 'sequence': 7, 'priority': 3},
     {'action': {'en': 'Use the Form Layout editor'}, 'description': {'en': 'Click the Form button in the DataBrowser. Reorder fields, toggle visibility, set row sizes. Click Apply.'}, 'sequence': 8, 'priority': 3},
+    {'action': {'en': 'Customize a select list'}, 'description': {'en': 'Dropdowns (status, priority, terms, shipping carrier, etc.) ship with starter options. Cmd+click any field label to add, rename, or remove options. These are YOUR lists — customize them to match your business.'}, 'sequence': 9, 'priority': 2},
 ]
 
 

@@ -534,11 +534,20 @@ const TouchInlineForm: React.FC<{
     }
   };
 
-  // Launch URI based on channel
+  // Launch URI — anchor click pattern works on iOS (tel/sms/mailto)
   const handleLaunch = () => {
-    if (channel === 'call' && phone) window.open(`tel:${phone}`);
-    else if (channel === 'text' && phone) window.open(`sms:${phone}`);
-    else if (channel === 'email' && email) window.open(`mailto:${email}`, '_blank');
+    const a = document.createElement('a');
+    if (channel === 'call' && phone) {
+      a.href = `tel:${phone}`;
+    } else if (channel === 'text' && phone) {
+      a.href = `sms:${phone}`;
+    } else if (channel === 'email' && email) {
+      const subj = encodeURIComponent(subject);
+      a.href = `mailto:${email}${subj ? `?subject=${subj}` : ''}`;
+    } else {
+      return;
+    }
+    a.click();
   };
 
   return (

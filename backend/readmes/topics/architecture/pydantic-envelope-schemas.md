@@ -173,13 +173,13 @@ class WarehouseRefs(RefsBase):
 
 ## The schema_map Setting
 
-Every model has a `schema_map` Setting record that connects the Pydantic schemas to the model at runtime. This tells wcapi which schema to validate against when writing to `.config`, `.prefs`, `.metadata`, or `.refs`.
+Every model has a `wc:model` Setting record that connects the Pydantic schemas to the model at runtime. This tells wcapi which schema to validate against when writing to `.config`, `.prefs`, `.metadata`, or `.refs`.
 
 ```
-Setting(purpose='schema_map', model_name='contact', ...)
+Setting(purpose='wc:model', parent_model='contact', ...)
 ```
 
-`seed_all_schema_maps` creates these for every model in MODEL_REGISTRY. Models with custom schemas (contact, customer, item, serial, payment, transaction) are seeded manually.
+`seed_model_definitions` creates these for every model in MODEL_REGISTRY, consolidating schema mapping, field behaviors, layouts, and select lists into a single config per model.
 
 ## Coverage
 

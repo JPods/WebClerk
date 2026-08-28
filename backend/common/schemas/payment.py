@@ -100,6 +100,8 @@ class PaymentRefsLinks(BaseModel):
     contact_id: Optional[int] = None
     invoice_ids: list[int] = Field(default_factory=list)
     order_ids: list[int] = Field(default_factory=list)
+    contact: list = Field(default_factory=list)
+    item: list = Field(default_factory=list)
 
     class Config:
         extra = "forbid"

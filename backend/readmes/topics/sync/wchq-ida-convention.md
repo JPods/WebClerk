@@ -82,7 +82,7 @@ These commands create records with `wchq-*` idas:
 
 | Command | ida Pattern |
 |---------|-------------|
-| `seed_all_schema_maps` | `wchq-schema-{model}` |
+| `seed_model_definitions` | `wchq-schema-{model}` |
 | `seed_connections` | `wchq-conn-upstream` |
 | `seed_template_reports` | `wchq-rpt-{name}` |
 

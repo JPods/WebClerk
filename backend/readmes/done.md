@@ -103,9 +103,9 @@ What's built, tested, and working. Updated 2026-08-05.
 - Pydantic schema at `common/schemas/serial.py`
 
 ## Schema Infrastructure
-- 79 schema_map Setting records
-- 73 Pydantic schema files
-- `seed_all_schema_maps` command
+- 78 wc:model Setting records (consolidated from schema_map + field_access + enrichment + layout)
+- 80 Pydantic schema files in common/schemas/
+- `seed_model_definitions` command (replaced `seed_all_schema_maps` on 2026-08-28)
 - Alice schema question log (`AliceObservation` category='schema')
 - 20 weekly review Action records (SCHEMA-W01 through SCHEMA-W20)
 

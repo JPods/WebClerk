@@ -37,6 +37,7 @@ from apps.core.views.sample_data_view import SampleDataView
 from apps.core.views.parade_preview_view import ParadePreviewView, ParadeManifestView, ParadeFeedbackView
 from apps.core.views.setting_parade_view import SettingParadeManifestView, SettingParadePreviewView, SettingParadeFeedbackView
 from apps.core.views.system_dispatch import SystemDispatchView
+from apps.core.views.init_bundle_view import InitBundleView
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
 from apps.docs.views.qa_view import ApplyQuestionsView, ListQuestionGroupsView, ParentQAView
 
@@ -105,6 +106,8 @@ urlpatterns = [
     path("wcapi/_permissions/<str:model_name>/", ModelPermissionsView.as_view(), name="wcapi-permissions-model"),
     # Image library
     path("wcapi/_image/<str:model_name>/<str:ida>/<str:size>", ImageView.as_view(), name="wcapi-image"),
+    # WCHQ services — no auth required (system config only, no business data)
+    path("wcapi/init-bundle/", InitBundleView.as_view(), name="wcapi-init-bundle"),
     # System dispatcher — catch-all for _pjpv_* and future system actions
     # MUST be last so specific _ routes above take priority
     path("wcapi/_<str:action>/", SystemDispatchView.as_view(), name="wcapi-system"),

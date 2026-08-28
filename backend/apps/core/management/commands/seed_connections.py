@@ -128,6 +128,63 @@ CONNECTIONS = [
         },
     },
     {
+        'ida': 'wchq-conn-downstream',
+        'name': 'WC_HQ Downstream',
+        'type': 'api',
+        'purpose': 'sync',
+        'status': 'active',
+        'comments': {
+            'public': [{
+                'text': (
+                    'Content flows downstream from WC_HQ to this installation. '
+                    'Init-bundle (Settings + Reports baseline), coaching updates, '
+                    'select list improvements, security notices, version checks. '
+                    'No business data — system configuration only. No auth required '
+                    'for init-bundle; other content uses installation API key.'
+                ),
+            }],
+        },
+        'config': {
+            'channel': 'api',
+            'direction': 'pull',
+            'wchq_base_url': 'https://webclerk.com',
+            'endpoints': {
+                'init_bundle': '/wcapi/init-bundle/',
+                'coaching': '/wcapi/coaching/',
+                'security': '/wcapi/security-notices/',
+                'version': '/wcapi/version-check/',
+            },
+            'auth_method': 'api_key',
+            'api_key_setting': 'wchq_api_key',
+            'content_types': [
+                'init_bundle',
+                'coaching_updates',
+                'select_list_improvements',
+                'security_notices',
+                'version_check',
+            ],
+            'auto_apply': {
+                'init_bundle': False,
+                'coaching_updates': True,
+                'select_list_improvements': False,
+                'security_notices': True,
+            },
+        },
+        'rules': {
+            'receiving': {
+                'init_bundle_no_auth': True,
+                'user_approves_select_list_changes': True,
+                'security_notices_always_accepted': True,
+                'coaching_auto_merge': True,
+                'no_business_data_ever': True,
+            },
+        },
+        'metadata': {
+            'established': '2026-08-28',
+            'doc': 'readmes/topics/architecture/wchq.md',
+        },
+    },
+    {
         'ida': 'conn-local-server',
         'name': 'Local Server (Andi)',
         'type': 'api',
@@ -899,12 +956,17 @@ class Command(BaseCommand):
 
         for spec in CONNECTIONS:
             ida = spec['ida']
+            # Build comments from spec — 'comment' (string) or 'comments' (dict)
+            comments_val = spec.get('comments', {})
+            if not comments_val and spec.get('comment'):
+                comments_val = {'public': [{'text': spec['comment']}]}
+
             defaults = {
                 'name': spec['name'],
                 'type': spec['type'],
                 'purpose': spec.get('purpose', ''),
                 'status': spec.get('status', 'draft'),
-                'comment': spec.get('comment', ''),
+                'comments': comments_val,
                 'is_active': True,
             }
 

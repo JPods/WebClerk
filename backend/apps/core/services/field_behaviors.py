@@ -34,6 +34,7 @@ NEVER_EDIT = [
     'id', 'ida', 'uuid', 'dt_created', 'dt_modified', 'version',
     'is_deleted', 'is_archived', 'is_locked', 'security_level', 'search_vector',
     'health_rating',
+    'groups', 'user_permissions',
 ]
 
 
@@ -75,6 +76,203 @@ LINE_TYPE_OPTIONS = [
     {'value': 'tax', 'label': 'Tax'},
     {'value': 'shipping', 'label': 'Shipping'},
     {'value': 'discount', 'label': 'Discount'},
+]
+SHIPPING_STATUS_OPTIONS = [
+    {'value': 'pending', 'label': 'Pending'},
+    {'value': 'partial', 'label': 'Partial'},
+    {'value': 'shipped', 'label': 'Shipped'},
+    {'value': 'in_transit', 'label': 'In Transit'},
+    {'value': 'delivered', 'label': 'Delivered'},
+    {'value': 'returned', 'label': 'Returned'},
+]
+SHIPPING_CARRIER_OPTIONS = [
+    {'value': 'fedex', 'label': 'FedEx'},
+    {'value': 'ups', 'label': 'UPS'},
+    {'value': 'usps', 'label': 'USPS'},
+    {'value': 'dhl', 'label': 'DHL'},
+    {'value': 'freight', 'label': 'Freight'},
+    {'value': 'local', 'label': 'Local Delivery'},
+    {'value': 'will_call', 'label': 'Will Call'},
+]
+SHIPPING_SERVICE_OPTIONS = [
+    {'value': 'ground', 'label': 'Ground'},
+    {'value': '2day', 'label': '2-Day'},
+    {'value': 'next_day', 'label': 'Next Day'},
+    {'value': 'priority', 'label': 'Priority'},
+    {'value': 'economy', 'label': 'Economy'},
+    {'value': 'freight', 'label': 'Freight/LTL'},
+]
+WEIGHT_UNIT_OPTIONS = [
+    {'value': 'lbs', 'label': 'lbs'},
+    {'value': 'kg', 'label': 'kg'},
+    {'value': 'oz', 'label': 'oz'},
+    {'value': 'g', 'label': 'g'},
+]
+
+# ── Best-guess baselines for common fields ─────────────────────────────
+# Users add/delete from these. Better to start with a menu than a blank page.
+
+PRIORITY_OPTIONS = [
+    {'value': 'low', 'label': 'Low'},
+    {'value': 'normal', 'label': 'Normal'},
+    {'value': 'high', 'label': 'High'},
+    {'value': 'urgent', 'label': 'Urgent'},
+]
+TERMS_OPTIONS = [
+    {'value': 'due_on_receipt', 'label': 'Due on Receipt'},
+    {'value': 'net_10', 'label': 'Net 10'},
+    {'value': 'net_15', 'label': 'Net 15'},
+    {'value': 'net_30', 'label': 'Net 30'},
+    {'value': 'net_45', 'label': 'Net 45'},
+    {'value': 'net_60', 'label': 'Net 60'},
+    {'value': '2_10_net_30', 'label': '2/10 Net 30'},
+    {'value': 'prepaid', 'label': 'Prepaid'},
+    {'value': 'cod', 'label': 'COD'},
+]
+PAYMENT_METHOD_OPTIONS = [
+    {'value': 'check', 'label': 'Check'},
+    {'value': 'ach', 'label': 'ACH'},
+    {'value': 'wire', 'label': 'Wire'},
+    {'value': 'credit_card', 'label': 'Credit Card'},
+    {'value': 'cash', 'label': 'Cash'},
+    {'value': 'other', 'label': 'Other'},
+]
+PAYMENT_CATEGORY_OPTIONS = [
+    {'value': 'standard', 'label': 'Standard'},
+    {'value': 'deposit', 'label': 'Deposit'},
+    {'value': 'refund', 'label': 'Refund'},
+    {'value': 'credit_memo', 'label': 'Credit Memo'},
+    {'value': 'write_off', 'label': 'Write-off'},
+]
+PURPOSE_OPTIONS = [
+    {'value': 'standard', 'label': 'Standard'},
+    {'value': 'template', 'label': 'Template'},
+    {'value': 'test', 'label': 'Test'},
+    {'value': 'internal', 'label': 'Internal'},
+]
+CHANNEL_OPTIONS = [
+    {'value': 'call', 'label': 'Phone Call'},
+    {'value': 'email', 'label': 'Email'},
+    {'value': 'visit', 'label': 'Visit'},
+    {'value': 'text', 'label': 'Text/SMS'},
+    {'value': 'meeting', 'label': 'Meeting'},
+    {'value': 'web', 'label': 'Web'},
+    {'value': 'mail', 'label': 'Mail'},
+]
+DIRECTION_OPTIONS = [
+    {'value': 'in', 'label': 'Inbound'},
+    {'value': 'out', 'label': 'Outbound'},
+]
+SUPPORT_STATUS_OPTIONS = [
+    {'value': 'active', 'label': 'Active'},
+    {'value': 'inactive', 'label': 'Inactive'},
+    {'value': 'archived', 'label': 'Archived'},
+]
+ITEM_STATUS_OPTIONS = [
+    {'value': 'active', 'label': 'Active'},
+    {'value': 'inactive', 'label': 'Inactive'},
+    {'value': 'discontinued', 'label': 'Discontinued'},
+    {'value': 'pending', 'label': 'Pending'},
+]
+ITEM_KIND_OPTIONS = [
+    {'value': 'product', 'label': 'Product'},
+    {'value': 'service', 'label': 'Service'},
+    {'value': 'assembly', 'label': 'Assembly'},
+    {'value': 'non_inventory', 'label': 'Non-Inventory'},
+    {'value': 'shipping', 'label': 'Shipping'},
+    {'value': 'discount', 'label': 'Discount'},
+    {'value': 'tax', 'label': 'Tax'},
+]
+SERIAL_STATUS_OPTIONS = [
+    {'value': 'available', 'label': 'Available'},
+    {'value': 'sold', 'label': 'Sold'},
+    {'value': 'reserved', 'label': 'Reserved'},
+    {'value': 'in_repair', 'label': 'In Repair'},
+    {'value': 'returned', 'label': 'Returned'},
+    {'value': 'scrapped', 'label': 'Scrapped'},
+]
+CONTACT_ROLE_OPTIONS = [
+    {'value': 'user', 'label': 'User'},
+    {'value': 'admin', 'label': 'Admin'},
+    {'value': 'buyer', 'label': 'Buyer'},
+    {'value': 'manager', 'label': 'Manager'},
+    {'value': 'viewer', 'label': 'Viewer'},
+]
+GL_JOURNAL_TYPE_OPTIONS = [
+    {'value': 'general', 'label': 'General'},
+    {'value': 'sales', 'label': 'Sales'},
+    {'value': 'purchase', 'label': 'Purchase'},
+    {'value': 'payment', 'label': 'Payment'},
+    {'value': 'adjustment', 'label': 'Adjustment'},
+    {'value': 'closing', 'label': 'Closing'},
+]
+PROJECT_CATEGORY_OPTIONS = [
+    {'value': 'sprint', 'label': 'Sprint'},
+    {'value': 'maintenance', 'label': 'Maintenance'},
+    {'value': 'implementation', 'label': 'Implementation'},
+    {'value': 'support', 'label': 'Support'},
+    {'value': 'internal', 'label': 'Internal'},
+]
+REPORT_CATEGORY_OPTIONS = [
+    {'value': 'transaction', 'label': 'Transaction'},
+    {'value': 'financial', 'label': 'Financial'},
+    {'value': 'inventory', 'label': 'Inventory'},
+    {'value': 'contact', 'label': 'Contact'},
+    {'value': 'admin_tool', 'label': 'Admin Tool'},
+    {'value': 'dashboard', 'label': 'Dashboard'},
+]
+EMAIL_TYPE_OPTIONS = [
+    {'value': 'work', 'label': 'Work'},
+    {'value': 'personal', 'label': 'Personal'},
+    {'value': 'billing', 'label': 'Billing'},
+    {'value': 'support', 'label': 'Support'},
+    {'value': 'other', 'label': 'Other'},
+]
+DOMAIN_TYPE_OPTIONS = [
+    {'value': 'website', 'label': 'Website'},
+    {'value': 'social', 'label': 'Social Media'},
+    {'value': 'marketplace', 'label': 'Marketplace'},
+    {'value': 'other', 'label': 'Other'},
+]
+ADDRESS_PURPOSE_OPTIONS = [
+    {'value': 'billing', 'label': 'Billing'},
+    {'value': 'shipping', 'label': 'Shipping'},
+    {'value': 'mailing', 'label': 'Mailing'},
+    {'value': 'location', 'label': 'Location'},
+    {'value': 'other', 'label': 'Other'},
+]
+RESERVATION_REASON_OPTIONS = [
+    {'value': 'sales_order', 'label': 'Sales Order'},
+    {'value': 'work_order', 'label': 'Work Order'},
+    {'value': 'transfer', 'label': 'Transfer'},
+    {'value': 'hold', 'label': 'Hold'},
+]
+INVENTORY_MOVEMENT_OPTIONS = [
+    {'value': 'receipt', 'label': 'Receipt'},
+    {'value': 'shipment', 'label': 'Shipment'},
+    {'value': 'adjustment', 'label': 'Adjustment'},
+    {'value': 'transfer', 'label': 'Transfer'},
+    {'value': 'return', 'label': 'Return'},
+    {'value': 'scrap', 'label': 'Scrap'},
+]
+DOCUMENT_PURPOSE_OPTIONS = [
+    {'value': 'attachment', 'label': 'Attachment'},
+    {'value': 'template', 'label': 'Template'},
+    {'value': 'image', 'label': 'Image'},
+    {'value': 'reference', 'label': 'Reference'},
+    {'value': 'certificate', 'label': 'Certificate'},
+]
+BUNDLE_DIRECTION_OPTIONS = [
+    {'value': 'import', 'label': 'Import'},
+    {'value': 'export', 'label': 'Export'},
+    {'value': 'sync', 'label': 'Sync'},
+]
+CONNECTION_TYPE_OPTIONS = [
+    {'value': 'api', 'label': 'API'},
+    {'value': 'sftp', 'label': 'SFTP'},
+    {'value': 'webhook', 'label': 'Webhook'},
+    {'value': 'manual', 'label': 'Manual'},
+    {'value': 'internal', 'label': 'Internal'},
 ]
 
 
@@ -119,6 +317,14 @@ def _build_leaf_behaviors():
 
 LEAF_BEHAVIORS = _build_leaf_behaviors()
 
+# Map selectlist_key → options for JSON leaf select fields
+SELECTLIST_KEY_OPTIONS = {
+    'shipping_status': SHIPPING_STATUS_OPTIONS,
+    'shipping_carrier': SHIPPING_CARRIER_OPTIONS,
+    'shipping_service': SHIPPING_SERVICE_OPTIONS,
+    'weight_unit': WEIGHT_UNIT_OPTIONS,
+}
+
 LEAF_MAP = {
     'order': ['totals', 'shipping'],
     'invoice': ['totals', 'shipping'],
@@ -139,6 +345,9 @@ LEAF_MAP = {
 
 # ── Model introspection ─────────────────────────────────────────────────
 
+_DJANGO_AUTH_FIELDS = {'groups', 'user_permissions', 'logentry'}
+
+
 def get_model_field_map(model_key):
     """Get {field_name: field_object} for a model. No DB hit."""
     meta = get_model_meta(model_key)
@@ -146,7 +355,10 @@ def get_model_field_map(model_key):
         return {}
     try:
         model_cls = meta.import_model()
-        return {f.name: f for f in model_cls._meta.get_fields() if hasattr(f, 'column')}
+        return {
+            f.name: f for f in model_cls._meta.get_fields()
+            if hasattr(f, 'column') and f.name not in _DJANGO_AUTH_FIELDS
+        }
     except Exception:
         return {}
 
@@ -171,7 +383,14 @@ def _inject_leaf_behaviors(model_key, field_map, behaviors):
         leaves = LEAF_BEHAVIORS.get(json_field, {})
         for leaf_key, leaf_spec in leaves.items():
             dot_path = f'{json_field}.{leaf_key}'
-            behaviors[dot_path] = dict(leaf_spec)
+            entry = dict(leaf_spec)
+            # Resolve selectlist_key → options for select-type leaf fields
+            sl_key = entry.get('selectlist_key')
+            if sl_key and entry.get('type') == 'select' and 'options' not in entry:
+                opts = SELECTLIST_KEY_OPTIONS.get(sl_key)
+                if opts:
+                    entry['options'] = opts
+            behaviors[dot_path] = entry
 
 
 # ── Core: field behavior detection ───────────────────────────────────────
@@ -227,8 +446,13 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
         ):
             behaviors[name] = {'type': 'currency'}
             continue
+        if ftype in ('DecimalField', 'FloatField') and name in (
+            'scrap_factor', 'yield_pct',
+        ):
+            behaviors[name] = {'type': 'percentage'}
+            continue
         if ftype in ('DecimalField', 'FloatField') and name not in (
-            'latitude', 'longitude', 'scrap_factor', 'yield_pct',
+            'latitude', 'longitude',
         ):
             behaviors[name] = {'type': 'number'}
             continue
@@ -302,7 +526,7 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
         if name == 'content' and model_key == 'report':
             behaviors[name] = {'type': 'editor'}
             continue
-        if name == 'category' and model_key in ('gl_account',):
+        if name == 'category' and model_key == 'gl_account':
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': [
                 {'value': 'cash', 'label': 'Cash'}, {'value': 'receivables', 'label': 'Receivables'},
                 {'value': 'inventory', 'label': 'Inventory'}, {'value': 'payables', 'label': 'Payables'},
@@ -316,6 +540,80 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
                 {'value': 'equity', 'label': 'Equity'}, {'value': 'revenue', 'label': 'Revenue'},
                 {'value': 'expense', 'label': 'Expense'},
             ]}
+            continue
+        # ── Best-guess baselines — users add/delete from these ──
+        if name == 'priority':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': PRIORITY_OPTIONS}
+            continue
+        if name == 'terms':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': TERMS_OPTIONS}
+            continue
+        if name == 'method' and model_key == 'payment':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': PAYMENT_METHOD_OPTIONS}
+            continue
+        if name == 'category' and model_key == 'payment':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': PAYMENT_CATEGORY_OPTIONS}
+            continue
+        if name == 'category' and model_key == 'project':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': PROJECT_CATEGORY_OPTIONS}
+            continue
+        if name == 'category' and model_key == 'report':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': REPORT_CATEGORY_OPTIONS}
+            continue
+        if name == 'purpose' and model_key == 'address':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': ADDRESS_PURPOSE_OPTIONS}
+            continue
+        if name == 'purpose' and model_key == 'document':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': DOCUMENT_PURPOSE_OPTIONS}
+            continue
+        if name == 'purpose':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': PURPOSE_OPTIONS}
+            continue
+        if name == 'channel':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': CHANNEL_OPTIONS}
+            continue
+        if name == 'direction' and model_key == 'bundle':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': BUNDLE_DIRECTION_OPTIONS}
+            continue
+        if name == 'direction':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': DIRECTION_OPTIONS}
+            continue
+        if name == 'role' and model_key == 'contact':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': CONTACT_ROLE_OPTIONS}
+            continue
+        if name == 'kind' and model_key == 'item':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': ITEM_KIND_OPTIONS}
+            continue
+        if name == 'status' and model_key == 'item':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': ITEM_STATUS_OPTIONS}
+            continue
+        if name == 'status' and model_key in ('serial', 'serial_log'):
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': SERIAL_STATUS_OPTIONS}
+            continue
+        if name == 'type' and model_key == 'gl_journal':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': GL_JOURNAL_TYPE_OPTIONS}
+            continue
+        if name == 'type' and model_key == 'email':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': EMAIL_TYPE_OPTIONS}
+            continue
+        if name == 'type' and model_key == 'domain':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': DOMAIN_TYPE_OPTIONS}
+            continue
+        if name == 'type' and model_key == 'connection':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': CONNECTION_TYPE_OPTIONS}
+            continue
+        if name == 'reason' and model_key == 'inventory_reservation':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': RESERVATION_REASON_OPTIONS}
+            continue
+        if name == 'movement_type':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': INVENTORY_MOVEMENT_OPTIONS}
+            continue
+        if name == 'status' and model_key not in (
+            'customer', 'vendor', 'manufacturer', 'employee', 'rep',
+            'invoice', 'order', 'proposal', 'purchase', 'workorder', 'requisition',
+            'item', 'serial', 'serial_log',
+        ):
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': SUPPORT_STATUS_OPTIONS}
             continue
         if ftype == 'TextField':
             behaviors[name] = {'type': 'textarea'}

@@ -30,6 +30,12 @@ from apps.core.services.field_behaviors import (
 )
 
 
+# Fields where PHONE_NAME detection is confirmed correct — don't flag
+PHONE_NAME_CONFIRMED = {
+    ('phone', 'number'),  # phone.number IS a phone number field
+}
+
+
 class Command(BaseCommand):
     help = 'Audit field behaviors — flag misdetections, stale overrides, missing types'
 
@@ -99,11 +105,12 @@ class Command(BaseCommand):
 
                 # PHONE_NAME — 'number' field detected as phone
                 if field_name == 'number' and btype == 'phone':
-                    flags.append({
-                        'model': model_key, 'field': field_name,
-                        'flag': 'PHONE_NAME',
-                        'detail': f'Auto-detected as phone — verify this is actually a phone number field',
-                    })
+                    if (model_key, field_name) not in PHONE_NAME_CONFIRMED:
+                        flags.append({
+                            'model': model_key, 'field': field_name,
+                            'flag': 'PHONE_NAME',
+                            'detail': f'Auto-detected as phone — verify this is actually a phone number field',
+                        })
 
                 # EMPTY_OPTS — select with no options
                 if btype == 'select':

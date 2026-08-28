@@ -38,6 +38,15 @@ def _options_key(options):
     return '|'.join(f'{o.get("value", "")}={o.get("label", "")}' for o in sorted(options, key=lambda o: o.get('value', '')))
 
 
+# Fields where different option sets per model are by design, not accident.
+# status: org status (4 opts) ≠ transaction status (6 opts) ≠ item status (4 opts)
+# type: GL account type (5 opts) ≠ payment type (2 opts) ≠ connection type (5 opts)
+# category: GL category (8 opts) ≠ project category (5 opts) ≠ report category (6 opts)
+# purpose: address purpose (5 opts) ≠ document purpose (5 opts) ≠ general purpose (4 opts)
+# direction: bundle direction (3 opts) ≠ touch direction (2 opts)
+DRIFT_EXPECTED = {'status', 'type', 'category', 'purpose', 'direction'}
+
+
 class Command(BaseCommand):
     help = 'Audit select lists — export all select-type fields organized by model, field, and source'
 
@@ -149,12 +158,14 @@ class Command(BaseCommand):
         # DRIFT detection — same field name, different options across models
         for field_name, variants in field_options_map.items():
             if len(variants) > 1:
+                expected = field_name in DRIFT_EXPECTED
+                flag = 'DRIFT_OK' if expected else 'DRIFT'
                 for ok, model_list in variants.items():
                     count = len([o for o in ok.split('|') if o]) if ok else 0
                     for m in model_list:
                         all_flags.append({
                             'model': m, 'field': field_name,
-                            'flag': 'DRIFT',
+                            'flag': flag,
                             'detail': f'{count} options — {len(variants)} different option sets exist for this field name across models',
                         })
 
@@ -212,15 +223,20 @@ class Command(BaseCommand):
                 by_field[fn] = []
             by_field[fn].append(s)
 
+        actionable_flags = [f for f in all_flags if f['flag'] != 'DRIFT_OK']
+        info_flags = [f for f in all_flags if f['flag'] == 'DRIFT_OK']
+
         self.stdout.write(self.style.SUCCESS(
             f"\nSelect list audit: {len(all_selects)} select fields across "
             f"{len(set(s['model'] for s in all_selects))} models, "
-            f"{len(by_field)} unique field names, {len(all_flags)} flags"
+            f"{len(by_field)} unique field names, "
+            f"{len(actionable_flags)} flags"
+            + (f" ({len(info_flags)} expected drift)" if info_flags else "")
         ))
 
-        if all_flags:
+        if actionable_flags:
             flag_counts = {}
-            for f in all_flags:
+            for f in actionable_flags:
                 flag_counts[f['flag']] = flag_counts.get(f['flag'], 0) + 1
             self.stdout.write("  Flags:")
             for ft, count in sorted(flag_counts.items()):

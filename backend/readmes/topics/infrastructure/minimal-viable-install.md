@@ -38,7 +38,7 @@ This is the required foundation. Run it once on a new database after `migrate`.
 | `seed_coaching` | Alice coaching content: help text, tooltips | In-app help system |
 | `seed_wchq_settings` | WC_HQ data service configuration | DynamicCatalogs integration |
 | `seed_collaborate_settings` | Multi-company collaboration defaults | Sync between WebClerk instances |
-| `seed_all_schema_maps` | JSON schema definitions for every model | Validation, API docs, form generation |
+| `seed_model_definitions` | Consolidated model config: schemas, behaviors, layouts, select lists | Validation, API docs, form generation |
 | `seed_serial_settings` | Serial number tracking configuration | Serial/lot tracking module |
 | `seed_status_guards` | Transaction status transitions + journalized locks | Prevents illegal status changes (e.g., editing a posted invoice) |
 | `seed_receivables_layouts` | Aged receivables report + customer statement print | AR reporting and statements |

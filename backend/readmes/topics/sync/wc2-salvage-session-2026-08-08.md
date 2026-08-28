@@ -57,7 +57,7 @@ Seven sections: HELP-SEARCH, HELP-REPORTS, HELP-IMPORT, HELP-MCP, HELP-EXTEND,
 HELP-AGENTS, HELP-WCHQ-SYNC.
 
 ### 6. WCHQ ida Prefix Convention
-**Files:** `seed_all_schema_maps.py`, `seed_connections.py`, `seed_template_reports.py`
+**Files:** `seed_model_definitions.py` (replaced `seed_all_schema_maps.py`), `seed_connections.py`, `seed_template_reports.py`
 
 Records from WCHQ get `ida` prefix `wchq-*`. 80 schema_map Settings updated.
 Full convention docs: `readmes/topics/sync/wchq-ida-convention.md`
