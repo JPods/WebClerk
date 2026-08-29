@@ -8,7 +8,10 @@ import { TouchBadge } from './TouchBadge';
 // Uses TouchForm (dialog mode) for the touch entry form.
 // ---------------------------------------------------------------------------
 
-export const TOUCH_MODELS = new Set(['action', 'contact', 'customer', 'vendor', 'manufacturer', 'rep', 'employee', 'other_org']);
+export const TOUCH_MODELS = new Set([
+  'action', 'contact', 'customer', 'vendor', 'manufacturer', 'rep', 'employee', 'other_org',
+  'invoice', 'order', 'proposal', 'purchase', 'workorder', 'requisition',
+]);
 
 export interface TouchPrefs {
   default_channel?: 'call' | 'email' | 'text' | 'visit' | 'meeting';
@@ -23,9 +26,11 @@ export const TouchBar: React.FC<{ model: string; record: any; recordId: number; 
   const tp: TouchPrefs = touchPrefs || {};
   const [showTouchForm, setShowTouchForm] = useState(false);
   const [formChannel, setFormChannel] = useState<'call' | 'email' | 'text' | 'visit' | 'meeting'>(tp.default_channel || 'call');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const isContact = model === 'contact';
   const isOrg = ['customer', 'vendor', 'manufacturer', 'rep', 'employee', 'other_org'].includes(model);
+  const isTx = ['invoice', 'order', 'proposal', 'purchase', 'workorder', 'requisition'].includes(model);
 
   const contactId = isContact ? recordId : (record.contact_id || record.contact || 0);
 
@@ -67,6 +72,9 @@ export const TouchBar: React.FC<{ model: string; record: any; recordId: number; 
     : record.manufacturer_id ? 'manufacturer'
     : '';
 
+  // For transactions, pass the linkage_id so touches tie into the transaction graph
+  const txLinkageId = isTx ? recordId : undefined;
+
   const defaultSubject = typeof record.action === 'object' ? (record.action?.en || '')
     : String(record.action || record.subject || '');
 
@@ -98,6 +106,7 @@ export const TouchBar: React.FC<{ model: string; record: any; recordId: number; 
   const formCtx: TouchFormContext = {
     model, recordId, contactId, contactName, contactPhone, contactEmail,
     orgId, orgModel, defaultSubject,
+    linkageId: txLinkageId,
     defaultChannel: formChannel,
     defaultDirection: tp.default_direction,
   };
@@ -105,11 +114,12 @@ export const TouchBar: React.FC<{ model: string; record: any; recordId: number; 
   return (
     <>
       <TouchBadge model={model} recordId={recordId} contactId={contactId} fontSize={fontSize}
-        onClick={() => openForm('call')} />
+        onClick={() => openForm('call')} refreshKey={refreshKey} />
 
       {showTouchForm && (
         <TouchForm mode="dialog" ctx={formCtx} fontSize={fontSize}
-          onClose={() => setShowTouchForm(false)} />
+          onClose={() => setShowTouchForm(false)}
+          onSaved={() => setRefreshKey(k => k + 1)} />
       )}
     </>
   );

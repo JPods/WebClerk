@@ -215,6 +215,7 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
   const [fromContact, setFromContact] = useState({ id: loggedByUser, name: loggedByName, phone: '', email: '' });
   const [toContact, setToContact] = useState({ id: ctx.contactId, name: ctx.contactName, phone: ctx.contactPhone, email: ctx.contactEmail });
   const [saving, setSaving] = useState(false);
+  const [createAction, setCreateAction] = useState(false);
   const [linkedContacts, setLinkedContacts] = useState<RefContact[]>([]);
 
   const handleSave = async () => {
@@ -245,7 +246,7 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
         phone: c.phone,
       }));
 
-      await saveRecord('touch', {
+      const touchData = {
         contact_id: externalContactId || null,
         channel,
         direction,
@@ -264,7 +265,34 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
         linkage_id: ctx.linkageId || null,
         logged_by: fromContact.id || loggedByUser,
         refs: { parents, links: { contact: contactLinks } },
-      });
+      };
+      const touchRes = await saveRecord('touch', touchData);
+
+      if (createAction) {
+        const deadlineMs = plan > 0 ? Date.now() + (plan * 86400000) : Date.now() + (7 * 86400000);
+        await saveRecord('action', {
+          action: { en: `Follow-up: ${subject}` },
+          contact_id: externalContactId || null,
+          customer_id: ctx.orgModel === 'customer' ? ctx.orgId : null,
+          vendor_id: ctx.orgModel === 'vendor' ? ctx.orgId : null,
+          manufacturer_id: ctx.orgModel === 'manufacturer' ? ctx.orgId : null,
+          dt_deadline: deadlineMs,
+          status: 'open',
+          refs: {
+            parents: { contact: externalContactId || null, touch: (touchRes as any)?.record?.id || null },
+            links: {},
+          },
+        });
+      }
+
+      // Open email compose when channel is email
+      if (channel === 'email') {
+        const recipientEmail = toContact.email || ctx.contactEmail || '';
+        if (recipientEmail) {
+          const mailTo = `mailto:${encodeURIComponent(recipientEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(summary)}`;
+          window.open(mailTo, '_blank');
+        }
+      }
 
       onSaved?.();
       onClose();
@@ -272,6 +300,7 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
       console.error('Failed to save touch:', err);
     } finally {
       setSaving(false);
+      setCreateAction(false);
     }
   };
 
@@ -345,6 +374,12 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
           <button className="db-btn db-btn--small db-btn--save" onClick={handleSave} disabled={saving}>
             {saving ? 'Saving...' : 'Save Touch'}
           </button>
+          {ctx.model !== 'action' && (
+            <button className="db-btn db-btn--small" onClick={() => { setCreateAction(true); handleSave(); }} disabled={saving}
+              title="Save touch and create a follow-up action">
+              Save + Action
+            </button>
+          )}
           <button className="db-btn db-btn--small" onClick={onClose}>Cancel</button>
           <button className="db-md-close" onClick={onClose}>&times;</button>
         </div>

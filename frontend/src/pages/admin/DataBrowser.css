@@ -1677,3 +1677,50 @@
   color: var(--db-text-muted);
   font-size: 0.9em;
 }
+
+/* ── Touch mobile responsive ── */
+@media (max-width: 640px) {
+  .db-md-dialog[data-wc="touch-dialog"] {
+    width: 100vw !important;
+    max-width: 100vw;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+    margin: 0;
+  }
+  .db-md-overlay[data-wc="touch-dialog-backdrop"] {
+    padding: 0;
+  }
+  .touch-channel-btn {
+    padding: 8px 6px;
+    font-size: 14px;
+    flex: 1;
+    text-align: center;
+  }
+  .touch-form-inline {
+    font-size: 14px;
+  }
+  .touch-form-inline .touch-form-input {
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
+  .db-md-body input.db-input,
+  .db-md-body textarea.db-input,
+  .db-md-body select.db-input {
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
+  .touch-copy-badge {
+    padding: 4px 10px;
+    font-size: 14px;
+  }
+  .touch-impact-dot {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+  .touch-contact-name {
+    font-size: 14px;
+  }
+  .touch-contact-results {
+    max-height: 50vh;
+  }
+}

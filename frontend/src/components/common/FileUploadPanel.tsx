@@ -13,7 +13,8 @@
  * Rule: every upload → Document record. No exceptions.
  */
 import { useState, useRef, useCallback, useEffect } from "react";
-import { getRecords, saveRecord } from "@/api/wcapi";
+import { getRecords } from "@/api/wcapi";
+import { uploadDocument } from "@/apps/common/components/panels/documentUpload";
 import { useDispatch } from "react-redux";
 import { showToast } from "@/store/slices/toastSlice";
 
@@ -37,6 +38,7 @@ interface Attachment {
     mime_type?: string;
     size_bytes?: number;
     uploaded_dt?: string;
+    inline_content_b64?: string;
   };
 }
 
@@ -72,51 +74,45 @@ const FileUploadPanel: React.FC<Props> = ({
   }, [modelName, recordId]);
 
   useEffect(() => {
-    if (!compact) loadAttachments();
-  }, [loadAttachments, compact]);
+    loadAttachments();
+  }, [loadAttachments]);
 
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
     setUploading(true);
 
+    // Capture browser geolocation for photos/videos taken on-site
+    let geo: { lat: number; lng: number; accuracy?: number } | undefined;
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 })
+      );
+      geo = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+    } catch { /* geolocation unavailable or denied — proceed without */ }
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const isVideo = file.type.startsWith("video/");
       const isImage = file.type.startsWith("image/");
-      const role = isVideo ? "video" : isImage ? "photo" : "attachment";
-      const ext = file.name.split(".").pop()?.toLowerCase() || "";
+      const purpose = isVideo ? "video" : isImage ? "photo" : "attachment";
 
       try {
-        // Create Document record for this file
-        await saveRecord("document", {
-          model_name: "document",
-          name: file.name,
-          description: `${role} for ${modelName} ${recordIda || recordId}`,
-          status: "published",
-          config: {
-            parent_model: modelName,
-            parent_id: String(recordId),
-            parent_ida: recordIda || "",
-            role,
-            original_filename: file.name,
-            ext,
-            mime_type: file.type,
-            size_bytes: file.size,
-            source: "uploaded",
-            uploaded_dt: new Date().toISOString(),
-            // path will be set by the upload endpoint when built
-            // For now, record the intent
-            path: `media/${modelName}/${recordIda || recordId}/${role === "attachment" ? file.name : role + "." + ext}`,
-          },
+        await uploadDocument({
+          file,
+          parent_model: modelName,
+          parentId: Number(recordId),
+          purpose,
+          description: `${purpose} for ${modelName} ${recordIda || recordId}`,
+          geolocation: geo,
         });
 
         dispatch(showToast({
-          message: `${file.name} documented (${(file.size / 1024).toFixed(0)}KB)`,
+          message: `${file.name} uploaded (${(file.size / 1024).toFixed(0)}KB)`,
           type: "success",
         }));
       } catch {
-        dispatch(showToast({ message: `Failed to create document for ${file.name}`, type: "error" }));
+        dispatch(showToast({ message: `Failed to upload ${file.name}`, type: "error" }));
       }
     }
 
@@ -152,37 +148,49 @@ const FileUploadPanel: React.FC<Props> = ({
           />
         </label>
         {uploading && <span className="text-[10px] text-gray-400">Uploading...</span>}
+        {compact && attachments.length > 0 && (
+          <span className="text-[10px] text-gray-400">{attachments.length} file{attachments.length !== 1 ? 's' : ''}</span>
+        )}
       </div>
 
       {/* Attachment list (non-compact mode) */}
       {!compact && attachments.length > 0 && (
         <div className="mt-2 space-y-1">
-          {attachments.map((doc) => (
-            <div
-              key={doc.id}
-              className="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-400 py-0.5 px-1 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
-            >
-              <span>{roleIcon(doc.config?.role)}</span>
-              <span className="truncate flex-1">{doc.name}</span>
-              {doc.config?.size_bytes && (
-                <span className="text-[9px] text-gray-400">
-                  {doc.config.size_bytes > 1048576
-                    ? `${(doc.config.size_bytes / 1048576).toFixed(1)}MB`
-                    : `${(doc.config.size_bytes / 1024).toFixed(0)}KB`}
-                </span>
-              )}
-              {doc.config?.path && (
+          {attachments.map((doc) => {
+            const isImage = doc.config?.mime_type?.startsWith("image/");
+            return (
+              <div
+                key={doc.id}
+                className="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-400 py-0.5 px-1 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                <span>{roleIcon(doc.config?.role)}</span>
+                {isImage && (
+                  <img
+                    src={`/wcapi/document/${doc.id}/`}
+                    alt={doc.name}
+                    className="h-6 w-6 rounded object-cover"
+                    loading="lazy"
+                  />
+                )}
+                <span className="truncate flex-1">{doc.name}</span>
+                {doc.config?.size_bytes && (
+                  <span className="text-[9px] text-gray-400">
+                    {doc.config.size_bytes > 1048576
+                      ? `${(doc.config.size_bytes / 1048576).toFixed(1)}MB`
+                      : `${(doc.config.size_bytes / 1024).toFixed(0)}KB`}
+                  </span>
+                )}
                 <a
-                  href={`/static/${doc.config.path}`}
+                  href={`/wcapi/document/${doc.id}/`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[9px] text-indigo-500 hover:underline"
                 >
                   open
                 </a>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
 

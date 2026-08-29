@@ -20,6 +20,8 @@ interface TouchBadgeProps {
   onClick?: () => void;
   /** Font size */
   fontSize?: number;
+  /** Increment to force re-fetch (e.g. after saving a touch) */
+  refreshKey?: number;
 }
 
 interface TouchSummary {
@@ -39,6 +41,9 @@ async function fetchTouchSummary(model: string, recordId: number, contactId: num
   } else if (['customer', 'vendor', 'manufacturer', 'rep', 'employee'].includes(model)) {
     filter.org_id = recordId;
     filter.org_model = model;
+  } else if (['invoice', 'order', 'proposal', 'purchase', 'workorder', 'requisition'].includes(model)) {
+    // Transaction touches are linked via linkage_id
+    filter.linkage_id = recordId;
   } else if (contactId) {
     filter.contact_id = contactId;
   }
@@ -67,7 +72,7 @@ async function fetchTouchSummary(model: string, recordId: number, contactId: num
   }
 }
 
-export const TouchBadge: React.FC<TouchBadgeProps> = ({ model, recordId, contactId = 0, onClick, fontSize = 12 }) => {
+export const TouchBadge: React.FC<TouchBadgeProps> = ({ model, recordId, contactId = 0, onClick, fontSize = 12, refreshKey = 0 }) => {
   const [summary, setSummary] = useState<TouchSummary>({ count: 0, daysUntilNext: null });
   const [loaded, setLoaded] = useState(false);
 
@@ -78,7 +83,7 @@ export const TouchBadge: React.FC<TouchBadgeProps> = ({ model, recordId, contact
       if (!cancelled) { setSummary(s); setLoaded(true); }
     });
     return () => { cancelled = true; };
-  }, [model, recordId, contactId]);
+  }, [model, recordId, contactId, refreshKey]);
 
   if (!loaded) return null;
 
