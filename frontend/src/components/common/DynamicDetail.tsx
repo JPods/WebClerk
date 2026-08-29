@@ -425,7 +425,8 @@ function DynamicDetail({
       ida: data?.ida || `${modelName}:${recordId}`,
     };
     onActionsReady?.();
-  }, [actionsRef, handleSave, editing, saving, data, modelName, recordId, onActionsReady, fontSize]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionsRef, handleSave, editing, saving, data, modelName, recordId, fontSize]);
 
   // Arrange mode handlers
   const handleDragStart = (idx: number) => setDragRow(idx);
@@ -459,6 +460,7 @@ function DynamicDetail({
 
   // Field renderer — uses merged registry (server + legacy + auto-inferred)
   const renderField = (fieldName: string, disabled: boolean) => {
+
     const cfg = fieldRegistry[fieldName];
     if (!cfg) {
       // Last resort: show raw value as readonly

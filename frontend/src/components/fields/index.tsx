@@ -169,5 +169,11 @@ export function renderField(
   if (typeName === 'json' || typeName === 'json-tree') { props.rows = opts?.rowSize; }
   if (typeName === 'json-tree') { props.readOnly = behavior.readOnly; }
 
+  // label_href behavior: resolve a dot-path from the record to make the label a link
+  if (behavior.label_href && opts?.record) {
+    const href = behavior.label_href.split('.').reduce((o: any, k: string) => o?.[k], opts.record);
+    if (typeof href === 'string' && href) props.labelHref = href;
+  }
+
   return <Widget key={name} {...props} />;
 }

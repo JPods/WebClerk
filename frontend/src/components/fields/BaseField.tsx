@@ -53,9 +53,10 @@ export default function BaseField({ props, labelColor = 'default', labelSuffix, 
     if (labelOnClick) labelOnClick();
   };
 
+  const linkColor = labelHref ? 'actionable' : labelColor;
   const labelEl = labelHref ? (
-    <a href={labelHref} target={labelHref.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer"
-      className={`db-label db-label--${labelColor}`} onClick={handleLabelClick}>
+    <a href={labelHref} target="_blank" rel="noopener noreferrer"
+      className={`db-label db-label--${linkColor}`} onClick={handleLabelClick}>
       {displayLabel}{labelSuffix && <> {labelSuffix}</>}
     </a>
   ) : (

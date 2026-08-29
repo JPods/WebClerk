@@ -166,6 +166,10 @@ export interface TouchFormContext {
   defaultChannel?: Channel;
   /** Default direction */
   defaultDirection?: 'out' | 'in';
+  /** URI action prefs — controls what fires on Save */
+  phoneAction?: 'tel' | 'facetime' | 'facetime-audio' | 'log_only';
+  emailAction?: 'mailto' | 'log_only';
+  textAction?: 'sms' | 'log_only';
 }
 
 interface TouchFormProps {
@@ -285,13 +289,33 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
         });
       }
 
-      // Open email compose when channel is email
-      if (channel === 'email') {
-        const recipientEmail = toContact.email || ctx.contactEmail || '';
-        if (recipientEmail) {
-          const mailTo = `mailto:${encodeURIComponent(recipientEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(summary)}`;
-          window.open(mailTo, '_blank');
-        }
+      // Fire communication URI after save — unified for all channels
+      const phone = toContact.phone || ctx.contactPhone || '';
+      const email = toContact.email || ctx.contactEmail || '';
+      const ccEmails = linkedContacts
+        .filter(c => c.email)
+        .map(c => c.email)
+        .join(',');
+
+      if (channel === 'email' && email && ctx.emailAction !== 'log_only') {
+        const params = new URLSearchParams();
+        params.set('subject', subject);
+        if (summary) params.set('body', summary);
+        if (ccEmails) params.set('cc', ccEmails);
+        const a = document.createElement('a');
+        a.href = `mailto:${encodeURIComponent(email)}?${params.toString()}`;
+        a.click();
+      } else if (channel === 'call' && phone && ctx.phoneAction !== 'log_only') {
+        const scheme = ctx.phoneAction === 'facetime' ? 'facetime'
+          : ctx.phoneAction === 'facetime-audio' ? 'facetime-audio' : 'tel';
+        const a = document.createElement('a');
+        a.href = `${scheme}:${phone}`;
+        a.click();
+      } else if (channel === 'text' && phone && ctx.textAction !== 'log_only') {
+        const body = subject ? `?body=${encodeURIComponent(subject)}` : '';
+        const a = document.createElement('a');
+        a.href = `sms:${phone}${body}`;
+        a.click();
       }
 
       onSaved?.();

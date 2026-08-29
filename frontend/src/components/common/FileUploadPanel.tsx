@@ -13,7 +13,7 @@
  * Rule: every upload → Document record. No exceptions.
  */
 import { useState, useRef, useCallback, useEffect } from "react";
-import { getRecords } from "@/api/wcapi";
+import { getRecord, getRecords, saveRecord } from "@/api/wcapi";
 import { uploadDocument } from "@/apps/common/components/panels/documentUpload";
 import { useDispatch } from "react-redux";
 import { showToast } from "@/store/slices/toastSlice";
@@ -42,6 +42,23 @@ interface Attachment {
   };
 }
 
+const PURPOSE_OPTIONS = [
+  { value: "photo", label: "photo" },
+  { value: "video", label: "video" },
+  { value: "attachment", label: "attachment" },
+  { value: "spec", label: "spec" },
+  { value: "drawing", label: "drawing" },
+  { value: "receipt", label: "receipt" },
+  { value: "qa", label: "qa" },
+  { value: "other", label: "other" },
+];
+
+interface PendingFile {
+  file: File;
+  purpose: string;
+  description: string;
+}
+
 const FileUploadPanel: React.FC<Props> = ({
   modelName,
   recordId,
@@ -52,6 +69,7 @@ const FileUploadPanel: React.FC<Props> = ({
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [loadingDocs, setLoadingDocs] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dispatch = useDispatch();
 
@@ -77,9 +95,33 @@ const FileUploadPanel: React.FC<Props> = ({
     loadAttachments();
   }, [loadAttachments]);
 
-  const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // When files are selected, open the metadata dialog
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
+
+    const pending: PendingFile[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const isVideo = file.type.startsWith("video/");
+      const isImage = file.type.startsWith("image/");
+      const defaultPurpose = isVideo ? "video" : isImage ? "photo" : "attachment";
+      pending.push({ file, purpose: defaultPurpose, description: "" });
+    }
+    setPendingFiles(pending);
+  }, []);
+
+  const updatePending = (idx: number, field: 'purpose' | 'description', value: string) => {
+    setPendingFiles(prev => prev.map((p, i) => i === idx ? { ...p, [field]: value } : p));
+  };
+
+  const cancelPending = () => {
+    setPendingFiles([]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const confirmUpload = useCallback(async () => {
+    if (!pendingFiles.length) return;
     setUploading(true);
 
     // Capture browser geolocation for photos/videos taken on-site
@@ -91,35 +133,58 @@ const FileUploadPanel: React.FC<Props> = ({
       geo = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
     } catch { /* geolocation unavailable or denied — proceed without */ }
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const isVideo = file.type.startsWith("video/");
-      const isImage = file.type.startsWith("image/");
-      const purpose = isVideo ? "video" : isImage ? "photo" : "attachment";
-
+    for (const pending of pendingFiles) {
       try {
-        await uploadDocument({
-          file,
+        const result = await uploadDocument({
+          file: pending.file,
           parent_model: modelName,
           parentId: Number(recordId),
-          purpose,
-          description: `${purpose} for ${modelName} ${recordIda || recordId}`,
+          purpose: pending.purpose,
+          description: pending.description || `${pending.purpose} for ${modelName} ${recordIda || recordId}`,
           geolocation: geo,
         });
 
+        // Append to parent record's refs.links.document with denormalized data
+        try {
+          const parentRes = await getRecord(modelName, Number(recordId));
+          const parent = parentRes?.record || parentRes;
+          const existing = parent?.refs?.links?.document || [];
+          const ids = existing.map((l: any) => typeof l === 'number' ? l : l?.id).filter(Boolean);
+          if (!ids.includes(result.document.id)) {
+            const newLink = {
+              id: result.document.id,
+              purpose: pending.purpose,
+              description: pending.description,
+              size_bytes: result.document.size_bytes,
+              name: result.document.name,
+              mime_type: result.document.mime_type,
+              ...(geo ? { lat: geo.lat, lng: geo.lng } : {}),
+            };
+            const newLinks = [...existing, newLink];
+            await saveRecord(modelName, {
+              id: Number(recordId),
+              'refs.links.document': newLinks,
+            });
+            window.dispatchEvent(new CustomEvent('refs-links-changed', {
+              detail: { model: modelName, id: Number(recordId) },
+            }));
+          }
+        } catch { /* refs.links update failed — document still exists */ }
+
         dispatch(showToast({
-          message: `${file.name} uploaded (${(file.size / 1024).toFixed(0)}KB)`,
+          message: `${pending.file.name} uploaded (${(pending.file.size / 1024).toFixed(0)}KB)`,
           type: "success",
         }));
       } catch {
-        dispatch(showToast({ message: `Failed to upload ${file.name}`, type: "error" }));
+        dispatch(showToast({ message: `Failed to upload ${pending.file.name}`, type: "error" }));
       }
     }
 
+    setPendingFiles([]);
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (!compact) loadAttachments();
-  }, [modelName, recordId, recordIda, dispatch, compact, loadAttachments]);
+  }, [pendingFiles, modelName, recordId, recordIda, dispatch, compact, loadAttachments]);
 
   const roleIcon = (role?: string) => {
     switch (role) {
@@ -143,7 +208,7 @@ const FileUploadPanel: React.FC<Props> = ({
             accept="image/*,video/*,.pdf,.doc,.docx"
             multiple
             capture="environment"
-            onChange={handleUpload}
+            onChange={handleFileSelect}
             className="hidden"
           />
         </label>
@@ -152,6 +217,56 @@ const FileUploadPanel: React.FC<Props> = ({
           <span className="text-[10px] text-gray-400">{attachments.length} file{attachments.length !== 1 ? 's' : ''}</span>
         )}
       </div>
+
+      {/* Upload metadata dialog */}
+      {pendingFiles.length > 0 && !uploading && (
+        <div className="mt-2 p-2 rounded border border-indigo-500/30 bg-gray-900/50">
+          {pendingFiles.map((p, idx) => (
+            <div key={idx} className="flex items-center gap-2 mb-2 last:mb-0">
+              <span className="text-[11px] text-gray-300 truncate" style={{ minWidth: 80, maxWidth: 140 }}>
+                {p.file.name}
+              </span>
+              <select
+                value={p.purpose}
+                onChange={e => updatePending(idx, 'purpose', e.target.value)}
+                className="text-[11px] bg-gray-800 text-gray-200 border border-gray-600 rounded px-1 py-0.5"
+                style={{ fontSize: 16 }}
+              >
+                {PURPOSE_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={p.description}
+                onChange={e => updatePending(idx, 'description', e.target.value)}
+                placeholder="description"
+                className="text-[11px] bg-gray-800 text-gray-200 border border-gray-600 rounded px-1 py-0.5 flex-1"
+                style={{ fontSize: 16, minWidth: 100 }}
+              />
+              <span className="text-[9px] text-gray-500">
+                {p.file.size > 1048576
+                  ? `${(p.file.size / 1048576).toFixed(1)}MB`
+                  : `${(p.file.size / 1024).toFixed(0)}KB`}
+              </span>
+            </div>
+          ))}
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={confirmUpload}
+              className="text-[11px] px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500"
+            >
+              Upload {pendingFiles.length > 1 ? `(${pendingFiles.length})` : ''}
+            </button>
+            <button
+              onClick={cancelPending}
+              className="text-[11px] px-3 py-1 rounded text-gray-400 hover:text-gray-200"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Attachment list (non-compact mode) */}
       {!compact && attachments.length > 0 && (
@@ -194,7 +309,7 @@ const FileUploadPanel: React.FC<Props> = ({
         </div>
       )}
 
-      {!compact && !loadingDocs && attachments.length === 0 && (
+      {!compact && !loadingDocs && attachments.length === 0 && pendingFiles.length === 0 && (
         <p className="text-[10px] text-gray-400 mt-1">No files attached. Use phone camera or choose a file.</p>
       )}
     </div>

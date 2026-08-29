@@ -15,7 +15,10 @@ from django.utils import timezone
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.authentication import SessionAuthentication
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from apps.docs.models import Document
 from common.models import default_document_metadata
@@ -95,12 +98,14 @@ def _serialize_document(doc: Document) -> Dict[str, Any]:
         "size_bytes": doc.size_bytes,
         "path": doc.path,
         "checksum": doc.checksum,
-        "model_name": doc.model_name,
+        "model_name": (doc.config or {}).get("parent_model", ""),
         "dt_created": doc.dt_created,
     }
 
 
 class DocumentUploadView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request):
@@ -136,7 +141,14 @@ class DocumentUploadView(APIView):
             }
             return Response(payload, status=status.HTTP_200_OK)
 
-        inline_payload = _encode_inline_content(upload)
+        # Write file to disk — Alice moves to cloud library later
+        storage = _build_storage_path(filename)
+        os.makedirs(os.path.dirname(storage["full"]), exist_ok=True)
+        upload.seek(0)
+        with open(storage["full"], "wb") as f:
+            for chunk in upload.chunks():
+                f.write(chunk)
+
         metadata = default_document_metadata()
         now_ms = int(timezone.now().timestamp() * 1000)
         metadata.setdefault("history", {})
@@ -171,37 +183,54 @@ class DocumentUploadView(APIView):
             except Exception:
                 pass
 
+        url = f"/wcapi/document/placeholder/"  # updated after create
+        config_data = {
+            "parent_model": model_name or "",
+            "parent_id": parent_id,
+            "role": purpose,
+            "purpose": purpose,
+        }
+
         doc = Document.objects.create(
             name=filename,
             description=description,
             mime_type=mime_type,
             size_bytes=upload.size,
-            path={"storage": "inline", "key": f"inline:{checksum}", "url": "", "full": None},
+            path={"storage": "local", "key": storage["key"], "url": "", "full": storage["full"]},
             checksum=checksum,
-            model_name=model_name or None,
-            data={"parent_id": parent_id, "purpose": purpose, **inline_payload},
+            purpose=purpose,
+            config=config_data,
             metadata=metadata,
         )
 
         url = f"/wcapi/document/{doc.id}/"
-        doc.path = {"storage": "inline", "key": f"inline:{checksum}", "url": url, "full": None}
+        doc.path["url"] = url
         doc.save(update_fields=["path"])
 
+        geo_data = (metadata.get("address", {}).get("geo", {})) if metadata else {}
         payload = {
             "document_id": doc.id,
-            "path": f"inline:{checksum}",
+            "path": storage["key"],
             "checksum": checksum,
             "is_duplicate": False,
             "url": url,
             "name": doc.name,
             "size_bytes": doc.size_bytes,
             "mime_type": doc.mime_type,
+            "purpose": purpose,
+            "description": description,
+            "has_geo": bool(geo_data.get("lat")),
+            "geo_lat": geo_data.get("lat"),
+            "geo_lng": geo_data.get("lng"),
             "document": _serialize_document(doc),
         }
         return Response(payload, status=status.HTTP_201_CREATED)
 
 
 class DocumentDownloadView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, document_id: int):
         doc = Document.objects.filter(pk=document_id).first()
         if not doc:
@@ -224,6 +253,9 @@ class DocumentDownloadView(APIView):
 
 
 class DocumentDeleteView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
     def delete(self, request, document_id: int):
         doc = Document.objects.filter(pk=document_id).first()
         if not doc:

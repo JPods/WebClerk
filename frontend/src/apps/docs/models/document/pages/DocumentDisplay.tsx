@@ -189,7 +189,8 @@ export default function DocumentDisplay({
             <ColumnSelector value={columnCount} onChange={setColumnCount} />
           </div>
           <div className={getGridClassName(columnCount)}>
-            <HorizontalField label="Name" htmlFor="name" icon={<FileText size={14} />}>
+            <HorizontalField label="Name" htmlFor="name" icon={<FileText size={14} />}
+              labelHref={data?.path?.url}>
               <Input
                 type="text"
                 id="name"
@@ -199,7 +200,8 @@ export default function DocumentDisplay({
                 disabled={currentMode === "view"}
               />
             </HorizontalField>
-            <HorizontalField label="Slug" htmlFor="slug" icon={<Link size={14} />}>
+            <HorizontalField label="Slug" htmlFor="slug" icon={<Link size={14} />}
+              labelHref={data?.path?.url}>
               <Input
                 type="text"
                 id="slug"

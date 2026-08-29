@@ -13,7 +13,7 @@ import Label from "./Label";
 
 export interface HorizontalFieldProps {
   /** Field label text */
-  label: string;
+  label: React.ReactNode;
   /** HTML for attribute linking label to input */
   htmlFor: string;
   /** Field input element(s) */
@@ -26,6 +26,8 @@ export interface HorizontalFieldProps {
   icon?: React.ReactNode;
   /** Optional inline content to render after the label (e.g., tel link) */
   labelAddon?: React.ReactNode;
+  /** If set, label text becomes a clickable link */
+  labelHref?: string;
   /** Label width class (default: w-28) */
   labelWidth?: string;
   /** Additional className for the container */
@@ -40,9 +42,13 @@ export function HorizontalField({
   required,
   icon,
   labelAddon,
+  labelHref,
   labelWidth = "w-28",
   className = "",
 }: HorizontalFieldProps) {
+  const labelContent = labelHref
+    ? <a href={labelHref} target="_blank" rel="noopener noreferrer" className="hover:underline text-indigo-400">{label}</a>
+    : label;
   return (
     <div className={`flex items-center gap-2 py-2 ${className}`}>
       <Label
@@ -50,7 +56,7 @@ export function HorizontalField({
         className={`${labelWidth} shrink-0 text-right text-sm font-medium text-slate-600 dark:text-slate-400 flex items-center justify-end gap-1`}
       >
         {icon && <span className="text-slate-400">{icon}</span>}
-        {label}
+        {labelContent}
         {required && <span className="text-red-500 ml-0.5">*</span>}
         {labelAddon}
       </Label>

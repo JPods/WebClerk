@@ -79,29 +79,10 @@ export const TouchBar: React.FC<{ model: string; record: any; recordId: number; 
     : String(record.action || record.subject || '');
 
   const openForm = (channel: 'call' | 'email' | 'text' | 'visit' | 'meeting') => {
-    // Fire URI for communication channels
-    if (channel === 'call' && contactPhone && tp.phone_action !== 'log_only') {
-      const scheme = tp.phone_action === 'facetime' ? 'facetime' : tp.phone_action === 'facetime-audio' ? 'facetime-audio' : 'tel';
-      const a = document.createElement('a'); a.href = `${scheme}:${contactPhone}`; a.click();
-    } else if (channel === 'email' && contactEmail && tp.email_action !== 'log_only') {
-      const subj = encodeURIComponent(defaultSubject);
-      const a = document.createElement('a'); a.href = `mailto:${contactEmail}?subject=${subj}`; a.click();
-    } else if (channel === 'text' && contactPhone && tp.text_action !== 'log_only') {
-      const a = document.createElement('a'); a.href = `sms:${contactPhone}`; a.click();
-    }
+    // URI firing moved to TouchForm.handleSave — open form only here
     setFormChannel(channel);
     setShowTouchForm(true);
   };
-
-  const hasPhone = !!contactPhone;
-  const hasEmail = !!contactEmail;
-
-  const copyBadge = (text: string, label: string) => (
-    <button className="touch-copy-badge" title={`Copy ${label}`}
-      onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigator.clipboard.writeText(text); }}>
-      {text} <span className="touch-copy-icon">⧉</span>
-    </button>
-  );
 
   const formCtx: TouchFormContext = {
     model, recordId, contactId, contactName, contactPhone, contactEmail,
@@ -109,6 +90,9 @@ export const TouchBar: React.FC<{ model: string; record: any; recordId: number; 
     linkageId: txLinkageId,
     defaultChannel: formChannel,
     defaultDirection: tp.default_direction,
+    phoneAction: tp.phone_action,
+    emailAction: tp.email_action,
+    textAction: tp.text_action,
   };
 
   return (

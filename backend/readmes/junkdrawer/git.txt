@@ -1,0 +1,6 @@
+git add -A && git commit -m "your message" && git push origin main            
+                                               
+  Or broken down:                                                               
+  - git add -A — stage everything
+  - git commit -m "message" — commit                                            
+  - git push origin main — push to GitHub  
