@@ -8,7 +8,7 @@
 ## Quick Start (Automated)
 
 ```bash
-# From the webClerk3 directory:
+# From the backend directory:
 ./tools/setup_ai.sh
 ```
 
@@ -50,17 +50,17 @@ brew install ollama
 ollama serve
 
 # In another terminal, pull the model:
-ollama pull deepseek-coder-v2
+ollama pull deepseek-r1:8b
 
 # Verify:
 ollama list
 ```
 
-**Alternative models** (if your hardware struggles with deepseek-coder-v2):
+**Alternative models** (if your hardware struggles with deepseek-r1:8b):
 
 | Model | Size | Good for |
 |-------|------|----------|
-| `deepseek-coder-v2` | ~16GB | Best code quality (default) |
+| `deepseek-r1:8b` | ~5GB | Best code quality (default) |
 | `codellama:13b` | ~7GB | Good balance of speed/quality |
 | `mistral` | ~4GB | Fast, good general knowledge |
 | `llama3.2:3b` | ~2GB | Very fast, lower quality |
@@ -73,7 +73,7 @@ OLLAMA_MODEL=codellama:13b
 ### 3. Install Python Dependencies
 
 ```bash
-cd webClerk3
+cd backend
 source bin/activate
 pip install chromadb sentence-transformers httpx
 ```
@@ -114,7 +114,7 @@ Expected output:
   AI Assistant Health Check
 ══════════════════════════════════════════════════
   Ollama: CONNECTED (http://localhost:11434)
-  Model: deepseek-coder-v2
+  Model: deepseek-r1:8b
   Vector store: 847 chunks indexed
 
   Overall: OK
@@ -137,7 +137,7 @@ The assistant has 6 specialized modes — each changes how it thinks about your 
 | **Code Review** | Convention compliance checks | Paste code to get a review against project rules |
 | **Test Writer** | Generate tests | "Write tests for the OrderService.create method" |
 
-### From the Frontend (React2025)
+### From the Frontend (frontend)
 
 A floating chat widget (`AiHelpWidget`) appears in the bottom-right corner of every page.
 
@@ -313,9 +313,9 @@ it starts at app boot and runs silently.
 operation produces no network traffic from this system.
 
 **Files:**
-- `React2025/src/utils/consoleCapture.ts` — the interceptor module
-- `React2025/src/main.tsx` — wired at app init (`consoleCapture.start()`)
-- `React2025/src/hooks/useConsoleCapture.ts` — React hook variant (used by AiHelpWidget)
+- `frontend/src/utils/consoleCapture.ts` — the interceptor module
+- `frontend/src/main.tsx` — wired at app init (`consoleCapture.start()`)
+- `frontend/src/hooks/useConsoleCapture.ts` — React hook variant (used by AiHelpWidget)
 
 ---
 
@@ -332,7 +332,7 @@ ollama serve
 
 ### "Model not found"
 ```bash
-ollama pull deepseek-coder-v2
+ollama pull deepseek-r1:8b
 ollama list  # verify it appears
 ```
 
@@ -358,9 +358,9 @@ python manage.py index_docs --stats  # verify count > 0
 
 ```
 ┌─────────────────────────────────────────────┐
-│  React2025  (AiHelpWidget.tsx)              │
+│  frontend  (AiHelpWidget.tsx)              │
 │         ↓  POST /wcapi/ai/ask/              │
-│  webClerk3  (apps/ai_assistant/)            │
+│  backend  (apps/ai_assistant/)            │
 │         ↓                                   │
 │  RAGService                                 │
 │  ┌──────────┐    ┌────────────────────┐     │
@@ -394,8 +394,8 @@ python manage.py index_docs --stats  # verify count > 0
 | `apps/ai_assistant/management/commands/ai_health.py` | Health check CLI |
 | `tools/setup_ai.sh` | One-command automated setup |
 | `tools/hooks/post-commit` | Git hook for auto-reindex |
-| `React2025/src/components/AiHelpWidget.tsx` | Frontend chat widget (mode selector + console capture) |
-| `React2025/src/utils/consoleCapture.ts` | Console interceptor — captures log/warn/error, auto-flushes errors to Alice every 60s |
-| `React2025/src/hooks/useConsoleCapture.ts` | Browser error capture hook (console.error, window.onerror, rejections) |
-| `React2025/src/apps/support/services/aiApi.ts` | Frontend API client (all endpoints + types) |
+| `frontend/src/components/AiHelpWidget.tsx` | Frontend chat widget (mode selector + console capture) |
+| `frontend/src/utils/consoleCapture.ts` | Console interceptor — captures log/warn/error, auto-flushes errors to Alice every 60s |
+| `frontend/src/hooks/useConsoleCapture.ts` | Browser error capture hook (console.error, window.onerror, rejections) |
+| `frontend/src/apps/support/services/aiApi.ts` | Frontend API client (all endpoints + types) |
 | `.copilot-context/` | Auto-generated model reference, fixtures, import paths, error patterns, endpoint map |

@@ -1,8 +1,8 @@
-# Transaction Flows in WebClerk3
+# Transaction Flows in WebClerk
 
 ## Overview
 
-WebClerk3 implements a comprehensive transaction flow system that manages the complete lifecycle of commercial transactions from initial proposals through fulfillment and payment. This system salvages practical business logic from WebClerk2 while modernizing the architecture with Django models, JSONB fields, and React2025 frontend integration.
+WebClerk implements a comprehensive transaction flow system that manages the complete lifecycle of commercial transactions from initial proposals through fulfillment and payment. This system salvages practical business logic from WebClerk2 while modernizing the architecture with Django models, JSONB fields, and frontend integration.
 
 ### Core Transaction Flow
 
@@ -114,7 +114,7 @@ Each transaction type has corresponding line models:
 
 ## Business Logic from WebClerk2
 
-WebClerk3 salvages key business logic patterns from WebClerk2 (4D implementation):
+WebClerk salvages key business logic patterns from WebClerk2 (4D implementation):
 
 ### Transfer Services
 
@@ -268,14 +268,14 @@ These JSONB fields enable:
 - Efficient indexing for common filters
 - Audit trails and metadata storage
 
-## React2025 Integration
+## Frontend Integration
 
-Transaction management integrates with React2025 frontend through modern React components:
+Transaction management integrates with the frontend through modern React components:
 
 ### Component Architecture
 
-```aaa
-src/components/transactions/
+```
+frontend/src/components/transactions/
 ├── common/
 │   ├── TransactionHeader.tsx
 │   ├── TransactionLines.tsx
@@ -435,7 +435,7 @@ curl -X POST "http://localhost:8000/api/wcapi/save/" \
 
 ### Frontend Validation
 
-1. Navigate to transaction pages in React2025
+1. Navigate to transaction pages in the frontend
 2. Test form submissions and data persistence
 3. Verify real-time calculations
 4. Check status workflow transitions
@@ -450,7 +450,7 @@ curl -X POST "http://localhost:8000/api/wcapi/save/" \
 
 ### Frontend
 
-- React2025 framework
+- React frontend
 - React Query for API state
 - Redux for transaction state management
 

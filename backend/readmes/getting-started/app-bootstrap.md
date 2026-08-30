@@ -107,7 +107,7 @@ Bootstrap data cached in localStorage. If the server is unreachable, React uses 
 
 | File | Purpose |
 |------|---------|
-| `webClerk3/apps/core/services/app_bootstrap.py` | Server: gathers all data |
-| `React2025/src/hooks/useAppBootstrap.ts` | Client: loads, caches, exposes |
-| `React2025/src/constants/staticLists.ts` | DEPRECATED — replaced by bootstrap |
-| `React2025/src/config/selectLists.ts` | DEPRECATED — replaced by bootstrap |
+| `backend/apps/core/services/app_bootstrap.py` | Server: gathers all data |
+| `frontend/src/hooks/useAppBootstrap.ts` | Client: loads, caches, exposes |
+| `frontend/src/constants/staticLists.ts` | DEPRECATED — replaced by bootstrap |
+| `frontend/src/config/selectLists.ts` | DEPRECATED — replaced by bootstrap |

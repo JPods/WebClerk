@@ -67,10 +67,8 @@ coverage run -m pytest && coverage report -m
 ## 2. Environment Assumptions
 
 - Local virtualenv already activated via `source bin/activate` (repo ships a venv layout).
-- Test runs (when `PYTEST_CURRENT_TEST` is present) auto-switch to an in‑memory SQLite database for speed/isolation. This requires no local Postgres for unit tests.
-- Normal development runtime (`runserver`, management commands outside pytest) now defaults to Postgres to prevent data loss.
-- Ephemeral SQLite outside pytest: export `USE_SQLITE_TEST=1` (warning printed).
-- Force Postgres inside pytest: set `PYTEST_FORCE_DB=1`.
+- All tests run against PostgreSQL (the same engine used in production). No SQLite.
+- Set `PYTEST_FORCE_DB=1` to force a fresh database for each test run.
 
 ## 3. Test Categories Overview
 
@@ -142,7 +140,7 @@ Stages: smoke → matrix → integration → coverage aggregate. Artifacts: JUni
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| Missing table errors | Using ephemeral DB | Run migrations / disable `USE_SQLITE_TEST` |
+| Missing table errors | Migrations not applied | Run `python manage.py migrate` |
 | Version conflicts | Stale version header | Refetch & retry |
 | Size warnings | Large JSON growth | Inspect field diffs |
 

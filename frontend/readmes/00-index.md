@@ -1,6 +1,6 @@
-# React2025 Documentation
+# Frontend Documentation
 
-> Frontend for CommerceExpert. See also: [wc3 readmes](../../webClerk3/readmes/00-ai-agreement.md)
+> Frontend for WebClerk. See also: [backend readmes](../../backend/readmes/alice/00-ai-agreement.md)
 
 ---
 
@@ -20,7 +20,7 @@
 ## Transaction Topics (`topics/`)
 
 > **Quantity semantics, line models, and DB-level concerns live in wc3:**
-> `webClerk3/readmes/topics/transactions/transactions-totals.md`
+> `backend/readmes/topics/transactions/transactions-totals.md`
 > R25 is UI only — wc3 is the source of truth for all quantity, transfer, and totals logic.
 
 - `transaction-services.md` - **Single Point of Authority services** (lines, tax, shipping, commissions, etc.)

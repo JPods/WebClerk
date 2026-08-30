@@ -22,13 +22,13 @@ Download / Print / Email attachment     ← Output
 
 | File | What it does |
 |------|-------------|
-| `React2025/src/services/pdfme/templateService.ts` | Load/save templates from Report model |
-| `React2025/src/services/pdfme/generateCommercePdf.ts` | Programmatic PDF generation from transaction data |
-| `React2025/src/services/pdfme/starter-templates/*.json` | Bundled starter templates |
-| `React2025/src/pages/tools/PdfDesigner.tsx` | Visual template editor page |
-| `React2025/src/hooks/useExportPdf.ts` | React hooks for PDF export |
-| `React2025/src/apps/transactions/components/PrintPreviewModal.tsx` | Print preview with Download PDF button |
-| `React2025/src/apps/transactions/components/print/` | HTML print components (browser print fallback) |
+| `frontend/src/services/pdfme/templateService.ts` | Load/save templates from Report model |
+| `frontend/src/services/pdfme/generateCommercePdf.ts` | Programmatic PDF generation from transaction data |
+| `frontend/src/services/pdfme/starter-templates/*.json` | Bundled starter templates |
+| `frontend/src/pages/tools/PdfDesigner.tsx` | Visual template editor page |
+| `frontend/src/hooks/useExportPdf.ts` | React hooks for PDF export |
+| `frontend/src/apps/transactions/components/PrintPreviewModal.tsx` | Print preview with Download PDF button |
+| `frontend/src/apps/transactions/components/print/` | HTML print components (browser print fallback) |
 
 ### npm Packages
 
@@ -219,9 +219,9 @@ the object format `{ width, height, padding }` — not the base64 BLANK_PDF cons
 
 | File | What it does |
 |------|-------------|
-| `React2025/src/pages/admin/ReportDesigner.tsx` | Report Designer page |
-| `webClerk3/apps/core/views/report_fields_view.py` | Field registry API |
-| `webClerk3/apps/core/services/report_renderer.py` | Backend PDF renderer (WeasyPrint) |
+| `frontend/src/pages/admin/ReportDesigner.tsx` | Report Designer page |
+| `backend/apps/core/views/report_fields_view.py` | Field registry API |
+| `backend/apps/core/services/report_renderer.py` | Backend PDF renderer (WeasyPrint) |
 
 ## PDF Designer (legacy — Alice Dashboard tab)
 

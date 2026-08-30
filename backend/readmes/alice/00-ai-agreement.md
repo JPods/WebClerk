@@ -62,12 +62,13 @@ New to the project? Read these in order:
 
 ## Project Framework
 
-| Alias | Project | Stack | Purpose |
-|-------|---------|-------|---------|
-| **wc3** | WebClerk3 | Django / PostgreSQL / Python | Backend API |
-| **r25** | React2025 | React / TypeScript / Vite | Frontend SPA |
-| **wc2** | Sources | 4D | Legacy backend (being migrated) |
-| **vue2020** | vue2020 | Vue.js | Legacy frontend for wc2 |
+| Alias | Directory | Stack | Purpose |
+|-------|-----------|-------|---------|
+| **backend** | `backend/` | Django / PostgreSQL / Python | Backend API |
+| **frontend** | `frontend/` | React / TypeScript / Vite | Frontend SPA |
+| **wc2** | *(retired)* | 4D | Legacy backend (fully migrated) |
+
+The consolidated workspace is `/Users/williamjames/Documents/WebClerk/app/` with `backend/` and `frontend/` subdirectories. The former directory names "webClerk3" and "React2025" are retired.
 
 ## Architecture Principles
 
@@ -104,11 +105,11 @@ All CRUD operations route through centralized endpoints:
 
 ### 3. Folder Structure Alignment
 
-r25 `src/apps/` mirrors wc3 `apps/`:
+`frontend/src/apps/` mirrors `backend/apps/`:
 
 ```
-wc3: apps/{core,transactions,products,docs,accounts,communications,...}
-r25: src/apps/{core,transactions,products,docs,accounts,communications,...}
+backend:  apps/{core,transactions,products,docs,accounts,communications,...}
+frontend: src/apps/{core,transactions,products,docs,accounts,communications,...}
 ```
 
 Each model follows:
@@ -144,8 +145,8 @@ All API responses use a standard envelope:
 
 **Readmes are essential.** Document as you build:
 
-- **wc3**: `webClerk3/readmes/` (numbered files for onboarding)
-- **r25**: `React2025/readmes/`
+- **backend**: `backend/readmes/` (numbered files for onboarding)
+- **frontend**: `frontend/readmes/`
 
 Files prefixed `00-` through `07-` are the core onboarding sequence. Other files are topic-specific references.
 
@@ -171,7 +172,7 @@ Three agents collaborate in this codebase. Each has a defined role and a defined
 
 When starting a session, share this context:
 
-1. **Which project?** (wc3, r25, wc2, vue2020)
+1. **Which area?** (backend, frontend)
 2. **Which app/model?** (e.g., transactions/invoice)
 3. **What task?** (new feature, bug fix, refactor)
 
@@ -187,7 +188,7 @@ When starting a session, share this context:
 - Don't duplicate `/wcapi` prefix (check `VITE_API_URL`)
 - Use model names in API calls, not table names
 - Check `wcapi_registry.py` for allowed models
-- Run wc3 on port 8000, r25 on 5173
+- Run backend on port 8000, frontend on 5173
 
 ## Team Sharing
 
