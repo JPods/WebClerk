@@ -27,9 +27,13 @@ def _staff_required(view_func):
     return wrapper
 
 
-@method_decorator([login_required, _staff_required], name='dispatch')
 class SettingsHealthView(View):
-    """GET /wcapi/settings-health/ — returns health check report."""
+    """GET /wcapi/settings-health/ — returns health check report.
+
+    Public — read-only status check. The bootstrap screen needs this
+    before the user can log in. Reports whether settings exist,
+    not what they contain.
+    """
 
     def get(self, request):
         from apps.core.services.setting_health import check_settings_health
