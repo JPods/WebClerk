@@ -240,7 +240,7 @@ class TestSequence002(TestCase):
 
     def test_08_clone_order(self):
         """Clone the order — fresh dates, re-priced, commission reset."""
-        from apps.core.services.clone import clone_record
+        from apps.core.services.record_clone import clone_record
 
         self.test_03_convert_proposal_to_order()
 
@@ -320,7 +320,7 @@ class TestSequence002(TestCase):
 
         from apps.transactions.services.convert.convert import convert_proposal_to_order, convert_order_to_invoice
         from apps.accounts.services.journalize import journalize_invoice
-        from apps.core.services.clone import clone_record
+        from apps.core.services.record_clone import clone_record
 
         # Convert proposal → order
         order_result = convert_proposal_to_order(self.proposal.pk, contact_id=self.contact_id)

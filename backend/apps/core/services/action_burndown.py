@@ -6,7 +6,7 @@ Weight = difficulty (1-5). Work = 100 - percent_complete.
 Remaining = sum(difficulty × (100 - percent_complete)) for each action.
 
 Usage:
-    from apps.core.services.burndown import calculate_burndown
+    from apps.core.services.action_burndown import calculate_burndown
     data = calculate_burndown(project_id=50)
     # Returns: {
     #   "sprint": "MOA W31",

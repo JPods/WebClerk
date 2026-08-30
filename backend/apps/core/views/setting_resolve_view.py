@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from apps.core.services.setting_resolver import resolve_setting_with_source
+from apps.core.services.setting_resolve import resolve_setting_with_source
 
 
 class SettingResolveView(APIView):

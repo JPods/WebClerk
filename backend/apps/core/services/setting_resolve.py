@@ -8,7 +8,7 @@ For purposes stored as sections within wc:model, the resolver
 extracts the correct config section from the wc:model record.
 
 Usage:
-    from apps.core.services.setting_resolver import resolve_setting
+    from apps.core.services.setting_resolve import resolve_setting
 
     layout = resolve_setting(
         purpose="wc:detail_layout",   # or "wc:model" directly

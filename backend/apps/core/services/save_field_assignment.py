@@ -225,7 +225,7 @@ def assign_fields(
 
         try:
             if '.' in field or '[' in field:
-                from apps.core.services.json_field_ops import apply_json_op
+                from apps.core.services.json_ops import apply_json_op
                 apply_json_op(obj, field, mode, value, key=field_data.get('key'))
             else:
                 # Check if it's a real model field

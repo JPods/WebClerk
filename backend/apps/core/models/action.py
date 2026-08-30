@@ -3,7 +3,7 @@ import logging
 
 from common.models import BaseModel
 from apps.core.choices import ACTION_DIFFICULTY_LEVELS, ACTION_KANBAN_COLUMNS, ACTION_TYPE_CHOICES
-from apps.core.services.keywords import build_keywords_for_record
+from apps.core.services.record_keywords import build_keywords_for_record
 
 console_logger = logging.getLogger('console')
 

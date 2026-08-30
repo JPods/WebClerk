@@ -23,7 +23,7 @@ from django.utils import timezone
 from common.models import BaseModel
 from common.link_mixins import StandardLinksMixin
 from apps.core.choices import CONTACT_ROLE_CHOICES
-from apps.core.services.keywords import build_keywords_for_record
+from apps.core.services.record_keywords import build_keywords_for_record
 
 # Django requires a custom manager for custom user models.
 # ContactManager inherits from BaseUserManager (from django.contrib.auth.models)

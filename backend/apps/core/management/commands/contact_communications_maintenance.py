@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from apps.core.services.contact_communications_maintenance import maintain_contact_communications
+from apps.core.services.contact_maintenance import maintain_contact_communications
 
 
 class Command(BaseCommand):

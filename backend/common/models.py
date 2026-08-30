@@ -1041,7 +1041,7 @@ class KeywordsMixin(models.Model):
             logging.getLogger(__name__).info('Starting keyword generation for %s id=%s', self.__class__.__name__, getattr(self, 'id', None))
             
             # Import the keyword service function
-            from apps.core.services.keywords import build_keywords_for_record
+            from apps.core.services.record_keywords import build_keywords_for_record
             
             # Get model name for the keyword service
             model_name = self.__class__.__name__.lower()

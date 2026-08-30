@@ -1070,9 +1070,9 @@ _ACTION_DISPATCH = {
     "accrue_manufacturer_rebate": lambda p: __import__('apps.orgs.services.rebate_accrual', fromlist=['accrue_manufacturer_rebate']).accrue_manufacturer_rebate(p['manufacturer_id'], p.get('period_start_ms'), p.get('period_end_ms')),
     "get_rebate_summary": lambda p: __import__('apps.orgs.services.rebate_accrual', fromlist=['get_rebate_summary']).get_rebate_summary(),
     # ── MAP Enforcement (ORG-08) ──
-    "check_map_violation": lambda p: __import__('apps.products.services.map_enforcement', fromlist=['check_map_violation']).check_map_violation(p['item_id'], p['sell_price']),
-    "check_order_map_violations": lambda p: __import__('apps.products.services.map_enforcement', fromlist=['check_order_map_violations']).check_order_map_violations(p['order_id']),
-    "get_map_violations_report": lambda p: __import__('apps.products.services.map_enforcement', fromlist=['get_map_violations_report']).get_map_violations_report(p.get('period_days', 30)),
+    "check_map_violation": lambda p: __import__('apps.products.services.price_map_enforce', fromlist=['check_map_violation']).check_map_violation(p['item_id'], p['sell_price']),
+    "check_order_map_violations": lambda p: __import__('apps.products.services.price_map_enforce', fromlist=['check_order_map_violations']).check_order_map_violations(p['order_id']),
+    "get_map_violations_report": lambda p: __import__('apps.products.services.price_map_enforce', fromlist=['get_map_violations_report']).get_map_violations_report(p.get('period_days', 30)),
     # ── Pricing Engine ──
     "resolve_price": lambda p: __import__('apps.products.services.price_resolver', fromlist=['resolve_price_legacy']).resolve_price_legacy(p['item_id'], p.get('customer_id'), p.get('qty', 1), p.get('price_level')),
     "get_price_matrix": lambda p: __import__('apps.products.services.price_resolver', fromlist=['get_price_matrix']).get_price_matrix(p['item_id']),
@@ -1131,7 +1131,7 @@ _ACTION_DISPATCH = {
     "bulk_send": lambda p: __import__('apps.communications.services.mail_merge', fromlist=['bulk_send']).bulk_send(p['template_id'], p['record_model'], p['record_ids']),
     "get_available_templates": lambda p: __import__('apps.communications.services.mail_merge', fromlist=['get_available_templates']).get_available_templates(p.get('model_name')),
     # ── Clone / Duplicate ──
-    "clone_record": lambda p: __import__('apps.core.services.clone', fromlist=['clone_record']).clone_record(p['model_name'], p['record_id'], p.get('include_children', True), p.get('contact_id')),
+    "clone_record": lambda p: __import__('apps.core.services.record_clone', fromlist=['clone_record']).clone_record(p['model_name'], p['record_id'], p.get('include_children', True), p.get('contact_id')),
     # ── Inventory Pending (ONE PATH — Pending.try_apply on save) ──
     "adjust_item_quantity": lambda p: __import__('apps.products.services.inventory.inventory_layers', fromlist=['adjust_item_quantity_via_pending']).adjust_item_quantity_via_pending(p),
     "get_pending_for_item": lambda p: list(
@@ -1147,9 +1147,9 @@ _ACTION_DISPATCH = {
     "get_ui_config": lambda p: __import__('apps.core.services.ui_config', fromlist=['get_ui_config']).get_ui_config(p.get('contact_id')),
     "save_wcui_prefs": lambda p: __import__('apps.core.services.ui_config', fromlist=['save_ui_config']).save_ui_config(p.get('prefs', {}), p.get('contact_id')),  # legacy alias
     # ── Dedup (any model) ──
-    "find_duplicates": lambda p: __import__('apps.core.services.dedup', fromlist=['find_duplicates']).find_duplicates(p['model'], p.get('match_fields', ['name_first+name_last']), p.get('limit', 500)),
-    "merge_records": lambda p: __import__('apps.core.services.dedup', fromlist=['merge_records']).merge_records(p['model'], p['winner_id'], p['loser_ids'], p.get('merge_strategy', 'fill_empty')),
-    "journal_dedup_delete": lambda p: __import__('apps.core.services.dedup', fromlist=['journal_delete']).journal_delete(p['model'], p['record_ids']),
+    "find_duplicates": lambda p: __import__('apps.core.services.record_dedup', fromlist=['find_duplicates']).find_duplicates(p['model'], p.get('match_fields', ['name_first+name_last']), p.get('limit', 500)),
+    "merge_records": lambda p: __import__('apps.core.services.record_dedup', fromlist=['merge_records']).merge_records(p['model'], p['winner_id'], p['loser_ids'], p.get('merge_strategy', 'fill_empty')),
+    "journal_dedup_delete": lambda p: __import__('apps.core.services.record_dedup', fromlist=['journal_delete']).journal_delete(p['model'], p['record_ids']),
     # ── Feature Lifecycle (Alice + Allie + Andi) ──
     "lifecycle_record": lambda p: __import__('apps.core.services.action_lifecycle', fromlist=['lifecycle_record']).lifecycle_record(p),
     # ── Dashboard Batch Counts ──

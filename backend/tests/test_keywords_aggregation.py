@@ -1,14 +1,14 @@
 import pytest
 
 from apps.core.models.contact import Contact
-from apps.core.services.keywords import build_keywords_for_record
+from apps.core.services.record_keywords import build_keywords_for_record
 
 
 @pytest.mark.django_db
 def test_build_keywords_includes_scalar_and_tags_but_not_links_without_refs_setup(monkeypatch):
     # Force empty refs_setup so baseline aggregation behavior is exercised.
-    monkeypatch.setattr("apps.core.services.keywords.get_keyword_requirements", lambda: {})
-    monkeypatch.setattr("apps.core.services.keywords.cache_service.get", lambda _key: {})
+    monkeypatch.setattr("apps.core.services.record_keywords.get_keyword_requirements", lambda: {})
+    monkeypatch.setattr("apps.core.services.record_keywords.cache_service.get", lambda _key: {})
 
     contact = Contact.objects.create(
         email="agg-keywords@example.com",
