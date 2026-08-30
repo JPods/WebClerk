@@ -56,6 +56,10 @@ interface LinkedRecordsPanelProps {
   extraColumns?: DbColumnDef<Rec>[];
   /** Callback after link changes */
   onLinksChanged?: (linkedIds: number[]) => void;
+  /** Allow Option+Cmd+click to remove this panel */
+  removable?: boolean;
+  /** Called when panel is removed */
+  onRemovePanel?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -272,12 +276,33 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
   editable = true,
   extraColumns,
   onLinksChanged,
+  removable = false,
+  onRemovePanel,
 }) => {
   const windowManager = useWindowManager();
   const [records, setRecords] = useState<Rec[]>([]);
   const [linkedIds, setLinkedIds] = useState<number[]>([]);
-  const [adding, setAdding] = useState(false);
+  const [assigning, setAssigning] = useState(false);
   const [loading, setLoading] = useState(false);
+  const panelKey = `${parentModel}:${parentId}:${linkedModel}`;
+
+  // Dismiss this panel's search when another panel opens its search
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.panelKey && detail.panelKey !== panelKey) {
+        setAssigning(false);
+      }
+    };
+    window.addEventListener('panel-assign-opened', handler);
+    return () => window.removeEventListener('panel-assign-opened', handler);
+  }, [panelKey]);
+
+  const openAssign = useCallback(() => {
+    // Dismiss any other open assign panels first
+    window.dispatchEvent(new CustomEvent('panel-assign-opened', { detail: { panelKey } }));
+    setAssigning(true);
+  }, [panelKey]);
 
   // Load linked record IDs from parent's refs.links.{linkedModel}
   const loadLinks = useCallback(async () => {
@@ -336,13 +361,48 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
     }
   }, [parentModel, parentId, linkedModel, onLinksChanged]);
 
-  // Add a linked record
-  const handleAdd = useCallback(async (record: Rec) => {
+  // Assign an existing record (search → link)
+  const handleAssign = useCallback(async (record: Rec) => {
     const newIds = [...linkedIds, record.id];
     await saveLinks(newIds);
     setRecords(prev => [...prev, record]);
-    setAdding(false);
+    setAssigning(false);
   }, [linkedIds, saveLinks]);
+
+  // Create a new record and link it — opens in floating window for editing
+  const handleAddNew = useCallback(async () => {
+    try {
+      // Read parent to pre-fill common fields
+      const parentRes = await getRecord(parentModel, parentId);
+      const parent = parentRes?.record || parentRes;
+
+      const newRecord: Record<string, any> = {};
+      // Link back to parent
+      if (parentModel !== linkedModel) {
+        newRecord[`${parentModel}_id`] = parentId;
+      }
+      // Inherit contact/customer from parent
+      if (parent?.contact_id) newRecord.contact_id = parent.contact_id;
+      if (parent?.customer_id) newRecord.customer_id = parent.customer_id;
+      if (parent?.vendor_id) newRecord.vendor_id = parent.vendor_id;
+      if (parent?.project_id) newRecord.project_id = parent.project_id;
+
+      const res = await saveRecord(linkedModel, newRecord);
+      const created = (res as any)?.record || res;
+      if (created?.id) {
+        const newIds = [...linkedIds, created.id];
+        await saveLinks(newIds);
+        setRecords(prev => [...prev, created]);
+        // Open in floating window — uses App or Admin view per user preference
+        const path = getModelDetailPath(linkedModel, created.id);
+        const title = getModelWindowTitle(linkedModel, created.id, created.ida);
+        const options = getModelWindowPreset(linkedModel);
+        windowManager.ensureWindow(path, title, options);
+      }
+    } catch (err) {
+      console.error(`Failed to create ${linkedModel}:`, err);
+    }
+  }, [linkedModel, parentModel, parentId, linkedIds, saveLinks, windowManager]);
 
   // Remove a linked record
   const handleRemove = useCallback(async (recordId: number) => {
@@ -360,6 +420,21 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
     const options = getModelWindowPreset(linkedModel);
     windowManager.ensureWindow(path, title, options);
   }, [linkedModel, parentModel, parentId, windowManager]);
+
+  // Remove panel — confirm if records are linked
+  const handleRemovePanel = useCallback(() => {
+    if (!removable || !onRemovePanel) return;
+    if (linkedIds.length > 0) {
+      const label = title || linkedModel.charAt(0).toUpperCase() + linkedModel.slice(1) + 's';
+      if (!confirm(`Remove ${label} panel? ${linkedIds.length} linked record${linkedIds.length !== 1 ? 's' : ''} will be unlinked.`)) return;
+    }
+    // Clear refs.links.{model} on the parent record
+    saveRecord(parentModel, {
+      id: parentId,
+      [`refs.links.${linkedModel}`]: null,
+    }).catch(() => {});
+    onRemovePanel();
+  }, [removable, onRemovePanel, linkedIds, linkedModel, parentModel, parentId, title]);
 
   const sectionLabel = title || linkedModel.charAt(0).toUpperCase() + linkedModel.slice(1) + 's';
   const sectionIcon = icon || MODEL_ICONS[linkedModel] || "🔗";
@@ -379,18 +454,20 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
       onSelectRow={handleOpen}
       sectionLabel={sectionLabel}
       sectionIcon={sectionIcon}
-      onAdd={editable ? () => setAdding(true) : undefined}
+      onAdd={editable ? handleAddNew : undefined}
+      onAssign={editable ? openAssign : undefined}
+      onRemove={removable ? handleRemovePanel : undefined}
       defaultCollapsed={defaultCollapsed}
       compact
       emptyMessage={loading ? "Loading..." : `No ${linkedModel}s linked`}
     >
-      {adding && (
+      {assigning && (
         <RecordSearchInline
           linkedModel={linkedModel}
           excludeIds={excludeIds}
           parentId={linkedModel === parentModel ? parentId : undefined}
-          onSelect={handleAdd}
-          onClose={() => setAdding(false)}
+          onSelect={handleAssign}
+          onClose={() => setAssigning(false)}
         />
       )}
     </DbColumns>

@@ -187,6 +187,15 @@ const copyBadge = (text: string, label: string) => (
   </button>
 );
 
+interface TouchTemplate {
+  id: number;
+  name: string;
+  topic: string;
+  channel: string;
+  subject?: string;
+  body: string;
+}
+
 export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, onClose, onSaved }) => {
   const [channel, setChannel] = useState<Channel>(ctx.defaultChannel || 'call');
   const [direction, setDirection] = useState<'out' | 'in'>(ctx.defaultDirection || 'out');
@@ -199,6 +208,8 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
   const [plan, setPlan] = useState(0);
   const [purpose, setPurpose] = useState('');
   const [purposeOptions, setPurposeOptions] = useState<{value: string; label: string}[]>([]);
+  const [templates, setTemplates] = useState<TouchTemplate[]>([]);
+  const [selectedTopic, setSelectedTopic] = useState('');
 
   // Fetch purpose selectlist from wc-model-touch Setting
   useEffect(() => {
@@ -213,118 +224,145 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
     })();
   }, []);
 
+  // Fetch touch templates
+  useEffect(() => {
+    (async () => {
+      try {
+        const { getRecords } = await import('@/api/wcapi');
+        const res = await getRecords('report', {
+          category: 'touch_template',
+          is_active: true,
+          limit: 100,
+        }) as any;
+        const records = res?.results || [];
+        setTemplates(records.map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          topic: r.config?.topic || 'general',
+          channel: r.config?.channel || 'email',
+          subject: r.config?.subject,
+          body: r.config?.body || '',
+        })));
+      } catch { /* no templates */ }
+    })();
+  }, []);
+
   // From/To contacts — auto-filled, user-changeable
   const loggedByUser = (window as any).__WC_USER_ID || 0;
   const loggedByName = (window as any).__WC_USER_NAME || 'Me';
   const [fromContact, setFromContact] = useState({ id: loggedByUser, name: loggedByName, phone: '', email: '' });
   const [toContact, setToContact] = useState({ id: ctx.contactId, name: ctx.contactName, phone: ctx.contactPhone, email: ctx.contactEmail });
+
+  // Resolve {{tokens}} in template text
+  const resolveTokens = useCallback((text: string) => {
+    const companyName = (window as any).__WC_COMPANY_NAME || '';
+    return text
+      .replace(/\{\{contact_name\}\}/g, toContact.name || ctx.contactName || '')
+      .replace(/\{\{company_name\}\}/g, toContact.name || ctx.contactName || '')
+      .replace(/\{\{user_name\}\}/g, fromContact.name || loggedByName)
+      .replace(/\{\{our_company\}\}/g, companyName)
+      .replace(/\{\{subject\}\}/g, ctx.defaultSubject || subject)
+      .replace(/\{\{record_ida\}\}/g, `${ctx.model}-${ctx.recordId}`)
+      .replace(/\{\{follow_up_date\}\}/g, plan > 0
+        ? new Date(Date.now() + plan * 86400000).toLocaleDateString()
+        : '');
+  }, [ctx, subject, plan, toContact.name, fromContact.name, loggedByName]);
+
+  const [selectedTemplate, setSelectedTemplate] = useState<TouchTemplate | null>(null);
+
+  const applyTemplate = useCallback((tpl: TouchTemplate) => {
+    // Only fill subject if user hasn't typed more than 3 characters
+    if (subject.trim().length <= 3) {
+      setSubject(tpl.subject ? resolveTokens(tpl.subject) : tpl.name);
+    }
+    setSelectedTemplate(tpl);
+    if (tpl.channel === 'email' || tpl.channel === 'text') {
+      setChannel(tpl.channel as Channel);
+    }
+  }, [resolveTokens, subject]);
+
+  // Filter templates by channel and topic
+  const channelTemplates = templates.filter(t => t.channel === channel);
+  const topics = [...new Set(channelTemplates.map(t => t.topic))].sort();
+  const visibleTemplates = selectedTopic
+    ? channelTemplates.filter(t => t.topic === selectedTopic)
+    : channelTemplates;
   const [saving, setSaving] = useState(false);
   const [createAction, setCreateAction] = useState(false);
   const [linkedContacts, setLinkedContacts] = useState<RefContact[]>([]);
 
+  const [touchId, setTouchId] = useState<number | null>(null);
+  const [sent, setSent] = useState(false);
+
+  // Build touch data from current form state
+  const buildTouchData = () => {
+    const fromId = direction === 'out' ? fromContact.id : toContact.id;
+    const toId = direction === 'out' ? toContact.id : fromContact.id;
+    const externalContactId = toContact.id || ctx.contactId;
+    const parents: Record<string, number | null> = {
+      from: fromId || null, to: toId || null, contact: externalContactId || null,
+      customer: ctx.orgModel === 'customer' ? ctx.orgId : null,
+      vendor: ctx.orgModel === 'vendor' ? ctx.orgId : null,
+      manufacturer: ctx.orgModel === 'manufacturer' ? ctx.orgId : null,
+      rep: ctx.orgModel === 'rep' ? ctx.orgId : null,
+      action: ctx.model === 'action' ? ctx.recordId : null,
+    };
+    const contactLinks = linkedContacts.map(c => ({
+      id: c.contact_id, purpose: c.purpose || 'primary',
+      attention: c.attention, email: c.email, phone: c.phone,
+    }));
+    return {
+      ...(touchId ? { id: touchId } : {}),
+      contact_id: externalContactId || null, channel, direction, subject, summary,
+      duration: duration ? parseInt(duration, 10) : null,
+      email_message_id: emailId || null, outcome: outcome || null,
+      impact: impact || 0, plan: plan || 0, purpose: purpose || null,
+      action_id: ctx.model === 'action' ? ctx.recordId : null,
+      org_id: ctx.orgId || null, org_model: ctx.orgModel || null,
+      project_id: null, linkage_id: ctx.linkageId || null,
+      logged_by: fromContact.id || loggedByUser,
+      config: { template_id: selectedTemplate?.id || null, template_name: selectedTemplate?.name || null },
+      refs: { parents, links: { contact: contactLinks } },
+    };
+  };
+
+  // Save — record the touch, stay open
   const handleSave = async () => {
     setSaving(true);
     try {
       const { saveRecord } = await import('@/api/wcapi');
-      // from/to flip with direction
-      const fromId = direction === 'out' ? fromContact.id : toContact.id;
-      const toId = direction === 'out' ? toContact.id : fromContact.id;
-      const externalContactId = toContact.id || ctx.contactId;
-
-      const parents: Record<string, number | null> = {
-        from: fromId || null,
-        to: toId || null,
-        contact: externalContactId || null,
-        customer: ctx.orgModel === 'customer' ? ctx.orgId : null,
-        vendor: ctx.orgModel === 'vendor' ? ctx.orgId : null,
-        manufacturer: ctx.orgModel === 'manufacturer' ? ctx.orgId : null,
-        rep: ctx.orgModel === 'rep' ? ctx.orgId : null,
-        action: ctx.model === 'action' ? ctx.recordId : null,
-      };
-
-      const contactLinks = linkedContacts.map(c => ({
-        id: c.contact_id,
-        purpose: c.purpose || 'primary',
-        attention: c.attention,
-        email: c.email,
-        phone: c.phone,
-      }));
-
-      const touchData = {
-        contact_id: externalContactId || null,
-        channel,
-        direction,
-        subject,
-        summary,
-        duration: duration ? parseInt(duration, 10) : null,
-        email_message_id: emailId || null,
-        outcome: outcome || null,
-        impact: impact || 0,
-        plan: plan || 0,
-        purpose: purpose || null,
-        action_id: ctx.model === 'action' ? ctx.recordId : null,
-        org_id: ctx.orgId || null,
-        org_model: ctx.orgModel || null,
-        project_id: null,
-        linkage_id: ctx.linkageId || null,
-        logged_by: fromContact.id || loggedByUser,
-        refs: { parents, links: { contact: contactLinks } },
-      };
-      const touchRes = await saveRecord('touch', touchData);
-
-      if (createAction) {
-        const deadlineMs = plan > 0 ? Date.now() + (plan * 86400000) : Date.now() + (7 * 86400000);
-        await saveRecord('action', {
-          action: { en: `Follow-up: ${subject}` },
-          contact_id: externalContactId || null,
-          customer_id: ctx.orgModel === 'customer' ? ctx.orgId : null,
-          vendor_id: ctx.orgModel === 'vendor' ? ctx.orgId : null,
-          manufacturer_id: ctx.orgModel === 'manufacturer' ? ctx.orgId : null,
-          dt_deadline: deadlineMs,
-          status: 'open',
-          refs: {
-            parents: { contact: externalContactId || null, touch: (touchRes as any)?.record?.id || null },
-            links: {},
-          },
-        });
-      }
-
-      // Fire communication URI after save — unified for all channels
-      const phone = toContact.phone || ctx.contactPhone || '';
-      const email = toContact.email || ctx.contactEmail || '';
-      const ccEmails = linkedContacts
-        .filter(c => c.email)
-        .map(c => c.email)
-        .join(',');
-
-      if (channel === 'email' && email && ctx.emailAction !== 'log_only') {
-        const params = new URLSearchParams();
-        params.set('subject', subject);
-        if (summary) params.set('body', summary);
-        if (ccEmails) params.set('cc', ccEmails);
-        const a = document.createElement('a');
-        a.href = `mailto:${encodeURIComponent(email)}?${params.toString()}`;
-        a.click();
-      } else if (channel === 'call' && phone && ctx.phoneAction !== 'log_only') {
-        const scheme = ctx.phoneAction === 'facetime' ? 'facetime'
-          : ctx.phoneAction === 'facetime-audio' ? 'facetime-audio' : 'tel';
-        const a = document.createElement('a');
-        a.href = `${scheme}:${phone}`;
-        a.click();
-      } else if (channel === 'text' && phone && ctx.textAction !== 'log_only') {
-        const body = subject ? `?body=${encodeURIComponent(subject)}` : '';
-        const a = document.createElement('a');
-        a.href = `sms:${phone}${body}`;
-        a.click();
-      }
-
+      const res = await saveRecord('touch', buildTouchData());
+      const id = (res as any)?.record?.id;
+      if (id) setTouchId(id);
       onSaved?.();
-      onClose();
     } catch (err) {
       console.error('Failed to save touch:', err);
     } finally {
       setSaving(false);
-      setCreateAction(false);
+    }
+  };
+
+  // URI links in the contact line handle send — no programmatic URI firing needed
+
+  // Update — save changes after send (email_message_id, summary notes, outcome)
+  const handleUpdate = async () => {
+    if (!touchId) return;
+    setSaving(true);
+    try {
+      const { saveRecord } = await import('@/api/wcapi');
+      await saveRecord('touch', {
+        id: touchId,
+        summary,
+        email_message_id: emailId || null,
+        outcome: outcome || null,
+        impact: impact || 0,
+      });
+      onSaved?.();
+      onClose();
+    } catch (err) {
+      console.error('Failed to update touch:', err);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -359,14 +397,65 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
         <div className="touch-form-contact-line">
           <span style={{ fontSize: '0.75em', color: 'var(--db-text-muted)' }}>{direction === 'out' ? 'To:' : 'From:'}</span>
           <span>{toContact.name || '—'}</span>
-          {toContact.phone && copyBadge(toContact.phone, 'phone')}
-          {toContact.email && copyBadge(toContact.email, 'email')}
+          {toContact.phone && <a href={`tel:${toContact.phone}`} className="touch-copy-badge" title="Dial">📞 {toContact.phone}</a>}
+          {toContact.phone && <a href={`sms:${toContact.phone}`} className="touch-copy-badge" title="Text">💬</a>}
+          {toContact.email && <a href={`mailto:${toContact.email}`} target="_blank" className="touch-copy-badge" title="Email">✉ {toContact.email}</a>}
         </div>
+        {/* Template selector */}
+        {(channel === 'email' || channel === 'text') && channelTemplates.length > 0 && (
+          <div className="touch-form-row">
+            {topics.length > 1 && (
+              <select value={selectedTopic} onChange={e => setSelectedTopic(e.target.value)}
+                className="touch-form-select">
+                <option value="">all</option>
+                {topics.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            )}
+            <select value="" onChange={e => {
+              const tpl = templates.find(t => t.id === Number(e.target.value));
+              if (tpl) applyTemplate(tpl);
+            }} className="touch-form-select" style={{ flex: 1 }}>
+              <option value="">— template —</option>
+              {visibleTemplates.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)}
-          placeholder="Subject" className="touch-form-input" autoFocus />
+          placeholder="subject" className="touch-form-input" />
         <textarea value={summary} onChange={(e) => setSummary(e.target.value)}
-          placeholder="Summary — what happened, next steps" rows={2}
+          placeholder="summary / notes" rows={2}
           className="touch-form-input touch-form-textarea" />
+        {/* Send link — real <a> tags, not buttons, so browser handles protocol natively */}
+        {!sent && (() => {
+          const phone = toContact.phone || ctx.contactPhone || '';
+          const email = toContact.email || ctx.contactEmail || '';
+          const onSend = () => { setSent(true); handleSave(); };
+          if (channel === 'call' && phone) {
+            return <a href={`tel:${phone}`}
+              className="touch-form-btn touch-form-btn--save" style={{ width: '100%', textAlign: 'center', textDecoration: 'none', display: 'block' }}
+              onClick={onSend}>📞 Dial {phone}</a>;
+          }
+          if (channel === 'text' && phone) {
+            const body = subject ? `?body=${encodeURIComponent(subject)}` : '';
+            return <a href={`sms:${phone}${body}`}
+              className="touch-form-btn touch-form-btn--save" style={{ width: '100%', textAlign: 'center', textDecoration: 'none', display: 'block' }}
+              onClick={onSend}>💬 Text {phone}</a>;
+          }
+          if (channel === 'email' && email) {
+            const p = new URLSearchParams();
+            if (subject) p.set('subject', subject);
+            const tplBody = selectedTemplate ? resolveTokens(selectedTemplate.body) : '';
+            if (tplBody) p.set('body', tplBody);
+            else if (summary) p.set('body', summary);
+            const qs = p.toString();
+            return <a href={`mailto:${email}${qs ? '?' + qs : ''}`}
+              className="touch-form-btn touch-form-btn--save" style={{ width: '100%', textAlign: 'center', textDecoration: 'none', display: 'block' }}
+              onClick={onSend}>✉ Send to {email}</a>;
+          }
+          return null;
+        })()}
         <div className="touch-form-row">
           <div className="touch-form-impact">
             {[1,2,3,4,5].map(n => (
@@ -375,11 +464,18 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
             ))}
           </div>
           <span style={{ flex: 1 }} />
-          <button onClick={onClose} className="touch-form-btn">Cancel</button>
-          <button onClick={handleSave} disabled={saving || !subject.trim()}
-            className="touch-form-btn touch-form-btn--save">
-            {saving ? 'Saving...' : 'Save'}
-          </button>
+          <button onClick={onClose} className="touch-form-btn">{sent ? 'Close' : 'Cancel'}</button>
+          {sent ? (
+            <button onClick={handleUpdate} disabled={saving}
+              className="touch-form-btn touch-form-btn--save">
+              {saving ? 'Saving...' : 'Save & Close'}
+            </button>
+          ) : (
+            <button onClick={handleSave} disabled={saving || !subject.trim()}
+              className="touch-form-btn touch-form-btn--save">
+              {saving ? 'Saving...' : 'Log Only'}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -393,18 +489,25 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
         style={{ width: 520, maxHeight: '80vh' }}>
         {/* Header — actions at top, most-likely first */}
         <div className="db-md-header" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="db-md-title" style={{ fontSize: fontSize + 1 }}>Log Touch</span>
+          <span className="db-md-title" style={{ fontSize: fontSize + 1 }}>
+            {sent ? '✓ Sent' : 'Log Touch'}
+          </span>
           <span style={{ flex: 1 }} />
-          <button className="db-btn db-btn--small db-btn--save" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : 'Save Touch'}
-          </button>
-          {ctx.model !== 'action' && (
-            <button className="db-btn db-btn--small" onClick={() => { setCreateAction(true); handleSave(); }} disabled={saving}
-              title="Save touch and create a follow-up action">
-              Save + Action
-            </button>
+          {sent ? (
+            <>
+              <button className="db-btn db-btn--small db-btn--save" onClick={handleUpdate} disabled={saving}>
+                {saving ? 'Saving...' : 'Save & Close'}
+              </button>
+              <button className="db-btn db-btn--small" onClick={onClose}>Close</button>
+            </>
+          ) : (
+            <>
+              <button className="db-btn db-btn--small" onClick={handleSave} disabled={saving || !subject.trim()}>
+                {saving ? 'Saving...' : 'Log Only'}
+              </button>
+              <button className="db-btn db-btn--small" onClick={onClose}>Cancel</button>
+            </>
           )}
-          <button className="db-btn db-btn--small" onClick={onClose}>Cancel</button>
           <button className="db-md-close" onClick={onClose}>&times;</button>
         </div>
 
@@ -418,6 +521,29 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
             </button>
           ))}
         </div>
+
+        {/* Template selector — topic then template */}
+        {(channel === 'email' || channel === 'text') && channelTemplates.length > 0 && (
+          <div className="db-border-bottom" style={{ padding: '8px 16px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <label className="db-label--default" style={{ fontSize: fontSize - 1 }}>Template</label>
+            {topics.length > 1 && (
+              <select value={selectedTopic} onChange={e => setSelectedTopic(e.target.value)}
+                className="db-input" style={{ fontSize, width: 100, padding: '2px 4px' }}>
+                <option value="">all</option>
+                {topics.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            )}
+            <select value="" onChange={e => {
+              const tpl = templates.find(t => t.id === Number(e.target.value));
+              if (tpl) applyTemplate(tpl);
+            }} className="db-input" style={{ fontSize, flex: 1, padding: '2px 4px' }}>
+              <option value="">— select template —</option>
+              {visibleTemplates.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Body */}
         <div className="db-md-body" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>

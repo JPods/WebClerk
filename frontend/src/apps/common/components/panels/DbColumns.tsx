@@ -80,8 +80,12 @@ export interface DbColumnsProps<T = Record<string, unknown>> {
   sectionLabel?: string;
   /** Optional: section icon */
   sectionIcon?: string;
-  /** Optional: add button callback — shows "+ add" in section header */
+  /** Optional: create new record — shows "+ add" in section header */
   onAdd?: () => void;
+  /** Optional: assign existing record — shows "assign" in section header */
+  onAssign?: () => void;
+  /** Optional: remove panel — Option+Cmd/Ctrl+click on header */
+  onRemove?: () => void;
   /** Optional: collapsible section (default true if sectionLabel provided) */
   collapsible?: boolean;
   /** Optional: start collapsed */
@@ -111,6 +115,8 @@ export function DbColumns<T extends Record<string, unknown>>({
   sectionLabel,
   sectionIcon,
   onAdd,
+  onAssign,
+  onRemove,
   collapsible = true,
   defaultCollapsed = false,
   renderRow,
@@ -151,7 +157,15 @@ export function DbColumns<T extends Record<string, unknown>>({
       {hasSectionHeader && (
         <div
           className="db-section-header"
-          onClick={() => collapsible && setCollapsed((c) => !c)}
+          onClick={(e) => {
+            // Option+Cmd (Mac) / Alt+Ctrl (Windows) → remove panel
+            if (onRemove && e.altKey && (e.metaKey || e.ctrlKey)) {
+              e.stopPropagation();
+              onRemove();
+              return;
+            }
+            collapsible && setCollapsed((c) => !c);
+          }}
         >
           {collapsible && (
             <span style={{ fontSize: 9, color: 'var(--db-text-dim)' }}>
@@ -163,13 +177,11 @@ export function DbColumns<T extends Record<string, unknown>>({
           )}
           <span className="db-section-header__label">{sectionLabel}</span>
           <span className="db-section-header__count">({data.length})</span>
-          {onAdd && (
-            <button
-              className="db-section-header__action"
-              onClick={(e) => { e.stopPropagation(); onAdd(); }}
-            >
-              + add
-            </button>
+          {onAssign && (
+            <span className="db-section-header__actions">
+              <button className="db-section-header__action"
+                onClick={(e) => { e.stopPropagation(); setCollapsed(false); onAssign(); }}>assign</button>
+            </span>
           )}
         </div>
       )}

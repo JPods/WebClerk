@@ -32,6 +32,8 @@ import { FileUploadPanel } from './FileUploadPanel';
 import { ContactPanel, normalizeRefsLinksContact } from '@/apps/common/components/panels/ContactPanel';
 import type { RefContact } from '@/apps/common/components/panels/ContactPanel';
 import { LinkedRecordsPanel } from '@/apps/common/components/panels/LinkedRecordsPanel';
+import { TouchForm, type TouchFormContext } from '@/pages/admin/TouchForm';
+import { TOUCH_MODELS } from '@/pages/admin/TouchBar';
 import { getModelNames } from '@/api/wcapi';
 
 // ── Field type registry ─────────────────────────────────────────────
@@ -223,11 +225,12 @@ function DynamicDetail({
   const [linkedPanelModels, setLinkedPanelModels] = useState<string[]>([]);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
+  const [showTouchForm, setShowTouchForm] = useState(false);
 
   const fontSize = 12 + fontScale;
 
-  // Standard panels always shown (even if empty) — besides contacts which uses ContactPanel
-  const STANDARD_PANELS = ['action', 'touch', 'document'];
+  // Core panels always shown (even if empty) — besides contacts which uses ContactPanel
+  const STANDARD_PANELS = ['action', 'touch'];
 
   // Models that use specialized panels (ContactPanel handles contacts)
   const SPECIALIZED = ['contact'];
@@ -244,10 +247,14 @@ function DynamicDetail({
   useEffect(() => {
     if (!data) return;
     const refsLinks = data?.refs?.links || {};
-    const discoveredKeys = Object.keys(refsLinks).filter(k =>
-      !SPECIALIZED.includes(k)
-    );
-    // Merge: standard panels + discovered keys (deduplicated, standard first)
+    const discoveredKeys = Object.keys(refsLinks).filter(k => {
+      if (SPECIALIZED.includes(k)) return false;
+      if (STANDARD_PANELS.includes(k)) return false;
+      // Non-core panels: only show if they have linked records
+      const val = refsLinks[k];
+      return Array.isArray(val) && val.length > 0;
+    });
+    // Core panels first, then discovered (non-empty) panels
     const merged = [...STANDARD_PANELS];
     for (const k of discoveredKeys) {
       if (!merged.includes(k)) merged.push(k);
@@ -669,8 +676,30 @@ function DynamicDetail({
           parentId={Number(recordId)}
           defaultCollapsed={true}
           editable={editing}
+          removable={!STANDARD_PANELS.includes(panel)}
+          onRemovePanel={() => setLinkedPanelModels(prev => prev.filter(p => p !== panel))}
         />
       ))}
+
+      {/* TouchForm dialog — opened from TouchBar badge or TOUCHES panel */}
+      {showTouchForm && data && (() => {
+        const contactId = data.contact_id || 0;
+        const contactName = linkedContacts[0]?.attention || data.attention || data.contact_name || '';
+        const contactPhone = linkedContacts[0]?.phone || '';
+        const contactEmail = linkedContacts[0]?.email || '';
+        const orgId = data.customer_id || data.vendor_id || data.manufacturer_id || 0;
+        const orgModel = data.customer_id ? 'customer' : data.vendor_id ? 'vendor' : data.manufacturer_id ? 'manufacturer' : '';
+        const defaultSubject = typeof data.action === 'object' ? (data.action?.en || '') : String(data.action || data.subject || '');
+        const ctx: TouchFormContext = {
+          model: modelName, recordId: Number(recordId), contactId, contactName, contactPhone, contactEmail,
+          orgId, orgModel, defaultSubject, defaultChannel: 'call',
+        };
+        return (
+          <TouchForm mode="dialog" ctx={ctx} fontSize={fontSize}
+            onClose={() => setShowTouchForm(false)}
+            onSaved={() => setShowTouchForm(false)} />
+        );
+      })()}
 
       {/* ── "+ Link..." — add a panel for any model ────────────── */}
       {editing && (

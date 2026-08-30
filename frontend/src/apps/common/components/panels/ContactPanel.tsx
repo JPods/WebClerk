@@ -19,6 +19,7 @@ import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
 import { DbColumns } from "./DbColumns";
 import type { DbColumnDef } from "./DbColumns";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
+import { TouchForm } from "@/pages/admin/TouchForm";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -394,7 +395,51 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
     setSearchResults([]);
   };
 
-  const handleAdd = () => setAdding(true);
+  const contactPanelKey = `${parent_model}:${parentId}:contact`;
+
+  // Dismiss search when another panel opens its assign
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.panelKey && detail.panelKey !== contactPanelKey) {
+        setAdding(false);
+        setSearchQuery("");
+        setSearchResults([]);
+      }
+    };
+    window.addEventListener('panel-assign-opened', handler);
+    return () => window.removeEventListener('panel-assign-opened', handler);
+  }, [contactPanelKey]);
+
+  const handleAssign = () => {
+    window.dispatchEvent(new CustomEvent('panel-assign-opened', { detail: { panelKey: contactPanelKey } }));
+    setAdding(true);
+  };
+
+  const handleAddNew = useCallback(async () => {
+    try {
+      const { saveRecord } = await import('@/api/wcapi');
+      const res = await saveRecord('contact', {});
+      const created = (res as any)?.record || res;
+      if (created?.id) {
+        const newContact: RefContact = {
+          contact_id: created.id,
+          purpose: 'primary',
+          attention: created.attention || created.name || `#${created.id}`,
+          email: created.email || '',
+          phone: '',
+        };
+        const updated = [...contacts, newContact];
+        onChange?.(updated);
+        // Open for editing
+        const path = getModelDetailPath('contact', created.id);
+        const title = getModelWindowTitle('contact', created.id, created.ida);
+        windowManager.ensureWindow(path, title, { w: 500, h: 500 });
+      }
+    } catch (err) {
+      console.error('Failed to create contact:', err);
+    }
+  }, [contacts, onChange, windowManager]);
 
   const [touchContact, setTouchContact] = useState<RefContact | null>(null);
   const [touchChannel, setTouchChannel] = useState<string>('call');
@@ -416,7 +461,8 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
         onSelectRow={handleOpen}
         sectionLabel={title}
         sectionIcon="👤"
-        onAdd={(isEditing) ? handleAdd : undefined}
+        onAdd={isEditing ? handleAddNew : undefined}
+        onAssign={isEditing ? handleAssign : undefined}
         defaultCollapsed={defaultCollapsed}
         compact
         emptyMessage="No contacts linked"
@@ -461,12 +507,22 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
         </div>
       )}
       {touchContact && (
-        <TouchInlineForm
-          contact={touchContact}
-          parentModel={parent_model}
-          parentId={parentId}
-          initialChannel={touchChannel}
+        <TouchForm
+          mode="inline"
+          ctx={{
+            model: parent_model || '',
+            recordId: parentId || 0,
+            contactId: touchContact.contact_id,
+            contactName: touchContact._resolved_name || touchContact.attention || '',
+            contactPhone: touchContact._resolved_phone || extractPhone(touchContact.phone) || '',
+            contactEmail: touchContact._resolved_email || extractEmail(touchContact.email) || '',
+            orgId: 0,
+            orgModel: '',
+            defaultSubject: '',
+            defaultChannel: touchChannel as any,
+          }}
           onClose={() => setTouchContact(null)}
+          onSaved={() => { /* stay open — user closes manually after send */ }}
         />
       )}
     </>

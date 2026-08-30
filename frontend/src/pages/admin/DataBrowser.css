@@ -717,8 +717,12 @@
   font-size: calc(var(--db-font-size, 13px) - 4px);
   color: var(--db-text-dim);
 }
-.db-section-header__action {
+.db-section-header__actions {
   margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+.db-section-header__action {
   font-size: calc(var(--db-font-size, 13px) - 4px);
   font-weight: 500;
   color: var(--db-accent-green);
@@ -1590,6 +1594,164 @@
 }
 .touch-badge-days {
   font-weight: 400;
+}
+
+/* ---------------------------------------------------------------------------
+   TouchToolbar — unified inline touch component
+   --------------------------------------------------------------------------- */
+
+.touch-toolbar {
+  margin: 4px 0;
+}
+.touch-toolbar-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.touch-toolbar-btn {
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--db-border);
+  background: var(--db-surface-alt);
+  color: var(--db-text-muted);
+  font-size: 0.9em;
+  transition: background 0.15s, color 0.15s;
+}
+.touch-toolbar-btn:hover {
+  background: color-mix(in srgb, var(--db-accent) 10%, transparent);
+  color: var(--db-text);
+}
+.touch-toolbar-btn--active {
+  border-color: var(--db-accent);
+  background: color-mix(in srgb, var(--db-accent) 15%, transparent);
+  color: var(--db-accent);
+  font-weight: 700;
+}
+.touch-toolbar-count {
+  font-size: 0.75em;
+  color: var(--db-text-dim);
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: var(--db-surface-alt);
+  border: 1px solid var(--db-border);
+  font-weight: 600;
+}
+.touch-toolbar-panel {
+  margin-top: 4px;
+  padding: 8px;
+  border: 1px solid var(--db-border);
+  border-radius: 4px;
+  background: var(--db-surface-alt);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.touch-toolbar-contact {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8em;
+  color: var(--db-text-muted);
+}
+.touch-toolbar-contact-name {
+  font-weight: 600;
+  color: var(--db-text);
+}
+.touch-toolbar-contact-detail {
+  color: var(--db-text-dim);
+  font-family: monospace;
+  font-size: 0.9em;
+}
+.touch-toolbar-dir-btn {
+  background: transparent;
+  border: 1px solid var(--db-border);
+  border-radius: 3px;
+  padding: 1px 6px;
+  cursor: pointer;
+  color: var(--db-accent);
+  font-weight: 700;
+}
+.touch-toolbar-input {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--db-border);
+  border-radius: 3px;
+  background: var(--db-input-bg, var(--db-surface));
+  color: var(--db-text);
+  font-size: 0.85em;
+}
+.touch-toolbar-textarea {
+  resize: none;
+}
+.touch-toolbar-extras {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.touch-toolbar-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75em;
+  color: var(--db-text-muted);
+}
+.touch-toolbar-input-sm {
+  width: 80px;
+  padding: 2px 4px;
+  border: 1px solid var(--db-border);
+  border-radius: 3px;
+  background: var(--db-input-bg, var(--db-surface));
+  color: var(--db-text);
+  font-size: 0.85em;
+}
+.touch-toolbar-impact {
+  display: flex;
+  gap: 3px;
+}
+.touch-toolbar-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  border: 1px solid var(--db-border);
+  background: var(--db-surface-alt);
+  color: var(--db-text-muted);
+  font-size: 0.7em;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.touch-toolbar-dot:hover {
+  background: color-mix(in srgb, var(--db-accent) 15%, transparent);
+}
+.touch-toolbar-dot--active {
+  background: var(--db-accent);
+  color: #fff;
+  border-color: var(--db-accent);
+}
+.touch-toolbar-save {
+  padding: 3px 12px;
+  border-radius: 3px;
+  border: 1px solid var(--db-accent);
+  background: var(--db-accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.8em;
+  cursor: pointer;
+}
+.touch-toolbar-save:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Mobile — full width inputs */
+@media (max-width: 600px) {
+  .touch-toolbar-panel { padding: 6px; }
+  .touch-toolbar-extras { flex-direction: column; align-items: stretch; }
+  .touch-toolbar-save { width: 100%; padding: 8px; }
 }
 
 /* ContactPicker label-as-button */
