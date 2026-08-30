@@ -5,6 +5,9 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$SCRIPT_DIR/backend"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
+DATA_DIR="$(dirname "$SCRIPT_DIR")/data"
+LOG_DIR="$DATA_DIR/logs"
+mkdir -p "$LOG_DIR"
 
 # Track child PIDs for cleanup
 PIDS=()
@@ -54,9 +57,9 @@ if command -v ollama &>/dev/null; then
   if curl -s http://localhost:11434/api/tags >/dev/null 2>&1; then
     echo "Ollama:    running"
   else
-    ollama serve >> "$BACKEND_DIR/logs/ollama.log" 2>&1 &
+    ollama serve >> "$LOG_DIR/ollama.log" 2>&1 &
     PIDS+=($!)
-    echo "Ollama:    started (log: backend/logs/ollama.log)"
+    echo "Ollama:    started (log: data/logs/ollama.log)"
   fi
 else
   echo "Ollama:    not installed (AI features disabled)"
@@ -67,8 +70,6 @@ fi
 pkill -f "celery -A webclerk3_api" 2>/dev/null || true
 sleep 1
 
-mkdir -p "$BACKEND_DIR/logs"
-
 cd "$BACKEND_DIR"
 venv/bin/python -m celery -A webclerk3_api worker \
   -l info \
@@ -77,9 +78,9 @@ venv/bin/python -m celery -A webclerk3_api worker \
   --without-heartbeat \
   -B \
   -s /tmp/celerybeat-webclerk3-schedule \
-  >> "$BACKEND_DIR/logs/celery.log" 2>&1 &
+  >> "$LOG_DIR/celery.log" 2>&1 &
 PIDS+=($!)
-echo "Celery:    started (log: backend/logs/celery.log)"
+echo "Celery:    started (log: data/logs/celery.log)"
 
 # ── Start Django ──────────────────────────────────────────────────
 

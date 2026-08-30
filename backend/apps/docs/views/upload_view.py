@@ -25,9 +25,9 @@ from common.models import default_document_metadata
 
 
 def _uploads_root() -> str:
-    base_dir = getattr(settings, "BASE_DIR", None)
-    base = str(base_dir) if base_dir else os.getcwd()
-    root = os.path.join(base, ".local", "uploads", "document")
+    data_dir = getattr(settings, "DATA_DIR", None)
+    base = str(data_dir) if data_dir else os.path.join(os.getcwd(), "data")
+    root = os.path.join(base, "uploads", "document")
     os.makedirs(root, exist_ok=True)
     return root
 
@@ -79,9 +79,11 @@ def _build_storage_path(filename: str) -> Dict[str, str]:
     m = now.strftime("%m")
     ext = os.path.splitext(filename)[1]
     key = f"uploads/document/{y}/{m}/{uuid.uuid4().hex}{ext}"
+    data_dir = getattr(settings, "DATA_DIR", None)
+    base = str(data_dir) if data_dir else os.path.join(os.getcwd(), "data")
     return {
         "key": key,
-        "full": os.path.join(str(getattr(settings, "BASE_DIR", os.getcwd())), key),
+        "full": os.path.join(base, key),
         "storage": "local",
     }
 

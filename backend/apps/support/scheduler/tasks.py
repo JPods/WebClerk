@@ -379,17 +379,18 @@ def task_cleanup_metadata_temp(self, limit_per_model: int = 1000):
 @shared_task(bind=True, max_retries=1, default_retry_delay=300)
 def task_export_data(self):
     """
-    Export all model data to JSON backup files.
-    
-    Run daily for backup. Output: /webclerk3_data/
+    Export all model data to JSON backup files with 7-day pruning.
+
+    Daily rolling backup to DATA_DIR/exports/YYYY-MM-DD/.
+    One JSON per model. Disk space is cheap; losing data is not.
     """
     task_name = 'export_data'
     run = _create_task_run(task_name, self.request.id or '', {})
-    
+
     try:
         logger.info("Starting data export")
         out = StringIO()
-        call_command('export_data', stdout=out)
+        call_command('export_data', '--prune', stdout=out)
         output = out.getvalue()
         logger.info(f"Data export complete:\n{output}")
         result = {'success': True, 'output': output}

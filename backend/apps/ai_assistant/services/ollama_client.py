@@ -1,16 +1,18 @@
 """
-Ollama client — communicates with the local Ollama API for LLM inference.
+Alice LLM client — local-first with WCHQ fallback.
+
+Three tiers:
+    1. Local Ollama (free, private, no network)
+    2. WCHQ shared LLM (subscription, Athena-authenticated)
+    3. Algorithms only (no LLM — Tier 1 services still work)
 
 Usage:
     from apps.ai_assistant.services.ollama_client import OllamaClient
 
     client = OllamaClient()
     response = client.generate("Explain Django middleware")
-    # or stream:
-    for chunk in client.stream("Explain Django middleware"):
-        print(chunk, end="")
-    # with modes:
-    response = client.generate("What's wrong?", mode="debugger", context=traceback)
+    # Falls back to WCHQ automatically if Ollama is unavailable.
+    # Returns algorithm-only message if both are unavailable.
 """
 import json
 import logging
@@ -28,9 +30,70 @@ OLLAMA_BASE_URL = getattr(settings, "OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = getattr(settings, "OLLAMA_MODEL", "deepseek-r1:8b")
 OLLAMA_TIMEOUT = getattr(settings, "OLLAMA_TIMEOUT", 120)
 
+# WCHQ fallback — used when Ollama is unavailable
+WCHQ_LLM_URL = "https://webclerk.com/wcapi/alice/llm/"
+
+# Subscription tiers — determine what WCHQ will serve
+# Tier names map to rate limits and capabilities at WCHQ.
+# The installation sends its tier; WCHQ enforces limits.
+SUBSCRIPTION_TIERS = {
+    "community": {
+        "description": "Free — Tier 1 algorithms only, no WCHQ LLM",
+        "wchq_llm": False,
+        "daily_limit": 0,
+    },
+    "starter": {
+        "description": "Basic LLM — coaching, observations, Q&A",
+        "wchq_llm": True,
+        "daily_limit": 50,
+    },
+    "professional": {
+        "description": "Full LLM — all Alice capabilities",
+        "wchq_llm": True,
+        "daily_limit": 500,
+    },
+    "enterprise": {
+        "description": "Unlimited LLM + priority + custom model",
+        "wchq_llm": True,
+        "daily_limit": 0,  # unlimited
+    },
+}
+
+
+def _get_athena_token() -> str:
+    """Get the Athena token for WCHQ authentication."""
+    try:
+        from apps.core.models import Setting
+        conn = Setting.objects.filter(
+            purpose='wchq_connection', is_active=True
+        ).first()
+        if conn and isinstance(conn.config, dict):
+            return conn.config.get('athena_token', '')
+    except Exception:
+        pass
+    return ''
+
+
+def _get_subscription_tier() -> str:
+    """Get the installation's subscription tier."""
+    try:
+        from apps.core.models import Setting
+        sub = Setting.objects.filter(
+            purpose='wc:subscription', is_active=True
+        ).first()
+        if sub and isinstance(sub.config, dict):
+            return sub.config.get('tier', 'community')
+    except Exception:
+        pass
+    return 'community'
+
 
 class OllamaClient:
-    """Thin wrapper around Ollama's REST API."""
+    """Alice LLM client — local Ollama with WCHQ fallback.
+
+    Tries local Ollama first. If unavailable and the installation has
+    a WCHQ subscription with LLM access, falls back to WCHQ.
+    """
 
     def __init__(
         self,
@@ -41,6 +104,7 @@ class OllamaClient:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout = timeout
+        self._wchq_available = None  # cached per instance
 
     def _build_messages(
         self,
@@ -72,9 +136,16 @@ class OllamaClient:
         history: list[dict] | None = None,
         mode: str = "general",
     ) -> str:
-        """Non-streaming generation — returns the full response."""
+        """Non-streaming generation — returns the full response.
+
+        Tries local Ollama first. Falls back to WCHQ if:
+        - Ollama is not running
+        - Installation has a subscription tier with LLM access
+        - WCHQ is reachable and Athena token is valid
+        """
         messages = self._build_messages(prompt, context, history, mode=mode)
 
+        # Try local Ollama first
         try:
             with httpx.Client(timeout=self.timeout) as client:
                 resp = client.post(
@@ -88,14 +159,78 @@ class OllamaClient:
                 resp.raise_for_status()
                 return resp.json()["message"]["content"]
         except httpx.ConnectError:
-            logger.error("Cannot connect to Ollama at %s — is it running?", self.base_url)
-            raise ConnectionError(
-                f"Cannot connect to Ollama at {self.base_url}. "
-                "Start it with: ollama serve"
-            )
+            logger.info("Ollama unavailable at %s — trying WCHQ fallback", self.base_url)
         except Exception as e:
-            logger.exception("Ollama generation failed")
+            logger.warning("Ollama generation failed: %s — trying WCHQ fallback", e)
+
+        # Fallback to WCHQ
+        return self._wchq_generate(messages, mode)
+
+    def _wchq_generate(self, messages: list[dict], mode: str = "general") -> str:
+        """Call WCHQ's shared Alice LLM endpoint.
+
+        Sends the prompt (not raw data) to WCHQ. WCHQ never sees
+        the installation's commerce data — only the formulated question.
+        """
+        tier = _get_subscription_tier()
+        tier_config = SUBSCRIPTION_TIERS.get(tier, SUBSCRIPTION_TIERS['community'])
+
+        if not tier_config['wchq_llm']:
+            logger.info("No WCHQ LLM access (tier=%s) — returning algorithm-only response", tier)
+            raise ConnectionError(
+                "Alice LLM unavailable. Install Ollama for local AI, "
+                "or subscribe at webclerk.com for cloud AI access."
+            )
+
+        athena_token = _get_athena_token()
+        if not athena_token:
+            raise ConnectionError(
+                "WCHQ LLM fallback requires an Athena token. "
+                "Register this installation at webclerk.com."
+            )
+
+        try:
+            with httpx.Client(timeout=self.timeout) as client:
+                resp = client.post(
+                    WCHQ_LLM_URL,
+                    headers={
+                        'Authorization': f'Athena {athena_token}',
+                        'X-Alice-Tier': tier,
+                        'X-Alice-Mode': mode,
+                    },
+                    json={
+                        "messages": messages,
+                        "mode": mode,
+                    },
+                )
+
+                if resp.status_code == 402:
+                    raise ConnectionError(
+                        "WCHQ LLM daily limit reached. "
+                        "Upgrade your subscription or install Ollama locally."
+                    )
+                if resp.status_code == 401:
+                    raise ConnectionError(
+                        "Athena token rejected by WCHQ. "
+                        "Re-register this installation at webclerk.com."
+                    )
+
+                resp.raise_for_status()
+                data = resp.json()
+                logger.info("WCHQ LLM fallback succeeded (tier=%s, tokens=%s)",
+                           tier, data.get('usage', {}).get('total_tokens', '?'))
+                return data.get('response', data.get('message', {}).get('content', ''))
+
+        except httpx.ConnectError:
+            raise ConnectionError(
+                "Cannot reach webclerk.com — Alice LLM unavailable. "
+                "Install Ollama for offline AI."
+            )
+        except ConnectionError:
             raise
+        except Exception as e:
+            logger.exception("WCHQ LLM fallback failed")
+            raise ConnectionError(f"WCHQ LLM error: {e}")
 
     def stream(
         self,
@@ -104,7 +239,10 @@ class OllamaClient:
         history: list[dict] | None = None,
         mode: str = "general",
     ) -> Generator[str, None, None]:
-        """Streaming generation — yields content chunks."""
+        """Streaming generation — yields content chunks.
+
+        Falls back to non-streaming WCHQ if Ollama unavailable.
+        """
         messages = self._build_messages(prompt, context, history, mode=mode)
 
         try:
@@ -124,21 +262,27 @@ class OllamaClient:
                             data = json.loads(line)
                             if "message" in data and "content" in data["message"]:
                                 yield data["message"]["content"]
+                    return  # success — don't fall through
         except httpx.ConnectError:
-            logger.error("Cannot connect to Ollama at %s", self.base_url)
-            raise ConnectionError(
-                f"Cannot connect to Ollama at {self.base_url}. "
-                "Start it with: ollama serve"
-            )
+            logger.info("Ollama unavailable for streaming — falling back to WCHQ")
+        except Exception as e:
+            logger.warning("Ollama streaming failed: %s — falling back to WCHQ", e)
+
+        # Fallback: WCHQ non-streaming, yield as single chunk
+        response = self._wchq_generate(messages, mode)
+        yield response
 
     def is_available(self) -> bool:
-        """Check if Ollama is running and the model is loaded."""
+        """Check if any LLM is available — local Ollama or WCHQ."""
+        return self._ollama_available() or self._wchq_available_check()
+
+    def _ollama_available(self) -> bool:
+        """Check if local Ollama is running with the configured model."""
         try:
             with httpx.Client(timeout=5) as client:
                 resp = client.get(f"{self.base_url}/api/tags")
                 resp.raise_for_status()
                 models = [m["name"] for m in resp.json().get("models", [])]
-                # Match model name with or without version tag
                 return any(
                     m == self.model or m.startswith(f"{self.model}:")
                     for m in models
@@ -146,8 +290,41 @@ class OllamaClient:
         except Exception:
             return False
 
+    def _wchq_available_check(self) -> bool:
+        """Check if WCHQ LLM fallback is configured and accessible."""
+        tier = _get_subscription_tier()
+        tier_config = SUBSCRIPTION_TIERS.get(tier, SUBSCRIPTION_TIERS['community'])
+        if not tier_config['wchq_llm']:
+            return False
+        if not _get_athena_token():
+            return False
+        return True
+
+    def get_llm_status(self) -> dict:
+        """Return status of all LLM sources — for diagnostics."""
+        ollama = self._ollama_available()
+        tier = _get_subscription_tier()
+        has_token = bool(_get_athena_token())
+        tier_config = SUBSCRIPTION_TIERS.get(tier, SUBSCRIPTION_TIERS['community'])
+
+        return {
+            'ollama': {
+                'available': ollama,
+                'url': self.base_url,
+                'model': self.model,
+            },
+            'wchq': {
+                'available': tier_config['wchq_llm'] and has_token,
+                'tier': tier,
+                'tier_description': tier_config['description'],
+                'daily_limit': tier_config['daily_limit'],
+                'has_athena_token': has_token,
+            },
+            'active_source': 'ollama' if ollama else ('wchq' if tier_config['wchq_llm'] and has_token else 'none'),
+        }
+
     def list_models(self) -> list[str]:
-        """Return list of available model names."""
+        """Return list of available local model names."""
         try:
             with httpx.Client(timeout=5) as client:
                 resp = client.get(f"{self.base_url}/api/tags")

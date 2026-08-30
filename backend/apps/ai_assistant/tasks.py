@@ -589,3 +589,54 @@ def select_list_watchdog_task(limit: int = 500) -> dict:
     result['duration_seconds'] = duration
     logger.info("Select list watchdog complete in %.1fs", duration)
     return result
+
+
+# ─── Alice: Settings Backup (7-day cycle) ───────────────────────────
+
+@shared_task
+def config_backup_task() -> dict:
+    """Daily task: export Settings and Reports to local JSON bundles.
+
+    Alice keeps a 7-day rolling window of both. These are the only two
+    models that hold user-created configuration — everything else is
+    commerce data managed by standard user backups.
+
+    - Settings: system behavior, field layouts, model definitions
+    - Reports: form templates, print layouts, dashboard definitions
+
+    Schedule: daily at 01:00 (before any nightly intelligence tasks).
+    """
+    logger.info("Starting config backup (Settings + Reports)")
+    started = timezone.now()
+
+    from apps.core.services.setting_bootstrap import (
+        export_settings_bundle, prune_old_backups,
+        export_report_bundle, prune_old_report_backups,
+    )
+
+    settings_export = export_settings_bundle()
+    settings_prune = prune_old_backups()
+    report_export = export_report_bundle()
+    report_prune = prune_old_report_backups()
+
+    duration = (timezone.now() - started).total_seconds()
+    result = {
+        'settings': {
+            **settings_export,
+            'pruned': settings_prune['pruned'],
+            'kept': settings_prune['kept'],
+        },
+        'reports': {
+            **report_export,
+            'pruned': report_prune['pruned'],
+            'kept': report_prune['kept'],
+        },
+        'duration_seconds': duration,
+    }
+    logger.info(
+        "Config backup complete: %d settings (%d bytes), %d reports (%d bytes), %.1fs",
+        settings_export.get('count', 0), settings_export.get('size_bytes', 0),
+        report_export.get('count', 0), report_export.get('size_bytes', 0),
+        duration,
+    )
+    return result

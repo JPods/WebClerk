@@ -251,3 +251,223 @@ def fetch_from_wchq(athena_token: str) -> dict[str, Any]:
             'created': 0, 'updated': 0,
             'errors': [f'WC_HQ fetch failed: {e}'],
         }
+
+
+# ---------------------------------------------------------------------------
+# Export — Alice's settings backup
+# ---------------------------------------------------------------------------
+
+SETTINGS_BACKUP_DIR = 'settings_backups'
+SETTINGS_BACKUP_KEEP_DAYS = 7
+
+
+def export_settings_bundle() -> dict[str, Any]:
+    """Export all Setting records as a JSON bundle.
+
+    Returns: {success: bool, path: str, count: int, size_bytes: int}
+    """
+    import os
+    from datetime import datetime, timezone
+    from django.conf import settings as django_settings
+    from apps.core.models.setting import Setting
+
+    records = []
+    for s in Setting.objects.filter(is_active=True).order_by('purpose', 'parent_model'):
+        records.append({
+            'uuid': str(s.uuid) if s.uuid else None,
+            'ida': s.ida or '',
+            'name': s.name or '',
+            'scope': s.scope or 'system',
+            'purpose': s.purpose or '',
+            'parent_model': s.parent_model or '',
+            'explanation': s.explanation or '',
+            'paths': s.paths if isinstance(s.paths, dict) else {},
+            'config': s.config if isinstance(s.config, dict) else {},
+            'metadata': s.metadata if isinstance(s.metadata, dict) else {},
+            'prefs': s.prefs if isinstance(s.prefs, dict) else {},
+            'refs': s.refs if isinstance(s.refs, dict) else {},
+        })
+
+    bundle = {
+        'exported_at': datetime.now(timezone.utc).isoformat(),
+        'count': len(records),
+        'settings': records,
+    }
+
+    # Write to backup directory (in DATA_DIR, outside the repo)
+    data_dir = getattr(django_settings, 'DATA_DIR', None)
+    base = str(data_dir) if data_dir else os.path.join(os.getcwd(), 'data')
+    backup_dir = os.path.join(base, SETTINGS_BACKUP_DIR)
+    os.makedirs(backup_dir, exist_ok=True)
+
+    ts = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    filename = f'settings-bundle-{ts}.json'
+    filepath = os.path.join(backup_dir, filename)
+
+    content = json.dumps(bundle, indent=2, default=str)
+    with open(filepath, 'w') as f:
+        f.write(content)
+
+    logger.info('settings_backup: exported %d records to %s (%d bytes)',
+                len(records), filepath, len(content))
+
+    return {
+        'success': True,
+        'path': filepath,
+        'filename': filename,
+        'count': len(records),
+        'size_bytes': len(content),
+    }
+
+
+def prune_old_backups() -> dict[str, Any]:
+    """Remove settings backups older than SETTINGS_BACKUP_KEEP_DAYS.
+
+    Returns: {pruned: int, kept: int}
+    """
+    import os
+    from datetime import datetime, timezone, timedelta
+    from django.conf import settings as django_settings
+
+    data_dir = getattr(django_settings, 'DATA_DIR', None)
+    base = str(data_dir) if data_dir else os.path.join(os.getcwd(), 'data')
+    backup_dir = os.path.join(base, SETTINGS_BACKUP_DIR)
+
+    if not os.path.exists(backup_dir):
+        return {'pruned': 0, 'kept': 0}
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=SETTINGS_BACKUP_KEEP_DAYS)
+    pruned = 0
+    kept = 0
+
+    for filename in sorted(os.listdir(backup_dir)):
+        if not filename.startswith('settings-bundle-') or not filename.endswith('.json'):
+            continue
+        filepath = os.path.join(backup_dir, filename)
+        # Parse date from filename: settings-bundle-YYYY-MM-DD.json
+        try:
+            date_str = filename.replace('settings-bundle-', '').replace('.json', '')
+            file_date = datetime.strptime(date_str, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+            if file_date < cutoff:
+                os.remove(filepath)
+                pruned += 1
+                logger.info('settings_backup: pruned %s', filename)
+            else:
+                kept += 1
+        except (ValueError, OSError) as e:
+            logger.warning('settings_backup: could not process %s: %s', filename, e)
+            kept += 1
+
+    return {'pruned': pruned, 'kept': kept}
+
+
+# ---------------------------------------------------------------------------
+# Report backup — same pattern as Settings
+# ---------------------------------------------------------------------------
+
+REPORT_BACKUP_DIR = 'report_backups'
+REPORT_BACKUP_KEEP_DAYS = 7
+
+
+def export_report_bundle() -> dict[str, Any]:
+    """Export all Report records as a JSON bundle.
+
+    Reports are user-created configuration — form templates, print layouts,
+    dashboard definitions. As consequential as Settings, different cadence.
+    """
+    import os
+    from datetime import datetime, timezone
+    from django.conf import settings as django_settings
+    from apps.core.models import Report
+
+    records = []
+    for r in Report.objects.filter(is_active=True).order_by('category', 'model_name'):
+        records.append({
+            'uuid': str(r.uuid) if r.uuid else None,
+            'ida': r.ida or '',
+            'name': r.name or '',
+            'description': r.description or '',
+            'model_name': r.model_name or '',
+            'category': r.category or '',
+            'output_type': r.output_type or '',
+            'role_required': r.role_required or '',
+            'sort_order': r.sort_order,
+            'editor_type': r.editor_type or '',
+            'explanation': r.explanation or '',
+            'paths': r.paths if isinstance(r.paths, dict) else {},
+            'config': r.config if isinstance(r.config, dict) else {},
+            'metadata': r.metadata if isinstance(r.metadata, dict) else {},
+            'prefs': r.prefs if isinstance(r.prefs, dict) else {},
+            'refs': r.refs if isinstance(r.refs, dict) else {},
+            'content': r.content or '',
+            'script_before': r.script_before or '',
+            'script_during': r.script_during or '',
+            'script_after': r.script_after or '',
+        })
+
+    bundle = {
+        'exported_at': datetime.now(timezone.utc).isoformat(),
+        'count': len(records),
+        'reports': records,
+    }
+
+    data_dir = getattr(django_settings, 'DATA_DIR', None)
+    base = str(data_dir) if data_dir else os.path.join(os.getcwd(), 'data')
+    backup_dir = os.path.join(base, REPORT_BACKUP_DIR)
+    os.makedirs(backup_dir, exist_ok=True)
+
+    ts = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    filename = f'report-bundle-{ts}.json'
+    filepath = os.path.join(backup_dir, filename)
+
+    content = json.dumps(bundle, indent=2, default=str)
+    with open(filepath, 'w') as f:
+        f.write(content)
+
+    logger.info('report_backup: exported %d records to %s (%d bytes)',
+                len(records), filepath, len(content))
+
+    return {
+        'success': True,
+        'path': filepath,
+        'filename': filename,
+        'count': len(records),
+        'size_bytes': len(content),
+    }
+
+
+def prune_old_report_backups() -> dict[str, Any]:
+    """Remove report backups older than REPORT_BACKUP_KEEP_DAYS."""
+    import os
+    from datetime import datetime, timezone, timedelta
+    from django.conf import settings as django_settings
+
+    data_dir = getattr(django_settings, 'DATA_DIR', None)
+    base = str(data_dir) if data_dir else os.path.join(os.getcwd(), 'data')
+    backup_dir = os.path.join(base, REPORT_BACKUP_DIR)
+
+    if not os.path.exists(backup_dir):
+        return {'pruned': 0, 'kept': 0}
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=REPORT_BACKUP_KEEP_DAYS)
+    pruned = 0
+    kept = 0
+
+    for filename in sorted(os.listdir(backup_dir)):
+        if not filename.startswith('report-bundle-') or not filename.endswith('.json'):
+            continue
+        filepath = os.path.join(backup_dir, filename)
+        try:
+            date_str = filename.replace('report-bundle-', '').replace('.json', '')
+            file_date = datetime.strptime(date_str, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+            if file_date < cutoff:
+                os.remove(filepath)
+                pruned += 1
+                logger.info('report_backup: pruned %s', filename)
+            else:
+                kept += 1
+        except (ValueError, OSError) as e:
+            logger.warning('report_backup: could not process %s: %s', filename, e)
+            kept += 1
+
+    return {'pruned': pruned, 'kept': kept}

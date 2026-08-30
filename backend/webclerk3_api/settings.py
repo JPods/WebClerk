@@ -7,6 +7,11 @@ from sentry_sdk.integrations.django import DjangoIntegration
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# User data lives outside the repo — uploads, logs, backups, chroma, media.
+# Code is code, data is data. A git clean never touches user files.
+DATA_DIR = BASE_DIR.parent.parent / 'data'
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
 # Dev fallback only — production must set SECRET_KEY in .env or environment
 _SECRET_KEY_FALLBACK = 'insecure-dev-test-key'
 SECRET_KEY = config('SECRET_KEY', default=_SECRET_KEY_FALLBACK)
@@ -417,7 +422,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, '.local/logs/webclerk3.log'),
+            'filename': os.path.join(DATA_DIR, 'logs/webclerk3.log'),
             'formatter': 'verbose',
         },
     },
@@ -830,7 +835,7 @@ if isinstance(SENTRY_DSN, str) and SENTRY_DSN:
     )
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
 
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
@@ -968,6 +973,13 @@ CELERY_BEAT_SCHEDULE = {
     'alice-schema-watch-nightly': {
         'task': 'apps.ai_assistant.tasks.alice_schema_watch_task',
         'schedule': crontab(hour=2, minute=20),
+    },
+
+    # ── Config backup (daily 1 AM, 7-day rolling) ────────────────────
+    # Settings + Reports — the only two models with user-created config.
+    'alice-config-backup-daily': {
+        'task': 'apps.ai_assistant.tasks.config_backup_task',
+        'schedule': crontab(hour=1, minute=0),
     },
 
     # ── Data backup (daily 3 AM) ────────────────────────────────────
@@ -1122,5 +1134,5 @@ INVENTORY_PENDING_AUTO_PROCESS = config('INVENTORY_PENDING_AUTO_PROCESS', defaul
 OLLAMA_BASE_URL = config('OLLAMA_BASE_URL', default='http://localhost:11434')
 OLLAMA_MODEL = config('OLLAMA_MODEL', default='gpt-oss:20b')
 OLLAMA_TIMEOUT = int(config('OLLAMA_TIMEOUT', default=120))
-CHROMA_PERSIST_DIR = os.path.join(BASE_DIR, '.chroma_db')
+CHROMA_PERSIST_DIR = os.path.join(DATA_DIR, 'chroma')
 CHROMA_COLLECTION = 'commerce_expert_docs'
