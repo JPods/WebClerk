@@ -9,7 +9,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # User data lives outside the repo — uploads, logs, backups, chroma, media.
 # Code is code, data is data. A git clean never touches user files.
-DATA_DIR = BASE_DIR.parent.parent / 'data'
+# Override with DATA_DIR in .env for server deployments.
+DATA_DIR = Path(config('DATA_DIR', default=str(BASE_DIR.parent.parent / 'data')))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # Dev fallback only — production must set SECRET_KEY in .env or environment
