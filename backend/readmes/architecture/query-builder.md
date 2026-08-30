@@ -1,6 +1,6 @@
 # Query Builder — Draft
 
-**Status:** Draft — refine for deep and precise searching.
+**Status:** Implemented — video pending
 
 ## Two Search Tiers
 

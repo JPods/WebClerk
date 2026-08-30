@@ -2,6 +2,9 @@
 
 **Status:** Spec (not yet built) | **Pattern:** FormParade | **Route:** `/setting-parade`
 
+> **Note:** Runtime explanations belong on each Setting record's description field,
+> not in docs. This readme is the build spec for the interactive parade feature.
+
 ## What It Is
 
 A guided walk through every Setting record that shapes the UI. Same pattern as

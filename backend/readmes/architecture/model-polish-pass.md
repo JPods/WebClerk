@@ -1,4 +1,5 @@
-# Model polish pass (queued)
+# Model polish pass
+**Status:** Queued — review before go-live
 
 This pass focuses on tightening contracts, consistency, and performance before we add more endpoints and services.
 

@@ -1,5 +1,5 @@
 # Forecasting — Demand, Supply, Cash Flow
-**Status:** Design complete | **Source:** WC2 FC_* methods (11 files) + Bill 2026-07-04
+**Status:** Design complete — build when transaction volume justifies it | **Source:** WC2 FC_* methods (11 files) + Bill 2026-07-04
 
 ---
 

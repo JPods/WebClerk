@@ -1,7 +1,7 @@
 # WebClerk Backend Naming & Structure Plan
 
 **Date:** 2026-08-27
-**Status:** Draft — review before executing
+**Status:** Deferred — execute before first customer
 
 No users. No backwards compatibility burden. Fix everything now.
 
