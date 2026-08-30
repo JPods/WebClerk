@@ -202,7 +202,7 @@ function buildColumns(
               onClick={(e) => { e.stopPropagation(); onTouch?.(c, 'call'); }}
               title="Log call touch"
             />
-            <a href={`tel:${phone}`} onMouseDown={(e) => { if (e.altKey) (e.currentTarget as HTMLAnchorElement).href = `sms:${phone}`; else (e.currentTarget as HTMLAnchorElement).href = `tel:${phone}`; }} onClick={(e) => e.stopPropagation()} title="Click=call, Option+click=text" style={{ color: 'inherit', textDecoration: 'none' }}>{phone}</a>
+            <a href={`tel:${phone}`} onClick={(e) => e.stopPropagation()} style={{ color: 'inherit', textDecoration: 'none' }}>{phone}</a>
           </span>
         ) : null;
       },
