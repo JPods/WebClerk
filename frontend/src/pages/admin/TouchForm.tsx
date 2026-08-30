@@ -442,17 +442,15 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
         {!sent && (() => {
           const phone = toContact.phone || ctx.contactPhone || '';
           const email = toContact.email || ctx.contactEmail || '';
-          const onSend = () => { setSent(true); handleSave(); };
           if (channel === 'call' && phone) {
             return <a href={`tel:${phone}`}
               className="touch-form-btn touch-form-btn--save" style={{ width: '100%', textAlign: 'center', textDecoration: 'none', display: 'block' }}
-              onClick={onSend}>📞 Dial {phone}</a>;
+              onClick={() => { setSent(true); handleSave(); }}>📞 Dial {phone}</a>;
           }
           if (channel === 'text' && phone) {
             const body = subject ? `?body=${encodeURIComponent(subject)}` : '';
             return <a href={`sms:${phone}${body}`}
-              className="touch-form-btn touch-form-btn--save" style={{ width: '100%', textAlign: 'center', textDecoration: 'none', display: 'block' }}
-              onClick={onSend}>💬 Text {phone}</a>;
+              className="touch-form-btn touch-form-btn--save" style={{ width: '100%', textAlign: 'center', textDecoration: 'none', display: 'block' }}>💬 Text {phone}</a>;
           }
           if (channel === 'email' && email) {
             const p = new URLSearchParams();
@@ -461,9 +459,8 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
             if (tplBody) p.set('body', tplBody);
             else if (summary) p.set('body', summary);
             const qs = p.toString();
-            return <a href={`mailto:${email}${qs ? '?' + qs : ''}`}
-              className="touch-form-btn touch-form-btn--save" style={{ width: '100%', textAlign: 'center', textDecoration: 'none', display: 'block' }}
-              onClick={onSend}>✉ Send to {email}</a>;
+            return <a href={`mailto:${email}${qs ? '?' + qs : ''}`} target="_blank"
+              className="touch-form-btn touch-form-btn--save" style={{ width: '100%', textAlign: 'center', textDecoration: 'none', display: 'block' }}>✉ Send to {email}</a>;
           }
           return null;
         })()}
