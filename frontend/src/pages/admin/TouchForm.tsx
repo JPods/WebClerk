@@ -398,8 +398,19 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
           <span style={{ fontSize: '0.75em', color: 'var(--db-text-muted)' }}>{direction === 'out' ? 'To:' : 'From:'}</span>
           <span>{toContact.name || '—'}</span>
           {toContact.phone && <a href={`tel:${toContact.phone}`} className="touch-copy-badge" title="Dial">📞 {toContact.phone}</a>}
-          {toContact.phone && <a href={`sms:${toContact.phone}`} className="touch-copy-badge" title="Text">💬</a>}
-          {toContact.email && <a href={`mailto:${toContact.email}`} target="_blank" className="touch-copy-badge" title="Email">✉ {toContact.email}</a>}
+          {toContact.phone && (() => {
+            const body = selectedTemplate ? resolveTokens(selectedTemplate.body) : subject;
+            const qs = body ? `?body=${encodeURIComponent(body)}` : '';
+            return <a href={`sms:${toContact.phone}${qs}`} className="touch-copy-badge" title="Text">💬</a>;
+          })()}
+          {toContact.email && (() => {
+            const p = new URLSearchParams();
+            if (subject) p.set('subject', subject);
+            const body = selectedTemplate ? resolveTokens(selectedTemplate.body) : '';
+            if (body) p.set('body', body);
+            const qs = p.toString();
+            return <a href={`mailto:${toContact.email}${qs ? '?' + qs : ''}`} target="_blank" className="touch-copy-badge" title="Email">✉ {toContact.email}</a>;
+          })()}
         </div>
         {/* Template selector */}
         {(channel === 'email' || channel === 'text') && channelTemplates.length > 0 && (
