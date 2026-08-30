@@ -2,6 +2,8 @@
 
 Route: `/admin-wb`
 
+Related routes: `/dashboard` (admin landing), `/whitelist` (endpoint tester)
+
 Three-pane layout:
 
 - 20% Models (left)

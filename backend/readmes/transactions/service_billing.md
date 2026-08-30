@@ -1,41 +1,5 @@
 # Service Billing Guide
 
-
-<!-- TOC START -->
-
-## Table of Contents
-
-- [Service Billing Guide](#service-billing-guide)
-  - [Table of Contents](#table-of-contents)
-  - [1. Purpose](#1-purpose)
-  - [2. JSON Schema (v1)](#2-json-schema-v1)
-  - [3. Core Operations](#3-core-operations)
-  - [4. Validation](#4-validation)
-  - [5. Concurrency (`row_version`)](#5-concurrency-rowversion)
-  - [6. Auditing](#6-auditing)
-  - [7. Travel Pricing](#7-travel-pricing)
-  - [8. Rounding](#8-rounding)
-  - [9. Min / Max Charge](#9-min-max-charge)
-  - [10. Schema Evolution](#10-schema-evolution)
-  - [11. Management Command](#11-management-command)
-  - [12. Testing](#12-testing)
-  - [13. Pitfalls](#13-pitfalls)
-  - [14. Extending](#14-extending)
-  - [15. Legacy / Migration Notes](#15-legacy-migration-notes)
-  - [16. Example](#16-example)
-  - [17. Glossary](#17-glossary)
-  - [18. Feature Checklist](#18-feature-checklist)
-  - [19. Future Ideas](#19-future-ideas)
-  - [20. Support](#20-support)
-  - [21. Changelog](#21-changelog)
-  - [22. Diagrams](#22-diagrams)
-    - [22.1 Charge Computation Flow](#221-charge-computation-flow)
-    - [22.2 Data / Relationship Overview](#222-data-relationship-overview)
-    - [22.3 Concurrency Save Sequence](#223-concurrency-save-sequence)
-    - [22.4 Scan Command Lifecycle](#224-scan-command-lifecycle)
-
-<!-- TOC END -->
-
 This guide explains how service billing works: schema, operations, validation, auditing, concurrency, and extension patterns.
 
 ---
@@ -53,9 +17,9 @@ This guide explains how service billing works: schema, operations, validation, a
 
 ---
 
-## 2. JSON Schema (v1)
+## 2. JSON Schemas
 
-See `readmes/service_schemas.md` for the authoritative list. Simplified example:
+### Billing Envelope
 
 ```json
 {
@@ -79,6 +43,37 @@ Key rules:
 * Allowed units: `hour`, `minute`, `day`, `flat`.
 * `min_minutes` floors billable time for that tier.
 * Monetary numbers normalized internally to consistent precision.
+
+### Process Envelope
+
+| Key | Description |
+|-----|-------------|
+| `steps` | List of `{name, minutes}` — unique name (case-insensitive) |
+| `dt_updated` | Epoch ms |
+| `version` / `schema_version` | Integer |
+| `extensions` | Reserved future structure |
+
+### Travel Envelope
+
+| Key | Description |
+|-----|-------------|
+| `miles_included` | Included miles before surcharge |
+| `lodging_required` | Boolean |
+| `meal_per_diem` | Decimal |
+| `notes` | Free text |
+| `dt_updated` | Epoch ms |
+| `schema_version` / `extensions` | Standard envelope fields |
+
+### Actions Envelope
+
+| Key | Description |
+|-----|-------------|
+| `records` | List of action dicts created when service added to a transaction |
+| `schema_version` / `extensions` | Standard envelope fields |
+
+### Audit Log
+
+`billing_audit`: append-only `[{dt, summary, row_version}]` capped to last 100 entries.
 
 ---
 
@@ -240,47 +235,28 @@ print(charge)
 
 ---
 
-## 18. Feature Checklist
-
-1. Update schema docs.
-2. Add schema keys / extensions.
-3. Normalize & validate.
-4. Add upgrade path if breaking.
-5. Add tests.
-6. Update README.
-
----
-
-## 19. Future Ideas
+## 18. Future Ideas
 
 * Usage / volume brackets.
 * Regional multipliers.
 * Drive time billing (`per_hour`).
 * Materialized pricing snapshot.
 * Multi-currency conversion layer.
+* Consider separate ServiceRate table for heavy querying.
+* Additional rounding strategies.
 
 ---
 
-## 20. Support
+## 19. Support
 
 Owner: Products Domain Team
 Escalation: Create issue label `service-billing` with `Service.id` & billing JSON.
 
 ---
 
-## 21. Changelog
+## 20. Diagrams
 
-* v1 Initial schema (tiers, travel, rounding, min/max, audit, concurrency)
-
----
-
-End of document.
-
----
-
-## 22. Diagrams
-
-### 22.1 Charge Computation Flow
+### 20.1 Charge Computation Flow
 
 ```mermaid
 flowchart TD
@@ -302,7 +278,7 @@ flowchart TD
   classDef terminal fill=#0b7285,stroke=#09414e,color=#fff;
 ```
 
-### 22.2 Data / Relationship Overview
+### 20.2 Data / Relationship Overview
 
 ```mermaid
 classDiagram
@@ -329,7 +305,7 @@ classDiagram
   Item <|-- Service : extends
 ```
 
-### 22.3 Concurrency Save Sequence
+### 20.3 Concurrency Save Sequence
 
 ```mermaid
 sequenceDiagram
@@ -348,7 +324,7 @@ sequenceDiagram
   DB-->>C2: OK
 ```
 
-### 22.4 Scan Command Lifecycle
+### 20.4 Scan Command Lifecycle
 
 ```mermaid
 flowchart LR
@@ -368,5 +344,3 @@ flowchart LR
   X -->|No| R[Summary output]
   R:::terminal
 ```
-
----

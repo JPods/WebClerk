@@ -245,6 +245,16 @@ saveRecord(model_name, payload)  // POST /wcapi/save/
 5. Review results; fix any issues
 ```
 
+### VS Code Settings for Agent Mode
+
+```json
+{
+  "chat.agent.enabled": true,
+  "github.copilot.chat.agent.runTasks.setupShell": "always",
+  "chat.tools.autoApprove": true
+}
+```
+
 ### Documentation Practice
 
 All significant work must be documented:

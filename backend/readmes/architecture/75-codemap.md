@@ -20,26 +20,27 @@ happens. CodeMap closes that gap permanently. The diagram links to
 
 ### Layer 1: Enrichment Script
 ```bash
-python3 scripts/codemap_enrich.py readmes/flowcharts/wc3-inventory-buckets.dot
+python3 ~/Allie/scripts/codemap_enrich.py --all --render
 ```
-Reads the .dot file + a mapping JSON, adds `URL` and `tooltip` attributes
-to every node, outputs an enriched .dot. Graphviz renders clickable SVG —
-clicking opens the file in VS Code at the right line.
+Reads .dot files + `codemap.json`, adds `URL` and `tooltip` attributes,
+renders clickable SVGs. Idempotent — run anytime. Graphviz renders clickable
+SVG — clicking opens the file in VS Code at the right line.
 
-### Layer 2: VS Code Webview Panel
-Click a node in the rendered diagram → right panel shows:
-- Function signatures (parsed from actual source)
-- JSON schema for data structures
-- Example data (from the code's default factories)
-- Links to service, model, and test files
-- Updates when you save a .py file
+### Layer 2: React Page
+Navigate to `/codemap` in Alice Commerce (port 5176). Card grid with SVG
+thumbnails organized by category. Click a card -> full-size diagram with
+clickable nodes. Detail panel shows functions, file:line, pending deltas,
+GL impact, schema fields. Print current or print all.
 
 ### Layer 3: Architecture API
 ```
 POST /wcapi/manage/
 { "action": "get_architecture_node", "params": { "node": "pending" } }
+{ "action": "get_architecture_map", "params": { "flowchart": "wc3-inventory-buckets" } }
+{ "action": "get_architecture_svg", "params": { "flowchart": "wc3-inventory-buckets" } }
+{ "action": "list_architecture_flowcharts", "params": {} }
 ```
-Returns the same data the panel shows. Alice uses this to answer "what
+Fuzzy matching on node names. Alice uses this to answer "what
 happens when I create an invoice?" by walking the graph. Users can query
 it from the flight simulator to see deeper code context.
 
@@ -76,6 +77,28 @@ Structure:
 Node names in the mapping match node IDs in the .dot files. The enrichment
 script is idempotent — run it anytime, it overwrites URL/tooltip. The panel
 watches the mapping file for changes.
+
+## Standard Style
+
+Defined in `~/Allie/readmes/flowcharts/codemap-style.dot`, injected
+automatically by the enrichment script:
+- 2px edge lines, 200% arrowheads
+- 10pt labels on nodes and edges
+- Helvetica Neue, rounded nodes, 0.75 aspect ratio
+- Consistent across all 34 flowcharts
+
+Bill designs polished versions in Affinity Designer. Graphviz for drafts.
+
+## Flowchart Categories
+
+| Category | Count | Examples |
+|----------|-------|---------|
+| Core Transactions | 7 | master-flow, big4, inventory-buckets, payment-gl |
+| Products & Serial | 3 | items, serial-tracking, serial-actions |
+| Contacts & Sales | 3 | contact, customer-centered-sales, signin |
+| Connections | 10 | accounting, banking, shipping, tax, payment |
+| Projects & QA | 6 | project, action, action-documents, action-touches, qa |
+| Data & Infrastructure | 5 | data-conversion, document-library, celery, security |
 
 ## Existing Flowcharts
 
@@ -117,6 +140,30 @@ line is created but no inventory delta is written. `receive_purchase` writes
 CodeMap will surface this — the node will have no function link for the
 `+on_po` delta.
 
+## WC3 Document Records
+
+Every flowchart has a Document record with `purpose="codemap-guru"` tracking
+revision number, node count, coverage percentage, and SVG availability.
+
+Update after changes:
+```bash
+python3 ~/Allie/scripts/codemap_seed_documents.py --apply --re-enrich
+```
+
+## Key Files
+
+| What | Where |
+|------|-------|
+| Mapping file | `~/Allie/readmes/flowcharts/codemap.json` |
+| Enrichment script | `~/Allie/scripts/codemap_enrich.py` |
+| Document seeder | `~/Allie/scripts/codemap_seed_documents.py` |
+| Viewer server | `~/Allie/scripts/codemap_serve.py` |
+| Style template | `~/Allie/readmes/flowcharts/codemap-style.dot` |
+| Architecture API | `apps/core/services/architecture.py` |
+| React page | `react-alice/src/pages/CodeMap.tsx` |
+| Site | `~/Allie/sites/codemap/index.html` |
+| VS Code tasks | `~/Allie/.vscode/tasks.json` |
+
 ## Connection to the Ecosystem
 
 CodeMap is the same idea expressed in a new domain: the developer is
@@ -126,3 +173,9 @@ agent with limited, enumerated access to the architecture, not a black box
 that "just knows."
 
 This is Desktop Hosting applied to architecture documentation.
+
+## Design Decisions
+
+- **No new FKs for touches**: contact_id is the identity. Roles are on Contact, not Action.
+- **Graphviz for drafts, Affinity for polish**: Standard style makes Graphviz output consistent.
+- **codemap.json is sovereign**: One file, three consumers. No drift.

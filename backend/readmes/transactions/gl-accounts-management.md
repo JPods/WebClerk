@@ -28,7 +28,41 @@ Account selection order:
 1. Active `GlAccount` by `used_for` aliases (best match)
 2. Fallback defaults in `FALLBACK_DEFAULTS`
 
-## 2) Item + Primary Org Defaults
+## 2) Entity-Level Defaults at Creation
+
+Newly created entities automatically receive sensible default GL accounts for typical flows (Sales, Inventory, Cost, Purchase). The following entity types receive defaults at creation time:
+
+- Customers
+- Items
+- Services
+- Vendors
+- Manufacturers
+- Reps
+
+Defaults are assigned via a small service hook in accounts and may consult org-level configuration. If unset, a safe fallback category is applied.
+
+### Override Priority
+
+You can override GL accounts per record at any time. The system prefers the most specific setting:
+
+1. Record-specific override (e.g., item-level)
+2. Entity-type defaults (e.g., all services)
+3. Global/org defaults
+
+Defaults are idempotent and only applied when a record lacks explicit assignments.
+Bulk imports can disable auto-defaulting and later run a reconcile to fill missing GL assignments.
+
+### Backfill Command
+
+```bash
+python manage.py backfill_gl_defaults --limit 0
+```
+
+Related:
+- Tax jurisdictions: `gl_account_payable` gets defaulted when missing.
+- Contacts receiving commissions: `prefs.gl_accounts.commission` is set when absent.
+
+## 3) Item + Primary Org Defaults
 Primary org defaults are stored in setting:
 - `purpose = db_defaults`
 - `name = primary_organization`
@@ -39,7 +73,7 @@ Implementation:
 - Item default resolver: `apps/accounts/services/gl_defaults.py` (`get_item_gl_defaults`)
 - Item save seed: `apps/products/models/item.py`
 
-## 3) Invoice GL Staging
+## 4) Invoice GL Staging
 On invoice ledger processing, invoice metadata is staged with posting intent:
 
 - Debit Accounts Receivable
@@ -67,7 +101,7 @@ Accounting rationale:
 - Revenue is recognized at invoice creation (credit sale).
 - This impacts P&L through revenue.
 
-## 4) Payment GL Staging
+## 5) Payment GL Staging
 On payment save/ledger processing, payment metadata is staged with posting intent:
 
 - Debit Cash/Bank
@@ -95,7 +129,7 @@ Accounting rationale:
 - Payment converts one asset to another (AR -> Cash).
 - No new income is recognized at payment application.
 
-## 5) Data Sources for GL Account Resolution
+## 6) Data Sources for GL Account Resolution
 Resolution utilities live in `apps/accounts/services/gl_defaults.py`:
 
 - `get_org_role_gl_defaults(org_type)`
@@ -107,7 +141,7 @@ Resolution priority:
 2. Active chart of accounts (`GlAccount.used_for`)
 3. `FALLBACK_DEFAULTS`
 
-## 6) Tests
+## 7) Tests
 Coverage for this behavior:
 
 - `tests/test_org_role_gl_defaults.py`
@@ -115,7 +149,7 @@ Coverage for this behavior:
 - `tests/test_item_gl_defaults_from_primary_org.py`
 - `tests/test_orgs_primary_org_service.py`
 
-## 7) Notes
+## 8) Notes
 - Staging metadata is intent/trace data and supports auditability.
 - Ledger balances remain authoritative for AR state.
 - Existing values are preserved where possible (non-destructive defaulting).

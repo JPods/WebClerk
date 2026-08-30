@@ -175,9 +175,187 @@ const customerName = record.refs?.links?.customer?.[0]?.company ?? "Unknown";
 
 ---
 
+---
+
+## Denormalized Fields Registry (DENORM_REGISTRY)
+
+All field lists live in **one file**: `common/denorm_registry.py`
+
+Both denormalization paths read from this registry:
+
+| Path | File | Purpose |
+|------|------|---------|
+| Generic `RefsMixin.denormalize_links()` | `common/models.py` | Converts bare-ID lists -> dicts on every `save()` |
+| Transaction-specific `denormalize_org_links()` | `apps/transactions/services/denormalize_org_links.py` | Snapshots customer/vendor/manufacturer from FK fields |
+
+> **Rule:** Never hard-code field lists elsewhere. Import from `common.denorm_registry`.
+
+### Org-Role Snapshot Shape (customer, vendor, manufacturer, rep, employee)
+
+Source model: **OrgBase**. The `_snapshot_org()` function maps `display_name` -> `company`:
+
+```json
+{"id": 42, "company": "Acme Corp", "display_name": "Acme Corp",
+ "email": "orders@acme.com", "phone": "555-1234",
+ "address_full": "123 Main St, Springfield, IL 62701",
+ "attention": "Jane Doe", "status": "active"}
+```
+
+### Contact Snapshot Fields
+
+`id, name_first, name_last, display_name, company, title, role, email, phone, attention`
+
+### Communication Record Fields
+
+- **Email:** `id, email, name, type, is_primary`
+- **Phone:** `id, number, format, name`
+- **Address:** `id, address1, city, state, zip, country, full`
+- **Domain:** `id, path, type`
+
+### Financial/Accounting Fields
+
+| Key | Fields |
+|-----|--------|
+| `currency` | `id, code, name, symbol` |
+| `glaccount` | `id, account_credit` |
+| `taxjurisdiction` | `id, name, code` |
+| `paymentmethod` | `id, name, type` |
+| `paymentterm` | `id, name, terms` |
+
+### How Denormalization Is Triggered
+
+| Trigger | When | Scope |
+|---------|------|-------|
+| `BaseModel.save()` | Every save | Converts ID-lists in `refs.links` to dicts |
+| `backfill_org_links` command | Manual CLI | Snapshots customer/vendor/manufacturer on transactions |
+| WCAPI save endpoint | On create of email/phone/address/domain | Appends dict to related contact's refs.links |
+
+### Adding a New Denormalized Field
+
+1. Add the field to `common/denorm_registry.py`
+2. Update the TS type in `transactionTypes.ts`
+3. Run backfill: `python manage.py backfill_org_links --commit`
+4. Verify: `from common.denorm_registry import print_registry; print_registry()`
+
+### Known Limitations
+
+1. No reverse propagation — when OrgBase changes, existing snapshots are not auto-refreshed. Run `backfill_org_links --commit`.
+2. No Celery trigger — denormalization is only triggered on save or via management command.
+
+---
+
+## Denormalization Playbook
+
+### Core Rule
+
+For any pair of related models:
+1. Query/filter/constraints use FK
+2. Display/search acceleration uses refs.links + refs.keywords
+3. Rebuild jobs reconcile refs from FK when drift appears
+
+### Contact <-> Communications Pattern
+
+**Source of truth:** `Email.contact_id`, `Phone.contact_id`, etc. (FK ownership).
+`Contact.email_id`, `Contact.phone_id`, etc. (primary pointers).
+
+**Denormalize on Contact:** `contact.refs.links.email[]`, `.phone[]`, `.domain[]`, `.address[]`.
+Empty buckets should be omitted entirely.
+
+**Reverse denormalize on Communication:** `communication.refs.links.contact[]` with
+key contact fields. `communication.refs.keywords[]` with lowercased search terms.
+
+### Operational Commands
+
+```bash
+python manage.py contact_communications_maintenance [--dry-run] [--contact-id 18] [--limit 500]
+python manage.py audit_refs_templates [--no-alice]
+```
+
+### Coverage by App
+
+| App | Strategy |
+|-----|---------|
+| contacts | FK-first + two-way refs denormalization with communications |
+| actions | FK/explicit IDs + refs for dependency graph and denormalized parties |
+| communications | FK owner authoritative; refs holds contact snapshot + keywords |
+| docs | FK authoritative; refs links for display context |
+| orgs | FK/role FKs authoritative; refs links for related display acceleration |
+| transactions | Header/line FK fields authoritative; refs links for UI display |
+| all others | FK-only (no new refs denormalization until explicitly approved) |
+
+### Guardrails
+
+- Never treat refs.links as write authority over FK
+- Do not store conflicting IDs in refs.links and FK
+- Keep refs.keywords lowercase and deduplicated
+- Prefer stable keys in refs.links snapshots
+- Omit empty refs.links buckets
+
+---
+
+## Refs Inclusion Policies
+
+### Action Denormalization
+
+Actions denormalize links to speed navigation:
+- Action -> Targets: kind auto-inferred (`transaction`, `product`, `acts_on`)
+- Action -> Documents/Attachments: `kind="doc"`
+- Action -> Communications: `kind="comm"`
+
+Override inference per model via `settings.REFS_ACTION_KIND_OVERRIDES`.
+
+Helpers: `ensure_action_all_links(action)`, `sync_action_denorm_refs(action_model, action_id)`.
+Signals: `apps.support.signals.register_action_signals`.
+
+### Assignee Links
+
+When a line has an active Action, link the assignee to that line via
+`refs.links` with `kind="assignee"`. Links are bidirectional.
+`nightly_prune_refs` applies recency and caps.
+
+---
+
+## Refs Setting Records
+
+### Keyword Configuration
+
+`purpose="refs_setup"` Settings configure keyword generation and relationship denormalization:
+
+```json
+{
+    "self_fields": ["email", "name_first", "name_last", "company"],
+    "related_keywords": {
+        "email": ["email", "attention"],
+        "address": ["address1", "city", "state", "zip"],
+        "customer": ["refs.keywords"]
+    },
+    "related_models": ["email", "address", "phone", "customer", "vendor"]
+}
+```
+
+### Key Functions
+
+| Function | File | Purpose |
+|----------|------|---------|
+| `build_keywords_for_record()` | `apps/core/services/keywords.py` | Processes refs_setup to build keywords |
+| `get_keyword_requirements()` | `apps/core/constants/keyword_requirements.py` | Loads cached refs_setup Settings |
+| `refs_setting_manage` | Management command | List, view, update Settings from baseline files |
+
+### Management
+
+```bash
+python manage.py refs_setting_manage --list
+python manage.py refs_setting_manage --view --model contact --purpose refs_setup
+python manage.py refs_setting_manage --update-baseline --all-models
+```
+
+Baseline files live in `readmes/baseline_setting/models/` (e.g., `contact_refs_setup.txt`).
+
+---
+
 ## See Also
 
 - [refs-fk-audit-report.md](refs-fk-audit-report.md) — Detailed audit of FK vs refs coexistence
-- [refs-denormalization-playbook.md](refs-denormalization-playbook.md) — FK-first denormalization process with Contact/Communication examples
+- [keyword-denormalization-and-search.md](keyword-denormalization-and-search.md) — Search contract for wcapi/get with refs.keywords
+- [fk-discipline.md](fk-discipline.md) — FK vs BigIntegerField policy, naming conventions, migration status
 - [django-improvements.md](django-improvements.md) — Org snapshot implementation (Section 16)
-- [maintenance.md](../../maintenance.md) — Management command and maintenance runbook

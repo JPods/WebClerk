@@ -304,6 +304,201 @@ the complete arc: what was found, what was fixed, and what was built.
 | Promote validation to fail-hard | Done | 2026-08-23 |
 | React consuming `/wcapi/_pjpv_fields/` | TODO | — |
 
+## Remaining Shadow Fields
+
+**Terminology updated:** 2026-08-23 — "shadow fields" is the standard term.
+**Updated:** 2026-08-24 — removed 13 deleted scalar columns (6 TransactionBaseModel,
+4 OrgBase, 3 Contact); 7 shadow fields remain across 5 models.
+
+Shadow fields are scalar database fields that shadow values living authoritatively
+in JSON envelopes. They exist because PostgreSQL can efficiently index a
+`DecimalField` or `CharField` but cannot efficiently index a key inside a JSONField
+for `ORDER BY`, `WHERE`, or aggregate queries.
+
+**Allowed uses:** Database `filter()`, `exclude()`, `order_by()`. List views / DataBrowser
+columns. Admin `list_display`.
+
+**Forbidden uses:** Any calculation, any business logic, frontend computation,
+serializer extraction, or any place where the value feeds another value. When you need
+the value for computation, read the JSON envelope.
+
+### Registry
+
+**TransactionBaseModel** (Order, Proposal, Invoice, Purchase, Workorder):
+
+| Scalar Field | JSON Source | Purpose |
+|-------------|-----------|---------|
+| `source_name` | `.source` JSON envelope | Query: filter by attribution source |
+
+Removed fields (2026-08-24): `total`, `balance`, `company`, `address_full`, `email`,
+`phone`. These are now `@property` methods reading from JSON envelopes.
+
+**OrgBase / Contact:** No shadow fields remain (2026-08-24).
+
+**BillOfMaterial:**
+
+| Scalar Field | JSON Source | Purpose |
+|-------------|-----------|---------|
+| `parent_description` | `Item.description` (FK) | Display: parent item name in BOM lists |
+| `child_ida` | `Item.ida` (FK) | Search: find BOM by component code |
+| `child_description` | `Item.description` (FK) | Display: component name in BOM lists |
+
+**InventoryPosition:** Entire model is a rollup of InventoryLayer quantities.
+
+**UserProfile (RBAC):** `cached_roles` shadows `contact.refs.roles` for quick role lookups.
+
+**Setting:** `refs.keywords` denormalized from various config fields for search.
+
+### How the Totals Engine Works
+
+The totals engine (`services/totals.py`) writes only to the `totals` JSONField
+envelope — there are no scalar `total` or `balance` columns. Backward-compatible
+read access is provided by `@property` methods on TransactionBaseModel. Run
+`backfill_totals` to recompute envelopes: `python manage.py backfill_totals --all`
+
+### Alice Shadow Field Enforcement
+
+Alice watches for:
+- Direct dict access without `.get()` and a default
+- New `DecimalField` with `db_index=True` that shadows a JSONField key without registry entry
+- Code assuming `total` or `balance` are database columns (they are `@property` methods)
+
+When a new shadow field is added, it MUST be added to this registry.
+
+---
+
+## Shadow Field Removal (2026-08-24)
+
+Removed all 12 scalar shadow fields from WC3 models in a single session.
+
+### What Was Removed
+
+**TransactionBaseModel:** `total`, `balance` (DecimalField), `company` (CharField),
+`address_full`, `email`, `phone` (display cache fields).
+
+**OrgBase:** `address_full`, `phone`, `domain` (3 fields).
+
+**Contact:** `address_full`, `phone`, `domain` (3 fields).
+
+**Fields kept (not shadows):** `Contact.email` (USERNAME_FIELD for auth), `OrgBase.email`
+(primary identifier), `TransactionBaseModel.source_name` (standalone dropdown).
+
+### What Replaced Them
+
+**1. PostgreSQL Functional Indexes** for search/filter:
+```sql
+CREATE INDEX idx_invoice_totals_total ON invoices (((totals->>'total')::numeric));
+CREATE INDEX idx_invoice_totals_balance ON invoices (((totals->>'balance')::numeric));
+```
+
+Django ORM queries use `common/json_lookups.py` helpers:
+```python
+from common.json_lookups import totals_total, totals_balance
+Invoice.objects.annotate(_bal=totals_balance()).filter(_bal__gt=0)
+```
+
+**2. Alice Aggregate Collections** for dashboard `Sum()`:
+`apps/ai_assistant/services/aggregate_tracker.py` — delta updates on post_save,
+periodic refresh via `python manage.py refresh_aggregates`.
+
+**3. @property Methods** for backward compat:
+Each removed field has a read-only `@property` reading from JSON or FK relationships.
+
+### Dual-Write Removed
+
+`totals.py` no longer writes to scalar fields. `update_fields` is now `['totals']` only.
+
+### Bug Fixed
+
+`commerce_dashboard.py` line 308 had `Sum('total')` on Payment (has no `total` field —
+it has `amount`). Changed to `Sum('amount')`.
+
+### work_order -> workorder Rename
+
+Also renamed the model registry key from `work_order` to `workorder` to match
+Django's `_meta.model_name`. DB table `work_orders` unchanged.
+
+### Files Created
+
+| File | Purpose |
+|------|---------|
+| `common/json_lookups.py` | `totals_total()`, `totals_balance()`, `totals_received()` ORM helpers |
+| `apps/ai_assistant/services/aggregate_tracker.py` | Alice aggregate collections with delta updates |
+| `apps/ai_assistant/management/commands/refresh_aggregates.py` | Nightly drift correction command |
+
+---
+
+## History: PJPV Compliance Process (2026-08-23)
+
+### The Problem
+
+PJPV was established 2026-08-22 after discovering three serializers independently
+computing margin — one with `Decimal`, one with `float`. The fix on 2026-08-22 removed
+serializer extractions but left independent calculations in payment services, signals,
+and conversion code untouched. No Pydantic schemas existed for business envelopes.
+
+### Audit Findings
+
+**Backend (14 violations across 9 files):**
+- `signals.py`: Bulk `queryset.update()` bypassed totals engine AND versioning (CRITICAL)
+- `transaction_save.py`: Wrong margin formula — `total - cost` instead of `subtotal - cost`
+- `payment_application.py`: Independent `balance = total - received` in apply/unapply/status
+- `payment_pending.py`: Same pattern — direct envelope manipulation
+- `conversion.py`: Payment forwarding during order-to-invoice bypassed engine
+
+**React:** Zero critical violations. Two dead-code files deleted.
+
+**Pydantic schemas:** 79 structural schemas existed. ZERO business envelope schemas.
+
+### What Was Fixed
+
+1. Added `update_received()` to `totals.py` — single owner for payment-side balance updates
+2. All callers migrated to `update_received()`
+3. Margin formula fixed: `subtotal - cost_total` (not `total - cost_total`)
+4. Dead React code deleted
+5. 21 Pydantic schemas created for all business envelopes in `common/schemas/transaction_envelopes.py`
+6. `_validate_totals()` wired into totals engine — fail-hard mode
+7. `LEAF_BEHAVIORS` replaced with schema-derived version
+8. `/wcapi/_pjpv_fields/` endpoint built
+
+### Schemas Built
+
+| Schema | Fields | Coverage |
+|--------|--------|---------|
+| `TransactionTotals` | 12 | subtotal through balance |
+| `TransactionFinance` | 12 | Tax jurisdiction IDs, rates, amounts |
+| `TransactionCost` | 10 | Header-level cost summary |
+| `LineQuantity` | 8 | staged/active/remaining + controls |
+| `LinePrice` | 7 | unit, base, discount, extended |
+| `LineCost` | 16 | unit, extended, surcharges, tax |
+| `LineTax` | 6 | Per-line tax rate overrides |
+| `LinePhysical` | 9 | weight, dimensions, volume, hazmat |
+| `LineItem` | 13 | Denormalized item snapshot |
+| `LineCommission` | 3 | Commission envelope |
+| `ItemPrice` | 9 | Master pricing |
+| `ItemCost` | 8 | Cost tracking |
+| `ItemCatalog` | 4 | Categories, attributes |
+| `BomOperationalData` | 6 | Operation, work center, setup/run time |
+| `OrgAddress/Phone/Email/Domain` | 9/5/5/3 | Unified org communication schemas |
+
+All schemas use `extra = "allow"`. No gaps remain.
+
+### Defense Architecture
+
+| Layer | What it catches | When |
+|-------|----------------|------|
+| Pydantic validation (L1) | Wrong types, missing keys, out-of-range | At save time |
+| `/wcapi/_pjpv_fields/` (L2) | React label/format drift | At render time |
+| Alice weekly scan (L3) | Schema-vs-reality drift | Wednesday |
+| Claude memory + readme (L4) | Design violations requiring judgment | Every session |
+
+### What Remains
+
+- Alice weekly schema review (not yet scheduled)
+- React consuming `/wcapi/_pjpv_fields/` for labels (compliant patterns exist; extending discipline)
+
+---
+
 ## Public Site
 
 **pjpv.io** — public-facing site explaining the pattern. Source at `~/Allie/sites/pjpv/`.
@@ -312,10 +507,8 @@ and pjpv.io (developer front door). Hosted on Hostinger.
 
 ## See Also
 
-- `pjpv-process.md` — Full audit and fix arc (2026-08-23)
-- `pjpv-denormalized-fields.md` — Shadow field registry (scalars that shadow JSON envelopes)
 - `readmes/topics/architecture/data-library-ecosystem.md` — Three data types, library model
 - Scars #62, #63, #64, #65 — JSON source of truth lessons (leftshoe identity store)
-- `common/schemas/transaction_envelopes.py` — The 7 business envelope schemas
+- `common/schemas/transaction_envelopes.py` — The 21 business envelope schemas
 - `apps/core/views/schema_fields_view.py` — `/wcapi/_pjpv_fields/` endpoint
 - `pjpv.io` — Public site explaining the pattern to developers and capital

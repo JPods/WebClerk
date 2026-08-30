@@ -60,6 +60,43 @@ The wcapi `_parse_filters` method (in `wcapi.py`) resolves filter keys:
 
 The silent drop is why missing FK_PATTERNS entries cause all records to return instead of zero. This is by design for flexibility (ignore unknown params from older clients) but means FK_PATTERNS must be correct.
 
+## Legacy Link Strategy (refs-only)
+
+Before FK-first migration, all relationships used `refs.links` arrays of integer PKs.
+This was fast to iterate on (no migrations) but created problems:
+- No referential integrity — orphan IDs accumulate silently
+- Two sources of truth invite mismatches (tracked via `RefsMismatchLog`)
+- Queries against JSON arrays are slower than FK joins
+
+The FK-first migration (see `fk-discipline.md`) converted the majority of relationships
+to ForeignKey fields. The `refs` column and `RefsMixin` remain for deferred relationships
+and as a denormalized display cache.
+
+### Party Role Snapshots (BillTo / ShipTo)
+
+Denormalized snapshots for document rendering:
+
+```json
+"refs": {
+  "party_roles": {
+    "billto": {"name": "Acme Corp", "addr1": "123 Main", "city": "Austin", "state": "TX"},
+    "shipto": {"name": "Acme Warehouse", "addr1": "500 Dock", "city": "Dallas", "state": "TX"}
+  }
+}
+```
+
+These are ephemeral print caches, not relationships. Forward links remain canonical
+for entity graph traversal.
+
+### Legacy Commands
+
+| Command | Purpose |
+|---------|---------|
+| `reconcile_links` | Backfill/repair reciprocal links from authoritative contact refs |
+| `seed_relationships` | Randomized dev data linking (runs as part of `reseed --full`) |
+
+These remain available for deferred relationships listed in `fk-discipline.md`.
+
 ## Diagram
 
 See `readmes/charts/flowcharts/wc3-record-relationships.dot` (and `.svg`).

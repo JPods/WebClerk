@@ -1,4 +1,5 @@
 # Celery Architecture — WC3 Background Task System
+
 **Created:** 2026-08-09
 **Owner:** Alice (library, data quality, health, schema, commerce analytics)
 
@@ -30,15 +31,164 @@ dot -Tpdf readmes/flowcharts/wc3-celery-pipeline.dot -o readmes/flowcharts/wc3-c
 | Serialization | JSON only | `CELERY_TASK_SERIALIZER` |
 | Timezone | UTC | Axiom 14 — all datetimes UTC |
 
-### Running
+### Central Registry
+
+Maintenance and scheduler metadata are centralized in `apps/support/scheduler/registry.py`, which is the source of truth for:
+
+- `MAINTENANCE_FUNCTIONS`: task name → Python callable
+- `SCHEDULED_TASK_DEFINITIONS`: task metadata used to bootstrap ScheduledTask rows
+- `build_celery_beat_schedule()`: periodic Celery schedule entries
+
+Consumers:
+- `apps/support/scheduler/tasks.py` uses `run_maintenance_function(...)` and sets `CELERY_BEAT_SCHEDULE` from `build_celery_beat_schedule()`.
+- `apps/support/scheduler/services.py` uses `SCHEDULED_TASK_DEFINITIONS` in `get_or_create_scheduled_tasks()`.
+
+---
+
+## Installation & Setup
+
+### Dependencies
 
 ```bash
-# Development (combined worker + beat)
+pip install celery redis
+```
+
+Add to `requirements.txt`:
+```
+celery>=5.3.0
+redis>=5.0.0
+```
+
+### Redis
+
+**macOS (Homebrew):**
+```bash
+brew install redis
+brew services start redis
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt install redis-server
+sudo systemctl enable redis-server
+sudo systemctl start redis-server
+```
+
+**Verify:** `redis-cli ping` → `PONG`
+
+### Django Configuration
+
+**Celery app** (`webclerk3_api/celery.py`):
+```python
+import os
+from celery import Celery
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webclerk3_api.settings')
+app = Celery('webclerk3_api')
+app.config_from_object('django.conf:settings', namespace='CELERY')
+app.autodiscover_tasks()
+```
+
+**Project `__init__.py`** (`webclerk3_api/__init__.py`):
+```python
+from .celery import app as celery_app
+__all__ = ('celery_app',)
+```
+
+**Settings** (`webclerk3_api/settings.py`):
+```python
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TIMEZONE = 'UTC'
+CELERY_ENABLE_UTC = True
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60
+CELERY_RESULT_EXPIRES = 60 * 60 * 24
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_WORKER_CONCURRENCY = 4
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CELERY_BROKER_URL` | `redis://localhost:6379/0` | Redis broker URL |
+| `CELERY_RESULT_BACKEND` | `redis://localhost:6379/0` | Redis results backend |
+
+---
+
+## Running
+
+### Development
+
+```bash
+# Combined worker + beat
 celery -A webclerk3_api worker -l info -B
 
-# Production (separate services)
+# Or use the helper script
+cd /Users/williamjames/Documents/CommerceExpert/webClerk3
+./start_celery.sh combined
+```
+
+### Production (separate services)
+
+```bash
 celery -A webclerk3_api worker -l info --concurrency=4
 celery -A webclerk3_api beat -l info
+```
+
+**Systemd Service for Worker** (`/etc/systemd/system/celery-worker.service`):
+```ini
+[Unit]
+Description=Celery Worker for WebClerk3
+After=network.target redis.service postgresql.service
+
+[Service]
+Type=forking
+User=webclerk
+Group=webclerk
+WorkingDirectory=/opt/webclerk3
+Environment="PATH=/opt/webclerk3/bin"
+ExecStart=/opt/webclerk3/bin/celery -A webclerk3_api worker \
+    --loglevel=info --concurrency=4 \
+    --pidfile=/var/run/celery/worker.pid \
+    --logfile=/var/log/celery/worker.log --detach
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Systemd Service for Beat** (`/etc/systemd/system/celery-beat.service`):
+```ini
+[Unit]
+Description=Celery Beat for WebClerk3
+After=network.target redis.service
+
+[Service]
+Type=simple
+User=webclerk
+Group=webclerk
+WorkingDirectory=/opt/webclerk3
+Environment="PATH=/opt/webclerk3/bin"
+ExecStart=/opt/webclerk3/bin/celery -A webclerk3_api beat \
+    --loglevel=info --pidfile=/var/run/celery/beat.pid \
+    --logfile=/var/log/celery/beat.log
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable celery-worker celery-beat
+sudo systemctl start celery-worker celery-beat
 ```
 
 ---
@@ -57,7 +207,7 @@ celery -A webclerk3_api beat -l info
 | Task | Schedule | Owner | What it does |
 |------|----------|-------|-------------|
 | `alice_library_scan` | Every 1 min | Alice | Virus scan new uploads; status → scanned or virus_detected |
-| `alice_library_thumbnails` | Every 1 min | Alice | Generate 200×200 thumbnails for images/videos |
+| `alice_library_thumbnails` | Every 1 min | Alice | Generate 200x200 thumbnails for images/videos |
 | `alice_library_transfer` | Async | Alice | Upload verified files to secure cloud library |
 | `alice_library_verify` | Every 2 min | Alice | Checksum verify: local == remote; trigger cleanup on match |
 | `alice_library_cleanup` | Async | Alice | Delete local copy after verified transfer; status → archived |
@@ -72,7 +222,7 @@ celery -A webclerk3_api beat -l info
 | `task_recompute_relationship_counts` | Hourly | System | Sync relationship count denorm fields; limit=5000 |
 | `task_athena_verify` | Every 4 hours | Athena | Integrity verification — sign and verify protected files |
 
-### Nightly (1:30 AM – 5:00 AM UTC)
+### Nightly (1:30 AM - 5:00 AM UTC)
 
 | Task | Time | Owner | What it does |
 |------|------|-------|-------------|
@@ -85,9 +235,11 @@ celery -A webclerk3_api beat -l info
 | `data_cleanup_task` | 3:10 AM | Alice | Clean stale data, orphaned records |
 | `task_cleanup_metadata_temp` | 3:20 AM | System | Remove temporary metadata entries; limit=1000/model |
 | `json_optimize_task` | 3:30 AM | Alice | Optimize JSONB field storage; remove nulls, compact |
-| `task_audit_refs_fk` | 3:40 AM | System | Audit refs↔FK mismatches; batch=500 |
+| `task_audit_refs_fk` | 3:40 AM | System | Audit refs-FK mismatches; batch=500 |
 | `relationship_scan_task` | 4:00 AM | Alice | Discover and strengthen model relationships |
 | `task_refresh_model_registry_docs` | 5:00 AM | System | Regenerate model registry documentation |
+
+Each task is staggered by 10-20 minutes to avoid resource contention. The window is 1:30 AM - 5:00 AM UTC — 3.5 hours for all nightly work. Tasks that run longer than expected hit the 25-minute soft limit (graceful shutdown) or 30-minute hard limit (kill).
 
 ### Weekly
 
@@ -96,8 +248,27 @@ celery -A webclerk3_api beat -l info
 | `task_recompute_basic_stats` | Sun 4:00 AM | System | Normalize stats containers; limit=50000 |
 | `schema_drift_task` | Mon 4:30 AM | Alice | Detect schema drift between installations |
 | `margin_tracking_task` | Mon 5:00 AM | Alice | Track margin trends per item/category |
-| `velocity_task` | Mon 5:30 AM | Alice | Inventory velocity analysis (margin × turns ÷ carry cost) |
+| `velocity_task` | Mon 5:30 AM | Alice | Inventory velocity analysis (margin x turns / carry cost) |
 | `layout_drift_task` | Mon 6:00 AM | Alice | Detect layout divergence across users |
+
+---
+
+## Nightly Timeline
+
+```
+1:30 AM --- User daily logs
+2:00 AM --- Model defaults
+2:20 AM --- Alice: Schema watch
+2:30 AM --- Alice: Health scoring
+2:40 AM --- Aging reconciliation
+3:00 AM --- Data backup
+3:10 AM --- Alice: Data cleanup
+3:20 AM --- Metadata temp cleanup
+3:30 AM --- Alice: JSON optimize
+3:40 AM --- Refs-FK audit
+4:00 AM --- Alice: Relationship scan
+5:00 AM --- Registry docs refresh
+```
 
 ---
 
@@ -119,6 +290,33 @@ Margin tracking, velocity analysis, layout drift. Weekly cadence. Results feed A
 
 ### 5. UI Operations (3 tasks)
 Pending layout application (10s), layout drift detection (weekly), apply pending layouts. Keeps DataBrowser responsive.
+
+---
+
+## Maintenance Commands
+
+These commands can be run manually or are wrapped as Celery tasks:
+
+| Command | Purpose |
+|---------|---------|
+| `ensure_model_defaults [--dry-run] [--app=X] [--model=X]` | Fill missing JSONB envelope defaults |
+| `export_data` | Backup all model data to JSON files |
+| `denormalize_links` | Rebuild denormalized relationship data |
+| `fill_dt_fields` | Populate missing datetime fields |
+| `update_attention` | Recalculate attention flags on records |
+| `populate_cache` | Pre-warm frequently accessed data |
+| `align_action_contacts` | Sync action contact references |
+| `contact_communications_maintenance --limit 200` | Contact communication repair + refs sync |
+| `org_financial_maintenance --mode daily --activity-hours 24` | Daily org financial scrub + pending drain + Alice health_check log |
+
+### Task Functions (common/tasks.py)
+
+| Function | Purpose | Default Params |
+|----------|---------|----------------|
+| `refresh_keywords_task` | Refresh pending keyword index rows | limit=500, batch_size=200 |
+| `recompute_relationship_counts` | Update denormalized relationship counts | limit=5000, batch_size=500 |
+| `recompute_basic_stats` | Normalize StatsMixin container structure | limit=5000, batch_size=500 |
+| `refresh_model_registry_docs` | Regenerate model registry documentation | — |
 
 ---
 
@@ -164,6 +362,14 @@ Every run creates a `TaskRun` record:
 
 Admin: `/admin/scheduler/taskrun/`
 
+### Design Philosophy
+
+1. **Non-blocking**: Maintenance tasks should not block user operations
+2. **Idempotent**: Tasks can safely run multiple times without side effects
+3. **Batched**: Process records in chunks to avoid memory issues and long locks
+4. **Observable**: Return metrics (processed, updated, duration) for monitoring
+5. **Configurable**: Task parameters adjustable via admin without code changes
+
 ---
 
 ## Adding a New Task
@@ -174,32 +380,20 @@ Admin: `/admin/scheduler/taskrun/`
    - Library tasks → `apps/docs/tasks.py`
    - Inventory tasks → `apps/products/tasks.py`
 
-2. **Add to beat schedule** in `settings.py` under `CELERY_BEAT_SCHEDULE`
+2. **Register callable** in `MAINTENANCE_FUNCTIONS` in `apps/support/scheduler/registry.py`
 
-3. **Register in scheduler** via `services.py` → `get_or_create_scheduled_tasks()`
+3. **Add metadata** to `SCHEDULED_TASK_DEFINITIONS` in `apps/support/scheduler/registry.py`
 
-4. **Seed:** `python manage.py shell -c "from apps.scheduler.services import get_or_create_scheduled_tasks; print(get_or_create_scheduled_tasks())"`
+4. **Add beat entry** in `build_celery_beat_schedule()` when periodic execution is required
 
----
+5. **Add/adjust wrapper task** in `apps/support/scheduler/tasks.py` if it needs a dedicated task entry
 
-## Nightly Timeline
+6. **Seed the task:**
+   ```bash
+   python manage.py shell -c "from apps.scheduler.services import get_or_create_scheduled_tasks; print(get_or_create_scheduled_tasks())"
+   ```
 
-```
-1:30 AM ─── User daily logs
-2:00 AM ─── Model defaults
-2:20 AM ─── Alice: Schema watch
-2:30 AM ─── Alice: Health scoring
-2:40 AM ─── Aging reconciliation
-3:00 AM ─── Data backup
-3:10 AM ─── Alice: Data cleanup
-3:20 AM ─── Metadata temp cleanup
-3:30 AM ─── Alice: JSON optimize
-3:40 AM ─── Refs↔FK audit
-4:00 AM ─── Alice: Relationship scan
-5:00 AM ─── Registry docs refresh
-```
-
-Each task is staggered by 10-20 minutes to avoid resource contention. The window is 1:30 AM – 5:00 AM UTC — 3.5 hours for all nightly work. Tasks that run longer than expected hit the 25-minute soft limit (graceful shutdown) or 30-minute hard limit (kill).
+7. **Add tests** or dry-run validation path
 
 ---
 
@@ -238,6 +432,15 @@ celery -A webclerk3_api flower --port=5555
 | High memory | Reduce `batch_size`; use `.iterator()` and `.only()` |
 | Redis connection | `redis-cli info` → `redis-cli client list` |
 | Worker not picking up | `celery -A webclerk3_api purge` (dev only!) then restart |
+| Records not updating | Run with `--dry-run` to see what would change; check model's `get_field_default()` method |
+
+---
+
+## Operational Notes
+
+- Some environments may not have scheduler tables migrated. In that case, scheduler bootstrap should degrade safely and report the missing tables.
+- Keyword aggregation fallback now includes scalar text fields + refs.tags, while refs.links labels/values are excluded.
+- Keyword stop-word filtering is centralized in `common/ignore_fields.py` (`IGNORE_WORDS`). Add low-value labels and abusive/profane tokens there when tuning keyword quality.
 
 ---
 
@@ -247,11 +450,11 @@ celery -A webclerk3_api flower --port=5555
 |------|-----------|
 | `webclerk3_api/celery.py` | Celery app definition |
 | `webclerk3_api/settings.py:897-1054` | Full beat schedule + config |
+| `apps/support/scheduler/registry.py` | Central maintenance registry (source of truth) |
 | `apps/support/scheduler/tasks.py` | System tasks |
 | `apps/ai_assistant/tasks.py` | Alice tasks (data quality, schema, analytics, layouts) |
-| `apps/docs/tasks.py` | Library management tasks (to be created) |
+| `apps/docs/tasks.py` | Library management tasks |
 | `apps/products/tasks.py` | Inventory pending drain |
 | `apps/scheduler/models.py` | ScheduledTask, TaskRun, TaskConfig models |
 | `readmes/flowcharts/wc3-celery-pipeline.dot` | Visual pipeline diagram |
 | `readmes/68-document-library.md` | Library management detail |
-| `webClerk3/readmes/topics/infrastructure/celery.md` | WC3 technical reference (install, run, systemd) |

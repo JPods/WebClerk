@@ -147,3 +147,133 @@ With values replacing FKs, orphan records can accumulate. Alice runs a weekly sc
 3. Mark orphans for deletion
 4. Supervisor has 30 days to save them
 5. Report: count per model, record IDs, suggested action
+
+---
+
+## Naming Conventions
+
+**Date:** 2026-02-15
+
+### The Rule
+
+**Name every ForeignKey field after the model it points to** (or a descriptive role
+name), **never with an `_id` suffix**. Django automatically creates a `<field>_id`
+attribute for the raw integer value. If you name the field `customer_id`, Django
+creates `customer_id_id`.
+
+### The Three Patterns
+
+**Pattern A — field = model name (STANDARD):**
+```python
+customer = models.ForeignKey(
+    'orgs.OrgBase', on_delete=models.SET_NULL,
+    blank=True, null=True,
+    db_column='customer_id',
+    related_name='orders_as_customer',
+)
+# Python: order.customer -> OrgBase instance
+# Python: order.customer_id -> raw int (auto-created)
+# DB col: customer_id
+```
+
+**Pattern B — field has _id suffix (AVOID):**
+```python
+# Creates warehouse_id_id in the database. 48 fields have this problem.
+warehouse_id = models.ForeignKey('products.Warehouse', ...)
+```
+
+**Pattern C — field has _fk suffix (DISAMBIGUATION ONLY):**
+Use only when a non-FK field already occupies the natural name:
+```python
+terms = models.CharField(max_length=30, blank=True, null=True)
+terms_fk = models.ForeignKey(
+    'transactions.PaymentTerm', on_delete=models.SET_NULL,
+    db_column='terms_id',
+    related_name='orgs_with_terms',
+)
+```
+3 fields use this pattern — all correctly have `db_column` overrides.
+
+### Parent-Child Relationships
+
+Name the FK after the parent model, not `parent_id`:
+```python
+class OrderLine(BaseLineCore):
+    order = models.ForeignKey('transactions.Order', on_delete=models.CASCADE, related_name='lines')
+```
+
+For self-referential, `parent` is acceptable with `db_column='parent_id'`.
+
+### db_column Override Rule
+
+Always provide `db_column` when: renaming Pattern B -> A, natural column would conflict,
+or preserving legacy column names. Brand-new FKs on new models can omit it.
+
+### Rename Inventory (48 Pattern B Fields)
+
+These FK fields use `_id` suffix and most lack `db_column`. Rename to Pattern A with
+`db_column` override. Full inventory by model:
+
+| App | Models | Field count |
+|-----|--------|-------------|
+| `apps/orgs` | OrgBase | 1 |
+| `apps/core` | Action, AuditLog, APILog, SoftDeleteLedger, QuestionAnswer | 5 |
+| `apps/products` | Catalog(6), CatalogLine, DeliveryVisit(3), DeliveryLine(2), InventoryCheck(3), InventoryCheckLine(2), InventoryLayer, InventoryMovement(2), PendingInventoryAdjustment, InventoryReservation(3), ItemLinkedBase, OrgItem(2), BillOfMaterial(2), Serial, SerialLog | 30 |
+| `apps/transactions` | Payment(4), PaymentApplication(2), ProjectAssociation, RequisitionLine, Bundle | 9 |
+
+### Migration Approach
+
+Renaming a ForeignKey field in Python **does not require a database migration** when
+`db_column` is set to the existing column name. Work in batches by app to keep diffs
+reviewable.
+
+---
+
+## FK-First Migration Status
+
+**Policy:** Use proper Django `ForeignKey` for all entity references. `.refs` JSON is
+set aside during active development. Never read from or write to `.refs` for any
+relationship that already has an FK. New relationships must be ForeignKey fields.
+
+Once core development stabilises, `.refs` will be re-evaluated as an optional
+denormalized read cache maintained by Celery.
+
+### Completed (FK is Source of Truth)
+
+Transaction headers -> Orgs/Contact/Terms, transaction lines -> headers/items,
+Org -> Contact/Terms, Contact -> Org roles, Communications -> Contact, Payment,
+PaymentApplication, Receipt/ReceiptLine, Inventory (Layer/Movement/Reservation),
+Serial/SerialLog, Catalog/CatalogLine, Delivery, InventoryCheck, BOM, Variants,
+Ledger, ProjectLink, RequisitionLine, Bundle, QA, Audit logs.
+
+### Deferred (Still Refs-Only)
+
+| Relationship | Why Deferred |
+|-------------|--------------|
+| Action -> targets (transactions, products, docs, comms) | Polymorphic — needs GenericFK or join table |
+| Payment -> multiple invoices | M2M — single FK exists; multi-invoice is future M2M table |
+| Invoice/Order source tracking | Design TBD for order-to-invoice lineage |
+| Warehouse -> Items | Through-table via InventoryLayer may suffice |
+| Project -> Contacts | Low priority; ProjectLink partially covers |
+| Contact <-> Comms bidirectional | FK exists on comms side; reverse query sufficient |
+| Item variant scaffolding | Variant FK model exists; refs redundant |
+| Party role snapshots (BillTo/ShipTo) | Denormalized print cache — not a relationship |
+
+### Development Guidelines
+
+1. New relationships: always FK or M2M. Never new `.refs.links` buckets.
+2. Reading: use FK joins / `select_related` / `prefetch_related`.
+3. Writing: save via FK fields. Don't update `refs.links` for FK-migrated relationships.
+4. Serializers: return FK-based IDs. Omit `refs` unless needed for keywords/tags.
+5. RefsMismatchLog: keep operational for FK-vs-refs divergence tracking.
+
+### Infrastructure
+
+| Component | Path |
+|-----------|------|
+| RefsMixin | `common/mixins/refs_mixin.py` |
+| PolicyEngine | `common/refs/policy.py` |
+| Refs link helpers | `common/refs/links.py` |
+| Celery tasks | `common/refs/tasks.py` |
+| RefsMismatchLog | `apps/core/models/refs_mismatch_log.py` |
+| FK naming audit | `audit_foreign_keys.py` (project root) |

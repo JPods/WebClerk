@@ -201,3 +201,132 @@ Setting.objects.create(
     config={"rows": [...]},
 )
 ```
+
+---
+
+## Setting Patterns (Query Examples)
+
+### Singleton Settings
+
+Single record for global configuration. Query by `purpose` alone:
+
+```python
+setting = Setting.objects.get(purpose='db_defaults')
+config = setting.data
+```
+
+### Per-Model Settings
+
+One record per model. Query by `purpose` + `parent_model`:
+
+```python
+setting = Setting.objects.filter(
+    purpose='workbench_fields',
+    parent_model='order'
+).first()
+```
+
+### Role-Based Settings
+
+Per-model settings that vary by role:
+
+```python
+setting = Setting.objects.filter(
+    purpose='view_edit',
+    parent_model='order',
+    role='user'
+).first()
+```
+
+### Group-Based Settings
+
+Settings keyed by a logical group name:
+
+```python
+setting = Setting.objects.filter(
+    purpose='qa_questions',
+    name='Planning'
+).first()
+```
+
+---
+
+## Detailed Purpose Specifications
+
+### `workbench_fields`
+
+Controls columns in list/workbench views. Lookup: `purpose='workbench_fields'` + `parent_model`.
+
+```json
+{"list": ["id", "customer_name", "order_date", "total", "status"],
+ "detail": ["id", "customer_name", "order_date", "ship_date", "total", "status", "notes"]}
+```
+
+### `detail_field_access`
+
+Controls field visibility/editability in detail views. Lookup: `purpose='detail_field_access'` + `parent_model`.
+
+```json
+{"hidden": ["internal_notes", "legacy_id"],
+ "readOnly": ["created_at", "created_by", "order_number"]}
+```
+
+### `view_edit`
+
+Matrix defining field access by role. Lookup: `purpose='view_edit'` + `parent_model` + `role`.
+
+```json
+{"fields": {"discount_pct": {"view": true, "edit": false},
+            "cost": {"view": false, "edit": false},
+            "notes": {"view": true, "edit": true}}}
+```
+
+### `keywords`
+
+Which fields to denormalize into searchable keywords. Lookup: `purpose='keywords'` + `parent_model`.
+
+```json
+{"fields": ["name", "email", "phone", "company_name"],
+ "refs": {"company": ["name", "account_number"]}}
+```
+
+### `qa_questions`
+
+Question definitions for a logical group. Lookup: `purpose='qa_questions'` + `name`.
+
+Resolution order: `question.option ?? template.option ?? system_default`
+
+### `admin`
+
+Administrative singleton settings keyed by `name`:
+- **`popup_choices`** (id 114) — Normalized legacy wc2 popup/choice lists (116 lists, 209 choices). Seeded by `python manage.py create_popup_choices`.
+- **`layout_status`** (id 113) — Tracks which r25 model layout files exist. Seeded by `python manage.py create_layout_status`.
+
+---
+
+## Validation Rules
+
+1. `parent_model` is validated against the model registry (canonical names only)
+2. `purpose` should match one of `SETTING_PURPOSE_CHOICES` (soft validation)
+3. `config` must be valid JSON; schema depends on purpose
+4. Singleton settings: exactly one record per purpose
+5. Per-model settings: exactly one record per (purpose, parent_model) pair
+
+## Adding New Purposes
+
+1. Add choice to `apps/core/choices.py` -> `SETTING_PURPOSE_CHOICES`
+2. Document schema in this file
+3. Create helper functions for fetching/saving if frequently used
+4. Add migration to seed initial data if needed
+
+---
+
+## Related Files
+
+| File | Description |
+|------|-------------|
+| `apps/core/models/setting.py` | Django model definition |
+| `apps/core/choices.py` | Purpose choices |
+| `apps/core/services/setting_resolver.py` | Scope hierarchy resolver |
+| `setting-policy.md` | When to use Settings vs code |
+| `prefs-architecture.md` | User preferences (distinct from Settings) |
