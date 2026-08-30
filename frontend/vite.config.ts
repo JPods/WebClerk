@@ -53,6 +53,18 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: env.VITE_BASE_PATH || '/',
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-pdfme': ['@pdfme/ui', '@pdfme/common', '@pdfme/schemas'],
+            'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+            'vendor-date': ['date-fns'],
+          },
+        },
+      },
+    },
     plugins: [
       react(),
       svgr({

@@ -90,6 +90,15 @@ class CookieTokenRefreshView(APIView):
             User = get_user_model()
             try:
                 user = User.objects.get(pk=old_refresh.payload.get("user_id"))
+                if not user.is_active:
+                    response = api_response(
+                        data=None,
+                        message="Account deactivated",
+                        status_code=401,
+                        error={"code": "account_inactive", "details": None},
+                    )
+                    response.delete_cookie("refresh_token", path="/")
+                    return response
                 new_refresh = RefreshToken.for_user(user)
                 new_access = new_refresh.access_token
                 new_access["role"] = getattr(user, "role", "user")

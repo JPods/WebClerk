@@ -154,6 +154,9 @@ class FormLibraryCheckoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        if not request.user.is_staff:
+            return api_response(success=False, status_code=403, error={'code': 'staff_required', 'details': 'Staff access required'})
+
         uuid_str = request.data.get('uuid')
         form_data = request.data.get('form_data')
 

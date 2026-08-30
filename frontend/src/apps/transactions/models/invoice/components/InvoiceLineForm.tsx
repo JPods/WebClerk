@@ -1,7 +1,7 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { useState } from "react";
 import { FaSave, FaTimes } from "react-icons/fa";
-import type { InvoiceLine } from "../types/invoiceLineType";
+import type { InvoiceLine } from "../../invoice_line/types/invoiceLineType";
 
 interface InvoiceLineFormProps {
   line?: InvoiceLine;

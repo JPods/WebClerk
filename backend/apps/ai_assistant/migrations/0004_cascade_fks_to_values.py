@@ -22,19 +22,23 @@ class Migration(migrations.Migration):
             model_name='alicecoachinglog',
             name='contact',
         ),
-        migrations.AlterUniqueTogether(
-            name='aliceinsight',
-            unique_together={('agent', 'contact_id', 'subject_type', 'subject_key')},
-        ),
         migrations.AddField(
             model_name='alicecoachinglog',
             name='contact_id',
             field=models.BigIntegerField(blank=True, db_index=True, help_text='Contact id (value, not FK — coaching history survives)', null=True),
         ),
+        migrations.RemoveField(
+            model_name='aliceinsight',
+            name='contact',
+        ),
         migrations.AddField(
             model_name='aliceinsight',
             name='contact_id',
             field=models.BigIntegerField(blank=True, db_index=True, help_text='Contact id (value, not FK — insights survive contact deletion)', null=True),
+        ),
+        migrations.AlterUniqueTogether(
+            name='aliceinsight',
+            unique_together={('agent', 'contact_id', 'subject_type', 'subject_key')},
         ),
         migrations.AddIndex(
             model_name='alicecoachinglog',
@@ -43,9 +47,5 @@ class Migration(migrations.Migration):
         migrations.AddIndex(
             model_name='aliceinsight',
             index=models.Index(fields=['agent', 'contact_id', 'subject_type'], name='aliceins_agent_ct_type_idx'),
-        ),
-        migrations.RemoveField(
-            model_name='aliceinsight',
-            name='contact',
         ),
     ]

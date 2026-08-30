@@ -1,25 +1,33 @@
 """Settings bootstrap API — health check + import/fetch endpoints.
 
 Three endpoints:
-    GET  /wcapi/settings-health/     — run health check, return report
-    POST /wcapi/settings-bootstrap/  — import a settings bundle (JSON body)
-    POST /wcapi/settings-fetch-hq/   — fetch from webclerk.com (requires Athena token)
-
-These endpoints are available without full authentication — they exist
-to bootstrap a database that may not have user records yet.
+    GET  /wcapi/settings-health/     — run health check, return report (staff only)
+    POST /wcapi/settings-bootstrap/  — import a settings bundle (staff only)
+    POST /wcapi/settings-fetch-hq/   — fetch from webclerk.com (requires Athena token, staff only)
 """
 import json
 import logging
 
 from django.http import JsonResponse
 from django.views import View
-from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 
 logger = logging.getLogger(__name__)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
+def _staff_required(view_func):
+    """Combined login_required + is_staff check."""
+    from functools import wraps
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated or not request.user.is_staff:
+            return JsonResponse({'success': False, 'error': 'Staff access required'}, status=403)
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+@method_decorator([login_required, _staff_required], name='dispatch')
 class SettingsHealthView(View):
     """GET /wcapi/settings-health/ — returns health check report."""
 
@@ -29,7 +37,7 @@ class SettingsHealthView(View):
         return JsonResponse(report)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator([login_required, _staff_required], name='dispatch')
 class SettingsBootstrapView(View):
     """POST /wcapi/settings-bootstrap/ — import a settings bundle.
 
@@ -58,7 +66,7 @@ class SettingsBootstrapView(View):
         return JsonResponse(result, status=status)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator([login_required, _staff_required], name='dispatch')
 class SettingsFetchHqView(View):
     """POST /wcapi/settings-fetch-hq/ — fetch from webclerk.com.
 

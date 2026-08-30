@@ -18,8 +18,22 @@ import io
 from pathlib import Path
 
 from django.http import JsonResponse, HttpResponse
-from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST, require_GET
+
+
+def _safe_statement_path(filepath: str) -> Path | None:
+    """Resolve filepath and ensure it stays inside the statements directory."""
+    statements_dir = Path.home() / 'Allie' / 'statements'
+    statements_dir.mkdir(parents=True, exist_ok=True)
+    # If just a filename, resolve relative to statements dir
+    p = Path(filepath)
+    if not p.is_absolute():
+        p = statements_dir / p
+    resolved = p.resolve()
+    if not resolved.is_relative_to(statements_dir.resolve()):
+        return None
+    return resolved
 
 
 def _get_harvester():
@@ -47,10 +61,12 @@ def _get_harvester():
     }
 
 
-@csrf_exempt
+@login_required
 @require_POST
 def harvest_statements(request):
     """Harvest CSVs from a folder path → JSON files."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Staff access required'}, status=403)
     try:
         body = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
@@ -112,25 +128,33 @@ def harvest_statements(request):
     })
 
 
-@csrf_exempt
+@login_required
 @require_GET
 def list_statement_files(request):
     """List all statement JSON files with summary info."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Staff access required'}, status=403)
     h = _get_harvester()
     files = h['list_json_files']()
     return JsonResponse({'files': files})
 
 
-@csrf_exempt
+@login_required
 @require_GET
 def get_statement_lines(request):
     """Load lines from a specific JSON file. Supports pagination."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Staff access required'}, status=403)
     filepath = request.GET.get('file', '')
     if not filepath:
         return JsonResponse({'error': 'file parameter required'}, status=400)
 
+    safe_path = _safe_statement_path(filepath)
+    if safe_path is None:
+        return JsonResponse({'error': 'Invalid file path'}, status=400)
+
     h = _get_harvester()
-    lines = h['load_json'](filepath)
+    lines = h['load_json'](str(safe_path))
 
     # Optional filters
     classification = request.GET.get('classification', '')
@@ -161,10 +185,12 @@ def get_statement_lines(request):
     })
 
 
-@csrf_exempt
+@login_required
 @require_POST
 def save_statement_changes(request):
     """Save classification/category changes back to the JSON file."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Staff access required'}, status=403)
     try:
         body = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
@@ -176,8 +202,12 @@ def save_statement_changes(request):
     if not filepath or not updates:
         return JsonResponse({'error': 'file and updates required'}, status=400)
 
+    safe_path = _safe_statement_path(filepath)
+    if safe_path is None:
+        return JsonResponse({'error': 'Invalid file path'}, status=400)
+
     h = _get_harvester()
-    lines = h['load_json'](filepath)
+    lines = h['load_json'](str(safe_path))
 
     # Build UUID lookup
     by_uuid = {l['uuid']: l for l in lines if 'uuid' in l}
@@ -193,15 +223,17 @@ def save_statement_changes(request):
             line[field] = value
             updated += 1
 
-    h['save_json_changes'](filepath, lines)
+    h['save_json_changes'](str(safe_path), lines)
 
     return JsonResponse({'updated': updated, 'message': f'Updated {updated} lines.'})
 
 
-@csrf_exempt
+@login_required
 @require_POST
 def promote_statements(request):
     """Promote business lines from JSON to Payment records in psql."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Staff access required'}, status=403)
     try:
         body = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
@@ -211,8 +243,12 @@ def promote_statements(request):
     if not filepath:
         return JsonResponse({'error': 'file parameter required'}, status=400)
 
+    safe_path = _safe_statement_path(filepath)
+    if safe_path is None:
+        return JsonResponse({'error': 'Invalid file path'}, status=400)
+
     h = _get_harvester()
-    result = h['promote_to_payments'](filepath)
+    result = h['promote_to_payments'](str(safe_path))
 
     return JsonResponse({
         'created': result['created'],
@@ -222,16 +258,22 @@ def promote_statements(request):
     })
 
 
-@csrf_exempt
+@login_required
 @require_GET
 def export_personal(request):
     """Export personal lines from a JSON file as CSV download."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Staff access required'}, status=403)
     filepath = request.GET.get('file', '')
     if not filepath:
         return JsonResponse({'error': 'file parameter required'}, status=400)
 
+    safe_path = _safe_statement_path(filepath)
+    if safe_path is None:
+        return JsonResponse({'error': 'Invalid file path'}, status=400)
+
     h = _get_harvester()
-    lines = h['load_json'](filepath)
+    lines = h['load_json'](str(safe_path))
     personal = [l for l in lines if l.get('classification') == 'personal']
 
     if not personal:

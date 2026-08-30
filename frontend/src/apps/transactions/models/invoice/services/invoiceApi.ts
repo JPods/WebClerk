@@ -9,7 +9,7 @@ import {
   InvoiceLine,
   CreateInvoiceLineRequest,
   UpdateInvoiceLineRequest,
-} from "../types/invoiceLineType";
+} from "../../invoice_line/types/invoiceLineType";
 
 export const fetchInvoices = async (params?: any) => {
   const res = await getRecords("invoice", params);

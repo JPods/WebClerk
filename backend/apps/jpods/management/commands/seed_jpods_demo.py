@@ -23,6 +23,7 @@ Safe to run multiple times without --reset. Skips records that already exist.
 """
 
 import logging
+import os
 import secrets
 
 from django.core.management.base import BaseCommand
@@ -86,9 +87,8 @@ TRIP_PRICES = {
     "sample":    "0.25",   # employee
 }
 
-# Token Natalie uses when calling Alice.
-# Matches the webclerk-alice key in /Users/williamjames/Allie/config/allie_api_keys.json
-NATALIE_TOKEN = "wq80pbGbKmIHbhT24O9QbkpvWpbnYtMQ2wZASIEGtHY"
+# Token Natalie uses when calling Alice — loaded from environment, never committed.
+NATALIE_TOKEN = os.environ.get("NATALIE_ALICE_TOKEN", "")
 
 
 class Command(BaseCommand):

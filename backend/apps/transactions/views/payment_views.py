@@ -96,6 +96,14 @@ def refund_payment_view(request):
         if not payment_id:
             return Response({'error': 'payment_id is required'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Verify the user owns this payment or is staff
+        try:
+            payment_check = Payment.objects.get(pk=payment_id)
+        except Payment.DoesNotExist:
+            return Response({'error': 'Payment not found'}, status=status.HTTP_404_NOT_FOUND)
+        if payment_check.contact_id != request.user.pk and not request.user.is_staff:
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
         result = spreedly_refund(int(payment_id), amount_cents)
         txn = result.get('transaction', {})
 
@@ -118,8 +126,10 @@ def refund_payment_view(request):
 def spreedly_webhook(request):
     """Handle Spreedly webhook/callback events.
 
-    Spreedly sends transaction lifecycle events. We verify and update
-    the corresponding Payment record.
+    Spreedly sends transaction lifecycle events. We verify by retrieving
+    the transaction from Spreedly's API using our access credentials,
+    rather than trusting the webhook body. This ensures the state change
+    is authentic regardless of who sent the request.
     """
     try:
         webhook_data = json.loads(request.body.decode('utf-8'))
@@ -129,23 +139,32 @@ def spreedly_webhook(request):
         if not txn_token:
             return JsonResponse({'error': 'No transaction token'}, status=400)
 
-        # Find payment by Spreedly transaction token
         try:
             payment = Payment.objects.get(gateway_transaction_id=txn_token)
         except Payment.DoesNotExist:
             logger.warning(f"Spreedly webhook: no payment for token {txn_token}")
             return JsonResponse({'status': 'ignored'})
 
-        state = txn.get('state', '')
+        # Verify by fetching the transaction from Spreedly's API.
+        # Do not trust the webhook body for state changes.
+        try:
+            from apps.transactions.services.payment.spreedly_gateway import SpreedlyService
+            svc = SpreedlyService()
+            verified_txn = svc.show_transaction(txn_token)
+            state = verified_txn.get('transaction', {}).get('state', '')
+        except Exception as verify_err:
+            logger.error(f"Spreedly webhook: could not verify transaction {txn_token}: {verify_err}")
+            return JsonResponse({'error': 'Verification failed'}, status=502)
+
         if state == 'succeeded' and payment.status != 'completed':
             payment.status = 'completed'
             from django.utils import timezone as tz
             payment.dt_processed = tz.now()
-            payment.add_audit_entry('webhook_confirmed', {'state': state, 'token': txn_token})
+            payment.add_audit_entry('webhook_confirmed', {'state': state, 'token': txn_token, 'verified': True})
             payment.save()
         elif state in ('failed', 'gateway_processing_failed'):
             payment.status = 'failed'
-            payment.gateway_response = {'message': txn.get('message', ''), 'state': state}
+            payment.gateway_response = {'message': verified_txn.get('transaction', {}).get('message', ''), 'state': state}
             payment.save()
 
         return JsonResponse({'status': 'ok'})

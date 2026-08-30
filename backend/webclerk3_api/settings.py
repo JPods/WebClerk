@@ -836,7 +836,7 @@ SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_SSL_REDIRECT = not DEBUG
-SECURE_REDIRECT_EXEMPT = [r'^wcapi/ai/diagnose/$', r'^wcapi/ai/device-status/$', r'^wcapi/health/$']
+SECURE_REDIRECT_EXEMPT = [r'^wcapi/ai/device-status/$', r'^wcapi/health/$']
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 X_FRAME_OPTIONS = 'DENY'
@@ -892,6 +892,7 @@ except Exception:
 STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
 STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
+SPREEDLY_WEBHOOK_SECRET = config('SPREEDLY_WEBHOOK_SECRET', default='')
 
 PAYPAL_CLIENT_ID = config('PAYPAL_CLIENT_ID', default='')
 PAYPAL_CLIENT_SECRET = config('PAYPAL_CLIENT_SECRET', default='')

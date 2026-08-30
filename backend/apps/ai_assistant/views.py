@@ -238,10 +238,8 @@ class DiagnoseView(APIView):
 
     POST body: {"action": "migrate" | "restart_celery" | "pull_model" | "reindex"}
     Runs the specified remediation and returns the result.
-
-    AllowAny because Andi calls this from localhost without auth.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, IsAdminUser]
 
     def get(self, request):
         checks = {}

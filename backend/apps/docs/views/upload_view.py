@@ -191,6 +191,12 @@ class DocumentUploadView(APIView):
             "purpose": purpose,
         }
 
+        # Quarantine: every new upload starts in quarantine
+        from apps.docs.services.document_sanitizer import (
+            default_quarantine, athena_required_for_installation, sanitize_document,
+        )
+        config_data["quarantine"] = default_quarantine(athena_required_for_installation())
+
         doc = Document.objects.create(
             name=filename,
             description=description,
@@ -207,11 +213,14 @@ class DocumentUploadView(APIView):
         doc.path["url"] = url
         doc.save(update_fields=["path"])
 
+        # Run sanitization immediately — strips active content
+        quarantine = sanitize_document(doc, file_path=storage["full"])
+
         geo_data = (metadata.get("address", {}).get("geo", {})) if metadata else {}
         payload = {
             "document_id": doc.id,
             "path": storage["key"],
-            "checksum": checksum,
+            "checksum": doc.checksum,
             "is_duplicate": False,
             "url": url,
             "name": doc.name,
@@ -222,6 +231,7 @@ class DocumentUploadView(APIView):
             "has_geo": bool(geo_data.get("lat")),
             "geo_lat": geo_data.get("lat"),
             "geo_lng": geo_data.get("lng"),
+            "quarantine": quarantine,
             "document": _serialize_document(doc),
         }
         return Response(payload, status=status.HTTP_201_CREATED)
@@ -235,6 +245,25 @@ class DocumentDownloadView(APIView):
         doc = Document.objects.filter(pk=document_id).first()
         if not doc:
             raise Http404("document not found")
+
+        # Row-level access: staff sees all; others only see their own or public docs
+        if not request.user.is_staff:
+            config = doc.config if isinstance(doc.config, dict) else {}
+            owner_id = config.get('owner_id') or config.get('parent_id')
+            security = getattr(doc, 'security_level', 0) or 0
+            confidential = getattr(doc, 'confidential', False)
+            if confidential or security > 0:
+                if str(owner_id) != str(request.user.pk):
+                    raise Http404("document not found")
+
+        # Quarantine gate — document must be sanitized (and Athena-cleared if required)
+        from apps.docs.services.document_sanitizer import is_downloadable
+        if not is_downloadable(doc):
+            q = (doc.config or {}).get("quarantine", {})
+            return Response(
+                {"error": "Document is in quarantine", "quarantine_status": q.get("status", "pending")},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         inline_bytes = _decode_inline_content(doc)
         if inline_bytes is not None:
@@ -260,6 +289,13 @@ class DocumentDeleteView(APIView):
         doc = Document.objects.filter(pk=document_id).first()
         if not doc:
             raise Http404("document not found")
+
+        # Only staff or the document owner can delete
+        if not request.user.is_staff:
+            config = doc.config if isinstance(doc.config, dict) else {}
+            owner_id = config.get('owner_id') or config.get('parent_id')
+            if str(owner_id) != str(request.user.pk):
+                return Response({'error': 'Permission denied'}, status=403)
 
         path = (doc.path or {}) if isinstance(doc.path, dict) else {}
         full_path = path.get("full")

@@ -264,7 +264,6 @@ const apiToActionEntry = (action: ApiActionItem): ActionEntry => {
     assigned_to: action.assigned_to,
     // Dependency fields
     depends_on_display: extractDependencyDisplay(action),
-    ida: action.ida,
   } as ActionEntry & {
     progress?: number;
     difficulty?: number;

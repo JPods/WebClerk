@@ -85,19 +85,45 @@ const SegaPartsViewer: React.FC<SegaPartsViewerProps> = ({
     }
   }, [mappingKey, propMappings]);
 
-  // Load SVG from URL
+  // Load SVG from URL — sanitize before insertion
   useEffect(() => {
+    const sanitizeSvg = (raw: string): string => {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(raw, 'image/svg+xml');
+      // Remove script elements
+      xmlDoc.querySelectorAll('script').forEach(el => el.remove());
+      // Remove foreignObject elements (can embed arbitrary HTML)
+      xmlDoc.querySelectorAll('foreignObject').forEach(el => el.remove());
+      // Remove event handler attributes from all elements
+      const allEls = xmlDoc.querySelectorAll('*');
+      allEls.forEach(el => {
+        const attrs = Array.from(el.attributes);
+        attrs.forEach(attr => {
+          if (attr.name.startsWith('on') || attr.name === 'href' && attr.value.startsWith('javascript:')) {
+            el.removeAttribute(attr.name);
+          }
+        });
+        // Remove xlink:href with javascript:
+        const xlink = el.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+        if (xlink && xlink.startsWith('javascript:')) {
+          el.removeAttributeNS('http://www.w3.org/1999/xlink', 'href');
+        }
+      });
+      const svgEl = xmlDoc.querySelector('svg');
+      return svgEl ? svgEl.outerHTML : '';
+    };
+
     if (svgUrl && svgContainerRef.current) {
       fetch(svgUrl)
         .then(r => r.text())
         .then(text => {
           if (svgContainerRef.current) {
-            svgContainerRef.current.innerHTML = text;
+            svgContainerRef.current.innerHTML = sanitizeSvg(text);
             setSvgLoaded(true);
           }
         });
     } else if (svgContent && svgContainerRef.current) {
-      svgContainerRef.current.innerHTML = svgContent;
+      svgContainerRef.current.innerHTML = sanitizeSvg(svgContent);
       setSvgLoaded(true);
     }
   }, [svgUrl, svgContent]);

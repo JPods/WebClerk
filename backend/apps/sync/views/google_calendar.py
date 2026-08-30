@@ -33,7 +33,7 @@ class GCAL_StartAuthView(APIView):
 
 
 class GCAL_OAuthCallbackView(APIView):
-    permission_classes = [permissions.AllowAny]  # Google will hit this without cookies; do your own CSRF/state checks upstream
+    permission_classes = [permissions.AllowAny]  # Google redirects here without cookies
 
     def get(self, request):
         conn_id = int(request.GET.get('connection_id') or 0)
@@ -42,6 +42,12 @@ class GCAL_OAuthCallbackView(APIView):
         if not conn_id or not code:
             return Response({'detail': 'Missing connection_id or code'}, status=400)
         conn = get_object_or_404(Connection, pk=conn_id)
+
+        # Validate OAuth state to prevent request confusion attacks.
+        # The state was set during authorization and stored on the Connection.
+        expected_state = (conn.config or {}).get('oauth_state', '')
+        if not expected_state or state != expected_state:
+            return Response({'detail': 'Invalid or missing OAuth state'}, status=403)
         try:
             token_info = exchange_code_for_tokens(conn, code)
             # Mask sensitive fields in the response; do not include id_token or secrets

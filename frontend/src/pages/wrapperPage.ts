@@ -1,12 +1,11 @@
-/* LastChecked: 2026-08-21 | WhereUsed: Router.tsx, protectedRoutesConfig.tsx | WhoCreated: Unknown */
+/* LastChecked: 2026-08-30 | WhereUsed: Router.tsx, protectedRoutesConfig.tsx | WhoCreated: Unknown */
+/* Heavy components (KanbanBoardPage, UnifiedGanttPage) removed — lazy-load directly */
 import NotFound from "./NotFoundPage";
 import SignIn from "./AuthPages/SignIn";
 import SignUp from "./AuthPages/SignUp";
 import UserProfiles from "./UserProfile";
 
-import KanbanBoardPage from "../apps/utils/kanban/KanbanBoardPage";
 import KanbanBoardDataPage from "../apps/utils/kanban/KanbanBoardDataPage";
-import UnifiedGanttPage from "../apps/utils/gantt/UnifiedGanttPage";
 import Placeholder from "./Placeholder";
 const NotionTrackerPage = () => Placeholder({ title: "Notion Tracker" });
 
@@ -16,7 +15,5 @@ export {
   NotFound,
   UserProfiles,
   NotionTrackerPage,
-  KanbanBoardPage,
   KanbanBoardDataPage,
-  UnifiedGanttPage,
 };
