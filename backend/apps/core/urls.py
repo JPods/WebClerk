@@ -35,7 +35,7 @@ from apps.core.views.image_view import ImageView
 from apps.core.views.template_views import ResolveTemplateView, TemplateFieldsView
 from apps.core.views.sample_data_view import SampleDataView
 from apps.core.views.parade_preview_view import ParadePreviewView, ParadeManifestView, ParadeFeedbackView
-from apps.core.views.setting_parade_view import SettingParadeManifestView, SettingParadePreviewView, SettingParadeFeedbackView
+from apps.core.views.setting_parade import SettingParadeManifestView, SettingParadePreviewView, SettingParadeFeedbackView
 from apps.core.views.system_dispatch import SystemDispatchView
 from apps.core.views.init_bundle_view import InitBundleView
 from apps.core.views.register_installation_view import RegisterInstallationView, SubscriptionView
