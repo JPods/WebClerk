@@ -1,0 +1,107 @@
+// WC3 Project Views — Gantt/Kanban/Touch/Detail/Share
+// How projects, actions, and touches flow through views
+// Render: dot -Tsvg wc3-project-views.enriched.dot -o wc3-project-views.enriched.svg
+
+// CodeMap revision: 1 — 2026-08-26
+
+digraph project_views {
+    // ── CodeMap Standard Style ──
+    size="10,7.5"
+    ratio="compress"
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+        margin="0.12,0.06"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=TB
+    compound=true
+    label="WC3 — Project Views\nGantt · Kanban · List · Detail · Share"
+    labelloc=t
+
+    // ─── Data Layer ───
+    subgraph cluster_data {
+        label="Data Layer"
+        style="filled,rounded" fillcolor="#EBF5FB" color="#AED6F1"
+        fontsize=10
+
+        project [label="Project\nname, status, dates\nrefs.links.contacts[authority]" fillcolor="#D6EAF8"]
+        action [label="Action\nassigned_to, priority\nstatus, dates, %complete" fillcolor="#D6EAF8"]
+        touch [label="Touch\nchannel, direction\nsubject, contact" fillcolor="#D6EAF8"]
+        document [label="Document\nphoto/video/file\nattached to action" fillcolor="#D6EAF8"]
+
+        project -> action [label="has many"]
+        action -> touch [label="has many"]
+        action -> document [label="has many"]
+    }
+
+    // ─── Views ───
+    subgraph cluster_views {
+        label="Views"
+        style="filled,rounded" fillcolor="#E8F8F5" color="#A3E4D7"
+        fontsize=10
+
+        gantt [label="Gantt Chart\ntimeline bars\npriority/status/% encoding\nzoom control" fillcolor="#ABEBC6"]
+        kanban [label="Kanban Board\ncolumns by status\ndrag to change" fillcolor="#ABEBC6"]
+        list [label="db.list\nsearch box (98%+)\nquery builder (power)" fillcolor="#ABEBC6"]
+    }
+
+    // ─── Interactions ───
+    subgraph cluster_interact {
+        label="Interactions"
+        style="filled,rounded" fillcolor="#FEF9E7" color="#F9E79F"
+        fontsize=10
+
+        detail [label="Action Detail\nfloating window\nedit fields, save" fillcolor="#FCF3CF"]
+        touch_badge [label="Touch Badge\ncount in title bar\nclick → touch list" fillcolor="#FCF3CF"]
+        file_upload [label="Photo/Video/File\nupload panel" fillcolor="#FCF3CF"]
+        share [label="Share\nmanage contacts\nread_only / read_write\nadd_to_comment" fillcolor="#FCF3CF"]
+    }
+
+    // ─── Data → Views ───
+    project -> gantt [label="?project=id" style=bold]
+    project -> kanban [label="?project=id" style=bold]
+    action -> list [label="model=action"]
+    action -> gantt [label="tasks" style=dotted]
+    action -> kanban [label="cards" style=dotted]
+
+    // ─── Views → Interactions ───
+    gantt -> detail [label="double-click bar"]
+    kanban -> detail [label="double-click card"]
+    list -> detail [label="double-click row"]
+    gantt -> share [label="people icon\n(single project)"]
+
+    // ─── Detail → Data ───
+    detail -> touch_badge
+    detail -> file_upload
+    touch_badge -> touch [label="lists touches\nfor this action" style=dashed]
+    file_upload -> document [label="creates\nDocument record" style=dashed]
+
+    // ─── External Access ───
+    external [label="External Contact\n(customer, partner)\nsigns into project" fillcolor="#FADBD8" shape=ellipse]
+    external -> share [label="authority\ncontrols access"]
+    share -> gantt [label="read_only\nor read_write" style=dashed]
+    share -> kanban [label="read_only\nor read_write" style=dashed]
+}

@@ -1,0 +1,92 @@
+// WC3 Query Builder — Search box (98%+) vs query builder for power users
+// Render: dot -Tsvg wc3-query-builder.enriched.dot -o wc3-query-builder.enriched.svg
+
+// CodeMap revision: 1 — 2026-08-26
+
+digraph query_builder {
+    // ── CodeMap Standard Style ──
+    size="7.5,10"
+    ratio="compress"
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+        margin="0.12,0.06"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=TB
+    label="WC3 — Query Builder\nSearch box (98%+) vs query builder for precision"
+    labelloc=t
+
+    // Entry
+    user [label="User needs\nto find records" fillcolor="#D4E6F1"]
+
+    // Tier 1 — Search Box
+    search_box [label="Search Box\n(keyword search)\n98%+ of use" fillcolor="#ABEBC6"]
+    found_simple [label="Records found" fillcolor="#D5F5E3" shape=ellipse]
+
+    // Tier 2 — Query Builder
+    need_more [label="Need more\nprecision?" fillcolor="#FCF3CF" shape=diamond]
+    filter_btn [label="Click Filter\nin toolbar" fillcolor="#FCF3CF"]
+    query_panel [label="Query Builder Panel\nfield → type → operator → value" fillcolor="#AED6F1"]
+
+    // Type override
+    type_wrong [label="Type wrong?" fillcolor="#FADBD8" shape=diamond]
+    change_type [label="Change Type dropdown\nText / Number / Date\nBoolean / JSON" fillcolor="#FADBD8"]
+
+    // Actions
+    add_rule [label="+ Add rule\nAND / OR" fillcolor="#AED6F1"]
+    execute [label="Execute" fillcolor="#ABEBC6"]
+    results [label="Filtered results" fillcolor="#D5F5E3" shape=ellipse]
+
+    // Save/Load
+    save [label="Save search\n(Setting record)" fillcolor="#E8DAEF"]
+    load [label="Load saved\nfrom dropdown" fillcolor="#E8DAEF"]
+
+    // Copy/Paste
+    copy [label="Copy → JSON\non clipboard" fillcolor="#F5CBA7"]
+    edit_ext [label="Edit externally\n(clean up, share)" fillcolor="#F5CBA7"]
+    paste [label="Paste back\ninto builder" fillcolor="#F5CBA7"]
+
+    // Edges
+    user -> search_box
+    search_box -> found_simple
+    search_box -> need_more [label="not enough"]
+    need_more -> filter_btn [label="yes"]
+    need_more -> found_simple [label="no"]
+    filter_btn -> query_panel
+    query_panel -> type_wrong
+    type_wrong -> change_type [label="yes"]
+    type_wrong -> add_rule [label="no"]
+    change_type -> add_rule
+    add_rule -> execute
+    execute -> results
+
+    query_panel -> save [style=dashed]
+    load -> query_panel [style=dashed]
+    query_panel -> copy [style=dashed]
+    copy -> edit_ext [style=dashed]
+    edit_ext -> paste [style=dashed]
+    paste -> query_panel [style=dashed]
+}

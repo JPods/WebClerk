@@ -1,0 +1,124 @@
+// WC3 Serial Actions — config.actions[] and serial_trends Document
+// Render: dot -Tpdf wc3-serial-actions.dot -o wc3-serial-actions.pdf
+
+// CodeMap revision: 1 — 2026-08-11
+
+digraph wc3_serial_actions {
+    size="10.0,7.5"
+    ratio="compress"
+
+
+
+    // ── CodeMap Standard Style ──
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=TB
+    label="WC3 — Serial config.actions[] and serial_trends Document\nSelf-contained history + item-level trend consolidation"
+    labelloc=t
+
+    // --- Serial record ---
+    serial [label="Serial Record\n\nserial_ida\nstatus\nwarranty\nsite\nconfig {...}" shape=box fillcolor="#F9E79F"]
+
+    // --- config.actions[] ---
+    subgraph cluster_config {
+        label="serial.config"
+        style=filled fillcolor="#FDFEFE" color="#AEB6BF"
+
+        context [label="Transaction Context\n\ncustomer_id, vendor_id\ninvoice_id, order_id\ncost, price, discount\ndt_received, dt_shipped" shape=box fillcolor="#FCF3CF" fontsize=9]
+
+        actions [label="actions[]\n\n{action, dt, status_before,\nstatus_after, doc_type, doc_id,\ncost, price, notes, by}\n\nSelf-contained history\nTravels with the serial" shape=box fillcolor="#D4E6F1" fontsize=9]
+    }
+
+    // --- Action sources ---
+    subgraph cluster_sources {
+        label="Action Sources"
+        style=filled fillcolor="#FDEBD0" color="#E59866"
+
+        lifecycle [label="Lifecycle Actions\n(13 standard)\n\nReceive, Issue, Return\nReserve, Scrap, etc." shape=box fillcolor="#F5CBA7"]
+        user_actions [label="User-Defined Actions\n\nInspections, Defects\nRepairs, Attributes\nCertifications" shape=box fillcolor="#F5CBA7"]
+        r25 [label="R25 Panel\nSerialActionPanel.tsx\n\nAction selector\nDoc reference\nNotes + Cost/Price" shape=box fillcolor="#AED6F1"]
+    }
+
+    // --- Setting ---
+    setting [label="Setting ida='serial'\n\nconfig.serial_actions[]\n13 standard + user-defined\n\nEach defines:\nstatus_result, doc_type\ncaptures_cost/price\nis_reversible" shape=note fillcolor="#F2F3F4"]
+
+    // --- Item ---
+    item [label="Item\n(is_serialized=True)\n\nitem.serials.all()" shape=box fillcolor="#E8DAEF" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/products/models/item.py:196" target="_blank" tooltip="Product with quantity JSON tracking all inventory buckets.\nModel: apps/products/models/item.py:196\nFunctions:
+  Item.quantity @ apps/products/models/item.py:238 (JSONField with on_hand, allocated, available, on_p, on_so, on_in, on_po, on_wo, on_r)"]
+
+    // --- All serials for item ---
+    serials_group [label="All Serials\nfor this Item\n\n47 units\neach with config.actions[]" shape=box fillcolor="#F9E79F"]
+
+    // --- Trend consolidation ---
+    consolidate [label="consolidate_serial_trends()\n\nQuery all serials for item\nAggregate config.actions[]\nDefects, inspections,\nwarranty, lifecycle stats" shape=octagon fillcolor="#F5CBA7"]
+
+    // --- serial_trends Document ---
+    trends_doc [label="Document\npurpose='serial_trends'\n\ndata: {\n  defects: {total, by_type, rate}\n  warranty: {active, claims, rate}\n  inspections: {total, pass_rate}\n  lifecycle: {return_rate, scrap_rate}\n  cost: {avg_margin}\n}\nsequence: 0, 1, 2..." shape=box fillcolor="#ABEBC6"]
+
+    // --- Alice ---
+    alice [label="Alice\n\nDefect rate alerts\nWarranty claim patterns\nReturn velocity\nInspection gaps" shape=box fillcolor="#AED6F1"]
+
+    // --- Triggers ---
+    trigger_action [label="Action\nsubmitted?" shape=diamond fillcolor="#FADBD8"]
+    trigger_nightly [label="Nightly\nbatch" shape=diamond fillcolor="#FADBD8"]
+
+    // --- SerialLog archive ---
+    archive [label="SerialLog\n(read-only archive)\n\nExisting data preserved\nNo new writes" shape=box fillcolor="#F2F3F4" style="filled,dashed"]
+
+    // --- Edges: Serial structure ---
+    serial -> context
+    serial -> actions
+    serial -> archive [label="legacy\n(read-only)" style=dashed]
+
+    // --- Edges: Action input ---
+    lifecycle -> actions [label="append"]
+    user_actions -> actions [label="append"]
+    r25 -> actions [label="submit\nPATCH /api/serial/{id}/"]
+    setting -> r25 [label="action\ndefinitions"]
+    setting -> lifecycle [label="action\ndefinitions"]
+
+    // --- Edges: Item to serials ---
+    item -> serials_group [label="item.serials.all()"]
+
+    // --- Edges: Trend consolidation ---
+    serials_group -> consolidate [label="query all\nconfig.actions[]"]
+    consolidate -> trends_doc [label="create/update"]
+    item -> trends_doc [label="auto-create when\nis_serialized=True" style=dashed]
+
+    // --- Edges: Triggers ---
+    trigger_action -> consolidate [label="async\nCelery"]
+    trigger_nightly -> consolidate [label="batch\nall items"]
+
+    // --- Edges: Alice monitors ---
+    trends_doc -> alice [label="pattern\nrecognition" style=dashed]
+    alice -> item [label="creates Action\nwhen pattern\nemerges" style=dashed]
+
+    // --- Layout ---
+    {rank=same; lifecycle; user_actions; r25}
+    {rank=same; trigger_action; trigger_nightly}
+}

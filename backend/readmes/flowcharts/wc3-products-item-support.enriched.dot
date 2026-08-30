@@ -1,0 +1,181 @@
+// WC3 Products App — Item Supporting Structures
+// 19 models, 13 service modules, relationships and data flow
+// Render: dot -Tpdf wc3-products-item-support.dot -o wc3-products-item-support.pdf
+
+// CodeMap revision: 1 — 2026-08-11
+
+digraph wc3_products {
+    size="10.0,7.5"
+    ratio="compress"
+
+
+
+    // ── CodeMap Standard Style ──
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=TB
+    label="WC3 — Products App: Item Supporting Structures\n19 models · 13 service modules · ~80 functions\nRed borders = missing service functions"
+    labelloc=t
+
+    // ── Item (center) ──
+    item [label="Item\n\nsku, name, kind, uom\nprice (JSONField)\ncost (JSONField)\nquantity (JSONField)\nflags, tax_code\nspecification_id\nvendor → OrgBase\nmanufacturer → OrgBase\nmargin_velocity\nmargin_pct, annual_turns" shape=box fillcolor="#D4E6F1" penwidth=2 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/products/models/item.py:196" target="_blank" tooltip="Product with quantity JSON tracking all inventory buckets.\nModel: apps/products/models/item.py:196\nFunctions:
+  Item.quantity @ apps/products/models/item.py:238 (JSONField with on_hand, allocated, available, on_p, on_so, on_in, on_po, on_wo, on_r)"]
+
+    // ── Pricing Cluster ──
+    subgraph cluster_pricing {
+        label="Pricing"
+        style=filled fillcolor="#FCF3CF" color="#F9E79F"
+
+        catalog [label="Catalog\n\nname, code, currency\ndt_effective_start/end\norgbase, customer\nmanufacturer, rep\npriority, applies_to\nis_universal_pct\nmargin_floor" shape=box fillcolor="#FDFEFE" fontsize=8]
+        catalog_line [label="CatalogLine\n\ncatalog → Catalog\nitem → Item\nunit_base_price\nunit_cost\nmargin_floor\nqty_discount_tiers\n(JSONField)" shape=box fillcolor="#FDFEFE" fontsize=8]
+        org_item [label="OrgItem\n\nitem → Item\norgbase → OrgBase\ncatalog → Catalog\navailability\ninventory_frequency\ndata, metrics\n(JSONField)" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── Inventory Cluster ──
+    subgraph cluster_inventory {
+        label="Inventory"
+        style=filled fillcolor="#D5F5E3" color="#82E0AA"
+
+        warehouse [label="Warehouse\n\nname, code, site_code\nlocation (JSONField)\ncount (JSONField)\npriority" shape=box fillcolor="#FDFEFE" fontsize=8]
+        inv_layer [label="InventoryLayer\n\nitem → Item\nwarehouse → Warehouse\nsource (JSONField)\nquantity (JSONField)\ncost (JSONField)\nlot, serial_numbers\nsource_doc_type/id\nis_locked, dt_locked" shape=box fillcolor="#FDFEFE" fontsize=8 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/products/models/inventory_layer.py" target="_blank" tooltip="Inventory costing layer — tracks on_hand by receipt cost.\nModel: apps/products/models/inventory_layer.py"]
+        inv_movement [label="InventoryMovement\n\nwarehouse → Warehouse\ninventory_layer → Layer\nmovement_type\nqty, dt_recorded\nreference (JSONField)" shape=box fillcolor="#FDFEFE" fontsize=8]
+        pending_adj [label="PendingInventory\nAdjustment\n\ninventory_layer → Layer\nadjustment_type\nqty_adjustment\nreason, dt_pending" shape=box fillcolor="#FDFEFE" fontsize=8]
+        inv_reservation [label="InventoryReservation\n\nitem → Item\nwarehouse → Warehouse\nlayer → Layer\nqty, state\ndt_expires\ndt_committed\ndt_released\ncontext, reason" shape=box fillcolor="#FDFEFE" fontsize=8]
+        inv_check [label="InventoryCheck\n\norgbase, catalog\nuser, dt_performed\nstatus, notes" shape=box fillcolor="#FDFEFE" fontsize=8]
+        inv_check_line [label="InventoryCheckLine\n\ninv_check → Check\norgitem → OrgItem\nplanned_qty\ncounted_qty\nvariance_qty" shape=box fillcolor="#FDFEFE" fontsize=8]
+        inv_metrics [label="InventoryMetrics\nSnapshot\n\nmetrics (JSONField)" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── BOM Cluster ──
+    subgraph cluster_bom {
+        label="Bill of Materials"
+        style=filled fillcolor="#E8DAEF" color="#D2B4DE"
+
+        bom [label="BillOfMaterial\n\nparent_item → Item\nchild_item → Item\nquantity\nscrap_factor\nyield_pct\nsequence\nrevision\nis_alternate\nis_optional\ncost_snapshot\ndt_effective_from/to" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── Serial Tracking ──
+    subgraph cluster_serial {
+        label="Serial Tracking"
+        style=filled fillcolor="#FADBD8" color="#F5B7B1"
+
+        serial [label="Serial\n\nitem → Item\nserial_ida\nmodel_ida\nstatus\nwarranty (JSONField)\nsite (JSONField)\nlayer → Layer\nqr_code" shape=box fillcolor="#FDFEFE" fontsize=8]
+        serial_log [label="SerialLog\n\nserial → Serial\naction, dt\nconfig (JSONField)" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── Variants ──
+    subgraph cluster_variants {
+        label="Variants"
+        style=filled fillcolor="#EBF5FB" color="#AED6F1"
+
+        variant [label="Variant\n\nitem → Item (1:1)\nparent_item → Item\ncanonical_key\nattrs (JSONField)\nset_uuid\nvariant_uuid" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── Cross-Reference ──
+    subgraph cluster_xref {
+        label="Cross-Reference"
+        style=filled fillcolor="#FEF9E7" color="#F9E79F"
+
+        xref [label="ItemXRef\n\nitem → Item\nsource, source_id\nexternal_sku\nexternal_uuid\ncost (JSONField)\nis_preferred" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── Specification ──
+    spec [label="Specification\n\nitem → Item\nname, unit\ndetails (JSONField)\ndocs (JSONField)\napplies_to (JSONField)" shape=box fillcolor="#FCF3CF"]
+
+    // ── Service ──
+    service [label="Service\n\nitem → Item\ncategory, display\nbilling (JSONField)\nprocess (JSONField)\ntravel (JSONField)\ndefault_duration_min" shape=box fillcolor="#FCF3CF"]
+
+    // ── Usage ──
+    usage [label="ItemUsage\n\nitem → Item\nyear, month\nmetrics (JSONField)" shape=box fillcolor="#FCF3CF"]
+
+    // ── Delivery ──
+    subgraph cluster_delivery {
+        label="Delivery / Flow"
+        style=filled fillcolor="#FEF9E7" color="#F9E79F"
+
+        delivery_visit [label="DeliveryVisit\n\norgbase, customer\ncatalog\ndt_scheduled/arrived\n/completed\nstatus, notes" shape=box fillcolor="#FDFEFE" fontsize=8]
+        delivery_line [label="DeliveryLine\n\nvisit → Visit\norgitem → OrgItem\nplanned_qty\nactual_qty\nstatus" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── MISSING (red border) ──
+    uom_conv [label="UOM Conversion\nService\n\n⚠ NOT BUILT\nkg↔lb, CS↔EA\nconversion factors" shape=box fillcolor="#FDFEFE" color="red" penwidth=2 fontsize=8]
+    reorder [label="Reorder Point\nCalculation\n\n⚠ NOT BUILT\ndemand + safety stock\n→ reorder qty" shape=box fillcolor="#FDFEFE" color="red" penwidth=2 fontsize=8]
+    lot_track [label="Lot Tracking\nModel\n\n⚠ NOT BUILT\nlot_number, expiry\nquantity, trace" shape=box fillcolor="#FDFEFE" color="red" penwidth=2 fontsize=8]
+    multi_curr [label="Multi-Currency\nConversion\n\n⚠ PHASE 5\nexchange_rate stored\nno conversion logic" shape=box fillcolor="#FDFEFE" color="red" penwidth=2 fontsize=8]
+    tax_juris [label="Tax Jurisdiction\nParams\n\n⚠ STUB\nlocalized handling\nfood/clothing/digital" shape=box fillcolor="#FDFEFE" color="red" penwidth=2 fontsize=8]
+
+    // ═══ EDGES ═══
+
+    // Item → Pricing
+    item -> catalog_line [label="priced in"]
+    catalog -> catalog_line
+    item -> org_item [label="per vendor/\ncustomer"]
+
+    // Item → Inventory
+    item -> inv_layer [label="stocked at"]
+    warehouse -> inv_layer
+    inv_layer -> inv_movement [label="movements"]
+    inv_layer -> pending_adj [label="pending\nadjustments"]
+    item -> inv_reservation [label="reserved"]
+    warehouse -> inv_reservation
+    inv_layer -> inv_reservation
+    org_item -> inv_check_line
+    inv_check -> inv_check_line
+
+    // Item → BOM
+    item -> bom [label="parent" dir=back]
+    item -> bom [label="child"]
+
+    // Item → Serial
+    item -> serial
+    serial -> serial_log
+    inv_layer -> serial [style=dashed label="layer ref"]
+
+    // Item → Variant
+    item -> variant [label="1:1"]
+    item -> variant [label="parent" style=dashed]
+
+    // Item → XRef
+    item -> xref
+
+    // Item → Other
+    item -> spec
+    item -> service
+    item -> usage
+
+    // Delivery
+    org_item -> delivery_line
+    delivery_visit -> delivery_line
+
+    // Missing connections
+    item -> uom_conv [style=dashed color=red label="needs"]
+    item -> reorder [style=dashed color=red label="needs"]
+    inv_layer -> lot_track [style=dashed color=red label="needs"]
+    inv_layer -> multi_curr [style=dashed color=red label="Phase 5"]
+    item -> tax_juris [style=dashed color=red label="stub"]
+}

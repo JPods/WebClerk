@@ -1,0 +1,114 @@
+// WC3 Connection: Accounting Export — GL journal entries to external accounting programs
+// Render: dot -Tpdf wc3-conn-accounting.dot -o wc3-conn-accounting.pdf
+
+// CodeMap revision: 1 — 2026-08-11
+
+digraph wc3_conn_accounting {
+    size="7.5,10.0"
+    ratio="compress"
+
+
+
+    // ── CodeMap Standard Style ──
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=TB
+    label="WC3 Connection — Accounting Export Flow"
+    labelloc=t
+
+    // ── WC3 Production Data ──
+    subgraph cluster_wc3 {
+        label="WC3 Production Data"
+        style=filled
+        fillcolor="#F8F9F9"
+        color="#BDC3C7"
+
+        sales [label="Sales\n(Invoice model)" shape=box fillcolor="#FCF3CF"]
+        payments [label="Payments\n(Payment model)" shape=box fillcolor="#FCF3CF"]
+        inventory [label="Inventory\n(Item model)" shape=box fillcolor="#FCF3CF"]
+    }
+
+    // ── GL Journal Entries ──
+    sales_jrnl [label="Sales Journal\nDebit AR(1200)\nCredit Revenue(4000)" shape=box fillcolor="#D5F5E3"]
+    cash_jrnl [label="Cash Journal\nDebit Cash(1000)\nCredit AR(1200)" shape=box fillcolor="#D5F5E3"]
+    purch_jrnl [label="Purchase Journal\nDebit Inventory(1300)\nCredit AP(2000)" shape=box fillcolor="#D5F5E3"]
+
+    gl [label="General Ledger\n(JournalEntry)\n\nDebits = Credits\nDouble-post guard" shape=box fillcolor="#ABEBC6"]
+
+    // ── Export to Accounting ──
+    export [label="Export\nGL Entries\n(CSV / API)" shape=octagon fillcolor="#F5CBA7"]
+
+    subgraph cluster_accounting {
+        label="External Accounting Program"
+        style=filled
+        fillcolor="#F8F9F9"
+        color="#BDC3C7"
+
+        quickbooks [label="QuickBooks" shape=box fillcolor="#E8DAEF"]
+        xero [label="Xero" shape=box fillcolor="#E8DAEF"]
+        other_acct [label="Other\n(any GL consumer)" shape=box fillcolor="#E8DAEF"]
+    }
+
+    // ── Return path: vendor bills ──
+    vendor_bills [label="Purchase Receipts\nVendor Bills\n(user uploads)" shape=box fillcolor="#D4E6F1"]
+    import_proc [label="Import\nVendor Data" shape=octagon fillcolor="#F5CBA7"]
+    landed_cost [label="Landed Cost\nUpdate\n(Item.cost)" shape=box fillcolor="#ABEBC6"]
+
+    // ── Alice ──
+    alice [label="Alice\nMonitors\nSync Drift" shape=box fillcolor="#AED6F1"]
+
+    // ── Hard boundary ──
+    boundary [label="HARD BOUNDARY\n\nWC3 produces GL entries.\nAccounting program consumes.\nWC3 does NOT do checkbooks,\npayables, P&L, or balance sheets." shape=note fillcolor="#FADBD8"]
+
+    // ── Edges: forward flow ──
+    sales -> sales_jrnl [label="post"]
+    payments -> cash_jrnl [label="post"]
+    inventory -> purch_jrnl [label="post"]
+
+    sales_jrnl -> gl
+    cash_jrnl -> gl
+    purch_jrnl -> gl
+
+    gl -> export [label="balanced\nentries"]
+
+    export -> quickbooks
+    export -> xero
+    export -> other_acct
+
+    // ── Edges: return path ──
+    vendor_bills -> import_proc [label="manual\nupload"]
+    import_proc -> landed_cost [label="update\ncost basis"]
+    landed_cost -> inventory [style=dashed label="cost\nadjustment"]
+
+    // ── Alice monitoring ──
+    alice -> export [style=dashed label="monitor\ndrift"]
+    alice -> import_proc [style=dashed label="flag\nmismatches"]
+
+    // ── Boundary note ──
+    gl -> boundary [style=invis]
+}

@@ -1,0 +1,153 @@
+// WC3 Customer-Centered Sales — from CustomerCenteredSales.graffle
+// The commerce flow from the CUSTOMER's perspective
+// Render: dot -Tpdf wc3-customer-centered-sales.dot -o wc3-customer-centered-sales.pdf
+
+// CodeMap revision: 1 — 2026-08-11
+
+digraph wc3_customer_centered {
+    size="10.0,7.5"
+    ratio="compress"
+
+
+
+    // ── CodeMap Standard Style ──
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=LR
+    label="WC3 — Customer-Centered Sales\nThe commerce flow from the customer's perspective"
+    labelloc=t
+
+    // Sales effort
+    sales [label="Sales Effort\nRelationship\nwith Customer" shape=box fillcolor="#82E0AA"]
+
+    // Customer cloud
+    cloud [label="Customer's\nCloud of\nOptions" shape=ellipse fillcolor="#FCF3CF" fontsize=12 width=2.5 height=1.5]
+
+    // Competitors
+    competitors [label="Competitors" shape=box fillcolor="#E74C3C" fontcolor=white fontsize=9 style="filled,bold"]
+
+    // Other use of funds
+    other [label="Other\nUse\nof Funds" shape=box fillcolor="#F5B7B1" fontsize=9]
+
+    // Proposal
+    proposal [label="Proposal" shape=box fillcolor="#82E0AA" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/proposal.py" target="_blank" tooltip="Sales proposal — forecast. on_p tracks weighted probability.\nModel: apps/transactions/models/proposal.py\nFunctions:
+  transfer_proposal_to_order @ apps/transactions/services/proposal_to_order.py:219 (converts proposal to order)\nPending deltas: on_p: +qty_x_prob"]
+
+    // Requests & Catalogs (supplier side)
+    subgraph cluster_requests {
+        label="Requests and Catalogs"
+        style=filled fillcolor="#EBF5FB" color="#AED6F1"
+        req_carpenters [label="Carpenters" shape=box fillcolor="#D6EAF8" fontsize=8]
+        req_mfg [label="Manufacturers" shape=box fillcolor="#D6EAF8" fontsize=8]
+        req_masons [label="Masons" shape=box fillcolor="#D6EAF8" fontsize=8]
+        req_bricks [label="Bricks" shape=box fillcolor="#D6EAF8" fontsize=8]
+        req_etc [label="Etc..." shape=box fillcolor="#D6EAF8" fontsize=8]
+    }
+
+    // Order
+    order [label="Order" shape=box fillcolor="#82E0AA" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/order.py" target="_blank" tooltip="Sales order — customer commitment. Creates +on_so and -on_p pending records.\nModel: apps/transactions/models/order.py\nFunctions:
+  transfer_proposal_to_order @ apps/transactions/services/proposal_to_order.py:219 (creates order from proposal)
+  _create_transfer_pending_records @ apps/transactions/services/proposal_to_order.py:131 (pending records for +on_so, -on_p)\nPending deltas: on_so: +qty, on_p: -qty"]
+
+    // Purchase
+    purchase [label="Purchase" shape=box fillcolor="#82E0AA" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/purchase.py" target="_blank" tooltip="Purchase order to vendor. GAP: +on_po pending record is NOT created.\nModel: apps/transactions/models/purchase.py\nFunctions:
+  transfer_order_to_purchase @ apps/transactions/services/order_to_purchase.py:14 (creates PO from order)
+  transfer_proposal_to_purchase @ apps/transactions/services/proposal_to_purchase.py:13 (creates PO from proposal)\nPending deltas: on_po: +qty (GAP: not implemented — no Pending.objects.create)"]
+
+    // Purchases (vendor side)
+    subgraph cluster_purchases {
+        label="Purchases"
+        style=filled fillcolor="#EBF5FB" color="#AED6F1"
+        pur_carpenters [label="Carpenters" shape=box fillcolor="#D6EAF8" fontsize=8]
+        pur_mfg [label="Manufacturers" shape=box fillcolor="#D6EAF8" fontsize=8]
+        pur_masons [label="Masons" shape=box fillcolor="#D6EAF8" fontsize=8]
+        pur_bricks [label="Bricks" shape=box fillcolor="#D6EAF8" fontsize=8]
+        pur_etc [label="Etc..." shape=box fillcolor="#D6EAF8" fontsize=8]
+    }
+
+    // WorkOrders
+    workorders [label="Installation\nWorkOrders" shape=box fillcolor="#82E0AA"]
+
+    // Invoice
+    invoice [label="Invoice" shape=box fillcolor="#82E0AA" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/invoice.py" target="_blank" tooltip="Invoice — shipment event. Financial event triggers GL and inventory movement.\nModel: apps/transactions/models/invoice.py\nFunctions:
+  transfer_order_to_invoice @ apps/transactions/services/order_to_invoice.py:16 (creates invoice from order)
+  Pending.objects.create @ apps/transactions/services/order_to_invoice.py:332 (-on_hand, -on_so, +on_in)\nPending deltas: on_hand: -qty, on_so: -qty, on_in: +qty\nGL: AR debit, Revenue credit, Tax credit, COGS debit, Inventory credit, Commission"]
+
+    // Receipts
+    receipts [label="Receipts" shape=box fillcolor="#AED6F1" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/receipt.py" target="_blank" tooltip="Vendor shipping receipts.\nModel: apps/transactions/models/receipt.py"]
+
+    // Accounting
+    accounting [label="Accounting" shape=box fillcolor="#AED6F1"]
+
+    // Payments
+    payments [label="Payments" shape=box fillcolor="#82E0AA"]
+
+    // ── Edges ──
+
+    // Sales → Cloud → Proposal/Order
+    sales -> cloud
+    sales -> proposal
+    cloud -> proposal
+    cloud -> order
+    cloud -> workorders
+
+    // Competition
+    competitors -> cloud [style=dashed color="#E74C3C"]
+    other -> cloud [style=dashed color="#E74C3C"]
+
+    // Proposal → Requests & Catalogs
+    proposal -> req_carpenters
+    proposal -> req_mfg
+    proposal -> req_masons
+    proposal -> req_bricks
+    proposal -> req_etc
+
+    // Proposal ↔ Order
+    proposal -> order
+
+    // Order → Purchase
+    order -> purchase
+    order -> workorders
+
+    // Purchase → Vendors
+    purchase -> pur_carpenters
+    purchase -> pur_mfg
+    purchase -> pur_masons
+    purchase -> pur_bricks
+    purchase -> pur_etc
+
+    // Order → Invoice → Payments
+    order -> invoice
+    purchase -> invoice [style=dashed]
+    invoice -> payments
+
+    // WorkOrders → Receipts → Accounting
+    workorders -> receipts
+    receipts -> accounting
+    accounting -> invoice [style=dashed dir=back]
+}

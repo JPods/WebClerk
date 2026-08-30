@@ -1,0 +1,139 @@
+// WC3 Document Library Flow — file upload, local storage, secure cloud transfer
+// Alice owns library management via Celery tasks
+// Render: dot -Tpdf wc3-document-library.dot -o wc3-document-library.pdf
+
+// CodeMap revision: 1 — 2026-08-11
+
+digraph wc3_document_library {
+    size="7.5,10.0"
+    ratio="compress"
+
+
+
+    // ── CodeMap Standard Style ──
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=TB
+    label="WC3 — Document Library Flow\n(upload → local → secure cloud transfer)\nAlice owns library management via Celery"
+    labelloc=t
+
+    // ── Upload Sources ──
+    subgraph cluster_sources {
+        label="Upload Sources"
+        style=filled fillcolor="#EBF5FB" color="#AED6F1"
+        photo [label="Photo\n(JPEG, PNG, HEIC)" shape=box fillcolor="#FDFEFE" fontsize=8]
+        video [label="Video\n(MP4, MOV)" shape=box fillcolor="#FDFEFE" fontsize=8]
+        pdf [label="PDF\nDocument" shape=box fillcolor="#FDFEFE" fontsize=8]
+        other [label="Other Files\n(CSV, XLSX, etc.)" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── Upload Endpoint ──
+    upload [label="POST /wcapi/upload/\n\nMultiPart form\nfile + model_name\n+ parent_id + purpose\n+ geo + address" shape=box fillcolor="#D4E6F1" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/docs/views_upload.py:1" target="_blank" tooltip="File upload pipeline — checksum, inline encode, EXIF extract, virus scan, create Document.\nService: apps/docs/views_upload.py\nFunctions:
+  upload_view @ apps/docs/views_upload.py:46 (inline encoding: zlib+base64 for small files)
+  checksum computation @ apps/docs/views_upload.py:73 (SHA256 dedup check)"]
+
+    // ── Immediate Processing ──
+    checksum [label="SHA256\nChecksum" shape=octagon fillcolor="#F5CBA7"]
+    dedup_check [label="Duplicate?" shape=diamond fillcolor="#FADBD8"]
+    existing [label="Return existing\nDocument record\nis_duplicate=true" shape=box fillcolor="#D5F5E3"]
+
+    // ── Document Record ──
+    document [label="Document Record\n\nname, slug, mime_type\nsize_bytes, checksum\npath (JSONField)\nstatus=uploaded\nconfidential level" shape=box fillcolor="#FCF3CF" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/docs/models/document.py:22" target="_blank" tooltip="File storage — images, videos, PDFs. Inline-encoded in config or external path. EXIF extraction, virus scan.\nModel: apps/docs/models/document.py:22\nFunctions:
+  Document.increment_access @ apps/docs/models/document.py:76 (atomic access counter + history)"]
+
+    // ── Local Storage ──
+    local_store [label="Local Storage\n.local/uploads/document/\nYYYY/MM/uuid.ext\n\nSmall files: inline\n(zlib+base64 in config)\nLarge files: filesystem" shape=box fillcolor="#FCF3CF"]
+
+    // ── Parent Linkage ──
+    subgraph cluster_parents {
+        label="Parent Models (via model_name + parent_id)"
+        style=filled fillcolor="#FEF9E7" color="#F9E79F"
+        order_p [label="Order" shape=box fillcolor="#FDFEFE" fontsize=8]
+        invoice_p [label="Invoice" shape=box fillcolor="#FDFEFE" fontsize=8]
+        contact_p [label="Contact" shape=box fillcolor="#FDFEFE" fontsize=8]
+        item_p [label="Item" shape=box fillcolor="#FDFEFE" fontsize=8]
+        action_p [label="Action" shape=box fillcolor="#FDFEFE" fontsize=8]
+        project_p [label="Project" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── Alice Celery Pipeline ──
+    subgraph cluster_alice_celery {
+        label="Alice Celery Tasks — Library Management"
+        style=filled fillcolor="#E8DAEF" color="#D2B4DE"
+
+        scan [label="Virus Scan\n(beat: 1 min)\n\nstatus → scanned\nor virus_detected" shape=box fillcolor="#FDFEFE" fontsize=8]
+        thumbnail [label="Thumbnail\nGeneration\n(beat: 1 min)\n\nimages: 200×200 PNG\nvideos: first frame" shape=box fillcolor="#FDFEFE" fontsize=8]
+        transfer [label="Transfer to\nCloud Library\n(async task)\n\nstatus → transferring\npath.remote_url set" shape=box fillcolor="#FDFEFE" fontsize=8]
+        verify [label="Verify Transfer\n(beat: 2 min)\n\nchecksum(local)\n== checksum(remote)" shape=box fillcolor="#FDFEFE" fontsize=8]
+        cleanup [label="Cleanup Local\n(async)\n\ndelete local file\nstatus → archived\npath.storage → cloud" shape=box fillcolor="#FDFEFE" fontsize=8]
+        monitor [label="Monitor Failed\n(beat: 5 min)\n\nretry or alert\nstuck > 2 hours" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── Verify Decision ──
+    verified [label="Checksums\nMatch?" shape=diamond fillcolor="#FADBD8"]
+
+    // ── Cloud Library ──
+    cloud [label="Secure Cloud Library\n\npath.storage = cloud\npath.remote_url = URL\npath.remote_checksum\n\nUser owns the data\nEncrypted at rest" shape=box fillcolor="#ABEBC6"]
+
+    // ── Download ──
+    download [label="GET /wcapi/document/<id>/\n\nServes from local\nor redirects to cloud\ncount_accessed += 1" shape=box fillcolor="#D4E6F1"]
+
+    // ── Edges: Upload Flow ──
+    photo -> upload
+    video -> upload
+    pdf -> upload
+    other -> upload
+    upload -> checksum
+    checksum -> dedup_check
+    dedup_check -> existing [label="yes"]
+    dedup_check -> document [label="no"]
+    document -> local_store
+
+    // ── Edges: Parent Linkage ──
+    document -> order_p [style=dashed label="refs.parent"]
+    document -> invoice_p [style=dashed]
+    document -> contact_p [style=dashed]
+    document -> item_p [style=dashed]
+    document -> action_p [style=dashed]
+    document -> project_p [style=dashed]
+
+    // ── Edges: Alice Celery Pipeline ──
+    local_store -> scan [label="Alice picks up\nnew uploads"]
+    scan -> thumbnail [label="clean"]
+    thumbnail -> transfer [label="ready"]
+    transfer -> verify
+    verify -> verified
+    verified -> cleanup [label="match"]
+    verified -> monitor [label="mismatch\nor timeout"]
+    monitor -> transfer [label="retry" style=dashed]
+    cleanup -> cloud
+
+    // ── Edges: Download ──
+    cloud -> download [style=dashed label="cloud path"]
+    local_store -> download [style=dashed label="local path"]
+}

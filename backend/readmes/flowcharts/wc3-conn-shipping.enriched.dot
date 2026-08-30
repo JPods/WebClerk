@@ -1,0 +1,103 @@
+// WC3 Shipping Carrier Flow — order to delivery tracking
+// Render: dot -Tpdf wc3-conn-shipping.dot -o wc3-conn-shipping.pdf
+
+// CodeMap revision: 1 — 2026-08-11
+
+digraph wc3_conn_shipping {
+    size="7.5,10.0"
+    ratio="compress"
+
+
+
+    // ── CodeMap Standard Style ──
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=TB
+    label="WC3 — Shipping Carrier Flow"
+    labelloc=t
+
+    // Order source
+    order [label="Order\n(Order model)" shape=box fillcolor="#D4E6F1" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/order.py" target="_blank" tooltip="Sales order — customer commitment. Creates +on_so and -on_p pending records.\nModel: apps/transactions/models/order.py\nFunctions:
+  transfer_proposal_to_order @ apps/transactions/services/proposal_to_order.py:219 (creates order from proposal)
+  _create_transfer_pending_records @ apps/transactions/services/proposal_to_order.py:131 (pending records for +on_so, -on_p)\nPending deltas: on_so: +qty, on_p: -qty"]
+
+    // Package details
+    package [label="Package Details\n\nweight\ndimensions\nship-to address\nservice level" shape=box fillcolor="#FCF3CF"]
+
+    // Carrier API cluster
+    subgraph cluster_carriers {
+        label="Carrier APIs"
+        style=filled fillcolor="#F5EEF8" color="#D7BDE2"
+        ups [label="UPS" shape=box fillcolor="#E8DAEF" fontsize=8]
+        fedex [label="FedEx" shape=box fillcolor="#E8DAEF" fontsize=8]
+        usps [label="USPS" shape=box fillcolor="#E8DAEF" fontsize=8]
+        dhl [label="DHL" shape=box fillcolor="#E8DAEF" fontsize=8]
+    }
+
+    // Rate selection
+    rates [label="Rate Comparison\n\ncost\ntransit time\nservice level" shape=octagon fillcolor="#F5CBA7"]
+
+    // Rate decision
+    select [label="Best\nRate?" shape=diamond fillcolor="#FADBD8"]
+
+    // Label
+    label_gen [label="Label Generation\n\ntracking number\nbarcode\nreturn label" shape=box fillcolor="#FCF3CF"]
+
+    // Tracking events
+    tracking [label="Tracking Events\n(webhook)\n\npickup\nin-transit\nout-for-delivery\ndelivered\nexception" shape=box fillcolor="#F5CBA7"]
+
+    // Order status update
+    status [label="Order Status\nUpdate\n\nshipped\nin-transit\ndelivered" shape=box fillcolor="#ABEBC6"]
+
+    // Invoice
+    invoice [label="Invoice\n(shipping cost\nline item)" shape=box fillcolor="#ABEBC6" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/invoice.py" target="_blank" tooltip="Invoice — shipment event. Financial event triggers GL and inventory movement.\nModel: apps/transactions/models/invoice.py\nFunctions:
+  transfer_order_to_invoice @ apps/transactions/services/order_to_invoice.py:16 (creates invoice from order)
+  Pending.objects.create @ apps/transactions/services/order_to_invoice.py:332 (-on_hand, -on_so, +on_in)\nPending deltas: on_hand: -qty, on_so: -qty, on_in: +qty\nGL: AR debit, Revenue credit, Tax credit, COGS debit, Inventory credit, Commission"]
+
+    // Alice
+    alice [label="Alice\nCarrier Performance\nMonitoring\n\non-time %\nexception rate\ncost trends" shape=box fillcolor="#AED6F1"]
+
+    // Edges
+    order -> package [label="pick/pack"]
+    package -> ups
+    package -> fedex
+    package -> usps
+    package -> dhl
+    ups -> rates
+    fedex -> rates
+    usps -> rates
+    dhl -> rates
+    rates -> select
+    select -> label_gen [label="selected\ncarrier"]
+    label_gen -> tracking [label="tracking\nnumber"]
+    tracking -> status [label="event\nupdates"]
+    status -> order [label="update\norder" style=dashed]
+    label_gen -> invoice [label="shipping\ncost"]
+    tracking -> alice [label="performance\ndata" style=dashed]
+    alice -> rates [label="recommend\ncarrier" style=dashed]
+}
