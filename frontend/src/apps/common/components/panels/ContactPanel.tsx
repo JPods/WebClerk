@@ -185,7 +185,7 @@ function buildColumns(
               onClick={(e) => { e.stopPropagation(); onTouch?.(c, 'email'); }}
               title="Log email touch"
             />
-            {email}
+            <a href={`mailto:${email}`} target="_blank" onClick={(e) => e.stopPropagation()} style={{ color: 'inherit', textDecoration: 'none' }}>{email}</a>
           </span>
         ) : null;
       },
@@ -202,7 +202,7 @@ function buildColumns(
               onClick={(e) => { e.stopPropagation(); onTouch?.(c, 'call'); }}
               title="Log call touch"
             />
-            {phone}
+            <a href={`tel:${phone}`} onClick={(e) => e.stopPropagation()} style={{ color: 'inherit', textDecoration: 'none' }}>{phone}</a>
           </span>
         ) : null;
       },
