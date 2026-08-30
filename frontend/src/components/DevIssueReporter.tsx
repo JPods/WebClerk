@@ -113,7 +113,7 @@ export function DevIssueReporter() {
           consoleErrors,
           pageUrl: window.location.href,
           environment: {
-            app: "React2025",
+            app: "WebClerk",
             mode: import.meta.env.MODE,
             api_url: import.meta.env.VITE_API_URL ?? "localhost:8000",
             browser: navigator.userAgent.split(" ").pop() ?? "",

@@ -159,7 +159,7 @@ export async function submitDevIssue(payload: DevIssuePayload) {
       context: {
         page_url: payload.pageUrl ?? window.location.href,
         environment: payload.environment ?? {
-          app: "React2025",
+          app: "WebClerk",
           node_env: import.meta.env.MODE,
           vite_api: import.meta.env.VITE_API_URL ?? "localhost:8000",
         },
