@@ -176,16 +176,13 @@ export async function submitDevIssue(payload: DevIssuePayload) {
 /*  Fetch issues (for admin dashboards)                                */
 /* ------------------------------------------------------------------ */
 
-export async function fetchUserIssues() {
-  return getRecords("action", { project_name: "User Support" });
+export async function fetchIssues() {
+  return getRecords("action", { project_name: "Issues" });
 }
 
-export async function fetchDevIssues() {
-  return getRecords("action", { project_name: "Dev Issues" });
-}
-
+/** Legacy fetchers — query old project names for pre-consolidation records */
 export async function fetchAllIssues() {
   return getRecords("action", {
-    project_name__in: "User Support,Dev Issues",
+    project_name__in: "Issues,User Support,Dev Issues",
   });
 }

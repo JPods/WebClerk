@@ -5,8 +5,7 @@ import { WindowManagerNavigationSync } from "../context/WindowManagerContext";
 import { DataSetBadge } from '../components/DataSetBadge';
 import { DevTools } from '../components/DevTools';
 import { AiHelpWidget } from '../components/AiHelpWidget';
-import { UserIssueReporter } from '../components/UserIssueReporter';
-import { DevIssueReporter } from '../components/DevIssueReporter';
+import { IssueReporter } from '../components/IssueReporter';
 import PrivateRoute from "./PrivateRoute";
 import { ScrollToTop, Toster } from "../components/wrapper";
 import { SignIn, SignUp, UserProfiles } from "../pages/wrapperPage";
@@ -66,8 +65,7 @@ const FloatingWidgets: React.FC = () => {
     <DataSetBadge position="bottom-right" showDetails />
     <DevTools position="bottom-left" />
     <AiHelpWidget position="bottom-right" />
-    <UserIssueReporter />
-    <DevIssueReporter />
+    <IssueReporter />
   </>;
 };
 
