@@ -31,6 +31,7 @@ const CycleCountMobile = React.lazy(() => import("../apps/products/pages/CycleCo
 const CustomPageLoader = React.lazy(() => import("./CustomPageLoader"));
 const TokenBuilderPage = React.lazy(() => import("./TokenBuilderPage"));
 const FlightSimConsole = React.lazy(() => import("../pages/admin/FlightSimConsole"));
+const Onboarding = React.lazy(() => import("../pages/Onboarding"));
 
 // Print pages archived 2026-08-06 — all printing now via pdfme report templates
 
@@ -85,6 +86,7 @@ const Router: React.FC = () => {
         <Route path="/cart" element={<S><ShoppingCart items={[]} onUpdateQuantity={() => {}} onRemoveItem={() => {}} onCheckout={() => {}} onContinueShopping={() => {}} /></S>} />
         <Route path="/json-tree" element={<S><JsonTreeApplet /></S>} />
         <Route path="/json-schema" element={<S><JsonSchemaReference /></S>} />
+        <Route path="/setup" element={<S><Onboarding /></S>} />
 
         {/* Protected */}
         <Route element={<PrivateRoute />}>

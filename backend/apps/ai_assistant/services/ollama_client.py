@@ -33,31 +33,10 @@ OLLAMA_TIMEOUT = getattr(settings, "OLLAMA_TIMEOUT", 120)
 # WCHQ fallback — used when Ollama is unavailable
 WCHQ_LLM_URL = "https://webclerk.com/wcapi/alice/llm/"
 
-# Subscription tiers — determine what WCHQ will serve
-# Tier names map to rate limits and capabilities at WCHQ.
-# The installation sends its tier; WCHQ enforces limits.
-SUBSCRIPTION_TIERS = {
-    "community": {
-        "description": "Free — Tier 1 algorithms only, no WCHQ LLM",
-        "wchq_llm": False,
-        "daily_limit": 0,
-    },
-    "starter": {
-        "description": "Basic LLM — coaching, observations, Q&A",
-        "wchq_llm": True,
-        "daily_limit": 50,
-    },
-    "professional": {
-        "description": "Full LLM — all Alice capabilities",
-        "wchq_llm": True,
-        "daily_limit": 500,
-    },
-    "enterprise": {
-        "description": "Unlimited LLM + priority + custom model",
-        "wchq_llm": True,
-        "daily_limit": 0,  # unlimited
-    },
-}
+# Pricing: $14 per 5 staff users. Alice counts is_staff.
+# Community (free) = run your own Ollama.
+# Subscribed = Alice cloud + support channel, priced by staff count.
+PRICE_PER_5_USERS = 1400  # cents
 
 
 def _get_athena_token() -> str:
@@ -74,18 +53,18 @@ def _get_athena_token() -> str:
     return ''
 
 
-def _get_subscription_tier() -> str:
-    """Get the installation's subscription tier."""
+def _is_subscribed() -> bool:
+    """Check if this installation has an active WCHQ subscription."""
     try:
         from apps.core.models import Setting
         sub = Setting.objects.filter(
             purpose='wc:subscription', is_active=True
         ).first()
         if sub and isinstance(sub.config, dict):
-            return sub.config.get('tier', 'community')
+            return bool(sub.config.get('subscribed', False))
     except Exception:
         pass
-    return 'community'
+    return False
 
 
 class OllamaClient:
@@ -172,11 +151,8 @@ class OllamaClient:
         Sends the prompt (not raw data) to WCHQ. WCHQ never sees
         the installation's commerce data — only the formulated question.
         """
-        tier = _get_subscription_tier()
-        tier_config = SUBSCRIPTION_TIERS.get(tier, SUBSCRIPTION_TIERS['community'])
-
-        if not tier_config['wchq_llm']:
-            logger.info("No WCHQ LLM access (tier=%s) — returning algorithm-only response", tier)
+        if not _is_subscribed():
+            logger.info("No WCHQ subscription — returning algorithm-only response")
             raise ConnectionError(
                 "Alice LLM unavailable. Install Ollama for local AI, "
                 "or subscribe at webclerk.com for cloud AI access."
@@ -195,7 +171,6 @@ class OllamaClient:
                     WCHQ_LLM_URL,
                     headers={
                         'Authorization': f'Athena {athena_token}',
-                        'X-Alice-Tier': tier,
                         'X-Alice-Mode': mode,
                     },
                     json={
@@ -217,8 +192,8 @@ class OllamaClient:
 
                 resp.raise_for_status()
                 data = resp.json()
-                logger.info("WCHQ LLM fallback succeeded (tier=%s, tokens=%s)",
-                           tier, data.get('usage', {}).get('total_tokens', '?'))
+                logger.info("WCHQ LLM fallback succeeded (tokens=%s)",
+                           data.get('usage', {}).get('total_tokens', '?'))
                 return data.get('response', data.get('message', {}).get('content', ''))
 
         except httpx.ConnectError:
@@ -292,20 +267,13 @@ class OllamaClient:
 
     def _wchq_available_check(self) -> bool:
         """Check if WCHQ LLM fallback is configured and accessible."""
-        tier = _get_subscription_tier()
-        tier_config = SUBSCRIPTION_TIERS.get(tier, SUBSCRIPTION_TIERS['community'])
-        if not tier_config['wchq_llm']:
-            return False
-        if not _get_athena_token():
-            return False
-        return True
+        return _is_subscribed() and bool(_get_athena_token())
 
     def get_llm_status(self) -> dict:
         """Return status of all LLM sources — for diagnostics."""
         ollama = self._ollama_available()
-        tier = _get_subscription_tier()
+        subscribed = _is_subscribed()
         has_token = bool(_get_athena_token())
-        tier_config = SUBSCRIPTION_TIERS.get(tier, SUBSCRIPTION_TIERS['community'])
 
         return {
             'ollama': {
@@ -314,13 +282,12 @@ class OllamaClient:
                 'model': self.model,
             },
             'wchq': {
-                'available': tier_config['wchq_llm'] and has_token,
-                'tier': tier,
-                'tier_description': tier_config['description'],
-                'daily_limit': tier_config['daily_limit'],
+                'available': subscribed and has_token,
+                'subscribed': subscribed,
                 'has_athena_token': has_token,
+                'pricing': '$14 per 5 staff users/mo',
             },
-            'active_source': 'ollama' if ollama else ('wchq' if tier_config['wchq_llm'] and has_token else 'none'),
+            'active_source': 'ollama' if ollama else ('wchq' if subscribed and has_token else 'none'),
         }
 
     def list_models(self) -> list[str]:

@@ -38,7 +38,7 @@ from apps.core.views.parade_preview_view import ParadePreviewView, ParadeManifes
 from apps.core.views.setting_parade_view import SettingParadeManifestView, SettingParadePreviewView, SettingParadeFeedbackView
 from apps.core.views.system_dispatch import SystemDispatchView
 from apps.core.views.init_bundle_view import InitBundleView
-from apps.core.views.register_installation_view import RegisterInstallationView
+from apps.core.views.register_installation_view import RegisterInstallationView, SubscriptionView
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
 from apps.docs.views.qa_view import ApplyQuestionsView, ListQuestionGroupsView, ParentQAView
 
@@ -110,6 +110,7 @@ urlpatterns = [
     # WCHQ services — no auth required (system config only, no business data)
     path("wcapi/init-bundle/", InitBundleView.as_view(), name="wcapi-init-bundle"),
     path("wcapi/register-installation/", RegisterInstallationView.as_view(), name="wcapi-register-installation"),
+    path("wcapi/register-installation/subscribe/", SubscriptionView.as_view(), name="wcapi-subscribe"),
     # System dispatcher — catch-all for _pjpv_* and future system actions
     # MUST be last so specific _ routes above take priority
     path("wcapi/_<str:action>/", SystemDispatchView.as_view(), name="wcapi-system"),
