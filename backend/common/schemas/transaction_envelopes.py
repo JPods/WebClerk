@@ -224,6 +224,148 @@ class TransactionCost(BaseModel):
         extra = "forbid"
 
 
+class TransactionTax(BaseModel):
+    """Header-level tax configuration — per-line tax is in LineTax.
+
+    Links to tax engine records and carries rate/amount for both sell-side
+    and cost-side tax. Dollar amounts here mirror totals.tax and totals.cost_tax
+    but this envelope owns the jurisdiction and rate detail.
+    """
+    sales_rate: Optional[float] = Field(
+        None, title="Sales Tax Rate",
+        description="Tax rate as decimal (0.0825 = 8.25%)",
+        json_schema_extra={'widget': 'number', 'precision': 6},
+    )
+    sales: Optional[float] = Field(
+        None, title="Sales Tax",
+        description="Computed sales tax amount",
+        json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
+    cost_rate: Optional[float] = Field(
+        None, title="Cost Tax Rate",
+        json_schema_extra={'widget': 'number', 'precision': 6},
+    )
+    cost: Optional[float] = Field(
+        None, title="Cost Tax",
+        json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
+    shipping: Optional[float] = Field(
+        None, title="Tax on Shipping",
+        description="Tax applied to shipping charges",
+        json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
+    tax_service_id: int = Field(
+        0, title="Tax Service ID",
+        description="Link to tax engine records (Avalara, TaxJar, etc.)",
+        json_schema_extra={'widget': 'number'},
+    )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
+
+    class Config:
+        extra = "forbid"
+
+
+class TransactionCommission(BaseModel):
+    """Header-level commission summary — per-line commission is in LineCommission.
+
+    Aggregates commission across all lines. reps[] carries the split when
+    multiple reps share a transaction.
+    """
+    total: float = Field(
+        0.0, ge=0, title="Commission Total",
+        description="Total commission amount across all lines",
+        json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
+    reps: list = Field(
+        default_factory=list, title="Rep Commissions",
+        description="List of {rep_id, name, rate_pct, split_pct, basis, amount}",
+        json_schema_extra={'widget': 'json-tree'},
+    )
+    basis: str = Field(
+        "revenue", title="Basis",
+        description="Commission basis: revenue, margin, or cost",
+        json_schema_extra={'widget': 'select', 'selectlist_key': 'commission_basis'},
+    )
+    method: str = Field(
+        "percentage", title="Method",
+        description="Calculation method: flat, percentage, or tiered",
+        json_schema_extra={'widget': 'select', 'selectlist_key': 'commission_method'},
+    )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
+
+    class Config:
+        extra = "forbid"
+
+
+class TransactionFlow(BaseModel):
+    """Transaction lineage — where this transaction came from and what it spawned.
+
+    source[] tracks parent transactions (e.g., the Order that became this Invoice).
+    children[] tracks downstream transactions (e.g., POs created from this Order).
+    """
+    source: list = Field(
+        default_factory=list, title="Source",
+        description="Parent transactions: [{type, id}]",
+        json_schema_extra={'widget': 'json-tree'},
+    )
+    children: list = Field(
+        default_factory=list, title="Children",
+        description="Downstream transactions: [{type, id}]",
+        json_schema_extra={'widget': 'json-tree'},
+    )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
+
+    class Config:
+        extra = "forbid"
+
+
+class TransactionSource(BaseModel):
+    """Attribution — how and where this transaction originated.
+
+    campaign_id links to a Project record used as a marketing campaign.
+    vendor_id/manufacturer_id track originating supply-side entities.
+    """
+    campaign_id: int = Field(
+        0, title="Campaign",
+        description="FK to Project record used as campaign",
+        json_schema_extra={'widget': 'lookup', 'model': 'project'},
+    )
+    campaign_name: str = Field(
+        "", title="Campaign Name",
+        json_schema_extra={'widget': 'text'},
+    )
+    catalog_id: int = Field(
+        0, title="Catalog",
+        json_schema_extra={'widget': 'lookup', 'model': 'catalog'},
+    )
+    vendor_id: int = Field(
+        0, title="Vendor",
+        json_schema_extra={'widget': 'lookup', 'model': 'orgbase'},
+    )
+    manufacturer_id: int = Field(
+        0, title="Manufacturer",
+        json_schema_extra={'widget': 'lookup', 'model': 'orgbase'},
+    )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
+
+    class Config:
+        extra = "forbid"
+
+
+class TransactionAction(BaseModel):
+    """Next-action tracking on the transaction header."""
+    action_next: dict = Field(
+        default_factory=lambda: {"who": "", "when": 0, "what": ""},
+        title="Next Action",
+        description="Who needs to do what by when",
+        json_schema_extra={'widget': 'json-tree'},
+    )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
+
+    class Config:
+        extra = "forbid"
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # Line-Level Envelopes
 # ═══════════════════════════════════════════════════════════════════════
@@ -1008,6 +1150,12 @@ ENVELOPE_SCHEMA_MAP = {
     # Transaction header envelopes
     'totals': TransactionTotals,
     'finance': TransactionFinance,
+    'header_cost': TransactionCost,
+    'header_tax': TransactionTax,
+    'header_commission': TransactionCommission,
+    'flow': TransactionFlow,
+    'source': TransactionSource,
+    'actions': TransactionAction,
     'shipping': TransactionShipping,
     # Line-level envelopes
     'quantity': LineQuantity,

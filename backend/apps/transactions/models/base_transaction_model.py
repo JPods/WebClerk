@@ -67,8 +67,7 @@ def default_finance() -> Dict[str, Any]:
 
 
 def default_tax() -> Dict[str, Any]:
-    # Legacy helper retained for line-model imports; kept minimal. 
-    #tax_service_id is used to link to tax engine records.
+    """Header-level tax — matches TransactionTax schema."""
     return {
         "sales_rate": None,
         "sales": None,
