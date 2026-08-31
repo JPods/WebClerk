@@ -28,8 +28,7 @@ from .prompt_templates import wrap_query, get_available_modes
 from .vector_store import VectorStoreManager
 from .escalation import (
     score_confidence,
-    escalate_to_claude,
-    query_wchq_data,
+    escalate_to_wchq,
     log_escalation,
     CONFIDENCE_ESCALATE_THRESHOLD,
 )
@@ -147,76 +146,45 @@ class RAGService:
                 "tier_used": tier_used,
             }
 
-        # --- Tier 2: Claude API (low confidence) ---
+        # --- Tier 2/3: WCHQ escalation (low confidence) ---
+        # WCHQ runs its own Alice. If the subscription tier is
+        # 'professional', WCHQ can internally escalate to Claude.
+        # The individual installation never needs a Claude API key.
         if confidence.score < CONFIDENCE_ESCALATE_THRESHOLD:
             try:
-                claude_result = escalate_to_claude(
+                wchq_result = escalate_to_wchq(
                     question=question,
                     local_answer=answer,
+                    local_confidence=confidence.score,
                     context=context,
-                    history=history,
                     mode=mode,
                 )
-                answer = claude_result["answer"]
-                tier_used = "claude_api"
+                answer = wchq_result["answer"]
+                tier_used = wchq_result["tier"]  # wchq_alice or wchq_claude
                 escalation_log.append({
                     "from": "alice_local",
-                    "to": "claude_api",
+                    "to": tier_used,
                     "reason": "low_confidence",
                     "local_confidence": confidence.score,
-                    "model": claude_result["model"],
+                    "model": wchq_result["model"],
                 })
                 log_escalation(
                     question=question,
                     local_confidence=confidence.score,
-                    tier_used="claude_api",
+                    tier_used=tier_used,
                     reason=f"Confidence {confidence.score:.1%} below threshold "
                            f"{CONFIDENCE_ESCALATE_THRESHOLD:.0%}",
                 )
                 logger.info(
-                    "Escalated to Claude API: confidence=%.1f%%, question=%s",
-                    confidence.score * 100, question[:80],
+                    "Escalated to WCHQ (%s): confidence=%.1f%%, question=%s",
+                    tier_used, confidence.score * 100, question[:80],
                 )
             except ConnectionError as e:
-                logger.warning("Claude API escalation failed: %s", e)
+                logger.warning("WCHQ escalation failed: %s — using local answer", e)
                 escalation_log.append({
                     "from": "alice_local",
-                    "to": "claude_api",
+                    "to": "wchq",
                     "reason": "low_confidence",
-                    "error": str(e),
-                })
-
-        # --- Tier 3: WCHQ data query (cross-instance) ---
-        if confidence.needs_wchq:
-            try:
-                wchq_result = query_wchq_data(question=question)
-                wchq_data = wchq_result["data"]
-                # Re-ask with WCHQ data as additional context
-                wchq_context = f"Cross-instance data from WCHQ:\n{wchq_data}\n\n{context}"
-                answer = self.llm_client.generate(
-                    prompt=wrapped_question,
-                    context=wchq_context,
-                    history=history,
-                    mode=mode,
-                )
-                tier_used = "wchq_data"
-                escalation_log.append({
-                    "from": tier_used,
-                    "to": "wchq",
-                    "reason": "cross_instance_data",
-                })
-                log_escalation(
-                    question=question,
-                    local_confidence=confidence.score,
-                    tier_used="wchq",
-                    reason="Question references cross-instance data",
-                )
-            except ConnectionError as e:
-                logger.warning("WCHQ data query failed: %s", e)
-                escalation_log.append({
-                    "from": tier_used,
-                    "to": "wchq",
-                    "reason": "cross_instance_data",
                     "error": str(e),
                 })
 
@@ -232,7 +200,6 @@ class RAGService:
                 "answer_score": confidence.answer_score,
                 "chunk_count": confidence.chunk_count,
                 "best_distance": confidence.best_distance,
-                "needs_wchq": confidence.needs_wchq,
             },
             "tier_used": tier_used,
             "escalation_log": escalation_log,

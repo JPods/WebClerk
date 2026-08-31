@@ -1,10 +1,13 @@
 """
-AI Escalation Chain — Alice → Claude API → WCHQ.
+AI Escalation Chain — Alice local → Alice at WCHQ → Alice+Claude at WCHQ.
 
 Three tiers of answer quality:
-    1. Alice local (Ollama RAG) — fast, private, free
-    2. Claude API — higher-quality reasoning for low-confidence answers
-    3. WCHQ data query — cross-instance product/pattern data
+    1. Alice local (Ollama RAG) — fast, private, free, always first
+    2. Alice at WCHQ (WCHQ shared LLM) — better model, subscription
+    3. Alice+Claude at WCHQ — WCHQ calls Claude on behalf of the installation
+
+Individual installations never need a Claude API key. WCHQ manages the
+Claude relationship centrally. Users just need a subscription.
 
 Confidence scoring determines when to escalate. All escalations are
 logged as AliceObservation(category='escalation') for pattern analysis.
@@ -24,18 +27,13 @@ import logging
 import re
 from dataclasses import dataclass
 
+import httpx
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
 # Confidence thresholds — tune based on observation
-CONFIDENCE_ESCALATE_THRESHOLD = 0.40  # Below this → escalate to Claude
-CONFIDENCE_WCHQ_KEYWORDS = [
-    'other installation', 'other store', 'other location',
-    'cross-instance', 'headquarters', 'wchq', 'all stores',
-    'company-wide', 'across locations', 'network-wide',
-    'supplier catalog', 'product library', 'shared catalog',
-]
+CONFIDENCE_ESCALATE_THRESHOLD = 0.40  # Below this → escalate to WCHQ
 
 # Hedging signals in Alice's local answers — indicate low confidence
 _HEDGING_PATTERNS = [
@@ -60,7 +58,6 @@ class ConfidenceScore:
     chunk_count: int       # number of relevant context chunks
     best_distance: float   # best vector similarity distance
     hedging_count: int     # number of hedging phrases detected
-    needs_wchq: bool       # question references cross-instance data
 
 
 def score_confidence(
@@ -73,7 +70,6 @@ def score_confidence(
     Factors:
         Context quality — how many relevant chunks, how close the best match
         Answer quality — length, hedging language, specificity
-        Cross-instance signal — does the question need data from other stores
     """
     # --- Context score (0.0–1.0) ---
     chunk_count = len(sources)
@@ -114,16 +110,8 @@ def score_confidence(
     hedge_penalty = min(hedging_count * 0.25, 0.8)
     answer_score = max(length_score - hedge_penalty, 0.0)
 
-    # --- Cross-instance detection ---
-    q_lower = question.lower()
-    needs_wchq = any(kw in q_lower for kw in CONFIDENCE_WCHQ_KEYWORDS)
-
     # --- Combined score ---
     score = (context_score * 0.6) + (answer_score * 0.4)
-
-    # If needs WCHQ data and we don't have it, lower confidence
-    if needs_wchq:
-        score = min(score, 0.35)
 
     return ConfidenceScore(
         score=round(score, 3),
@@ -132,148 +120,158 @@ def score_confidence(
         chunk_count=chunk_count,
         best_distance=round(best_distance, 3),
         hedging_count=hedging_count,
-        needs_wchq=needs_wchq,
     )
 
 
-def _get_claude_api_key() -> str:
-    """Get Claude API key from Setting."""
+# ── WCHQ endpoints ──────────────────────────────────────────────────
+
+WCHQ_ALICE_URL = "https://webclerk.com/wcapi/alice/ask/"
+WCHQ_ALICE_CLAUDE_URL = "https://webclerk.com/wcapi/alice/ask-claude/"
+
+
+def _get_athena_token() -> str:
+    """Get the Athena token for WCHQ authentication."""
     try:
         from apps.core.models import Setting
-        s = Setting.objects.filter(
-            purpose='claude_api', is_active=True
+        conn = Setting.objects.filter(
+            purpose='wchq_connection', is_active=True
         ).first()
-        if s and isinstance(s.config, dict):
-            return s.config.get('api_key', '')
+        if conn and isinstance(conn.config, dict):
+            return conn.config.get('athena_token', '')
     except Exception:
         pass
-    # Fallback to environment
-    return getattr(settings, 'ANTHROPIC_API_KEY', '')
+    return ''
 
 
-def escalate_to_claude(
+def _is_subscribed() -> bool:
+    """Check if this installation has an active WCHQ subscription."""
+    try:
+        from apps.core.models import Setting
+        sub = Setting.objects.filter(
+            purpose='wc:subscription', is_active=True
+        ).first()
+        if sub and isinstance(sub.config, dict):
+            return bool(sub.config.get('subscribed', False))
+    except Exception:
+        pass
+    return False
+
+
+def _subscription_tier() -> str:
+    """Return the subscription tier: community, standard, professional."""
+    try:
+        from apps.core.models import Setting
+        sub = Setting.objects.filter(
+            purpose='wc:subscription', is_active=True
+        ).first()
+        if sub and isinstance(sub.config, dict):
+            return sub.config.get('tier', 'community')
+    except Exception:
+        pass
+    return 'community'
+
+
+def escalate_to_wchq(
     question: str,
     local_answer: str,
+    local_confidence: float,
     context: str = "",
-    history: list[dict] | None = None,
     mode: str = "general",
 ) -> dict:
-    """Re-ask via Claude API when Alice's local answer has low confidence.
+    """Escalate to WCHQ's Alice — better model, shared infrastructure.
 
-    Returns {"answer": str, "model": str, "tier": "claude"} or raises.
+    Tier 2: WCHQ runs its own Alice with a larger model. The installation
+    sends the question (not raw data) plus the local confidence score.
+    WCHQ Alice answers. If WCHQ's Alice is also low-confidence and the
+    subscription tier allows it, WCHQ will internally escalate to Claude.
+
+    Returns {"answer": str, "model": str, "tier": str} or raises.
     """
-    api_key = _get_claude_api_key()
-    if not api_key:
-        raise ConnectionError(
-            "Claude API key not configured. Add a Setting with "
-            "purpose='claude_api' and config={'api_key': '...'}"
-        )
-
-    import anthropic
-
-    client = anthropic.Anthropic(api_key=api_key)
-
-    from .prompt_templates import get_system_prompt
-    system_prompt = get_system_prompt(mode)
-    system_prompt += (
-        "\n\nYou are answering because the local AI assistant (Alice, running "
-        "a smaller model) was not confident in her answer. The user's question "
-        "and Alice's attempt are provided. Give a better, more complete answer."
-    )
-
-    messages = []
-    if history:
-        messages.extend(history)
-
-    user_content = question
-    if context:
-        user_content = (
-            f"Relevant documentation:\n{context}\n\n"
-            f"Alice's local answer (low confidence):\n{local_answer}\n\n"
-            f"Question: {question}"
-        )
-
-    messages.append({"role": "user", "content": user_content})
-
-    response = client.messages.create(
-        model="claude-sonnet-4-5-20250514",
-        max_tokens=2048,
-        system=system_prompt,
-        messages=messages,
-    )
-
-    answer = response.content[0].text
-    return {
-        "answer": answer,
-        "model": response.model,
-        "tier": "claude",
-        "usage": {
-            "input_tokens": response.usage.input_tokens,
-            "output_tokens": response.usage.output_tokens,
-        },
-    }
-
-
-def query_wchq_data(
-    question: str,
-    data_type: str = "product",
-) -> dict:
-    """Query WCHQ for cross-instance data.
-
-    Used when the question references data that doesn't exist locally
-    (supplier catalogs, shared patterns, multi-store aggregates).
-
-    Returns {"data": dict, "source": "wchq"} or raises ConnectionError.
-    """
-    import httpx
-    from .ollama_client import _get_athena_token, _is_subscribed
-
     if not _is_subscribed():
         raise ConnectionError(
-            "WCHQ data query requires a subscription. "
-            "Subscribe at webclerk.com for cross-instance data access."
+            "WCHQ escalation requires a subscription. "
+            "Subscribe at webclerk.com for AI escalation access."
         )
 
     athena_token = _get_athena_token()
     if not athena_token:
         raise ConnectionError(
-            "WCHQ data query requires an Athena token. "
+            "WCHQ escalation requires an Athena token. "
             "Register this installation at webclerk.com."
         )
 
+    tier = _subscription_tier()
+
+    # Choose endpoint based on subscription tier
+    # Standard: WCHQ Alice only. Professional: WCHQ can escalate to Claude.
+    url = WCHQ_ALICE_URL
+    if tier == 'professional':
+        url = WCHQ_ALICE_CLAUDE_URL
+
+    # Scrub PII before sending upstream
+    from .pii_scrub import scrub_pii
+    question, _ = scrub_pii(question)
+    local_answer, _ = scrub_pii(local_answer)
+    if context:
+        context, _ = scrub_pii(context)
+
     try:
-        with httpx.Client(timeout=30) as client:
+        with httpx.Client(timeout=60) as client:
             resp = client.post(
-                "https://webclerk.com/wcapi/alice/data-query/",
+                url,
                 headers={
                     'Authorization': f'Athena {athena_token}',
+                    'X-Alice-Mode': mode,
                 },
                 json={
                     "question": question,
-                    "data_type": data_type,
+                    "local_answer": local_answer,
+                    "local_confidence": local_confidence,
+                    "context_summary": context[:2000] if context else "",
+                    "mode": mode,
+                    "tier": tier,
                 },
             )
 
             if resp.status_code == 401:
-                raise ConnectionError("Athena token rejected by WCHQ.")
+                raise ConnectionError(
+                    "Athena token rejected by WCHQ. "
+                    "Re-register this installation at webclerk.com."
+                )
             if resp.status_code == 402:
-                raise ConnectionError("WCHQ data query limit reached.")
+                raise ConnectionError(
+                    "WCHQ AI quota reached. Upgrade your subscription "
+                    "or wait for the next billing cycle."
+                )
 
             resp.raise_for_status()
+            data = resp.json()
+
+            # WCHQ tells us which tier it used internally
+            wchq_tier = data.get('tier_used', 'wchq_alice')
+
+            logger.info(
+                "WCHQ escalation succeeded: tier=%s, tokens=%s",
+                wchq_tier, data.get('usage', {}).get('total_tokens', '?'),
+            )
+
             return {
-                "data": resp.json(),
-                "source": "wchq",
+                "answer": data.get('answer', ''),
+                "model": data.get('model', 'wchq'),
+                "tier": wchq_tier,
+                "usage": data.get('usage', {}),
             }
 
     except httpx.ConnectError:
         raise ConnectionError(
-            "Cannot reach webclerk.com for cross-instance data query."
+            "Cannot reach webclerk.com — WCHQ escalation unavailable. "
+            "Alice will use her local answer."
         )
     except ConnectionError:
         raise
     except Exception as e:
-        logger.exception("WCHQ data query failed")
-        raise ConnectionError(f"WCHQ data query error: {e}")
+        logger.exception("WCHQ escalation failed")
+        raise ConnectionError(f"WCHQ escalation error: {e}")
 
 
 def log_escalation(

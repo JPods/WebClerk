@@ -11,6 +11,10 @@ Endpoints:
     GET  /wcapi/ai/history/   — conversation history for current user
     GET  /wcapi/ai/modes/     — list available AI modes
     POST /wcapi/ai/reindex/   — trigger reindexing (staff only)
+
+    Upstream (any WC3 can serve these for downstream instances):
+    POST /wcapi/alice/ask/         — downstream escalation to this instance's Alice
+    POST /wcapi/alice/ask-claude/  — downstream escalation with Claude (professional tier)
 """
 import json
 import logging
@@ -938,3 +942,260 @@ class SearchFeedbackView(APIView):
             status_code=status.HTTP_201_CREATED,
             data=result,
         )
+
+
+# ── Upstream Alice endpoints ─────────────────────────────────────────
+# Any WC3 instance can serve these for downstream installations.
+# WCHQ is just a WC3 instance that happens to be upstream of others.
+
+
+def _validate_athena_token(request):
+    """Validate Authorization: Athena <token> against Connection records."""
+    from apps.sync.models.connection import Connection
+
+    auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+    if not auth_header.startswith('Athena '):
+        return None, api_response(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            message="Missing or invalid Authorization header. Expected: Athena <token>",
+            error_code="invalid_auth",
+        )
+
+    token = auth_header[7:].strip()
+    if not token:
+        return None, api_response(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            message="Empty Athena token",
+            error_code="empty_token",
+        )
+
+    connections = Connection.objects.filter(status='active', is_active=True)
+    for conn in connections:
+        config = conn.config if isinstance(conn.config, dict) else {}
+        if config.get('athena_token') == token:
+            return conn, None
+
+    return None, api_response(
+        status_code=status.HTTP_403_FORBIDDEN,
+        message="Athena token not recognized",
+        error_code="invalid_token",
+    )
+
+
+def _log_upstream_exchange(connection, question, answer, tier_used, pii_count):
+    """Log the exchange as an AliceObservation for audit."""
+    try:
+        from .models.alice import AliceObservation
+        AliceObservation.objects.create(
+            category='escalation',
+            source='wchq',
+            message=f"Upstream ask from {connection.name} — tier: {tier_used}",
+            detail=(
+                f"question: {question[:500]}\n"
+                f"pii_scrubbed: {pii_count}\n"
+                f"tier_used: {tier_used}"
+            ),
+            model_name='Connection',
+            record_id=connection.pk,
+        )
+    except Exception as e:
+        logger.warning("Failed to log upstream exchange: %s", e)
+
+
+class AliceAskUpstreamView(APIView):
+    """
+    POST /wcapi/alice/ask/
+
+    Upstream endpoint — downstream WC3 installations call this when
+    escalating a low-confidence question. Any WC3 can be upstream.
+
+    Auth: Authorization: Athena <token>
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        from .services.pii_scrub import scrub_pii
+
+        connection, error_resp = _validate_athena_token(request)
+        if error_resp:
+            return error_resp
+
+        question = request.data.get('question', '').strip()
+        if not question:
+            return api_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="Question is required",
+                error_code="missing_question",
+            )
+
+        context_summary = request.data.get('context_summary', '')
+        mode = request.data.get('mode', 'general')
+
+        question, pii_count = scrub_pii(question)
+        if context_summary:
+            context_summary, ctx_pii = scrub_pii(context_summary)
+            pii_count += ctx_pii
+
+        try:
+            rag = RAGService()
+            result = rag.ask(
+                question=question,
+                mode=mode,
+                extra_context=context_summary,
+                escalate=False,
+            )
+        except Exception as e:
+            logger.exception("Upstream Alice failed for %s", connection.name)
+            return api_response(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                message=f"Alice processing error: {e}",
+                error_code="alice_error",
+            )
+
+        answer = result.get('answer', '')
+        _log_upstream_exchange(connection, question, answer, 'wchq_alice', pii_count)
+
+        return api_response(data={
+            'answer': answer,
+            'model': result.get('model', ''),
+            'tier_used': 'wchq_alice',
+            'confidence': result.get('confidence', {}),
+            'usage': {},
+        })
+
+
+class AliceAskClaudeUpstreamView(APIView):
+    """
+    POST /wcapi/alice/ask-claude/
+
+    Upstream endpoint with Claude escalation. WCHQ (or any upstream WC3)
+    holds the Claude API key centrally. Professional tier only.
+
+    Auth: Authorization: Athena <token>
+    """
+    permission_classes = [AllowAny]
+
+    CLAUDE_CONFIDENCE_THRESHOLD = 0.50
+
+    def post(self, request):
+        from .services.pii_scrub import scrub_pii
+
+        connection, error_resp = _validate_athena_token(request)
+        if error_resp:
+            return error_resp
+
+        config = connection.config if isinstance(connection.config, dict) else {}
+        tier = config.get('subscription_tier', 'community')
+        if tier != 'professional':
+            return api_response(
+                status_code=status.HTTP_403_FORBIDDEN,
+                message="Claude escalation requires professional-tier subscription",
+                error_code="tier_insufficient",
+            )
+
+        question = request.data.get('question', '').strip()
+        if not question:
+            return api_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="Question is required",
+                error_code="missing_question",
+            )
+
+        local_answer = request.data.get('local_answer', '')
+        context_summary = request.data.get('context_summary', '')
+        mode = request.data.get('mode', 'general')
+
+        question, pii_count = scrub_pii(question)
+        if local_answer:
+            local_answer, la_pii = scrub_pii(local_answer)
+            pii_count += la_pii
+        if context_summary:
+            context_summary, ctx_pii = scrub_pii(context_summary)
+            pii_count += ctx_pii
+
+        # Tier 2: Try local Alice first
+        try:
+            rag = RAGService()
+            result = rag.ask(
+                question=question, mode=mode,
+                extra_context=context_summary, escalate=False,
+            )
+        except Exception as e:
+            logger.exception("Upstream Alice failed for %s", connection.name)
+            return api_response(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                message=f"Alice processing error: {e}",
+                error_code="alice_error",
+            )
+
+        alice_answer = result.get('answer', '')
+        alice_score = result.get('confidence', {}).get('score', 0.0)
+        tier_used = 'wchq_alice'
+        answer = alice_answer
+        model_used = result.get('model', '')
+        usage = {}
+
+        # Tier 3: Escalate to Claude if Alice is low-confidence
+        if alice_score < self.CLAUDE_CONFIDENCE_THRESHOLD:
+            try:
+                answer, usage, model_used = self._ask_claude(
+                    question, local_answer, alice_answer, context_summary, mode,
+                )
+                tier_used = 'wchq_claude'
+            except Exception as e:
+                logger.warning("Claude escalation failed for %s: %s", connection.name, e)
+
+        _log_upstream_exchange(connection, question, answer, tier_used, pii_count)
+
+        return api_response(data={
+            'answer': answer,
+            'model': model_used,
+            'tier_used': tier_used,
+            'usage': usage,
+        })
+
+    def _ask_claude(self, question, local_answer, alice_answer, context_summary, mode):
+        """Call Claude API — key held centrally in Setting(purpose='wchq_claude_key')."""
+        import anthropic
+        from apps.core.models import Setting
+
+        key_setting = Setting.objects.filter(
+            purpose='wchq_claude_key', is_active=True,
+        ).first()
+        if not key_setting:
+            raise ValueError("No wchq_claude_key Setting configured")
+
+        config = key_setting.config if isinstance(key_setting.config, dict) else {}
+        api_key = config.get('api_key', '')
+        if not api_key:
+            raise ValueError("wchq_claude_key has no api_key")
+
+        model = config.get('model', 'claude-sonnet-4-5-20250514')
+
+        system_prompt = (
+            "You are Alice, a commerce assistant for WebClerk installations. "
+            "A downstream installation asked a question that their local AI "
+            "could not answer confidently. Provide a clear, accurate answer."
+        )
+
+        user_parts = [f"Question: {question}"]
+        if local_answer:
+            user_parts.append(f"\nDownstream local answer (low confidence):\n{local_answer}")
+        if alice_answer:
+            user_parts.append(f"\nUpstream Alice answer (also low confidence):\n{alice_answer}")
+        if context_summary:
+            user_parts.append(f"\nContext:\n{context_summary}")
+
+        client = anthropic.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model=model, max_tokens=2048,
+            system=system_prompt,
+            messages=[{"role": "user", "content": "\n".join(user_parts)}],
+        )
+
+        answer = response.content[0].text if response.content else ""
+        usage = {
+            'input_tokens': response.usage.input_tokens,
+            'output_tokens': response.usage.output_tokens,
+        }
+        return answer, usage, model

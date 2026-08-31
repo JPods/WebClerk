@@ -1,12 +1,9 @@
-"""Seed the WCHQ (WebClerk Headquarters) connection Setting record.
+"""Seed WCHQ and AI-related Setting records.
 
-Controls all interaction between the local WC3 instance and WCHQ:
-  - Data sharing level (what flows up to WCHQ)
-  - Content receiving level (what flows down from WCHQ)
-  - Sync schedule
-  - Update/version control
-  - Threat/security notices
-  - Alice help patterns → WCHQ learning loop
+Records seeded:
+  1. wc:wchq_connection — Controls all interaction between local WC3 and WCHQ
+  2. claude_api — Claude API key and escalation chain configuration
+  3. wc:subscription — WCHQ subscription status (controls Tier 2 LLM fallback)
 
 Usage:
     python manage.py seed_wchq_settings
@@ -102,29 +99,98 @@ WCHQ_CONFIG = {
 }
 
 
-class Command(BaseCommand):
-    help = "Seed the WCHQ connection Setting record"
+ESCALATION_CONFIG = {
+    # ── Escalation Chain — Alice local → WCHQ Alice → WCHQ+Claude ──
+    # Individual installations never need a Claude API key.
+    # WCHQ manages the Claude relationship centrally.
+    "escalation": {
+        "enabled": True,
+        "confidence_threshold": 0.40,       # below this → escalate to WCHQ
+        "confidence_weights": {
+            "context": 0.60,                # RAG retrieval quality
+            "answer": 0.40,                 # answer content analysis
+        },
+        "log_all_escalations": True,        # AliceObservation(category='escalation')
+        "tiers": {
+            "alice_local": {
+                "order": 1,
+                "source": "Ollama RAG",
+                "always_first": True,
+                "cost": "free",
+            },
+            "wchq_alice": {
+                "order": 2,
+                "source": "WCHQ shared LLM",
+                "trigger": "confidence < threshold",
+                "requires": "standard subscription",
+                "cost": "subscription",
+            },
+            "wchq_claude": {
+                "order": 3,
+                "source": "WCHQ calls Claude",
+                "trigger": "WCHQ Alice also low confidence",
+                "requires": "professional subscription",
+                "cost": "subscription (higher tier)",
+            },
+        },
+    },
+    # ── Privacy ─────────────────────────────────────────────────────
+    "privacy": {
+        "question_only_sent_to_wchq": True, # never raw business data
+        "pii_scrubbed_before_send": True,
+        "exchanges_logged_locally": True,
+        "wchq_does_not_store_questions": True,
+    },
+}
 
-    def handle(self, *args, **options):
+
+SUBSCRIPTION_CONFIG = {
+    # ── WCHQ Subscription — controls escalation tiers ──────────────
+    "subscribed": False,                    # user activates after purchase
+    "tier": "community",                    # community | standard | professional
+    #   community    = free, run your own Ollama, no WCHQ escalation
+    #   standard     = $4/person/mo, WCHQ Alice (Tier 2)
+    #   professional = $9/person/mo, WCHQ Alice+Claude (Tier 3)
+    "staff_count": 0,                       # auto-counted from is_staff
+    "billing": {
+        "price_per_person_cents": {
+            "standard": 400,                # $4/person/mo
+            "professional": 900,            # $9/person/mo
+        },
+        "billing_cycle": "monthly",
+        "last_payment_utc": "",
+        "next_payment_utc": "",
+    },
+    "features": {
+        "wchq_alice": False,                # True for standard+ (Tier 2)
+        "wchq_alice_claude": False,         # True for professional (Tier 3)
+        "cross_instance_queries": False,    # True for professional
+        "priority_support": False,          # True for professional
+        "coaching_library": True,           # True for all tiers
+    },
+}
+
+
+class Command(BaseCommand):
+    help = "Seed WCHQ, Claude API, and subscription Setting records"
+
+    def _seed_setting(self, purpose, ida, name, config_data, parent_model='setting'):
+        """Seed one Setting record with merge-on-update."""
         setting, created = Setting.objects.get_or_create(
-            purpose='wc:wchq_connection',
-            parent_model='setting',
+            purpose=purpose,
+            parent_model=parent_model,
             defaults={
-                'ida': 'wchq-connection',
-                'name': 'WCHQ Connection Settings',
-                'config': WCHQ_CONFIG,
+                'ida': ida,
+                'name': name,
+                'config': config_data,
             },
         )
-
         if created:
-            self.stdout.write(self.style.SUCCESS(
-                f"Created wchq_connection Setting #{setting.id}"
-            ))
+            self.stdout.write(self.style.SUCCESS(f"  Created: {name} (#{setting.id})"))
         else:
-            # Merge new sections without overwriting existing values
             config = setting.config or {}
             changed = False
-            for section, defaults in WCHQ_CONFIG.items():
+            for section, defaults in config_data.items():
                 if section not in config:
                     config[section] = defaults
                     changed = True
@@ -135,16 +201,35 @@ class Command(BaseCommand):
                             changed = True
             if changed:
                 setting.config = config
+                setting._setting_update_authorized = True
                 setting.save(update_fields=['config', 'dt_modified', 'version'])
-                self.stdout.write(self.style.SUCCESS(
-                    f"Updated wchq_connection Setting #{setting.id} (merged new keys)"
-                ))
+                self.stdout.write(f"  Updated: {name} (#{setting.id}, merged new keys)")
             else:
-                self.stdout.write(
-                    f"wchq_connection Setting #{setting.id} already up to date"
-                )
+                self.stdout.write(f"  OK: {name} (#{setting.id}, up to date)")
+        return setting
 
-        cfg = setting.config or {}
+    def handle(self, *args, **options):
+        self.stdout.write("Seeding WCHQ + AI settings...")
+
+        # 1. WCHQ connection
+        wchq = self._seed_setting(
+            'wc:wchq_connection', 'wchq-connection',
+            'WCHQ Connection Settings', WCHQ_CONFIG,
+        )
+
+        # 2. Escalation chain config
+        self._seed_setting(
+            'wc:escalation', 'escalation-chain',
+            'AI Escalation Chain', ESCALATION_CONFIG,
+        )
+
+        # 3. WCHQ subscription
+        self._seed_setting(
+            'wc:subscription', 'wchq-subscription',
+            'WCHQ Subscription', SUBSCRIPTION_CONFIG,
+        )
+
+        cfg = wchq.config or {}
         self.stdout.write(self.style.SUCCESS(
             f"\nWCHQ Settings:\n"
             f"  Sharing level:   {cfg.get('sharing', {}).get('level', '?')}\n"

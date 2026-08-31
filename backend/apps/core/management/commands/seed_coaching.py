@@ -193,6 +193,40 @@ COACHING = {
         },
     },
 
+    'gl_journal': {
+        'tips': [
+            {'id': 'gl-01', 'title': 'Journals record financial events', 'body': 'Every invoice, payment, and purchase creates GL journal entries. Debit always equals credit.', 'type': 'concept', 'level': 'beginner'},
+            {'id': 'gl-02', 'title': 'Export, don\'t retype', 'body': 'Use GL Journal Export to download bundle.json, then open the Journal Formatter to convert it into your accounting program\'s format. No retyping.', 'type': 'workflow', 'level': 'beginner', 'link': '/tools/journal_formatter.html', 'link_label': 'Open Journal Formatter'},
+            {'id': 'gl-03', 'title': 'One format, two destinations', 'body': 'The same bundle.json works for local accounting export and multi-location consolidation. Your accountant sees entries tagged by company UUID regardless of how many locations you have.', 'type': 'concept', 'level': 'intermediate'},
+            {'id': 'gl-04', 'title': 'WC3 produces, accounting consumes', 'body': 'WebClerk produces GL journal entries. QuickBooks/Xero/Sage consumes them. WC3 does not do checkbooks, payables, or P&L — that\'s the accounting program\'s job.', 'type': 'concept', 'level': 'beginner'},
+            {'id': 'gl-05', 'title': 'Journal Formatter is free', 'body': 'The Journal Formatter is a standalone HTML tool — no server, works offline, runs in any browser. Drop bundle.json, pick your program, download.', 'type': 'concept', 'level': 'beginner'},
+        ],
+        'field_help': {
+            'account': 'GL account code (e.g. ASSET-AR-000). Maps to your chart of accounts.',
+            'debit': 'Debit amount. Increases assets and expenses.',
+            'credit': 'Credit amount. Increases liabilities, equity, and revenue.',
+            'type': 'Source type — sales, purchase, payment, adjustment.',
+            'source_model': 'Which record created this entry (invoice, payment, purchase).',
+            'division': 'Division or department code. Optional — used for departmental reporting.',
+            'batch_id': 'Batch identifier. Journals posted together share a batch.',
+        },
+        'actions': {
+            'export': 'Go to GL Journals → Export. Select period, click Export to download bundle.json.',
+            'format': 'Open tools/journal_formatter.html in your browser. Drop bundle.json, pick your accounting program.',
+            'upstream': 'Multi-location: the same bundle.json can be sent to your company HQ for consolidation.',
+            'reconcile': 'After importing into your accounting program, mark the period as reconciled in WebClerk.',
+        },
+        'warnings': [
+            'GL posting is one-way. Once posted, you reverse — you don\'t edit.',
+            'Always verify totals are balanced before importing into your accounting program.',
+            'HQ never loads location journals into its own GL. They stay as Bundles for the accounting handoff.',
+        ],
+        'code_examples': [],
+        'api_reference': {
+            'export': "python manage.py shell -c \"from apps.sync.services.gl_journal_bundle import build_gl_journal_bundle; import json; print(json.dumps(build_gl_journal_bundle('2026-08'), indent=2, default=str))\"",
+        },
+    },
+
     'item': {
         'tips': [
             {'id': 'item-01', 'title': 'Items are what you sell and buy', 'body': 'Every line on an order, invoice, or PO references an item. Items have prices, costs, and inventory.', 'type': 'concept', 'level': 'beginner'},
@@ -465,6 +499,59 @@ Full readme: readmes/topics/transactions/payment-application.md
 ''',
         'status': 'published',
         'model_name': 'system',
+        'confidential': 'public',
+    },
+    {
+        'name': 'Journal Formatter — GL Export Tool',
+        'slug': 'journal-formatter',
+        'description': 'How to export GL journals and format them for your accounting program.',
+        'body': '''# Journal Formatter — GL Export Tool
+
+## What It Does
+
+The Journal Formatter takes a bundle.json from WebClerk's GL Journal Export
+and converts it into the file format your accounting program needs.
+
+Same idea as Statement Sorter but in reverse:
+- **Statement Sorter**: Bank CSV → WebClerk (inbound)
+- **Journal Formatter**: WebClerk → QuickBooks/Xero/Sage (outbound)
+
+## How to Use
+
+1. **Export**: In WebClerk, go to GL Journals → Export. Select the period. Downloads `bundle.json`.
+2. **Format**: Open `journal_formatter.html` in your browser (standalone — no server needed).
+3. **Drop**: Drop `bundle.json` onto the page.
+4. **Pick**: Select your accounting program. It remembers your choice for next time.
+5. **Download**: Click Download. Import the file into your accounting program.
+
+## Supported Programs
+
+- QuickBooks Desktop (IIF format)
+- QuickBooks Online (CSV)
+- Xero (CSV)
+- Sage 50/100 (CSV)
+- FreshBooks (CSV)
+- Generic CSV (works with anything)
+
+## Multi-Location Companies
+
+If your company has multiple locations, each running WebClerk:
+- Each location exports its own bundle.json
+- Bundles can be sent upstream to HQ for consolidation
+- HQ downloads all locations' bundles and formats them together
+- The accountant sees entries tagged by company — same format whether
+  one location or fifty
+
+## Key Rule
+
+WebClerk produces GL journal entries. Your accounting program consumes them.
+WebClerk does not do checkbooks, payables, or P&L — that is the accounting
+program's job. Clean boundary, clean handoff.
+
+Full readme: readmes/transactions/journal-formatter.md
+''',
+        'status': 'published',
+        'model_name': 'gl_journal',
         'confidential': 'public',
     },
 ]

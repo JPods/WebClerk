@@ -104,6 +104,12 @@ REPORTS = [
 
     # ── Documents ──
     {'model_name': 'document', 'name': 'Document Index', 'description': 'Index of all documents by category', 'output_type': 'print', 'category': 'list', 'sort_order': 1, 'config': {'template': 'document_index'}},
+
+    # ── Alice AI / Escalation ──
+    {'model_name': 'alice_observation', 'name': 'Escalation Log', 'description': 'All AI escalations — Alice to Claude API or WCHQ, with confidence scores and reasons', 'output_type': 'screen', 'category': 'report', 'sort_order': 1, 'config': {'template': 'escalation_log', 'filters': {'category': 'escalation'}}},
+    {'model_name': 'alice_observation', 'name': 'Escalation Summary', 'description': 'Weekly escalation summary — count by tier, average confidence, top question patterns', 'output_type': 'screen', 'category': 'summary', 'sort_order': 2, 'config': {'template': 'escalation_summary', 'filters': {'category': 'escalation'}, 'group_by': 'tier'}},
+    {'model_name': 'alice_observation', 'name': 'Alice Pattern Report', 'description': 'Patterns, anomalies, and coaching suggestions detected by Alice', 'output_type': 'screen', 'category': 'report', 'sort_order': 3, 'config': {'template': 'alice_patterns', 'filters': {'category__in': ['pattern', 'anomaly', 'coaching']}}},
+    {'model_name': 'alice_observation', 'name': 'Observation Export', 'description': 'CSV export of all Alice observations', 'output_type': 'export', 'category': 'export', 'sort_order': 20, 'config': {'template': 'alice_observation_export'}},
 ]
 
 

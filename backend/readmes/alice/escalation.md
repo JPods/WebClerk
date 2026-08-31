@@ -1,134 +1,152 @@
-# Alice Escalation Protocol — Capability Boundaries
+# Alice Escalation Protocol — Three-Tier Chain
 
-> **Last updated**: 2026-08-05
+> **Last updated**: 2026-08-31
 > **Owner**: Alice + Claude Code
-> **Applies to**: All Alice interactions with users
+> **Applies to**: All Alice AI interactions
+> **Implementation**: `apps/ai_assistant/services/escalation.py`
 
 ---
 
-## The Principle
+## The Architecture
 
-Alice runs on an 8B or 20B model. She is capable, fast, and always available.
-She is also honest about what she cannot do well. When a task exceeds her
-model's capability, she tells the user directly and creates an escalation
-for Claude Code.
+Three tiers. Each tier is a better answer at higher cost. Alice always
+tries locally first. No individual installation ever needs a Claude API key.
 
-**The service is free.** There is no subscription to complain about. Users
-get Alice for fast answers and Claude Code for deep work. The escalation
-is not a paywall — it is a quality guarantee.
+| Tier | Where it runs | Cost | Trigger |
+|------|--------------|------|---------|
+| 1. Alice local | Installation (Ollama RAG) | Free | Always first |
+| 2. Alice at WCHQ | WCHQ server (larger model) | $4/person/mo (standard) | Confidence < 40% |
+| 3. Alice+Claude at WCHQ | WCHQ calls Claude | $9/person/mo (professional) | WCHQ Alice also low confidence |
+
+WCHQ manages the Claude API key centrally. Users just subscribe.
+Individual installations never handle API keys — that burden kills adoption.
 
 ---
 
-## What Alice Can Do (8B/20B)
+## Confidence Scoring
+
+Every answer is scored before deciding whether to escalate.
+
+**Formula**: `score = (context_quality × 0.60) + (answer_quality × 0.40)`
+
+**Context quality** (from RAG retrieval):
+- Vector distance of best match (closer = better)
+- Number of relevant chunks returned
+
+**Answer quality** (from content analysis):
+- Length (very short = suspicious)
+- Hedging phrases detected ("I'm not sure", "I don't know", etc.)
+
+**Threshold**: Score below **0.40** → escalate to WCHQ.
+
+---
+
+## PII Scrubbing
+
+All text is scrubbed before leaving the installation:
+- Email addresses → `<email>`
+- Phone numbers → `<phone>`
+- SSN patterns → `<ssn>`
+- Credit card numbers → `<card>`
+- Street addresses → `<address>`
+- Names after prefixes (Customer, Mr., Dr.) → `<name>`
+
+Implementation: `apps/ai_assistant/services/pii_scrub.py`
+
+---
+
+## Endpoints
+
+### Downstream (calling upstream)
+The installation's `escalation.py` calls these on the upstream WC3:
+
+- `POST /wcapi/alice/ask/` — WCHQ Alice answers (standard tier)
+- `POST /wcapi/alice/ask-claude/` — WCHQ Alice + Claude (professional tier)
+
+Auth: `Authorization: Athena <token>`
+
+### Upstream (serving downstream)
+Any WC3 can serve these — WCHQ is just a WC3 instance:
+
+- `AliceAskUpstreamView` — runs question through local RAG, no re-escalation
+- `AliceAskClaudeUpstreamView` — local RAG + Claude fallback (key in `Setting(purpose='wchq_claude_key')`)
+
+---
+
+## What Alice Can Do Locally (8B/20B)
 
 - Answer questions about WC3 features, fields, and workflows
 - Draft simple markdown templates with field tokens
 - Suggest field paths for a given model
 - Review template syntax and fix formatting
-- Explain what records, statuses, and actions mean
-- Guide users through databrowser, print, and transaction workflows
 - Create Action records, Document records, observations
 - Run quiz questions for training
-- Flag data quality issues (schema questions, missing fields)
+- Flag data quality issues
 - Basic calculations and lookups
 
 ---
 
-## When Alice Must Escalate
+## When Alice Escalates
 
-Alice should recognize these patterns and escalate:
+Alice escalates automatically when confidence is low. She also recognizes
+capability boundaries and escalates for:
 
-### Code changes
-"I need a new field on the Order model" — schema change, migration,
-needs Claude Code.
-
-### Complex logic
-Multi-step conditional rendering, cross-model joins, custom calculations
-that require understanding the full codebase.
-
-### Architecture decisions
-"Should we use a new model or extend metadata?" — needs Claude Code's
-view of the full system.
-
-### Template system extensions
-New token types, new format hints, changes to the resolveTokens function.
-
-### Bug diagnosis
-Anything that requires reading multiple source files, tracing a code path,
-or understanding signal chains.
-
-### Security concerns
-Permission changes, RBAC modifications, credential handling.
+- **Code changes** — schema, migrations, new fields
+- **Complex logic** — multi-step conditionals, cross-model joins
+- **Architecture decisions** — new model vs. extend metadata
+- **Bug diagnosis** — requires reading multiple source files
+- **Security concerns** — permissions, RBAC, credentials
 
 ---
 
-## How to Escalate
+## Logging
 
-When Alice hits her limit, she says:
+Every escalation is logged as `AliceObservation(category='escalation')`:
+- Confidence score at time of escalation
+- Tier used (alice_local, wchq_alice, wchq_claude)
+- Reason (low_confidence, capability_boundary)
+- Question (PII-scrubbed)
 
-> "This needs Claude Code. I'm creating an action to flag it for the next
-> session. What you're asking for is [brief description of what's needed].
-> Claude Code will pick it up."
+---
 
-Then she creates an Action record:
+## Multi-Location Pattern
 
-```python
-Action.objects.create(
-    ida=f"ALICE-ESCALATE-{timestamp}",
-    name=f"Escalation: {brief_description}",
-    description=user_request_with_context,
-    status="pending",
-    config={
-        "escalation": {
-            "from": "alice",
-            "to": "claude_code",
-            "reason": why_alice_cannot_handle,
-            "user_request": original_request,
-            "context": relevant_context,
-        }
-    },
-    metadata={
-        "source": "alice_escalation",
-        "priority": priority_level,  # "normal" or "urgent"
-    },
-)
+The same escalation pipe serves multi-location companies:
+
+```
+Location A (WC3) ──→ HQ (WC3) ←── Location B (WC3)
 ```
 
-At the next Claude Code session (`leftshoe`), escalations appear in the
-handoff and get addressed.
+HQ is upstream for both. Same Connection, same Bundle infrastructure.
+The pipe also carries GL journal bundles for accounting consolidation
+(see `apps/sync/services/gl_journal_bundle.py`).
+
+**GL journals are never loaded into HQ's GL tables.** They arrive as
+Bundle records and are curated for accounting program handoff
+(QuickBooks, Xero).
 
 ---
 
-## Retrospection on Capability
+## Seed Records
 
-Alice should track her escalations and learn from them:
-
-1. **Log every escalation** as an AliceObservation (category: `escalation`)
-2. **Weekly review**: which escalations were resolved? What did Claude Code
-   do that Alice couldn't? Could Alice have partially handled it?
-3. **Pattern detection**: if the same type of escalation recurs, Alice should
-   note it — either she needs a new capability, or users need better guidance
-   on what to ask her vs. Claude Code
-4. **Honest self-assessment**: Alice's nightly synthesis should include a
-   "Capability gaps" section — what she was asked to do and couldn't
-
-The goal is not to make Alice do everything. The goal is for Alice to know
-exactly what she can do, do it well, and hand off cleanly what she can't.
+| Model | ida / purpose | What it configures |
+|-------|--------------|-------------------|
+| Setting | `wc:escalation` | Confidence thresholds, tier definitions, privacy rules |
+| Setting | `wc:subscription` | Subscription tier, pricing, feature gates |
+| Connection | `conn-ai-escalation` | Full escalation chain config with endpoints and rules |
+| Connection | `conn-upstream-hq` | Multi-location upstream with GL journal and escalation |
 
 ---
 
 ## What Alice Should Never Do
 
-- **Pretend** she can handle something she can't — degraded output is worse
-  than honest escalation
-- **Apologize** for escalating — the service is free, escalation is the
-  right answer
-- **Block** the user — create the escalation, explain what will happen,
-  let them continue with other work
-- **Lose context** — the escalation Action must contain enough detail for
-  Claude Code to act without re-asking the user
+- **Pretend** she can handle something she can't
+- **Lose context** — the escalation must carry enough detail to act
+- **Send raw business data** upstream — questions only, PII scrubbed
+- **Require API keys** from individual users
 
 ---
 
-*Established 2026-08-05 by Bill James. The rule: honest capability boundaries
-with clean handoff. No pretending. No paywall.*
+*Established 2026-08-05. Reworked 2026-08-31: three-tier chain, WCHQ
+manages Claude centrally, per-person pricing, PII scrubbing, multi-location
+GL journal consolidation.*

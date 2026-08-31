@@ -884,59 +884,136 @@ CONNECTIONS = [
             'doc': 'readmes/connections/identity.md',
         },
     },
-    # -- AI connections --------------------------------------------------------
+    # -- Multi-location upstream -----------------------------------------------
     {
-        'ida': 'conn-ai-claude',
-        'name': 'Claude API',
+        'ida': 'conn-upstream-hq',
+        'name': 'Upstream HQ',
         'type': 'api',
         'purpose': 'sync',
         'status': 'draft',
         'comment': (
-            'Claude API connection for Alice. When Alice hits the ceiling of her '
-            'local model (8B/20B), she calls Claude for help — report generation, '
-            'complex classification, template authoring, data analysis. Alice '
-            'frames the question, Claude answers, Alice applies the result. '
-            'User provides their own API key. Alice learns from each exchange.'
+            'Upstream WC3 instance — this location sends GL journals, Alice '
+            'escalations, and other data to HQ for consolidation. HQ does NOT '
+            'load GL journals into its own database. Journals arrive as Bundle '
+            'records (type=gl_journal) and are curated for accounting program '
+            'handoff (QuickBooks, Xero). Same pipe carries Alice escalations '
+            'and product data. Fill in endpoint and key when ready.'
         ),
         'config': {
-            'provider': 'anthropic',
-            'credentials': {
-                'api_key': '',
-            },
-            'settings': {
-                'model': 'claude-sonnet-4-6',
-                'max_tokens': 4096,
-                'temperature': 0.3,
-                'capabilities': [
-                    'report_generation',
-                    'template_authoring',
-                    'data_classification',
-                    'serial_load_normalization',
-                    'complex_queries',
-                    'document_analysis',
-                ],
-                'rate_limit': {
-                    'requests_per_minute': 30,
-                    'daily_budget_usd': 5.00,
-                },
-                'alice_learns': True,
-                'log_exchanges': True,
+            'endpoint': '',                 # e.g. 'https://hq.example.com'
+            'key': '',                      # shared sync key
+            'athena_token': '',             # for Alice escalation
+            'subscription_tier': 'standard',
+            'content_types': [
+                'gl_journal',               # journal entries → curated for accounting
+                'alice_escalation',         # low-confidence questions → HQ Alice
+                'product_data',             # catalog sync from HQ
+            ],
+            'gl_journal': {
+                'auto_send': False,         # manual until verified
+                'period_format': 'YYYY-MM',
+                'exclude_draft': True,
+                'hq_does_not_load': True,   # HQ stores as Bundle, never GL tables
             },
         },
         'rules': {
-            'usage': {
-                'alice_frames_question': True,
-                'alice_applies_result': True,
-                'no_raw_user_data_sent': True,
+            'sovereignty': {
+                'location_owns_data': True,
+                'hq_consolidates_not_stores': True,
+                'journals_are_bundles_not_gl': True,
+                'accounting_program_is_consumer': True,
+            },
+        },
+        'metadata': {
+            'established': '2026-08-31',
+            'class': 'multi_location',
+            'doc': 'readmes/connections/multi-location.md',
+        },
+    },
+    # -- AI connections --------------------------------------------------------
+    {
+        'ida': 'conn-ai-escalation',
+        'name': 'AI Escalation Chain',
+        'type': 'api',
+        'purpose': 'sync',
+        'status': 'active',
+        'comment': (
+            'AI Escalation Chain: Alice local → Alice at WCHQ → Alice+Claude at WCHQ. '
+            'Tier 1: Alice answers locally via Ollama RAG (always first, free). '
+            'Tier 2: If confidence < 40%, escalate to WCHQ Alice — WCHQ runs a '
+            'larger model on shared infrastructure (standard subscription). '
+            'Tier 3: If WCHQ Alice is also low-confidence, WCHQ internally '
+            'escalates to Claude (professional subscription). The individual '
+            'installation never needs a Claude API key — WCHQ manages that '
+            'relationship centrally. All escalations logged as '
+            'AliceObservation(category=escalation).'
+        ),
+        'config': {
+            'escalation_chain': {
+                'tiers': [
+                    {
+                        'name': 'alice_local',
+                        'source': 'Ollama RAG',
+                        'always_first': True,
+                        'cost': 'free',
+                        'subscription': 'community',
+                    },
+                    {
+                        'name': 'wchq_alice',
+                        'source': 'WCHQ shared Alice',
+                        'trigger': 'confidence < 40%',
+                        'cost': '$4/person/mo',
+                        'subscription': 'standard',
+                        'endpoint': '/wcapi/alice/ask/',
+                    },
+                    {
+                        'name': 'wchq_claude',
+                        'source': 'WCHQ calls Claude',
+                        'trigger': 'WCHQ Alice also low confidence',
+                        'cost': '$9/person/mo',
+                        'subscription': 'professional',
+                        'endpoint': '/wcapi/alice/ask-claude/',
+                    },
+                ],
+                'confidence': {
+                    'threshold': 0.40,
+                    'weights': {
+                        'context_quality': 0.60,
+                        'answer_quality': 0.40,
+                    },
+                    'signals': {
+                        'context': 'vector distances + chunk count',
+                        'answer': 'length + hedging phrase detection',
+                    },
+                },
+            },
+            'settings': {
+                'alice_learns_from_escalations': True,
+                'log_all_exchanges': True,
+            },
+        },
+        'rules': {
+            'sovereignty': {
+                'no_api_key_required': True,
+                'wchq_manages_claude_relationship': True,
+                'question_only_sent_to_wchq': True,
+                'no_raw_business_data_sent': True,
                 'pii_scrubbed_before_send': True,
-                'user_owns_api_key': True,
                 'exchanges_logged_locally': True,
+            },
+            'escalation': {
+                'always_try_local_first': True,
+                'log_every_escalation': True,
+                'include_local_answer_in_escalation': True,
+                'graceful_fallback_to_local': True,
             },
         },
         'metadata': {
             'established': '2026-08-09',
+            'updated': '2026-08-31',
             'class': 'ai',
             'doc': 'readmes/connections/connection-classes.md',
+            'implementation': 'apps/ai_assistant/services/escalation.py',
         },
     },
 ]

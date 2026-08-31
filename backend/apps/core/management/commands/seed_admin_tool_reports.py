@@ -197,6 +197,69 @@ ADMIN_TOOLS = [
             'invoice → payment → GL journal entries. All tagged refs.source="demo-baseline".'
         ),
     },
+    {
+        'ida': 'admin-tool-gl-journal-export',
+        'name': 'GL Journal Export',
+        'description': 'Export GL journal entries for a period as bundle.json. '
+                       'Feed to Journal Formatter for your accounting program.',
+        'model_name': 'gl_journal',
+        'category': 'utility',
+        'output_type': 'json',
+        'role_required': 'admin',
+        'sort_order': 90,
+        'config': {
+            'command': 'gl_journal_export',
+            'default_args': [],
+            'parameters': [
+                {'name': 'period', 'type': 'text', 'label': 'Period (YYYY-MM)', 'required': True},
+            ],
+            'tools': {
+                'journal_formatter': {
+                    'label': 'Open Journal Formatter',
+                    'url': '/tools/journal_formatter.html',
+                    'description': 'Drop bundle.json here to convert to QuickBooks, Xero, Sage, etc.',
+                },
+                'statement_sorter': {
+                    'label': 'Open Statement Sorter',
+                    'url': '/sort/',
+                    'description': 'Import bank statements into WebClerk.',
+                },
+            },
+        },
+        'explanation': (
+            'Exports GL journal entries for a period as bundle.json. The same file '
+            'works for local accounting handoff (via Journal Formatter) and multi-location '
+            'upstream consolidation. Every entry carries the company source UUID.'
+        ),
+    },
+    {
+        'ida': 'admin-tool-journal-formatter',
+        'name': 'Journal Formatter',
+        'description': 'Convert bundle.json into your accounting program format. '
+                       'Standalone — no server, works offline.',
+        'model_name': 'gl_journal',
+        'category': 'utility',
+        'output_type': 'screen',
+        'role_required': '',
+        'sort_order': 91,
+        'config': {
+            'route': '/tools/journal_formatter.html',
+            'external_tool': True,
+            'formats': [
+                'QuickBooks Desktop (IIF)',
+                'QuickBooks Online (CSV)',
+                'Xero (CSV)',
+                'Sage 50/100 (CSV)',
+                'FreshBooks (CSV)',
+                'Generic CSV',
+            ],
+        },
+        'explanation': (
+            'Standalone HTML+JS tool. Drop bundle.json from GL Journal Export, '
+            'pick your accounting program, download the formatted file. '
+            'Remembers your choice. No server needed. Like Statement Sorter but outbound.'
+        ),
+    },
 ]
 
 

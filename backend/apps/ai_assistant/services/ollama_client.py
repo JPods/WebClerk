@@ -33,10 +33,12 @@ OLLAMA_TIMEOUT = getattr(settings, "OLLAMA_TIMEOUT", 120)
 # WCHQ fallback — used when Ollama is unavailable
 WCHQ_LLM_URL = "https://webclerk.com/wcapi/alice/llm/"
 
-# Pricing: $14 per 5 staff users. Alice counts is_staff.
+# Pricing: per person per month. Alice counts is_staff.
 # Community (free) = run your own Ollama.
-# Subscribed = Alice cloud + support channel, priced by staff count.
-PRICE_PER_5_USERS = 1400  # cents
+# Standard ($4/person/mo) = WCHQ Alice escalation.
+# Professional ($9/person/mo) = WCHQ Alice + Claude escalation.
+PRICE_PER_PERSON_STANDARD = 400   # cents
+PRICE_PER_PERSON_PROFESSIONAL = 900  # cents
 
 
 def _get_athena_token() -> str:

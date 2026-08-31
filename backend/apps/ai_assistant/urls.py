@@ -22,4 +22,7 @@ urlpatterns = [
     path("note/", views.NoteView.as_view(), name="ai-note"),
     path("report/", views.ReportView.as_view(), name="ai-report"),
     path("search-feedback/", views.SearchFeedbackView.as_view(), name="ai-search-feedback"),
+    # Upstream Alice — any WC3 can serve these for downstream instances
+    path("alice/ask/", views.AliceAskUpstreamView.as_view(), name="alice-ask-upstream"),
+    path("alice/ask-claude/", views.AliceAskClaudeUpstreamView.as_view(), name="alice-ask-claude-upstream"),
 ]
