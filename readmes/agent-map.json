@@ -1,0 +1,135 @@
+{
+  "_description": "AI Agent Map — maps code areas to relevant readmes. Load this at session start to know where to find documentation without searching.",
+  "_updated": "2026-08-31",
+  "_usage": "Read this file first. When working in a code area, look up its key to find the relevant readmes.",
+
+  "apps/core/": {
+    "readmes": ["architecture/", "tools/setting-parade.md", "tools/settings.md", "tools/admin-tools.md"],
+    "models": {
+      "Setting": ["tools/setting-parade.md", "tools/setting-policy.md", "tools/selectlist-architecture.md"],
+      "Report": ["tools/admin-tools.md"],
+      "Contact": ["contacts/"],
+      "Action": ["operations/architecture-actions-documents.md", "operations/project-kanban-generation.md"],
+      "Pending": ["architecture/pending-architecture.md", "transactions/"]
+    }
+  },
+
+  "apps/accounts/": {
+    "readmes": ["accounting/"],
+    "models": {
+      "GLJournal": ["accounting/gl-accounts-management.md", "accounting/journal-formatter.md"],
+      "GLAccount": ["accounting/gl-accounts-management.md"],
+      "Ledger": ["accounting/ledger-financial-system.md", "accounting/terms-ledgers.md"],
+      "Payment": ["accounting/payment-lifecycle.md", "accounting/payment-application.md"],
+      "TaxJurisdiction": ["accounting/tax_service.md"]
+    }
+  },
+
+  "apps/transactions/": {
+    "readmes": ["transactions/"],
+    "models": {
+      "Order": ["transactions/08-transaction-save.md"],
+      "Invoice": ["transactions/08-transaction-save.md"],
+      "Proposal": ["transactions/08-transaction-save.md"],
+      "Purchase": ["transactions/08-transaction-save.md"]
+    },
+    "services": {
+      "transaction_flow.py": ["transactions/80-line-save-boundary.md", "transactions/transaction-envelope-reorganization.md"],
+      "flow.py": ["transactions/"]
+    }
+  },
+
+  "apps/products/": {
+    "readmes": ["products/"],
+    "models": {
+      "Item": ["products/item-model.md", "products/item-linked-models.md"],
+      "Warehouse": ["products/inventory.md"],
+      "InventoryLayer": ["products/inventory.md"],
+      "BillOfMaterial": ["products/bom-table.md"],
+      "Variant": ["products/variants.md"]
+    }
+  },
+
+  "apps/orgs/": {
+    "readmes": ["contacts/"],
+    "models": {
+      "Customer": ["contacts/contact-org-roles.md"],
+      "Vendor": ["contacts/contact-org-roles.md"]
+    }
+  },
+
+  "apps/ai_assistant/": {
+    "readmes": ["alice/"],
+    "services": {
+      "escalation.py": ["alice/escalation.md"],
+      "rag.py": ["alice/escalation.md", "alice/alice-coaching.md"],
+      "pii_scrub.py": ["alice/escalation.md"],
+      "ollama_client.py": ["alice/escalation.md"]
+    },
+    "views": {
+      "AliceAskUpstreamView": ["alice/escalation.md"],
+      "AliceAskClaudeUpstreamView": ["alice/escalation.md"]
+    }
+  },
+
+  "apps/sync/": {
+    "readmes": ["sync/"],
+    "models": {
+      "Connection": ["sync/", "alice/escalation.md"],
+      "Bundle": ["sync/", "accounting/journal-formatter.md"]
+    },
+    "services": {
+      "gl_journal_bundle.py": ["accounting/journal-formatter.md", "sync/"],
+      "bundle_storage.py": ["sync/"],
+      "po_to_so_bundle.py": ["sync/"]
+    }
+  },
+
+  "apps/docs/": {
+    "readmes": ["operations/email-document-architecture.md", "operations/file-storage-protocol.md"]
+  },
+
+  "common/": {
+    "readmes": ["architecture/json-envelope-policy.md", "architecture/pjpv-architecture.md", "architecture/lifecycle-discipline.md"],
+    "models.py": ["architecture/webclerk3_data_models.md", "architecture/shared-behaviors.md"]
+  },
+
+  "webclerk3_api/": {
+    "readmes": ["architecture/03-wcapi-gateway.md", "architecture/04-wcapi-usage.md", "architecture/06-api-conventions.md"],
+    "urls.py": ["architecture/routing.md"]
+  },
+
+  "tools/": {
+    "readmes": ["accounting/journal-formatter.md", "accounting/statement-harvester.md"],
+    "journal_formatter.html": ["accounting/journal-formatter.md"],
+    "statement_harvester.py": ["accounting/statement-harvester.md"]
+  },
+
+  "management_commands": {
+    "seed_*": ["getting-started/"],
+    "gl_journal_export": ["accounting/journal-formatter.md"],
+    "seed_coaching": ["alice/alice-coaching.md"],
+    "seed_connections": ["sync/", "alice/escalation.md"],
+    "seed_wchq_settings": ["sync/wchq.md", "alice/escalation.md"]
+  },
+
+  "frontend/src/pages/admin/": {
+    "AliceDashboard.tsx": ["alice/"],
+    "AliceQuiz.tsx": ["alice/alice-coaching.md", "getting-started/training-videos.md"],
+    "AliceTraining.tsx": ["alice/alice-coaching.md"],
+    "DataBrowser.tsx": ["tools/db-layout-schema.md", "tools/layout-architecture.md"],
+    "AdminTools.tsx": ["tools/admin-tools.md"]
+  },
+
+  "frontend/src/components/": {
+    "fields/": ["tools/field-behaviors.md", "tools/field-behaviors-service.md"],
+    "panels/": ["tools/layout-architecture.md"],
+    "form/": ["tools/layout-save-flow.md"]
+  },
+
+  "_training": {
+    "readmes": ["getting-started/training-videos.md"],
+    "quiz_sets": ["alice/alice-coaching.md"],
+    "note": "30 training videos defined in Setting(name='alice-training-videos'). Each video teaches to a quiz."
+  }
+}

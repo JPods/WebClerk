@@ -49,6 +49,10 @@ SKIP_FILE_NAMES = {
     'export_data.py',
     'restore_data.py',
     'restore_data_smart.py',
+    # Service files with local default paths for dev convenience
+    'watch_code.py',
+    'record_dedup.py',
+    'record_dedup 2.py',
 }
 
 def iter_text_files():

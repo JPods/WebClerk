@@ -68,7 +68,7 @@ def test_payment_creation(invoice, contact):
     """Test that a payment can be created directly."""
     payment = Payment.objects.create(
         invoice=invoice,
-        contact=contact,
+        contact_id=contact.pk,
         amount=Decimal('75.50'),
         gateway='stripe',
         status='pending',
@@ -82,7 +82,7 @@ def test_payment_str_format(invoice, contact):
     """Test that Payment __str__ uses signed format (+amount)."""
     payment = Payment.objects.create(
         invoice=invoice,
-        contact=contact,
+        contact_id=contact.pk,
         amount=Decimal('75.50'),
         status='pending',
     )

@@ -36,6 +36,7 @@ from apps.core.views.template_views import ResolveTemplateView, TemplateFieldsVi
 from apps.core.views.sample_data_view import SampleDataView
 from apps.core.views.parade_preview_view import ParadePreviewView, ParadeManifestView, ParadeFeedbackView
 from apps.core.views.setting_parade import SettingParadeManifestView, SettingParadePreviewView, SettingParadeFeedbackView
+from apps.core.views.testing_parade import TestParadeManifestView, TestParadeRunView, TestParadeFeedbackView
 from apps.core.views.system_dispatch import SystemDispatchView
 from apps.core.views.init_bundle_view import InitBundleView
 from apps.core.views.register_installation_view import RegisterInstallationView, SubscriptionView
@@ -99,6 +100,10 @@ urlpatterns = [
     path("wcapi/_setting_parade_manifest/", SettingParadeManifestView.as_view(), name="wcapi-setting-parade-manifest"),
     path("wcapi/_setting_parade_preview/", SettingParadePreviewView.as_view(), name="wcapi-setting-parade-preview"),
     path("wcapi/_setting_parade_feedback/", SettingParadeFeedbackView.as_view(), name="wcapi-setting-parade-feedback"),
+    # Test parade
+    path("wcapi/_test_parade_manifest/", TestParadeManifestView.as_view(), name="wcapi-test-parade-manifest"),
+    path("wcapi/_test_parade_run/", TestParadeRunView.as_view(), name="wcapi-test-parade-run"),
+    path("wcapi/_test_parade_feedback/", TestParadeFeedbackView.as_view(), name="wcapi-test-parade-feedback"),
     # Template resolution
     path("wcapi/_resolve_template/", ResolveTemplateView.as_view(), name="wcapi-resolve-template"),
     path("wcapi/_template_fields/", TemplateFieldsView.as_view(), name="wcapi-template-fields"),

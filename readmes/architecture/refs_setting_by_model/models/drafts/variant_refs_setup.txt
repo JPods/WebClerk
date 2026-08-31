@@ -1,0 +1,6 @@
+setting model_name="variant" purpose="refs_setup"
+{
+    "self_fields": ["canonical_key"],
+    "related_keywords": {},
+    "related_models": []
+}

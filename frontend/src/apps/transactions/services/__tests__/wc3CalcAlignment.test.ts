@@ -62,18 +62,18 @@ describe('formatCurrency()', () => {
   it('formats USD', () => {
     expect(formatCurrency(1234.5)).toBe('$1,234.50');
   });
-  it('returns -- for null/undefined', () => {
-    expect(formatCurrency(null)).toBe('--');
-    expect(formatCurrency(undefined)).toBe('--');
+  it('returns empty string for null/undefined', () => {
+    expect(formatCurrency(null)).toBe('');
+    expect(formatCurrency(undefined)).toBe('');
   });
 });
 
 describe('formatPercent()', () => {
-  it('formats to 2dp', () => {
-    expect(formatPercent(32)).toBe('32.00%');
+  it('formats to 1dp by default', () => {
+    expect(formatPercent(32)).toBe('32.0%');
   });
-  it('returns -- for null', () => {
-    expect(formatPercent(null)).toBe('--');
+  it('returns empty string for null', () => {
+    expect(formatPercent(null)).toBe('');
   });
 });
 

@@ -34,7 +34,11 @@ def transfer_order_to_purchase(
     vendor_groups = defaultdict(list)
     if group_by_vendor:
         for sl in selected:
-            vendor_id = getattr(sl, 'vendor_id', order.vendor_id) or order.vendor_id
+            vendor_id = (
+                (sl.item or {}).get('vendor_id')
+                or getattr(sl, 'vendor_id', None)
+                or order.vendor_id
+            )
             vendor_groups[vendor_id].append(sl)
     else:
         # All lines to one PO

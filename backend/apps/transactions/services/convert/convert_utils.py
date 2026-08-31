@@ -66,7 +66,13 @@ def select_lines(qs, line_ids: Optional[List[int]], transfer_all: bool):
         raise ValueError("Line IDs not found")
     return selected
 
-from common.decimals import safe_decimal as _to_decimal_safe  # noqa: E302
+from common.decimals import safe_decimal as _safe_decimal  # noqa: E302
+
+
+def _to_decimal_safe(val):
+    """Convert to Decimal then float for JSON-safe storage."""
+    d = _safe_decimal(val)
+    return float(d) if d is not None else None
 
 def _resolve_line_parent_id(src_line: Any) -> Any:
     if hasattr(src_line, 'parent_id_value'):

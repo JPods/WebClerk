@@ -1,0 +1,12 @@
+{
+    "self_fields": [
+        "name",
+        "type",
+        "status",
+        "action",
+        "purpose"
+    ],
+    "related_keywords": {},
+    "related_models": [],
+    "jjj_comment": "setting model_name=\"connection\" purpose=\"refs_setup\""
+}

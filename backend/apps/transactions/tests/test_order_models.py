@@ -62,9 +62,12 @@ class OrderModelTest(TestCase):
         expected_choices = (
             ('', '---------'),
             ('planned', 'Planned'),
+            ('signoff_request', 'SignOff Request'),
             ('released', 'Released'),
             ('in_progress', 'In Progress'),
             ('hold', 'Hold'),
+            ('consigned', 'Consigned'),
+            ('deferred', 'Deferred'),
             ('complete', 'Complete'),
             ('canceled', 'Canceled'),
         )

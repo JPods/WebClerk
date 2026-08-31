@@ -216,3 +216,54 @@ def order_line_factory(db):
 def item_factory(db):
     """Factory for creating product items."""
     return ItemFactory
+
+
+# ---------------------------------------------------------------------------
+# Auth & WCAPI fixtures
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def authenticated_client(db):
+    """APIClient authenticated as a superuser via force_authenticate."""
+    from tests.helpers.auth import make_authenticated_client
+    return make_authenticated_client()
+
+
+class _WcapiNamespace:
+    """Convenience wrapper: wcapi.save('contact', {...}) etc."""
+
+    def __init__(self, client):
+        self._client = client
+
+    def save(self, model, data):
+        return self._client.post(
+            '/wcapi/save', {'model': model, 'data': data}, format='json'
+        )
+
+    def get(self, model, **params):
+        params['model_name'] = model
+        return self._client.get('/wcapi/get/', params)
+
+    def query(self, model, filters=None):
+        return self._client.post(
+            '/wcapi/query', {'model': model, 'filters': filters or {}},
+            format='json',
+        )
+
+    def delete(self, model, ids):
+        return self._client.delete(
+            f'/{model}/', data={'ids': ids}, format='json'
+        )
+
+
+@pytest.fixture
+def wcapi(authenticated_client):
+    """WCAPI helper namespace bound to an authenticated client.
+
+    Usage::
+
+        def test_create_contact(wcapi):
+            resp = wcapi.save('contact', {'email': 'a@b.com'})
+            assert resp.status_code == 200
+    """
+    return _WcapiNamespace(authenticated_client)

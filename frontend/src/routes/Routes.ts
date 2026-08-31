@@ -46,6 +46,7 @@
   static readonly whitelist: string = "/whitelist";
   static readonly formParade: string = "/form-parade";
   static readonly settingParade: string = "/setting-parade";
+  static readonly testParade: string = "/test-parade";
   static readonly selectLists: string = "/selectlists";
   static readonly agenda: string = "/agenda";
   static readonly docs: string = "/docs";

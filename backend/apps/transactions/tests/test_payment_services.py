@@ -5,6 +5,7 @@ from django.utils import timezone
 from apps.transactions.models import Payment, Invoice, PaymentApplication
 from apps.transactions.services.payment.payment_apply import apply_payment_to_invoice, unapply_payment_from_invoice, get_invoice_payment_status
 from apps.core.models import Contact
+from apps.orgs.models import OrgBase
 
 
 class PaymentApplicationServiceTest(TestCase):
@@ -12,25 +13,28 @@ class PaymentApplicationServiceTest(TestCase):
 
     def setUp(self):
         """Set up test data."""
-        self.customer = Contact.objects.create(
+        self.customer_org = OrgBase.objects.create(
+            display_name="John Doe",
+            org_type="customer"
+        )
+        self.vendor_org = OrgBase.objects.create(
+            display_name="Jane Smith",
+            org_type="vendor"
+        )
+        self.contact = Contact.objects.create(
             name_first="John",
             name_last="Doe",
             email="john.doe@example.com"
         )
-        self.vendor = Contact.objects.create(
-            name_first="Jane",
-            name_last="Smith",
-            email="jane.smith@example.com"
-        )
         self.invoice = Invoice.objects.create(
             status="sent",
-            customer_id=self.customer.id,
-            vendor_id=self.vendor.id,
+            customer_id=self.customer_org.id,
+            vendor_id=self.vendor_org.id,
             totals={'total': 100.00, 'received': 0.00, 'balance': 100.00}
         )
         self.payment = Payment.objects.create(
             invoice=self.invoice,
-            contact=self.customer,
+            contact_id=self.contact.pk,
             amount=50.00,
             status="completed"
         )
@@ -77,7 +81,7 @@ class PaymentApplicationServiceTest(TestCase):
         """Test applying payment that fully pays the invoice."""
         small_payment = Payment.objects.create(
             invoice=self.invoice,
-            contact=self.customer,
+            contact_id=self.contact.pk,
             amount=100.00,
             status="completed"
         )
@@ -98,7 +102,7 @@ class PaymentApplicationServiceTest(TestCase):
         """Test applying payment that is not completed."""
         pending_payment = Payment.objects.create(
             invoice=self.invoice,
-            contact=self.customer,
+            contact_id=self.contact.pk,
             amount=25.00,
             status="pending"
         )
@@ -149,13 +153,13 @@ class PaymentApplicationServiceTest(TestCase):
         # Apply some payments
         payment1 = Payment.objects.create(
             invoice=self.invoice,
-            contact=self.customer,
+            contact_id=self.contact.pk,
             amount=30.00,
             status="completed"
         )
         payment2 = Payment.objects.create(
             invoice=self.invoice,
-            contact=self.customer,
+            contact_id=self.contact.pk,
             amount=20.00,
             status="completed"
         )

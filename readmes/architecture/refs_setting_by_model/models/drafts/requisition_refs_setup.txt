@@ -1,0 +1,6 @@
+setting model_name="requisition" purpose="refs_setup"
+{
+    "self_fields": ["name", "purpose", "status"],
+    "related_keywords": {},
+    "related_models": []
+}

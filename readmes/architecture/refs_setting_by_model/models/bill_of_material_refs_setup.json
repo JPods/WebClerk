@@ -1,0 +1,16 @@
+{
+    "self_fields": [
+        "parent",
+        "component",
+        "change_reason"
+    ],
+    "related_keywords": {
+        "item": [
+            "item.refs.keywords"
+        ]
+    },
+    "related_models": [
+        "item"
+    ],
+    "jjj_comment": "setting model_name=\"bill_of_material\" purpose=\"refs_setup\"\n\nQQQ change parent to ida_parent\nI do not see ida of the item."
+}

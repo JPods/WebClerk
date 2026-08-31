@@ -58,13 +58,13 @@ def test_invoice(db):
 class TestOrderLineSerializerMerge:
     """Test JSON deep-merge behavior for OrderLineSerializer."""
 
-    def test_update_transferred_preserves_staged(self, api_factory, test_item, test_order, superuser):
-        """PATCH with only transferred should preserve existing staged value."""
+    def test_update_active_preserves_staged(self, api_factory, test_item, test_order, superuser):
+        """PATCH with only active should preserve existing staged value."""
         # Create initial line
         line = OrderLine.objects.create(
             order=test_order,
             item_fk=test_item,
-            quantity={"staged": 10, "transferred": 0, "remaining": 10},
+            quantity={"staged": 10, "active": 10, "remaining": 10},
             price={"unit": 100, "extended": 1000},
         )
 
@@ -72,10 +72,10 @@ class TestOrderLineSerializerMerge:
         request = api_factory.patch('/fake/')
         request.user = superuser
 
-        # Update only transferred
+        # Update only active
         serializer = OrderLineSerializer(
             instance=line,
-            data={"quantity": {"transferred": 5}},
+            data={"quantity": {"active": 5}},
             partial=True,
             context={"request": request}
         )
@@ -84,7 +84,7 @@ class TestOrderLineSerializerMerge:
 
         # Verify staged was preserved and remaining recalculated
         assert updated_line.quantity["staged"] == 10
-        assert updated_line.quantity["transferred"] == 5
+        assert updated_line.quantity["active"] == 5.0
         # remaining should be recalculated by normalize_quantity_map
         assert updated_line.quantity["remaining"] == 5.0
 
@@ -93,7 +93,7 @@ class TestOrderLineSerializerMerge:
         line = OrderLine.objects.create(
             order=test_order,
             item_fk=test_item,
-            quantity={"staged": 5, "transferred": 5, "remaining": 0},
+            quantity={"staged": 5, "active": 5, "remaining": 0},
             price={"unit": 100, "extended": 500, "discount_percent": 10},
         )
 
@@ -119,7 +119,7 @@ class TestOrderLineSerializerMerge:
             order=test_order,
             item_fk=test_item,
             item={"item_id": test_item.pk, "description": "Original Desc"},
-            quantity={"staged": 1, "transferred": 1, "remaining": 0},
+            quantity={"staged": 1, "active": 1, "remaining": 0},
         )
 
         request = api_factory.patch('/fake/')
@@ -148,7 +148,7 @@ class TestInvoiceLineSerializerMerge:
         line = InvoiceLine.objects.create(
             invoice=test_invoice,
             item_fk=test_item,
-            quantity={"staged": 10, "transferred": 10, "remaining": 0},
+            quantity={"staged": 10, "active": 10, "remaining": 0},
             price={"unit": 100, "extended": 1000},
         )
 
@@ -157,14 +157,14 @@ class TestInvoiceLineSerializerMerge:
 
         serializer = InvoiceLineSerializer(
             instance=line,
-            data={"quantity": {"transferred": 5}},
+            data={"quantity": {"active": 5}},
             partial=True,
             context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
         updated_line = serializer.save()
 
-        # Invoice remaining should always be 0
-        assert updated_line.quantity["remaining"] == 0
-        # staged should sync with transferred if not explicitly set differently
-        assert updated_line.quantity["transferred"] == 5
+        # Invoice remaining equals active (no children)
+        assert updated_line.quantity["remaining"] == 5.0
+        # active should be updated
+        assert updated_line.quantity["active"] == 5.0

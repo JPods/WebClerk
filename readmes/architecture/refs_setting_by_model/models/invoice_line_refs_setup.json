@@ -1,0 +1,3 @@
+{
+    "jjj_comment": "setting model_name=\"invoice_line\" purpose=\"refs_setup\"\n{\n    \"self_fields\": [\"price_level\", \"status,\"ida_item\",\"description\"],\n    \"related_keywords\": {\n        \"item\": [\"name\", \"description\", \"sku\"],\n        \"invoice\": [\"ida\", \"status\", \"priority\"]\n    },\n    \"related_models\": [\"item\", \"invoice\",\"customer\"]\n}"
+}

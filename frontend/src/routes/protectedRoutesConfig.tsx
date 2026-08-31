@@ -39,6 +39,7 @@ import TeamDashboard from "../pages/admin/TeamDashboard";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import FormParade from "../pages/tools/FormParade";
 import SettingParade from "../pages/tools/SettingParade";
+import TestParade from "../pages/tools/TestParade";
 import SelectListBrowser from "../pages/tools/SelectListBrowser";
 import AgendaView from "../pages/admin/AgendaView";
 import ApplyPayments from "../apps/transactions/pages/ApplyPayments";
@@ -174,6 +175,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.whitelist, element: <WhitelistTester /> },
   { path: PageRoutes.formParade, element: <FormParade /> },
   { path: PageRoutes.settingParade, element: <SettingParade /> },
+  { path: PageRoutes.testParade, element: <TestParade /> },
   { path: PageRoutes.selectLists, element: <SelectListBrowser /> },
   { path: PageRoutes.agenda, element: <AgendaView /> },
   { path: "/json-tree", element: <S><JsonTreeApplet /></S> },

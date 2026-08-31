@@ -173,8 +173,8 @@ def unapply_payment_from_invoice(
     invoice.save(update_fields=['status', 'dt_modified', 'version'])
 
     # Restore payment.available and update status
-    payment.available = payment.available + unapply_amount
-    total_applied = sum(p.amount for p in payment.applications.all()) - unapply_amount
+    payment.available = Decimal(str(payment.available)) + unapply_amount
+    total_applied = sum(Decimal(str(p.amount)) for p in payment.applications.all()) - unapply_amount
     if total_applied < payment.amount:
         payment.status = 'completed'  # Reset if not fully applied
     payment.save(update_fields=['available', 'status', 'dt_modified', 'version'])
@@ -217,7 +217,7 @@ def get_invoice_payment_status(invoice: Invoice) -> Dict[str, any]:
             'payment_id': application.payment.id,
             'amount': float(application.amount),
             'applied_at': application.applied_at,
-            'payment_method': application.payment.payment_method.name if application.payment.payment_method else None,
+            'payment_method': application.payment.method or None,
             'reference': application.payment.reference_number
         })
 
