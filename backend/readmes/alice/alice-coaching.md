@@ -178,12 +178,14 @@ Users can submit coaching tips via sync (same as layouts):
 | `readmes/daily-development-practice.md` | Development practices Alice coaches on |
 | `readmes/databrowser-initial-layouts.md` | Layout design principles |
 | `readmes/wcapi-query-scoping.md` | API security model |
-| `apps/core/management/commands/seed_coaching.py` | Seeder (to be built) |
+| `apps/core/management/commands/seed_coaching.py` | Seeder (9 models, 5 how-to guides, 9 onboarding actions) |
+| `apps/ai_assistant/services/user_patterns.py` | Smart suggestions from alice_log events (523 lines) |
+| `src/hooks/useFieldHelp.ts` | Field help hook (fetches from `wc:coaching` Settings, caches in sessionStorage) |
 
 ## Next Steps
 
-1. Build `seed_coaching.py` management command
-2. Build React CoachingPanel component (side drawer)
-3. Add coaching_level to Contact.metadata
-4. Wire field_help tooltips into BehaviorField
-5. Connect alice_log events to smart suggestions
+1. ~~Build `seed_coaching.py` management command~~ (done — 589 lines, covers 9 models, supports `--force`)
+2. Build React CoachingPanel component (side drawer) — **unbuilt**
+3. ~~Add coaching_level to Contact.metadata~~ (done — seeded via `seed_wchq_settings.py`, default "beginner")
+4. Wire field_help tooltips into BehaviorField — **partial**: `useFieldHelp` hook exists but is not imported by any component yet
+5. ~~Connect alice_log events to smart suggestions~~ (done — `user_patterns.py`: navigation logging, pattern analysis, search presets, frequency detection)

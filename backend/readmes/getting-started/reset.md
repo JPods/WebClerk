@@ -6,268 +6,295 @@
 
 ## Table of Contents
 
-- [Destructive Full Reset and Baseline Rebuild](#destructive-full-reset-and-baseline-rebuild)
-  - [Table of Contents](#table-of-contents)
-  - [1. When To Use](#1-when-to-use)
-  - [2. What Happens Under The Hood](#2-what-happens-under-the-hood)
-  - [3. Usage Cheatsheet](#3-usage-cheatsheet)
-    - [3.1. Quick reseed-only (no DB drop)](#31-quick-reseed-only-no-db-drop)
-  - [4. Programmatic Invocation](#4-programmatic-invocation)
-  - [5. Environment Guards and Safety](#5-environment-guards-and-safety)
-  - [6. Post-Reset Checklist](#6-post-reset-checklist)
-  - [7. Troubleshooting](#7-troubleshooting)
-  - [8. Migration Baseline Policy](#8-migration-baseline-policy)
-  - [9. Extending Seeding](#9-extending-seeding)
-  - [10. Minimal One-Liner](#10-minimal-one-liner)
-  - [11. Data Export (Optional)](#11-data-export-optional)
-  - [12. FAQ](#12-faq)
-  - [13. Quick Reference](#13-quick-reference)
-    - [Safety alert Connection](#safety-alert-connection)
-    - [Targeted reseeds (per model)](#targeted-reseeds-per-model)
+- [1. When To Use](#1-when-to-use)
+- [2. The Three Commands](#2-the-three-commands)
+- [3. Full Reset Workflow](#3-full-reset-workflow)
+- [4. What Each Command Does](#4-what-each-command-does)
+  - [4.1. reset_migrations](#41-reset_migrations)
+  - [4.2. reset_database](#42-reset_database)
+  - [4.3. seed_freshstart](#43-seed_freshstart)
+- [5. Demo Data](#5-demo-data)
+- [6. Dummy Data](#6-dummy-data)
+- [7. Superusers](#7-superusers)
+- [8. Post-Reset Checklist](#8-post-reset-checklist)
+- [9. Troubleshooting](#9-troubleshooting)
+- [10. FAQ](#10-faq)
 
 <!-- TOC END -->
 
 Date: 2025-09-03
-Review: 2025-12-15
-Status: -- status --
+Review: 2026-08-31
+Status: current
 Owner: Bill
 
-This guide documents the **single supported way** to perform a destructive local reset of the development database and re-seed domain data using the unified `reseed` command. Use it sparingly and never on shared / staging / production environments.
-
-Creates 3 SuperUsers (patterned):
-
-| Email | Password |
-|-------|----------|
-| `1@1.com` | `1111pass` |
-| `2@2.com` | `1111pass` |
-| `3@3.com` | `1111pass` |
+This guide documents the supported way to perform a destructive local reset of the
+development database and re-seed system configuration data. Use it sparingly and
+never on shared / staging / production environments.
 
 ---
 
 ## 1. When To Use
 
-Use `reseed --full` only when:
+Use a full reset when:
 
 - Migration history has been squashed and you need a clean slate.
-- Local schema drift / abandoned experimental migrations cause failures.
-- You want freshly seeded synthetic + sample domain data and patterned superusers.
+- Local schema drift or abandoned experimental migrations cause failures.
+- You want a freshly seeded baseline with all system configuration data.
 - Tests should run against a pristine baseline state.
 
 Do NOT use:
 
-- To “refresh” production-like data (prefer targeted data loads instead).
-- Inside active feature branches just to clear minor local fixtures—resetting is heavy.
+- To "refresh" production-like data (prefer targeted data loads instead).
+- Inside active feature branches just to clear minor local fixtures -- resetting is heavy.
 
 ---
 
-## 2. What Happens Under The Hood
+## 2. The Three Commands
 
-`python manage.py reseed --full` orchestrates:
+There is no single unified reset command. The workflow uses three separate management
+commands run in sequence:
 
-1. Environment guard: verifies interpreter matches project `bin/python` & Django 5.x (override with `ALLOW_SYSTEM_PY=1`).
-2. Terminates existing PostgreSQL sessions for the target DB.
-3. Drops and recreates the database (name from `DATABASE_NAME` / settings).
-4. Runs migrations (expects committed `0001_initial` baselines + any new deltas, or freshly regenerated if using `--nuke-migrations --auto-make`).
-5. Executes seed commands (idempotent best-effort): `load_default_company`, `load_default_access`, `seed_orgs`, `seed_documents`, `seed_projects`, `seed_transactions`, and `seed_relationships`.
-6. Performs a light synthetic backfill via `reseed_all_models` to add sample rows across sparse tables. By default, `reseed_all_models` will flush and seed all models and create 3 patterned superusers unless you target a specific model.
-7. Creates 1–N patterned superusers: `i@i.com` / `1111pass` with names `first_i` / `last_i`.
-8. Ensures default `sync.Connection` entries exist (safety alert + verification stubs). Currency records can link to a provider `Connection` for external rate updates.
-9. Backfills `Address.metadata.display` by saving each Address (ensures `full_location` is populated).
-10. Summary output printed with seeds actually applied.
+| Command | What it does |
+|---------|-------------|
+| `reset_migrations` | Deletes all migration files, drops all tables |
+| `reset_database` | Clears all data from tables, resets sequences |
+| `seed_freshstart` | Runs all seed commands in order to populate system config |
+
+`reset_migrations` is the nuclear option (drops tables). `reset_database` is lighter
+(deletes rows but keeps schema). Choose based on whether your migrations are broken.
 
 ---
 
-## 3. Usage Cheatsheet
+## 3. Full Reset Workflow
 
-Full destructive reset + seed (default 3 superusers):
+**Option A: Schema is fine, just need fresh data**
 
 ```bash
-python manage.py reseed --full
+python manage.py reset_database --confirm
+python manage.py migrate
+python manage.py seed_freshstart
+python manage.py mark_superusers
+python manage.py seed_demo          # optional -- adds sample commerce data
 ```
 
-Reset with 5 superusers and an extra seed command:
+**Option B: Migrations are broken, need full rebuild**
 
 ```bash
-python manage.py reseed --full --superusers 5 --seed-cmd refresh_keywords
-```
-
-Regenerate migrations first (dangerous; local dev only):
-
-```bash
-python manage.py reseed --full --nuke-migrations --auto-makemigrations
-```
-
-Bypass environment guard (e.g., container wrapper):
-
-```bash
-ALLOW_SYSTEM_PY=1 python manage.py reseed --full
+python manage.py reset_migrations
+python manage.py makemigrations
+python manage.py migrate
+python manage.py seed_freshstart
+python manage.py mark_superusers
+python manage.py seed_demo          # optional
 ```
 
 ---
 
-### 3.1. Quick reseed-only (no DB drop)
+## 4. What Each Command Does
 
-Use this when you want to quickly re-populate synthetic rows across models without recreating the database:
+### 4.1. reset_migrations
+
+Location: `apps/core/management/commands/reset_migrations.py`
+
+1. Deletes all migration `.py` files (except `__init__.py`) from every app.
+2. Drops all tables in the `public` schema (CASCADE).
+3. Prints a message to run `makemigrations` and `migrate` next.
+
+No flags. No confirmation prompt. Destructive by design -- local dev only.
 
 ```bash
-python manage.py reseed_all_models               # flushes DB, seeds, creates 3 superusers
-python manage.py reseed_all_models --dry-run     # show actions without writing
+python manage.py reset_migrations
+python manage.py makemigrations
+python manage.py migrate
 ```
 
-Target a single model without flushing and without superusers by default:
+### 4.2. reset_database
+
+Location: `apps/core/management/commands/reset_database.py`
+
+Clears data from all tables and resets PostgreSQL auto-increment sequences. Does
+NOT drop tables or touch migrations.
 
 ```bash
-python manage.py reseed_all_models --model apps.core.models.Contact --per-model 5
-# or by DB table
-python manage.py reseed_all_models --table contacts --per-model 5
+python manage.py reset_database --confirm
 ```
 
-Overrides:
+Flags:
 
-- Prevent flush: `--no-flush`
-- Control superusers: `--superusers N` (negative = auto: 3 for full reseed, 0 when targeting one model)
-- Skip relationship pass: `--no-relate`
+| Flag | Purpose |
+|------|---------|
+| `--confirm` | Required. Command refuses to run without it. |
+| `--apps app1 app2` | Reset only specific apps (default: all project apps). |
+| `--include-django` | Also reset Django built-in apps (auth, contenttypes, sessions, admin). |
 
----
+Without `--include-django`, Django's own tables (auth, contenttypes, sessions, admin)
+are left intact.
 
-## 4. Programmatic Invocation
+### 4.3. seed_freshstart
 
-```python
-from common.rebuild import full_reset_and_seed
-res = full_reset_and_seed(create_superusers=2, seed_commands=("seed_orgs",))
-print(res)
+Location: `apps/core/management/commands/seed_freshstart.py`
+
+Runs all system seed commands in dependency order. After running, the database has
+all Settings, reports, GL accounts, terms, DataBrowser layouts, RBAC roles, search
+presets, Alice coaching data, and document templates -- everything a new company
+needs before entering their own contacts, items, and transactions.
+
+```bash
+python manage.py seed_freshstart
+python manage.py seed_freshstart --force   # passes --force to each sub-command
 ```
 
-The returned `ResetResult` dataclass exposes: `db_name`, `recreated`, `migrations_applied`, `superusers`, `seed_commands_run`.
+**Prerequisite:** Migrations must be applied first (`manage.py migrate`).
+
+The seed sequence (in order):
+
+| Step | Command | App | What it seeds |
+|------|---------|-----|--------------|
+| 1 | `seed_model_definitions` | core | Model definitions (replaces field_access + schema_map) |
+| 2 | `seed_company_settings` | core | Company-level Settings |
+| 3 | `seed_rbac_roles` | core | RBAC role definitions |
+| 4 | `seed_gl_accounts` | accounts | Chart of accounts |
+| 5 | `seed_terms` | accounts | Payment terms |
+| 6 | `seed_reports` | core | Report records |
+| 7 | `seed_databrowser` | core | DataBrowser layouts |
+| 8 | `seed_column_widths` | core | Column width defaults |
+| 9 | `seed_search_presets` | core | Saved search presets |
+| 10 | `seed_alice_layouts` | core | Alice-specific layouts |
+| 11 | `seed_qa_templates` | docs | QA templates |
+| 12 | `seed_connections` | core | Agent channels and deploy targets |
+| 13 | `seed_coaching` | core | Alice coaching data |
+| 14 | `seed_wchq_settings` | core | WC HQ settings |
+| 15 | `seed_collaborate_settings` | core | Collaboration settings |
+| 16 | `seed_serial_settings` | core | Serial-specific actions/behaviors |
+| 17 | `seed_status_guards` | transactions | Transaction status transitions + journalized locks |
+| 18 | `seed_receivables_layouts` | accounts | Aged receivables report + customer statement layouts |
+| 19 | `seed_gl_defaults` | accounts | GL defaults into items/orgs/payment methods |
+| 20 | `seed_wc3_commerce_docs` | core | Commerce documentation |
+| 21 | `seed_wc3_operations_docs` | core | Operations documentation |
+| 22 | `seed_wc3_system_docs` | core | System documentation |
+| 23 | `seed_report_templates` | core | Report templates |
+| 24 | `seed_template_reports` | core | Template reports |
+| 25 | `seed_print_layouts` | core | Print layouts |
+| 26 | `seed_dbsr_explanations` | core | DBSR explanations (must run after other seeds) |
+| 27 | `seed_dbsr_document` | core | DBSR health manifest (must run after other seeds) |
+
+Each sub-command is called with `call_command`. If a sub-command fails, the error is
+printed and the sequence continues with the next command.
 
 ---
 
-## 5. Environment Guards and Safety
+## 5. Demo Data
 
-| Guard | Purpose | Override |
-|-------|---------|----------|
-| Interpreter match | Prevent running with system Python (wrong Django) | `ALLOW_SYSTEM_PY=1` |
-| Django 5.x check | Avoid applying migrations with incompatible version | `ALLOW_SYSTEM_PY=1` |
-| DEBUG True | Block accidental destructive ops in prod-like config | `FORCE_FULL_RESET=1` |
+Location: `apps/core/management/commands/seed_demo.py`
 
-The command still refuses if `DJANGO_SETTINGS_MODULE` suggests a production module (contains `prod`).
+Creates curated sample commerce data for training and demonstration. Separate from
+`seed_freshstart` -- run it after freshstart if you want sample records.
+
+```bash
+python manage.py seed_demo
+python manage.py seed_demo --force   # delete existing demo data and re-seed
+```
+
+**Prerequisite:** `seed_freshstart` must have run first (GL accounts and terms are required).
+
+What it creates:
+
+- 12 items (bats, balls, gloves, bags, training aids, 1 kit with BOM)
+- 5 customers (retail, wholesale, team, online, school)
+- 1 vendor (baseball equipment supplier)
+- 7 contacts (one per customer + 2 at vendor)
+
+All demo records are tagged `refs.source = "demo-baseline"` for clean removal via
+`remove_demo_data`.
 
 ---
 
-## 6. Post-Reset Checklist
+## 6. Dummy Data
+
+Location: `apps/core/management/commands/populate_dummy_data.py`
+
+Generates random dummy data across all models using Faker. Useful for load testing
+or filling sparse tables.
+
+```bash
+python manage.py populate_dummy_data
+python manage.py populate_dummy_data --count 10
+python manage.py populate_dummy_data --apps core products
+python manage.py populate_dummy_data --dry-run
+python manage.py populate_dummy_data --reset-sequences
+```
+
+| Flag | Purpose |
+|------|---------|
+| `--count N` | Records per model (default: 5) |
+| `--apps app1 app2` | Only populate specific apps |
+| `--dry-run` | Show what would be done without writing |
+| `--reset-sequences` | Reset auto-increment sequences to 1 |
+
+This is not part of the standard reset workflow. Use it when you need volume, not
+when you need a clean baseline.
+
+---
+
+## 7. Superusers
+
+Location: `apps/core/management/commands/mark_superusers.py`
+
+Marks contacts with `id=1` and `id=2` as superusers. Sets `is_superuser=True`,
+`is_staff=True`, `role='admin'`, and password to `1111pass`.
+
+```bash
+python manage.py mark_superusers
+```
+
+Run this after `seed_freshstart` or `seed_demo` to ensure you have admin access.
+The command marks whatever contacts have id 1 and 2 -- it does not create them.
+
+---
+
+## 8. Post-Reset Checklist
 
 | Step | Command | Notes |
 |------|---------|-------|
-| Run tests | `./bin/python -m pytest -q` | Should be green (baseline). |
-| Create extra admin | `./bin/python create_superuser.py --email admin2@example.com` | Optional. |
-| Inspect seed data | `./bin/python manage.py shell` | Sanity-check orgs, items. |
-| Envelope telemetry | `./bin/python manage.py storage_load_report --json` | Optional size snapshot. |
+| Verify migrations | `python manage.py showmigrations` | All should show `[X]`. |
+| Run tests | `python -m pytest -q` | Should be green against baseline. |
+| Check superusers | `python manage.py mark_superusers` | Confirms id 1 and 2 are admins. |
+| Inspect seed data | `python manage.py shell` | Sanity-check Settings, GL accounts. |
 
 ---
 
-## 7. Troubleshooting
+## 9. Troubleshooting
 
 | Symptom | Likely Cause | Fix |
 |---------|--------------|-----|
-| `OperationalError: server closed the connection` | Using stale DB connection handle after drop | Fixed by function (ensure upgraded code). Re-run. |
-| `column "name" of relation "django_content_type" does not exist` | Ran migrations with older Django then switched versions | Drop DB & rerun via correct venv. |
-| `psql binary not found` | PostgreSQL client tools missing in PATH | Install `psql` / adjust PATH. |
-| Seed command missing file warnings | Optional JSON seeds not present | Supply JSON or ignore (non-fatal). |
-| Superusers not created | Email collision from prior import | Use higher `--superusers` or drop again. |
-
-Log still shows intermediate product migrations (0002–0006)? They are no-op stubs—this is expected.
+| `OperationalError: server closed the connection` | Stale DB connection after drop | Re-run the command. |
+| `column does not exist` after migrate | Ran migrations with wrong Django version | Drop DB and rerun with correct venv. |
+| `psql binary not found` | PostgreSQL client tools missing | Install psql or adjust PATH. |
+| Seed command fails with missing model | Migrations not applied | Run `manage.py migrate` first. |
+| Superusers not created | No contacts with id 1 or 2 | Run `seed_demo` or create contacts first, then `mark_superusers`. |
 
 ---
 
-## 8. Migration Baseline Policy
+## 10. FAQ
 
-- Historical squashes (e.g., 2025‑09‑03) and subsequent "nukes" produce a single authoritative `0001_initial` per app.
-- `--nuke-migrations` is a local developer convenience; DO NOT use on a shared branch without team agreement.
-- Never hand-edit applied migration files post-commit; prefer new migration deltas or an intentional coordinated nuke.
-- Only re-squash / nuke just before a release boundary or when pruning experimental churn.
-- CI Guard: A GitHub Action (`migration_guard`) enforces that each first-party app has at most one numbered migration (the baseline). Set `ALLOW_MULTIPLE_MIGRATIONS=1` secret to temporarily bypass.
-- Standalone script: `./bin/python -m common.rebuild.nuke_migrations` performs the same deletion/regeneration outside the full reset command.
+**Q: Is there a single command that does everything?**
+A: No. The workflow is three commands in sequence: `reset_database` (or `reset_migrations`),
+then `migrate`, then `seed_freshstart`. This is intentional -- each step is independent
+and can be run or skipped based on what you need.
 
----
+**Q: Can I run only the seeding portion?**
+A: Yes. Run `seed_freshstart` alone to re-seed system configuration data without
+touching the database structure. Individual seed commands (e.g., `seed_gl_accounts`)
+can also be run standalone.
 
-## 9. Extending Seeding
+**Q: What about demo/sample data?**
+A: `seed_freshstart` only seeds system configuration (Settings, reports, GL, terms,
+layouts). For sample commerce data (items, customers, transactions), run `seed_demo`
+separately after freshstart.
 
-Add a new management command and chain it by passing `--seed-cmd new_command` or programmatically supplying a tuple. Keep seeds:
-
-- Idempotent (safe to re-run).
-- Fast (< a few seconds) to keep reset cycles tight.
-- Resilient to partial existing data (use get_or_create / try/except guards).
-
----
-
-## 10. Minimal One-Liner
-
-```bash
-FORCE_FULL_RESET=1 ALLOW_SYSTEM_PY=1 python manage.py reseed --full
-```
-
-Fast local reset with defaults (seeds + 3 superusers).
-
----
-
-## 11. Data Export (Optional)
-
-If you maintain evolving demo snapshots, run an export immediately after a clean reset before hand edits:
-
-```bash
-python manage.py demo_data_import_export --export demo_snapshot.json
-```
-
-Commit only if intentionally curating a shared demo baseline.
-
----
-
-## 12. FAQ
-
-Q: Why not call `makemigrations` automatically?
-A: Reset assumes committed, reviewed migration files. Auto-generation inside a destructive reset risks unreviewed schema drift.
-
-Q: Why do we still see product migrations 0002–0006 apply?
-A: They are zero-op placeholders retained only to satisfy Django’s dependency graph for any stale references; they do nothing.
-
-Q: Can I run only the seeding portion?
-A: Use existing seed commands directly (e.g., `python manage.py seed_orgs`). `full_reset_seed` always recreates the DB first.
-
----
-
-## 13. Quick Reference
-
-| Action | Command |
-|--------|---------|
-| Full reset + seed + 3 superusers | `python manage.py reseed --full` |
-| Full reset with 5 superusers | `python manage.py reseed --full --superusers 5` |
-| Programmatic call | `from common.rebuild import full_reset_and_seed` |
-| Bypass env guard | `ALLOW_SYSTEM_PY=1 python manage.py reseed --full` |
-
-### Safety alert Connection
-
-`reseed --full` also ensures a safety alert connection exists and performs location display backfill:
-
-### Targeted reseeds (per model)
-
-Use the unified command to reseed only a specific model/table without flushing:
-
-```bash
-python manage.py reseed --no-flush --per-model 3 --model communications.Address
-# or by db table name
-python manage.py reseed --no-flush --per-model 3 --table locations
-```
-
-Relationship building and `seed_relationships` run automatically for both `reseed --full` and targeted reseeds.
-
-- `sync.Connection`: name=`alert`, type=`safety_alert`, purpose=`webclerk.com`, status=`safe`.
-- Used to signal assaults/incidents to webclerk.com for verification and coordinated communication.
-
-Smoke test:
-
-```bash
-python manage.py test_alert_connection --event assault_detected --severity warning
-```
+**Q: How do I remove demo data without a full reset?**
+A: `python manage.py remove_demo_data` -- removes all records tagged
+`refs.source = "demo-baseline"`.
 
 ---
 

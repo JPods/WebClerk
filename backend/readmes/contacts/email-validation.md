@@ -1,10 +1,13 @@
 # Email Validation — ZeroBounce Integration
+**Review date:** 2026-08-31
+**Status:** Scaffolded — service stub + Pydantic schema in place; API calls not yet wired
 
 ## Overview
 
-Every contact's email address is validated through ZeroBounce before any outbound
-communication. Invalid, spamtrap, and abuse emails are automatically removed from
-the contact's email field and archived in metadata for audit purposes.
+Email validation through ZeroBounce. The service skeleton exists at
+`apps/sync/services/email_verification.py` (provider-agnostic, currently returns
+stub responses). The Pydantic schema `ZeroBounceValidation` is wired into
+`ContactMetadata.zb`. The batch script and health rating assignment are not yet built.
 
 ## Health Rating Standard
 
@@ -64,41 +67,28 @@ Full validation result stored in `contact.metadata.zb`:
 
 ## Running Validation
 
-### Check credits
-```bash
-cd /Users/williamjames/Documents/CommerceExpert/webClerk3
-source venv/bin/activate
-python scripts/validate_emails.py --check-credits
-```
+**Not yet built.** The batch validation script (`validate_emails.py`) does not exist.
+When built, it should be a management command (not a standalone script) at
+`apps/core/management/commands/validate_emails.py`.
 
-### Validate all unvalidated contacts
-```bash
-python scripts/validate_emails.py
-```
+### What exists now
 
-### Validate a limited batch
-```bash
-python scripts/validate_emails.py --limit 100
-```
+- **Service stub:** `apps/sync/services/email_verification.py` — resolves a Connection
+  record (type `email_verification`), logs attempts as Bundle records, always returns
+  `{"status": "stubbed", "deliverability": "unknown"}`.
+- **Pydantic schema:** `common/schemas/contact.py` — `ZeroBounceValidation` with fields:
+  domain, status, validated, free_email, sub_status, did_you_mean, smtp_provider.
+  Stored at `ContactMetadata.zb`.
+- **Normalizer:** `apps/sync/services/standards.py` — `normalize_email_result()` with
+  status map (valid/invalid/risky/unknown).
+- **Config:** `.env.template` has `ZEROBOUNCE_API_KEY=` (commented out).
 
-### Dry run (see what would happen, no changes)
-```bash
-python scripts/validate_emails.py --dry-run --limit 50
-```
+### To activate
 
-### Re-validate contacts older than 90 days
-```bash
-python scripts/validate_emails.py --revalidate-days 90
-```
-
-### Check progress while running
-```sql
-SELECT health_rating, COUNT(*)
-FROM contacts
-WHERE is_active=true AND is_deleted=false
-GROUP BY health_rating
-ORDER BY health_rating;
-```
+1. Set `ZEROBOUNCE_API_KEY` in `.env`
+2. Create a Connection record: type=`email_verification`, config.provider=`zerobounce`
+3. Replace stub logic in `email_verification.py` with actual ZeroBounce API call
+4. Build the management command for batch validation
 
 ## Cost
 
@@ -106,9 +96,10 @@ ORDER BY health_rating;
 - ZeroBounce pricing: ~$0.008/email at volume
 - Re-validate every 6 months (default) — emails go stale
 
-## Integration with Alice
+## Integration with Alice (planned)
 
-Alice should:
+None of these are implemented yet. When the API is wired:
+
 1. **On new contact creation** — validate email before saving (single API call)
 2. **On campaign send** — check health_rating >= 4 before including
 3. **When user asks about a contact** — mention if email was removed and why
