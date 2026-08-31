@@ -13,7 +13,7 @@ from apps.transactions.serializers.convert_serializer import (
     ReceivePurchaseSerializer,
     TransitionRequestSerializer,
 )
-from apps.transactions.services.flow import (
+from apps.transactions.services.transaction_flow import (
     proposal_to_order,
     order_to_invoice,
     order_to_purchase,

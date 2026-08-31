@@ -1,6 +1,6 @@
 import inspect
 import pytest
-from apps.transactions.services import flow
+from apps.transactions.services import transaction_flow as flow
 from apps.transactions.models import OrderLine
 
 @pytest.mark.django_db

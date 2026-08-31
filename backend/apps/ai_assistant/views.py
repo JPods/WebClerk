@@ -135,6 +135,9 @@ class AskView(APIView):
             "mode": result.get("mode", mode),
             "conversation_id": conversation.pk,
             "message_id": msg.pk,
+            "confidence": result.get("confidence"),
+            "tier_used": result.get("tier_used", "alice_local"),
+            "escalation_log": result.get("escalation_log", []),
         })
 
     def _stream_response(self, rag, question, history, conversation, mode="general", extra_context=""):
