@@ -158,15 +158,56 @@ VENDOR = {
 
 # ─── Default refs for demo records ───────────────────────────────────────
 def _demo_refs():
-    """Return refs dict tagged as demo-baseline for clean removal."""
+    """Return refs dict tagged as demo-baseline for clean removal.
+
+    Uses refs.demo_source (not refs.source) because refs.source is used by
+    the line management service as a dict for transfer tracking (order_line_id,
+    invoice_line_id). A string there causes AttributeError.
+    """
     from common.models import default_refs
     refs = default_refs()
-    refs['source'] = DEMO_SOURCE
+    refs['demo_source'] = DEMO_SOURCE
     return refs
 
 
+TRANSACTION_CYCLES = [
+    {
+        'customer_ida': 'CUST-01',   # Acme Sporting Goods
+        'contact_ida': 'CON-01',
+        'ida_prefix': 'DEMO-A',
+        'status': 'complete',        # fully paid
+        'lines': [
+            {'item_ida': 'BAT-01', 'qty': 6, 'price': Decimal('299.99')},
+            {'item_ida': 'BALL-01', 'qty': 24, 'price': Decimal('59.99')},
+            {'item_ida': 'GLOVE-01', 'qty': 6, 'price': Decimal('189.99')},
+        ],
+    },
+    {
+        'customer_ida': 'CUST-02',   # Riverside Sports
+        'contact_ida': 'CON-02',
+        'ida_prefix': 'DEMO-B',
+        'status': 'released',        # invoiced, not yet paid
+        'lines': [
+            {'item_ida': 'BAT-02', 'qty': 12, 'price': Decimal('249.99')},
+            {'item_ida': 'BAG-01', 'qty': 12, 'price': Decimal('44.99')},
+        ],
+    },
+    {
+        'customer_ida': 'CUST-03',   # Metro Baseball Academy
+        'contact_ida': 'CON-03',
+        'ida_prefix': 'DEMO-C',
+        'status': 'planned',         # proposal only, not yet ordered
+        'lines': [
+            {'item_ida': 'KIT-01', 'qty': 20, 'price': Decimal('449.99')},
+            {'item_ida': 'BALL-02', 'qty': 48, 'price': Decimal('49.99')},
+            {'item_ida': 'GLOVE-02', 'qty': 20, 'price': Decimal('129.99')},
+        ],
+    },
+]
+
+
 class Command(BaseCommand):
-    help = 'Seed curated demo data: 12 items (with BOM), 5 customers, 1 vendor, 7 contacts'
+    help = 'Seed curated demo data: items, orgs, contacts, and 3 transaction cycles'
 
     def add_arguments(self, parser):
         parser.add_argument('--force', action='store_true',
@@ -180,21 +221,35 @@ class Command(BaseCommand):
         bom_created = self._seed_bom()
         orgs_created = self._seed_orgs()
         contacts_created = self._seed_contacts()
+        cycles_created = self._seed_transaction_cycles()
 
         self.stdout.write(self.style.SUCCESS(
             f'\nDemo data: {items_created} items, {bom_created} BOM entries, '
-            f'{orgs_created} orgs, {contacts_created} contacts'))
+            f'{orgs_created} orgs, {contacts_created} contacts, '
+            f'{cycles_created} transaction cycles'))
 
     def _delete_demo(self):
         from apps.products.models.bill_of_material import BillOfMaterial
+        from apps.transactions.models import (
+            Proposal, ProposalLine, Order, OrderLine,
+            Invoice, InvoiceLine, Payment,
+        )
         # Delete in dependency order — children before parents
-        d_bom = BillOfMaterial.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
-        d_item = Item.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
-        d_org = OrgBase.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
-        d_con = Contact.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
+        d_pay = Payment.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
+        d_il = InvoiceLine.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
+        d_inv = Invoice.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
+        d_ol = OrderLine.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
+        d_ord = Order.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
+        d_pl = ProposalLine.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
+        d_prop = Proposal.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
+        d_bom = BillOfMaterial.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
+        d_item = Item.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
+        d_org = OrgBase.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
+        d_con = Contact.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
         self.stdout.write(
-            f'Deleted demo data: {d_bom} BOM, {d_item} items, '
-            f'{d_org} orgs, {d_con} contacts'
+            f'Deleted demo data: {d_pay} payments, {d_il+d_ol+d_pl} lines, '
+            f'{d_inv} invoices, {d_ord} orders, {d_prop} proposals, '
+            f'{d_bom} BOM, {d_item} items, {d_org} orgs, {d_con} contacts'
         )
 
     def _seed_items(self):
@@ -277,4 +332,139 @@ class Command(BaseCommand):
             Contact.objects.bulk_create(contacts_to_create)
             created = len(contacts_to_create)
         self.stdout.write(f'  Contacts: {created} created')
+        return created
+
+    def _seed_transaction_cycles(self):
+        """Create 3 transaction cycles showing different stages of commerce."""
+        from apps.transactions.models import (
+            Proposal, ProposalLine, Order, OrderLine,
+            Invoice, InvoiceLine, Payment,
+        )
+        created = 0
+        now_ms = int(timezone.now().timestamp() * 1000)
+
+        for cycle in TRANSACTION_CYCLES:
+            prefix = cycle['ida_prefix']
+            # Skip if already seeded
+            if Proposal.objects.filter(ida=f'{prefix}-PROP').exists():
+                continue
+
+            customer = OrgBase.objects.filter(ida=cycle['customer_ida']).first()
+            contact = Contact.objects.filter(ida=cycle['contact_ida']).first()
+            if not customer or not contact:
+                self.stdout.write(self.style.WARNING(
+                    f'  Cycle {prefix}: skip — customer or contact not found'))
+                continue
+
+            # Resolve items and compute totals
+            line_data = []
+            subtotal = Decimal('0')
+            for ln in cycle['lines']:
+                item = Item.objects.filter(ida=ln['item_ida']).first()
+                if not item:
+                    continue
+                extended = ln['price'] * ln['qty']
+                subtotal += extended
+                line_data.append({
+                    'item': item, 'qty': ln['qty'],
+                    'price': ln['price'], 'extended': extended,
+                })
+
+            totals = {
+                'subtotal': float(subtotal), 'discount': 0,
+                'taxable': float(subtotal), 'tax': 0,
+                'shipping': 0, 'other': 0, 'total': float(subtotal),
+                'cost': 0, 'margin': float(subtotal), 'margin_pc': 100,
+                'received': 0, 'balance': float(subtotal),
+            }
+
+            def _make_line_kwargs(ld, seq):
+                """Build JSON envelope fields for a transaction line."""
+                return {
+                    'item': {
+                        'item_id': ld['item'].pk,
+                        'ida_item': ld['item'].ida,
+                        'description': ld['item'].name,
+                        'line_number': seq,
+                    },
+                    'quantity': {'staged': float(ld['qty']), 'active': float(ld['qty'])},
+                    'price': {'unit': float(ld['price']), 'extended': float(ld['extended'])},
+                    'cost': {'unit': 0, 'extended': 0},
+                    'refs': _demo_refs(),
+                }
+
+            # 1. Proposal (always created)
+            proposal = Proposal.objects.create(
+                ida=f'{prefix}-PROP', status='complete',
+                customer=customer, contact=contact,
+                attention=contact.attention,
+                totals=totals, refs=_demo_refs(),
+                dt_created=now_ms, dt_modified=now_ms,
+            )
+            for i, ld in enumerate(line_data):
+                ProposalLine.objects.create(
+                    proposal=proposal,
+                    **_make_line_kwargs(ld, (i + 1) * 10),
+                )
+            self.stdout.write(f'  {prefix}: proposal {proposal.ida}')
+
+            if cycle['status'] == 'planned':
+                created += 1
+                continue
+
+            # 2. Order (if status >= released)
+            order = Order.objects.create(
+                ida=f'{prefix}-ORD', status='complete',
+                customer=customer, contact=contact,
+                attention=contact.attention,
+                totals=totals, refs=_demo_refs(),
+                dt_created=now_ms, dt_modified=now_ms,
+            )
+            for i, ld in enumerate(line_data):
+                OrderLine.objects.create(
+                    order=order,
+                    **_make_line_kwargs(ld, (i + 1) * 10),
+                )
+            self.stdout.write(f'  {prefix}: order {order.ida}')
+
+            # 3. Invoice
+            inv_status = 'complete' if cycle['status'] == 'complete' else 'released'
+            inv_totals = dict(totals)
+            if cycle['status'] == 'complete':
+                inv_totals['received'] = inv_totals['total']
+                inv_totals['balance'] = 0
+            invoice = Invoice.objects.create(
+                ida=f'{prefix}-INV', status=inv_status,
+                customer=customer, contact=contact,
+                attention=contact.attention,
+                totals=inv_totals, refs=_demo_refs(),
+                dt_created=now_ms, dt_modified=now_ms,
+            )
+            for i, ld in enumerate(line_data):
+                InvoiceLine.objects.create(
+                    invoice=invoice,
+                    **_make_line_kwargs(ld, (i + 1) * 10),
+                )
+            self.stdout.write(f'  {prefix}: invoice {invoice.ida} ({inv_status})')
+
+            # 4. Payment (only for complete cycles)
+            if cycle['status'] == 'complete':
+                Payment.objects.create(
+                    ida=f'{prefix}-PAY',
+                    status='complete',
+                    type='received',
+                    parent_id=invoice.pk,
+                    parent_model='invoice',
+                    customer=customer,
+                    contact_id=contact.pk,
+                    amount=subtotal,
+                    available=Decimal('0'),
+                    refs=_demo_refs(),
+                    dt_created=now_ms, dt_modified=now_ms,
+                )
+                self.stdout.write(f'  {prefix}: payment ${subtotal}')
+
+            created += 1
+
+        self.stdout.write(f'  Transaction cycles: {created} created')
         return created
