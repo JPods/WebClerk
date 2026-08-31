@@ -3,6 +3,8 @@ from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView
+from django.http import FileResponse
+import os
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -41,6 +43,12 @@ urlpatterns = [
 
     # Admin swagger
     path('admin/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='admin-swagger'),
+
+    # Standalone tools (HTML+JS, no server — like Statement Sorter)
+    path('tools/journal_formatter.html', lambda r: FileResponse(
+        open(os.path.join(settings.BASE_DIR, 'tools', 'journal_formatter.html'), 'rb'),
+        content_type='text/html',
+    ), name='journal-formatter'),
 
     *([] if getattr(settings, 'READ_ONLY_MODE', False) else [path('admin/', admin.site.urls)]),
     # path('explorer/', include('explorer.urls')),  # TODO: install django-sql-explorer in lib/python3.13
