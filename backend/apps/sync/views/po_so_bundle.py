@@ -82,7 +82,7 @@ class POToSOSendView(APIView):
             return Response(result, status=status.HTTP_201_CREATED)
 
         # Encrypt and send
-        payload = bundle.payload
+        payload = bundle.get_payload()
         encrypted = encrypt_payload(payload, key)
         dt_now = int(time.time() * 1000)
 

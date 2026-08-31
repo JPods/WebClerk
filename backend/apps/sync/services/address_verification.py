@@ -449,13 +449,14 @@ def _record_bundle(
         b = Bundle.objects.create(
             connection=conn,
             direction="outbound",
+            model_name="contact",
             config=_mask_config(cfg),
             status="ok" if result.get("status") == "verified" else "warning",
             response={**result, "review": {"status": "pending"}},
             duration=0,
-            payload={"address": payload},
             size=len(str(payload)) + len(str(result)),
         )
+        b.save_payload_to_disk({"address": payload})
         return getattr(b, "id", None)
     except Exception as e:
         logger.warning("Failed to record address verification bundle: %s", e)

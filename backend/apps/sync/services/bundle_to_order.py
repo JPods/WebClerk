@@ -37,7 +37,7 @@ def unpack_po_to_so_bundle(bundle: Bundle) -> Dict[str, Any]:
     Returns:
         {order_id, order_ida, line_count, bundle_uuid}
     """
-    payload = bundle.payload
+    payload = bundle.get_payload()
     if not isinstance(payload, dict):
         raise ValueError("Bundle payload is empty or invalid")
 

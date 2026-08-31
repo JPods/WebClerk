@@ -60,13 +60,14 @@ def verify_domain_via_connection(path: str, connection_name: str | None = None) 
         e = Bundle.objects.create(
             connection=cast(Any, conn),
             direction="outbound",
+            model_name="contact",
             config=masked_cfg,
             status=status,
             response={**normalized, "review": {"status": "pending"}},
             duration=duration_ms,
-            payload=payload,
             size=len(str(payload)) + len(str(normalized)),
         )
+        e.save_payload_to_disk(payload)
         bundle_id = getattr(e, "id", None)
     except Exception:
         pass

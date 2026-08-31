@@ -91,14 +91,15 @@ def handle_bundle_out(pending: Pending) -> bool:
         return False
 
     # Success — create Bundle record and stamp pending
-    Bundle.objects.create(
+    bundle = Bundle.objects.create(
         connection=connection,
         direction="push",
+        model_name=config.get("model_name", ""),
         config={"idempotency_key": str(pending.uuid), "sequence": pending.sequence},
         status="success",
-        payload=payload,
         response=resp_data,
     )
+    bundle.save_payload_to_disk(payload)
 
     pending.mark_processed()
     _log_attempt(pending, "delivered", success=True)

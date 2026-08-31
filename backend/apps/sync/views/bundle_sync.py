@@ -99,6 +99,11 @@ class BundleReceiveView(APIView):
         if isinstance(payload, dict):
             bundle_uuid = payload.get("bundle_uuid", "")
 
+        # Detect model_name from payload
+        bundle_model = ""
+        if isinstance(payload, dict):
+            bundle_model = payload.get("model_name", payload.get("type", ""))
+
         # Create a Bundle record for the incoming data
         bundle_config = {
             "idempotency_key": idempotency_key,
@@ -110,11 +115,12 @@ class BundleReceiveView(APIView):
         bundle = Bundle.objects.create(
             connection=matched,
             direction="pull",
+            model_name=bundle_model,
             config=bundle_config,
             status="success",
-            payload=payload,
             response={"dt_received": dt_received, "test": is_test},
         )
+        bundle.save_payload_to_disk(payload)
 
         # Auto-unpack po_to_so bundles into pending Orders
         unpack_result = None

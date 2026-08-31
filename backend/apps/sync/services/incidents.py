@@ -47,13 +47,14 @@ def trigger_safety_alert(event_type: str, details: Dict[str, Any] | None = None,
         ex = Bundle.objects.create(
             connection=conn,
             direction="outbound",
+            model_name="action",
             config=masked_cfg,
             status="ok",
             response=resp,
             duration=int((time.perf_counter() - started) * 1000),
-            payload=payload,
             size=len(str(payload)),
         )
+        ex.save_payload_to_disk(payload)
         return {"ok": True, "bundle_id": getattr(ex, "id", None)}
     except Exception as e:
         return {"ok": False, "error": str(e)}

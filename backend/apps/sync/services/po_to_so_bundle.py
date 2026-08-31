@@ -157,15 +157,16 @@ def create_po_so_bundle(
     bundle = Bundle.objects.create(
         connection=connection,
         direction="push",
+        model_name="purchase",
         status="queued",
         config={
             "bundle_uuid": bundle_uuid,
             "purchase_id": purchase.pk,
             "type": "po_to_so",
         },
-        payload=payload,
         maps=field_map,
     )
+    bundle.save_payload_to_disk(payload)
 
     # Stamp the PO with the bundle reference in refs.links.bundle[]
     refs = copy.deepcopy(purchase.refs) if isinstance(purchase.refs, dict) else {}

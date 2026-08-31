@@ -203,18 +203,19 @@ class FormLibraryCheckoutView(APIView):
             name='Mac-Andi', is_active=True
         ).first()
         if connection:
-            Bundle.objects.create(
+            b = Bundle.objects.create(
                 connection=connection,
                 direction='pull',
+                model_name='report',
                 status='success',
                 config={
                     'action': 'form_checkout',
                     'form_uuid': uuid_str,
                     'form_name': existing.name,
                 },
-                payload={'uuid': uuid_str},
                 response={'action': action, 'local_id': existing.id},
             )
+            b.save_payload_to_disk({'uuid': uuid_str})
 
         return api_response(data={
             'action': action,
@@ -264,6 +265,7 @@ class FormLibrarySubmitView(APIView):
         bundle = Bundle.objects.create(
             connection=connection,
             direction='push',
+            model_name='report',
             status='pending',
             config={
                 'action': 'form_submission',
@@ -271,8 +273,8 @@ class FormLibrarySubmitView(APIView):
                 'form_name': report.name,
                 'submitted_by': request.user.username if request.user else 'unknown',
             },
-            payload=payload,
         )
+        bundle.save_payload_to_disk(payload)
 
         return api_response(data={
             'bundle_id': bundle.id,
