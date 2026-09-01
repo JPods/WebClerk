@@ -199,6 +199,7 @@ def escalate_to_wchq(
     local_confidence: float,
     context: str = "",
     mode: str = "general",
+    episodes: list[dict] | None = None,
 ) -> dict:
     """Escalate to WCHQ's Alice — better model, shared infrastructure.
 
@@ -207,7 +208,11 @@ def escalate_to_wchq(
     WCHQ Alice answers. If WCHQ's Alice is also low-confidence and the
     subscription tier allows it, WCHQ will internally escalate to Claude.
 
-    Returns {"answer": str, "model": str, "tier": str} or raises.
+    Episodes (if provided) are sent as structured context — Claude gets
+    the team's accumulated experience, not just the raw question.
+
+    Returns {"answer": str, "model": str, "tier": str, "response_id": str}
+    or raises.
     """
     if not _is_subscribed():
         raise ConnectionError(
@@ -237,22 +242,46 @@ def escalate_to_wchq(
     if context:
         context, _ = scrub_pii(context)
 
+    # Format episodes as structured context for Claude
+    episode_context = []
+    episode_ids = []
+    if episodes:
+        for ep in episodes[:5]:  # Max 5 episodes to keep token budget sane
+            ep_text, _ = scrub_pii(ep.get('content', ''))
+            episode_context.append({
+                "episode_id": ep.get('episode_id', ''),
+                "type": ep.get('episode_type', ''),
+                "domain": ep.get('domain', ''),
+                "content": ep_text[:500],
+                "distance": ep.get('distance'),
+            })
+            if ep.get('episode_id'):
+                episode_ids.append(ep['episode_id'])
+
+    import uuid as _uuid
+    response_id = f"resp-{_uuid.uuid4().hex[:12]}"
+
     try:
         with httpx.Client(timeout=60) as client:
+            payload = {
+                "question": question,
+                "local_answer": local_answer,
+                "local_confidence": local_confidence,
+                "context_summary": context[:2000] if context else "",
+                "mode": mode,
+                "tier": tier,
+                "response_id": response_id,
+            }
+            if episode_context:
+                payload["episodes"] = episode_context
+
             resp = client.post(
                 url,
                 headers={
                     'Authorization': f'Athena {athena_token}',
                     'X-Alice-Mode': mode,
                 },
-                json={
-                    "question": question,
-                    "local_answer": local_answer,
-                    "local_confidence": local_confidence,
-                    "context_summary": context[:2000] if context else "",
-                    "mode": mode,
-                    "tier": tier,
-                },
+                json=payload,
             )
 
             if resp.status_code == 401:
@@ -273,8 +302,9 @@ def escalate_to_wchq(
             wchq_tier = data.get('tier_used', 'wchq_alice')
 
             logger.info(
-                "WCHQ escalation succeeded: tier=%s, tokens=%s",
+                "WCHQ escalation succeeded: tier=%s, tokens=%s, episodes=%d",
                 wchq_tier, data.get('usage', {}).get('total_tokens', '?'),
+                len(episode_context),
             )
 
             return {
@@ -282,6 +312,8 @@ def escalate_to_wchq(
                 "model": data.get('model', 'wchq'),
                 "tier": wchq_tier,
                 "usage": data.get('usage', {}),
+                "response_id": response_id,
+                "episode_ids": episode_ids,
             }
 
     except httpx.ConnectError:
@@ -318,3 +350,96 @@ def log_escalation(
         )
     except Exception:
         logger.warning("Failed to log escalation observation", exc_info=True)
+
+
+def grade_response(
+    response_id: str,
+    grade: str,
+    episode_ids: list[str] | None = None,
+    comment: str = "",
+) -> dict:
+    """Grade an Alice response. User feedback closes the learning loop.
+
+    Grade: 'up' / 'down' (quick) or 'A' through 'F' (detailed).
+    The grade applies to the response AND to the episodes that were surfaced.
+
+    Episodes with consistently good grades get promoted (higher recall priority).
+    Episodes with bad grades get flagged for curation.
+
+    Returns {"status": str, "response_id": str, "episodes_updated": int}.
+    """
+    # Normalize grade to numeric quality score
+    grade_scores = {
+        'up': 1.0, 'down': -1.0,
+        'A': 1.0, 'B': 0.5, 'C': 0.0, 'D': -0.5, 'F': -1.0,
+    }
+    quality_delta = grade_scores.get(grade.upper() if len(grade) == 1 else grade, 0.0)
+
+    # Log the grade as an observation
+    try:
+        from apps.ai_assistant.models.alice import AliceObservation
+        AliceObservation.objects.create(
+            category='response_grade',
+            source='user',
+            message=f"Response {response_id} graded: {grade}",
+            detail=(
+                f"Grade: {grade}\n"
+                f"Quality delta: {quality_delta}\n"
+                f"Episodes: {', '.join(episode_ids or [])}\n"
+                f"Comment: {comment[:500]}"
+            ),
+            priority=0,
+            metadata={
+                'response_id': response_id,
+                'grade': grade,
+                'quality_delta': quality_delta,
+                'episode_ids': episode_ids or [],
+            },
+        )
+    except Exception:
+        logger.warning("Failed to log response grade", exc_info=True)
+
+    # Update episode quality scores in Allie's database
+    episodes_updated = 0
+    if episode_ids:
+        try:
+            import psycopg2
+            import os
+            import time
+            conn = psycopg2.connect(
+                dbname='allie',
+                user=os.environ.get('PGUSER', os.getlogin()),
+                host='localhost',
+            )
+            with conn.cursor() as cur:
+                # quality_score is an exponential moving average:
+                # new = old * 0.8 + grade * 0.2
+                # This means recent grades matter more but old grades still count
+                for ep_id in episode_ids:
+                    cur.execute("""
+                        UPDATE episodes
+                        SET metadata = jsonb_set(
+                            COALESCE(metadata, '{}'),
+                            '{quality_score}',
+                            to_jsonb(
+                                COALESCE((metadata->>'quality_score')::float, 0.0) * 0.8
+                                + %s * 0.2
+                            )
+                        ),
+                        last_recalled = %s
+                        WHERE episode_id = %s
+                    """, (quality_delta, int(time.time() * 1000), ep_id))
+                    if cur.rowcount > 0:
+                        episodes_updated += 1
+                conn.commit()
+            conn.close()
+        except Exception:
+            logger.warning("Failed to update episode quality scores", exc_info=True)
+
+    return {
+        "status": "graded",
+        "response_id": response_id,
+        "grade": grade,
+        "quality_delta": quality_delta,
+        "episodes_updated": episodes_updated,
+    }
