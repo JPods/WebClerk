@@ -143,32 +143,54 @@ def _get_athena_token() -> str:
     return ''
 
 
-def _is_subscribed() -> bool:
-    """Check if this installation has an active WCHQ subscription."""
+def _get_subscription_config() -> dict:
+    """Get the subscription config dict."""
     try:
         from apps.core.models import Setting
         sub = Setting.objects.filter(
             purpose='wc:subscription', is_active=True
         ).first()
         if sub and isinstance(sub.config, dict):
-            return bool(sub.config.get('subscribed', False))
+            return sub.config
     except Exception:
         pass
-    return False
+    return {}
+
+
+def _is_trial_active(config: dict) -> bool:
+    """Check if this installation is in its free trial period."""
+    trial = config.get('trial', {})
+    if not trial.get('active', False):
+        return False
+    end_utc = trial.get('end_utc', '')
+    if not end_utc:
+        return False
+    from datetime import datetime, timezone
+    try:
+        end_dt = datetime.fromisoformat(end_utc.replace('Z', '+00:00'))
+        return datetime.now(timezone.utc) < end_dt
+    except Exception:
+        return False
+
+
+def _is_subscribed() -> bool:
+    """Check if this installation has an active WCHQ subscription or trial."""
+    config = _get_subscription_config()
+    if bool(config.get('subscribed', False)):
+        return True
+    return _is_trial_active(config)
 
 
 def _subscription_tier() -> str:
-    """Return the subscription tier: community, standard, professional."""
-    try:
-        from apps.core.models import Setting
-        sub = Setting.objects.filter(
-            purpose='wc:subscription', is_active=True
-        ).first()
-        if sub and isinstance(sub.config, dict):
-            return sub.config.get('tier', 'community')
-    except Exception:
-        pass
-    return 'community'
+    """Return the effective subscription tier.
+
+    During trial, returns the trial tier (professional).
+    After trial, returns the paid tier or community.
+    """
+    config = _get_subscription_config()
+    if _is_trial_active(config):
+        return config.get('trial', {}).get('tier_during_trial', 'professional')
+    return config.get('tier', 'community')
 
 
 def escalate_to_wchq(

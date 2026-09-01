@@ -1,15 +1,24 @@
-"""Seed WCHQ and AI-related Setting records.
+"""Seed WCHQ and AI-related Setting records + subscription Item records.
 
 Records seeded:
   1. wc:wchq_connection — Controls all interaction between local WC3 and WCHQ
   2. claude_api — Claude API key and escalation chain configuration
   3. wc:subscription — WCHQ subscription status (controls Tier 2 LLM fallback)
+  4. Item: WCHQ-STD — Standard subscription ($4/person/mo, Alice Tier 2)
+  5. Item: WCHQ-PRO — Professional subscription ($9/person/mo, Alice+Claude Tier 3)
+
+Subscription Items exist at WCHQ (as products to sell) and at each local WC3
+(as products to order). They are normal commerce — orders, invoices, payments.
+
+All new users get 2 months free professional access to harvest episodes and
+polish associative recall triggers from a larger base.
 
 Usage:
     python manage.py seed_wchq_settings
 """
 from django.core.management.base import BaseCommand
 from apps.core.models import Setting
+from apps.products.models import Item
 
 
 WCHQ_CONFIG = {
@@ -152,14 +161,19 @@ SUBSCRIPTION_CONFIG = {
     #   standard     = $4/person/mo, WCHQ Alice (Tier 2)
     #   professional = $9/person/mo, WCHQ Alice+Claude (Tier 3)
     "staff_count": 0,                       # auto-counted from is_staff
+    "item_ida": "",                         # WCHQ-STD or WCHQ-PRO — the Item being subscribed to
     "billing": {
-        "price_per_person_cents": {
-            "standard": 400,                # $4/person/mo
-            "professional": 900,            # $9/person/mo
-        },
         "billing_cycle": "monthly",
         "last_payment_utc": "",
         "next_payment_utc": "",
+    },
+    "trial": {
+        "active": False,                    # True during trial period
+        "tier_during_trial": "professional",  # full access during trial
+        "trial_days": 60,                   # 2 months free
+        "start_utc": "",                    # ISO — set when installation first connects to WCHQ
+        "end_utc": "",                      # ISO — start + 60 days
+        "converted": False,                 # True if user subscribed after trial
     },
     "features": {
         "wchq_alice": False,                # True for standard+ (Tier 2)
@@ -169,6 +183,110 @@ SUBSCRIPTION_CONFIG = {
         "coaching_library": True,           # True for all tiers
     },
 }
+
+
+# ── Subscription Items — exist at WCHQ and at each local WC3 ────────
+# These are normal commerce Items. Local installations order them from WCHQ.
+# WCHQ fulfills by enabling escalation access for the ordering instance.
+
+SUBSCRIPTION_ITEMS = [
+    {
+        "ida": "WCHQ-STD",
+        "name": "WCHQ Alice Standard",
+        "kind": "service",
+        "uom": "MO",
+        "description": (
+            "WCHQ Alice Tier 2 — $4/person/month. "
+            "Alice escalates questions she can't answer locally to WCHQ's shared LLM. "
+            "PII scrubbed before send. All exchanges logged locally. "
+            "Includes 2-month free trial with full professional access."
+        ),
+        "price": {
+            "base": "4.00",
+            "currency": "USD",
+        },
+        "cost": {
+            "standard": "0.80",
+            "currency": "USD",
+        },
+        "config": {
+            "service": {
+                "billing": {
+                    "currency": "USD",
+                    "tiers": [
+                        {"unit": "person", "rate": "4.00", "cost": "0.80",
+                         "min_minutes": 0, "dt_effective": 0},
+                    ],
+                    "rounding": {"strategy": "HALF_UP", "places": 2},
+                    "version": 1,
+                },
+                "approach": "itemized",
+                "default_duration_minutes": 0,
+            },
+            "subscription": {
+                "tier": "standard",
+                "features": ["wchq_alice", "coaching_library"],
+                "trial_days": 60,
+                "trial_tier": "professional",
+            },
+        },
+        "flags": {
+            "not_tracked": True,    # no physical inventory
+            "discountable": False,  # price is the price
+        },
+    },
+    {
+        "ida": "WCHQ-PRO",
+        "name": "WCHQ Alice + Claude Professional",
+        "kind": "service",
+        "uom": "MO",
+        "description": (
+            "WCHQ Alice + Claude Tier 3 — $9/person/month. "
+            "Alice escalates to WCHQ Alice (Tier 2), and WCHQ Alice can further "
+            "escalate to Claude (Tier 3) for complex questions. "
+            "Individual installations never need a Claude API key — WCHQ manages centrally. "
+            "Includes cross-instance pattern queries and priority support. "
+            "Includes 2-month free trial."
+        ),
+        "price": {
+            "base": "9.00",
+            "currency": "USD",
+        },
+        "cost": {
+            "standard": "2.50",
+            "currency": "USD",
+        },
+        "config": {
+            "service": {
+                "billing": {
+                    "currency": "USD",
+                    "tiers": [
+                        {"unit": "person", "rate": "9.00", "cost": "2.50",
+                         "min_minutes": 0, "dt_effective": 0},
+                    ],
+                    "rounding": {"strategy": "HALF_UP", "places": 2},
+                    "version": 1,
+                },
+                "approach": "itemized",
+                "default_duration_minutes": 0,
+            },
+            "subscription": {
+                "tier": "professional",
+                "features": [
+                    "wchq_alice", "wchq_alice_claude",
+                    "cross_instance_queries", "priority_support",
+                    "coaching_library",
+                ],
+                "trial_days": 60,
+                "trial_tier": "professional",
+            },
+        },
+        "flags": {
+            "not_tracked": True,
+            "discountable": False,
+        },
+    },
+]
 
 
 class Command(BaseCommand):
@@ -208,6 +326,38 @@ class Command(BaseCommand):
                 self.stdout.write(f"  OK: {name} (#{setting.id}, up to date)")
         return setting
 
+    def _seed_subscription_items(self):
+        """Seed WCHQ subscription Items — exist at WCHQ and each local WC3."""
+        created = 0
+        for it in SUBSCRIPTION_ITEMS:
+            if Item.objects.filter(ida=it['ida']).exists():
+                item = Item.objects.get(ida=it['ida'])
+                # Update config (merge subscription block)
+                config = item.config or {}
+                if 'subscription' not in config:
+                    config['subscription'] = it['config']['subscription']
+                    item.config = config
+                    item.save(update_fields=['config', 'dt_modified', 'version'])
+                    self.stdout.write(f"  Updated: {it['name']} (#{item.id}, added subscription config)")
+                else:
+                    self.stdout.write(f"  OK: {it['name']} (#{item.id}, up to date)")
+                continue
+            Item.objects.create(
+                ida=it['ida'],
+                name=it['name'],
+                kind=it['kind'],
+                uom=it.get('uom', ''),
+                description=it.get('description', ''),
+                price=it.get('price', {}),
+                cost=it.get('cost', {}),
+                config=it.get('config', {}),
+                flags=it.get('flags', {}),
+                is_active=True,
+            )
+            created += 1
+            self.stdout.write(self.style.SUCCESS(f"  Created: {it['name']} ({it['ida']})"))
+        return created
+
     def handle(self, *args, **options):
         self.stdout.write("Seeding WCHQ + AI settings...")
 
@@ -229,6 +379,10 @@ class Command(BaseCommand):
             'WCHQ Subscription', SUBSCRIPTION_CONFIG,
         )
 
+        # 4. Subscription Items
+        self.stdout.write("\nSeeding subscription Items...")
+        items_created = self._seed_subscription_items()
+
         cfg = wchq.config or {}
         self.stdout.write(self.style.SUCCESS(
             f"\nWCHQ Settings:\n"
@@ -239,4 +393,6 @@ class Command(BaseCommand):
             f"  Threat notices:  {cfg.get('security', {}).get('accept_threat_notices', '?')}\n"
             f"  Alice learning:  {cfg.get('alice_learning', {}).get('post_help_patterns', '?')}\n"
             f"  Admin review:    {cfg.get('admin_review', {}).get('frequency', '?')}\n"
+            f"  Subscription Items: {items_created} created\n"
+            f"  Trial: 60 days free professional access for all new users\n"
         ))
