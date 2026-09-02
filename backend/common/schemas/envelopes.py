@@ -16,8 +16,103 @@ Architecture (established 2026-08-04):
 """
 from __future__ import annotations
 
-from typing import Optional
-from pydantic import BaseModel, Field
+from typing import Any, Optional, Union
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# userdefined constraints — flat scalar bag, bounded
+# ═══════════════════════════════════════════════════════════════════════
+
+USERDEFINED_MAX_KEYS = 20          # max name:value pairs
+USERDEFINED_KEY_MAX_LEN = 64       # max chars per key name
+USERDEFINED_VALUE_MAX_LEN = 255    # max chars per string value
+
+# Allowed scalar types — no dicts, no lists, no nesting
+UserDefinedValue = Union[str, int, float, bool, None]
+
+
+def validate_userdefined(v: Any) -> dict[str, UserDefinedValue]:
+    """Validate userdefined dict: flat scalars only, bounded count and length."""
+    if not isinstance(v, dict):
+        return {}
+
+    if len(v) > USERDEFINED_MAX_KEYS:
+        raise ValueError(
+            f"userdefined exceeds {USERDEFINED_MAX_KEYS} keys "
+            f"(has {len(v)})"
+        )
+
+    clean: dict[str, UserDefinedValue] = {}
+    for key, val in v.items():
+        if not isinstance(key, str):
+            raise ValueError(f"userdefined key must be str, got {type(key).__name__}")
+        if len(key) > USERDEFINED_KEY_MAX_LEN:
+            raise ValueError(
+                f"userdefined key '{key[:20]}...' exceeds "
+                f"{USERDEFINED_KEY_MAX_LEN} chars"
+            )
+        if isinstance(val, (dict, list)):
+            raise ValueError(
+                f"userdefined['{key}'] must be a flat scalar "
+                f"(str/int/float/bool/None), got {type(val).__name__}"
+            )
+        if isinstance(val, str) and len(val) > USERDEFINED_VALUE_MAX_LEN:
+            raise ValueError(
+                f"userdefined['{key}'] string exceeds "
+                f"{USERDEFINED_VALUE_MAX_LEN} chars"
+            )
+        clean[key] = val
+    return clean
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Envelope-wide size and count limits
+# ═══════════════════════════════════════════════════════════════════════
+
+import re as _re
+
+TAGS_MAX_COUNT = 50                 # max tags per record
+TAG_MAX_LEN = 64                    # max chars per tag
+COMMENT_TEXT_MAX_LEN = 1000         # max chars per comment entry
+COMMENT_CHANNEL_MAX_COUNT = 500     # max entries per comment channel
+SAVED_SEARCH_MAX_COUNT = 25         # max saved searches per record
+SAVED_SEARCH_FIELDS_MAX = 20       # max fields in a saved search
+SAVED_SEARCH_FILTERS_MAX_KEYS = 10  # max filter keys per saved search
+SAVED_ADDRESSES_MAX_COUNT = 10      # max saved addresses per contact
+AUDIT_TRAIL_MAX_ENTRIES = 500       # max audit entries before archival needed
+AUDIT_DETAIL_MAX_SIZE = 2048        # max bytes per audit detail dict
+EROSION_MAX_COUNT = 50              # max erosion entries
+SMALL_STING_MAX_COUNT = 100         # max small-sting entries
+TEMP_MAX_COUNT = 50                 # max temp entries
+NOTIFICATIONS_MAX_KEYS = 20        # max notification preference keys
+JSON_MAX_DEPTH = 8                  # max nesting depth for any JSON field
+STRING_FIELD_MAX_LEN = 10000        # max chars for any string field in envelopes
+
+# Base64 / binary detection — documents go through Document.path ONLY
+_BASE64_PATTERN = _re.compile(
+    r'^(?:[A-Za-z0-9+/]{4}){10,}(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$'
+)
+_DATA_URI_PATTERN = _re.compile(r'^data:[^;]+;base64,')
+
+BINARY_MIN_LEN = 500  # strings shorter than this are never flagged as binary
+
+
+def looks_like_binary(value: str) -> bool:
+    """Return True if a string value looks like base64 or a data URI.
+
+    Documents go through Document.path — binary content in any other
+    field is rejected.
+    """
+    if len(value) < BINARY_MIN_LEN:
+        return False
+    if _DATA_URI_PATTERN.match(value):
+        return True
+    # Check first 200 chars for base64 pattern (avoid scanning huge strings)
+    sample = value[:200].strip()
+    if _BASE64_PATTERN.match(sample):
+        return True
+    return False
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -30,6 +125,25 @@ class AuditEntry(BaseModel):
     dt: int = 0                           # epoch ms
     details: dict = Field(default_factory=dict)
     user_id: Optional[int] = None
+
+    @field_validator('details', mode='before')
+    @classmethod
+    def _cap_details_size(cls, v: Any) -> dict:
+        if isinstance(v, dict):
+            import json as _json
+            size = len(_json.dumps(v).encode('utf-8'))
+            if size > AUDIT_DETAIL_MAX_SIZE:
+                raise ValueError(
+                    f"audit detail exceeds {AUDIT_DETAIL_MAX_SIZE} bytes"
+                )
+        return v if isinstance(v, dict) else {}
+
+    @field_validator('action', mode='before')
+    @classmethod
+    def _cap_action(cls, v: Any) -> str:
+        if isinstance(v, str) and len(v) > 255:
+            raise ValueError("audit action exceeds 255 chars")
+        return v or ''
 
 
 class HistoryTimestamp(BaseModel):
@@ -122,10 +236,64 @@ class MetadataBase(BaseModel):
     explanation: str = ""
     audit_trail: list[AuditEntry] = Field(default_factory=list)
     import_data: Optional[ImportProvenance] = None
-    userdefined: dict = Field(default_factory=dict)
+    userdefined: dict[str, UserDefinedValue] = Field(default_factory=dict)
     images: dict = Field(default_factory=lambda: {
         "source": "", "tn": False, "display": False, "hires": False,
     })
+
+    @field_validator('userdefined', mode='before')
+    @classmethod
+    def _validate_userdefined(cls, v: Any) -> dict:
+        return validate_userdefined(v)
+
+    @field_validator('audit_trail', mode='before')
+    @classmethod
+    def _cap_audit_trail(cls, v: Any) -> list:
+        if isinstance(v, list) and len(v) > AUDIT_TRAIL_MAX_ENTRIES:
+            raise ValueError(
+                f"audit_trail exceeds {AUDIT_TRAIL_MAX_ENTRIES} entries"
+            )
+        return v if isinstance(v, list) else []
+
+    @field_validator('erosions', mode='before')
+    @classmethod
+    def _cap_erosions(cls, v: Any) -> list:
+        if isinstance(v, list) and len(v) > EROSION_MAX_COUNT:
+            raise ValueError(
+                f"erosions exceed {EROSION_MAX_COUNT} entries"
+            )
+        return v if isinstance(v, list) else []
+
+    @field_validator('small_stings', mode='before')
+    @classmethod
+    def _cap_small_stings(cls, v: Any) -> list:
+        if isinstance(v, list) and len(v) > SMALL_STING_MAX_COUNT:
+            raise ValueError(
+                f"small_stings exceed {SMALL_STING_MAX_COUNT} entries"
+            )
+        return v if isinstance(v, list) else []
+
+    @field_validator('temp', mode='before')
+    @classmethod
+    def _cap_temp(cls, v: Any) -> list:
+        if isinstance(v, list) and len(v) > TEMP_MAX_COUNT:
+            raise ValueError(
+                f"temp exceeds {TEMP_MAX_COUNT} entries"
+            )
+        return v if isinstance(v, list) else []
+
+    @field_validator('explanation', 'publish', 'priority', 'security', mode='before')
+    @classmethod
+    def _cap_metadata_strings(cls, v: Any) -> str:
+        if isinstance(v, str) and len(v) > STRING_FIELD_MAX_LEN:
+            raise ValueError(
+                f"metadata string field exceeds {STRING_FIELD_MAX_LEN} chars"
+            )
+        if isinstance(v, str) and looks_like_binary(v):
+            raise ValueError(
+                "binary/base64 content not allowed — use Document.path"
+            )
+        return v if isinstance(v, str) else ''
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -152,16 +320,71 @@ class SavedSearch(BaseModel):
     class Config:
         extra = "forbid"
 
+    @field_validator('search_fields', mode='before')
+    @classmethod
+    def _cap_search_fields(cls, v: Any) -> list:
+        if isinstance(v, list) and len(v) > SAVED_SEARCH_FIELDS_MAX:
+            raise ValueError(
+                f"search_fields exceeds {SAVED_SEARCH_FIELDS_MAX} items"
+            )
+        return v if isinstance(v, list) else []
+
+    @field_validator('filters', mode='before')
+    @classmethod
+    def _cap_filters(cls, v: Any) -> dict:
+        if isinstance(v, dict) and len(v) > SAVED_SEARCH_FILTERS_MAX_KEYS:
+            raise ValueError(
+                f"search filters exceed {SAVED_SEARCH_FILTERS_MAX_KEYS} keys"
+            )
+        return v if isinstance(v, dict) else {}
+
+    @field_validator('name', 'model_name', mode='before')
+    @classmethod
+    def _cap_names(cls, v: Any) -> str:
+        if isinstance(v, str) and len(v) > 255:
+            raise ValueError("search name/model_name exceeds 255 chars")
+        return v or ''
+
 
 class RecordPrefsBase(BaseModel):
     """Standard prefs fields inherited by every BaseModel record.
 
     User-written. Never system-managed.
     """
-    userdefined: dict = Field(default_factory=dict)
+    userdefined: dict[str, UserDefinedValue] = Field(default_factory=dict)
     tags: list[str] = Field(default_factory=list)
     pinned: bool = False
     search: list[SavedSearch] = Field(default_factory=list)
+
+    @field_validator('userdefined', mode='before')
+    @classmethod
+    def _validate_userdefined(cls, v: Any) -> dict:
+        return validate_userdefined(v)
+
+    @field_validator('tags', mode='before')
+    @classmethod
+    def _validate_tags(cls, v: Any) -> list:
+        if not isinstance(v, list):
+            return []
+        if len(v) > TAGS_MAX_COUNT:
+            raise ValueError(f"tags exceed {TAGS_MAX_COUNT} entries")
+        for i, tag in enumerate(v):
+            if not isinstance(tag, str):
+                raise ValueError(f"tag[{i}] must be a string")
+            if len(tag) > TAG_MAX_LEN:
+                raise ValueError(
+                    f"tag '{tag[:20]}...' exceeds {TAG_MAX_LEN} chars"
+                )
+        return v
+
+    @field_validator('search', mode='before')
+    @classmethod
+    def _validate_search_count(cls, v: Any) -> list:
+        if isinstance(v, list) and len(v) > SAVED_SEARCH_MAX_COUNT:
+            raise ValueError(
+                f"saved searches exceed {SAVED_SEARCH_MAX_COUNT}"
+            )
+        return v if isinstance(v, list) else []
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -288,6 +511,15 @@ class RepPrefsMixin(BaseModel):
     class Config:
         extra = "forbid"
 
+    @field_validator('notifications', mode='before')
+    @classmethod
+    def _cap_notifications(cls, v: Any) -> dict:
+        if isinstance(v, dict) and len(v) > NOTIFICATIONS_MAX_KEYS:
+            raise ValueError(
+                f"notifications exceeds {NOTIFICATIONS_MAX_KEYS} keys"
+            )
+        return v if isinstance(v, dict) else {}
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # Employee prefs mixin — contacts with employee FK only
@@ -302,6 +534,15 @@ class EmployeePrefsMixin(BaseModel):
 
     class Config:
         extra = "forbid"
+
+    @field_validator('notifications', mode='before')
+    @classmethod
+    def _cap_notifications(cls, v: Any) -> dict:
+        if isinstance(v, dict) and len(v) > NOTIFICATIONS_MAX_KEYS:
+            raise ValueError(
+                f"notifications exceeds {NOTIFICATIONS_MAX_KEYS} keys"
+            )
+        return v if isinstance(v, dict) else {}
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -320,6 +561,24 @@ class CartPrefsMixin(BaseModel):
     class Config:
         extra = "forbid"
 
+    @field_validator('saved_addresses', mode='before')
+    @classmethod
+    def _cap_addresses(cls, v: Any) -> list:
+        if isinstance(v, list) and len(v) > SAVED_ADDRESSES_MAX_COUNT:
+            raise ValueError(
+                f"saved_addresses exceeds {SAVED_ADDRESSES_MAX_COUNT}"
+            )
+        return v if isinstance(v, list) else []
+
+    @field_validator('notifications', mode='before')
+    @classmethod
+    def _cap_notifications(cls, v: Any) -> dict:
+        if isinstance(v, dict) and len(v) > NOTIFICATIONS_MAX_KEYS:
+            raise ValueError(
+                f"notifications exceeds {NOTIFICATIONS_MAX_KEYS} keys"
+            )
+        return v if isinstance(v, dict) else {}
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # CommentsBase — EVERY record inherits this
@@ -329,8 +588,24 @@ class CommentEntry(BaseModel):
     """One entry in a comment channel. Append-only."""
     ts: str = ''                              # ISO timestamp
     by: str = ''                              # contact_id or username
-    text: str = ''                            # max 255 chars
+    text: str = ''                            # max 1000 chars — enforced
     source: str = ''                          # optional origin
+
+    @field_validator('text', mode='before')
+    @classmethod
+    def _cap_text(cls, v: Any) -> str:
+        if isinstance(v, str) and len(v) > COMMENT_TEXT_MAX_LEN:
+            raise ValueError(
+                f"comment text exceeds {COMMENT_TEXT_MAX_LEN} chars"
+            )
+        return v or ''
+
+    @field_validator('by', 'source', 'ts', mode='before')
+    @classmethod
+    def _cap_short_strings(cls, v: Any) -> str:
+        if isinstance(v, str) and len(v) > 255:
+            raise ValueError("comment field exceeds 255 chars")
+        return v or ''
 
 
 class CommentChannels(BaseModel):
@@ -338,6 +613,15 @@ class CommentChannels(BaseModel):
     public: list[CommentEntry] = Field(default_factory=list)
     process: list[CommentEntry] = Field(default_factory=list)
     foreign: list[CommentEntry] = Field(default_factory=list)
+
+    @field_validator('public', 'process', 'foreign', mode='before')
+    @classmethod
+    def _cap_channel_count(cls, v: Any) -> list:
+        if isinstance(v, list) and len(v) > COMMENT_CHANNEL_MAX_COUNT:
+            raise ValueError(
+                f"comment channel exceeds {COMMENT_CHANNEL_MAX_COUNT} entries"
+            )
+        return v if isinstance(v, list) else []
 
 
 class CommentsBase(BaseModel):

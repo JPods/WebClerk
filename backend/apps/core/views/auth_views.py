@@ -1,3 +1,5 @@
+import secrets
+
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -115,12 +117,17 @@ class AuthLoginView(APIView):
         except Exception:
             pass
 
-        # Issue JWT tokens with role claim
+        # Issue JWT tokens with role + Athena validation key
+        import secrets
         refresh = RefreshToken.for_user(user)
         access = refresh.access_token
         # Add role to token claims
         access["role"] = getattr(user, "role", "user")
         refresh["role"] = getattr(user, "role", "user")
+        # Athena validation key — frontend uses this to HMAC save payloads
+        athena_key = secrets.token_hex(16)
+        access["athena_key"] = athena_key
+        refresh["athena_key"] = athena_key
         # Look up Contact record for this user's email to get prefs + config + roles
         contact_prefs = {}
         contact_config = {}
@@ -399,6 +406,9 @@ class AuthRegisterView(APIView):
                 access = refresh.access_token
                 access["role"] = getattr(user, "role", "user")
                 refresh["role"] = getattr(user, "role", "user")
+                athena_key = secrets.token_hex(16)
+                access["athena_key"] = athena_key
+                refresh["athena_key"] = athena_key
                 data = {
                     "user": {
                         "id": contact.pk if contact else user.pk,

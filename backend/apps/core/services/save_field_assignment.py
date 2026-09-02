@@ -23,7 +23,15 @@ from common.json_path import delete_nested_value
 console_logger = logging.getLogger('console')
 
 MAX_FIELD_SIZE = 15000
-UNKNOWN_FIELD_MAX_CHARS = 256
+UNKNOWN_FIELD_MAX_CHARS = 255       # max chars per userdefined string value
+UNKNOWN_FIELD_MAX_KEY_LEN = 64      # max chars per userdefined key name
+UNKNOWN_FIELD_MAX_KEYS = 20         # max name:value pairs in userdefined
+MAX_MERGE_DEPTH = 8                 # max recursion depth for deep_merge_dict
+MAX_DOT_PATH_DEPTH = 8             # max segments in a dot-path field name
+
+# Models whose fields may contain binary/document content
+BINARY_ALLOWED_MODELS = frozenset({'document'})
+BINARY_ALLOWED_FIELDS = frozenset({'path'})
 
 SKIP_FIELDS = frozenset({
     'model_name', 'id', 'version', 'expected_version',
@@ -52,12 +60,42 @@ def check_field_size(value, max_size: int, field_name: str):
         raise ValueError(f"{field_name} exceeds maximum size of {max_size} bytes")
 
 
-def deep_merge_dict(a: dict, b: dict) -> dict:
-    """Recursively merge dict b into dict a (in place) and return a."""
+def _check_json_depth(obj, depth: int = 0) -> int:
+    """Return max nesting depth of a dict/list structure."""
+    if depth >= MAX_MERGE_DEPTH:
+        return depth
+    if isinstance(obj, dict):
+        if not obj:
+            return depth
+        return max(_check_json_depth(v, depth + 1) for v in obj.values())
+    if isinstance(obj, list):
+        if not obj:
+            return depth
+        return max(_check_json_depth(v, depth + 1) for v in obj)
+    return depth
+
+
+def deep_merge_dict(a: dict, b: dict, _depth: int = 0) -> dict:
+    """Recursively merge dict b into dict a (in place) and return a.
+
+    Raises ValueError if incoming data or merge depth exceeds MAX_MERGE_DEPTH
+    to prevent stack overflow from crafted payloads.
+    """
+    if _depth >= MAX_MERGE_DEPTH:
+        raise ValueError(
+            f"JSON merge depth exceeds {MAX_MERGE_DEPTH} levels"
+        )
     for k, v in (b or {}).items():
         if isinstance(v, dict) and isinstance(a.get(k), dict):
-            deep_merge_dict(a[k], v)
+            deep_merge_dict(a[k], v, _depth + 1)
         else:
+            # Check depth of incoming value before assigning
+            if isinstance(v, (dict, list)):
+                incoming_depth = _check_json_depth(v)
+                if _depth + incoming_depth >= MAX_MERGE_DEPTH:
+                    raise ValueError(
+                        f"JSON nesting depth exceeds {MAX_MERGE_DEPTH} levels"
+                    )
             a[k] = v
     return a
 
@@ -143,7 +181,39 @@ def _coerce_int_field(value, model_field):
 
 
 def _store_unknown_field(obj, field: str, value, field_size_errors: list):
-    """Route unknown fields to prefs.userdefined."""
+    """Route unknown fields to prefs.userdefined.
+
+    Enforces five constraints BEFORE writing:
+      1. Key name max 64 chars
+      2. Value must be flat scalar (no dicts, no lists)
+      3. String values max 255 chars
+      4. Max 20 keys total in userdefined
+      5. Overall prefs envelope size check
+    """
+    # 1. Key name length
+    if len(field) > UNKNOWN_FIELD_MAX_KEY_LEN:
+        field_size_errors.append(
+            f"userdefined key '{field[:20]}...' exceeds "
+            f"{UNKNOWN_FIELD_MAX_KEY_LEN} chars"
+        )
+        return
+
+    # 2. Reject nested values — flat scalars only
+    if isinstance(value, (dict, list)):
+        field_size_errors.append(
+            f"userdefined['{field}'] must be a flat scalar "
+            f"(str/int/float/bool/None), got {type(value).__name__}"
+        )
+        return
+
+    # 3. String value length
+    if isinstance(value, str) and len(value) > UNKNOWN_FIELD_MAX_CHARS:
+        field_size_errors.append(
+            f"userdefined['{field}'] string exceeds "
+            f"{UNKNOWN_FIELD_MAX_CHARS} chars"
+        )
+        return
+
     try:
         prefs = getattr(obj, 'prefs', {}) or {}
         if isinstance(prefs, str):
@@ -152,18 +222,37 @@ def _store_unknown_field(obj, field: str, value, field_size_errors: list):
             except json.JSONDecodeError:
                 prefs = {}
         userdefined = prefs.setdefault('userdefined', {})
-        storable = value
-        try:
-            raw_json = json.dumps(storable)
-            if len(raw_json.encode('utf-8')) > MAX_FIELD_SIZE:
-                storable = str(storable)[:UNKNOWN_FIELD_MAX_CHARS]
-        except Exception:
-            storable = str(storable)[:UNKNOWN_FIELD_MAX_CHARS]
-        userdefined[field] = storable
+
+        # 4. Max key count (only block if this is a NEW key)
+        if field not in userdefined and len(userdefined) >= UNKNOWN_FIELD_MAX_KEYS:
+            field_size_errors.append(
+                f"userdefined already has {UNKNOWN_FIELD_MAX_KEYS} keys; "
+                f"cannot add '{field}'"
+            )
+            return
+
+        userdefined[field] = value
+
+        # 5. Overall prefs envelope size
         check_field_size(prefs, MAX_FIELD_SIZE, 'prefs')
         setattr(obj, 'prefs', prefs)
     except ValueError as e:
         field_size_errors.append(str(e))
+
+
+def _check_binary_content(value, field: str, model_name: str) -> str | None:
+    """Return error message if value contains binary/base64 content
+    in a field that doesn't allow it. Documents go through Document.path ONLY."""
+    if model_name in BINARY_ALLOWED_MODELS and field in BINARY_ALLOWED_FIELDS:
+        return None
+    if isinstance(value, str):
+        from common.schemas.envelopes import looks_like_binary
+        if looks_like_binary(value):
+            return (
+                f"binary/base64 content not allowed in {field} — "
+                f"use Document.path for file storage"
+            )
+    return None
 
 
 def assign_fields(
@@ -172,6 +261,7 @@ def assign_fields(
     model_cls: type,
     json_field_names: set,
     m2m_field_names: set,
+    model_name: str = '',
 ) -> dict:
     """Assign fields from data dict to model instance.
 
@@ -183,6 +273,7 @@ def assign_fields(
     field_size_errors: list[str] = []
     field_value_errors: list[str] = []
     raw_password = None
+    _model_name_lower = (model_name or '').lower()
 
     for field, field_data in data.items():
         # Password handling
@@ -216,6 +307,12 @@ def assign_fields(
         if value is None:
             continue
 
+        # Reject binary/base64 content outside Document.path
+        binary_err = _check_binary_content(value, field, _model_name_lower)
+        if binary_err:
+            field_size_errors.append(binary_err)
+            continue
+
         # Check size
         try:
             check_field_size(value, MAX_FIELD_SIZE, field)
@@ -225,6 +322,51 @@ def assign_fields(
 
         try:
             if '.' in field or '[' in field:
+                # Guard: reject paths deeper than MAX_DOT_PATH_DEPTH
+                _parts = field.split('.')
+                if len(_parts) > MAX_DOT_PATH_DEPTH:
+                    field_size_errors.append(
+                        f"dot-path '{field[:40]}...' exceeds "
+                        f"{MAX_DOT_PATH_DEPTH} segments"
+                    )
+                    continue
+
+                # Guard: reject nested writes into userdefined via dot-path
+                # e.g. "prefs.userdefined.foo.bar" or "metadata.userdefined.x.y"
+                try:
+                    _ud_idx = _parts.index('userdefined')
+                    # Allow "prefs.userdefined.key" (depth 1) but reject
+                    # "prefs.userdefined.key.nested" (depth 2+)
+                    if len(_parts) > _ud_idx + 2:
+                        field_size_errors.append(
+                            f"userdefined nesting forbidden: '{field}' — "
+                            f"only flat key:value pairs allowed"
+                        )
+                        continue
+                    # Also enforce scalar-only and limits on the value
+                    if len(_parts) == _ud_idx + 2:
+                        _ud_key = _parts[_ud_idx + 1]
+                        if len(_ud_key) > UNKNOWN_FIELD_MAX_KEY_LEN:
+                            field_size_errors.append(
+                                f"userdefined key '{_ud_key[:20]}...' exceeds "
+                                f"{UNKNOWN_FIELD_MAX_KEY_LEN} chars"
+                            )
+                            continue
+                        if isinstance(value, (dict, list)):
+                            field_size_errors.append(
+                                f"userdefined['{_ud_key}'] must be a flat scalar, "
+                                f"got {type(value).__name__}"
+                            )
+                            continue
+                        if isinstance(value, str) and len(value) > UNKNOWN_FIELD_MAX_CHARS:
+                            field_size_errors.append(
+                                f"userdefined['{_ud_key}'] string exceeds "
+                                f"{UNKNOWN_FIELD_MAX_CHARS} chars"
+                            )
+                            continue
+                except ValueError:
+                    pass  # 'userdefined' not in path — normal dot-path, proceed
+
                 from apps.core.services.json_ops import apply_json_op
                 apply_json_op(obj, field, mode, value, key=field_data.get('key'))
             else:

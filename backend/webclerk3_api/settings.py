@@ -106,6 +106,7 @@ MIDDLEWARE = [
     'common.middleware.CloudflareAccessMiddleware',             # CF email header → auto-login
     'django.contrib.messages.middleware.MessageMiddleware',
     'common.middleware.WriteGateMiddleware',
+    'common.middleware.AthenaValidationMiddleware',
     'common.middleware.RequestLogMiddleware',
     'common.middleware.ExceptionAsJsonMiddleware',
     'common.middleware.AutoEnvelopeMiddleware',
@@ -1125,6 +1126,13 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=5, minute=0, day_of_week='sunday'),
     },
 }
+
+# ── Payload size gates ─────────────────────────────────────────────
+# Reject oversized requests before Django parses the body into memory.
+# Documents go through Document.path — all other fields are bounded text.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024      # 2 MB — reject before parsing
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 200                 # max form fields per request
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024       # 5 MB — files go through Document.path
 
 # --- Inventory Pending Processing ---
 # Controls how often the background processor checks for unprocessed inventory pending records

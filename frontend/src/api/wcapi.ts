@@ -1,6 +1,9 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import apiClient from "./axios";
 import { resolveModelName } from "./modelNameResolver";
+import { validateEnvelope } from "../utils/validateEnvelope";
+import { MAX_PAYLOAD_BYTES } from "../constants/envelopeLimits";
+import { computeAthenaToken } from "../utils/athenaToken";
 
 // Re-export model name utilities for convenience
 export {
@@ -110,13 +113,14 @@ async function wcapiGet<T>(path: string, config?: any): Promise<T> {
   }
 }
 
-async function wcapiPost<T>(path: string, body: any): Promise<T> {
+async function wcapiPost<T>(path: string, body: any, extraHeaders?: Record<string, string>): Promise<T> {
+  const config = extraHeaders ? { headers: extraHeaders } : undefined;
   try {
-    const res = await apiClient.post<ApiEnvelope<T>>(`/wcapi/${path}`, body);
+    const res = await apiClient.post<ApiEnvelope<T>>(`/wcapi/${path}`, body, config);
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<T>>(`/api/wcapi/${path}`, body);
+      const res2 = await apiClient.post<ApiEnvelope<T>>(`/api/wcapi/${path}`, body, config);
       return res2.data.data;
     }
     throw err;
@@ -359,6 +363,14 @@ export async function saveRecord(model_name: string, payload: any) {
   const resolved = resolveModelName(model_name);
   // Extract id and mode from payload if present (they go at root level, not in data)
   const { id, mode, ...record } = payload;
+
+  // ── Pre-flight: envelope validation ──
+  const envelopeErrors = validateEnvelope(record);
+  if (envelopeErrors.length > 0) {
+    const messages = envelopeErrors.map(e => `${e.path}: ${e.message}`);
+    throw new Error(`Validation failed: ${messages.join('; ')}`);
+  }
+
   // Always use `record` wrapper — `data` wrapper is deprecated (fixed 2026-06).
   const body: any = { model_name: resolved, record };
   if (id !== undefined) {
@@ -367,8 +379,25 @@ export async function saveRecord(model_name: string, payload: any) {
   if (mode !== undefined) {
     body.mode = mode;
   }
+
+  // ── Pre-flight: payload size check ──
+  const serialized = JSON.stringify(body);
+  if (serialized.length > MAX_PAYLOAD_BYTES) {
+    throw new Error(
+      `Payload too large (${(serialized.length / 1024).toFixed(0)} KB) — ` +
+      `maximum ${(MAX_PAYLOAD_BYTES / 1024 / 1024).toFixed(0)} MB`
+    );
+  }
+
+  // ── Athena: sign validated payload ──
+  const athenaToken = await computeAthenaToken(serialized);
+
   try {
-    return await wcapiPost<any>("save/", body);
+    const headers: Record<string, string> = {};
+    if (athenaToken) {
+      headers['X-Athena-Validated'] = athenaToken;
+    }
+    return await wcapiPost<any>("save/", body, headers);
   } catch (err: any) {
     throw new Error(getBackendErrorMessage(err, "Save failed"));
   }

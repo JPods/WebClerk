@@ -32,6 +32,7 @@ import {
 } from "react-icons/fa";
 import { Input } from "../../../../components/wrapper";
 import { usePermissions } from "./usePermissions";
+import { COMMENT_TEXT_MAX_LEN, COMMENT_CHANNEL_MAX_COUNT } from "../../../../constants/envelopeLimits";
 import type {
   BasePanelProps,
   EntityComments,
@@ -170,18 +171,20 @@ const CommentList: React.FC<CommentListProps> = ({
   };
 
   const handleSend = () => {
-    if (inputValue.trim()) {
-      const now = new Date();
-      const timeStr = formatDt(now, 'datetime');
-      const newMessage: CommentMessage = {
-        user: currentUser,
-        mgs: inputValue.trim(),
-        time: timeStr,
-        user_id: currentUserId,
-      };
-      onAdd(newMessage);
-      setInputValue("");
-    }
+    const trimmed = inputValue.trim();
+    if (!trimmed) return;
+    if (trimmed.length > COMMENT_TEXT_MAX_LEN) return;
+    if (messages.length >= COMMENT_CHANNEL_MAX_COUNT) return;
+    const now = new Date();
+    const timeStr = formatDt(now, 'datetime');
+    const newMessage: CommentMessage = {
+      user: currentUser,
+      mgs: trimmed,
+      time: timeStr,
+      user_id: currentUserId,
+    };
+    onAdd(newMessage);
+    setInputValue("");
   };
 
   const handleEditSave = (index: number) => {
@@ -343,14 +346,22 @@ const CommentList: React.FC<CommentListProps> = ({
                 }
               }}
             />
-            <div className="mt-1 text-[11px] db-text-muted">
-              Tip: Shift+Enter for a new line.
+            <div className="mt-1 flex justify-between text-[11px] db-text-muted">
+              <span>Shift+Enter for new line</span>
+              <span className={inputValue.length > COMMENT_TEXT_MAX_LEN ? 'text-red-500 font-semibold' : ''}>
+                {inputValue.length}/{COMMENT_TEXT_MAX_LEN}
+              </span>
             </div>
+            {messages.length >= COMMENT_CHANNEL_MAX_COUNT && (
+              <div className="mt-1 text-[11px] text-red-500">
+                Channel limit reached ({COMMENT_CHANNEL_MAX_COUNT} comments)
+              </div>
+            )}
           </div>
           <button
             className="self-start px-3 py-2 rounded text-sm font-semibold disabled:opacity-50 db-btn-primary-solid"
             onClick={handleSend}
-            disabled={!inputValue.trim()}
+            disabled={!inputValue.trim() || inputValue.trim().length > COMMENT_TEXT_MAX_LEN || messages.length >= COMMENT_CHANNEL_MAX_COUNT}
           >
             Send
           </button>

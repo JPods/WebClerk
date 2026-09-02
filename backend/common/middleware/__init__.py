@@ -19,6 +19,7 @@ from common.middleware.envelope import AutoEnvelopeMiddleware
 from common.middleware.exceptions import ExceptionAsJsonMiddleware
 from common.middleware.rendering import EnsureRenderedMiddleware
 from common.middleware.security import WriteGateMiddleware
+from common.middleware.athena_validation import AthenaValidationMiddleware
 from common.middleware.rest_redirect import RestToWcapiMiddleware
 from common.middleware.cloudflare_auth import CloudflareAccessMiddleware
 from common.middleware.helpers import ENVELOPE_SKIPS  # noqa: F401 – used by tests
@@ -29,6 +30,7 @@ __all__ = [
     "ExceptionAsJsonMiddleware",
     "EnsureRenderedMiddleware",
     "WriteGateMiddleware",
+    "AthenaValidationMiddleware",
     "RestToWcapiMiddleware",
     "CloudflareAccessMiddleware",
     "ENVELOPE_SKIPS",

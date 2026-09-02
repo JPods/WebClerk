@@ -64,15 +64,18 @@ def check_field_size(field_value, max_size, field_name):
         raise ValueError(f"{field_name} exceeds maximum size of {max_size} bytes")
 
 
-def deep_merge_dict(a: dict, b: dict) -> dict:
+def deep_merge_dict(a: dict, b: dict, _depth: int = 0) -> dict:
     """Recursively merge dict b into dict a (in place) and return a.
     - protects dictionary structures
     - If a[key] and b[key] are both dicts, merge recursively.
     - Otherwise, b[key] overwrites a[key].
+    - Raises ValueError if depth exceeds 8 levels (prevents stack overflow).
     """
+    if _depth >= 8:
+        raise ValueError("JSON merge depth exceeds 8 levels")
     for k, v in (b or {}).items():
         if isinstance(v, dict) and isinstance(a.get(k), dict):
-            deep_merge_dict(a[k], v)
+            deep_merge_dict(a[k], v, _depth + 1)
         else:
             a[k] = v
     return a
@@ -619,7 +622,7 @@ class SaveWcapiView(APIView):
 
         # ── Field assignment (delegated to save_field_assignment service) ──
         from apps.core.services.save_field_assignment import assign_fields
-        _assignment = assign_fields(obj, data, model_cls, json_field_names, m2m_field_names)
+        _assignment = assign_fields(obj, data, model_cls, json_field_names, m2m_field_names, model_name=model_key)
         raw_password = _assignment['raw_password']
         field_size_errors = _assignment['field_size_errors']
         field_value_errors = _assignment['field_value_errors']
