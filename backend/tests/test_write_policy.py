@@ -43,8 +43,10 @@ def _mock_request(role="user", is_superuser=False, is_staff=False, is_authentica
 
 def _auth_client(user):
     from rest_framework_simplejwt.tokens import RefreshToken
+    token = RefreshToken.for_user(user)
+    token['role'] = getattr(user, 'role', 'user')
     client = APIClient()
-    client.credentials(HTTP_AUTHORIZATION=f"Bearer {RefreshToken.for_user(user).access_token}")
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.access_token}")
     return client
 
 

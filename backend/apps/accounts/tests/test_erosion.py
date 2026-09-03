@@ -226,7 +226,7 @@ class TestLatePaymentErosion:
             invoice=invoice, amount=Decimal('500'),
             dt_payment=datetime.now(timezone.utc),
             status='completed',
-            contact=contact,
+            contact_id=contact.id,
         )
 
         erosion = detect_late_payment(payment)
@@ -256,7 +256,7 @@ class TestLatePaymentErosion:
             invoice=invoice, amount=Decimal('500'),
             dt_payment=datetime.now(timezone.utc),
             status='completed',
-            contact=contact,
+            contact_id=contact.id,
         )
 
         erosion = detect_late_payment(payment)

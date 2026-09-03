@@ -27,7 +27,7 @@ class WorkOrderPhase1Tests(TestCase):
         Setting.objects.create(purpose='wc:view_edit', parent_model='workorder_line', is_active=True,
                                config={'USER': {'view': ['id','workorder_id','status'], 'edit': ['id','status']}})
         self.client.login(email='wo@example.com', password='testpass123')
-        self.wo = WorkOrder.objects.create(ida='WO-1001')
+        self.wo = WorkOrder.objects.create(ida='WO-1001', status='planned')
         self.line = WorkOrderLine.objects.create(workorder=self.wo, status='planned')
 
     def test_query_workorders_list(self):

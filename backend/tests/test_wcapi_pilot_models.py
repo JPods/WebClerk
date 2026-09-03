@@ -72,7 +72,7 @@ def test_customer_crud(admin_client):
         "/wcapi/save/",
         data=json.dumps({
             "model_name": "customer",
-            "company": "Pilot Customer Co",
+            "display_name": "Pilot Customer Co",
             "status": "active",
         }),
         content_type="application/json",
