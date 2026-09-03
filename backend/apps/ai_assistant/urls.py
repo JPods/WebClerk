@@ -44,4 +44,5 @@ urlpatterns = [
     path("coaching/", views.CoachingFeedView.as_view(), name="coaching-feed"),
     path("support/summary/", views.SupportSummaryView.as_view(), name="support-summary"),
     path("support/detect-patterns/", views.SupportDetectPatternsView.as_view(), name="support-detect-patterns"),
+    path("coaching/feedback/", views.CoachingFeedbackView.as_view(), name="coaching-feedback"),
 ]

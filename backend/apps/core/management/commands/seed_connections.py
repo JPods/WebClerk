@@ -110,7 +110,10 @@ CONNECTIONS = [
                 'layout_submission',
                 'alice_observation',
                 'support_qa',
+                'episode',
+                'coaching_feedback',
             ],
+            'episode_harvest': True,
             'review_required': True,
             'reviewer': 'alice',
         },
@@ -151,7 +154,8 @@ CONNECTIONS = [
             'endpoints': {
                 'init_bundle': '/wcapi/init-bundle/',
                 'register': '/wcapi/register-installation/',
-                'coaching': '/wcapi/coaching/',
+                'coaching': '/wcapi/ai/coaching/',
+                'episode_feed': '/wcapi/ai/episodes/feed/',
                 'security': '/wcapi/security-notices/',
                 'version': '/wcapi/version-check/',
             },
@@ -160,6 +164,7 @@ CONNECTIONS = [
             'content_types': [
                 'init_bundle',
                 'coaching_updates',
+                'episode_feed',
                 'select_list_improvements',
                 'security_notices',
                 'version_check',
@@ -167,6 +172,7 @@ CONNECTIONS = [
             'auto_apply': {
                 'init_bundle': False,
                 'coaching_updates': True,
+                'episode_feed': True,
                 'select_list_improvements': False,
                 'security_notices': True,
             },

@@ -146,6 +146,18 @@ class BundleReceiveView(APIView):
                     "Failed to process episode bundle %s: %s", bundle.id, e
                 )
 
+        # Auto-process coaching feedback bundles
+        coaching_result = None
+        if isinstance(payload, dict) and payload.get("type") == "coaching_feedback" and not is_test:
+            try:
+                from apps.ai_assistant.services.support_feed import submit_coaching_feedback
+                coaching_result = submit_coaching_feedback(payload.get("feedback", []))
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(
+                    "Failed to process coaching feedback bundle %s: %s", bundle.id, e
+                )
+
         resp_data = {
             "ack": True,
             "echo": data.get("echo", ""),
@@ -158,5 +170,7 @@ class BundleReceiveView(APIView):
             resp_data["order_ida"] = unpack_result.get("order_ida")
         if episode_result:
             resp_data["episodes"] = episode_result
+        if coaching_result:
+            resp_data["coaching_feedback"] = coaching_result
 
         return Response(resp_data)

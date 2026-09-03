@@ -591,6 +591,98 @@ def select_list_watchdog_task(limit: int = 500) -> dict:
     return result
 
 
+# ─── Episode Harvest (all active connections) ────────────────────────
+
+@shared_task
+def harvest_all_episodes_task() -> dict:
+    """Every 6 hours: harvest episodes from all active Connections
+    with config.episode_harvest=true.
+
+    Iterates qualifying connections, calls harvest_episodes() for each,
+    and logs aggregate results.
+    """
+    logger.info("Starting episode harvest for all connections")
+    started = timezone.now()
+
+    from apps.sync.models.connection import Connection
+    from apps.sync.services.episode_bundle import harvest_episodes
+
+    connections = Connection.objects.filter(status='active')
+    harvested = 0
+    errors = 0
+    results_by_connection = {}
+
+    for conn in connections:
+        cfg = conn.config or {}
+        if not cfg.get('episode_harvest'):
+            continue
+        try:
+            result = harvest_episodes(conn)
+            results_by_connection[conn.id] = result
+            harvested += 1
+        except Exception:
+            logger.exception("Episode harvest failed for connection %s (%s)", conn.id, conn.name)
+            results_by_connection[conn.id] = {'error': True}
+            errors += 1
+
+    duration = (timezone.now() - started).total_seconds()
+    result = {
+        'connections_harvested': harvested,
+        'errors': errors,
+        'details': results_by_connection,
+        'duration_seconds': duration,
+    }
+    logger.info(
+        "Episode harvest complete: %d connections harvested, %d errors in %.1fs",
+        harvested, errors, duration,
+    )
+    return result
+
+
+# ─── Episode Pattern Detection ───────────────────────────────────────
+
+@shared_task
+def detect_episode_patterns_task(since_days: int = 30) -> dict:
+    """Nightly task: detect rejected patterns in recent episodes.
+
+    Calls detect_rejected_patterns() to find recurring rejection signals
+    and creates observations for actionable findings.
+    """
+    logger.info("Starting episode pattern detection (since_days=%d)", since_days)
+    started = timezone.now()
+
+    from apps.ai_assistant.services.episode_patterns import detect_rejected_patterns
+
+    result = detect_rejected_patterns(since_days=since_days)
+
+    duration = (timezone.now() - started).total_seconds()
+    result['duration_seconds'] = duration
+    logger.info("Episode pattern detection complete in %.1fs", duration)
+    return result
+
+
+# ─── Help Pattern Detection ──────────────────────────────────────────
+
+@shared_task
+def detect_help_patterns_task(since_days: int = 30) -> dict:
+    """Nightly task: detect patterns in support/help requests.
+
+    Calls detect_help_patterns() to identify recurring support themes
+    and creates observations for actionable findings.
+    """
+    logger.info("Starting help pattern detection (since_days=%d)", since_days)
+    started = timezone.now()
+
+    from apps.ai_assistant.services.support_feed import detect_help_patterns
+
+    result = detect_help_patterns(since_days=since_days)
+
+    duration = (timezone.now() - started).total_seconds()
+    result['duration_seconds'] = duration
+    logger.info("Help pattern detection complete in %.1fs", duration)
+    return result
+
+
 # ─── Alice: Settings Backup (7-day cycle) ───────────────────────────
 
 @shared_task

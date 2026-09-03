@@ -1125,6 +1125,27 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.ai_assistant.tasks.select_list_watchdog_task',
         'schedule': crontab(hour=5, minute=0, day_of_week='sunday'),
     },
+
+    # ── Alice: Episode harvest (every 6 hours) ───────────────────────
+    # Harvest episodes from all active Connections with episode_harvest=true
+    'alice-episode-harvest-6h': {
+        'task': 'apps.ai_assistant.tasks.harvest_all_episodes_task',
+        'schedule': crontab(minute=0, hour='*/6'),
+    },
+
+    # ── Alice: Episode pattern detection (daily 4:20 AM) ─────────────
+    # Detect rejected patterns in recent episodes
+    'alice-episode-patterns-nightly': {
+        'task': 'apps.ai_assistant.tasks.detect_episode_patterns_task',
+        'schedule': crontab(hour=4, minute=20),
+    },
+
+    # ── Alice: Help pattern detection (daily 4:40 AM) ────────────────
+    # Detect recurring support/help request patterns
+    'alice-help-patterns-nightly': {
+        'task': 'apps.ai_assistant.tasks.detect_help_patterns_task',
+        'schedule': crontab(hour=4, minute=40),
+    },
 }
 
 # ── Payload size gates ─────────────────────────────────────────────

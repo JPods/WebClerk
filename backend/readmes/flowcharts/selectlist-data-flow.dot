@@ -6,7 +6,7 @@ digraph selectlist_data_flow {
 
     // Title
     labelloc="t";
-    label="Select List Data Flow\nconfig.selectlists.<field> = [{value, label}]";
+    label="Select List Data Flow\nconfig.selectlists.[field] = [{value, label}]";
     fontsize=14;
 
     // Data sources
@@ -23,11 +23,11 @@ digraph selectlist_data_flow {
     }
 
     // Canonical path
-    selectlists [label="config.selectlists.<field>\n[{value, label}]" shape=record fillcolor="#cce5ff" color="#004085" fontcolor="#004085"];
+    selectlists [label="config.selectlists.[field]\n(value, label pairs)" shape=box fillcolor="#cce5ff" color="#004085" fontcolor="#004085"];
 
     // Legacy paths
-    behaviors [label="config.behaviors.<field>.options\n(legacy — read as fallback)" fillcolor="#fff3cd" fontcolor="#856404"];
-    field_behaviors [label="config.field_behaviors.<field>.options\n(legacy — read as fallback)" fillcolor="#fff3cd" fontcolor="#856404"];
+    behaviors [label="config.behaviors.[field].options\n(legacy — read as fallback)" fillcolor="#fff3cd" fontcolor="#856404"];
+    field_behaviors [label="config.field_behaviors.[field].options\n(legacy — read as fallback)" fillcolor="#fff3cd" fontcolor="#856404"];
     lists_choices [label="config.lists.<name>.choices\n(legacy DMS — emptied)" fillcolor="#f8d7da" fontcolor="#721c24"];
 
     // Backend scanner

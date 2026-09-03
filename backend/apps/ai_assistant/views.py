@@ -1691,3 +1691,57 @@ class SupportDetectPatternsView(APIView):
         result = detect_help_patterns(since_days=since_days)
 
         return api_response(data=result)
+
+
+class CoachingFeedbackView(APIView):
+    """
+    POST /wcapi/coaching/feedback/
+
+    Report coaching effectiveness back to WCHQ. Instances tell us
+    which coaching content was helpful and which wasn't. Negative
+    feedback creates AliceObservations for improvement.
+
+    Auth: Authorization: Athena <token> (from connected instance)
+          OR IsAuthenticated (from local user)
+    Body: {
+        "feedback": [
+            {
+                "coaching_ida": "wc:coaching:invoice",
+                "tip_index": 2,
+                "rating": 1,
+                "comment": "Clear and helpful"
+            },
+            {
+                "coaching_ida": "wc:coaching:order",
+                "field": "shipping_method",
+                "rating": -1,
+                "comment": "Outdated — we use a different carrier now"
+            }
+        ]
+    }
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        from .services.support_feed import submit_coaching_feedback
+
+        # Accept from Athena-authenticated connections or logged-in users
+        connection, _ = _validate_athena_token(request)
+        if not connection and not (request.user and request.user.is_authenticated):
+            return api_response(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                message="Requires Athena token or authenticated user",
+                error_code="auth_required",
+            )
+
+        feedback_items = request.data.get('feedback', [])
+        if not feedback_items:
+            return api_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="feedback list required",
+                error_code="missing_feedback",
+            )
+
+        result = submit_coaching_feedback(feedback_items)
+
+        return api_response(data=result)

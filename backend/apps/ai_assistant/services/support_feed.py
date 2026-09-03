@@ -1,11 +1,12 @@
 """
 Support Feed — WCHQ support services for connected instances.
 
-Three services flow through the same telemetry model as episodes:
+Four services flow through the same telemetry model as episodes:
 
     1. Coaching distribution — WCHQ serves coaching content, instances poll
     2. Help pattern aggregation — WCHQ collects help requests, detects patterns
     3. Support summary — admin dashboard showing support health
+    4. Coaching feedback — instances report what's useful back to WCHQ
 
 Coaching content lives in Setting records (purpose='wc:coaching') and
 Document records. Instances pull coaching updates like they pull
@@ -367,3 +368,147 @@ def get_support_summary(period_days: int = 7) -> dict:
             'pending_patterns': coaching_observations,
         },
     }
+
+
+# ── Coaching Feedback ─────────────────────────────────────────────────
+
+def submit_coaching_feedback(feedback_items: list) -> dict:
+    """Record coaching feedback from an instance.
+
+    Instances report which coaching content was helpful and which wasn't.
+    This creates AliceObservation records for WCHQ to review and
+    optionally pushes upstream via Bundle.
+
+    Each feedback item:
+        {
+            "coaching_ida": "wc:coaching:invoice",
+            "tip_index": 2,              (optional — specific tip)
+            "field": "price",            (optional — specific field help)
+            "rating": 1,                 (-1 = not helpful, 0 = neutral, 1 = helpful)
+            "comment": "...",            (optional)
+        }
+
+    Args:
+        feedback_items: List of feedback dicts.
+
+    Returns summary.
+    """
+    from apps.ai_assistant.models.alice import AliceObservation
+    from apps.core.models import Setting
+
+    recorded = 0
+    skipped = 0
+
+    for item in feedback_items:
+        coaching_ida = item.get('coaching_ida', '')
+        rating = item.get('rating', 0)
+
+        if not coaching_ida or rating not in (-1, 0, 1):
+            skipped += 1
+            continue
+
+        # Update the coaching Setting's feedback counters
+        setting = Setting.objects.filter(
+            ida=coaching_ida, purpose='wc:coaching', is_active=True,
+        ).first()
+
+        if setting:
+            config = setting.config if isinstance(setting.config, dict) else {}
+            feedback = config.get('feedback', {'helpful': 0, 'not_helpful': 0, 'neutral': 0})
+
+            if rating == 1:
+                feedback['helpful'] = feedback.get('helpful', 0) + 1
+            elif rating == -1:
+                feedback['not_helpful'] = feedback.get('not_helpful', 0) + 1
+            else:
+                feedback['neutral'] = feedback.get('neutral', 0) + 1
+
+            config['feedback'] = feedback
+            setting.config = config
+            setting.save(update_fields=['config'])
+
+        # Create observation for negative feedback (signal for improvement)
+        if rating == -1:
+            tip_detail = ''
+            if item.get('tip_index') is not None:
+                tip_detail = f" tip #{item['tip_index']}"
+            if item.get('field'):
+                tip_detail = f" field_help[{item['field']}]"
+
+            AliceObservation.objects.create(
+                category='coaching',
+                source='alice',
+                priority=0,
+                message=f"Coaching feedback: {coaching_ida}{tip_detail} rated not helpful",
+                detail=item.get('comment', ''),
+                model_name='Setting',
+                dedup_key=f"cf-{coaching_ida}-{item.get('tip_index', '')}-{item.get('field', '')}",
+            )
+
+        recorded += 1
+
+    return {'recorded': recorded, 'skipped': skipped}
+
+
+def push_coaching_feedback(connection, feedback_items: list) -> dict:
+    """Push coaching feedback upstream to WCHQ via Bundle.
+
+    Args:
+        connection: The wchq-conn-upstream Connection.
+        feedback_items: List of feedback dicts.
+
+    Returns upstream response or local-only result.
+    """
+    import httpx
+    import uuid as uuid_lib
+
+    config = connection.config if isinstance(connection.config, dict) else {}
+    endpoint = config.get('endpoint', '')
+    key = config.get('key', '')
+
+    if not endpoint or not key:
+        # Record locally only
+        return submit_coaching_feedback(feedback_items)
+
+    payload = {
+        'type': 'coaching_feedback',
+        'version': '1.0',
+        'source_instance': _get_instance_uuid(),
+        'dt_built': int(time.time() * 1000),
+        'feedback': feedback_items,
+        'count': len(feedback_items),
+    }
+
+    url = endpoint.rstrip('/') + '/wcapi/sync/receive/'
+
+    try:
+        with httpx.Client(timeout=30) as client:
+            resp = client.post(
+                url,
+                headers={'X-Sync-Key': key},
+                json={
+                    'idempotency_key': str(uuid_lib.uuid4()),
+                    'sequence': int(time.time()),
+                    'payload': payload,
+                },
+            )
+            resp.raise_for_status()
+            return resp.json()
+    except Exception as e:
+        logger.warning("Coaching feedback push failed: %s", e)
+        # Fall back to local recording
+        return submit_coaching_feedback(feedback_items)
+
+
+def _get_instance_uuid() -> str:
+    """Get this installation's UUID."""
+    try:
+        from apps.core.models import Setting
+        company = Setting.objects.filter(
+            purpose='wc:company_profile', is_active=True,
+        ).first()
+        if company and company.uuid:
+            return str(company.uuid)
+    except Exception:
+        pass
+    return ''
