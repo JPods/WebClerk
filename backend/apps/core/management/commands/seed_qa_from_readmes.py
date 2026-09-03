@@ -25,48 +25,44 @@ from typing import Any
 from django.core.management.base import BaseCommand
 from apps.docs.models.document import Document
 
-WC3_ROOT = Path(__file__).resolve().parents[4]
+WC3_ROOT = Path(__file__).resolve().parents[5]  # .../WebClerk/app/
 
 # Readmes to mine — same list as the seed_wc3_*_docs commands
 READMES = [
     # System
-    ('readmes/01-architecture-overview.md', 'system', 'WC3 Architecture'),
-    ('readmes/03-wcapi-gateway.md', 'system', 'wcapi Gateway'),
-    ('readmes/04-wcapi-usage.md', 'system', 'wcapi Usage'),
-    ('readmes/05-model-registry.md', 'system', 'Model Registry'),
-    ('readmes/06-api-conventions.md', 'system', 'API Conventions'),
-    ('readmes/07-react-integration.md', 'system', 'React Integration'),
-    ('readmes/json-envelope-policy.md', 'system', 'JSON Envelopes'),
-    ('readmes/settings.md', 'system', 'Settings'),
-    ('readmes/setting-policy.md', 'system', 'Setting Policy'),
-    ('readmes/prefs-architecture.md', 'system', 'Prefs'),
-    ('readmes/onboarding.md', 'system', 'Onboarding'),
-    ('readmes/pending-policy.md', 'system', 'Pending Policy'),
+    ('readmes/getting-started/01-architecture-overview.md', 'system', 'WC3 Architecture'),
+    ('readmes/architecture/03-wcapi-gateway.md', 'system', 'wcapi Gateway'),
+    ('readmes/architecture/04-wcapi-usage.md', 'system', 'wcapi Usage'),
+    ('readmes/architecture/05-model-registry.md', 'system', 'Model Registry'),
+    ('readmes/architecture/06-api-conventions.md', 'system', 'API Conventions'),
+    ('readmes/architecture/json-envelope-policy.md', 'system', 'JSON Envelopes'),
+    ('readmes/infrastructure/settings.md', 'system', 'Settings'),
+    ('readmes/tools/setting-policy.md', 'system', 'Setting Policy'),
+    ('readmes/architecture/prefs-architecture.md', 'system', 'Prefs'),
+    ('readmes/getting-started/onboarding.md', 'system', 'Onboarding'),
     # Commerce
-    ('readmes/08-transaction-calculations.md', 'commerce', 'Transaction Calculations'),
-    ('readmes/08-transaction-save.md', 'commerce', 'Transaction Save'),
-    ('readmes/ledger-financial-system.md', 'commerce', 'Ledger & GL'),
-    ('readmes/payment-application-design.md', 'commerce', 'Payments'),
-    ('readmes/commission-operations.md', 'commerce', 'Commissions'),
-    ('readmes/inventory_flow_testing.md', 'commerce', 'Inventory Flow'),
-    ('readmes/erosion-tracking.md', 'commerce', 'Erosion Tracking'),
-    ('readmes/forecasting.md', 'commerce', 'Forecasting'),
-    ('readmes/orgs-financial-structure.md', 'commerce', 'Org Financials'),
-    ('readmes/statement-harvester.md', 'commerce', 'Statements'),
+    ('readmes/transactions/08-transaction-calculations.md', 'commerce', 'Transaction Calculations'),
+    ('readmes/transactions/08-transaction-save.md', 'commerce', 'Transaction Save'),
+    ('readmes/accounting/ledger-financial-system.md', 'commerce', 'Ledger & GL'),
+    ('readmes/accounting/payment-application-design.md', 'commerce', 'Payments'),
+    ('readmes/transactions/commission-operations.md', 'commerce', 'Commissions'),
+    ('readmes/products/forecasting.md', 'commerce', 'Forecasting'),
+    ('readmes/transactions/orgs-financial-structure.md', 'commerce', 'Org Financials'),
+    ('readmes/accounting/statement-harvester.md', 'commerce', 'Statements'),
     # Operations
-    ('readmes/databrowser-guide.md', 'operations', 'databrowser'),
-    ('readmes/saved-searches.md', 'operations', 'Saved Searches'),
-    ('readmes/email-operations.md', 'operations', 'Email'),
-    ('readmes/source-attribution.md', 'operations', 'Source Attribution'),
-    ('readmes/alice-coaching.md', 'operations', 'Alice Coaching'),
-    ('readmes/qa-question-groups.md', 'operations', 'QA Questions'),
-    ('readmes/community-contributions.md', 'operations', 'Community'),
+    ('readmes/operations/databrowser-guide.md', 'operations', 'databrowser'),
+    ('readmes/operations/saved-searches.md', 'operations', 'Saved Searches'),
+    ('readmes/contacts/email-operations.md', 'operations', 'Email'),
+    ('readmes/sync/source-attribution.md', 'operations', 'Source Attribution'),
+    ('readmes/alice/alice-coaching.md', 'operations', 'Alice Coaching'),
+    ('readmes/operations/qa-question-groups.md', 'operations', 'QA Questions'),
     # Alice
     ('readmes/alice/pattern-recognition.md', 'alice', 'Pattern Recognition'),
     ('readmes/alice/data-quality.md', 'alice', 'Data Quality'),
     ('readmes/alice/observation-setup.md', 'alice', 'Observations'),
     ('readmes/alice/dedup.md', 'alice', 'Dedup'),
     ('readmes/alice/escalation.md', 'alice', 'Escalation'),
+    ('readmes/alice/erosion-tracking.md', 'alice', 'Erosion Tracking'),
 ]
 
 

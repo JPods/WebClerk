@@ -36,11 +36,52 @@ class TouchConfig(BaseModel):
         extra = "forbid"
 
 
+class MergeBackup(BaseModel):
+    """Snapshot of a contact's fields before a merge overwrote them.
+
+    Temporary — Alice cleans these after 24 hours via alice_clean_backups.
+    Exists only so a bad merge can be undone within the same day.
+    """
+    dt_backup: str = ""                         # ISO-8601 UTC
+    merged_from: Optional[int] = None           # contact_id that was merged in
+    reason: str = "row_merge"
+    # Pre-merge field values (only non-empty fields are stored)
+    name_prefix: Optional[str] = None
+    name_first: Optional[str] = None
+    name_last: Optional[str] = None
+    name_suffix: Optional[str] = None
+    title: Optional[str] = None
+    company: Optional[str] = None
+    department: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    address1: Optional[str] = None
+    address2: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip: Optional[str] = None
+    country: Optional[str] = None
+
+    class Config:
+        extra = "allow"
+
+
+class DeactivatedByMerge(BaseModel):
+    """Audit trail: why this contact was deactivated."""
+    dt: str = ""                                # ISO-8601 UTC
+    merged_into: Optional[int] = None           # contact_id that absorbed this one
+
+    class Config:
+        extra = "allow"
+
+
 class ContactConfig(ConfigBase):
-    """Structural data — import originals, touch preferences."""
+    """Structural data — import originals, touch preferences, merge backup."""
     original_mac: Optional[dict] = None
     phone_original: Optional[str] = None
     touch: TouchConfig = Field(default_factory=TouchConfig)
+    backup: Optional[MergeBackup] = None
+    deactivated_by_merge: Optional[DeactivatedByMerge] = None
 
     class Config:
         extra = "forbid"

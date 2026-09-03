@@ -3,13 +3,13 @@
  *
  * Styles discovered from src/components/ui/button/{folder}/ — each folder
  * is a button set with its own README.md. PNG sets use 3-state sprites.
- * Phosphor uses duotone SVG. Minimal uses text + emoji.
+ * Lucide uses SVG icons. Minimal uses text + emoji.
  *
  * Preference stored in localStorage: wc3_button_style
  * Company sets once at deployment. User can override.
  */
 import React, { useState, useEffect } from 'react';
-import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
+import type { LucideIcon } from 'lucide-react';
 import type { ToolbarAction, ButtonStyleName } from './toolbarActions';
 import { AVAILABLE_PNG_STYLES } from './toolbarActions';
 
@@ -58,10 +58,10 @@ const PngRenderer: React.FC<{
 };
 
 // ---------------------------------------------------------------------------
-// Phosphor duotone renderer
+// Lucide icon renderer
 // ---------------------------------------------------------------------------
-const PhosphorRenderer: React.FC<{
-  icon: PhosphorIcon; title: string; onClick?: (e?: React.MouseEvent) => void;
+const LucideRenderer: React.FC<{
+  icon: LucideIcon; title: string; onClick?: (e?: React.MouseEvent) => void;
   disabled?: boolean; active?: boolean; danger?: boolean;
 }> = ({ icon: IconComp, title, onClick, disabled, active, danger }) => {
   const [hover, setHover] = useState(false);
@@ -92,8 +92,8 @@ const PhosphorRenderer: React.FC<{
       onMouseDown={() => !disabled && setPressed(true)}
       onMouseUp={() => !disabled && setPressed(false)}
     >
-      <IconComp size={iconSize} weight="duotone"
-        color={disabled ? '#666' : hover ? hoverColor : baseColor}
+      <IconComp size={iconSize}
+        stroke={disabled ? '#666' : hover ? hoverColor : baseColor}
         style={{ transition: 'color 0.15s ease' }} />
     </button>
   );
@@ -160,9 +160,9 @@ export default function ToolbarIcon({
     }
   }
 
-  // Phosphor duotone
-  if (style === 'phosphor') {
-    return <PhosphorRenderer icon={action.phosphor} title={title} onClick={onClick} disabled={disabled} active={active} danger={danger} />;
+  // Lucide icon
+  if (style === 'phosphor' || style === 'lucide') {
+    return <LucideRenderer icon={action.icon} title={title} onClick={onClick} disabled={disabled} active={active} danger={danger} />;
   }
 
   // Minimal text

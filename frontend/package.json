@@ -24,7 +24,6 @@
     "@pdfme/generator": "^6.1.11",
     "@pdfme/schemas": "^6.1.11",
     "@pdfme/ui": "^6.1.11",
-    "@phosphor-icons/react": "^2.1.10",
     "@reduxjs/toolkit": "^2.6.1",
     "@uiw/react-md-editor": "^4.1.1",
     "apexcharts": "^4.1.0",

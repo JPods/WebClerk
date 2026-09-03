@@ -1,9 +1,13 @@
 # Third-Party Notices
 
+> **Mandatory:** When adding or removing any outside dependency, update this file
+> AND the corresponding dependency file (requirements.txt / package.json) in the
+> same commit. See CLAUDE.md "Dependency Discipline" rule.
+
 WebClerk is built with the following open-source libraries. We are grateful
 to their authors and communities. Each library retains its own license.
 
-Last updated: 2026-08-30
+Last updated: 2026-09-03
 
 ---
 
@@ -22,7 +26,7 @@ Last updated: 2026-08-30
 | [Redis](https://github.com/redis/redis-py) | 6.4.0 | MIT | Cache and message broker client |
 | [psycopg2-binary](https://www.psycopg.org) | 2.9.10 | LGPL (with exceptions) | PostgreSQL adapter |
 | [Pillow](https://python-pillow.org) | 12.1.0 | HPND (MIT-like) | Image processing, sanitization re-encoding |
-| [Pydantic](https://docs.pydantic.dev) | 2.9.2 | MIT | Data validation, JSON schemas |
+| [Pydantic](https://docs.pydantic.dev) | 2.13.5 | MIT | Data validation, JSON schemas |
 | [cryptography](https://cryptography.io) | 46.0.3 | Apache-2.0 / BSD-3-Clause | Encryption, Athena signing |
 | [PyJWT](https://pyjwt.readthedocs.io) | 2.9.0 | MIT | JSON Web Token handling |
 | [google-api-python-client](https://github.com/googleapis/google-api-python-client) | 2.147.0 | Apache-2.0 | Google Calendar sync |
@@ -46,6 +50,10 @@ Last updated: 2026-08-30
 | [pytest](https://pytest.org) | 8.3.2 | MIT | Testing framework |
 | [pytest-django](https://pytest-django.readthedocs.io) | 4.9.0 | BSD-3-Clause | Django test integration |
 | [factory-boy](https://factoryboy.readthedocs.io) | 3.3.3 | MIT | Test fixture generation |
+| [nameparser](https://github.com/derek73/python-nameparser) | 2.2.0 | LGPL-2.1 | Contact name parsing |
+| [django-extensions](https://github.com/django-extensions/django-extensions) | 4.1 | MIT | Management command utilities |
+| [humanize](https://github.com/jmoiron/humanize) | 4.12.3 | MIT | Human-readable formatting |
+| [pytest-cov](https://github.com/pytest-dev/pytest-cov) | 7.0.0 | MIT | Test coverage reporting |
 
 ### Optional (document sanitization pipeline)
 
@@ -70,12 +78,12 @@ Last updated: 2026-08-30
 | [pdfme](https://pdfme.com) | 6.x | MIT | PDF template design and generation |
 | [ApexCharts](https://apexcharts.com) | 4.x | MIT | Charts and dashboards |
 | [React ApexCharts](https://github.com/apexcharts/react-apexcharts) | 1.x | MIT | React chart wrapper |
-| [Phosphor Icons](https://phosphoricons.com) | 2.x | MIT | Icon library |
 | [Lucide React](https://lucide.dev) | 0.518.x | ISC | Icon library |
 | [React Icons](https://react-icons.github.io/react-icons) | 5.x | MIT | Icon library |
 | [date-fns](https://date-fns.org) | 4.x | MIT | Date utilities |
 | [Zod](https://zod.dev) | 3.x | MIT | Schema validation |
 | [React Hook Form](https://react-hook-form.com) | 7.x | MIT | Form handling |
+| [@hookform/resolvers](https://github.com/react-hook-form/resolvers) | 5.x | MIT | Form validation resolvers (Zod) |
 | [React DnD](https://react-dnd.github.io/react-dnd) | 16.x | MIT | Drag and drop (Kanban) |
 | [clsx](https://github.com/lukeed/clsx) | 2.x | MIT | Classname utility |
 | [Sass](https://sass-lang.com) | 1.x | MIT | CSS preprocessor |
@@ -113,6 +121,6 @@ Last updated: 2026-08-30
 WebClerk is released under the **Apache License, Version 2.0**
 (Copyright 2024-2026 JPods LLC). All dependencies listed above are
 compatible with Apache-2.0 distribution. LGPL libraries (psycopg2,
-num2words, pyclamd) are used as dynamically-linked dependencies, not
+num2words, nameparser, pyclamd) are used as dynamically-linked dependencies, not
 modified or statically embedded. GPL-2.0 (ClamAV) is an optional runtime
 dependency invoked via socket — not linked.

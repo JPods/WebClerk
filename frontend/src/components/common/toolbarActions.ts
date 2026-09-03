@@ -13,11 +13,11 @@
  *   5. Add the png filename mapping to TB entries if filenames differ
  */
 import {
-  FilePlus, FloppyDisk, ArrowCounterClockwise, Trash,
-  TrashSimple, Funnel, ListBullets, Prohibit,
-  SortAscending, Printer, X,
-} from '@phosphor-icons/react';
-import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
+  FilePlus, Save, RotateCcw, Trash,
+  Trash2, Filter, List, Ban,
+  ArrowUpNarrowWide, Printer, X,
+  type LucideIcon,
+} from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // Available PNG button style folders
@@ -30,8 +30,8 @@ export const AVAILABLE_PNG_STYLES = ['button_glass', 'OSX'] as const;
 export interface ToolbarAction {
   /** PNG filenames per style folder (without .png extension) */
   png: Record<string, string>;
-  /** Phosphor duotone icon component */
-  phosphor: PhosphorIcon;
+  /** Lucide icon component */
+  icon: LucideIcon;
   /** Text label for minimal style */
   minimal: string;
   /** Optional emoji for minimal style */
@@ -44,84 +44,84 @@ export interface ToolbarAction {
 export const TB: Record<string, ToolbarAction> = {
   addRecord: {
     png: { button_glass: 'AddRecord', OSX: 'NewRecord' },
-    phosphor: FilePlus,
+    icon: FilePlus,
     minimal: 'Add',
     emoji: '+',
   },
   save: {
     png: { button_glass: 'OK', OSX: 'Done' },
-    phosphor: FloppyDisk,
+    icon: Save,
     minimal: 'Save',
     emoji: '💾',
   },
   discard: {
     png: { button_glass: 'Cancel', OSX: 'Cancel' },
-    phosphor: ArrowCounterClockwise,
+    icon: RotateCcw,
     minimal: 'Discard',
     emoji: '↩',
   },
   cancel: {
     png: { button_glass: 'Cancel', OSX: 'Cancel' },
-    phosphor: X,
+    icon: X,
     minimal: 'Cancel',
     emoji: '✕',
   },
   deleteRecord: {
     png: { button_glass: 'Delete Record', OSX: 'DeleteRecord' },
-    phosphor: Trash,
+    icon: Trash,
     minimal: 'Delete',
     emoji: '🗑',
   },
   deleteSelection: {
     png: { button_glass: 'Delete Selection', OSX: 'DeleteSelection' },
-    phosphor: TrashSimple,
+    icon: Trash2,
     minimal: 'Del Sel',
     emoji: '🗑',
   },
   filter: {
     png: { button_glass: 'Query', OSX: 'Query' },
-    phosphor: Funnel,
+    icon: Filter,
     minimal: 'Filter',
     emoji: '🔍',
   },
   showAll: {
     png: { button_glass: 'ShowAll', OSX: 'ShowAll' },
-    phosphor: ListBullets,
+    icon: List,
     minimal: 'All',
     emoji: '📋',
   },
   showSubset: {
     png: { button_glass: 'ShowSubset', OSX: 'ShowSubset' },
-    phosphor: Funnel,
+    icon: Filter,
     minimal: 'Subset',
     emoji: '📎',
   },
   omit: {
     png: { button_glass: 'OmitSelection', OSX: 'DeleteSelection' },
-    phosphor: Prohibit,
+    icon: Ban,
     minimal: 'Omit',
     emoji: '🚫',
   },
   sort: {
     png: { button_glass: 'OrderBy', OSX: 'OrderBy' },
-    phosphor: SortAscending,
+    icon: ArrowUpNarrowWide,
     minimal: 'Sort',
     emoji: '↕',
   },
   print: {
     png: { button_glass: 'Report', OSX: 'Report' },
-    phosphor: Printer,
+    icon: Printer,
     minimal: 'Report',
     emoji: '🖨',
   },
   modelMenu: {
     png: { button_glass: 'Globe', OSX: 'Globe' },
-    phosphor: ListBullets,
+    icon: List,
     minimal: 'Menu',
     emoji: '☰',
   },
 };
 
 // All available style names (for the picker)
-export const BUTTON_STYLES = ['button_glass', 'OSX', 'phosphor', 'minimal'] as const;
+export const BUTTON_STYLES = ['button_glass', 'OSX', 'lucide', 'minimal'] as const;
 export type ButtonStyleName = typeof BUTTON_STYLES[number];

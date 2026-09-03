@@ -628,14 +628,15 @@ class Command(BaseCommand):
             if exists:
                 Document.objects.filter(slug=doc['slug']).update(
                     name=doc['name'], description=doc['description'], body=doc['body'],
-                    status=doc['status'], model_name=doc['model_name'],
+                    status=doc['status'], model_name=doc.get('model_name', ''),
                     dt_modified=now,
                 )
                 d_created += 1  # count as refreshed
             else:
                 Document.objects.create(
                     name=doc['name'], slug=doc['slug'], description=doc['description'],
-                    body=doc['body'], status=doc['status'], model_name=doc['model_name'],
+                    body=doc['body'], status=doc['status'],
+                    model_name=doc.get('model_name', ''),
                     confidential=doc.get('confidential', 'internal'),
                     dt_created=now, dt_modified=now,
                 )

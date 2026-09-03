@@ -1,16 +1,16 @@
 /**
- * ToolbarButton — Phosphor duotone icon button for DataBrowser toolbars.
+ * ToolbarButton — Lucide icon button for DataBrowser toolbars.
  *
- * Sized for visual weight at 44px. Duotone gives depth without glass chrome.
- * Hover lifts, active presses, disabled fades. Fun buttons make work fun.
+ * Sized for visual weight at 44px. Hover lifts, active presses, disabled fades.
+ * Fun buttons make work fun.
  *
- * MIT licensed icons — no 4D IP concerns.
+ * ISC licensed icons — no IP concerns.
  */
 import React, { useState } from 'react';
-import type { Icon } from '@phosphor-icons/react';
+import type { LucideIcon } from 'lucide-react';
 
 interface ToolbarButtonProps {
-  icon: Icon;
+  icon: LucideIcon;
   title: string;
   onClick?: (e?: React.MouseEvent) => void;
   disabled?: boolean;
@@ -67,8 +67,7 @@ export default function ToolbarButton({
     >
       <IconComponent
         size={iconSize}
-        weight="duotone"
-        color={disabled ? '#666' : hover ? hoverColor : baseColor}
+        stroke={disabled ? '#666' : hover ? hoverColor : baseColor}
         style={{ transition: 'color 0.15s ease' }}
       />
     </button>

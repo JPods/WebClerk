@@ -49,6 +49,10 @@ urlpatterns = [
         open(os.path.join(settings.BASE_DIR, 'tools', 'journal_formatter.html'), 'rb'),
         content_type='text/html',
     ), name='journal-formatter'),
+    path('tools/contact_paste.html', lambda r: FileResponse(
+        open(os.path.join(settings.BASE_DIR, 'tools', 'contact_paste.html'), 'rb'),
+        content_type='text/html',
+    ), name='contact-paste'),
 
     *([] if getattr(settings, 'READ_ONLY_MODE', False) else [path('admin/', admin.site.urls)]),
     # path('explorer/', include('explorer.urls')),  # TODO: install django-sql-explorer in lib/python3.13

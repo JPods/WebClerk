@@ -200,7 +200,7 @@ def clamav_scan(file_path: str) -> tuple[bool, list[str]]:
     """Scan file with ClamAV if available. Returns (clean, findings)."""
     try:
         import pyclamd
-        cd = pyclamd.ClamdUnixSocket()
+        cd = pyclamd.ClamdUnixSocket('/tmp/clamd.sock')
         cd.ping()
     except (ImportError, Exception):
         # ClamAV not available — not a failure, just not installed

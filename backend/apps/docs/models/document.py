@@ -31,6 +31,14 @@ class Document(BaseModel):
     - Added indexes on security_level, status, name.
     """
 
+    model_name = models.CharField(
+        max_length=255, blank=True, null=True, db_index=True,
+        help_text="Model this document is linked to (e.g. 'invoice', 'item', 'contact')",
+    )
+    record_id = models.BigIntegerField(
+        blank=True, null=True, db_index=True,
+        help_text="PK of the linked record in model_name's table",
+    )
     name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     slug = models.SlugField(max_length=255, blank=True, null=True, unique=True, help_text="Stable slug (for readmes / API consumption)")
     # status inherited from BaseModel (max_length=100)
@@ -59,6 +67,7 @@ class Document(BaseModel):
         db_table = 'documents'
         indexes = [
             GinIndex(fields=["search_vector"], name="doc_search_gin"),
+            models.Index(fields=["model_name", "record_id"], name="doc_model_record_idx"),
             models.Index(fields=["status"], name="doc_status_idx"),
             models.Index(fields=["name"], name="doc_name_idx"),
         ]

@@ -13,3 +13,4 @@ from apps.ai_assistant.models.alice import (  # noqa: F401
     AliceCoachingLog,
     AliceInsight,
 )
+from apps.ai_assistant.models.episode import Episode  # noqa: F401

@@ -1199,3 +1199,495 @@ class AliceAskClaudeUpstreamView(APIView):
             'output_tokens': response.usage.output_tokens,
         }
         return answer, usage, model
+
+
+# ── PII Parse & Correct ─────────────────────────────────────────────
+
+class PiiParseView(APIView):
+    """POST /wcapi/ai/pii/parse/ — parse text for PII candidates.
+
+    Request:  {"text": "Call Bill James at 612-555-1234"}
+    Response: {"candidates": [...], "scrubbed": "Call <name> at <phone>"}
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        text = (request.data.get('text') or '').strip()
+        if not text:
+            return api_response(error='text is required', status_code=400)
+
+        from .services.pii_scrub import parse_pii, scrub_pii
+        candidates = parse_pii(text)
+        scrubbed, count = scrub_pii(text)
+
+        return api_response(data={
+            'candidates': candidates,
+            'scrubbed': scrubbed,
+            'pii_count': count,
+            'original': text,
+        })
+
+
+class ContactParseView(APIView):
+    """POST /wcapi/ai/contact/parse/ — parse pasted text into a contact grid.
+
+    Request:  {"text": "Bill James, CEO, JPods Inc, 612-555-1234\\nJane Smith..."}
+    Response: {"columns": [...], "rows": [...]}
+    """
+    permission_classes = [AllowAny]  # Tool served from same origin; CSRF protects
+
+    def post(self, request):
+        text = (request.data.get('text') or '').strip()
+        source_label = (request.data.get('source_label') or '').strip()
+        if not text:
+            return api_response(error='text is required', status_code=400)
+
+        from .services.contact_parser import parse_contact_text, log_import_episode
+        result = parse_contact_text(text)
+
+        # Log episode for Alice's learning
+        if result.get('rows'):
+            log_import_episode(result, source_label=source_label)
+
+        return api_response(data=result)
+
+
+class ContactDetectView(APIView):
+    """POST /wcapi/ai/contact/detect/ — detect structure and propose column mapping.
+
+    Step 1 of structured import. Returns header detection + mapping proposal.
+    User confirms/adjusts, then calls /contact/parse-confirmed/.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        text = (request.data.get('text') or '').strip()
+        if not text:
+            return api_response(error='text is required', status_code=400)
+
+        from .services.contact_parser import detect_structure, recall_import_pattern
+        result = detect_structure(text)
+        if not result:
+            return api_response(data={'structured': False})
+
+        # Check if Alice recognizes this column pattern from a previous import
+        header_fp = '|'.join(c.get('header', '') for c in result.get('columns', []))
+        headers = [c.get('header', '') for c in result.get('columns', [])]
+        prior = recall_import_pattern(
+            header_fingerprint=header_fp,
+            column_headers=headers,
+        )
+        if prior:
+            result['prior_import'] = {
+                'recognized': True,
+                'source_label': prior.get('source_label', ''),
+                'total_rows_last_time': prior.get('total_rows', 0),
+                'principle': prior.get('principle', ''),
+            }
+
+        return api_response(data=result)
+
+
+class ContactParseConfirmedView(APIView):
+    """POST /wcapi/ai/contact/parse-confirmed/ — parse with user-confirmed column map.
+
+    Step 2 of structured import. Uses the confirmed mapping to build JSON rows.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        text = (request.data.get('text') or '').strip()
+        delimiter = request.data.get('delimiter', '\t')
+        column_map = request.data.get('column_map', [])
+        header_row = request.data.get('header_row', 0)
+        source_label = (request.data.get('source_label') or '').strip()
+
+        if not text or not column_map:
+            return api_response(error='text and column_map required', status_code=400)
+
+        from .services.contact_parser import parse_structured_confirmed, log_import_episode
+        result = parse_structured_confirmed(text, delimiter, column_map, header_row)
+
+        if result.get('rows'):
+            log_import_episode(result, source_label=source_label)
+
+        return api_response(data=result)
+
+
+class ContactSearchView(APIView):
+    """GET /wcapi/ai/contact/search/?q=Wyoming — load existing contacts for cleanup.
+
+    Returns same grid format as parse, plus cross-row duplicate scores.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        query = request.query_params.get('q', '').strip()
+        limit = min(int(request.query_params.get('limit', 20)), 50)
+        if not query:
+            return api_response(error='q parameter required', status_code=400)
+
+        from .services.contact_parser import load_contacts
+        result = load_contacts(query, limit=limit)
+        return api_response(data=result)
+
+
+class ContactParseCorrectView(APIView):
+    """POST /wcapi/ai/contact/correct/ — record a chip drag (Small-Sting).
+
+    Request: {"text": "CEO", "original_field": "unassigned", "corrected_field": "title"}
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        text = request.data.get('text', '')
+        original = request.data.get('original_field', '')
+        corrected = request.data.get('corrected_field', '')
+
+        if not text or not corrected:
+            return api_response(error='text and corrected_field required', status_code=400)
+
+        from .services.contact_parser import record_field_correction
+        user_id = getattr(request.user, 'id', None)
+        record_field_correction(text, original, corrected, user_id)
+
+        return api_response(data={'recorded': True, 'text': text, 'field': corrected})
+
+
+class PiiCorrectView(APIView):
+    """POST /wcapi/ai/pii/correct/ — record a user correction on a PII candidate.
+
+    Request:
+        {
+            "original_text": "the full text that was parsed",
+            "candidate": {<candidate dict from parse>},
+            "action": "confirmed" | "rejected" | "corrected",
+            "corrected_type": "company"  // only if action=corrected
+        }
+
+    Each correction is a Small-Sting — Alice learns from it.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        original_text = request.data.get('original_text', '')
+        candidate = request.data.get('candidate')
+        action = request.data.get('action', '')
+        corrected_type = request.data.get('corrected_type')
+
+        if not candidate or action not in ('confirmed', 'rejected', 'corrected'):
+            return api_response(
+                error='candidate and action (confirmed/rejected/corrected) required',
+                status_code=400,
+            )
+
+        from .services.pii_scrub import record_pii_correction
+        user_id = getattr(request.user, 'id', None)
+        record_pii_correction(
+            original_text=original_text,
+            candidate=candidate,
+            action=action,
+            corrected_type=corrected_type,
+            user_id=user_id,
+        )
+
+        return api_response(data={
+            'recorded': True,
+            'action': action,
+            'text': candidate.get('text', ''),
+        })
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# Episode Feed & Review — telemetry-style episode exchange
+# ═════════════════════════════════════════════════════════════════════════
+
+class EpisodeFeedView(APIView):
+    """
+    GET /wcapi/episodes/feed/
+
+    Serve this instance's episodes. Like telemetry pings — published
+    and generally available to any authenticated connection.
+
+    WCHQ serves only approved episodes (reviewed by Athena + Allie).
+    Other instances serve all their local episodes for WCHQ to harvest.
+
+    Auth: Authorization: Athena <token>
+    Params:
+        since_ms: Only episodes after this timestamp (default: 0 = all)
+        approved_only: If "true", only serve reviewed+approved (default: false)
+        limit: Max episodes (default: 200)
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        connection, error_resp = _validate_athena_token(request)
+        if error_resp:
+            return error_resp
+
+        from apps.sync.services.episode_bundle import build_episode_feed
+
+        since_ms = int(request.query_params.get('since_ms', 0))
+        approved_only = request.query_params.get('approved_only', '').lower() == 'true'
+        limit = min(int(request.query_params.get('limit', 200)), 1000)
+
+        feed = build_episode_feed(
+            since_ms=since_ms,
+            only_approved=approved_only,
+            limit=limit,
+        )
+
+        return Response(feed)
+
+
+class EpisodeReviewView(APIView):
+    """
+    POST /wcapi/episodes/review/
+
+    Review an episode — approve, reject, or archive. Used by Athena
+    and Allie after WCHQ harvests episodes from connected instances.
+
+    Auth: Staff or superuser (admin review).
+    Body: {
+        "episode_id": "EP-xxxx",
+        "review_status": "approved" | "rejected" | "archived",
+        "reviewed_by": "athena" | "allie" | "admin_username",
+        "quality_score": 0.8,   (optional, -1.0 to 1.0)
+        "review_note": "..."    (optional)
+    }
+    """
+    permission_classes = [IsAdminUser]
+
+    VALID_STATUSES = {'approved', 'rejected', 'archived', 'pending'}
+
+    def post(self, request):
+        from .models import Episode
+
+        episode_id = request.data.get('episode_id', '').strip()
+        new_status = request.data.get('review_status', '').strip()
+        reviewed_by = request.data.get('reviewed_by', '').strip()
+
+        if not episode_id or not new_status:
+            return api_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="episode_id and review_status required",
+                error_code="missing_fields",
+            )
+
+        if new_status not in self.VALID_STATUSES:
+            return api_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message=f"Invalid review_status. Valid: {', '.join(self.VALID_STATUSES)}",
+                error_code="invalid_status",
+            )
+
+        ep = Episode.objects.filter(episode_id=episode_id).first()
+        if not ep:
+            return api_response(
+                status_code=status.HTTP_404_NOT_FOUND,
+                message=f"Episode {episode_id} not found",
+                error_code="not_found",
+            )
+
+        import time
+        ep.review_status = new_status
+        ep.reviewed_by = reviewed_by or str(request.user)
+        ep.dt_reviewed = int(time.time() * 1000)
+        ep.review_note = request.data.get('review_note', '')
+
+        quality = request.data.get('quality_score')
+        if quality is not None:
+            ep.quality_score = max(-1.0, min(1.0, float(quality)))
+
+        ep.save()
+
+        return api_response(data={
+            'episode_id': episode_id,
+            'review_status': new_status,
+            'reviewed_by': ep.reviewed_by,
+        })
+
+
+class EpisodeBulkReviewView(APIView):
+    """
+    POST /wcapi/episodes/review/bulk/
+
+    Bulk review episodes — Athena/Allie batch processing.
+
+    Auth: Staff or superuser.
+    Body: {
+        "reviews": [
+            {"episode_id": "EP-xxxx", "review_status": "approved", "quality_score": 0.8},
+            {"episode_id": "EP-yyyy", "review_status": "rejected", "review_note": "..."},
+        ],
+        "reviewed_by": "athena"
+    }
+    """
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        from .models import Episode
+
+        reviews = request.data.get('reviews', [])
+        reviewed_by = request.data.get('reviewed_by', str(request.user))
+
+        if not reviews:
+            return api_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="reviews list required",
+                error_code="missing_reviews",
+            )
+
+        import time
+        now_ms = int(time.time() * 1000)
+        results = {'approved': 0, 'rejected': 0, 'archived': 0, 'not_found': 0}
+
+        for review in reviews:
+            episode_id = review.get('episode_id', '')
+            new_status = review.get('review_status', '')
+            if not episode_id or new_status not in ('approved', 'rejected', 'archived', 'pending'):
+                continue
+
+            ep = Episode.objects.filter(episode_id=episode_id).first()
+            if not ep:
+                results['not_found'] += 1
+                continue
+
+            ep.review_status = new_status
+            ep.reviewed_by = reviewed_by
+            ep.dt_reviewed = now_ms
+            ep.review_note = review.get('review_note', '')
+
+            quality = review.get('quality_score')
+            if quality is not None:
+                ep.quality_score = max(-1.0, min(1.0, float(quality)))
+
+            ep.save()
+            results[new_status] = results.get(new_status, 0) + 1
+
+        return api_response(data=results)
+
+
+class EpisodeSummaryView(APIView):
+    """
+    GET /wcapi/episodes/summary/
+
+    Episode dashboard for administrators. Answers:
+      1. What do we have? — counts by type, review status, severity
+      2. What's new? — this period, local vs harvested
+      3. What's recurring? — pattern clusters, most recalled
+
+    Auth: Staff or superuser.
+    Params:
+        period: Days to look back for "new" (default: 7)
+    """
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        from .services.episode_patterns import get_episode_summary
+
+        period = int(request.query_params.get('period', 7))
+        summary = get_episode_summary(period_days=period)
+
+        return api_response(data=summary)
+
+
+class EpisodeDetectPatternsView(APIView):
+    """
+    POST /wcapi/episodes/detect-patterns/
+
+    Trigger pattern detection on rejected episodes. Alice scans for
+    recurring clusters and creates pattern episodes + admin notifications.
+
+    Auth: Staff or superuser.
+    Body: {
+        "since_days": 30  (optional, default 30)
+    }
+    """
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        from .services.episode_patterns import detect_rejected_patterns
+
+        since_days = int(request.data.get('since_days', 30))
+        result = detect_rejected_patterns(since_days=since_days)
+
+        return api_response(data=result)
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# Support Feed — coaching distribution, help patterns, support summary
+# ═════════════════════════════════════════════════════════════════════════
+
+class CoachingFeedView(APIView):
+    """
+    GET /wcapi/coaching/
+
+    Serve coaching content to connected instances. Instances poll this
+    endpoint to pick up new coaching tips, field help, and guides.
+
+    Auth: Authorization: Athena <token>
+    Params:
+        since_ms: Only content modified after this timestamp (default: 0)
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        connection, error_resp = _validate_athena_token(request)
+        if error_resp:
+            return error_resp
+
+        from .services.support_feed import build_coaching_feed
+
+        since_ms = int(request.query_params.get('since_ms', 0))
+        feed = build_coaching_feed(since_ms=since_ms)
+
+        return Response(feed)
+
+
+class SupportSummaryView(APIView):
+    """
+    GET /wcapi/support/summary/
+
+    Support dashboard for administrators. Shows:
+      - Q&A health (answered, unanswered, low-scored, escalated)
+      - Coaching coverage (models with help content, drill completion)
+      - Escalation volume
+      - Active help patterns needing attention
+
+    Auth: Staff or superuser.
+    Params:
+        period: Days to look back for "recent" (default: 7)
+    """
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        from .services.support_feed import get_support_summary
+
+        period = int(request.query_params.get('period', 7))
+        summary = get_support_summary(period_days=period)
+
+        return api_response(data=summary)
+
+
+class SupportDetectPatternsView(APIView):
+    """
+    POST /wcapi/support/detect-patterns/
+
+    Trigger help pattern detection on escalated Q&A. Scans for
+    recurring questions across instances, creates coaching candidates.
+
+    Auth: Staff or superuser.
+    Body: {
+        "since_days": 30  (optional, default 30)
+    }
+    """
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        from .services.support_feed import detect_help_patterns
+
+        since_days = int(request.data.get('since_days', 30))
+        result = detect_help_patterns(since_days=since_days)
+
+        return api_response(data=result)

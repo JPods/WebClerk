@@ -59,8 +59,8 @@ psycopg2-binary==2.9.10
 pyasn1==0.6.1
 pyasn1_modules==0.4.2
 pycparser==2.23
-pydantic==2.9.2
-pydantic_core==2.23.4
+pydantic==2.13.5
+pydantic_core==2.46.5
 pydot==4.0.1
 PyJWT==2.9.0
 pyOpenSSL==25.3.0
@@ -94,6 +94,8 @@ wcwidth==0.2.13
 pytest-cov==7.0.0
 factory-boy==3.3.3
 
+nameparser==2.2.0
+
 # AI Assistant
 chromadb==1.5.1
 sentence-transformers==5.2.3
@@ -104,3 +106,4 @@ python-barcode>=0.16.1
 qrcode>=8.2
 num2words>=0.5.14
 python-docx>=1.2.0
+pyclamd>=0.4.0

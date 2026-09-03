@@ -16,7 +16,7 @@ import ToolbarIcon from './ToolbarIcon';
 import { TB } from './toolbarActions';
 import { WorkflowSelect } from './WorkflowSelect';
 import { manageAction } from '@/api/wcapi';
-import { CurrencyDollar } from '@phosphor-icons/react';
+import { DollarSign } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -172,7 +172,7 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
           className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 transition-colors"
           title="Enter a single payment"
         >
-          <CurrencyDollar size={16} weight="bold" />
+          <DollarSign size={16} strokeWidth={2.5} />
           Enter Payment
         </button>
       )}
@@ -182,7 +182,7 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
           className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 transition-colors"
           title="Apply payments to invoices"
         >
-          <CurrencyDollar size={16} weight="bold" />
+          <DollarSign size={16} strokeWidth={2.5} />
           Apply Payments
         </button>
       )}

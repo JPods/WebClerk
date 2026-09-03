@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact Paste — WebClerk</title>
+<style>
+:root {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --surface2: #0f3460;
+  --accent: #e94560;
+  --text: #eee;
+  --text-dim: #999;
+  --border: #333;
+  --chip-high: #1a6b3c;
+  --chip-med: #5a5a1a;
+  --chip-low: #5a2a1a;
+  --drop-target: rgba(233, 69, 96, 0.15);
+  --incoming-bg: #0d1b2a;
+  --scratch-bg: #1a1a1a;
+  --match-bg: #2a1f0e;
+  --match-border: #5a4a2a;
+  --action-bg: #111118;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+h1 { font-size: 1.1rem; font-weight: 600; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+h1 span { color: var(--text-dim); font-weight: 400; font-size: 0.85rem; margin-left: 8px; }
+
+.paste-section { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.paste-section textarea {
+  width: 100%; height: 100px; background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: 4px; padding: 8px;
+  font-family: var(--mono); font-size: 0.85rem; resize: vertical;
+}
+.paste-section textarea:focus { outline: 1px solid var(--accent); }
+.paste-section .actions { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+.paste-section .status { color: var(--text-dim); font-size: 0.8rem; flex: 1; }
+button {
+  background: var(--accent); color: #fff; border: none; padding: 6px 16px;
+  border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: 500;
+}
+button:hover { opacity: 0.9; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+button.secondary { background: var(--surface2); }
+
+.grid-wrapper { overflow-x: auto; }
+table.grid { border-collapse: collapse; width: 100%; font-size: 0.8rem; }
+table.grid th {
+  padding: 6px 8px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--text-dim); background: var(--surface);
+  border: 1px solid var(--border); position: sticky; top: 0; z-index: 2;
+  text-align: center; white-space: nowrap;
+}
+table.grid td {
+  padding: 2px 4px; border: 1px solid var(--border);
+  text-align: center; vertical-align: middle; height: 32px;
+}
+table.grid td.drop-target { background: var(--drop-target); }
+
+/* Row types */
+tr.incoming td { background: var(--incoming-bg); }
+tr.incoming td.row-label {
+  font-size: 0.65rem; font-weight: 700; color: #4a9eff; text-transform: uppercase;
+  letter-spacing: 0.5px; width: 110px; min-width: 110px; text-align: center; padding: 2px 4px;
+}
+.row-buttons { display: flex; gap: 3px; align-items: center; margin-top: 2px; }
+.row-buttons button { padding: 2px 6px; font-size: 0.65rem; border-radius: 3px; white-space: nowrap; }
+.btn-delete { background: #8b0000; }
+.btn-save { background: var(--chip-high); }
+.btn-merge-target {
+  background: #2a1f0e; border: 1px dashed #5a4a2a; color: #f0ad4e;
+  padding: 2px 6px; font-size: 0.65rem; font-weight: 600; border-radius: 3px;
+  cursor: pointer; user-select: none; transition: all 0.15s; white-space: nowrap;
+}
+.btn-merge-target:hover { background: #3a2a1a; border-color: #f0ad4e; }
+.btn-merge-target.drop-target { background: #5a4a2a; border-color: #ffcc00; box-shadow: 0 0 8px rgba(255,204,0,0.3); }
+
+/* Confirm dialog */
+.confirm-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7); z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+}
+.confirm-box {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 20px 24px; max-width: 400px; text-align: center;
+}
+.confirm-box p { margin-bottom: 16px; font-size: 0.9rem; }
+.confirm-box .actions { display: flex; gap: 10px; justify-content: center; }
+.confirm-box .btn-cancel { background: var(--surface2); }
+tr.scratch td { background: var(--scratch-bg); height: 28px; }
+tr.scratch td.row-label {
+  font-size: 0.65rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: 0.5px; text-align: right; padding-right: 8px;
+}
+tr.match td { background: var(--match-bg); }
+tr.match td.row-label { text-align: center; padding: 4px; }
+
+/* Merge badge — droppable target on match row label */
+.merge-badge {
+  display: inline-block; padding: 4px 10px; border-radius: 4px;
+  background: #3a2a0a; border: 2px dashed #7a6a3a; color: #f0ad4e;
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+  cursor: pointer; user-select: none; transition: all 0.15s;
+}
+.merge-badge:hover { background: #4a3a1a; border-color: #f0ad4e; }
+.merge-badge.drop-target { background: #5a4a2a; border-color: #ffcc00; box-shadow: 0 0 8px rgba(255,204,0,0.3); }
+.merge-badge .conf {
+  display: block; font-size: 0.6rem; margin-top: 2px;
+}
+.merge-badge .conf.high { color: #4caf50; }
+.merge-badge .conf.med { color: #cddc39; }
+.merge-badge .conf.low { color: #ff9800; }
+.merge-badge.saved { background: var(--chip-high); border-style: solid; border-color: var(--chip-high); color: #fff; cursor: default; }
+
+tr.match td .existing-val {
+  font-family: var(--mono); font-size: 0.75rem; color: #d4a854; padding: 2px 6px;
+  display: inline-block;
+}
+tr.match td .existing-val.differs { color: #ff8c42; font-weight: 600; }
+tr.match td .existing-val.empty { color: #555; font-style: italic; }
+
+/* Action row — only for Add New */
+tr.action-row td {
+  background: var(--action-bg); padding: 6px 12px;
+  border-bottom: 3px solid var(--border); text-align: left;
+}
+
+/* Chips */
+.chip {
+  display: inline-block; padding: 2px 8px; border-radius: 3px;
+  font-size: 0.8rem; font-family: var(--mono); cursor: grab;
+  white-space: nowrap; max-width: 100%; overflow: hidden;
+  text-overflow: ellipsis; user-select: none;
+}
+.chip:active { cursor: grabbing; }
+.chip.conf-high { background: var(--chip-high); }
+.chip.conf-med { background: var(--chip-med); }
+.chip.conf-low { background: var(--chip-low); }
+.chip.dragging { opacity: 0.4; }
+.chip[contenteditable] { outline: 1px solid var(--accent); cursor: text; white-space: pre; }
+
+/* Toast notification */
+.toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--chip-high); color: #fff; padding: 12px 32px;
+  border-radius: 6px; font-size: 1rem; font-weight: 600;
+  z-index: 200; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  animation: toast-in 0.3s ease-out;
+}
+.toast.error { background: #8b0000; }
+@keyframes toast-in { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+/* Save All bar */
+.save-all-bar {
+  display: none; padding: 8px 16px; border-bottom: 1px solid var(--border);
+  align-items: center; gap: 12px;
+}
+.save-all-bar.visible { display: flex; }
+
+/* Merge countdown */
+.merge-pending td { background: #1a2a1a !important; }
+.countdown-bar {
+  display: flex; align-items: center; gap: 10px; padding: 6px 12px;
+}
+.countdown-bar .timer {
+  font-family: var(--mono); font-size: 1rem; font-weight: 700; color: #f0ad4e;
+  min-width: 30px;
+}
+.countdown-bar .preview-text { font-size: 0.8rem; color: var(--text-dim); }
+.btn-undo { background: #8b0000; }
+.btn-commit { background: var(--chip-high); }
+
+/* Duplicate score bar between rows */
+tr.dup-score td {
+  background: #1a0a2a; padding: 4px 12px; border-bottom: none;
+  text-align: left; height: 24px;
+}
+.dup-bar {
+  display: flex; align-items: center; gap: 10px; font-size: 0.75rem;
+}
+.dup-bar .score-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 3px;
+  font-weight: 700; font-size: 0.7rem;
+}
+.dup-bar .score-badge.high { background: var(--accent); }
+.dup-bar .score-badge.med { background: var(--chip-med); }
+.dup-bar .score-badge.low { background: #333; }
+.dup-bar .reasons { color: var(--text-dim); }
+.dup-bar button { padding: 2px 10px; font-size: 0.7rem; }
+
+/* Existing contact row label */
+tr.incoming td.row-label .contact-id { font-size: 0.6rem; color: var(--text-dim); display: block; }
+</style>
+</head>
+<body>
+
+<h1>Contact Paste <span>paste, review, drag to correct, save</span></h1>
+
+<div class="paste-section">
+  <div style="display:flex;gap:12px;margin-bottom:8px;align-items:center">
+    <span style="color:var(--text-dim);font-size:0.8rem;font-weight:600">SEARCH EXISTING</span>
+    <input type="text" id="searchInput" placeholder="Search contacts by name, company, email..."
+      style="flex:1;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-size:0.85rem;font-family:var(--mono)"
+      onkeydown="if(event.key==='Enter')doSearch()">
+    <button class="secondary" onclick="doSearch()">Search</button>
+  </div>
+  <div style="display:flex;gap:12px;margin-bottom:4px;align-items:center">
+    <span style="color:var(--text-dim);font-size:0.8rem;font-weight:600">PASTE NEW</span>
+  </div>
+  <textarea id="pasteArea" placeholder="Paste contact data here...&#10;One contact per line, or separated by blank lines."></textarea>
+  <div class="actions">
+    <button id="parseBtn" onclick="doParse()">Parse</button>
+    <button class="secondary" onclick="clearAll()">Clear</button>
+    <span class="status" id="statusMsg"></span>
+    <span style="margin-left:auto;display:flex;align-items:center;gap:6px">
+      <label style="font-size:0.75rem;color:var(--text-dim)">merge delay</label>
+      <select id="mergeDelay" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:2px 6px;font-size:0.75rem"
+        onchange="localStorage.setItem('wc3_merge_delay',this.value)">
+        <option value="0">off</option>
+        <option value="5">5s</option>
+        <option value="10" selected>10s</option>
+        <option value="15">15s</option>
+      </select>
+    </span>
+  </div>
+</div>
+
+<div id="saveAllBar" class="save-all-bar">
+  <span id="saveAllCount" style="color:var(--text-dim);font-size:0.8rem;flex:1"></span>
+  <button onclick="saveAll()" style="background:var(--chip-high);padding:8px 24px;font-size:0.9rem">Save All</button>
+</div>
+
+<div class="grid-wrapper" id="gridWrapper"></div>
+
+<script>
+const API_BASE = '/wcapi/ai';
+let gridData = null;
+
+function getCookie(name) {
+  const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return v ? v.pop() : '';
+}
+function apiFetch(url, body) {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    credentials: 'same-origin',
+    body: JSON.stringify(body),
+  }).then(r => r.json());
+}
+function wcSave(payload) {
+  return fetch('/wcapi/save/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    credentials: 'same-origin',
+    body: JSON.stringify(payload),
+  }).then(r => r.json());
+}
+
+async function doSearch() {
+  const query = document.getElementById('searchInput').value.trim();
+  if (!query) return;
+  document.getElementById('statusMsg').textContent = 'Searching...';
+  try {
+    const res = await fetch(`${API_BASE}/contact/search/?q=${encodeURIComponent(query)}`, {
+      credentials: 'same-origin',
+    }).then(r => r.json());
+    if (res.error) { document.getElementById('statusMsg').textContent = `Error: ${res.error}`; return; }
+    gridData = res.data || res;
+    gridData._mode = 'search';
+    renderGrid();
+    showSaveAllBar();
+    document.getElementById('statusMsg').textContent =
+      `${gridData.rows.length} contact(s), ${(gridData.duplicate_scores || []).length} possible duplicate(s)`;
+  } catch (e) {
+    document.getElementById('statusMsg').textContent = `Error: ${e.message}`;
+  }
+}
+
+async function doParse() {
+  const text = document.getElementById('pasteArea').value.trim();
+  if (!text) return;
+  document.getElementById('statusMsg').textContent = 'Parsing...';
+  document.getElementById('parseBtn').disabled = true;
+  try {
+    const res = await apiFetch(`${API_BASE}/contact/parse/`, { text });
+    if (res.error) { document.getElementById('statusMsg').textContent = `Error: ${res.error}`; return; }
+    gridData = res.data || res;
+    renderGrid();
+    showSaveAllBar();
+    document.getElementById('statusMsg').textContent = `${gridData.rows.length} contact(s) parsed`;
+  } catch (e) {
+    document.getElementById('statusMsg').textContent = `Error: ${e.message}`;
+  } finally {
+    document.getElementById('parseBtn').disabled = false;
+  }
+}
+
+function renderGrid() {
+  const wrapper = document.getElementById('gridWrapper');
+  wrapper.innerHTML = '';
+  if (!gridData || !gridData.rows.length) return;
+
+  const columns = gridData.columns;
+  const totalCols = columns.length + 1;
+
+  const table = document.createElement('table');
+  table.className = 'grid';
+
+  // Header
+  const thead = document.createElement('thead');
+  const hdr = document.createElement('tr');
+  hdr.innerHTML = '<th></th>';
+  columns.forEach(col => {
+    const th = document.createElement('th');
+    th.textContent = col.label;
+    th.style.minWidth = col.width + 'px';
+    hdr.appendChild(th);
+  });
+  thead.appendChild(hdr);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+
+  gridData.rows.forEach((row, rowIdx) => {
+
+    // ── INCOMING ROW (blue) ──
+    const inTr = document.createElement('tr');
+    inTr.className = 'incoming';
+    const inLabel = document.createElement('td');
+    inLabel.className = 'row-label';
+    inLabel.id = `label-${rowIdx}`;
+    if (row.contact_id) {
+      // Row number + ID — draggable for whole-row merge
+      const idLine = document.createElement('div');
+      idLine.innerHTML = `#${rowIdx + 1}<span class="contact-id">id: ${row.contact_id}</span>`;
+      idLine.draggable = true;
+      idLine.style.cursor = 'grab';
+      idLine.addEventListener('dragstart', (e) => {
+        dragRowState = { rowIdx, contactId: row.contact_id };
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', `row-${rowIdx}`);
+        inTr.style.opacity = '0.5';
+      });
+      idLine.addEventListener('dragend', () => {
+        dragRowState = null;
+        inTr.style.opacity = '1';
+      });
+      inLabel.appendChild(idLine);
+
+      // Buttons — all horizontal: Del, Save, Merge
+      const btns = document.createElement('div');
+      btns.className = 'row-buttons';
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn-delete';
+      delBtn.textContent = 'Del';
+      delBtn.title = 'Delete this contact';
+      delBtn.onclick = () => confirmDelete(rowIdx, row.contact_id);
+      btns.appendChild(delBtn);
+
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'btn-save';
+      saveBtn.textContent = 'Save';
+      saveBtn.title = 'Save changes';
+      saveBtn.onclick = () => saveRow(rowIdx, 'merge', row.contact_id);
+      btns.appendChild(saveBtn);
+
+      // Merge — draggable AND droppable for whole-row merge
+      const mergeBtn = document.createElement('button');
+      mergeBtn.className = 'btn-merge-target';
+      mergeBtn.textContent = 'Merge';
+      mergeBtn.title = 'Drag this onto another row\'s Merge to absorb that row';
+      mergeBtn.draggable = true;
+
+      // Draggable — pick up this row for merging
+      mergeBtn.addEventListener('dragstart', (e) => {
+        e.stopPropagation(); // don't trigger parent drag
+        dragRowState = { rowIdx, contactId: row.contact_id };
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', `merge-${rowIdx}`);
+        inTr.style.opacity = '0.5';
+      });
+      mergeBtn.addEventListener('dragend', () => {
+        dragRowState = null;
+        inTr.style.opacity = '1';
+      });
+
+      // Droppable — accept another row dropped here (this row gets absorbed)
+      mergeBtn.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        mergeBtn.classList.add('drop-target');
+      });
+      mergeBtn.addEventListener('dragleave', () => mergeBtn.classList.remove('drop-target'));
+      mergeBtn.addEventListener('drop', (e) => {
+        e.preventDefault();
+        mergeBtn.classList.remove('drop-target');
+        if (dragRowState) {
+          const keeperIdx = dragRowState.rowIdx;
+          const keeperId = dragRowState.contactId;
+          const absorbIdx = rowIdx;
+          const absorbId = row.contact_id;
+          if (keeperIdx !== absorbIdx) {
+            confirmMergeRows(keeperIdx, absorbIdx, keeperId, absorbId);
+          }
+        }
+      });
+      btns.appendChild(mergeBtn);
+
+      inLabel.appendChild(btns);
+    } else {
+      inLabel.textContent = `#${rowIdx + 1} new`;
+    }
+    inTr.appendChild(inLabel);
+
+    columns.forEach(col => {
+      const td = document.createElement('td');
+      td.dataset.field = col.field;
+      td.dataset.row = rowIdx;
+      td.addEventListener('dragover', onDragOver);
+      td.addEventListener('dragleave', onDragLeave);
+      td.addEventListener('drop', onDrop);
+      const chipData = row.chips[col.field];
+      if (chipData) td.appendChild(makeChip(chipData, col.field, rowIdx));
+      inTr.appendChild(td);
+    });
+    tbody.appendChild(inTr);
+
+    // ── SCRATCH PAD ROW (dark) ──
+    const scrTr = document.createElement('tr');
+    scrTr.className = 'scratch';
+    const scrLabel = document.createElement('td');
+    scrLabel.className = 'row-label';
+    scrLabel.textContent = 'scratch';
+    scrTr.appendChild(scrLabel);
+    const scrTd = document.createElement('td');
+    scrTd.colSpan = columns.length;
+    scrTd.dataset.field = 'scratch';
+    scrTd.dataset.row = rowIdx;
+    scrTd.style.textAlign = 'left';
+    scrTd.style.padding = '4px 8px';
+    scrTd.addEventListener('dragover', onDragOver);
+    scrTd.addEventListener('dragleave', onDragLeave);
+    scrTd.addEventListener('drop', onDrop);
+    (row.unassigned || []).forEach(chipData => {
+      scrTd.appendChild(makeChip(chipData, 'scratch', rowIdx));
+      scrTd.appendChild(document.createTextNode(' '));
+    });
+    scrTr.appendChild(scrTd);
+    tbody.appendChild(scrTr);
+
+    // ── MATCH ROWS (amber — one per match, each with merge badge) ──
+    const matches = row.matches || [];
+    matches.forEach((m, mIdx) => {
+      const mTr = document.createElement('tr');
+      mTr.className = 'match';
+      mTr.id = `match-${rowIdx}-${mIdx}`;
+
+      // Merge badge as label — clickable and droppable
+      const mLabel = document.createElement('td');
+      mLabel.className = 'row-label';
+      const badge = document.createElement('div');
+      badge.className = 'merge-badge';
+      badge.id = `badge-${rowIdx}-${mIdx}`;
+      badge.innerHTML = `merge<br>#${m.id}`;
+      const confSpan = document.createElement('span');
+      confSpan.className = 'conf ' + (m.confidence >= 0.85 ? 'high' : m.confidence >= 0.6 ? 'med' : 'low');
+      confSpan.textContent = Math.round(m.confidence * 100) + '%';
+      badge.appendChild(confSpan);
+
+      // Click to merge
+      badge.onclick = () => saveRow(rowIdx, 'merge', m.id, mIdx);
+
+      // Droppable — drag any chip onto it to merge all
+      badge.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        badge.classList.add('drop-target');
+      });
+      badge.addEventListener('dragleave', () => badge.classList.remove('drop-target'));
+      badge.addEventListener('drop', (e) => {
+        e.preventDefault();
+        badge.classList.remove('drop-target');
+        saveRow(rowIdx, 'merge', m.id, mIdx);
+      });
+
+      mLabel.appendChild(badge);
+      mTr.appendChild(mLabel);
+
+      // Field cells — show existing data
+      const mFields = m.fields || {};
+      columns.forEach(col => {
+        const td = document.createElement('td');
+        const existVal = mFields[col.field] || '';
+        const incomingVal = (row.chips[col.field] || {}).text || '';
+        const span = document.createElement('span');
+        span.className = 'existing-val';
+        if (!existVal) {
+          span.className = 'existing-val empty';
+          span.textContent = incomingVal ? '—' : '';
+        } else {
+          span.textContent = existVal;
+          if (incomingVal && existVal.toLowerCase() !== incomingVal.toLowerCase()) {
+            span.className = 'existing-val differs';
+            span.title = `Incoming: ${incomingVal}`;
+          }
+        }
+        td.appendChild(span);
+        mTr.appendChild(td);
+      });
+      tbody.appendChild(mTr);
+    });
+
+    // ── ACTION ROW ──
+    const isSearch = gridData._mode === 'search';
+    if (!isSearch) {
+      // Paste mode: show Add New button
+      const actTr = document.createElement('tr');
+      actTr.className = 'action-row';
+      actTr.id = `action-row-${rowIdx}`;
+      const actTd = document.createElement('td');
+      actTd.colSpan = totalCols;
+      const noMatchText = matches.length === 0
+        ? '<span style="color:var(--text-dim);font-size:0.8rem;margin-right:10px">No existing match</span>'
+        : '';
+      actTd.innerHTML = `<div style="display:flex;align-items:center;gap:10px">
+        ${noMatchText}
+        <button class="btn-new secondary" onclick="saveRow(${rowIdx},'new')">Add as New Contact</button>
+      </div>`;
+      actTr.appendChild(actTd);
+      tbody.appendChild(actTr);
+    } else {
+      // Search mode: no action row — buttons are on the row label
+    }
+
+    // ── DUPLICATE SCORE BARS (search mode — show between this row and next) ──
+    if (isSearch && gridData.duplicate_scores) {
+      const dupScores = gridData.duplicate_scores.filter(
+        d => d.row_a === rowIdx || d.row_b === rowIdx
+      );
+      dupScores.forEach(d => {
+        // Only show between row_a and row_b, placed after the lower-numbered row
+        if (d.row_a !== rowIdx) return;
+        const otherIdx = d.row_b;
+        const dupTr = document.createElement('tr');
+        dupTr.className = 'dup-score';
+        const dupTd = document.createElement('td');
+        dupTd.colSpan = totalCols;
+        const level = d.score >= 0.7 ? 'high' : d.score >= 0.4 ? 'med' : 'low';
+        dupTd.innerHTML = `<div class="dup-bar">
+          <span class="score-badge ${level}">${Math.round(d.score * 100)}% duplicate</span>
+          <span>Row ${d.row_a + 1} ↔ Row ${d.row_b + 1}</span>
+          <span class="reasons">${d.reasons.join(', ')}</span>
+          <button class="btn-merge" onclick="confirmMergeRows(${d.row_a},${d.row_b},${d.contact_a},${d.contact_b})">Keep #${d.contact_a}, absorb #${d.contact_b}</button>
+        </div>`;
+        dupTr.appendChild(dupTd);
+        tbody.appendChild(dupTr);
+      });
+    }
+  });
+
+  table.appendChild(tbody);
+  wrapper.appendChild(table);
+}
+
+function makeChip(chipData, field, rowIdx) {
+  const chip = document.createElement('span');
+  chip.className = 'chip';
+  chip.textContent = chipData.text;
+  chip.draggable = true;
+  chip.dataset.chipId = chipData.id;
+  chip.dataset.field = field;
+  chip.dataset.row = rowIdx;
+  chip.dataset.text = chipData.text;
+  chip.title = `${Math.round(chipData.confidence * 100)}% (${chipData.source})`;
+  if (chipData.confidence >= 0.75) chip.classList.add('conf-high');
+  else if (chipData.confidence >= 0.50) chip.classList.add('conf-med');
+  else chip.classList.add('conf-low');
+
+  chip.addEventListener('dblclick', () => {
+    chip.contentEditable = true; chip.focus();
+    const range = document.createRange();
+    range.selectNodeContents(chip);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+  });
+  chip.addEventListener('blur', () => { chip.contentEditable = false; chip.dataset.text = chip.textContent.trim(); });
+  chip.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); chip.blur(); }
+    if (e.key === 'Escape') { chip.textContent = chip.dataset.text; chip.blur(); }
+  });
+  chip.addEventListener('dragstart', onDragStart);
+  chip.addEventListener('dragend', onDragEnd);
+  return chip;
+}
+
+// ── Row dragging (whole-row merge) ──
+let dragRowState = null;
+
+// ── Chip dragging ──
+let dragState = null;
+
+function onDragStart(e) {
+  dragState = {
+    chipId: e.target.dataset.chipId,
+    fromField: e.target.dataset.field,
+    fromRow: e.target.dataset.row,
+    text: e.target.dataset.text,
+  };
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', e.target.dataset.text);
+}
+function onDragEnd(e) {
+  e.target.classList.remove('dragging'); dragState = null;
+  document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+}
+function onDragOver(e) {
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drop-target');
+}
+function onDragLeave(e) { e.currentTarget.classList.remove('drop-target'); }
+
+function onDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drop-target');
+  if (!dragState) return;
+
+  const toField = e.currentTarget.dataset.field;
+  const toRow = parseInt(e.currentTarget.dataset.row);
+  const fromField = dragState.fromField;
+  const fromRow = parseInt(dragState.fromRow);
+  const text = dragState.text;
+
+  if (fromField === toField && fromRow === toRow) return;
+
+  const row = gridData.rows[fromRow];
+  let chipData = null;
+  if (fromField === 'scratch') {
+    const idx = row.unassigned.findIndex(c => c.text === text);
+    if (idx >= 0) chipData = row.unassigned.splice(idx, 1)[0];
+  } else {
+    chipData = row.chips[fromField];
+    delete row.chips[fromField];
+  }
+  if (!chipData) return;
+
+  const dstRow = gridData.rows[toRow];
+  if (toField === 'scratch') {
+    dstRow.unassigned.push(chipData);
+  } else {
+    if (dstRow.chips[toField]) dstRow.unassigned.push(dstRow.chips[toField]);
+    dstRow.chips[toField] = chipData;
+  }
+
+  if (fromField !== toField) recordCorrection(text, fromField, toField);
+  renderGrid();
+}
+
+async function recordCorrection(text, fromField, toField) {
+  try {
+    await apiFetch(`${API_BASE}/contact/correct/`, {
+      text, original_field: fromField, corrected_field: toField,
+    });
+  } catch (e) { console.warn('Failed to record correction:', e); }
+}
+
+// ── Save ──
+async function saveRow(rowIdx, mode, contactId, matchIdx) {
+  if (!gridData) return;
+  const row = gridData.rows[rowIdx];
+
+  const contactFields = ['name_prefix','name_first','name_last','name_suffix','title','company','department','email'];
+  const addrFields = ['address1','address2','city','state','zip','country'];
+
+  const payload = { model_name: 'contact' };
+  for (const f of contactFields) {
+    if (row.chips[f]) {
+      if (f === 'email') payload.email = row.chips[f].text;
+      else payload[f] = row.chips[f].text;
+    }
+  }
+  if (mode === 'merge' && contactId) payload.id = contactId;
+
+  try {
+    const data = await wcSave(payload);
+    const savedId = data.id || (data.data && data.data.id);
+    if (!savedId) { alert('Save failed: ' + JSON.stringify(data)); return; }
+
+    // Save phone
+    if (row.chips.phone) {
+      await wcSave({ model_name: 'phone', contact_id: savedId, number: row.chips.phone.text });
+    }
+
+    // Save address
+    const addrPayload = { model_name: 'address', contact_id: savedId };
+    let hasAddr = false;
+    for (const f of addrFields) {
+      if (row.chips[f]) { addrPayload[f] = row.chips[f].text; hasAddr = true; }
+    }
+    if (hasAddr) await wcSave(addrPayload);
+
+    // Flash the row label green to confirm save
+    const label = document.getElementById(`label-${rowIdx}`);
+    if (label) {
+      label.style.transition = 'background 0.3s';
+      label.style.background = 'var(--chip-high)';
+      setTimeout(() => { label.style.background = ''; }, 1500);
+    }
+
+    // Update the UI — re-parse to refresh match data
+    if (mode === 'merge' && matchIdx !== undefined) {
+      // Update the badge to show saved
+      const badge = document.getElementById(`badge-${rowIdx}-${matchIdx}`);
+      if (badge) {
+        badge.className = 'merge-badge saved';
+        badge.innerHTML = `merged<br>#${savedId}`;
+        badge.onclick = null;
+      }
+      // Refresh match row with updated data by re-querying
+      await refreshMatchRow(rowIdx, matchIdx, savedId);
+    } else {
+      // New contact — update action row
+      const actRow = document.getElementById(`action-row-${rowIdx}`);
+      if (actRow) {
+        const td = actRow.querySelector('td');
+        td.innerHTML = `<span style="color:var(--chip-high);font-weight:600">Created Contact #${savedId}</span>`;
+      }
+    }
+
+    const saveMsg = `${mode === 'merge' ? 'Merged into' : 'Created'} Contact #${savedId}`;
+    document.getElementById('statusMsg').textContent = saveMsg;
+    showToast(saveMsg);
+
+  } catch (e) { alert('Save error: ' + e.message); }
+}
+
+async function refreshMatchRow(rowIdx, matchIdx, contactId) {
+  // Re-parse to get fresh match data
+  try {
+    const text = document.getElementById('pasteArea').value.trim();
+    const res = await apiFetch(`${API_BASE}/contact/parse/`, { text });
+    const fresh = res.data || res;
+    if (fresh.rows && fresh.rows[rowIdx] && fresh.rows[rowIdx].matches) {
+      const freshMatch = fresh.rows[rowIdx].matches.find(m => m.id === contactId);
+      if (freshMatch && gridData.rows[rowIdx].matches[matchIdx]) {
+        gridData.rows[rowIdx].matches[matchIdx].fields = freshMatch.fields;
+        // Re-render just the match row cells
+        const mTr = document.getElementById(`match-${rowIdx}-${matchIdx}`);
+        if (mTr) {
+          const columns = gridData.columns;
+          const row = gridData.rows[rowIdx];
+          const tds = mTr.querySelectorAll('td:not(.row-label)');
+          columns.forEach((col, i) => {
+            if (!tds[i]) return;
+            const existVal = freshMatch.fields[col.field] || '';
+            const incomingVal = (row.chips[col.field] || {}).text || '';
+            const span = document.createElement('span');
+            if (!existVal) {
+              span.className = 'existing-val empty';
+              span.textContent = incomingVal ? '—' : '';
+            } else {
+              span.className = 'existing-val';
+              span.textContent = existVal;
+              if (incomingVal && existVal.toLowerCase() !== incomingVal.toLowerCase()) {
+                span.className = 'existing-val differs';
+              }
+            }
+            tds[i].innerHTML = '';
+            tds[i].appendChild(span);
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to refresh match row:', e);
+  }
+}
+
+function showConfirm(message, detail, onConfirm) {
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-overlay';
+  const box = document.createElement('div');
+  box.className = 'confirm-box';
+  box.innerHTML = `<p><strong>${message}</strong></p>` + (detail ? `<p style="font-size:0.8rem;color:var(--text-dim)">${detail}</p>` : '');
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn-cancel';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.onclick = () => overlay.remove();
+  const confirmBtn = document.createElement('button');
+  confirmBtn.textContent = 'Confirm';
+  confirmBtn.onclick = () => { overlay.remove(); onConfirm(); };
+  actions.appendChild(cancelBtn);
+  actions.appendChild(confirmBtn);
+  box.appendChild(actions);
+  overlay.appendChild(box);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+function confirmDelete(rowIdx, contactId) {
+  const row = gridData.rows[rowIdx];
+  const name = [
+    (row.chips.name_first || {}).text || '',
+    (row.chips.name_last || {}).text || '',
+  ].filter(Boolean).join(' ') || `#${contactId}`;
+
+  showConfirm(
+    `Delete ${name}?`,
+    `Contact #${contactId} will be deactivated. This can be undone by setting is_active back to true.`,
+    () => doDelete(rowIdx, contactId),
+  );
+}
+
+async function doDelete(rowIdx, contactId) {
+  try {
+    await wcSave({ model_name: 'contact', id: contactId, is_active: false });
+    document.getElementById('statusMsg').textContent = `Contact #${contactId} deactivated`;
+    showToast(`Contact #${contactId} deactivated`);
+    const label = document.getElementById(`label-${rowIdx}`);
+    if (label) {
+      const tr = label.parentElement;
+      tr.style.opacity = '0.3';
+      tr.style.pointerEvents = 'none';
+      label.innerHTML = `<span style="color:#8b0000">DELETED</span><span class="contact-id">#${contactId}</span>`;
+    }
+  } catch (e) {
+    alert('Delete error: ' + e.message);
+  }
+}
+
+function confirmMergeRows(keeperIdx, absorbIdx, keeperId, absorbId) {
+  const keeperRow = gridData.rows[keeperIdx];
+  const absorbRow = gridData.rows[absorbIdx];
+  const keeperName = [
+    (keeperRow.chips.name_first || {}).text || '',
+    (keeperRow.chips.name_last || {}).text || '',
+  ].filter(Boolean).join(' ') || `#${keeperId}`;
+  const absorbName = [
+    (absorbRow.chips.name_first || {}).text || '',
+    (absorbRow.chips.name_last || {}).text || '',
+  ].filter(Boolean).join(' ') || `#${absorbId}`;
+
+  showConfirm(
+    `Keep ${keeperName}, absorb ${absorbName}?`,
+    `#${keeperId} (${keeperName}) keeps its identity. Empty fields filled from #${absorbId} (${absorbName}). Then #${absorbId} is deactivated. Backup saved before changes.`,
+    () => mergeRows(keeperIdx, absorbIdx, keeperId, absorbId),
+  );
+}
+
+let pendingMerge = null; // {timerId, keeperIdx, absorbIdx, keeperId, absorbId, snapshot}
+
+function mergeRows(keeperIdx, absorbIdx, keeperId, absorbId) {
+  // Deferred merge — show preview, countdown, then commit (or undo)
+  if (!gridData) return;
+  const delay = parseInt(document.getElementById('mergeDelay').value) || 0;
+
+  const keeperChips = gridData.rows[keeperIdx].chips;
+  const absorbChips = gridData.rows[absorbIdx].chips;
+  const contactFields = ['name_prefix','name_first','name_last','name_suffix','title','company','department','email'];
+  const addrFields = ['address1','address2','city','state','zip','country'];
+
+  // Snapshot for undo (deep copy)
+  const snapshot = {
+    keeperChips: JSON.parse(JSON.stringify(keeperChips)),
+    absorbChips: JSON.parse(JSON.stringify(absorbChips)),
+    keeperUnassigned: JSON.parse(JSON.stringify(gridData.rows[keeperIdx].unassigned)),
+    absorbUnassigned: JSON.parse(JSON.stringify(gridData.rows[absorbIdx].unassigned)),
+  };
+
+  // Preview: merge locally (keeper dominates, absorbed fills gaps)
+  for (const f of [...contactFields, 'phone', ...addrFields]) {
+    if (!keeperChips[f] && absorbChips[f]) {
+      keeperChips[f] = { ...absorbChips[f] };
+    }
+  }
+
+  // Grey out absorbed row
+  renderGrid();
+
+  // Mark absorbed row as pending deletion
+  const absorbLabel = document.getElementById(`label-${absorbIdx}`);
+  if (absorbLabel) {
+    const tr = absorbLabel.parentElement;
+    tr.classList.add('merge-pending');
+    tr.style.opacity = '0.4';
+  }
+
+  if (delay === 0) {
+    // No delay — commit immediately
+    commitMerge(keeperIdx, absorbIdx, keeperId, absorbId, snapshot);
+    return;
+  }
+
+  // Show countdown bar
+  let remaining = delay;
+  const keeperLabel = document.getElementById(`label-${keeperIdx}`);
+  if (!keeperLabel) { commitMerge(keeperIdx, absorbIdx, keeperId, absorbId, snapshot); return; }
+
+  const bar = document.createElement('div');
+  bar.className = 'countdown-bar';
+  bar.id = 'merge-countdown';
+  bar.innerHTML = `
+    <span class="timer">${remaining}s</span>
+    <span class="preview-text">Merging #${absorbId} → #${keeperId}...</span>
+    <button class="btn-undo" onclick="undoMerge()">Undo</button>
+    <button class="btn-commit" onclick="commitNow()">Commit Now</button>
+  `;
+  keeperLabel.appendChild(bar);
+
+  document.getElementById('statusMsg').textContent = `Preview: merging #${absorbId} into #${keeperId}. ${remaining}s to undo.`;
+
+  const timerId = setInterval(() => {
+    remaining--;
+    const timerEl = bar.querySelector('.timer');
+    if (timerEl) timerEl.textContent = `${remaining}s`;
+    if (remaining <= 0) {
+      clearInterval(timerId);
+      pendingMerge = null;
+      commitMerge(keeperIdx, absorbIdx, keeperId, absorbId, snapshot);
+    }
+  }, 1000);
+
+  pendingMerge = { timerId, keeperIdx, absorbIdx, keeperId, absorbId, snapshot };
+}
+
+function undoMerge() {
+  if (!pendingMerge) return;
+  clearInterval(pendingMerge.timerId);
+  const { keeperIdx, absorbIdx, snapshot } = pendingMerge;
+
+  // Restore from snapshot
+  gridData.rows[keeperIdx].chips = snapshot.keeperChips;
+  gridData.rows[keeperIdx].unassigned = snapshot.keeperUnassigned;
+  gridData.rows[absorbIdx].chips = snapshot.absorbChips;
+  gridData.rows[absorbIdx].unassigned = snapshot.absorbUnassigned;
+
+  pendingMerge = null;
+  renderGrid();
+  document.getElementById('statusMsg').textContent = 'Merge undone.';
+}
+
+function commitNow() {
+  if (!pendingMerge) return;
+  clearInterval(pendingMerge.timerId);
+  const { keeperIdx, absorbIdx, keeperId, absorbId, snapshot } = pendingMerge;
+  pendingMerge = null;
+  commitMerge(keeperIdx, absorbIdx, keeperId, absorbId, snapshot);
+}
+
+async function commitMerge(keeperIdx, absorbIdx, keeperId, absorbId, snapshot) {
+  const keeperChips = gridData.rows[keeperIdx].chips;
+  const contactFields = ['name_prefix','name_first','name_last','name_suffix','title','company','department','email'];
+  const addrFields = ['address1','address2','city','state','zip','country'];
+  const now = new Date().toISOString();
+
+  // Backup keeper's original data
+  const backup = { dt_backup: now, absorbed_from: absorbId, reason: 'row_merge' };
+  for (const f of [...contactFields, 'phone', ...addrFields]) {
+    const val = (snapshot.keeperChips[f] || {}).text || '';
+    if (val) backup[f] = val;
+  }
+
+  // Save keeper with merged data
+  const payload = { model_name: 'contact', id: keeperId, config: { backup } };
+  for (const f of contactFields) {
+    const val = (keeperChips[f] || {}).text || '';
+    if (val) payload[f === 'email' ? 'email' : f] = val;
+  }
+
+  try {
+    const res = await wcSave(payload);
+    const savedId = res.id || (res.data && res.data.id);
+    if (!savedId) { alert('Merge failed: ' + JSON.stringify(res)); return; }
+
+    // Phone
+    const phone = (keeperChips.phone || {}).text || '';
+    if (phone) await wcSave({ model_name: 'phone', contact_id: savedId, number: phone });
+
+    // Address
+    const addrPayload = { model_name: 'address', contact_id: savedId };
+    let hasAddr = false;
+    for (const f of addrFields) {
+      const val = (keeperChips[f] || {}).text || '';
+      if (val) { addrPayload[f] = val; hasAddr = true; }
+    }
+    if (hasAddr) await wcSave(addrPayload);
+
+    // Deactivate absorbed
+    await wcSave({
+      model_name: 'contact', id: absorbId, is_active: false,
+      config: { deactivated_by_merge: { dt: now, merged_into: keeperId } },
+    });
+
+    document.getElementById('statusMsg').textContent =
+      `Kept #${keeperId}, absorbed #${absorbId}. #${absorbId} deactivated.`;
+
+    doSearch();
+  } catch (e) {
+    alert('Merge error: ' + e.message);
+  }
+}
+
+function showToast(message, duration = 5000, isError = false) {
+  // Remove existing toast
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'toast' + (isError ? ' error' : '');
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; }, duration - 500);
+  setTimeout(() => toast.remove(), duration);
+}
+
+function showSaveAllBar() {
+  const bar = document.getElementById('saveAllBar');
+  if (!gridData || !gridData.rows.length) { bar.classList.remove('visible'); return; }
+  bar.classList.add('visible');
+  document.getElementById('saveAllCount').textContent = `${gridData.rows.length} contact(s) ready`;
+}
+
+async function saveAll() {
+  if (!gridData) return;
+  const rows = gridData.rows;
+  const isSearch = gridData._mode === 'search';
+  let saved = 0, failed = 0;
+
+  document.getElementById('statusMsg').textContent = `Saving ${rows.length} contact(s)...`;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const label = document.getElementById(`label-${i}`);
+
+    // Skip deleted rows
+    if (label && label.textContent.includes('DELETED')) continue;
+
+    const contactId = row.contact_id || null;
+    const mode = contactId ? 'merge' : 'new';
+
+    try {
+      await saveRowSilent(i, mode, contactId);
+      saved++;
+      // Flash green
+      if (label) {
+        label.style.transition = 'background 0.3s';
+        label.style.background = 'var(--chip-high)';
+        setTimeout(() => { label.style.background = ''; }, 800);
+      }
+    } catch (e) {
+      failed++;
+      if (label) {
+        label.style.background = '#8b0000';
+        setTimeout(() => { label.style.background = ''; }, 800);
+      }
+    }
+  }
+
+  const msg = `Saved ${saved} contact(s)` + (failed ? `, ${failed} failed` : '');
+  document.getElementById('statusMsg').textContent = msg;
+  showToast(msg, 5000, failed > 0);
+}
+
+async function saveRowSilent(rowIdx, mode, contactId) {
+  // Same as saveRow but no UI prompts — for batch use.
+  // Only sends fields that have chip values — never blanks existing data.
+  const row = gridData.rows[rowIdx];
+  const contactFields = ['name_prefix','name_first','name_last','name_suffix','title','company','department','email'];
+  const addrFields = ['address1','address2','city','state','zip','country'];
+
+  const payload = { model_name: 'contact' };
+  let hasContactData = false;
+  for (const f of contactFields) {
+    if (row.chips[f] && row.chips[f].text) {
+      payload[f === 'email' ? 'email' : f] = row.chips[f].text;
+      hasContactData = true;
+    }
+  }
+  if (!hasContactData) return; // nothing to save
+
+  if (mode === 'merge' && contactId) payload.id = contactId;
+
+  // Add userdefined data to prefs
+  const userdefined = row._userdefined || {};
+  (row.unassigned || []).forEach(chip => {
+    if (chip._userdefined_key) {
+      userdefined[chip._userdefined_key] = chip._userdefined_val;
+    }
+  });
+  if (Object.keys(userdefined).length > 0) {
+    payload.prefs = { userdefined };
+  }
+
+  const res = await wcSave(payload);
+  const savedId = res.id || (res.data && res.data.id);
+  if (!savedId) throw new Error('Save failed');
+
+  // Phone — only save if we have a value, and check for existing first
+  if (row.chips.phone && row.chips.phone.text) {
+    // Search for existing phone for this contact
+    const existingPhones = await fetch(`/wcapi/get/?model_name=phone&contact_id=${savedId}&limit=1`, {
+      credentials: 'same-origin',
+    }).then(r => r.json()).catch(() => ({}));
+    const existing = (existingPhones.data || existingPhones.results || []);
+    if (existing.length > 0) {
+      // Update existing phone
+      await wcSave({ model_name: 'phone', id: existing[0].id, number: row.chips.phone.text });
+    } else {
+      // Create new
+      await wcSave({ model_name: 'phone', contact_id: savedId, number: row.chips.phone.text });
+    }
+  }
+
+  // Address — only save if we have values, check for existing first
+  const addrPayload = { model_name: 'address', contact_id: savedId };
+  let hasAddr = false;
+  for (const f of addrFields) {
+    if (row.chips[f] && row.chips[f].text) { addrPayload[f] = row.chips[f].text; hasAddr = true; }
+  }
+  if (hasAddr) {
+    const existingAddrs = await fetch(`/wcapi/get/?model_name=address&contact_id=${savedId}&limit=1`, {
+      credentials: 'same-origin',
+    }).then(r => r.json()).catch(() => ({}));
+    const existing = (existingAddrs.data || existingAddrs.results || []);
+    if (existing.length > 0) {
+      addrPayload.id = existing[0].id; // update existing
+    }
+    await wcSave(addrPayload);
+  }
+
+  // Update contact_id on the row so subsequent saves are updates
+  row.contact_id = savedId;
+}
+
+// Init merge delay from localStorage
+(function() {
+  const saved = localStorage.getItem('wc3_merge_delay');
+  if (saved !== null) {
+    const sel = document.getElementById('mergeDelay');
+    if (sel) sel.value = saved;
+  }
+})();
+
+function clearAll() {
+  document.getElementById('pasteArea').value = '';
+  document.getElementById('gridWrapper').innerHTML = '';
+  document.getElementById('saveAllBar').classList.remove('visible');
+  document.getElementById('statusMsg').textContent = '';
+  gridData = null;
+}
+</script>
+</body>
+</html>

@@ -150,6 +150,7 @@ def apply_delta(model_name: str, old_totals: dict, new_totals: dict,
 
         config['dt_last_delta'] = _now_ms()
         setting.config = config
+        setting._setting_update_authorized = True
         setting.save(update_fields=['config'])
 
     logger.debug(
@@ -223,6 +224,7 @@ def refresh_aggregates(model_name: str) -> dict:
             },
         )
         setting.config = config
+        setting._setting_update_authorized = True
         setting.save(update_fields=['config'])
 
     logger.info(

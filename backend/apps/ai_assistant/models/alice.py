@@ -34,6 +34,7 @@ class AliceObservation(BaseModel):
         ('schema', 'Pydantic Schema Question'),
         ('console', 'Console Capture'),
         ('escalation', 'Escalation to Claude'),
+        ('pii_correction', 'PII Correction'),
         ('bill_question', 'Question for Bill'),
     ]
     SOURCE_CHOICES = [

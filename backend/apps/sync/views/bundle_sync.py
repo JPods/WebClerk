@@ -134,6 +134,18 @@ class BundleReceiveView(APIView):
                     "Failed to unpack po_to_so bundle %s: %s", bundle.id, e
                 )
 
+        # Auto-upsert episode bundles
+        episode_result = None
+        if isinstance(payload, dict) and payload.get("type") == "episode" and not is_test:
+            try:
+                from apps.sync.services.episode_bundle import receive_episodes
+                episode_result = receive_episodes(payload)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(
+                    "Failed to process episode bundle %s: %s", bundle.id, e
+                )
+
         resp_data = {
             "ack": True,
             "echo": data.get("echo", ""),
@@ -144,5 +156,7 @@ class BundleReceiveView(APIView):
         if unpack_result:
             resp_data["order_id"] = unpack_result.get("order_id")
             resp_data["order_ida"] = unpack_result.get("order_ida")
+        if episode_result:
+            resp_data["episodes"] = episode_result
 
         return Response(resp_data)
