@@ -32,6 +32,8 @@ CORS_ALLOWED_ORIGINS = (
     'http://127.0.0.1:5177',
     'http://85.31.234.194',
     'https://wcb.webclerk.com',
+    'https://webserving.com',
+    'https://www.webserving.com',
 )
 CORS_ALLOW_CREDENTIALS = True
 
@@ -63,6 +65,7 @@ INSTALLED_APPS = [
     'apps.support',
     'apps.sync',
     'apps.transactions',
+    'apps.webserving',
     'common.CommonConfig',
     'corsheaders',
     'django.contrib.admin',

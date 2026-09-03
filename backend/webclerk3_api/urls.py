@@ -40,6 +40,7 @@ urlpatterns = [
     path('wcapi/transactions/', include('apps.transactions.urls')),
     path('wcapi/products/', include('apps.products.urls')),
     path('wcapi/sync/', include('apps.sync.urls')),
+    path('wcapi/webserving/', include('apps.webserving.urls')),
 
     # Admin swagger
     path('admin/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='admin-swagger'),
