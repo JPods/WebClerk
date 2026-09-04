@@ -495,6 +495,47 @@ COACHING = {
             'list': "GET /wcapi/get/?model_name=document&status=published",
         },
     },
+
+    'ai_message': {
+        'tips': [
+            {'id': 'msg-01', 'title': 'Messages are interactions', 'body': 'Every user-AI and AI-AI interaction is an AiMessage. Feedback, help lookups, agent observations, forwarded messages — all the same model.', 'type': 'concept', 'level': 'beginner'},
+            {'id': 'msg-02', 'title': 'Data never leaves without clearance', 'body': 'Commercial and personal data are auto-blocked. Only technical data with Athena clearance and PII scrubbing can be forwarded to WCHQ.', 'type': 'warning', 'level': 'beginner'},
+            {'id': 'msg-03', 'title': 'Help frequency = confusion', 'body': 'help_lookup messages are counted per field. High frequency means users are confused — Alice flags these for admin attention.', 'type': 'concept', 'level': 'intermediate'},
+        ],
+        'field_help': {
+            'kind': 'Message type: feedback, help_lookup, chat, question, answer, observation, directive, forward.',
+            'status': 'pending = unprocessed. read = seen. reviewed = classified. actioned = task created. forwarded = sent on. resolved = done.',
+            'sender': 'Who sent it — user login name or agent name (alice, allie, noelle, etc.).',
+            'sender_contact_id': 'Contact record ID when sender is a user. Null for agents.',
+            'receiver': 'Who receives it — agent name, user name, or wchq.',
+            'receiver_contact_id': 'Contact record ID when receiver is a user. Null for agents.',
+            'subject': 'Short subject line. Auto-generated from context if blank.',
+            'body': 'The message content — feedback text, question, observation, etc.',
+            'context': 'What the sender was looking at: model, field, page, component, source_path.',
+            'classification': 'Data sensitivity: technical (safe), operational (review), commercial (never leaves), personal (never leaves).',
+            'clearance': 'Athena gate: local (not reviewed), pending (in queue), cleared (safe to forward), blocked (sensitive data).',
+            'scrubbed': 'True after PII scrubbing. Forward requires scrubbed=True.',
+            'parent': 'Links replies in a thread. Self-FK.',
+            'forward_of': 'Original message this was forwarded from. Tracks provenance.',
+            'batch_id': 'Groups related messages. All messages from one help session share a batch_id.',
+            'source_instance': 'UUID of the WC3 instance that created this message. For sync.',
+        },
+        'actions': {
+            'feedback': 'User submits via Feedback button in Get Help dialog.',
+            'review': 'Alice reviews pending feedback and classifies. Admin approves or edits.',
+            'forward': 'Alice requests Athena clearance, then forwards technical messages to WCHQ.',
+        },
+        'warnings': [
+            'Commercial data (prices, orders, customer names) must NEVER leave the instance.',
+            'Personal data (contact info, login, PII) must NEVER leave the instance.',
+            'Only technical data (wc/react/system) with Athena clearance + scrubbing can be forwarded.',
+        ],
+        'code_examples': [],
+        'api_reference': {
+            'list': "GET /wcapi/get/?model_name=ai_message&kind=feedback&status=pending",
+            'frequency': "GET /wcapi/get/?model_name=ai_message&kind=help_lookup&ordering=-dt_created",
+        },
+    },
 }
 
 # ─────────────────────────────────────────────────────────────────────────────

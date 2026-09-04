@@ -100,6 +100,36 @@ class AiMessage(BaseModel):
         help_text='Structured context: model, field, page, component, source_path.',
     )
 
+    # Data classification — Athena gates what can leave the instance
+    CLASSIFICATION_CHOICES = [
+        ('technical', 'Technical — wc/react/system data. Safe to forward.'),
+        ('operational', 'Operational — usage patterns, counts. Athena reviews.'),
+        ('commercial', 'Commercial — prices, orders, customer data. Never leaves.'),
+        ('personal', 'Personal — contact info, login, PII. Never leaves.'),
+    ]
+    classification = models.CharField(
+        max_length=20, choices=CLASSIFICATION_CHOICES,
+        default='technical', db_index=True,
+        help_text='Data sensitivity. commercial/personal never leave the instance.',
+    )
+
+    # Athena review gate — must clear before message can be forwarded
+    CLEARANCE_CHOICES = [
+        ('local', 'Local only — not reviewed for forwarding'),
+        ('pending', 'Pending Athena review'),
+        ('cleared', 'Cleared — safe to forward'),
+        ('blocked', 'Blocked — contains sensitive data'),
+    ]
+    clearance = models.CharField(
+        max_length=20, choices=CLEARANCE_CHOICES,
+        default='local', db_index=True,
+        help_text='Athena clearance for forwarding. commercial/personal auto-blocked.',
+    )
+    scrubbed = models.BooleanField(
+        default=False,
+        help_text='True after PII scrubbing has been applied.',
+    )
+
     # Threading — self-FK for conversations
     parent = models.ForeignKey(
         'self', null=True, blank=True,
@@ -140,3 +170,28 @@ class AiMessage(BaseModel):
 
     def __str__(self):
         return f'{self.sender}→{self.receiver} [{self.kind}]: {self.subject or self.body[:60]}'
+
+    def save(self, *args, **kwargs):
+        # Auto-block commercial/personal from forwarding
+        if self.classification in ('commercial', 'personal'):
+            self.clearance = 'blocked'
+        # Forward messages require clearance
+        if self.kind == 'forward' and self.clearance == 'local':
+            self.clearance = 'pending'
+        super().save(*args, **kwargs)
+
+    def can_forward(self) -> bool:
+        """Check if this message is safe to forward to another instance."""
+        return (
+            self.classification == 'technical'
+            and self.clearance == 'cleared'
+            and self.scrubbed
+        )
+
+    def request_clearance(self):
+        """Submit for Athena review. Auto-blocks commercial/personal."""
+        if self.classification in ('commercial', 'personal'):
+            self.clearance = 'blocked'
+        else:
+            self.clearance = 'pending'
+        self.save(update_fields=['clearance'])
