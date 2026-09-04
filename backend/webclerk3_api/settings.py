@@ -240,6 +240,21 @@ else:
 if DATABASES['default']['ENGINE'].endswith('sqlite3') and DATABASES['default']['NAME'] == ':memory:' and 'runserver' in ' '.join(sys.argv):
     print('[WARNING] runserver using in-memory SQLite (:memory:). Data will not persist. Set USE_SQLITE_TEST=0 or PYTEST_FORCE_DB=1 for Postgres.')
 
+# ── WebServing database (separate from commerce_expert) ──────────────
+# Business directory + inventory router. Own database, own models.
+# No BaseModel, no pending records, no WC3 dependencies.
+if DATABASES['default']['ENGINE'].endswith('postgresql'):
+    DATABASES['webserving'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('WEBSERVING_DATABASE_NAME', default='commerce_webserving'),
+        'USER': DATABASES['default'].get('USER', 'williamjames'),
+        'PASSWORD': DATABASES['default'].get('PASSWORD', ''),
+        'HOST': DATABASES['default'].get('HOST', 'localhost'),
+        'PORT': DATABASES['default'].get('PORT', '5432'),
+        'ATOMIC_REQUESTS': False,
+        'CONN_MAX_AGE': 600,
+    }
+
 # ── Alice's conversion database (separate from commerce_expert) ─────
 # All data conversion noise stays here. WC3 only sees clean bundles.
 if DATABASES['default']['ENGINE'].endswith('postgresql'):
@@ -253,7 +268,10 @@ if DATABASES['default']['ENGINE'].endswith('postgresql'):
         'ATOMIC_REQUESTS': False,
     }
 
-DATABASE_ROUTERS = ['apps.conversion.db_router.ConversionRouter']
+DATABASE_ROUTERS = [
+    'apps.webserving.db_router.WebServingRouter',
+    'apps.conversion.db_router.ConversionRouter',
+]
 
 
 # ── Identity: DATA_SET_ID & IDA_PREFIX ──────────────────────────────

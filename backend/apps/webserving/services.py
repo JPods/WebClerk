@@ -39,19 +39,19 @@ def haversine_miles(lat1: float, lng1: float, lat2: float, lng2: float) -> float
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
-def find_instances_in_radius(lat: float, lng: float, radius_miles: float):
-    """Find registered instances within radius using bounding box + Haversine.
+def find_companies_in_radius(lat: float, lng: float, radius_miles: float):
+    """Find companies within radius using bounding box + Haversine.
 
     First pass: SQL bounding box (fast, uses index).
     Second pass: Haversine filter (exact, in Python).
     """
-    from apps.webserving.models import RegisteredInstance
+    from apps.webserving.models import Company
 
     # Bounding box — generous to catch edge cases
     dlat = radius_miles * MILES_TO_DEG_LAT * 1.2
     dlng = radius_miles * MILES_TO_DEG_LNG_AT_40 * 1.2
 
-    candidates = RegisteredInstance.objects.filter(
+    candidates = Company.objects.filter(
         is_active=True,
         is_online=True,
         latitude__gte=lat - dlat,
@@ -59,9 +59,9 @@ def find_instances_in_radius(lat: float, lng: float, radius_miles: float):
         longitude__gte=lng - dlng,
         longitude__lte=lng + dlng,
     ).values(
-        'id', 'instance_uuid', 'business_name', 'api_url',
+        'id', 'instance_uuid', 'name', 'api_url',
         'latitude', 'longitude', 'city', 'state', 'tier',
-        'athena_token',
+        'athena_token', 'domain', 'phones',
     )
 
     # Haversine filter
@@ -240,7 +240,7 @@ def search_local_inventory(
     columns = _get_retail_layout()
 
     # Find nearby instances
-    instances = find_instances_in_radius(lat, lng, radius_miles)
+    instances = find_companies_in_radius(lat, lng, radius_miles)
     if not instances:
         elapsed = int((time.time() - start) * 1000)
         _log_search(query, lat, lng, radius_miles, 0, 0, 0, elapsed)
@@ -280,11 +280,15 @@ def search_local_inventory(
             continue
         total_items += len(items)
         stores.append({
-            'business_name': r['business_name'],
+            'business_name': r['name'],
             'distance_miles': r['distance_miles'],
+            'latitude': r.get('latitude'),
+            'longitude': r.get('longitude'),
             'city': r.get('city', ''),
             'state': r.get('state', ''),
             'tier': r['tier'],
+            'domain': r.get('domain', ''),
+            'phones': r.get('phones', []),
             'items': items,
         })
 
@@ -319,8 +323,8 @@ def _log_search(query, lat, lng, radius, results_count,
             longitude=lng,
             radius_miles=radius,
             results_count=results_count,
-            instances_queried=instances_queried,
-            instances_responded=instances_responded,
+            stores_queried=instances_queried,
+            stores_responded=instances_responded,
             elapsed_ms=elapsed_ms,
         )
     except Exception:
