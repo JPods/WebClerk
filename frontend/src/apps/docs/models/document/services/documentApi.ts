@@ -42,3 +42,35 @@ export const fetchDocument = async (): Promise<DocumentApiTask[]> => {
   const res = await getRecords("document");
   return res.results || [];
 };
+
+/**
+ * Submit user feedback — tips, corrections, change requests.
+ * Creates a Document with purpose='help-alice' and status='pending'.
+ * Alice classifies and acts on the content during her review.
+ *
+ * Called from: GetHelpDialog Feedback button
+ * Stored as: Document record (purpose='help-alice', config.feedback=true)
+ * Processed by: Alice nightly review
+ */
+export const submitFeedback = async (opts: {
+  label: string;
+  feedback: string;
+  field?: string;
+  model?: string;
+  sourcePath?: string;
+}) => {
+  return saveRecord("document", {
+    name: `Feedback: ${opts.label}`,
+    purpose: "help-alice",
+    description: `User feedback for ${opts.label}`,
+    body: opts.feedback,
+    status: "pending",
+    config: {
+      element: opts.label,
+      field: opts.field || undefined,
+      model: opts.model || undefined,
+      source_path: opts.sourcePath || undefined,
+      feedback: true,
+    },
+  });
+};

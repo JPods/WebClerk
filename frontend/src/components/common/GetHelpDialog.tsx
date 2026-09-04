@@ -552,22 +552,8 @@ function UserFeedback({ label, wcField, wcModel, sourcePath }: { label: string; 
     if (!feedback.trim()) return;
     setSubmitting(true);
     try {
-      const { saveRecord } = await import('@/api/wcapi');
-      await saveRecord({
-        model_name: 'document',
-        name: `Feedback: ${label}`,
-        purpose: 'help-alice',
-        description: `User feedback for ${label}`,
-        body: feedback,
-        status: 'pending',
-        config: {
-          element: label,
-          field: wcField || undefined,
-          model: wcModel || undefined,
-          source_path: sourcePath || undefined,
-          feedback: true,
-        },
-      });
+      const { submitFeedback } = await import('@/apps/docs/models/document/services/documentApi');
+      await submitFeedback({ label, feedback, field: wcField, model: wcModel, sourcePath });
       setSubmitted(true);
     } catch {
       setSubmitted(true);
