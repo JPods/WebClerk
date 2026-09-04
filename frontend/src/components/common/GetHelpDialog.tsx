@@ -291,6 +291,11 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
       }).catch(() => {});
     } catch { /* silent */ }
 
+    // Clear generic topic when we have real help content
+    if (result.field_help && result.topic === 'No specific help available for this element. Try copying an element with a data-wc attribute.') {
+      result.topic = '';
+    }
+
     setHelpResult(result);
     setLoading(false);
   }, []);
@@ -340,9 +345,11 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
             <div className="gh-result-label">
               {helpResult.label}
             </div>
-            <div className="gh-result-topic">
-              {helpResult.topic}
-            </div>
+            {helpResult.topic && (
+              <div className="gh-result-topic">
+                {helpResult.topic}
+              </div>
+            )}
 
             {/* Unknown element — offer to request help from WCHQ */}
             {helpResult.label === 'Unknown Element' && (
