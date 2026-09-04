@@ -237,15 +237,20 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
       } catch { /* silent */ }
     }
 
-    // Look up page-level help for non-field elements (buttons, sections, panels)
-    if (parsed.wcId && !parsed.wcField) {
+    // Look up page-level help (buttons, sections, panels) — check wcId, wcField, or raw input
+    if (!result.field_help) {
+      const pageKeys = [parsed.wcId, parsed.wcField, html.trim()].filter(Boolean);
       try {
         const { getRecords } = await import('@/api/wcapi');
-        const pageRes = await getRecords('setting', { parent_model: 'system', purpose: 'wc:coaching', name: 'alice_coaching:page_help', limit: 1 }) as any;
+        const pageRes = await getRecords('setting', { purpose: 'wc:coaching', name: 'alice_coaching:page_help', limit: 1 }) as any;
         const pageRec = (pageRes?.results || [])[0];
-        const pageHelp = pageRec?.config?.page_help?.[parsed.wcId];
-        if (pageHelp) {
-          result.field_help = pageHelp;
+        const pageHelpMap = pageRec?.config?.page_help || {};
+        for (const key of pageKeys) {
+          if (key && pageHelpMap[key]) {
+            result.field_help = pageHelpMap[key];
+            result.label = key;
+            break;
+          }
         }
       } catch { /* silent */ }
     }
