@@ -45,6 +45,7 @@ const FieldLabel: React.FC<FieldLabelProps> = ({
     <label
       htmlFor={htmlFor}
       title={titleText}
+      onMouseDown={(e) => { if (e.shiftKey) e.preventDefault(); }}
       onClick={handleClick}
       className={`${baseClass} ${mandatoryClass} ${lockedClass} ${className}`.trim()}
       style={{ cursor: 'default' }}

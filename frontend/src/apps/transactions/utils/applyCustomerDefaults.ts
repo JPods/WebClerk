@@ -1,36 +1,39 @@
-/* LastChecked: 2026-08-01 | WhereUsed: UiDetail | WhoCreated: Claude */
+/* LastChecked: 2026-09-04 | WhereUsed: UiDetail | WhoCreated: Claude */
 /**
  * applyCustomerDefaults — fetch customer record and return fields to merge into transaction.
  *
- * When a user selects a customer on an order (or any sell-side transaction),
- * this function fetches the customer + primary contact and returns a dict of
- * fields to merge into the edit buffer.
- *
- * This is NOT a save. The caller merges the returned fields into editData.
- * Post or Pend applies on save.
- *
- * Usage:
- *   const defaults = await applyCustomerDefaults(customerId);
- *   setEditData(prev => ({ ...prev, ...defaults }));
+ * PJPV: writes to JSON aspect envelopes (addresses, emails, phones),
+ * not scalar columns. Scalar company/attention/email are also set as
+ * search indexes but the aspects are the source of truth.
  */
 import { getRecord } from '@/api/wcapi';
 
 export interface CustomerDefaults {
   customer_id: number;
   company: string;
-  phone: string;
-  email: string;
   attention: string;
+  email: string;
+  phone: string;
   address_full: string;
   price_level: string;
   terms: string;
   ship_via: string;
-  customer_config?: Record<string, any>;
-  customer_company?: string;
-  config?: { ship_to?: Record<string, any> };
+  // JSON aspects (source of truth)
+  addresses: {
+    bill_to: { contact_id?: number; attention: string; full_address: string; instructions: string };
+    ship_to: { contact_id?: number; attention: string; full_address: string; instructions: string };
+  };
+  emails: {
+    bill_to: { email: string };
+    ship_to: { email: string };
+  };
+  phones: {
+    bill_to: { number: string };
+    ship_to: { number: string };
+  };
   finance?: Record<string, any>;
   tax?: Record<string, any>;
-  /** True when customer has rep assignments — caller should trigger populateCommission after save */
+  customer_config?: Record<string, any>;
   has_reps?: boolean;
 }
 
@@ -43,55 +46,63 @@ export async function applyCustomerDefaults(
   customerId: number,
   contactId?: number,
 ): Promise<CustomerDefaults> {
-  // Fetch customer
   const custResp = await getRecord('customer', customerId);
   const cust = custResp?.record || custResp;
-
   if (!cust) throw new Error(`Customer ${customerId} not found`);
 
   const company = cust.company || cust.display_name || cust.name || '';
   const config = cust.config || {};
 
-  // Build defaults from customer
+  // Read from org's JSON aspects (source of truth)
+  const orgAddrs = cust.addresses || {};
+  const orgEmails = cust.emails || {};
+  const orgPhones = cust.phones || {};
+
+  const billAttn = orgAddrs.bill_to?.attention || cust.attention || '';
+  const billAddr = orgAddrs.bill_to?.full_address || cust.address_full || '';
+  const billInstr = orgAddrs.bill_to?.instructions || '';
+  const billEmail = orgEmails.bill_to?.email || cust.email || '';
+  const billPhone = orgPhones.bill_to?.number || cust.phone || '';
+  const billContactId = orgAddrs.bill_to?.contact_id || cust.contact_id || null;
+
+  const shipAttn = orgAddrs.ship_to?.attention || billAttn;
+  const shipAddr = orgAddrs.ship_to?.full_address || billAddr;
+  const shipInstr = orgAddrs.ship_to?.instructions || '';
+  const shipEmail = orgEmails.ship_to?.email || billEmail;
+  const shipPhone = orgPhones.ship_to?.number || billPhone;
+  const shipContactId = orgAddrs.ship_to?.contact_id || billContactId;
+
   const defaults: CustomerDefaults = {
     customer_id: customerId,
     company,
-    customer_company: company,
-    phone: cust.phone || '',
-    email: cust.email || '',
-    attention: cust.attention || '',
-    address_full: cust.address_full || '',
+    // Scalar indexes (for search — not source of truth)
+    attention: billAttn,
+    email: billEmail,
+    phone: billPhone,
+    address_full: billAddr,
     price_level: cust.price_level || '',
     terms: cust.terms || '',
     ship_via: cust.ship_via || config.ship_via || '',
+    // JSON aspects (source of truth)
+    addresses: {
+      bill_to: { contact_id: billContactId, attention: billAttn, full_address: billAddr, instructions: billInstr },
+      ship_to: { contact_id: shipContactId, attention: shipAttn, full_address: shipAddr, instructions: shipInstr },
+    },
+    emails: {
+      bill_to: { email: billEmail },
+      ship_to: { email: shipEmail },
+    },
+    phones: {
+      bill_to: { number: billPhone },
+      ship_to: { number: shipPhone },
+    },
   };
 
-  // Ship-to: use config.ship_to if present, otherwise default from customer base data
-  if (config.ship_to) {
-    defaults.config = { ship_to: config.ship_to };
-  } else {
-    // No dedicated ship_to — default to customer's own address
-    defaults.config = {
-      ship_to: {
-        company: company,
-        phone: defaults.phone,
-        attention: defaults.attention,
-        address1: defaults.address_full,
-        city_state_zip: '',
-        ship_via: defaults.ship_via,
-      }
-    };
-  }
-
   // ── Tax jurisdiction + exemption ─────────────────────────────────
-  // WC2 pattern: customer has a tax jurisdiction (rate) and an exempt code.
-  // If exempt → post "exempt" into transaction, zero tax.
-  // If not exempt → post jurisdiction id + rate into finance envelope.
   const taxExemptCode = cust.tax_exempt_code || '';
   const isExempt = taxExemptCode !== '' && taxExemptCode !== 'DoTax';
 
   if (isExempt) {
-    // Customer is tax exempt — zero rate, record the cert
     defaults.finance = {
       sales_tax_rate: 0,
       sales_tax_name: 'Exempt',
@@ -103,7 +114,6 @@ export async function applyCustomerDefaults(
       exempt_code: taxExemptCode,
     };
   } else if (cust.tax_jurisdiction_id) {
-    // Customer has a jurisdiction — fetch the rate
     try {
       const tjResp = await getRecord('tax_jurisdiction', cust.tax_jurisdiction_id);
       const tj = tjResp?.record || tjResp;
@@ -137,8 +147,6 @@ export async function applyCustomerDefaults(
   }
 
   // ── Rep assignments → commission flag ────────────────────────────
-  // Check if customer has rep assignments. If so, caller should call
-  // populateCommission() after saving the transaction with lines.
   const refs = cust.refs || {};
   const repLinks = refs.links?.reps || [];
   const repIds = cust.relations?.rep_ids || [];
@@ -147,17 +155,34 @@ export async function applyCustomerDefaults(
     defaults.has_reps = true;
   }
 
-  // Fetch contact if specified — overrides customer fields
+  // Fetch contact if specified — overrides bill_to fields
   if (contactId) {
     try {
       const ctResp = await getRecord('contact', contactId);
       const ct = ctResp?.record || ctResp;
       if (ct) {
-        defaults.attention = ct.attention || ct.display_name ||
-          [ct.name_first, ct.name_last].filter(Boolean).join(' ') || defaults.attention;
-        defaults.phone = ct.phone || defaults.phone;
-        defaults.email = ct.email || defaults.email;
-        defaults.address_full = ct.address_full || defaults.address_full;
+        const ctAttn = ct.attention || ct.display_name ||
+          [ct.name_first, ct.name_last].filter(Boolean).join(' ') || '';
+        const ctEmail = ct.email || '';
+        const ctPhone = ct.phone || '';
+        const ctAddr = ct.address_full || '';
+
+        if (ctAttn) {
+          defaults.attention = ctAttn;
+          defaults.addresses.bill_to.attention = ctAttn;
+        }
+        if (ctEmail) {
+          defaults.email = ctEmail;
+          defaults.emails.bill_to.email = ctEmail;
+        }
+        if (ctPhone) {
+          defaults.phone = ctPhone;
+          defaults.phones.bill_to.number = ctPhone;
+        }
+        if (ctAddr) {
+          defaults.address_full = ctAddr;
+          defaults.addresses.bill_to.full_address = ctAddr;
+        }
       }
     } catch { /* contact fetch failed, keep customer defaults */ }
   }

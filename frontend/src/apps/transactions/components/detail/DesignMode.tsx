@@ -18,18 +18,21 @@ import { saveRecord } from '@/api/wcapi';
 import type { DetailLayout } from '@/hooks/useDetailLayout';
 
 // All possible fields a transaction form could show
+// PJPV: display/edit binds to JSON aspects, not scalar columns
 const ALL_FIELDS: Array<{ field: string; label: string; group: string; type?: string }> = [
-  // Customer/Vendor
+  // Bill To (from addresses/emails/phones JSON aspects)
   { field: 'company', label: 'company', group: 'party' },
-  { field: 'attention', label: 'attn', group: 'party' },
-  { field: 'phone', label: 'phone', group: 'party' },
-  { field: 'email', label: 'email', group: 'party' },
-  { field: 'address_full', label: 'address', group: 'party' },
-  // Ship To
-  { field: 'config.ship_to.company', label: 'ship to', group: 'ship', type: 'readonly' },
-  { field: 'config.ship_to.phone', label: 'phone', group: 'ship', type: 'readonly' },
-  { field: 'config.ship_to.attention', label: 'attn', group: 'ship', type: 'readonly' },
-  { field: 'config.ship_to.address1', label: 'address', group: 'ship', type: 'readonly' },
+  { field: 'addresses.bill_to.attention', label: 'attention', group: 'party' },
+  { field: 'phones.bill_to.number', label: 'phone', group: 'party' },
+  { field: 'emails.bill_to.email', label: 'email', group: 'party' },
+  { field: 'addresses.bill_to.full_address', label: 'address', group: 'party' },
+  { field: 'addresses.bill_to.instructions', label: 'instructions', group: 'party' },
+  // Ship To (from addresses/emails/phones JSON aspects)
+  { field: 'addresses.ship_to.attention', label: 'attention', group: 'ship' },
+  { field: 'phones.ship_to.number', label: 'phone', group: 'ship' },
+  { field: 'emails.ship_to.email', label: 'email', group: 'ship' },
+  { field: 'addresses.ship_to.full_address', label: 'address', group: 'ship' },
+  { field: 'addresses.ship_to.instructions', label: 'instructions', group: 'ship' },
   { field: 'ship_via', label: 'ship via', group: 'ship', type: 'select' },
   { field: 'conditions_description', label: 'conditions', group: 'ship', type: 'select' },
   // Transaction
@@ -42,8 +45,8 @@ const ALL_FIELDS: Array<{ field: string; label: string; group: string; type?: st
   { field: 'priority', label: 'priority', group: 'transaction' },
   { field: 'parent_model', label: 'parent', group: 'transaction', type: 'readonly' },
   { field: 'ida', label: 'id', group: 'transaction', type: 'readonly' },
-  { field: 'balance', label: 'balance', group: 'transaction', type: 'readonly' },
-  { field: 'total', label: 'total', group: 'transaction', type: 'readonly' },
+  { field: 'totals.total', label: 'total', group: 'transaction', type: 'readonly' },
+  { field: 'totals.balance', label: 'balance', group: 'transaction', type: 'readonly' },
   { field: 'is_commission', label: 'commission', group: 'transaction' },
   { field: 'line_increment', label: 'line inc', group: 'transaction' },
 ];

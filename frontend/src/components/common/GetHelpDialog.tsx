@@ -109,6 +109,17 @@ async function parseInput(text: string): Promise<{ wcId: string; wcModel?: strin
     return result;
   }
 
+  // Check if it's a plain field name (no HTML tags, no spaces — just a field identifier)
+  if (/^[a-z_][a-z0-9_.]*$/i.test(trimmed) && !trimmed.includes('<')) {
+    result.wcField = trimmed.includes('.') ? trimmed.split('.').pop()! : trimmed;
+    // If dotted like "contact.name_first", extract model
+    if (trimmed.includes('.')) {
+      result.wcModel = trimmed.split('.')[0];
+    }
+    result.wcId = `field-${result.wcField}`;
+    return result;
+  }
+
   // Otherwise: parse as HTML with data-wc attributes
   const wcMatch = text.match(/data-wc="([^"]+)"/);
   if (wcMatch) result.wcId = wcMatch[1];
@@ -182,16 +193,59 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
       result.field_help = `Source: ${parsed.sourcePath}`;
     }
 
-    // Look up field-level help if we have model + field context
-    if (parsed.wcField && parsed.wcModel) {
+    // Look up field-level help from coaching + field_access Settings
+    if (parsed.wcField) {
       try {
         const { getRecords } = await import('@/api/wcapi');
-        const faRes = await getRecords('setting', { parent_model: parsed.wcModel, purpose: 'wc:field_access' }) as any;
-        const faRec = (faRes?.results || [])[0];
-        const behaviors = faRec?.config?.field_behaviors || {};
-        const fieldBehavior = behaviors[parsed.wcField];
-        if (fieldBehavior) {
-          result.field_help = `Field: ${parsed.wcField} — Type: ${fieldBehavior.type || 'text'}${fieldBehavior.help ? ` — ${fieldBehavior.help}` : ''}`;
+        let coachHelp: string | undefined;
+
+        if (parsed.wcModel) {
+          // Model known — look up directly
+          const coachRes = await getRecords('setting', { parent_model: parsed.wcModel, purpose: 'wc:coaching', limit: 1 }) as any;
+          const coachRec = (coachRes?.results || [])[0];
+          coachHelp = coachRec?.config?.field_help?.[parsed.wcField];
+        }
+
+        if (!coachHelp) {
+          // Model unknown or field not found — search all coaching records
+          const allRes = await getRecords('setting', { purpose: 'wc:coaching', limit: 50 }) as any;
+          const allRecs = allRes?.results || [];
+          for (const rec of allRecs) {
+            const help = rec?.config?.field_help?.[parsed.wcField];
+            if (help) {
+              coachHelp = help;
+              // Update label to show which model this field belongs to
+              if (rec.parent_model && rec.parent_model !== 'system') {
+                result.label = `${rec.parent_model}.${parsed.wcField}`;
+              }
+              break;
+            }
+          }
+        }
+
+        if (coachHelp) {
+          result.field_help = coachHelp;
+        } else if (parsed.wcModel) {
+          // Fall back to field_access behaviors
+          const faRes = await getRecords('setting', { parent_model: parsed.wcModel, purpose: 'wc:field_access', limit: 1 }) as any;
+          const faRec = (faRes?.results || [])[0];
+          const fieldBehavior = faRec?.config?.field_behaviors?.[parsed.wcField];
+          if (fieldBehavior) {
+            result.field_help = `Field: ${parsed.wcField} — Type: ${fieldBehavior.type || 'text'}${fieldBehavior.help ? ` — ${fieldBehavior.help}` : ''}`;
+          }
+        }
+      } catch { /* silent */ }
+    }
+
+    // Look up page-level help for non-field elements (buttons, sections, panels)
+    if (parsed.wcId && !parsed.wcField) {
+      try {
+        const { getRecords } = await import('@/api/wcapi');
+        const pageRes = await getRecords('setting', { parent_model: 'system', purpose: 'wc:coaching', name: 'alice_coaching:page_help', limit: 1 }) as any;
+        const pageRec = (pageRes?.results || [])[0];
+        const pageHelp = pageRec?.config?.page_help?.[parsed.wcId];
+        if (pageHelp) {
+          result.field_help = pageHelp;
         }
       } catch { /* silent */ }
     }
@@ -221,11 +275,23 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
       } catch { /* silent */ }
     }
 
+    // Log help lookup for Alice — frequency = confusion signal
+    try {
+      const { saveRecord } = await import('@/api/wcapi');
+      saveRecord('alice_observation', {
+        model_name: parsed.wcModel || 'system',
+        event: 'help_lookup',
+        message: `Help requested: ${parsed.wcField || parsed.wcId || parsed.componentName || 'unknown'}`,
+        data: { field: parsed.wcField, element: parsed.wcId, component: parsed.componentName, source: parsed.sourcePath },
+      }).catch(() => {});
+    } catch { /* silent */ }
+
     setHelpResult(result);
     setLoading(false);
   }, []);
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    e.preventDefault();
     const text = e.clipboardData.getData('text');
     setPastedHtml(text);
     analyzeElement(text);

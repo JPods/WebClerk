@@ -36,7 +36,7 @@ export interface HeaderRendererProps {
 // ---------------------------------------------------------------------------
 
 /** Render header — supports card-based layout, three-column layout, and rows layout */
-const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditing, onChange, custSearch, cardSpecs }) => {
+const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditing, modelName, onChange, custSearch, cardSpecs }) => {
 
   // ── Card-based layout (new: header.cards references named card specs) ──
   if (section.header?.cards && cardSpecs) {
@@ -75,7 +75,14 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
     return (
       <div className="grid gap-3" style={{ gridTemplateColumns: colCount <= 1 ? '1fr' : templateCols }}>
         {section.columns.map((col: any, colIdx: number) => (
-          <div key={colIdx} className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+          <div
+            key={colIdx}
+            className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3"
+            data-component="HeaderRenderer"
+            data-model={modelName}
+            data-column={col.title}
+            data-source={`setting.config.layout.form.default.sections[${0}].columns[${colIdx}]`}
+          >
             <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 border-b border-slate-100 dark:border-slate-700 pb-1 flex items-center gap-2">
               <span>{col.title}</span>
               {col.title_ida && data?.customer && (

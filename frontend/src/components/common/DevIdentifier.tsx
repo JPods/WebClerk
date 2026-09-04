@@ -94,6 +94,7 @@ export function DevIdentifier({ name, variant = 'indigo', source, children }: De
         }`}
       >
         <span
+          onMouseDown={(e) => { if (e.shiftKey) e.preventDefault(); }}
           onClick={handleBadgeClick}
           className={`inline-block px-1.5 py-0.5 text-[10px] font-mono font-medium tracking-wide rounded-bl shadow-sm whitespace-nowrap cursor-pointer ${VARIANT_CLASSES[variant]}`}
         >

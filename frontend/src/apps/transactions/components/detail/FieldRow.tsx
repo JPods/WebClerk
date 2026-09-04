@@ -31,6 +31,22 @@ export function formatDate(val: unknown): string {
 /** Fields that should be formatted as dates */
 export const DATE_FIELDS = new Set(['dt_created', 'dt_modified', 'dt_needed', 'Date Ord', 'Need By']);
 
+/** Convert any date value to YYYY-MM-DD for <input type="date"> */
+function toISODate(val: unknown): string {
+  if (val == null) return '';
+  let d: Date;
+  if (typeof val === 'number') {
+    d = new Date(val > 1e12 ? val : val * 1000);
+  } else if (typeof val === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+    d = new Date(val);
+  } else {
+    return '';
+  }
+  if (isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
 /** Fields that should be formatted as phone numbers */
 const PHONE_FIELDS = new Set(['phone', 'phone_cell', 'fax', 'number']);
 
@@ -88,6 +104,24 @@ export interface FieldRowProps {
 const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, options, fieldType, help, onChange }) => {
   const [showHelp, setShowHelp] = useState(false);
   const val = field.includes('.') ? getNestedValue(data, field) : data?.[field];
+
+  // Label click: Shift=help, Cmd=copy path, Cmd+Shift=behavior override
+  const handleLabelClick = (e: React.MouseEvent) => {
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
+      // Cmd/Ctrl+click → copy field path to clipboard
+      e.preventDefault();
+      e.stopPropagation();
+      navigator.clipboard.writeText(field).catch(() => {});
+      return;
+    }
+    if (e.shiftKey && !(e.metaKey || e.ctrlKey)) {
+      // Shift+click → field help (if available)
+      e.preventDefault();
+      e.stopPropagation();
+      if (help) setShowHelp(prev => !prev);
+      return;
+    }
+  };
   const isDate = field.startsWith('dt_') || DATE_FIELDS.has(field) || DATE_FIELDS.has(label);
   const fmtType = detectFormatType(field, label);
   const displayVal = val == null ? '—'
@@ -99,8 +133,11 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
   const resolvedType = fieldType || (options ? 'select' : 'editable');
   const labelStyle = useLabelStyle(resolvedType);
   const isClickable = resolvedType === 'select' || resolvedType === 'action' || resolvedType === 'search';
+  // Show field path: always as title tooltip, visible subscript when data-show-paths is set
+  const pathDisplay = field;
+
   return (
-    <div className="flex items-baseline gap-2 py-0.5 relative">
+    <div className="flex items-baseline gap-2 py-0.5 relative group" data-field-path={field}>
       {/* For select fields in edit mode: label IS the select */}
       {isEditing && options ? (
         <>
@@ -109,7 +146,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
             onChange={(e) => onChange(field, e.target.value)}
             className="text-[10px] font-semibold bg-transparent border-none cursor-pointer outline-none"
             style={{ ...labelStyle, fontSize: 'inherit', padding: 0 }}
-            title={help || label}
+            title={`${label} → ${pathDisplay}`}
             onMouseEnter={(e) => { if (e.shiftKey && help) setShowHelp(true); }}
             onMouseLeave={() => setShowHelp(false)}
           >
@@ -127,6 +164,9 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
       <span
         className={`text-[10px] font-medium w-16 shrink-0 text-right ${isClickable ? 'hover:underline cursor-pointer' : ''}`}
         style={labelStyle}
+        title={`${label} → ${pathDisplay}  |  Cmd+click: copy path`}
+        onMouseDown={(e) => { if (e.shiftKey) e.preventDefault(); }}
+        onClick={handleLabelClick}
         onMouseEnter={(e) => { if (e.shiftKey && help) setShowHelp(true); }}
         onMouseLeave={() => setShowHelp(false)}
         onMouseMove={(e) => { if (!e.shiftKey) setShowHelp(false); else if (help) setShowHelp(true); }}
@@ -138,14 +178,16 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
       )}
       {isEditing ? (
         <input
-          type="text"
-          value={displayVal === '—' ? '' : displayVal}
+          type={isDate ? 'date' : 'text'}
+          value={isDate ? toISODate(val) : (displayVal === '—' ? '' : displayVal)}
           onChange={(e) => onChange(field, e.target.value)}
           className="flex-1 text-xs px-2 py-0.5 rounded"
           style={{ border: '1px solid var(--db-border, #cbd5e1)', background: 'var(--db-surface-alt, #fff)', color: 'var(--db-text, #1e293b)' }}
+          title={pathDisplay}
+          data-source={pathDisplay}
         />
       ) : (
-        <span className="flex-1 text-xs" style={{ color: 'var(--db-text, #1e293b)' }}>{typeof displayVal === 'string' ? displayVal.split('|')[0] : displayVal}</span>
+        <span className="flex-1 text-xs" style={{ color: 'var(--db-text, #1e293b)' }} title={pathDisplay}>{typeof displayVal === 'string' ? displayVal.split('|')[0] : displayVal}</span>
       )}
       </>
       )}

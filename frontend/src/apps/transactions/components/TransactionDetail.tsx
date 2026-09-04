@@ -297,8 +297,19 @@ const UiDetail: React.FC<UiDetailProps> = ({
   }
 
   // ── Render ──────────────────────────────────────────────────────
+  // Meta tags for debugging/training — visible in DevTools Elements panel
+  const layoutSettingId = (layout as any)?._setting_id || '';
   return (
-    <div className="flex flex-col h-full overflow-hidden" data-wc={`${modelName}-detail`}>
+    <div
+      className="flex flex-col h-full overflow-hidden"
+      data-wc={`${modelName}-detail`}
+      data-model={modelName}
+      data-record-id={data.id}
+      data-record-ida={data.ida}
+      data-component="TransactionDetail"
+      data-component-path="apps/transactions/components/TransactionDetail.tsx"
+      data-layout-source={`Setting(purpose='wc:model', name='${modelName}') → config.layout`}
+    >
       {/* Header bar */}
       <div className="flex items-center gap-2 px-4 py-1 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0 no-print">
         <span className="text-sm font-bold text-slate-900 dark:text-white capitalize">{modelName}</span>

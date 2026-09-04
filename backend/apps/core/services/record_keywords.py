@@ -1,8 +1,21 @@
+import re
+
 from apps.core.constants.keyword_requirements import get_keyword_requirements
 from apps.core.services.cache import cache_service
 from django.apps import apps
 from django.db import models
 from common.ignore_fields import IGNORE_WORDS
+
+_ALPHANUM_RE = re.compile(r'[^a-zA-Z0-9]')
+
+
+def strip_alphanum(value: str) -> str:
+    """Strip non-alphanumeric characters and lowercase for keyword matching.
+
+    Both stored keywords and user search queries should pass through this
+    so that '555-1234', '(555) 1234', and '5551234' all match.
+    """
+    return _ALPHANUM_RE.sub('', value).lower()
 
 
 DEFAULT_TEXT_SCALAR_FIELD_TYPES = (
@@ -84,6 +97,10 @@ def _extract_keywords_from_value(value):
                     # Filter common words and apply minimum length
                     if len(token) > 2 and token not in IGNORE_WORDS:
                         keywords.append(token)
+                        # Also add alphanumeric-only version for fuzzy matching
+                        an = strip_alphanum(token)
+                        if an and an != token and len(an) > 2:
+                            keywords.append(an)
     elif isinstance(value, list):
         # Handle JSON arrays
         for item in value:

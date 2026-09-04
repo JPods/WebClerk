@@ -20,6 +20,8 @@ from typing import Sequence
 
 from django.db import models
 
+from apps.core.services.record_keywords import strip_alphanum
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,6 +29,7 @@ logger = logging.getLogger(__name__)
 class Fragment:
     """A single parsed search fragment."""
     value: str                          # lowercased, trimmed
+    value_alphanum: str                 # non-alphanumeric stripped for keyword matching
     mode: str                           # "startswith" | "contains"
 
 
@@ -38,6 +41,7 @@ def parse_fragments(raw: str) -> list[Fragment]:
     - No prefix   → startswith mode
     - Empty / whitespace-only fragments are dropped
     - Values are lowercased for case-insensitive matching
+    - Alphanum-stripped version stored for keyword matching
     """
     if not raw or not raw.strip():
         return []
@@ -48,9 +52,11 @@ def parse_fragments(raw: str) -> list[Fragment]:
         if not part:
             continue
         if part.startswith("@") and len(part) > 1:
-            fragments.append(Fragment(value=part[1:].lower(), mode="contains"))
+            val = part[1:].lower()
+            fragments.append(Fragment(value=val, value_alphanum=strip_alphanum(val), mode="contains"))
         else:
-            fragments.append(Fragment(value=part.lower(), mode="startswith"))
+            val = part.lower()
+            fragments.append(Fragment(value=val, value_alphanum=strip_alphanum(val), mode="startswith"))
     return fragments
 
 
@@ -144,10 +150,12 @@ def _build_fts_query(
     ).filter(search_vector=combined_sq)
 
     # Also include refs.keywords matches (icontains — FTS can't index JSON)
+    # Use alphanum-stripped value so "555-1234" matches stored "5551234"
     if has_refs:
         refs_q = models.Q()
         for frag in fragments:
-            refs_q &= models.Q(refs__keywords__icontains=frag.value)
+            kw = frag.value_alphanum or frag.value
+            refs_q &= models.Q(refs__keywords__icontains=kw)
         # Union: FTS results OR keyword matches
         qs = qs | qs.model.objects.filter(refs_q)
 
@@ -185,9 +193,10 @@ def _build_and_chain(
             else:
                 or_q |= models.Q(**{f"{field}__icontains": frag.value})
         # Keywords: icontains on JSON array — PostgreSQL searches serialized text.
-        # Each keyword is an individual token so icontains is safe for fragments.
+        # Use alphanum-stripped value so "555-1234" matches stored "5551234"
         if has_refs:
-            or_q |= models.Q(**{"refs__keywords__icontains": frag.value})
+            kw = frag.value_alphanum or frag.value
+            or_q |= models.Q(**{"refs__keywords__icontains": kw})
         combined &= or_q
     return combined
 

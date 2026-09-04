@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView
 from django.http import FileResponse
+from django.views.static import serve as static_serve
 import os
 from drf_spectacular.views import (
     SpectacularAPIView,
@@ -54,6 +55,16 @@ urlpatterns = [
         open(os.path.join(settings.BASE_DIR, 'tools', 'contact_paste.html'), 'rb'),
         content_type='text/html',
     ), name='contact-paste'),
+
+    # Customer / Vendor portal (plain HTML+JS, no build step)
+    path('portal/', lambda r: FileResponse(
+        open(os.path.join(settings.BASE_DIR, '..', 'frontend', 'portal', 'index.html'), 'rb'),
+        content_type='text/html',
+    ), name='portal'),
+    path('portal/<path:subpath>', lambda r, subpath: static_serve(
+        r, subpath,
+        document_root=os.path.join(settings.BASE_DIR, '..', 'frontend', 'portal'),
+    ), name='portal-static'),
 
     *([] if getattr(settings, 'READ_ONLY_MODE', False) else [path('admin/', admin.site.urls)]),
     # path('explorer/', include('explorer.urls')),  # TODO: install django-sql-explorer in lib/python3.13

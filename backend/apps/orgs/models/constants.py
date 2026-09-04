@@ -18,20 +18,35 @@ def default_contacts():  # list[{id,name,role,phones:[...],emails:[...]}]
 	return []
 
 
-def default_addresses():  # list[{id,type,address:{...},geo:{lat,lng}}]
-    return []
+def default_addresses():
+    """Party-keyed address aspect: prime, bill_to, ship_to."""
+    return {
+        "prime": {"contact_id": None, "company": "", "attention": "", "full_address": "", "instructions": ""},
+        "bill_to": {"contact_id": None, "company": "", "attention": "", "full_address": "", "instructions": ""},
+        "ship_to": {"contact_id": None, "company": "", "attention": "", "full_address": "", "instructions": ""},
+    }
 
 
 def default_domains():  # list[{domain, verified:bool, dt_verified:int_ms}]
 	return []
 
 
-def default_phones():  # list[{id,type,number,ext,primary:bool}]
-	return []
+def default_phones():
+    """Party-keyed phone aspect: prime, bill_to, ship_to."""
+    return {
+        "prime": {"phone_id": None, "number": ""},
+        "bill_to": {"phone_id": None, "number": ""},
+        "ship_to": {"phone_id": None, "number": ""},
+    }
 
 
-def default_emails():  # list[{id,type,email,primary:bool,bounce_count:int}]
-	return []
+def default_emails():
+    """Party-keyed email aspect: prime, bill_to, ship_to."""
+    return {
+        "prime": {"email_id": None, "email": ""},
+        "bill_to": {"email_id": None, "email": ""},
+        "ship_to": {"email_id": None, "email": ""},
+    }
 
 
 def default_relations():  # {parents:[], children:[], linked_ids:[]}

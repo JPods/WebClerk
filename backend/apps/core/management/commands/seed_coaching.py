@@ -33,14 +33,25 @@ COACHING = {
             {'id': 'cust-03', 'title': 'Price levels matter', 'body': 'Retail, wholesale, distributor, sample — the price level on the customer flows to orders and invoices automatically.', 'type': 'workflow', 'level': 'beginner'},
         ],
         'field_help': {
+            'ida': 'Short identifier — unique across all customers. Auto-generated or manually set.',
             'display_name': 'The primary name shown in lists and on printed documents.',
             'status': 'active = doing business. prospect = potential. inactive = paused. retired = closed.',
             'price_level': 'Determines which price tier is used on orders/invoices for this customer.',
             'terms': 'Payment terms (N30, COD, 2/10 Net 30). Sets when payment is due.',
-            'email': 'Primary email — click the label to compose. Synced from communications.',
-            'phone': 'Primary phone — click the label to dial. Synced from communications.',
-            'address_full': 'Primary address — click the label to open in Google Maps.',
+            'email': 'Primary email. Cmd+click label to compose. Synced from communications.',
+            'phone': 'Primary phone. Cmd+click label to dial. Synced from communications.',
+            'address_full': 'Primary address. Cmd+click label to open in maps.',
             'attention': 'Who to address correspondence to at this organization.',
+            'source_name': 'How this customer found you — referral, web, trade show, etc.',
+            'dt_created': 'When this customer record was created. Read-only.',
+            'dt_modified': 'Last time any field on this record was changed.',
+            'is_active': 'Unchecked = hidden from search and dropdowns. Use instead of deleting.',
+            'security_level': 'Access tier. Higher = more restricted. 0 = public.',
+            'totals': 'Aggregated order/invoice totals. Updated by the system — read-only.',
+            'config': 'Custom settings for this customer — ship-to addresses, special instructions.',
+            'metadata': 'System-managed data — AR aging, Alice observations, health score.',
+            'refs': 'Links to related records. Denormalized cache — PKs are authoritative.',
+            'prefs': 'Customer-specific preferences — notification settings, default formats.',
         },
         'actions': {
             'create': 'Enter display name and status. Save. Then add communications (email, phone, address) in the Communications tab.',
@@ -66,15 +77,33 @@ COACHING = {
             {'id': 'inv-03', 'title': 'GL posting is one-way', 'body': 'Once posted, you can only reverse — not edit. Post when the invoice is final.', 'type': 'warning', 'level': 'intermediate'},
         ],
         'field_help': {
+            'ida': 'Invoice number — unique identifier. Auto-generated or manually set.',
             'total': 'Sum of all line items. Edit lines to change — total recalculates automatically.',
             'balance': 'Total minus payments received. Read-only. Updated when payments are applied.',
             'status': 'planned = draft. released = sent to customer. complete = paid and closed.',
             'terms': 'Payment terms — determines due date on the ledger record.',
             'price_level': 'Price tier used for line item pricing on this invoice.',
+            'dt_needed': 'When customer needs delivery. Drives warehouse priority.',
+            'priority': 'Processing priority. Higher number = pick/ship first.',
+            'attention': 'Contact name at the customer for this invoice.',
+            'company': 'Customer company name. Denormalized from the customer record.',
+            'email': 'Billing email. Cmd+click label to compose.',
+            'phone': 'Billing phone. Cmd+click label to dial.',
+            'address_full': 'Bill-to address. Cmd+click label to open in maps.',
+            'ship_via': 'Preferred shipping carrier or method.',
+            'invoice_type': 'Invoice = standard. Proforma = quote-like. Credit Note = refund. Deposit = prepay.',
+            'source_name': 'Where this invoice originated — order conversion, manual entry, import.',
+            'conditions_description': 'Special terms or conditions printed on the invoice.',
+            'totals': 'Subtotal, tax, shipping, and grand total. Computed from lines — read-only.',
+            'cost': 'Cost-side data — landed cost, margin analysis. Not shown to customers.',
+            'finance': 'GL posting data — account codes, journal references, posting status.',
+            'config': 'Custom settings — alternate ship-to, special handling instructions.',
+            'sell': 'Sales-side envelope — commission data, rep assignments.',
+            'source': 'Origin tracking — which order, proposal, or import created this invoice.',
         },
         'actions': {
             'create': 'Select a customer, set status to planned, add line items with items and quantities.',
-            'print': 'Click Reports (🖨) button → Invoice. Opens printable format.',
+            'print': 'Click Reports button → Invoice. Opens printable format.',
             'payment': 'Go to Payments → Apply Payments. Select this invoice, enter amount.',
             'gl_post': 'On the invoice toolbar, click Post GL. Creates journal entries by account code.',
         },
@@ -99,9 +128,25 @@ COACHING = {
             {'id': 'ord-02', 'title': 'Order → Invoice flow', 'body': 'When an order is fulfilled, convert it to an invoice. Lines carry over automatically.', 'type': 'workflow', 'level': 'beginner'},
         ],
         'field_help': {
+            'ida': 'Order number — unique identifier.',
             'total': 'Sum of line items. Recalculates when lines are added/changed.',
+            'balance': 'Amount not yet invoiced. Decreases as invoices are created.',
             'status': 'planned = not started. released = being fulfilled. complete = shipped/delivered.',
-            'priority': 'Helps warehouse sort what to pick first.',
+            'priority': 'Helps warehouse sort what to pick first. Higher number = pick first.',
+            'dt_needed': 'Customer-requested delivery date. Drives pick list priority.',
+            'attention': 'Contact name at the customer for this order.',
+            'company': 'Customer company name.',
+            'email': 'Order contact email. Cmd+click label to compose.',
+            'phone': 'Order contact phone. Cmd+click label to dial.',
+            'address_full': 'Ship-to address. Cmd+click label to open in maps.',
+            'ship_via': 'Shipping carrier or method for this order.',
+            'price_level': 'Price tier — flows from customer unless overridden here.',
+            'terms': 'Payment terms — flows from customer unless overridden.',
+            'conditions_description': 'Special order conditions printed on documents.',
+            'source_name': 'Where this order came from — web, phone, proposal conversion.',
+            'totals': 'Subtotal, tax, shipping, total. Computed from lines — read-only.',
+            'cost': 'Cost-side data — margin analysis. Internal only.',
+            'config': 'Custom settings — alternate ship-to, special handling.',
         },
         'actions': {
             'create': 'Select customer, add line items. Each line needs an item and quantity.',
@@ -124,8 +169,18 @@ COACHING = {
             {'id': 'prop-02', 'title': 'MSRP vs Unit Price', 'body': 'Proposal lines show both MSRP and the offered unit price so the customer sees the discount.', 'type': 'concept', 'level': 'beginner'},
         ],
         'field_help': {
+            'ida': 'Proposal number — unique identifier.',
             'total': 'Proposed total — what the customer would pay if they accept.',
             'status': 'planned = draft. released = sent to customer. complete = accepted or expired.',
+            'dt_needed': 'Proposal expiration or decision-needed date.',
+            'price_level': 'Price tier for this quote — may differ from customer default.',
+            'attention': 'Who at the customer receives this proposal.',
+            'company': 'Customer company name.',
+            'email': 'Contact email. Cmd+click label to compose.',
+            'phone': 'Contact phone. Cmd+click label to dial.',
+            'address_full': 'Customer address. Cmd+click label to open in maps.',
+            'totals': 'Subtotal, tax, shipping, total. Computed from lines.',
+            'conditions_description': 'Terms and conditions printed on the proposal.',
         },
         'actions': {
             'create': 'Select customer, add line items with items, quantities, and pricing.',
@@ -148,8 +203,22 @@ COACHING = {
             {'id': 'po-02', 'title': 'PO → Receiving → Payment', 'body': 'Receive goods against the PO, then create a disbursement (payment type=disbursed) to pay the vendor.', 'type': 'workflow', 'level': 'beginner'},
         ],
         'field_help': {
+            'ida': 'PO number — unique identifier.',
             'total': 'Total cost of all purchase lines.',
+            'balance': 'Amount not yet received or paid.',
             'status': 'planned = draft. released = sent to vendor. complete = fully received.',
+            'dt_needed': 'When you need the goods. Communicate to vendor.',
+            'priority': 'Internal priority for receiving. Higher = process first.',
+            'attention': 'Contact name at the vendor.',
+            'company': 'Vendor company name.',
+            'email': 'Vendor email. Cmd+click label to compose.',
+            'phone': 'Vendor phone. Cmd+click label to dial.',
+            'address_full': 'Vendor address. Cmd+click label to open in maps.',
+            'ship_via': 'Shipping method — vendor ships to you.',
+            'terms': 'Vendor payment terms — when you pay them.',
+            'totals': 'Subtotal, tax, shipping, total. Computed from lines.',
+            'cost': 'Cost breakdown — landed cost, duty, freight allocation.',
+            'source_name': 'What triggered this purchase — reorder, manual, import.',
         },
         'actions': {
             'create': 'Select vendor, add line items with items and quantities.',
@@ -233,12 +302,25 @@ COACHING = {
             {'id': 'item-02', 'title': 'Margin velocity', 'body': 'The real metric: (margin × annual turns) ÷ carry cost. High velocity = productive inventory.', 'type': 'concept', 'level': 'advanced'},
         ],
         'field_help': {
+            'ida': 'Item identifier — unique across all items.',
             'sku': 'Stock keeping unit — your internal product code.',
             'name': 'Display name shown on documents and in search.',
-            'kind': 'product = physical goods. service = labor/time. bundle = kit of items.',
-            'uom': 'Unit of measure — ea, lb, ft, box, etc.',
+            'kind': 'product = physical goods. service = labor/time. bundle = kit of items. component = part of a bundle.',
+            'uom': 'Unit of measure — ea, lb, ft, box, etc. Drives quantity calculations.',
+            'base_uom': 'Base unit for conversion — e.g., case (uom) = 12 each (base_uom).',
             'status': 'active = available for sale. discontinued = no longer sold.',
-            'price_level': 'Prices stored in the price JSON by level (retail, wholesale, distributor).',
+            'price': 'Price envelope — prices by level (retail, wholesale, distributor), qty breaks.',
+            'cost': 'Cost envelope — vendor cost, landed cost, last cost, average cost.',
+            'quantity': 'Inventory envelope — on_hand, committed, available, reorder_point.',
+            'margin_pct': 'Margin percentage at current price/cost. Alice flags below-floor items.',
+            'margin_velocity': 'Margin × annual turns ÷ carry cost. The real productivity metric.',
+            'annual_turns': 'How many times inventory sells per year. Higher = more productive.',
+            'velocity_category': 'A/B/C/D ranking by margin velocity. A = top performers.',
+            'catalog': 'Catalog assignments — which catalogs include this item.',
+            'tax_code': 'Tax classification for this item. Drives tax calculation on lines.',
+            'gls': 'GL account assignments — revenue, COGS, inventory accounts.',
+            'flags': 'Boolean flags — taxable, commissionable, serialized, lot-tracked.',
+            'description': 'Full description envelope — short, long, web, print versions.',
         },
         'actions': {
             'create': 'Enter SKU, name, kind, UOM. Set prices in the price JSON. Set costs in cost JSON.',
@@ -257,10 +339,26 @@ COACHING = {
             {'id': 'act-01', 'title': 'Actions are tasks', 'body': 'Track to-dos, assign work, manage projects. Actions have kanban columns, priorities, and deadlines.', 'type': 'concept', 'level': 'beginner'},
         ],
         'field_help': {
+            'ida': 'Action identifier — unique across all actions.',
+            'action': 'What needs to be done. The task description.',
+            'description': 'Detailed description — context, requirements, acceptance criteria.',
             'kanban_column': 'backlog → todo → in_progress → review → done. Drag in Kanban view.',
             'priority': 'Higher number = higher priority. 1 = low, 5 = urgent.',
+            'difficulty': 'Estimated complexity. 1 = simple, 5 = very complex.',
+            'status': 'open = active. complete = done. cancelled = abandoned.',
             'percent_complete': '0-100. Update as work progresses.',
+            'dt_start': 'When work began or should begin.',
             'dt_deadline': 'When this task is due. Shows in red when overdue.',
+            'dt_expected': 'When you expect to finish. May differ from deadline.',
+            'dt_completed': 'When this action was marked complete. Set by system.',
+            'assigned_to': 'Who is responsible. First person = primary owner.',
+            'project_name': 'Which project this action belongs to.',
+            'sequence': 'Order within the project. Lower = earlier in the plan.',
+            'action_type': 'Category — task, bug, feature, meeting, review, etc.',
+            'burndown': 'Remaining effort estimate. Decreases toward zero.',
+            'linkage': 'Related URL or record reference.',
+            'impact': 'Business impact assessment — Alice auto-fills, users correct.',
+            'retrospection': 'Post-completion review — what worked, what to improve.',
         },
         'actions': {
             'create': 'Enter task description, set project, assign to a contact, set deadline.',
@@ -280,9 +378,26 @@ COACHING = {
             {'id': 'cont-02', 'title': 'One contact, many hats', 'body': 'A contact can be linked to a customer, vendor, rep, and employee simultaneously.', 'type': 'concept', 'level': 'intermediate'},
         ],
         'field_help': {
-            'email': 'Login email — also used as the primary communication email.',
+            'ida': 'Contact identifier — unique across all contacts.',
+            'email': 'Login email. Cmd+click label to compose. Also primary communication email.',
+            'phone': 'Primary phone. Cmd+click label to dial.',
+            'address_full': 'Primary address. Cmd+click label to open in maps.',
             'role': 'admin, manager, sales, warehouse, accounting, customer, vendor, rep.',
             'company': 'Company affiliation — may differ from org.display_name.',
+            'attention': 'Full name as it appears on correspondence.',
+            'name_first': 'First name. Used in greetings and informal references.',
+            'name_last': 'Last name. Used in formal references and sorting.',
+            'title': 'Job title — VP Sales, Warehouse Manager, etc.',
+            'department': 'Department within the company.',
+            'status': 'active = can log in and transact. inactive = disabled.',
+            'contact_type': 'customer, vendor, employee, rep — determines which org links apply.',
+            'security_level': 'Access tier. Higher = more restricted data visible.',
+            'source_name': 'How this contact was acquired — referral, web form, import.',
+            'dt_created': 'When this contact was first created.',
+            'dt_last_used': 'Last login or transaction. Helps identify dormant contacts.',
+            'times_used': 'Login or transaction count. Activity indicator.',
+            'config': 'Contact-specific settings — notification preferences, UI layout.',
+            'prefs': 'User preferences — theme, font size, default model, saved filters.',
         },
         'actions': {
             'create': 'Enter email (required), first/last name, company. Set role for access control.',
@@ -295,6 +410,133 @@ COACHING = {
             'list': "GET /wcapi/get/?model_name=contact&ordering=name_last",
         },
     },
+
+    'project': {
+        'tips': [
+            {'id': 'proj-01', 'title': 'Projects group actions', 'body': 'A project is a container for related actions. Weekly sprints or permanent containers — two modes.', 'type': 'concept', 'level': 'beginner'},
+        ],
+        'field_help': {
+            'ida': 'Project identifier — unique across all projects.',
+            'name': 'Project name. Shows in Kanban board headers and action dropdowns.',
+            'purpose': 'What this project is for — sprint, initiative, client project, etc.',
+            'status': 'active = in progress. complete = finished. on_hold = paused.',
+            'priority': 'Higher number = more important. Affects action sorting.',
+            'dt_start': 'When this project begins or began.',
+            'dt_end': 'Target completion date.',
+            'percent_complete': 'Overall progress. Calculated from action completion or set manually.',
+            'burndown': 'Remaining effort across all actions.',
+            'attention': 'Project owner or lead.',
+            'category': 'Project type — sprint, campaign, client, internal, etc.',
+            'intent': 'One-line goal statement. What does "done" look like?',
+            'objective': 'Detailed objectives — key results, deliverables.',
+            'tasks': 'Task breakdown — sub-objectives with status tracking.',
+            'logistics': 'Resources, budget, timeline constraints.',
+            'situation': 'Current project status narrative — updated each review.',
+        },
+        'actions': {
+            'create': 'Set name, category, dates, and owner. Then add actions to the project.',
+        },
+        'warnings': [],
+        'code_examples': [],
+        'api_reference': {
+            'list': "GET /wcapi/get/?model_name=project&status=active",
+        },
+    },
+
+    'setting': {
+        'tips': [
+            {'id': 'set-01', 'title': 'Settings are the menu', 'body': 'Settings define how the system behaves — layouts, field options, coaching content, system config. They are the menu; connections are the spec.', 'type': 'concept', 'level': 'intermediate'},
+        ],
+        'field_help': {
+            'ida': 'Setting identifier.',
+            'name': 'Setting name — usually purpose:model format.',
+            'purpose': 'What this setting controls: wc:coaching, wc:model, wc:ui, wc:system, etc.',
+            'parent_model': 'Which model this setting applies to. Empty = system-wide.',
+            'scope': 'Who this setting applies to — global, company, user.',
+            'status': 'active = in use. inactive = disabled but preserved.',
+            'explanation': 'Human description of what this setting does and how to use it.',
+            'config': 'The actual configuration data — JSON envelope. Structure varies by purpose.',
+            'paths': 'Routing paths — URL patterns, redirect rules. Used by wc:system settings.',
+        },
+        'actions': {
+            'create': 'Set purpose and parent_model. The config JSON structure depends on the purpose.',
+        },
+        'warnings': ['Changing a setting config can affect all users immediately. Review before saving.'],
+        'code_examples': [],
+        'api_reference': {
+            'list': "GET /wcapi/get/?model_name=setting&purpose=wc:coaching",
+        },
+    },
+
+    'document': {
+        'tips': [
+            {'id': 'doc-01', 'title': 'Documents are content', 'body': 'Help guides, training materials, reports, file attachments. Searchable by name, slug, and body text.', 'type': 'concept', 'level': 'beginner'},
+        ],
+        'field_help': {
+            'ida': 'Document identifier.',
+            'name': 'Document title — shown in lists and search results.',
+            'slug': 'URL-friendly identifier. Auto-generated from name if blank.',
+            'purpose': 'Category — help, training, report, attachment, policy, etc.',
+            'status': 'draft = not visible. published = visible to authorized users.',
+            'body': 'Document content — supports Markdown formatting.',
+            'description': 'Short summary shown in search results and document lists.',
+            'confidential': 'public = anyone. internal = staff only. restricted = need-to-know.',
+            'mime_type': 'File type for attachments — application/pdf, image/png, etc.',
+            'path': 'File location — URL, local path, or storage reference.',
+            'retention_period': 'Days to keep before auto-archive. 0 = keep forever.',
+            'count_accessed': 'How many times this document has been opened. Alice tracks this.',
+        },
+        'actions': {
+            'create': 'Set name, purpose, status. Write content in the body field.',
+        },
+        'warnings': [],
+        'code_examples': [],
+        'api_reference': {
+            'list': "GET /wcapi/get/?model_name=document&status=published",
+        },
+    },
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Page-level help — form objects, UI sections, toolbar items
+# ─────────────────────────────────────────────────────────────────────────────
+
+PAGE_HELP = {
+    # Transaction detail form sections
+    'bill_to': 'Bill-to address block — who gets the invoice. Pulled from customer communications.',
+    'ship_to': 'Ship-to address block — where goods are delivered. Can differ from bill-to.',
+    'item_code': 'Line item entry — add products/services to this transaction.',
+    'FINANCIALS': 'Financial summary — GL posting status, journal entries, payment history.',
+    'SELL TOTALS': 'Sales totals — subtotal, tax, shipping, grand total for this transaction.',
+    # Toolbar buttons
+    'btn-save': 'Save all changes to this record.',
+    'btn-add': 'Create a new blank record for this model.',
+    'btn-discard': 'Discard unsaved changes and reload from database.',
+    'btn-cancel': 'Cancel/void this transaction. Creates a reversal if already posted.',
+    'btn-report': 'Print or export — invoice, pick list, packing slip, statement.',
+    'btn-reassign': 'Change the customer/vendor on this transaction.',
+    'btn-related': 'Show records linked to this one — orders, invoices, payments, actions.',
+    # List toolbar
+    'btn-filter': 'Filter records by field values. Combine multiple filters with AND.',
+    'btn-all': 'Show all records (clear current filter/subset).',
+    'btn-subset': 'Show only the currently selected records.',
+    'btn-omit': 'Hide the currently selected records.',
+    'btn-sort': 'Sort by one or more columns. Click again to reverse.',
+    # Navigation
+    'sidebar': 'Main navigation — click to switch models. Shift-click opens in DataBrowser.',
+    'breadcrumb': 'Shows current model and record. Click segments to navigate back.',
+    # Line items
+    'line-item-grid': 'Line items — products/services on this transaction. + Item to add rows.',
+    'line-qty': 'Quantity ordered/invoiced. Drives extended price calculation.',
+    'line-price': 'Unit price — resolved from price chain (catalog → contract → level → base).',
+    'line-extended': 'Qty × price. Calculated — editing qty or price recalculates.',
+    # JSON panels
+    'panel-actions': 'Action items linked to this record. Create tasks, track follow-ups.',
+    'panel-comments': 'Internal notes. Not visible to customers on printed documents.',
+    'panel-config': 'Custom configuration — ship-to overrides, special handling, preferences.',
+    'panel-metadata': 'System data — health score, Alice observations, computed analytics.',
+    'panel-refs': 'Related record links. Denormalized cache — FKs are authoritative.',
+    'panel-prefs': 'User/contact preferences for this record context.',
 }
 
 
@@ -616,6 +858,27 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING(f'  {model_key}: {e}'))
 
         self.stdout.write(self.style.SUCCESS(f'Coaching: {s_created} created, {s_updated} updated, {s_skipped} skipped'))
+
+        # ── Page Help Setting ──
+        self.stdout.write(self.style.MIGRATE_HEADING('Seeding page help...'))
+        page_existing = Setting.objects.filter(parent_model='system', purpose='wc:coaching', name='alice_coaching:page_help').first()
+        if page_existing and not force:
+            self.stdout.write(f'  page_help: skipped (exists)')
+        else:
+            page_data = {'page_help': PAGE_HELP, 'field_help': {}, 'tips': [], 'warnings': []}
+            try:
+                if page_existing:
+                    page_existing.config = page_data
+                    page_existing.save()
+                else:
+                    Setting.objects.create(
+                        name='alice_coaching:page_help', parent_model='system',
+                        purpose='wc:coaching', config=page_data,
+                        explanation='Page-level help for form objects, toolbar buttons, and UI sections.',
+                    )
+                self.stdout.write(f'  page_help: {len(PAGE_HELP)} entries')
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(f'  page_help: {e}'))
 
         # ── Documents ──
         self.stdout.write(self.style.MIGRATE_HEADING('Seeding coaching Documents...'))

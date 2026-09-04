@@ -19,6 +19,7 @@ interface ZoneInfo {
   name: string;
   cssClass: string;
   file: string;
+  fieldPath: string;  // JSON envelope path (e.g., addresses.bill_to.company)
   x: number;
   y: number;
 }
@@ -62,22 +63,36 @@ export default function ZoneTooltip() {
     // If tooltip is already showing, don't reposition — let user click it
     if (zone) return;
 
-    // Walk up from target to find nearest data-zone
+    // Walk up from target to find nearest data-zone and/or data-field-path
     let el = e.target as HTMLElement | null;
-    while (el) {
-      const attr = el.getAttribute('data-zone');
-      if (attr) {
-        const parts = attr.split('|').map(s => s.trim());
-        const newName = parts[0] || '';
-        // Position near cursor but clamp to viewport
-        const x = Math.min(e.clientX + 12, window.innerWidth - 340);
-        const y = Math.min(e.clientY + 12, window.innerHeight - 100);
-        setZone({ name: newName, cssClass: parts[1] || '', file: parts[2] || '', x, y });
-        setCopied(false);
-        startTimer();
-        return;
-      }
-      el = el.parentElement;
+    let foundZone: string | null = null;
+    let foundFieldPath: string | null = null;
+    let searchEl = el;
+    while (searchEl) {
+      if (!foundZone) foundZone = searchEl.getAttribute('data-zone');
+      if (!foundFieldPath) foundFieldPath = searchEl.getAttribute('data-field-path');
+      if (foundZone || foundFieldPath) break;
+      searchEl = searchEl.parentElement;
+    }
+    // Also check for data-source on the element itself (inputs)
+    if (!foundFieldPath && el) {
+      foundFieldPath = el.getAttribute('data-source') || el.getAttribute('data-field-path');
+    }
+    if (foundZone || foundFieldPath) {
+      const parts = (foundZone || '').split('|').map(s => s.trim());
+      const newName = parts[0] || '';
+      const x = Math.min(e.clientX + 12, window.innerWidth - 340);
+      const y = Math.min(e.clientY + 12, window.innerHeight - 100);
+      setZone({
+        name: newName,
+        cssClass: parts[1] || '',
+        file: parts[2] || '',
+        fieldPath: foundFieldPath || '',
+        x, y,
+      });
+      setCopied(false);
+      startTimer();
+      return;
     }
   }, [zone, startTimer, clearTimer]);
 
@@ -87,7 +102,7 @@ export default function ZoneTooltip() {
 
   const handleCopy = useCallback(() => {
     if (!zone) return;
-    const text = [zone.name, zone.cssClass, zone.file].filter(Boolean).join(' > ');
+    const text = [zone.fieldPath, zone.name, zone.cssClass, zone.file].filter(Boolean).join(' > ');
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
@@ -112,6 +127,7 @@ export default function ZoneTooltip() {
 
   return (
     <div
+      onMouseDown={(e) => e.preventDefault()}
       onClick={handleCopy}
       style={{
         position: 'fixed',
@@ -134,7 +150,10 @@ export default function ZoneTooltip() {
         transition: 'background 0.15s, border-color 0.15s',
       }}
     >
-      <div style={{ color: copied ? '#4ade80' : '#9cdcfe', fontWeight: 700 }}>
+      {zone.fieldPath && !copied && (
+        <div style={{ color: '#dcdcaa', fontWeight: 700 }}>{zone.fieldPath}</div>
+      )}
+      <div style={{ color: copied ? '#4ade80' : '#9cdcfe', fontWeight: zone.fieldPath ? 400 : 700 }}>
         {copied ? 'Copied!' : zone.name}
       </div>
       {!copied && zone.cssClass && <div style={{ color: '#ce9178' }}>{zone.cssClass}</div>}

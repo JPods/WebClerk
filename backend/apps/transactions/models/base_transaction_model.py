@@ -255,8 +255,13 @@ class TransactionBaseModel(BaseModel):
         blank=True, null=True,
         db_column='contact_id', related_name='%(class)s_as_contact',
     )
-    attention = models.CharField(max_length=255, blank=True, null=True)  # optional attention line for mailing
-    # company, address_full, email, phone removed — read from contact FK or refs.links (PJPV)
+    attention = models.CharField(max_length=255, blank=True, null=True)  # scalar index for search
+
+    # Party-keyed communication aspects (bill_to / ship_to) — PJPV source of truth
+    addresses = models.JSONField(default=dict, blank=True)
+    emails = models.JSONField(default=dict, blank=True)
+    phones = models.JSONField(default=dict, blank=True)
+
     price_level = models.CharField(max_length=30, blank=True, default='retail')
     terms = models.CharField(max_length=30, blank=True, null=True)  # e.g. retail, wholesale; optional for future use
     terms_fk = models.ForeignKey(

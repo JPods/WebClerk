@@ -35,12 +35,16 @@ export default function BaseField({ props, labelColor = 'default', labelSuffix, 
       setBehaviorOpen(true);
       return;
     }
-    // Cmd/Ctrl+click → quick select list editor (pre-set type to "select")
+    // Cmd/Ctrl+click → launch action (dial/email/map) or select list editor
     if (e.metaKey || e.ctrlKey) {
       e.preventDefault();
       e.stopPropagation();
-      setBehaviorPreset('select');
-      setBehaviorOpen(true);
+      if (labelHref) {
+        window.open(labelHref, '_blank', 'noopener,noreferrer');
+      } else {
+        setBehaviorPreset('select');
+        setBehaviorOpen(true);
+      }
       return;
     }
     // Shift+click → field help
@@ -53,15 +57,16 @@ export default function BaseField({ props, labelColor = 'default', labelSuffix, 
     if (labelOnClick) labelOnClick();
   };
 
+  const handleLabelMouseDown = (e: React.MouseEvent) => {
+    if (e.shiftKey) e.preventDefault();
+  };
+
   const linkColor = labelHref ? 'actionable' : labelColor;
-  const labelEl = labelHref ? (
-    <a href={labelHref} target="_blank" rel="noopener noreferrer"
-      className={`db-label db-label--${linkColor}`} onClick={handleLabelClick}>
-      {displayLabel}{labelSuffix && <> {labelSuffix}</>}
-    </a>
-  ) : (
-    <span className={`db-label db-label--${labelColor}`} onClick={handleLabelClick}
-      style={labelOnClick ? { cursor: 'pointer' } : undefined}>
+  const labelEl = (
+    <span className={`db-label db-label--${linkColor}`}
+      onMouseDown={handleLabelMouseDown} onClick={handleLabelClick}
+      title={labelHref ? `Cmd+click: ${labelHref.startsWith('tel:') ? 'dial' : labelHref.startsWith('mailto:') ? 'email' : 'open'}` : undefined}
+      style={labelOnClick || labelHref ? { cursor: 'pointer' } : undefined}>
       {displayLabel}{labelSuffix && <> {labelSuffix}</>}
     </span>
   );

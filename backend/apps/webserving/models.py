@@ -6,29 +6,77 @@ with a live inventory router. The directory data lives here; the
 inventory stays at each store's own WebClerk instance and is queried
 in real time.
 
-All models use plain Django — no BaseModel, no WC3 dependencies.
+All models use plain Django — no WC3 BaseModel, no WC3 dependencies.
 WebServing has its own database (commerce_webserving) and can be
 deployed independently.
+
+Identity pattern (same as WebClerk):
+  id   — BigInt PK, internal to this database, never crosses a boundary
+  ida  — human-readable identifier, unique within this instance
+  uuid — globally unique, the cross-database identity for federation
+
+Multiple WebServing instances per city/region. They collaborate at
+geographic boundaries using uuid for identity. Same sovereignty model
+as WebClerk profit bubbles.
 """
-import uuid
+import uuid as uuid_lib
 from django.db import models
 
 
-class Category(models.Model):
+class WebServingBase(models.Model):
+    """Lightweight base for all WebServing models.
+
+    Same field shape as WebClerk's CoreModel/BaseModel — id/ida/uuid
+    identity triple, JSON envelope (config, metadata, refs, prefs,
+    actions, comments), timestamps. Agents and people use the same
+    PJPV patterns across both systems.
+
+    No WC3 machinery — no pending, no denormalize, no ida autogeneration.
+    The value is the consistent data shape, not the save() hooks.
+    """
+    # Identity triple
+    uuid = models.UUIDField(default=uuid_lib.uuid4, unique=True, editable=False)
+    ida = models.CharField(
+        max_length=40, unique=True, db_index=True,
+        help_text='Human-readable identifier, unique within this instance.',
+    )
+
+    # JSON envelope — same as WebClerk CoreModel
+    config = models.JSONField(default=dict, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    refs = models.JSONField(default=dict, blank=True)
+    prefs = models.JSONField(default=dict, blank=True)
+    actions = models.JSONField(default=dict, blank=True)
+    comments = models.JSONField(default=dict, blank=True)
+
+    # Status and lifecycle
+    status = models.CharField(max_length=50, default='active', blank=True)
+    is_active = models.BooleanField(default=True)
+
+    # Timestamps
+    dt_created = models.DateTimeField(auto_now_add=True)
+    dt_modified = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return self.ida
+
+
+class Category(WebServingBase):
     """Business category — hierarchical.
 
     Examples: Sporting Goods, Hearth Products, Hardware, Grocery.
     Stores can belong to multiple categories.
     """
     name = models.CharField(max_length=100)
-    slug = models.SlugField(max_length=100, unique=True)
     parent = models.ForeignKey(
         'self', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='children',
     )
     description = models.TextField(blank=True)
     sort_order = models.IntegerField(default=0)
-    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'webserving_category'
@@ -39,7 +87,7 @@ class Category(models.Model):
         return self.name
 
 
-class Company(models.Model):
+class Company(WebServingBase):
     """A business listed in the WebServing directory.
 
     This is the public-facing store profile — what a searcher sees.
@@ -49,10 +97,8 @@ class Company(models.Model):
     Fields modeled after Google Maps / Yelp business listings:
     identity, location, contact, hours, categories, ratings.
     """
-    # Identity
-    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    # Identity (uuid, ida from base)
     name = models.CharField(max_length=200)
-    slug = models.SlugField(max_length=200, unique=True)
     description = models.TextField(blank=True)
     logo_url = models.URLField(max_length=500, blank=True)
 
@@ -112,7 +158,6 @@ class Company(models.Model):
 
     # Health
     is_online = models.BooleanField(default=True)
-    is_active = models.BooleanField(default=True)
     dt_last_heartbeat = models.DateTimeField(null=True, blank=True)
     consecutive_failures = models.IntegerField(default=0)
 
@@ -121,9 +166,10 @@ class Company(models.Model):
     contact_email = models.EmailField(blank=True)
     contact_phone = models.CharField(max_length=30, blank=True)
 
-    # Timestamps
-    dt_created = models.DateTimeField(auto_now_add=True)
-    dt_modified = models.DateTimeField(auto_now=True)
+    # Auth — for self-service registration and listing management
+    contact_password = models.CharField(max_length=128, blank=True, help_text='Hashed password for login.')
+    email_verified = models.BooleanField(default=False)
+    email_verify_token = models.CharField(max_length=64, blank=True)
 
     class Meta:
         db_table = 'webserving_company'
@@ -139,7 +185,7 @@ class Company(models.Model):
         return f'{self.name} ({self.city}, {self.state})'
 
 
-class Review(models.Model):
+class Review(WebServingBase):
     """Customer review of a store."""
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='reviews')
     rating = models.IntegerField(help_text='1-5 stars.')
@@ -149,7 +195,6 @@ class Review(models.Model):
         max_length=50, default='webserving',
         help_text='Origin: webserving, google, yelp, etc.',
     )
-    dt_created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'webserving_review'
@@ -159,7 +204,7 @@ class Review(models.Model):
         return f'{self.company.name} — {self.rating}★ by {self.author_name}'
 
 
-class SearchLog(models.Model):
+class SearchLog(WebServingBase):
     """Log of searches — Alice's demand signal.
 
     What people search for, where, and whether they find it locally.
@@ -173,7 +218,6 @@ class SearchLog(models.Model):
     stores_queried = models.IntegerField(default=0)
     stores_responded = models.IntegerField(default=0)
     elapsed_ms = models.IntegerField(default=0)
-    dt_created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'webserving_search_log'
@@ -186,7 +230,7 @@ class SearchLog(models.Model):
         return f'"{self.query}" — {self.results_count} results'
 
 
-class HealthCheck(models.Model):
+class HealthCheck(WebServingBase):
     """API health check record for a company.
 
     Tracks response time, status, and failures over time.
@@ -196,7 +240,6 @@ class HealthCheck(models.Model):
     response_ms = models.IntegerField(null=True, blank=True)
     status_code = models.IntegerField(null=True, blank=True)
     error = models.CharField(max_length=200, blank=True)
-    dt_created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'webserving_health'
