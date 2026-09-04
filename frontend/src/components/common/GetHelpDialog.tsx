@@ -393,17 +393,12 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
               </div>
             )}
 
-            {/* Contribute help — users add tips that become Document records */}
-            <ContributeHelp
-              componentName={helpResult.label}
-              sourcePath={parsedContext.sourcePath || ''}
-            />
-
-            {/* Request Change section — users can request field type changes */}
-            <FieldChangeRequest
+            {/* User feedback — tips, change requests, questions */}
+            <UserFeedback
+              label={helpResult.label}
               wcField={parsedContext.wcField || ''}
               wcModel={parsedContext.wcModel || ''}
-              fieldLabel={helpResult.label}
+              sourcePath={parsedContext.sourcePath || ''}
             />
           </div>
         )}
@@ -535,187 +530,42 @@ function RequestWchqHelp({ elementText }: { elementText: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// FieldChangeRequest — user requests a field become a dropdown, etc.
+// UserFeedback — single button for tips, change requests, questions
+// Alice classifies the content during her review.
 // ---------------------------------------------------------------------------
 
-function FieldChangeRequest({ wcField, wcModel, fieldLabel }: { wcField: string; wcModel: string; fieldLabel: string }) {
+function UserFeedback({ label, wcField, wcModel, sourcePath }: { label: string; wcField: string; wcModel: string; sourcePath: string }) {
   const [showForm, setShowForm] = useState(false);
-  const [changeType, setChangeType] = useState<'select' | 'lookup' | 'readonly' | 'datetime'>('select');
-  const [valuesSource, setValuesSource] = useState<'static' | 'query' | 'setting' | 'distinct'>('static');
-  const [staticValues, setStaticValues] = useState('');
-  const [queryModel, setQueryModel] = useState('');
-  const [queryField, setQueryField] = useState('');
-  const [queryFilter, setQueryFilter] = useState('');
-  const [settingName, setSettingName] = useState('');
-  const [reason, setReason] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
-  if (!wcField) return null;
-
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    try {
-      const { manageAction } = await import('@/api/wcapi');
-
-      const request: Record<string, unknown> = {
-        model: wcModel,
-        field: wcField,
-        field_label: fieldLabel,
-        change_type: changeType,
-        values_source: valuesSource,
-        reason,
-      };
-
-      if (valuesSource === 'static') {
-        request.options = staticValues.split(',').map(s => s.trim()).filter(Boolean);
-      } else if (valuesSource === 'query') {
-        request.query_model = queryModel;
-        request.query_field = queryField;
-        request.query_filter = queryFilter;
-      } else if (valuesSource === 'setting') {
-        request.setting_name = settingName;
-      }
-
-      // Create Alice observation + action record
-      await manageAction('request_field_change', request);
-      setSubmitted(true);
-    } catch (e) {
-      alert('Failed to submit request: ' + (e instanceof Error ? e.message : 'unknown error'));
-    }
-    setSubmitting(false);
-  };
-
-  if (submitted) {
-    return (
-      <div className="gh-success gh-success--mt">
-        Request submitted for {wcModel}.{wcField} — Alice will review and create an action record. An admin will approve the change.
-      </div>
-    );
-  }
-
-  return (
-    <div data-wc="field-change-request" className="gh-field-change">
-      <button onClick={() => setShowForm(!showForm)} className="gh-btn-outline-purple">
-        {showForm ? 'Cancel Request' : 'Request Change'}
-      </button>
-
-      {showForm && (
-        <div className="gh-field-change-form">
-          <div className="gh-field-change-title">
-            Request Field Change: {wcModel}.{wcField}
-          </div>
-
-          {/* Change type */}
-          <div className="gh-form-row">
-            <span className="gh-form-label">Make this a:</span>
-            <select value={changeType} onChange={(e) => setChangeType(e.target.value as any)}
-              className="gh-select">
-              <option value="select">Dropdown (select list)</option>
-              <option value="lookup">Lookup (search another model)</option>
-              <option value="readonly">Read-only (system driven)</option>
-              <option value="datetime">Date/time picker</option>
-            </select>
-          </div>
-
-          {/* Values source — only for select type */}
-          {changeType === 'select' && (
-            <>
-              <div className="gh-form-row">
-                <span className="gh-form-label">Values from:</span>
-                <select value={valuesSource} onChange={(e) => setValuesSource(e.target.value as any)}
-                  className="gh-select">
-                  <option value="static">Type values below</option>
-                  <option value="query">Query: model.field</option>
-                  <option value="setting">Setting record</option>
-                  <option value="distinct">Distinct values from data</option>
-                </select>
-              </div>
-
-              {valuesSource === 'static' && (
-                <input type="text" placeholder="retail, wholesale, distributor (comma separated)"
-                  value={staticValues} onChange={(e) => setStaticValues(e.target.value)}
-                  className="gh-input gh-input--sm" />
-              )}
-
-              {valuesSource === 'query' && (
-                <div className="gh-form-row--gap6">
-                  <input type="text" placeholder="model (e.g., gl_account)" value={queryModel} onChange={(e) => setQueryModel(e.target.value)}
-                    className="gh-input gh-input--flex gh-input--sm" />
-                  <input type="text" placeholder="field (e.g., name)" value={queryField} onChange={(e) => setQueryField(e.target.value)}
-                    className="gh-input gh-input--flex gh-input--sm" />
-                  <input type="text" placeholder="filter (e.g., type=revenue)" value={queryFilter} onChange={(e) => setQueryFilter(e.target.value)}
-                    className="gh-input gh-input--flex gh-input--sm" />
-                </div>
-              )}
-
-              {valuesSource === 'setting' && (
-                <input type="text" placeholder="Setting name (e.g., select_lists)" value={settingName} onChange={(e) => setSettingName(e.target.value)}
-                  className="gh-input gh-input--sm" />
-              )}
-            </>
-          )}
-
-          {/* Lookup config */}
-          {changeType === 'lookup' && (
-            <div className="gh-form-row--gap6">
-              <input type="text" placeholder="Lookup model (e.g., customer)" value={queryModel} onChange={(e) => setQueryModel(e.target.value)}
-                className="gh-input gh-input--flex gh-input--sm" />
-              <input type="text" placeholder="Display field (e.g., display_name)" value={queryField} onChange={(e) => setQueryField(e.target.value)}
-                className="gh-input gh-input--flex gh-input--sm" />
-            </div>
-          )}
-
-          {/* Reason */}
-          <input type="text" placeholder="Why this change? (optional but helpful)"
-            value={reason} onChange={(e) => setReason(e.target.value)}
-            className="gh-input gh-input--sm" />
-
-          <button onClick={handleSubmit} disabled={submitting} className="gh-btn-purple">
-            {submitting ? 'Submitting...' : 'Submit Request'}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-// ---------------------------------------------------------------------------
-// ContributeHelp — user adds a tip that becomes a Document record
-// ---------------------------------------------------------------------------
-
-function ContributeHelp({ componentName, sourcePath }: { componentName: string; sourcePath: string }) {
-  const [showForm, setShowForm] = useState(false);
-  const [tip, setTip] = useState('');
+  const [feedback, setFeedback] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   if (submitted) {
     return (
       <div className="gh-success gh-success--mt">
-        Tip submitted. Alice will review and add it to the help for {componentName}.
+        Feedback submitted for {label}. Alice will review and take action.
       </div>
     );
   }
 
   const handleSubmit = async () => {
-    if (!tip.trim()) return;
+    if (!feedback.trim()) return;
     setSubmitting(true);
     try {
       const { saveRecord } = await import('@/api/wcapi');
       await saveRecord({
         model_name: 'document',
-        name: `User tip: ${componentName}`,
+        name: `Feedback: ${label}`,
         purpose: 'help-alice',
-        description: `User-contributed help for ${componentName}`,
-        body: tip,
+        description: `User feedback for ${label}`,
+        body: feedback,
         status: 'pending',
-        path: sourcePath ? { source: sourcePath } : null,
         config: {
-          component_name: componentName,
-          source_path: sourcePath,
-          contribution: true,
+          element: label,
+          field: wcField || undefined,
+          model: wcModel || undefined,
+          source_path: sourcePath || undefined,
+          feedback: true,
         },
       });
       setSubmitted(true);
@@ -728,22 +578,22 @@ function ContributeHelp({ componentName, sourcePath }: { componentName: string; 
   return (
     <div className="gh-contribute">
       <button onClick={() => setShowForm(!showForm)} className="gh-btn-outline-green">
-        {showForm ? 'Cancel' : 'Add a Tip'}
+        {showForm ? 'Cancel' : 'Feedback'}
       </button>
 
       {showForm && (
         <div className="gh-contribute-form">
           <div className="gh-contribute-hint">
-            Share what you know about {componentName}. Alice will review and publish to the help system.
+            Tips, corrections, change requests — anything about {label}. Alice will review.
           </div>
           <textarea
-            value={tip}
-            onChange={(e) => setTip(e.target.value)}
-            placeholder="What should other users know about this? Tips, gotchas, workflows..."
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            placeholder="What should we know? Tips, corrections, suggestions..."
             className="gh-contribute-textarea"
           />
-          <button onClick={handleSubmit} disabled={submitting || !tip.trim()} className="gh-btn-green">
-            {submitting ? 'Submitting...' : 'Submit Tip'}
+          <button onClick={handleSubmit} disabled={submitting || !feedback.trim()} className="gh-btn-green">
+            {submitting ? 'Submitting...' : 'Submit'}
           </button>
         </div>
       )}
