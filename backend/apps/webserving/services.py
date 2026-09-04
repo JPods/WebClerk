@@ -78,40 +78,92 @@ def find_instances_in_radius(lat: float, lng: float, radius_miles: float):
     return results
 
 
+def _is_local_instance(instance: dict) -> bool:
+    """Check if this instance is the local server (self-query)."""
+    url = instance.get('api_url', '')
+    return 'localhost' in url or '127.0.0.1' in url
+
+
+def _query_local_inventory(instance: dict, query: str) -> dict:
+    """Query this instance's own database directly — no HTTP needed."""
+    try:
+        from django.apps import apps
+        from django.db.models import Q
+
+        Item = apps.get_model('products', 'Item')
+
+        # Search ida, name, description, sku — use .values() to avoid
+        # selecting columns that may not exist yet on older schemas
+        qs = Item.objects.filter(
+            Q(ida__icontains=query) |
+            Q(name__icontains=query) |
+            Q(description__icontains=query) |
+            Q(sku__icontains=query),
+            is_active=True,
+        ).values(
+            'id', 'ida', 'name', 'description', 'config',
+        ).order_by('-dt_modified')[:10]
+
+        items = []
+        for row in qs:
+            config = row.get('config', {}) if isinstance(row.get('config'), dict) else {}
+            price_data = config.get('price', {})
+            inv_data = config.get('inventory', {})
+            items.append({
+                'name': row.get('ida') or row.get('name', ''),
+                'description': (row.get('description') or config.get('description', ''))[:200],
+                'price': price_data.get('sell') if isinstance(price_data, dict) else None,
+                'on_hand': inv_data.get('on_hand') if isinstance(inv_data, dict) else None,
+                'item_id': row['id'],
+            })
+
+        return {**instance, 'items': items, 'error': None}
+
+    except Exception as e:
+        logger.warning("Local inventory query failed: %s", e)
+        return {**instance, 'items': [], 'error': str(e)[:100]}
+
+
 def query_instance_inventory(instance: dict, query: str) -> dict:
     """Query a single WebClerk instance for matching inventory.
 
-    Calls the instance's /wcapi/items/ endpoint with a search query.
-    Returns the instance dict augmented with 'items' list, or
-    'error' if the query failed.
+    Local instances query the database directly (no HTTP overhead).
+    Remote instances are queried via their public API endpoint.
     """
-    api_url = instance['api_url'].rstrip('/')
-    url = f"{api_url}/items/"
+    # Local instance — direct database query, no auth needed
+    if _is_local_instance(instance):
+        return _query_local_inventory(instance, query)
 
-    headers = {}
+    # Remote instance — HTTP query
+    api_url = instance['api_url'].rstrip('/')
+    url = f"{api_url}/get/item_variant/"
+
+    headers = {'X-Forwarded-Proto': 'https'}
     token = instance.get('athena_token', '')
     if token:
         headers['Authorization'] = f'Athena {token}'
 
     try:
-        with httpx.Client(timeout=INSTANCE_TIMEOUT) as client:
+        with httpx.Client(timeout=INSTANCE_TIMEOUT, follow_redirects=True) as client:
             resp = client.get(url, params={'search': query, 'limit': 20}, headers=headers)
             resp.raise_for_status()
             data = resp.json()
 
-            items = data.get('results', data.get('data', []))
+            results = data.get('results', data.get('data', []))
+            items = []
+            for item in (results[:10] if isinstance(results, list) else []):
+                config = item.get('config', {}) if isinstance(item.get('config'), dict) else {}
+                items.append({
+                    'name': item.get('ida', item.get('name', '')),
+                    'description': config.get('description', '')[:200],
+                    'price': config.get('price', {}).get('sell') if isinstance(config.get('price'), dict) else None,
+                    'on_hand': config.get('inventory', {}).get('on_hand') if isinstance(config.get('inventory'), dict) else None,
+                    'item_id': item.get('id'),
+                })
+
             return {
                 **instance,
-                'items': [
-                    {
-                        'name': item.get('ida', item.get('name', '')),
-                        'description': item.get('config', {}).get('description', '')[:200] if isinstance(item.get('config'), dict) else '',
-                        'price': item.get('config', {}).get('price', {}).get('sell', None) if isinstance(item.get('config'), dict) else None,
-                        'on_hand': item.get('config', {}).get('inventory', {}).get('on_hand', None) if isinstance(item.get('config'), dict) else None,
-                        'item_id': item.get('id'),
-                    }
-                    for item in items[:10]
-                ],
+                'items': items,
                 'error': None,
             }
 
