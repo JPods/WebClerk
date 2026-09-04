@@ -1,12 +1,12 @@
 {
   "version": "1.0",
   "source": "pack_settings_bundle",
-  "dt_exported": "2026-08-29T22:44:58.414276+00:00",
-  "record_count": 104,
+  "dt_exported": "2026-09-04T21:26:31.921023+00:00",
+  "record_count": 116,
   "settings": [
     {
       "uuid": "fe2f22ea-7d46-460b-af55-cd3d3bf1c464",
-      "ida": "DEV-862",
+      "ida": "862",
       "name": "alice:aggregates:invoice",
       "scope": "system",
       "purpose": "alice:aggregates",
@@ -150,7 +150,7 @@
     },
     {
       "uuid": "d1bcd927-996c-4ed1-b706-eeba95157724",
-      "ida": "DEV-863",
+      "ida": "863",
       "name": "alice:aggregates:order",
       "scope": "system",
       "purpose": "alice:aggregates",
@@ -289,7 +289,7 @@
     },
     {
       "uuid": "5403eea1-874e-43b1-8593-1ba1cb13b3e7",
-      "ida": "DEV-864",
+      "ida": "864",
       "name": "alice:aggregates:proposal",
       "scope": "system",
       "purpose": "alice:aggregates",
@@ -423,7 +423,7 @@
     },
     {
       "uuid": "d2915951-f33e-4409-94f5-0b769af92664",
-      "ida": "DEV-865",
+      "ida": "865",
       "name": "alice:aggregates:purchase",
       "scope": "system",
       "purpose": "alice:aggregates",
@@ -557,7 +557,7 @@
     },
     {
       "uuid": "d33d1f04-affd-4167-beba-8cc39c7bcf10",
-      "ida": "DEV-866",
+      "ida": "866",
       "name": "alice:aggregates:workorder",
       "scope": "system",
       "purpose": "alice:aggregates",
@@ -668,6 +668,721 @@
           "dev-866",
           "system",
           "workorder"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
+      "uuid": "fc94eae0-3236-490d-8172-a294ab121b28",
+      "ida": "890",
+      "name": "alice-employee-qa-gl-journal-export",
+      "scope": "system",
+      "purpose": "alice_quiz",
+      "parent_model": "setting",
+      "explanation": "",
+      "paths": {},
+      "config": {
+        "topic": "GL Journal Export & Journal Formatter",
+        "video": "/videos/journal-formatter",
+        "questions": [
+          {
+            "ida": "gl-1",
+            "seq": 1,
+            "answers": [
+              {
+                "ida": "gl-1-1",
+                "answer": "A complete P&L statement"
+              },
+              {
+                "ida": "gl-1-2",
+                "answer": "GL journal entries (debits and credits)"
+              },
+              {
+                "ida": "gl-1-3",
+                "answer": "Bank reconciliation reports"
+              },
+              {
+                "ida": "gl-1-4",
+                "answer": "Tax returns"
+              }
+            ],
+            "correct": "gl-1-2",
+            "question": "What does WebClerk produce for your accounting program?",
+            "explanation": "WebClerk produces GL journal entries. Your accounting program (QuickBooks, Xero, Sage) consumes them and handles P&L, checkbooks, and payables."
+          },
+          {
+            "ida": "gl-2",
+            "seq": 2,
+            "answers": [
+              {
+                "ida": "gl-2-1",
+                "answer": "QuickBooks IIF file"
+              },
+              {
+                "ida": "gl-2-2",
+                "answer": "Excel spreadsheet"
+              },
+              {
+                "ida": "gl-2-3",
+                "answer": "bundle.json (canonical JSON)"
+              },
+              {
+                "ida": "gl-2-4",
+                "answer": "CSV file"
+              }
+            ],
+            "correct": "gl-2-3",
+            "question": "What file format does the GL Journal Export produce?",
+            "explanation": "WebClerk exports bundle.json — a canonical format that works for any accounting program. The Journal Formatter tool converts it to the specific format your program needs."
+          },
+          {
+            "ida": "gl-3",
+            "seq": 3,
+            "answers": [
+              {
+                "ida": "gl-3-1",
+                "answer": "Imports bank statements into WebClerk"
+              },
+              {
+                "ida": "gl-3-2",
+                "answer": "Converts bundle.json into your accounting program format"
+              },
+              {
+                "ida": "gl-3-3",
+                "answer": "Creates GL journal entries from invoices"
+              },
+              {
+                "ida": "gl-3-4",
+                "answer": "Reconciles your bank account"
+              }
+            ],
+            "correct": "gl-3-2",
+            "question": "What does the Journal Formatter do?",
+            "explanation": "The Journal Formatter is a standalone tool — drop bundle.json, pick your accounting program, download the formatted file. Like Statement Sorter but outbound."
+          },
+          {
+            "ida": "gl-4",
+            "seq": 4,
+            "answers": [
+              {
+                "ida": "gl-4-1",
+                "answer": "Yes, it sends data to a cloud server"
+              },
+              {
+                "ida": "gl-4-2",
+                "answer": "No, it runs entirely in your browser"
+              },
+              {
+                "ida": "gl-4-3",
+                "answer": "Only for QuickBooks format"
+              },
+              {
+                "ida": "gl-4-4",
+                "answer": "Yes, it connects to WCHQ"
+              }
+            ],
+            "correct": "gl-4-2",
+            "question": "Does the Journal Formatter need an internet connection?",
+            "explanation": "The Journal Formatter is standalone HTML+JS. No server, works offline, runs in any browser. Your financial data never leaves your machine."
+          },
+          {
+            "ida": "gl-5",
+            "seq": 5,
+            "answers": [
+              {
+                "ida": "gl-5-1",
+                "answer": "The filename"
+              },
+              {
+                "ida": "gl-5-2",
+                "answer": "The source.uuid from the company Setting record"
+              },
+              {
+                "ida": "gl-5-3",
+                "answer": "The server IP address"
+              },
+              {
+                "ida": "gl-5-4",
+                "answer": "Nothing — all bundles are anonymous"
+              }
+            ],
+            "correct": "gl-5-2",
+            "question": "What identifies which company produced a bundle.json?",
+            "explanation": "Every bundle.json carries source.uuid from Setting(purpose=wc:company_profile). The accountant sees which company produced entries, whether standalone or multi-location."
+          },
+          {
+            "ida": "gl-6",
+            "seq": 6,
+            "answers": [
+              {
+                "ida": "gl-6-1",
+                "answer": "They are loaded into HQ's GL tables"
+              },
+              {
+                "ida": "gl-6-2",
+                "answer": "They are stored as Bundle records for accounting handoff"
+              },
+              {
+                "ida": "gl-6-3",
+                "answer": "They are deleted after review"
+              },
+              {
+                "ida": "gl-6-4",
+                "answer": "They are emailed to the accountant"
+              }
+            ],
+            "correct": "gl-6-2",
+            "question": "In a multi-location company, what happens to GL journals at HQ?",
+            "explanation": "HQ never loads location journals into its own GL. They stay as Bundle records — curated for the accounting program handoff. HQ is a consolidator, not a ledger."
+          },
+          {
+            "ida": "gl-7",
+            "seq": 7,
+            "answers": [
+              {
+                "ida": "gl-7-1",
+                "answer": "QuickBooks only"
+              },
+              {
+                "ida": "gl-7-2",
+                "answer": "QuickBooks Desktop, QuickBooks Online, Xero, Sage, FreshBooks, and generic CSV"
+              },
+              {
+                "ida": "gl-7-3",
+                "answer": "Only programs with API access"
+              },
+              {
+                "ida": "gl-7-4",
+                "answer": "SAP and Oracle only"
+              }
+            ],
+            "correct": "gl-7-2",
+            "question": "Which accounting programs can the Journal Formatter export to?",
+            "explanation": "The Journal Formatter supports QB Desktop (IIF), QB Online (CSV), Xero, Sage, FreshBooks, and generic CSV. New formats can be added without changing WebClerk."
+          }
+        ],
+        "description": "Learn how to export GL journals and convert them for your accounting program."
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": false
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "tn": false,
+          "hires": false,
+          "source": "",
+          "display": false
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1788205122765,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1788205122763,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1788205122765,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "size_activity": {},
+          "changed_fields": [],
+          "keywords_dt_refreshed": 1788205500319
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "alice-employee-qa-gl-journal-export",
+          "alice_quiz",
+          "dev-890",
+          "fc94eae0-3236-490d-8172-a294ab121b28",
+          "setting",
+          "system"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
+      "uuid": "c6978f62-0f57-4a7e-aa32-f6a2e3333ad6",
+      "ida": "891",
+      "name": "alice-employee-qa-ai-escalation",
+      "scope": "system",
+      "purpose": "alice_quiz",
+      "parent_model": "setting",
+      "explanation": "",
+      "paths": {},
+      "config": {
+        "topic": "AI Escalation Chain",
+        "video": "/videos/ai-escalation",
+        "questions": [
+          {
+            "ida": "ai-1",
+            "seq": 1,
+            "answers": [
+              {
+                "ida": "ai-1-1",
+                "answer": "Claude API"
+              },
+              {
+                "ida": "ai-1-2",
+                "answer": "Alice local (Ollama on your machine)"
+              },
+              {
+                "ida": "ai-1-3",
+                "answer": "WCHQ shared model"
+              },
+              {
+                "ida": "ai-1-4",
+                "answer": "Google search"
+              }
+            ],
+            "correct": "ai-1-2",
+            "question": "What is the first tier in the AI escalation chain?",
+            "explanation": "Alice always tries to answer locally first using Ollama RAG. It's free, private, and fast. No data leaves your machine at Tier 1."
+          },
+          {
+            "ida": "ai-2",
+            "seq": 2,
+            "answers": [
+              {
+                "ida": "ai-2-1",
+                "answer": "The user clicks an \"escalate\" button"
+              },
+              {
+                "ida": "ai-2-2",
+                "answer": "Alice's confidence score falls below 40%"
+              },
+              {
+                "ida": "ai-2-3",
+                "answer": "The question contains more than 50 words"
+              },
+              {
+                "ida": "ai-2-4",
+                "answer": "It always escalates"
+              }
+            ],
+            "correct": "ai-2-2",
+            "question": "What triggers escalation from Alice local to WCHQ?",
+            "explanation": "Alice scores her own confidence (0-100%) based on context quality and answer quality. Below 40% she escalates to WCHQ's Alice, which runs a larger model."
+          },
+          {
+            "ida": "ai-3",
+            "seq": 3,
+            "answers": [
+              {
+                "ida": "ai-3-1",
+                "answer": "Yes, every installation needs one"
+              },
+              {
+                "ida": "ai-3-2",
+                "answer": "No, WCHQ manages the Claude relationship centrally"
+              },
+              {
+                "ida": "ai-3-3",
+                "answer": "Only for the professional tier"
+              },
+              {
+                "ida": "ai-3-4",
+                "answer": "Only during business hours"
+              }
+            ],
+            "correct": "ai-3-2",
+            "question": "Do you need a Claude API key to use the escalation chain?",
+            "explanation": "Individual installations never need a Claude API key. WCHQ holds the key centrally and calls Claude on behalf of subscribers. You just need a subscription."
+          },
+          {
+            "ida": "ai-4",
+            "seq": 4,
+            "answers": [
+              {
+                "ida": "ai-4-1",
+                "answer": "Nothing — it's sent as-is"
+              },
+              {
+                "ida": "ai-4-2",
+                "answer": "The user must manually remove it"
+              },
+              {
+                "ida": "ai-4-3",
+                "answer": "It's automatically scrubbed (emails, phones, SSNs, names replaced with tags)"
+              },
+              {
+                "ida": "ai-4-4",
+                "answer": "The question is encrypted"
+              }
+            ],
+            "correct": "ai-4-3",
+            "question": "What happens to personally identifiable information (PII) before a question is sent to WCHQ?",
+            "explanation": "The PII scrubber automatically replaces emails, phone numbers, SSNs, credit cards, addresses, and names with tags like <email>, <phone>, <ssn> before anything leaves your machine."
+          },
+          {
+            "ida": "ai-5",
+            "seq": 5,
+            "answers": [
+              {
+                "ida": "ai-5-1",
+                "answer": "$4 per person per month"
+              },
+              {
+                "ida": "ai-5-2",
+                "answer": "$9 per person per month"
+              },
+              {
+                "ida": "ai-5-3",
+                "answer": "Free"
+              },
+              {
+                "ida": "ai-5-4",
+                "answer": "Pay per question"
+              }
+            ],
+            "correct": "ai-5-3",
+            "question": "What is the cost of Alice local (Tier 1)?",
+            "explanation": "Alice local is always free — she runs on your own machine using Ollama. WCHQ escalation costs $4/person/mo (standard) or $9/person/mo (professional, includes Claude)."
+          },
+          {
+            "ida": "ai-6",
+            "seq": 6,
+            "answers": [
+              {
+                "ida": "ai-6-1",
+                "answer": "She asks the user to rate her answer"
+              },
+              {
+                "ida": "ai-6-2",
+                "answer": "She uses context quality (60%) and answer quality (40%)"
+              },
+              {
+                "ida": "ai-6-3",
+                "answer": "She counts the number of words in the answer"
+              },
+              {
+                "ida": "ai-6-4",
+                "answer": "She compares to a pre-built answer key"
+              }
+            ],
+            "correct": "ai-6-2",
+            "question": "How does Alice measure her confidence in an answer?",
+            "explanation": "Confidence = 60% context quality (how relevant the retrieved docs are) + 40% answer quality (length and hedging phrases like \"I'm not sure\"). Low scores trigger escalation."
+          },
+          {
+            "ida": "ai-7",
+            "seq": 7,
+            "answers": [
+              {
+                "ida": "ai-7-1",
+                "answer": "They are not logged"
+              },
+              {
+                "ida": "ai-7-2",
+                "answer": "In a text file on the server"
+              },
+              {
+                "ida": "ai-7-3",
+                "answer": "As AliceObservation records (category=escalation)"
+              },
+              {
+                "ida": "ai-7-4",
+                "answer": "Sent to WCHQ only"
+              }
+            ],
+            "correct": "ai-7-3",
+            "question": "Where are escalations logged?",
+            "explanation": "Every escalation is logged as an AliceObservation with category='escalation'. This creates an audit trail and lets Alice learn which question types need escalation."
+          }
+        ],
+        "description": "Learn how Alice answers questions and when she escalates to WCHQ."
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": false
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "tn": false,
+          "hires": false,
+          "source": "",
+          "display": false
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1788205123006,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1788205123005,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1788205123006,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "size_activity": {},
+          "changed_fields": [],
+          "keywords_dt_refreshed": 1788205500476
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "alice-employee-qa-ai-escalation",
+          "alice_quiz",
+          "c6978f62-0f57-4a7e-aa32-f6a2e3333ad6",
+          "dev-891",
+          "setting",
+          "system"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
+      "uuid": "174a3335-1ee3-426c-ab1e-bf779b02eeb8",
+      "ida": "claude-api",
+      "name": "Claude API — Escalation Chain",
+      "scope": "system",
+      "purpose": "claude_api",
+      "parent_model": "setting",
+      "explanation": "",
+      "paths": {},
+      "config": {
+        "model": "claude-sonnet-4-5-20250514",
+        "api_key": "",
+        "privacy": {
+          "no_raw_business_data": true,
+          "exchanges_logged_locally": true,
+          "pii_scrubbed_before_send": true
+        },
+        "escalation": {
+          "enabled": true,
+          "wchq_keywords": [
+            "other installation",
+            "other store",
+            "other location",
+            "cross-instance",
+            "headquarters",
+            "wchq",
+            "all stores",
+            "company-wide",
+            "across locations",
+            "network-wide",
+            "supplier catalog",
+            "product library",
+            "shared catalog"
+          ],
+          "confidence_weights": {
+            "answer": 0.4,
+            "context": 0.6
+          },
+          "log_all_escalations": true,
+          "confidence_threshold": 0.4
+        },
+        "max_tokens": 2048,
+        "rate_limit": {
+          "daily_budget_usd": 5.0,
+          "requests_per_minute": 30
+        },
+        "temperature": 0.3
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": false
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "tn": false,
+          "hires": false,
+          "source": "",
+          "display": false
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1788173849036,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1788173849035,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1788173849036,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "size_activity": {},
+          "changed_fields": [],
+          "keywords_dt_refreshed": 1788174014184
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "174a3335-1ee3-426c-ab1e-bf779b02eeb8",
+          "api",
+          "chain",
+          "claude",
+          "claude-api",
+          "claude_api",
+          "escalation",
+          "setting",
+          "system"
         ],
         "categories": [],
         "depends_on": {},
@@ -3177,7 +3892,7 @@
     },
     {
       "uuid": "99d405e2-8804-4877-9db2-819901c2e9f8",
-      "ida": "DEV-874",
+      "ida": "874",
       "name": "alice_coaching:action",
       "scope": "system",
       "purpose": "wc:coaching",
@@ -3199,9 +3914,25 @@
         },
         "warnings": [],
         "field_help": {
+          "ida": "Action identifier — unique across all actions.",
+          "action": "What needs to be done. The task description.",
+          "impact": "Business impact assessment — Alice auto-fills, users correct.",
+          "status": "open = active. complete = done. cancelled = abandoned.",
+          "linkage": "Related URL or record reference.",
+          "burndown": "Remaining effort estimate. Decreases toward zero.",
+          "dt_start": "When work began or should begin.",
           "priority": "Higher number = higher priority. 1 = low, 5 = urgent.",
+          "sequence": "Order within the project. Lower = earlier in the plan.",
+          "difficulty": "Estimated complexity. 1 = simple, 5 = very complex.",
+          "action_type": "Category — task, bug, feature, meeting, review, etc.",
+          "assigned_to": "Who is responsible. First person = primary owner.",
+          "description": "Detailed description — context, requirements, acceptance criteria.",
           "dt_deadline": "When this task is due. Shows in red when overdue.",
+          "dt_expected": "When you expect to finish. May differ from deadline.",
+          "dt_completed": "When this action was marked complete. Set by system.",
+          "project_name": "Which project this action belongs to.",
           "kanban_column": "backlog → todo → in_progress → review → done. Drag in Kanban view.",
+          "retrospection": "Post-completion review — what worked, what to improve.",
           "percent_complete": "0-100. Update as work progresses."
         },
         "api_reference": {
@@ -3254,7 +3985,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787843953061,
+            "dt": 1788556939039,
             "contact_id": 0
           },
           "verified": {
@@ -3273,8 +4004,10 @@
         },
         "versioning": {
           "size_activity": {},
-          "changed_fields": [],
-          "keywords_dt_refreshed": 1787844032383
+          "changed_fields": [
+            "config"
+          ],
+          "keywords_dt_refreshed": 1788557032272
         },
         "audit_trail": [],
         "explanation": "",
@@ -3297,14 +4030,15 @@
         "source": null,
         "parents": [],
         "keywords": [
+          "874",
           "99d405e2-8804-4877-9db2-819901c2e9f8",
           "action",
           "alice",
           "alice_coaching:action",
+          "alicecoachingaction",
           "coaching",
           "contextual",
           "data",
-          "dev-874",
           "during",
           "entry",
           "field",
@@ -3314,7 +4048,184 @@
           "system",
           "tips",
           "users",
-          "wc:coaching"
+          "wc:coaching",
+          "wccoaching"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
+      "uuid": "2d91ab25-0591-4c17-95b1-8919bf4aac7d",
+      "ida": "DEV-897",
+      "name": "alice_coaching:ai_message",
+      "scope": "system",
+      "purpose": "wc:coaching",
+      "parent_model": "ai_message",
+      "explanation": "Alice coaching tips and field help for ai_message. Contextual guidance shown to users during data entry.",
+      "paths": {},
+      "config": {
+        "tips": [
+          {
+            "id": "msg-01",
+            "body": "Every user-AI and AI-AI interaction is an AiMessage. Feedback, help lookups, agent observations, forwarded messages — all the same model.",
+            "type": "concept",
+            "level": "beginner",
+            "title": "Messages are interactions"
+          },
+          {
+            "id": "msg-02",
+            "body": "Commercial and personal data are auto-blocked. Only technical data with Athena clearance and PII scrubbing can be forwarded to WCHQ.",
+            "type": "warning",
+            "level": "beginner",
+            "title": "Data never leaves without clearance"
+          },
+          {
+            "id": "msg-03",
+            "body": "help_lookup messages are counted per field. High frequency means users are confused — Alice flags these for admin attention.",
+            "type": "concept",
+            "level": "intermediate",
+            "title": "Help frequency = confusion"
+          }
+        ],
+        "actions": {
+          "review": "Alice reviews pending feedback and classifies. Admin approves or edits.",
+          "forward": "Alice requests Athena clearance, then forwards technical messages to WCHQ.",
+          "feedback": "User submits via Feedback button in Get Help dialog."
+        },
+        "warnings": [
+          "Commercial data (prices, orders, customer names) must NEVER leave the instance.",
+          "Personal data (contact info, login, PII) must NEVER leave the instance.",
+          "Only technical data (wc/react/system) with Athena clearance + scrubbing can be forwarded."
+        ],
+        "field_help": {
+          "body": "The message content — feedback text, question, observation, etc.",
+          "kind": "Message type: feedback, help_lookup, chat, question, answer, observation, directive, forward.",
+          "parent": "Links replies in a thread. Self-FK.",
+          "sender": "Who sent it — user login name or agent name (alice, allie, noelle, etc.).",
+          "status": "pending = unprocessed. read = seen. reviewed = classified. actioned = task created. forwarded = sent on. resolved = done.",
+          "context": "What the sender was looking at: model, field, page, component, source_path.",
+          "subject": "Short subject line. Auto-generated from context if blank.",
+          "batch_id": "Groups related messages. All messages from one help session share a batch_id.",
+          "receiver": "Who receives it — agent name, user name, or wchq.",
+          "scrubbed": "True after PII scrubbing. Forward requires scrubbed=True.",
+          "clearance": "Athena gate: local (not reviewed), pending (in queue), cleared (safe to forward), blocked (sensitive data).",
+          "forward_of": "Original message this was forwarded from. Tracks provenance.",
+          "classification": "Data sensitivity: technical (safe), operational (review), commercial (never leaves), personal (never leaves).",
+          "source_instance": "UUID of the WC3 instance that created this message. For sync.",
+          "sender_contact_id": "Contact record ID when sender is a user. Null for agents.",
+          "receiver_contact_id": "Contact record ID when receiver is a user. Null for agents."
+        },
+        "api_reference": {
+          "list": "GET /wcapi/get/?model_name=ai_message&kind=feedback&status=pending",
+          "frequency": "GET /wcapi/get/?model_name=ai_message&kind=help_lookup&ordering=-dt_created"
+        },
+        "code_examples": []
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": false
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "tn": false,
+          "hires": false,
+          "source": "",
+          "display": false
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1788556939183,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1788556939181,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1788556939183,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "size_activity": {},
+          "changed_fields": [],
+          "keywords_dt_refreshed": 1788557032639
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "2d91ab25-0591-4c17-95b1-8919bf4aac7d",
+          "ai_message",
+          "aimessage",
+          "alice",
+          "alice_coaching:ai_message",
+          "alicecoachingaimessage",
+          "coaching",
+          "contextual",
+          "data",
+          "dev-897",
+          "during",
+          "entry",
+          "field",
+          "guidance",
+          "help",
+          "shown",
+          "system",
+          "tips",
+          "users",
+          "wc:coaching",
+          "wccoaching"
         ],
         "categories": [],
         "depends_on": {},
@@ -3323,7 +4234,7 @@
     },
     {
       "uuid": "65274aab-dbdb-4ab1-94c5-acaa3f579c7b",
-      "ida": "DEV-875",
+      "ida": "875",
       "name": "alice_coaching:contact",
       "scope": "system",
       "purpose": "wc:coaching",
@@ -3354,9 +4265,26 @@
           "Deleting a contact removes their login. Use is_active=false to disable instead."
         ],
         "field_help": {
+          "ida": "Contact identifier — unique across all contacts.",
           "role": "admin, manager, sales, warehouse, accounting, customer, vendor, rep.",
-          "email": "Login email — also used as the primary communication email.",
-          "company": "Company affiliation — may differ from org.display_name."
+          "email": "Login email. Cmd+click label to compose. Also primary communication email.",
+          "phone": "Primary phone. Cmd+click label to dial.",
+          "prefs": "User preferences — theme, font size, default model, saved filters.",
+          "title": "Job title — VP Sales, Warehouse Manager, etc.",
+          "config": "Contact-specific settings — notification preferences, UI layout.",
+          "status": "active = can log in and transact. inactive = disabled.",
+          "company": "Company affiliation — may differ from org.display_name.",
+          "attention": "Full name as it appears on correspondence.",
+          "name_last": "Last name. Used in formal references and sorting.",
+          "department": "Department within the company.",
+          "dt_created": "When this contact was first created.",
+          "name_first": "First name. Used in greetings and informal references.",
+          "times_used": "Login or transaction count. Activity indicator.",
+          "source_name": "How this contact was acquired — referral, web form, import.",
+          "address_full": "Primary address. Cmd+click label to open in maps.",
+          "contact_type": "customer, vendor, employee, rep — determines which org links apply.",
+          "dt_last_used": "Last login or transaction. Helps identify dormant contacts.",
+          "security_level": "Access tier. Higher = more restricted data visible."
         },
         "api_reference": {
           "list": "GET /wcapi/get/?model_name=contact&ordering=name_last"
@@ -3408,7 +4336,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787843952842,
+            "dt": 1788556939081,
             "contact_id": 0
           },
           "verified": {
@@ -3427,8 +4355,10 @@
         },
         "versioning": {
           "size_activity": {},
-          "changed_fields": [],
-          "keywords_dt_refreshed": 1787844030792
+          "changed_fields": [
+            "config"
+          ],
+          "keywords_dt_refreshed": 1788557033062
         },
         "audit_trail": [],
         "explanation": "",
@@ -3452,13 +4382,14 @@
         "parents": [],
         "keywords": [
           "65274aab-dbdb-4ab1-94c5-acaa3f579c7b",
+          "875",
           "alice",
           "alice_coaching:contact",
+          "alicecoachingcontact",
           "coaching",
           "contact",
           "contextual",
           "data",
-          "dev-875",
           "during",
           "entry",
           "field",
@@ -3468,7 +4399,8 @@
           "system",
           "tips",
           "users",
-          "wc:coaching"
+          "wc:coaching",
+          "wccoaching"
         ],
         "categories": [],
         "depends_on": {},
@@ -3477,7 +4409,7 @@
     },
     {
       "uuid": "899425ff-13ff-4fb0-b4a6-b3a46a369857",
-      "ida": "DEV-867",
+      "ida": "867",
       "name": "alice_coaching:customer",
       "scope": "system",
       "purpose": "wc:coaching",
@@ -3517,14 +4449,25 @@
           "Deleting a customer does NOT delete their orders/invoices. Those become orphaned."
         ],
         "field_help": {
-          "email": "Primary email — click the label to compose. Synced from communications.",
-          "phone": "Primary phone — click the label to dial. Synced from communications.",
+          "ida": "Short identifier — unique across all customers. Auto-generated or manually set.",
+          "refs": "Links to related records. Denormalized cache — PKs are authoritative.",
+          "email": "Primary email. Cmd+click label to compose. Synced from communications.",
+          "phone": "Primary phone. Cmd+click label to dial. Synced from communications.",
+          "prefs": "Customer-specific preferences — notification settings, default formats.",
           "terms": "Payment terms (N30, COD, 2/10 Net 30). Sets when payment is due.",
+          "config": "Custom settings for this customer — ship-to addresses, special instructions.",
           "status": "active = doing business. prospect = potential. inactive = paused. retired = closed.",
+          "totals": "Aggregated order/invoice totals. Updated by the system — read-only.",
+          "metadata": "System-managed data — AR aging, Alice observations, health score.",
           "attention": "Who to address correspondence to at this organization.",
+          "is_active": "Unchecked = hidden from search and dropdowns. Use instead of deleting.",
+          "dt_created": "When this customer record was created. Read-only.",
+          "dt_modified": "Last time any field on this record was changed.",
           "price_level": "Determines which price tier is used on orders/invoices for this customer.",
-          "address_full": "Primary address — click the label to open in Google Maps.",
-          "display_name": "The primary name shown in lists and on printed documents."
+          "source_name": "How this customer found you — referral, web, trade show, etc.",
+          "address_full": "Primary address. Cmd+click label to open in maps.",
+          "display_name": "The primary name shown in lists and on printed documents.",
+          "security_level": "Access tier. Higher = more restricted. 0 = public."
         },
         "api_reference": {
           "get": "GET /wcapi/get/?model_name=customer&id={id}",
@@ -3583,7 +4526,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787843953099,
+            "dt": 1788556938799,
             "contact_id": 0
           },
           "verified": {
@@ -3602,8 +4545,10 @@
         },
         "versioning": {
           "size_activity": {},
-          "changed_fields": [],
-          "keywords_dt_refreshed": 1787844021800
+          "changed_fields": [
+            "config"
+          ],
+          "keywords_dt_refreshed": 1788557031758
         },
         "audit_trail": [],
         "explanation": "",
@@ -3626,14 +4571,15 @@
         "source": null,
         "parents": [],
         "keywords": [
+          "867",
           "899425ff-13ff-4fb0-b4a6-b3a46a369857",
           "alice",
           "alice_coaching:customer",
+          "alicecoachingcustomer",
           "coaching",
           "contextual",
           "customer",
           "data",
-          "dev-867",
           "during",
           "entry",
           "field",
@@ -3643,7 +4589,341 @@
           "system",
           "tips",
           "users",
-          "wc:coaching"
+          "wc:coaching",
+          "wccoaching"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
+      "uuid": "f4e30e5f-4d51-4136-896f-7ea895cdc635",
+      "ida": "DEV-895",
+      "name": "alice_coaching:document",
+      "scope": "system",
+      "purpose": "wc:coaching",
+      "parent_model": "document",
+      "explanation": "Alice coaching tips and field help for document. Contextual guidance shown to users during data entry.",
+      "paths": {},
+      "config": {
+        "tips": [
+          {
+            "id": "doc-01",
+            "body": "Help guides, training materials, reports, file attachments. Searchable by name, slug, and body text.",
+            "type": "concept",
+            "level": "beginner",
+            "title": "Documents are content"
+          }
+        ],
+        "actions": {
+          "create": "Set name, purpose, status. Write content in the body field."
+        },
+        "warnings": [],
+        "field_help": {
+          "ida": "Document identifier.",
+          "body": "Document content — supports Markdown formatting.",
+          "name": "Document title — shown in lists and search results.",
+          "path": "File location — URL, local path, or storage reference.",
+          "slug": "URL-friendly identifier. Auto-generated from name if blank.",
+          "status": "draft = not visible. published = visible to authorized users.",
+          "purpose": "Category — help, training, report, attachment, policy, etc.",
+          "mime_type": "File type for attachments — application/pdf, image/png, etc.",
+          "description": "Short summary shown in search results and document lists.",
+          "confidential": "public = anyone. internal = staff only. restricted = need-to-know.",
+          "count_accessed": "How many times this document has been opened. Alice tracks this.",
+          "retention_period": "Days to keep before auto-archive. 0 = keep forever."
+        },
+        "api_reference": {
+          "list": "GET /wcapi/get/?model_name=document&status=published"
+        },
+        "code_examples": []
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": false
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "tn": false,
+          "hires": false,
+          "source": "",
+          "display": false
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1788549038947,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1788549038945,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1788556939166,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "size_activity": {},
+          "changed_fields": [],
+          "keywords_dt_refreshed": 1788557033543
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "alice",
+          "alice_coaching:document",
+          "alicecoachingdocument",
+          "coaching",
+          "contextual",
+          "data",
+          "dev-895",
+          "document",
+          "during",
+          "entry",
+          "f4e30e5f-4d51-4136-896f-7ea895cdc635",
+          "field",
+          "guidance",
+          "help",
+          "shown",
+          "system",
+          "tips",
+          "users",
+          "wc:coaching",
+          "wccoaching"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
+      "uuid": "b69f2d26-63b0-466b-bea6-65bf5eb352af",
+      "ida": "889",
+      "name": "alice_coaching:gl_journal",
+      "scope": "system",
+      "purpose": "wc:coaching",
+      "parent_model": "gl_journal",
+      "explanation": "Alice coaching tips and field help for gl_journal. Contextual guidance shown to users during data entry.",
+      "paths": {},
+      "config": {
+        "tips": [
+          {
+            "id": "gl-01",
+            "body": "Every invoice, payment, and purchase creates GL journal entries. Debit always equals credit.",
+            "type": "concept",
+            "level": "beginner",
+            "title": "Journals record financial events"
+          },
+          {
+            "id": "gl-02",
+            "body": "Use GL Journal Export to download bundle.json, then open the Journal Formatter to convert it into your accounting program's format. No retyping.",
+            "link": "/tools/journal_formatter.html",
+            "type": "workflow",
+            "level": "beginner",
+            "title": "Export, don't retype",
+            "link_label": "Open Journal Formatter"
+          },
+          {
+            "id": "gl-03",
+            "body": "The same bundle.json works for local accounting export and multi-location consolidation. Your accountant sees entries tagged by company UUID regardless of how many locations you have.",
+            "type": "concept",
+            "level": "intermediate",
+            "title": "One format, two destinations"
+          },
+          {
+            "id": "gl-04",
+            "body": "WebClerk produces GL journal entries. QuickBooks/Xero/Sage consumes them. WC3 does not do checkbooks, payables, or P&L — that's the accounting program's job.",
+            "type": "concept",
+            "level": "beginner",
+            "title": "WC3 produces, accounting consumes"
+          },
+          {
+            "id": "gl-05",
+            "body": "The Journal Formatter is a standalone HTML tool — no server, works offline, runs in any browser. Drop bundle.json, pick your program, download.",
+            "type": "concept",
+            "level": "beginner",
+            "title": "Journal Formatter is free"
+          }
+        ],
+        "actions": {
+          "export": "Go to GL Journals → Export. Select period, click Export to download bundle.json.",
+          "format": "Open tools/journal_formatter.html in your browser. Drop bundle.json, pick your accounting program.",
+          "upstream": "Multi-location: the same bundle.json can be sent to your company HQ for consolidation.",
+          "reconcile": "After importing into your accounting program, mark the period as reconciled in WebClerk."
+        },
+        "warnings": [
+          "GL posting is one-way. Once posted, you reverse — you don't edit.",
+          "Always verify totals are balanced before importing into your accounting program.",
+          "HQ never loads location journals into its own GL. They stay as Bundles for the accounting handoff."
+        ],
+        "field_help": {
+          "type": "Source type — sales, purchase, payment, adjustment.",
+          "debit": "Debit amount. Increases assets and expenses.",
+          "credit": "Credit amount. Increases liabilities, equity, and revenue.",
+          "account": "GL account code (e.g. ASSET-AR-000). Maps to your chart of accounts.",
+          "batch_id": "Batch identifier. Journals posted together share a batch.",
+          "division": "Division or department code. Optional — used for departmental reporting.",
+          "source_model": "Which record created this entry (invoice, payment, purchase)."
+        },
+        "api_reference": {
+          "export": "python manage.py shell -c \"from apps.sync.services.gl_journal_bundle import build_gl_journal_bundle; import json; print(json.dumps(build_gl_journal_bundle('2026-08'), indent=2, default=str))\""
+        },
+        "code_examples": []
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": false
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "tn": false,
+          "hires": false,
+          "source": "",
+          "display": false
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1788194977722,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1788194977721,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1788556938967,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "size_activity": {},
+          "changed_fields": [],
+          "keywords_dt_refreshed": 1788557033428
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "889",
+          "alice",
+          "alice_coaching:gl_journal",
+          "alicecoachinggljournal",
+          "b69f2d26-63b0-466b-bea6-65bf5eb352af",
+          "coaching",
+          "contextual",
+          "data",
+          "during",
+          "entry",
+          "field",
+          "gl_journal",
+          "gljournal",
+          "guidance",
+          "help",
+          "shown",
+          "system",
+          "tips",
+          "users",
+          "wc:coaching",
+          "wccoaching"
         ],
         "categories": [],
         "depends_on": {},
@@ -3652,7 +4932,7 @@
     },
     {
       "uuid": "5917724c-faf8-499a-bbbc-9fc00696a393",
-      "ida": "DEV-868",
+      "ida": "868",
       "name": "alice_coaching:invoice",
       "scope": "system",
       "purpose": "wc:coaching",
@@ -3684,7 +4964,7 @@
           }
         ],
         "actions": {
-          "print": "Click Reports (🖨) button → Invoice. Opens printable format.",
+          "print": "Click Reports button → Invoice. Opens printable format.",
           "create": "Select a customer, set status to planned, add line items with items and quantities.",
           "gl_post": "On the invoice toolbar, click Post GL. Creates journal entries by account code.",
           "payment": "Go to Payments → Apply Payments. Select this invoice, enter amount."
@@ -3694,11 +4974,29 @@
           "GL posting creates permanent journal entries. Review totals before posting."
         ],
         "field_help": {
+          "ida": "Invoice number — unique identifier. Auto-generated or manually set.",
+          "cost": "Cost-side data — landed cost, margin analysis. Not shown to customers.",
+          "sell": "Sales-side envelope — commission data, rep assignments.",
+          "email": "Billing email. Cmd+click label to compose.",
+          "phone": "Billing phone. Cmd+click label to dial.",
           "terms": "Payment terms — determines due date on the ledger record.",
           "total": "Sum of all line items. Edit lines to change — total recalculates automatically.",
+          "config": "Custom settings — alternate ship-to, special handling instructions.",
+          "source": "Origin tracking — which order, proposal, or import created this invoice.",
           "status": "planned = draft. released = sent to customer. complete = paid and closed.",
+          "totals": "Subtotal, tax, shipping, and grand total. Computed from lines — read-only.",
           "balance": "Total minus payments received. Read-only. Updated when payments are applied.",
-          "price_level": "Price tier used for line item pricing on this invoice."
+          "company": "Customer company name. Denormalized from the customer record.",
+          "finance": "GL posting data — account codes, journal references, posting status.",
+          "priority": "Processing priority. Higher number = pick/ship first.",
+          "ship_via": "Preferred shipping carrier or method.",
+          "attention": "Contact name at the customer for this invoice.",
+          "dt_needed": "When customer needs delivery. Drives warehouse priority.",
+          "price_level": "Price tier used for line item pricing on this invoice.",
+          "source_name": "Where this invoice originated — order conversion, manual entry, import.",
+          "address_full": "Bill-to address. Cmd+click label to open in maps.",
+          "invoice_type": "Invoice = standard. Proforma = quote-like. Credit Note = refund. Deposit = prepay.",
+          "conditions_description": "Special terms or conditions printed on the invoice."
         },
         "api_reference": {
           "get": "GET /wcapi/get/?model_name=invoice&id={id}",
@@ -3757,7 +5055,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787843952893,
+            "dt": 1788556938850,
             "contact_id": 0
           },
           "verified": {
@@ -3776,8 +5074,10 @@
         },
         "versioning": {
           "size_activity": {},
-          "changed_fields": [],
-          "keywords_dt_refreshed": 1787844031156
+          "changed_fields": [
+            "config"
+          ],
+          "keywords_dt_refreshed": 1788557031893
         },
         "audit_trail": [],
         "explanation": "",
@@ -3801,12 +5101,13 @@
         "parents": [],
         "keywords": [
           "5917724c-faf8-499a-bbbc-9fc00696a393",
+          "868",
           "alice",
           "alice_coaching:invoice",
+          "alicecoachinginvoice",
           "coaching",
           "contextual",
           "data",
-          "dev-868",
           "during",
           "entry",
           "field",
@@ -3817,7 +5118,8 @@
           "system",
           "tips",
           "users",
-          "wc:coaching"
+          "wc:coaching",
+          "wccoaching"
         ],
         "categories": [],
         "depends_on": {},
@@ -3826,7 +5128,7 @@
     },
     {
       "uuid": "952ffb2c-757b-4c3e-bd62-e8f8f935a498",
-      "ida": "DEV-873",
+      "ida": "873",
       "name": "alice_coaching:item",
       "scope": "system",
       "purpose": "wc:coaching",
@@ -3857,12 +5159,25 @@
           "Changing an item SKU after it appears on orders/invoices can break references."
         ],
         "field_help": {
+          "gls": "GL account assignments — revenue, COGS, inventory accounts.",
+          "ida": "Item identifier — unique across all items.",
           "sku": "Stock keeping unit — your internal product code.",
-          "uom": "Unit of measure — ea, lb, ft, box, etc.",
-          "kind": "product = physical goods. service = labor/time. bundle = kit of items.",
+          "uom": "Unit of measure — ea, lb, ft, box, etc. Drives quantity calculations.",
+          "cost": "Cost envelope — vendor cost, landed cost, last cost, average cost.",
+          "kind": "product = physical goods. service = labor/time. bundle = kit of items. component = part of a bundle.",
           "name": "Display name shown on documents and in search.",
+          "flags": "Boolean flags — taxable, commissionable, serialized, lot-tracked.",
+          "price": "Price envelope — prices by level (retail, wholesale, distributor), qty breaks.",
           "status": "active = available for sale. discontinued = no longer sold.",
-          "price_level": "Prices stored in the price JSON by level (retail, wholesale, distributor)."
+          "catalog": "Catalog assignments — which catalogs include this item.",
+          "base_uom": "Base unit for conversion — e.g., case (uom) = 12 each (base_uom).",
+          "quantity": "Inventory envelope — on_hand, committed, available, reorder_point.",
+          "tax_code": "Tax classification for this item. Drives tax calculation on lines.",
+          "margin_pct": "Margin percentage at current price/cost. Alice flags below-floor items.",
+          "description": "Full description envelope — short, long, web, print versions.",
+          "annual_turns": "How many times inventory sells per year. Higher = more productive.",
+          "margin_velocity": "Margin × annual turns ÷ carry cost. The real productivity metric.",
+          "velocity_category": "A/B/C/D ranking by margin velocity. A = top performers."
         },
         "api_reference": {
           "list": "GET /wcapi/get/?model_name=item&status=active&ordering=name"
@@ -3914,7 +5229,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787843953020,
+            "dt": 1788556939007,
             "contact_id": 0
           },
           "verified": {
@@ -3933,8 +5248,10 @@
         },
         "versioning": {
           "size_activity": {},
-          "changed_fields": [],
-          "keywords_dt_refreshed": 1787844021629
+          "changed_fields": [
+            "config"
+          ],
+          "keywords_dt_refreshed": 1788557033180
         },
         "audit_trail": [],
         "explanation": "",
@@ -3957,13 +5274,14 @@
         "source": null,
         "parents": [],
         "keywords": [
+          "873",
           "952ffb2c-757b-4c3e-bd62-e8f8f935a498",
           "alice",
           "alice_coaching:item",
+          "alicecoachingitem",
           "coaching",
           "contextual",
           "data",
-          "dev-873",
           "during",
           "entry",
           "field",
@@ -3974,7 +5292,8 @@
           "system",
           "tips",
           "users",
-          "wc:coaching"
+          "wc:coaching",
+          "wccoaching"
         ],
         "categories": [],
         "depends_on": {},
@@ -3983,7 +5302,7 @@
     },
     {
       "uuid": "821d1821-9d69-4c9b-a882-c1cb1d1a8746",
-      "ida": "DEV-872",
+      "ida": "872",
       "name": "alice_coaching:ledger",
       "scope": "system",
       "purpose": "wc:coaching",
@@ -4072,7 +5391,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787843952743,
+            "dt": 1788556938943,
             "contact_id": 0
           },
           "verified": {
@@ -4092,7 +5411,7 @@
         "versioning": {
           "size_activity": {},
           "changed_fields": [],
-          "keywords_dt_refreshed": 1787844029937
+          "keywords_dt_refreshed": 1788557032885
         },
         "audit_trail": [],
         "explanation": "",
@@ -4116,12 +5435,13 @@
         "parents": [],
         "keywords": [
           "821d1821-9d69-4c9b-a882-c1cb1d1a8746",
+          "872",
           "alice",
           "alice_coaching:ledger",
+          "alicecoachingledger",
           "coaching",
           "contextual",
           "data",
-          "dev-872",
           "during",
           "entry",
           "field",
@@ -4132,7 +5452,8 @@
           "system",
           "tips",
           "users",
-          "wc:coaching"
+          "wc:coaching",
+          "wccoaching"
         ],
         "categories": [],
         "depends_on": {},
@@ -4141,7 +5462,7 @@
     },
     {
       "uuid": "1803def4-54c9-4271-81c1-5bc5ec54ad5a",
-      "ida": "DEV-869",
+      "ida": "869",
       "name": "alice_coaching:order",
       "scope": "system",
       "purpose": "wc:coaching",
@@ -4174,9 +5495,25 @@
           "Changing an order after pick lists are printed can cause fulfillment errors."
         ],
         "field_help": {
+          "ida": "Order number — unique identifier.",
+          "cost": "Cost-side data — margin analysis. Internal only.",
+          "email": "Order contact email. Cmd+click label to compose.",
+          "phone": "Order contact phone. Cmd+click label to dial.",
+          "terms": "Payment terms — flows from customer unless overridden.",
           "total": "Sum of line items. Recalculates when lines are added/changed.",
+          "config": "Custom settings — alternate ship-to, special handling.",
           "status": "planned = not started. released = being fulfilled. complete = shipped/delivered.",
-          "priority": "Helps warehouse sort what to pick first."
+          "totals": "Subtotal, tax, shipping, total. Computed from lines — read-only.",
+          "balance": "Amount not yet invoiced. Decreases as invoices are created.",
+          "company": "Customer company name.",
+          "priority": "Helps warehouse sort what to pick first. Higher number = pick first.",
+          "ship_via": "Shipping carrier or method for this order.",
+          "attention": "Contact name at the customer for this order.",
+          "dt_needed": "Customer-requested delivery date. Drives pick list priority.",
+          "price_level": "Price tier — flows from customer unless overridden here.",
+          "source_name": "Where this order came from — web, phone, proposal conversion.",
+          "address_full": "Ship-to address. Cmd+click label to open in maps.",
+          "conditions_description": "Special order conditions printed on documents."
         },
         "api_reference": {
           "list": "GET /wcapi/get/?model_name=order&ordering=-dt_created",
@@ -4229,7 +5566,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787843953212,
+            "dt": 1788556938873,
             "contact_id": 0
           },
           "verified": {
@@ -4248,8 +5585,10 @@
         },
         "versioning": {
           "size_activity": {},
-          "changed_fields": [],
-          "keywords_dt_refreshed": 1787844033039
+          "changed_fields": [
+            "config"
+          ],
+          "keywords_dt_refreshed": 1788557032031
         },
         "audit_trail": [],
         "explanation": "",
@@ -4273,12 +5612,13 @@
         "parents": [],
         "keywords": [
           "1803def4-54c9-4271-81c1-5bc5ec54ad5a",
+          "869",
           "alice",
           "alice_coaching:order",
+          "alicecoachingorder",
           "coaching",
           "contextual",
           "data",
-          "dev-869",
           "during",
           "entry",
           "field",
@@ -4289,7 +5629,162 @@
           "system",
           "tips",
           "users",
-          "wc:coaching"
+          "wc:coaching",
+          "wccoaching"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
+      "uuid": "1538c816-c80a-4b2e-b46d-a02c9ab9c7bc",
+      "ida": "DEV-894",
+      "name": "alice_coaching:project",
+      "scope": "system",
+      "purpose": "wc:coaching",
+      "parent_model": "project",
+      "explanation": "Alice coaching tips and field help for project. Contextual guidance shown to users during data entry.",
+      "paths": {},
+      "config": {
+        "tips": [
+          {
+            "id": "proj-01",
+            "body": "A project is a container for related actions. Weekly sprints or permanent containers — two modes.",
+            "type": "concept",
+            "level": "beginner",
+            "title": "Projects group actions"
+          }
+        ],
+        "actions": {
+          "create": "Set name, category, dates, and owner. Then add actions to the project."
+        },
+        "warnings": [],
+        "field_help": {
+          "ida": "Project identifier — unique across all projects.",
+          "name": "Project name. Shows in Kanban board headers and action dropdowns.",
+          "tasks": "Task breakdown — sub-objectives with status tracking.",
+          "dt_end": "Target completion date.",
+          "intent": "One-line goal statement. What does \"done\" look like?",
+          "status": "active = in progress. complete = finished. on_hold = paused.",
+          "purpose": "What this project is for — sprint, initiative, client project, etc.",
+          "burndown": "Remaining effort across all actions.",
+          "category": "Project type — sprint, campaign, client, internal, etc.",
+          "dt_start": "When this project begins or began.",
+          "priority": "Higher number = more important. Affects action sorting.",
+          "attention": "Project owner or lead.",
+          "logistics": "Resources, budget, timeline constraints.",
+          "objective": "Detailed objectives — key results, deliverables.",
+          "situation": "Current project status narrative — updated each review.",
+          "percent_complete": "Overall progress. Calculated from action completion or set manually."
+        },
+        "api_reference": {
+          "list": "GET /wcapi/get/?model_name=project&status=active"
+        },
+        "code_examples": []
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": false
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "tn": false,
+          "hires": false,
+          "source": "",
+          "display": false
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1788549038871,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1788549038869,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1788556939123,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "size_activity": {},
+          "changed_fields": [],
+          "keywords_dt_refreshed": 1788557032407
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "1538c816-c80a-4b2e-b46d-a02c9ab9c7bc",
+          "alice",
+          "alice_coaching:project",
+          "alicecoachingproject",
+          "coaching",
+          "contextual",
+          "data",
+          "dev-894",
+          "during",
+          "entry",
+          "field",
+          "guidance",
+          "help",
+          "project",
+          "shown",
+          "system",
+          "tips",
+          "users",
+          "wc:coaching",
+          "wccoaching"
         ],
         "categories": [],
         "depends_on": {},
@@ -4298,7 +5793,7 @@
     },
     {
       "uuid": "d2caafc2-3eaf-4337-9598-8aeca371a860",
-      "ida": "DEV-870",
+      "ida": "870",
       "name": "alice_coaching:proposal",
       "scope": "system",
       "purpose": "wc:coaching",
@@ -4329,8 +5824,18 @@
         },
         "warnings": [],
         "field_help": {
+          "ida": "Proposal number — unique identifier.",
+          "email": "Contact email. Cmd+click label to compose.",
+          "phone": "Contact phone. Cmd+click label to dial.",
           "total": "Proposed total — what the customer would pay if they accept.",
-          "status": "planned = draft. released = sent to customer. complete = accepted or expired."
+          "status": "planned = draft. released = sent to customer. complete = accepted or expired.",
+          "totals": "Subtotal, tax, shipping, total. Computed from lines.",
+          "company": "Customer company name.",
+          "attention": "Who at the customer receives this proposal.",
+          "dt_needed": "Proposal expiration or decision-needed date.",
+          "price_level": "Price tier for this quote — may differ from customer default.",
+          "address_full": "Customer address. Cmd+click label to open in maps.",
+          "conditions_description": "Terms and conditions printed on the proposal."
         },
         "api_reference": {
           "list": "GET /wcapi/get/?model_name=proposal",
@@ -4383,7 +5888,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787843952942,
+            "dt": 1788556938899,
             "contact_id": 0
           },
           "verified": {
@@ -4402,8 +5907,10 @@
         },
         "versioning": {
           "size_activity": {},
-          "changed_fields": [],
-          "keywords_dt_refreshed": 1787844031522
+          "changed_fields": [
+            "config"
+          ],
+          "keywords_dt_refreshed": 1788557033300
         },
         "audit_trail": [],
         "explanation": "",
@@ -4426,13 +5933,14 @@
         "source": null,
         "parents": [],
         "keywords": [
+          "870",
           "alice",
           "alice_coaching:proposal",
+          "alicecoachingproposal",
           "coaching",
           "contextual",
           "d2caafc2-3eaf-4337-9598-8aeca371a860",
           "data",
-          "dev-870",
           "during",
           "entry",
           "field",
@@ -4443,7 +5951,8 @@
           "system",
           "tips",
           "users",
-          "wc:coaching"
+          "wc:coaching",
+          "wccoaching"
         ],
         "categories": [],
         "depends_on": {},
@@ -4452,7 +5961,7 @@
     },
     {
       "uuid": "efa5c88f-ba4f-4b98-9d82-823b85ce753c",
-      "ida": "DEV-871",
+      "ida": "871",
       "name": "alice_coaching:purchase",
       "scope": "system",
       "purpose": "wc:coaching",
@@ -4485,8 +5994,22 @@
           "Receiving more than ordered creates overstock. Check quantities."
         ],
         "field_help": {
+          "ida": "PO number — unique identifier.",
+          "cost": "Cost breakdown — landed cost, duty, freight allocation.",
+          "email": "Vendor email. Cmd+click label to compose.",
+          "phone": "Vendor phone. Cmd+click label to dial.",
+          "terms": "Vendor payment terms — when you pay them.",
           "total": "Total cost of all purchase lines.",
-          "status": "planned = draft. released = sent to vendor. complete = fully received."
+          "status": "planned = draft. released = sent to vendor. complete = fully received.",
+          "totals": "Subtotal, tax, shipping, total. Computed from lines.",
+          "balance": "Amount not yet received or paid.",
+          "company": "Vendor company name.",
+          "priority": "Internal priority for receiving. Higher = process first.",
+          "ship_via": "Shipping method — vendor ships to you.",
+          "attention": "Contact name at the vendor.",
+          "dt_needed": "When you need the goods. Communicate to vendor.",
+          "source_name": "What triggered this purchase — reorder, manual, import.",
+          "address_full": "Vendor address. Cmd+click label to open in maps."
         },
         "api_reference": {
           "list": "GET /wcapi/get/?model_name=purchase&vendor_id={id}",
@@ -4539,7 +6062,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787843952708,
+            "dt": 1788556938926,
             "contact_id": 0
           },
           "verified": {
@@ -4558,8 +6081,10 @@
         },
         "versioning": {
           "size_activity": {},
-          "changed_fields": [],
-          "keywords_dt_refreshed": 1787844020805
+          "changed_fields": [
+            "config"
+          ],
+          "keywords_dt_refreshed": 1788557032152
         },
         "audit_trail": [],
         "explanation": "",
@@ -4582,12 +6107,13 @@
         "source": null,
         "parents": [],
         "keywords": [
+          "871",
           "alice",
           "alice_coaching:purchase",
+          "alicecoachingpurchase",
           "coaching",
           "contextual",
           "data",
-          "dev-871",
           "during",
           "efa5c88f-ba4f-4b98-9d82-823b85ce753c",
           "entry",
@@ -4599,7 +6125,8 @@
           "system",
           "tips",
           "users",
-          "wc:coaching"
+          "wc:coaching",
+          "wccoaching"
         ],
         "categories": [],
         "depends_on": {},
@@ -4613,39 +6140,39 @@
       "scope": "system",
       "purpose": "wc:coaching",
       "parent_model": "setting",
-      "explanation": "Reference tools for understanding system configuration — parades and select list browser",
+      "explanation": "Alice coaching tips and field help for setting. Contextual guidance shown to users during data entry.",
       "paths": {},
       "config": {
         "tips": [
           {
-            "id": "ref-setting-parade",
-            "body": "Walk through every Setting that shapes the UI — field behaviors, select lists, layouts, defaults. Mark each as understood, needs work, or don't understand.",
-            "link": "/setting-parade",
-            "title": "Setting Parade",
-            "link_label": "Open Setting Parade"
-          },
-          {
-            "id": "ref-form-parade",
-            "body": "Review all print forms and reports with sample data. Mark each as keep, modify, or don't need.",
-            "link": "/form-parade",
-            "title": "Form Parade",
-            "link_label": "Open Form Parade"
-          },
-          {
-            "id": "ref-select-lists",
-            "body": "Browse and edit all dropdown option lists across Settings. Three-tier inheritance: model level, category profile, individual record.",
-            "link": "/selectlists",
-            "title": "Select Lists",
-            "link_label": "Open Select Lists"
-          },
-          {
-            "id": "ref-selectlist-guide",
-            "body": "How to create and manage dropdown options. Cmd+click any label for quick select lists. Three-tier inheritance: model, category, record.",
-            "link": "/selectlists",
-            "title": "Select List Management Guide",
-            "link_label": "Open Select Lists"
+            "id": "set-01",
+            "body": "Settings define how the system behaves — layouts, field options, coaching content, system config. They are the menu; connections are the spec.",
+            "type": "concept",
+            "level": "intermediate",
+            "title": "Settings are the menu"
           }
-        ]
+        ],
+        "actions": {
+          "create": "Set purpose and parent_model. The config JSON structure depends on the purpose."
+        },
+        "warnings": [
+          "Changing a setting config can affect all users immediately. Review before saving."
+        ],
+        "field_help": {
+          "ida": "Setting identifier.",
+          "name": "Setting name — usually purpose:model format.",
+          "paths": "Routing paths — URL patterns, redirect rules. Used by wc:system settings.",
+          "scope": "Who this setting applies to — global, company, user.",
+          "config": "The actual configuration data — JSON envelope. Structure varies by purpose.",
+          "status": "active = in use. inactive = disabled but preserved.",
+          "purpose": "What this setting controls: wc:coaching, wc:model, wc:ui, wc:system, etc.",
+          "explanation": "Human description of what this setting does and how to use it.",
+          "parent_model": "Which model this setting applies to. Empty = system-wide."
+        },
+        "api_reference": {
+          "list": "GET /wcapi/get/?model_name=setting&purpose=wc:coaching"
+        },
+        "code_examples": []
       },
       "metadata": {
         "flow": {},
@@ -4686,7 +6213,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1787843953003,
+            "dt": 1788556939149,
             "contact_id": 0
           },
           "verified": {
@@ -4706,9 +6233,10 @@
         "versioning": {
           "size_activity": {},
           "changed_fields": [
-            "config"
+            "config",
+            "explanation"
           ],
-          "keywords_dt_refreshed": 1787844032055
+          "keywords_dt_refreshed": 1788557032522
         },
         "audit_trail": [],
         "explanation": "",
@@ -4732,19 +6260,764 @@
         "parents": [],
         "keywords": [
           "864e6bbe-a0d1-489d-87b4-4c1f5e1db042",
+          "alice",
           "alice_coaching:references",
-          "browser",
+          "alicecoachingreferences",
+          "coaching",
           "coaching-references",
-          "configuration",
-          "list",
-          "parades",
-          "reference",
-          "select",
+          "contextual",
+          "data",
+          "during",
+          "entry",
+          "field",
+          "guidance",
+          "help",
+          "setting",
+          "shown",
+          "system",
+          "tips",
+          "users",
+          "wc:coaching",
+          "wccoaching"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
+      "uuid": "838860b9-7e1d-4d99-99e1-0fcaa8d0dd42",
+      "ida": "892",
+      "name": "alice-training-videos",
+      "scope": "system",
+      "purpose": "wc:coaching",
+      "parent_model": "setting",
+      "explanation": "",
+      "paths": {},
+      "config": {
+        "videos": [
+          {
+            "id": "vid-01",
+            "seq": 1,
+            "url": "",
+            "quiz": "navigation",
+            "level": "beginner",
+            "title": "First Login & Navigation",
+            "status": "pending",
+            "minutes": 3,
+            "section": "onboarding"
+          },
+          {
+            "id": "vid-02",
+            "seq": 2,
+            "url": "",
+            "quiz": "first-customer",
+            "level": "beginner",
+            "title": "Creating Your First Customer",
+            "status": "pending",
+            "minutes": 4,
+            "section": "onboarding"
+          },
+          {
+            "id": "vid-03",
+            "seq": 3,
+            "url": "",
+            "quiz": "first-transaction",
+            "level": "beginner",
+            "title": "Your First Order → Invoice → Payment",
+            "status": "pending",
+            "minutes": 5,
+            "section": "onboarding"
+          },
+          {
+            "id": "vid-04",
+            "seq": 4,
+            "url": "",
+            "quiz": "company-profile",
+            "level": "beginner",
+            "title": "Setting Up Your Company Profile",
+            "status": "pending",
+            "minutes": 3,
+            "section": "onboarding"
+          },
+          {
+            "id": "vid-05",
+            "seq": 5,
+            "url": "",
+            "quiz": "contact",
+            "level": "beginner",
+            "title": "Contacts & Communications",
+            "status": "pending",
+            "minutes": 4,
+            "section": "core_data"
+          },
+          {
+            "id": "vid-06",
+            "seq": 6,
+            "url": "",
+            "quiz": "customer",
+            "level": "beginner",
+            "title": "Customers & Vendors (Same Contact, Different Hats)",
+            "status": "pending",
+            "minutes": 4,
+            "section": "core_data"
+          },
+          {
+            "id": "vid-07",
+            "seq": 7,
+            "url": "",
+            "quiz": "item",
+            "level": "beginner",
+            "title": "Items — What You Sell and Buy",
+            "status": "pending",
+            "minutes": 4,
+            "section": "core_data"
+          },
+          {
+            "id": "vid-08",
+            "seq": 8,
+            "url": "",
+            "quiz": "action",
+            "level": "beginner",
+            "title": "Actions — Tasks, Follow-ups, Projects",
+            "status": "pending",
+            "minutes": 4,
+            "section": "core_data"
+          },
+          {
+            "id": "vid-09",
+            "seq": 9,
+            "url": "",
+            "quiz": "proposal",
+            "level": "beginner",
+            "title": "Proposals & Quotes",
+            "status": "pending",
+            "minutes": 3,
+            "section": "transactions"
+          },
+          {
+            "id": "vid-10",
+            "seq": 10,
+            "url": "",
+            "quiz": "order",
+            "level": "beginner",
+            "title": "Orders & Fulfillment",
+            "status": "pending",
+            "minutes": 4,
+            "section": "transactions"
+          },
+          {
+            "id": "vid-11",
+            "seq": 11,
+            "url": "",
+            "quiz": "invoice",
+            "level": "beginner",
+            "title": "Invoicing & Shipping",
+            "status": "pending",
+            "minutes": 4,
+            "section": "transactions"
+          },
+          {
+            "id": "vid-12",
+            "seq": 12,
+            "url": "",
+            "quiz": "ledger",
+            "level": "beginner",
+            "title": "Payments — Received & Disbursed",
+            "status": "pending",
+            "minutes": 4,
+            "section": "transactions"
+          },
+          {
+            "id": "vid-13",
+            "seq": 13,
+            "url": "",
+            "quiz": "purchase",
+            "level": "beginner",
+            "title": "Purchase Orders & Receiving",
+            "status": "pending",
+            "minutes": 4,
+            "section": "transactions"
+          },
+          {
+            "id": "vid-14",
+            "seq": 14,
+            "url": "",
+            "quiz": "transaction-flow",
+            "level": "beginner",
+            "route": "/alice-training",
+            "title": "Transaction Flow (Interactive)",
+            "status": "pending",
+            "minutes": 5,
+            "section": "transactions"
+          },
+          {
+            "id": "vid-15",
+            "seq": 15,
+            "url": "",
+            "quiz": "inventory-buckets",
+            "level": "intermediate",
+            "title": "Inventory Buckets — on_hand, on_so, on_po",
+            "status": "pending",
+            "minutes": 4,
+            "section": "inventory"
+          },
+          {
+            "id": "vid-16",
+            "seq": 16,
+            "url": "",
+            "quiz": "warehouses",
+            "level": "intermediate",
+            "title": "Warehouses & Bin Locations",
+            "status": "pending",
+            "minutes": 3,
+            "section": "inventory"
+          },
+          {
+            "id": "vid-17",
+            "seq": 17,
+            "url": "",
+            "quiz": "cycle-counts",
+            "level": "intermediate",
+            "title": "Cycle Counts & Adjustments",
+            "status": "pending",
+            "minutes": 4,
+            "section": "inventory"
+          },
+          {
+            "id": "vid-18",
+            "seq": 18,
+            "url": "",
+            "quiz": "gl-journal-concepts",
+            "level": "beginner",
+            "title": "GL Journal Entries — What They Are",
+            "status": "pending",
+            "minutes": 3,
+            "section": "accounting"
+          },
+          {
+            "id": "vid-19",
+            "seq": 19,
+            "url": "",
+            "quiz": "gl-journal-export",
+            "level": "beginner",
+            "route": "/tools/journal_formatter.html",
+            "title": "GL Journal Export & Journal Formatter",
+            "status": "pending",
+            "minutes": 4,
+            "section": "accounting"
+          },
+          {
+            "id": "vid-20",
+            "seq": 20,
+            "url": "",
+            "quiz": "statement-sorter",
+            "level": "beginner",
+            "route": "/sort/",
+            "title": "Statement Sorter — Bank Import",
+            "status": "pending",
+            "minutes": 4,
+            "section": "accounting"
+          },
+          {
+            "id": "vid-21",
+            "seq": 21,
+            "url": "",
+            "quiz": "ar-aging",
+            "level": "intermediate",
+            "title": "AR Aging & Customer Statements",
+            "status": "pending",
+            "minutes": 3,
+            "section": "accounting"
+          },
+          {
+            "id": "vid-22",
+            "seq": 22,
+            "url": "",
+            "quiz": "databrowser",
+            "level": "beginner",
+            "route": "/admin-wb",
+            "title": "DataBrowser — Browse Any Model",
+            "status": "pending",
+            "minutes": 5,
+            "section": "tools"
+          },
+          {
+            "id": "vid-23",
+            "seq": 23,
+            "url": "",
+            "quiz": "setting-parade",
+            "level": "beginner",
+            "route": "/setting-parade",
+            "title": "Setting Parade — How Settings Control Your UI",
+            "status": "pending",
+            "minutes": 4,
+            "section": "tools"
+          },
+          {
+            "id": "vid-24",
+            "seq": 24,
+            "url": "",
+            "quiz": "reports",
+            "level": "beginner",
+            "title": "Reports & Print",
+            "status": "pending",
+            "minutes": 3,
+            "section": "tools"
+          },
+          {
+            "id": "vid-25",
+            "seq": 25,
+            "url": "",
+            "quiz": "documents",
+            "level": "beginner",
+            "title": "Documents & File Upload",
+            "status": "pending",
+            "minutes": 3,
+            "section": "tools"
+          },
+          {
+            "id": "vid-26",
+            "seq": 26,
+            "url": "",
+            "quiz": "alice-intro",
+            "level": "beginner",
+            "route": "/alice-dashboard",
+            "title": "Meet Alice — Your AI Assistant",
+            "status": "pending",
+            "minutes": 3,
+            "section": "ai"
+          },
+          {
+            "id": "vid-27",
+            "seq": 27,
+            "url": "",
+            "quiz": "ai-escalation",
+            "level": "intermediate",
+            "title": "AI Escalation Chain",
+            "status": "pending",
+            "minutes": 4,
+            "section": "ai"
+          },
+          {
+            "id": "vid-28",
+            "seq": 28,
+            "url": "",
+            "quiz": "alice-quiz",
+            "level": "beginner",
+            "title": "Alice Quiz & Training",
+            "status": "pending",
+            "minutes": 3,
+            "section": "ai"
+          },
+          {
+            "id": "vid-29",
+            "seq": 29,
+            "url": "",
+            "quiz": "multi-location",
+            "level": "advanced",
+            "title": "Multi-Location Setup",
+            "status": "planned",
+            "minutes": 5,
+            "section": "admin"
+          },
+          {
+            "id": "vid-30",
+            "seq": 30,
+            "url": "",
+            "quiz": "connections",
+            "level": "advanced",
+            "title": "Connections — Integrations & Sync",
+            "status": "planned",
+            "minutes": 4,
+            "section": "admin"
+          }
+        ],
+        "description": "Recommended training videos — Alice links to these from coaching tips and quiz results."
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": false
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "tn": false,
+          "hires": false,
+          "source": "",
+          "display": false
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1788205123047,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1788205123045,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1788205691582,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "size_activity": {},
+          "changed_fields": [
+            "config"
+          ],
+          "keywords_dt_refreshed": 1788205727349
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "838860b9-7e1d-4d99-99e1-0fcaa8d0dd42",
+          "alice-training-videos",
+          "dev-892",
           "setting",
           "system",
-          "tools",
-          "understanding",
           "wc:coaching"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
+      "uuid": "38c41b39-9351-47ac-8a2c-b49a52615668",
+      "ida": "DEV-896",
+      "name": "alice_coaching:page_help",
+      "scope": "system",
+      "purpose": "wc:coaching",
+      "parent_model": "wc",
+      "explanation": "Page-level help for form objects, toolbar buttons, and UI sections.",
+      "paths": {},
+      "config": {
+        "tips": [],
+        "warnings": [],
+        "page_help": {
+          "bill_to": "Bill-to address block — who gets the invoice. Pulled from customer communications.",
+          "btn-add": "Create a new blank record for this model.",
+          "btn-all": "Show all records (clear current filter/subset).",
+          "ship_to": "Ship-to address block — where goods are delivered. Can differ from bill-to.",
+          "sidebar": "Main navigation — click to switch models. Shift-click opens in DataBrowser.",
+          "btn-omit": "Hide the currently selected records.",
+          "btn-save": "Save all changes to this record.",
+          "btn-sort": "Sort by one or more columns. Click again to reverse.",
+          "line-qty": "Quantity ordered/invoiced. Drives extended price calculation.",
+          "item_code": "Line item entry — add products/services to this transaction.",
+          "FINANCIALS": "Financial summary — GL posting status, journal entries, payment history.",
+          "breadcrumb": "Shows current model and record. Click segments to navigate back.",
+          "btn-cancel": "Cancel/void this transaction. Creates a reversal if already posted.",
+          "btn-filter": "Filter records by field values. Combine multiple filters with AND.",
+          "btn-report": "Print or export — invoice, pick list, packing slip, statement.",
+          "btn-subset": "Show only the currently selected records.",
+          "line-price": "Unit price — resolved from price chain (catalog → contract → level → base).",
+          "panel-refs": "Related record links. Denormalized cache — FKs are authoritative.",
+          "SELL TOTALS": "Sales totals — subtotal, tax, shipping, grand total for this transaction.",
+          "btn-discard": "Discard unsaved changes and reload from database.",
+          "btn-related": "Show records linked to this one — orders, invoices, payments, actions.",
+          "panel-prefs": "User/contact preferences for this record context.",
+          "btn-reassign": "Change the customer/vendor on this transaction.",
+          "panel-config": "Custom configuration — ship-to overrides, special handling, preferences.",
+          "line-extended": "Qty × price. Calculated — editing qty or price recalculates.",
+          "panel-actions": "Action items linked to this record. Create tasks, track follow-ups.",
+          "line-item-grid": "Line items — products/services on this transaction. + Item to add rows.",
+          "panel-comments": "Internal notes. Not visible to customers on printed documents.",
+          "panel-metadata": "System data — health score, Alice observations, computed analytics."
+        },
+        "field_help": {}
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": false
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "tn": false,
+          "hires": false,
+          "source": "",
+          "display": false
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1788549038989,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1788549038988,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1788549038989,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "size_activity": {},
+          "changed_fields": [],
+          "keywords_dt_refreshed": 1788549305686
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "38c41b39-9351-47ac-8a2c-b49a52615668",
+          "alice_coaching:page_help",
+          "buttons",
+          "dev-896",
+          "form",
+          "help",
+          "objects",
+          "page-level",
+          "sections",
+          "system",
+          "toolbar",
+          "wc:coaching"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
+      "uuid": "712a6f73-ed30-4017-8b46-7b634bdcf40f",
+      "ida": "DEV-898",
+      "name": "alice_coaching:page_help",
+      "scope": "system",
+      "purpose": "wc:coaching",
+      "parent_model": "wc",
+      "explanation": "Page-level help for form objects, toolbar buttons, and UI sections.",
+      "paths": {},
+      "config": {
+        "tips": [],
+        "warnings": [],
+        "page_help": {
+          "bill_to": "Bill-to address block — who gets the invoice. Pulled from customer communications.",
+          "btn-add": "Create a new blank record for this model.",
+          "btn-all": "Show all records (clear current filter/subset).",
+          "ship_to": "Ship-to address block — where goods are delivered. Can differ from bill-to.",
+          "sidebar": "Main navigation — click to switch models. Shift-click opens in DataBrowser.",
+          "btn-omit": "Hide the currently selected records.",
+          "btn-save": "Save all changes to this record.",
+          "btn-sort": "Sort by one or more columns. Click again to reverse.",
+          "line-qty": "Quantity ordered/invoiced. Drives extended price calculation.",
+          "item_code": "Line item entry — add products/services to this transaction.",
+          "FINANCIALS": "Financial summary — GL posting status, journal entries, payment history.",
+          "breadcrumb": "Shows current model and record. Click segments to navigate back.",
+          "btn-cancel": "Cancel/void this transaction. Creates a reversal if already posted.",
+          "btn-filter": "Filter records by field values. Combine multiple filters with AND.",
+          "btn-report": "Print or export — invoice, pick list, packing slip, statement.",
+          "btn-subset": "Show only the currently selected records.",
+          "line-price": "Unit price — resolved from price chain (catalog → contract → level → base).",
+          "panel-refs": "Related record links. Denormalized cache — FKs are authoritative.",
+          "SELL TOTALS": "Sales totals — subtotal, tax, shipping, grand total for this transaction.",
+          "btn-discard": "Discard unsaved changes and reload from database.",
+          "btn-related": "Show records linked to this one — orders, invoices, payments, actions.",
+          "panel-prefs": "User/contact preferences for this record context.",
+          "btn-reassign": "Change the customer/vendor on this transaction.",
+          "panel-config": "Custom configuration — ship-to overrides, special handling, preferences.",
+          "line-extended": "Qty × price. Calculated — editing qty or price recalculates.",
+          "panel-actions": "Action items linked to this record. Create tasks, track follow-ups.",
+          "line-item-grid": "Line items — products/services on this transaction. + Item to add rows.",
+          "panel-comments": "Internal notes. Not visible to customers on printed documents.",
+          "panel-metadata": "System data — health score, Alice observations, computed analytics."
+        },
+        "field_help": {}
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": false
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "tn": false,
+          "hires": false,
+          "source": "",
+          "display": false
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1788556939238,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1788556939237,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1788556939238,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "size_activity": {},
+          "changed_fields": [],
+          "keywords_dt_refreshed": 1788557032765
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "712a6f73-ed30-4017-8b46-7b634bdcf40f",
+          "alice_coaching:page_help",
+          "alicecoachingpagehelp",
+          "buttons",
+          "dev-898",
+          "form",
+          "help",
+          "objects",
+          "page-level",
+          "pagelevel",
+          "sections",
+          "system",
+          "toolbar",
+          "wc:coaching",
+          "wccoaching"
         ],
         "categories": [],
         "depends_on": {},
@@ -8513,6 +10786,149 @@
       }
     },
     {
+      "uuid": "1988f5ca-b277-4cc3-9ec4-7dae082d9887",
+      "ida": "escalation-chain",
+      "name": "AI Escalation Chain",
+      "scope": "system",
+      "purpose": "wc:escalation",
+      "parent_model": "setting",
+      "explanation": "",
+      "paths": {},
+      "config": {
+        "privacy": {
+          "exchanges_logged_locally": true,
+          "pii_scrubbed_before_send": true,
+          "question_only_sent_to_wchq": true,
+          "wchq_does_not_store_questions": true
+        },
+        "escalation": {
+          "tiers": {
+            "wchq_alice": {
+              "cost": "subscription",
+              "order": 2,
+              "source": "WCHQ shared LLM",
+              "trigger": "confidence < threshold",
+              "requires": "standard subscription"
+            },
+            "alice_local": {
+              "cost": "free",
+              "order": 1,
+              "source": "Ollama RAG",
+              "always_first": true
+            },
+            "wchq_claude": {
+              "cost": "subscription (higher tier)",
+              "order": 3,
+              "source": "WCHQ calls Claude",
+              "trigger": "WCHQ Alice also low confidence",
+              "requires": "professional subscription"
+            }
+          },
+          "enabled": true,
+          "confidence_weights": {
+            "answer": 0.4,
+            "context": 0.6
+          },
+          "log_all_escalations": true,
+          "confidence_threshold": 0.4
+        }
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": false
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "tn": false,
+          "hires": false,
+          "source": "",
+          "display": false
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1788192276148,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1788192276145,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1788192276148,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "size_activity": {},
+          "changed_fields": [],
+          "keywords_dt_refreshed": 1788192320876
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "1988f5ca-b277-4cc3-9ec4-7dae082d9887",
+          "chain",
+          "escalation",
+          "escalation-chain",
+          "setting",
+          "system",
+          "wc:escalation"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
       "uuid": "3aa1709b-da76-4741-91ca-e2b8ac78a295",
       "ida": "wc-model-action",
       "name": "Action Model Definition",
@@ -10588,6 +13004,838 @@
           "system",
           "wc-model-address",
           "wc:model"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
+      "uuid": "15ef9af3-8026-471e-83b9-2498d93ebae3",
+      "ida": "wc-model-ai_message",
+      "name": "AI Message Model Definition",
+      "scope": "system",
+      "purpose": "wc:model",
+      "parent_model": "ai_message",
+      "explanation": "Model definition for AI Message. Governs named layouts (list columns, detail fields, ui sections), field behaviors, schema metadata, and access configuration.",
+      "paths": {},
+      "config": {
+        "access": {
+          "roles": {
+            "rep": {
+              "edit": [],
+              "view": [
+                "id",
+                "uuid",
+                "ida",
+                "dt_created",
+                "dt_modified",
+                "version",
+                "is_active",
+                "security_level",
+                "dt_approved",
+                "times_used",
+                "dt_last_used",
+                "purpose",
+                "config",
+                "is_deleted",
+                "is_archived",
+                "is_locked",
+                "metadata",
+                "refs",
+                "prefs",
+                "actions",
+                "comments",
+                "health_rating",
+                "kind",
+                "status",
+                "sender",
+                "sender_contact_id",
+                "receiver",
+                "receiver_contact_id",
+                "subject",
+                "body",
+                "context",
+                "classification",
+                "clearance",
+                "scrubbed",
+                "parent",
+                "forward_of",
+                "batch_id",
+                "source_instance"
+              ],
+              "create": false,
+              "delete": false
+            },
+            "admin": {
+              "edit": [
+                "is_active",
+                "dt_approved",
+                "times_used",
+                "dt_last_used",
+                "purpose",
+                "config",
+                "metadata",
+                "refs",
+                "prefs",
+                "actions",
+                "comments",
+                "kind",
+                "status",
+                "sender",
+                "sender_contact_id",
+                "receiver",
+                "receiver_contact_id",
+                "subject",
+                "body",
+                "context",
+                "classification",
+                "clearance",
+                "scrubbed",
+                "parent",
+                "forward_of",
+                "batch_id",
+                "source_instance"
+              ],
+              "view": "*",
+              "create": true,
+              "delete": true
+            },
+            "sales": {
+              "edit": [
+                "is_active",
+                "dt_approved",
+                "times_used",
+                "dt_last_used",
+                "purpose",
+                "config",
+                "kind",
+                "status",
+                "sender",
+                "sender_contact_id",
+                "receiver",
+                "receiver_contact_id",
+                "subject",
+                "body",
+                "context",
+                "classification",
+                "clearance",
+                "scrubbed",
+                "parent",
+                "forward_of",
+                "batch_id",
+                "source_instance"
+              ],
+              "view": [
+                "id",
+                "uuid",
+                "ida",
+                "dt_created",
+                "dt_modified",
+                "version",
+                "is_active",
+                "security_level",
+                "dt_approved",
+                "times_used",
+                "dt_last_used",
+                "purpose",
+                "config",
+                "is_deleted",
+                "is_archived",
+                "is_locked",
+                "metadata",
+                "refs",
+                "prefs",
+                "actions",
+                "comments",
+                "health_rating",
+                "kind",
+                "status",
+                "sender",
+                "sender_contact_id",
+                "receiver",
+                "receiver_contact_id",
+                "subject",
+                "body",
+                "context",
+                "classification",
+                "clearance",
+                "scrubbed",
+                "parent",
+                "forward_of",
+                "batch_id",
+                "source_instance"
+              ],
+              "create": true,
+              "delete": false
+            },
+            "vendor": {
+              "edit": [],
+              "view": [
+                "id",
+                "ida",
+                "dt_created",
+                "status"
+              ],
+              "create": false,
+              "delete": false
+            },
+            "manager": {
+              "edit": [
+                "is_active",
+                "dt_approved",
+                "times_used",
+                "dt_last_used",
+                "purpose",
+                "config",
+                "kind",
+                "status",
+                "sender",
+                "sender_contact_id",
+                "receiver",
+                "receiver_contact_id",
+                "subject",
+                "body",
+                "context",
+                "classification",
+                "clearance",
+                "scrubbed",
+                "parent",
+                "forward_of",
+                "batch_id",
+                "source_instance"
+              ],
+              "view": "*",
+              "create": true,
+              "delete": true
+            },
+            "customer": {
+              "edit": [],
+              "view": [
+                "id",
+                "ida",
+                "dt_created",
+                "kind",
+                "status"
+              ],
+              "create": false,
+              "delete": false
+            },
+            "warehouse": {
+              "edit": [
+                "status"
+              ],
+              "view": [
+                "id",
+                "uuid",
+                "ida",
+                "dt_created",
+                "dt_modified",
+                "version",
+                "is_active",
+                "security_level",
+                "dt_approved",
+                "times_used",
+                "dt_last_used",
+                "purpose",
+                "config",
+                "is_deleted",
+                "is_archived",
+                "is_locked",
+                "metadata",
+                "refs",
+                "prefs",
+                "actions",
+                "comments",
+                "health_rating",
+                "kind",
+                "status",
+                "sender",
+                "sender_contact_id",
+                "receiver",
+                "receiver_contact_id",
+                "subject",
+                "body",
+                "context",
+                "classification",
+                "clearance",
+                "scrubbed",
+                "parent",
+                "forward_of",
+                "batch_id",
+                "source_instance"
+              ],
+              "create": false,
+              "delete": false
+            },
+            "accounting": {
+              "edit": [],
+              "view": "*",
+              "create": false,
+              "delete": false
+            }
+          },
+          "publish": {
+            "api": [
+              "id",
+              "ida",
+              "dt_created",
+              "kind",
+              "status"
+            ],
+            "web": [
+              "id",
+              "ida",
+              "dt_created",
+              "kind",
+              "status"
+            ],
+            "partner": [
+              "id",
+              "ida",
+              "display_name",
+              "name",
+              "email"
+            ]
+          },
+          "query_scope": {}
+        },
+        "layout": {
+          "card": [],
+          "form": {
+            "default": {
+              "list": "default",
+              "detail": "default"
+            }
+          },
+          "list": [
+            {
+              "field": "ida",
+              "width": 80
+            },
+            {
+              "field": "kind",
+              "width": 100
+            },
+            {
+              "field": "sender",
+              "width": 100
+            },
+            {
+              "field": "receiver",
+              "width": 100
+            },
+            {
+              "field": "subject",
+              "width": 200
+            },
+            {
+              "field": "status",
+              "width": 90
+            },
+            {
+              "field": "classification",
+              "width": 100
+            },
+            {
+              "field": "clearance",
+              "width": 90
+            },
+            {
+              "field": "dt_created",
+              "width": 120
+            }
+          ],
+          "panel": [],
+          "active": {
+            "form": "default",
+            "list": "default",
+            "column": "default",
+            "detail": "default"
+          },
+          "column": {
+            "default": {
+              "form": "default",
+              "detail": "default",
+              "columns": []
+            }
+          },
+          "detail": {
+            "default": {
+              "form": "default",
+              "list": "default",
+              "fields": [
+                "ida",
+                "is_active",
+                "purpose",
+                "kind",
+                "status",
+                "sender",
+                "sender_contact_id",
+                "receiver",
+                "receiver_contact_id",
+                "subject",
+                "body",
+                "context",
+                "classification",
+                "clearance",
+                "scrubbed",
+                "parent",
+                "forward_of",
+                "batch_id",
+                "source_instance",
+                "config",
+                "metadata",
+                "refs",
+                "prefs",
+                "actions",
+                "comments",
+                "id",
+                "uuid",
+                "dt_created",
+                "dt_modified",
+                "version",
+                "security_level",
+                "dt_approved",
+                "times_used",
+                "dt_last_used",
+                "is_deleted",
+                "is_archived",
+                "is_locked",
+                "health_rating"
+              ]
+            }
+          }
+        },
+        "schema": {
+          "refs_schema": "AiMessageRefs",
+          "prefs_schema": "AiMessagePrefs",
+          "config_schema": "AiMessageConfig",
+          "metadata_schema": "AiMessageMetadata",
+          "pydantic_schema": "common.schemas.ai_message"
+        },
+        "defaults": {},
+        "searches": [],
+        "behaviors": {
+          "id": {
+            "type": "readonly"
+          },
+          "ida": {
+            "type": "readonly"
+          },
+          "body": {
+            "type": "textarea"
+          },
+          "kind": {
+            "type": "select",
+            "choices": [
+              "feedback",
+              "help_lookup",
+              "chat",
+              "question",
+              "answer",
+              "observation",
+              "directive",
+              "forward"
+            ]
+          },
+          "refs": {
+            "type": "json-tree"
+          },
+          "uuid": {
+            "type": "readonly"
+          },
+          "prefs": {
+            "type": "json-tree"
+          },
+          "config": {
+            "type": "json-tree"
+          },
+          "parent": {
+            "type": "lookup",
+            "model": "aimessage",
+            "display": "ida"
+          },
+          "sender": {
+            "type": "text"
+          },
+          "status": {
+            "type": "select",
+            "choices": [
+              "pending",
+              "read",
+              "reviewed",
+              "actioned",
+              "forwarded",
+              "resolved",
+              "rejected"
+            ]
+          },
+          "actions": {
+            "type": "json-tree"
+          },
+          "context": {
+            "type": "json-tree"
+          },
+          "purpose": {
+            "type": "select",
+            "source": "inline",
+            "options": [
+              {
+                "label": "Standard",
+                "value": "standard"
+              },
+              {
+                "label": "Template",
+                "value": "template"
+              },
+              {
+                "label": "Test",
+                "value": "test"
+              },
+              {
+                "label": "Internal",
+                "value": "internal"
+              }
+            ]
+          },
+          "subject": {
+            "type": "text"
+          },
+          "version": {
+            "type": "readonly"
+          },
+          "batch_id": {
+            "type": "text"
+          },
+          "comments": {
+            "type": "json-tree"
+          },
+          "metadata": {
+            "type": "json-tree"
+          },
+          "receiver": {
+            "type": "text"
+          },
+          "scrubbed": {
+            "type": "readonly"
+          },
+          "clearance": {
+            "type": "select",
+            "choices": [
+              "local",
+              "pending",
+              "cleared",
+              "blocked"
+            ]
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "is_locked": {
+            "type": "readonly"
+          },
+          "dt_created": {
+            "type": "readonly"
+          },
+          "forward_of": {
+            "type": "lookup",
+            "model": "aimessage",
+            "display": "ida"
+          },
+          "is_deleted": {
+            "type": "readonly"
+          },
+          "times_used": {
+            "type": "readonly"
+          },
+          "dt_approved": {
+            "type": "timestamp"
+          },
+          "dt_modified": {
+            "type": "readonly"
+          },
+          "is_archived": {
+            "type": "readonly"
+          },
+          "dt_last_used": {
+            "type": "timestamp"
+          },
+          "health_rating": {
+            "type": "readonly"
+          },
+          "classification": {
+            "type": "select",
+            "choices": [
+              "technical",
+              "operational",
+              "commercial",
+              "personal"
+            ]
+          },
+          "comments.notes": {
+            "type": "json-tree",
+            "label": "Internal Notes"
+          },
+          "security_level": {
+            "type": "readonly"
+          },
+          "comments.public": {
+            "type": "json-tree",
+            "label": "Public Comments"
+          },
+          "source_instance": {
+            "type": "readonly"
+          },
+          "comments.partner": {
+            "type": "json-tree",
+            "label": "Partner Notes"
+          },
+          "comments.process": {
+            "type": "json-tree",
+            "label": "Process Notes"
+          },
+          "sender_contact_id": {
+            "type": "number"
+          },
+          "receiver_contact_id": {
+            "type": "number"
+          }
+        },
+        "enrichment": {},
+        "formatting": {
+          "locale": "en-US",
+          "currency": "USD",
+          "date_format": "short",
+          "number_precision": 2
+        },
+        "field_groups": [
+          {
+            "key": "identity",
+            "label": "Identity",
+            "fields": [
+              "ida",
+              "times_used",
+              "purpose",
+              "kind",
+              "sender",
+              "sender_contact_id",
+              "receiver",
+              "receiver_contact_id",
+              "subject",
+              "body",
+              "context",
+              "classification",
+              "clearance",
+              "scrubbed",
+              "parent",
+              "forward_of",
+              "batch_id",
+              "source_instance"
+            ]
+          },
+          {
+            "key": "status",
+            "label": "Status",
+            "fields": [
+              "is_active",
+              "is_deleted",
+              "is_archived",
+              "is_locked",
+              "status"
+            ]
+          },
+          {
+            "key": "dates",
+            "label": "Dates",
+            "fields": [
+              "dt_created",
+              "dt_modified",
+              "dt_approved",
+              "dt_last_used"
+            ]
+          },
+          {
+            "key": "system",
+            "label": "System",
+            "fields": [
+              "id",
+              "uuid",
+              "version",
+              "security_level",
+              "health_rating"
+            ]
+          },
+          {
+            "key": "json",
+            "label": "Data",
+            "fields": [
+              "config",
+              "metadata",
+              "refs",
+              "prefs",
+              "actions",
+              "comments"
+            ]
+          }
+        ],
+        "select_lists": {
+          "kind": {
+            "label": "kind",
+            "choices": [
+              "feedback",
+              "help_lookup",
+              "chat",
+              "question",
+              "answer",
+              "observation",
+              "directive",
+              "forward"
+            ]
+          },
+          "status": {
+            "label": "status",
+            "choices": [
+              "pending",
+              "read",
+              "reviewed",
+              "actioned",
+              "forwarded",
+              "resolved",
+              "rejected"
+            ]
+          },
+          "clearance": {
+            "label": "clearance",
+            "choices": [
+              "local",
+              "pending",
+              "cleared",
+              "blocked"
+            ]
+          },
+          "classification": {
+            "label": "classification",
+            "choices": [
+              "technical",
+              "operational",
+              "commercial",
+              "personal"
+            ]
+          }
+        },
+        "default_collapsed": [
+          "system",
+          "dates",
+          "json"
+        ]
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": false
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "tn": false,
+          "hires": false,
+          "source": "",
+          "display": false
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1788557124711,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1788557124709,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1788557152966,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "size_activity": {},
+          "changed_fields": [],
+          "keywords_dt_refreshed": 1788557180232
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "15ef9af3-8026-471e-83b9-2498d93ebae3",
+          "access",
+          "ai_message",
+          "aimessage",
+          "behaviors",
+          "columns",
+          "configuration",
+          "definition",
+          "detail",
+          "field",
+          "fields",
+          "governs",
+          "layouts",
+          "list",
+          "message",
+          "metadata",
+          "model",
+          "named",
+          "schema",
+          "sections",
+          "system",
+          "wc-model-ai_message",
+          "wc:model",
+          "wcmodel"
         ],
         "categories": [],
         "depends_on": {},
@@ -31343,27 +34591,31 @@
                   "layout": "three-column",
                   "columns": [
                     {
-                      "title": "customer",
+                      "title": "bill_to",
                       "fields": [
                         {
-                          "field": "company",
+                          "field": "addresses.bill_to.company",
                           "label": "company"
                         },
                         {
-                          "field": "phone",
-                          "label": "phone"
-                        },
-                        {
-                          "field": "attention",
+                          "field": "addresses.bill_to.attention",
                           "label": "attention"
                         },
                         {
-                          "field": "address_full",
-                          "label": "address_full"
+                          "field": "phones.bill_to.number",
+                          "label": "phone"
                         },
                         {
-                          "field": "email",
+                          "field": "emails.bill_to.email",
                           "label": "email"
+                        },
+                        {
+                          "field": "addresses.bill_to.full_address",
+                          "label": "address"
+                        },
+                        {
+                          "field": "addresses.bill_to.instructions",
+                          "label": "instructions"
                         }
                       ],
                       "title_ida": true
@@ -31372,24 +34624,28 @@
                       "title": "ship_to",
                       "fields": [
                         {
-                          "field": "config.ship_to.company",
+                          "field": "addresses.ship_to.company",
                           "label": "company"
                         },
                         {
-                          "field": "config.ship_to.phone",
-                          "label": "phone"
-                        },
-                        {
-                          "field": "config.ship_to.attention",
+                          "field": "addresses.ship_to.attention",
                           "label": "attention"
                         },
                         {
-                          "field": "config.ship_to.address1",
-                          "label": "address1"
+                          "field": "phones.ship_to.number",
+                          "label": "phone"
                         },
                         {
-                          "field": "config.ship_to.city_state_zip",
-                          "label": "city_state_zip"
+                          "field": "emails.ship_to.email",
+                          "label": "email"
+                        },
+                        {
+                          "field": "addresses.ship_to.full_address",
+                          "label": "address"
+                        },
+                        {
+                          "field": "addresses.ship_to.instructions",
+                          "label": "instructions"
                         },
                         {
                           "field": "ship_via",
@@ -31398,7 +34654,7 @@
                       ]
                     },
                     {
-                      "title": "invoice",
+                      "title": "transaction",
                       "fields": [
                         {
                           "type": "select",
@@ -40664,27 +43920,31 @@
                   "layout": "three-column",
                   "columns": [
                     {
-                      "title": "customer",
+                      "title": "bill_to",
                       "fields": [
                         {
-                          "field": "company",
+                          "field": "addresses.bill_to.company",
                           "label": "company"
                         },
                         {
-                          "field": "phone",
-                          "label": "phone"
-                        },
-                        {
-                          "field": "attention",
+                          "field": "addresses.bill_to.attention",
                           "label": "attention"
                         },
                         {
-                          "field": "address_full",
-                          "label": "address_full"
+                          "field": "phones.bill_to.number",
+                          "label": "phone"
                         },
                         {
-                          "field": "email",
+                          "field": "emails.bill_to.email",
                           "label": "email"
+                        },
+                        {
+                          "field": "addresses.bill_to.full_address",
+                          "label": "address"
+                        },
+                        {
+                          "field": "addresses.bill_to.instructions",
+                          "label": "instructions"
                         }
                       ],
                       "title_ida": true
@@ -40693,24 +43953,28 @@
                       "title": "ship_to",
                       "fields": [
                         {
-                          "field": "config.ship_to.company",
+                          "field": "addresses.ship_to.company",
                           "label": "company"
                         },
                         {
-                          "field": "config.ship_to.phone",
-                          "label": "phone"
-                        },
-                        {
-                          "field": "config.ship_to.attention",
+                          "field": "addresses.ship_to.attention",
                           "label": "attention"
                         },
                         {
-                          "field": "config.ship_to.address1",
-                          "label": "address1"
+                          "field": "phones.ship_to.number",
+                          "label": "phone"
                         },
                         {
-                          "field": "config.ship_to.city_state_zip",
-                          "label": "city_state_zip"
+                          "field": "emails.ship_to.email",
+                          "label": "email"
+                        },
+                        {
+                          "field": "addresses.ship_to.full_address",
+                          "label": "address"
+                        },
+                        {
+                          "field": "addresses.ship_to.instructions",
+                          "label": "instructions"
                         },
                         {
                           "field": "ship_via",
@@ -40719,7 +43983,7 @@
                       ]
                     },
                     {
-                      "title": "order",
+                      "title": "transaction",
                       "fields": [
                         {
                           "type": "select",
@@ -51218,27 +54482,31 @@
                   "layout": "three-column",
                   "columns": [
                     {
-                      "title": "customer",
+                      "title": "bill_to",
                       "fields": [
                         {
-                          "field": "company",
+                          "field": "addresses.bill_to.company",
                           "label": "company"
                         },
                         {
-                          "field": "phone",
-                          "label": "phone"
-                        },
-                        {
-                          "field": "attention",
+                          "field": "addresses.bill_to.attention",
                           "label": "attention"
                         },
                         {
-                          "field": "address_full",
-                          "label": "address_full"
+                          "field": "phones.bill_to.number",
+                          "label": "phone"
                         },
                         {
-                          "field": "email",
+                          "field": "emails.bill_to.email",
                           "label": "email"
+                        },
+                        {
+                          "field": "addresses.bill_to.full_address",
+                          "label": "address"
+                        },
+                        {
+                          "field": "addresses.bill_to.instructions",
+                          "label": "instructions"
                         }
                       ],
                       "title_ida": true
@@ -51247,24 +54515,28 @@
                       "title": "ship_to",
                       "fields": [
                         {
-                          "field": "config.ship_to.company",
+                          "field": "addresses.ship_to.company",
                           "label": "company"
                         },
                         {
-                          "field": "config.ship_to.phone",
-                          "label": "phone"
-                        },
-                        {
-                          "field": "config.ship_to.attention",
+                          "field": "addresses.ship_to.attention",
                           "label": "attention"
                         },
                         {
-                          "field": "config.ship_to.address1",
-                          "label": "address1"
+                          "field": "phones.ship_to.number",
+                          "label": "phone"
                         },
                         {
-                          "field": "config.ship_to.city_state_zip",
-                          "label": "city_state_zip"
+                          "field": "emails.ship_to.email",
+                          "label": "email"
+                        },
+                        {
+                          "field": "addresses.ship_to.full_address",
+                          "label": "address"
+                        },
+                        {
+                          "field": "addresses.ship_to.instructions",
+                          "label": "instructions"
                         },
                         {
                           "field": "ship_via",
@@ -51273,7 +54545,7 @@
                       ]
                     },
                     {
-                      "title": "proposal",
+                      "title": "transaction",
                       "fields": [
                         {
                           "type": "select",
@@ -53794,27 +57066,31 @@
                   "layout": "three-column",
                   "columns": [
                     {
-                      "title": "vendor",
+                      "title": "bill_to",
                       "fields": [
                         {
-                          "field": "company",
+                          "field": "addresses.bill_to.company",
                           "label": "company"
                         },
                         {
-                          "field": "phone",
-                          "label": "phone"
-                        },
-                        {
-                          "field": "attention",
+                          "field": "addresses.bill_to.attention",
                           "label": "attention"
                         },
                         {
-                          "field": "address_full",
-                          "label": "address_full"
+                          "field": "phones.bill_to.number",
+                          "label": "phone"
                         },
                         {
-                          "field": "email",
+                          "field": "emails.bill_to.email",
                           "label": "email"
+                        },
+                        {
+                          "field": "addresses.bill_to.full_address",
+                          "label": "address"
+                        },
+                        {
+                          "field": "addresses.bill_to.instructions",
+                          "label": "instructions"
                         }
                       ],
                       "title_ida": true
@@ -53823,24 +57099,28 @@
                       "title": "ship_to",
                       "fields": [
                         {
-                          "field": "config.ship_to.company",
+                          "field": "addresses.ship_to.company",
                           "label": "company"
                         },
                         {
-                          "field": "config.ship_to.phone",
-                          "label": "phone"
-                        },
-                        {
-                          "field": "config.ship_to.attention",
+                          "field": "addresses.ship_to.attention",
                           "label": "attention"
                         },
                         {
-                          "field": "config.ship_to.address1",
-                          "label": "address1"
+                          "field": "phones.ship_to.number",
+                          "label": "phone"
                         },
                         {
-                          "field": "config.ship_to.city_state_zip",
-                          "label": "city_state_zip"
+                          "field": "emails.ship_to.email",
+                          "label": "email"
+                        },
+                        {
+                          "field": "addresses.ship_to.full_address",
+                          "label": "address"
+                        },
+                        {
+                          "field": "addresses.ship_to.instructions",
+                          "label": "instructions"
                         },
                         {
                           "field": "ship_via",
@@ -53849,8 +57129,20 @@
                       ]
                     },
                     {
-                      "title": "purchase",
+                      "title": "transaction",
                       "fields": [
+                        {
+                          "type": "select",
+                          "field": "price_level",
+                          "label": "price_level",
+                          "options": [
+                            "retail",
+                            "wholesale",
+                            "distributor",
+                            "contractor",
+                            "employee"
+                          ]
+                        },
                         {
                           "field": "terms",
                           "label": "terms"
@@ -73499,27 +76791,31 @@
                   "layout": "three-column",
                   "columns": [
                     {
-                      "title": "vendor",
+                      "title": "bill_to",
                       "fields": [
                         {
-                          "field": "company",
+                          "field": "addresses.bill_to.company",
                           "label": "company"
                         },
                         {
-                          "field": "phone",
-                          "label": "phone"
-                        },
-                        {
-                          "field": "attention",
+                          "field": "addresses.bill_to.attention",
                           "label": "attention"
                         },
                         {
-                          "field": "address_full",
-                          "label": "address_full"
+                          "field": "phones.bill_to.number",
+                          "label": "phone"
                         },
                         {
-                          "field": "email",
+                          "field": "emails.bill_to.email",
                           "label": "email"
+                        },
+                        {
+                          "field": "addresses.bill_to.full_address",
+                          "label": "address"
+                        },
+                        {
+                          "field": "addresses.bill_to.instructions",
+                          "label": "instructions"
                         }
                       ],
                       "title_ida": true
@@ -73528,24 +76824,28 @@
                       "title": "ship_to",
                       "fields": [
                         {
-                          "field": "config.ship_to.company",
+                          "field": "addresses.ship_to.company",
                           "label": "company"
                         },
                         {
-                          "field": "config.ship_to.phone",
-                          "label": "phone"
-                        },
-                        {
-                          "field": "config.ship_to.attention",
+                          "field": "addresses.ship_to.attention",
                           "label": "attention"
                         },
                         {
-                          "field": "config.ship_to.address1",
-                          "label": "address1"
+                          "field": "phones.ship_to.number",
+                          "label": "phone"
                         },
                         {
-                          "field": "config.ship_to.city_state_zip",
-                          "label": "city_state_zip"
+                          "field": "emails.ship_to.email",
+                          "label": "email"
+                        },
+                        {
+                          "field": "addresses.ship_to.full_address",
+                          "label": "address"
+                        },
+                        {
+                          "field": "addresses.ship_to.instructions",
+                          "label": "instructions"
                         },
                         {
                           "field": "ship_via",
@@ -73554,8 +76854,20 @@
                       ]
                     },
                     {
-                      "title": "work_order",
+                      "title": "transaction",
                       "fields": [
+                        {
+                          "type": "select",
+                          "field": "price_level",
+                          "label": "price_level",
+                          "options": [
+                            "retail",
+                            "wholesale",
+                            "distributor",
+                            "contractor",
+                            "employee"
+                          ]
+                        },
                         {
                           "field": "terms",
                           "label": "terms"
@@ -76466,6 +79778,97 @@
       }
     },
     {
+      "uuid": "6a336cbc-aa69-4798-b775-d6dff54b011e",
+      "ida": "wc-security",
+      "name": "",
+      "scope": "system",
+      "purpose": "wc:security",
+      "parent_model": "",
+      "explanation": "",
+      "paths": {},
+      "config": {
+        "clamav_socket": "/tmp/clamd.sock",
+        "clamav_enabled": true,
+        "athena_document_review": true,
+        "athena_verify_interval_hours": 4
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": false
+        },
+        "images": {
+          "tn": false,
+          "hires": false,
+          "source": "",
+          "display": false
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1788446765191,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1788446765191,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1788446765191,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "erosions": [],
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "keywords_dt_refreshed": 1788541640294
+        },
+        "audit_trail": [],
+        "description": "Installation security settings — Athena document review, ClamAV scanning",
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "6a336cbc-aa69-4798-b775-d6dff54b011e",
+          "system",
+          "wc-security",
+          "wc:security"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
       "uuid": "1efa05f1-78ff-4731-8c69-e5998650174f",
       "ida": "shipping-service",
       "name": "",
@@ -76612,6 +80015,142 @@
           "shipping-service",
           "system",
           "wc:shipping_service"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
+      "uuid": "be8fb868-7f54-4e17-8c6c-ce9e98fc7f51",
+      "ida": "wchq-subscription",
+      "name": "WCHQ Subscription",
+      "scope": "system",
+      "purpose": "wc:subscription",
+      "parent_model": "setting",
+      "explanation": "",
+      "paths": {},
+      "config": {
+        "tier": "community",
+        "trial": {
+          "active": false,
+          "end_utc": "",
+          "converted": false,
+          "start_utc": "",
+          "trial_days": 60,
+          "tier_during_trial": "professional"
+        },
+        "billing": {
+          "billing_cycle": "monthly",
+          "last_payment_utc": "",
+          "next_payment_utc": "",
+          "price_per_person_cents": {
+            "standard": 400,
+            "professional": 900
+          },
+          "price_per_5_users_cents": 1400
+        },
+        "features": {
+          "wchq_alice": false,
+          "coaching_library": true,
+          "priority_support": false,
+          "wchq_alice_claude": false,
+          "wchq_llm_fallback": false,
+          "cross_instance_queries": false
+        },
+        "item_ida": "",
+        "subscribed": false,
+        "staff_count": 0
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": false
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "tn": false,
+          "hires": false,
+          "source": "",
+          "display": false
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1788173849077,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1788173849075,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1788235534129,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "size_activity": {},
+          "changed_fields": [],
+          "keywords_dt_refreshed": 1788235539286
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "be8fb868-7f54-4e17-8c6c-ce9e98fc7f51",
+          "setting",
+          "subscription",
+          "system",
+          "wc:subscription",
+          "wchq",
+          "wchq-subscription"
         ],
         "categories": [],
         "depends_on": {},
@@ -78335,224 +81874,74 @@
       }
     },
     {
-      "uuid": "5c2379f4-e601-4831-b44f-91110a74abe0",
-      "ida": "DEV-884",
-      "name": "workbench_fields:contact",
+      "uuid": "d3a021ed-c4ad-4ad4-8713-5f7a220ce897",
+      "ida": "wchq-connection",
+      "name": "WCHQ Connection Settings",
       "scope": "system",
-      "purpose": "wc:workbench_fields",
-      "parent_model": "contact",
+      "purpose": "wc:wchq_connection",
+      "parent_model": "setting",
       "explanation": "",
       "paths": {},
       "config": {
-        "db": {
-          "list": [
-            {
-              "field": "ida",
-              "width": 90,
-              "visible": true
-            },
-            {
-              "field": "attention",
-              "width": 160,
-              "visible": true
-            },
-            {
-              "field": "company",
-              "width": 160,
-              "visible": true
-            },
-            {
-              "field": "email",
-              "width": 180,
-              "visible": true
-            },
-            {
-              "field": "title",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "role",
-              "width": 80,
-              "visible": true
-            },
-            {
-              "field": "status",
-              "width": 80,
-              "visible": true
-            },
-            {
-              "align": "center",
-              "field": "is_active",
-              "width": 50,
-              "visible": true
-            }
-          ],
-          "views": [],
-          "detail": [
-            {
-              "align": "left",
-              "field": "ida",
-              "width": 100,
-              "visible": true
-            },
-            {
-              "align": "center",
-              "field": "is_active",
-              "width": 50,
-              "visible": true
-            },
-            {
-              "field": "attention",
-              "width": 200,
-              "visible": true
-            },
-            {
-              "field": "company",
-              "width": 200,
-              "visible": true
-            },
-            {
-              "field": "name_prefix",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "field": "name_first",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "name_middle",
-              "width": 80,
-              "visible": true
-            },
-            {
-              "field": "name_last",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "name_suffix",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "field": "title",
-              "width": 150,
-              "visible": true
-            },
-            {
-              "field": "department",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "email",
-              "width": 200,
-              "visible": true
-            },
-            {
-              "field": "phone_id",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "address_id",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "role",
-              "width": 100,
-              "visible": true
-            },
-            {
-              "field": "status",
-              "width": 100,
-              "visible": true
-            },
-            {
-              "field": "purpose",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "source_name",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "customer",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "vendor",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "manufacturer",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "rep",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "employee",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "comments",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "field": "dt_created",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "dt_modified",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "dt_joined",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "dt_last_used",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "field": "config",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "field": "metadata",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "field": "refs",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "field": "prefs",
-              "width": 60,
-              "visible": true
-            }
-          ]
+        "sync": {
+          "enabled": true,
+          "time_utc": "03:00",
+          "frequency": "daily",
+          "day_of_week": "monday",
+          "max_retries": 3,
+          "last_sync_utc": "",
+          "last_sync_status": "",
+          "retry_on_failure": true
+        },
+        "sharing": {
+          "level": "help_patterns",
+          "anonymize": true,
+          "share_catalog": false,
+          "share_pricing": false,
+          "share_coaching_tips": true,
+          "share_help_requests": true,
+          "share_search_patterns": false
+        },
+        "updates": {
+          "channel": "stable",
+          "auto_check": true,
+          "auto_install": false,
+          "last_check_utc": "",
+          "current_version": "",
+          "available_version": "",
+          "release_notes_url": ""
+        },
+        "security": {
+          "threat_level": "normal",
+          "notification_email": "",
+          "accept_threat_notices": true,
+          "last_threat_check_utc": "",
+          "accept_blocklist_updates": true,
+          "accept_vulnerability_patches": true
+        },
+        "receiving": {
+          "level": "all",
+          "accept_layouts": true,
+          "accept_coaching": true,
+          "accept_templates": true,
+          "accept_saved_searches": true,
+          "accept_keyword_suggestions": true
+        },
+        "admin_review": {
+          "frequency": "monthly",
+          "dt_approved": "",
+          "approval_note": "",
+          "alice_scheduled": true,
+          "next_review_utc": "",
+          "last_reviewed_utc": "",
+          "reviewed_by_contact_id": null
+        },
+        "alice_learning": {
+          "coaching_level": "beginner",
+          "post_search_gaps": true,
+          "post_help_patterns": true,
+          "post_template_requests": true,
+          "receive_improved_responses": true
         }
       },
       "metadata": {
@@ -78586,15 +81975,15 @@
             "contact_id": 0
           },
           "created": {
-            "dt": 1788023331093,
+            "dt": 1788173848950,
             "contact_id": 0
           },
           "accessed": {
-            "dt": 1788023331090,
+            "dt": 1788173848948,
             "contact_id": 0
           },
           "modified": {
-            "dt": 1788023331142,
+            "dt": 1788173848950,
             "contact_id": 0
           },
           "verified": {
@@ -78614,7 +82003,7 @@
         "versioning": {
           "size_activity": {},
           "changed_fields": [],
-          "keywords_dt_refreshed": 1788023700700
+          "keywords_dt_refreshed": 1788174013845
         },
         "audit_trail": [],
         "explanation": "",
@@ -78637,1300 +82026,14 @@
         "source": null,
         "parents": [],
         "keywords": [
-          "5c2379f4-e601-4831-b44f-91110a74abe0",
-          "contact",
-          "dev-884",
+          "connection",
+          "d3a021ed-c4ad-4ad4-8713-5f7a220ce897",
+          "setting",
+          "settings",
           "system",
-          "wc:workbench_fields",
-          "workbench_fields:contact"
-        ],
-        "categories": [],
-        "depends_on": {},
-        "related_ids": []
-      }
-    },
-    {
-      "uuid": "4d3beb82-dbad-4dfb-aeca-e552f4fcf855",
-      "ida": "DEV-882",
-      "name": "workbench_fields:document",
-      "scope": "system",
-      "purpose": "wc:workbench_fields",
-      "parent_model": "document",
-      "explanation": "",
-      "paths": {},
-      "config": {
-        "db": {
-          "list": [
-            {
-              "field": "ida",
-              "label": "ida",
-              "width": 100,
-              "visible": true
-            },
-            {
-              "field": "name",
-              "label": "name",
-              "width": 200,
-              "visible": true
-            },
-            {
-              "field": "purpose",
-              "label": "purpose",
-              "width": 140,
-              "visible": true
-            },
-            {
-              "field": "status",
-              "label": "status",
-              "width": 80,
-              "visible": true
-            },
-            {
-              "field": "description",
-              "label": "description",
-              "width": 200,
-              "visible": true
-            },
-            {
-              "field": "mime_type",
-              "label": "mime_type",
-              "width": 100,
-              "visible": true
-            },
-            {
-              "align": "right",
-              "field": "size_bytes",
-              "label": "size_bytes",
-              "width": 70,
-              "visible": true
-            },
-            {
-              "align": "right",
-              "field": "count_accessed",
-              "label": "count_accessed",
-              "width": 70,
-              "visible": true
-            },
-            {
-              "field": "comments.process",
-              "label": ".process",
-              "width": 200,
-              "visible": true
-            }
-          ],
-          "views": [
-            {
-              "list": [
-                {
-                  "field": "ida",
-                  "label": "ida",
-                  "width": 100,
-                  "visible": true
-                },
-                {
-                  "field": "name",
-                  "label": "name",
-                  "width": 200,
-                  "visible": true
-                },
-                {
-                  "field": "purpose",
-                  "label": "purpose",
-                  "width": 140,
-                  "visible": true
-                },
-                {
-                  "field": "status",
-                  "label": "status",
-                  "width": 80,
-                  "visible": true
-                },
-                {
-                  "field": "description",
-                  "label": "description",
-                  "width": 200,
-                  "visible": true
-                },
-                {
-                  "field": "mime_type",
-                  "label": "mime_type",
-                  "width": 100,
-                  "visible": true
-                },
-                {
-                  "align": "right",
-                  "field": "size_bytes",
-                  "label": "size_bytes",
-                  "width": 70,
-                  "visible": true
-                },
-                {
-                  "align": "right",
-                  "field": "count_accessed",
-                  "label": "count_accessed",
-                  "width": 70,
-                  "visible": true
-                },
-                {
-                  "field": "comments.process",
-                  "label": ".process",
-                  "width": 200,
-                  "visible": true
-                }
-              ],
-              "name": "default",
-              "detail": [
-                {
-                  "align": "left",
-                  "field": "ida",
-                  "width": 100,
-                  "visible": true
-                },
-                {
-                  "align": "center",
-                  "field": "is_active",
-                  "width": 50,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "purpose",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "status",
-                  "width": 100,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "name",
-                  "width": 180,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "slug",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "body",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "description",
-                  "width": 220,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "confidential",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "count_accessed",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "retention_period",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "sequence",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "size_bytes",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "mime_type",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "checksum",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "path",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "comments",
-                  "width": 60,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "dt_approved",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "dt_created",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "security_level",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "dt_last_used",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "metadata",
-                  "width": 60,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "prefs",
-                  "width": 60,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "actions",
-                  "width": 60,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "refs",
-                  "width": 60,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "config",
-                  "width": 60,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "copyright",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "right",
-                  "field": "id",
-                  "width": 60,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "uuid",
-                  "width": 100,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "dt_modified",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "version",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "times_used",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "center",
-                  "field": "is_deleted",
-                  "width": 50,
-                  "visible": true
-                },
-                {
-                  "align": "center",
-                  "field": "is_archived",
-                  "width": 50,
-                  "visible": true
-                },
-                {
-                  "align": "center",
-                  "field": "is_locked",
-                  "width": 50,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "health_rating",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "align": "left",
-                  "field": "search_vector",
-                  "width": 120,
-                  "visible": true
-                }
-              ],
-              "listWidths": {
-                "ida": 100,
-                "name": 200,
-                "status": 80,
-                "purpose": 140,
-                "mime_type": 100,
-                "size_bytes": 70,
-                "description": 200,
-                "count_accessed": 70,
-                "comments.process": 200
-              }
-            }
-          ],
-          "detail": [
-            {
-              "align": "left",
-              "field": "ida",
-              "width": 100,
-              "visible": true
-            },
-            {
-              "align": "center",
-              "field": "is_active",
-              "width": 50,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "purpose",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "status",
-              "width": 100,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "name",
-              "width": 180,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "slug",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "body",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "description",
-              "width": 220,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "confidential",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "count_accessed",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "retention_period",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "sequence",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "size_bytes",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "mime_type",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "checksum",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "path.url",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "comments",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "dt_approved",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "dt_created",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "security_level",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "dt_last_used",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "metadata",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "prefs",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "actions",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "refs",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "config",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "copyright",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "right",
-              "field": "id",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "uuid",
-              "width": 100,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "dt_modified",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "version",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "times_used",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "center",
-              "field": "is_deleted",
-              "width": 50,
-              "visible": true
-            },
-            {
-              "align": "center",
-              "field": "is_archived",
-              "width": 50,
-              "visible": true
-            },
-            {
-              "align": "center",
-              "field": "is_locked",
-              "width": 50,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "health_rating",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "search_vector",
-              "width": 120,
-              "visible": true
-            }
-          ],
-          "related": []
-        },
-        "layout": {
-          "list": {
-            "default": {
-              "columns": [
-                {
-                  "field": "ida",
-                  "label": "ida",
-                  "width": 100,
-                  "visible": true
-                },
-                {
-                  "field": "name",
-                  "label": "name",
-                  "width": 200,
-                  "visible": true
-                },
-                {
-                  "field": "purpose",
-                  "label": "purpose",
-                  "width": 140,
-                  "visible": true
-                },
-                {
-                  "field": "status",
-                  "label": "status",
-                  "width": 80,
-                  "visible": true
-                },
-                {
-                  "field": "description",
-                  "label": "description",
-                  "width": 200,
-                  "visible": true
-                },
-                {
-                  "field": "mime_type",
-                  "label": "mime_type",
-                  "width": 100,
-                  "visible": true
-                },
-                {
-                  "field": "size_bytes",
-                  "label": "size_bytes",
-                  "width": 70,
-                  "visible": true
-                },
-                {
-                  "field": "count_accessed",
-                  "label": "count_accessed",
-                  "width": 70,
-                  "visible": true
-                },
-                {
-                  "field": "comments.process",
-                  "label": ".process",
-                  "width": 200,
-                  "visible": true
-                }
-              ]
-            }
-          },
-          "detail": {
-            "default": {
-              "fields": [
-                "ida",
-                "is_active",
-                "purpose",
-                "status",
-                "name",
-                "slug",
-                "body",
-                "description",
-                "confidential",
-                "count_accessed",
-                "retention_period",
-                "sequence",
-                "size_bytes",
-                "mime_type",
-                "checksum",
-                "path.url",
-                "comments",
-                "dt_approved",
-                "dt_created",
-                "security_level",
-                "dt_last_used",
-                "metadata",
-                "prefs",
-                "actions",
-                "refs",
-                "config",
-                "copyright",
-                "id",
-                "uuid",
-                "dt_modified",
-                "version",
-                "times_used",
-                "is_deleted",
-                "is_archived",
-                "is_locked",
-                "health_rating",
-                "search_vector"
-              ]
-            }
-          }
-        }
-      },
-      "metadata": {
-        "flow": {},
-        "temp": [],
-        "flags": {
-          "schema_rev": 1,
-          "keywords_pending": false
-        },
-        "access": {
-          "edit": [],
-          "view": []
-        },
-        "health": {
-          "rating": 0,
-          "accuracy": 0,
-          "freshness": 0,
-          "consistency": 0,
-          "completeness": 0
-        },
-        "images": {
-          "tn": false,
-          "hires": false,
-          "source": "",
-          "display": false
-        },
-        "source": {},
-        "history": {
-          "synced": {
-            "dt": 0,
-            "contact_id": 0
-          },
-          "created": {
-            "dt": 1788004708793,
-            "contact_id": 0
-          },
-          "accessed": {
-            "dt": 1788004708757,
-            "contact_id": 0
-          },
-          "modified": {
-            "dt": 1788006313857,
-            "contact_id": 0
-          },
-          "verified": {
-            "dt": 0,
-            "contact_id": 0
-          }
-        },
-        "publish": "",
-        "version": "1.0",
-        "erosions": [],
-        "priority": "",
-        "security": "",
-        "resources": {
-          "required": {},
-          "allocated": {}
-        },
-        "versioning": {
-          "size_activity": {},
-          "changed_fields": [
-            "config"
-          ],
-          "keywords_dt_refreshed": 1788006601480
-        },
-        "audit_trail": [],
-        "explanation": "",
-        "import_data": null,
-        "userdefined": {},
-        "small_stings": []
-      },
-      "prefs": {
-        "tags": [],
-        "pinned": false,
-        "search": [],
-        "userdefined": {}
-      },
-      "refs": {
-        "tags": [],
-        "links": {
-          "item": [],
-          "contact": []
-        },
-        "source": null,
-        "parents": [],
-        "keywords": [
-          "4d3beb82-dbad-4dfb-aeca-e552f4fcf855",
-          "dev-882",
-          "document",
-          "system",
-          "wc:workbench_fields",
-          "workbench_fields:document"
-        ],
-        "categories": [],
-        "depends_on": {},
-        "related_ids": []
-      }
-    },
-    {
-      "uuid": "f778d53c-0e19-4f9d-ac0f-c138637cacf5",
-      "ida": "DEV-883",
-      "name": "workbench_fields:document",
-      "scope": "system",
-      "purpose": "wc:workbench_fields",
-      "parent_model": "document",
-      "explanation": "",
-      "paths": {},
-      "config": {
-        "db": {
-          "list": [
-            {
-              "field": "ida",
-              "label": "ida",
-              "width": 100,
-              "visible": true
-            },
-            {
-              "field": "name",
-              "label": "name",
-              "width": 200,
-              "visible": true
-            },
-            {
-              "field": "purpose",
-              "label": "purpose",
-              "width": 140,
-              "visible": true
-            },
-            {
-              "field": "status",
-              "label": "status",
-              "width": 80,
-              "visible": true
-            },
-            {
-              "field": "description",
-              "label": "description",
-              "width": 200,
-              "visible": true
-            },
-            {
-              "field": "mime_type",
-              "label": "mime_type",
-              "width": 100,
-              "visible": true
-            },
-            {
-              "align": "right",
-              "field": "size_bytes",
-              "label": "size_bytes",
-              "width": 70,
-              "visible": true
-            },
-            {
-              "align": "right",
-              "field": "count_accessed",
-              "label": "count_accessed",
-              "width": 70,
-              "visible": true
-            },
-            {
-              "field": "comments.process",
-              "label": ".process",
-              "width": 200,
-              "visible": true
-            }
-          ],
-          "views": [
-            {
-              "list": [
-                {
-                  "field": "ida",
-                  "label": "ida",
-                  "width": 100,
-                  "visible": true
-                },
-                {
-                  "field": "name",
-                  "label": "name",
-                  "width": 200,
-                  "visible": true
-                },
-                {
-                  "field": "purpose",
-                  "label": "purpose",
-                  "width": 140,
-                  "visible": true
-                },
-                {
-                  "field": "status",
-                  "label": "status",
-                  "width": 80,
-                  "visible": true
-                },
-                {
-                  "field": "description",
-                  "label": "description",
-                  "width": 200,
-                  "visible": true
-                },
-                {
-                  "field": "mime_type",
-                  "label": "mime_type",
-                  "width": 100,
-                  "visible": true
-                },
-                {
-                  "align": "right",
-                  "field": "size_bytes",
-                  "label": "size_bytes",
-                  "width": 70,
-                  "visible": true
-                },
-                {
-                  "align": "right",
-                  "field": "count_accessed",
-                  "label": "count_accessed",
-                  "width": 70,
-                  "visible": true
-                },
-                {
-                  "field": "comments.process",
-                  "label": ".process",
-                  "width": 200,
-                  "visible": true
-                }
-              ],
-              "name": "default",
-              "detail": [
-                "ida",
-                "is_active",
-                "purpose",
-                "status",
-                "name",
-                "slug",
-                "body",
-                "confidential",
-                "count_accessed",
-                "retention_period",
-                "sequence",
-                "size_bytes",
-                "mime_type",
-                "checksum",
-                "metadata",
-                "refs",
-                "prefs",
-                "actions",
-                "comments",
-                "description",
-                "config",
-                "copyright",
-                "path",
-                "id",
-                "uuid",
-                "dt_created",
-                "dt_modified",
-                "version",
-                "security_level",
-                "dt_approved",
-                "times_used",
-                "dt_last_used",
-                "is_deleted",
-                "is_archived",
-                "is_locked",
-                "health_rating",
-                "search_vector"
-              ],
-              "listWidths": {}
-            }
-          ],
-          "detail": [
-            {
-              "align": "left",
-              "field": "ida",
-              "width": 100,
-              "visible": true
-            },
-            {
-              "align": "center",
-              "field": "is_active",
-              "width": 50,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "purpose",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "status",
-              "width": 100,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "name",
-              "width": 180,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "slug",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "body",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "description",
-              "width": 220,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "confidential",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "count_accessed",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "retention_period",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "sequence",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "size_bytes",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "mime_type",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "checksum",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "path",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "comments",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "dt_approved",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "dt_created",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "security_level",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "dt_last_used",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "metadata",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "prefs",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "actions",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "refs",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "config",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "copyright",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "right",
-              "field": "id",
-              "width": 60,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "uuid",
-              "width": 100,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "dt_modified",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "version",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "times_used",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "center",
-              "field": "is_deleted",
-              "width": 50,
-              "visible": true
-            },
-            {
-              "align": "center",
-              "field": "is_archived",
-              "width": 50,
-              "visible": true
-            },
-            {
-              "align": "center",
-              "field": "is_locked",
-              "width": 50,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "health_rating",
-              "width": 120,
-              "visible": true
-            },
-            {
-              "align": "left",
-              "field": "search_vector",
-              "width": 120,
-              "visible": true
-            }
-          ],
-          "related": []
-        }
-      },
-      "metadata": {
-        "flow": {},
-        "temp": [],
-        "flags": {
-          "schema_rev": 1,
-          "keywords_pending": false
-        },
-        "access": {
-          "edit": [],
-          "view": []
-        },
-        "health": {
-          "rating": 0,
-          "accuracy": 0,
-          "freshness": 0,
-          "consistency": 0,
-          "completeness": 0
-        },
-        "images": {
-          "tn": false,
-          "hires": false,
-          "source": "",
-          "display": false
-        },
-        "source": {},
-        "history": {
-          "synced": {
-            "dt": 0,
-            "contact_id": 0
-          },
-          "created": {
-            "dt": 1788004708794,
-            "contact_id": 0
-          },
-          "accessed": {
-            "dt": 1788004708758,
-            "contact_id": 0
-          },
-          "modified": {
-            "dt": 1788007044259,
-            "contact_id": 0
-          },
-          "verified": {
-            "dt": 0,
-            "contact_id": 0
-          }
-        },
-        "publish": "",
-        "version": "1.0",
-        "erosions": [],
-        "priority": "",
-        "security": "",
-        "resources": {
-          "required": {},
-          "allocated": {}
-        },
-        "versioning": {
-          "size_activity": {},
-          "changed_fields": [],
-          "keywords_dt_refreshed": 1788007501337
-        },
-        "audit_trail": [],
-        "explanation": "",
-        "import_data": null,
-        "userdefined": {},
-        "small_stings": []
-      },
-      "prefs": {
-        "tags": [],
-        "pinned": false,
-        "search": [],
-        "userdefined": {}
-      },
-      "refs": {
-        "tags": [],
-        "links": {
-          "item": [],
-          "contact": []
-        },
-        "source": null,
-        "parents": [],
-        "keywords": [
-          "dev-883",
-          "document",
-          "f778d53c-0e19-4f9d-ac0f-c138637cacf5",
-          "system",
-          "wc:workbench_fields",
-          "workbench_fields:document"
+          "wc:wchq_connection",
+          "wchq",
+          "wchq-connection"
         ],
         "categories": [],
         "depends_on": {},
