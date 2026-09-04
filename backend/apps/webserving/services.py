@@ -84,38 +84,79 @@ def _is_local_instance(instance: dict) -> bool:
     return 'localhost' in url or '127.0.0.1' in url
 
 
+def _get_retail_layout() -> list:
+    """Load the item list.retail layout columns from the wc:model Setting.
+
+    Returns a list of column defs: [{'field': 'ida', 'label': 'ida', ...}, ...]
+    Falls back to a hardcoded default if the Setting doesn't exist.
+    """
+    try:
+        from apps.core.models import Setting
+        s = Setting.objects.filter(
+            parent_model='item', purpose='wc:model',
+        ).first()
+        if s:
+            cols = (s.config or {}).get('layout', {}).get('list', {}).get('retail', {}).get('columns', [])
+            if cols:
+                return cols
+    except Exception:
+        pass
+    # Fallback — reasonable defaults
+    return [
+        {'field': 'ida', 'label': 'ida'},
+        {'field': 'description', 'label': 'description'},
+        {'field': 'price.retail', 'label': 'price', 'format': 'currency'},
+        {'field': 'quantity.on_hand', 'label': 'in stock'},
+    ]
+
+
+def _pjpv_get(data: dict, path: str):
+    """Walk a PJPV dotted path into a dict. Returns None if any step missing."""
+    val = data
+    for key in path.split('.'):
+        if isinstance(val, dict):
+            val = val.get(key)
+        else:
+            return None
+    return val
+
+
 def _query_local_inventory(instance: dict, query: str) -> dict:
-    """Query this instance's own database directly — no HTTP needed."""
+    """Query this instance's own database directly — no HTTP needed.
+
+    Uses the item Setting's list.retail layout to determine which
+    PJPV paths to return. Each item in the response carries the
+    layout-defined paths as keys — no extraction or flattening.
+    """
     try:
         from django.apps import apps
         from django.db.models import Q
 
         Item = apps.get_model('products', 'Item')
+        columns = _get_retail_layout()
 
-        # Search ida, name, description, sku — use .values() to avoid
-        # selecting columns that may not exist yet on older schemas
+        # Collect the root DB columns needed from the PJPV paths
+        db_fields = {'id'}
+        for col in columns:
+            root = col.get('field', '').split('.')[0]
+            if root:
+                db_fields.add(root)
+
         qs = Item.objects.filter(
             Q(ida__icontains=query) |
             Q(name__icontains=query) |
             Q(description__icontains=query) |
             Q(sku__icontains=query),
             is_active=True,
-        ).values(
-            'id', 'ida', 'name', 'description', 'config',
-        ).order_by('-dt_modified')[:10]
+        ).values(*db_fields).order_by('-dt_modified')[:10]
 
         items = []
         for row in qs:
-            config = row.get('config', {}) if isinstance(row.get('config'), dict) else {}
-            price_data = config.get('price', {})
-            inv_data = config.get('inventory', {})
-            items.append({
-                'name': row.get('ida') or row.get('name', ''),
-                'description': (row.get('description') or config.get('description', ''))[:200],
-                'price': price_data.get('sell') if isinstance(price_data, dict) else None,
-                'on_hand': inv_data.get('on_hand') if isinstance(inv_data, dict) else None,
-                'item_id': row['id'],
-            })
+            item = {'item_id': row.get('id')}
+            for col in columns:
+                path = col['field']
+                item[path] = _pjpv_get(row, path)
+            items.append(item)
 
         return {**instance, 'items': items, 'error': None}
 
@@ -129,12 +170,14 @@ def query_instance_inventory(instance: dict, query: str) -> dict:
 
     Local instances query the database directly (no HTTP overhead).
     Remote instances are queried via their public API endpoint.
+    Both return items keyed by PJPV paths from the list.retail layout.
     """
     # Local instance — direct database query, no auth needed
     if _is_local_instance(instance):
         return _query_local_inventory(instance, query)
 
-    # Remote instance — HTTP query
+    # Remote instance — HTTP query with layout-based extraction
+    columns = _get_retail_layout()
     api_url = instance['api_url'].rstrip('/')
     url = f"{api_url}/get/item_variant/"
 
@@ -151,21 +194,14 @@ def query_instance_inventory(instance: dict, query: str) -> dict:
 
             results = data.get('results', data.get('data', []))
             items = []
-            for item in (results[:10] if isinstance(results, list) else []):
-                config = item.get('config', {}) if isinstance(item.get('config'), dict) else {}
-                items.append({
-                    'name': item.get('ida', item.get('name', '')),
-                    'description': config.get('description', '')[:200],
-                    'price': config.get('price', {}).get('sell') if isinstance(config.get('price'), dict) else None,
-                    'on_hand': config.get('inventory', {}).get('on_hand') if isinstance(config.get('inventory'), dict) else None,
-                    'item_id': item.get('id'),
-                })
+            for record in (results[:10] if isinstance(results, list) else []):
+                item = {'item_id': record.get('id')}
+                for col in columns:
+                    path = col['field']
+                    item[path] = _pjpv_get(record, path)
+                items.append(item)
 
-            return {
-                **instance,
-                'items': items,
-                'error': None,
-            }
+            return {**instance, 'items': items, 'error': None}
 
     except httpx.ConnectError:
         return {**instance, 'items': [], 'error': 'unreachable'}
@@ -201,6 +237,7 @@ def search_local_inventory(
     }
     """
     start = time.time()
+    columns = _get_retail_layout()
 
     # Find nearby instances
     instances = find_instances_in_radius(lat, lng, radius_miles)
@@ -211,6 +248,7 @@ def search_local_inventory(
             'query': query,
             'location': {'lat': lat, 'lng': lng},
             'radius_miles': radius_miles,
+            'columns': columns,
             'stores': [],
             'total_items': 0,
             'stores_queried': 0,
@@ -261,6 +299,7 @@ def search_local_inventory(
         'query': query,
         'location': {'lat': lat, 'lng': lng},
         'radius_miles': radius_miles,
+        'columns': columns,
         'stores': stores,
         'total_items': total_items,
         'stores_queried': len(instances),
