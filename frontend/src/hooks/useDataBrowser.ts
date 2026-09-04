@@ -703,7 +703,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
       setWorkbenchSetting(ws);
       setWorkbenchSettingId(wsId);
       if (wsId && selectedModel) workbenchSettingIdMap.current[selectedModel] = wsId;
-      dbLog('fetchRecords:workbenchSetting', { model: selectedModel, settingId: wsId, list: ws?.list?.slice(0, 8), detail: ws?.detail?.slice(0, 8), views: ws?.views?.length });
+      dbLog('fetchRecords:workbenchSetting', { model: selectedModel, settingId: wsId, list: Array.isArray(ws?.list) ? ws.list.slice(0, 8) : ws?.list, detail: Array.isArray(ws?.detail) ? ws.detail.slice(0, 8) : ws?.detail, views: ws?.views?.length });
 
       // Load field behaviors from wc:model (consolidated)
       try {
