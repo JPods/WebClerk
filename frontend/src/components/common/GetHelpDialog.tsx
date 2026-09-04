@@ -280,14 +280,17 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
       } catch { /* silent */ }
     }
 
-    // Log help lookup for Alice — frequency = confusion signal
+    // Log help lookup as AiMessage — frequency = confusion signal
     try {
       const { saveRecord } = await import('@/api/wcapi');
-      saveRecord('alice_observation', {
-        model_name: parsed.wcModel || 'system',
-        event: 'help_lookup',
-        message: `Help requested: ${parsed.wcField || parsed.wcId || parsed.componentName || 'unknown'}`,
-        data: { field: parsed.wcField, element: parsed.wcId, component: parsed.componentName, source: parsed.sourcePath },
+      saveRecord('ai_message', {
+        kind: 'help_lookup',
+        sender: 'user',
+        receiver: 'alice',
+        subject: parsed.wcField || parsed.wcId || parsed.componentName || 'unknown',
+        body: html.trim().slice(0, 200),
+        status: 'read',
+        context: { field: parsed.wcField, element: parsed.wcId, component: parsed.componentName, model: parsed.wcModel, source: parsed.sourcePath },
       }).catch(() => {});
     } catch { /* silent */ }
 
