@@ -68,10 +68,12 @@ const LucideRenderer: React.FC<{
   const [pressed, setPressed] = useState(false);
   const size = 44;
   const iconSize = Math.round(size * 0.55);
-  const baseColor = danger ? '#e05252' : active ? '#4ec98c' : '#9cdcfe';
-  const hoverColor = danger ? '#ff6b6b' : active ? '#6fe8a8' : '#bde4ff';
-  const bgHover = danger ? 'rgba(224,82,82,0.12)' : active ? 'rgba(78,201,140,0.12)' : 'rgba(156,220,254,0.10)';
-  const bgPressed = danger ? 'rgba(224,82,82,0.22)' : active ? 'rgba(78,201,140,0.22)' : 'rgba(156,220,254,0.20)';
+  const isDark = document.documentElement.classList.contains('dark')
+    || !!document.querySelector('[data-theme="dark"]');
+  const baseColor = danger ? '#e05252' : active ? '#4ec98c' : isDark ? '#9cdcfe' : '#2563eb';
+  const hoverColor = danger ? '#ff6b6b' : active ? '#6fe8a8' : isDark ? '#bde4ff' : '#1d4ed8';
+  const bgHover = danger ? 'rgba(224,82,82,0.12)' : active ? 'rgba(78,201,140,0.12)' : isDark ? 'rgba(156,220,254,0.10)' : 'rgba(37,99,235,0.10)';
+  const bgPressed = danger ? 'rgba(224,82,82,0.22)' : active ? 'rgba(78,201,140,0.22)' : isDark ? 'rgba(156,220,254,0.20)' : 'rgba(37,99,235,0.20)';
 
   return (
     <button
@@ -106,13 +108,13 @@ const MinimalRenderer: React.FC<{
   label: string; emoji?: string; title: string; onClick?: (e?: React.MouseEvent) => void;
   disabled?: boolean; active?: boolean; danger?: boolean;
 }> = ({ label, emoji, title, onClick, disabled, active, danger }) => {
-  const color = danger ? '#e05252' : active ? '#4ec98c' : '#9cdcfe';
+  const color = danger ? 'var(--db-accent-red, #e05252)' : active ? 'var(--db-accent-green, #4ec98c)' : 'var(--db-accent, #2563eb)';
   return (
     <button
       style={{
         padding: '4px 8px', border: active ? `1px solid ${color}` : '1px solid transparent',
         borderRadius: 4, background: 'transparent',
-        color: disabled ? '#666' : color, cursor: disabled ? 'default' : 'pointer',
+        color: disabled ? 'var(--db-text-dim, #666)' : color, cursor: disabled ? 'default' : 'pointer',
         opacity: disabled ? 0.4 : 1, fontSize: 12, fontWeight: 600,
         flexShrink: 0, whiteSpace: 'nowrap',
       }}

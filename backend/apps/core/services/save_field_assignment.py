@@ -409,7 +409,12 @@ def assign_fields(
                             value = _coerce_int_field(value, model_field)
                         except Exception:
                             pass
-                        setattr(obj, field, value)
+                        # If a property shadows the DB column, write to __dict__
+                        # directly so obj.save() persists the value.
+                        if isinstance(getattr(type(obj), field, None), property):
+                            obj.__dict__[field] = value
+                        else:
+                            setattr(obj, field, value)
                 else:
                     _store_unknown_field(obj, field, value, field_size_errors)
 

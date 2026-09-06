@@ -42,10 +42,10 @@ const StatBox: React.FC<{
   <div
     className={`p-3 rounded-lg ${highlight ? 'db-bg-row-active' : 'db-bg-surface-alt'}`}
   >
-    <div className="text-xs mb-1 flex items-center gap-2 db-text-muted">
+    <div className="db-font-xs mb-1 flex items-center gap-2 db-text-muted">
       <span className={mandatory ? "font-semibold" : ""}>{label}</span>
       {locked && (
-        <span className="text-[10px] px-1.5 py-0.5 rounded db-surface-alt-text">
+        <span className="db-font-xs px-1.5 py-0.5 rounded db-surface-alt-text">
           Locked
         </span>
       )}
@@ -58,13 +58,13 @@ const StatBox: React.FC<{
       </span>
       {trend && trend !== "neutral" && (
         <span
-          className={`text-xs ${trend === "up" ? 'db-text-green' : 'db-text-red'}`}
+          className={`db-font-xs ${trend === "up" ? 'db-text-green' : 'db-text-red'}`}
         >
           {trend === "up" ? <FaArrowUp size={10} /> : <FaArrowDown size={10} />}
         </span>
       )}
     </div>
-    {sublabel && <span className="text-xs db-text-dim">{sublabel}</span>}
+    {sublabel && <span className="db-font-xs db-text-dim">{sublabel}</span>}
   </div>
 );
 
@@ -94,13 +94,13 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
           <h3 className="font-semibold db-text">
             Financials
           </h3>
-          <span className="text-xs ml-auto db-text-dim">{currency}</span>
+          <span className="db-font-xs ml-auto db-text-dim">{currency}</span>
         </div>
       </div>
 
       {/* ── Sell summary ──────────────────────────────────────── */}
       <div className="p-4 border-b db-border-color">
-        <h4 className="text-xs font-semibold uppercase tracking-wide mb-3 flex items-center gap-2 db-text-muted">
+        <h4 className="db-font-xs font-semibold uppercase tracking-wide mb-3 flex items-center gap-2 db-text-muted">
           <FaChartLine size={10} />
           Sell Totals
         </h4>
@@ -144,7 +144,7 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
 
       {/* ── Cost breakdown ────────────────────────────────────── */}
       <div className="p-4 border-b db-border-color">
-        <h4 className="text-xs font-semibold uppercase tracking-wide mb-3 db-text-muted">
+        <h4 className="db-font-xs font-semibold uppercase tracking-wide mb-3 db-text-muted">
           Cost Breakdown
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -191,7 +191,7 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
 
       {/* ── Totals & Margin ───────────────────────────────────── */}
       <div className="p-4 border-b db-border-color">
-        <h4 className="text-xs font-semibold uppercase tracking-wide mb-3 flex items-center gap-2 db-text-muted">
+        <h4 className="db-font-xs font-semibold uppercase tracking-wide mb-3 flex items-center gap-2 db-text-muted">
           <FaPercentage size={10} />
           Margin Analysis
         </h4>
@@ -222,7 +222,7 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
 
       {/* ── Payment status ────────────────────────────────────── */}
       <div className="p-4 db-bg-surface-alt">
-        <h4 className="text-xs font-semibold uppercase tracking-wide mb-3 db-text-muted">
+        <h4 className="db-font-xs font-semibold uppercase tracking-wide mb-3 db-text-muted">
           Payment Status
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-2 gap-3">

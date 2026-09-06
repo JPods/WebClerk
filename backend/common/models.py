@@ -437,6 +437,12 @@ class CoreModel(models.Model):
                     pass
             self.version = (self.version or 0) + 1
         self.dt_modified = now_ms
+        # Sort top-level keys of all JSON fields alphabetically at save time
+        for field in self._meta.get_fields():
+            if hasattr(field, 'get_internal_type') and 'JSON' in (field.get_internal_type() or '').upper():
+                val = getattr(self, field.name, None)
+                if isinstance(val, dict):
+                    setattr(self, field.name, {k: val[k] for k in sorted(val.keys())})
         super().save(*args, **kwargs)
         # Ensure ida is never null — default to string of id
         try:

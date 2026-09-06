@@ -1,9 +1,10 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+/* LastChecked: 2026-09-05 | WhereUsed: JsonCard, ScalarCard, all Detail pages | WhoCreated: Unknown */
 /**
  * InfoRow — Shared read-only horizontal label/value pair for view mode.
  *
  * Used across all Detail pages for consistent read-only field display.
  * Label on left (fixed width), value on right.
+ * Uses --db-* CSS variables for theme-aware styling.
  */
 import React from "react";
 import { formatCurrency } from "@/utils/stringUtils";
@@ -52,8 +53,6 @@ const InfoRow: React.FC<InfoRowProps> = ({
   /** Wrap content in an <a> tag when linkType is set and value is a non-empty string */
   const renderLinked = (content: React.ReactNode) => {
     if (!linkType || typeof value !== "string" || !value) return content;
-    const linkClasses =
-      "underline decoration-dotted hover:decoration-solid hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer";
     const telValue = value.replace(/[^+\d]/g, "");
     const href =
       linkType === "email"
@@ -72,14 +71,17 @@ const InfoRow: React.FC<InfoRowProps> = ({
         ? { target: "_blank", rel: "noopener noreferrer" }
         : {};
     return (
-      <a href={href} className={linkClasses} title={title} {...extraProps}>
+      <a href={href}
+        style={{ color: 'var(--db-accent)', textDecoration: 'underline dotted', cursor: 'pointer' }}
+        title={title} {...extraProps}>
         {content}
       </a>
     );
   };
 
   const labelNode = (
-    <dt className="w-36 shrink-0 text-right text-xs font-mono text-gray-500 dark:text-gray-400">
+    <dt className="w-36 shrink-0 text-right db-font-xs font-mono"
+      style={{ color: 'var(--db-text-muted)' }}>
       {linkOnLabel ? renderLinked(label) : label}
     </dt>
   );
@@ -88,11 +90,8 @@ const InfoRow: React.FC<InfoRowProps> = ({
     <div className="flex items-baseline gap-2 py-1">
       {labelNode}
       <dd
-        className={`text-sm break-all ${
-          highlight
-            ? "font-semibold text-blue-600 dark:text-blue-400"
-            : "text-gray-900 dark:text-white"
-        }`}
+        className={`db-font-sm break-all ${highlight ? 'font-semibold' : ''}`}
+        style={{ color: highlight ? 'var(--db-accent)' : 'var(--db-text)' }}
       >
         {linkOnLabel
           ? typeof displayVal === "string"

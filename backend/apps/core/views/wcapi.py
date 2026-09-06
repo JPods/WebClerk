@@ -996,6 +996,9 @@ class WCAPIGetView(APIView):
             # Apply RBAC field filtering for single record
             if request.user and request.user.is_authenticated:
                 payload = filter_response_data(request.user, model_key, payload)
+                if self._normalize_model_key(model_key) == 'setting':
+                    from apps.core.services.field_projection import filter_setting_layout
+                    payload = filter_setting_layout(request.user, payload)
 
             # Contact detail UI depends on full refs for related links/tags panels.
             # Force canonical refs payload after field projection so React always
@@ -1142,6 +1145,10 @@ class WCAPIGetView(APIView):
             # Apply RBAC field filtering
             if request.user and request.user.is_authenticated:
                 payload = filter_response_data(request.user, model_key, payload)
+                # Filter setting layout columns to role-allowed fields
+                if self._normalize_model_key(model_key) == 'setting':
+                    from apps.core.services.field_projection import filter_setting_layout
+                    payload = filter_setting_layout(request.user, payload)
             results.append(payload)
 
         if self._normalize_model_key(model_key) == "action":

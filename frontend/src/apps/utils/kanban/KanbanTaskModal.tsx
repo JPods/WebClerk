@@ -402,7 +402,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   const canRemoveTranslation = translations.length > 1;
 
   const controlBaseClass =
-    "w-full h-10 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white";
+    "w-full h-10 rounded-xl px-3 py-2 db-font-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 db-input";
   const controlClass = `mt-1 ${controlBaseClass}`;
   const textareaClass = `${controlBaseClass} mt-1 h-5 min-h-[1.5rem] resize-y`;
 
@@ -421,7 +421,8 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             onClick={() => setModalSide("left")}
             disabled={isSaving}
             aria-label="Move modal to left side"
-            className="flex h-full w-6 items-center justify-center border-x border-gray-200 bg-white/95 text-gray-500 transition hover:bg-gray-100 hover:text-indigo-600 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-800 dark:bg-gray-900/95 dark:text-gray-300 dark:hover:bg-gray-800"
+            className="flex h-full w-6 items-center justify-center transition hover:text-indigo-600 disabled:cursor-not-allowed"
+            style={{ borderLeft: '1px solid var(--db-border)', borderRight: '1px solid var(--db-border)', background: 'var(--db-surface)', color: 'var(--db-text-muted)' }}
           >
             <svg
               className="h-5 w-5"
@@ -441,25 +442,27 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
         )}
 
         <div
-          className={`flex h-full w-full max-h-screen flex-col overflow-hidden bg-white no-scrollbar dark:bg-gray-900 sm:w-[480px] lg:w-[33vw] lg:min-w-[360px] ${
-            isLeftSide
-              ? "border-r border-gray-200 dark:border-gray-800"
-              : "border-l border-gray-200 dark:border-gray-800"
-          }`}
+          className="flex h-full w-full max-h-screen flex-col overflow-hidden no-scrollbar sm:w-[480px] lg:w-[33vw] lg:min-w-[360px]"
+          style={{
+            background: 'var(--db-surface)',
+            borderLeft: isLeftSide ? undefined : '1px solid var(--db-border)',
+            borderRight: isLeftSide ? '1px solid var(--db-border)' : undefined,
+          }}
         >
-        <div className="flex items-start justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+        <div className="flex items-start justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--db-border)' }}>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-lg font-semibold" style={{ color: 'var(--db-text)' }}>
               {title}
             </h2>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mt-1 db-font-sm" style={{ color: 'var(--db-text-muted)' }}>
               {description}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+            className="rounded-full p-1 transition"
+            style={{ color: 'var(--db-text-dim)' }}
             aria-label="Close modal"
             disabled={isSaving}
           >
@@ -487,7 +490,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
           onPaste={handlePaste}
         >
           {modalError && (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-200">
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 db-font-sm text-rose-700">
               {modalError}
             </div>
           )}
@@ -496,7 +499,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             <div className="space-y-2">
               {/* Translation section */}
               <div>
-                <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">
+                <label className="db-font-xs font-medium tracking-wide" style={{ color: 'var(--db-text-muted)' }}>
                   action
                 </label>
                 <input
@@ -519,7 +522,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
               </div>
 
               <div>
-                <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">
+                <label className="db-font-xs font-medium tracking-wide" style={{ color: 'var(--db-text-muted)' }}>
                   description
                 </label>
                 <textarea
@@ -541,19 +544,20 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">
+                  <label className="db-font-xs font-medium tracking-wide" style={{ color: 'var(--db-text-muted)' }}>
                     Attachments ({formState.attachments?.length || 0})
                   </label>
-                  <span className="text-[11px] text-gray-400 dark:text-gray-500">drag / paste / upload</span>
+                  <span className="db-font-xs" style={{ color: 'var(--db-text-dim)' }}>drag / paste / upload</span>
                 </div>
 
                 <div
-                  className="relative rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-2 transition hover:border-indigo-400 hover:bg-indigo-50/50 dark:border-gray-700 dark:bg-gray-800/50 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-900/20"
+                  className="relative rounded-lg border border-dashed px-3 py-2 transition hover:border-indigo-400"
+                  style={{ borderColor: 'var(--db-border)', background: 'var(--db-surface-alt)' }}
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
                   onPaste={handlePaste}
                 >
-                  <div className="flex items-center justify-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center justify-center gap-2 db-font-xs" style={{ color: 'var(--db-text-muted)' }}>
                     <span className="font-semibold">Add files</span>
                     <span>•</span>
                     <span>images, docs, sheets</span>
@@ -574,7 +578,8 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                     {formState.attachments.map((attachment) => (
                       <div
                         key={attachment.id}
-                        className="group relative flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-1.5 py-1 dark:border-gray-700 dark:bg-gray-800"
+                        className="group relative flex items-center gap-1 rounded-md px-1.5 py-1"
+                        style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface-alt)' }}
                       >
                         {attachment.previewUrl ? (
                           <button
@@ -590,7 +595,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                             />
                           </button>
                         ) : (
-                          <div className="flex h-8 w-8 items-center justify-center rounded bg-gray-200 text-sm dark:bg-gray-700">
+                          <div className="flex h-8 w-8 items-center justify-center rounded db-font-sm" style={{ background: 'var(--db-surface-alt)' }}>
                             {getFileIcon(attachment.type)}
                           </div>
                         )}
@@ -598,7 +603,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                         <button
                           type="button"
                           onClick={() => removeAttachment(attachment.id)}
-                          className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                          className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 db-font-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
                           disabled={isSaving}
                           aria-label={`Remove ${attachment.name}`}
                         >
@@ -615,7 +620,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   {(formState.assigned_to || []).map((a: any) => (
                     <span
                       key={a.id}
-                      className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-100 dark:ring-indigo-500/40"
+                      className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 db-font-xs font-semibold text-indigo-700 ring-1 ring-indigo-200"
                     >
                       {a.name}
                       <button
@@ -634,7 +639,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   ))}
                 </div>
                 <select
-                  className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
+                  className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 font-semibold outline-none"
                   style={{ fontSize: 'inherit', padding: 0 }}
                   value={assigneeSelection}
                   onChange={handleAssigneeSelect}
@@ -653,9 +658,9 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
+              <div className="flex items-center justify-between db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>
                 <span>priority</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="db-font-xs db-text-muted">
                   {formState.priority}
                 </span>
               </div>
@@ -673,7 +678,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                 disabled={isSaving}
                 className="w-full accent-indigo-600"
               />
-              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex justify-between db-font-xs db-text-muted">
                 <span>Low</span>
                 <span>Medium</span>
                 <span>High</span>
@@ -682,9 +687,9 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
+              <div className="flex items-center justify-between db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>
                 <span>difficulty</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="db-font-xs db-text-muted">
                   {difficultyValue}
                 </span>
               </div>
@@ -703,7 +708,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                 disabled={isSaving}
                 className="w-full accent-indigo-600"
               />
-              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex justify-between db-font-xs db-text-muted">
                 <span>Easy</span>
                 <span>Hard</span>
               </div>
@@ -711,7 +716,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="block db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>
               percent_complete
             </label>
             <input
@@ -731,7 +736,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
               disabled={isSaving}
               className="w-full accent-indigo-600"
             />
-            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex justify-between db-font-xs db-text-muted">
               <span>0%</span>
               <span>50%</span>
               <span>100%</span>
@@ -742,7 +747,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2">
               <div className="space-y-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>
                     dt_start
                   </label>
                   <input
@@ -755,7 +760,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>
                     dt_deadline
                   </label>
                   <input
@@ -772,7 +777,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
               </div>
               <div className="space-y-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>
                     dt_completed
                   </label>
                   <input
@@ -788,7 +793,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                 </div>
                 <div>
                   <select
-                    className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
+                    className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 font-semibold outline-none"
                     style={{ fontSize: 'inherit', padding: 0 }}
                     value={formState.projectId ?? ""}
                     onChange={(event) =>
@@ -808,18 +813,18 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="block db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>
                 status
               </label>
               <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 {statusOptions.map((option) => {
                   const active = derivedStatusKey === option.value;
                   const base =
-                    "flex-1 min-w-[96px] rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition sm:flex-none";
+                    "flex-1 min-w-[96px] rounded-lg border px-2.5 py-1.5 db-font-xs font-semibold transition sm:flex-none";
                   const activeClass =
                     "border-indigo-500 bg-indigo-600 text-white shadow";
                   const inactiveClass =
-                    "border-gray-300 text-gray-700 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-200";
+                    "hover:border-indigo-400 hover:text-indigo-600";
                   return (
                     <button
                       key={option.value}
@@ -836,6 +841,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                       className={`${base} ${
                         active ? activeClass : inactiveClass
                       }`}
+                      style={active ? undefined : { borderColor: 'var(--db-border)', color: 'var(--db-text)' }}
                       disabled={isSaving}
                     >
                       {option.label}
@@ -843,7 +849,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   );
                 })}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="db-font-xs db-text-muted">
                 Selecting a status updates the kanban column automatically.
               </p>
             </div>
@@ -852,7 +858,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
               <div className="flex flex-wrap items-end gap-3">
                 <div className="flex-1 min-w-[180px] space-y-1">
                   <select
-                    className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
+                    className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 font-semibold outline-none"
                     style={{ fontSize: 'inherit', padding: 0 }}
                     value={activeTranslation?.id || ""}
                     onChange={(event) =>
@@ -871,7 +877,8 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   <button
                     type="button"
                     onClick={onLanguagePickerToggle}
-                    className="rounded-xl border border-dashed border-gray-300 px-3 py-2 text-sm font-semibold text-gray-600 transition hover:border-indigo-400 hover:text-indigo-500 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:border-indigo-500/40 dark:hover:text-indigo-300"
+                    className="rounded-xl border border-dashed px-3 py-2 db-font-sm font-semibold transition hover:border-indigo-400 hover:text-indigo-500 disabled:cursor-not-allowed"
+                    style={{ borderColor: 'var(--db-border)', color: 'var(--db-text-muted)' }}
                     disabled={isSaving}
                   >
                     {languagePickerState.isOpen
@@ -883,7 +890,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                       type="button"
                       onClick={() => onRemoveTranslation(activeTranslation.id)}
                       disabled={!canRemoveTranslation || isSaving}
-                      className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-rose-100 disabled:text-rose-300 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-900/40"
+                      className="rounded-xl border border-rose-200 px-3 py-2 db-font-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-rose-100 disabled:text-rose-300"
                     >
                       Remove
                     </button>
@@ -893,10 +900,10 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
 
               {languagePickerState.isOpen && (
                 <div className="col-span-1 sm:col-span-2 lg:col-span-2">
-                  <div className="rounded-2xl border border-gray-200 bg-white/80 p-4 text-sm shadow-sm dark:border-gray-800 dark:bg-gray-900/40">
+                  <div className="rounded-2xl p-4 db-font-sm shadow-sm" style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)' }}>
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                       <div className="flex-1 space-y-1">
-                        <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        <label className="db-font-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--db-text-muted)' }}>
                           selection
                         </label>
                         <select
@@ -919,7 +926,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
 
                       {languagePickerState.selection === "__custom" && (
                         <div className="flex-1 space-y-1">
-                          <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                          <label className="db-font-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--db-text-muted)' }}>
                             customValue
                           </label>
                           <input
@@ -938,7 +945,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                         <button
                           type="button"
                           onClick={onLanguagePickerSubmit}
-                          className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-400"
+                          className="rounded-lg bg-indigo-600 px-3 py-2 db-font-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-400"
                           disabled={isSaving}
                         >
                           Add
@@ -946,7 +953,8 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                         <button
                           type="button"
                           onClick={onLanguagePickerCancel}
-                          className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                          className="rounded-lg px-3 py-2 db-font-sm font-medium transition"
+                          style={{ border: '1px solid var(--db-border)', color: 'var(--db-text-muted)' }}
                           disabled={isSaving}
                         >
                           Cancel
@@ -954,7 +962,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                       </div>
                     </div>
                     {languagePickerState.error && (
-                      <p className="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-300">
+                      <p className="mt-2 db-font-xs font-semibold text-rose-600">
                         {languagePickerState.error}
                       </p>
                     )}
@@ -966,9 +974,9 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
           </div>
         </form>
 
-        <div className="flex items-center justify-end gap-3 border-t border-gray-200 bg-white/95 px-5 py-3 backdrop-blur dark:border-gray-800">
-          <div className="mr-auto flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-2 text-sm dark:border-gray-800">
-            <label className="inline-flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-300">
+        <div className="flex items-center justify-end gap-3 px-5 py-3 backdrop-blur" style={{ borderTop: '1px solid var(--db-border)', background: 'var(--db-surface)' }}>
+          <div className="mr-auto flex items-center gap-3 rounded-xl px-3 py-2 db-font-sm" style={{ border: '1px solid var(--db-border)' }}>
+            <label className="inline-flex items-center gap-2 db-font-xs font-semibold" style={{ color: 'var(--db-text-muted)' }}>
               <span>
                 {formState.is_active === "false" ? "Inactive" : "Active"}
               </span>
@@ -990,7 +998,8 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             type="button"
             onClick={onClose}
             disabled={isSaving}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 db-font-sm font-medium transition disabled:cursor-not-allowed"
+            style={{ border: '1px solid var(--db-border)', color: 'var(--db-text-muted)' }}
           >
             Cancel
           </button>
@@ -998,7 +1007,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             type="submit"
             form={formId}
             disabled={isSaving}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-400"
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 db-font-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-400"
           >
             {submitLabel}
           </button>
@@ -1011,7 +1020,8 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             onClick={() => setModalSide("right")}
             disabled={isSaving}
             aria-label="Move modal to right side"
-            className="flex h-full w-6 items-center justify-center border-x border-gray-200 bg-white/95 text-gray-500 transition hover:bg-gray-100 hover:text-indigo-600 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-800 dark:bg-gray-900/95 dark:text-gray-300 dark:hover:bg-gray-800"
+            className="flex h-full w-6 items-center justify-center transition hover:text-indigo-600 disabled:cursor-not-allowed"
+            style={{ borderLeft: '1px solid var(--db-border)', borderRight: '1px solid var(--db-border)', background: 'var(--db-surface)', color: 'var(--db-text-muted)' }}
           >
             <svg
               className="h-5 w-5"

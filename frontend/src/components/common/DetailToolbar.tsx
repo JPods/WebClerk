@@ -146,8 +146,8 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
   };
 
   return (
-    <div className={`flex items-center gap-1 px-2 py-1 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 no-print ${className}`}
-      style={{ minHeight: 60 }}>
+    <div className={`flex items-center gap-1 px-2 py-1 no-print ${className}`}
+      style={{ minHeight: 60, background: 'var(--db-surface, #fff)', borderBottom: '1px solid var(--db-border, #dee2e6)', color: 'var(--db-text, #212529)' }}>
 
       {onAddNew && (
         <ToolbarIcon action={TB.addRecord} title="Add New Record" onClick={onAddNew} />
@@ -169,7 +169,8 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
       {onAddPayment && data?.id && (
         <button
           onClick={onAddPayment}
-          className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 transition-colors"
+          className="flex items-center gap-1 px-2 py-1 db-font-sm font-medium rounded transition-colors"
+          style={{ background: 'color-mix(in srgb, var(--db-accent-green) 12%, transparent)', color: 'var(--db-accent-green)', border: '1px solid color-mix(in srgb, var(--db-accent-green) 30%, transparent)' }}
           title="Enter a single payment"
         >
           <DollarSign size={16} strokeWidth={2.5} />
@@ -179,7 +180,8 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
       {onApplyPayment && data?.id && (
         <button
           onClick={onApplyPayment}
-          className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 transition-colors"
+          className="flex items-center gap-1 px-2 py-1 db-font-sm font-medium rounded transition-colors"
+          style={{ background: 'color-mix(in srgb, var(--db-accent-green) 12%, transparent)', color: 'var(--db-accent-green)', border: '1px solid color-mix(in srgb, var(--db-accent-green) 30%, transparent)' }}
           title="Apply payments to invoices"
         >
           <DollarSign size={16} strokeWidth={2.5} />
@@ -190,21 +192,25 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
       {/* Status + total + balance badges */}
       <span className="flex-1" />
       {data?.status && (
-        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${data.status === 'open' || data.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>{data.status}</span>
+        <span className="db-font-xs px-1.5 py-0.5 rounded-full font-medium"
+          style={data.status === 'open' || data.status === 'active'
+            ? { background: 'color-mix(in srgb, var(--db-accent) 15%, transparent)', color: 'var(--db-accent)' }
+            : { background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }
+          }>{data.status}</span>
       )}
       {data?.totals?.total != null && (
-        <span className="text-xs text-slate-500">total: <span className="font-medium">${(data.totals.total ?? 0).toLocaleString()}</span></span>
+        <span className="db-font-sm" style={{ color: 'var(--db-text-muted)' }}>total: <span className="font-medium">${(data.totals.total ?? 0).toLocaleString()}</span></span>
       )}
       {(data?.totals?.balance ?? 0) > 0 && (
-        <span className="text-xs text-red-500">bal: <span className="font-medium">${(data.totals?.balance ?? 0).toLocaleString()}</span></span>
+        <span className="db-font-sm" style={{ color: 'var(--db-accent-red)' }}>bal: <span className="font-medium">${(data.totals?.balance ?? 0).toLocaleString()}</span></span>
       )}
-      {data?.id && <span className="text-xs font-mono text-slate-400 dark:text-slate-500">#{data.id}</span>}
+      {data?.id && <span className="db-font-sm font-mono" style={{ color: 'var(--db-text-dim)' }}>#{data.id}</span>}
 
       {/* Delete — far right, single confirm */}
       {canDelete && onDelete && (
         deleteConfirm ? (
           <button
-            className="ml-2 px-2 py-0.5 text-xs font-semibold rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
+            className="ml-2 px-2 py-0.5 db-font-sm font-semibold rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
             onClick={() => { setDeleteConfirm(false); onDelete(); }}
             onBlur={() => setDeleteConfirm(false)}
             autoFocus

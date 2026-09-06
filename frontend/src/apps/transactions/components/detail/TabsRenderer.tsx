@@ -6,8 +6,18 @@ import { formatDt } from '@/utils/fieldFormatters';
 import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
 import FinancialsPanel from '@/apps/common/components/panels/FinancialsPanel';
 import { PanelTable, type PanelColumnDef } from '@/apps/common/components/panels/PanelTable';
+import { LinkedRecordsPanel } from '@/apps/common/components/panels/LinkedRecordsPanel';
 import type { TabsSection } from '@/hooks/useDetailLayout';
 import { formatCurrency, formatPercent } from '@/utils/stringUtils';
+
+/** Tabs that should render as LinkedRecordsPanel with db.columns header */
+const LINKED_TAB_MODELS: Record<string, string> = {
+  contacts: 'contact',
+  documents: 'document',
+  actions: 'action',
+  touches: 'touch',
+  qa: 'qa',
+};
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,7 +55,7 @@ const TabsRenderer: React.FC<TabsRendererProps> = ({ section, data, isEditing, m
           <button
             key={tab.content}
             onClick={() => onTabChange(tab.content)}
-            className={`px-4 py-2 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
+            className={`px-4 py-2 db-font-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
               currentTab === tab.content
                 ? 'border-blue-600 text-blue-600 '
                 : 'border-transparent text-[var(--db-text-muted,#6c757d)] hover:text-[var(--db-text,#212529)]'
@@ -102,42 +112,22 @@ export const TabContent: React.FC<{
         />
       );
 
-    case 'contacts': {
-      const rawContacts = data?.refs?.links?.contact ?? [];
-      const contactRows = Array.isArray(rawContacts) ? rawContacts.map((c: any) => {
-        const ct = c.contact || c;
-        return {
-          id: ct.id || ct.contact_id || 0,
-          ida: ct.ida || '',
-          role: c.purpose || ct.role || '',
-          name: ct.attention || ct.display_name || '',
-          email: Array.isArray(ct.email) ? ct.email[0] : (ct.email || ''),
-          phone: Array.isArray(ct.phone) ? ct.phone[0] : (ct.phone || ''),
-          address: Array.isArray(ct.address) ? ct.address[0]?.full : (ct.address?.full || ct.address || ''),
-        };
-      }) : [];
-
-      if (!contactRows.length) {
-        return <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] text-sm">No contacts linked</div>;
+    case 'contacts':
+    case 'documents':
+    case 'actions':
+    case 'touches': {
+      const linkedModel = LINKED_TAB_MODELS[tabId];
+      if (linkedModel && data?.id) {
+        return (
+          <LinkedRecordsPanel
+            linkedModel={linkedModel}
+            parentModel={modelName}
+            parentId={data.id}
+            defaultCollapsed={false}
+          />
+        );
       }
-
-      const contactCols: PanelColumnDef<Record<string, unknown>>[] = [
-        { key: 'role', label: 'role', cellClassName: 'w-[70px] text-[var(--db-text,#212529)]', render: (r) => String(r.role ?? '—') },
-        { key: 'name', label: 'name', cellClassName: 'w-[150px] text-[var(--db-text,#212529)]', render: (r) => String(r.name ?? '—') },
-        { key: 'email', label: 'email', cellClassName: 'w-[200px] text-[var(--db-text,#212529)]', render: (r) => String(r.email ?? '—') },
-        { key: 'phone', label: 'phone', cellClassName: 'w-[140px] text-[var(--db-text,#212529)]', render: (r) => String(r.phone ?? '—') },
-        { key: 'address', label: 'address', cellClassName: 'min-w-[200px] flex-1 text-[var(--db-text,#212529)]', render: (r) => String(r.address ?? '—') },
-      ];
-
-      return (
-        <PanelTable
-          storageKey={`panel:${modelName}:contacts`}
-          columns={contactCols}
-          data={contactRows}
-          rowKey={(r: any) => r.id}
-          compact
-        />
-      );
+      return <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] db-font-sm">No {tabId} linked</div>;
     }
 
     case 'comments':
@@ -149,57 +139,7 @@ export const TabContent: React.FC<{
         />
       );
 
-    case 'documents': {
-      const docs = data?.refs?.links?.document ?? [];
-      const docRows = Array.isArray(docs) ? docs.map((d: any) => {
-        const doc = d.document || d;
-        return { id: doc.id || 0, ida: doc.ida || '', name: doc.name || doc.display_name || '', status: doc.status || d.purpose || '' };
-      }) : [];
-      if (!docRows.length) return <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] text-sm">No documents attached</div>;
-
-      const docCols: PanelColumnDef<Record<string, unknown>>[] = [
-        { key: 'ida', label: 'ida', cellClassName: 'w-[100px] font-mono text-[var(--db-text-muted,#6c757d)]', render: (r) => String(r.ida ?? '—') },
-        { key: 'name', label: 'name', cellClassName: 'min-w-[200px] flex-1 text-[var(--db-text,#212529)]', render: (r) => String(r.name ?? '—') },
-        { key: 'status', label: 'status', cellClassName: 'w-[80px] text-[var(--db-text,#212529)]', render: (r) => String(r.status ?? '—') },
-      ];
-
-      return (
-        <PanelTable
-          storageKey={`panel:${modelName}:documents`}
-          columns={docCols}
-          data={docRows}
-          rowKey={(r: any) => r.id}
-          compact
-        />
-      );
-    }
-
-    case 'actions': {
-      const actionItems = (data?.actions?.items ?? []) as any[];
-      if (!actionItems.length) return <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] text-sm">No actions on this {modelName}</div>;
-
-      const actionCols: PanelColumnDef<Record<string, unknown>>[] = [
-        { key: 'action', label: 'action', cellClassName: 'min-w-[200px] flex-1 text-[var(--db-text,#212529)]', render: (r) => {
-          const v = r.action;
-          return String(typeof v === 'object' && v !== null ? (v as any).en ?? JSON.stringify(v) : v ?? '—');
-        }},
-        { key: 'status', label: 'status', cellClassName: 'w-[90px]', render: (r) => {
-          const s = String(r.status ?? 'pending');
-          const done = s === 'done' || s === 'completed';
-          return <span className={`px-1.5 py-0.5 rounded text-xs ${done ? 'bg-green-100 text-green-600' : 'bg-[var(--db-surface-alt,#f1f3f5)] text-[var(--db-text-muted,#6c757d)]'}`}>{s}</span>;
-        }},
-      ];
-
-      return (
-        <PanelTable
-          storageKey={`panel:${modelName}:actions`}
-          columns={actionCols}
-          data={actionItems}
-          rowKey={(r: any) => r.id ?? Math.random()}
-          compact
-        />
-      );
-    }
+    /* contacts, documents, actions, touches handled by the combined case above */
 
     case 'related_transactions': {
       const links = data?.refs?.links || {};
@@ -216,7 +156,7 @@ export const TabContent: React.FC<{
           });
         }
       }
-      if (!relatedRows.length) return <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] text-sm">No related records</div>;
+      if (!relatedRows.length) return <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] db-font-sm">No related records</div>;
 
       const relCols: PanelColumnDef<Record<string, unknown>>[] = [
         { key: 'type', label: 'type', cellClassName: 'w-[90px] font-semibold text-[var(--db-text,#212529)]', render: (r) => String(r.type ?? '—') },
@@ -235,36 +175,7 @@ export const TabContent: React.FC<{
       );
     }
 
-    case 'qa': {
-      const [qaRecords, setQaRecords] = React.useState<any[]>([]);
-      React.useEffect(() => {
-        if (!data?.id) return;
-        getRecords('qa', { parent_id: data.id, parent_model: modelName, limit: 50 })
-          .then(res => setQaRecords((res?.results || []).map((q: any) => ({
-            id: q.id, ida: q.ida || '', question: q.question || '', answer: q.answer || '', status: q.status || '',
-          }))))
-          .catch(() => setQaRecords([]));
-      }, [data?.id, modelName]);
-
-      if (!qaRecords.length) return <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] text-sm">No QA records</div>;
-
-      const qaCols: PanelColumnDef<Record<string, unknown>>[] = [
-        { key: 'ida', label: 'ida', cellClassName: 'w-[80px] font-mono text-[var(--db-text-muted,#6c757d)]', render: (r) => String(r.ida ?? '—') },
-        { key: 'question', label: 'question', cellClassName: 'min-w-[200px] flex-1 text-[var(--db-text,#212529)]', render: (r) => String(r.question ?? '—') },
-        { key: 'answer', label: 'answer', cellClassName: 'min-w-[150px] flex-1 text-[var(--db-text,#212529)]', render: (r) => String(r.answer ?? '—') },
-        { key: 'status', label: 'status', cellClassName: 'w-[70px] text-[var(--db-text,#212529)]', render: (r) => String(r.status ?? '—') },
-      ];
-
-      return (
-        <PanelTable
-          storageKey={`panel:${modelName}:qa`}
-          columns={qaCols}
-          data={qaRecords}
-          rowKey={(r: any) => r.id}
-          compact
-        />
-      );
-    }
+    /* qa handled by the combined linked-model case above */
 
     case 'shipping':
       return <ShippingTabContent data={data} />;
@@ -274,14 +185,14 @@ export const TabContent: React.FC<{
 
     case 'history':
       return (
-        <div className="text-xs text-[var(--db-text-muted,#6c757d)]">
+        <div className="db-font-xs text-[var(--db-text-muted,#6c757d)]">
           <pre className="whitespace-pre-wrap">{JSON.stringify(data?.metadata?.history ?? [], null, 2)}</pre>
         </div>
       );
 
     default:
       return (
-        <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] text-sm">
+        <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] db-font-sm">
           Tab "{tabId}" not implemented
         </div>
       );
@@ -344,10 +255,10 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
   const totalUnapplied = invoices.reduce((s: number, d: any) => s + Number(d.totals?.balance ?? 0), 0);
 
   return (
-    <div className="grid grid-cols-3 gap-6 text-xs">
+    <div className="grid grid-cols-3 gap-6 db-font-xs">
       {/* Left: Order Totals */}
       <div>
-        <div className="text-xs font-bold text-[var(--db-text,#212529)] mb-2">order totals</div>
+        <div className="db-font-xs font-bold text-[var(--db-text,#212529)] mb-2">order totals</div>
         <div className="space-y-0.5">
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">lines</span><span className="font-mono">{lines.length}</span></div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">sell amount</span><span className="font-mono">{fmt(sell.line_sum_goods ?? 0)}</span></div>
@@ -379,24 +290,24 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
 
       {/* Right: Customer */}
       <div>
-        <div className="text-xs font-bold text-[var(--db-text,#212529)] mb-2">customer</div>
+        <div className="db-font-xs font-bold text-[var(--db-text,#212529)] mb-2">customer</div>
         <div className="space-y-0.5">
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">company</span><span className="font-mono">{data?.company || data?.customer_company || customerData.company || customerData.display_name || '—'}</span></div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">price level</span><span className="font-mono">{data?.price_level || '—'}</span></div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">terms</span><span className="font-mono">{data?.terms || '—'}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
-          <div className="text-[10px] font-medium text-[var(--db-text-dim,#adb5bd)] mb-1">Credit</div>
+          <div className="db-font-xs font-medium text-[var(--db-text-dim,#adb5bd)] mb-1">Credit</div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">credit limit</span><span className="font-mono">{fmt(customerData.credit_limit)}</span></div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">available</span><span className="font-mono">{fmt(customerData.credit_available)}</span></div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">balance due</span><span className="font-mono">{fmt(customerData.balance_due)}</span></div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">current</span><span className="font-mono">{fmt(customerData.balance_current)}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
-          <div className="text-[10px] font-medium text-[var(--db-text-dim,#adb5bd)] mb-1">Sales History</div>
+          <div className="db-font-xs font-medium text-[var(--db-text-dim,#adb5bd)] mb-1">Sales History</div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">mtd</span><span className="font-mono">{fmt(customerData.sales_mtd)}</span></div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">ytd</span><span className="font-mono">{fmt(customerData.sales_ytd)}</span></div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">lifetime</span><span className="font-mono">{fmt(customerData.sales_lifetime)}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
-          <div className="text-[10px] font-medium text-[var(--db-text-dim,#adb5bd)] mb-1">Payment</div>
+          <div className="db-font-xs font-medium text-[var(--db-text-dim,#adb5bd)] mb-1">Payment</div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">avg days</span><span className="font-mono">{customerData.avg_pay_days ?? '—'}</span></div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">last payment</span><span className="font-mono">{fmt(customerData.last_payment_amount)}</span></div>
         </div>
@@ -404,7 +315,7 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
 
       {/* Right: Payments then Invoices */}
       <div>
-        <div className="text-xs font-bold text-[var(--db-text,#212529)] mb-2">flow</div>
+        <div className="db-font-xs font-bold text-[var(--db-text,#212529)] mb-2">flow</div>
         <div className="space-y-0.5">
           <div className="flex justify-between font-medium"><span>total</span><span className="font-mono">{fmt(totalInvoiced || totals.total)}</span></div>
           <div className="flex justify-between font-medium">
@@ -414,7 +325,7 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
 
           {/* Payments first */}
-          <div className="text-[10px] font-medium text-[var(--db-text-dim,#adb5bd)] mb-0.5">Payments</div>
+          <div className="db-font-xs font-medium text-[var(--db-text-dim,#adb5bd)] mb-0.5">Payments</div>
           {payments.length > 0 ? (
             <div className="space-y-0.5 mb-2">
               {payments.map((doc: any, i: number) => (
@@ -434,7 +345,7 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
           )}
 
           {/* Invoices second */}
-          <div className="text-[10px] font-medium text-[var(--db-text-dim,#adb5bd)] mb-0.5">Invoices</div>
+          <div className="db-font-xs font-medium text-[var(--db-text-dim,#adb5bd)] mb-0.5">Invoices</div>
           {invoices.length > 0 ? (
             <div className="space-y-0.5">
               {invoices.map((doc: any, i: number) => (
@@ -466,7 +377,7 @@ export const ActionsTabContent: React.FC<{ data: any; modelName: string }> = ({ 
 
   if (!actions.length) {
     return (
-      <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] text-sm">
+      <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] db-font-sm">
         No actions on this {modelName}
       </div>
     );
@@ -479,10 +390,10 @@ export const ActionsTabContent: React.FC<{ data: any; modelName: string }> = ({ 
           key={action.id ?? idx}
           className="p-3 bg-[var(--db-surface-alt,#f1f3f5)] rounded-lg border border-[var(--db-border,#dee2e6)] flex justify-between items-center"
         >
-          <span className="font-medium text-sm text-[var(--db-text,#212529)]">
+          <span className="font-medium db-font-sm text-[var(--db-text,#212529)]">
             {typeof action.action === 'object' ? action.action?.en : action.action ?? action.what ?? '—'}
           </span>
-          <span className={`px-2 py-0.5 text-xs rounded-full ${
+          <span className={`px-2 py-0.5 db-font-xs rounded-full ${
             action.status === 'done' || action.status === 'completed'
               ? 'bg-green-100 text-green-600'
               : 'bg-amber-100 text-amber-700 '
@@ -500,14 +411,15 @@ export const ShippingTabContent: React.FC<{ data: any }> = ({ data }) => {
 
   if (!shipments.length) {
     return (
-      <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] text-sm">
+      <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] db-font-sm">
         No shipments recorded
+        <div className="font-mono db-font-xs mt-1" style={{ color: 'var(--db-text-dim, #adb5bd)' }}>metadata.shipping</div>
       </div>
     );
   }
 
   return (
-    <table className="w-full text-xs border-collapse">
+    <table className="w-full db-font-xs border-collapse">
       <thead>
         <tr className="bg-[var(--db-surface-alt,#f1f3f5)] text-[var(--db-text,#212529)]">
           <th className="text-left px-2 py-1.5 font-medium">carrier</th>
@@ -564,7 +476,7 @@ export const NotesTabContent: React.FC<{
       {['public', 'process', 'partner'].map((key) => (
         <div key={key}>
           <label
-            className={`text-xs font-medium capitalize mb-1 block ${
+            className={`db-font-xs font-medium capitalize mb-1 block ${
               isEditing
                 ? 'text-blue-600  cursor-pointer hover:underline'
                 : 'text-[var(--db-text-muted,#6c757d)]'
@@ -579,11 +491,11 @@ export const NotesTabContent: React.FC<{
               ref={(el) => { textareaRefs.current[key] = el; }}
               value={notes[key] ?? ''}
               onChange={(e) => onChange('comments', { ...notes, [key]: e.target.value })}
-              className="w-full text-xs p-2 border border-[var(--db-border,#dee2e6)] rounded bg-[var(--db-surface-alt,#fff)] text-[var(--db-text,#212529)] min-h-[80px] font-mono"
+              className="w-full db-font-xs p-2 border border-[var(--db-border,#dee2e6)] rounded bg-[var(--db-surface-alt,#fff)] text-[var(--db-text,#212529)] min-h-[80px] font-mono"
               placeholder={`Click "${key}" label above to add a timestamped entry`}
             />
           ) : (
-            <div className="text-xs text-[var(--db-text,#212529)] p-2 bg-[var(--db-surface-alt,#f1f3f5)] rounded min-h-[30px] whitespace-pre-wrap font-mono">
+            <div className="db-font-xs text-[var(--db-text,#212529)] p-2 bg-[var(--db-surface-alt,#f1f3f5)] rounded min-h-[30px] whitespace-pre-wrap font-mono">
               {notes[key] || '—'}
             </div>
           )}

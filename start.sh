@@ -82,6 +82,20 @@ venv/bin/python -m celery -A webclerk3_api worker \
 PIDS+=($!)
 echo "Celery:    started (log: data/logs/celery.log)"
 
+# ── Wait for PostgreSQL ───────────────────────────────────────────
+
+echo -n "Postgres:  "
+for i in $(seq 1 30); do
+  if pg_isready -q 2>/dev/null; then
+    echo "ready"
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    echo "WARNING: not responding after 30s — starting Django anyway"
+  fi
+  sleep 1
+done
+
 # ── Start Django ──────────────────────────────────────────────────
 
 cd "$BACKEND_DIR"

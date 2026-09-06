@@ -124,11 +124,11 @@ export const CommunicationAddEditModal: React.FC<
         className="rounded-lg p-4 w-80 max-w-full mx-4 db-bg-surface"
         onClick={handleModalClick}
       >
-        <h3 className="text-sm font-semibold mb-2 capitalize db-text">
+        <h3 className="db-font-sm font-semibold mb-2 capitalize db-text">
           {data ? "Edit" : "Add"} {type}
         </h3>
         {contactId !== undefined && (
-          <p className="text-xs mb-4 db-text-muted">
+          <p className="db-font-xs mb-4 db-text-muted">
             Contact ID:{" "}
             <strong className="db-text-accent">{contactId ?? "NOT SET"}</strong>
           </p>
@@ -138,7 +138,7 @@ export const CommunicationAddEditModal: React.FC<
           {type === "email" && (
             <>
               <div>
-                <label className="block text-xs mb-1 db-text-muted">
+                <label className="block db-font-xs mb-1 db-text-muted">
                   Email
                 </label>
                 <input
@@ -147,12 +147,12 @@ export const CommunicationAddEditModal: React.FC<
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
-                  className="w-full px-2 py-1.5 text-sm rounded db-panel-input"
+                  className="w-full px-2 py-1.5 db-font-sm rounded db-panel-input"
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs mb-1 db-text-muted">
+                <label className="block db-font-xs mb-1 db-text-muted">
                   Label
                 </label>
                 <input
@@ -162,10 +162,10 @@ export const CommunicationAddEditModal: React.FC<
                     setFormData({ ...formData, name: e.target.value })
                   }
                   placeholder="Work, Personal, etc."
-                  className="w-full px-2 py-1.5 text-sm rounded db-panel-input"
+                  className="w-full px-2 py-1.5 db-font-sm rounded db-panel-input"
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2 db-font-sm">
                 <input
                   type="checkbox"
                   checked={(formData.is_primary as boolean) || false}
@@ -181,7 +181,7 @@ export const CommunicationAddEditModal: React.FC<
           {type === "phone" && (
             <>
               <div>
-                <label className="block text-xs mb-1 db-text-muted">
+                <label className="block db-font-xs mb-1 db-text-muted">
                   Number
                 </label>
                 <input
@@ -190,12 +190,12 @@ export const CommunicationAddEditModal: React.FC<
                   onChange={(e) =>
                     setFormData({ ...formData, number: e.target.value })
                   }
-                  className="w-full px-2 py-1.5 text-sm rounded db-panel-input"
+                  className="w-full px-2 py-1.5 db-font-sm rounded db-panel-input"
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs mb-1 db-text-muted">
+                <label className="block db-font-xs mb-1 db-text-muted">
                   Label
                 </label>
                 <input
@@ -205,7 +205,7 @@ export const CommunicationAddEditModal: React.FC<
                     setFormData({ ...formData, name: e.target.value })
                   }
                   placeholder="Mobile, Office, etc."
-                  className="w-full px-2 py-1.5 text-sm rounded db-panel-input"
+                  className="w-full px-2 py-1.5 db-font-sm rounded db-panel-input"
                 />
               </div>
             </>
@@ -214,7 +214,7 @@ export const CommunicationAddEditModal: React.FC<
           {type === "address" && (
             <>
               <div>
-                <label className="block text-xs mb-1 db-text-muted">
+                <label className="block db-font-xs mb-1 db-text-muted">
                   Street Address
                 </label>
                 <input
@@ -223,12 +223,12 @@ export const CommunicationAddEditModal: React.FC<
                   onChange={(e) =>
                     setFormData({ ...formData, address1: e.target.value })
                   }
-                  className="w-full px-2 py-1.5 text-sm rounded db-panel-input"
+                  className="w-full px-2 py-1.5 db-font-sm rounded db-panel-input"
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs mb-1 db-text-muted">
+                <label className="block db-font-xs mb-1 db-text-muted">
                   Address 2
                 </label>
                 <input
@@ -237,12 +237,12 @@ export const CommunicationAddEditModal: React.FC<
                   onChange={(e) =>
                     setFormData({ ...formData, address2: e.target.value })
                   }
-                  className="w-full px-2 py-1.5 text-sm rounded db-panel-input"
+                  className="w-full px-2 py-1.5 db-font-sm rounded db-panel-input"
                 />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs mb-1 db-text-muted">
+                  <label className="block db-font-xs mb-1 db-text-muted">
                     City
                   </label>
                   <input
@@ -251,11 +251,11 @@ export const CommunicationAddEditModal: React.FC<
                     onChange={(e) =>
                       setFormData({ ...formData, city: e.target.value })
                     }
-                    className="w-full px-2 py-1.5 text-sm rounded db-panel-input"
+                    className="w-full px-2 py-1.5 db-font-sm rounded db-panel-input"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs mb-1 db-text-muted">
+                  <label className="block db-font-xs mb-1 db-text-muted">
                     State
                   </label>
                   <input
@@ -264,13 +264,13 @@ export const CommunicationAddEditModal: React.FC<
                     onChange={(e) =>
                       setFormData({ ...formData, state: e.target.value })
                     }
-                    className="w-full px-2 py-1.5 text-sm rounded db-panel-input"
+                    className="w-full px-2 py-1.5 db-font-sm rounded db-panel-input"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs mb-1 db-text-muted">
+                  <label className="block db-font-xs mb-1 db-text-muted">
                     Zip
                   </label>
                   <input
@@ -279,11 +279,11 @@ export const CommunicationAddEditModal: React.FC<
                     onChange={(e) =>
                       setFormData({ ...formData, zip: e.target.value })
                     }
-                    className="w-full px-2 py-1.5 text-sm rounded db-panel-input"
+                    className="w-full px-2 py-1.5 db-font-sm rounded db-panel-input"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs mb-1 db-text-muted">
+                  <label className="block db-font-xs mb-1 db-text-muted">
                     Country
                   </label>
                   <input
@@ -293,12 +293,12 @@ export const CommunicationAddEditModal: React.FC<
                       setFormData({ ...formData, country: e.target.value })
                     }
                     placeholder="US"
-                    className="w-full px-2 py-1.5 text-sm rounded db-panel-input"
+                    className="w-full px-2 py-1.5 db-font-sm rounded db-panel-input"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs mb-1 db-text-muted">
+                <label className="block db-font-xs mb-1 db-text-muted">
                   full
                 </label>
                 <input
@@ -312,7 +312,7 @@ export const CommunicationAddEditModal: React.FC<
                     country: formData.country as string,
                   })}
                   readOnly
-                  className="w-full px-2 py-1.5 text-sm rounded db-surface-alt-text db-panel-input"
+                  className="w-full px-2 py-1.5 db-font-sm rounded db-surface-alt-text db-panel-input"
                 />
               </div>
             </>
@@ -321,7 +321,7 @@ export const CommunicationAddEditModal: React.FC<
           {type === "domain" && (
             <>
               <div>
-                <label className="block text-xs mb-1 db-text-muted">
+                <label className="block db-font-xs mb-1 db-text-muted">
                   Domain
                 </label>
                 <input
@@ -331,11 +331,11 @@ export const CommunicationAddEditModal: React.FC<
                     setFormData({ ...formData, domain: e.target.value })
                   }
                   placeholder="example.com"
-                  className="w-full px-2 py-1.5 text-sm rounded db-panel-input"
+                  className="w-full px-2 py-1.5 db-font-sm rounded db-panel-input"
                   required
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2 db-font-sm">
                 <input
                   type="checkbox"
                   checked={(formData.is_primary as boolean) || false}
@@ -345,7 +345,7 @@ export const CommunicationAddEditModal: React.FC<
                 />
                 Primary domain
               </label>
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2 db-font-sm">
                 <input
                   type="checkbox"
                   checked={(formData.verified as boolean) || false}
@@ -363,14 +363,14 @@ export const CommunicationAddEditModal: React.FC<
               type="button"
               onClick={onClose}
               disabled={isSaving}
-              className="px-3 py-1.5 text-sm rounded disabled:opacity-50 db-text-muted"
+              className="px-3 py-1.5 db-font-sm rounded disabled:opacity-50 db-text-muted"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="px-3 py-1.5 text-sm rounded disabled:opacity-50 flex items-center gap-1.5 db-btn db-btn--primary"
+              className="px-3 py-1.5 db-font-sm rounded disabled:opacity-50 flex items-center gap-1.5 db-btn db-btn--primary"
             >
               {isSaving && <FaSpinner className="animate-spin" size={12} />}
               {isSaving ? "Saving..." : "Save"}

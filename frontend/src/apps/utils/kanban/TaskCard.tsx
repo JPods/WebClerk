@@ -15,10 +15,10 @@ export interface MoveToProjectOption {
 }
 
 const priorityStyles: Record<TaskPriority, string> = {
-  low: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200",
-  medium: "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200",
-  high: "bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-200",
-  critical: "bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-200",
+  low: "bg-emerald-100 text-emerald-700",
+  medium: "bg-amber-100 text-amber-700",
+  high: "bg-orange-100 text-orange-700",
+  critical: "bg-rose-100 text-rose-700",
 };
 
 const priorityLabel: Record<TaskPriority, string> = {
@@ -124,21 +124,21 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
           "opacity-0": isDragging,
           "ring-2 ring-indigo-400": isOver && canDrop,
           // Subtask styling
-          "bg-indigo-50/80 border-indigo-100 dark:bg-indigo-500/5 dark:border-indigo-500/20": isSubtask,
-          // Regular task styling
-          "bg-white/80 dark:bg-white/5": !isSubtask,
+          "bg-indigo-50/80 border-indigo-100": isSubtask,
+          // Regular task styling — uses theme surface
         }
       )}
+      style={{ background: isSubtask ? undefined : 'var(--db-surface-alt)' }}
     >
         <div className="flex items-start justify-between gap-4">
           {task.ida && (
-            <span className="text-xs text-gray-400">{task.ida}</span>
+            <span className="db-font-xs" style={{ color: 'var(--db-text-dim)' }}>{task.ida}</span>
           )}
         <div className="flex items-start gap-2">
           {isSubtask && (
             <div className="mt-1 flex-shrink-0">
-              <svg 
-                className="h-3 w-3 text-indigo-400 dark:text-indigo-300" 
+              <svg
+                className="h-3 w-3 text-indigo-400"
                 viewBox="0 0 12 12" 
                 fill="none" 
                 xmlns="http://www.w3.org/2000/svg"
@@ -154,13 +154,13 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
           )}
           <div>
             <div className="mb-2 flex items-center gap-2">
-              <span className="rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-mono font-semibold text-gray-600 dark:bg-gray-700/60 dark:text-gray-300">
+              <span className="rounded-md px-2 py-0.5 db-font-xs font-mono font-semibold" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
                 #{task.id}
               </span>
               {task.project_name && (
                 <div ref={moveRef} style={{ position: "relative", display: "inline-block" }}>
                   <p
-                    className="text-xs text-gray-600 rounded-full bg-indigo-100 px-2.5 py-0.5 dark:bg-indigo-500/20 dark:text-indigo-200"
+                    className="db-font-xs rounded-full bg-indigo-100 px-2.5 py-0.5 text-indigo-700"
                     style={{ cursor: moveToOptions?.length ? "pointer" : "default" }}
                     onClick={(e) => {
                       if (!moveToOptions?.length) return;
@@ -215,32 +215,32 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
                 </div>
               )}
             </div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">{task.title_translations?.en ?? Object.values(task.title_translations ?? {})[0]}</p>
+            <p className="db-font-sm font-semibold" style={{ color: 'var(--db-text)' }}>{task.title_translations?.en ?? Object.values(task.title_translations ?? {})[0]}</p>
             {task.description_translations && (
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-300 line-clamp-2">{task.description_translations.en ?? Object.values(task.description_translations)[0]}</p>
+              <p className="mt-1 db-font-sm line-clamp-2" style={{ color: 'var(--db-text-muted)' }}>{task.description_translations.en ?? Object.values(task.description_translations)[0]}</p>
             )}
           </div>
         </div>
-        <span className={clsx("rounded-full px-3 py-1 text-xs font-semibold", priorityClass)}>{priorityText}</span>
+        <span className={clsx("rounded-full px-3 py-1 db-font-xs font-semibold", priorityClass)}>{priorityText}</span>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+      <div className="mt-4 flex flex-wrap items-center gap-3 db-font-xs" style={{ color: 'var(--db-text-muted)' }}>
         {task.properties?.dates?.start?.dt && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 dark:bg-gray-700/60 dark:text-gray-200">
+          <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 db-font-xs font-medium" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
             Start:
              {formatDt(task.properties.dates.start.dt, 'date')}
           </span>
         )}
 
         {task.properties?.dates?.expected?.dt && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 dark:bg-gray-700/60 dark:text-gray-200">
+          <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 db-font-xs font-medium" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
             Expected:
              {formatDt(task.properties.dates.expected.dt, 'date')}
           </span>
         )}
 
         {task.properties?.dates?.due?.dt && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 dark:bg-gray-700/60 dark:text-gray-200">
+          <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 db-font-xs font-medium" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
             Due:
              {formatDt(task.properties.dates.due.dt, 'date')}
           </span>
@@ -248,7 +248,7 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
 
         {/* Duration display */}
         {(task.duration != null || (task.dt_start && task.dt_deadline)) && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-1 text-[11px] font-medium text-purple-600 dark:bg-purple-500/10 dark:text-purple-200">
+          <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-1 db-font-xs font-medium text-purple-600">
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -265,13 +265,13 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
         )}
 
         {task.properties?.dates?.completed?.dt && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 dark:bg-gray-700/60 dark:text-gray-200">
+          <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 db-font-xs font-medium" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
             Completed:
              {formatDt(task.properties.dates.completed.dt, 'date')}
           </span>
         )}
         {progressLabel && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-200">
+          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 db-font-xs font-semibold text-indigo-600">
             <span className="h-2 w-2 rounded-full bg-indigo-400" />
             {progressLabel}
           </span>
@@ -283,7 +283,8 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
           {task.tags?.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 dark:bg-gray-700/60 dark:text-gray-200"
+              className="inline-flex items-center rounded-full px-2 py-1 db-font-xs font-medium"
+              style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}
             >
               {tag}
             </span>
@@ -291,7 +292,7 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
         </div>
         {Array.isArray(task.assigned_to) && task.assigned_to.length > 0 && (
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+            <span className="db-font-xs font-medium" style={{ color: 'var(--db-text-muted)' }}>
               {task.assigned_to.map((a:any) => a.name).join(', ')}
             </span>
           </div>

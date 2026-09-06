@@ -43,6 +43,8 @@ export interface BootstrapData {
 
 const CACHE_KEY = 'wc3-bootstrap';
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const POLL_MIN = 15_000;          // 15s — fast during setup / after flush
+const POLL_MAX = 300_000;         // 5min — idle ceiling
 
 // Module-level cache — survives re-renders, cleared on refresh
 let cachedData: BootstrapData | null = null;
@@ -104,9 +106,15 @@ export function useAppBootstrap(isAuthenticated: boolean) {
         error: null,
       };
 
+      const wasFlush = cachedData && bootstrap.dt_changed > cachedData.dt_changed;
       cachedData = bootstrap;
       cacheTimestamp = Date.now();
       setData(bootstrap);
+
+      // Notify panels and other components that Settings changed
+      if (wasFlush) {
+        window.dispatchEvent(new Event('wc3-settings-changed'));
+      }
 
       // localStorage fallback for offline/fast reload
       try {
@@ -137,10 +145,16 @@ export function useAppBootstrap(isAuthenticated: boolean) {
     if (isAuthenticated) refresh();
   }, [isAuthenticated, refresh]);
 
-  // Lightweight poll: check if admin changed defaults (dt_changed flag)
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const interval = setInterval(async () => {
+  // Adaptive poll: check if admin/Alice changed Settings (dt_changed flag)
+  // Starts at 15s, backs off to 5min when idle. Resets to 15s on flush
+  // detection or when Alice sends 'wake' via BroadcastChannel.
+  const pollIntervalRef = useRef(POLL_MIN);
+  const consecutiveIdleRef = useRef(0);
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const schedulePoll = useCallback(() => {
+    if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    pollTimerRef.current = setTimeout(async () => {
       try {
         const { default: apiClient } = await import('@/api/axios');
         const resp = await apiClient.post('/wcapi/_manage/', {
@@ -148,12 +162,50 @@ export function useAppBootstrap(isAuthenticated: boolean) {
         });
         const serverDt = resp.data?.data?.dt_changed || 0;
         if (serverDt > 0 && cachedData && serverDt > cachedData.dt_changed) {
-          refresh(true); // admin changed something — refresh
+          // Flush detected — reload and reset to fast polling
+          consecutiveIdleRef.current = 0;
+          pollIntervalRef.current = POLL_MIN;
+          refresh(true);
+          try { flushChannel?.postMessage('flush'); } catch { /* ignore */ }
+        } else {
+          // No change — back off: 15s → 30s → 60s → 120s → 300s
+          consecutiveIdleRef.current++;
+          if (consecutiveIdleRef.current > 4) {
+            pollIntervalRef.current = Math.min(pollIntervalRef.current * 2, POLL_MAX);
+          }
         }
-      } catch { /* silent — don't break the app for a poll failure */ }
-    }, 60000); // check every 60 seconds
-    return () => clearInterval(interval);
-  }, [isAuthenticated, refresh]);
+      } catch { /* silent */ }
+      schedulePoll(); // schedule next poll at current interval
+    }, pollIntervalRef.current);
+  }, [refresh]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    schedulePoll();
+    return () => { if (pollTimerRef.current) clearTimeout(pollTimerRef.current); };
+  }, [isAuthenticated, schedulePoll]);
+
+  // BroadcastChannel — flush from another tab, or Alice sends 'wake'
+  const [flushChannel] = useState(() => {
+    try { return new BroadcastChannel('wc3-flush'); } catch { return null; }
+  });
+  useEffect(() => {
+    if (!flushChannel || !isAuthenticated) return;
+    const handler = (ev: MessageEvent) => {
+      // 'flush' = another tab detected a change; 'wake' = Alice says check now
+      consecutiveIdleRef.current = 0;
+      pollIntervalRef.current = POLL_MIN;
+      if (ev.data === 'flush') {
+        refresh(true);
+      } else if (ev.data === 'wake') {
+        // Just reset the poll interval — next tick will check
+        if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+        schedulePoll();
+      }
+    };
+    flushChannel.addEventListener('message', handler);
+    return () => flushChannel.removeEventListener('message', handler);
+  }, [flushChannel, isAuthenticated, refresh, schedulePoll]);
 
   return { ...data, refresh };
 }

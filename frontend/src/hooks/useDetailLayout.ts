@@ -112,10 +112,13 @@ export function useDetailLayout(modelName: string) {
 
   useEffect(() => {
     if (layoutCache.has(modelName)) {
-      setLayout(layoutCache.get(modelName)!);
+      const cached = layoutCache.get(modelName)!;
+      console.log('[useDetailLayout] CACHE HIT for', modelName, 'sections:', cached.sections?.length, 'first:', cached.sections?.[0]?.type, cached.sections?.[0]?.layout);
+      setLayout(cached);
       setLoading(false);
       return;
     }
+    console.log('%c[useDetailLayout] CACHE MISS for ' + modelName + ' — fetching from API', 'color: yellow; font-weight: bold; font-size: 14px');
 
     let cancelled = false;
     setLoading(true);
@@ -133,16 +136,33 @@ export function useDetailLayout(modelName: string) {
 
         // Form layout lives at config.layout.form.default
         const formLayout = setting?.config?.layout?.form?.default;
+        const debugInfo = {
+          model: modelName,
+          hasSetting: !!setting,
+          settingId: setting?.id,
+          settingIda: setting?.ida,
+          configKeys: setting?.config ? Object.keys(setting.config) : 'NO CONFIG',
+          layoutKeys: setting?.config?.layout ? Object.keys(setting.config.layout) : 'NO LAYOUT',
+          formKeys: setting?.config?.layout?.form ? Object.keys(setting.config.layout.form) : 'NO FORM',
+          sectionCount: formLayout?.sections?.length ?? 0,
+          firstSectionType: formLayout?.sections?.[0]?.type,
+          firstSectionLayout: formLayout?.sections?.[0]?.layout,
+          resultCount: res?.results?.length ?? res?.records?.length ?? 0,
+        };
+        console.log('%c[useDetailLayout] FETCH RESULT', 'color: lime; font-size: 16px; font-weight: bold', debugInfo);
+        (window as any).__layoutDebug = { res, setting, formLayout, debugInfo };
         if (formLayout && typeof formLayout === 'object' && formLayout.sections) {
           const parsed = formLayout as DetailLayout;
           layoutCache.set(modelName, parsed);
           setLayout(parsed);
         } else {
+          console.warn('%c[useDetailLayout] FALLBACK — using defaultLayout!', 'color: red; font-size: 16px; font-weight: bold', debugInfo);
           const fallback = defaultLayout(modelName);
           layoutCache.set(modelName, fallback);
           setLayout(fallback);
         }
-      } catch {
+      } catch (err) {
+        console.error('%c[useDetailLayout] FETCH ERROR', 'color: red; font-size: 16px; font-weight: bold', modelName, err);
         if (!cancelled) {
           const fallback = defaultLayout(modelName);
           setLayout(fallback);

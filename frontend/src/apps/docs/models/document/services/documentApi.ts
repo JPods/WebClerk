@@ -58,12 +58,14 @@ export const submitFeedback = async (opts: {
   field?: string;
   model?: string;
   sourcePath?: string;
+  training?: boolean;
 }) => {
+  const isTrainingNote = opts.training || opts.feedback.startsWith('tn-');
   return saveRecord("ai_message", {
     kind: "feedback",
     sender: "user",
     receiver: "alice",
-    subject: `Feedback: ${opts.label}`,
+    subject: isTrainingNote ? `Training Note: ${opts.label}` : `Feedback: ${opts.label}`,
     body: opts.feedback,
     status: "pending",
     context: {
@@ -71,6 +73,8 @@ export const submitFeedback = async (opts: {
       field: opts.field || undefined,
       model: opts.model || undefined,
       source_path: opts.sourcePath || undefined,
+      training_note: isTrainingNote || undefined,
+      page: typeof window !== 'undefined' ? window.location.pathname : undefined,
     },
   });
 };

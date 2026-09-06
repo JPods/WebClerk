@@ -129,6 +129,8 @@ export const mapApiProfileToUser = (input: any): User => {
     config: raw.config ?? null,
     is_staff: raw.is_staff === true,
     is_superuser: raw.is_superuser === true,
+    is_portal: raw.is_portal === true,
+    roles: Array.isArray(raw.roles) ? raw.roles : [],
   };
 };
 

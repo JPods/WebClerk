@@ -293,23 +293,23 @@ export const GanttTimeline: FC<GanttTimelineProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative flex-1 overflow-auto bg-white dark:bg-gray-900"
+      className="relative flex-1 overflow-auto"
       onScroll={handleScroll}
-      style={{ cursor: dragCursor }}
+      style={{ cursor: dragCursor, background: 'var(--db-surface)' }}
       data-wc="GanttTimeline"
     >
       {/* ── Scale headers (sticky top) ── */}
       <div
-        className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
-        style={{ width: chartWidth, minWidth: "100%" }}
+        className="sticky top-0 z-10"
+        style={{ width: chartWidth, minWidth: "100%", background: 'var(--db-surface-alt)', borderBottom: '1px solid var(--db-border)' }}
       >
         {scaleCells.map((row, ri) => (
-          <div key={ri} className="flex h-7 border-b border-gray-100 dark:border-gray-700">
+          <div key={ri} className="flex h-7" style={{ borderBottom: '1px solid var(--db-border-light)' }}>
             {row.map((cell, ci) => (
               <div
                 key={ci}
-                className="text-xs text-gray-600 dark:text-gray-400 font-medium flex items-center justify-center border-r border-gray-100 dark:border-gray-700 whitespace-nowrap overflow-hidden"
-                style={{ position: "absolute", left: cell.x, width: cell.width }}
+                className="text-xs font-medium flex items-center justify-center whitespace-nowrap overflow-hidden"
+                style={{ position: "absolute", left: cell.x, width: cell.width, color: 'var(--db-text-muted)', borderRight: '1px solid var(--db-border-light)' }}
               >
                 {cell.label}
               </div>
@@ -327,8 +327,8 @@ export const GanttTimeline: FC<GanttTimelineProps> = ({
         {weekendColumns.map((col, i) => (
           <div
             key={`we-${i}`}
-            className="absolute top-0 bottom-0 bg-gray-50 dark:bg-gray-800/40"
-            style={{ left: col.x, width: pxPerDay }}
+            className="absolute top-0 bottom-0"
+            style={{ left: col.x, width: pxPerDay, background: 'var(--db-surface-alt)', opacity: 0.5 }}
           />
         ))}
 
@@ -336,8 +336,8 @@ export const GanttTimeline: FC<GanttTimelineProps> = ({
         {tasks.map((_, i) => (
           <div
             key={`row-${i}`}
-            className="absolute left-0 right-0 border-b border-gray-100 dark:border-gray-800"
-            style={{ top: i * cellHeight + cellHeight }}
+            className="absolute left-0 right-0"
+            style={{ top: i * cellHeight + cellHeight, borderBottom: '1px solid var(--db-border-light)' }}
           />
         ))}
 
@@ -345,7 +345,7 @@ export const GanttTimeline: FC<GanttTimelineProps> = ({
         {sprintLines.map((x, i) => (
           <div
             key={`sprint-${i}`}
-            className="absolute top-0 bottom-0 border-l-2 border-dashed border-blue-300 dark:border-blue-700"
+            className="absolute top-0 bottom-0 border-l-2 border-dashed border-blue-300"
             style={{ left: x }}
           />
         ))}
@@ -356,8 +356,8 @@ export const GanttTimeline: FC<GanttTimelineProps> = ({
             className="absolute top-0 bottom-0 z-[5]"
             style={{ left: todayX }}
           >
-            <div className="w-0.5 h-full bg-red-500 dark:bg-red-400" />
-            <div className="absolute -top-5 -left-3 text-[10px] font-bold text-red-500 dark:text-red-400 select-none">
+            <div className="w-0.5 h-full bg-red-500" />
+            <div className="absolute -top-5 -left-3 text-[10px] font-bold text-red-500 select-none">
               Today
             </div>
           </div>

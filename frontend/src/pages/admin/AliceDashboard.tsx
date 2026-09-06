@@ -444,6 +444,9 @@ export default function AliceDashboard() {
             </div>
           </details>
 
+          {/* ── Spotlight Sequences — Alice guides users through workflows ── */}
+          <SpotlightPanel />
+
           {/* ── Training Documents ── */}
           {trainingDocs.map((doc: any) => (
             <details key={doc.id} className="border border-gray-200 dark:border-gray-700 rounded-lg">
@@ -577,6 +580,8 @@ export default function AliceDashboard() {
           subtitle="Connection lessons, column mapping, Athena review" />
         <DocSection ida="HELP-MCP" title="MCP Server Integration"
           subtitle="Connect external APIs to Alice" />
+        <DocSection ida="HELP-TRAINING-NOTES" title="Training Notes (tn-)"
+          subtitle="Cmd+Shift+T — interactive training feedback loop; bramble bush detection" />
         <DocSection ida="HELP-EXTEND" title="How to Extend Alice"
           subtitle="Coaching tips, training docs, onboarding, field behaviors" />
         <DocSection ida="HELP-AGENTS" title="Agent Architecture"
@@ -1432,5 +1437,108 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
         </div>
       )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// SpotlightPanel — Alice-guided walkthrough sequences
+// ---------------------------------------------------------------------------
+
+const BUILTIN_SEQUENCES: { name: string; desc: string; steps: import('@/utils/spotlight').SpotlightStep[] }[] = [
+  {
+    name: 'Find a Record',
+    desc: 'Model picker → search → select',
+    steps: [
+      { wc: 'db-model-picker', hint: 'Pick a model', wait: 'click' },
+      { wc: 'db-search', hint: 'Type to search', wait: 'input' },
+      { wc: 'db-list-pane', hint: 'Click a row to see details', wait: 'click' },
+    ],
+  },
+  {
+    name: 'Create a Record',
+    desc: 'New → fill fields → save',
+    steps: [
+      { wc: 'db-detail-toolbar', hint: 'Click + New', wait: 'click' },
+      { wc: 'db-detail-pane', hint: 'Fill in the fields', wait: 'time', delay: 5000 },
+    ],
+  },
+  {
+    name: 'Change Layout',
+    desc: 'List order → rearrange → save',
+    steps: [
+      { wc: 'db-list-toolbar', hint: 'Click List Order', wait: 'click' },
+      { wc: 'db-layouts-label', hint: 'Save your layout here', wait: 'time', delay: 3000 },
+    ],
+  },
+  {
+    name: 'Get Help',
+    desc: 'Shift+hover → copy tag → paste in Help',
+    steps: [
+      { wc: 'app', hint: 'Shift+hover any zone to see its name', wait: 'time', delay: 3000 },
+      { wc: 'get-help-dialog', hint: 'Paste here for help', wait: 'time', delay: 3000 },
+    ],
+  },
+];
+
+function SpotlightPanel() {
+  const [running, setRunning] = useState(false);
+  const [activeName, setActiveName] = useState('');
+
+  const handleRun = async (seq: typeof BUILTIN_SEQUENCES[0]) => {
+    const { runSequence } = await import('@/utils/spotlight');
+    setRunning(true);
+    setActiveName(seq.name);
+    runSequence(seq.steps, () => {
+      setRunning(false);
+      setActiveName('');
+    });
+  };
+
+  const handleStop = async () => {
+    const { stopSequence } = await import('@/utils/spotlight');
+    stopSequence();
+    setRunning(false);
+    setActiveName('');
+  };
+
+  return (
+    <details className="border border-blue-200 dark:border-blue-800 rounded-lg">
+      <summary className="p-3 cursor-pointer bg-blue-50 dark:bg-blue-900/30 rounded-t-lg">
+        <span className="text-sm font-bold text-blue-700 dark:text-blue-300">Guided Spotlight</span>
+        <span className="ml-2 text-xs text-blue-500">Alice walks you through workflows step by step</span>
+      </summary>
+      <div className="p-4 border-t border-blue-200 dark:border-blue-800">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          Click a sequence below. Alice will flash each element in turn — follow the highlights.
+          <br />
+          <strong>Cmd+Shift+S</strong> — manually spotlight any element (for training videos).
+          <strong> Cmd+Shift+T</strong> — send a training note to Alice.
+        </p>
+        {running && (
+          <div className="mb-3 flex items-center gap-2 p-2 bg-blue-100 dark:bg-blue-900/50 rounded text-xs text-blue-700 dark:text-blue-300">
+            <span className="animate-pulse">●</span> Running: {activeName}
+            <button onClick={handleStop} className="ml-auto px-2 py-0.5 bg-blue-200 dark:bg-blue-800 rounded text-[10px] hover:bg-blue-300">
+              Stop
+            </button>
+          </div>
+        )}
+        <div className="space-y-1">
+          {BUILTIN_SEQUENCES.map((seq) => (
+            <button
+              key={seq.name}
+              onClick={() => handleRun(seq)}
+              disabled={running}
+              className="w-full flex items-center justify-between p-2 text-left rounded hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 text-xs"
+            >
+              <span className="font-medium text-gray-700 dark:text-gray-300">{seq.name}</span>
+              <span className="text-gray-400">{seq.desc}</span>
+            </button>
+          ))}
+        </div>
+        <div className="mt-3 pt-3 border-t border-blue-100 dark:border-blue-900 text-[10px] text-gray-400">
+          Sequences stored as Document records (ida prefix SPOTLIGHT-*). Add new ones in the databrowser.
+        </div>
+      </div>
+    </details>
   );
 }

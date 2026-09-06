@@ -41,15 +41,15 @@ const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
         onClick={toggle}
         className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-[var(--db-surface-alt,#f8f9fa)] transition-colors rounded-t-lg"
       >
-        <span className="text-[10px] text-[var(--db-text-muted,#6c757d)] transition-transform"
+        <span className="db-font-xs text-[var(--db-text-muted,#6c757d)] transition-transform"
           style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
           ▼
         </span>
-        <span className="text-xs font-bold uppercase tracking-wide text-[var(--db-text,#212529)]">
+        <span className="db-font-sm font-bold uppercase tracking-wide text-[var(--db-text,#212529)]">
           {label}
         </span>
         {badge != null && (
-          <span className="text-[10px] text-[var(--db-text-muted,#6c757d)]">({badge})</span>
+          <span className="db-font-xs text-[var(--db-text-muted,#6c757d)]">({badge})</span>
         )}
       </button>
       {!collapsed && (

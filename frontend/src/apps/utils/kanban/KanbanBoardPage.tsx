@@ -23,10 +23,10 @@ import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import { formatDt } from '@/utils/fieldFormatters';
 
 const priorityPalette: Record<TaskPriority, string> = {
-  low: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-  medium: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
-  high: "bg-orange-500/10 text-orange-600 dark:text-orange-300",
-  critical: "bg-rose-500/10 text-rose-600 dark:text-rose-300",
+  low: "bg-emerald-500/10 text-emerald-600",
+  medium: "bg-amber-500/10 text-amber-600",
+  high: "bg-orange-500/10 text-orange-600",
+  critical: "bg-rose-500/10 text-rose-600",
 };
 
 const PRIORITY_TO_VALUE: Record<TaskPriority, number> = {
@@ -841,18 +841,20 @@ const TrashDropZone: React.FC<{ isDeleting?: boolean }> = ({ isDeleting = false 
         className={clsx(
           "flex items-center gap-3 rounded-2xl border-2 border-dashed px-5 py-4 shadow-xl backdrop-blur transition",
           isActive
-            ? "border-rose-400/80 bg-rose-50 text-rose-700 dark:border-rose-500/70 dark:bg-rose-500/20 dark:text-rose-100"
-            : "border-gray-200 bg-white/90 text-gray-600 dark:border-gray-700 dark:bg-gray-900/80 dark:text-gray-200",
-          isDeleting && "ring-2 ring-rose-300/60 dark:ring-rose-600/60"
+            ? "border-rose-400/80 bg-rose-50 text-rose-700"
+            : "",
+          isDeleting && "ring-2 ring-rose-300/60"
         )}
+        style={isActive ? undefined : { borderColor: 'var(--db-border)', background: 'var(--db-surface)', color: 'var(--db-text-muted)' }}
       >
         <div
           className={clsx(
             "flex h-12 w-12 items-center justify-center rounded-xl border-2 text-xl font-semibold transition",
             isActive
-              ? "border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-500/80 dark:bg-rose-500/30 dark:text-rose-50"
-              : "border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-600 dark:bg-gray-800"
+              ? "border-rose-300 bg-rose-100 text-rose-700"
+              : ""
           )}
+          style={isActive ? undefined : { borderColor: 'var(--db-border)', background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}
         >
           {isDeleting ? (
             <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -868,8 +870,8 @@ const TrashDropZone: React.FC<{ isDeleting?: boolean }> = ({ isDeleting = false 
           )}
         </div>
         <div className="flex flex-col">
-          <span className="text-sm font-semibold">Delete task</span>
-          <span className="text-xs text-gray-400 dark:text-gray-500">Drop here to remove</span>
+          <span className="db-font-sm font-semibold">Delete task</span>
+          <span className="db-font-xs" style={{ color: 'var(--db-text-dim)' }}>Drop here to remove</span>
         </div>
       </div>
     </div>
@@ -1327,7 +1329,8 @@ const SegmentedProjectSelector: React.FC<SegmentedProjectSelectorProps> = ({
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={isLoading}
-        className="rounded border border-slate-200 bg-white px-1 py-0.5 text-[10px] text-slate-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+        className="rounded px-1 py-0.5 db-font-xs"
+            style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)', color: 'var(--db-text-muted)' }}
         style={{ cursor: isLoading ? "default" : "pointer", minWidth: 120, textAlign: "left" }}
       >
         {selectedLabel} ▾
@@ -3077,7 +3080,8 @@ const KanbanBoardPage: React.FC = () => {
             }}
           />
           <select value={selectedContactId} onChange={handleContactFilterChange} disabled={isLoadingContacts}
-            className="rounded border border-slate-200 bg-white px-1 py-0.5 text-[10px] text-slate-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+            className="rounded px-1 py-0.5 db-font-xs"
+            style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)', color: 'var(--db-text-muted)' }}
           >
             <option value="">{isLoadingContacts ? "Loading..." : "Contact: All"}</option>
             {contactOptions.map((option) => (
@@ -3092,7 +3096,8 @@ const KanbanBoardPage: React.FC = () => {
             >+</button>
           )}
           <select value={columnsPerRow} onChange={(event) => setColumnsPerRow(Number(event.target.value))}
-            className="rounded border border-slate-200 bg-white px-1 py-0.5 text-[10px] text-slate-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+            className="rounded px-1 py-0.5 db-font-xs"
+            style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)', color: 'var(--db-text-muted)' }}
           >
             {columnDensityOptions.map((option) => (
               <option key={option} value={option}>Cols: {option}</option>
@@ -3114,7 +3119,7 @@ const KanbanBoardPage: React.FC = () => {
       </div>
 
       {projectFetchError && (
-        <div className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+        <div className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 db-font-sm text-amber-700">
           <span>{projectFetchError}</span>
           <button type="button" onClick={() => void fetchProjects()}
             style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#e8c870' }}
@@ -3123,7 +3128,7 @@ const KanbanBoardPage: React.FC = () => {
       )}
 
       {fetchError && (
-        <div className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-200">
+        <div className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 db-font-sm text-rose-700">
           <span>{fetchError}</span>
           <button type="button"
             onClick={() => void fetchActions({ projectId: selectedProjectId || undefined, contactId: selectedContactId || undefined })}
@@ -3134,11 +3139,11 @@ const KanbanBoardPage: React.FC = () => {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {(Object.keys(prioritySummary) as TaskPriority[]).map((priority) => (
-          <div key={priority} className={clsx("flex gap-2 items-center justify-between rounded-full px-3 py-1 text-xs font-semibold", priorityPalette[priority])}>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-800 dark:text-gray-400">{priority}</p>
+          <div key={priority} className={clsx("flex gap-2 items-center justify-between rounded-full px-3 py-1 db-font-xs font-semibold", priorityPalette[priority])}>
+            <p className="db-font-xs font-medium uppercase tracking-wide" style={{ color: 'var(--db-text)' }}>{priority}</p>
             <div className="flex items-center gap-2">
-              <span className="text-3xl font-semibold text-gray-900 dark:text-white">{prioritySummary[priority]}</span>
-              <span className="text-xs font-medium text-gray-400">/ {totalTasks} tasks</span>
+              <span className="text-3xl font-semibold" style={{ color: 'var(--db-text)' }}>{prioritySummary[priority]}</span>
+              <span className="db-font-xs font-medium" style={{ color: 'var(--db-text-dim)' }}>/ {totalTasks} tasks</span>
             </div>
           </div>
         ))}
@@ -3148,11 +3153,11 @@ const KanbanBoardPage: React.FC = () => {
         <KanbanDragLayer tasks={board.tasks} />
         <TrashDropZone isDeleting={isTrashDeleting} />
         {isLoading ? (
-          <div className="flex justify-center items-center h-[50vh] rounded-3xl border border-dashed border-gray-300 text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">
+          <div className="flex justify-center items-center h-[50vh] rounded-3xl border border-dashed db-font-sm" style={{ borderColor: 'var(--db-border)', color: 'var(--db-text-dim)' }}>
             <LoadingSpinner size="lg" label="Loading..." />
           </div>
         ) : columns.length === 0 ? (
-          <div className="flex h-56 items-center justify-center rounded-3xl border border-dashed border-gray-300 text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">
+          <div className="flex h-56 items-center justify-center rounded-3xl border border-dashed db-font-sm" style={{ borderColor: 'var(--db-border)', color: 'var(--db-text-dim)' }}>
             No columns configured yet. Start by creating your first task.
           </div>
         ) : (
@@ -3227,88 +3232,88 @@ const KanbanBoardPage: React.FC = () => {
       {/* Generate Kanban Projects Modal */}
       {isGenerateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">
-            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+          <div className="mx-4 w-full max-w-md rounded-xl p-6 shadow-2xl" style={{ background: 'var(--db-surface)' }}>
+            <h3 className="mb-4 text-lg font-semibold" style={{ color: 'var(--db-text)' }}>
               Generate Kanban Projects
             </h3>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
-                  <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Category</span>
+                  <span className="mb-1 block db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>Category</span>
                   <input
                     type="text"
                     value={generateCategory}
                     onChange={(e) => setGenerateCategory(e.target.value)}
                     placeholder="kanban"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    className="w-full rounded-lg px-3 py-2 db-font-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 db-input"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Name</span>
+                  <span className="mb-1 block db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>Name</span>
                   <input
                     type="text"
                     value={generateName}
                     onChange={(e) => setGenerateName(e.target.value)}
                     placeholder="optional"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    className="w-full rounded-lg px-3 py-2 db-font-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 db-input"
                   />
                 </label>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
-                  <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Start date</span>
+                  <span className="mb-1 block db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>Start date</span>
                   <input
                     type="date"
                     value={generateStartDate}
                     onChange={(e) => setGenerateStartDate(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    className="w-full rounded-lg px-3 py-2 db-font-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 db-input"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">End date</span>
+                  <span className="mb-1 block db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>End date</span>
                   <input
                     type="date"
                     value={generateEndDate}
                     onChange={(e) => setGenerateEndDate(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    className="w-full rounded-lg px-3 py-2 db-font-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 db-input"
                   />
                 </label>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
-                  <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Number of projects</span>
+                  <span className="mb-1 block db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>Number of projects</span>
                   <input
                     type="number"
                     min={1}
                     max={100}
                     value={generateCount}
                     onChange={(e) => setGenerateCount(Math.max(1, Math.min(100, Number(e.target.value))))}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    className="w-full rounded-lg px-3 py-2 db-font-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 db-input"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Interval (days)</span>
+                  <span className="mb-1 block db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>Interval (days)</span>
                   <input
                     type="number"
                     min={1}
                     max={365}
                     value={generateInterval}
                     onChange={(e) => setGenerateInterval(Math.max(1, Number(e.target.value)))}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    className="w-full rounded-lg px-3 py-2 db-font-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 db-input"
                   />
                 </label>
               </div>
-              <div className="rounded-lg bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+              <div className="rounded-lg p-3 db-font-xs" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
                 Will create <strong>{generateCount}</strong> project(s) named{" "}
-                <code className="text-indigo-600 dark:text-indigo-400">{generatedProjectName}</code>,
+                <code className="text-indigo-600">{generatedProjectName}</code>,
                 starting <strong>{generateStartDate}</strong>, every <strong>{generateInterval}</strong> day(s).
               </div>
               {generateResult && (
                 <div className={clsx(
-                  "rounded-lg p-3 text-sm font-medium",
+                  "rounded-lg p-3 db-font-sm font-medium",
                   generateResult.startsWith("Error")
-                    ? "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
-                    : "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
+                    ? "bg-red-50 text-red-700"
+                    : "bg-green-50 text-green-700",
                 )}>
                   {generateResult}
                 </div>
@@ -3319,7 +3324,8 @@ const KanbanBoardPage: React.FC = () => {
                 type="button"
                 onClick={() => { setIsGenerateOpen(false); setGenerateResult(null); }}
                 disabled={isGenerating}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+                className="rounded-lg px-4 py-2 db-font-sm font-medium"
+                style={{ border: '1px solid var(--db-border)', color: 'var(--db-text-muted)' }}
               >
                 Cancel
               </button>
@@ -3327,7 +3333,7 @@ const KanbanBoardPage: React.FC = () => {
                 type="button"
                 onClick={() => void handleGenerateProjects()}
                 disabled={isGenerating || !generateStartDate}
-                className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 db-font-sm font-semibold text-white shadow-sm hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isGenerating ? "Generating..." : "Generate"}
               </button>

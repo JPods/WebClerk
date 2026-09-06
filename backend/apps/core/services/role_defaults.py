@@ -42,9 +42,14 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
                     ]
                 },
                 "view_fields": [
-                    "id", "ida", "status", "totals.total", "totals.balance",
-                    "dt_created", "dt_modified", "lines", "refs.links.contact",
-                    "customer_id", "address_full", "attention", "notes",
+                    "id", "ida", "status", "dt_created", "dt_modified", "dt_needed",
+                    "attention", "company", "address_full", "phone", "email",
+                    "ship_via", "price_level", "priority", "purpose", "source_name",
+                    "totals", "totals.subtotal", "totals.tax", "totals.total",
+                    "totals.balance", "totals.received", "totals.shipping",
+                    "total", "balance", "subtotal",
+                    "lines", "customer_id", "notes",
+                    "comments", "comments.process",
                 ],
                 "edit_fields": [],
                 "allow_create": False,
@@ -58,8 +63,14 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
                     ]
                 },
                 "view_fields": [
-                    "id", "ida", "status", "totals.total", "totals.balance",
-                    "dt_created", "lines", "customer_id",
+                    "id", "ida", "status", "dt_created", "dt_modified", "dt_needed",
+                    "attention", "company", "address_full", "phone", "email",
+                    "ship_via", "price_level", "priority", "purpose", "source_name",
+                    "totals", "totals.subtotal", "totals.tax", "totals.total",
+                    "totals.balance", "totals.received", "totals.shipping",
+                    "total", "balance", "subtotal",
+                    "lines", "customer_id",
+                    "comments", "comments.process",
                 ],
                 "edit_fields": [],
                 "allow_create": False,
@@ -79,18 +90,60 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
                 "allow_create": False,
                 "allow_delete": False,
             },
+            "item": {
+                "query_filters": {},
+                "view_fields": [
+                    "id", "ida", "name", "description", "sku", "kind", "uom",
+                    "price.base", "price.msrp", "price.retail", "price.wholesale",
+                    "price.distributor", "price.qty_breaks",
+                    "catalog",
+                ],
+                "view_deny": ["cost"],
+                "edit_fields": [],
+                "allow_create": False,
+                "allow_delete": False,
+            },
+            "contact": {
+                "query_filters": {"id": "$user.contact_id"},
+                "view_fields": "*",
+                "edit_fields": [
+                    "name_first", "name_last", "company", "title",
+                    "phone", "address_full", "department",
+                ],
+                "allow_create": False,
+                "allow_delete": False,
+            },
             "action": {
                 "query_filters": {
                     "refs__links__customer__contains": [{"id": "$user.org_ids.customer"}]
                 },
                 "view_fields": "*",
-                "edit_fields": ["notes", "refs.tags"],
-                "allow_create": True,  # Can create new action requests
+                "edit_fields": ["notes", "status", "refs.tags"],
+                "edit_filters": {
+                    "assigned_to_id": "$user.contact_id",
+                },
+                "allow_create": True,
+                "allow_delete": False,
+            },
+            "project": {
+                "query_filters": {
+                    "refs__links__customer__contains": [{"id": "$user.org_ids.customer"}]
+                },
+                "view_fields": "*",
+                "edit_fields": [],
+                "allow_create": False,
+                "allow_delete": False,
+            },
+            "setting": {
+                "query_filters": {},
+                "view_fields": "*",
+                "edit_fields": [],
+                "allow_create": False,
                 "allow_delete": False,
             },
         },
     },
-    
+
     "user_vendor": {
         "is_portal": True,
         "description": "Vendor portal user - view purchases and supplied inventory",
@@ -132,13 +185,32 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
                     "refs__links__vendor__contains": [{"id": "$user.org_ids.vendor"}]
                 },
                 "view_fields": "*",
-                "edit_fields": ["notes"],
+                "edit_fields": ["notes", "status", "refs.tags"],
+                "edit_filters": {
+                    "assigned_to_id": "$user.contact_id",
+                },
                 "allow_create": True,
+                "allow_delete": False,
+            },
+            "project": {
+                "query_filters": {
+                    "refs__links__vendor__contains": [{"id": "$user.org_ids.vendor"}]
+                },
+                "view_fields": "*",
+                "edit_fields": [],
+                "allow_create": False,
+                "allow_delete": False,
+            },
+            "setting": {
+                "query_filters": {},
+                "view_fields": "*",
+                "edit_fields": [],
+                "allow_create": False,
                 "allow_delete": False,
             },
         },
     },
-    
+
     "user_manufacturer": {
         "is_portal": True,
         "description": "Manufacturer portal - purchases, inventory, commission orders",

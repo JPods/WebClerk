@@ -101,26 +101,27 @@ const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onD
     <section
       ref={columnRef}
       className={clsx(
-        "flex h-full min-h-[420px] w-full flex-col rounded-3xl border border-gray-200 bg-gray-50/60 p-4 shadow-sm transition dark:border-gray-700 dark:bg-gray-900/40",
+        "flex h-full min-h-[420px] w-full flex-col rounded-3xl p-4 shadow-sm transition",
         {
           "ring-2 ring-indigo-400/70": isOver && canDrop,
         },
         className
       )}
+      style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface-alt)' }}
     >
       <header className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{column.title}</h3>
-          <p className="text-xs text-gray-400 dark:text-gray-500">
+          <h3 className="db-font-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--db-text-muted)' }}>{column.title}</h3>
+          <p className="db-font-xs" style={{ color: 'var(--db-text-dim)' }}>
             {tasks.length} task{tasks.length === 1 ? "" : "s"}
             {typeof column.wipLimit === "number" && (
-              <span className="ml-2 inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-200">
+              <span className="ml-2 inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 db-font-xs font-semibold text-amber-600">
                 WIP {tasks.length}/{column.wipLimit}
               </span>
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
+        <div className="flex items-center gap-2 db-font-xs" style={{ color: 'var(--db-text-dim)' }}>
           <span className="inline-flex h-2 w-2 rounded-full bg-indigo-400" />
           {progress}% avg. percent_complete
         </div>
@@ -133,7 +134,7 @@ const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onD
             className={clsx(
               "transition-all duration-200",
               {
-                "ml-4 border-l-2 border-l-indigo-200 pl-3 dark:border-l-indigo-800": isSubtask,
+                "ml-4 border-l-2 border-l-indigo-200 pl-3": isSubtask,
               }
             )}
           >
@@ -151,7 +152,7 @@ const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onD
           </div>
         ))}
         {tasks.length === 0 && (
-          <div className="flex h-full min-h-[140px] items-center justify-center rounded-xl border border-dashed border-gray-300 text-xs text-gray-400 dark:border-gray-700 dark:text-gray-500">
+          <div className="flex h-full min-h-[140px] items-center justify-center rounded-xl border border-dashed db-font-xs" style={{ borderColor: 'var(--db-border)', color: 'var(--db-text-dim)' }}>
             Drop tasks here
           </div>
         )}

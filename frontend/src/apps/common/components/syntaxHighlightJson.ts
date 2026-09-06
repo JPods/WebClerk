@@ -2,6 +2,7 @@
  * HighlightedJson — React component for JSON syntax highlighting.
  * Zero dangerouslySetInnerHTML. Zero XSS surface.
  *
+ * Uses --db-* CSS variables for theme-aware coloring.
  * Used by RawJsonCard, JsonCard, JsonFieldEditor, RawDataPanel, RefsPanel.
  */
 import React from "react";
@@ -9,15 +10,15 @@ import React from "react";
 const TOKEN_RE =
   /("(?:\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(?:\s*:)?|\b(?:true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g;
 
-function classForToken(token: string): string | null {
+function styleForToken(token: string): React.CSSProperties | null {
   if (/^"/.test(token)) {
     return /:$/.test(token)
-      ? "text-sky-700 dark:text-sky-400"        // key
-      : "text-emerald-700 dark:text-emerald-400"; // string
+      ? { color: 'var(--db-accent, #2563EB)' }           // key
+      : { color: 'var(--db-accent-green, #198754)' };     // string
   }
-  if (/^true$|^false$/.test(token)) return "text-amber-700 dark:text-amber-400";
-  if (token === "null") return "text-rose-700 dark:text-rose-400";
-  if (/^-?\d/.test(token)) return "text-violet-700 dark:text-violet-400"; // number
+  if (/^true$|^false$/.test(token)) return { color: 'var(--db-accent-gold, #D97706)' };
+  if (token === "null") return { color: 'var(--db-accent-red, #dc3545)' };
+  if (/^-?\d/.test(token)) return { color: 'var(--db-accent-purple, #6f42c1)' }; // number
   return null;
 }
 
@@ -35,10 +36,10 @@ export const HighlightedJson: React.FC<HighlightedJsonProps> = ({ json }) => {
       parts.push(json.slice(lastIndex, idx));
     }
     const token = m[0];
-    const cls = classForToken(token);
+    const style = styleForToken(token);
     parts.push(
-      cls
-        ? React.createElement("span", { key: parts.length, className: cls }, token)
+      style
+        ? React.createElement("span", { key: parts.length, style }, token)
         : token,
     );
     lastIndex = idx + token.length;

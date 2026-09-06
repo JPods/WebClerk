@@ -11,6 +11,13 @@ import { AliceProvider } from './context/AliceContext';
 import { PermissionsProvider } from './context/PermissionsContext';
 import { SettingsBootstrap } from './components/SettingsBootstrap';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import { enableManualSpotlight, flashByWcId, runSequence, stopSequence } from './utils/spotlight';
+
+// Enable Cmd+Shift+S spotlight for training videos
+enableManualSpotlight();
+
+// Expose guided spotlight API for Alice coaching sequences
+(window as any).wcSpotlight = { flash: flashByWcId, run: runSequence, stop: stopSequence };
 
 function PrimeCompanyBootstrap() {
   useDefaultCompany();

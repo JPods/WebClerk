@@ -77,23 +77,25 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
         {section.columns.map((col: any, colIdx: number) => (
           <div
             key={colIdx}
-            className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3"
+            className="rounded-lg p-3"
+            style={{ background: 'var(--db-surface, #fff)', border: '1px solid var(--db-border, #dee2e6)' }}
             data-component="HeaderRenderer"
             data-model={modelName}
             data-column={col.title}
             data-source={`setting.config.layout.form.default.sections[${0}].columns[${colIdx}]`}
           >
-            <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 border-b border-slate-100 dark:border-slate-700 pb-1 flex items-center gap-2">
+            <div className="font-bold mb-2 pb-1 flex items-center gap-2 db-font-sm"
+              style={{ color: 'var(--db-text, #212529)', borderBottom: '1px solid var(--db-border-light, #e9ecef)' }}>
               <span>{col.title}</span>
               {col.title_ida && data?.customer && (
-                <span className="font-mono text-slate-400 dark:text-slate-500 font-normal text-[10px]">
+                <span className="font-mono font-normal db-font-xs" style={{ color: 'var(--db-text-dim)' }}>
                   #{typeof data.customer === 'object' ? data.customer.id : data.customer}
                 </span>
               )}
               {col.title_ida && isEditing && custSearch && !custSearch.open && (
                 <button
                   type="button"
-                  className="ml-auto text-[10px] text-slate-400 hover:text-blue-600 px-1 py-0.5 rounded hover:bg-blue-50"
+                  className="ml-auto db-font-xs text-slate-400 hover:text-blue-600 px-1 py-0.5 rounded hover:bg-blue-50"
                   title="Search customers"
                   onClick={() => custSearch.onToggle(true)}
                 >🔍</button>
@@ -107,23 +109,28 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
                     onChange={(e) => custSearch.onSearch(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Escape') { custSearch.onToggle(false); custSearch.onSearch(''); } }}
                     placeholder="bil,jame or 612..."
-                    className="text-[11px] px-2 py-0.5 w-44 border border-blue-400 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="db-font-sm px-2 py-0.5 w-44 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    style={{ border: '1px solid var(--db-accent)', background: 'var(--db-input-bg, #fff)', color: 'var(--db-text, #212529)' }}
                   />
-                  {custSearch.searching && <span className="absolute right-2 top-0.5 text-[10px] text-slate-400">...</span>}
+                  {custSearch.searching && <span className="absolute right-2 top-0.5 db-font-xs text-slate-400">...</span>}
                   {custSearch.results.length > 0 && (
-                    <div className="absolute top-6 left-0 w-96 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded shadow-lg z-50 max-h-60 overflow-y-auto">
+                    <div className="absolute top-6 left-0 w-96 rounded shadow-lg z-50 max-h-60 overflow-y-auto"
+                      style={{ background: 'var(--db-surface, #fff)', border: '1px solid var(--db-border, #dee2e6)' }}>
                       {custSearch.results.map((c: any) => (
                         <button
                           key={c.id}
                           type="button"
-                          className="w-full text-left px-3 py-2 text-[11px] hover:bg-blue-50 dark:hover:bg-slate-700 border-b border-slate-100 dark:border-slate-700 last:border-0"
+                          className="w-full text-left px-3 py-2 db-font-sm last:border-0"
+                          style={{ borderBottom: '1px solid var(--db-border-light, #e9ecef)' }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--db-row-hover)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                           onClick={() => custSearch.onSelect(c)}
                         >
                           <div className="flex items-baseline gap-2">
-                            <span className="font-medium text-slate-900 dark:text-white">{c.company || c.display_name || `#${c.id}`}</span>
-                            <span className="text-slate-400 font-mono text-[10px]">#{c.id}</span>
+                            <span className="font-medium" style={{ color: 'var(--db-text)' }}>{c.company || c.display_name || `#${c.id}`}</span>
+                            <span className="font-mono db-font-xs" style={{ color: 'var(--db-text-dim)' }}>#{c.id}</span>
                           </div>
-                          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          <div className="db-font-xs mt-0.5" style={{ color: 'var(--db-text-muted)' }}>
                             {[c.attention, c.phone, c.address_full || c.email].filter(Boolean).join(' · ')}
                           </div>
                         </button>
@@ -131,7 +138,8 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
                     </div>
                   )}
                   {custSearch.query.length >= 2 && !custSearch.searching && custSearch.results.length === 0 && (
-                    <div className="absolute top-6 left-0 w-52 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded shadow-lg z-50 px-3 py-2 text-[11px] text-slate-400">
+                    <div className="absolute top-6 left-0 w-52 rounded shadow-lg z-50 px-3 py-2 db-font-sm"
+                      style={{ background: 'var(--db-surface, #fff)', border: '1px solid var(--db-border, #dee2e6)', color: 'var(--db-text-muted)' }}>
                       No customers found
                     </div>
                   )}
@@ -152,9 +160,9 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
               />
             ))}
             {col.action_summary && (
-              <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+              <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--db-border-light, #e9ecef)' }}>
                 <div
-                  className="text-[10px] font-medium text-slate-400 cursor-pointer hover:text-blue-600 hover:underline"
+                  className="db-font-xs font-medium text-slate-400 cursor-pointer hover:text-blue-600 hover:underline"
                   onClick={() => {
                     const actionId = data?.actions?.items?.[0]?.id;
                     if (actionId) {
@@ -163,13 +171,13 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
                   }}
                   title="Click to open action record"
                 >Next Action</div>
-                <div className="text-xs text-slate-600 dark:text-slate-300">
+                <div className="db-font-sm" style={{ color: 'var(--db-text, #212529)' }}>
                   {data?.actions?.items?.[0]
                     ? `${typeof data.actions.items[0].action === 'object' ? data.actions.items[0].action?.en : data.actions.items[0].action} — ${data.actions.items[0].status || 'pending'}`
                     : '—'}
                 </div>
                 {data?.actions?.items?.[0]?.assigned_to && (
-                  <div className="text-[10px] text-slate-400 mt-0.5">
+                  <div className="db-font-xs text-slate-400 mt-0.5">
                     {data.actions.items[0].assigned_to}
                   </div>
                 )}
@@ -183,7 +191,7 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
 
   // ── Default rows layout ──
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-2">
+    <div className="rounded-lg p-3 space-y-2" style={{ background: 'var(--db-surface, #fff)', border: '1px solid var(--db-border, #dee2e6)' }}>
       {(section.rows || []).map((row: any, rowIdx: number) => (
         <div
           key={rowIdx}
@@ -198,16 +206,17 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
               : String(val);
             return (
               <div key={field} className="flex flex-col gap-0.5">
-                <label className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{label}</label>
+                <label className="db-font-xs font-medium" style={{ color: 'var(--db-text-muted)' }}>{label}</label>
                 {isEditing ? (
                   <input
                     type="text"
                     value={displayVal === '—' ? '' : displayVal}
                     onChange={(e) => onChange(field, e.target.value)}
-                    className="text-xs px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    className="db-font-sm px-2 py-1 rounded"
+                    style={{ border: '1px solid var(--db-input-border, #ced4da)', background: 'var(--db-input-bg, #fff)', color: 'var(--db-text, #212529)' }}
                   />
                 ) : (
-                  <span className="text-xs text-slate-900 dark:text-white">{displayVal}</span>
+                  <span className="db-font-sm" style={{ color: 'var(--db-text, #212529)' }}>{displayVal}</span>
                 )}
               </div>
             );

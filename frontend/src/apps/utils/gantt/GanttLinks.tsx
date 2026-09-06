@@ -202,11 +202,11 @@ export const GanttLinks: FC<GanttLinksProps> = ({
             onClick={handleBackdropClick}
           />
           <div
-            className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-lg py-1 min-w-[140px]"
-            style={{ left: contextMenu.x, top: contextMenu.y }}
+            className="fixed z-50 rounded shadow-lg py-1 min-w-[140px]"
+            style={{ left: contextMenu.x, top: contextMenu.y, background: 'var(--db-surface)', border: '1px solid var(--db-border)' }}
           >
             <button
-              className="w-full text-left px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+              className="w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
               onClick={handleDeleteClick}
             >
               Delete Link

@@ -107,35 +107,36 @@ def inject_constraints(qs: QuerySet, *, request, model_key: str) -> QuerySet:
         ownership_clauses = []
         model_name = getattr(qs.model._meta, 'model_name', '')
 
-        if 'created_by' in fields:
-            ownership_clauses.append(Q(created_by=getattr(user, 'id', None)))
-        if 'contact' in fields:
-            ownership_clauses.append(Q(contact_id=getattr(user, 'id', None)))
-        if 'owner' in fields:
-            ownership_clauses.append(Q(owner_id=getattr(user, 'id', None)))
-        if 'user' in fields:
-            ownership_clauses.append(Q(user_id=getattr(user, 'id', None)))
-        if 'assigned_to' in fields:
-            ownership_clauses.append(Q(assigned_to_id=getattr(user, 'id', None)) | Q(assigned_to=user))
-        if 'assignee' in fields:
-            ownership_clauses.append(Q(assignee_id=getattr(user, 'id', None)) | Q(assignee=user))
-        if 'shared_with' in fields:
-            ownership_clauses.append(Q(shared_with__id=getattr(user, 'id', None)))
-        
-        # Transaction models: allow access via customer_id relationship
-        # (Proposal, Order, Invoice, Purchase, WorkOrder, etc.)
-        # NOTE: Skip customer_id ownership scoping for Contact model —
-        # customer_id on Contact is the FK to the parent customer, not the "owner".
-        if 'customer_id' in fields and model_name.lower() != 'contact':
-            ownership_clauses.append(Q(customer_id=getattr(user, 'id', None)))
-
-        # Transaction models without ownership fields: allow all for authenticated users
-        # These are business documents that employees need to access
+        # Transaction models: customer_id and contact_id on transactions are org/party FKs,
+        # not ownership fields. RBAC inject_role_filters handles org-level scoping
+        # via $user.org_ids. Skip ownership clauses entirely for transaction models.
         transaction_models = {
             'proposal', 'order', 'invoice', 'purchase', 'workorder',
             'proposalline', 'orderline', 'invoiceline', 'purchaseline', 'workorderline',
-            'document',
+            'document', 'item', 'setting',
         }
+        is_txn = model_name.lower() in transaction_models
+
+        if not is_txn:
+            if 'created_by' in fields:
+                ownership_clauses.append(Q(created_by=getattr(user, 'id', None)))
+            if 'contact' in fields:
+                ownership_clauses.append(Q(contact_id=getattr(user, 'id', None)))
+            if 'owner' in fields:
+                ownership_clauses.append(Q(owner_id=getattr(user, 'id', None)))
+            if 'user' in fields:
+                ownership_clauses.append(Q(user_id=getattr(user, 'id', None)))
+            if 'assigned_to' in fields:
+                ownership_clauses.append(Q(assigned_to_id=getattr(user, 'id', None)) | Q(assigned_to=user))
+            if 'assignee' in fields:
+                ownership_clauses.append(Q(assignee_id=getattr(user, 'id', None)) | Q(assignee=user))
+            if 'shared_with' in fields:
+                ownership_clauses.append(Q(shared_with__id=getattr(user, 'id', None)))
+            if 'customer_id' in fields and model_name.lower() != 'contact':
+                ownership_clauses.append(Q(customer_id=getattr(user, 'id', None)))
+
+        # Transaction models without ownership fields: allow all for authenticated users
+        # These are business documents that employees need to access
         org_models = {
             'org',
             'orgbase',

@@ -2514,24 +2514,15 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
           pointer-events: none;
           z-index: 5;
         }
-        .dark .today-highlight {
-          background-color: rgba(239, 68, 68, 0.18) !important;
-        }
         .sprint-boundary {
           border-right: 3px dashed rgba(156, 163, 175, 0.5) !important;
-        }
-        .dark .sprint-boundary {
-          border-right-color: rgba(156, 163, 175, 0.4) !important;
         }
         /* Fix scale header — sticky on vertical scroll */
         .wx-gantt .wx-scale {
           position: sticky !important;
           top: 0 !important;
           z-index: 10 !important;
-          background: white !important;
-        }
-        .dark .wx-gantt .wx-scale {
-          background: rgb(17, 24, 39) !important;
+          background: var(--db-surface) !important;
         }
         /* Ensure the chart area scrolls independently */
         .wx-gantt .wx-chart {
@@ -2565,12 +2556,13 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       `}</style>
       <div className={combineClassNames("flex flex-col h-[calc(100vh-4rem)]", className)}>
         <section className={combineClassNames(
-          "flex flex-1 min-h-0 flex-col rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900",
-        )}>
+          "flex flex-1 min-h-0 flex-col rounded-2xl shadow-sm",
+        )} style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)' }}>
           {/* Toolbar — matches db-list-toolbar style */}
           <div
             data-wc="gantt-toolbar"
-            className="db-list-toolbar flex shrink-0 flex-wrap items-center gap-1 border-b border-gray-200 dark:border-gray-700 px-2 py-1"
+            className="db-list-toolbar flex shrink-0 flex-wrap items-center gap-1 px-2 py-1"
+            style={{ borderBottom: '1px solid var(--db-border)' }}
           >
             {/* Project selector — multi-select dropdown */}
             {showSelector && (
@@ -2578,32 +2570,35 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 <button
                   type="button"
                   onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
-                  className="inline-flex items-center gap-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium"
+                  style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)', color: 'var(--db-text)' }}
                 >
                   {selectedProjectIds.length === 0
                     ? "Projects..."
                     : `${selectedProjectIds.length} project${selectedProjectIds.length !== 1 ? "s" : ""}`}
-                  <svg className="h-3 w-3 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                  <svg className="h-3 w-3" style={{ color: 'var(--db-text-dim)' }} viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
                 </button>
                 {projectDropdownOpen && (
                   <>
                     <div className="fixed inset-0 z-30" onClick={() => setProjectDropdownOpen(false)} />
-                    <div className="absolute left-0 top-full mt-1 z-40 w-72 max-h-80 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg">
+                    <div className="absolute left-0 top-full mt-1 z-40 w-72 max-h-80 overflow-y-auto rounded-lg shadow-lg" style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)' }}>
                       {/* Search */}
-                      <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 p-2">
+                      <div className="sticky top-0 p-2" style={{ background: 'var(--db-surface)', borderBottom: '1px solid var(--db-border-light)' }}>
                         <input
                           type="text"
                           placeholder="Search projects..."
                           value={projectSearchTerm}
                           onChange={(e) => setProjectSearchTerm(e.target.value)}
-                          className="w-full rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1 text-xs text-gray-800 dark:text-gray-200 outline-none focus:border-indigo-400"
+                          className="w-full rounded px-2 py-1 text-xs outline-none focus:border-indigo-400"
+                          style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}
                           autoFocus
                         />
                         <div className="flex items-center gap-2 mt-1">
                           <button
-                            className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline"
+                            className="text-[10px] hover:underline"
+                            style={{ color: 'var(--db-accent)' }}
                             onClick={() => {
                               const allIds = filteredDropdownProjects.map(p => p.id);
                               const allDescendants = allIds.flatMap(id => getDescendantIds(id));
@@ -2611,10 +2606,11 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                             }}
                           >All</button>
                           <button
-                            className="text-[10px] text-gray-500 dark:text-gray-400 hover:underline"
+                            className="text-[10px] hover:underline"
+                            style={{ color: 'var(--db-text-muted)' }}
                             onClick={() => onSelectionChange([])}
                           >Clear</button>
-                          <span className="text-[10px] text-gray-400 ml-auto">{selectedProjectIds.length}/{projects.length}</span>
+                          <span className="text-[10px] ml-auto" style={{ color: 'var(--db-text-dim)' }}>{selectedProjectIds.length}/{projects.length}</span>
                         </div>
                       </div>
                       {/* Project list */}
@@ -2624,8 +2620,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                         return (
                           <button
                             key={p.id}
-                            className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                              isSelected ? "bg-indigo-50/50 dark:bg-indigo-900/20" : ""
+                            className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 hover:opacity-80 ${
+                              isSelected ? "bg-indigo-50/50" : ""
                             }`}
                             onClick={() => handleProjectToggle(p.id)}
                           >
@@ -2633,15 +2629,15 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                               className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
                               style={{ backgroundColor: isSelected ? color : "transparent", border: `1.5px solid ${isSelected ? color : "#d1d5db"}` }}
                             />
-                            <span className="truncate text-gray-800 dark:text-gray-200">{p.name || p.intent || `#${p.id}`}</span>
+                            <span className="truncate" style={{ color: 'var(--db-text)' }}>{p.name || p.intent || `#${p.id}`}</span>
                             {p.actionCount != null && (
-                              <span className="ml-auto text-[10px] text-gray-400">{p.actionCount}</span>
+                              <span className="ml-auto text-[10px]" style={{ color: 'var(--db-text-dim)' }}>{p.actionCount}</span>
                             )}
                           </button>
                         );
                       })}
                       {filteredDropdownProjects.length === 0 && (
-                        <div className="px-3 py-4 text-xs text-gray-400 text-center">No projects found</div>
+                        <div className="px-3 py-4 text-xs text-center" style={{ color: 'var(--db-text-dim)' }}>No projects found</div>
                       )}
                     </div>
                   </>
@@ -2650,10 +2646,10 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
             )}
 
             {/* Separator */}
-            {showSelector && <span className="text-gray-300 dark:text-gray-600">|</span>}
+            {showSelector && <span style={{ color: 'var(--db-border)' }}>|</span>}
 
             {/* Task count */}
-            <span className="text-[11px] text-gray-500 dark:text-gray-400">
+            <span className="text-[11px]" style={{ color: 'var(--db-text-muted)' }}>
               {ganttData.tasks.length > 0
                 ? `${ganttData.tasks.length} task${ganttData.tasks.length !== 1 ? "s" : ""}`
                 : ""}
@@ -2676,8 +2672,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                     if (typeof ps.text_overflow === 'boolean') setTextOverflow(ps.text_overflow);
                     if (ps.assignee_filter !== undefined) setAssigneeFilter(ps.assignee_filter);
                   }}
-                  className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
-                  style={{ fontSize: 'inherit', padding: 0 }}
+                  className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer font-semibold outline-none"
+                  style={{ color: 'var(--db-accent)', fontSize: 'inherit', padding: 0 }}
                   title="Load a saved view configuration"
                 >
                   <option value="">Views...</option>
@@ -2696,7 +2692,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
               <select
                 value={colorMode}
                 onChange={(e) => setColorMode(e.target.value as any)}
-                className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
+                className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer font-semibold outline-none"
+                style={{ color: 'var(--db-accent)', fontSize: 'inherit', padding: 0 }}
                 style={{ fontSize: 'inherit', padding: 0 }}
               >
                 <option value="priority">Color: Priority</option>
@@ -2713,7 +2710,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                   setScalePreset(v);
                   import('@/utils/contactUI').then(m => m.setUI('gantt.scale', v));
                 }}
-                className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
+                className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer font-semibold outline-none"
+                style={{ color: 'var(--db-accent)', fontSize: 'inherit', padding: 0 }}
                 style={{ fontSize: 'inherit', padding: 0 }}
               >
                 {scaleButtons.map((b) => (
@@ -2739,7 +2737,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                   }
                   e.target.value = '';
                 }}
-                className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
+                className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer font-semibold outline-none"
+                style={{ color: 'var(--db-accent)', fontSize: 'inherit', padding: 0 }}
                 style={{ fontSize: 'inherit', padding: 0 }}
               >
                 <option value="">View...</option>
@@ -2754,8 +2753,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 <select
                   value={assigneeFilter || ''}
                   onChange={(e) => setAssigneeFilter(e.target.value || null)}
-                  className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold outline-none"
-                  style={{ fontSize: 'inherit', padding: 0 }}
+                  className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer font-semibold outline-none"
+                  style={{ color: 'var(--db-accent)', fontSize: 'inherit', padding: 0 }}
                 >
                   <option value="">Who...</option>
                   {uniqueAssignees.map(a => (
@@ -2768,12 +2767,11 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
               <button
                 type="button"
                 onClick={() => setListPanelVisible(!listPanelVisible)}
-                className={combineClassNames(
-                  "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition",
-                  listPanelVisible
-                    ? "border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200 dark:hover:bg-indigo-900/50"
-                    : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                )}
+                className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition"
+                style={listPanelVisible
+                  ? { borderColor: 'var(--db-accent)', background: 'var(--db-accent)', color: '#fff', opacity: 0.85 }
+                  : { borderColor: 'var(--db-border)', background: 'var(--db-surface)', color: 'var(--db-text)' }
+                }
                 title={listPanelVisible ? "Hide action list" : "Show action list"}
               >
                 List
@@ -2784,7 +2782,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 type="button"
                 onClick={handleManualRefresh}
                 disabled={isRefreshing || isLoading}
-                className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ borderColor: 'var(--db-border)', background: 'var(--db-surface)', color: 'var(--db-text)' }}
                 title={`Auto-refresh every ${AUTO_REFRESH_INTERVAL_MS / 60000} minutes${isEditModalOpen ? " (paused while editing)" : ""}`}
               >
                 <svg
@@ -2816,7 +2815,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                   e.target.value = '';
                 }}
                 disabled={ganttData.tasks.length === 0}
-                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                className="rounded-md border px-2 py-1 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ borderColor: 'var(--db-border)', background: 'var(--db-surface)', color: 'var(--db-text)' }}
                 title="Print or export"
               >
                 <option value="">Export</option>
@@ -2827,12 +2827,13 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
               </select>
               
               {/* Undo/Redo buttons */}
-              <div className="flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
+              <div className="flex gap-1 rounded-lg p-1" style={{ background: 'var(--db-surface-alt)' }}>
                 <button
                   type="button"
                   onClick={handleUndo}
                   disabled={undoStack.length === 0}
-                  className="rounded-md p-1.5 text-gray-600 transition hover:bg-white hover:text-gray-900 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                  className="rounded-md p-1.5 transition hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ color: 'var(--db-text-muted)' }}
                   title={`Undo (${undoStack.length}) - Ctrl+Z`}
                 >
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -2843,7 +2844,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                   type="button"
                   onClick={handleRedo}
                   disabled={redoStack.length === 0}
-                  className="rounded-md p-1.5 text-gray-600 transition hover:bg-white hover:text-gray-900 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                  className="rounded-md p-1.5 transition hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ color: 'var(--db-text-muted)' }}
                   title={`Redo (${redoStack.length}) - Ctrl+Shift+Z`}
                 >
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -2857,7 +2859,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowContactManager(true)}
-                  className="rounded-md p-1.5 text-gray-400 transition hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                  className="rounded-md p-1.5 transition"
+                  style={{ color: 'var(--db-text-dim)' }}
                   title="Manage project access"
                 >
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -2877,9 +2880,10 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 className={combineClassNames(
                   "rounded-md p-1.5 transition",
                   showAdminTools
-                    ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-                    : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                    ? "bg-amber-100 text-amber-700"
+                    : ""
                 )}
+                style={showAdminTools ? undefined : { color: 'var(--db-text-dim)' }}
                 title="Shift-click for admin tools"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -2888,20 +2892,20 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 </svg>
               </button>
 
-              <span className="text-xs text-gray-400 dark:text-gray-500">
+              <span className="text-xs" style={{ color: 'var(--db-text-dim)' }}>
                 {formatLastRefresh(lastRefreshTime)}
               </span>
             </div>
 
             {/* Admin toolbox — visible only when toggled via Shift-click */}
             {showAdminTools && (
-              <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 dark:border-amber-800 dark:bg-amber-900/20">
-                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Admin:</span>
+              <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5">
+                <span className="text-xs font-medium text-amber-700">Admin:</span>
                 <button
                   type="button"
                   onClick={handleSetBaseline}
                   disabled={ganttData.tasks.length === 0}
-                  className="rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 transition hover:bg-amber-200 disabled:opacity-50 dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-900/60"
+                  className="rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 transition hover:bg-amber-200 disabled:opacity-50"
                   title="Save current start dates as baseline for slippage comparison"
                 >
                   Set Baseline
@@ -2936,7 +2940,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                           alert("Failed to save: " + (e?.message || e));
                         });
                       }}
-                      className="rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 transition hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-900/60"
+                      className="rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 transition hover:bg-amber-200"
                       title="Pin current settings as this project's default view"
                     >
                       Set Default View
@@ -2962,7 +2966,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                           setProjectMetadata({ ...meta });
                         }).catch((e: any) => console.warn("[Gantt] Failed to save sprint config:", e));
                       }}
-                      className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200"
+                      className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-800"
                       title="Set sprint boundary day — shows dashed vertical lines"
                     >
                       <option value="">No Sprints</option>
@@ -2982,12 +2986,12 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
           
           {/* Error display */}
           {error && (
-            <div className="mx-6 mt-4 flex shrink-0 items-center justify-between rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-200">
+            <div className="mx-6 mt-4 flex shrink-0 items-center justify-between rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
               <span>{error}</span>
               <button
                 type="button"
                 onClick={() => refetchAll()}
-                className="rounded-md border border-rose-300 px-3 py-1 text-xs font-semibold transition hover:bg-rose-100 dark:border-rose-700 dark:hover:bg-rose-900/50"
+                className="rounded-md border border-rose-300 px-3 py-1 text-xs font-semibold transition hover:bg-rose-100"
               >
                 Retry
               </button>
@@ -2999,7 +3003,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
             {selectedProjectIds.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center">
                 <svg
-                  className="mb-4 h-16 w-16 text-gray-300 dark:text-gray-600"
+                  className="mb-4 h-16 w-16"
+                  style={{ color: 'var(--db-text-dim)' }}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -3011,10 +3016,10 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                     d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                   />
                 </svg>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                <h3 className="text-lg font-medium" style={{ color: 'var(--db-text)' }}>
                   No projects selected
                 </h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <p className="mt-1 text-sm" style={{ color: 'var(--db-text-muted)' }}>
                   {showSelector 
                     ? "Click Projects to select one or more projects"
                     : "No project configured for this view"}
@@ -3024,13 +3029,14 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
               <div className="flex h-full items-center justify-center">
                 <div className="text-center">
                   <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600 mx-auto" />
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Loading tasks...</p>
+                  <p className="text-sm" style={{ color: 'var(--db-text-muted)' }}>Loading tasks...</p>
                 </div>
               </div>
             ) : ganttData.tasks.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center">
                 <svg
-                  className="mb-4 h-16 w-16 text-gray-300 dark:text-gray-600"
+                  className="mb-4 h-16 w-16"
+                  style={{ color: 'var(--db-text-dim)' }}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -3042,10 +3048,10 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                     d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
                   />
                 </svg>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                <h3 className="text-lg font-medium" style={{ color: 'var(--db-text)' }}>
                   No tasks found
                 </h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <p className="mt-1 text-sm" style={{ color: 'var(--db-text-muted)' }}>
                   {isSingleProjectMode
                     ? "This project has no active actions"
                     : "The selected projects have no active actions"}
@@ -3090,7 +3096,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                   <>
                   {/* Drag handle — tall enough to grab at any zoom */}
                   <div
-                    className="h-3 cursor-row-resize bg-gray-200 dark:bg-gray-700 hover:bg-indigo-300 dark:hover:bg-indigo-600 flex-shrink-0 transition-colors"
+                    className="h-3 cursor-row-resize hover:bg-indigo-300 flex-shrink-0 transition-colors"
+                    style={{ background: 'var(--db-border)' }}
                     onMouseDown={(e) => {
                       e.preventDefault();
                       const startY = e.clientY;
@@ -3110,7 +3117,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                     }}
                     title="Drag to resize"
                   />
-                  <div ref={listPanelRef} className="shrink-0 overflow-auto border-t border-gray-200 dark:border-gray-700" style={{ height: `${listHeightVh}vh` }}>
+                  <div ref={listPanelRef} className="shrink-0 overflow-auto" style={{ height: `${listHeightVh}vh`, borderTop: '1px solid var(--db-border)' }}>
                     <DataGrid
                       records={ganttData.tasks.map(t => ({
                         ...t,

@@ -58,23 +58,23 @@ interface KanbanDragLayerProps {
   return (
     <div style={layerStyles}>
         <div style={getItemStyles(sourceOffset)}>
-        <div className="w-72 rounded-xl border border-indigo-200 bg-white/95 p-4 shadow-2xl ring-2 ring-indigo-200/80 backdrop-blur dark:border-indigo-800 dark:bg-gray-900/90 dark:ring-indigo-700/60">
+        <div className="w-72 rounded-xl border border-indigo-200 p-4 shadow-2xl ring-2 ring-indigo-200/80 backdrop-blur" style={{ background: 'var(--db-surface)' }}>
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">{task.title}</p>
+              <p className="db-font-sm font-semibold" style={{ color: 'var(--db-text)' }}>{task.title}</p>
               {task.description && (
-                <p className="text-xs text-gray-500 dark:text-gray-300 line-clamp-2">{task.description}</p>
+                <p className="db-font-xs line-clamp-2" style={{ color: 'var(--db-text-muted)' }}>{task.description}</p>
               )}
             </div>
             {task.priority && (
               <span
                 className={clsx(
-                  "inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                  "inline-flex rounded-full px-2.5 py-1 db-font-xs font-semibold",
                   {
-                    "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200": task.priority === "low",
-                    "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200": task.priority === "medium",
-                    "bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-200": task.priority === "high",
-                    "bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-200": task.priority === "critical",
+                    "bg-emerald-100 text-emerald-700": task.priority === "low",
+                    "bg-amber-100 text-amber-700": task.priority === "medium",
+                    "bg-orange-100 text-orange-700": task.priority === "high",
+                    "bg-rose-100 text-rose-700": task.priority === "critical",
                   }
                 )}
               >
@@ -82,15 +82,15 @@ interface KanbanDragLayerProps {
               </span>
             )}
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-gray-500 dark:text-gray-300">
+          <div className="mt-3 flex flex-wrap items-center gap-2 db-font-xs" style={{ color: 'var(--db-text-muted)' }}>
             {typeof task.percent_complete === "number" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 font-semibold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-200">
+              <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 font-semibold text-indigo-600">
                 <span className="h-2 w-2 rounded-full bg-indigo-400" />
                 {Math.round(Math.max(0, Math.min(100, task.percent_complete)))}%
               </span>
             )}
             {task.assignee && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 font-medium text-gray-600 dark:bg-gray-700/60 dark:text-gray-200">
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 font-medium" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
                 {task.assignee}
               </span>
             )}

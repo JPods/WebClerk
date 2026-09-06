@@ -232,20 +232,20 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
   const hasHierarchy = projects.some((p) => p.parent_id != null);
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+    <div className="flex h-full flex-col rounded-2xl shadow-sm" style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 px-4 py-2 dark:border-gray-700">
+      <div className="flex items-center justify-between px-4 py-2" style={{ borderBottom: '1px solid var(--db-border)' }}>
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
             Projects
           </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs" style={{ color: 'var(--db-text-muted)' }}>
             {selectedIds.length} of {projects.length} selected
           </p>
         </div>
         <select
-          className="rounded border border-gray-300 bg-white px-1 py-0.5 text-[10px] text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
-          style={{ width: 80, maxWidth: '100%' }}
+          className="rounded px-1 py-0.5 text-[10px]"
+          style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)', color: 'var(--db-text-muted)', width: 80, maxWidth: '100%' }}
           title="Load a project set"
           value=""
           onChange={(e) => {
@@ -275,19 +275,20 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
       </div>
 
       {/* Search */}
-      <div className="border-b border-gray-200 px-3 py-2 dark:border-gray-700">
+      <div className="px-3 py-2" style={{ borderBottom: '1px solid var(--db-border)' }}>
         <input
           type="text"
           placeholder="Search projects..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           disabled={disabled || isLoading}
-          className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+          className="w-full rounded-lg px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+          style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface-alt)', color: 'var(--db-text)', '--tw-placeholder-opacity': 1 } as React.CSSProperties}
         />
       </div>
 
       {/* Action buttons — minimal style matching DataBrowser toolbars */}
-      <div className="flex items-center gap-1 border-b border-gray-200 px-3 py-1 dark:border-gray-700" style={{ fontSize: 'inherit', color: '#9cdcfe' }}>
+      <div className="flex items-center gap-1 px-3 py-1" style={{ fontSize: 'inherit', color: '#9cdcfe', borderBottom: '1px solid var(--db-border)' }}>
         <button type="button" onClick={handleSelectAll}
           disabled={disabled || isLoading || filteredProjects.length === 0}
           style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1, fontSize: 'inherit', fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe' }}
@@ -316,11 +317,11 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
           </div>
         ) : filteredProjects.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+          <div className="px-4 py-8 text-center text-sm" style={{ color: 'var(--db-text-muted)' }}>
             {searchTerm ? "No projects match your search" : "No projects available"}
           </div>
         ) : (
-          <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+          <ul className="divide-y" style={{ borderColor: 'var(--db-border-light)' }}>
             {filteredProjects.map((project) => {
               const isSelected = selectedIds.includes(project.id);
               // Use project.prefs.action.color if available, otherwise use palette color
@@ -344,7 +345,7 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
                       handleToggle(project.id);
                     }}
                     disabled={disabled}
-                    className="flex w-full items-center gap-3 py-2.5 text-left transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-gray-800"
+                    className="flex w-full items-center gap-3 py-2.5 text-left transition disabled:cursor-not-allowed disabled:opacity-50 hover:opacity-80"
                     style={{ paddingLeft: isChild ? '28px' : '16px', paddingRight: '16px' }}
                     title="Click to select · Shift-click to open Kanban"
                   >
@@ -353,9 +354,9 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
                       className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition ${
                         isSelected
                           ? "border-transparent"
-                          : "border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800"
+                          : ""
                       }`}
-                      style={isSelected ? { backgroundColor: color } : undefined}
+                      style={isSelected ? { backgroundColor: color } : { borderColor: 'var(--db-border)', background: 'var(--db-surface)' }}
                     >
                       {isSelected && (
                         <svg
@@ -376,13 +377,13 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
 
                     {/* Project info */}
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium text-gray-900 dark:text-white">
-                        {hasChildren && <span className="mr-1 text-xs text-gray-400">▸</span>}
-                        {isChild && <span className="mr-1 text-xs text-gray-400">└</span>}
+                      <div className="truncate text-sm font-medium" style={{ color: 'var(--db-text)' }}>
+                        {hasChildren && <span className="mr-1 text-xs" style={{ color: 'var(--db-text-dim)' }}>▸</span>}
+                        {isChild && <span className="mr-1 text-xs" style={{ color: 'var(--db-text-dim)' }}>└</span>}
                         {project.name || project.intent || `Project ${project.id}`}
                       </div>
                       {project.slug && (
-                        <div className="truncate text-xs text-gray-500 dark:text-gray-400">
+                        <div className="truncate text-xs" style={{ color: 'var(--db-text-muted)' }}>
                           {project.slug}
                         </div>
                       )}
@@ -390,7 +391,7 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
 
                     {/* Action count badge */}
                     {project.actionCount !== undefined && (
-                      <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                      <span className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
                         {project.actionCount}
                       </span>
                     )}

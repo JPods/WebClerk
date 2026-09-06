@@ -269,9 +269,10 @@ def build_filter_q(filter_dict: dict) -> Q:
     if not filter_dict:
         return Q()
     
-    # Handle $or at top level
-    if "$or" in filter_dict:
-        or_conditions = filter_dict.pop("$or")
+    # Handle $or / OR at top level
+    or_key = "$or" if "$or" in filter_dict else ("OR" if "OR" in filter_dict else None)
+    if or_key:
+        or_conditions = filter_dict.pop(or_key)
         or_q = Q()
         for condition in or_conditions:
             or_q |= build_filter_q(condition)
@@ -374,25 +375,78 @@ def get_allowed_fields(
 ) -> list:
     """
     Get list of allowed fields for user/model.
-    
+
     Args:
         user: Django User instance
         model_name: Model name
         mode: "view" or "edit"
-    
+
     Returns:
         List of field names, or ["*"] for all fields
     """
     if user.is_superuser:
         return ["*"]
-    
+
     config = get_user_filter_config(user, model_name)
-    
+
     if not config:
         return []
-    
+
     field_key = "view_fields" if mode == "view" else "edit_fields"
     return config.get(field_key, [])
+
+
+def get_denied_fields(
+    user: AbstractUser,
+    model_name: str,
+) -> list:
+    """
+    Get list of denied view fields for user/model.
+
+    Returns:
+        List of field names to exclude, or [] for no denials
+    """
+    if user.is_superuser:
+        return []
+
+    config = get_user_filter_config(user, model_name)
+    if not config:
+        return []
+
+    return config.get("view_deny", [])
+
+
+def get_edit_filters(
+    user: AbstractUser,
+    model_name: str,
+) -> Optional[dict]:
+    """
+    Get row-level edit filters for user/model.
+
+    When present, the save endpoint must verify the record matches these
+    filters before allowing edits. This enables wide visibility (see all
+    project actions) with narrow edit authority (edit only assigned actions).
+
+    Returns:
+        Dict of filter conditions with $user variables resolved, or None
+        if no row-level edit restriction applies.
+    """
+    if user.is_superuser:
+        return None
+
+    # edit_filters lives in code defaults (ROLE_DEFAULTS), not in the DB
+    # ModelRoleConfig table. This avoids a migration — edit_filters is a
+    # rare, security-critical config that belongs in code.
+    context = build_user_context(user)
+    roles = context.get("roles", [])
+
+    for role in roles:
+        from apps.core.services.role_defaults import get_effective_config
+        cfg = get_effective_config(role, model_name)
+        if cfg and cfg.get("edit_filters"):
+            return resolve_filter_variables(cfg["edit_filters"], context)
+
+    return None
 
 
 def can_create(user: AbstractUser, model_name: str) -> bool:

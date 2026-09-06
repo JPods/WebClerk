@@ -864,6 +864,61 @@ def _reassign_project(params):
     }
 
 
+# ---------------------------------------------------------------------------
+# Frontend flush — bump dt_changed so all browser tabs reload cached data
+# ---------------------------------------------------------------------------
+
+def _flush_frontend(params):
+    """Bump the system flush timestamp so the frontend poll detects the change.
+
+    Creates/updates a Setting with purpose='wc:system' and ida='wc-flush'.
+    The frontend polls get_bootstrap_dt every 60s — when dt_changed increases,
+    it reloads all cached settings, bootstrap data, and panel definitions.
+
+    Alice calls this after seed_panel_columns or any Setting change that
+    needs to reach already-open browser tabs without a manual reload.
+    """
+    import time
+    from apps.core.models.setting import Setting
+
+    now_ms = int(time.time() * 1000)
+    flush_setting, created = Setting.objects.update_or_create(
+        ida='wc-flush',
+        defaults={
+            'name': 'Frontend Flush Signal',
+            'purpose': 'wc:system',
+            'explanation': 'Timestamp bumped to trigger frontend cache reload',
+            'config': {'dt_changed': now_ms},
+            'dt_modified': now_ms,
+        },
+    )
+    if not created:
+        # update_or_create already saved, but ensure config is merged
+        flush_setting.config = flush_setting.config or {}
+        flush_setting.config['dt_changed'] = now_ms
+        flush_setting.save(update_fields=['config', 'dt_modified'])
+
+    return {
+        'flushed': True,
+        'dt_changed': now_ms,
+        'message': 'Frontend will reload within 60 seconds (or immediately on next poll)',
+    }
+
+
+def _get_bootstrap_dt(params):
+    """Return the current flush timestamp. The frontend polls this every 60s."""
+    from apps.core.models.setting import Setting
+
+    try:
+        flush_setting = Setting.objects.filter(ida='wc-flush').first()
+        if flush_setting:
+            dt = (flush_setting.config or {}).get('dt_changed', 0)
+            return {'dt_changed': dt}
+    except Exception:
+        pass
+    return {'dt_changed': 0}
+
+
 _ACTION_DISPATCH = {
     "post_gl_entries": _post_gl_entries,
     "reverse_gl_entries": _reverse_gl_entries,
@@ -1194,6 +1249,9 @@ _ACTION_DISPATCH = {
     "score_support_qa": lambda p: __import__('apps.ai_assistant.services.support_qa', fromlist=['score_qa']).score_qa(p),
     "escalate_support_qa": lambda p: __import__('apps.ai_assistant.services.support_qa', fromlist=['escalate_qa']).escalate_qa(p),
     "post_qa_to_wchq": lambda p: __import__('apps.ai_assistant.services.support_qa', fromlist=['post_qa_to_wchq']).post_qa_to_wchq(p),
+    # ── Frontend Cache Flush ──
+    "flush_frontend": _flush_frontend,
+    "get_bootstrap_dt": _get_bootstrap_dt,
 }
 
 # Actions that require staff/superuser — commission data is internal-only
@@ -1203,6 +1261,7 @@ _STAFF_ONLY_ACTIONS = {
     "get_commission_report",
     "run_admin_tool",
     "reassign_project",
+    "flush_frontend",
 }
 
 

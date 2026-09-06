@@ -216,21 +216,22 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-      <div className="relative w-full max-w-2xl rounded-2xl bg-white shadow-xl dark:bg-gray-900">
+      <div className="relative w-full max-w-2xl rounded-2xl shadow-xl" style={{ background: 'var(--db-surface)' }}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--db-border)' }}>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-lg font-semibold" style={{ color: 'var(--db-text)' }}>
               Manage Project Contacts
             </h2>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mt-1 db-font-sm" style={{ color: 'var(--db-text-muted)' }}>
               {projectName}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            className="rounded-lg p-1 transition"
+            style={{ color: 'var(--db-text-dim)' }}
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -241,18 +242,18 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
         {/* Body */}
         <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
           {saveError && (
-            <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-200">
+            <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 db-font-sm text-rose-700">
               {saveError}
             </div>
           )}
 
           {/* Current Contacts Section */}
           <div className="mb-6">
-            <h3 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <h3 className="mb-3 db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>
               Current Contacts ({contacts.length})
             </h3>
             {contacts.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="db-font-sm" style={{ color: 'var(--db-text-muted)' }}>
                 No contacts assigned to this project.
               </p>
             ) : (
@@ -260,13 +261,14 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
                 {contacts.map((contact) => (
                   <div
                     key={contact.id}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 dark:border-gray-700 dark:bg-gray-800"
+                    className="flex items-center justify-between gap-2 rounded-lg px-4 py-2"
+                    style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface-alt)' }}
                   >
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      <span className="db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>
                         {contact.attention || `Contact #${contact.id}`}
                       </span>
-                      <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                      <span className="ml-2 db-font-xs" style={{ color: 'var(--db-text-muted)' }}>
                         #{contact.id}
                       </span>
                     </div>
@@ -274,18 +276,18 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
                       <select
                         value={contact.authority || 'read_only'}
                         onChange={(e) => handleChangeAuthority(contact.id, e.target.value as ProjectAuthority)}
-                        className="rounded border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                        className="rounded px-2 py-1 db-font-xs db-input"
                       >
                         {AUTHORITY_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
                       </select>
                     ) : (
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        contact.authority === 'read_write' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' :
-                        contact.authority === 'add_to_comment' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' :
-                        'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                      }`}>
+                      <span className={`rounded-full px-2 py-0.5 db-font-xs font-medium ${
+                        contact.authority === 'read_write' ? 'bg-blue-100 text-blue-700' :
+                        contact.authority === 'add_to_comment' ? 'bg-green-100 text-green-700' :
+                        ''
+                      }`} style={contact.authority !== 'read_write' && contact.authority !== 'add_to_comment' ? { background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' } : undefined}>
                         {AUTHORITY_OPTIONS.find(o => o.value === contact.authority)?.label || 'View'}
                       </span>
                     )}
@@ -293,7 +295,8 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRemoveContact(contact.id)}
-                        className="rounded p-1 text-gray-400 transition hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-900/30 dark:hover:text-rose-400"
+                        className="rounded p-1 transition hover:bg-rose-100 hover:text-rose-600"
+                        style={{ color: 'var(--db-text-dim)' }}
                         title="Remove contact"
                       >
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -310,7 +313,7 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
           {/* Add Contacts Section - Only visible if user can edit */}
           {canEdit && (
             <div>
-              <h3 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <h3 className="mb-3 db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>
                 Add Contacts
               </h3>
 
@@ -321,22 +324,22 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
                   placeholder="Search contacts by name or email..."
                   value={searchQuery}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  className="w-full rounded-lg px-4 py-2 db-font-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 db-input"
                 />
               </div>
 
               {availableError && (
-                <p className="mb-3 text-sm text-rose-600 dark:text-rose-400">
+                <p className="mb-3 db-font-sm text-rose-600">
                   {availableError}
                 </p>
               )}
 
               {isLoadingAvailable ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="db-font-sm db-text-muted">
                   Loading available contacts...
                 </p>
               ) : filteredAvailableContacts.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="db-font-sm db-text-muted">
                   {searchQuery ? "No matching contacts found." : "All contacts are already assigned."}
                 </p>
               ) : (
@@ -344,19 +347,20 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
                   {filteredAvailableContacts.slice(0, 50).map((contact) => (
                     <div
                       key={contact.id}
-                      className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-800"
+                      className="flex items-center justify-between rounded-lg px-4 py-2"
+                      style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)' }}
                     >
                       <div>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        <span className="db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>
                           {contact.attention || `Contact #${contact.id}`}
                         </span>
                         {contact.email && (
-                          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                          <span className="ml-2 db-font-xs" style={{ color: 'var(--db-text-muted)' }}>
                             {contact.email}
                           </span>
                         )}
                         {contact.role && (
-                          <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                          <span className="ml-2 rounded-full px-2 py-0.5 db-font-xs" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
                             {contact.role}
                           </span>
                         )}
@@ -364,7 +368,8 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
                       <button
                         type="button"
                         onClick={() => handleAddContact(contact)}
-                        className="rounded p-1 text-gray-400 transition hover:bg-emerald-100 hover:text-emerald-600 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400"
+                        className="rounded p-1 transition hover:bg-emerald-100 hover:text-emerald-600"
+                        style={{ color: 'var(--db-text-dim)' }}
                         title="Add contact"
                       >
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -374,7 +379,7 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
                     </div>
                   ))}
                   {filteredAvailableContacts.length > 50 && (
-                    <p className="text-center text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-center db-font-xs" style={{ color: 'var(--db-text-muted)' }}>
                       Showing first 50 results. Use search to narrow down.
                     </p>
                   )}
@@ -385,7 +390,7 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
 
           {/* Read-only notice for non-editors */}
           {!canEdit && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 db-font-sm text-amber-700">
               <p>
                 <strong>View Only:</strong> Your role does not permit editing project contacts.
                 Contact an administrator or project manager to make changes.
@@ -395,11 +400,12 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 border-t border-gray-200 px-6 py-4 dark:border-gray-700">
+        <div className="flex items-center justify-end gap-3 px-6 py-4" style={{ borderTop: '1px solid var(--db-border)' }}>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+            className="rounded-lg px-4 py-2 db-font-sm font-medium transition"
+            style={{ border: '1px solid var(--db-border)', color: 'var(--db-text-muted)' }}
           >
             {canEdit ? "Cancel" : "Close"}
           </button>
@@ -408,7 +414,7 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
               type="button"
               onClick={handleSave}
               disabled={isSaving || !hasChanges}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg bg-indigo-600 px-4 py-2 db-font-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving ? "Saving..." : "Save Changes"}
             </button>

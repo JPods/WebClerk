@@ -34,6 +34,7 @@ import { useSidebar } from "../context/SidebarContext";
 import { PageRoutes } from "@/routes/Routes";
 import { useWindowManager } from "../context/WindowManagerContext";
 import { getUI } from "@/utils/contactUI";
+import { useAppSelector } from "../store/hooks";
 
 type NavItem = {
   name: string;
@@ -82,6 +83,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   json: Braces,
   "form-parade": FileText,
   "setting-parade": Settings,
+  "layout-parade": Settings,
   selectlists: ClipboardList,
 };
 
@@ -112,6 +114,7 @@ const ROUTE_MAP: Record<string, string> = {
   adjust: "/inventory-adjust",
   "form-parade": "/form-parade",
   "setting-parade": "/setting-parade",
+  "layout-parade": "/layout-parade",
   selectlists: "/selectlists",
 };
 
@@ -140,6 +143,7 @@ const DISPLAY_NAMES: Record<string, string> = {
   kanban: "Kanban",
   "form-parade": "Form Parade",
   "setting-parade": "Setting Parade",
+  "layout-parade": "Layout Parade",
   selectlists: "Select Lists",
 };
 
@@ -167,9 +171,23 @@ const AppSidebar: React.FC = () => {
   } = useSidebar();
   const { ensureWindow, activateWindow, activePath } = useWindowManager();
 
-  // Read nav config from config.ui.navbar
-  const modelNames: string[] = getUI<string[]>('navbar.models', ['agenda', 'proposal', 'order', 'invoice', 'purchase', 'action']);
-  const dashboardNames: string[] = getUI<string[]>('navbar.dashboards', ['dashboard', 'products', 'transactions', 'orgs', 'administration', 'kanban', 'gantt', 'alice', 'databrowser', 'json']);
+  // Read nav config from config.ui.navbar — portal users get a scoped model list
+  const user = useAppSelector(s => s.auth.user);
+  const isPortal = user?.is_portal === true;
+  const portalRoles = user?.roles || [];
+  const isCustomer = portalRoles.includes('user_customer');
+  const isVendor = portalRoles.includes('user_vendor') || portalRoles.includes('user_manufacturer');
+
+  const PORTAL_CUSTOMER_MODELS = ['invoice', 'order', 'item', 'contact', 'action'];
+  const PORTAL_VENDOR_MODELS = ['purchase', 'item', 'contact', 'action'];
+  const PORTAL_DASHBOARDS = ['portal', 'kanban', 'gantt'];
+
+  const modelNames: string[] = isPortal
+    ? (isCustomer ? PORTAL_CUSTOMER_MODELS : isVendor ? PORTAL_VENDOR_MODELS : ['contact', 'action'])
+    : getUI<string[]>('navbar.models', ['agenda', 'proposal', 'order', 'invoice', 'purchase', 'action']);
+  const dashboardNames: string[] = isPortal
+    ? PORTAL_DASHBOARDS
+    : getUI<string[]>('navbar.dashboards', ['dashboard', 'products', 'transactions', 'orgs', 'administration', 'kanban', 'gantt', 'alice', 'databrowser', 'json']);
 
   const modelItems = buildItems(modelNames);
   const dashboardItems = buildItems(dashboardNames);

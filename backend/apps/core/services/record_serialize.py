@@ -16,8 +16,8 @@ def to_dict(obj: Model, *, allow: Optional[Iterable[str]] = None) -> Dict[str, A
         if name and name not in data:
             try:
                 value = getattr(obj, name, None)
-                # Skip reverse relations and callables
-                if not callable(value) and not hasattr(value, 'all'):
+                # Skip reverse relations, callables, and related model instances
+                if not callable(value) and not hasattr(value, 'all') and not isinstance(value, Model):
                     data[name] = value
             except Exception:
                 pass

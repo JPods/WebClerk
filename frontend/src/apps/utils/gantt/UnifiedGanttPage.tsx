@@ -7,10 +7,11 @@
  * Default scale is 0.5. Persisted in localStorage.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { UnifiedGantt } from "./UnifiedGantt";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { getUI } from '@/utils/contactUI';
 
 const GANTT_SCALE_KEY = 'wc3_gantt_scale';
 const DEFAULT_SCALE = 0.5;
@@ -28,6 +29,16 @@ function loadScale(): number {
 
 const UnifiedGanttPage: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const [theme, setTheme] = useState<string>(() => getUI('theme.active', 'dark'));
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.mode) setTheme(detail.mode);
+    };
+    window.addEventListener('wc3-zone-theme-changed', handler);
+    return () => window.removeEventListener('wc3-zone-theme-changed', handler);
+  }, []);
 
   const { projectId, initialProjectIds } = useMemo(() => {
     const singleProject = searchParams.get("project");
@@ -51,22 +62,24 @@ const UnifiedGanttPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-2rem)]">
+    <div className="db-root flex flex-col h-[calc(100vh-2rem)]" data-theme={theme}>
       {/* Zoom control — not scaled */}
       <div className="flex items-center gap-1 px-2 py-0.5 flex-shrink-0" style={{ fontSize: 11 }}>
         <button
           onClick={() => adjustScale(-SCALE_STEP)}
           disabled={scale <= MIN_SCALE}
-          className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30"
+          className="px-1.5 py-0.5 rounded disabled:opacity-30"
+          style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)', color: 'var(--db-text)' }}
           title="Zoom out"
         >−</button>
-        <span className="text-gray-500 dark:text-gray-400 min-w-[3em] text-center" title="Gantt zoom level">
+        <span className="min-w-[3em] text-center" style={{ color: 'var(--db-text-muted)' }} title="Gantt zoom level">
           {Math.round(scale * 100)}%
         </span>
         <button
           onClick={() => adjustScale(SCALE_STEP)}
           disabled={scale >= MAX_SCALE}
-          className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30"
+          className="px-1.5 py-0.5 rounded disabled:opacity-30"
+          style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)', color: 'var(--db-text)' }}
           title="Zoom in"
         >+</button>
       </div>

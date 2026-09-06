@@ -18,7 +18,7 @@ class RoleValidatingJWTAuthentication(JWTAuthentication):
                 code='missing_role'
             )
 
-        allowed_roles = {'admin', 'employee', 'user'}
+        allowed_roles = {'admin', 'employee', 'user', 'customer', 'vendor', 'manufacturer', 'rep'}
         norm_token_role = str(token_role).lower()
         if norm_token_role not in allowed_roles:
             raise exceptions.AuthenticationFailed(

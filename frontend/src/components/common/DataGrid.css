@@ -84,6 +84,7 @@
   table-layout: fixed;
   border-collapse: collapse;
   font-size: var(--dg-fs, 13px);
+  min-width: 100%;
 }
 
 /* ---------------------------------------------------------------------------

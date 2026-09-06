@@ -67,20 +67,20 @@ export const GanttGrid: FC<GanttGridProps> = ({
 
   return (
     <div
-      className="flex flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 select-none"
-      style={{ width: totalWidth, minWidth: totalWidth, flexShrink: 0 }}
+      className="flex flex-col select-none"
+      style={{ width: totalWidth, minWidth: totalWidth, flexShrink: 0, borderRight: '1px solid var(--db-border)', background: 'var(--db-surface)' }}
       data-wc="GanttGrid"
     >
       {/* ── Column headers ── */}
       <div
-        className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
-        style={{ height: scaleHeaderHeight, minHeight: scaleHeaderHeight }}
+        className="flex"
+        style={{ height: scaleHeaderHeight, minHeight: scaleHeaderHeight, borderBottom: '1px solid var(--db-border)', background: 'var(--db-surface-alt)' }}
       >
         {columns.map((col) => (
           <div
             key={col.id}
-            className="flex items-end justify-center pb-1 text-[11px] font-semibold text-gray-500 dark:text-gray-400 border-r border-gray-100 dark:border-gray-700 whitespace-nowrap overflow-hidden"
-            style={{ width: col.width, textAlign: col.align || "center" }}
+            className="flex items-end justify-center pb-1 text-[11px] font-semibold whitespace-nowrap overflow-hidden"
+            style={{ width: col.width, textAlign: col.align || "center", color: 'var(--db-text-muted)', borderRight: '1px solid var(--db-border-light)' }}
             title={col.header}
           >
             {col.header}
@@ -97,10 +97,12 @@ export const GanttGrid: FC<GanttGridProps> = ({
         {tasks.map((task, rowIndex) => (
           <div
             key={task.id}
-            className={`flex items-center border-b border-gray-50 dark:border-gray-800 hover:bg-blue-50/40 dark:hover:bg-blue-900/20 cursor-pointer ${
-              rowIndex % 2 === 0 ? "" : "bg-gray-50/30 dark:bg-gray-800/20"
-            }`}
-            style={{ height: cellHeight }}
+            className="flex items-center cursor-pointer"
+            style={{
+              height: cellHeight,
+              borderBottom: '1px solid var(--db-border-light)',
+              background: rowIndex % 2 === 0 ? undefined : 'var(--db-surface-alt)',
+            }}
             onClick={() => onTaskClick?.(task)}
             onDoubleClick={() => onTaskDoubleClick?.(task)}
           >
@@ -114,14 +116,16 @@ export const GanttGrid: FC<GanttGridProps> = ({
                     style={{ width: col.width }}
                   >
                     <button
-                      className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-xs leading-none p-0.5"
+                      className="text-xs leading-none p-0.5"
+                      style={{ color: 'var(--db-text-dim)' }}
                       onClick={(e) => { e.stopPropagation(); onMoveTask(String(task.id), "up"); }}
                       title="Move up"
                     >
                       ▲
                     </button>
                     <button
-                      className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-xs leading-none p-0.5"
+                      className="text-xs leading-none p-0.5"
+                      style={{ color: 'var(--db-text-dim)' }}
                       onClick={(e) => { e.stopPropagation(); onMoveTask(String(task.id), "down"); }}
                       title="Move down"
                     >
@@ -139,10 +143,11 @@ export const GanttGrid: FC<GanttGridProps> = ({
               return (
                 <div
                   key={col.id}
-                  className="text-xs text-gray-700 dark:text-gray-300 overflow-hidden whitespace-nowrap px-1"
+                  className="text-xs overflow-hidden whitespace-nowrap px-1"
                   style={{
                     width: col.width,
                     textAlign: col.align || "left",
+                    color: 'var(--db-text)',
                   }}
                 >
                   {cellContent}

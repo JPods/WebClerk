@@ -27,6 +27,7 @@ import { getRecord, getRecords, saveRecord } from "@/api/wcapi";
 import { DbColumns } from "./DbColumns";
 import type { DbColumnDef } from "./DbColumns";
 import { getModelDetailPath, getModelWindowTitle, getModelWindowPreset } from "./getModelDetailPath";
+import { buildColumnsFromSpecs } from "./panelColumnUtils";
 import { FaTimes, FaExternalLinkAlt } from "react-icons/fa";
 import { formatDt } from "@/utils/fieldFormatters";
 import { getUI } from '@/utils/contactUI';
@@ -104,7 +105,7 @@ function defaultColumns(
       width: "90px",
       defaultVisible: true,
       render: (r) => r.status ? (
-        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold" style={{
+        <span className="px-1.5 py-0.5 rounded db-font-xs font-semibold" style={{
           background: 'var(--db-surface-alt)',
           color: 'var(--db-text)',
         }}>
@@ -284,7 +285,54 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
   const [linkedIds, setLinkedIds] = useState<number[]>([]);
   const [assigning, setAssigning] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [settingPanelCols, setSettingPanelCols] = useState<DbColumnDef<Rec>[] | null>(null);
+  const [settingLoaded, setSettingLoaded] = useState(false);
   const panelKey = `${parentModel}:${parentId}:${linkedModel}`;
+
+  // Load panel columns from Setting — checks two paths:
+  //   1. wc:workbench_fields → config.db.panel (seed_panel_columns)
+  //   2. wc:model → config.layout.panel (future standard)
+  const [settingsVersion, setSettingsVersion] = useState(0);
+
+  // Listen for flush events — Alice or admin bumped dt_changed
+  useEffect(() => {
+    const handler = () => setSettingsVersion(v => v + 1);
+    window.addEventListener('wc3-settings-changed', handler);
+    return () => window.removeEventListener('wc3-settings-changed', handler);
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        // Try workbench_fields first (where seed_panel_columns writes)
+        const wbRes = await getRecords('setting', {
+          parent_model: linkedModel,
+          purpose: 'wc:workbench_fields',
+          limit: 1,
+        }) as any;
+        const wbSetting = wbRes?.results?.[0] ?? wbRes?.records?.[0];
+        const wbSpecs = wbSetting?.config?.db?.panel;
+        if (Array.isArray(wbSpecs) && wbSpecs.length > 0) {
+          setSettingPanelCols(buildColumnsFromSpecs(wbSpecs) as DbColumnDef<Rec>[]);
+          setSettingLoaded(true);
+          return;
+        }
+
+        // Fallback: wc:model → config.layout.panel
+        const res = await getRecords('setting', {
+          parent_model: linkedModel,
+          purpose: 'wc:model',
+          limit: 1,
+        }) as any;
+        const setting = res?.results?.[0] ?? res?.records?.[0];
+        const panelSpecs = setting?.config?.layout?.panel;
+        if (Array.isArray(panelSpecs) && panelSpecs.length > 0) {
+          setSettingPanelCols(buildColumnsFromSpecs(panelSpecs) as DbColumnDef<Rec>[]);
+        }
+      } catch { /* no setting */ }
+      setSettingLoaded(true);
+    })();
+  }, [linkedModel, settingsVersion]);
 
   // Dismiss this panel's search when another panel opens its search
   useEffect(() => {
@@ -425,7 +473,9 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
   const handleRemovePanel = useCallback(() => {
     if (!removable || !onRemovePanel) return;
     if (linkedIds.length > 0) {
-      const label = title || linkedModel.charAt(0).toUpperCase() + linkedModel.slice(1) + 's';
+      const pm = linkedModel.endsWith('ch') || linkedModel.endsWith('sh') || linkedModel.endsWith('s') || linkedModel.endsWith('x')
+        ? linkedModel + 'es' : linkedModel + 's';
+      const label = title || pm.charAt(0).toUpperCase() + pm.slice(1);
       if (!confirm(`Remove ${label} panel? ${linkedIds.length} linked record${linkedIds.length !== 1 ? 's' : ''} will be unlinked.`)) return;
     }
     // Clear refs.links.{model} on the parent record
@@ -436,14 +486,36 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
     onRemovePanel();
   }, [removable, onRemovePanel, linkedIds, linkedModel, parentModel, parentId, title]);
 
-  const sectionLabel = title || linkedModel.charAt(0).toUpperCase() + linkedModel.slice(1) + 's';
+  const pluralModel = linkedModel.endsWith('ch') || linkedModel.endsWith('sh') || linkedModel.endsWith('s') || linkedModel.endsWith('x')
+    ? linkedModel + 'es' : linkedModel + 's';
+  const sectionLabel = title || pluralModel.charAt(0).toUpperCase() + pluralModel.slice(1);
   const sectionIcon = icon || MODEL_ICONS[linkedModel] || "🔗";
   const excludeIds = new Set(linkedIds);
 
-  const columns = [
-    ...defaultColumns(linkedModel, editable, handleRemove, handleOpen),
-    ...(extraColumns || []),
-  ];
+  // Action column (unlink + open buttons) — always present
+  const actionCol: DbColumnDef<Rec> = {
+    key: "_actions",
+    label: "",
+    width: "56px",
+    render: (r) => (
+      <span className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        {editable && (
+          <button type="button" title="Unlink" className="p-1 rounded transition-colors db-text-dim"
+            onClick={() => handleRemove(r.id)}><FaTimes size={10} /></button>
+        )}
+        <button type="button" title="Open" className="p-1 rounded transition-colors db-text-dim"
+          onClick={() => handleOpen(r)}><FaExternalLinkAlt size={10} /></button>
+      </span>
+    ),
+  };
+
+  // Columns from Setting config.layout.panel — single source of truth
+  // If no Setting exists, show a flag so Alice/WC_HQ can create one
+  const columns = settingPanelCols
+    ? [...settingPanelCols, actionCol, ...(extraColumns || [])]
+    : [actionCol];  // minimal — missing panel definition
+
+  const missingPanelDef = settingLoaded && !settingPanelCols;
 
   return (
     <DbColumns<Rec>
@@ -461,6 +533,11 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
       compact
       emptyMessage={loading ? "Loading..." : `No ${linkedModel}s linked`}
     >
+      {missingPanelDef && (
+        <div className="px-3 py-2 db-font-xs font-mono" style={{ color: 'var(--db-accent-red, #e05252)', background: 'var(--db-surface-alt)' }}>
+          missing: setting.config.layout.panel for {linkedModel} — run seed_panel_columns or ask Alice
+        </div>
+      )}
       {assigning && (
         <RecordSearchInline
           linkedModel={linkedModel}

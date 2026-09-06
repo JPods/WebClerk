@@ -1,11 +1,8 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+/* LastChecked: 2026-09-05 | WhereUsed: Detail pages (raw JSON view) | WhoCreated: Unknown */
 /**
- * RawJsonCard — Renders a collapsible card for a single JSONField.
- *
- * Given a JSON object and its field name, displays each first-level key
- * as a labelled row using the convention: `fieldName.key`.
- *
- * Nested objects / arrays are displayed as stringified previews.
+ * RawJsonCard — Renders a collapsible card showing raw JSON.
+ * First-level keys sorted alphabetically.
+ * Uses --db-* CSS variables for theme-aware styling.
  */
 import React, { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -22,6 +19,15 @@ export interface RawJsonCardProps {
   skipKeys?: string[];
 }
 
+/** Sort object keys alphabetically (first level only) */
+function sortFirstLevel(obj: Record<string, unknown>): Record<string, unknown> {
+  const sorted: Record<string, unknown> = {};
+  for (const key of Object.keys(obj).sort()) {
+    sorted[key] = obj[key];
+  }
+  return sorted;
+}
+
 const RawJsonCard: React.FC<RawJsonCardProps> = ({
   data,
   defaultExpanded = true,
@@ -32,35 +38,38 @@ const RawJsonCard: React.FC<RawJsonCardProps> = ({
   if (!data || typeof data !== "object" || Array.isArray(data)) return null;
 
   const skipSet = new Set(skipKeys);
-  const filteredData = Object.fromEntries(
-    Object.entries(data).filter(([k]) => !skipSet.has(k)),
+  const filteredData = sortFirstLevel(
+    Object.fromEntries(Object.entries(data).filter(([k]) => !skipSet.has(k)))
   );
   if (Object.keys(filteredData).length === 0) return null;
 
   return (
-    <div className="mb-4 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+    <div className="mb-4 rounded-lg overflow-hidden"
+      style={{ border: '1px solid var(--db-border)' }}>
       <button
         type="button"
-        className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-2.5 transition-colors"
+        style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-2">
           {isExpanded ? (
-            <ChevronDown className="text-slate-400 w-3 h-3" />
+            <ChevronDown className="w-3 h-3" style={{ color: 'var(--db-text-muted)' }} />
           ) : (
-            <ChevronRight className="text-slate-400 w-3 h-3" />
+            <ChevronRight className="w-3 h-3" style={{ color: 'var(--db-text-muted)' }} />
           )}
-          <span className="text-slate-500">
+          <span style={{ color: 'var(--db-text-muted)' }}>
             <FaCode size={14} />
           </span>
-          <span className="font-semibold text-sm text-slate-700 dark:text-slate-200">
+          <span className="font-semibold db-font-sm" style={{ color: 'var(--db-text)' }}>
             Raw
           </span>
         </div>
       </button>
       {isExpanded && (
-        <div className="px-4 py-3 bg-white dark:bg-slate-900">
-          <pre className="text-xs text-slate-700 dark:text-slate-300 overflow-auto max-h-96 whitespace-pre-wrap">
+        <div className="px-4 py-3" style={{ background: 'var(--db-surface)' }}>
+          <pre className="db-font-xs font-mono overflow-auto max-h-96 whitespace-pre-wrap"
+            style={{ color: 'var(--db-text)' }}>
             <HighlightedJson json={JSON.stringify(filteredData, null, 2)} />
           </pre>
         </div>

@@ -117,10 +117,10 @@ const KeyValueRow: React.FC<KeyValueRowProps> = ({
               )}
             </button>
           )}
-          <span className="text-xs font-mono font-medium db-text">
+          <span className="db-font-xs font-mono font-medium db-text">
             {keyName}
           </span>
-          <span className="text-xs db-text-dim">
+          <span className="db-font-xs db-text-dim">
             ({isArray ? "array" : typeof value})
           </span>
         </div>
@@ -131,13 +131,13 @@ const KeyValueRow: React.FC<KeyValueRowProps> = ({
             <textarea
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              className="w-full px-2 py-1 text-xs font-mono rounded db-panel"
+              className="w-full px-2 py-1 db-font-xs font-mono rounded db-panel"
               rows={isObject || isArray ? 4 : 1}
               autoFocus
             />
           ) : (
             <div
-              className={`text-xs font-mono truncate db-text ${
+              className={`db-font-xs font-mono truncate db-text ${
                 isObject || isArray ? "cursor-pointer" : ""
               }`}
               onClick={() =>
@@ -201,7 +201,7 @@ const KeyValueRow: React.FC<KeyValueRowProps> = ({
       {/* Expanded object/array view */}
       {isExpanded && (isObject || isArray) && (
         <div className="pb-2">
-          <pre className="text-xs font-mono p-2 rounded overflow-x-auto db-bg-surface-alt">
+          <pre className="db-font-xs font-mono p-2 rounded overflow-x-auto db-bg-surface-alt">
             {displayValue}
           </pre>
         </div>
@@ -263,33 +263,33 @@ const AddKeyModal: React.FC<AddKeyModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="rounded-lg p-4 w-96 max-w-full mx-4 db-bg-surface">
-        <h3 className="text-sm font-semibold mb-4 db-text">
+        <h3 className="db-font-sm font-semibold mb-4 db-text">
           Add Metadata Key
         </h3>
 
         <div className="space-y-3">
           <div>
-            <label className="block text-xs mb-1 db-text-muted">
+            <label className="block db-font-xs mb-1 db-text-muted">
               Key
             </label>
             <input
               type="text"
               value={key}
               onChange={(e) => setKey(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm rounded db-panel-text"
+              className="w-full px-2 py-1.5 db-font-sm rounded db-panel-text"
               placeholder="key_name"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-xs mb-1 db-text-muted">
+            <label className="block db-font-xs mb-1 db-text-muted">
               Type
             </label>
             <select data-wc="select"
               value={valueType}
               onChange={(e) => setValueType(e.target.value as typeof valueType)}
-              className="w-full px-2 py-1.5 text-sm rounded db-panel-text"
+              className="w-full px-2 py-1.5 db-font-sm rounded db-panel-text"
             >
               <option value="string">String</option>
               <option value="number">Number</option>
@@ -299,14 +299,14 @@ const AddKeyModal: React.FC<AddKeyModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs mb-1 db-text-muted">
+            <label className="block db-font-xs mb-1 db-text-muted">
               Value
             </label>
             {valueType === "json" ? (
               <textarea
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                className="w-full px-2 py-1.5 text-sm font-mono rounded db-panel-text"
+                className="w-full px-2 py-1.5 db-font-sm font-mono rounded db-panel-text"
                 rows={4}
                 placeholder='{"key": "value"}'
               />
@@ -314,7 +314,7 @@ const AddKeyModal: React.FC<AddKeyModalProps> = ({
               <select data-wc="select"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                className="w-full px-2 py-1.5 text-sm rounded db-panel-text"
+                className="w-full px-2 py-1.5 db-font-sm rounded db-panel-text"
               >
                 <option value="true">true</option>
                 <option value="false">false</option>
@@ -324,7 +324,7 @@ const AddKeyModal: React.FC<AddKeyModalProps> = ({
                 type={valueType === "number" ? "number" : "text"}
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                className="w-full px-2 py-1.5 text-sm rounded db-panel-text"
+                className="w-full px-2 py-1.5 db-font-sm rounded db-panel-text"
                 placeholder={valueType === "number" ? "0" : "value"}
               />
             )}
@@ -334,14 +334,14 @@ const AddKeyModal: React.FC<AddKeyModalProps> = ({
         <div className="flex justify-end gap-2 mt-4">
           <button
             onClick={onClose}
-            className="px-3 py-1.5 text-sm rounded db-text-muted"
+            className="px-3 py-1.5 db-font-sm rounded db-text-muted"
           >
             Cancel
           </button>
           <button
             onClick={handleAdd}
             disabled={!key.trim()}
-            className="px-3 py-1.5 text-sm rounded disabled:opacity-50 db-btn-primary-solid"
+            className="px-3 py-1.5 db-font-sm rounded disabled:opacity-50 db-btn-primary-solid"
           >
             Add
           </button>
@@ -417,13 +417,13 @@ const MetadataPanel: React.FC<MetadataPanelProps> = ({
       >
         <div className="flex items-center gap-2">
           <FaDatabase className="db-text-gold" size={14} />
-          <h3 className="text-sm font-semibold db-text">
+          <h3 className="db-font-sm font-semibold db-text">
             {title}
           </h3>
-          <span className="px-1.5 py-0.5 text-xs rounded db-surface-alt-gold">
+          <span className="px-1.5 py-0.5 db-font-xs rounded db-surface-alt-gold">
             Admin
           </span>
-          <span className="text-xs db-text-gold">
+          <span className="db-font-xs db-text-gold">
             {entries.length} {entries.length === 1 ? "key" : "keys"}
           </span>
         </div>
@@ -452,7 +452,7 @@ const MetadataPanel: React.FC<MetadataPanelProps> = ({
       {!isCollapsed && (
         <div className={`${compact ? "p-2" : "p-4"}`}>
           {entries.length === 0 ? (
-            <div className="text-center py-4 text-sm db-text-dim">
+            <div className="text-center py-4 db-font-sm db-text-dim">
               No metadata keys defined
             </div>
           ) : (

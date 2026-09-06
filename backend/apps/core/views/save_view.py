@@ -611,6 +611,26 @@ class SaveWcapiView(APIView):
             except ImportError:
                 pass  # Graceful degradation if save_hooks module not available
 
+        # ── Row-level edit check (edit_filters) ──
+        # Wide visibility, narrow edit: portal users can see all project actions
+        # but only edit actions assigned to them. edit_filters enforces this.
+        if is_update and request.user and request.user.is_authenticated:
+            from apps.core.services.role_filter import get_edit_filters
+            edit_filters = get_edit_filters(request.user, model_key)
+            if edit_filters:
+                from django.db.models import Q
+                edit_q = Q(**edit_filters)
+                if not type(obj).objects.filter(pk=obj.pk).filter(edit_q).exists():
+                    console_logger.info(
+                        "[SAVE_VIEW] Edit denied by edit_filters for %s #%s user=%s",
+                        model_key, getattr(obj, 'id', '?'), getattr(request.user, 'id', '?'),
+                    )
+                    return api_response(
+                        success=False, status_code=403,
+                        message='You can only edit records assigned to you.',
+                        error={'code': 'edit_filter_denied', 'details': 'Record does not match your edit permissions.'},
+                    )
+
         # ── Role-based write-field filtering ──
         from apps.core.utils.model_policies import enforce_write_policy
         data, denied_fields = enforce_write_policy(model_cls, data, request=request)

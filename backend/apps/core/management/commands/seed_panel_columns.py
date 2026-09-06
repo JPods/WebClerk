@@ -76,6 +76,14 @@ PANEL_COLUMNS = {
     ],
 
     # --- Communications ---
+    'touch': [
+        f('ida', width=70),
+        f('channel', width=70),
+        f('direction', width=50),
+        f('subject', width=200),
+        f('outcome', width=80),
+        f('dt_created', width=90, format='date'),
+    ],
     'email': [
         f('email', width=200),
         f('name', width=120),
@@ -283,3 +291,8 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f'Done: {created} created, {updated} updated, {skipped} skipped'
         ))
+
+        # Auto-flush frontend if anything changed
+        if created or updated:
+            from django.core.management import call_command
+            call_command('flush_frontend')

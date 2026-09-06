@@ -41,6 +41,7 @@ export default function HelpMenu({ className }: HelpMenuProps) {
   const location = useLocation();
   const ctx = getContextFromPath(location.pathname + location.search);
   const [showGetHelp, setShowGetHelp] = useState(false);
+  const [trainingMode, setTrainingMode] = useState(false);
   const alice = useAlice();
   const hintCount = alice.hints.length;
 
@@ -49,10 +50,17 @@ export default function HelpMenu({ className }: HelpMenuProps) {
   }, [ctx]);
 
   // Cmd+/ or Cmd+? → open Get Help dialog
+  // Cmd+Shift+T → open Training Note dialog
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === '/' || e.key === '?')) {
         e.preventDefault();
+        setTrainingMode(false);
+        setShowGetHelp(true);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 't' || e.key === 'T')) {
+        e.preventDefault();
+        setTrainingMode(true);
         setShowGetHelp(true);
       }
     };
@@ -68,7 +76,8 @@ export default function HelpMenu({ className }: HelpMenuProps) {
         onChange={(e) => {
           const v = e.target.value;
           if (v === 'help') openHelp();
-          else if (v === 'paste') setShowGetHelp(true);
+          else if (v === 'paste') { setTrainingMode(false); setShowGetHelp(true); }
+          else if (v === 'training') { setTrainingMode(true); setShowGetHelp(true); }
           e.target.value = '';
         }}
         title={`Help: ${ctx.label} · Shift+hover any zone, click nametag to copy, Cmd+/ to paste into Help`}
@@ -76,8 +85,9 @@ export default function HelpMenu({ className }: HelpMenuProps) {
         <option value="">Help{hintCount > 0 ? ` (${hintCount})` : ''}</option>
         <option value="help">{ctx.label}</option>
         <option value="paste">Paste (Cmd+/)</option>
+        <option value="training">Training Note (Cmd+Shift+T)</option>
       </select>
-      <GetHelpDialog open={showGetHelp} onClose={() => setShowGetHelp(false)} />
+      <GetHelpDialog open={showGetHelp} onClose={() => { setShowGetHelp(false); setTrainingMode(false); }} trainingMode={trainingMode} />
     </>
   );
 }

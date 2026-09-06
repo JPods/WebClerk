@@ -39,6 +39,7 @@ import TeamDashboard from "../pages/admin/TeamDashboard";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import FormParade from "../pages/tools/FormParade";
 import SettingParade from "../pages/tools/SettingParade";
+import LayoutParade from "../pages/tools/LayoutParade";
 import TestParade from "../pages/tools/TestParade";
 import SelectListBrowser from "../pages/tools/SelectListBrowser";
 import AgendaView from "../pages/admin/AgendaView";
@@ -175,6 +176,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.whitelist, element: <WhitelistTester /> },
   { path: PageRoutes.formParade, element: <FormParade /> },
   { path: PageRoutes.settingParade, element: <SettingParade /> },
+  { path: PageRoutes.layoutParade, element: <LayoutParade /> },
   { path: PageRoutes.testParade, element: <TestParade /> },
   { path: PageRoutes.selectLists, element: <SelectListBrowser /> },
   { path: PageRoutes.agenda, element: <AgendaView /> },

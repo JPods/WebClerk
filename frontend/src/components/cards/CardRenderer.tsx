@@ -27,10 +27,10 @@ const CardRenderer: React.FC<CardRendererProps> = ({ spec, data, isEditing, onCh
   // Title bar
   const titleIdaValue = spec.title_ida && data?.[spec.title_ida];
   const titleBar = (
-    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--db-text)', marginBottom: 8, borderBottom: '1px solid var(--db-border)', paddingBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div className="db-font-sm db-font-bolder" style={{ color: 'var(--db-text)', marginBottom: 8, borderBottom: '1px solid var(--db-border)', paddingBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
       <span>{spec.title}</span>
       {titleIdaValue != null && (
-        <span style={{ fontFamily: 'monospace', color: 'var(--db-text-muted)', fontWeight: 400, fontSize: '10px' }}>
+        <span className="db-font-xs db-font-mono" style={{ color: 'var(--db-text-muted)' }}>
           #{typeof titleIdaValue === 'object' ? titleIdaValue.id : titleIdaValue}
         </span>
       )}

@@ -166,8 +166,8 @@ const DEFAULT_LAYOUTS: Record<string, typeof DEFAULT_ACTION_LAYOUT> = {
 
 // ── Styles ──────────────────────────────────────────────────────────
 
-const iClass = "w-full px-1.5 py-0.5 border border-gray-300 rounded bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white disabled:opacity-60 text-[inherit]";
-const lClass = "text-gray-500 dark:text-gray-400 font-mono mb-0.5 text-[0.85em]";
+const iClass = "w-full px-1.5 py-0.5 rounded disabled:opacity-60 text-[inherit] db-input";
+const lClass = "db-text-muted font-mono mb-0.5 text-[0.85em]";
 
 // ── Component ───────────────────────────────────────────────────────
 
@@ -226,8 +226,13 @@ function DynamicDetail({
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showTouchForm, setShowTouchForm] = useState(false);
+  const [settingLayout, setSettingLayout] = useState<any>(null);
+  const [settingFields, setSettingFields] = useState<Record<string, FieldConfig> | null>(null);
+  const [layoutSource, setLayoutSource] = useState<'setting' | 'report' | 'hardcoded'>('hardcoded');
 
-  const fontSize = 12 + fontScale;
+  // fontSize follows --db-font-size (set by DataBrowser) + local A+/A- offset
+  // fontScale=0 means "use the theme font size exactly"
+  const fontSize = fontScale;
 
   // Core panels always shown (even if empty) — besides contacts which uses ContactPanel
   const STANDARD_PANELS = ['action', 'touch'];
@@ -242,6 +247,142 @@ function DynamicDetail({
       setAvailableModels(names.sort());
     }).catch(() => {});
   }, []);
+
+  // ── Load form layout from Setting (purpose=wc:model) ──────────────
+  // Priority chain: Setting → Report → hardcoded
+  useEffect(() => {
+    if (layoutProp) return; // caller supplied layout, skip
+
+    const cacheKey = `setting_form_layout_${modelName}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (parsed.rows && parsed.fieldRegistry) {
+          setSettingLayout({ rows: parsed.rows });
+          setSettingFields(parsed.fieldRegistry);
+          setLayoutSource('setting');
+          console.log(`[DynamicDetail] Loaded form layout from Setting for ${modelName} (cached)`);
+          return;
+        }
+      } catch {}
+    }
+
+    import("../../api/wcapi").then(({ getRecords }) => {
+      getRecords("setting", {
+        parent_model: modelName,
+        purpose: "wc:model",
+        limit: 1,
+      }).then((resp: any) => {
+        const records = resp?.results || resp?.records || resp?.data || [];
+        const arr = Array.isArray(records) ? records : [];
+        if (arr.length === 0) return;
+
+        const setting = arr[0];
+        const formLayout = setting?.config?.layout?.form?.default;
+        if (!formLayout?.sections) return;
+
+        // Find the header section — contains columns with fields
+        const headerSection = formLayout.sections.find((s: any) => s.type === 'header');
+        if (!headerSection) return;
+
+        // Convert Setting sections → rows format + build field registry
+        const convertedRows: { fields: string[]; cols: number }[] = [];
+        const convertedFields: Record<string, FieldConfig> = {};
+
+        if (headerSection.columns && Array.isArray(headerSection.columns)) {
+          const columns = headerSection.columns;
+          const colCount = columns.length;
+
+          // Interleave fields across columns into rows:
+          // Row 0: [col0.field0, col1.field0, col2.field0], cols=colCount
+          // Row 1: [col0.field1, col1.field1, col2.field1], cols=colCount
+          const maxFields = Math.max(...columns.map((c: any) => (c.fields || []).length));
+          for (let rowIdx = 0; rowIdx < maxFields; rowIdx++) {
+            const rowFields: string[] = [];
+            for (let colIdx = 0; colIdx < colCount; colIdx++) {
+              const colFields = columns[colIdx].fields || [];
+              if (rowIdx < colFields.length) {
+                const f = colFields[rowIdx];
+                const fieldName = f.field || f.name || `unknown_${colIdx}_${rowIdx}`;
+                rowFields.push(fieldName);
+
+                // Build field config from Setting field definition
+                const cfg: FieldConfig = { type: 'text' };
+                if (f.label) cfg.label = f.label;
+                else cfg.label = fieldName.split('.').pop() || fieldName;
+
+                // Map Setting field type to FieldConfig type
+                if (f.type === 'select' && Array.isArray(f.options)) {
+                  cfg.type = 'select';
+                  cfg.options = f.options.map((opt: any) =>
+                    typeof opt === 'object' ? opt : { value: opt, label: String(opt) }
+                  );
+                } else if (f.type === 'contact-select' || f.type === 'contact_select') {
+                  cfg.type = 'contact-select' as any;
+                } else if (f.type === 'readonly' || f.type === 'read_only') {
+                  cfg.type = 'readonly';
+                } else if (f.type === 'date' || fieldName.startsWith('dt_')) {
+                  cfg.type = 'date';
+                } else if (f.type === 'number') {
+                  cfg.type = 'number';
+                } else if (f.type === 'currency') {
+                  cfg.type = 'currency';
+                } else if (f.type === 'checkbox') {
+                  cfg.type = 'checkbox';
+                } else if (f.type === 'textarea') {
+                  cfg.type = 'textarea';
+                } else if (fieldName.includes('.') || f.type === 'json-text') {
+                  cfg.type = 'json-text';
+                  cfg.path = fieldName;
+                }
+
+                if (f.path) cfg.path = f.path;
+                if (f.min !== undefined) cfg.min = f.min;
+                if (f.max !== undefined) cfg.max = f.max;
+
+                convertedFields[fieldName] = cfg;
+              }
+            }
+            if (rowFields.length > 0) {
+              convertedRows.push({ fields: rowFields, cols: colCount });
+            }
+          }
+        } else if (headerSection.rows && Array.isArray(headerSection.rows)) {
+          // Header already in rows format — use directly
+          for (const row of headerSection.rows) {
+            convertedRows.push({ fields: row.fields || [], cols: row.cols || 1 });
+            // Extract field configs from row fields if they have type info
+            for (const fieldName of (row.fields || [])) {
+              if (typeof fieldName === 'object') {
+                const f = fieldName;
+                const name = f.field || f.name;
+                if (name) convertedFields[name] = { type: f.type || 'text', label: f.label || name };
+              }
+            }
+          }
+        }
+
+        if (convertedRows.length > 0) {
+          setSettingLayout({ rows: convertedRows });
+          setSettingFields(convertedFields);
+          setLayoutSource('setting');
+          console.log(`[DynamicDetail] Loaded form layout from Setting for ${modelName}`, {
+            sectionCount: formLayout.sections.length,
+            rowCount: convertedRows.length,
+            fieldCount: Object.keys(convertedFields).length,
+          });
+          // Cache for session
+          sessionStorage.setItem(cacheKey, JSON.stringify({
+            rows: convertedRows,
+            fieldRegistry: convertedFields,
+          }));
+        }
+      }).catch((err: any) => {
+        console.warn(`[DynamicDetail] Failed to load Setting for ${modelName}:`, err);
+      });
+    });
+  }, [modelName, layoutProp]);
 
   // Self-discover panels from refs.links keys + standard panels
   useEffect(() => {
@@ -262,10 +403,12 @@ function DynamicDetail({
     setLinkedPanelModels(merged);
   }, [data, modelName]);
 
-  // Merged field registry: Report config.fields > legacy hardcoded > auto-inferred
+  // Merged field registry: Setting > Report config.fields > legacy hardcoded > auto-inferred
   const fieldRegistry = useMemo(() => {
     const serverFields: Record<string, FieldConfig> = reportConfig?.fields || {};
-    const merged = { ...legacyRegistry, ...serverFields };
+    const settingFieldDefs: Record<string, FieldConfig> = settingFields || {};
+    // Priority: Setting (highest) > Report > legacy hardcoded (lowest)
+    const merged = { ...legacyRegistry, ...serverFields, ...settingFieldDefs };
     // Auto-infer any fields referenced in layout rows but missing from registry
     if (data && layout?.rows) {
       for (const row of layout.rows) {
@@ -283,9 +426,10 @@ function DynamicDetail({
       }
     }
     return merged;
-  }, [legacyRegistry, reportConfig, data, layout]);
+  }, [legacyRegistry, reportConfig, settingFields, data, layout]);
 
   // Load form layout from Report record (output_type=screen, category=form)
+  // Only used if Setting didn't provide a layout
   useEffect(() => {
     if (layoutProp) return;
     const cacheKey = `form_layout_${modelName}`;
@@ -294,7 +438,10 @@ function DynamicDetail({
       try {
         const parsed = JSON.parse(cached);
         setReportConfig(parsed.config);
-        if (parsed.config?.rows) setLayout(parsed.config);
+        if (parsed.config?.rows && !settingLayout) {
+          setLayout(parsed.config);
+          if (layoutSource !== 'setting') setLayoutSource('report');
+        }
         setLayoutReportId(parsed.id);
         return;
       } catch {}
@@ -312,7 +459,10 @@ function DynamicDetail({
         if (arr.length > 0 && arr[0].config) {
           const cfg = arr[0].config;
           setReportConfig(cfg);
-          if (cfg.rows) setLayout(cfg);
+          if (cfg.rows && !settingLayout) {
+            setLayout(cfg);
+            if (layoutSource !== 'setting') setLayoutSource('report');
+          }
           setLayoutReportId(arr[0].id);
           sessionStorage.setItem(cacheKey, JSON.stringify({
             id: arr[0].id,
@@ -322,7 +472,17 @@ function DynamicDetail({
         }
       }).catch(() => {});
     });
-  }, [modelName, layoutProp]);
+  }, [modelName, layoutProp, settingLayout, layoutSource]);
+
+  // Apply Setting layout when loaded — takes priority over Report and hardcoded
+  useEffect(() => {
+    if (layoutProp) return;
+    if (settingLayout) {
+      setLayout(settingLayout);
+    } else if (layoutSource === 'hardcoded') {
+      console.log(`[DynamicDetail] Using hardcoded layout for ${modelName}`);
+    }
+  }, [settingLayout, layoutProp, layoutSource, modelName]);
 
   // Extract a form value from record data using field config
   const extractValue = useCallback((fieldName: string, cfg: FieldConfig, record: any): any => {
@@ -425,7 +585,7 @@ function DynamicDetail({
       startEdit: () => setEditing(true),
       fontUp: () => setFontScale(s => s + 1),
       fontDown: () => setFontScale(s => s - 1),
-      setFontSize: (size: number) => setFontScale(size - 12),
+      setFontSize: (size: number) => setFontScale(size),
       fontSize,
       editing,
       saving,
@@ -472,7 +632,7 @@ function DynamicDetail({
     if (!cfg) {
       // Last resort: show raw value as readonly
       const raw = data ? (fieldName.includes(".") ? getNestedValue(data, fieldName) : data[fieldName]) : undefined;
-      return <span className="text-xs text-gray-500">{raw != null ? String(raw) : "—"}</span>;
+      return <span className="db-font-xs db-text-muted">{raw != null ? String(raw) : "—"}</span>;
     }
 
     const Widget = getWidget(cfg.type);
@@ -490,25 +650,25 @@ function DynamicDetail({
     );
   };
 
-  if (!data) return <div className="py-4 text-center text-xs text-gray-400">Loading...</div>;
+  if (!data) return <div className="py-4 text-center db-font-xs db-text-dim">Loading...</div>;
 
   const disabled = !editing;
   const usedFields = new Set(layout.rows.flatMap((r: any) => r.fields));
   const availableFields = Object.keys(fieldRegistry).filter(f => !usedFields.has(f));
 
   return (
-    <div className="space-y-1.5" style={{ fontSize: `${fontSize}px` }}>
+    <div className="space-y-1.5" style={{ fontSize: fontSize === 0 ? 'inherit' : `calc(var(--db-font-size, 13px) + ${fontSize}px)` }}>
       {/* Toolbar — hidden when parent controls it via actionsRef */}
       {!hideToolbar && (
-      <div className="flex items-center justify-between pb-1 border-b border-gray-200 dark:border-gray-700">
-        <span className="font-mono text-gray-400" style={{ fontSize: "11px" }}>
+      <div className="flex items-center justify-between pb-1" style={{ borderBottom: '1px solid var(--db-border)' }}>
+        <span className="font-mono db-text-dim db-font-xs">
           {data.ida || `${modelName}:${recordId}`}
         </span>
         <div className="flex items-center gap-1">
           <button onClick={() => setFontScale(s => s - 1)}
-            className="rounded border border-gray-300 px-1 py-0.5 text-[10px] text-gray-500 hover:bg-gray-100 dark:border-gray-600">A-</button>
+            className="rounded px-1 py-0.5 db-font-xs db-text-muted" style={{ border: '1px solid var(--db-border)' }}>A-</button>
           <button onClick={() => setFontScale(s => s + 1)}
-            className="rounded border border-gray-300 px-1 py-0.5 text-[10px] text-gray-500 hover:bg-gray-100 dark:border-gray-600">A+</button>
+            className="rounded px-1 py-0.5 db-font-xs db-text-muted" style={{ border: '1px solid var(--db-border)' }}>A+</button>
           <button onClick={() => {
               if (arranging) {
                 if (layoutReportId) {
@@ -524,22 +684,23 @@ function DynamicDetail({
               }
               setArranging(!arranging);
             }}
-            className={`rounded border px-1.5 py-0.5 text-[10px] ${
-              arranging ? "border-amber-400 bg-amber-50 text-amber-700" : "border-gray-300 text-gray-500 hover:bg-gray-100 dark:border-gray-600"
+            className={`rounded border px-1.5 py-0.5 db-font-xs ${
+              arranging ? "border-amber-400 bg-amber-50 text-amber-700" : "db-text-muted"
             }`}
+            style={arranging ? undefined : { borderColor: 'var(--db-border)' }}
             title={arranging ? "Save layout and exit arrange mode" : "Arrange form layout"}
           >{arranging ? "Done" : "⚙"}</button>
           {editing ? (
             <>
               <button onClick={handleSave} disabled={saving}
-                className="rounded bg-blue-600 px-2 py-0.5 text-[11px] text-white hover:bg-blue-700 disabled:opacity-50">
+                className="rounded bg-blue-600 px-2 py-0.5 db-font-xs text-white hover:bg-blue-700 disabled:opacity-50">
                 {saving ? "..." : "Save"}</button>
               <button onClick={() => setEditing(false)}
-                className="rounded border border-gray-300 px-2 py-0.5 text-[11px] dark:border-gray-600">Cancel</button>
+                className="rounded px-2 py-0.5 db-font-xs" style={{ border: '1px solid var(--db-border)' }}>Cancel</button>
             </>
           ) : (
             <button onClick={() => setEditing(true)}
-              className="rounded border border-gray-300 px-2 py-0.5 text-[11px] dark:border-gray-600">Edit</button>
+              className="rounded px-2 py-0.5 db-font-xs" style={{ border: '1px solid var(--db-border)' }}>Edit</button>
           )}
         </div>
       </div>
@@ -580,12 +741,12 @@ function DynamicDetail({
                 const displayText = currentOpt?.label || values[fieldName] || '—';
                 return (
                   <div key={fieldName}>
-                    <div className="font-mono text-[0.85em] mb-0.5 text-indigo-600 dark:text-indigo-400 font-semibold">{label}</div>
+                    <div className="font-mono text-[0.85em] mb-0.5 text-indigo-600 font-semibold">{label}</div>
                     {editing ? (
                       <select
                         value={values[fieldName] ?? ''}
                         onChange={(e) => setValues(prev => ({ ...prev, [fieldName]: e.target.value }))}
-                        className="w-full text-xs px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 dark:text-white"
+                        className="w-full db-font-xs px-1 py-0.5 rounded db-input"
                         style={{ fontSize: 'inherit' }}
                       >
                         <option value="">—</option>
@@ -594,7 +755,7 @@ function DynamicDetail({
                         ))}
                       </select>
                     ) : (
-                      <div className="text-xs text-gray-900 dark:text-white">{displayText}</div>
+                      <div className="db-font-xs" style={{ color: 'var(--db-text)' }}>{displayText}</div>
                     )}
                   </div>
                 );
@@ -613,7 +774,7 @@ function DynamicDetail({
               const isInteractive = cfg?.type === 'search' || cfg?.type === 'action';
               return (
                 <div key={fieldName}>
-                  <div className={isInteractive ? "font-mono text-[0.85em] mb-0.5 text-indigo-600 dark:text-indigo-400 font-semibold" : lClass}>{label}</div>
+                  <div className={isInteractive ? "font-mono text-[0.85em] mb-0.5 text-indigo-600 font-semibold" : lClass}>{label}</div>
                   {renderField(fieldName, disabled)}
                 </div>
               );
@@ -629,7 +790,7 @@ function DynamicDetail({
           <div className="flex flex-wrap gap-1">
             {availableFields.map(f => (
               <button key={f} onClick={() => addFieldRow(f)}
-                className="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-700 hover:bg-amber-100">
+                className="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 db-font-xs text-amber-700 hover:bg-amber-100">
                 + {f}
               </button>
             ))}
@@ -708,7 +869,8 @@ function DynamicDetail({
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <select
                 className="db-input"
-                style={{ fontSize: 11, flex: 1, padding: '2px 6px' }}
+                style={{ flex: 1, padding: '2px 6px' }}
+                className="db-input db-font-xs"
                 value=""
                 onChange={(e) => {
                   const model = e.target.value;
@@ -729,12 +891,12 @@ function DynamicDetail({
                   .map(m => <option key={m} value={m}>{m}</option>)
                 }
               </select>
-              <button onClick={() => setShowModelPicker(false)} className="db-text-dim" style={{ fontSize: 11 }}>Cancel</button>
+              <button onClick={() => setShowModelPicker(false)} className="db-text-dim db-font-xs">Cancel</button>
             </div>
           ) : (
             <button
               onClick={() => setShowModelPicker(true)}
-              className="w-full rounded border border-dashed py-1 text-[10px] transition-colors"
+              className="w-full rounded border border-dashed py-1 db-font-xs transition-colors"
               style={{ borderColor: 'var(--db-border)', color: 'var(--db-text-dim)' }}
             >
               + Link...
@@ -749,14 +911,15 @@ function DynamicDetail({
         recordId={recordId}
         recordIda={data?.ida}
         compact={hideToolbar}
-        className="border-t border-gray-200 pt-1.5 dark:border-gray-700"
+        className="pt-1.5" style={{ borderTop: '1px solid var(--db-border)' }}
       />
 
       {/* Open db.page — primary record in full page layout */}
-      <div className="border-t border-gray-200 pt-1.5 dark:border-gray-700">
+      <div className="pt-1.5" style={{ borderTop: '1px solid var(--db-border)' }}>
         <button
           onClick={() => window.open(`/${modelName}/${recordId}`, '_blank')}
-          className="w-full rounded border border-gray-300 py-1 text-[11px] text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
+          className="w-full rounded py-1 db-font-xs"
+          style={{ border: '1px solid var(--db-border)', color: 'var(--db-text-muted)' }}
         >
           {modelName}/{recordId}
         </button>

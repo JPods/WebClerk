@@ -1,9 +1,7 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+/* LastChecked: 2026-09-05 | WhereUsed: Detail pages (scalar field groups) | WhoCreated: Unknown */
 /**
  * ScalarCard — Renders a collapsible card containing scalar field rows.
- *
- * Takes a title, optional icon, and an array of {label, value} pairs.
- * Each pair renders as an InfoRow inside the card.
+ * Uses --db-* CSS variables for theme-aware styling.
  */
 import React, { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -69,27 +67,29 @@ const ScalarCard: React.FC<ScalarCardProps> = ({
   if (fields.length === 0) return null;
 
   return (
-    <div className="mb-4 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+    <div className="mb-4 rounded-lg overflow-hidden"
+      style={{ border: '1px solid var(--db-border)' }}>
       <button
         type="button"
-        className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-2.5 transition-colors"
+        style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-2">
           {isExpanded ? (
-            <ChevronDown className="text-slate-400 w-3 h-3" />
+            <ChevronDown className="w-3 h-3" style={{ color: 'var(--db-text-muted)' }} />
           ) : (
-            <ChevronRight className="text-slate-400 w-3 h-3" />
+            <ChevronRight className="w-3 h-3" style={{ color: 'var(--db-text-muted)' }} />
           )}
-          {icon && <span className="text-slate-500">{icon}</span>}
-          <span className="font-semibold text-sm text-slate-700 dark:text-slate-200">
+          {icon && <span style={{ color: 'var(--db-text-muted)' }}>{icon}</span>}
+          <span className="font-semibold db-font-sm" style={{ color: 'var(--db-text)' }}>
             {title}
           </span>
-          <span className="text-xs text-slate-400 ml-1">({fields.length})</span>
+          <span className="db-font-xs ml-1" style={{ color: 'var(--db-text-dim)' }}>({fields.length})</span>
         </div>
       </button>
       {isExpanded && (
-        <div className="px-4 py-3 bg-white dark:bg-slate-900">
+        <div className="px-4 py-3" style={{ background: 'var(--db-surface)' }}>
           <dl className={`grid gap-x-6 gap-y-0 ${gridClasses[columns]}`}>
             {fields.map((f) => {
               const span =
@@ -98,7 +98,6 @@ const ScalarCard: React.FC<ScalarCardProps> = ({
                     ? "col-span-3"
                     : "col-span-2"
                   : undefined;
-              // Auto-detect linkType from field name or label
               const linkType = f.linkType
                 || LINK_TYPE_MAP[f.fieldName || ""]
                 || LINK_TYPE_MAP[f.label.toLowerCase().replace(/\s+/g, "_")];

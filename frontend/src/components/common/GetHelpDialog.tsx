@@ -24,6 +24,7 @@ import './GetHelpDialog.css';
 interface GetHelpDialogProps {
   open: boolean;
   onClose: () => void;
+  trainingMode?: boolean;
 }
 
 // Map data-wc IDs to human descriptions + help topics
@@ -145,7 +146,7 @@ async function parseInput(text: string): Promise<{ wcId: string; wcModel?: strin
   return result;
 }
 
-export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
+export default function GetHelpDialog({ open, onClose, trainingMode }: GetHelpDialogProps) {
   const [pastedHtml, setPastedHtml] = useState('');
   const [helpResult, setHelpResult] = useState<{
     label: string;
@@ -158,15 +159,20 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
   const [parsedContext, setParsedContext] = useState<{ sourcePath?: string; wcField?: string; wcModel?: string }>({});
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const trainingRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (open) {
       setPastedHtml('');
       setHelpResult(null);
       setParsedContext({});
-      setTimeout(() => inputRef.current?.focus(), 100);
+      if (trainingMode) {
+        setTimeout(() => trainingRef.current?.focus(), 100);
+      } else {
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }
     }
-  }, [open]);
+  }, [open, trainingMode]);
 
   const analyzeElement = useCallback(async (html: string) => {
     if (!html.trim()) return;
@@ -321,6 +327,10 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
           <button onClick={onClose} className="gh-close-btn">×</button>
         </div>
 
+        {trainingMode ? (
+          <TrainingNoteForm onClose={onClose} />
+        ) : (
+        <>
         <p className="gh-instructions">
           Shift+hover any zone → click nametag to copy → paste here. Or right-click → Inspect → Copy Element → paste.
         </p>
@@ -405,7 +415,87 @@ export default function GetHelpDialog({ open, onClose }: GetHelpDialogProps) {
             />
           </div>
         )}
+        </>
+        )}
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TrainingNoteForm — direct training feedback, no paste step
+// ---------------------------------------------------------------------------
+
+function TrainingNoteForm({ onClose }: { onClose: () => void }) {
+  const [note, setNote] = useState('tn- ');
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        // Place cursor after "tn- "
+        textareaRef.current.selectionStart = 4;
+        textareaRef.current.selectionEnd = 4;
+      }
+    }, 100);
+  }, []);
+
+  if (submitted) {
+    return (
+      <div className="gh-success gh-success--mt">
+        Training note sent to Alice. She will track the pattern.
+        <button onClick={onClose} className="gh-btn-outline-green" style={{ marginTop: 8, display: 'block' }}>
+          Close
+        </button>
+      </div>
+    );
+  }
+
+  const handleSubmit = async () => {
+    if (!note.trim()) return;
+    setSubmitting(true);
+    try {
+      const { submitFeedback } = await import('@/apps/docs/models/document/services/documentApi');
+      const page = window.location.pathname;
+      await submitFeedback({
+        label: page,
+        feedback: note,
+        training: true,
+      });
+      setSubmitted(true);
+    } catch {
+      setSubmitted(true);
+    }
+    setSubmitting(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  return (
+    <div className="gh-contribute-form" style={{ marginTop: 8 }}>
+      <div className="gh-contribute-hint">
+        Training note for Alice. Start with tn- to tag. Cmd+Enter to submit.
+      </div>
+      <textarea
+        ref={textareaRef}
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="what you observed..."
+        className="gh-contribute-textarea"
+        rows={4}
+      />
+      <button onClick={handleSubmit} disabled={submitting || !note.trim()} className="gh-btn-green">
+        {submitting ? 'Sending...' : 'Send to Alice'}
+      </button>
     </div>
   );
 }

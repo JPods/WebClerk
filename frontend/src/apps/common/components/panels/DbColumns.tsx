@@ -129,8 +129,13 @@ export function DbColumns<T extends Record<string, unknown>>({
   const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
-  // Column config persistence
+  // Column config persistence — pass default-visible columns as initial set
+  // so useListFieldConfig only shows those when no saved config exists
   const tableColumns = useMemo(
+    () => columns.filter((c) => c.defaultVisible !== false).map((c) => ({ id: c.key, name: c.key })),
+    [columns],
+  );
+  const allTableColumns = useMemo(
     () => columns.map((c) => ({ id: c.key, name: c.key })),
     [columns],
   );
@@ -282,7 +287,7 @@ export function DbColumns<T extends Record<string, unknown>>({
       )}
 
       {/* ── Column config dialog ───────────────────────────────── */}
-      <FieldOrderDialog {...fc.fieldOrderDialogProps} />
+      <FieldOrderDialog {...fc.fieldOrderDialogProps} allFields={allTableColumns.map(c => String(c.name))} />
     </div>
   );
 }

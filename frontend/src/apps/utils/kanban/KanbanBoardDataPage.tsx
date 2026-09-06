@@ -245,10 +245,10 @@ const rawKanbanData: ApiKanbanItem[] = [
 const initialBoardState = createBoardDataFromApi(rawKanbanData);
 
 const priorityPalette: Record<TaskPriority, string> = {
-  low: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-  medium: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
-  high: "bg-orange-500/10 text-orange-600 dark:text-orange-300",
-  critical: "bg-rose-500/10 text-rose-600 dark:text-rose-300",
+  low: "bg-emerald-500/10 text-emerald-600",
+  medium: "bg-amber-500/10 text-amber-600",
+  high: "bg-orange-500/10 text-orange-600",
+  critical: "bg-rose-500/10 text-rose-600",
 };
 
 interface OnDragEndArgs {
@@ -409,18 +409,19 @@ const KanbanBoardDataPage: React.FC = () => {
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Synced kanban overview</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <h1 className="text-2xl font-semibold" style={{ color: 'var(--db-text)' }}>Synced kanban overview</h1>
+          <p className="mt-1 db-font-sm" style={{ color: 'var(--db-text-muted)' }}>
             Tasks below originate from the provided dataset and stay fully draggable inside this workspace snapshot.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+          <label className="flex items-center gap-2 rounded-lg px-3 py-2 db-font-xs font-medium shadow-sm" style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)', color: 'var(--db-text-muted)' }}>
             <span>Columns</span>
             <select
               value={columnsPerRow}
               onChange={(event) => setColumnsPerRow(Number(event.target.value))}
-              className="rounded-md border border-gray-200 bg-transparent px-2 py-1 text-xs font-semibold text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 dark:border-gray-700 dark:text-gray-200"
+              className="rounded-md bg-transparent px-2 py-1 db-font-xs font-semibold focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+              style={{ border: '1px solid var(--db-border)', color: 'var(--db-text)' }}
             >
               {columnDensityOptions.map((option) => (
                 <option key={option} value={option}>
@@ -429,9 +430,9 @@ const KanbanBoardDataPage: React.FC = () => {
               ))}
             </select>
           </label>
-          <div className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
-            <span className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500">Records</span>
-            <div className="text-lg font-semibold text-gray-900 dark:text-white">{totalTasks}</div>
+          <div className="rounded-lg px-4 py-2 db-font-sm font-medium shadow-sm" style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)', color: 'var(--db-text)' }}>
+            <span className="db-font-xs uppercase tracking-wide" style={{ color: 'var(--db-text-dim)' }}>Records</span>
+            <div className="text-lg font-semibold" style={{ color: 'var(--db-text)' }}>{totalTasks}</div>
           </div>
         </div>
       </div>
@@ -440,15 +441,16 @@ const KanbanBoardDataPage: React.FC = () => {
         {(Object.keys(prioritySummary) as TaskPriority[]).map((priority) => (
           <div
             key={priority}
-            className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900/40"
+            style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)' }}
+            className="rounded-2xl p-5 shadow-sm"
           >
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{priority}</p>
+            <p className="db-font-xs font-medium uppercase tracking-wide" style={{ color: 'var(--db-text-muted)' }}>{priority}</p>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-semibold text-gray-900 dark:text-white">{prioritySummary[priority]}</span>
-              <span className="text-xs font-medium text-gray-400">/ {totalTasks} tasks</span>
+              <span className="text-3xl font-semibold" style={{ color: 'var(--db-text)' }}>{prioritySummary[priority]}</span>
+              <span className="db-font-xs font-medium" style={{ color: 'var(--db-text-dim)' }}>/ {totalTasks} tasks</span>
             </div>
             <span
-              className={`mt-4 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+              className={`mt-4 inline-flex items-center rounded-full px-3 py-1 db-font-xs font-semibold ${
                 priorityPalette[priority]
               }`}
             >
@@ -456,31 +458,31 @@ const KanbanBoardDataPage: React.FC = () => {
             </span>
           </div>
         ))}
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900/40">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Statuses</p>
-          <div className="mt-3 space-y-2 text-sm">
+        <div className="rounded-2xl p-5 shadow-sm" style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)' }}>
+          <p className="db-font-xs font-medium uppercase tracking-wide" style={{ color: 'var(--db-text-muted)' }}>Statuses</p>
+          <div className="mt-3 space-y-2 db-font-sm">
             {Object.entries(statusSummary).map(([status, count]) => (
-              <div key={status} className="flex items-center justify-between text-gray-600 dark:text-gray-300">
+              <div key={status} className="flex items-center justify-between" style={{ color: 'var(--db-text-muted)' }}>
                 <span>{status}</span>
-                <span className="text-xs font-semibold text-gray-400 dark:text-gray-500">{count} task{count === 1 ? "" : "s"}</span>
+                <span className="db-font-xs font-semibold" style={{ color: 'var(--db-text-dim)' }}>{count} task{count === 1 ? "" : "s"}</span>
               </div>
             ))}
           </div>
         </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900/40">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Languages</p>
+        <div className="rounded-2xl p-5 shadow-sm" style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)' }}>
+          <p className="db-font-xs font-medium uppercase tracking-wide" style={{ color: 'var(--db-text-muted)' }}>Languages</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {languageSummary.length ? (
               languageSummary.map((code) => (
                 <span
                   key={code}
-                  className="inline-flex items-center rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-semibold text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300"
+                  className="inline-flex items-center rounded-full bg-indigo-500/10 px-3 py-1 db-font-xs font-semibold text-indigo-600"
                 >
                   {code.toUpperCase()}
                 </span>
               ))
             ) : (
-              <span className="text-sm text-gray-400 dark:text-gray-500">No language codes detected</span>
+              <span className="db-font-sm" style={{ color: 'var(--db-text-dim)' }}>No language codes detected</span>
             )}
           </div>
         </div>

@@ -77,25 +77,27 @@ export function SimpleDetailHeader({
     }
   };
 
-  const getModeColors = () => {
+  const getModeStyle = (): React.CSSProperties => {
     switch (mode) {
       case "add":
-        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+        return { background: 'color-mix(in srgb, var(--db-accent-green) 15%, transparent)', color: 'var(--db-accent-green)' };
       case "edit":
-        return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
+        return { background: 'color-mix(in srgb, var(--db-accent-gold) 15%, transparent)', color: 'var(--db-accent-gold)' };
       case "view":
-        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
+        return { background: 'color-mix(in srgb, var(--db-accent) 15%, transparent)', color: 'var(--db-accent)' };
     }
   };
 
   return (
-    <div className={`flex items-center gap-3 py-3 px-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 ${className}`}>
+    <div className={`flex items-center gap-3 py-3 px-4 ${className}`}
+      style={{ background: 'var(--db-surface, #fff)', borderBottom: '1px solid var(--db-border, #dee2e6)', color: 'var(--db-text, #212529)' }}>
       {/* Back button */}
       {showBackButton && (
         <button
           type="button"
           onClick={handleBack}
-          className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+          className="p-1.5 rounded-md transition-colors"
+          style={{ color: 'var(--db-text-muted)' }}
           title="Go back"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -107,24 +109,24 @@ export function SimpleDetailHeader({
         <div className="flex items-center gap-2">
           <DevBadge label={entityName} />
           {features && <DetailFeatureBadge features={features} />}
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+          <h1 className="text-lg font-semibold truncate" style={{ color: 'var(--db-text)' }}>
             {recordName || entityName}
           </h1>
           {recordId && (
-            <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">
+            <span className="text-sm font-mono" style={{ color: 'var(--db-text-muted)' }}>
               #{recordId}
             </span>
           )}
         </div>
         {recordName && (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm" style={{ color: 'var(--db-text-muted)' }}>
             {entityName}
           </p>
         )}
       </div>
 
       {/* Mode badge */}
-      <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${getModeColors()}`}>
+      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full" style={getModeStyle()}>
         {getModeIcon()}
         {getModeLabel()}
       </span>
@@ -134,7 +136,8 @@ export function SimpleDetailHeader({
         <button
           type="button"
           onClick={onClose}
-          className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+          className="p-1.5 rounded-md transition-colors"
+          style={{ color: 'var(--db-text-muted)' }}
           title="Close"
         >
           <X className="w-5 h-5" />

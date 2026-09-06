@@ -211,6 +211,101 @@ def filter_response_data(
     return filter_data_by_fields(data, allowed, mode="view")
 
 
+def filter_setting_layout(user, setting_data: dict) -> dict:
+    """
+    Filter a Setting record's config.layout columns to only include
+    fields the user is allowed to view on the target model.
+
+    Settings with purpose='wc:model' or 'wc:workbench_fields' contain
+    layout specs (list, detail, panel, etc.) for a target model identified
+    by parent_model. Portal users should only see columns for fields
+    their role permits.
+
+    Args:
+        user: Django User instance
+        setting_data: Serialized Setting record dict
+
+    Returns:
+        Setting data with layout columns filtered by role view_fields
+    """
+    purpose = setting_data.get('purpose', '')
+    if purpose not in ('wc:model', 'wc:workbench_fields'):
+        return setting_data
+
+    target_model = setting_data.get('parent_model', '')
+    if not target_model:
+        return setting_data
+
+    from apps.core.services.role_filter import get_denied_fields
+
+    allowed = get_allowed_fields(user, target_model, mode="view")
+    denied = get_denied_fields(user, target_model)
+
+    # If unrestricted and no deny list, pass through
+    if (not allowed or allowed == ["*"]) and not denied:
+        return setting_data
+
+    # Build deny set (always applied)
+    deny_set = set(denied) if denied else set()
+
+    # Build allow set
+    if allowed and allowed != ["*"]:
+        allowed_set = set(allowed)
+        allowed_set.update({'id', 'ida', 'uuid', 'dt_created', 'dt_modified', 'status', 'is_active'})
+    else:
+        allowed_set = None  # unrestricted — only deny applies
+
+    config = setting_data.get('config')
+    if not config or not isinstance(config, dict):
+        return setting_data
+
+    layout = config.get('layout')
+    if not layout or not isinstance(layout, dict):
+        return setting_data
+
+    # Recursively filter column arrays in the layout tree
+    def filter_tree(node):
+        if isinstance(node, list):
+            return [item for item in node if _column_allowed(item, allowed_set, deny_set)]
+        if isinstance(node, dict):
+            # If this dict has a 'columns' key with a list, filter it
+            out = {}
+            for k, v in node.items():
+                if k == 'columns' and isinstance(v, list):
+                    out[k] = [col for col in v if _column_allowed(col, allowed_set, deny_set)]
+                else:
+                    out[k] = filter_tree(v)
+            return out
+        return node
+
+    result = dict(setting_data)
+    result['config'] = dict(config)
+    result['config']['layout'] = filter_tree(layout)
+    return result
+
+
+def _column_allowed(col, allowed_set, deny_set: set) -> bool:
+    """Check if a column spec is allowed and not denied."""
+    if isinstance(col, str):
+        root = col.split('.')[0]
+        field = col
+    elif isinstance(col, dict):
+        field = col.get('field', '')
+        root = field.split('.')[0] if field else ''
+    else:
+        return True  # unknown format — keep
+
+    # Deny list always wins
+    if root in deny_set or field in deny_set:
+        return False
+
+    # If allow set exists (not "*"), check membership
+    if allowed_set is not None:
+        return root in allowed_set
+
+    return True  # unrestricted
+
+
 # =============================================================================
 # Edit Field Validation
 # =============================================================================

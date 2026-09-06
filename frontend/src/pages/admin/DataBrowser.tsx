@@ -952,6 +952,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
           const detailModel = isViewSource ? (db.selectedRecord as any)._sourceModel || db.selectedModel : db.selectedModel;
           const detailId = isViewSource ? (db.selectedRecord as any)._sourceId || db.selectedId : db.selectedId;
           const AppDetailComponent = viewPref === 'app' ? APP_DETAIL_COMPONENTS[detailModel] : null;
+          console.log('%c[DB-DETAIL]', 'color: cyan; font-size: 14px; font-weight: bold', { viewPref, detailModel, detailId, hasAppComponent: !!AppDetailComponent, willRenderApp: !!(viewPref === 'app' && AppDetailComponent && detailId) });
           return (
         <div data-wc="db-detail-pane" data-zone="db.detail | .db-detail-pane | DataBrowser.tsx" data-theme={detailTheme} className={`db-detail-pane ${viewPref === 'app' && AppDetailComponent ? 'db-detail-pane--app' : ''}`} style={{ width: detailWidth, fontSize: baseFontSize }}>
           {/* Glass detail toolbar removed — DetailToolbar in each ui.json component is the single source */}

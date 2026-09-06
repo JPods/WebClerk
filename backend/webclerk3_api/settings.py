@@ -633,8 +633,9 @@ WCAPI_MODEL_POLICIES = {
             "read": {
                 "default": [
                     "id", "email", "name_first", "name_last", "name_middle",
-                    "name_prefix", "name_suffix", "company", "title",
-                    "department", "customer_id", "vendor_id", "role",
+                    "name_prefix", "name_suffix", "attention", "company", "title",
+                    "department", "phone", "address_full",
+                    "customer_id", "vendor_id", "role",
                     "is_active", "dt_joined",
                 ],
                 "by_role": {
@@ -645,7 +646,8 @@ WCAPI_MODEL_POLICIES = {
                 "default": [
                     "email", "name_first", "name_last", "name_middle",
                     "name_prefix", "name_suffix", "company", "title",
-                    "department", "customer_id", "vendor_id", "comment",
+                    "department", "phone", "address_full",
+                    "customer_id", "vendor_id", "comment",
                 ],
                 "by_role": {
                     "admin": ["*"],
