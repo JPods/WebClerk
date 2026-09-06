@@ -318,8 +318,7 @@ class TransactionBaseModel(BaseModel):
         super().save(*args, **kwargs)
 
     def _populate_company_snapshot(self):
-        """Build company snapshot from the linked customer or vendor OrgBase record."""
-        # Determine which org is the counterparty
+        """Copy company snapshot from the linked customer or vendor OrgBase record."""
         org = None
         if self.customer_id:
             try:
@@ -335,21 +334,10 @@ class TransactionBaseModel(BaseModel):
             return
 
         current = self.company if isinstance(self.company, dict) else {}
-        # Only update if org changed or company is empty
         if current.get('id') == org.id and current.get('name'):
             return
 
-        self.company = {
-            'id': org.id,
-            'ida': org.ida or '',
-            'name': org.company or '',
-            'is_individual': getattr(org, 'is_individual', False),
-            'attention': self.attention or getattr(org, 'attention', '') or '',
-            'email': (self.emails or {}).get('bill_to', {}).get('email', '') or getattr(org, 'email', '') or '',
-            'phone': (self.phones or {}).get('bill_to', {}).get('number', '') or getattr(org, 'phone', '') or '',
-            'domain': getattr(org, 'domain', '') or '',
-            'notes': '',
-        }
+        self.company = org.build_company_snapshot()
 
     # ── Read-only properties — replaced scalar shadow fields ────────
     # These read from the JSON envelope or FK relationships.

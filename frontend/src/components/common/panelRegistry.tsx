@@ -27,6 +27,7 @@ import { lazy, Suspense, createElement } from 'react';
 const CommPanel = lazy(() => import('@/apps/communications/components/CommPanel'));
 const ActionsPanel = lazy(() => import('@/apps/common/components/panels/ActionsPanel'));
 const DocumentsPanel = lazy(() => import('@/apps/common/components/panels/DocumentsPanel'));
+const LinkedRecordsPanel = lazy(() => import('@/apps/common/components/panels/LinkedRecordsPanel').then(m => ({ default: m.LinkedRecordsPanel })));
 const CommentsPanel = lazy(() => import('@/apps/common/components/panels/CommentsPanel'));
 const ProjectKanbanPanel = lazy(() => import('@/apps/common/components/panels/ProjectKanbanPanel'));
 const ProjectGanttPanel = lazy(() => import('@/apps/common/components/panels/ProjectGanttPanel'));
@@ -108,26 +109,17 @@ const registry: Record<string, PanelRenderer> = {
     return wrap(createElement(ProjectGanttPanel, { contactId }));
   },
 
-  // === Org panels ===
-  contacts: (ctx) => wrap(createElement(DataGrid, {
-    records: ctx.data.refs?.links?.contact || [],
-    columns: ['attention', 'email', 'phone', 'title'],
-    sort: null,
-    onSort: () => {},
-    onSelectRecord: (id: any) => ctx.ensureWindow(`/contact/${id}`, `Contact #${id}`),
-    fontSize: 11,
+  // === Linked record panels — all use LinkedRecordsPanel for consistent db.panel behavior ===
+  contacts: (ctx) => wrap(createElement(LinkedRecordsPanel, {
+    linkedModel: 'contact', parentModel: ctx.modelName, parentId: ctx.data?.id, defaultCollapsed: false,
   })),
 
-  transactions: (ctx) => wrap(createElement(DataGrid, {
-    records: [
-      ...(ctx.data.refs?.links?.order || []).map((o: any) => ({ ...o, type: 'Order' })),
-      ...(ctx.data.refs?.links?.invoice || []).map((i: any) => ({ ...i, type: 'Invoice' })),
-    ],
-    columns: ['type', 'ida', 'status', 'total'],
-    sort: null,
-    onSort: () => {},
-    onSelectRecord: () => {},
-    fontSize: 11,
+  transactions: (ctx) => wrap(createElement(LinkedRecordsPanel, {
+    linkedModel: 'order', parentModel: ctx.modelName, parentId: ctx.data?.id, defaultCollapsed: false,
+  })),
+
+  purchases: (ctx) => wrap(createElement(LinkedRecordsPanel, {
+    linkedModel: 'purchase', parentModel: ctx.modelName, parentId: ctx.data?.id, defaultCollapsed: false,
   })),
 
   organizations: (ctx) => {
@@ -188,19 +180,9 @@ const registry: Record<string, PanelRenderer> = {
   })),
 
   // === Action panels ===
-  touches: (ctx) => {
-    // List of touch records linked to this action
-    const actionId = ctx.modelName === 'action' ? ctx.data.id : null;
-    if (!actionId) return placeholder('No action linked');
-    return wrap(createElement(DataGrid, {
-      records: ctx.data.refs?.links?.touch || ctx.data.touches || [],
-      columns: ['channel', 'subject', 'outcome', 'impact', 'dt_created'],
-      sort: null,
-      onSort: () => {},
-      onSelectRecord: (id: any) => ctx.ensureWindow(`/databrowser?model=touch&id=${id}`, `Touch #${id}`),
-      fontSize: 11,
-    }));
-  },
+  touches: (ctx) => wrap(createElement(LinkedRecordsPanel, {
+    linkedModel: 'touch', parentModel: ctx.modelName, parentId: ctx.data?.id, defaultCollapsed: false,
+  })),
 
   linked_action: (ctx) => {
     // Touch's parent action
@@ -230,9 +212,24 @@ const registry: Record<string, PanelRenderer> = {
   },
 
   // === Placeholders ===
+  // === Communication panels (contact model) ===
+  phone: (ctx) => wrap(createElement(LinkedRecordsPanel, {
+    linkedModel: 'phone', parentModel: ctx.modelName, parentId: ctx.data?.id, defaultCollapsed: false,
+  })),
+  email: (ctx) => wrap(createElement(LinkedRecordsPanel, {
+    linkedModel: 'email', parentModel: ctx.modelName, parentId: ctx.data?.id, defaultCollapsed: false,
+  })),
+  domain: (ctx) => wrap(createElement(LinkedRecordsPanel, {
+    linkedModel: 'domain', parentModel: ctx.modelName, parentId: ctx.data?.id, defaultCollapsed: false,
+  })),
+  address: (ctx) => wrap(createElement(LinkedRecordsPanel, {
+    linkedModel: 'address', parentModel: ctx.modelName, parentId: ctx.data?.id, defaultCollapsed: false,
+  })),
+
   summary: () => placeholder('Summary'),
   history: () => placeholder('Transaction history'),
   qa: () => placeholder('QA panel'),
+  link: () => placeholder('Link picker — select a model to link'),
 };
 
 // ── Public API ──
@@ -248,102 +245,5 @@ export function registerPanel(content: string, renderer: PanelRenderer): void {
   registry[content] = renderer;
 }
 
-// ── Default tab configs per model (used when layout JSON has no tabs section) ──
-
-export const DEFAULT_TABS: Record<string, Array<{ label: string; content: string }>> = {
-  // Project tabs — Setting record is source of truth (seed_detail_layouts.py).
-  // These are fallbacks only if no Setting exists.
-  project: [
-    { label: 'actions', content: 'actions' },
-    { label: 'gantt', content: 'gantt' },
-    { label: 'documents', content: 'documents' },
-    { label: 'notes', content: 'notes' },
-  ],
-  tx_projects: [
-    { label: 'actions', content: 'actions' },
-    { label: 'gantt', content: 'gantt' },
-    { label: 'documents', content: 'documents' },
-    { label: 'notes', content: 'notes' },
-  ],
-  contact: [
-    { label: 'Communications', content: 'communications' },
-    { label: 'Actions', content: 'actions' },
-    { label: 'Kanban', content: 'kanban' },
-    { label: 'Gantt', content: 'gantt' },
-    { label: 'Documents', content: 'documents' },
-    { label: 'Notes', content: 'notes' },
-  ],
-  customer: [
-    { label: 'Summary', content: 'summary' },
-    { label: 'Contacts', content: 'contacts' },
-    { label: 'Communications', content: 'communications' },
-    { label: 'Transactions', content: 'transactions' },
-    { label: 'Actions', content: 'actions' },
-    { label: 'Documents', content: 'documents' },
-    { label: 'Notes', content: 'notes' },
-  ],
-  vendor: [
-    { label: 'Summary', content: 'summary' },
-    { label: 'Contacts', content: 'contacts' },
-    { label: 'Communications', content: 'communications' },
-    { label: 'Transactions', content: 'transactions' },
-    { label: 'Actions', content: 'actions' },
-    { label: 'Documents', content: 'documents' },
-    { label: 'Notes', content: 'notes' },
-  ],
-  manufacturer: [
-    { label: 'Summary', content: 'summary' },
-    { label: 'Contacts', content: 'contacts' },
-    { label: 'Communications', content: 'communications' },
-    { label: 'Actions', content: 'actions' },
-    { label: 'Documents', content: 'documents' },
-    { label: 'Notes', content: 'notes' },
-  ],
-  employee: [
-    { label: 'Summary', content: 'summary' },
-    { label: 'Communications', content: 'communications' },
-    { label: 'Actions', content: 'actions' },
-    { label: 'Documents', content: 'documents' },
-    { label: 'Notes', content: 'notes' },
-  ],
-  rep: [
-    { label: 'Summary', content: 'summary' },
-    { label: 'Contacts', content: 'contacts' },
-    { label: 'Communications', content: 'communications' },
-    { label: 'Actions', content: 'actions' },
-    { label: 'Documents', content: 'documents' },
-    { label: 'Notes', content: 'notes' },
-  ],
-  action: [
-    { label: 'Touches', content: 'touches' },
-    { label: 'Documents', content: 'documents' },
-    { label: 'Notes', content: 'notes' },
-  ],
-  touch: [
-    { label: 'Linked Action', content: 'linked_action' },
-    { label: 'Contact', content: 'linked_contact' },
-    { label: 'Documents', content: 'documents' },
-    { label: 'Notes', content: 'notes' },
-  ],
-  item: [
-    { label: 'Summary', content: 'summary' },
-    { label: 'BOM', content: 'bom' },
-    { label: 'XRef', content: 'xref' },
-    { label: 'Serials', content: 'serials' },
-    { label: 'Specs', content: 'specs' },
-    { label: 'Layers', content: 'layers' },
-    { label: 'Counts', content: 'counts' },
-    { label: 'History', content: 'history' },
-    { label: 'Documents', content: 'documents' },
-    { label: 'Notes', content: 'notes' },
-  ],
-};
-
-/** Get default tabs for a model, falling back to actions+documents+notes */
-export function getDefaultTabs(modelName: string): Array<{ label: string; content: string }> {
-  return DEFAULT_TABS[modelName] || [
-    { label: 'Actions', content: 'actions' },
-    { label: 'Documents', content: 'documents' },
-    { label: 'Notes', content: 'notes' },
-  ];
-}
+// Tab declarations live in wc:model Settings (config.layout.form.default → tabs section).
+// The seed script (seed_detail_layouts) writes them. No hardcoded tab config here.

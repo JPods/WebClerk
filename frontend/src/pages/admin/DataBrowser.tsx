@@ -1009,10 +1009,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
               />
             ) : null}
 
-            {/* Spawn links — below primary contact info */}
-            {db.selectedRecord && db.selectedId && (
-              <SpawnLinks model={db.selectedModel} record={db.selectedRecord} recordId={db.selectedId} />
-            )}
+            {/* SpawnLinks removed — replaced by + link tab in standard panels */}
 
             {/* Related models render as LinkedRecordsPanels via refs.links — no generic panel */}
 

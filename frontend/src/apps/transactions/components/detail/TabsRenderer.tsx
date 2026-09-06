@@ -43,21 +43,8 @@ export interface TabsRendererProps {
 const TabsRenderer: React.FC<TabsRendererProps> = ({ section, data, isEditing, modelName, activeTab, onTabChange, onChange, onRefresh, loggedInUserName }) => {
   const authUser = useAppSelector((s) => s.auth.user);
   const isStaff = authUser?.is_staff || authUser?.is_superuser || false;
-  // Dynamic tabs added via + link — persist in component state
+  // Dynamic tabs added via + link — only from user action, no auto-discovery
   const [extraTabs, setExtraTabs] = React.useState<string[]>([]);
-
-  // Discover linked models from refs.links that aren't in the static tabs
-  React.useEffect(() => {
-    const links = data?.refs?.links || {};
-    const staticIds = new Set(section.tabs.map(t => t.content));
-    const discovered = Object.keys(links).filter(k => !staticIds.has(k) && !staticIds.has(k + 's'));
-    if (discovered.length > 0) {
-      setExtraTabs(prev => {
-        const merged = new Set([...prev, ...discovered]);
-        return [...merged];
-      });
-    }
-  }, [data?.refs?.links, section.tabs]);
 
   const addLinkedTab = React.useCallback((model: string) => {
     setExtraTabs(prev => prev.includes(model) ? prev : [...prev, model]);
@@ -98,16 +85,19 @@ const TabsRenderer: React.FC<TabsRendererProps> = ({ section, data, isEditing, m
             {tab}
           </button>
         ))}
-        <button
-          onClick={() => onTabChange('_link')}
-          className={`px-4 py-2 db-font-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
-            currentTab === '_link'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-[var(--db-text-muted,#6c757d)] hover:text-[var(--db-text,#212529)]'
-          }`}
-        >
-          + link
-        </button>
+        {/* + link button only if not already in static tabs */}
+        {!section.tabs.some(t => t.content === 'link' || t.content === '_link') && (
+          <button
+            onClick={() => onTabChange('_link')}
+            className={`px-4 py-2 db-font-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
+              currentTab === '_link'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-[var(--db-text-muted,#6c757d)] hover:text-[var(--db-text,#212529)]'
+            }`}
+          >
+            + link
+          </button>
+        )}
       </div>
 
       {/* Tab content */}
@@ -186,6 +176,7 @@ export const TabContent: React.FC<{
       );
 
     case '_link':
+    case 'link':
       return <LinkPickerContent data={data} modelName={modelName} onTabChange={addLinkedTab || onRefresh} />;
 
     /* qa handled by the combined linked-model case above */

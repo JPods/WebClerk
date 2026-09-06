@@ -40,6 +40,7 @@ export interface PanelSection {
   content: string;
   label: string;
   collapsed?: boolean;
+  collapse_when_empty?: boolean;
 }
 
 export interface JsonTreeSection {

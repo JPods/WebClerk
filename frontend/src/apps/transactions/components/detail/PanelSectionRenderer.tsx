@@ -13,7 +13,10 @@ import CollapsiblePanel from '@/apps/common/components/CollapsiblePanel';
 import { LinkedRecordsPanel } from '@/apps/common/components/panels/LinkedRecordsPanel';
 
 /** Panels that should render as LinkedRecordsPanel with db.columns header */
-const LINKED_PANEL_MODELS = new Set(['contacts', 'documents', 'touches', 'actions']);
+const LINKED_PANEL_MODELS = new Set([
+  'contacts', 'documents', 'touches', 'actions',
+  'phone', 'email', 'domain', 'address',  // contact comms
+]);
 
 /** Map panel content name to the linked model name */
 const PANEL_TO_MODEL: Record<string, string> = {
@@ -45,6 +48,7 @@ const PanelSectionRenderer: React.FC<PanelSectionRendererProps> = ({
         parentModel={modelName}
         parentId={data.id}
         defaultCollapsed={section.collapsed ?? true}
+        collapseWhenEmpty={section.collapse_when_empty ?? false}
       />
     );
   }
@@ -54,7 +58,7 @@ const PanelSectionRenderer: React.FC<PanelSectionRendererProps> = ({
     <CollapsiblePanel
       label={section.label}
       storageKey={`panel_${modelName}_${section.content}`}
-      defaultCollapsed={section.collapsed ?? false}
+      defaultCollapsed={section.collapse_when_empty ? true : (section.collapsed ?? false)}
     >
       <TabContent
         tabId={section.content}

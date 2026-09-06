@@ -85,6 +85,20 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	def company(self, value: str) -> None:
 		setattr(self, 'display_name', value)
 
+	def build_company_snapshot(self) -> dict:
+		"""Build the canonical company snapshot dict. Source of truth for all transaction copies."""
+		return {
+			'id': self.id,
+			'ida': self.ida or '',
+			'name': self.display_name or '',
+			'is_individual': getattr(self, 'is_individual', False),
+			'attention': getattr(self, 'attention', '') or '',
+			'email': getattr(self, 'email', '') or '',
+			'phone': self.phone or '',
+			'domain': self.domain or '',
+			'notes': '',
+		}
+
 	@property
 	def address_full(self):
 		"""Read from primary address record via FK pointer."""

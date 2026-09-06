@@ -44,9 +44,9 @@
   --db-border-light: #E5E7EB;
 
   /* Text */
-  --db-text: #1E293B;
-  --db-text-muted: #64748B;
-  --db-text-dim: #94A3B8;
+  --db-text: #111827;
+  --db-text-muted: #475569;
+  --db-text-dim: #6B7280;
 
   /* Accents */
   --db-accent: #2563EB;
@@ -145,9 +145,9 @@
   --db-border-light: #4d4d4d;
 
   /* Text */
-  --db-text: #d4d4d4;
-  --db-text-muted: #a0a0a0;
-  --db-text-dim: #787878;
+  --db-text: #efefef;
+  --db-text-muted: #c0c0c0;
+  --db-text-dim: #909090;
 
   /* Accents */
   --db-accent: #9cdcfe;
@@ -182,7 +182,7 @@
 
   /* Buttons */
   --db-btn-bg: #2d2d2d;
-  --db-btn-text: #d4d4d4;
+  --db-btn-text: #efefef;
   --db-btn-border: #4d4d4d;
   --db-btn-hover: #3c3c3c;
   --db-btn-primary: #0e639c;

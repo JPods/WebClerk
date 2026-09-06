@@ -200,6 +200,10 @@ class Payment(BaseModel):
         help_text="Processing fee charged by gateway"
     )
 
+    # Counterparty snapshot
+    company = models.JSONField(default=dict, blank=True,
+        help_text="Counterparty snapshot: {id, ida, name, is_individual, attention, email, phone, domain, notes}")
+
     # JSONB fields for lineage tracking and metadata
     refs = models.JSONField(
         default=default_refs,
@@ -307,7 +311,28 @@ class Payment(BaseModel):
                     sanitized[key] = nested
         return sanitized
 
+    def _populate_company_snapshot(self):
+        """Copy company snapshot from the linked customer or vendor OrgBase record."""
+        org = None
+        if self.customer_id:
+            try:
+                org = self.customer
+            except Exception:
+                pass
+        if not org and self.vendor_id:
+            try:
+                org = self.vendor
+            except Exception:
+                pass
+        if not org:
+            return
+        current = self.company if isinstance(self.company, dict) else {}
+        if current.get('id') == org.id and current.get('name'):
+            return
+        self.company = org.build_company_snapshot()
+
     def save(self, *args, **kwargs):
+        self._populate_company_snapshot()
         if not self.pk:
             # New payment: available starts equal to amount
             if not self.available:

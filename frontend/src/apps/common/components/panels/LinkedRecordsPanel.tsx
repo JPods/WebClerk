@@ -51,6 +51,8 @@ interface LinkedRecordsPanelProps {
   icon?: string;
   /** Start collapsed (default true) */
   defaultCollapsed?: boolean;
+  /** Collapse to one line when no records (default false) */
+  collapseWhenEmpty?: boolean;
   /** Allow add/remove (default true) */
   editable?: boolean;
   /** Extra columns beyond the defaults */
@@ -274,6 +276,7 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
   title,
   icon,
   defaultCollapsed = true,
+  collapseWhenEmpty = false,
   editable = true,
   extraColumns,
   onLinksChanged,
@@ -285,6 +288,7 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
   const [linkedIds, setLinkedIds] = useState<number[]>([]);
   const [assigning, setAssigning] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [settingPanelCols, setSettingPanelCols] = useState<DbColumnDef<Rec>[] | null>(null);
   const [settingLoaded, setSettingLoaded] = useState(false);
   const panelKey = `${parentModel}:${parentId}:${linkedModel}`;
@@ -379,7 +383,10 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
 
   // Initial load
   useEffect(() => {
-    loadLinks().then(fetchRecords);
+    loadLinks().then(async (ids) => {
+      await fetchRecords(ids);
+      setInitialLoadDone(true);
+    });
   }, [loadLinks, fetchRecords]);
 
   // Reload when refs.links changes (e.g. touch added from ContactPanel)
@@ -486,7 +493,8 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
     onRemovePanel();
   }, [removable, onRemovePanel, linkedIds, linkedModel, parentModel, parentId, title]);
 
-  const pluralModel = linkedModel.endsWith('ch') || linkedModel.endsWith('sh') || linkedModel.endsWith('s') || linkedModel.endsWith('x')
+  const pluralModel = linkedModel.endsWith('s') ? linkedModel
+    : linkedModel.endsWith('ch') || linkedModel.endsWith('sh') || linkedModel.endsWith('x')
     ? linkedModel + 'es' : linkedModel + 's';
   const sectionLabel = title || pluralModel.charAt(0).toUpperCase() + pluralModel.slice(1);
   const sectionIcon = icon || MODEL_ICONS[linkedModel] || "🔗";
@@ -529,7 +537,8 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
       onAdd={editable ? handleAddNew : undefined}
       onAssign={editable ? openAssign : undefined}
       onRemove={removable ? handleRemovePanel : undefined}
-      defaultCollapsed={defaultCollapsed}
+      defaultCollapsed={collapseWhenEmpty && initialLoadDone ? records.length === 0 : defaultCollapsed}
+      key={collapseWhenEmpty ? `${panelKey}-${initialLoadDone}-${records.length > 0}` : panelKey}
       compact
       emptyMessage={loading ? "Loading..." : `No ${linkedModel}s linked`}
     >

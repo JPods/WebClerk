@@ -20,7 +20,7 @@ import { useWindowManager } from '@/context/WindowManagerContext';
 import { useDetailLayout } from '@/hooks/useDetailLayout';
 import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
-import { renderPanel, getDefaultTabs } from './panelRegistry';
+import { renderPanel } from './panelRegistry';
 
 import FieldRow from '@/apps/transactions/components/detail/FieldRow';
 import DetailToolbar from '@/components/common/DetailToolbar';
@@ -280,7 +280,7 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
 
   // Resolve tabs from layout or defaults
   const tabsSection = sections.find((s: any) => s.type === 'tabs');
-  const tabs = tabsSection?.tabs || getDefaultTabs(modelName);
+  const tabs = tabsSection?.tabs || [];
 
   // Set initial active tab on first render
   if (!activeTab && tabs.length > 0) {
@@ -400,8 +400,8 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
 
       {/* Content — section-driven */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
-        {/* Render non-tab sections (header, panel, json_tree) */}
-        {sections.filter((s: any) => s.type !== 'tabs').map((section: any, idx: number) => renderSection(section, idx))}
+        {/* Render sections: header, line_card, panel (not tabs or json_tree) */}
+        {sections.filter((s: any) => s.type !== 'tabs' && s.type !== 'json_tree').map((section: any, idx: number) => renderSection(section, idx))}
 
         {/* If no header section in layout, render default fallback header */}
         {!sections.some((s: any) => s.type === 'header') && (
@@ -435,6 +435,9 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
             </div>
           </div>
         )}
+
+        {/* JSON tree — always last (admin tool) */}
+        {sections.filter((s: any) => s.type === 'json_tree').map((section: any, idx: number) => renderSection(section, sections.length + idx))}
       </div>
     </div>
   );

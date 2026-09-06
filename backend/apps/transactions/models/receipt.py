@@ -81,6 +81,10 @@ class Receipt(BaseModel):
         help_text="Source work order (if source_type=workorder_completion)"
     )
 
+    # Counterparty snapshot
+    company = models.JSONField(default=dict, blank=True,
+        help_text="Counterparty snapshot: {id, ida, name, is_individual, attention, email, phone, domain, notes}")
+
     # Journalizing lock — 0 means editable, non-zero epoch ms means locked (GL has this data)
     dt_journaled = models.BigIntegerField(default=0, db_index=True,
         help_text="UTC epoch ms when journalized to GL. 0=editable, non-zero=locked.")
@@ -90,6 +94,25 @@ class Receipt(BaseModel):
         indexes = [
             models.Index(fields=['source_type', 'dt_received']),
         ]
+
+    def _populate_company_snapshot(self):
+        """Copy company snapshot from the linked purchase's vendor."""
+        org = None
+        if self.purchase_id:
+            try:
+                org = self.purchase.vendor
+            except Exception:
+                pass
+        if not org:
+            return
+        current = self.company if isinstance(self.company, dict) else {}
+        if current.get('id') == org.id and current.get('name'):
+            return
+        self.company = org.build_company_snapshot()
+
+    def save(self, *args, **kwargs):
+        self._populate_company_snapshot()
+        super().save(*args, **kwargs)
 
     def __str__(self) -> str:  # pragma: no cover
         return f"R:{self.ida}" if self.ida else f"R:{self.pk}"

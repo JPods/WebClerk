@@ -128,16 +128,33 @@ EXEC_EDIT_RULES = {
 }
 
 # Shared panel + json sections for sell transactions
+# Standard tabs — every model gets this set
+STANDARD_TABS = [
+    {"label": "contacts", "content": "contacts"},
+    {"label": "qa", "content": "qa"},
+    {"label": "actions", "content": "actions"},
+    {"label": "documents", "content": "documents"},
+    {"label": "touches", "content": "touches"},
+    {"label": "+ link", "content": "link"},
+]
+
+# Item tabs — bom/serials/specs are standalone panels; xref stays in tabs
+ITEM_TABS = [
+    {"label": "xref", "content": "xref"},
+    *STANDARD_TABS,
+]
+
+# Contact tabs — phone/email/domain/address are standalone panels; standard tabs only
+CONTACT_TABS = list(STANDARD_TABS)
+
+
+# Transaction line items are line_card sections (mission-critical, always visible).
+# They do NOT belong in tabs. Tabs are for related/secondary data.
+
 SELL_PANELS = [
     {"type": "panel", "content": "financials", "label": "financials"},
     {"type": "panel", "content": "notes", "label": "comments"},
-    {"type": "panel", "content": "related_transactions", "label": "related"},
-    {"type": "tabs", "tabs": [
-        {"label": "contacts", "content": "contacts"},
-        {"label": "qa", "content": "qa"},
-        {"label": "actions", "content": "actions"},
-        {"label": "documents", "content": "documents"},
-    ]},
+    {"type": "tabs", "tabs": STANDARD_TABS},
     {"type": "json_tree", "label": "json", "collapsed": True,
      "fields": ["config", "totals", "sell", "cost", "tax", "metadata", "refs", "prefs"]},
 ]
@@ -145,13 +162,7 @@ SELL_PANELS = [
 EXEC_PANELS = [
     {"type": "panel", "content": "financials", "label": "financials"},
     {"type": "panel", "content": "notes", "label": "comments"},
-    {"type": "panel", "content": "related_transactions", "label": "related"},
-    {"type": "tabs", "tabs": [
-        {"label": "contacts", "content": "contacts"},
-        {"label": "qa", "content": "qa"},
-        {"label": "actions", "content": "actions"},
-        {"label": "documents", "content": "documents"},
-    ]},
+    {"type": "tabs", "tabs": STANDARD_TABS},
     {"type": "json_tree", "label": "json", "collapsed": True,
      "fields": ["config", "totals", "cost", "tax", "metadata", "refs", "prefs"]},
 ]
@@ -166,12 +177,8 @@ ORG_EDIT_RULES = {
 ORG_PANELS = [
     {"type": "panel", "content": "transactions", "label": "transactions"},
     {"type": "panel", "content": "contacts", "label": "contacts"},
-    {"type": "panel", "content": "communications", "label": "communications"},
     {"type": "panel", "content": "notes", "label": "comments"},
-    {"type": "tabs", "tabs": [
-        {"label": "actions", "content": "actions"},
-        {"label": "documents", "content": "documents"},
-    ]},
+    {"type": "tabs", "tabs": STANDARD_TABS},
     {"type": "json_tree", "label": "json", "collapsed": True,
      "fields": ["financial", "metrics", "connections", "relations",
                 "gl_accounts", "config", "metadata", "refs", "prefs"]},
@@ -261,18 +268,7 @@ LAYOUTS = {
             _sell_header("invoice"),
             {"type": "line_card", "family": "sell", "toolbar": ["L", "S", "XR", "M"],
              "actions": ["apply_payment", "post_to_proposal", "post_to_po", "clone"]},
-            {"type": "panel", "content": "financials", "label": "financials"},
-            {"type": "panel", "content": "notes", "label": "comments"},
-            {"type": "panel", "content": "related_transactions", "label": "related"},
-            {"type": "tabs", "tabs": [
-                {"label": "shipping", "content": "shipping"},
-                {"label": "contacts", "content": "contacts"},
-                {"label": "qa", "content": "qa"},
-                {"label": "actions", "content": "actions"},
-                {"label": "documents", "content": "documents"},
-            ]},
-            {"type": "json_tree", "label": "json", "collapsed": True,
-             "fields": ["config", "totals", "sell", "cost", "tax", "metadata", "refs", "prefs"]},
+            *SELL_PANELS,
         ],
         "edit_rules": SELL_EDIT_RULES,
     },
@@ -493,12 +489,10 @@ LAYOUTS = {
                 ]},
             ]},
             {"type": "panel", "content": "notes", "label": "comments"},
-            {"type": "panel", "content": "related_transactions", "label": "related"},
-            {"type": "tabs", "tabs": [
-                {"label": "qa", "content": "qa"},
-                {"label": "actions", "content": "actions"},
-                {"label": "documents", "content": "documents"},
-            ]},
+            {"type": "panel", "content": "bom", "label": "bom", "collapse_when_empty": True},
+            {"type": "panel", "content": "serials", "label": "serials", "collapse_when_empty": True},
+            {"type": "panel", "content": "specs", "label": "specs", "collapse_when_empty": True},
+            {"type": "tabs", "tabs": ITEM_TABS},
             {"type": "json_tree", "label": "json", "collapsed": True,
              "fields": ["price", "cost", "quantity", "catalog", "tax_code",
                         "gls", "flags", "config", "metadata", "refs", "prefs"]},
@@ -536,12 +530,12 @@ LAYOUTS = {
                     _f("rep"),
                 ]},
             ]},
-            {"type": "panel", "content": "communications", "label": "communications"},
             {"type": "panel", "content": "notes", "label": "comments"},
-            {"type": "tabs", "tabs": [
-                {"label": "actions", "content": "actions"},
-                {"label": "documents", "content": "documents"},
-            ]},
+            {"type": "panel", "content": "phone", "label": "phone", "collapse_when_empty": True},
+            {"type": "panel", "content": "email", "label": "email", "collapse_when_empty": True},
+            {"type": "panel", "content": "domain", "label": "domain", "collapse_when_empty": True},
+            {"type": "panel", "content": "address", "label": "address", "collapse_when_empty": True},
+            {"type": "tabs", "tabs": CONTACT_TABS},
             {"type": "json_tree", "label": "json", "collapsed": True,
              "fields": ["config", "metadata", "refs", "prefs"]},
         ],
@@ -580,6 +574,7 @@ LAYOUTS = {
             ]},
             {"type": "panel", "content": "notes", "label": "comments"},
             {"type": "panel", "content": "documents", "label": "documents"},
+            {"type": "tabs", "tabs": STANDARD_TABS},
             {"type": "json_tree", "label": "json", "collapsed": True,
              "fields": ["impact", "retrospection", "project_metadata",
                         "config", "metadata", "refs", "prefs"]},
@@ -613,12 +608,7 @@ LAYOUTS = {
                     _f("profit_velocity"),
                 ]},
             ]},
-            {"type": "tabs", "tabs": [
-                {"label": "actions", "content": "actions"},
-                {"label": "gantt", "content": "gantt"},
-                {"label": "documents", "content": "documents"},
-                {"label": "notes", "content": "notes"},
-            ]},
+            {"type": "tabs", "tabs": STANDARD_TABS},
             {"type": "json_tree", "label": "json", "collapsed": True,
              "fields": ["objective", "tasks", "logistics",
                         "config", "metadata", "refs", "prefs"]},
@@ -658,7 +648,6 @@ LAYOUTS = {
                 ]},
             ]},
             {"type": "panel", "content": "notes", "label": "comments"},
-            {"type": "panel", "content": "related_transactions", "label": "related"},
             {"type": "json_tree", "label": "json", "collapsed": True,
              "fields": ["gateway_response", "config", "metadata", "refs", "prefs"]},
         ],

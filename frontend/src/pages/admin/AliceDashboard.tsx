@@ -88,7 +88,7 @@ export default function AliceDashboard() {
     return params.get('report') || null;
   }, []);
 
-  const [activeTab, setActiveTab] = useState<'coaching' | 'console' | 'actions' | 'training' | 'health' | 'llm' | 'quiz' | 'reports' | 'pdf-designer' | 'data-quality' | 'import' | 'library' | 'readmes'>(urlTab);
+  const [activeTab, setActiveTab] = useState<'coaching' | 'console' | 'actions' | 'training' | 'health' | 'llm' | 'quiz' | 'reports' | 'pdf-designer' | 'data-quality' | 'import' | 'library' | 'readmes' | 'parades'>(urlTab);
   const [llmConfig, setLlmConfig] = useState<any>(null);
   const [llmSaving, setLlmSaving] = useState(false);
   const [importPath, setImportPath] = useState('');
@@ -216,6 +216,7 @@ export default function AliceDashboard() {
             { tab: 'reports', label: 'Reports', desc: '13 print templates + report designer' },
             { tab: 'pdf-designer', label: 'PDF Designer', desc: 'pdfme template builder' },
             { tab: 'readmes', label: 'Readmes', desc: 'Scrollable index of all system documentation' },
+            { tab: 'parades', label: 'Parades', desc: 'Review all layouts: panel, form, detail, list, card' },
           ].map((item) => (
             <button key={item.tab} onClick={() => setActiveTab(item.tab as any)}
               className={`text-left p-2 rounded border transition ${
@@ -245,6 +246,7 @@ export default function AliceDashboard() {
         {tabBtn('reports', 'Reports')}
         {tabBtn('pdf-designer', 'PDF Designer')}
         {tabBtn('readmes', 'Readmes')}
+        {tabBtn('parades', 'Parades')}
       </div>
 
       {/* Tab content */}
@@ -1433,6 +1435,35 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
           </div>
           <div className="text-[10px] text-gray-400 dark:text-gray-600 px-1">
             Source: <code>readmes/</code> and <code>readmes/topics/</code> &middot; Content loads from Document records by <code>ida</code> &middot; Create a Document with the matching ida to populate any section
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Parades ═══ */}
+      {activeTab === 'parades' && (
+        <div className="space-y-4">
+          <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              <strong>Layout Parades.</strong> Review every model's layouts in DataBrowser.
+              Click any parade to open it. Use for training video prep and quality review.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              { label: 'Panel Parade', desc: 'db.panel columns for every linked record panel', url: '/databrowser?model=setting&search=wc-model' },
+              { label: 'Form Parade', desc: 'db.form layouts — App view detail sections', url: '/databrowser?model=setting&search=wc-model' },
+              { label: 'Detail Parade', desc: 'db.detail field order for Admin view', url: '/databrowser?model=setting&search=wc-model' },
+              { label: 'List Parade', desc: 'db.list column order for all list views', url: '/databrowser?model=setting&search=wc-model' },
+              { label: 'Card Parade', desc: 'db.card layouts for Kanban and compact views', url: '/databrowser?model=setting&search=wc-model' },
+              { label: 'Layout Audit', desc: 'Coverage report — which models have which layouts', url: '/layout-parade' },
+            ].map((p) => (
+              <button key={p.label}
+                onClick={() => ensureWindow(p.url, p.label)}
+                className="text-left p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 transition">
+                <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{p.label}</div>
+                <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{p.desc}</div>
+              </button>
+            ))}
           </div>
         </div>
       )}

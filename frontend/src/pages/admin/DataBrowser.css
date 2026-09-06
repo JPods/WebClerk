@@ -45,7 +45,7 @@
 .db-root {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   background: var(--db-bg);
   color: var(--db-text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -524,6 +524,7 @@
   align-items: center;
   background: var(--db-surface-alt);
   border-bottom: 1px solid var(--db-border);
+  flex-shrink: 0;
 }
 
 .db-toolbar-divider {
