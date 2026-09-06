@@ -1019,7 +1019,7 @@ export default function DataGrid(props: DataGridProps) {
                       </span>
                     ) : (
                       <>
-                        <span className={fieldBehaviors[f]?.bulkEditable ? 'dg-th-name--bulk' : undefined}>{fieldSpecs[f]?.label || (f.includes('.') ? f.split('.').slice(-2).join('.') : f)}</span>
+                        <span className={fieldBehaviors[f]?.bulkEditable ? 'dg-th-name--bulk' : undefined}>{(fieldSpecs[f]?.label || fieldBehaviors[f]?.label || (f.includes('.') ? f.split('.').slice(-2).join('.') : f)).replace(/\[\d+\]$/, '')}</span>
                         {sortDir && <span className="dg-sort-arrow">{sortDir === 'asc' ? '↑' : '↓'}</span>}
                         {sortIdx >= 0 && <span className="dg-sort-order">({sortIdx + 1})</span>}
                       </>

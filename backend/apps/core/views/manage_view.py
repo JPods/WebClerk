@@ -882,21 +882,25 @@ def _flush_frontend(params):
     from apps.core.models.setting import Setting
 
     now_ms = int(time.time() * 1000)
-    flush_setting, created = Setting.objects.update_or_create(
-        ida='wc-flush',
-        defaults={
-            'name': 'Frontend Flush Signal',
-            'purpose': 'wc:system',
-            'explanation': 'Timestamp bumped to trigger frontend cache reload',
-            'config': {'dt_changed': now_ms},
-            'dt_modified': now_ms,
-        },
-    )
-    if not created:
-        # update_or_create already saved, but ensure config is merged
-        flush_setting.config = flush_setting.config or {}
-        flush_setting.config['dt_changed'] = now_ms
+    try:
+        flush_setting = Setting.objects.get(ida='wc-flush')
+        flush_setting.config = {'dt_changed': now_ms}
+        flush_setting.dt_modified = now_ms
+        flush_setting._setting_update_authorized = True
         flush_setting.save(update_fields=['config', 'dt_modified'])
+        created = False
+    except Setting.DoesNotExist:
+        flush_setting = Setting(
+            ida='wc-flush',
+            name='Frontend Flush Signal',
+            purpose='wc:system',
+            explanation='Timestamp bumped to trigger frontend cache reload',
+            config={'dt_changed': now_ms},
+            dt_modified=now_ms,
+        )
+        flush_setting._setting_update_authorized = True
+        flush_setting.save()
+        created = True
 
     return {
         'flushed': True,

@@ -6,10 +6,54 @@ import { formatDt, formatField } from '@/utils/fieldFormatters';
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Resolve a dot-notation field path (e.g., "config.ship_to.company") from a record */
+/** Resolve a dot-notation field path with optional [N] leaf extraction.
+ *
+ * "config.ship_to.company"  → data.config.ship_to.company
+ * "assigned_to[0]"          → first value of data.assigned_to (object or array)
+ * "comments.process[0]"     → first value of data.comments.process
+ *
+ * [N] on an object returns Object.values(obj)[N].
+ * [N] on an array returns arr[N].
+ * Result is always a scalar — if the leaf is still an object, recurse to first scalar.
+ */
 export function getNestedValue(data: any, path: string): unknown {
   if (!data || !path) return undefined;
-  return path.split('.').reduce((obj, key) => obj?.[key], data);
+
+  // Split off trailing [N] index
+  const bracketMatch = path.match(/^(.+)\[(\d+)\]$/);
+  const cleanPath = bracketMatch ? bracketMatch[1] : path;
+  const leafIndex = bracketMatch ? parseInt(bracketMatch[2], 10) : null;
+
+  const val = cleanPath.split('.').reduce((obj: any, key: string) => obj?.[key], data);
+
+  if (leafIndex === null) return val;
+  if (val == null) return undefined;
+
+  // Extract the Nth value from object or array
+  const values = Array.isArray(val) ? val : typeof val === 'object' ? Object.values(val) : [val];
+  let leaf = values[leafIndex];
+
+  // If the leaf is still an object, drill to first scalar
+  while (leaf != null && typeof leaf === 'object' && !Array.isArray(leaf)) {
+    const inner = Object.values(leaf);
+    if (inner.length === 0) break;
+    leaf = inner[0];
+  }
+
+  return leaf;
+}
+
+/** Extract first scalar value from an object/array. Shows value only, no key. */
+function _firstScalar(val: any): string {
+  if (val == null) return '—';
+  if (typeof val !== 'object') return String(val);
+  const values = Array.isArray(val) ? val : Object.values(val);
+  for (const v of values) {
+    if (v == null) continue;
+    if (typeof v !== 'object') return String(v);
+    return _firstScalar(v);
+  }
+  return '—';
 }
 
 /** Format epoch ms or ISO string to readable date */
@@ -103,7 +147,7 @@ export interface FieldRowProps {
 
 const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, options, fieldType, help, onChange }) => {
   const [showHelp, setShowHelp] = useState(false);
-  const val = field.includes('.') ? getNestedValue(data, field) : data?.[field];
+  const val = (field.includes('.') || field.includes('[')) ? getNestedValue(data, field) : data?.[field];
 
   // Label click: Shift=help, Cmd=copy path, Cmd+Shift=behavior override
   const handleLabelClick = (e: React.MouseEvent) => {
@@ -127,7 +171,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
   const displayVal = val == null ? '—'
     : isDate ? formatDate(val)
     : fmtType ? formatField(val, fmtType, field) || '—'
-    : typeof val === 'object' ? (val as any)?.name || (val as any)?.display_name || (val as any)?.ida || JSON.stringify(val)
+    : typeof val === 'object' ? (val as any)?.name || (val as any)?.display_name || (val as any)?.ida || _firstScalar(val)
     : String(val);
   // Derive field type: explicit > has options > calculated fields always readonly
   const resolvedType = fieldType || (options ? 'select' : 'editable');
@@ -157,7 +201,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
       )}
       {options ? (
         <select
-          value={val || ''}
+          value={typeof val === 'object' ? _firstScalar(val) : (val || '')}
           onChange={(e) => onChange(field, e.target.value)}
           className="flex-1 db-font-sm px-2 py-0.5 rounded cursor-pointer min-w-0"
           style={{ border: '1px solid var(--db-border, #cbd5e1)', background: 'var(--db-surface-alt, #fff)', color: 'var(--db-text, #1e293b)' }}

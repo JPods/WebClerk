@@ -286,6 +286,9 @@ function DynamicDetail({
         const headerSection = formLayout.sections.find((s: any) => s.type === 'header');
         if (!headerSection) return;
 
+        // Behaviors from Setting — authoritative source for field labels
+        const behaviors: Record<string, any> = setting?.config?.behaviors || {};
+
         // Convert Setting sections → rows format + build field registry
         const convertedRows: { fields: string[]; cols: number }[] = [];
         const convertedFields: Record<string, FieldConfig> = {};
@@ -308,9 +311,12 @@ function DynamicDetail({
                 rowFields.push(fieldName);
 
                 // Build field config from Setting field definition
+                // Label priority: field def > behavior > derived from name
                 const cfg: FieldConfig = { type: 'text' };
-                if (f.label) cfg.label = f.label;
-                else cfg.label = fieldName.split('.').pop() || fieldName;
+                const baseName = fieldName.replace(/\[\d+\]$/, '');
+                cfg.label = f.label
+                  || behaviors[baseName]?.label
+                  || (fieldName.split('.').pop() || fieldName).replace(/\[\d+\]$/, '');
 
                 // Map Setting field type to FieldConfig type
                 if (f.type === 'select' && Array.isArray(f.options)) {
@@ -419,7 +425,7 @@ function DynamicDetail({
               : data[fieldName];
             merged[fieldName] = {
               type: inferFieldType(val),
-              label: fieldName.split(".").pop() || fieldName,
+              label: (fieldName.split(".").pop() || fieldName).replace(/\[\d+\]$/, ''),
             };
           }
         }
@@ -733,7 +739,7 @@ function DynamicDetail({
               const cfg = fieldRegistry[fieldName];
               const isSelect = cfg?.type === 'select' && cfg?.options?.length;
               const isContactSelect = cfg?.type === 'contact-select';
-              const label = cfg?.label || fieldName;
+              const label = (cfg?.label || fieldName).replace(/\[\d+\]$/, '');
 
               // Select fields: colored label left, select control right
               if (isSelect) {

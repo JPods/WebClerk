@@ -637,6 +637,18 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
     # Inject leaf behaviors for JSON envelope fields
     _inject_leaf_behaviors(model_key, field_map, behaviors)
 
+    # Add labels from Django verbose_name — users override via Setting
+    for name, beh in behaviors.items():
+        if 'label' not in beh:
+            field = field_map.get(name)
+            if field and hasattr(field, 'verbose_name'):
+                vn = str(field.verbose_name)
+                # Django auto-generates verbose_name from field name — keep it
+                # only if it differs meaningfully (not just underscore→space)
+                beh['label'] = vn if vn != name else name
+            else:
+                beh['label'] = name
+
     # Apply overrides from Setting — these win over auto-detection
     if overrides and isinstance(overrides, dict):
         for field_name, override in overrides.items():

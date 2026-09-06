@@ -36,6 +36,7 @@ class DbFieldSpec(BaseModel):
     number in another).  When format is None the schema is authoritative.
     """
     field: str
+    label: Optional[str] = None              # display label — defaults to field name if omitted
     width: Optional[int] = None              # px — user sets via drag or type
     min_width: Optional[int] = None
     max_width: Optional[int] = None
