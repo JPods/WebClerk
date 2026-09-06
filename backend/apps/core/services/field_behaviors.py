@@ -118,16 +118,33 @@ PRIORITY_OPTIONS = [
     {'value': 'high', 'label': 'High'},
     {'value': 'urgent', 'label': 'Urgent'},
 ]
-TERMS_OPTIONS = [
-    {'value': 'due_on_receipt', 'label': 'Due on Receipt'},
-    {'value': 'net_10', 'label': 'Net 10'},
-    {'value': 'net_15', 'label': 'Net 15'},
-    {'value': 'net_30', 'label': 'Net 30'},
-    {'value': 'net_45', 'label': 'Net 45'},
-    {'value': 'net_60', 'label': 'Net 60'},
-    {'value': '2_10_net_30', 'label': '2/10 Net 30'},
-    {'value': 'prepaid', 'label': 'Prepaid'},
-    {'value': 'cod', 'label': 'COD'},
+def _get_terms_options():
+    """Build terms options from Term records. Falls back to static list."""
+    try:
+        from apps.accounts.models.term import Term
+        terms = Term.objects.filter(is_active=True).order_by('days_due')
+        if terms.exists():
+            return [{'value': t.description, 'label': t.description} for t in terms]
+    except Exception:
+        pass
+    return [
+        {'value': 'Due on Receipt', 'label': 'Due on Receipt'},
+        {'value': 'Net 10', 'label': 'Net 10'},
+        {'value': 'Net 30', 'label': 'Net 30'},
+        {'value': 'Net 60', 'label': 'Net 60'},
+        {'value': 'COD', 'label': 'COD'},
+    ]
+SOURCE_NAME_OPTIONS = [
+    {'value': 'direct', 'label': 'Direct'},
+    {'value': 'referral', 'label': 'Referral'},
+    {'value': 'social_media', 'label': 'Social Media'},
+    {'value': 'website', 'label': 'Website'},
+    {'value': 'trade_show', 'label': 'Trade Show'},
+    {'value': 'cold_call', 'label': 'Cold Call'},
+    {'value': 'email_campaign', 'label': 'Email Campaign'},
+    {'value': 'repeat', 'label': 'Repeat Customer'},
+    {'value': 'partner', 'label': 'Partner'},
+    {'value': 'other', 'label': 'Other'},
 ]
 PAYMENT_METHOD_OPTIONS = [
     {'value': 'check', 'label': 'Check'},
@@ -546,7 +563,7 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': PRIORITY_OPTIONS}
             continue
         if name == 'terms':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': TERMS_OPTIONS}
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': _get_terms_options()}
             continue
         if name == 'method' and model_key == 'payment':
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': PAYMENT_METHOD_OPTIONS}
@@ -559,6 +576,9 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
             continue
         if name == 'category' and model_key == 'report':
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': REPORT_CATEGORY_OPTIONS}
+            continue
+        if name == 'source_name':
+            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': SOURCE_NAME_OPTIONS}
             continue
         if name == 'purpose' and model_key == 'address':
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': ADDRESS_PURPOSE_OPTIONS}

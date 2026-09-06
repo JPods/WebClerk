@@ -63,6 +63,7 @@ export interface DetailLayout {
   sections: LayoutSection[];
   edit_rules: EditRules;
   card?: Record<string, any>;
+  behaviors?: Record<string, any>;
 }
 
 // Default layout for models without form sections
@@ -153,6 +154,8 @@ export function useDetailLayout(modelName: string) {
         (window as any).__layoutDebug = { res, setting, formLayout, debugInfo };
         if (formLayout && typeof formLayout === 'object' && formLayout.sections) {
           const parsed = formLayout as DetailLayout;
+          // Attach behaviors from Setting — drives label styles and select options
+          parsed.behaviors = setting?.config?.behaviors || {};
           layoutCache.set(modelName, parsed);
           setLayout(parsed);
         } else {

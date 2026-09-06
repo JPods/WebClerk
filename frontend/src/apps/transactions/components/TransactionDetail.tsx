@@ -386,6 +386,7 @@ const UiDetail: React.FC<UiDetailProps> = ({
                   modelName={modelName}
                   onChange={handleFieldChange}
                   cardSpecs={activeLayout.card}
+                  behaviors={activeLayout.behaviors}
                   custSearch={{
                     open: custSearch.open,
                     query: custSearch.query,

@@ -29,6 +29,8 @@ export interface HeaderRendererProps {
   custSearch?: CustSearchProps;
   /** Named card specs from layout.card */
   cardSpecs?: Record<string, CardSpec>;
+  /** Field behaviors from Setting config.behaviors — drives label styles and select options */
+  behaviors?: Record<string, any>;
 }
 
 // ---------------------------------------------------------------------------
@@ -36,7 +38,7 @@ export interface HeaderRendererProps {
 // ---------------------------------------------------------------------------
 
 /** Render header — supports card-based layout, three-column layout, and rows layout */
-const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditing, modelName, onChange, custSearch, cardSpecs }) => {
+const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditing, modelName, onChange, custSearch, cardSpecs, behaviors = {} }) => {
 
   // ── Card-based layout (new: header.cards references named card specs) ──
   if (section.header?.cards && cardSpecs) {
@@ -146,19 +148,27 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
                 </div>
               )}
             </div>
-            {col.fields.map((f: any) => (
-              <FieldRow
-                key={f.field}
-                field={f.field}
-                label={f.label}
-                data={data}
-                isEditing={isEditing}
-                options={f.options}
-                fieldType={f.type}
-                help={f.help}
-                onChange={onChange}
-              />
-            ))}
+            {col.fields.map((f: any) => {
+              // Merge behavior into field def — behavior provides type/options when field def doesn't
+              const beh = behaviors[f.field] || {};
+              const fieldType = f.type || beh.type;
+              const options = f.options || (beh.type === 'select' && beh.options
+                ? beh.options.map((o: any) => typeof o === 'string' ? o : o.value)
+                : undefined);
+              return (
+                <FieldRow
+                  key={f.field}
+                  field={f.field}
+                  label={f.label || beh.label || f.field}
+                  data={data}
+                  isEditing={isEditing}
+                  options={options}
+                  fieldType={fieldType}
+                  help={f.help}
+                  onChange={onChange}
+                />
+              );
+            })}
             {col.action_summary && (
               <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--db-border-light, #e9ecef)' }}>
                 <div
