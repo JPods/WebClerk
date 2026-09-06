@@ -844,17 +844,33 @@ class Command(BaseCommand):
     help = 'Seed wc:model Setting records — one per model with combined definition'
 
     def add_arguments(self, parser):
-        parser.add_argument('--force', action='store_true', help='Overwrite existing')
+        parser.add_argument('--force', action='store_true', help='Overwrite existing (requires confirmation)')
         parser.add_argument('--dry-run', action='store_true', help='Report only')
         parser.add_argument('--model', type=str, default=None, help='Seed one model only')
+        parser.add_argument('--yes', action='store_true', help='Skip confirmation prompt')
 
     def handle(self, *args, **options):
         force = options.get('force', False)
         dry_run = options.get('dry_run', False)
         target = options.get('model')
+        skip_confirm = options.get('yes', False)
         created = updated = skipped = errors = 0
 
         models = {target: MODEL_REGISTRY[target]} if target and target in MODEL_REGISTRY else MODEL_REGISTRY
+
+        # --force on all models is destructive — require confirmation
+        if force and not target and not dry_run and not skip_confirm:
+            count = len(models)
+            self.stdout.write(self.style.WARNING(
+                f'\n  ⚠  --force will overwrite behaviors, access, schema, and field_groups '
+                f'on {count} model Settings.\n'
+                f'  config.layout is preserved (form sections, detail sections, cards).\n'
+                f'  Use --model <name> to target one model, or --yes to skip this prompt.\n'
+            ))
+            confirm = input('  Type "yes" to proceed: ')
+            if confirm.strip().lower() != 'yes':
+                self.stdout.write('Aborted.')
+                return
 
         for model_key in sorted(models.keys()):
             meta = get_model_meta(model_key)
@@ -896,28 +912,16 @@ class Command(BaseCommand):
             )
 
             if existing:
-                # MERGE, not REPLACE — preserve all hand-authored content.
-                # Auto-generated keys get overwritten; hand-authored keys survive.
-                # This is why the 3-card header stopped disappearing.
-                _PRESERVE_PATHS = [
-                    ('layout', 'form'),       # 3-card header sections
-                    ('layout', 'detail'),      # DynamicDetail sections
-                    ('layout', 'card'),        # card definitions
-                ]
-                old_config = existing.config or {}
-                for path in _PRESERVE_PATHS:
-                    old_val = old_config
-                    for key in path:
-                        old_val = old_val.get(key, {}) if isinstance(old_val, dict) else {}
-                    if not old_val or not isinstance(old_val, dict):
-                        continue
-                    # Preserve entries that have hand-authored content (sections, fields, etc.)
-                    target = config
-                    for key in path:
-                        target = target.setdefault(key, {})
-                    for name, defn in old_val.items():
-                        if isinstance(defn, dict) and (defn.get('sections') or defn.get('fields')):
-                            target[name] = defn
+                # MERGE, not REPLACE.
+                # config.layout is PROTECTED — seed never overwrites it.
+                # Seed regenerates: behaviors, access, schema, field_groups,
+                #   formatting, searches, defaults, enrichment, select_lists.
+                # Layout is hand-authored: form sections, detail sections,
+                #   list columns, panel specs, card definitions, active pairings.
+                # If you need to reset layout, delete the Setting and re-seed.
+                old_layout = (existing.config or {}).get('layout')
+                if old_layout and isinstance(old_layout, dict):
+                    config['layout'] = old_layout
 
                 existing.config = config
                 existing.name = f'{meta.singular} Model Definition'
