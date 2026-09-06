@@ -226,6 +226,7 @@ function DynamicDetail({
   const [linkedPanelModels, setLinkedPanelModels] = useState<string[]>([]);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
+  const [activeLinkedTab, setActiveLinkedTab] = useState('contacts');
   const [showTouchForm, setShowTouchForm] = useState(false);
   const [settingLayout, setSettingLayout] = useState<any>(null);
   const [settingFields, setSettingFields] = useState<Record<string, FieldConfig> | null>(null);
@@ -814,49 +815,123 @@ function DynamicDetail({
         </div>
       )}
 
-      {/* ── Standard panels — every record type ─────────────────── */}
+      {/* ── Tabbed panels — contacts, linked models, files ──────── */}
+      {(() => {
+        const allTabs = ['contacts', ...linkedPanelModels, 'files'];
+        const activeTab = showModelPicker ? '_link' : (allTabs.includes(activeLinkedTab) ? activeLinkedTab : allTabs[0]);
 
-      {/* Contacts — uses ContactPanel (specialized for refs.links.contact) */}
-      <ContactPanel
-        contacts={linkedContacts}
-        isEditing={editing}
-        parent_model={modelName}
-        parentId={Number(recordId)}
-        onChange={async (updated: RefContact[]) => {
-          setLinkedContacts(updated);
-          try {
-            const contactLinks = updated.map(c => ({
-              id: c.contact_id,
-              purpose: c.purpose || 'primary',
-              attention: c.attention,
-              email: c.email,
-              phone: c.phone,
-            }));
-            await saveRecord(modelName, {
-              id: Number(recordId),
-              'refs.links.contact': contactLinks,
-            });
-          } catch (err) {
-            console.error('Failed to save contacts:', err);
-          }
-        }}
-        title="Contacts"
-        defaultCollapsed={true}
-      />
+        return (
+          <>
+            {/* Tab bar */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 0, borderBottom: '1px solid var(--db-border)', marginTop: 4 }}>
+              {allTabs.map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => { setActiveLinkedTab(tab); setShowModelPicker(false); }}
+                  className="px-3 py-1 db-font-xs transition-colors"
+                  style={{
+                    borderBottom: activeTab === tab ? '2px solid var(--db-accent, #3b82f6)' : '2px solid transparent',
+                    color: activeTab === tab ? 'var(--db-text)' : 'var(--db-text-dim)',
+                    fontWeight: activeTab === tab ? 600 : 400,
+                    background: 'transparent',
+                  }}
+                >{tab}</button>
+              ))}
+              {editing && (
+                <button
+                  onClick={() => setShowModelPicker(!showModelPicker)}
+                  className="px-3 py-1 db-font-xs transition-colors"
+                  style={{
+                    borderBottom: activeTab === '_link' ? '2px solid var(--db-accent, #3b82f6)' : '2px solid transparent',
+                    color: 'var(--db-text-dim)',
+                    background: 'transparent',
+                  }}
+                >+ link</button>
+              )}
+            </div>
 
-      {/* ── Self-discovered panels — from refs.links keys + standards ── */}
-      {linkedPanelModels.map(panel => (
-        <LinkedRecordsPanel
-          key={panel}
-          linkedModel={panel}
-          parentModel={modelName}
-          parentId={Number(recordId)}
-          defaultCollapsed={true}
-          editable={editing}
-          removable={!STANDARD_PANELS.includes(panel)}
-          onRemovePanel={() => setLinkedPanelModels(prev => prev.filter(p => p !== panel))}
-        />
-      ))}
+            {/* Tab content */}
+            {activeTab === 'contacts' && (
+              <ContactPanel
+                contacts={linkedContacts}
+                isEditing={editing}
+                parent_model={modelName}
+                parentId={Number(recordId)}
+                onChange={async (updated: RefContact[]) => {
+                  setLinkedContacts(updated);
+                  try {
+                    const contactLinks = updated.map(c => ({
+                      id: c.contact_id,
+                      purpose: c.purpose || 'primary',
+                      attention: c.attention,
+                      email: c.email,
+                      phone: c.phone,
+                    }));
+                    await saveRecord(modelName, {
+                      id: Number(recordId),
+                      'refs.links.contact': contactLinks,
+                    });
+                  } catch (err) {
+                    console.error('Failed to save contacts:', err);
+                  }
+                }}
+                title="Contacts"
+                defaultCollapsed={false}
+              />
+            )}
+
+            {activeTab === 'files' && (
+              <FileUploadPanel
+                modelName={modelName}
+                recordId={recordId}
+                recordIda={data?.ida}
+                compact={hideToolbar}
+              />
+            )}
+
+            {activeTab !== 'contacts' && activeTab !== 'files' && activeTab !== '_link' && (
+              <LinkedRecordsPanel
+                key={activeTab}
+                linkedModel={activeTab}
+                parentModel={modelName}
+                parentId={Number(recordId)}
+                defaultCollapsed={false}
+                editable={editing}
+                removable={!STANDARD_PANELS.includes(activeTab)}
+                onRemovePanel={() => {
+                  setLinkedPanelModels(prev => prev.filter(p => p !== activeTab));
+                  setActiveLinkedTab('contacts');
+                }}
+              />
+            )}
+
+            {/* "+ link" picker — shows available models as clickable buttons */}
+            {activeTab === '_link' && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '8px 12px' }}>
+                {availableModels
+                  .filter(m => !SPECIALIZED.includes(m) && !linkedPanelModels.includes(m))
+                  .map(m => (
+                    <button
+                      key={m}
+                      onClick={() => {
+                        saveRecord(modelName, {
+                          id: Number(recordId),
+                          [`refs.links.${m}`]: [],
+                        }).catch(() => {});
+                        setLinkedPanelModels(prev => [...prev, m]);
+                        setActiveLinkedTab(m);
+                        setShowModelPicker(false);
+                      }}
+                      className="px-2 py-0.5 rounded db-font-xs transition-colors"
+                      style={{ border: '1px solid var(--db-border)', color: 'var(--db-text-dim)', background: 'var(--db-surface-alt)' }}
+                    >{m}</button>
+                  ))
+                }
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {/* TouchForm dialog — opened from TouchBar badge or TOUCHES panel */}
       {showTouchForm && data && (() => {
@@ -877,47 +952,6 @@ function DynamicDetail({
             onSaved={() => setShowTouchForm(false)} />
         );
       })()}
-
-      {/* ── "+ Link" tab — add a panel for any model ────────────── */}
-      {editing && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '6px 12px', borderTop: '1px solid var(--db-border)' }}>
-          {availableModels
-            .filter(m => !SPECIALIZED.includes(m) && !linkedPanelModels.includes(m))
-            .slice(0, showModelPicker ? 999 : 0)
-            .map(m => (
-              <button
-                key={m}
-                onClick={() => {
-                  saveRecord(modelName, {
-                    id: Number(recordId),
-                    [`refs.links.${m}`]: [],
-                  }).catch(() => {});
-                  setLinkedPanelModels(prev => [...prev, m]);
-                  setShowModelPicker(false);
-                }}
-                className="px-2 py-0.5 rounded db-font-xs transition-colors"
-                style={{ border: '1px solid var(--db-border)', color: 'var(--db-text-dim)', background: 'var(--db-surface-alt)' }}
-              >{m}</button>
-            ))
-          }
-          <button
-            onClick={() => setShowModelPicker(!showModelPicker)}
-            className="px-2 py-0.5 rounded db-font-xs transition-colors"
-            style={{ border: '1px dashed var(--db-border)', color: 'var(--db-text-dim)' }}
-          >
-            {showModelPicker ? '× close' : '+ link'}
-          </button>
-        </div>
-      )}
-
-      {/* File upload — every upload creates a Document record */}
-      <FileUploadPanel
-        modelName={modelName}
-        recordId={recordId}
-        recordIda={data?.ida}
-        compact={hideToolbar}
-        className="pt-1.5" style={{ borderTop: '1px solid var(--db-border)' }}
-      />
 
       {/* Open db.page — primary record in full page layout */}
       <div className="pt-1.5" style={{ borderTop: '1px solid var(--db-border)' }}>
