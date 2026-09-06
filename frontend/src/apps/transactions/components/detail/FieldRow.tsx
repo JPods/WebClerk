@@ -219,10 +219,13 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
     if (!strVal || strVal === '—') return;
     if (leafN === 'phone' || leafN === 'phone_cell' || leafN === 'fax') {
       navigator.clipboard.writeText(strVal).catch(() => {});
-      window.open(`tel:${strVal.replace(/[^\d+]/g, '')}`, '_self');
+      // tel: needs <a> click or location.href — window.open doesn't work on desktop
+      const a = document.createElement('a');
+      a.href = `tel:${strVal.replace(/[^\d+]/g, '')}`;
+      a.click();
     } else if (leafN === 'email') {
       navigator.clipboard.writeText(strVal).catch(() => {});
-      window.open(`mailto:${strVal}`, '_self');
+      window.open(`mailto:${strVal}`, '_blank');
     } else if (leafN === 'address' || leafN === 'address_full' || leafN === 'full_address') {
       navigator.clipboard.writeText(strVal).catch(() => {});
       window.open(`https://maps.apple.com/?q=${encodeURIComponent(strVal)}`, '_blank');
