@@ -227,6 +227,7 @@ function DynamicDetail({
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [activeLinkedTab, setActiveLinkedTab] = useState('contacts');
+  const [settingTabs, setSettingTabs] = useState<string[]>(['contacts', 'actions', 'touches', 'documents', 'files']);
   const [showTouchForm, setShowTouchForm] = useState(false);
   const [settingLayout, setSettingLayout] = useState<any>(null);
   const [settingFields, setSettingFields] = useState<Record<string, FieldConfig> | null>(null);
@@ -287,6 +288,12 @@ function DynamicDetail({
         const behaviors: Record<string, any> = setting?.config?.behaviors || {};
         if (Object.keys(behaviors).length > 0) {
           setSettingBehaviors(behaviors);
+        }
+
+        // Tabs from Setting — which linked panels to show
+        const tabs: string[] = setting?.config?.layout?.tabs;
+        if (Array.isArray(tabs) && tabs.length > 0) {
+          setSettingTabs(tabs);
         }
 
         const formLayout = setting?.config?.layout?.form?.default;
@@ -817,7 +824,9 @@ function DynamicDetail({
 
       {/* ── Tabbed panels — contacts, linked models, files ──────── */}
       {(() => {
-        const allTabs = ['contacts', ...linkedPanelModels, 'files'];
+        // Tabs from Setting + any dynamically added linked models
+        const extraLinked = linkedPanelModels.filter(m => !settingTabs.includes(m));
+        const allTabs = [...settingTabs, ...extraLinked];
         const activeTab = showModelPicker ? '_link' : (allTabs.includes(activeLinkedTab) ? activeLinkedTab : allTabs[0]);
 
         return (

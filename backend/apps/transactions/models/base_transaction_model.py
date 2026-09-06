@@ -257,6 +257,12 @@ class TransactionBaseModel(BaseModel):
     )
     attention = models.CharField(max_length=255, blank=True, null=True)  # scalar index for search
 
+    # Denormalized counterparty snapshot — the customer/vendor identity at transaction time.
+    # Populated from the linked OrgBase record on save. Single source for list views,
+    # detail headers, and print templates. id links to OrgBase; ida is human-readable.
+    company = models.JSONField(default=dict, blank=True,
+        help_text="Counterparty snapshot: {id, ida, name, is_individual, attention, email, phone, domain, notes}")
+
     # Party-keyed communication aspects (bill_to / ship_to) — PJPV source of truth
     addresses = models.JSONField(default=dict, blank=True)
     emails = models.JSONField(default=dict, blank=True)
@@ -305,7 +311,45 @@ class TransactionBaseModel(BaseModel):
             val = getattr(self, col, None)
             if val is not None and int(val) <= 0:
                 setattr(self, col, None)
+
+        # Populate company snapshot from linked OrgBase if not already set or if FK changed
+        self._populate_company_snapshot()
+
         super().save(*args, **kwargs)
+
+    def _populate_company_snapshot(self):
+        """Build company snapshot from the linked customer or vendor OrgBase record."""
+        # Determine which org is the counterparty
+        org = None
+        if self.customer_id:
+            try:
+                org = self.customer
+            except Exception:
+                pass
+        if not org and self.vendor_id:
+            try:
+                org = self.vendor
+            except Exception:
+                pass
+        if not org:
+            return
+
+        current = self.company if isinstance(self.company, dict) else {}
+        # Only update if org changed or company is empty
+        if current.get('id') == org.id and current.get('name'):
+            return
+
+        self.company = {
+            'id': org.id,
+            'ida': org.ida or '',
+            'name': org.company or '',
+            'is_individual': getattr(org, 'is_individual', False),
+            'attention': self.attention or getattr(org, 'attention', '') or '',
+            'email': (self.emails or {}).get('bill_to', {}).get('email', '') or getattr(org, 'email', '') or '',
+            'phone': (self.phones or {}).get('bill_to', {}).get('number', '') or getattr(org, 'phone', '') or '',
+            'domain': getattr(org, 'domain', '') or '',
+            'notes': '',
+        }
 
     # ── Read-only properties — replaced scalar shadow fields ────────
     # These read from the JSON envelope or FK relationships.
@@ -323,14 +367,14 @@ class TransactionBaseModel(BaseModel):
         val = t.get('balance')
         return Decimal(str(val)) if val is not None else None
 
+    # company property removed — replaced by company JSONField (2026-09-05)
+    # The JSONField holds: {id, ida, name, is_individual, attention, email, phone, domain, notes}
+
     @property
-    def company(self):
-        if self.customer_id:
-            return getattr(self.customer, 'display_name', '') if self.customer else ''
-        refs = self.refs if isinstance(self.refs, dict) else {}
-        links = refs.get('links', {})
-        cust = links.get('customer', {})
-        return cust.get('display_name', '')
+    def company_name(self):
+        """Read-only convenience: company.name from the JSON snapshot."""
+        c = self.company if isinstance(self.company, dict) else {}
+        return c.get('name', '')
 
     @property
     def address_full(self):

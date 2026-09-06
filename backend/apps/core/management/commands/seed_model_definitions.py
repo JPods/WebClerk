@@ -748,6 +748,7 @@ def _build_layout(salvaged, model_key, field_map):
         },
         'panel': panel,
         'card': card,
+        'tabs': ['contacts', 'actions', 'touches', 'documents', 'files'],
     }
 
     # Embed DynamicDetail sections into the default detail layout
