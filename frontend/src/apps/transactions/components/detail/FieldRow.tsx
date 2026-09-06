@@ -139,6 +139,15 @@ const BEHAVIOR_TO_LABEL: Record<string, string> = {
   // boolean, date, percentage, editor) → editable (normal gray)
 };
 
+// Detect label style from field name — universal conventions
+// These fire regardless of model or behavior config
+const _NAME_TO_TYPE: Record<string, string> = {
+  phone: 'action', phone_cell: 'action', fax: 'action',
+  email: 'action',
+  address: 'action', address_full: 'action', full_address: 'action',
+  website: 'action', url: 'action',
+};
+
 /** Resolve label style from behavior type. */
 export function labelStyleForBehavior(behaviorType?: string): string {
   if (!behaviorType) return 'editable';
@@ -188,7 +197,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
   const [showHelp, setShowHelp] = useState(false);
   const val = (field.includes('.') || field.includes('[')) ? getNestedValue(data, field) : data?.[field];
 
-  // Label click: Shift=help, Cmd=copy path, Cmd+Shift=behavior override
+  // Label click: plain=action launch, Shift=help, Cmd=copy path
   const handleLabelClick = (e: React.MouseEvent) => {
     if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
       // Cmd/Ctrl+click → copy field path to clipboard
@@ -204,6 +213,23 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
       if (help) setShowHelp(prev => !prev);
       return;
     }
+    // Plain click on action labels — launch tel/mailto/maps + copy to clipboard
+    const leafN = field.split('.').pop()?.replace(/\[\d+\]$/, '') || '';
+    const strVal = typeof val === 'string' ? val : _firstScalar(val);
+    if (!strVal || strVal === '—') return;
+    if (leafN === 'phone' || leafN === 'phone_cell' || leafN === 'fax') {
+      navigator.clipboard.writeText(strVal).catch(() => {});
+      window.open(`tel:${strVal.replace(/[^\d+]/g, '')}`, '_self');
+    } else if (leafN === 'email') {
+      navigator.clipboard.writeText(strVal).catch(() => {});
+      window.open(`mailto:${strVal}`, '_self');
+    } else if (leafN === 'address' || leafN === 'address_full' || leafN === 'full_address') {
+      navigator.clipboard.writeText(strVal).catch(() => {});
+      window.open(`https://maps.apple.com/?q=${encodeURIComponent(strVal)}`, '_blank');
+    } else if (leafN === 'website' || leafN === 'url') {
+      const href = strVal.startsWith('http') ? strVal : `https://${strVal}`;
+      window.open(href, '_blank');
+    }
   };
   const isDate = field.startsWith('dt_') || DATE_FIELDS.has(field) || DATE_FIELDS.has(label);
   const fmtType = detectFormatType(field, label);
@@ -212,8 +238,11 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
     : fmtType ? formatField(val, fmtType, field) || '—'
     : typeof val === 'object' ? (val as any)?.name || (val as any)?.display_name || (val as any)?.ida || _firstScalar(val)
     : String(val);
-  // Derive field type: explicit > has options > calculated fields always readonly
-  const resolvedType = fieldType || (options ? 'select' : 'editable');
+  // Derive field type: explicit > name convention > has options > editable
+  // Field name convention detects actionable fields regardless of model
+  const leafName = field.split('.').pop()?.replace(/\[\d+\]$/, '') || field;
+  const nameType = _NAME_TO_TYPE[leafName];
+  const resolvedType = fieldType || nameType || (options ? 'select' : 'editable');
   const labelStyle = useLabelStyle(resolvedType);
   const isClickable = resolvedType === 'select' || resolvedType === 'action' || resolvedType === 'search';
   // Show field path: always as title tooltip, visible subscript when data-show-paths is set
