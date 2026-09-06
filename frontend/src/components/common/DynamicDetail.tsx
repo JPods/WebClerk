@@ -281,15 +281,19 @@ function DynamicDetail({
         if (arr.length === 0) return;
 
         const setting = arr[0];
+
+        // Behaviors from Setting — always load, regardless of form layout
+        const behaviors: Record<string, any> = setting?.config?.behaviors || {};
+        if (Object.keys(behaviors).length > 0) {
+          setSettingBehaviors(behaviors);
+        }
+
         const formLayout = setting?.config?.layout?.form?.default;
         if (!formLayout?.sections) return;
 
         // Find the header section — contains columns with fields
         const headerSection = formLayout.sections.find((s: any) => s.type === 'header');
         if (!headerSection) return;
-
-        // Behaviors from Setting — authoritative source for field labels
-        const behaviors: Record<string, any> = setting?.config?.behaviors || {};
 
         // Convert Setting sections → rows format + build field registry
         const convertedRows: { fields: string[]; cols: number }[] = [];
@@ -374,7 +378,6 @@ function DynamicDetail({
         if (convertedRows.length > 0) {
           setSettingLayout({ rows: convertedRows });
           setSettingFields(convertedFields);
-          setSettingBehaviors(behaviors);
           setLayoutSource('setting');
           console.log(`[DynamicDetail] Loaded form layout from Setting for ${modelName}`, {
             sectionCount: formLayout.sections.length,

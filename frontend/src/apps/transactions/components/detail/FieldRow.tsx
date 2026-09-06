@@ -125,11 +125,18 @@ export const LABEL_STYLES: Record<string, { light: string; dark: string; fontWei
 
 // Map behavior types to label style categories
 const BEHAVIOR_TO_LABEL: Record<string, string> = {
+  // System-managed — italic
   readonly: 'readonly', hidden: 'readonly',
-  select: 'select', lookup: 'select',
+  timestamp: 'readonly',    // dt_created, dt_modified, etc.
+  // Actionable — green (click launches something)
   email: 'action', phone: 'action', address: 'action',
   url: 'action', geo: 'action',
+  // Select — blue
+  select: 'select', lookup: 'select',
+  // Search — bold (toolbar, not field labels)
   search: 'search',
+  // Everything else (text, textarea, number, i18n, json, json-tree, currency,
+  // boolean, date, percentage, editor) → editable (normal gray)
 };
 
 /** Resolve label style from behavior type. */

@@ -30,6 +30,25 @@ import './DataGrid.css';
 import { formatDt } from '@/utils/fieldFormatters';
 
 // ---------------------------------------------------------------------------
+// Header label styles — behavior-driven (matches FieldRow convention)
+// ---------------------------------------------------------------------------
+
+const _HEADER_COLORS: Record<string, string> = {
+  readonly: '#94a3b8', timestamp: '#94a3b8',       // italic gray — system
+  email: '#166534', phone: '#166534', address: '#166534', url: '#166534', geo: '#166534', // green — action
+  select: '#1e40af', lookup: '#1e40af',             // blue — select
+};
+const _HEADER_ITALIC = new Set(['readonly', 'timestamp', 'hidden']);
+
+function _headerStyle(behType?: string): React.CSSProperties | undefined {
+  if (!behType) return undefined;
+  const color = _HEADER_COLORS[behType];
+  const italic = _HEADER_ITALIC.has(behType);
+  if (!color && !italic) return undefined;
+  return { color, fontStyle: italic ? 'italic' : undefined };
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -1019,7 +1038,7 @@ export default function DataGrid(props: DataGridProps) {
                       </span>
                     ) : (
                       <>
-                        <span className={fieldBehaviors[f]?.bulkEditable ? 'dg-th-name--bulk' : undefined}>{(fieldSpecs[f]?.label || fieldBehaviors[f]?.label || (f.includes('.') ? f.split('.').slice(-2).join('.') : f)).replace(/\[\d+\]$/, '')}</span>
+                        <span className={fieldBehaviors[f]?.bulkEditable ? 'dg-th-name--bulk' : undefined} style={_headerStyle(fieldBehaviors[f]?.type)}>{(fieldSpecs[f]?.label || fieldBehaviors[f]?.label || (f.includes('.') ? f.split('.').slice(-2).join('.') : f)).replace(/\[\d+\]$/, '')}</span>
                         {sortDir && <span className="dg-sort-arrow">{sortDir === 'asc' ? '↑' : '↓'}</span>}
                         {sortIdx >= 0 && <span className="dg-sort-order">({sortIdx + 1})</span>}
                       </>
