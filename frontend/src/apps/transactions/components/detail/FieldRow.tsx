@@ -197,6 +197,7 @@ export interface FieldRowProps {
 
 const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, options, fieldType, help, onChange }) => {
   const [showHelp, setShowHelp] = useState(false);
+  const [copyNote, setCopyNote] = useState<string | null>(null);
   const val = (field.includes('.') || field.includes('[')) ? getNestedValue(data, field) : data?.[field];
 
   // Label click: plain=action launch, Shift=help, Cmd=copy path
@@ -222,11 +223,17 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
     if (!strVal || strVal === '—') return;
     if (['phone', 'phone_cell', 'fax', 'number'].includes(actionKey) || label === 'phone') {
       navigator.clipboard.writeText(strVal).catch(() => {});
+      setCopyNote(`Copied ${strVal}`);
+      setTimeout(() => setCopyNote(null), 3000);
     } else if (actionKey === 'email' || label === 'email') {
       navigator.clipboard.writeText(strVal).catch(() => {});
+      setCopyNote('Copied — opening email');
+      setTimeout(() => setCopyNote(null), 2000);
       window.open(`mailto:${strVal}`, '_blank');
     } else if (['address', 'address_full', 'full_address'].includes(actionKey) || label === 'address') {
       navigator.clipboard.writeText(strVal).catch(() => {});
+      setCopyNote('Copied — opening maps');
+      setTimeout(() => setCopyNote(null), 2000);
       window.open(`https://maps.apple.com/?q=${encodeURIComponent(strVal)}`, '_blank');
     } else if (['website', 'url'].includes(actionKey)) {
       const href = strVal.startsWith('http') ? strVal : `https://${strVal}`;
@@ -268,6 +275,12 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
         <div className="absolute left-20 top-0 z-50 db-font-xs px-2 py-1 rounded shadow-lg max-w-64 whitespace-normal leading-relaxed"
           style={{ background: 'var(--db-surface-alt, #1e293b)', color: 'var(--db-text, #fff)', border: '1px solid var(--db-border, #334155)' }}>
           {help}
+        </div>
+      )}
+      {copyNote && (
+        <div className="absolute left-20 top-0 z-50 db-font-xs px-2 py-1 rounded shadow-lg whitespace-nowrap"
+          style={{ background: '#166534', color: '#fff', border: '1px solid #22c55e' }}>
+          {copyNote}
         </div>
       )}
       {options ? (
