@@ -921,6 +921,7 @@ function DynamicDetail({
                   setLinkedPanelModels(prev => prev.filter(p => p !== activeTab));
                   setActiveLinkedTab('contacts');
                 }}
+              />
               );
             })()}
 

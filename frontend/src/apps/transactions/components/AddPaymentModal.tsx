@@ -14,7 +14,6 @@ import { useDispatch } from 'react-redux';
 import { getRecords, saveRecord, manageAction } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
 import { formatDt } from '@/utils/fieldFormatters';
-import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import { formatCurrency } from '@/utils/stringUtils';
 
 interface PaymentMethod {
@@ -608,4 +607,4 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
   );
 };
 
-export default withDevIdentifier(AddPaymentModal, 'AddPaymentModal', 'rose', 'apps/transactions/components/AddPaymentModal.tsx');
+export default AddPaymentModal;
