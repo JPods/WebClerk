@@ -222,10 +222,6 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
     if (!strVal || strVal === '—') return;
     if (['phone', 'phone_cell', 'fax', 'number'].includes(actionKey) || label === 'phone') {
       navigator.clipboard.writeText(strVal).catch(() => {});
-      // tel: needs <a> click or location.href — window.open doesn't work on desktop
-      const a = document.createElement('a');
-      a.href = `tel:${strVal.replace(/[^\d+]/g, '')}`;
-      a.click();
     } else if (actionKey === 'email' || label === 'email') {
       navigator.clipboard.writeText(strVal).catch(() => {});
       window.open(`mailto:${strVal}`, '_blank');
