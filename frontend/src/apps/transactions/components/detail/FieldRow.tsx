@@ -274,7 +274,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
           value={typeof val === 'object' ? _firstScalar(val) : (val || '')}
           onChange={(e) => onChange(field, e.target.value)}
           className="flex-1 db-font-sm px-2 py-0.5 rounded cursor-pointer min-w-0"
-          style={{ border: '1px solid var(--db-border, #cbd5e1)', background: 'var(--db-surface-alt, #fff)', color: 'var(--db-text, #1e293b)' }}
+          style={{ border: '1px solid var(--db-border, #cbd5e1)', background: 'var(--db-surface-alt, #fff)', color: 'var(--db-text, #1e293b)', maxWidth: 240 }}
           title={pathDisplay}
           data-source={pathDisplay}
         >
@@ -287,12 +287,12 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
           value={isDate ? toISODate(val) : (displayVal === '—' ? '' : displayVal)}
           onChange={(e) => onChange(field, e.target.value)}
           className="flex-1 db-font-sm px-2 py-0.5 rounded min-w-0"
-          style={{ border: '1px solid var(--db-border, #cbd5e1)', background: 'var(--db-surface-alt, #fff)', color: 'var(--db-text, #1e293b)' }}
+          style={{ border: '1px solid var(--db-border, #cbd5e1)', background: 'var(--db-surface-alt, #fff)', color: 'var(--db-text, #1e293b)', maxWidth: 240 }}
           title={pathDisplay}
           data-source={pathDisplay}
         />
       ) : (
-        <span className="flex-1 db-font-sm min-w-0 truncate" style={{ color: 'var(--db-text, #1e293b)' }} title={pathDisplay}>{typeof displayVal === 'string' ? displayVal.split('|')[0] : displayVal}</span>
+        <span className="flex-1 db-font-sm min-w-0 truncate" style={{ color: 'var(--db-text, #1e293b)', maxWidth: 240 }} title={pathDisplay}>{typeof displayVal === 'string' ? displayVal.split('|')[0] : displayVal}</span>
       )}
     </div>
   );
