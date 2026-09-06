@@ -35,6 +35,7 @@ import { LinkedRecordsPanel } from '@/apps/common/components/panels/LinkedRecord
 import { TouchForm, type TouchFormContext } from '@/pages/admin/TouchForm';
 import { TOUCH_MODELS } from '@/pages/admin/TouchBar';
 import { getModelNames } from '@/api/wcapi';
+import { getLabelStyle, labelStyleForBehavior } from '@/apps/transactions/components/detail/FieldRow';
 
 // ── Field type registry ─────────────────────────────────────────────
 
@@ -228,6 +229,7 @@ function DynamicDetail({
   const [showTouchForm, setShowTouchForm] = useState(false);
   const [settingLayout, setSettingLayout] = useState<any>(null);
   const [settingFields, setSettingFields] = useState<Record<string, FieldConfig> | null>(null);
+  const [settingBehaviors, setSettingBehaviors] = useState<Record<string, any>>({});
   const [layoutSource, setLayoutSource] = useState<'setting' | 'report' | 'hardcoded'>('hardcoded');
 
   // fontSize follows --db-font-size (set by DataBrowser) + local A+/A- offset
@@ -372,6 +374,7 @@ function DynamicDetail({
         if (convertedRows.length > 0) {
           setSettingLayout({ rows: convertedRows });
           setSettingFields(convertedFields);
+          setSettingBehaviors(behaviors);
           setLayoutSource('setting');
           console.log(`[DynamicDetail] Loaded form layout from Setting for ${modelName}`, {
             sectionCount: formLayout.sections.length,
@@ -741,13 +744,18 @@ function DynamicDetail({
               const isContactSelect = cfg?.type === 'contact-select';
               const label = (cfg?.label || fieldName).replace(/\[\d+\]$/, '');
 
+              // Resolve label style from behavior type
+              const behType = settingBehaviors[fieldName.replace(/\[\d+\]$/, '')]?.type || cfg?.type;
+              const labelCat = labelStyleForBehavior(behType);
+              const labelSty = getLabelStyle(labelCat);
+
               // Select fields: colored label left, select control right
               if (isSelect) {
                 const currentOpt = cfg.options.find((o: any) => String(o.value) === String(values[fieldName]));
                 const displayText = currentOpt?.label || values[fieldName] || '—';
                 return (
                   <div key={fieldName}>
-                    <div className="font-mono text-[0.85em] mb-0.5 text-indigo-600 font-semibold">{label}</div>
+                    <div className="font-mono text-[0.85em] mb-0.5 font-semibold" style={labelSty}>{label}</div>
                     {editing ? (
                       <select
                         value={values[fieldName] ?? ''}
@@ -777,10 +785,9 @@ function DynamicDetail({
               }
 
               // Other fields: label + widget
-              const isInteractive = cfg?.type === 'search' || cfg?.type === 'action';
               return (
                 <div key={fieldName}>
-                  <div className={isInteractive ? "font-mono text-[0.85em] mb-0.5 text-indigo-600 font-semibold" : lClass}>{label}</div>
+                  <div className="font-mono text-[0.85em] mb-0.5" style={labelSty}>{label}</div>
                   {renderField(fieldName, disabled)}
                 </div>
               );

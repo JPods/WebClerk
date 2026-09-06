@@ -108,7 +108,12 @@ function detectFormatType(field: string, label: string): string | null {
 // Label styles
 // ---------------------------------------------------------------------------
 
-// Label style convention: select=blue, action=green, search=bold, readonly=italic, editable=normal
+// Label style convention:
+//   readonly/system = italic (system-managed, admin edits via JSON)
+//   action          = green  (phone/email/address/url — click launches)
+//   select          = blue   (dropdown)
+//   search          = bold   (reserved for toolbar search)
+//   editable        = normal
 // Colors from company prefs.layout.label_styles, with dark mode variants
 export const LABEL_STYLES: Record<string, { light: string; dark: string; fontWeight?: number; fontStyle?: string }> = {
   select:   { light: '#1e40af', dark: '#60a5fa' },
@@ -117,6 +122,33 @@ export const LABEL_STYLES: Record<string, { light: string; dark: string; fontWei
   readonly: { light: '#94a3b8', dark: '#64748b', fontStyle: 'italic' },
   editable: { light: '#64748b', dark: '#94a3b8' },
 };
+
+// Map behavior types to label style categories
+const BEHAVIOR_TO_LABEL: Record<string, string> = {
+  readonly: 'readonly', hidden: 'readonly',
+  select: 'select', lookup: 'select',
+  email: 'action', phone: 'action', address: 'action',
+  url: 'action', geo: 'action',
+  search: 'search',
+};
+
+/** Resolve label style from behavior type. */
+export function labelStyleForBehavior(behaviorType?: string): string {
+  if (!behaviorType) return 'editable';
+  return BEHAVIOR_TO_LABEL[behaviorType] || 'editable';
+}
+
+/** Get label style object — callable from loops (not a hook). */
+export function getLabelStyle(fieldType?: string): { color: string; fontWeight?: number; fontStyle?: string } {
+  const isDark = document.documentElement.classList.contains('dark')
+    || !!document.querySelector('[data-theme="dark"]');
+  const style = LABEL_STYLES[fieldType || 'editable'] || LABEL_STYLES.editable;
+  return {
+    color: isDark ? style.dark : style.light,
+    fontWeight: style.fontWeight,
+    fontStyle: style.fontStyle as any,
+  };
+}
 
 export const useLabelStyle = (fieldType?: string) => {
   // Check both Tailwind dark class AND DataBrowser data-theme attribute
