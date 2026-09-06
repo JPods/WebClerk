@@ -1014,17 +1014,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
               <SpawnLinks model={db.selectedModel} record={db.selectedRecord} recordId={db.selectedId} />
             )}
 
-            {/* Related panels — FK models listed in config.db.related[] */}
-            {db.selectedId && db.relatedModels.length > 0 && db.relatedModels.map((relModel) => (
-              <RelatedPanel
-                key={relModel}
-                modelName={relModel}
-                parentModel={db.selectedModel}
-                parentId={db.selectedId!}
-                fontSize={baseFontSize}
-                theme={tDetail}
-              />
-            ))}
+            {/* Related models render as LinkedRecordsPanels via refs.links — no generic panel */}
 
             {/* JSON envelope panel — tree editors for metadata, prefs, config, refs */}
             {viewPref !== 'app' && db.selectedRecord && (

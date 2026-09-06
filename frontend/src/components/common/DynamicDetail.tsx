@@ -878,46 +878,35 @@ function DynamicDetail({
         );
       })()}
 
-      {/* ── "+ Link..." — add a panel for any model ────────────── */}
+      {/* ── "+ Link" tab — add a panel for any model ────────────── */}
       {editing && (
-        <div style={{ padding: '4px 12px' }}>
-          {showModelPicker ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <select
-                className="db-input"
-                style={{ flex: 1, padding: '2px 6px' }}
-                className="db-input db-font-xs"
-                value=""
-                onChange={(e) => {
-                  const model = e.target.value;
-                  if (model && !linkedPanelModels.includes(model) && !SPECIALIZED.includes(model)) {
-                    // Adding a model panel creates an empty refs.links entry so the panel persists
-                    saveRecord(modelName, {
-                      id: Number(recordId),
-                      [`refs.links.${model}`]: [],
-                    }).catch(() => {});
-                    setLinkedPanelModels(prev => [...prev, model]);
-                  }
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '6px 12px', borderTop: '1px solid var(--db-border)' }}>
+          {availableModels
+            .filter(m => !SPECIALIZED.includes(m) && !linkedPanelModels.includes(m))
+            .slice(0, showModelPicker ? 999 : 0)
+            .map(m => (
+              <button
+                key={m}
+                onClick={() => {
+                  saveRecord(modelName, {
+                    id: Number(recordId),
+                    [`refs.links.${m}`]: [],
+                  }).catch(() => {});
+                  setLinkedPanelModels(prev => [...prev, m]);
                   setShowModelPicker(false);
                 }}
-              >
-                <option value="">Select model to link...</option>
-                {availableModels
-                  .filter(m => !SPECIALIZED.includes(m) && !linkedPanelModels.includes(m))
-                  .map(m => <option key={m} value={m}>{m}</option>)
-                }
-              </select>
-              <button onClick={() => setShowModelPicker(false)} className="db-text-dim db-font-xs">Cancel</button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowModelPicker(true)}
-              className="w-full rounded border border-dashed py-1 db-font-xs transition-colors"
-              style={{ borderColor: 'var(--db-border)', color: 'var(--db-text-dim)' }}
-            >
-              + Link...
-            </button>
-          )}
+                className="px-2 py-0.5 rounded db-font-xs transition-colors"
+                style={{ border: '1px solid var(--db-border)', color: 'var(--db-text-dim)', background: 'var(--db-surface-alt)' }}
+              >{m}</button>
+            ))
+          }
+          <button
+            onClick={() => setShowModelPicker(!showModelPicker)}
+            className="px-2 py-0.5 rounded db-font-xs transition-colors"
+            style={{ border: '1px dashed var(--db-border)', color: 'var(--db-text-dim)' }}
+          >
+            {showModelPicker ? '× close' : '+ link'}
+          </button>
         </div>
       )}
 
