@@ -896,12 +896,28 @@ class Command(BaseCommand):
             )
 
             if existing:
-                # Preserve hand-authored layout.form sections on --force
-                old_form = (existing.config or {}).get('layout', {}).get('form', {})
-                if old_form and isinstance(old_form, dict):
-                    for form_name, form_def in old_form.items():
-                        if isinstance(form_def, dict) and form_def.get('sections'):
-                            config.setdefault('layout', {}).setdefault('form', {})[form_name] = form_def
+                # MERGE, not REPLACE — preserve all hand-authored content.
+                # Auto-generated keys get overwritten; hand-authored keys survive.
+                # This is why the 3-card header stopped disappearing.
+                _PRESERVE_PATHS = [
+                    ('layout', 'form'),       # 3-card header sections
+                    ('layout', 'detail'),      # DynamicDetail sections
+                    ('layout', 'card'),        # card definitions
+                ]
+                old_config = existing.config or {}
+                for path in _PRESERVE_PATHS:
+                    old_val = old_config
+                    for key in path:
+                        old_val = old_val.get(key, {}) if isinstance(old_val, dict) else {}
+                    if not old_val or not isinstance(old_val, dict):
+                        continue
+                    # Preserve entries that have hand-authored content (sections, fields, etc.)
+                    target = config
+                    for key in path:
+                        target = target.setdefault(key, {})
+                    for name, defn in old_val.items():
+                        if isinstance(defn, dict) and (defn.get('sections') or defn.get('fields')):
+                            target[name] = defn
 
                 existing.config = config
                 existing.name = f'{meta.singular} Model Definition'
