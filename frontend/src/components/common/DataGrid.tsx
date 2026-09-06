@@ -961,7 +961,7 @@ export default function DataGrid(props: DataGridProps) {
   );
 
   return (
-    <div className="dg-root" role="grid" aria-label="Data grid" aria-rowcount={filteredRecords.length} aria-colcount={columns.length} style={{ '--dg-fs': `${fontSize}px`, '--dg-fs-sm': `${fontSize - 1}px`, '--dg-fs-xs': `${fontSize - 2}px` } as React.CSSProperties}>
+    <div className="dg-root" role="grid" aria-label="Data grid" aria-rowcount={filteredRecords.length} aria-colcount={columns.length} style={{ '--dg-fs': props.fontSize ? `${fontSize}px` : 'var(--db-font-size, 13px)', '--dg-fs-sm': props.fontSize ? `${fontSize - 1}px` : 'calc(var(--db-font-size, 13px) - 1px)', '--dg-fs-xs': props.fontSize ? `${fontSize - 2}px` : 'calc(var(--db-font-size, 13px) - 2px)' } as React.CSSProperties}>
       {!props.hideToolbar && toolbar}
       <div ref={scrollRef} className="dg-scroll" style={{ cursor: tableWidth > (scrollRef.current?.clientWidth ?? Infinity) ? 'grab' : undefined }}
         onMouseDown={(e) => {

@@ -356,7 +356,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
       onCellEdit={lc.canEdit ? lc.handleCellEdit : undefined}
       numId={(v: unknown) => typeof v === 'number' ? v : null}
       theme={lc.theme}
-      fontSize={12}
+      fontSize={undefined}  /* inherit --db-font-size from DataBrowser */
       footerBar={footerBar}
       panelContent={panelContent}
       onHeaderClick={lc.canEdit ? lc.openBulkEdit : undefined}
