@@ -43,14 +43,35 @@ export interface TabsRendererProps {
 const TabsRenderer: React.FC<TabsRendererProps> = ({ section, data, isEditing, modelName, activeTab, onTabChange, onChange, onRefresh, loggedInUserName }) => {
   const authUser = useAppSelector((s) => s.auth.user);
   const isStaff = authUser?.is_staff || authUser?.is_superuser || false;
-  // Default to first tab if activeTab not in this section
-  const tabIds = section.tabs.map(t => t.content);
-  const currentTab = tabIds.includes(activeTab) || activeTab === '_link' ? activeTab : tabIds[0] || 'summary';
+  // Dynamic tabs added via + link — persist in component state
+  const [extraTabs, setExtraTabs] = React.useState<string[]>([]);
+
+  // Discover linked models from refs.links that aren't in the static tabs
+  React.useEffect(() => {
+    const links = data?.refs?.links || {};
+    const staticIds = new Set(section.tabs.map(t => t.content));
+    const discovered = Object.keys(links).filter(k => !staticIds.has(k) && !staticIds.has(k + 's'));
+    if (discovered.length > 0) {
+      setExtraTabs(prev => {
+        const merged = new Set([...prev, ...discovered]);
+        return [...merged];
+      });
+    }
+  }, [data?.refs?.links, section.tabs]);
+
+  const addLinkedTab = React.useCallback((model: string) => {
+    setExtraTabs(prev => prev.includes(model) ? prev : [...prev, model]);
+    onTabChange(model);
+  }, [onTabChange]);
+
+  // All tabs: static from Setting + dynamically added
+  const allTabIds = [...section.tabs.map(t => t.content), ...extraTabs];
+  const currentTab = allTabIds.includes(activeTab) || activeTab === '_link' ? activeTab : allTabIds[0] || 'summary';
 
   return (
     <div className="bg-[var(--db-surface,#fff)] rounded-lg border border-[var(--db-border,#dee2e6)]">
       {/* Tab bar */}
-      <div className="flex border-b border-[var(--db-border,#dee2e6)] overflow-x-auto no-print">
+      <div className="flex flex-wrap border-b border-[var(--db-border,#dee2e6)] overflow-x-auto no-print">
         {section.tabs.map((tab) => (
           <button
             key={tab.content}
@@ -62,6 +83,19 @@ const TabsRenderer: React.FC<TabsRendererProps> = ({ section, data, isEditing, m
             }`}
           >
             {tab.label}
+          </button>
+        ))}
+        {extraTabs.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => onTabChange(tab)}
+            className={`px-4 py-2 db-font-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
+              currentTab === tab
+                ? 'border-blue-600 text-blue-600 '
+                : 'border-transparent text-[var(--db-text-muted,#6c757d)] hover:text-[var(--db-text,#212529)]'
+            }`}
+          >
+            {tab}
           </button>
         ))}
         <button
@@ -80,6 +114,7 @@ const TabsRenderer: React.FC<TabsRendererProps> = ({ section, data, isEditing, m
       <div className="p-4">
         <TabContent
           tabId={currentTab}
+          addLinkedTab={addLinkedTab}
           data={data}
           isEditing={isEditing}
           modelName={modelName}
@@ -106,7 +141,8 @@ export const TabContent: React.FC<{
   onChange: (field: string, value: unknown) => void;
   onRefresh: () => void;
   loggedInUserName?: string;
-}> = ({ tabId, data, isEditing, modelName, onChange, onRefresh, loggedInUserName }) => {
+  addLinkedTab?: (model: string) => void;
+}> = ({ tabId, data, isEditing, modelName, onChange, onRefresh, loggedInUserName, addLinkedTab }) => {
   switch (tabId) {
     case 'summary':
       return <SummaryTabContent data={data} modelName={modelName} />;
@@ -150,7 +186,7 @@ export const TabContent: React.FC<{
       );
 
     case '_link':
-      return <LinkPickerContent data={data} modelName={modelName} onTabChange={onRefresh} />;
+      return <LinkPickerContent data={data} modelName={modelName} onTabChange={addLinkedTab || onRefresh} />;
 
     /* qa handled by the combined linked-model case above */
 
@@ -396,7 +432,7 @@ export const ActionsTabContent: React.FC<{ data: any; modelName: string }> = ({ 
 };
 
 /** + link tab — shows all available models as clickable buttons */
-const LinkPickerContent: React.FC<{ data: any; modelName: string; onTabChange: () => void }> = ({ data, modelName, onTabChange }) => {
+const LinkPickerContent: React.FC<{ data: any; modelName: string; onTabChange: (model: string) => void }> = ({ data, modelName, onTabChange }) => {
   const [models, setModels] = React.useState<string[]>([]);
   React.useEffect(() => {
     getModelNames().then((res: any) => {
@@ -404,7 +440,7 @@ const LinkPickerContent: React.FC<{ data: any; modelName: string; onTabChange: (
     }).catch(() => {});
   }, []);
 
-  // Already-linked models from refs.links
+  // Already-linked models from refs.links + static tabs
   const linked = new Set(Object.keys(data?.refs?.links || {}));
 
   return (
@@ -418,7 +454,7 @@ const LinkPickerContent: React.FC<{ data: any; modelName: string; onTabChange: (
               saveRecord(modelName, {
                 id: data.id,
                 [`refs.links.${m}`]: [],
-              }).then(() => onTabChange()).catch(() => {});
+              }).then(() => onTabChange(m)).catch(() => {});
             }}
             className="px-2 py-0.5 rounded db-font-xs transition-colors"
             style={{ border: '1px solid var(--db-border)', color: 'var(--db-text-dim)', background: 'var(--db-surface-alt)' }}
