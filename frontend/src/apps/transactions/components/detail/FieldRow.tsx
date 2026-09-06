@@ -139,10 +139,12 @@ const BEHAVIOR_TO_LABEL: Record<string, string> = {
   // boolean, date, percentage, editor) → editable (normal gray)
 };
 
-// Detect label style from field name — universal conventions
+// Detect label style from field name or label — universal conventions
 // These fire regardless of model or behavior config
+// Checked against both field leaf name AND label prop
 const _NAME_TO_TYPE: Record<string, string> = {
   phone: 'action', phone_cell: 'action', fax: 'action',
+  number: 'action',   // phones.*.number
   email: 'action',
   address: 'action', address_full: 'action', full_address: 'action',
   website: 'action', url: 'action',
@@ -215,21 +217,22 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
     }
     // Plain click on action labels — launch tel/mailto/maps + copy to clipboard
     const leafN = field.split('.').pop()?.replace(/\[\d+\]$/, '') || '';
+    const actionKey = leafN || label;  // check both
     const strVal = typeof val === 'string' ? val : _firstScalar(val);
     if (!strVal || strVal === '—') return;
-    if (leafN === 'phone' || leafN === 'phone_cell' || leafN === 'fax') {
+    if (['phone', 'phone_cell', 'fax', 'number'].includes(actionKey) || label === 'phone') {
       navigator.clipboard.writeText(strVal).catch(() => {});
       // tel: needs <a> click or location.href — window.open doesn't work on desktop
       const a = document.createElement('a');
       a.href = `tel:${strVal.replace(/[^\d+]/g, '')}`;
       a.click();
-    } else if (leafN === 'email') {
+    } else if (actionKey === 'email' || label === 'email') {
       navigator.clipboard.writeText(strVal).catch(() => {});
       window.open(`mailto:${strVal}`, '_blank');
-    } else if (leafN === 'address' || leafN === 'address_full' || leafN === 'full_address') {
+    } else if (['address', 'address_full', 'full_address'].includes(actionKey) || label === 'address') {
       navigator.clipboard.writeText(strVal).catch(() => {});
       window.open(`https://maps.apple.com/?q=${encodeURIComponent(strVal)}`, '_blank');
-    } else if (leafN === 'website' || leafN === 'url') {
+    } else if (['website', 'url'].includes(actionKey)) {
       const href = strVal.startsWith('http') ? strVal : `https://${strVal}`;
       window.open(href, '_blank');
     }
@@ -242,9 +245,9 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
     : typeof val === 'object' ? (val as any)?.name || (val as any)?.display_name || (val as any)?.ida || _firstScalar(val)
     : String(val);
   // Derive field type: explicit > name convention > has options > editable
-  // Field name convention detects actionable fields regardless of model
+  // Check both field path leaf AND label for actionable field detection
   const leafName = field.split('.').pop()?.replace(/\[\d+\]$/, '') || field;
-  const nameType = _NAME_TO_TYPE[leafName];
+  const nameType = _NAME_TO_TYPE[leafName] || _NAME_TO_TYPE[label];
   const resolvedType = fieldType || nameType || (options ? 'select' : 'editable');
   const labelStyle = useLabelStyle(resolvedType);
   const isClickable = resolvedType === 'select' || resolvedType === 'action' || resolvedType === 'search';
