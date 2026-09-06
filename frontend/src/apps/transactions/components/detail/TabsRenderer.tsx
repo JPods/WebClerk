@@ -45,7 +45,7 @@ const TabsRenderer: React.FC<TabsRendererProps> = ({ section, data, isEditing, m
   const isStaff = authUser?.is_staff || authUser?.is_superuser || false;
   // Default to first tab if activeTab not in this section
   const tabIds = section.tabs.map(t => t.content);
-  const currentTab = tabIds.includes(activeTab) ? activeTab : tabIds[0] || 'summary';
+  const currentTab = tabIds.includes(activeTab) || activeTab === '_link' ? activeTab : tabIds[0] || 'summary';
 
   return (
     <div className="bg-[var(--db-surface,#fff)] rounded-lg border border-[var(--db-border,#dee2e6)]">
@@ -64,18 +64,16 @@ const TabsRenderer: React.FC<TabsRendererProps> = ({ section, data, isEditing, m
             {tab.label}
           </button>
         ))}
-        {isEditing && (
-          <button
-            onClick={() => onTabChange('_link')}
-            className={`px-4 py-2 db-font-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
-              currentTab === '_link'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-[var(--db-text-muted,#6c757d)] hover:text-[var(--db-text,#212529)]'
-            }`}
-          >
-            + link
-          </button>
-        )}
+        <button
+          onClick={() => onTabChange('_link')}
+          className={`px-4 py-2 db-font-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
+            currentTab === '_link'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-[var(--db-text-muted,#6c757d)] hover:text-[var(--db-text,#212529)]'
+          }`}
+        >
+          + link
+        </button>
       </div>
 
       {/* Tab content */}
