@@ -896,6 +896,13 @@ class Command(BaseCommand):
             )
 
             if existing:
+                # Preserve hand-authored layout.form sections on --force
+                old_form = (existing.config or {}).get('layout', {}).get('form', {})
+                if old_form and isinstance(old_form, dict):
+                    for form_name, form_def in old_form.items():
+                        if isinstance(form_def, dict) and form_def.get('sections'):
+                            config.setdefault('layout', {}).setdefault('form', {})[form_name] = form_def
+
                 existing.config = config
                 existing.name = f'{meta.singular} Model Definition'
                 existing.explanation = expl
