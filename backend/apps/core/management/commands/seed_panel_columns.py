@@ -109,6 +109,41 @@ PANEL_COLUMNS = {
         f('status', width=70),
     ],
 
+    # --- Orgs (as panels on transactions/contacts) ---
+    'customer': [
+        f('ida', width=80),
+        f('company', width=200),
+        f('status', width=70),
+        f('phone', width=120, format='phone'),
+    ],
+    'vendor': [
+        f('ida', width=80),
+        f('company', width=200),
+        f('status', width=70),
+    ],
+    'manufacturer': [
+        f('ida', width=80),
+        f('company', width=200),
+        f('status', width=70),
+    ],
+    'employee': [
+        f('ida', width=80),
+        f('display_name', width=200),
+        f('status', width=70),
+        f('email', width=180),
+    ],
+    'rep': [
+        f('ida', width=80),
+        f('display_name', width=200),
+        f('status', width=70),
+    ],
+    'contact': [
+        f('ida', width=80),
+        f('attention', width=150),
+        f('email', width=180),
+        f('phone', width=120, format='phone'),
+    ],
+
     # --- Transactions (as panels on orgs/contacts) ---
     'order': [
         f('ida', width=80),
@@ -234,6 +269,25 @@ PANEL_COLUMNS = {
         f('debit', width=80, align='right', format='currency'),
         f('credit', width=80, align='right', format='currency'),
         f('source', width=100),
+        f('dt_created', width=90, format='date'),
+    ],
+    # --- Projects / Misc ---
+    'project': [
+        f('ida', width=80),
+        f('name', width=200),
+        f('status', width=70),
+        f('dt_created', width=90, format='date'),
+    ],
+    'item': [
+        f('ida', width=80),
+        f('sku', width=100),
+        f('description', width=200),
+        f('status', width=70),
+    ],
+    'notification': [
+        f('ida', width=80),
+        f('subject', width=200),
+        f('status', width=70),
         f('dt_created', width=90, format='date'),
     ],
 }
