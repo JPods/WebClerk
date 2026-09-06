@@ -1,7 +1,7 @@
 /* LastChecked: 2026-08-02 | WhereUsed: UiDetail | WhoCreated: Claude */
 import React from 'react';
 import { useAppSelector } from '@/store/hooks';
-import { getRecords } from '@/api/wcapi';
+import { getRecords, saveRecord, getModelNames } from '@/api/wcapi';
 import { formatDt } from '@/utils/fieldFormatters';
 import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
 import FinancialsPanel from '@/apps/common/components/panels/FinancialsPanel';
@@ -64,6 +64,18 @@ const TabsRenderer: React.FC<TabsRendererProps> = ({ section, data, isEditing, m
             {tab.label}
           </button>
         ))}
+        {isEditing && (
+          <button
+            onClick={() => onTabChange('_link')}
+            className={`px-4 py-2 db-font-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
+              currentTab === '_link'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-[var(--db-text-muted,#6c757d)] hover:text-[var(--db-text,#212529)]'
+            }`}
+          >
+            + link
+          </button>
+        )}
       </div>
 
       {/* Tab content */}
@@ -139,41 +151,8 @@ export const TabContent: React.FC<{
         />
       );
 
-    /* contacts, documents, actions, touches handled by the combined case above */
-
-    case 'related_transactions': {
-      const links = data?.refs?.links || {};
-      const relatedRows: any[] = [];
-      for (const [linkType, items] of Object.entries(links)) {
-        if (!Array.isArray(items)) continue;
-        for (const item of items as any[]) {
-          const obj = item.contact || item.customer || item;
-          relatedRows.push({
-            id: obj.id || 0,
-            type: linkType,
-            ida: obj.ida || '',
-            name: obj.display_name || obj.company || obj.name || obj.attention || '',
-          });
-        }
-      }
-      if (!relatedRows.length) return <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] db-font-sm">No related records</div>;
-
-      const relCols: PanelColumnDef<Record<string, unknown>>[] = [
-        { key: 'type', label: 'type', cellClassName: 'w-[90px] font-semibold text-[var(--db-text,#212529)]', render: (r) => String(r.type ?? '—') },
-        { key: 'ida', label: 'ida', cellClassName: 'w-[120px] font-mono text-[var(--db-text-muted,#6c757d)]', render: (r) => String(r.ida ?? '—') },
-        { key: 'name', label: 'name', cellClassName: 'min-w-[200px] flex-1 text-[var(--db-text,#212529)]', render: (r) => String(r.name ?? '—') },
-      ];
-
-      return (
-        <PanelTable
-          storageKey={`panel:${modelName}:related`}
-          columns={relCols}
-          data={relatedRows}
-          rowKey={(r: any) => `${r.type}-${r.id}`}
-          compact
-        />
-      );
-    }
+    case '_link':
+      return <LinkPickerContent data={data} modelName={modelName} onTabChange={onRefresh} />;
 
     /* qa handled by the combined linked-model case above */
 
@@ -190,12 +169,24 @@ export const TabContent: React.FC<{
         </div>
       );
 
-    default:
+    default: {
+      // Dynamic linked model tab — any model added via + link
+      if (data?.id) {
+        return (
+          <LinkedRecordsPanel
+            linkedModel={tabId}
+            parentModel={modelName}
+            parentId={data.id}
+            defaultCollapsed={false}
+          />
+        );
+      }
       return (
         <div className="text-center py-8 text-[var(--db-text-dim,#adb5bd)] db-font-sm">
-          Tab "{tabId}" not implemented
+          No {tabId} linked
         </div>
       );
+    }
   }
 };
 
@@ -402,6 +393,40 @@ export const ActionsTabContent: React.FC<{ data: any; modelName: string }> = ({ 
           </span>
         </div>
       ))}
+    </div>
+  );
+};
+
+/** + link tab — shows all available models as clickable buttons */
+const LinkPickerContent: React.FC<{ data: any; modelName: string; onTabChange: () => void }> = ({ data, modelName, onTabChange }) => {
+  const [models, setModels] = React.useState<string[]>([]);
+  React.useEffect(() => {
+    getModelNames().then((res: any) => {
+      setModels(Array.isArray(res?.model_names) ? res.model_names.sort() : []);
+    }).catch(() => {});
+  }, []);
+
+  // Already-linked models from refs.links
+  const linked = new Set(Object.keys(data?.refs?.links || {}));
+
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+      {models
+        .filter(m => m !== modelName && !linked.has(m))
+        .map(m => (
+          <button
+            key={m}
+            onClick={() => {
+              saveRecord(modelName, {
+                id: data.id,
+                [`refs.links.${m}`]: [],
+              }).then(() => onTabChange()).catch(() => {});
+            }}
+            className="px-2 py-0.5 rounded db-font-xs transition-colors"
+            style={{ border: '1px solid var(--db-border)', color: 'var(--db-text-dim)', background: 'var(--db-surface-alt)' }}
+          >{m}</button>
+        ))
+      }
     </div>
   );
 };
