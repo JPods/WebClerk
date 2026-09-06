@@ -1,6 +1,6 @@
 /* LastChecked: 2026-08-02 | WhereUsed: App root | WhoCreated: Claude */
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { WindowManagerNavigationSync } from "../context/WindowManagerContext";
 import { DataSetBadge } from '../components/DataSetBadge';
 import { DevTools } from '../components/DevTools';
@@ -37,6 +37,17 @@ const Onboarding = React.lazy(() => import("../pages/Onboarding"));
 const S: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <React.Suspense fallback={<div style={{padding:40}}>Loading...</div>}>{children}</React.Suspense>
 );
+
+/** Redirect legacy nested paths to flat /{model}/{id} */
+const MODEL_ALIASES: Record<string, string> = {
+  'purchase-order': 'purchase', 'work-order': 'workorder',
+  'actions': 'action', 'contacts': 'contact',
+};
+function AliasRedirect() {
+  const params = useParams();
+  const model = MODEL_ALIASES[params.model || ''] || params.model?.replace(/-/g, '_');
+  return <Navigate to={`/${model}/${params.id}`} replace />;
+}
 
 /** Redirect portal users to /portal, employees to /dashboard */
 const HomeRedirect: React.FC = () => {
@@ -117,13 +128,25 @@ const Router: React.FC = () => {
           {/* Legacy /db/ routes — keep working for bookmarks */}
           <Route path="db/:model" element={<DataBrowser />} />
 
-          {/* /:model = list, /:model/:id = record */}
+          {/* /:model/:id — universal flat record route */}
           {TRANSACTION_MODELS.map(m => <Route key={`${m}-id`} path={`${m}/:id`} element={<S><UiDetail modelName={m} /></S>} />)}
-          {['contact', 'item', 'customer', 'vendor', 'manufacturer', 'employee', 'rep', 'action', 'touch'].map(m =>
+          {['contact', 'item', 'customer', 'vendor', 'manufacturer', 'employee', 'rep', 'action', 'touch',
+            'document', 'setting', 'report', 'serial', 'project', 'email', 'phone', 'address', 'domain',
+            'notification', 'warehouse', 'catalog', 'payment_method', 'gl_account', 'ledger', 'audit',
+          ].map(m =>
             <Route key={`${m}-id`} path={`${m}/:id`} element={<S><ModelDetailPage modelName={m} /></S>} />
           )}
           {/* /td/:model/:id — alternate record route */}
           <Route path="td/:model/:id" element={<S><UiDetail /></S>} />
+
+          {/* Legacy nested paths → redirect to flat /{model}/{id} */}
+          <Route path="transactions/:model/detail/:id" element={<AliasRedirect />} />
+          <Route path="org/:model/detail/:id" element={<AliasRedirect />} />
+          <Route path="products/:model/detail/:id" element={<AliasRedirect />} />
+          <Route path="accounts/:model/detail/:id" element={<AliasRedirect />} />
+          <Route path="communications/:model/detail/:id" element={<AliasRedirect />} />
+          <Route path="core/:model/detail/:id" element={<AliasRedirect />} />
+          <Route path="docs/:model/detail/:id" element={<AliasRedirect />} />
 
           {/* Token builder — {{field.path}} clipboard tool */}
           <Route path="tokens" element={<TokenBuilderPage />} />
