@@ -342,7 +342,7 @@ function DynamicDetail({
                   cfg.type = 'contact-select' as any;
                 } else if (f.type === 'readonly' || f.type === 'read_only') {
                   cfg.type = 'readonly';
-                } else if (f.type === 'date' || fieldName.startsWith('dt_')) {
+                } else if (f.type === 'date' || f.type === 'timestamp' || fieldName.startsWith('dt_')) {
                   cfg.type = 'date';
                 } else if (f.type === 'number') {
                   cfg.type = 'number';
@@ -437,8 +437,10 @@ function DynamicDetail({
             const val = fieldName.includes(".")
               ? getNestedValue(data, fieldName)
               : data[fieldName];
+            // dt_ fields are always dates, regardless of current value
+            const leafN = fieldName.split('.').pop() || fieldName;
             merged[fieldName] = {
-              type: inferFieldType(val),
+              type: leafN.startsWith('dt_') ? 'date' : inferFieldType(val),
               label: (fieldName.split(".").pop() || fieldName).replace(/\[\d+\]$/, ''),
             };
           }

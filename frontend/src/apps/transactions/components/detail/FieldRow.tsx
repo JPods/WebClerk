@@ -233,7 +233,8 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
       window.open(href, '_blank');
     }
   };
-  const isDate = field.startsWith('dt_') || DATE_FIELDS.has(field) || DATE_FIELDS.has(label);
+  const isDate = field.startsWith('dt_') || DATE_FIELDS.has(field) || DATE_FIELDS.has(label)
+    || fieldType === 'date' || fieldType === 'timestamp';
   const fmtType = detectFormatType(field, label);
   const displayVal = val == null ? '—'
     : isDate ? formatDate(val)

@@ -55,6 +55,7 @@ export const WIDGETS: Record<string, React.ComponentType<WidgetProps>> = {
   textarea: TextAreaWidget,
   select: SelectWidget,
   date: DateWidget,
+  timestamp: DateWidget,
   number: NumberWidget,
   currency: CurrencyWidget,
   readonly: ReadonlyWidget,
