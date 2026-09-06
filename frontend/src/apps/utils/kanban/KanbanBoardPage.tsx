@@ -3066,9 +3066,9 @@ const KanbanBoardPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-1 px-2 py-1" style={{ fontSize: 12, color: '#9cdcfe' }}>
+      <div className="flex items-center gap-1 px-2 py-1" style={{ fontSize: 12, color: 'var(--db-accent, #2563eb)' }}>
         <Link to={PageRoutes.multiProjectGantt}
-          style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe', textDecoration: 'none' }}
+          style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--db-accent, #2563eb)', textDecoration: 'none' }}
         >📋 Multi-Project</Link>
           <SegmentedProjectSelector
             options={projectOptions}
@@ -3092,7 +3092,7 @@ const KanbanBoardPage: React.FC = () => {
             <button
               onClick={() => setIsContactManagerOpen(true)}
               title="Manage project contacts"
-              style={{ padding: '2px 6px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#4ec98c', lineHeight: 1 }}
+              style={{ padding: '2px 6px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--db-accent-green, #16a34a)', lineHeight: 1 }}
             >+</button>
           )}
           <select value={columnsPerRow} onChange={(event) => setColumnsPerRow(Number(event.target.value))}
@@ -3104,16 +3104,16 @@ const KanbanBoardPage: React.FC = () => {
             ))}
           </select>
           <button onClick={() => setIsGenerateOpen(true)} title="Generate kanban project records"
-            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe' }}
+            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--db-accent, #2563eb)' }}
           >📦 Gen Projects</button>
           <button onClick={() => void handleNewActionFloating()}
-            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: '#4ec98c' }}
+            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--db-accent-green, #16a34a)' }}
           >+ New Action</button>
           <button onClick={() => void handleManualRefresh()} disabled={isRefreshing || isLoading}
             title={`Last refreshed: ${formatLastRefresh(lastRefreshTime)}. Auto-refresh every 5 minutes${isAnyModalOpen ? ' (paused while dialog open)' : ''}`}
-            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: isRefreshing ? 'default' : 'pointer', opacity: isRefreshing ? 0.4 : 1, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: '#9cdcfe' }}
+            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: isRefreshing ? 'default' : 'pointer', opacity: isRefreshing ? 0.4 : 1, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--db-accent, #2563eb)' }}
           >🔄 {isRefreshing ? "Refreshing..." : "Refresh"}</button>
-          <span style={{ fontSize: 10, color: '#888' }} title="Auto-refresh every 5 minutes">
+          <span style={{ fontSize: 10, color: 'var(--db-text-muted)' }} title="Auto-refresh every 5 minutes">
             {formatLastRefresh(lastRefreshTime)}
           </span>
       </div>

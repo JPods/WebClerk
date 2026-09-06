@@ -11,6 +11,19 @@
 import type { PanelColumnDef } from './PanelTable';
 import { formatField, type FieldType } from '@/utils/fieldFormatters';
 
+// ── Dot-path resolution (e.g. "comments.process") ──────────────────────
+
+function resolveDotPath(obj: Record<string, unknown>, path: string): unknown {
+  if (!path.includes('.')) return obj[path];
+  const parts = path.split('.');
+  let cur: unknown = obj;
+  for (const p of parts) {
+    if (cur == null || typeof cur !== 'object') return undefined;
+    cur = (cur as Record<string, unknown>)[p];
+  }
+  return cur;
+}
+
 // ── Types matching DbFieldSpec from setting.py ───────────────────────────
 
 interface DbFieldSpec {
@@ -64,14 +77,20 @@ export function buildColumnsFromSpecs(specs: DbFieldSpec[]): PanelColumnDef<Reco
       const width = s.width ? `w-[${s.width}px]` : (WIDTH_BY_NAME[s.field] ?? '');
       const flex = width ? '' : 'min-w-[60px] flex-1';
 
+      // Label: use leaf segment for dot-paths (e.g. "comments.process" → "process")
+      const label = s.field.includes('.')
+        ? s.field.split('.').pop()!.replace(/_/g, ' ')
+        : s.field.replace(/_/g, ' ');
+
       return {
         key: s.field,
-        label: s.field.replace(/_/g, ' '),
+        label,
         cellClassName: `truncate ${width} ${flex} ${align} `.trim(),
         render: (r: Record<string, unknown>) => {
-          const val = r[s.field];
+          const val = resolveDotPath(r, s.field);
           if (val == null || val === '') return '—';
           if (fmt) return formatField(val, fmt, s.field);
+          if (typeof val === 'object') return JSON.stringify(val).slice(0, 80);
           return String(val);
         },
       } satisfies PanelColumnDef<Record<string, unknown>>;
