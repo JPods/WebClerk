@@ -824,8 +824,11 @@ function DynamicDetail({
 
       {/* ── Tabbed panels — contacts, linked models, files ──────── */}
       {(() => {
-        // Tabs from Setting + any dynamically added linked models
-        const extraLinked = linkedPanelModels.filter(m => !settingTabs.includes(m));
+        // Tabs from Setting + any dynamically added linked models (deduplicated)
+        const tabSet = new Set(settingTabs);
+        const extraLinked = linkedPanelModels.filter(m =>
+          !tabSet.has(m) && !tabSet.has(m + 's') && !tabSet.has(m + 'es')
+        );
         const allTabs = [...settingTabs, ...extraLinked];
         const activeTab = showModelPicker ? '_link' : (allTabs.includes(activeLinkedTab) ? activeLinkedTab : allTabs[0]);
 
@@ -898,10 +901,17 @@ function DynamicDetail({
               />
             )}
 
-            {activeTab !== 'contacts' && activeTab !== 'files' && activeTab !== '_link' && (
+            {activeTab !== 'contacts' && activeTab !== 'files' && activeTab !== '_link' && (() => {
+              // Tab names may be plural (actions, touches, documents) — resolve to singular model name
+              const linkedModel = activeTab.endsWith('es') && !availableModels.includes(activeTab)
+                ? activeTab.slice(0, -2)  // touches → touch
+                : activeTab.endsWith('s') && !availableModels.includes(activeTab)
+                ? activeTab.slice(0, -1)  // actions → action, documents → document
+                : activeTab;
+              return (
               <LinkedRecordsPanel
-                key={activeTab}
-                linkedModel={activeTab}
+                key={linkedModel}
+                linkedModel={linkedModel}
                 parentModel={modelName}
                 parentId={Number(recordId)}
                 defaultCollapsed={false}
@@ -911,8 +921,8 @@ function DynamicDetail({
                   setLinkedPanelModels(prev => prev.filter(p => p !== activeTab));
                   setActiveLinkedTab('contacts');
                 }}
-              />
-            )}
+              );
+            })()}
 
             {/* "+ link" picker — shows available models as clickable buttons */}
             {activeTab === '_link' && (
