@@ -7,6 +7,7 @@ import type { KanbanTask, TaskPriority } from "./type/kanban";
 import { DRAG_TYPE_TASK, type DragItem, type DropResult } from "./dndTypes";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import { formatDt } from '@/utils/fieldFormatters';
+import { TimeClockBadge } from '@/components/widgets/TimeClockWidget';
 
 export interface MoveToProjectOption {
   id: string;
@@ -43,9 +44,10 @@ interface TaskCardProps {
   isSubtask?: boolean;
   moveToOptions?: MoveToProjectOption[];
   onMoveToProject?: (taskId: string | number, projectId: string, projectName: string) => void;
+  onTimeClock?: (taskId: string | number, updatedTimes: any) => void;
 }
 
-const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onDragEnd, onTaskClick, isSubtask = false, moveToOptions, onMoveToProject }) => {
+const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onDragEnd, onTaskClick, isSubtask = false, moveToOptions, onMoveToProject, onTimeClock }) => {
   const ref = useRef<HTMLDivElement | null>(null);
   const [moveOpen, setMoveOpen] = useState(false);
   const moveRef = useRef<HTMLDivElement>(null);
@@ -225,6 +227,12 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-3 db-font-xs" style={{ color: 'var(--db-text-muted)' }}>
+        {/* Time clock badge */}
+        <TimeClockBadge
+          times={task.config?.times}
+          onClick={(updatedTimes) => onTimeClock?.(task.id, updatedTimes)}
+        />
+
         {task.properties?.dates?.start?.dt && (
           <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 db-font-xs font-medium" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
             Start:

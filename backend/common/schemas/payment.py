@@ -115,6 +115,66 @@ class PaymentRefs(RefsBase):
 
 # ── Setting(payment, field_access).prefs ────────────────────────────
 
+# ── Dual Pricing (Setting-level config) ───────────────────────────
+
+class DualPricingConfig(BaseModel):
+    """Setting(purpose='wc:dual_pricing').config structure.
+
+    Dual pricing / cash discount program. The merchant stores one price
+    (the cash price). Card customers see a higher total. Legal in all
+    50 US states when framed as a cash discount, not a surcharge.
+
+    card_rate: percentage added to the cash total for card payments.
+    Typical range 2.5–4.0%. Visa/MC cap surcharges at 4%.
+    disclosure_text: shown at checkout near payment method selector.
+    gl_account: GL account for card surcharge revenue/offset.
+    exempt_methods: payment methods that get the cash price (ACH, wire,
+    check, debit). Debit cards cannot be surcharged — card brand rule.
+    """
+    enabled: bool = False
+    card_rate: float = Field(
+        3.5, ge=0, le=4.0,
+        description="Card surcharge rate as percentage (e.g. 3.5 = 3.5%)",
+    )
+    disclosure_text: str = Field(
+        "Save {rate}% by paying with ACH, check, or cash.",
+        description="Shown at checkout. {rate} is replaced with card_rate.",
+    )
+    gl_account: str = Field(
+        'REV-SURCHARGE-000',
+        description="GL account for surcharge revenue",
+    )
+    exempt_methods: list[str] = Field(
+        default_factory=lambda: ['cash', 'check', 'ach', 'wire', 'debit'],
+        description="Payment methods that receive the cash (base) price",
+    )
+    apply_before_tax: bool = Field(
+        True,
+        description="If True, surcharge is computed on subtotal before tax. "
+                    "If False, computed on grand total.",
+    )
+
+    class Config:
+        extra = "forbid"
+
+
+class DualPricingProjection(BaseModel):
+    """Computed dual pricing for a specific transaction.
+
+    Returned by the dual_pricing service. Not stored — computed on demand.
+    Optionally cached in totals.custom.dual_pricing for audit trail.
+    """
+    enabled: bool = False
+    cash_total: float = 0.0
+    card_total: float = 0.0
+    card_rate: float = 0.0
+    adjustment_amount: float = 0.0
+    disclosure_text: str = ''
+
+    class Config:
+        extra = "forbid"
+
+
 class PaymentSettingDefaults(BaseModel):
     """Installation-level defaults for new Payment records.
     Lives in Setting(parent_model='payment', purpose='wc:field_access').prefs.defaults

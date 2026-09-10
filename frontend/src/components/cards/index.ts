@@ -12,3 +12,5 @@ export { getCardComponent, getFooterComponent, registerCardComponent, registerFo
 import './CustomerSearchCard';
 import './ActionSummaryFooter';
 import './FlightSimCard';
+import './TimeClockCard';
+import './BillableCard';

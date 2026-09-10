@@ -9,6 +9,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from .envelopes import ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, SourceRef
+from .images import ItemImages
 
 
 # ── .quantity (Item-specific, not an envelope — lives on Item.quantity JSONB) ──
@@ -47,6 +48,7 @@ class ItemConfig(ConfigBase):
 class ItemMetadata(MetadataBase):
     """Item-specific metadata. Standard fields inherited."""
     variants: Optional[dict] = None    # system-managed variant matrix
+    images: Optional[ItemImages] = None
 
 
 # ── .prefs ─────────────────────────────────────────────────────────

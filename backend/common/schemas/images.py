@@ -3,13 +3,12 @@ Image schemas — standard image metadata for contacts, orgs, and items.
 
 All images stored as paths in metadata.images. Actual files in /media/.
 Resizing happens at upload time via Pillow. Schemas validate the structure.
+Standard format: .jpg (except SVG placeholders and logos needing transparency).
 
 Sizes:
-  tn       — 64px  thumbnail (lists, badges, gantt assignee)
-  sm       — 128px small (contact card, chat avatar)
-  md       — 256px medium (profile page, directory)
-  lg       — 512px large (detail page hero)
-  original — full  (user download, print)
+  tn    — 90px max  thumbnail (lists, badges, cart lines)
+  md    — 256px     catalog grid, cards, profile
+  hires — original  detail page, zoom, print
 """
 from __future__ import annotations
 
@@ -18,12 +17,10 @@ from pydantic import BaseModel, Field
 
 
 class ImageSet(BaseModel):
-    """Standard image size set — used for any entity's primary image."""
-    tn: Optional[str] = None        # 64px  — thumbnail
-    sm: Optional[str] = None        # 128px — small
-    md: Optional[str] = None        # 256px — medium
-    lg: Optional[str] = None        # 512px — large
-    original: Optional[str] = None  # full resolution
+    """Standard 3-size image set — .jpg, stored as relative paths."""
+    tn: Optional[str] = None        # 90px max — thumbnail
+    md: Optional[str] = None        # 256px — catalog/cards
+    hires: Optional[str] = None     # original resolution
     alt: Optional[str] = None       # alt text for accessibility
 
     class Config:

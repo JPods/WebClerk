@@ -4,6 +4,7 @@ import FieldRow from './FieldRow';
 import { getNestedValue } from './FieldRow';
 import CardRenderer from '@/components/cards/CardRenderer';
 import type { CardSpec } from '@/components/cards';
+import { WIDGETS } from '@/components/widgets';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -76,7 +77,16 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
     const templateCols = weights.map((w: number) => `${w}fr`).join(' ');
     return (
       <div className="grid gap-3" style={{ gridTemplateColumns: colCount <= 1 ? '1fr' : templateCols }}>
-        {section.columns.map((col: any, colIdx: number) => (
+        {section.columns.map((col: any, colIdx: number) => {
+          // Detect single-widget columns — render widget directly, no FieldRow
+          const isSingleWidget = col.fields?.length === 1 && col.fields[0].type && WIDGETS[col.fields[0].type];
+          if (col.fields?.length === 1) console.log('[HeaderRenderer] single-field col:', col.title, col.fields[0].type, 'inWIDGETS:', !!WIDGETS[col.fields[0].type], 'isSingleWidget:', isSingleWidget);
+          const widgetField = isSingleWidget ? col.fields[0] : null;
+          const widgetType = widgetField?.type;
+          const Widget = widgetType ? WIDGETS[widgetType] : null;
+          const widgetVal = widgetField ? getNestedValue(data, widgetField.field) : undefined;
+
+          return (
           <div
             key={colIdx}
             className="rounded-lg p-3"
@@ -148,7 +158,16 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
                 </div>
               )}
             </div>
-            {col.fields.map((f: any) => {
+            {/* Single-widget column: render widget directly, no FieldRow label */}
+            {isSingleWidget && Widget ? (
+              <Widget
+                name={widgetField!.field}
+                value={widgetVal}
+                onChange={(v: unknown) => onChange(widgetField!.field, v)}
+                disabled={!isEditing}
+                record={data}
+              />
+            ) : col.fields.map((f: any) => {
               // Merge behavior into field def — behavior provides type/options when field def doesn't
               const beh = behaviors[f.field] || {};
               const fieldType = f.type || beh.type;
@@ -194,7 +213,8 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     );
   }

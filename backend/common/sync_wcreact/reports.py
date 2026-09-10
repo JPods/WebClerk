@@ -407,6 +407,12 @@ REPORT_DEFS: dict[str, list[dict]] = {
         {"name": "Journal Listing",                "description": "GL entries listed by period",                       "output_type": "print",  "category": "list",    "sort_order": 30,  "role_required": "admin"},
         {"name": "Sales Journal",                  "description": "Posted sales entries for period",                   "output_type": "print",  "category": "report",  "sort_order": 40,  "role_required": "admin"},
         {"name": "Purchase Journal",               "description": "Posted purchase entries for period",                "output_type": "print",  "category": "report",  "sort_order": 50,  "role_required": "admin"},
+        # --- Accounting export formats ---
+        {"name": "GL Export — Generic CSV",        "description": "GL journal export — generic CSV importable by most accounting programs",  "output_type": "export", "category": "export",  "sort_order": 100, "role_required": "admin"},
+        {"name": "GL Export — Generic JSON",       "description": "GL journal export — canonical JSON bundle with control totals",           "output_type": "export", "category": "export",  "sort_order": 110, "role_required": "admin"},
+        {"name": "GL Export — QuickBooks IIF",     "description": "GL journal export — QuickBooks Desktop IIF format",                      "output_type": "export", "category": "export",  "sort_order": 120, "role_required": "admin"},
+        {"name": "GL Export — Xero CSV",           "description": "GL journal export — Xero manual journal CSV import format",              "output_type": "export", "category": "export",  "sort_order": 130, "role_required": "admin"},
+        {"name": "GL Export — Sage CSV",           "description": "GL journal export — Sage 50 general journal CSV import format",           "output_type": "export", "category": "export",  "sort_order": 140, "role_required": "admin"},
     ],
 
     # ===================================================================

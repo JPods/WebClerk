@@ -33,7 +33,7 @@ import {
 import { useSidebar } from "../context/SidebarContext";
 import { PageRoutes } from "@/routes/Routes";
 import { useWindowManager } from "../context/WindowManagerContext";
-import { getUI } from "@/utils/contactUI";
+import { getUI, setUI } from "@/utils/contactUI";
 import { useAppSelector } from "../store/hooks";
 
 type NavItem = {
@@ -182,12 +182,52 @@ const AppSidebar: React.FC = () => {
   const PORTAL_VENDOR_MODELS = ['purchase', 'item', 'contact', 'action'];
   const PORTAL_DASHBOARDS = ['portal', 'kanban', 'gantt'];
 
-  const modelNames: string[] = isPortal
+  // All available items — superset the user can pick from
+  const ALL_MODELS = ['agenda', 'proposal', 'order', 'invoice', 'purchase', 'receipt', 'requisition', 'workorder', 'payment', 'action', 'contact', 'customer', 'vendor', 'manufacturer', 'employee', 'rep', 'item', 'serial', 'setting'];
+  const ALL_DASHBOARDS = ['dashboard', 'products', 'transactions', 'orgs', 'administration', 'alice', 'kanban', 'gantt', 'databrowser', 'json', 'accounting', 'flight-simulator'];
+
+  const [editingSection, setEditingSection] = useState<'models' | 'dashboards' | null>(null);
+  const [localModels, setLocalModels] = useState<string[]>([]);
+  const [localDashboards, setLocalDashboards] = useState<string[]>([]);
+
+  const savedModels: string[] = isPortal
     ? (isCustomer ? PORTAL_CUSTOMER_MODELS : isVendor ? PORTAL_VENDOR_MODELS : ['contact', 'action'])
     : getUI<string[]>('navbar.models', ['agenda', 'proposal', 'order', 'invoice', 'purchase', 'action']);
-  const dashboardNames: string[] = isPortal
+  const savedDashboards: string[] = isPortal
     ? PORTAL_DASHBOARDS
     : getUI<string[]>('navbar.dashboards', ['dashboard', 'products', 'transactions', 'orgs', 'administration', 'kanban', 'gantt', 'alice', 'databrowser', 'json']);
+
+  const modelNames = editingSection ? localModels : savedModels;
+  const dashboardNames = editingSection ? localDashboards : savedDashboards;
+
+  // Sync local state when entering edit mode
+  useEffect(() => {
+    if (editingSection) {
+      setLocalModels(savedModels);
+      setLocalDashboards(savedDashboards);
+    }
+  }, [editingSection]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleItem = (section: 'models' | 'dashboards', name: string) => {
+    const setter = section === 'models' ? setLocalModels : setLocalDashboards;
+    setter(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
+  };
+
+  const saveNavbar = () => {
+    setUI('navbar.models', localModels);
+    setUI('navbar.dashboards', localDashboards);
+    setEditingSection(null);
+  };
+
+  const cancelEdit = () => setEditingSection(null);
+
+  const handleSectionClick = (section: 'models' | 'dashboards', e: React.MouseEvent) => {
+    // Option+Cmd+click (Mac) or Alt+Ctrl+click (Win) opens editor
+    if (e.altKey && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      setEditingSection(prev => prev === section ? null : section);
+    }
+  };
 
   const modelItems = buildItems(modelNames);
   const dashboardItems = buildItems(dashboardNames);
@@ -324,15 +364,51 @@ const AppSidebar: React.FC = () => {
     </ul>
   );
 
-  const sectionLabel = (text: string) =>
+  const sectionLabel = (text: string, section: 'models' | 'dashboards') =>
     show ? (
-      <h2 className="mb-1 mt-4 px-3 text-[10px] uppercase tracking-widest font-semibold"
-        style={{ color: 'var(--wc-nav-section)' }}>
+      <h2 className="mb-1 mt-4 px-3 text-[10px] uppercase tracking-widest font-semibold cursor-default"
+        style={{ color: editingSection === section ? 'var(--wc-nav-text-active)' : 'var(--wc-nav-section)' }}
+        onClick={(e) => handleSectionClick(section, e)}
+        title="Option+Cmd+click to configure">
         {text}
+        {editingSection === section && <span className="ml-1 text-[9px] normal-case tracking-normal" style={{ color: 'var(--wc-nav-text-muted, var(--wc-nav-text))' }}>editing</span>}
       </h2>
     ) : (
       <div className="mt-3 mb-1 mx-3 border-t" style={{ borderColor: 'var(--wc-nav-divider)' }} />
     );
+
+  // Item picker — shows all available items with checkboxes
+  const renderPicker = (section: 'models' | 'dashboards') => {
+    if (editingSection !== section || !show) return null;
+    const allItems = section === 'models' ? ALL_MODELS : ALL_DASHBOARDS;
+    const active = section === 'models' ? localModels : localDashboards;
+    return (
+      <div className="mx-2 mb-2 rounded-lg p-2" style={{ background: 'var(--wc-nav-hover, rgba(255,255,255,0.05))', border: '1px solid var(--wc-nav-divider)' }}>
+        <div className="flex flex-wrap gap-1 mb-2">
+          {allItems.map(name => {
+            const on = active.includes(name);
+            return (
+              <button key={name}
+                onClick={() => toggleItem(section, name)}
+                className="px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors"
+                style={{
+                  background: on ? 'var(--wc-nav-active, #3b82f6)' : 'transparent',
+                  color: on ? 'var(--wc-nav-text-active, #fff)' : 'var(--wc-nav-text-muted, var(--wc-nav-text))',
+                  border: `1px solid ${on ? 'transparent' : 'var(--wc-nav-divider)'}`,
+                }}
+              >{displayName(name)}</button>
+            );
+          })}
+        </div>
+        <div className="flex gap-1 justify-end">
+          <button onClick={cancelEdit} className="px-2 py-0.5 rounded text-[10px]"
+            style={{ color: 'var(--wc-nav-text-muted)', border: '1px solid var(--wc-nav-divider)' }}>Cancel</button>
+          <button onClick={saveNavbar} className="px-2 py-0.5 rounded text-[10px] font-semibold"
+            style={{ background: 'var(--wc-nav-active, #3b82f6)', color: 'var(--wc-nav-text-active, #fff)' }}>Save</button>
+        </div>
+      </div>
+    );
+  };
 
   const targetWidth = show ? 200 : 52;
   const translateClass = isVisible ? "translate-x-0" : "-translate-x-full";
@@ -367,10 +443,12 @@ const AppSidebar: React.FC = () => {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2 px-2">
-        {sectionLabel("Models")}
+        {sectionLabel("Models", "models")}
+        {renderPicker("models")}
         {renderItems(modelItems, "models")}
 
-        {sectionLabel("Dashboards")}
+        {sectionLabel("Dashboards", "dashboards")}
+        {renderPicker("dashboards")}
         {renderItems(dashboardItems, "dashboards")}
       </nav>
     </aside>

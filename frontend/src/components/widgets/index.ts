@@ -32,6 +32,11 @@ export { WcBadge } from "./WcBadge";
 export { WcToolbar } from "./WcToolbar";
 export { WcIconButton } from "./WcIconButton";
 
+// Time & Billing widgets
+export { TimeClockWidget, TimeClockBadge } from "./TimeClockWidget";
+export { BillableWidget } from "./BillableWidget";
+export { OrgLookup } from "./OrgLookupWidget";
+
 import type { WidgetProps } from "./types";
 import { TextWidget } from "./TextWidget";
 import { TextAreaWidget } from "./TextAreaWidget";
@@ -45,6 +50,8 @@ import { ContactLookup } from "./ContactLookup";
 import { ContactSelectWidget } from "./ContactSelectWidget";
 import { CheckboxWidget } from "./CheckboxWidget";
 import { JsonTreeWidgetAdapter } from "./JsonTreeWidget";
+import { TimeClockWidget } from "./TimeClockWidget";
+import { BillableWidget } from "./BillableWidget";
 
 /**
  * The registry. Keys are the type names used in field configs
@@ -64,6 +71,8 @@ export const WIDGETS: Record<string, React.ComponentType<WidgetProps>> = {
   contact: ContactLookup,
   "contact-select": ContactSelectWidget,
   checkbox: CheckboxWidget,
+  "time-clock": TimeClockWidget,
+  billable: BillableWidget,
 };
 
 /**

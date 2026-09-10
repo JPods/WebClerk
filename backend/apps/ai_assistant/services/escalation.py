@@ -125,8 +125,8 @@ def score_confidence(
 
 # ── WCHQ endpoints ──────────────────────────────────────────────────
 
-WCHQ_ALICE_URL = "https://webclerk.com/wcapi/alice/ask/"
-WCHQ_ALICE_CLAUDE_URL = "https://webclerk.com/wcapi/alice/ask-claude/"
+WCHQ_ALICE_URL = "https://webclerk.com/wcapi/ai/alice/ask/"
+WCHQ_ALICE_CLAUDE_URL = "https://webclerk.com/wcapi/ai/alice/ask-claude/"
 
 
 def _get_athena_token() -> str:

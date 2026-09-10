@@ -242,6 +242,8 @@ class AuthMeView(APIView):
         except Exception:
             pass
 
+        # Extract contact image (tn → display → hires fallback)
+        image_url = None
         if not roles:
             try:
                 profile = user.profile
@@ -252,6 +254,18 @@ class AuthMeView(APIView):
         is_portal = any(r in ("user_customer", "user_vendor",
                               "user_manufacturer", "user_rep")
                         for r in roles)
+
+        try:
+            from apps.core.models import Contact
+            contact = Contact.objects.filter(pk=contact_id).first()
+            if contact:
+                images = (contact.metadata or {}).get("images", {})
+                image_url = images.get("tn") or images.get("display") or images.get("hires") or None
+                # Boolean False means no image — normalize to None
+                if image_url is False:
+                    image_url = None
+        except Exception:
+            pass
 
         data = {
             "id": contact_id,
@@ -269,6 +283,7 @@ class AuthMeView(APIView):
             "date_joined": getattr(user, "date_joined", None),
             "prefs": contact_prefs,
             "config": contact_config,
+            "image_url": image_url,
         }
         return api_response(data={"user": data}, message="authenticated")
 

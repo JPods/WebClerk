@@ -338,6 +338,19 @@ export async function getProjectOptions(): Promise<OptionRecord[]> {
   );
 }
 
+/** Cached time-billing service items (purpose=time-billing). Rarely changes. */
+export async function getTimeBillingItems(): Promise<any[]> {
+  const cacheKey = 'item:time-billing';
+  const cached = optionCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < OPTION_CACHE_TTL) {
+    return cached.data as any;
+  }
+  const resp: any = await getRecords('item', { purpose: 'time-billing', kind: 'service', limit: 50 });
+  const items = resp?.results || resp?.items || resp?.records || [];
+  optionCache.set(cacheKey, { data: items, timestamp: Date.now() });
+  return items;
+}
+
 /** Clear cache for specific model or all options */
 export function clearOptionCache(modelName?: string): void {
   if (modelName) {

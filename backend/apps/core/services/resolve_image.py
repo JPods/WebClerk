@@ -2,16 +2,16 @@
 Image Library Service — Alice's image resolution pipeline.
 
 Three sources, checked in order:
-  1. Local library (MEDIA_ROOT/images/{model}/{ida}/{size}.png)
+  1. Local library (MEDIA_ROOT/images/{model}/{ida}/{size}.jpg)
   2. Remote library (Connection with purpose='image_library' → supplier/WC_HQ)
-  3. Placeholder (generated with initials/icon)
+  3. Placeholder (generated SVG with initials)
 
 Standard sizes:
-  tn.png      — 90x90 max (most 48x48), thumbnail for lists/cards
-  display.png — 800x600 max, web display for detail pages
-  hires.png   — original resolution, print/zoom
+  tn.jpg    — 90px max, thumbnail for lists/cards/badges
+  md.jpg    — 256px, catalog grid/cards/profile
+  hires.jpg — original resolution, detail page/zoom/print
 
-All PNG. Width adapts to height. No JPG.
+Standard format: .jpg (placeholders are SVG).
 """
 
 import hashlib
@@ -25,9 +25,9 @@ logger = logging.getLogger('webclerk3.image_library')
 
 # ── Standard sizes ──
 SIZES = {
-    'tn':      {'max_height': 90,  'max_width': 90},
-    'display': {'max_height': 600, 'max_width': 800},
-    'hires':   {'max_height': None, 'max_width': None},  # original
+    'tn':    {'max_height': 90,  'max_width': 90},
+    'md':    {'max_height': 256, 'max_width': 256},
+    'hires': {'max_height': None, 'max_width': None},  # original
 }
 
 VALID_SIZES = set(SIZES.keys())
@@ -47,7 +47,7 @@ def resolve_image(model_name: str, ida: str, size: str = 'tn') -> dict:
     Alice writes metadata.images on each record to cache the resolution:
       metadata.images = {
         "source": "local" | "remote:SupplierName" | "placeholder",
-        "tn": true, "display": true, "hires": false
+        "tn": true, "md": true, "hires": false
       }
 
     Once metadata.images.source is set, we skip the probe and go direct.
@@ -59,7 +59,7 @@ def resolve_image(model_name: str, ida: str, size: str = 'tn') -> dict:
     if size not in VALID_SIZES:
         return {'found': False, 'error': f"Invalid size '{size}'. Use: {', '.join(sorted(VALID_SIZES))}"}
 
-    filename = f'{size}.png'
+    filename = f'{size}.jpg'
 
     # ── Fast path: check config.images on the record ──
     cached_source = _get_cached_source(model_name, ida)
@@ -99,7 +99,7 @@ def resolve_image(model_name: str, ida: str, size: str = 'tn') -> dict:
 def _get_cached_source(model_name: str, ida: str) -> str | None:
     """Read metadata.images.source from the record.
 
-    metadata.images structure: {source: str, tn: bool, display: bool, hires: bool}
+    metadata.images structure: {source: str, tn: bool, md: bool, hires: bool}
     """
     try:
         Model = _resolve_model(model_name)
@@ -118,7 +118,7 @@ def _get_cached_source(model_name: str, ida: str) -> str | None:
 def _set_cached_source(model_name: str, ida: str, source: str, size: str = None):
     """Write metadata.images on the record so future lookups skip the probe.
 
-    Structure: {source, tn, display, hires}
+    Structure: {source, tn, md, hires}
     """
     try:
         Model = _resolve_model(model_name)
@@ -127,7 +127,7 @@ def _set_cached_source(model_name: str, ida: str, source: str, size: str = None)
         record = Model.objects.filter(ida=ida).first()
         if record:
             metadata = record.metadata or {}
-            images = metadata.get('images') or {'source': '', 'tn': False, 'display': False, 'hires': False}
+            images = metadata.get('images') or {'source': '', 'tn': False, 'md': False, 'hires': False}
             images['source'] = source
             if size:
                 images[size] = True
@@ -150,7 +150,7 @@ def _resolve_model(model_name: str):
 def _check_local(model_name: str, ida: str, filename: str) -> dict | None:
     """Check local image library."""
     root = get_image_root()
-    # Try: images/{model}/{ida}/{size}.png
+    # Try: images/{model}/{ida}/{size}.jpg
     path = root / model_name / ida / filename
     if path.exists():
         return {
@@ -158,7 +158,7 @@ def _check_local(model_name: str, ida: str, filename: str) -> dict | None:
             'path': str(path),
             'bytes': path.read_bytes(),
             'source': 'local',
-            'content_type': 'image/png',
+            'content_type': 'image/jpeg',
         }
     return None
 
@@ -170,11 +170,11 @@ def _check_remote_library(model_name: str, ida: str, filename: str) -> dict | No
     except ImportError:
         return None
 
-    # Find connections with purpose='image_library'
+    # Find connections with catalog library purpose
     connections = Connection.objects.filter(
-        purpose='image_library',
+        purpose__in=('catalog_library', 'image_library'),
         is_active=True,
-    ).order_by('sequence')
+    ).order_by('pk')
 
     for conn in connections:
         base_url = (conn.config or {}).get('base_url', '')
@@ -191,7 +191,7 @@ def _check_remote_library(model_name: str, ida: str, filename: str) -> dict | No
                     'found': True,
                     'bytes': resp.content,
                     'source': f'remote:{conn.name}',
-                    'content_type': 'image/png',
+                    'content_type': 'image/jpeg',
                 }
         except Exception as e:
             logger.debug(f"Remote library {conn.name} failed for {url}: {e}")
@@ -244,7 +244,7 @@ def store_image(model_name: str, ida: str, size: str, image_bytes: bytes) -> dic
     if size not in VALID_SIZES:
         return {'error': f"Invalid size '{size}'. Use: {', '.join(sorted(VALID_SIZES))}"}
 
-    filename = f'{size}.png'
+    filename = f'{size}.jpg'
     root = get_image_root()
     dir_path = root / model_name / ida
     dir_path.mkdir(parents=True, exist_ok=True)
@@ -267,7 +267,7 @@ def list_images(model_name: str, ida: str) -> dict:
     dir_path = root / model_name / ida
     images = {}
     for size_name in VALID_SIZES:
-        path = dir_path / f'{size_name}.png'
+        path = dir_path / f'{size_name}.jpg'
         if path.exists():
             images[size_name] = {
                 'exists': True,

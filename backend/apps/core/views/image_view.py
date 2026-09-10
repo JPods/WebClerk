@@ -1,12 +1,12 @@
 """
 Image Library View — serves images through Alice's resolution pipeline.
 
-GET /wcapi/image/{model}/{ida}/tn.png
-GET /wcapi/image/{model}/{ida}/display.png
-GET /wcapi/image/{model}/{ida}/hires.png
+GET /wcapi/image/{model}/{ida}/tn.jpg
+GET /wcapi/image/{model}/{ida}/md.jpg
+GET /wcapi/image/{model}/{ida}/hires.jpg
 
-Returns PNG bytes with cache headers. Falls through:
-  local → remote library → placeholder.
+Returns image bytes with cache headers. Falls through:
+  local → remote library → placeholder (SVG).
 """
 
 from django.http import HttpResponse, HttpResponseNotFound
@@ -23,8 +23,9 @@ class ImageView(APIView):
     permission_classes = []
 
     def get(self, request, model_name: str, ida: str, size: str):
-        # Strip .png extension if present
-        size = size.replace('.png', '')
+        # Strip file extension if present
+        for ext in ('.jpg', '.jpeg', '.png'):
+            size = size.replace(ext, '')
 
         if size not in VALID_SIZES:
             return HttpResponseNotFound(

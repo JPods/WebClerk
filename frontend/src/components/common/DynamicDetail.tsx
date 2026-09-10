@@ -24,7 +24,7 @@
  */
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { getRecord, saveRecord } from "../../api/wcapi";
-import { getWidget } from "../widgets";
+import { getWidget, WIDGETS } from "../widgets";
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
@@ -36,6 +36,8 @@ import { TouchForm, type TouchFormContext } from '@/pages/admin/TouchForm';
 import { TOUCH_MODELS } from '@/pages/admin/TouchBar';
 import { getModelNames } from '@/api/wcapi';
 import { getLabelStyle, labelStyleForBehavior } from '@/apps/transactions/components/detail/FieldRow';
+import CollapsiblePanel from '@/apps/common/components/CollapsiblePanel';
+import { renderPanel, type PanelContext } from './panelRegistry';
 
 // ── Field type registry ─────────────────────────────────────────────
 
@@ -227,7 +229,7 @@ function DynamicDetail({
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [activeLinkedTab, setActiveLinkedTab] = useState('contacts');
-  const [settingTabs, setSettingTabs] = useState<string[]>(['contacts', 'actions', 'touches', 'documents', 'files']);
+  const [settingTabs, setSettingTabs] = useState<string[]>(['contacts', 'qa', 'actions', 'touches', 'documents', 'files']);
   const [showTouchForm, setShowTouchForm] = useState(false);
   const [settingLayout, setSettingLayout] = useState<any>(null);
   const [settingFields, setSettingFields] = useState<Record<string, FieldConfig> | null>(null);
@@ -257,7 +259,9 @@ function DynamicDetail({
   useEffect(() => {
     if (layoutProp) return; // caller supplied layout, skip
 
-    const cacheKey = `setting_form_layout_${modelName}`;
+    const cacheKey = `setting_form_layout_v2_${modelName}`;
+    // Clear stale v1 cache
+    sessionStorage.removeItem(`setting_form_layout_${modelName}`);
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
       try {
@@ -352,6 +356,10 @@ function DynamicDetail({
                   cfg.type = 'checkbox';
                 } else if (f.type === 'textarea') {
                   cfg.type = 'textarea';
+                } else if (f.type && WIDGETS[f.type]) {
+                  // Custom widget type registered in the widget registry
+                  cfg.type = f.type;
+                  cfg.path = fieldName;
                 } else if (fieldName.includes('.') || f.type === 'json-text') {
                   cfg.type = 'json-text';
                   cfg.path = fieldName;
@@ -672,6 +680,23 @@ function DynamicDetail({
     );
   };
 
+  // Field change handler for panels (updates local values + data for immediate display)
+  // Must be before early returns — React Rules of Hooks
+  const ddFieldChange = useCallback((field: string, value: any) => {
+    setValues(prev => ({ ...prev, [field]: value }));
+    setData((prev: any) => {
+      if (!prev) return prev;
+      const parts = field.split('.');
+      if (parts.length === 1) return { ...prev, [field]: value };
+      const root = parts[0];
+      const obj = { ...(prev[root] || {}) };
+      if (parts.length === 2) {
+        obj[parts[1]] = value;
+      }
+      return { ...prev, [root]: obj };
+    });
+  }, []);
+
   if (!data) return <div className="py-4 text-center db-font-xs db-text-dim">Loading...</div>;
 
   const disabled = !editing;
@@ -823,6 +848,86 @@ function DynamicDetail({
           </div>
         </div>
       )}
+
+      {/* ── TIME panel (action model only) — combined times + billing ── */}
+      {modelName === 'action' && data && (() => {
+        const times = data?.config?.times ?? { entries: [] };
+        const timesEntries = Array.isArray(times.entries) ? times.entries : [];
+        const count = timesEntries.length;
+        const totalMs = times.total_elapsed_ms ?? 0;
+        const isOpen = timesEntries.some((e: any) => e.dt_in && !e.dt_out);
+        const b = data?.config?.billable;
+        const isBillable = b?.is_billable !== false;
+
+        const fmtMs = (ms: number) => {
+          if (ms <= 0) return '';
+          const h = Math.floor(ms / 3600000);
+          const m = Math.floor((ms % 3600000) / 60000);
+          return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
+        };
+
+        const clockToggle = () => {
+          const entries = [...timesEntries];
+          const now = Date.now();
+          const openIdx = entries.findIndex((e: any) => e.dt_in && !e.dt_out);
+          if (openIdx >= 0) {
+            const e = { ...entries[openIdx] };
+            e.dt_out = now;
+            e.elapsed_ms = now - (e.dt_in ?? now);
+            entries[openIdx] = e;
+          } else {
+            entries.push({
+              id: crypto.randomUUID?.() ?? `${now}-${Math.random().toString(36).slice(2, 9)}`,
+              dt_in: now, dt_out: null, elapsed_ms: null,
+              percent_active: 100, reason: '', notes: '', tags: [], issue: null,
+            });
+          }
+          let te = 0, ta = 0;
+          for (const e of entries) { const el = e.elapsed_ms ?? 0; te += el; ta += Math.round(el * ((e.percent_active ?? 100) / 100)); }
+          const updated = { entries, total_elapsed_ms: te, total_active_ms: ta };
+          ddFieldChange('config.times', updated);
+          saveRecord(modelName, { id: Number(recordId), config: { mode: 'update', value: { ...(data.config || {}), times: updated } } }).catch(() => {});
+        };
+
+        const panelCtx: PanelContext = {
+          modelName, recordId: Number(recordId), data, isEditing: editing,
+          onFieldChange: ddFieldChange, onRefresh: () => {}, ensureWindow: () => {},
+        };
+
+        return (
+          <CollapsiblePanel
+            label="time"
+            storageKey={`panel_${modelName}_billing`}
+            defaultCollapsed={true}
+            badge={count > 0 ? count : undefined}
+            headerActions={
+              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                {totalMs > 0 && <span className="db-font-xs" style={{ color: 'var(--db-text-muted)' }}>{fmtMs(totalMs)}</span>}
+                <button type="button" onClick={clockToggle}
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors"
+                  style={isOpen
+                    ? { background: 'color-mix(in srgb, var(--db-accent-red) 15%, transparent)', color: 'var(--db-accent-red)' }
+                    : { background: 'color-mix(in srgb, var(--db-accent-green) 15%, transparent)', color: 'var(--db-accent-green)' }}>
+                  {isOpen ? 'Stop' : <><svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>Clock In</>}
+                </button>
+                <span className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                  style={isBillable
+                    ? { background: 'color-mix(in srgb, var(--db-accent-green) 15%, transparent)', color: 'var(--db-accent-green)' }
+                    : { background: 'var(--db-surface-alt)', color: 'var(--db-text-dim)' }}>
+                  {isBillable ? 'billable' : 'non-billable'}
+                </span>
+                <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" checked={isBillable} className="rounded"
+                    onChange={(e) => ddFieldChange('config.billable', { ...(b || { rate_unit: 'hour', currency: 'USD' }), is_billable: e.target.checked })} />
+                  <span className="text-[11px]" style={{ color: 'var(--db-text-muted)' }}>billable</span>
+                </label>
+              </div>
+            }
+          >
+            {renderPanel('billing', panelCtx)}
+          </CollapsiblePanel>
+        );
+      })()}
 
       {/* ── Tabbed panels — contacts, linked models, files ──────── */}
       {(() => {

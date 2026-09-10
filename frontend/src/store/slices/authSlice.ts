@@ -21,6 +21,7 @@ export interface User {
   config?: Record<string, any> | null;
   is_staff?: boolean;
   is_superuser?: boolean;
+  image_url?: string | null;
 }
 
 interface AuthState {

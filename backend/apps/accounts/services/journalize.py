@@ -576,6 +576,35 @@ def journalize_payment(payment_id: int, ida_prefix: str = '') -> dict:
         created += 1
         posting_list.append({'account': credit_account, 'debit': 0, 'credit': float(abs_amount), 'purpose': credit_purpose})
 
+        # Dual pricing surcharge — post card surcharge to surcharge revenue GL
+        fee_amount = Decimal(str(getattr(payment, 'fee_amount', 0) or 0))
+        if is_received and fee_amount > 0:
+            meta = payment.metadata if isinstance(getattr(payment, 'metadata', None), dict) else {}
+            fees = meta.get('processing_fees', [])
+            is_dual_pricing = any(f.get('type') == 'dual_pricing_surcharge' for f in fees)
+            if is_dual_pricing:
+                from apps.transactions.services.pricing.dual_pricing import get_dual_pricing_config
+                dp_config = get_dual_pricing_config()
+                surcharge_gl = dp_config.get('gl_account', 'REV-SURCHARGE-000')
+                GlJournal.objects.create(
+                    ida=f'{ida_base}-{surcharge_gl}',
+                    account=surcharge_gl,
+                    debit=None,
+                    credit=float(fee_amount),
+                    source='automation',
+                    type='general',
+                    source_id=payment_id,
+                    source_model='payment',
+                )
+                created += 1
+                posting_list.append({
+                    'account': surcharge_gl, 'debit': 0,
+                    'credit': float(fee_amount), 'purpose': 'dual_pricing_surcharge',
+                })
+                # The debit side of the surcharge is already captured in the
+                # full cash_receipt debit (abs_amount includes surcharge).
+                # This credit splits the surcharge revenue from AR.
+
         # Mark payment as journalized — is_locked
         now = _now_ms()
         from django.utils import timezone

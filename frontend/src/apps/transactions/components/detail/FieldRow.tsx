@@ -1,6 +1,7 @@
-/* LastChecked: 2026-08-02 | WhereUsed: UiDetail | WhoCreated: Claude */
+/* LastChecked: 2026-09-09 | WhereUsed: UiDetail | WhoCreated: Claude */
 import React, { useState } from 'react';
 import { formatDt, formatField } from '@/utils/fieldFormatters';
+import { WIDGETS } from '@/components/widgets';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -283,7 +284,21 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
           {copyNote}
         </div>
       )}
-      {options ? (
+      {/* Custom widget — registered in widget registry (time-clock, billable, etc.) */}
+      {fieldType && WIDGETS[fieldType] ? (() => {
+        const Widget = WIDGETS[fieldType];
+        return (
+          <div className="flex-1 min-w-0">
+            <Widget
+              name={field}
+              value={val}
+              onChange={(v: unknown) => onChange(field, v)}
+              disabled={!isEditing}
+              record={data}
+            />
+          </div>
+        );
+      })() : options ? (
         <select
           value={typeof val === 'object' ? _firstScalar(val) : (val || '')}
           onChange={(e) => onChange(field, e.target.value)}

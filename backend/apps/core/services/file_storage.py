@@ -2,7 +2,8 @@
 File storage service — enforces the storage protocol.
 
 Path structure: /media/<org_id>/<model>/<record_id>/<filename>
-Image sizes: tn(64), sm(128), md(256), lg(512), original
+Image sizes: tn(90), md(256), hires(original)
+Standard format: .jpg
 
 Used by:
   - Upload views (image + document uploads)
@@ -22,10 +23,8 @@ logger = logging.getLogger("core.file_storage")
 MEDIA_ROOT = Path(getattr(settings, "MEDIA_ROOT", "media"))
 
 IMAGE_SIZES = {
-    "tn": 64,
-    "sm": 128,
+    "tn": 90,
     "md": 256,
-    "lg": 512,
 }
 
 
@@ -50,7 +49,7 @@ def image_set_paths(org_id: int, model: str, record_id: int, purpose: str, ext: 
     result = {}
     for key in IMAGE_SIZES:
         result[key] = str(base / f"{purpose}_{IMAGE_SIZES[key]}.{ext}")
-    result["original"] = str(base / f"{purpose}_original.{ext}")
+    result["hires"] = str(base / f"{purpose}_hires.{ext}")
     return result
 
 
@@ -73,7 +72,7 @@ def save_image(
         ext: File extension
 
     Returns:
-        Dict with tn, sm, md, lg, original paths (relative to MEDIA_ROOT)
+        Dict with tn, md, hires paths (relative to MEDIA_ROOT)
     """
     try:
         from PIL import Image
@@ -85,9 +84,9 @@ def save_image(
     directory = ensure_dir(org_id, model, record_id)
     paths = image_set_paths(org_id, model, record_id, purpose, ext)
 
-    # Save original
-    original_path = MEDIA_ROOT / paths["original"]
-    original_path.write_bytes(file_data)
+    # Save hires (original resolution)
+    hires_path = MEDIA_ROOT / paths["hires"]
+    hires_path.write_bytes(file_data)
 
     # Generate resized versions
     try:

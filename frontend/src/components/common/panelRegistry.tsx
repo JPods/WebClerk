@@ -43,6 +43,9 @@ const DataGrid = lazy(() => import('@/components/common/DataGrid'));
 const PanelTable = lazy(() => import('@/apps/common/components/panels/PanelTable').then(m => ({ default: m.PanelTable })));
 const PanelSectionRenderer = lazy(() => import('@/apps/transactions/components/detail/PanelSectionRenderer'));
 const JsonSectionRenderer = lazy(() => import('@/apps/transactions/components/detail/JsonSectionRenderer'));
+const LazyTimeClockWidget = lazy(() => import('@/components/widgets/TimeClockWidget').then(m => ({ default: m.TimeClockWidget })));
+const LazyBillableWidget = lazy(() => import('@/components/widgets/BillableWidget').then(m => ({ default: m.BillableWidget })));
+const LazyFileUploadPanel = lazy(() => import('@/components/common/FileUploadPanel'));
 
 const fallback = createElement('div', { className: 'p-4 text-xs text-slate-400' }, 'Loading...');
 const wrap = (el: ReactElement) => createElement(Suspense, { fallback }, el);
@@ -224,6 +227,41 @@ const registry: Record<string, PanelRenderer> = {
   })),
   address: (ctx) => wrap(createElement(LinkedRecordsPanel, {
     linkedModel: 'address', parentModel: ctx.modelName, parentId: ctx.data?.id, defaultCollapsed: false,
+  })),
+
+  // === Combined billing panel (times entries + billable fields) ===
+  billing: (ctx) => {
+    const timesEl = createElement(LazyTimeClockWidget, {
+      name: 'config.times',
+      value: ctx.data?.config?.times ?? { entries: [] },
+      onChange: (v: any) => {
+        ctx.onFieldChange('config.times', v);
+        import('@/api/wcapi').then(({ saveRecord }) => {
+          const config = { ...(ctx.data.config || {}), times: v };
+          saveRecord('action', { id: ctx.data.id, config: { mode: 'update', value: config } }).catch(() => {});
+        });
+      },
+      disabled: false,
+      record: ctx.data,
+    });
+    const billableEl = createElement(LazyBillableWidget, {
+      name: 'config.billable',
+      value: ctx.data?.config?.billable ?? { is_billable: true, rate_unit: 'hour', currency: 'USD' },
+      onChange: (v: any) => ctx.onFieldChange('config.billable', v),
+      disabled: false,
+      record: ctx.data,
+    });
+    return wrap(createElement('div', { className: 'space-y-2' }, timesEl, billableEl));
+  },
+
+  // Legacy aliases — point to combined billing panel
+  times: (ctx) => registry.billing(ctx),
+  billable: (ctx) => registry.billing(ctx),
+
+  files: (ctx) => wrap(createElement(LazyFileUploadPanel, {
+    modelName: ctx.modelName,
+    recordId: ctx.recordId,
+    recordIda: ctx.data?.ida,
   })),
 
   summary: () => placeholder('Summary'),

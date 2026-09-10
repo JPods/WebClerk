@@ -15,6 +15,7 @@ from apps.transactions.serializers.payment_serializer import PaymentSerializer
 from apps.transactions.services.payment.spreedly_gateway import SpreedlyService, SpreedlyError, process_payment as spreedly_process, refund_payment as spreedly_refund
 from apps.transactions.services.payment.payment_pending import apply_payment_to_invoice
 from apps.transactions.services.payment.payment_apply import get_invoice_payment_status
+from apps.transactions.services.pricing.dual_pricing import compute_dual_pricing, compute_payment_amount, get_dual_pricing_config
 from apps.core.services import record_serialize as wcapi
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,11 @@ def process_payment(request):
     and returns a payment_method_token. That token is all we receive.
     WC3 never sees the card number.
 
-    POST body: { invoice_id, amount, payment_method_token }
+    POST body: { invoice_id, amount, payment_method_token, payment_method? }
+
+    If dual pricing is enabled and payment_method is not exempt (cash/ACH/etc),
+    the charge amount is adjusted upward by the card surcharge rate.
+    The surcharge is recorded in fee_amount and metadata.processing_fees.
     """
     request.throttle_scope = 'payment'
     try:
@@ -47,13 +52,33 @@ def process_payment(request):
 
         invoice = get_object_or_404(Invoice, pk=invoice_id)
 
+        # Dual pricing: determine actual charge amount based on payment method
+        payment_method = data.get('payment_method', '')
+        totals = getattr(invoice, 'totals', None) or {}
+        pricing = compute_payment_amount(totals, payment_method)
+        charge_amount = pricing['amount'] if pricing['surcharge'] > 0 else float(amount)
+
         payment = Payment.objects.create(
             invoice=invoice,
             contact_id=request.user.pk,
-            amount=amount,
+            amount=charge_amount,
+            method=payment_method,
+            fee_amount=pricing['surcharge'],
             gateway='spreedly',
             status='pending',
         )
+
+        # Record dual pricing detail in metadata for audit
+        if pricing['surcharge'] > 0:
+            meta = payment.metadata or {}
+            meta['processing_fees'].append({
+                'type': 'dual_pricing_surcharge',
+                'rate': pricing['card_rate'],
+                'amount': pricing['surcharge'],
+                'base_total': pricing['amount'] - pricing['surcharge'],
+            })
+            payment.metadata = meta
+            payment.save(update_fields=['metadata'])
 
         result = spreedly_process(payment.id, payment_method_token)
         txn = result.get('transaction', {})
@@ -63,6 +88,8 @@ def process_payment(request):
             'status': payment.status,
             'gateway_transaction_id': txn.get('gateway_transaction_id', ''),
             'message': txn.get('message', ''),
+            'surcharge': pricing['surcharge'],
+            'is_cash_price': pricing['is_cash_price'],
         })
 
     except SpreedlyError as e:
@@ -274,19 +301,56 @@ def gateway_config(request):
         setting = Setting.objects.get(purpose='wc:payment_gateway', is_active=True)
         config = setting.config or {}
         spreedly = config.get('spreedly', {})
-        return Response({
+        gateway_response = {
             'environment_key': spreedly.get('environment_key', ''),
             'test_mode': config.get('test_mode', True),
             'active_gateway_type': config.get('active_gateway_type', ''),
             'currency': config.get('currency', 'USD'),
-        })
+        }
     except Setting.DoesNotExist:
-        return Response({
+        gateway_response = {
             'environment_key': '',
             'test_mode': True,
             'active_gateway_type': '',
             'currency': 'USD',
-        })
+        }
+
+    # Include dual pricing config (public fields only — no GL accounts)
+    dp_config = get_dual_pricing_config()
+    gateway_response['dual_pricing'] = {
+        'enabled': dp_config.get('enabled', False),
+        'card_rate': dp_config.get('card_rate', 0),
+        'disclosure_text': dp_config.get('disclosure_text', '').replace(
+            '{rate}', f'{dp_config.get("card_rate", 0):.1f}'
+        ),
+        'exempt_methods': dp_config.get('exempt_methods', []),
+    }
+
+    return Response(gateway_response)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def checkout_pricing(request, invoice_id):
+    """Return dual pricing options for an invoice at checkout.
+
+    GET /api/payments/checkout-pricing/<invoice_id>/
+
+    Returns both cash and card totals so the checkout UI can display
+    two payment options with the appropriate disclosure text.
+    """
+    invoice = get_object_or_404(Invoice, pk=invoice_id)
+    totals = getattr(invoice, 'totals', None) or {}
+    projection = compute_dual_pricing(totals)
+    return Response({
+        'invoice_id': invoice.id,
+        'totals': {
+            'subtotal': totals.get('subtotal', 0),
+            'tax': totals.get('tax', 0),
+            'shipping': totals.get('shipping', 0),
+        },
+        'dual_pricing': projection,
+    })
 
 
 class PaymentViewSet(viewsets.ReadOnlyModelViewSet):

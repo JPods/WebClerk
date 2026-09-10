@@ -10,6 +10,7 @@ from apps.transactions.views.payment_views import (
     payment_status,
     payment_history,
     gateway_config,
+    checkout_pricing,
 )
 from apps.transactions.views.transfer_views import (
     validate_transfer,
@@ -65,6 +66,7 @@ urlpatterns = [
     path('payments/<int:payment_id>/status/', payment_status, name='payment_status'),
     path('payments/history/', payment_history, name='payment_history'),
     path('payments/gateway-config/', gateway_config, name='gateway_config'),
+    path('payments/checkout-pricing/<int:invoice_id>/', checkout_pricing, name='checkout_pricing'),
 
     # Inventory operations
     path('inventory/reserve/', reserve_inventory, name='reserve_inventory'),

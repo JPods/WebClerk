@@ -85,6 +85,7 @@ export interface KanbanTask {
     mime_type: string;
     url?: string;
   }>;
+  config?: Record<string, any>;
 }
 
 export interface KanbanColumn {

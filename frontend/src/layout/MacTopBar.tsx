@@ -3,8 +3,9 @@ import { useMemo, useState, useCallback } from "react";
 import { getUI, setUI } from "@/utils/contactUI";
 
 /** Detail view preference from config.ui */
-export function getDetailViewPref(): 'app' | 'admin' {
-  return getUI<'app' | 'admin'>('detail.default_view', 'app');
+export type DetailViewPref = 'app' | 'admin' | 'parade';
+export function getDetailViewPref(): DetailViewPref {
+  return getUI<DetailViewPref>('detail.default_view', 'app');
 }
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -29,7 +30,7 @@ export default function MacTopBar({ activePath }: Props) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
-  const [detailView, setDetailView] = useState<'app' | 'admin'>(() => getDetailViewPref());
+  const [detailView, setDetailView] = useState<DetailViewPref>(() => getDetailViewPref());
 
   const orderedWindows = useMemo(() => [...windows].sort((a, b) => a.openedAt - b.openedAt), [windows]);
   const refreshExpires = useAppSelector((state) => state.auth.refreshExpires);
@@ -130,9 +131,9 @@ export default function MacTopBar({ activePath }: Props) {
         <HelpMenu />
         <TaskManagerIndicator />
 
-        <select data-wc="select" className="topbar-ctl" title="App: business forms (ui.json) | Admin: field grid (db.json)" value={detailView}
+        <select data-wc="select" className="topbar-ctl" title="App: business forms (ui.json) | Admin: field grid (db.json) | Parade: rendered layouts" value={detailView}
           onChange={(e) => {
-            const v = e.target.value as 'app' | 'admin';
+            const v = e.target.value as DetailViewPref;
             setUI('detail.default_view', v);
             setDetailView(v);
             window.dispatchEvent(new CustomEvent('wc3-view-pref-changed', { detail: { mode: v } }));
@@ -140,6 +141,7 @@ export default function MacTopBar({ activePath }: Props) {
         >
           <option value="app">View: App</option>
           <option value="admin">View: Admin</option>
+          <option value="parade">View: Parade</option>
         </select>
 
         <select data-wc="select" className="topbar-ctl" title="Font size"
@@ -175,7 +177,7 @@ export default function MacTopBar({ activePath }: Props) {
 
         {/* User — avatar + name + sign out */}
         <div className="flex items-center gap-1.5 pl-1.5 border-l" style={{ borderColor: 'var(--wc-topbar-border)' }}>
-          <img src="/images/user/owner.jpg" alt="avatar" className="h-5 w-5 rounded-full border border-white object-cover cursor-pointer"
+          <img src={user?.image_url || "/images/no-image.svg"} alt="avatar" className="h-5 w-5 rounded-full border border-white object-cover cursor-pointer"
             onDoubleClick={() => { if (user?.id) { sessionStorage.setItem('db_auto_select', String(user.id)); navigate(`/contact`); } }}
             title="Double-click to open your contact record" />
           <span className="text-[10px] font-medium cursor-pointer" style={{ color: 'var(--wc-topbar-text-muted)' }}

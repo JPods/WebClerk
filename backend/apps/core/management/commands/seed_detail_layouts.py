@@ -133,8 +133,9 @@ STANDARD_TABS = [
     {"label": "contacts", "content": "contacts"},
     {"label": "qa", "content": "qa"},
     {"label": "actions", "content": "actions"},
-    {"label": "documents", "content": "documents"},
     {"label": "touches", "content": "touches"},
+    {"label": "documents", "content": "documents"},
+    {"label": "files", "content": "files"},
     {"label": "+ link", "content": "link"},
 ]
 
@@ -573,7 +574,7 @@ LAYOUTS = {
                 ]},
             ]},
             {"type": "panel", "content": "notes", "label": "comments"},
-            {"type": "panel", "content": "documents", "label": "documents"},
+            {"type": "panel", "content": "billing", "label": "time", "collapsed": True},
             {"type": "tabs", "tabs": STANDARD_TABS},
             {"type": "json_tree", "label": "json", "collapsed": True,
              "fields": ["impact", "retrospection", "project_metadata",
