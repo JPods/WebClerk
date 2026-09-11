@@ -8,6 +8,7 @@ import { useDispatch } from "react-redux";
 
 import { showToast } from "../../../store/slices/toastSlice";
 import { searchItems as searchItemsApi } from "@/api/wcapi";
+import { useItemCard } from "@/components/common/ItemCard";
 
 // Generic item search result - supports various field naming conventions
 export interface ItemSearchResult {
@@ -165,6 +166,7 @@ export function TransactionItemSearch({
   searchFn,
 }: TransactionItemSearchProps) {
   const dispatch = useDispatch();
+  const [itemCardEl, showItemCard] = useItemCard();
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -310,6 +312,7 @@ export function TransactionItemSearch({
           <thead className="bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-200">
             <tr>
               <th className="px-3 py-2"></th>
+              <th className="px-3 py-2 w-12"></th>
               <th className="px-3 py-2">Item</th>
               <th className="px-3 py-2">Description</th>
               <th className="px-3 py-2 text-right">On Hand</th>
@@ -321,7 +324,7 @@ export function TransactionItemSearch({
             {!hasResults && !loading ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
                 >
                   {query.trim()
@@ -355,7 +358,24 @@ export function TransactionItemSearch({
                         Add
                       </button>
                     </td>
-                    <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
+                    <td className="px-3 py-2">
+                      {resolveItemCode(item) ? (
+                        <img
+                          src={`/wcapi/_image/Item/${encodeURIComponent(resolveItemCode(item))}/tn.jpg`}
+                          alt=""
+                          className="w-8 h-8 rounded object-cover bg-gray-100"
+                          loading="lazy"
+                          onError={(e) => { const img = e.target as HTMLImageElement; img.onerror = null; img.src = '/images/no-image.svg'; }}
+                        />
+                      ) : null}
+                    </td>
+                    <td
+                      className="px-3 py-2 text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
+                      onClick={(e) => {
+                        const code = resolveItemCode(item);
+                        if (code) showItemCard(code, (e.currentTarget as HTMLElement).getBoundingClientRect());
+                      }}
+                    >
                       {resolveItemCode(item) || "--"}
                     </td>
                     <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
@@ -390,6 +410,7 @@ export function TransactionItemSearch({
           </tbody>
         </table>
       </div>
+      {itemCardEl}
     </div>
   );
 }

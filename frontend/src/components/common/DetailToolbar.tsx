@@ -41,6 +41,7 @@ export interface DetailToolbarProps {
   onAddNew?: () => void;
   onSave?: () => void;
   onCancel?: () => void;
+  onClose?: () => void;
   onDelete?: () => void;
   onToggleDesign?: () => void;
   onWorkflowComplete?: (result?: any) => void;
@@ -60,7 +61,7 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
   mode: modeProp, isEditing: isEditingProp,
   canEdit = true, saving = false, canDelete = true,
   companyInfo, logos, documentText,
-  onEdit, onAddNew, onSave, onCancel, onDelete,
+  onEdit, onAddNew, onSave, onCancel, onClose, onDelete,
   designMode, userRole, onToggleDesign,
   onWorkflowComplete,
   onAddPayment, onApplyPayment,
@@ -154,7 +155,10 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
       )}
 
       <ToolbarIcon action={TB.save} title={saving ? 'Saving...' : 'Save'} disabled={!isEditing || saving} onClick={onSave} />
-      <ToolbarIcon action={TB.discard} title="Cancel" disabled={!isEditing} onClick={onCancel} />
+      <ToolbarIcon action={TB.discard} title="Discard" disabled={!isEditing} onClick={onCancel} />
+      {onClose && (
+        <ToolbarIcon action={TB.cancel} title="Cancel / Close Record" onClick={onClose} />
+      )}
 
       {/* Report / Print — reads Report records */}
       <PrintReportDropdown

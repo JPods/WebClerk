@@ -248,6 +248,20 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
             })}
           </span>
         )}
+        {/* View mode toggle */}
+        <span className="flex items-center gap-0.5 ml-2 border-l border-slate-300 dark:border-slate-600 pl-2">
+          {(['list', 'cards', 'detail'] as const).map(mode => (
+            <button key={mode} type="button" onClick={() => lc.setViewMode(mode)}
+              className={`px-1.5 py-0.5 rounded transition-colors text-xs ${
+                lc.viewMode === mode
+                  ? 'bg-slate-600 text-white'
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              title={`${mode} view`}>
+              {mode === 'list' ? '☰' : mode === 'cards' ? '▦' : '▤'}
+            </button>
+          ))}
+        </span>
         {/* Line summary — right side */}
         <span className="flex-1" />
         <span className="font-medium text-[var(--wc-text-muted,#6c757d)]">Lns: {lc.lineCount}</span>
@@ -334,7 +348,107 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
     </>
   );
 
-  return (
+  // ── Cards view ───────────────────────────────────────────────────
+  const cardsView = (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8, padding: 8 }}>
+        {lc.records.map((r: any) => {
+          const isSelected = lc.selectedId === r.id;
+          return (
+            <div key={r.id}
+              onClick={() => { lc.setSelectedId(r.id); lc.setSelectedLineIds(new Set([r.id])); }}
+              style={{
+                border: `2px solid ${isSelected ? 'var(--wc-accent, #2563eb)' : 'var(--wc-border, #dee2e6)'}`,
+                borderRadius: 6, background: 'var(--wc-surface, #fff)', cursor: 'pointer',
+                overflow: 'hidden', transition: 'border-color 0.15s',
+              }}>
+              <img
+                src={r.tn_url ? r.tn_url.replace('/tn.jpg', '/md.jpg') : '/images/no-image.svg'}
+                alt=""
+                style={{ width: '100%', height: 140, objectFit: 'contain', background: '#f8f9fa', borderBottom: '1px solid var(--wc-border, #dee2e6)' }}
+                onError={(e: any) => { e.target.onerror = null; e.target.src = '/images/no-image.svg'; }}
+              />
+              <div style={{ padding: '6px 8px', fontSize: 'inherit' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.9em' }}>{r.item_code}</div>
+                <div style={{ fontSize: '0.8em', color: 'var(--wc-text-muted, #6c757d)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.description}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: '0.85em' }}>
+                  <span>qty: {r.qty}</span>
+                  <span style={{ fontWeight: 600 }}>{formatCurrency(r.extended)}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {footerBar}
+      {panelContent}
+    </div>
+  );
+
+  // ── Detail view (list + side panel) ─────────────────────────────
+  const selectedRec = lc.records.find((r: any) => r.id === lc.selectedId);
+  const detailView = (
+    <div style={{ display: 'flex', gap: 0, minHeight: 200 }}>
+      <div style={{ flex: '1 1 50%', overflow: 'auto' }}>
+        <DataGrid
+          hideToolbar
+          disableReorder
+          records={lc.activePanel === 'margin' ? [] : lc.records}
+          columns={lc.richColumns.map(c => c.name)}
+          richColumns={lc.richColumns}
+          colWidths={lc.colWidths}
+          fieldBehaviors={lc.fieldBehaviors}
+          selectedId={lc.selectedId}
+          selectedRowIds={lc.selectedLineIds}
+          sort={null}
+          onSelectRecord={(id) => { lc.setSelectedId(id); if (id != null) lc.setSelectedLineIds(new Set([id])); }}
+          onToggleRow={(id) => { lc.setSelectedLineIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; }); }}
+          onSelectAll={() => { lc.setSelectedLineIds(new Set(lc.records.map(r => r.id).filter((id): id is number => id != null))); }}
+          onClearSelection={() => lc.setSelectedLineIds(new Set())}
+          onSort={() => {}}
+          onColumnDrop={() => {}}
+          onResizeStart={() => {}}
+          onCellEdit={lc.canEdit ? lc.handleCellEdit : undefined}
+          numId={(v: unknown) => typeof v === 'number' ? v : null}
+          theme={lc.theme}
+          fontSize={undefined}
+          footerBar={footerBar}
+          panelContent={panelContent}
+          onHeaderClick={lc.canEdit ? lc.openBulkEdit : undefined}
+          headerEditField={lc.bulkEditField}
+          headerEditValue={lc.bulkEditValue}
+          onHeaderEditChange={lc.setBulkEditValue}
+          onHeaderEditApply={lc.applyBulkEdit}
+          onHeaderEditCancel={lc.cancelBulkEdit}
+        />
+      </div>
+      {selectedRec && (
+        <div style={{ flex: '0 0 240px', borderLeft: '1px solid var(--wc-border, #dee2e6)', background: 'var(--wc-surface, #fff)', padding: 8, overflow: 'auto' }}>
+          <img
+            src={selectedRec.tn_url ? selectedRec.tn_url.replace('/tn.jpg', '/md.jpg') : '/images/no-image.svg'}
+            alt=""
+            style={{ width: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 4, background: '#f8f9fa', marginBottom: 8 }}
+            onError={(e: any) => { e.target.onerror = null; e.target.src = '/images/no-image.svg'; }}
+          />
+          <div style={{ fontSize: '0.9em' }}>
+            <div style={{ fontWeight: 700 }}>{selectedRec.item_code}</div>
+            <div style={{ color: 'var(--wc-text-muted, #6c757d)', fontSize: '0.85em', marginTop: 2 }}>{selectedRec.description}</div>
+            <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '2px 8px', fontSize: '0.85em' }}>
+              <span style={{ color: 'var(--wc-text-muted)' }}>qty</span><span>{selectedRec.qty}</span>
+              <span style={{ color: 'var(--wc-text-muted)' }}>unit</span><span>{formatCurrency(isSellSide ? selectedRec.unit_price : selectedRec.unit_cost)}</span>
+              <span style={{ color: 'var(--wc-text-muted)' }}>extended</span><span style={{ fontWeight: 600 }}>{formatCurrency(selectedRec.extended)}</span>
+              {isSellSide && selectedRec.discount_pct > 0 && (
+                <><span style={{ color: 'var(--wc-text-muted)' }}>disc</span><span>{selectedRec.discount_pct}%</span></>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // ── List view (default DataGrid) ────────────────────────────────
+  const listView = (
     <DataGrid
       hideToolbar
       disableReorder
@@ -356,7 +470,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
       onCellEdit={lc.canEdit ? lc.handleCellEdit : undefined}
       numId={(v: unknown) => typeof v === 'number' ? v : null}
       theme={lc.theme}
-      fontSize={undefined}  /* inherit --db-font-size from DataBrowser */
+      fontSize={undefined}
       footerBar={footerBar}
       panelContent={panelContent}
       onHeaderClick={lc.canEdit ? lc.openBulkEdit : undefined}
@@ -366,6 +480,14 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
       onHeaderEditApply={lc.applyBulkEdit}
       onHeaderEditCancel={lc.cancelBulkEdit}
     />
+  );
+
+  return (
+    <>
+      {lc.viewMode === 'cards' ? cardsView : lc.viewMode === 'detail' ? detailView : listView}
+      {lc.imagePopup}
+      {lc.itemCard}
+    </>
   );
 };
 

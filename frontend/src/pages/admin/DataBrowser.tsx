@@ -23,6 +23,7 @@ import { fetchPrintLayout } from '../../hooks/usePrintLayout';
 import QueryBuilderPanel from '../../components/common/QueryBuilderPanel';
 import { RelatedPanel } from './RelatedPanel';
 import { HarvestBar } from './HarvestBar';
+import { useItemImagePopup } from '@/components/common/ItemImagePopup';
 import { SpawnLinks } from './SpawnLinks';
 import { TouchBar, TOUCH_MODELS } from './TouchBar';
 import { BOMPanel } from './BOMPanel';
@@ -115,6 +116,16 @@ const LayoutParadePane: React.FC<{
 const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   const { isAuthenticated, user } = useAppSelector((s) => s.auth);
   const navigate = useNavigate();
+
+  // ── Image popup (cmd-click on ida fields) ─────────────────────────────────
+  const [imagePopup, showImagePopup] = useItemImagePopup();
+  const IDA_FIELDS = useMemo(() => new Set(['ida', 'ida_item', 'sku', 'item_num', 'item_code']), []);
+  const handleCellClick = useCallback((e: React.MouseEvent, field: string, row: any) => {
+    if (!IDA_FIELDS.has(field)) return;
+    const ida = row[field];
+    if (!ida || typeof ida !== 'string') return;
+    showImagePopup(ida, (e.target as HTMLElement).getBoundingClientRect());
+  }, [IDA_FIELDS, showImagePopup]);
 
   // ── Date range + Who filter (header bar) ──────────────────────────────────
   const [dateFrom, setDateFrom] = useState('');
@@ -517,6 +528,31 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
     return m;
   }, [db.listFieldSpecs]);
 
+  // Item thumbnail column — inject into list when viewing items
+  const itemRichColumns = useMemo((): import('@/components/common/DataGrid').RichColumn[] | undefined => {
+    if (db.selectedModel !== 'item') return undefined;
+    return [
+      {
+        name: '',
+        field: '_tn',
+        width: '36px',
+        sortable: false,
+        cell: (row: any) => {
+          const ida = row.ida || row.ida_item || '';
+          if (!ida) return null;
+          return React.createElement('img', {
+            src: `/wcapi/_image/Item/${encodeURIComponent(ida)}/tn.jpg`,
+            alt: '',
+            style: { width: 28, height: 28, objectFit: 'cover', borderRadius: 3 },
+            loading: 'lazy',
+            onError: (e: any) => { e.target.onerror = null; e.target.src = '/images/no-image.svg'; },
+          });
+        },
+      },
+      ...db.visibleListFields.map((f: string) => ({ name: f, field: f, sortable: true })),
+    ];
+  }, [db.selectedModel, db.visibleListFields]);
+
   // Context menu: delete column
   const handleDeleteColumn = useCallback((field: string) => {
     const updated = db.listFieldSpecs.filter((s) => s.field !== field);
@@ -549,6 +585,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   }, [db.savedViews, db.loadView]);
 
   return (
+    <>
     <div data-wc="databrowser" className="db-root" data-zone="db | .db-root | DataBrowser.tsx" data-theme={theme} style={{ fontSize: baseFontSize, ['--db-font-size' as any]: `${baseFontSize}px` }}>
 
       {/* ═══ Header — model picker + search + date range + who ═══ */}
@@ -908,7 +945,8 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
           {!db.recordsLoading && (
             <DataGrid
               records={db.displayRecords}
-              columns={db.visibleListFields}
+              columns={itemRichColumns ? itemRichColumns.map(c => c.name) : db.visibleListFields}
+              richColumns={itemRichColumns}
               colWidths={{ ...db.specWidths, ...db.colWidths }}
               fieldSpecs={fieldSpecsMap}
               fieldBehaviors={db.fieldBehaviors}
@@ -948,6 +986,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
               onToggleRow={db.toggleRow}
               onSelectAll={db.selectAllRows}
               onClearSelection={() => db.setSelectedRowIds(new Set())}
+              onCellClick={handleCellClick}
               onSort={(field) => db.handleSort(field)}
               onColumnDrop={db.handleColumnDrop}
               onResizeStart={db.handleResizeStart}
@@ -1080,6 +1119,18 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
               </React.Suspense>
             ) : db.selectedRecord && viewPref !== 'parade' ? (
               /* Admin mode: DataBrowser field grid — grouped or flat */
+              <>
+              {/* Item image — upper right in admin detail */}
+              {detailModel === 'item' && db.selectedRecord.ida && (
+                <div style={{ float: 'right', margin: '0 0 8px 12px' }}>
+                  <img
+                    src={`/wcapi/_image/Item/${encodeURIComponent(db.selectedRecord.ida)}/md.jpg`}
+                    alt={db.selectedRecord.ida}
+                    style={{ maxWidth: 200, maxHeight: 200, objectFit: 'contain', borderRadius: 4, display: 'block' }}
+                    onError={(e) => { const img = e.target as HTMLImageElement; img.onerror = null; img.src = '/images/no-image.svg'; }}
+                  />
+                </div>
+              )}
               <GroupedDetailFields
                 fields={db.visibleDetailFields}
                 record={db.selectedRecord}
@@ -1095,6 +1146,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                 fontSize={baseFontSize}
                 theme={tDetail}
               />
+              </>
             ) : null}
 
             {/* SpawnLinks removed — replaced by + link tab in standard panels */}
@@ -1114,6 +1166,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                 theme={{ text: tDetail.text, textMuted: tDetail.textMuted, border: tDetail.border, surfaceAlt: tDetail.surfaceAlt, inputBg: tDetail.inputBg }}
               />
             )}
+
 
             {/* BOM panel — show when viewing an Item (Admin mode only) */}
             {viewPref !== 'app' && db.selectedRecord && db.selectedModel === 'item' && db.selectedId && (
@@ -1298,6 +1351,8 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
         onRelatedModelsChange={db.setRelatedModels}
       />
     </div>
+    {imagePopup}
+    </>
   );
 };
 

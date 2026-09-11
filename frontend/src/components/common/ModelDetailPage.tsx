@@ -223,6 +223,11 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
   // ── Edit handlers ──
   const handleEdit = () => { setEditData({ ...data }); setIsEditing(true); };
   const handleCancel = () => { setEditData(data); setIsEditing(false); };
+  const handleClose = () => {
+    if (inline && onCancelInline) { onCancelInline(); return; }
+    const path = `/${modelName}/${recordId || ''}`;
+    windowManager.closeWindow(path);
+  };
 
   const handleFieldChange = useCallback((field: string, value: unknown) => {
     setEditData((prev: any) => nestedWrite(prev, field, value));
@@ -314,7 +319,16 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
                     <span className="font-mono font-normal text-[var(--db-text-muted,#6c757d)] dark:text-slate-500">{data.ida}</span>
                   )}
                 </div>
-                {(col.fields || []).map((f: any) => (
+                {col.type === 'item_image' && data?.ida ? (
+                  <div className="flex justify-center items-center h-full">
+                    <img
+                      src={`/wcapi/_image/Item/${encodeURIComponent(data.ida)}/md.jpg`}
+                      alt={data.ida}
+                      style={{ maxWidth: '100%', maxHeight: 240, objectFit: 'contain', borderRadius: 4 }}
+                      onError={(e: any) => { e.target.onerror = null; e.target.src = '/images/no-image.svg'; }}
+                    />
+                  </div>
+                ) : (col.fields || []).map((f: any) => (
                   <FieldRow
                     key={f.field}
                     field={f.field}
@@ -390,6 +404,7 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
           onAddNew={handleAddNew}
           onSave={handleSave}
           onCancel={handleCancel}
+          onClose={handleClose}
           designMode={designMode}
           onToggleDesign={() => {
             if (designMode) { setDesignMode(false); setDesignLayout(null); invalidateLayout(); }

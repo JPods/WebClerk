@@ -18,6 +18,8 @@ import { useSelector } from 'react-redux';
 import { selectCurrency } from '@/store/slices/companySlice';
 import { lineKey } from '@/apps/transactions/utils/lineHelpers';
 import type { RichColumn } from '@/components/common/DataGrid';
+import { useItemImagePopup } from '@/components/common/ItemImagePopup';
+import { useItemCard } from '@/components/common/ItemCard';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -73,6 +75,7 @@ const formatNumber = (value?: number | null): string => {
 function flattenLine(line: any, idx: number, isSellSide: boolean): any {
   const lineRecord = line as unknown as Record<string, unknown>;
   const itemCode = String(lineRecord.ida_item ?? line.item?.ida_item ?? "--");
+  const tnUrl = itemCode && itemCode !== '--' ? `/wcapi/_image/Item/${encodeURIComponent(itemCode)}/tn.jpg` : '';
   const description = String(lineRecord.description ?? line.item?.description ?? "--");
   const qty = Number(lineRecord.qty ?? line.quantity?.active ?? 0);
   const remaining = Number(line.quantity?.remaining ?? 0);
@@ -98,6 +101,7 @@ function flattenLine(line: any, idx: number, isSellSide: boolean): any {
     id: lineKey(line, idx),
     _idx: idx,
     _line: line,
+    tn_url: tnUrl,
     item_code: itemCode,
     description,
     qty,
@@ -142,6 +146,11 @@ export function useLineCard(options: UseLineCardOptions) {
   const canEdit = isEditing && !isLocked;
   const currency = useSelector(selectCurrency);
 
+  // ── Image popup (cmd-click on item_code) ─────────────────────────
+  const [imagePopup, showImagePopup] = useItemImagePopup();
+  // ── Item card (click on item_code) ──────────────────────────────
+  const [itemCard, showItemCard] = useItemCard();
+
   // ── State ────────────────────────────────────────────────────────
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedLineIds, setSelectedLineIds] = useState<Set<number>>(new Set());
@@ -151,6 +160,7 @@ export function useLineCard(options: UseLineCardOptions) {
   const [bulkEditField, setBulkEditField] = useState<string | null>(null);
   const [bulkEditValue, setBulkEditValue] = useState('');
   const [showCommission, setShowCommission] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'cards' | 'detail'>('list');
 
   const togglePanel = (panel: typeof activePanel) =>
     setActivePanel(prev => prev === panel ? 'none' : panel);
@@ -292,7 +302,39 @@ export function useLineCard(options: UseLineCardOptions) {
   const richColumns = useMemo((): RichColumn[] => {
     const cols: RichColumn[] = [];
 
-    cols.push({ name: 'item_code', field: 'item_code', width: '120px', sortable: true });
+    cols.push({
+      name: '',
+      field: 'tn_url',
+      width: '36px',
+      sortable: false,
+      cell: (row: any) => row.tn_url
+        ? React.createElement('img', {
+            src: row.tn_url,
+            alt: '',
+            style: { width: 28, height: 28, objectFit: 'cover', borderRadius: 3 },
+            loading: 'lazy',
+            onError: (e: any) => { e.target.onerror = null; e.target.src = '/images/no-image.svg'; },
+          })
+        : null,
+    });
+    cols.push({
+      name: 'item_code',
+      field: 'item_code',
+      width: '120px',
+      sortable: true,
+      cell: (row: any) => React.createElement('span', {
+        style: { cursor: row.item_code && row.item_code !== '--' ? 'pointer' : 'default', color: row.item_code && row.item_code !== '--' ? 'var(--wc-accent, #2563eb)' : 'inherit' },
+        onClick: (e: React.MouseEvent) => {
+          if (!row.item_code || row.item_code === '--') return;
+          e.stopPropagation();
+          if (e.metaKey || e.ctrlKey) {
+            showImagePopup(row.item_code, (e.target as HTMLElement).getBoundingClientRect());
+          } else {
+            showItemCard(row.item_code, (e.target as HTMLElement).getBoundingClientRect());
+          }
+        },
+      }, row.item_code),
+    });
     cols.push({ name: 'qty', field: 'qty', width: '80px', sortable: true });
     cols.push({ name: 'remain', field: 'remaining', width: '55px', sortable: true });
 
@@ -467,5 +509,9 @@ export function useLineCard(options: UseLineCardOptions) {
     cancelBulkEdit,
     showCommission,
     setShowCommission,
+    imagePopup,
+    itemCard,
+    viewMode,
+    setViewMode,
   };
 }
