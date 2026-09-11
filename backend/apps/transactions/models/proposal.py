@@ -11,6 +11,8 @@ class Proposal(TransactionBaseModel):
 
     dt_due = models.BigIntegerField(null=True, blank=True,
         help_text="Proposal expiry date (epoch ms) — quote valid until this date")
+    probability = models.FloatField(default=0.0, db_index=True,
+        help_text="Close probability 0.0–1.0. Feeds forecast: totals × probability = weighted pipeline.")
 
     def __str__(self) -> str:
         return f"Proposal #{self.id} ({self.ida or ''})"

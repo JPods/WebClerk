@@ -11,6 +11,23 @@ from pydantic import BaseModel, Field
 from .envelopes import ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, SourceRef
 
 
+# -- .capital_asset ---------------------------------------------------------
+
+DEPRECIATION_METHOD_CHOICES = ('straight_line', 'declining_balance', 'units_of_production')
+
+class CapitalAsset(BaseModel):
+    """Schema for Purchase.capital_asset JSON field."""
+    asset_name: str = ''
+    useful_life_months: Optional[int] = None
+    salvage_value: Optional[float] = None
+    depreciation_method: str = 'straight_line'
+    placed_in_service: Optional[str] = None       # ISO date string YYYY-MM-DD
+    location: str = ''
+    serial_number: str = ''
+    category: str = ''                             # user-defined asset category
+    notes: str = ''
+
+
 # -- .config ----------------------------------------------------------------
 
 class PurchaseConfig(ConfigBase):

@@ -25,9 +25,12 @@ GL_ACCOUNT_CATEGORY_CHOICES: Final[ChoiceList] = (
     ("receivables", "Accounts Receivable"),
     ("payables", "Accounts Payable"),
     ("inventory", "Inventory"),
+    ("fixed_assets", "Fixed Assets"),
+    ("depreciation", "Depreciation"),
     ("sales", "Sales"),
     ("cogs", "Cost of Goods Sold"),
     ("expense", "Expense"),
+    ("payroll", "Payroll"),
     ("other", "Other"),
 )
 

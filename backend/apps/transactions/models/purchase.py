@@ -10,6 +10,15 @@ class Purchase(TransactionBaseModel):
     # Totals: inherited from TransactionBaseModel.update_sell_cost_totals()
     # One engine: recalculate_totals(). JSON is source of truth.
 
+    # Capital asset tracking — gate + envelope
+    is_capital = models.BooleanField(
+        default=False, db_index=True,
+        help_text="True if this purchase is a capital asset (balance sheet, not expense)")
+    capital_asset = models.JSONField(
+        null=True, blank=True,
+        help_text="Capital asset details: asset_name, useful_life_months, salvage_value, "
+                  "depreciation_method, placed_in_service, location, serial_number, notes")
+
     class Meta:
         db_table = "purchases"
 

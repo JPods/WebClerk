@@ -50,6 +50,13 @@ Actions:
     send_email                     — merge + send via Django email backend
     bulk_send                      — send to multiple records
     get_available_templates        — list available templates
+  Financial Reports (operational finance):
+    get_trial_balance              — all GL accounts with period debit/credit totals
+    get_income_statement           — P&L: revenue minus expenses by category
+    get_balance_sheet              — assets = liabilities + equity at a point in time
+    get_aged_payables              — vendor aging by bucket (mirrors aged receivables)
+    get_cash_forecast              — projected cash inflows/outflows from operational data + budget entries
+    get_budget_vs_actual           — compare budget (ScheduleEntry) vs actual (GlJournal) for a period
   Report Parade (Alice onboarding):
     start_parade                   — build parade manifest with sample data URLs
     save_parade_feedback           — save Keep/Modify/Don't Need feedback on a report
@@ -1256,6 +1263,46 @@ _ACTION_DISPATCH = {
     # ── Frontend Cache Flush ──
     "flush_frontend": _flush_frontend,
     "get_bootstrap_dt": _get_bootstrap_dt,
+    # ── Financial Reports (operational finance for business owners) ──
+    "get_trial_balance": lambda p: __import__(
+        'apps.accounts.services.financial_statements', fromlist=['trial_balance']
+    ).trial_balance(
+        period_start=__import__('datetime').date.fromisoformat(p['start']) if p.get('start') else None,
+        period_end=__import__('datetime').date.fromisoformat(p['end']) if p.get('end') else None,
+        division=p.get('division', ''),
+    ),
+    "get_income_statement": lambda p: __import__(
+        'apps.accounts.services.financial_statements', fromlist=['income_statement']
+    ).income_statement(
+        period_start=__import__('datetime').date.fromisoformat(p['start']) if p.get('start') else None,
+        period_end=__import__('datetime').date.fromisoformat(p['end']) if p.get('end') else None,
+        division=p.get('division', ''),
+    ),
+    "get_balance_sheet": lambda p: __import__(
+        'apps.accounts.services.financial_statements', fromlist=['balance_sheet']
+    ).balance_sheet(
+        as_of_date=__import__('datetime').date.fromisoformat(p['as_of']) if p.get('as_of') else None,
+        division=p.get('division', ''),
+    ),
+    "get_aged_payables": lambda p: __import__(
+        'apps.accounts.services.aged_payables', fromlist=['aged_payables_report']
+    ).aged_payables_report(
+        as_of_date=__import__('datetime').date.fromisoformat(p['as_of']) if p.get('as_of') else None,
+        vendor_ids=[int(p['vendor_id'])] if p.get('vendor_id') else None,
+    ),
+    "get_cash_forecast": lambda p: __import__(
+        'apps.accounts.services.forecast', fromlist=['cash_flow_forecast']
+    ).cash_flow_forecast(
+        months_ahead=min(max(int(p.get('months', 6)), 1), 24),
+    ),
+    "get_budget_vs_actual": lambda p: __import__(
+        'apps.accounts.services.forecast', fromlist=['budget_vs_actual']
+    ).budget_vs_actual(
+        period=p['period'],
+        dt_start=int(p['dt_start']) if p.get('dt_start') else None,
+        dt_end=int(p['dt_end']) if p.get('dt_end') else None,
+        division=p.get('division', ''),
+    ),
 }
 
 # Actions that require staff/superuser — commission data is internal-only
