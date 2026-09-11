@@ -26,13 +26,29 @@ def _epoch_ms(d: date) -> int:
     return int(dt.timestamp() * 1000)
 
 
-def _period_filter(period_start: Optional[date], period_end: Optional[date]) -> Q:
-    """Build Q filter for journalized entries within a date range."""
-    q = Q(dt_journaled__gt=0)  # only journalized (locked) entries
-    if period_start:
-        q &= Q(dt_journaled__gte=_epoch_ms(period_start))
-    if period_end:
-        q &= Q(dt_journaled__lte=_epoch_ms(period_end))
+def _period_filter(
+    period_start: Optional[date],
+    period_end: Optional[date],
+    posted_only: bool = False,
+) -> Q:
+    """Build Q filter for GL entries within a date range.
+
+    Args:
+        posted_only: If True, only locked/journalized entries (dt_journaled > 0).
+                     If False (default), all entries using dt_created for date range.
+    """
+    if posted_only:
+        q = Q(dt_journaled__gt=0)
+        if period_start:
+            q &= Q(dt_journaled__gte=_epoch_ms(period_start))
+        if period_end:
+            q &= Q(dt_journaled__lte=_epoch_ms(period_end))
+    else:
+        q = Q()  # all entries
+        if period_start:
+            q &= Q(dt_created__gte=_epoch_ms(period_start))
+        if period_end:
+            q &= Q(dt_created__lte=_epoch_ms(period_end))
     return q
 
 
@@ -58,6 +74,7 @@ def trial_balance(
     period_start: Optional[date] = None,
     period_end: Optional[date] = None,
     division: str = '',
+    posted_only: bool = False,
 ) -> dict:
     """All GL accounts with period debit/credit totals and running balance.
 
@@ -84,7 +101,7 @@ def trial_balance(
     GlJournal = dj_apps.get_model('accounts', 'GlJournal')
     account_map = _build_account_map()
 
-    q = _period_filter(period_start, period_end)
+    q = _period_filter(period_start, period_end, posted_only=posted_only)
     if division:
         q &= Q(division=division)
 
@@ -155,6 +172,7 @@ def income_statement(
     period_start: Optional[date] = None,
     period_end: Optional[date] = None,
     division: str = '',
+    posted_only: bool = False,
 ) -> dict:
     """Revenue minus Expenses grouped by GlAccount category for a period.
 
@@ -184,7 +202,7 @@ def income_statement(
     GlJournal = dj_apps.get_model('accounts', 'GlJournal')
     account_map = _build_account_map()
 
-    q = _period_filter(period_start, period_end)
+    q = _period_filter(period_start, period_end, posted_only=posted_only)
     if division:
         q &= Q(division=division)
 
@@ -297,6 +315,7 @@ _BS_CATEGORY_ORDER = {
 def balance_sheet(
     as_of_date: Optional[date] = None,
     division: str = '',
+    posted_only: bool = False,
 ) -> dict:
     """Assets = Liabilities + Equity at a point in time.
 
@@ -329,7 +348,11 @@ def balance_sheet(
         as_of_date = date.today()
 
     # All journalized entries up to as_of_date
-    q = Q(dt_journaled__gt=0) & Q(dt_journaled__lte=_epoch_ms(as_of_date))
+    # All entries up to as_of_date
+    if posted_only:
+        q = Q(dt_journaled__gt=0) & Q(dt_journaled__lte=_epoch_ms(as_of_date))
+    else:
+        q = Q(dt_created__lte=_epoch_ms(as_of_date))
     if division:
         q &= Q(division=division)
 

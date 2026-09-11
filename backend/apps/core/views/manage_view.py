@@ -56,7 +56,8 @@ Actions:
     get_balance_sheet              — assets = liabilities + equity at a point in time
     get_aged_payables              — vendor aging by bucket (mirrors aged receivables)
     get_cash_forecast              — projected cash inflows/outflows from operational data + budget entries
-    get_budget_vs_actual           — compare budget (ScheduleEntry) vs actual (GlJournal) for a period
+    get_budget_vs_actual           — compare budget vs actual (GlJournal) for a period
+    import_budget                  — import budget entries from Excel/CSV/JSON via Connection/Bundle
   Report Parade (Alice onboarding):
     start_parade                   — build parade manifest with sample data URLs
     save_parade_feedback           — save Keep/Modify/Don't Need feedback on a report
@@ -1270,6 +1271,7 @@ _ACTION_DISPATCH = {
         period_start=__import__('datetime').date.fromisoformat(p['start']) if p.get('start') else None,
         period_end=__import__('datetime').date.fromisoformat(p['end']) if p.get('end') else None,
         division=p.get('division', ''),
+        posted_only=p.get('posted_only', False),
     ),
     "get_income_statement": lambda p: __import__(
         'apps.accounts.services.financial_statements', fromlist=['income_statement']
@@ -1277,12 +1279,14 @@ _ACTION_DISPATCH = {
         period_start=__import__('datetime').date.fromisoformat(p['start']) if p.get('start') else None,
         period_end=__import__('datetime').date.fromisoformat(p['end']) if p.get('end') else None,
         division=p.get('division', ''),
+        posted_only=p.get('posted_only', False),
     ),
     "get_balance_sheet": lambda p: __import__(
         'apps.accounts.services.financial_statements', fromlist=['balance_sheet']
     ).balance_sheet(
         as_of_date=__import__('datetime').date.fromisoformat(p['as_of']) if p.get('as_of') else None,
         division=p.get('division', ''),
+        posted_only=p.get('posted_only', False),
     ),
     "get_aged_payables": lambda p: __import__(
         'apps.accounts.services.aged_payables', fromlist=['aged_payables_report']
@@ -1294,6 +1298,14 @@ _ACTION_DISPATCH = {
         'apps.accounts.services.forecast', fromlist=['cash_flow_forecast']
     ).cash_flow_forecast(
         months_ahead=min(max(int(p.get('months', 6)), 1), 24),
+    ),
+    "import_budget": lambda p: __import__(
+        'apps.accounts.services.budget_import', fromlist=['import_budget']
+    ).import_budget(
+        connection_id=int(p['connection_id']) if p.get('connection_id') else None,
+        file_path=p.get('file_path'),
+        data=p.get('data'),
+        dry_run=p.get('dry_run', False),
     ),
     "get_budget_vs_actual": lambda p: __import__(
         'apps.accounts.services.forecast', fromlist=['budget_vs_actual']
