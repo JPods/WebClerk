@@ -554,14 +554,30 @@ function AccountingTab({ data }: { data: any }) {
   return (
     <div className="cd-tab-content">
       {/* AR Aging summary */}
-      {(data?.aging) && (
-        <div className="cd-metrics-row">
-          <MetricCard label="Future" value={formatCurrency(data.aging.future ?? 0)} sub="Not yet due" />
-          <MetricCard label="Current" value={formatCurrency(data.aging.current ?? 0)} sub="Due ≤ 30 days" />
-          <MetricCard label="1-30 Past Due" value={formatCurrency(data.aging.period_1 ?? 0)} />
-          <MetricCard label="31-60 Past Due" value={formatCurrency(data.aging.period_2 ?? 0)} />
-          <MetricCard label="60+ Past Due" value={formatCurrency(data.aging.period_3 ?? 0)} />
-          <MetricCard label="Total AR" value={formatCurrency(data.aging.total ?? 0)} />
+      {(data?.ar) && (
+        <div className="cd-section">
+          <h3 className="cd-section-title">Accounts Receivable</h3>
+          <div className="cd-metrics-row">
+            <MetricCard label="Open Invoices" value={data.ar.open_count} sub={formatCurrency(data.ar.open_total)} />
+            <MetricCard label="Current" value={formatCurrency(data.ar.current ?? 0)} sub="≤ 30 days" />
+            <MetricCard label="30-60 Days" value={formatCurrency(data.ar['30_60'] ?? 0)} />
+            <MetricCard label="60-90 Days" value={formatCurrency(data.ar['60_90'] ?? 0)} />
+            <MetricCard label="90+ Days" value={formatCurrency(data.ar.over_90 ?? 0)} />
+          </div>
+        </div>
+      )}
+
+      {/* AP Aging summary */}
+      {(data?.ap) && (
+        <div className="cd-section">
+          <h3 className="cd-section-title">Accounts Payable</h3>
+          <div className="cd-metrics-row">
+            <MetricCard label="Open Purchases" value={data.ap.open_count} sub={formatCurrency(data.ap.open_total)} />
+            <MetricCard label="Current" value={formatCurrency(data.ap.current ?? 0)} sub="≤ 30 days" />
+            <MetricCard label="30-60 Days" value={formatCurrency(data.ap['30_60'] ?? 0)} />
+            <MetricCard label="60-90 Days" value={formatCurrency(data.ap['60_90'] ?? 0)} />
+            <MetricCard label="90+ Days" value={formatCurrency(data.ap.over_90 ?? 0)} />
+          </div>
         </div>
       )}
 

@@ -256,8 +256,8 @@ const VendorTab: React.FC<{ data?: OrgFinancialVendor; currency: string }> = ({ 
       <Section title="Aging" icon={<FaClock size={12} />}>
         <LineItem label="Future" value={formatCurrency(data.aging?.future)} />
         <LineItem label="1-30 Days" value={formatCurrency(data.aging?.period_1)} />
-        <LineItem label="31-60 Days" value={formatCurrency(data.aging?.period_2)} />
-        <LineItem label="61-90+ Days" value={formatCurrency(data.aging?.period_3)} />
+        <LineItem label="31-60 Days" value={formatCurrency(data.aging?.period_2)} warning={!!data.aging?.period_2} />
+        <LineItem label="61-90+ Days" value={formatCurrency(data.aging?.period_3)} warning={!!data.aging?.period_3} />
       </Section>
 
       <Section title="Purchases" icon={<FaChartLine size={12} />}>

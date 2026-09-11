@@ -311,6 +311,18 @@ def get_accounting_dashboard(params):
     payments = Payment.objects.filter(dt_created__gte=cutoff).aggregate(
         count=Count('id'), total=Sum('amount'))
 
+    # AP — open purchases (mirror of AR aging)
+    from apps.transactions.models import Purchase
+    from common.json_lookups import totals_total
+    ap_base = Purchase.objects.filter(
+        status__in=['open', 'released', 'in_progress'],
+    ).annotate(_tot=totals_total()).filter(_tot__gt=0)
+    ap_open = ap_base.aggregate(count=Count('id'), total=Sum('_tot'))
+    ap_current = ap_base.filter(dt_created__gte=day_30).aggregate(t=Sum('_tot'))['t'] or 0
+    ap_30_60 = ap_base.filter(dt_created__lt=day_30, dt_created__gte=day_60).aggregate(t=Sum('_tot'))['t'] or 0
+    ap_60_90 = ap_base.filter(dt_created__lt=day_60, dt_created__gte=day_90).aggregate(t=Sum('_tot'))['t'] or 0
+    ap_over_90 = ap_base.filter(dt_created__lt=day_90).aggregate(t=Sum('_tot'))['t'] or 0
+
     return {
         'ar': {
             'open_count': open_invoices['count'] or 0,
@@ -319,6 +331,14 @@ def get_accounting_dashboard(params):
             '30_60': float(ar_30_60),
             '60_90': float(ar_60_90),
             'over_90': float(ar_over_90),
+        },
+        'ap': {
+            'open_count': ap_open['count'] or 0,
+            'open_total': float(ap_open['total'] or 0),
+            'current': float(ap_current),
+            '30_60': float(ap_30_60),
+            '60_90': float(ap_60_90),
+            'over_90': float(ap_over_90),
         },
         'payments': {
             'count': payments['count'] or 0,
