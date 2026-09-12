@@ -672,34 +672,22 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
         }).catch(() => {});
       }
 
-      // Load workbench setting directly (not from cached map — avoids stale closure)
-      // Primary: wc:workbench_fields (user-saved layouts)
-      // Fallback: wc:model config.layout (curated default)
+      // Load workbench setting from wc:model config.layout (single source of truth)
       let ws: WorkbenchFieldsSetting | null = null;
       let wsId: number | null = null;
       try {
-        const wsRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'wc:workbench_fields', limit: 1 }) as any;
+        const modelRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'wc:model', limit: 1 }) as any;
         if (modelChangeRef.current !== fetchId) return;
-        const wsRec = (wsRes?.results || [])[0];
-        ws = wsRec?.config?.db || wsRec?.config || null;
-        wsId = wsRec?.id ?? null;
-      } catch { /* use null */ }
-      // Fallback to wc:model config.layout if no workbench_fields exists
-      if (!ws || (!ws.list?.length && !ws.detail?.length)) {
-        try {
-          const modelRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'wc:model', limit: 1 }) as any;
-          if (modelChangeRef.current !== fetchId) return;
-          const modelRec = (modelRes?.results || [])[0];
-          const layout = modelRec?.config?.layout;
-          if (layout) {
-            const converted = namedLayoutToWorkbench(layout);
-            if (converted && (converted.list?.length || converted.detail?.length)) {
-              ws = converted;
-              dbLog('fetchRecords:workbenchFallback', { model: selectedModel, source: 'wc:model', list: ws.list?.length, detail: ws.detail?.length, named: !Array.isArray(layout.list) });
-            }
+        const modelRec = (modelRes?.results || [])[0];
+        wsId = modelRec?.id ?? null;
+        const layout = modelRec?.config?.layout;
+        if (layout) {
+          const converted = namedLayoutToWorkbench(layout);
+          if (converted && (converted.list?.length || converted.detail?.length)) {
+            ws = converted;
           }
-        } catch { /* use null */ }
-      }
+        }
+      } catch { /* use null */ }
       setWorkbenchSetting(ws);
       setWorkbenchSettingId(wsId);
       if (wsId && selectedModel) workbenchSettingIdMap.current[selectedModel] = wsId;
@@ -1027,14 +1015,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
           }
           await saveRecord('setting', ops);
         } else {
-          const result = await saveRecord('setting', {
-            name: `workbench_fields:${model}`,
-            parent_model: model,
-            purpose: 'wc:workbench_fields',
-            config: { db: next },
-          });
-          const newId = result?.id || result?.data?.id || result?.data?.record?.id;
-          if (newId) workbenchSettingIdMap.current[model] = newId;
+          console.warn('[DB] No wc:model Setting found for', model, '— cannot save layout');
         }
         console.log('[DB] persistSetting saved:', settingId || 'new');
         return; // success

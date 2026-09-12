@@ -46,8 +46,8 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
     }
   }, [actionId, onClose, onSaved, confirmDelete]);
 
-  const handleSave = useCallback(() => {
-    actionsRef.current?.save();
+  const handleSave = useCallback(async () => {
+    await actionsRef.current?.save();
     onSaved?.();
     onClose();
   }, [onClose, onSaved]);
@@ -103,8 +103,10 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
   return (
     <div
       ref={windowRef}
-      className="fixed z-50 flex flex-col rounded-lg border border-gray-300 bg-white shadow-2xl dark:border-gray-600 dark:bg-gray-900"
+      className="fixed z-50 flex flex-col rounded-lg shadow-2xl"
       style={{
+        border: '1px solid var(--db-border)',
+        background: 'var(--db-surface)',
         left: pos.x,
         top: pos.y,
         width: size.w,
@@ -114,17 +116,19 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
       {/* Title bar — draggable */}
       <div
         onMouseDown={onDragStart}
-        className="flex shrink-0 cursor-move items-center gap-2 rounded-t-lg border-b border-gray-200 bg-gray-50 px-2 py-0.5 dark:border-gray-700 dark:bg-gray-800 select-none"
+        className="flex shrink-0 cursor-move items-center gap-2 rounded-t-lg px-2 py-0.5 select-none"
+        style={{ borderBottom: '1px solid var(--db-border)', background: 'var(--db-surface-alt)' }}
       >
         {actions?.ida && (
-          <span className="font-mono text-[10px] text-gray-400">{actions.ida}</span>
+          <span className="font-mono text-[10px]" style={{ color: 'var(--db-text-dim)' }}>{actions.ida}</span>
         )}
-        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+        <span className="text-xs font-medium" style={{ color: 'var(--db-text-muted)' }}>
           Action #{actionId}
         </span>
         <span className="flex-1" />
         <button onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-sm px-1"
+          className="text-sm px-1"
+          style={{ color: 'var(--db-text-dim)' }}
           title="Close">×</button>
       </div>
 
@@ -138,6 +142,7 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
         canDelete={true}
         onSave={handleSave}
         onCancel={handleCancel}
+        onClose={onClose}
         onDelete={handleDelete}
       />
 

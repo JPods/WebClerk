@@ -330,8 +330,12 @@ function DynamicDetail({
 
                 // Build field config from Setting field definition
                 // Label priority: field def > behavior > derived from name
-                const cfg: FieldConfig = { type: 'text' };
+                // If Setting doesn't specify a type, inherit from legacy registry
                 const baseName = fieldName.replace(/\[\d+\]$/, '');
+                const legacyField = legacyRegistry[fieldName] || legacyRegistry[baseName];
+                const cfg: FieldConfig = legacyField && !f.type
+                  ? { ...legacyField }
+                  : { type: 'text' };
                 cfg.label = f.label
                   || behaviors[baseName]?.label
                   || (fieldName.split('.').pop() || fieldName).replace(/\[\d+\]$/, '');
@@ -533,8 +537,9 @@ function DynamicDetail({
       return "";
     }
     if (cfg.type === "checkbox") return !!raw;
-    if (cfg.type === "readonly" && typeof raw === "object" && raw !== null) {
-      return JSON.stringify(raw);
+    if (typeof raw === "object" && raw !== null && !Array.isArray(raw)) {
+      // i18n objects {en: "text"} or record refs {id, name} — extract display value
+      return raw.en || raw.name || raw.display_name || raw.ida || JSON.stringify(raw);
     }
     return raw ?? "";
   }, []);

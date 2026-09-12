@@ -92,13 +92,13 @@ export function RelatedPanel({ modelName, parentModel, parentId, fontSize, theme
         setLinkType(isRefsFilter ? 'refs' : 'fk');
         setRecords(list);
 
-        // 2. Fetch child model's workbench_fields Setting for db.panel
+        // 2. Fetch child model's wc:model Setting for layout.panel
         try {
-          const wsRes = await getRecords('setting', { parent_model: modelName, purpose: 'wc:workbench_fields', limit: 1 }) as any;
+          const wsRes = await getRecords('setting', { parent_model: modelName, purpose: 'wc:model', limit: 1 }) as any;
           if (cancelled) return;
           const wsRec = (wsRes?.results || [])[0];
-          const dbLayout = wsRec?.config?.db || wsRec?.config;
-          if (dbLayout?.panel?.length) setPanelSpecs(dbLayout.panel);
+          const panel = wsRec?.config?.layout?.panel;
+          if (panel?.length) setPanelSpecs(panel);
         } catch { /* no setting — auto-detect will handle it */ }
       } catch (e) {
         console.error(`[RelatedPanel] ${modelName}:`, e);

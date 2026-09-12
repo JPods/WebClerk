@@ -293,9 +293,7 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
   const [settingLoaded, setSettingLoaded] = useState(false);
   const panelKey = `${parentModel}:${parentId}:${linkedModel}`;
 
-  // Load panel columns from Setting — checks two paths:
-  //   1. wc:workbench_fields → config.db.panel (seed_panel_columns)
-  //   2. wc:model → config.layout.panel (future standard)
+  // Load panel columns from wc:model Setting → config.layout.panel
   const [settingsVersion, setSettingsVersion] = useState(0);
 
   // Listen for flush events — Alice or admin bumped dt_changed
@@ -308,21 +306,6 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
   useEffect(() => {
     (async () => {
       try {
-        // Try workbench_fields first (where seed_panel_columns writes)
-        const wbRes = await getRecords('setting', {
-          parent_model: linkedModel,
-          purpose: 'wc:workbench_fields',
-          limit: 1,
-        }) as any;
-        const wbSetting = wbRes?.results?.[0] ?? wbRes?.records?.[0];
-        const wbSpecs = wbSetting?.config?.db?.panel;
-        if (Array.isArray(wbSpecs) && wbSpecs.length > 0) {
-          setSettingPanelCols(buildColumnsFromSpecs(wbSpecs) as DbColumnDef<Rec>[]);
-          setSettingLoaded(true);
-          return;
-        }
-
-        // Fallback: wc:model → config.layout.panel
         const res = await getRecords('setting', {
           parent_model: linkedModel,
           purpose: 'wc:model',

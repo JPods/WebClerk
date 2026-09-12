@@ -235,7 +235,7 @@ function ModelScaffold({
       try {
         await saveWorkbenchFieldsSetting({
           model_name: modelName,
-          purpose: "wc:workbench_fields",
+          purpose: "wc:model",
           config: next,
         } as any);
       } catch (err) {

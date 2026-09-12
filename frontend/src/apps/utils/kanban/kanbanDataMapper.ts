@@ -483,7 +483,7 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
     const translationLanguages = new Set<string>();
     actionEntries.forEach(([language]) => translationLanguages.add(language));
     descriptionEntries.forEach(([language]) => translationLanguages.add(language));
-    item.languages?.forEach((language) => {
+    (Array.isArray(item.languages) ? item.languages : []).forEach((language) => {
       if (typeof language === "string" && language.trim()) {
         translationLanguages.add(language.trim().toLowerCase());
       }
