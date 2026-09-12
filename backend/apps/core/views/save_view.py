@@ -722,6 +722,10 @@ class SaveWcapiView(APIView):
                             setattr(obj, 'contact_id', 0)
         except Exception:
             pass
+        # Authorize Setting saves from authenticated API requests
+        if model_key == 'setting':
+            obj._setting_update_authorized = True
+            obj._setting_create_authorized = True
         console_logger.debug(f"[SAVE_VIEW] Executing obj.save() for {model_key} ID: {getattr(obj, 'id', 'new')}")
         obj.save()
         console_logger.debug(f"[SAVE_VIEW] Save completed successfully for {model_key} ID: {getattr(obj, 'id', 'new')}")

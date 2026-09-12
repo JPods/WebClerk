@@ -171,6 +171,7 @@ def import_settings_bundle(
                     refs=rec.get('refs', {}),
                 )
                 s._setting_update_authorized = True  # approved bootstrap path
+                s._setting_create_authorized = True
                 s.save()
                 created += 1
 

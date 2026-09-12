@@ -927,10 +927,11 @@ class Command(BaseCommand):
                 existing.config = config
                 existing.name = f'{meta.singular} Model Definition'
                 existing.explanation = expl
+                existing._setting_update_authorized = True
                 existing.save()
                 updated += 1
             else:
-                Setting.objects.create(
+                Setting.authorized_create(
                     name=f'{meta.singular} Model Definition',
                     ida=f'wc-model-{model_key}',
                     parent_model=canonical_key,

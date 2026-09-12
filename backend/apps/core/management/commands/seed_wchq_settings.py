@@ -294,15 +294,18 @@ class Command(BaseCommand):
 
     def _seed_setting(self, purpose, ida, name, config_data, parent_model='setting'):
         """Seed one Setting record with merge-on-update."""
-        setting, created = Setting.objects.get_or_create(
-            purpose=purpose,
-            parent_model=parent_model,
-            defaults={
-                'ida': ida,
-                'name': name,
-                'config': config_data,
-            },
-        )
+        setting = Setting.objects.filter(purpose=purpose, parent_model=parent_model).first()
+        if not setting:
+            setting = Setting.authorized_create(
+                purpose=purpose,
+                parent_model=parent_model,
+                ida=ida,
+                name=name,
+                config=config_data,
+            )
+            created = True
+        else:
+            created = False
         if created:
             self.stdout.write(self.style.SUCCESS(f"  Created: {name} (#{setting.id})"))
         else:

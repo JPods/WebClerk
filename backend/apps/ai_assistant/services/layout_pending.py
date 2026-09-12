@@ -68,7 +68,7 @@ def save_layout_pending(params: dict) -> dict:
 
     if not setting:
         # Create new wc:model record with columns section
-        setting = Setting.objects.create(
+        setting = Setting.authorized_create(
             name=f'{model} Model Definition',
             ida=f'wc-model-{model}',
             parent_model=model,

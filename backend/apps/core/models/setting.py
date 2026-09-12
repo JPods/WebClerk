@@ -69,10 +69,15 @@ class Setting(BaseModel):
     
     # ── WALL: Settings are NEVER bulk-modified ──
     # These records represent days of careful refinement — layouts, behaviors,
-    # selectlists, schema maps. Any automated process that wants to modify
-    # Setting.config must set _setting_update_authorized = True on the instance
-    # before calling save(). Without this flag, config changes are rejected.
+    # selectlists, schema maps. Any process that wants to create, modify, or
+    # delete Setting records must set the appropriate authorization flag:
+    #   _setting_update_authorized = True  (config changes on existing records)
+    #   _setting_create_authorized = True  (creating new records)
+    #   _setting_delete_authorized = True  (deleting records)
+    # Without these flags, the operation is rejected with a ValidationError.
     _setting_update_authorized = False
+    _setting_create_authorized = False
+    _setting_delete_authorized = False
 
     def save(self, *args, **kwargs):
         """Ensure parent_model is normalized/validated even when created directly.
@@ -80,6 +85,21 @@ class Setting(BaseModel):
         Django doesn't call clean() automatically on save. We enforce it here so
         records created via ORM (bypassing serializers) still store canonical parent_model.
         """
+        import logging
+        logger = logging.getLogger('setting')
+
+        # Guard: block unauthorized creation of new records
+        if not self.pk and not self._setting_create_authorized:
+            logger.warning(
+                'BLOCKED: unauthorized Setting creation (%s, purpose=%s). '
+                'Set _setting_create_authorized=True to proceed.',
+                self.name or '(unnamed)', self.purpose or '(none)',
+            )
+            raise ValidationError(
+                'Creating new Setting records requires explicit authorization. '
+                'Set record._setting_create_authorized = True before save().'
+            )
+
         # Guard: block unauthorized config changes on existing records
         if self.pk and not self._setting_update_authorized:
             update_fields = kwargs.get('update_fields')
@@ -88,8 +108,6 @@ class Setting(BaseModel):
                 try:
                     orig = Setting.objects.filter(pk=self.pk).values_list('config', flat=True).first()
                     if orig is not None and orig != self.config:
-                        import logging
-                        logger = logging.getLogger('setting')
                         logger.warning(
                             'BLOCKED: unauthorized config change on Setting #%s (%s). '
                             'Set _setting_update_authorized=True to proceed.',
@@ -109,10 +127,35 @@ class Setting(BaseModel):
             raise
 
         result = super().save(*args, **kwargs)
-        # Reset flag after save
+        # Reset flags after save
         self._setting_update_authorized = False
+        self._setting_create_authorized = False
         return result
-    
+
+    def delete(self, *args, **kwargs):
+        """Block unauthorized deletion of Setting records."""
+        if not self._setting_delete_authorized:
+            import logging
+            logger = logging.getLogger('setting')
+            logger.warning(
+                'BLOCKED: unauthorized deletion of Setting #%s (%s, purpose=%s). '
+                'Set _setting_delete_authorized=True to proceed.',
+                self.pk, self.name or self.ida, self.purpose or '(none)',
+            )
+            raise ValidationError(
+                'Deleting Setting records requires explicit authorization. '
+                'Set record._setting_delete_authorized = True before delete().'
+            )
+        return super().delete(*args, **kwargs)
+
+    @classmethod
+    def authorized_create(cls, **kwargs):
+        """Create a new Setting with explicit authorization."""
+        obj = cls(**kwargs)
+        obj._setting_create_authorized = True
+        obj.save()
+        return obj
+
     # Treat "comment" as a virtual field backed by data["comment"]
     @property
     def comment(self) -> str:
