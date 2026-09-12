@@ -376,6 +376,12 @@ export async function saveRecord(model_name: string, payload: any) {
   const resolved = resolveModelName(model_name);
   // Extract id and mode from payload if present (they go at root level, not in data)
   const { id, mode, ...record } = payload;
+  // Strip computed property fields that don't exist as model columns — they cause
+  // envelope_invalid errors when the backend tries to pack them into config.
+  // These are @property methods on TransactionBaseModel, not real DB fields.
+  for (const k of ['email', 'phone', 'address_full', 'company_name']) {
+    delete record[k];
+  }
 
   // ── Pre-flight: envelope validation ──
   const envelopeErrors = validateEnvelope(record);

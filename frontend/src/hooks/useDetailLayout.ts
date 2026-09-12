@@ -105,6 +105,8 @@ function defaultLayout(modelName: string): DetailLayout {
 
 // Cache layouts by model name
 const layoutCache = new Map<string, DetailLayout>();
+// Expose cache for debugging — window.__wc_layout_cache.clear() to force re-fetch
+if (typeof window !== 'undefined') (window as any).__wc_layout_cache = layoutCache;
 
 export function useDetailLayout(modelName: string) {
   const [layout, setLayout] = useState<DetailLayout | null>(

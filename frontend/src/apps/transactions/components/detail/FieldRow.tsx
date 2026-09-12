@@ -84,7 +84,13 @@ function toISODate(val: unknown): string {
     d = new Date(val > 1e12 ? val : val * 1000);
   } else if (typeof val === 'string') {
     if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
-    d = new Date(val);
+    // Numeric string (epoch ms) — convert to number first
+    if (/^\d{10,}$/.test(val)) {
+      const n = parseInt(val, 10);
+      d = new Date(n > 1e12 ? n : n * 1000);
+    } else {
+      d = new Date(val);
+    }
   } else {
     return '';
   }
