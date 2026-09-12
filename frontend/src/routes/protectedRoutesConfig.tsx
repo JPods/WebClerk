@@ -19,6 +19,7 @@ const ModelDetailPage = React.lazy(() => import("../components/common/ModelDetai
 const PortalDashboard = React.lazy(() => import("../pages/Dashboard/PortalDashboard"));
 const AliceDashboard = React.lazy(() => import("../pages/admin/AliceDashboard"));
 const AdminTools = React.lazy(() => import("../pages/admin/AdminTools"));
+const SelectListEditor = React.lazy(() => import("../pages/admin/SelectListEditor"));
 const HelpDashboard = React.lazy(() => import("../pages/admin/HelpDashboard"));
 const InventoryDashboard = React.lazy(() => import("../pages/admin/InventoryDashboard"));
 const FlightSimConsole = React.lazy(() => import("../pages/admin/FlightSimConsole"));
@@ -184,6 +185,7 @@ export const protectedRoutesConfig = [
   { path: "/json-schema", element: <S><JsonSchemaReference /></S> },
   { path: "/alice-dashboard", element: <S><AliceDashboard /></S> },
   { path: "/admin-tools", element: <S><AdminTools /></S> },
+  { path: "/select-lists", element: <S><SelectListEditor /></S> },
   { path: "/help", element: <S><HelpDashboard /></S> },
   { path: "/test-dashboard", element: <TestDashboard /> },
   { path: "/report-designer", element: <S><ReportDesigner /></S> },

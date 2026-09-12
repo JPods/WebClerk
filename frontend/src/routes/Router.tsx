@@ -30,6 +30,8 @@ const CycleCountMobile = React.lazy(() => import("../apps/products/pages/CycleCo
 const CustomPageLoader = React.lazy(() => import("./CustomPageLoader"));
 const TokenBuilderPage = React.lazy(() => import("./TokenBuilderPage"));
 const FlightSimConsole = React.lazy(() => import("../pages/admin/FlightSimConsole"));
+const ParadeOfReportsPage = React.lazy(() => import("../pages/admin/ParadeOfReportsPage"));
+const SelectListEditor = React.lazy(() => import("../pages/admin/SelectListEditor"));
 const Onboarding = React.lazy(() => import("../pages/Onboarding"));
 
 // Print pages archived 2026-08-06 — all printing now via pdfme report templates
@@ -106,6 +108,7 @@ const Router: React.FC = () => {
           <Route path="profile" element={<UserProfiles />} />
           <Route path="alice-dashboard" element={<S><AliceDashboard /></S>} />
           <Route path="admin-tools" element={<S><AdminTools /></S>} />
+          <Route path="select-lists" element={<S><SelectListEditor /></S>} />
           <Route path="help" element={<S><HelpDashboard /></S>} />
           <Route path="products" element={<DDCardDashboard dashboardName="products" />} />
           <Route path="orgs" element={<DDCardDashboard dashboardName="orgs" />} />
@@ -124,6 +127,7 @@ const Router: React.FC = () => {
           <Route path="flight-simulator" element={<S><FlightSimConsole /></S>} />
           <Route path="flight-sim" element={<S><FlightSimConsole /></S>} />
           <Route path="flight-sim/inventory" element={<S><FlightSimConsole /></S>} />
+          <Route path="parade" element={<S><ParadeOfReportsPage /></S>} />
 
           {/* Legacy /db/ routes — keep working for bookmarks */}
           <Route path="db/:model" element={<DataBrowser />} />
