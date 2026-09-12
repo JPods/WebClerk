@@ -129,18 +129,12 @@ const Onboarding: React.FC = () => {
         },
       });
 
-      // Store subscription
+      // Store subscription in WCHQ connection record
       await axios.post("/wcapi/save/", {
         model_name: "setting",
-        data: {
-          name: "Subscription",
-          purpose: "wc:subscription",
-          scope: "system",
-          config: {
-            subscribed: form.subscribed,
-            dt_started: resp.data.dt_registered,
-          },
-        },
+        ida: "wchq-connection",
+        "config.subscription.subscribed": { mode: "update", value: form.subscribed },
+        "config.subscription.dt_started": { mode: "update", value: resp.data.dt_registered },
       });
 
       setResult({ token: token.slice(0, 12) + "..." });

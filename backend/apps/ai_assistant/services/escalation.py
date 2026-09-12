@@ -144,14 +144,14 @@ def _get_athena_token() -> str:
 
 
 def _get_subscription_config() -> dict:
-    """Get the subscription config dict."""
+    """Get the subscription config from WCHQ connection record."""
     try:
         from apps.core.models import Setting
-        sub = Setting.objects.filter(
-            purpose='wc:subscription', is_active=True
+        conn = Setting.objects.filter(
+            ida='wchq-connection', is_active=True
         ).first()
-        if sub and isinstance(sub.config, dict):
-            return sub.config
+        if conn and isinstance(conn.config, dict):
+            return conn.config.get('subscription', {})
     except Exception:
         pass
     return {}

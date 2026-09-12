@@ -373,11 +373,8 @@ class Command(BaseCommand):
             'AI Escalation Chain', ESCALATION_CONFIG,
         )
 
-        # 3. WCHQ subscription
-        self._seed_setting(
-            'wc:subscription', 'wchq-subscription',
-            'WCHQ Subscription', SUBSCRIPTION_CONFIG,
-        )
+        # 3. WCHQ subscription — now merged into wchq-connection config.subscription
+        #    (no longer a separate record)
 
         # 4. Subscription Items
         self.stdout.write("\nSeeding subscription Items...")

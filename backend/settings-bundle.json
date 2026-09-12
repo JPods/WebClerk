@@ -1,349 +1,7 @@
 {
-  "exported_at": "2026-09-12T22:23:55.843601+00:00",
-  "count": 92,
+  "exported_at": "2026-09-12T22:26:26.554847+00:00",
+  "count": 91,
   "settings": [
-    {
-      "uuid": "92faa295-7de2-4f18-be56-69c3859eb862",
-      "ida": "admin-console",
-      "name": "Administration Console",
-      "scope": "system",
-      "purpose": "wc:admin",
-      "parent_model": "",
-      "explanation": "",
-      "paths": {},
-      "config": {
-        "lists": {},
-        "functions": [
-          {
-            "icon": "\u2630",
-            "name": "Select Lists",
-            "route": "/selectlists",
-            "source": "system",
-            "category": "Data",
-            "description": "Browse and edit all dropdown options across models"
-          },
-          {
-            "icon": "\ud83d\udda8",
-            "name": "Form Parade",
-            "route": "/form-parade",
-            "source": "system",
-            "category": "Data",
-            "description": "Review all print forms with sample data"
-          },
-          {
-            "icon": "\ud83c\udfe5",
-            "name": "DB Health",
-            "route": "/databrowser?model=setting&view=dbsr_review",
-            "source": "system",
-            "category": "Data",
-            "description": "Settings health, approval status, issues"
-          },
-          {
-            "icon": "\ud83c\udf33",
-            "name": "JSON Tree",
-            "route": "/json-tree",
-            "source": "system",
-            "category": "Data",
-            "description": "JSON editor and bundle poster"
-          },
-          {
-            "icon": "\ud83d\udd27",
-            "name": "Model Workbench",
-            "route": "/model-workbench",
-            "source": "system",
-            "category": "Data",
-            "description": "All models \u2014 field counts, settings, health"
-          },
-          {
-            "icon": "\u2699",
-            "name": "Settings",
-            "route": "/databrowser?model=setting",
-            "source": "system",
-            "category": "Data",
-            "description": "All Setting records"
-          },
-          {
-            "icon": "\ud83d\udcca",
-            "name": "Reports",
-            "route": "/databrowser?model=report",
-            "source": "system",
-            "category": "Data",
-            "description": "Report definitions and layouts"
-          },
-          {
-            "icon": "\ud83d\udcc4",
-            "name": "Documents",
-            "route": "/databrowser?model=document",
-            "source": "system",
-            "category": "Data",
-            "description": "Document records"
-          },
-          {
-            "icon": "\ud83d\udccb",
-            "name": "Browse Model",
-            "route": "/databrowser",
-            "source": "system",
-            "category": "Data",
-            "description": "Open databrowser for any model"
-          },
-          {
-            "icon": "\ud83d\udcd2",
-            "name": "GL Accounts",
-            "route": "/databrowser?model=gl_account",
-            "source": "system",
-            "category": "Accounting",
-            "description": "Chart of accounts \u2014 review and edit"
-          },
-          {
-            "icon": "\ud83d\udcd3",
-            "name": "GL Journals",
-            "route": "/databrowser?model=gl_journal",
-            "source": "system",
-            "category": "Accounting",
-            "description": "Create and review journal entries by period"
-          },
-          {
-            "icon": "\ud83c\udfdb",
-            "name": "Tax Jurisdictions",
-            "route": "/databrowser?model=tax_jurisdiction",
-            "source": "system",
-            "category": "Accounting",
-            "description": "Tax rates and jurisdictions"
-          },
-          {
-            "icon": "\ud83d\udcdd",
-            "name": "Terms",
-            "route": "/databrowser?model=term",
-            "source": "system",
-            "category": "Accounting",
-            "description": "Payment terms (Net 30, etc.)"
-          },
-          {
-            "icon": "\ud83d\udcb1",
-            "name": "Currencies",
-            "route": "/databrowser?model=currency",
-            "source": "system",
-            "category": "Accounting",
-            "description": "Currency definitions and exchange rates"
-          },
-          {
-            "icon": "\u23f3",
-            "name": "Pending Invoices",
-            "route": "/databrowser?model=invoice&status=open",
-            "source": "system",
-            "category": "Accounting",
-            "description": "Open invoices awaiting payment"
-          },
-          {
-            "icon": "\ud83d\udcb3",
-            "name": "Pending Payments",
-            "route": "/databrowser?model=payment&status=pending",
-            "source": "system",
-            "category": "Accounting",
-            "description": "Payments pending application"
-          },
-          {
-            "icon": "\ud83d\udce5",
-            "name": "Pending Receipts",
-            "route": "/databrowser?model=receipt&status=open",
-            "source": "system",
-            "category": "Accounting",
-            "description": "Receipts pending processing"
-          },
-          {
-            "icon": "\ud83d\udc64",
-            "name": "Contacts",
-            "route": "/databrowser?model=contact",
-            "source": "system",
-            "category": "People",
-            "description": "All contact records"
-          },
-          {
-            "icon": "\ud83c\udfe2",
-            "name": "Employees",
-            "route": "/databrowser?model=employee",
-            "source": "system",
-            "category": "People",
-            "description": "Employee records"
-          },
-          {
-            "icon": "\ud83e\udd1d",
-            "name": "Reps",
-            "route": "/databrowser?model=rep",
-            "source": "system",
-            "category": "People",
-            "description": "Sales rep records and commissions"
-          },
-          {
-            "icon": "\ud83d\udd17",
-            "name": "Connections",
-            "route": "/databrowser?model=connection",
-            "source": "system",
-            "category": "Integration",
-            "description": "External system connections"
-          },
-          {
-            "icon": "\ud83d\udd04",
-            "name": "Sync Status",
-            "route": "/operations?tab=sync",
-            "source": "system",
-            "category": "Integration",
-            "description": "Bundle sync status and history"
-          },
-          {
-            "icon": "\ud83d\udd12",
-            "name": "Whitelist Tester",
-            "route": "/whitelist",
-            "source": "system",
-            "category": "Security",
-            "description": "Test field access whitelist rules"
-          },
-          {
-            "icon": "\ud83d\udee1",
-            "name": "Field Access",
-            "route": "/databrowser?model=setting&purpose=wc:field_access",
-            "source": "system",
-            "category": "Security",
-            "description": "Per-model field access settings"
-          },
-          {
-            "icon": "\u2708",
-            "name": "Flight Sim: Transactions",
-            "route": "/flight-sim",
-            "source": "system",
-            "category": "Training",
-            "description": "Step through proposal\u2192order\u2192invoice\u2192payment lifecycle"
-          },
-          {
-            "icon": "\ud83d\udce6",
-            "name": "Flight Sim: Inventory",
-            "route": "/flight-sim-inventory",
-            "source": "system",
-            "category": "Training",
-            "description": "Inventory adjustment, check, reservation workflow"
-          },
-          {
-            "icon": "\ud83c\udff7",
-            "name": "Items",
-            "route": "/databrowser?model=item",
-            "source": "system",
-            "category": "Catalog",
-            "description": "Product catalog \u2014 items, variants, pricing"
-          },
-          {
-            "icon": "\ud83d\udd22",
-            "name": "Serials",
-            "route": "/databrowser?model=serial_log",
-            "source": "system",
-            "category": "Catalog",
-            "description": "Serial number tracking"
-          },
-          {
-            "icon": "\ud83c\udfed",
-            "name": "Warehouses",
-            "route": "/databrowser?model=warehouse",
-            "source": "system",
-            "category": "Catalog",
-            "description": "Warehouse locations"
-          }
-        ]
-      },
-      "metadata": {
-        "flow": {},
-        "temp": [],
-        "flags": {
-          "schema_rev": 1,
-          "keywords_pending": false
-        },
-        "access": {
-          "edit": [],
-          "view": []
-        },
-        "health": {
-          "rating": 0,
-          "accuracy": 0,
-          "freshness": 0,
-          "consistency": 0,
-          "completeness": 0
-        },
-        "images": {
-          "hr": false,
-          "md": false,
-          "tn": false,
-          "source": ""
-        },
-        "source": {},
-        "history": {
-          "synced": {
-            "dt": 0,
-            "contact_id": 0
-          },
-          "created": {
-            "dt": 1787054554696,
-            "contact_id": 0
-          },
-          "accessed": {
-            "dt": 1787054554693,
-            "contact_id": 0
-          },
-          "modified": {
-            "dt": 1787843953397,
-            "contact_id": 0
-          },
-          "verified": {
-            "dt": 0,
-            "contact_id": 0
-          }
-        },
-        "publish": "",
-        "version": "1.0",
-        "erosions": [],
-        "priority": "",
-        "security": "",
-        "documents": [],
-        "resources": {
-          "required": {},
-          "allocated": {}
-        },
-        "versioning": {
-          "size_activity": {},
-          "changed_fields": [],
-          "keywords_dt_refreshed": 1787844023105
-        },
-        "audit_trail": [],
-        "explanation": "",
-        "import_data": null,
-        "userdefined": {},
-        "foundational": true,
-        "small_stings": []
-      },
-      "prefs": {
-        "tags": [],
-        "pinned": false,
-        "search": [],
-        "userdefined": {}
-      },
-      "refs": {
-        "tags": [],
-        "links": {
-          "item": [],
-          "contact": []
-        },
-        "source": null,
-        "parents": [],
-        "keywords": [
-          "92faa295-7de2-4f18-be56-69c3859eb862",
-          "admin-console",
-          "administration",
-          "console",
-          "system",
-          "wc:admin"
-        ],
-        "categories": [],
-        "depends_on": {},
-        "related_ids": []
-      }
-    },
     {
       "uuid": "973071c5-5e77-4103-9774-ffec22198d33",
       "ida": "ida-114",
@@ -2498,6 +2156,348 @@
           "system-wide",
           "used",
           "values",
+          "wc:admin"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
+      "uuid": "92faa295-7de2-4f18-be56-69c3859eb862",
+      "ida": "admin-console",
+      "name": "Administration Console",
+      "scope": "system",
+      "purpose": "wc:admin",
+      "parent_model": "",
+      "explanation": "",
+      "paths": {},
+      "config": {
+        "lists": {},
+        "functions": [
+          {
+            "icon": "\u2630",
+            "name": "Select Lists",
+            "route": "/selectlists",
+            "source": "system",
+            "category": "Data",
+            "description": "Browse and edit all dropdown options across models"
+          },
+          {
+            "icon": "\ud83d\udda8",
+            "name": "Form Parade",
+            "route": "/form-parade",
+            "source": "system",
+            "category": "Data",
+            "description": "Review all print forms with sample data"
+          },
+          {
+            "icon": "\ud83c\udfe5",
+            "name": "DB Health",
+            "route": "/databrowser?model=setting&view=dbsr_review",
+            "source": "system",
+            "category": "Data",
+            "description": "Settings health, approval status, issues"
+          },
+          {
+            "icon": "\ud83c\udf33",
+            "name": "JSON Tree",
+            "route": "/json-tree",
+            "source": "system",
+            "category": "Data",
+            "description": "JSON editor and bundle poster"
+          },
+          {
+            "icon": "\ud83d\udd27",
+            "name": "Model Workbench",
+            "route": "/model-workbench",
+            "source": "system",
+            "category": "Data",
+            "description": "All models \u2014 field counts, settings, health"
+          },
+          {
+            "icon": "\u2699",
+            "name": "Settings",
+            "route": "/databrowser?model=setting",
+            "source": "system",
+            "category": "Data",
+            "description": "All Setting records"
+          },
+          {
+            "icon": "\ud83d\udcca",
+            "name": "Reports",
+            "route": "/databrowser?model=report",
+            "source": "system",
+            "category": "Data",
+            "description": "Report definitions and layouts"
+          },
+          {
+            "icon": "\ud83d\udcc4",
+            "name": "Documents",
+            "route": "/databrowser?model=document",
+            "source": "system",
+            "category": "Data",
+            "description": "Document records"
+          },
+          {
+            "icon": "\ud83d\udccb",
+            "name": "Browse Model",
+            "route": "/databrowser",
+            "source": "system",
+            "category": "Data",
+            "description": "Open databrowser for any model"
+          },
+          {
+            "icon": "\ud83d\udcd2",
+            "name": "GL Accounts",
+            "route": "/databrowser?model=gl_account",
+            "source": "system",
+            "category": "Accounting",
+            "description": "Chart of accounts \u2014 review and edit"
+          },
+          {
+            "icon": "\ud83d\udcd3",
+            "name": "GL Journals",
+            "route": "/databrowser?model=gl_journal",
+            "source": "system",
+            "category": "Accounting",
+            "description": "Create and review journal entries by period"
+          },
+          {
+            "icon": "\ud83c\udfdb",
+            "name": "Tax Jurisdictions",
+            "route": "/databrowser?model=tax_jurisdiction",
+            "source": "system",
+            "category": "Accounting",
+            "description": "Tax rates and jurisdictions"
+          },
+          {
+            "icon": "\ud83d\udcdd",
+            "name": "Terms",
+            "route": "/databrowser?model=term",
+            "source": "system",
+            "category": "Accounting",
+            "description": "Payment terms (Net 30, etc.)"
+          },
+          {
+            "icon": "\ud83d\udcb1",
+            "name": "Currencies",
+            "route": "/databrowser?model=currency",
+            "source": "system",
+            "category": "Accounting",
+            "description": "Currency definitions and exchange rates"
+          },
+          {
+            "icon": "\u23f3",
+            "name": "Pending Invoices",
+            "route": "/databrowser?model=invoice&status=open",
+            "source": "system",
+            "category": "Accounting",
+            "description": "Open invoices awaiting payment"
+          },
+          {
+            "icon": "\ud83d\udcb3",
+            "name": "Pending Payments",
+            "route": "/databrowser?model=payment&status=pending",
+            "source": "system",
+            "category": "Accounting",
+            "description": "Payments pending application"
+          },
+          {
+            "icon": "\ud83d\udce5",
+            "name": "Pending Receipts",
+            "route": "/databrowser?model=receipt&status=open",
+            "source": "system",
+            "category": "Accounting",
+            "description": "Receipts pending processing"
+          },
+          {
+            "icon": "\ud83d\udc64",
+            "name": "Contacts",
+            "route": "/databrowser?model=contact",
+            "source": "system",
+            "category": "People",
+            "description": "All contact records"
+          },
+          {
+            "icon": "\ud83c\udfe2",
+            "name": "Employees",
+            "route": "/databrowser?model=employee",
+            "source": "system",
+            "category": "People",
+            "description": "Employee records"
+          },
+          {
+            "icon": "\ud83e\udd1d",
+            "name": "Reps",
+            "route": "/databrowser?model=rep",
+            "source": "system",
+            "category": "People",
+            "description": "Sales rep records and commissions"
+          },
+          {
+            "icon": "\ud83d\udd17",
+            "name": "Connections",
+            "route": "/databrowser?model=connection",
+            "source": "system",
+            "category": "Integration",
+            "description": "External system connections"
+          },
+          {
+            "icon": "\ud83d\udd04",
+            "name": "Sync Status",
+            "route": "/operations?tab=sync",
+            "source": "system",
+            "category": "Integration",
+            "description": "Bundle sync status and history"
+          },
+          {
+            "icon": "\ud83d\udd12",
+            "name": "Whitelist Tester",
+            "route": "/whitelist",
+            "source": "system",
+            "category": "Security",
+            "description": "Test field access whitelist rules"
+          },
+          {
+            "icon": "\ud83d\udee1",
+            "name": "Field Access",
+            "route": "/databrowser?model=setting&purpose=wc:field_access",
+            "source": "system",
+            "category": "Security",
+            "description": "Per-model field access settings"
+          },
+          {
+            "icon": "\u2708",
+            "name": "Flight Sim: Transactions",
+            "route": "/flight-sim",
+            "source": "system",
+            "category": "Training",
+            "description": "Step through proposal\u2192order\u2192invoice\u2192payment lifecycle"
+          },
+          {
+            "icon": "\ud83d\udce6",
+            "name": "Flight Sim: Inventory",
+            "route": "/flight-sim-inventory",
+            "source": "system",
+            "category": "Training",
+            "description": "Inventory adjustment, check, reservation workflow"
+          },
+          {
+            "icon": "\ud83c\udff7",
+            "name": "Items",
+            "route": "/databrowser?model=item",
+            "source": "system",
+            "category": "Catalog",
+            "description": "Product catalog \u2014 items, variants, pricing"
+          },
+          {
+            "icon": "\ud83d\udd22",
+            "name": "Serials",
+            "route": "/databrowser?model=serial_log",
+            "source": "system",
+            "category": "Catalog",
+            "description": "Serial number tracking"
+          },
+          {
+            "icon": "\ud83c\udfed",
+            "name": "Warehouses",
+            "route": "/databrowser?model=warehouse",
+            "source": "system",
+            "category": "Catalog",
+            "description": "Warehouse locations"
+          }
+        ]
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": false
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "hr": false,
+          "md": false,
+          "tn": false,
+          "source": ""
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1787054554696,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1787054554693,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1787843953397,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "documents": [],
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "size_activity": {},
+          "changed_fields": [],
+          "keywords_dt_refreshed": 1787844023105
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "foundational": true,
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "92faa295-7de2-4f18-be56-69c3859eb862",
+          "admin-console",
+          "administration",
+          "console",
+          "system",
           "wc:admin"
         ],
         "categories": [],
@@ -88442,45 +88442,68 @@
       }
     },
     {
-      "uuid": "be8fb868-7f54-4e17-8c6c-ce9e98fc7f51",
-      "ida": "wchq-subscription",
-      "name": "WCHQ Subscription",
+      "uuid": "dc45c318-ae88-49cf-a0c4-c0d7a59cb683",
+      "ida": "wc-views",
+      "name": "Database Views Registry",
       "scope": "system",
-      "purpose": "wc:subscription",
-      "parent_model": "setting",
+      "purpose": "wc:system",
+      "parent_model": "",
       "explanation": "",
       "paths": {},
       "config": {
-        "tier": "community",
-        "trial": {
-          "active": false,
-          "end_utc": "",
-          "converted": false,
-          "start_utc": "",
-          "trial_days": 60,
-          "tier_during_trial": "professional"
-        },
-        "billing": {
-          "billing_cycle": "monthly",
-          "last_payment_utc": "",
-          "next_payment_utc": "",
-          "price_per_person_cents": {
-            "standard": 400,
-            "professional": 900
-          },
-          "price_per_5_users_cents": 1400
-        },
-        "features": {
-          "wchq_alice": false,
-          "coaching_library": true,
-          "priority_support": false,
-          "wchq_alice_claude": false,
-          "wchq_llm_fallback": false,
-          "cross_instance_queries": false
-        },
-        "item_ida": "",
-        "subscribed": false,
-        "staff_count": 0
+        "views": {
+          "agenda": {
+            "label": "Agenda",
+            "columns": [
+              {
+                "field": "icon",
+                "label": "Type",
+                "width": 40
+              },
+              {
+                "field": "title",
+                "label": "Title",
+                "width": 0
+              },
+              {
+                "field": "status",
+                "label": "Status",
+                "width": 90
+              },
+              {
+                "field": "purpose",
+                "label": "Purpose",
+                "width": 80
+              },
+              {
+                "type": "date",
+                "field": "dt_due",
+                "label": "Due",
+                "width": 100
+              },
+              {
+                "field": "impact",
+                "label": "Impact",
+                "width": 50
+              },
+              {
+                "field": "source_model",
+                "label": "Source",
+                "width": 60
+              },
+              {
+                "field": "detail_text",
+                "label": "Detail",
+                "width": 200
+              }
+            ],
+            "read_only": true,
+            "description": "Pending touches + open actions sorted by due date",
+            "default_sort": "dt_due",
+            "source_id_field": "source_id",
+            "source_model_field": "source_model"
+          }
+        }
       },
       "metadata": {
         "flow": {},
@@ -88513,15 +88536,15 @@
             "contact_id": 0
           },
           "created": {
-            "dt": 1788173849077,
+            "dt": 1787072442113,
             "contact_id": 0
           },
           "accessed": {
-            "dt": 1788173849075,
+            "dt": 1787072442112,
             "contact_id": 0
           },
           "modified": {
-            "dt": 1788235534129,
+            "dt": 1787843953192,
             "contact_id": 0
           },
           "verified": {
@@ -88541,13 +88564,16 @@
         },
         "versioning": {
           "size_activity": {},
-          "changed_fields": [],
-          "keywords_dt_refreshed": 1788235539286
+          "changed_fields": [
+            "parent_model"
+          ],
+          "keywords_dt_refreshed": 1787844022384
         },
         "audit_trail": [],
         "explanation": "",
         "import_data": null,
         "userdefined": {},
+        "foundational": true,
         "small_stings": []
       },
       "prefs": {
@@ -88565,13 +88591,13 @@
         "source": null,
         "parents": [],
         "keywords": [
-          "be8fb868-7f54-4e17-8c6c-ce9e98fc7f51",
-          "setting",
-          "subscription",
+          "database",
+          "dc45c318-ae88-49cf-a0c4-c0d7a59cb683",
+          "registry",
           "system",
-          "wc:subscription",
-          "wchq",
-          "wchq-subscription"
+          "views",
+          "wc-views",
+          "wc:system"
         ],
         "categories": [],
         "depends_on": {},
@@ -90134,169 +90160,6 @@
       }
     },
     {
-      "uuid": "dc45c318-ae88-49cf-a0c4-c0d7a59cb683",
-      "ida": "wc-views",
-      "name": "Database Views Registry",
-      "scope": "system",
-      "purpose": "wc:system",
-      "parent_model": "",
-      "explanation": "",
-      "paths": {},
-      "config": {
-        "views": {
-          "agenda": {
-            "label": "Agenda",
-            "columns": [
-              {
-                "field": "icon",
-                "label": "Type",
-                "width": 40
-              },
-              {
-                "field": "title",
-                "label": "Title",
-                "width": 0
-              },
-              {
-                "field": "status",
-                "label": "Status",
-                "width": 90
-              },
-              {
-                "field": "purpose",
-                "label": "Purpose",
-                "width": 80
-              },
-              {
-                "type": "date",
-                "field": "dt_due",
-                "label": "Due",
-                "width": 100
-              },
-              {
-                "field": "impact",
-                "label": "Impact",
-                "width": 50
-              },
-              {
-                "field": "source_model",
-                "label": "Source",
-                "width": 60
-              },
-              {
-                "field": "detail_text",
-                "label": "Detail",
-                "width": 200
-              }
-            ],
-            "read_only": true,
-            "description": "Pending touches + open actions sorted by due date",
-            "default_sort": "dt_due",
-            "source_id_field": "source_id",
-            "source_model_field": "source_model"
-          }
-        }
-      },
-      "metadata": {
-        "flow": {},
-        "temp": [],
-        "flags": {
-          "schema_rev": 1,
-          "keywords_pending": false
-        },
-        "access": {
-          "edit": [],
-          "view": []
-        },
-        "health": {
-          "rating": 0,
-          "accuracy": 0,
-          "freshness": 0,
-          "consistency": 0,
-          "completeness": 0
-        },
-        "images": {
-          "hr": false,
-          "md": false,
-          "tn": false,
-          "source": ""
-        },
-        "source": {},
-        "history": {
-          "synced": {
-            "dt": 0,
-            "contact_id": 0
-          },
-          "created": {
-            "dt": 1787072442113,
-            "contact_id": 0
-          },
-          "accessed": {
-            "dt": 1787072442112,
-            "contact_id": 0
-          },
-          "modified": {
-            "dt": 1787843953192,
-            "contact_id": 0
-          },
-          "verified": {
-            "dt": 0,
-            "contact_id": 0
-          }
-        },
-        "publish": "",
-        "version": "1.0",
-        "erosions": [],
-        "priority": "",
-        "security": "",
-        "documents": [],
-        "resources": {
-          "required": {},
-          "allocated": {}
-        },
-        "versioning": {
-          "size_activity": {},
-          "changed_fields": [
-            "parent_model"
-          ],
-          "keywords_dt_refreshed": 1787844022384
-        },
-        "audit_trail": [],
-        "explanation": "",
-        "import_data": null,
-        "userdefined": {},
-        "foundational": true,
-        "small_stings": []
-      },
-      "prefs": {
-        "tags": [],
-        "pinned": false,
-        "search": [],
-        "userdefined": {}
-      },
-      "refs": {
-        "tags": [],
-        "links": {
-          "item": [],
-          "contact": []
-        },
-        "source": null,
-        "parents": [],
-        "keywords": [
-          "database",
-          "dc45c318-ae88-49cf-a0c4-c0d7a59cb683",
-          "registry",
-          "system",
-          "views",
-          "wc-views",
-          "wc:system"
-        ],
-        "categories": [],
-        "depends_on": {},
-        "related_ids": []
-      }
-    },
-    {
       "uuid": "f55d5601-55d1-43a5-b228-4ba3b7baf674",
       "ida": "wc-flush",
       "name": "Frontend Flush Signal",
@@ -90415,7 +90278,7 @@
     {
       "uuid": "d3a021ed-c4ad-4ad4-8713-5f7a220ce897",
       "ida": "wchq-connection",
-      "name": "WCHQ Connection Settings",
+      "name": "WCHQ Connection & Subscription",
       "scope": "system",
       "purpose": "wc:wchq_connection",
       "parent_model": "setting",
@@ -90475,6 +90338,38 @@
           "last_reviewed_utc": "",
           "reviewed_by_contact_id": null
         },
+        "subscription": {
+          "tier": "community",
+          "trial": {
+            "active": false,
+            "end_utc": "",
+            "converted": false,
+            "start_utc": "",
+            "trial_days": 60,
+            "tier_during_trial": "professional"
+          },
+          "billing": {
+            "billing_cycle": "monthly",
+            "last_payment_utc": "",
+            "next_payment_utc": "",
+            "price_per_person_cents": {
+              "standard": 400,
+              "professional": 900
+            },
+            "price_per_5_users_cents": 1400
+          },
+          "features": {
+            "wchq_alice": false,
+            "coaching_library": true,
+            "priority_support": false,
+            "wchq_alice_claude": false,
+            "wchq_llm_fallback": false,
+            "cross_instance_queries": false
+          },
+          "item_ida": "",
+          "subscribed": false,
+          "staff_count": 0
+        },
         "alice_learning": {
           "coaching_level": "beginner",
           "post_search_gaps": true,
@@ -90488,7 +90383,7 @@
         "temp": [],
         "flags": {
           "schema_rev": 1,
-          "keywords_pending": false
+          "keywords_pending": true
         },
         "access": {
           "edit": [],
@@ -90522,7 +90417,7 @@
             "contact_id": 0
           },
           "modified": {
-            "dt": 1788173848950,
+            "dt": 1789251930040,
             "contact_id": 0
           },
           "verified": {
@@ -90542,7 +90437,9 @@
         },
         "versioning": {
           "size_activity": {},
-          "changed_fields": [],
+          "changed_fields": [
+            "name"
+          ],
           "keywords_dt_refreshed": 1788174013845
         },
         "audit_trail": [],

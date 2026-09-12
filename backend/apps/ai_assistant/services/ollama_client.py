@@ -59,11 +59,11 @@ def _is_subscribed() -> bool:
     """Check if this installation has an active WCHQ subscription."""
     try:
         from apps.core.models import Setting
-        sub = Setting.objects.filter(
-            purpose='wc:subscription', is_active=True
+        conn = Setting.objects.filter(
+            ida='wchq-connection', is_active=True
         ).first()
-        if sub and isinstance(sub.config, dict):
-            return bool(sub.config.get('subscribed', False))
+        if conn and isinstance(conn.config, dict):
+            return bool(conn.config.get('subscription', {}).get('subscribed', False))
     except Exception:
         pass
     return False
