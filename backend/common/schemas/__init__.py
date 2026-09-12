@@ -14,7 +14,7 @@ Six envelopes:
     .actions  — next-action (ActionsBase: required, status, who, when, what, kind)
 
 Usage:
-    from common.schemas.payment import PaymentMetadata, PaymentPrefs, PaymentRefs
+    from apps.transactions.models.payment_pydantic import PaymentMetadata, PaymentPrefs, PaymentRefs
     from common.schemas.envelopes import CommentsBase, ActionsBase, ConfigBase
 
     # Validate on save

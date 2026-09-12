@@ -29,6 +29,76 @@ from pydantic import BaseModel, Field
 # Transaction Header Envelopes
 # ═══════════════════════════════════════════════════════════════════════
 
+class TransactionCompany(BaseModel):
+    """Counterparty snapshot on a transaction header.
+
+    Built from Contact (the person) + OrgBase (the company).
+    One contact = all roles (bill_to, ship_to, buy_from) until explicitly split.
+    All communication fields resolve through the Contact's FK pointers
+    (BigIntegerField → Address, Phone, Email, Domain records).
+
+    Population chain:
+      Transaction.contact_id → Contact (person on this document)
+        fallback: Transaction.customer/vendor → OrgBase.contact_id → Contact
+      Contact provides: attention, full_address, phone, email, domain
+      OrgBase provides: id, ida, name (company name)
+    """
+    id: Optional[int] = Field(
+        None, title="Org ID",
+        description="OrgBase record id (customer or vendor)",
+        json_schema_extra={'widget': 'lookup', 'model': 'orgbase'},
+    )
+    ida: str = Field(
+        "", title="Org Code",
+        description="Human-readable org identifier",
+        json_schema_extra={'widget': 'text'},
+    )
+    name: str = Field(
+        "", title="Company",
+        description="OrgBase.display_name — the company name",
+        json_schema_extra={'widget': 'text'},
+    )
+    contact_id: Optional[int] = Field(
+        None, title="Contact ID",
+        description="Contact record id (BigIntegerField, not FK)",
+        json_schema_extra={'widget': 'lookup', 'model': 'contact'},
+    )
+    attention: str = Field(
+        "", title="Attention",
+        description="Person name — from Contact.attention (first + last)",
+        json_schema_extra={'widget': 'text'},
+    )
+    full_address: str = Field(
+        "", title="Address",
+        description="From Contact.address_id → Address.full",
+        json_schema_extra={'widget': 'textarea'},
+    )
+    phone: str = Field(
+        "", title="Phone",
+        description="From Contact.phone_id → Phone.number",
+        json_schema_extra={'widget': 'phone'},
+    )
+    email: str = Field(
+        "", title="Email",
+        description="From Contact.email (scalar) or Contact.email_id → Email.email",
+        json_schema_extra={'widget': 'email'},
+    )
+    domain: str = Field(
+        "", title="Domain",
+        description="From Contact.domain_id → Domain.path",
+        json_schema_extra={'widget': 'text'},
+    )
+    is_individual: bool = Field(
+        False, title="Individual",
+        description="True if org is a person, not a company",
+        json_schema_extra={'widget': 'boolean'},
+    )
+    custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
+
+    class Config:
+        extra = "forbid"
+
+
 class TransactionTotals(BaseModel):
     """Header totals — computed by services/totals.py, never by React.
 
@@ -1148,6 +1218,7 @@ class TransactionShipping(BaseModel):
 # instead of maintaining a parallel hardcoded dict.
 ENVELOPE_SCHEMA_MAP = {
     # Transaction header envelopes
+    'company': TransactionCompany,
     'totals': TransactionTotals,
     'finance': TransactionFinance,
     'header_cost': TransactionCost,
@@ -1327,3 +1398,127 @@ def get_all_leaf_behaviors() -> dict:
     for envelope_name, schema_cls in AUXILIARY_SCHEMA_MAP.items():
         result[envelope_name] = schema_to_leaf_behaviors(schema_cls)
     return result
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Signoff — approval workflow on transaction config
+# ═══════════════════════════════════════════════════════════════════════
+
+class SignoffAssignee(BaseModel):
+    """One approver in the signoff workflow."""
+    contact_id: int
+    name: str = ''
+    approved: bool = False
+    rejected: bool = False
+    dt_requested: Optional[int] = None        # epoch ms
+    dt_response: Optional[int] = None         # epoch ms
+    notes: str = ''
+
+    class Config:
+        extra = 'forbid'
+
+
+class SignoffBlockedTransition(BaseModel):
+    """The status transition that triggered signoff."""
+    from_status: str = Field('', alias='from')
+    to_status: str = Field('', alias='to')
+
+    class Config:
+        extra = 'forbid'
+        populate_by_name = True
+
+
+class TransactionSignoff(BaseModel):
+    """Approval workflow stamped on config['signoff'] by validate_status.py.
+
+    Written to Invoice, Order, Proposal, Purchase, WorkOrder.
+    """
+    required: bool = True
+    action_id: Optional[int] = None           # linked Action record
+    rule_name: str = ''
+    blocked_transition: SignoffBlockedTransition = Field(
+        default_factory=SignoffBlockedTransition,
+    )
+    assigned_to: list[SignoffAssignee] = Field(default_factory=list)
+    approvals: list[dict] = Field(default_factory=list)
+    status: str = 'pending'                   # pending | approved | rejected
+
+    class Config:
+        extra = 'forbid'
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Shipping — fulfillment structure on transaction header
+# ═══════════════════════════════════════════════════════════════════════
+
+class ShippingPackageItem(BaseModel):
+    """One item in a shipping package."""
+    item_id: Optional[int] = None
+    description: str = ''
+    quantity: float = 0.0
+    weight: float = 0.0
+
+    class Config:
+        extra = 'forbid'
+
+
+class ShippingPackage(BaseModel):
+    """One package in a shipment (LoadTag equivalent)."""
+    type: str = ''                            # box, pallet, envelope, tube
+    tracking: str = ''
+    weight: float = 0.0
+    length: float = 0.0
+    width: float = 0.0
+    height: float = 0.0
+    declared_value: float = 0.0
+    items: list[ShippingPackageItem] = Field(default_factory=list)
+    costs: dict = Field(default_factory=dict)
+
+    class Config:
+        extra = 'forbid'
+
+
+class ShippingCosts(BaseModel):
+    """Cost breakdown for a shipment."""
+    freight: float = 0.0
+    fuel_surcharge: float = 0.0
+    insurance: float = 0.0
+    handling: float = 0.0
+    estimated: float = 0.0
+    actual: float = 0.0
+    customer: float = 0.0                     # amount charged to customer
+
+    class Config:
+        extra = 'forbid'
+
+
+class ShippingWeight(BaseModel):
+    """Weight summary for a shipment."""
+    actual: float = 0.0
+    dimensional: float = 0.0
+    billable: float = 0.0
+
+    class Config:
+        extra = 'forbid'
+
+
+class TransactionShipping(BaseModel):
+    """Shipping/fulfillment structure on transaction header.
+
+    Carried on the shipping JSON field of TransactionBaseModel.
+    """
+    status: str = ''                          # unfulfilled, partial, shipped, delivered
+    carrier: str = ''
+    carrier_account: str = ''
+    service: str = ''
+    ship_to: dict = Field(default_factory=dict)
+    packages: list[ShippingPackage] = Field(default_factory=list)
+    costs: ShippingCosts = Field(default_factory=ShippingCosts)
+    weight: ShippingWeight = Field(default_factory=ShippingWeight)
+    package_count: int = 0
+    dt_shipped: Optional[int] = None          # epoch ms
+    dt_delivered: Optional[int] = None        # epoch ms
+    notes: str = ''
+
+    class Config:
+        extra = 'forbid'

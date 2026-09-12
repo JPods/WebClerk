@@ -1,7 +1,7 @@
 """Seed the Setting record for Serial model -- actions, statuses, and behaviors."""
 from django.core.management.base import BaseCommand
 from apps.core.models import Setting
-from common.schemas.serial import DEFAULT_SERIAL_ACTIONS
+from apps.products.models.serial_pydantic import DEFAULT_SERIAL_ACTIONS
 
 
 SERIAL_STATUSES = [

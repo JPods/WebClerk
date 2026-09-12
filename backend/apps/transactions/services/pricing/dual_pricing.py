@@ -41,7 +41,7 @@ def get_dual_pricing_config() -> dict:
     raw = _load_config()
     if not raw:
         return {'enabled': False}
-    from common.schemas.payment import DualPricingConfig
+    from apps.transactions.models.payment_pydantic import DualPricingConfig
     validated = DualPricingConfig(**raw)
     return validated.model_dump()
 
