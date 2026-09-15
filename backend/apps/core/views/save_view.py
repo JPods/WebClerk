@@ -98,8 +98,31 @@ def coerce_int(value):
     return value
 
 
-_CONTACT_AUTHORITY_FIELDS = ('is_superuser', 'is_staff', 'is_active', 'role', 'groups', 'user_permissions')
-_CONTACT_SCOPE_FIELDS = ('customer_id', 'vendor_id', 'rep_id', 'manufacturer_id', 'is_employee')
+# Authority-bearing models with no write policy of their own.
+_STAFF_ONLY_MODELS = ('connection', 'bundle', 'setting', 'report', 'rolebase', 'roleconfig',
+                      'modelroleconfig', 'group', 'permission', 'session')
+# Header models whose lines must go through the transaction endpoint.
+_TRANSACTION_LINE_MODELS = ('order', 'invoice', 'proposal', 'purchase', 'requisition',
+                            'workorder', 'receipt', 'delivery')
+
+_CONTACT_AUTHORITY_FIELDS = ('is_superuser', 'is_staff', 'is_active', 'role', 'groups',
+                             'user_permissions', 'refs', 'metadata')
+# Both the column and the FK alias: assign_fields writes customer_id from key "customer".
+_CONTACT_SCOPE_FIELDS = ('customer_id', 'vendor_id', 'rep_id', 'manufacturer_id', 'is_employee',
+                         'customer', 'vendor', 'rep', 'manufacturer')
+
+
+def _key_root(key):
+    """Root model field a save key targets: "refs.roles" and "is_superuser[x=y]" -> "refs"/"is_superuser".
+
+    The guard compares against model fields, but the save pipeline accepts dot-paths
+    and array selectors. Comparing raw keys let "refs.roles" and selector keys slip
+    past every check (adversarial review 2026-09-15).
+    """
+    if not isinstance(key, str):
+        return key
+    root = key.split('.', 1)[0]
+    return root.split('[', 1)[0]
 
 
 def _contact_account_denial(user, obj, data, is_update):
@@ -114,20 +137,23 @@ def _contact_account_denial(user, obj, data, is_update):
     if user and getattr(user, 'is_authenticated', False) and (user.is_superuser or user.is_staff):
         return None
     data = data or {}
-    keys = set(data.keys())
+    roots = {_key_root(k): k for k in data.keys()}
     is_self = bool(is_update and user and getattr(obj, 'pk', None) is not None and obj.pk == getattr(user, 'pk', None))
     for field in _CONTACT_AUTHORITY_FIELDS:
-        if field in keys:
-            return field
+        if field in roots:
+            return roots[field]
     if not is_self:
-        if 'password' in keys:
-            return 'password'
-        if is_update and 'email' in keys and (data.get('email') or '') != (getattr(obj, 'email', '') or ''):
-            return 'email'
-    else:
-        for field in _CONTACT_SCOPE_FIELDS:
-            if field in keys and data.get(field) != getattr(obj, field, None):
-                return field
+        if 'password' in roots:
+            return roots['password']
+        if is_update and 'email' in roots and (data.get('email') or '') != (getattr(obj, 'email', '') or ''):
+            return roots['email']
+    # Org scope is authority, not a preference: it decides what the account can see.
+    # Checked on every path — own record, someone else's, and on create — because
+    # re-homing another contact or pre-provisioning one inside an org is the same
+    # escalation by a different route.
+    for field in _CONTACT_SCOPE_FIELDS:
+        if field in roots and data.get(roots[field]) != getattr(obj, field, None):
+            return roots[field]
     return None
 
 # Deprecated: dynamic model discovery replaced by explicit allow-list registry (see model_registry.py)
@@ -663,6 +689,39 @@ class SaveWcapiView(APIView):
                         message='You can only edit records assigned to you.',
                         error={'code': 'edit_filter_denied', 'details': 'Record does not match your edit permissions.'},
                     )
+
+        # ── Sensitive-model gate ──
+        # These models hold authority, not business data: a Connection carries the
+        # bearer token that satisfies JpodTokenPermission, a Setting defines layouts
+        # and policy, a Report can dispatch management commands. None of them has a
+        # WCAPI_MODEL_POLICIES entry, and an absent policy means "unrestricted", so
+        # any authenticated user could mint a live Natalie token through /wcapi/save/.
+        # Reproduced 2026-09-15; staff only until each has a real policy.
+        if model_key in _STAFF_ONLY_MODELS:
+            u = request.user
+            if not (u and u.is_authenticated and (u.is_superuser or u.is_staff)):
+                console_logger.warning(
+                    "[SAVE_VIEW] Non-staff write refused on %s by user=%s",
+                    model_key, getattr(u, 'id', None))
+                return api_response(
+                    success=False, status_code=403,
+                    message=f'Not permitted to write {model_key}.',
+                    error={'code': 'staff_only_model', 'details': model_key},
+                )
+
+        # ── Transaction lines belong to the transaction endpoint ──
+        # /wcapi/transaction/save/ enforces create/edit rights and re-prices portal
+        # lines server-side. This endpoint does neither, and `lines` is a passthrough
+        # key, so posting a header with lines here skipped every one of those checks.
+        if model_key in _TRANSACTION_LINE_MODELS and data.get('lines'):
+            console_logger.warning(
+                "[SAVE_VIEW] Refused lines payload for %s from user=%s — must use /wcapi/transaction/save/",
+                model_key, getattr(request.user, 'id', None))
+            return api_response(
+                success=False, status_code=400,
+                message='Transactions with lines must be saved through /wcapi/transaction/save/.',
+                error={'code': 'lines_wrong_endpoint', 'details': model_key},
+            )
 
         # ── Contact account guard ──
         # password/email are identity; privilege fields are authority; org links

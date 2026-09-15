@@ -2709,7 +2709,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 onChange={(e) => setColorMode(e.target.value as any)}
                 className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer font-semibold outline-none"
                 style={{ color: 'var(--db-accent)', fontSize: 'inherit', padding: 0 }}
-                style={{ fontSize: 'inherit', padding: 0 }}
               >
                 <option value="priority">Color: Priority</option>
                 <option value="status">Color: Status</option>
@@ -2727,7 +2726,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 }}
                 className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer font-semibold outline-none"
                 style={{ color: 'var(--db-accent)', fontSize: 'inherit', padding: 0 }}
-                style={{ fontSize: 'inherit', padding: 0 }}
               >
                 {scaleButtons.map((b) => (
                   <option key={b.id} value={b.id}>{b.label}</option>
@@ -2754,7 +2752,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 }}
                 className="font-mono text-[0.85em] bg-transparent border-none cursor-pointer font-semibold outline-none"
                 style={{ color: 'var(--db-accent)', fontSize: 'inherit', padding: 0 }}
-                style={{ fontSize: 'inherit', padding: 0 }}
               >
                 <option value="">View...</option>
                 <option value="text">{textOverflow ? '✓' : '○'} Full Text</option>

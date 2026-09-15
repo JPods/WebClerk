@@ -79,6 +79,16 @@ def apply_json_op(target, path: str, mode: str, value=None, key: str = None) -> 
     root_field = parts[0]['key']
     json_path = parts[1:]
 
+    # A dot-path may only reach a JSON envelope field. Anything starting with "_"
+    # reaches Python internals: "__dict__.is_superuser" walked straight into the
+    # instance dict and setattr'd it back, escalating any authenticated user to
+    # superuser and overwriting any password hash — past both the contact guard and
+    # the write policy, because neither matched the key string.
+    # (Found by adversarial review 2026-09-15 and reproduced.)
+    if any(str(part.get('key', '')).startswith('_') for part in parts):
+        logger.warning("[JSON_OPS] refused private/dunder path: %s", path)
+        return False
+
     # Get the root JSON value
     if isinstance(target, dict):
         root_val = target.get(root_field)

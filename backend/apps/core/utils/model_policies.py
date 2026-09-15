@@ -98,6 +98,9 @@ SYSTEM_ONLY_FIELDS = frozenset({
 
 # Fields that pass through always because they are structural envelope keys,
 # not actual model columns.
+# Control flags the save pipeline sets itself — the only underscore keys allowed in.
+PASSTHROUGH_CONTROL_KEYS = frozenset({"_dirty", "_delete", "_new", "_index"})
+
 PASSTHROUGH_KEYS = frozenset({
     "model_name", "id", "version", "expected_version", "bulk", "lines", "password",
 })
@@ -149,7 +152,13 @@ def enforce_write_policy(
     filtered = {}
     for k, v in (data or {}).items():
         if isinstance(k, str) and k.startswith("_"):
-            filtered[k] = v
+            # "_dirty" and friends are control flags, not fields. A blanket
+            # passthrough here is what let "__dict__.is_superuser" reach the
+            # assignment layer untouched (adversarial review 2026-09-15).
+            if k in PASSTHROUGH_CONTROL_KEYS:
+                filtered[k] = v
+            else:
+                denied.append(k)
             continue
         if k in PASSTHROUGH_KEYS:
             filtered[k] = v

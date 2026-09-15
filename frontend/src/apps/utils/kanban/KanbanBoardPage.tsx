@@ -1331,8 +1331,14 @@ const SegmentedProjectSelector: React.FC<SegmentedProjectSelectorProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         disabled={isLoading}
         className="rounded px-1 py-0.5 db-font-xs"
-            style={{ border: '1px solid var(--db-border)', background: 'var(--db-surface)', color: 'var(--db-text-muted)' }}
-        style={{ cursor: isLoading ? "default" : "pointer", minWidth: 120, textAlign: "left" }}
+        style={{
+          border: '1px solid var(--db-border)',
+          background: 'var(--db-surface)',
+          color: 'var(--db-text-muted)',
+          cursor: isLoading ? "default" : "pointer",
+          minWidth: 120,
+          textAlign: "left",
+        }}
       >
         {selectedLabel} ▾
       </button>

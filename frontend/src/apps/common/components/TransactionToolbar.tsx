@@ -26,8 +26,7 @@ import {
   FaLock,
   FaUnlock,
 } from "react-icons/fa";
-import PrintReportDropdown from "@/components/common/PrintReportDropdown";
-import { getReportsForModel, type ReportDef } from "@/config/reportLists";
+import PrintReportDropdown, { type ReportRecord } from "@/components/common/PrintReportDropdown";
 
 // Transaction types for transfer dropdown
 const TRANSACTION_TYPES = [
@@ -66,7 +65,7 @@ interface TransactionToolbarProps {
   /** Model key for the print/report dropdown (e.g. "customer", "invoice") */
   modelKey?: string;
   /** Called when user picks a report from the print dropdown */
-  onSelectReport?: (report: ReportDef) => void;
+  onSelectReport?: (report: ReportRecord) => void;
   /** Callback for Email action */
   onEmail?: () => void;
   /** Callback for Delete action */
@@ -384,7 +383,9 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
         )}
 
         {/* Print / Report dropdown */}
-        {!isNewRecord && modelKey && getReportsForModel(modelKey).length > 0 ? (
+        {/* Report records are the source of truth — PrintReportDropdown loads them
+            from wcapi on first open. Do not gate this on a static list. */}
+        {!isNewRecord && modelKey ? (
           <PrintReportDropdown
             modelKey={modelKey}
             onSelect={onSelectReport}
