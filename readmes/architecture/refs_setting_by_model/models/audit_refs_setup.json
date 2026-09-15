@@ -1,0 +1,9 @@
+{
+    "self_fields": [
+        "purpose",
+        "name"
+    ],
+    "related_keywords": {},
+    "related_models": [],
+    "jjj_comment": "setting model_name=\"audit\" purpose=\"refs_setup\""
+}

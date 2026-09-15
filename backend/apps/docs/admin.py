@@ -1,0 +1,220 @@
+from django.contrib import admin
+from common.admin_schema_labels import SchemaLabelsAdminMixin
+from .models import Document, QuestionAnswer, Tag, LinkageEntry
+
+
+@admin.register(Document)
+class DocumentAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
+    """Admin interface for Document model."""
+    # Scalar fields alphabetically for list display
+    scalar_fields = (
+        'checksum',
+        'comment',
+        'confidential',
+        'count_accessed',
+        'dt_created',
+        'dt_modified',
+        'id',
+        'ida',
+        'is_active',
+        'is_archived',
+        'is_deleted',
+        'mime_type',
+        'name',
+        'retention_period',
+        'security_level',
+        'sequence',
+        'size_bytes',
+        'slug',
+        'status',
+        'uuid',
+        'version',
+    )
+    # Object/JSON fields alphabetically
+    object_fields = (
+        'actions',
+        'body',
+        'comments',
+        'copyright',
+        'config',
+        'description',
+        'metadata',
+        'path',
+        'prefs',
+        'refs',
+    )
+    # Scalar fields: body, checksum, comment, confidential, count_accessed, description, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, mime_type, name, retention_period, search_vector, security_level, sequence, size_bytes, slug, status, uuid, version
+    list_display = ("ida", "name", "description", "status", "body", "checksum", "is_active", "dt_created")
+    list_filter = ('status', 'confidential', 'is_active')
+    search_fields = ('name', 'slug', 'description')
+    readonly_fields = ('uuid', 'dt_created', 'dt_modified', 'search_vector')
+    ordering = ('-dt_created',)
+    
+    fieldsets = (
+        ('Identification', {'fields': ('id', 'ida', 'uuid', 'name', 'slug')}),
+        ('Status & Classification', {'fields': ('status', 'confidential', 'security_level')}),
+        ('File Info', {'fields': ('mime_type', 'size_bytes', 'checksum', 'path')}),
+        ('Content', {'fields': ('description', 'body', 'comment', 'config', 'copyright')}),
+        ('Counters & Sequence', {'fields': ('count_accessed', 'sequence', 'retention_period')}),
+        ('Lifecycle', {'fields': ('is_active', 'is_deleted', 'is_archived', 'version')}),
+        ('Timestamps', {'fields': ('dt_created', 'dt_modified')}),
+        ('Extended Data', {'fields': ('refs', 'prefs', 'metadata', 'actions', 'comments'), 'classes': ('collapse',)}),
+    )
+
+
+@admin.register(QuestionAnswer)
+class QuestionAnswerAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
+    """Admin interface for QuestionAnswer model."""
+    # Scalar fields alphabetically for list display
+    scalar_fields = (
+        'answer_id',
+        'count_accessed',
+        'dt_created',
+        'dt_modified',
+        'id',
+        'ida',
+        'is_active',
+        'is_archived',
+        'is_deleted',
+        'parent_id',
+        'parent_model',
+        'question_id',
+        'security_level',
+        'sequence',
+        'status',
+        'uuid',
+        'version',
+    )
+    # Object/JSON/Text fields alphabetically
+    object_fields = (
+        'actions',
+        'answer',
+        'answered_by',
+        'comments',
+        'metadata',
+        'prefs',
+        'question',
+        'refs',
+        'document',
+    )
+    # Scalar fields: answer, answer_id, count_accessed, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, parent_id, parent_model, question, question_id, search_vector, security_level, sequence, status, uuid, version
+    list_display = ("ida", "status", "answer", "answer_id", "count_accessed", "health_rating", "is_active", "dt_created")
+    list_filter = ('status', 'parent_model', 'is_active')
+    search_fields = ('question', 'answer', 'parent_model')
+    readonly_fields = ('uuid', 'dt_created', 'dt_modified', 'search_vector')
+    ordering = ('-dt_created',)
+    raw_id_fields = ('document',)
+
+    fieldsets = (
+        ('Identification', {'fields': ('id', 'ida', 'uuid')}),
+        ('Question & Answer', {'fields': ('question', 'answer', 'status')}),
+        ('Template Link', {'fields': ('document', 'question_id', 'answer_id')}),
+        ('Parent Link', {'fields': ('parent_model', 'parent_id')}),
+        ('Attribution', {'fields': ('answered_by', 'security_level')}),
+        ('Counters & Sequence', {'fields': ('count_accessed', 'sequence')}),
+        ('Lifecycle', {'fields': ('is_active', 'is_deleted', 'is_archived', 'version')}),
+        ('Timestamps', {'fields': ('dt_created', 'dt_modified')}),
+        ('Extended Data', {'fields': ('refs', 'prefs', 'metadata', 'actions', 'comments'), 'classes': ('collapse',)}),
+    )
+
+
+@admin.register(Tag)
+class TagAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
+    """Admin interface for Tag model."""
+    # Scalar fields alphabetically
+    scalar_fields = (
+        'count_accessed',
+        'dt_created',
+        'dt_modified',
+        'id',
+        'ida',
+        'is_active',
+        'is_archived',
+        'is_deleted',
+        'model_name',
+        'name',
+        'purpose',
+        'record_id',
+        'security_level',
+        'sequence',
+        'status',
+        'uuid',
+        'version',
+    )
+    # Object/JSON fields alphabetically
+    object_fields = (
+        'actions',
+        'comments',
+        'config',
+        'metadata',
+        'prefs',
+        'refs',
+    )
+    # Scalar fields: count_accessed, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, model_name, name, purpose, record_id, security_level, sequence, status, uuid, version
+    list_display = ("ida", "name", "status", "count_accessed", "health_rating", "is_locked", "is_active", "dt_created")
+    list_filter = ('purpose', 'status', 'model_name', 'is_active')
+    search_fields = ('name', 'purpose', 'model_name')
+    readonly_fields = ('uuid', 'dt_created', 'dt_modified')
+    ordering = ('-dt_created',)
+    
+    fieldsets = (
+        ('Identification', {'fields': ('id', 'ida', 'uuid', 'name')}),
+        ('Classification', {'fields': ('purpose', 'status', 'security_level')}),
+        ('Target Record', {'fields': ('model_name', 'record_id')}),
+        ('Counters & Sequence', {'fields': ('count_accessed', 'sequence')}),
+        ('Data', {'fields': ('config',)}),
+        ('Lifecycle', {'fields': ('is_active', 'is_deleted', 'is_archived', 'version')}),
+        ('Timestamps', {'fields': ('dt_created', 'dt_modified')}),
+        ('Extended Data', {'fields': ('refs', 'prefs', 'metadata', 'actions', 'comments'), 'classes': ('collapse',)}),
+    )
+
+
+@admin.register(LinkageEntry)
+class LinkageEntryAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
+    """Admin interface for LinkageEntry model - unified linkage table."""
+    # Scalar fields
+    scalar_fields = (
+        'dt_created',
+        'dt_modified',
+        'group_id',
+        'id',
+        'ida',
+        'is_active',
+        'is_archived',
+        'is_deleted',
+        'model_name',
+        'name',
+        'purpose',
+        'record_id',
+        'role',
+        'security_level',
+        'sequence',
+        'uuid',
+        'version',
+    )
+    # Object/JSON/Text fields
+    object_fields = (
+        'actions',
+        'comments',
+        'metadata',
+        'note',
+        'prefs',
+        'refs',
+    )
+    # Scalar fields: dt_created, dt_modified, group_id, health_rating, ida, is_active, is_archived, is_deleted, is_locked, model_name, name, note, purpose, record_id, role, security_level, sequence, uuid, version
+    list_display = ("ida", "name", "group_id", "health_rating", "is_locked", "model_name", "is_active", "dt_created")
+    list_filter = ('model_name', 'purpose', 'role', 'is_active')
+    search_fields = ('name', 'purpose', 'note', 'model_name')
+    readonly_fields = ('uuid', 'dt_created', 'dt_modified')
+    ordering = ('group_id', 'sequence', '-dt_created')
+    
+    fieldsets = (
+        ('Group & Link', {'fields': ('group_id', 'model_name', 'record_id', 'role', 'sequence')}),
+        ('Identification', {'fields': ('id', 'ida', 'uuid', 'name')}),
+        ('Classification', {'fields': ('purpose', 'security_level')}),
+        ('Content', {'fields': ('note',)}),
+        ('Lifecycle', {'fields': ('is_active', 'is_deleted', 'is_archived', 'version')}),
+        ('Timestamps', {'fields': ('dt_created', 'dt_modified')}),
+        ('Extended Data', {'fields': ('refs', 'prefs', 'metadata', 'actions', 'comments'), 'classes': ('collapse',)}),
+    )
+

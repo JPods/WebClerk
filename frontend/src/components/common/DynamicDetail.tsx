@@ -1,0 +1,1100 @@
+/**
+ * DynamicDetail — Data-driven form renderer.
+ *
+ * Reads a layout definition (JSON) from a Report record and renders a form.
+ * Users can toggle into "arrange" mode to drag rows, add/remove fields.
+ * Layout saves back to the Report record.
+ *
+ * Report config format:
+ * {
+ *   fields: {
+ *     "ida":           { type: "readonly", label: "ID" },
+ *     "name":          { type: "text", label: "Name" },
+ *     "config.po_num": { type: "text", label: "PO #" },    // dot-notation into JSON
+ *     "refs.links.customer": { type: "readonly", label: "Customer" },
+ *   },
+ *   rows: [
+ *     { fields: ["ida", "name"], cols: 2 },
+ *     { fields: ["config.po_num", "refs.links.customer"], cols: 2 },
+ *   ]
+ * }
+ *
+ * Field configs can come from: Report config.fields (data-driven, preferred),
+ * hardcoded FIELD_REGISTRIES (legacy), or auto-inferred from record data.
+ */
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { getRecord, saveRecord } from "../../api/wcapi";
+import { getWidget, WIDGETS } from "../widgets";
+import { showToast } from "../../store/slices/toastSlice";
+import { useDispatch } from "react-redux";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { FileUploadPanel } from './FileUploadPanel';
+import { ContactPanel, normalizeRefsLinksContact } from '@/apps/common/components/panels/ContactPanel';
+import type { RefContact } from '@/apps/common/components/panels/ContactPanel';
+import { LinkedRecordsPanel } from '@/apps/common/components/panels/LinkedRecordsPanel';
+import { TouchForm, type TouchFormContext } from '@/pages/admin/TouchForm';
+import { getModelNames } from '@/api/wcapi';
+import { getLabelStyle, labelStyleForBehavior } from '@/apps/transactions/components/detail/FieldRow';
+import CollapsiblePanel from '@/apps/common/components/CollapsiblePanel';
+import { renderPanel, type PanelContext } from './panelRegistry';
+
+// ── Field type registry ─────────────────────────────────────────────
+
+interface FieldConfig {
+  type: "text" | "select" | "date" | "number" | "readonly" | "json-text" | "currency" | "checkbox" | "textarea";
+  label?: string;
+  options?: { value: string | number; label: string }[];
+  min?: number;
+  max?: number;
+  path?: string; // dot-notation path into record (e.g. "config.po_num")
+}
+
+// ── Dot-notation helpers ────────────────────────────────────────────
+
+function getNestedValue(obj: any, path: string): any {
+  if (!obj || !path) return undefined;
+  const parts = path.split(".");
+  let cur = obj;
+  for (const p of parts) {
+    if (cur == null || typeof cur !== "object") return undefined;
+    cur = cur[p];
+  }
+  return cur;
+}
+
+function setNestedValue(obj: any, path: string, value: any): any {
+  const parts = path.split(".");
+  const result = { ...obj };
+  let cur = result;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const p = parts[i];
+    cur[p] = cur[p] != null && typeof cur[p] === "object" ? { ...cur[p] } : {};
+    cur = cur[p];
+  }
+  cur[parts[parts.length - 1]] = value;
+  return result;
+}
+
+// Auto-infer field type from a data value
+function inferFieldType(value: any): FieldConfig["type"] {
+  if (value == null) return "text";
+  if (typeof value === "boolean") return "checkbox";
+  if (typeof value === "number") {
+    // Large integers are likely epoch timestamps
+    if (value > 1_000_000_000_000 && value < 2_000_000_000_000) return "date";
+    return "number";
+  }
+  if (typeof value === "object" && value.en !== undefined) return "json-text";
+  if (typeof value === "object") return "readonly";
+  if (typeof value === "string" && value.length > 200) return "textarea";
+  return "text";
+}
+
+// ── Hardcoded field registries ──────────
+
+const ACTION_FIELDS: Record<string, FieldConfig> = {
+  action: { type: "json-text", label: "action" },
+  description: { type: "json-text", label: "description" },
+  assigned_to: { type: "contact-select", label: "assigned_to" },
+  status: {
+    type: "select", label: "status",
+    options: [
+      { value: "", label: "—" },
+      { value: "open", label: "Open" },
+      { value: "in_progress", label: "In Progress" },
+      { value: "complete", label: "Complete" },
+      { value: "on_hold", label: "On Hold" },
+      { value: "cancelled", label: "Cancelled" },
+    ],
+  },
+  priority: {
+    type: "select", label: "priority",
+    options: [
+      { value: 1, label: "1 - Highest" },
+      { value: 2, label: "2 - High" },
+      { value: 3, label: "3 - Medium" },
+      { value: 4, label: "4 - Normal" },
+      { value: 5, label: "5 - Low" },
+      { value: 6, label: "6 - Lowest" },
+    ],
+  },
+  difficulty: {
+    type: "select", label: "difficulty",
+    options: [
+      { value: 1, label: "Easy (1)" },
+      { value: 4, label: "Average (4)" },
+      { value: 8, label: "Hard (8)" },
+      { value: 13, label: "Complex (13)" },
+      { value: 21, label: "Expert (21)" },
+    ],
+  },
+  percent_complete: {
+    type: "select", label: "%_complete",
+    options: [
+      { value: 0, label: "0%" },
+      { value: 20, label: "20%" },
+      { value: 50, label: "50%" },
+      { value: 70, label: "70%" },
+      { value: 100, label: "100%" },
+    ],
+  },
+  dt_start: { type: "date", label: "dt_start" },
+  dt_deadline: { type: "date", label: "dt_deadline" },
+  dt_completed: { type: "date", label: "dt_completed" },
+  project_name: { type: "readonly", label: "project_name" },
+  kanban_column: { type: "text", label: "kanban_column" },
+  ida: { type: "readonly", label: "ida" },
+};
+
+const DEFAULT_ACTION_LAYOUT = {
+  rows: [
+    { fields: ["action"], cols: 1 },
+    { fields: ["description"], cols: 1 },
+    { fields: ["assigned_to", "status"], cols: 2 },
+    { fields: ["priority", "difficulty", "percent_complete"], cols: 3 },
+    { fields: ["dt_start", "dt_deadline", "dt_completed"], cols: 3 },
+    { fields: ["project_name"], cols: 1 },
+  ],
+};
+
+// Legacy hardcoded registries — Report config.fields takes precedence
+const FIELD_REGISTRIES: Record<string, Record<string, FieldConfig>> = {
+  action: ACTION_FIELDS,
+};
+
+const DEFAULT_LAYOUTS: Record<string, typeof DEFAULT_ACTION_LAYOUT> = {
+  action: DEFAULT_ACTION_LAYOUT,
+};
+
+// ── Styles ──────────────────────────────────────────────────────────
+
+
+// ── Component ───────────────────────────────────────────────────────
+
+export interface DynamicDetailActions {
+  save: () => void;
+  cancel: () => void;
+  startEdit: () => void;
+  fontUp: () => void;
+  fontDown: () => void;
+  setFontSize: (size: number) => void;
+  fontSize: number;
+  editing: boolean;
+  saving: boolean;
+  ida: string;
+}
+
+interface DynamicDetailProps {
+  modelName: string;
+  recordId: string | number;
+  layout?: any;
+  onLayoutChange?: (layout: any) => void;
+  onClose?: () => void;
+  onSaved?: () => void;
+  hideToolbar?: boolean;
+  actionsRef?: React.MutableRefObject<DynamicDetailActions | null>;
+  onActionsReady?: () => void;
+}
+
+function DynamicDetail({
+  modelName,
+  recordId,
+  layout: layoutProp,
+  onLayoutChange,
+  onSaved,
+  hideToolbar,
+  actionsRef,
+  onActionsReady,
+}: DynamicDetailProps) {
+  const dispatch = useDispatch();
+  const legacyRegistry = FIELD_REGISTRIES[modelName] || {};
+  const defaultLayout = DEFAULT_LAYOUTS[modelName] || { rows: [] };
+
+  const [data, setData] = useState<Record<string, any> | null>(null);
+  const [values, setValues] = useState<Record<string, any>>({});
+  const [editing, setEditing] = useState(!!hideToolbar);
+  const [arranging, setArranging] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [reportConfig, setReportConfig] = useState<any>(null);
+  const [layout, setLayout] = useState(layoutProp || defaultLayout);
+  const [layoutReportId, setLayoutReportId] = useState<number | null>(null);
+  const [fontScale, setFontScale] = useState(0);
+  const [dragRow, setDragRow] = useState<number | null>(null);
+  const [linkedContacts, setLinkedContacts] = useState<RefContact[]>([]);
+  const [linkedPanelModels, setLinkedPanelModels] = useState<string[]>([]);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  const [activeLinkedTab, setActiveLinkedTab] = useState('contacts');
+  const [settingTabs, setSettingTabs] = useState<string[]>(['contacts', 'qa', 'actions', 'touches', 'documents', 'files']);
+  const [showTouchForm, setShowTouchForm] = useState(false);
+  const [settingLayout, setSettingLayout] = useState<any>(null);
+  const [settingFields, setSettingFields] = useState<Record<string, FieldConfig> | null>(null);
+  const [settingBehaviors, setSettingBehaviors] = useState<Record<string, any>>({});
+  const [layoutSource, setLayoutSource] = useState<'setting' | 'report' | 'hardcoded'>('hardcoded');
+
+  // fontSize follows --db-font-size (set by DataBrowser) + local A+/A- offset
+  // fontScale=0 means "use the theme font size exactly"
+  const fontSize = fontScale;
+
+  // Core panels always shown (even if empty) — besides contacts which uses ContactPanel
+  const STANDARD_PANELS = ['action', 'touch'];
+
+  // Models that use specialized panels (ContactPanel handles contacts)
+  const SPECIALIZED = ['contact'];
+
+  // Load available model names for "+ Link..." selector
+  useEffect(() => {
+    getModelNames().then((res: any) => {
+      const names: string[] = Array.isArray(res?.model_names) ? res.model_names : [];
+      setAvailableModels(names.sort());
+    }).catch(() => { /* no-op */ });
+  }, []);
+
+  // ── Load form layout from Setting (purpose=wc:model) ──────────────
+  // Priority chain: Setting → Report → hardcoded
+  useEffect(() => {
+    if (layoutProp) return; // caller supplied layout, skip
+
+    const cacheKey = `setting_form_layout_v2_${modelName}`;
+    // Clear stale v1 cache
+    sessionStorage.removeItem(`setting_form_layout_${modelName}`);
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (parsed.rows && parsed.fieldRegistry) {
+          setSettingLayout({ rows: parsed.rows });
+          setSettingFields(parsed.fieldRegistry);
+          setLayoutSource('setting');
+          console.log(`[DynamicDetail] Loaded form layout from Setting for ${modelName} (cached)`);
+          return;
+        }
+      } catch { /* no-op */ }
+    }
+
+    import("../../api/wcapi").then(({ getRecords }) => {
+      getRecords("setting", {
+        parent_model: modelName,
+        purpose: "wc:model",
+        limit: 1,
+      }).then((resp: any) => {
+        const records = resp?.results || resp?.records || resp?.data || [];
+        const arr = Array.isArray(records) ? records : [];
+        if (arr.length === 0) return;
+
+        const setting = arr[0];
+
+        // Behaviors from Setting — always load, regardless of form layout
+        const behaviors: Record<string, any> = setting?.config?.behaviors || {};
+        if (Object.keys(behaviors).length > 0) {
+          setSettingBehaviors(behaviors);
+        }
+
+        // Tabs from Setting — which linked panels to show
+        const tabs: string[] = setting?.config?.layout?.tabs;
+        if (Array.isArray(tabs) && tabs.length > 0) {
+          setSettingTabs(tabs);
+        }
+
+        const formLayout = setting?.config?.layout?.form?.default;
+        if (!formLayout?.sections) return;
+
+        // Find the header section — contains columns with fields
+        const headerSection = formLayout.sections.find((s: any) => s.type === 'header');
+        if (!headerSection) return;
+
+        // Convert Setting sections → rows format + build field registry
+        const convertedRows: { fields: string[]; cols: number }[] = [];
+        const convertedFields: Record<string, FieldConfig> = {};
+
+        if (headerSection.columns && Array.isArray(headerSection.columns)) {
+          const columns = headerSection.columns;
+          const colCount = columns.length;
+
+          // Interleave fields across columns into rows:
+          // Row 0: [col0.field0, col1.field0, col2.field0], cols=colCount
+          // Row 1: [col0.field1, col1.field1, col2.field1], cols=colCount
+          const maxFields = Math.max(...columns.map((c: any) => (c.fields || []).length));
+          for (let rowIdx = 0; rowIdx < maxFields; rowIdx++) {
+            const rowFields: string[] = [];
+            for (let colIdx = 0; colIdx < colCount; colIdx++) {
+              const colFields = columns[colIdx].fields || [];
+              if (rowIdx < colFields.length) {
+                const f = colFields[rowIdx];
+                const fieldName = f.field || f.name || `unknown_${colIdx}_${rowIdx}`;
+                rowFields.push(fieldName);
+
+                // Build field config from Setting field definition
+                // Label priority: field def > behavior > derived from name
+                // If Setting doesn't specify a type, inherit from legacy registry
+                const baseName = fieldName.replace(/\[\d+\]$/, '');
+                const legacyField = legacyRegistry[fieldName] || legacyRegistry[baseName];
+                const cfg: FieldConfig = legacyField && !f.type
+                  ? { ...legacyField }
+                  : { type: 'text' };
+                cfg.label = f.label
+                  || behaviors[baseName]?.label
+                  || (fieldName.split('.').pop() || fieldName).replace(/\[\d+\]$/, '');
+
+                // Map Setting field type to FieldConfig type
+                if (f.type === 'select' && Array.isArray(f.options)) {
+                  cfg.type = 'select';
+                  cfg.options = f.options.map((opt: any) =>
+                    typeof opt === 'object' ? opt : { value: opt, label: String(opt) }
+                  );
+                } else if (f.type === 'contact-select' || f.type === 'contact_select') {
+                  cfg.type = 'contact-select' as any;
+                } else if (f.type === 'readonly' || f.type === 'read_only') {
+                  cfg.type = 'readonly';
+                } else if (f.type === 'date' || f.type === 'timestamp' || fieldName.startsWith('dt_')) {
+                  cfg.type = 'date';
+                } else if (f.type === 'number') {
+                  cfg.type = 'number';
+                } else if (f.type === 'currency') {
+                  cfg.type = 'currency';
+                } else if (f.type === 'checkbox') {
+                  cfg.type = 'checkbox';
+                } else if (f.type === 'textarea') {
+                  cfg.type = 'textarea';
+                } else if (f.type && WIDGETS[f.type]) {
+                  // Custom widget type registered in the widget registry
+                  cfg.type = f.type;
+                  cfg.path = fieldName;
+                } else if (fieldName.includes('.') || f.type === 'json-text') {
+                  cfg.type = 'json-text';
+                  cfg.path = fieldName;
+                }
+
+                if (f.path) cfg.path = f.path;
+                if (f.min !== undefined) cfg.min = f.min;
+                if (f.max !== undefined) cfg.max = f.max;
+
+                convertedFields[fieldName] = cfg;
+              }
+            }
+            if (rowFields.length > 0) {
+              convertedRows.push({ fields: rowFields, cols: colCount });
+            }
+          }
+        } else if (headerSection.rows && Array.isArray(headerSection.rows)) {
+          // Header already in rows format — use directly
+          for (const row of headerSection.rows) {
+            convertedRows.push({ fields: row.fields || [], cols: row.cols || 1 });
+            // Extract field configs from row fields if they have type info
+            for (const fieldName of (row.fields || [])) {
+              if (typeof fieldName === 'object') {
+                const f = fieldName;
+                const name = f.field || f.name;
+                if (name) convertedFields[name] = { type: f.type || 'text', label: f.label || name };
+              }
+            }
+          }
+        }
+
+        if (convertedRows.length > 0) {
+          setSettingLayout({ rows: convertedRows });
+          setSettingFields(convertedFields);
+          setLayoutSource('setting');
+          console.log(`[DynamicDetail] Loaded form layout from Setting for ${modelName}`, {
+            sectionCount: formLayout.sections.length,
+            rowCount: convertedRows.length,
+            fieldCount: Object.keys(convertedFields).length,
+          });
+          // Cache for session
+          sessionStorage.setItem(cacheKey, JSON.stringify({
+            rows: convertedRows,
+            fieldRegistry: convertedFields,
+          }));
+        }
+      }).catch((err: any) => {
+        console.warn(`[DynamicDetail] Failed to load Setting for ${modelName}:`, err);
+      });
+    });
+  }, [modelName, layoutProp]);
+
+  // Self-discover panels from refs.links keys + standard panels
+  useEffect(() => {
+    if (!data) return;
+    const refsLinks = data?.refs?.links || {};
+    const discoveredKeys = Object.keys(refsLinks).filter(k => {
+      if (SPECIALIZED.includes(k)) return false;
+      if (STANDARD_PANELS.includes(k)) return false;
+      // Non-core panels: only show if they have linked records
+      const val = refsLinks[k];
+      return Array.isArray(val) && val.length > 0;
+    });
+    // Core panels first, then discovered (non-empty) panels
+    const merged = [...STANDARD_PANELS];
+    for (const k of discoveredKeys) {
+      if (!merged.includes(k)) merged.push(k);
+    }
+    setLinkedPanelModels(merged);
+  }, [data, modelName]);
+
+  // Merged field registry: Setting > Report config.fields > legacy hardcoded > auto-inferred
+  const fieldRegistry = useMemo(() => {
+    const serverFields: Record<string, FieldConfig> = reportConfig?.fields || {};
+    const settingFieldDefs: Record<string, FieldConfig> = settingFields || {};
+    // Priority: Setting (highest) > Report > legacy hardcoded (lowest)
+    const merged = { ...legacyRegistry, ...serverFields, ...settingFieldDefs };
+    // Auto-infer any fields referenced in layout rows but missing from registry
+    if (data && layout?.rows) {
+      for (const row of layout.rows) {
+        for (const fieldName of (row.fields || [])) {
+          if (!merged[fieldName]) {
+            const val = fieldName.includes(".")
+              ? getNestedValue(data, fieldName)
+              : data[fieldName];
+            // dt_ fields are always dates, regardless of current value
+            const leafN = fieldName.split('.').pop() || fieldName;
+            merged[fieldName] = {
+              type: leafN.startsWith('dt_') ? 'date' : inferFieldType(val),
+              label: (fieldName.split(".").pop() || fieldName).replace(/\[\d+\]$/, ''),
+            };
+          }
+        }
+      }
+    }
+    return merged;
+  }, [legacyRegistry, reportConfig, settingFields, data, layout]);
+
+  // Load form layout from Report record (output_type=screen, category=form)
+  // Only used if Setting didn't provide a layout
+  useEffect(() => {
+    if (layoutProp) return;
+    const cacheKey = `form_layout_${modelName}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setReportConfig(parsed.config);
+        if (parsed.config?.rows && !settingLayout) {
+          setLayout(parsed.config);
+          if (layoutSource !== 'setting') setLayoutSource('report');
+        }
+        setLayoutReportId(parsed.id);
+        return;
+      } catch { /* no-op */ }
+    }
+    import("../../api/wcapi").then(({ getRecords }) => {
+      getRecords("report", {
+        model_name: modelName,
+        output_type: "screen",
+        category: "form",
+        is_active: true,
+        limit: 1,
+      }).then((resp: any) => {
+        const records = resp?.data || resp?.records || [];
+        const arr = Array.isArray(records) ? records : [];
+        if (arr.length > 0 && arr[0].config) {
+          const cfg = arr[0].config;
+          setReportConfig(cfg);
+          if (cfg.rows && !settingLayout) {
+            setLayout(cfg);
+            if (layoutSource !== 'setting') setLayoutSource('report');
+          }
+          setLayoutReportId(arr[0].id);
+          sessionStorage.setItem(cacheKey, JSON.stringify({
+            id: arr[0].id,
+            version: arr[0].version,
+            config: cfg,
+          }));
+        }
+      }).catch(() => { /* no-op */ });
+    });
+  }, [modelName, layoutProp, settingLayout, layoutSource]);
+
+  // Apply Setting layout when loaded — takes priority over Report and hardcoded
+  useEffect(() => {
+    if (layoutProp) return;
+    if (settingLayout) {
+      setLayout(settingLayout);
+    } else if (layoutSource === 'hardcoded') {
+      console.log(`[DynamicDetail] Using hardcoded layout for ${modelName}`);
+    }
+  }, [settingLayout, layoutProp, layoutSource, modelName]);
+
+  // Extract a form value from record data using field config
+  const extractValue = useCallback((fieldName: string, cfg: FieldConfig, record: any): any => {
+    const path = cfg.path || fieldName;
+    const raw = path.includes(".") ? getNestedValue(record, path) : record[path];
+    if (cfg.type === "json-text") return raw?.en || "";
+    if (cfg.type === "date") {
+      if (raw && typeof raw === "number" && raw > 0) {
+        try {
+          // Convert epoch ms to local date for input[type=date]
+          const d = new Date(raw < 1e12 ? raw * 1000 : raw);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${y}-${m}-${day}`;
+        } catch { return ""; }
+      }
+      return "";
+    }
+    if (cfg.type === "checkbox") return !!raw;
+    if (typeof raw === "object" && raw !== null && !Array.isArray(raw)) {
+      // i18n objects {en: "text"} or record refs {id, name} — extract display value
+      return raw.en || raw.name || raw.display_name || raw.ida || JSON.stringify(raw);
+    }
+    return raw ?? "";
+  }, []);
+
+  // Load record
+  useEffect(() => {
+    if (!recordId) return;
+    getRecord(modelName, Number(recordId)).then((resp: any) => {
+      const r = resp?.record || resp;
+      if (!r) return;
+      setData(r);
+      const contacts = r?.refs?.links?.contact || [];
+      setLinkedContacts(normalizeRefsLinksContact(contacts));
+    }).catch(() => { /* no-op */ });
+  }, [modelName, recordId]);
+
+  // Extract form values when data or field registry changes
+  useEffect(() => {
+    if (!data) return;
+    const v: Record<string, any> = {};
+    for (const [key, cfg] of Object.entries(fieldRegistry)) {
+      v[key] = extractValue(key, cfg, data);
+    }
+    setValues(v);
+  }, [data, fieldRegistry, extractValue]);
+
+  // Save handler — uses generic saveRecord for all models
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    try {
+      const payload: Record<string, any> = { model_name: modelName, id: String(recordId) };
+      for (const [key, cfg] of Object.entries(fieldRegistry)) {
+        if (cfg.type === "readonly") continue;
+        const val = values[key];
+        const path = cfg.path || key;
+        if (path.includes(".")) {
+          // Nested JSON field — build atomic update for the top-level key
+          const parts = path.split(".");
+          const topKey = parts[0];
+          const subPath = parts.slice(1).join(".");
+          if (!payload[topKey] || typeof payload[topKey] !== "object" || !payload[topKey].mode) {
+            payload[topKey] = { mode: "update", value: data?.[topKey] || {} };
+          }
+          payload[topKey].value = setNestedValue(payload[topKey].value, subPath,
+            cfg.type === "date" && val ? new Date(val).getTime() : val);
+        } else if (cfg.type === "json-text") {
+          payload[key] = { mode: "update", value: { en: val } };
+        } else if (cfg.type === "date" && val) {
+          payload[key] = { mode: "update", value: new Date(val).getTime() };
+        } else if (cfg.type === "contact-select") {
+          // assigned_to is an array of {id, name} — send as-is
+          payload[key] = { mode: "update", value: Array.isArray(val) ? val : [] };
+        } else if (cfg.type === "select" || cfg.type === "number" || cfg.type === "currency") {
+          payload[key] = { mode: "update", value: typeof val === "string" ? (isNaN(Number(val)) ? val : Number(val)) : val };
+        } else if (cfg.type === "checkbox") {
+          payload[key] = { mode: "update", value: !!val };
+        } else {
+          payload[key] = { mode: "update", value: val };
+        }
+      }
+      await saveRecord(modelName, payload);
+      dispatch(showToast({ message: "Saved", type: "success" }));
+      setEditing(false);
+      onSaved?.();
+    } catch (e: any) {
+      dispatch(showToast({ message: e.message || "Save failed", type: "error" }));
+    } finally {
+      setSaving(false);
+    }
+  }, [modelName, recordId, values, fieldRegistry, data, dispatch, onSaved]);
+
+  // Expose actions to parent via ref
+  useEffect(() => {
+    if (!actionsRef) return;
+    actionsRef.current = {
+      save: () => { void handleSave(); },
+      cancel: () => setEditing(false),
+      startEdit: () => setEditing(true),
+      fontUp: () => setFontScale(s => s + 1),
+      fontDown: () => setFontScale(s => s - 1),
+      setFontSize: (size: number) => setFontScale(size),
+      fontSize,
+      editing,
+      saving,
+      ida: data?.ida || `${modelName}:${recordId}`,
+    };
+    onActionsReady?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionsRef, handleSave, editing, saving, data, modelName, recordId, fontSize]);
+
+  // Arrange mode handlers
+  const handleDragStart = (idx: number) => setDragRow(idx);
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (dragRow === null || dragRow === idx) return;
+    const rows = [...layout.rows];
+    const [moved] = rows.splice(dragRow, 1);
+    rows.splice(idx, 0, moved);
+    setLayout({ ...layout, rows });
+    setDragRow(idx);
+  };
+  const handleDragEnd = () => {
+    setDragRow(null);
+    onLayoutChange?.(layout);
+  };
+
+  const addFieldRow = (fieldName: string) => {
+    setLayout((prev: any) => ({
+      ...prev,
+      rows: [...prev.rows, { fields: [fieldName], cols: 1 }],
+    }));
+  };
+
+  const removeRow = (idx: number) => {
+    setLayout((prev: any) => ({
+      ...prev,
+      rows: prev.rows.filter((_: any, i: number) => i !== idx),
+    }));
+  };
+
+  // Field renderer — uses merged registry (server + legacy + auto-inferred)
+  const renderField = (fieldName: string, disabled: boolean) => {
+
+    const cfg = fieldRegistry[fieldName];
+    if (!cfg) {
+      // Last resort: show raw value as readonly
+      const raw = data ? (fieldName.includes(".") ? getNestedValue(data, fieldName) : data[fieldName]) : undefined;
+      return <span className="db-font-xs db-text-muted">{raw != null ? String(raw) : "—"}</span>;
+    }
+
+    const Widget = getWidget(cfg.type);
+    return (
+      <Widget
+        name={fieldName}
+        value={values[fieldName] ?? ""}
+        onChange={(v: any) => setValues(prev => ({ ...prev, [fieldName]: v }))}
+        disabled={disabled}
+        options={cfg.options}
+        min={cfg.min}
+        max={cfg.max}
+        record={data || undefined}
+      />
+    );
+  };
+
+  // Field change handler for panels (updates local values + data for immediate display)
+  // Must be before early returns — React Rules of Hooks
+  const ddFieldChange = useCallback((field: string, value: any) => {
+    setValues(prev => ({ ...prev, [field]: value }));
+    setData((prev: any) => {
+      if (!prev) return prev;
+      const parts = field.split('.');
+      if (parts.length === 1) return { ...prev, [field]: value };
+      const root = parts[0];
+      const obj = { ...(prev[root] || {}) };
+      if (parts.length === 2) {
+        obj[parts[1]] = value;
+      }
+      return { ...prev, [root]: obj };
+    });
+  }, []);
+
+  if (!data) return <div className="py-4 text-center db-font-xs db-text-dim">Loading...</div>;
+
+  const disabled = !editing;
+  const usedFields = new Set(layout.rows.flatMap((r: any) => r.fields));
+  const availableFields = Object.keys(fieldRegistry).filter(f => !usedFields.has(f));
+
+  return (
+    <div className="space-y-1.5" style={{ fontSize: fontSize === 0 ? 'inherit' : `calc(var(--db-font-size, 13px) + ${fontSize}px)` }}>
+      {/* Toolbar — hidden when parent controls it via actionsRef */}
+      {!hideToolbar && (
+      <div className="flex items-center justify-between pb-1" style={{ borderBottom: '1px solid var(--db-border)' }}>
+        <span className="font-mono db-text-dim db-font-xs">
+          {data.ida || `${modelName}:${recordId}`}
+        </span>
+        <div className="flex items-center gap-1">
+          <button onClick={() => setFontScale(s => s - 1)}
+            className="rounded px-1 py-0.5 db-font-xs db-text-muted" style={{ border: '1px solid var(--db-border)' }}>A-</button>
+          <button onClick={() => setFontScale(s => s + 1)}
+            className="rounded px-1 py-0.5 db-font-xs db-text-muted" style={{ border: '1px solid var(--db-border)' }}>A+</button>
+          <button onClick={() => {
+              if (arranging) {
+                if (layoutReportId) {
+                  saveRecord("report", {
+                    model_name: "report",
+                    id: String(layoutReportId),
+                    config: { mode: "update", value: layout },
+                  }).then(() => {
+                    sessionStorage.removeItem(`form_layout_${modelName}`);
+                    dispatch(showToast({ message: "Layout saved", type: "success" }));
+                  }).catch(() => { /* no-op */ });
+                }
+              }
+              setArranging(!arranging);
+            }}
+            className={`rounded border px-1.5 py-0.5 db-font-xs ${
+              arranging ? "border-amber-400 bg-amber-50 text-amber-700" : "db-text-muted"
+            }`}
+            style={arranging ? undefined : { borderColor: 'var(--db-border)' }}
+            title={arranging ? "Save layout and exit arrange mode" : "Arrange form layout"}
+          >{arranging ? "Done" : "⚙"}</button>
+          {editing ? (
+            <>
+              <button onClick={handleSave} disabled={saving}
+                className="rounded bg-blue-600 px-2 py-0.5 db-font-xs text-white hover:bg-blue-700 disabled:opacity-50">
+                {saving ? "..." : "Save"}</button>
+              <button onClick={() => setEditing(false)}
+                className="rounded px-2 py-0.5 db-font-xs" style={{ border: '1px solid var(--db-border)' }}>Cancel</button>
+            </>
+          ) : (
+            <button onClick={() => setEditing(true)}
+              className="rounded px-2 py-0.5 db-font-xs" style={{ border: '1px solid var(--db-border)' }}>Edit</button>
+          )}
+        </div>
+      </div>
+      )}
+
+      {/* Dynamic rows */}
+      {layout.rows.map((row: any, idx: number) => (
+        <div
+          key={idx}
+          draggable={arranging}
+          onDragStart={() => handleDragStart(idx)}
+          onDragOver={(e) => handleDragOver(e, idx)}
+          onDragEnd={handleDragEnd}
+          className={`${arranging ? "border border-dashed border-amber-300 rounded px-1 py-0.5 cursor-move" : ""} ${
+            dragRow === idx ? "opacity-50" : ""
+          }`}
+        >
+          {arranging && (
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-[9px] text-amber-500">{row.fields.join(" · ")}</span>
+              <button onClick={() => removeRow(idx)} className="text-[9px] text-red-400 hover:text-red-600">✕</button>
+            </div>
+          )}
+          <div className={`grid gap-1.5 ${
+            row.cols === 3 ? "grid-cols-3" :
+            row.cols === 2 ? "grid-cols-2" :
+            "grid-cols-1"
+          }`}>
+            {row.fields.map((fieldName: string) => {
+              const cfg = fieldRegistry[fieldName];
+              const isSelect = cfg?.type === 'select' && cfg?.options?.length;
+              const isContactSelect = cfg?.type === 'contact-select';
+              const label = (cfg?.label || fieldName).replace(/\[\d+\]$/, '');
+
+              // Resolve label style from behavior type
+              const behType = settingBehaviors[fieldName.replace(/\[\d+\]$/, '')]?.type || cfg?.type;
+              const labelCat = labelStyleForBehavior(behType);
+              const labelSty = getLabelStyle(labelCat);
+
+              // Select fields: colored label left, select control right
+              if (isSelect) {
+                const currentOpt = cfg.options.find((o: any) => String(o.value) === String(values[fieldName]));
+                const displayText = currentOpt?.label || values[fieldName] || '—';
+                return (
+                  <div key={fieldName}>
+                    <div className="font-mono text-[0.85em] mb-0.5 font-semibold" style={labelSty}>{label}</div>
+                    {editing ? (
+                      <select
+                        value={values[fieldName] ?? ''}
+                        onChange={(e) => setValues(prev => ({ ...prev, [fieldName]: e.target.value }))}
+                        className="w-full db-font-xs px-1 py-0.5 rounded db-input"
+                        style={{ fontSize: 'inherit' }}
+                      >
+                        <option value="">—</option>
+                        {cfg.options.map((o: any) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="db-font-xs" style={{ color: 'var(--db-text)' }}>{displayText}</div>
+                    )}
+                  </div>
+                );
+              }
+
+              // Contact-select: label IS the add-select, chips below
+              if (isContactSelect) {
+                return (
+                  <div key={fieldName}>
+                    {renderField(fieldName, disabled)}
+                  </div>
+                );
+              }
+
+              // Other fields: label + widget
+              return (
+                <div key={fieldName}>
+                  <div className="font-mono text-[0.85em] mb-0.5" style={labelSty}>{label}</div>
+                  {renderField(fieldName, disabled)}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {/* Add field (arrange mode) */}
+      {arranging && availableFields.length > 0 && (
+        <div className="border-t border-amber-200 pt-1.5">
+          <div className="text-[9px] text-amber-500 mb-1">Add field:</div>
+          <div className="flex flex-wrap gap-1">
+            {availableFields.map(f => (
+              <button key={f} onClick={() => addFieldRow(f)}
+                className="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 db-font-xs text-amber-700 hover:bg-amber-100">
+                + {f}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── TIME panel (action model only) — combined times + billing ── */}
+      {modelName === 'action' && data && (() => {
+        const times = data?.config?.times ?? { entries: [] };
+        const timesEntries = Array.isArray(times.entries) ? times.entries : [];
+        const count = timesEntries.length;
+        const totalMs = times.total_elapsed_ms ?? 0;
+        const isOpen = timesEntries.some((e: any) => e.dt_in && !e.dt_out);
+        const b = data?.config?.billable;
+        const isBillable = b?.is_billable !== false;
+
+        const fmtMs = (ms: number) => {
+          if (ms <= 0) return '';
+          const h = Math.floor(ms / 3600000);
+          const m = Math.floor((ms % 3600000) / 60000);
+          return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
+        };
+
+        const clockToggle = () => {
+          const entries = [...timesEntries];
+          const now = Date.now();
+          const openIdx = entries.findIndex((e: any) => e.dt_in && !e.dt_out);
+          if (openIdx >= 0) {
+            const e = { ...entries[openIdx] };
+            e.dt_out = now;
+            e.elapsed_ms = now - (e.dt_in ?? now);
+            entries[openIdx] = e;
+          } else {
+            entries.push({
+              id: crypto.randomUUID?.() ?? `${now}-${Math.random().toString(36).slice(2, 9)}`,
+              dt_in: now, dt_out: null, elapsed_ms: null,
+              percent_active: 100, reason: '', notes: '', tags: [], issue: null,
+            });
+          }
+          let te = 0, ta = 0;
+          for (const e of entries) { const el = e.elapsed_ms ?? 0; te += el; ta += Math.round(el * ((e.percent_active ?? 100) / 100)); }
+          const updated = { entries, total_elapsed_ms: te, total_active_ms: ta };
+          ddFieldChange('config.times', updated);
+          saveRecord(modelName, { id: Number(recordId), config: { mode: 'update', value: { ...(data.config || {}), times: updated } } }).catch(() => { /* no-op */ });
+        };
+
+        const panelCtx: PanelContext = {
+          modelName, recordId: Number(recordId), data, isEditing: editing,
+          onFieldChange: ddFieldChange, onRefresh: () => {}, ensureWindow: () => {},
+        };
+
+        return (
+          <CollapsiblePanel
+            label="time"
+            storageKey={`panel_${modelName}_billing`}
+            defaultCollapsed={true}
+            badge={count > 0 ? count : undefined}
+            headerActions={
+              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                {totalMs > 0 && <span className="db-font-xs" style={{ color: 'var(--db-text-muted)' }}>{fmtMs(totalMs)}</span>}
+                <button type="button" onClick={clockToggle}
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors"
+                  style={isOpen
+                    ? { background: 'color-mix(in srgb, var(--db-accent-red) 15%, transparent)', color: 'var(--db-accent-red)' }
+                    : { background: 'color-mix(in srgb, var(--db-accent-green) 15%, transparent)', color: 'var(--db-accent-green)' }}>
+                  {isOpen ? 'Stop' : <><svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>Clock In</>}
+                </button>
+                <span className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                  style={isBillable
+                    ? { background: 'color-mix(in srgb, var(--db-accent-green) 15%, transparent)', color: 'var(--db-accent-green)' }
+                    : { background: 'var(--db-surface-alt)', color: 'var(--db-text-dim)' }}>
+                  {isBillable ? 'billable' : 'non-billable'}
+                </span>
+                <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" checked={isBillable} className="rounded"
+                    onChange={(e) => ddFieldChange('config.billable', { ...(b || { rate_unit: 'hour', currency: 'USD' }), is_billable: e.target.checked })} />
+                  <span className="text-[11px]" style={{ color: 'var(--db-text-muted)' }}>billable</span>
+                </label>
+              </div>
+            }
+          >
+            {renderPanel('billing', panelCtx)}
+          </CollapsiblePanel>
+        );
+      })()}
+
+      {/* ── Tabbed panels — contacts, linked models, files ──────── */}
+      {(() => {
+        // Tabs from Setting + any dynamically added linked models (deduplicated)
+        const tabSet = new Set(settingTabs);
+        const extraLinked = linkedPanelModels.filter(m =>
+          !tabSet.has(m) && !tabSet.has(m + 's') && !tabSet.has(m + 'es')
+        );
+        const allTabs = [...settingTabs, ...extraLinked];
+        const activeTab = showModelPicker ? '_link' : (allTabs.includes(activeLinkedTab) ? activeLinkedTab : allTabs[0]);
+
+        return (
+          <>
+            {/* Tab bar */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 0, borderBottom: '1px solid var(--db-border)', marginTop: 4 }}>
+              {allTabs.map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => { setActiveLinkedTab(tab); setShowModelPicker(false); }}
+                  className="px-3 py-1 db-font-xs transition-colors"
+                  style={{
+                    borderBottom: activeTab === tab ? '2px solid var(--db-accent, #3b82f6)' : '2px solid transparent',
+                    color: activeTab === tab ? 'var(--db-text)' : 'var(--db-text-dim)',
+                    fontWeight: activeTab === tab ? 600 : 400,
+                    background: 'transparent',
+                  }}
+                >{tab}</button>
+              ))}
+              {editing && (
+                <button
+                  onClick={() => setShowModelPicker(!showModelPicker)}
+                  className="px-3 py-1 db-font-xs transition-colors"
+                  style={{
+                    borderBottom: activeTab === '_link' ? '2px solid var(--db-accent, #3b82f6)' : '2px solid transparent',
+                    color: 'var(--db-text-dim)',
+                    background: 'transparent',
+                  }}
+                >+ link</button>
+              )}
+            </div>
+
+            {/* Tab content */}
+            {activeTab === 'contacts' && (
+              <ContactPanel
+                contacts={linkedContacts}
+                isEditing={editing}
+                parent_model={modelName}
+                parentId={Number(recordId)}
+                onChange={async (updated: RefContact[]) => {
+                  setLinkedContacts(updated);
+                  try {
+                    const contactLinks = updated.map(c => ({
+                      id: c.contact_id,
+                      purpose: c.purpose || 'primary',
+                      attention: c.attention,
+                      email: c.email,
+                      phone: c.phone,
+                    }));
+                    await saveRecord(modelName, {
+                      id: Number(recordId),
+                      'refs.links.contact': contactLinks,
+                    });
+                  } catch (err) {
+                    console.error('Failed to save contacts:', err);
+                  }
+                }}
+                title="Contacts"
+                defaultCollapsed={false}
+              />
+            )}
+
+            {activeTab === 'files' && (
+              <FileUploadPanel
+                modelName={modelName}
+                recordId={recordId}
+                recordIda={data?.ida}
+                compact={hideToolbar}
+              />
+            )}
+
+            {activeTab !== 'contacts' && activeTab !== 'files' && activeTab !== '_link' && (() => {
+              // Tab names may be plural (actions, touches, documents) — resolve to singular model name
+              const linkedModel = activeTab.endsWith('es') && !availableModels.includes(activeTab)
+                ? activeTab.slice(0, -2)  // touches → touch
+                : activeTab.endsWith('s') && !availableModels.includes(activeTab)
+                ? activeTab.slice(0, -1)  // actions → action, documents → document
+                : activeTab;
+              return (
+              <LinkedRecordsPanel
+                key={linkedModel}
+                linkedModel={linkedModel}
+                parentModel={modelName}
+                parentId={Number(recordId)}
+                defaultCollapsed={false}
+                editable={editing}
+                removable={!STANDARD_PANELS.includes(activeTab)}
+                onRemovePanel={() => {
+                  setLinkedPanelModels(prev => prev.filter(p => p !== activeTab));
+                  setActiveLinkedTab('contacts');
+                }}
+              />
+              );
+            })()}
+
+            {/* "+ link" picker — shows available models as clickable buttons */}
+            {activeTab === '_link' && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '8px 12px' }}>
+                {availableModels
+                  .filter(m => !SPECIALIZED.includes(m) && !linkedPanelModels.includes(m))
+                  .map(m => (
+                    <button
+                      key={m}
+                      onClick={() => {
+                        saveRecord(modelName, {
+                          id: Number(recordId),
+                          [`refs.links.${m}`]: [],
+                        }).catch(() => { /* no-op */ });
+                        setLinkedPanelModels(prev => [...prev, m]);
+                        setActiveLinkedTab(m);
+                        setShowModelPicker(false);
+                      }}
+                      className="px-2 py-0.5 rounded db-font-xs transition-colors"
+                      style={{ border: '1px solid var(--db-border)', color: 'var(--db-text-dim)', background: 'var(--db-surface-alt)' }}
+                    >{m}</button>
+                  ))
+                }
+              </div>
+            )}
+          </>
+        );
+      })()}
+
+      {/* TouchForm dialog — opened from TouchBar badge or TOUCHES panel */}
+      {showTouchForm && data && (() => {
+        const contactId = data.contact_id || 0;
+        const contactName = linkedContacts[0]?.attention || data.attention || data.contact_name || '';
+        const contactPhone = linkedContacts[0]?.phone || '';
+        const contactEmail = linkedContacts[0]?.email || '';
+        const orgId = data.customer_id || data.vendor_id || data.manufacturer_id || 0;
+        const orgModel = data.customer_id ? 'customer' : data.vendor_id ? 'vendor' : data.manufacturer_id ? 'manufacturer' : '';
+        const defaultSubject = typeof data.action === 'object' ? (data.action?.en || '') : String(data.action || data.subject || '');
+        const ctx: TouchFormContext = {
+          model: modelName, recordId: Number(recordId), contactId, contactName, contactPhone, contactEmail,
+          orgId, orgModel, defaultSubject, defaultChannel: 'call',
+        };
+        return (
+          <TouchForm mode="dialog" ctx={ctx} fontSize={fontSize}
+            onClose={() => setShowTouchForm(false)}
+            onSaved={() => setShowTouchForm(false)} />
+        );
+      })()}
+
+      {/* Open db.page — primary record in full page layout */}
+      <div className="pt-1.5" style={{ borderTop: '1px solid var(--db-border)' }}>
+        <button
+          onClick={() => window.open(`/${modelName}/${recordId}`, '_blank')}
+          className="w-full rounded py-1 db-font-xs"
+          style={{ border: '1px solid var(--db-border)', color: 'var(--db-text-muted)' }}
+        >
+          {modelName}/{recordId}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default withDevIdentifier(DynamicDetail, 'DynamicDetail', 'indigo', 'components/common/DynamicDetail.tsx');
+export { DynamicDetail, DEFAULT_ACTION_LAYOUT, FIELD_REGISTRIES, DEFAULT_LAYOUTS };
+export type { FieldConfig, DynamicDetailActions };

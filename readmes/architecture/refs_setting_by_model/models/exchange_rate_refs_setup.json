@@ -1,0 +1,10 @@
+{
+    "self_fields": [
+        "name",
+        "currency_base",
+        "currency_target"
+    ],
+    "related_keywords": {},
+    "related_models": [],
+    "jjj_comment": "setting model_name=\"exchange_rate\" purpose=\"refs_setup\""
+}

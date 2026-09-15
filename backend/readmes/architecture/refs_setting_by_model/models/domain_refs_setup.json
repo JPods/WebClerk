@@ -1,0 +1,21 @@
+{
+    "self_fields": [
+        "name",
+        "description"
+    ],
+    "related_keywords": {
+        "customer": [
+            "refs.keywords"
+        ],
+        "vendor": [
+            "refs.keywords"
+        ]
+    },
+    "related_models": [
+        "customer",
+        "contact",
+        "vendor",
+        "manufacturer"
+    ],
+    "jjj_comment": "setting model_name=\"domain\" purpose=\"refs_setup\""
+}

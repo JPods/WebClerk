@@ -1,0 +1,70 @@
+// WC3 Territory Assignment — auto-assign rep by geography
+// From wc2 page 18: Zip code → territory check → return Rep & Sales IDs
+// Render: dot -Tpdf wc3-territory-assignment.dot -o wc3-territory-assignment.pdf
+
+digraph wc3_territory {
+    rankdir=TB
+    fontname="Helvetica Neue"
+    fontsize=12
+    bgcolor="#FAFAFA"
+    node [fontname="Helvetica Neue" fontsize=10 style="filled,rounded" shape=box
+          color="#CCCCCC" penwidth=0.8]
+    edge [fontname="Helvetica Neue" fontsize=8 color="#888888" penwidth=0.8]
+    label="WC3 — Territory Assignment\nAuto-assign rep & sales ID by geography"
+    labelloc=t
+    fontsize=15
+    pad=0.6
+    nodesep=0.7
+    ranksep=0.8
+
+    // ── Inputs ──
+    customer [label="Customer\nenter zip code" fillcolor="#E8EAF6" color="#9FA8DA"]
+    lead [label="Lead\nenter zip code" fillcolor="#E8EAF6" color="#9FA8DA"]
+
+    // ── Territory check ──
+    check [label="Check\nTerritories" shape=diamond fillcolor="#FFF9C4"
+           color="#FFF176" fontsize=11]
+
+    // ── Territory definition ──
+    zip_ranges [label="Zip Ranges\nlow–high tied to\nRep &/or Sales ID"
+                fillcolor="#FFE0B2" color="#FFB74D" fontsize=9]
+
+    // ── People ──
+    subgraph cluster_people {
+        label="Sales Team"
+        style="filled,rounded"
+        fillcolor="#F0F4F8"
+        color="#B0BEC5"
+        fontsize=9
+        fontcolor="#546E7A"
+
+        reps [label="Reps\n(external)" fillcolor="#C5CAE9" color="#7986CB"]
+        employees [label="Sales Employees\n(internal)" fillcolor="#C5CAE9" color="#7986CB"]
+    }
+
+    // ── Outcomes ──
+    assigned [label="Return Rep &\nSales IDs\n→ auto-populate\non record" fillcolor="#C8E6C9" color="#81C784"]
+
+    no_match [label="No match\nno action taken" fillcolor="#FFCDD2" color="#EF9A9A"
+              fontsize=9]
+
+    // ── Display ──
+    territory_view [label="Show Territories\nper Rep & Employee" fillcolor="#B3E5FC"
+                    color="#4FC3F7" fontsize=9]
+
+    // ── Edges ──
+    customer -> check [label="zip code" color="#5C6BC0"]
+    lead -> check [label="zip code" color="#5C6BC0"]
+    zip_ranges -> check [color="#FF8F00"]
+
+    check -> assigned [label="in range" color="#66BB6A"]
+    check -> no_match [label="no range\nmatches" color="#E57373"]
+
+    assigned -> customer [label="set rep_id\nset sales_id" style=dashed color="#66BB6A"]
+    assigned -> lead [style=dashed color="#66BB6A"]
+
+    reps -> territory_view [color="#7986CB"]
+    employees -> territory_view [color="#7986CB"]
+    reps -> zip_ranges [style=dashed color="#90A4AE"]
+    employees -> zip_ranges [style=dashed color="#90A4AE"]
+}

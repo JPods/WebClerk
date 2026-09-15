@@ -1,0 +1,222 @@
+// WC3 Report System — complete flow of report options
+// Editor types, script pipeline, output channels, SVG forms, custom pages
+// Render: dot -Tsvg wc3-report-system.dot -o wc3-report-system.svg
+// Render: dot -Tpdf wc3-report-system.dot -o wc3-report-system.pdf
+
+digraph wc3_report_system {
+    rankdir=TB
+    fontname="Helvetica Neue"
+    fontsize=12
+    bgcolor="#FAFAFA"
+    node [fontname="Helvetica Neue" fontsize=10 style="filled,rounded" shape=box
+          color="#CCCCCC" penwidth=0.8]
+    edge [fontname="Helvetica Neue" fontsize=8 color="#888888" penwidth=0.8]
+    label="WC3 — Report & Document System\nEditors · Scripts · Output · Forms"
+    labelloc=t
+    fontsize=16
+    pad=0.6
+    nodesep=0.5
+    ranksep=0.6
+
+    // ═══════════════════════════════════════════════
+    // USER ENTRY POINTS
+    // ═══════════════════════════════════════════════
+
+    subgraph cluster_entry {
+        label="User Entry"
+        style="filled,rounded"
+        fillcolor="#E8EAF6"
+        color="#9FA8DA"
+        fontsize=10
+
+        cmd_p [label="Cmd+P\nprimary report\n(no dialog)" fillcolor="#C5CAE9" color="#7986CB"]
+        report_btn [label="Report Button\nCmd+Opt+P\nopens dialog" fillcolor="#C5CAE9" color="#7986CB"]
+        databrowser [label="DataBrowser\nexport / print" fillcolor="#C5CAE9" color="#7986CB"]
+    }
+
+    // ═══════════════════════════════════════════════
+    // REPORT RECORD
+    // ═══════════════════════════════════════════════
+
+    report [label="Report Record\n─────────────\nname · model_name\neditor_type · content\nscript_before/during/after\nconfig (form JSON)\noutput_type · category\npurpose · is_active\ndt_approved"
+            fillcolor="#D1C4E9" color="#9575CD" fontsize=9]
+
+    // ═══════════════════════════════════════════════
+    // EDITOR TYPES — what the user edits content with
+    // ═══════════════════════════════════════════════
+
+    subgraph cluster_editors {
+        label="Editor Types (editor_type field)"
+        style="filled,rounded"
+        fillcolor="#FFF3E0"
+        color="#FFB74D"
+        fontsize=10
+
+        ed_plain [label="plain\n─────────\nTextarea\n<pre> rendering\n\nScripts, raw text\nnotes" fillcolor="#FFE0B2" color="#FFB74D"]
+        ed_markdown [label="markdown\n─────────\n@uiw/react-md-editor\nedit + preview split\n\nInternal notes\ndocumentation\n{{token}} preview" fillcolor="#FFE0B2" color="#FFB74D"]
+        ed_svg [label="svg\n─────────\nPrintLayoutDesigner\nExport/Import SVG\n\nDesigned print forms\ncustomer templates" fillcolor="#FFE0B2" color="#FFB74D"]
+    }
+
+    // ═══════════════════════════════════════════════
+    // SCRIPT PIPELINE — computation layer
+    // ═══════════════════════════════════════════════
+
+    subgraph cluster_scripts {
+        label="Script Pipeline (computation)"
+        style="filled,rounded"
+        fillcolor="#E8F5E9"
+        color="#81C784"
+        fontsize=10
+
+        s_before [label="script_before\n──────────\nRuns ONCE\n• zero accumulators\n• open streams\n• establish selection" fillcolor="#C8E6C9" color="#66BB6A"]
+        s_during [label="script_during\n──────────\nRuns per RECORD\n• calculate / accumulate\n• format / transform\n• UNLOAD when done" fillcolor="#C8E6C9" color="#66BB6A"]
+        s_after [label="script_after\n──────────\nRuns ONCE\n• write totals\n• format output\n• send notifications\n• close streams" fillcolor="#C8E6C9" color="#66BB6A"]
+    }
+
+    // ═══════════════════════════════════════════════
+    // CONTENT RENDERING — template layer
+    // ═══════════════════════════════════════════════
+
+    subgraph cluster_render {
+        label="Content Rendering"
+        style="filled,rounded"
+        fillcolor="#E3F2FD"
+        color="#64B5F6"
+        fontsize=10
+
+        render_md [label="Markdown → HTML\npython markdown lib\ntables + fenced_code" fillcolor="#BBDEFB" color="#42A5F5"]
+        render_svg [label="SVG populate\nresolve IDs → data\nclone line panels\nforeignObject for md" fillcolor="#BBDEFB" color="#42A5F5"]
+        render_json [label="PrintLayout JSON\nUniversalPrint\nsection-by-section" fillcolor="#BBDEFB" color="#42A5F5"]
+        token_clip [label="{{Token}} Clipboard\ncopy resolved fields\npaste into Gmail\nWord / Pages / etc." fillcolor="#BBDEFB" color="#42A5F5"]
+        template_open [label="Template Path\nstore file path\nopen populated via\nAppleScript / terminal" fillcolor="#BBDEFB" color="#42A5F5"]
+
+        weasyprint [label="WeasyPrint\nHTML → PDF\n(internal reports only)" fillcolor="#90CAF9" color="#1E88E5"]
+    }
+
+    // ═══════════════════════════════════════════════
+    // OUTPUT TYPES — what it produces
+    // ═══════════════════════════════════════════════
+
+    subgraph cluster_output {
+        label="Output Types (output_type field)"
+        style="filled,rounded"
+        fillcolor="#F3E5F5"
+        color="#CE93D8"
+        fontsize=10
+
+        out_print [label="print\nPDF download\nor browser view" fillcolor="#E1BEE7" color="#BA68C8"]
+        out_email [label="email\nHTML body\nor PDF attachment\n→ Action record" fillcolor="#E1BEE7" color="#BA68C8"]
+        out_screen [label="screen\nDynamicDetail form\nor custom .tsx page" fillcolor="#E1BEE7" color="#BA68C8"]
+        out_export [label="export\nCSV / Excel\n/ JSON download" fillcolor="#E1BEE7" color="#BA68C8"]
+        out_json [label="json\nfunction execution\n(split, commission)" fillcolor="#E1BEE7" color="#BA68C8"]
+        out_label [label="label\nAvery / thermal\nbarcode / QR" fillcolor="#E1BEE7" color="#BA68C8"]
+        out_merge [label="merge\ntemplate + data\nmail merge" fillcolor="#E1BEE7" color="#BA68C8"]
+        out_api [label="api\nJSON payload to\nConnection endpoint" fillcolor="#E1BEE7" color="#BA68C8"]
+    }
+
+    // ═══════════════════════════════════════════════
+    // SVG FORM PATH
+    // ═══════════════════════════════════════════════
+
+    subgraph cluster_svg {
+        label="SVG Form Workflow"
+        style="filled,rounded"
+        fillcolor="#E0F7FA"
+        color="#4DD0E1"
+        fontsize=10
+
+        svg_select [label="1. Select fields\ninside WebClerk" fillcolor="#B2EBF2" color="#26C6DA"]
+        svg_export [label="2. Export SVG\nwith IDs" fillcolor="#B2EBF2" color="#26C6DA"]
+        svg_design [label="3. Design externally\nAffinity / Figma / etc." fillcolor="#B2EBF2" color="#26C6DA"]
+        svg_import [label="4. Import SVG\nback to WebClerk" fillcolor="#B2EBF2" color="#26C6DA"]
+        svg_populate [label="5. Populate\nwith data" fillcolor="#B2EBF2" color="#26C6DA"]
+    }
+
+    // ═══════════════════════════════════════════════
+    // CUSTOM .TSX PATH
+    // ═══════════════════════════════════════════════
+
+    subgraph cluster_custom {
+        label="Custom Pages (src/custom/)"
+        style="filled,rounded"
+        fillcolor="#FFF8E1"
+        color="#FFD54F"
+        fontsize=10
+
+        custom_create [label="Developer creates\n.tsx in custom/pages/" fillcolor="#FFF9C4" color="#FFE082"]
+        custom_register [label="Register in\ncustom/index.ts\n+ Report record" fillcolor="#FFF9C4" color="#FFE082"]
+        custom_route [label="/custom/:page\nlive at route" fillcolor="#FFF9C4" color="#FFE082"]
+    }
+
+    // ═══════════════════════════════════════════════
+    // AUDIT
+    // ═══════════════════════════════════════════════
+
+    comm [label="Communication\nRecord\n──────────\nwho · what · when\naudit trail" fillcolor="#FCE4EC" color="#EF9A9A" fontsize=9]
+
+    // ═══════════════════════════════════════════════
+    // EDGES
+    // ═══════════════════════════════════════════════
+
+    // Entry → Report
+    cmd_p -> report [label="sort_order=0" color="#5C6BC0"]
+    report_btn -> report [label="dialog" color="#5C6BC0"]
+    databrowser -> report [label="export/print" color="#5C6BC0"]
+
+    // Report → Editor type
+    report -> ed_plain [label="plain" color="#FF8F00"]
+    report -> ed_markdown [label="markdown" color="#FF8F00"]
+    report -> ed_svg [label="svg" color="#FF8F00"]
+
+    // Report → Scripts (parallel to content)
+    report -> s_before [label="computation\n(parallel to content)" color="#43A047" style=dashed]
+    s_before -> s_during [color="#43A047"]
+    s_during -> s_after [label="loop per record" color="#43A047"]
+
+    // Editors → Rendering
+    ed_markdown -> render_md [color="#42A5F5"]
+    ed_markdown -> token_clip [label="{{tokens}}" color="#42A5F5"]
+    ed_svg -> render_svg [color="#42A5F5"]
+    report -> render_json [label="config.form\n(no editor_type)" color="#42A5F5" style=dashed]
+    report -> template_open [label="config.template_path" color="#42A5F5" style=dashed]
+
+    // Rendering → PDF (internal reports only)
+    render_md -> weasyprint [color="#1E88E5"]
+    render_json -> weasyprint [color="#1E88E5"]
+
+    // Token clipboard → user's tools
+    token_clip -> out_email [label="paste into\nGmail / Outlook" color="#42A5F5"]
+    token_clip -> out_merge [label="paste into\nWord / Pages" color="#42A5F5"]
+    template_open -> out_email [label="AppleScript\nopen populated" color="#42A5F5" style=dashed]
+    template_open -> out_merge [label="AppleScript\nopen populated" color="#42A5F5" style=dashed]
+
+    // SVG form workflow
+    ed_svg -> svg_select [color="#00ACC1"]
+    svg_select -> svg_export [color="#00ACC1"]
+    svg_export -> svg_design [color="#00ACC1"]
+    svg_design -> svg_import [color="#00ACC1"]
+    svg_import -> svg_populate [color="#00ACC1"]
+    svg_populate -> out_print [color="#00ACC1"]
+
+    // Scripts feed into output
+    s_after -> out_print [style=dashed color="#43A047"]
+    s_after -> out_email [style=dashed color="#43A047"]
+    s_after -> out_export [style=dashed color="#43A047"]
+    s_after -> out_json [style=dashed color="#43A047"]
+    s_after -> out_api [style=dashed color="#43A047"]
+
+    // Rendering → Output
+    weasyprint -> out_print [color="#8E24AA"]
+    weasyprint -> out_email [label="PDF attachment" color="#8E24AA"]
+
+    // Custom pages
+    out_screen -> custom_create [style=dashed color="#F9A825"]
+    custom_create -> custom_register [color="#F9A825"]
+    custom_register -> custom_route [color="#F9A825"]
+
+    // Audit trail
+    out_print -> comm [style=dotted color="#EF5350"]
+    out_email -> comm [style=dotted color="#EF5350"]
+    out_api -> comm [style=dotted color="#EF5350"]
+    out_merge -> comm [style=dotted color="#EF5350"]
+}

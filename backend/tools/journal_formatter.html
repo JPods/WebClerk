@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Journal Formatter — WebClerk</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --border: #0f3460;
+    --accent: #e94560;
+    --text: #eee;
+    --muted: #999;
+    --success: #4caf50;
+    --warn: #ff9800;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+  }
+  h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--muted); font-size: 0.85rem; margin-bottom: 2rem; }
+  .container { width: 100%; max-width: 700px; }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 1.5rem;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(233, 69, 96, 0.05);
+  }
+  .drop-zone input { display: none; }
+  .drop-zone .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+  .drop-zone p { color: var(--muted); font-size: 0.9rem; }
+
+  /* Bundle info */
+  .bundle-info {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    display: none;
+  }
+  .bundle-info.visible { display: block; }
+  .bundle-info h3 { font-size: 1rem; margin-bottom: 0.75rem; }
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 1.5rem;
+    font-size: 0.85rem;
+  }
+  .info-grid .label { color: var(--muted); }
+  .info-grid .value { font-weight: 600; }
+  .balanced { color: var(--success); }
+  .unbalanced { color: var(--accent); font-weight: bold; }
+
+  /* Format buttons */
+  .formats {
+    display: none;
+    margin-bottom: 1.5rem;
+  }
+  .formats.visible { display: block; }
+  .formats h3 { font-size: 1rem; margin-bottom: 0.75rem; }
+  .format-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  .fmt-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .fmt-btn:hover { border-color: var(--accent); }
+  .fmt-btn.selected {
+    border-color: var(--accent);
+    background: rgba(233, 69, 96, 0.1);
+  }
+  .fmt-btn .fmt-name { font-weight: 600; font-size: 0.9rem; }
+  .fmt-btn .fmt-desc { color: var(--muted); font-size: 0.75rem; margin-top: 0.2rem; }
+
+  /* Download */
+  .download-area {
+    display: none;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  .download-area.visible { display: block; }
+  .dl-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.85rem 2.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .dl-btn:hover { opacity: 0.85; }
+  .dl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Preview */
+  .preview {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+  }
+  .preview.visible { display: block; }
+  .preview h3 { font-size: 0.9rem; margin-bottom: 0.5rem; }
+  .preview pre {
+    font-size: 0.75rem;
+    color: var(--muted);
+    overflow-x: auto;
+    max-height: 300px;
+    white-space: pre;
+    line-height: 1.4;
+  }
+
+  .footer {
+    margin-top: 2rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Journal Formatter</h1>
+  <p class="subtitle">Drop a bundle.json — download your accounting program's format</p>
+
+  <!-- Drop zone -->
+  <div class="drop-zone" id="dropZone">
+    <div class="icon">📄</div>
+    <p><strong>Drop bundle.json here</strong> or click to browse</p>
+    <input type="file" id="fileInput" accept=".json">
+  </div>
+
+  <!-- Bundle info -->
+  <div class="bundle-info" id="bundleInfo">
+    <h3 id="companyName">—</h3>
+    <div class="info-grid">
+      <span class="label">Period</span>
+      <span class="value" id="infoPeriod">—</span>
+      <span class="label">Entries</span>
+      <span class="value" id="infoEntries">—</span>
+      <span class="label">Total Debits</span>
+      <span class="value" id="infoDebits">—</span>
+      <span class="label">Total Credits</span>
+      <span class="value" id="infoCredits">—</span>
+      <span class="label">Balanced</span>
+      <span class="value" id="infoBalanced">—</span>
+      <span class="label">Source UUID</span>
+      <span class="value" id="infoUUID">—</span>
+    </div>
+  </div>
+
+  <!-- Format selection -->
+  <div class="formats" id="formats">
+    <h3>Accounting Program</h3>
+    <div class="format-grid" id="formatGrid"></div>
+  </div>
+
+  <!-- Download -->
+  <div class="download-area" id="downloadArea">
+    <button class="dl-btn" id="downloadBtn" disabled>Download</button>
+  </div>
+
+  <!-- Preview -->
+  <div class="preview" id="preview">
+    <h3>Preview (first 30 lines)</h3>
+    <pre id="previewText"></pre>
+  </div>
+</div>
+
+<div class="footer">
+  WebClerk Journal Formatter — standalone, no server, works offline<br>
+  Consumes bundle.json from WebClerk GL Journal Export
+</div>
+
+<script>
+// ── Format definitions ──────────────────────────────────────────────
+
+const FORMATS = [
+  {
+    key: 'quickbooks_iif',
+    name: 'QuickBooks Desktop',
+    desc: 'IIF (Intuit Interchange Format)',
+    ext: '.iif',
+    mime: 'text/plain',
+  },
+  {
+    key: 'quickbooks_csv',
+    name: 'QuickBooks Online',
+    desc: 'CSV journal import',
+    ext: '.csv',
+    mime: 'text/csv',
+  },
+  {
+    key: 'xero_csv',
+    name: 'Xero',
+    desc: 'Manual journal CSV',
+    ext: '.csv',
+    mime: 'text/csv',
+  },
+  {
+    key: 'sage_csv',
+    name: 'Sage 50 / 100',
+    desc: 'Journal CSV import',
+    ext: '.csv',
+    mime: 'text/csv',
+  },
+  {
+    key: 'freshbooks_csv',
+    name: 'FreshBooks',
+    desc: 'Journal entry CSV',
+    ext: '.csv',
+    mime: 'text/csv',
+  },
+  {
+    key: 'csv',
+    name: 'Generic CSV',
+    desc: 'Works with any program',
+    ext: '.csv',
+    mime: 'text/csv',
+  },
+];
+
+// ── State ───────────────────────────────────────────────────────────
+
+let bundle = null;
+let selectedFormat = localStorage.getItem('jf_format') || '';
+
+// ── Format converters ───────────────────────────────────────────────
+
+function periodDate(period, fmt) {
+  const [y, m] = period.split('-').map(Number);
+  if (fmt === 'us') return `${String(m).padStart(2,'0')}/01/${y}`;
+  if (fmt === 'uk') return `01/${String(m).padStart(2,'0')}/${y}`;
+  return `${y}-${String(m).padStart(2,'0')}-01`;
+}
+
+function esc(s) { return String(s || '').replace(/,/g, ';').replace(/"/g, "'"); }
+function escTab(s) { return String(s || '').replace(/\t/g, ' '); }
+
+const converters = {
+  quickbooks_iif(b) {
+    const d = periodDate(b.period, 'us');
+    const src = b.source?.name || '';
+    const lines = [
+      '!TRNS\tTRNSTYPE\tDATE\tACCNT\tAMOUNT\tMEMO\tNAME',
+      '!SPL\tTRNSTYPE\tDATE\tACCNT\tAMOUNT\tMEMO',
+      '!ENDTRNS',
+    ];
+    // Group by batch
+    const batches = {};
+    b.entries.forEach(e => {
+      const k = e.batch_id || e.id || 0;
+      (batches[k] = batches[k] || []).push(e);
+    });
+    for (const entries of Object.values(batches)) {
+      entries.forEach((e, i) => {
+        const amt = (e.debit || 0) - (e.credit || 0);
+        const memo = escTab(e.note);
+        if (i === 0) {
+          lines.push(`TRNS\tGENERAL JOURNAL\t${d}\t${e.account}\t${amt.toFixed(2)}\t${memo}\t${src}`);
+        } else {
+          lines.push(`SPL\tGENERAL JOURNAL\t${d}\t${e.account}\t${amt.toFixed(2)}\t${memo}`);
+        }
+      });
+      lines.push('ENDTRNS');
+    }
+    return lines.join('\n');
+  },
+
+  quickbooks_csv(b) {
+    const d = periodDate(b.period, 'us');
+    const src = b.source?.name || '';
+    const lines = ['JournalNo,JournalDate,AccountName,Debits,Credits,Description,Name'];
+    const batches = {};
+    b.entries.forEach(e => {
+      const k = e.batch_id || e.id || 0;
+      (batches[k] = batches[k] || []).push(e);
+    });
+    let jno = 0;
+    for (const entries of Object.values(batches)) {
+      jno++;
+      entries.forEach(e => {
+        lines.push(`${jno},${d},${e.account},${e.debit||''},${e.credit||''},"${esc(e.note)}",${src}`);
+      });
+    }
+    return lines.join('\n');
+  },
+
+  xero_csv(b) {
+    const d = periodDate(b.period, 'uk');
+    const src = b.source?.name || '';
+    const lines = ['*Narration,*Date,*AccountCode,*Debit,*Credit,Description,Reference'];
+    b.entries.forEach(e => {
+      const narration = esc(e.note || e.type || 'Journal');
+      const ref = `${src}-${e.ida || e.id}`;
+      lines.push(`"${narration}",${d},${e.account},${e.debit||''},${e.credit||''},"${esc(e.note)}",${ref}`);
+    });
+    return lines.join('\n');
+  },
+
+  sage_csv(b) {
+    const d = periodDate(b.period, 'us');
+    const src = b.source?.name || '';
+    const lines = ['Type,Account Reference,Date,Details,Net Amount,Tax Code,Tax Amount,Reference'];
+    b.entries.forEach(e => {
+      const net = (e.debit || 0) - (e.credit || 0);
+      const ref = `${src}-${e.ida || e.id}`;
+      lines.push(`JC,${e.account},${d},"${esc(e.note)}",${net.toFixed(2)},T9,0.00,${ref}`);
+    });
+    return lines.join('\n');
+  },
+
+  freshbooks_csv(b) {
+    const d = periodDate(b.period, 'us');
+    const src = b.source?.name || '';
+    const lines = ['Date,Account,Debit,Credit,Description,Source'];
+    b.entries.forEach(e => {
+      lines.push(`${d},${e.account},${e.debit||''},${e.credit||''},"${esc(e.note)}",${src}`);
+    });
+    return lines.join('\n');
+  },
+
+  csv(b) {
+    const src = b.source?.name || '';
+    const lines = ['Source,Account,Debit,Credit,Type,Division,Batch,Note'];
+    b.entries.forEach(e => {
+      lines.push(`${src},${e.account},${e.debit||''},${e.credit||''},${e.type},${e.division},${e.batch_id||''},"${esc(e.note)}"`);
+    });
+    return lines.join('\n');
+  },
+};
+
+// ── UI ──────────────────────────────────────────────────────────────
+
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const bundleInfo = document.getElementById('bundleInfo');
+const formatsEl = document.getElementById('formats');
+const formatGrid = document.getElementById('formatGrid');
+const downloadArea = document.getElementById('downloadArea');
+const downloadBtn = document.getElementById('downloadBtn');
+const previewEl = document.getElementById('preview');
+const previewText = document.getElementById('previewText');
+
+// Build format buttons
+FORMATS.forEach(f => {
+  const btn = document.createElement('div');
+  btn.className = 'fmt-btn' + (selectedFormat === f.key ? ' selected' : '');
+  btn.dataset.key = f.key;
+  btn.innerHTML = `<div class="fmt-name">${f.name}</div><div class="fmt-desc">${f.desc}</div>`;
+  btn.addEventListener('click', () => selectFormat(f.key));
+  formatGrid.appendChild(btn);
+});
+
+// Drop zone events
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) loadFile(e.target.files[0]);
+});
+downloadBtn.addEventListener('click', doDownload);
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      bundle = JSON.parse(e.target.result);
+      if (bundle.type !== 'gl_journal' || !bundle.entries) {
+        alert('Not a valid GL journal bundle. Expected type: "gl_journal" with entries array.');
+        return;
+      }
+      showBundle();
+    } catch (err) {
+      alert('Invalid JSON: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function showBundle() {
+  const src = bundle.source || {};
+  document.getElementById('companyName').textContent = src.name || 'Unknown Company';
+  document.getElementById('infoPeriod').textContent = bundle.period;
+  document.getElementById('infoEntries').textContent = bundle.totals?.entry_count || bundle.entries.length;
+  document.getElementById('infoDebits').textContent = '$' + (bundle.totals?.total_debits || 0).toLocaleString(undefined, {minimumFractionDigits: 2});
+  document.getElementById('infoCredits').textContent = '$' + (bundle.totals?.total_credits || 0).toLocaleString(undefined, {minimumFractionDigits: 2});
+
+  const bal = bundle.totals?.balanced !== false;
+  const balEl = document.getElementById('infoBalanced');
+  balEl.textContent = bal ? 'Yes' : 'NO — OUT OF BALANCE';
+  balEl.className = 'value ' + (bal ? 'balanced' : 'unbalanced');
+
+  document.getElementById('infoUUID').textContent = (src.uuid || '—').substring(0, 8) + '...';
+
+  bundleInfo.classList.add('visible');
+  formatsEl.classList.add('visible');
+  downloadArea.classList.add('visible');
+
+  // Auto-select format from bundle hint or localStorage
+  if (!selectedFormat) {
+    const hint = bundle.source?.accounting_package;
+    if (hint && converters[hint]) selectFormat(hint);
+  }
+  updatePreview();
+}
+
+function selectFormat(key) {
+  selectedFormat = key;
+  localStorage.setItem('jf_format', key);
+  document.querySelectorAll('.fmt-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.key === key);
+  });
+  downloadBtn.disabled = false;
+  updatePreview();
+}
+
+function updatePreview() {
+  if (!bundle || !selectedFormat || !converters[selectedFormat]) {
+    previewEl.classList.remove('visible');
+    return;
+  }
+  const output = converters[selectedFormat](bundle);
+  const lines = output.split('\n');
+  previewText.textContent = lines.slice(0, 30).join('\n') + (lines.length > 30 ? '\n...' : '');
+  previewEl.classList.add('visible');
+}
+
+function doDownload() {
+  if (!bundle || !selectedFormat) return;
+  const fmt = FORMATS.find(f => f.key === selectedFormat);
+  const output = converters[selectedFormat](bundle);
+  const blob = new Blob([output], { type: fmt.mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const src = bundle.source?.name?.replace(/\s+/g, '_') || 'journal';
+  a.href = url;
+  a.download = `${src}_${bundle.period}${fmt.ext}`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>

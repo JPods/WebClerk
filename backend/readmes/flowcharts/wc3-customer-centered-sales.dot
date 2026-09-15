@@ -1,0 +1,119 @@
+// WC3 Customer-Centered Sales — from CustomerCenteredSales.graffle
+// The commerce flow from the CUSTOMER's perspective
+// Render: dot -Tpdf wc3-customer-centered-sales.dot -o wc3-customer-centered-sales.pdf
+
+digraph wc3_customer_centered {
+    rankdir=LR
+    fontname="Helvetica"
+    fontsize=11
+    node [fontname="Helvetica" fontsize=10 style=filled]
+    edge [fontname="Helvetica" fontsize=8]
+    label="WC3 — Customer-Centered Sales\nThe commerce flow from the customer's perspective"
+    labelloc=t
+    fontsize=14
+    pad=0.5
+
+    // Sales effort
+    sales [label="Sales Effort\nRelationship\nwith Customer" shape=box fillcolor="#82E0AA"]
+
+    // Customer cloud
+    cloud [label="Customer's\nCloud of\nOptions" shape=ellipse fillcolor="#FCF3CF" fontsize=12 width=2.5 height=1.5]
+
+    // Competitors
+    competitors [label="Competitors" shape=box fillcolor="#E74C3C" fontcolor=white fontsize=9 style="filled,bold"]
+
+    // Other use of funds
+    other [label="Other\nUse\nof Funds" shape=box fillcolor="#F5B7B1" fontsize=9]
+
+    // Proposal
+    proposal [label="Proposal" shape=box fillcolor="#82E0AA"]
+
+    // Requests & Catalogs (supplier side)
+    subgraph cluster_requests {
+        label="Requests and Catalogs"
+        style=filled fillcolor="#EBF5FB" color="#AED6F1"
+        fontsize=9
+        req_carpenters [label="Carpenters" shape=box fillcolor="#D6EAF8" fontsize=8]
+        req_mfg [label="Manufacturers" shape=box fillcolor="#D6EAF8" fontsize=8]
+        req_masons [label="Masons" shape=box fillcolor="#D6EAF8" fontsize=8]
+        req_bricks [label="Bricks" shape=box fillcolor="#D6EAF8" fontsize=8]
+        req_etc [label="Etc..." shape=box fillcolor="#D6EAF8" fontsize=8]
+    }
+
+    // Order
+    order [label="Order" shape=box fillcolor="#82E0AA"]
+
+    // Purchase
+    purchase [label="Purchase" shape=box fillcolor="#82E0AA"]
+
+    // Purchases (vendor side)
+    subgraph cluster_purchases {
+        label="Purchases"
+        style=filled fillcolor="#EBF5FB" color="#AED6F1"
+        fontsize=9
+        pur_carpenters [label="Carpenters" shape=box fillcolor="#D6EAF8" fontsize=8]
+        pur_mfg [label="Manufacturers" shape=box fillcolor="#D6EAF8" fontsize=8]
+        pur_masons [label="Masons" shape=box fillcolor="#D6EAF8" fontsize=8]
+        pur_bricks [label="Bricks" shape=box fillcolor="#D6EAF8" fontsize=8]
+        pur_etc [label="Etc..." shape=box fillcolor="#D6EAF8" fontsize=8]
+    }
+
+    // WorkOrders
+    workorders [label="Installation\nWorkOrders" shape=box fillcolor="#82E0AA"]
+
+    // Invoice
+    invoice [label="Invoice" shape=box fillcolor="#82E0AA"]
+
+    // Receipts
+    receipts [label="Receipts" shape=box fillcolor="#AED6F1"]
+
+    // Accounting
+    accounting [label="Accounting" shape=box fillcolor="#AED6F1"]
+
+    // Payments
+    payments [label="Payments" shape=box fillcolor="#82E0AA"]
+
+    // ── Edges ──
+
+    // Sales → Cloud → Proposal/Order
+    sales -> cloud
+    sales -> proposal
+    cloud -> proposal
+    cloud -> order
+    cloud -> workorders
+
+    // Competition
+    competitors -> cloud [style=dashed color="#E74C3C"]
+    other -> cloud [style=dashed color="#E74C3C"]
+
+    // Proposal → Requests & Catalogs
+    proposal -> req_carpenters
+    proposal -> req_mfg
+    proposal -> req_masons
+    proposal -> req_bricks
+    proposal -> req_etc
+
+    // Proposal ↔ Order
+    proposal -> order
+
+    // Order → Purchase
+    order -> purchase
+    order -> workorders
+
+    // Purchase → Vendors
+    purchase -> pur_carpenters
+    purchase -> pur_mfg
+    purchase -> pur_masons
+    purchase -> pur_bricks
+    purchase -> pur_etc
+
+    // Order → Invoice → Payments
+    order -> invoice
+    purchase -> invoice [style=dashed]
+    invoice -> payments
+
+    // WorkOrders → Receipts → Accounting
+    workorders -> receipts
+    receipts -> accounting
+    accounting -> invoice [style=dashed dir=back]
+}

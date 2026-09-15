@@ -1,0 +1,7 @@
+  To sync changes from the old repos into WebClerk:
+  cd ~/Documents/CommerceExpert/WebClerk
+  git update-index --refresh
+  git subtree pull --prefix=backend wc3 bill_dev -m "Merge webClerk3"
+  git subtree pull --prefix=frontend react bill_dev -m "Merge React2025"
+  git push
+

@@ -1,0 +1,12 @@
+Let's stop building for now. Create a test sequence with detailed logging and team     
+review. Create a customer, add a contact for that customer, add communications records   
+for that contact, save. Test phone, email, adddress/map behaviors. Place a proposal      
+using item 308 zzFake Item for quantity 15, save with increase of on_p in item record,   
+transfer to an order 9 of these items (save order, decrease on_p, increase on_so).       
+Create a purchase order to support the order of 6 (see increase in on_po of 6). Open the 
+ item record so it is locked. Invoice 6 of these items, save (see decrease in on_hand of 
+ 6, decrease in on_so of 6). Receive 4 of items on PO save (see decrease of on_po of 4   
+and increase of on_hand of 4). See that pending records apply or continuously try to     
+post to item record. close item record to unlock it, see if pending records clear. Are   
+there recommendations for improvements.  Please write this up Alice as a standard        
+training sequence.        

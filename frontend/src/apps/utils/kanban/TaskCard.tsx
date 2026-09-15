@@ -1,0 +1,315 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDrag, useDrop } from "react-dnd";
+import { getEmptyImage } from "react-dnd-html5-backend";
+import clsx from "clsx";
+import type { KanbanTask, TaskPriority } from "./type/kanban";
+import { DRAG_TYPE_TASK, type DragItem, type DropResult } from "./dndTypes";
+import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { formatDt } from '@/utils/fieldFormatters';
+import { TimeClockBadge } from '@/components/widgets/TimeClockWidget';
+
+export interface MoveToProjectOption {
+  id: string;
+  name: string;
+  group: string; // "same-parent" | "nearby" | "other"
+}
+
+const priorityStyles: Record<TaskPriority, string> = {
+  low: "bg-emerald-100 text-emerald-700",
+  medium: "bg-amber-100 text-amber-700",
+  high: "bg-orange-100 text-orange-700",
+  critical: "bg-rose-100 text-rose-700",
+};
+
+const priorityLabel: Record<TaskPriority, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  critical: "Critical",
+};
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const getInitials = (value?: string) => {
+  if (!value) return "?";
+  const [first = "", second = ""] = value.split(" ");
+  return `${first.charAt(0)}${second.charAt(0)}`.toUpperCase();
+};
+
+interface TaskCardProps {
+  task: KanbanTask;
+  columnId: string;
+  index: number;
+  onDragEnd: (item: DragItem, dropResult: DropResult | null) => void;
+  onTaskClick?: (task: KanbanTask) => void;
+  isSubtask?: boolean;
+  moveToOptions?: MoveToProjectOption[];
+  onMoveToProject?: (taskId: string | number, projectId: string, projectName: string) => void;
+  onTimeClock?: (taskId: string | number, updatedTimes: any) => void;
+}
+
+const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onDragEnd, onTaskClick, isSubtask = false, moveToOptions, onMoveToProject, onTimeClock }) => {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const moveRef = useRef<HTMLDivElement>(null);
+
+  // Close move dropdown on outside click
+  useEffect(() => {
+    if (!moveOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (moveRef.current && !moveRef.current.contains(e.target as Node)) setMoveOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [moveOpen]);
+
+  const handleMove = useCallback((opt: MoveToProjectOption) => {
+    onMoveToProject?.(task.id, opt.id, opt.name);
+    setMoveOpen(false);
+  }, [task.id, onMoveToProject]);
+
+  const [{ isDragging }, drag, preview] = useDrag(
+    () => ({
+      type: DRAG_TYPE_TASK,
+      item: { type: DRAG_TYPE_TASK, taskId: task.id, sourceColumnId: columnId, index },
+      end: (item: DragItem, monitor) => {
+        const dropResult = monitor.getDropResult<DropResult | null>();
+        if (item) {
+          onDragEnd(item, dropResult ?? null);
+        }
+      },
+      collect: (monitor) => ({
+        isDragging: monitor.isDragging(),
+      }),
+    }),
+    [task.id, columnId, index, onDragEnd]
+  );
+
+  useEffect(() => {
+    // Disable the default browser drag preview so only the custom layer is shown
+    preview(getEmptyImage(), { captureDraggingState: true });
+  }, [preview]);
+
+  const [{ isOver, canDrop }, drop] = useDrop<DragItem, DropResult, { isOver: boolean; canDrop: boolean }>(
+    () => ({
+      accept: DRAG_TYPE_TASK,
+      drop: () => ({ columnId, index, dropType: "column" as const }),
+      collect: (monitor) => ({
+        isOver: monitor.isOver({ shallow: true }),
+        canDrop: monitor.canDrop(),
+      }),
+    }),
+    [columnId, index]
+  );
+
+  drag(drop(ref));
+
+  const wc3PriorityRaw = task.priority_value;
+  const wc3Priority: TaskPriority = wc3PriorityRaw >= 4 ? "critical" : wc3PriorityRaw >= 3 ? "high" : wc3PriorityRaw >= 2 ? "medium" : "low";
+  const priorityClass = priorityStyles[wc3Priority];
+  const priorityText = priorityLabel[wc3Priority];
+
+  const progressLabel = useMemo(() => {
+    const pct = task.percent_complete;
+    if (typeof pct !== "number") return null;
+    const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+    return `${clamped}%`;
+  }, [task.percent_complete]);
+
+  return (
+    <div
+      ref={ref}
+      onClick={() => onTaskClick?.(task)}
+      className={clsx(
+        "group relative rounded-xl border border-transparent p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg cursor-pointer",
+        {
+          // Hide the original card while dragging so only the drag preview shows
+          "opacity-0": isDragging,
+          "ring-2 ring-indigo-400": isOver && canDrop,
+          // Subtask styling
+          "bg-indigo-50/80 border-indigo-100": isSubtask,
+          // Regular task styling — uses theme surface
+        }
+      )}
+      style={{ background: isSubtask ? undefined : 'var(--db-surface-alt)' }}
+    >
+        <div className="flex items-start justify-between gap-4">
+          {task.ida && (
+            <span className="db-font-xs" style={{ color: 'var(--db-text-dim)' }}>{task.ida}</span>
+          )}
+        <div className="flex items-start gap-2">
+          {isSubtask && (
+            <div className="mt-1 flex-shrink-0">
+              <svg
+                className="h-3 w-3 text-indigo-400"
+                viewBox="0 0 12 12" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path 
+                  d="M3 6h6M6 3v6" 
+                  stroke="currentColor" 
+                  strokeWidth={1.5} 
+                  strokeLinecap="round" 
+                />
+              </svg>
+            </div>
+          )}
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="rounded-md px-2 py-0.5 db-font-xs font-mono font-semibold" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
+                #{task.id}
+              </span>
+              {task.project_name && (
+                <div ref={moveRef} style={{ position: "relative", display: "inline-block" }}>
+                  <p
+                    className="db-font-xs rounded-full bg-indigo-100 px-2.5 py-0.5 text-indigo-700"
+                    style={{ cursor: moveToOptions?.length ? "pointer" : "default" }}
+                    onClick={(e) => {
+                      if (!moveToOptions?.length) return;
+                      e.stopPropagation();
+                      setMoveOpen(!moveOpen);
+                    }}
+                    title={moveToOptions?.length ? "Move to another project" : undefined}
+                  >
+                    {task.project_name}
+                  </p>
+                  {moveOpen && moveToOptions && moveToOptions.length > 0 && (
+                    <div style={{
+                      position: "absolute", top: "100%", left: 0, zIndex: 9999,
+                      minWidth: 220, maxHeight: 300, overflowY: "auto",
+                      background: "var(--color-gray-800, #1e293b)",
+                      border: "1px solid var(--color-gray-600, #475569)",
+                      borderRadius: 6, boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                      marginTop: 2, padding: "4px 0",
+                    }}>
+                      {(() => {
+                        const groups: Record<string, MoveToProjectOption[]> = {};
+                        for (const opt of moveToOptions) {
+                          (groups[opt.group] ??= []).push(opt);
+                        }
+                        const groupLabels: Record<string, string> = {
+                          "same-parent": "Same Parent",
+                          "nearby": "4-Week Window",
+                          "other": "Other Active",
+                        };
+                        return Object.entries(groups).map(([group, opts], gi) => (
+                          <div key={group}>
+                            {gi > 0 && <div style={{ height: 1, background: "#374151", margin: "3px 8px" }} />}
+                            <div style={{ padding: "4px 10px 2px", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#9ca3af" }}>
+                              {groupLabels[group] ?? group}
+                            </div>
+                            {opts.map((opt) => (
+                              <div
+                                key={opt.id}
+                                style={{ padding: "4px 10px", fontSize: 11, cursor: "pointer", color: "#d1d5db", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = "#334155")}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                                onClick={(e) => { e.stopPropagation(); handleMove(opt); }}
+                              >
+                                {opt.name}
+                              </div>
+                            ))}
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <p className="db-font-sm font-semibold" style={{ color: 'var(--db-text)' }}>{task.title_translations?.en ?? Object.values(task.title_translations ?? {})[0]}</p>
+            {task.description_translations && (
+              <p className="mt-1 db-font-sm line-clamp-2" style={{ color: 'var(--db-text-muted)' }}>{task.description_translations.en ?? Object.values(task.description_translations)[0]}</p>
+            )}
+          </div>
+        </div>
+        <span className={clsx("rounded-full px-3 py-1 db-font-xs font-semibold", priorityClass)}>{priorityText}</span>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3 db-font-xs" style={{ color: 'var(--db-text-muted)' }}>
+        {/* Time clock badge */}
+        <TimeClockBadge
+          times={task.config?.times}
+          onClick={(updatedTimes) => onTimeClock?.(task.id, updatedTimes)}
+        />
+
+        {task.properties?.dates?.start?.dt && (
+          <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 db-font-xs font-medium" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
+            Start:
+             {formatDt(task.properties.dates.start.dt, 'date')}
+          </span>
+        )}
+
+        {task.properties?.dates?.expected?.dt && (
+          <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 db-font-xs font-medium" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
+            Expected:
+             {formatDt(task.properties.dates.expected.dt, 'date')}
+          </span>
+        )}
+
+        {task.properties?.dates?.due?.dt && (
+          <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 db-font-xs font-medium" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
+            Due:
+             {formatDt(task.properties.dates.due.dt, 'date')}
+          </span>
+        )}
+
+        {/* Duration display */}
+        {(task.duration != null || (task.dt_start && task.dt_deadline)) && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-1 db-font-xs font-medium text-purple-600">
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {task.duration != null 
+              ? `${task.duration}d`
+              : (() => {
+                  const start = new Date(task.dt_start!);
+                  const end = new Date(task.dt_deadline!);
+                  const days = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+                  return `${days}d`;
+                })()
+            }
+          </span>
+        )}
+
+        {task.properties?.dates?.completed?.dt && (
+          <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 db-font-xs font-medium" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
+            Completed:
+             {formatDt(task.properties.dates.completed.dt, 'date')}
+          </span>
+        )}
+        {progressLabel && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 db-font-xs font-semibold text-indigo-600">
+            <span className="h-2 w-2 rounded-full bg-indigo-400" />
+            {progressLabel}
+          </span>
+        )}
+      </div>
+
+      <div className="mt-4 flex items-center justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          {task.tags?.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center rounded-full px-2 py-1 db-font-xs font-medium"
+              style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+        {Array.isArray(task.assigned_to) && task.assigned_to.length > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="db-font-xs font-medium" style={{ color: 'var(--db-text-muted)' }}>
+              {task.assigned_to.map((a:any) => a.name).join(', ')}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export const TaskCard = memo(TaskCardComponent);
+export default withDevIdentifier(TaskCard, 'TaskCard', 'amber', 'apps/utils/kanban/TaskCard.tsx');

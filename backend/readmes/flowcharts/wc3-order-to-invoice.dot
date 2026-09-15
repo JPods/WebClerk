@@ -1,0 +1,86 @@
+// WC3 Order-to-Invoice Flow — from wc2 flow chart page 3, updated with wc3 models
+// Render: dot -Tpdf wc3-order-to-invoice.dot -o wc3-order-to-invoice.pdf
+
+digraph wc3_order_to_invoice {
+    rankdir=TB
+    fontname="Helvetica"
+    fontsize=11
+    node [fontname="Helvetica" fontsize=10 style=filled]
+    edge [fontname="Helvetica" fontsize=8]
+    label="WC3 — Order to Invoice Flow\n(with inventory bucket effects)"
+    labelloc=t
+    fontsize=14
+    pad=0.5
+
+    // Customer setup
+    customer [label="Customer\n(Contact + Customer)" shape=box fillcolor="#D4E6F1"]
+
+    subgraph cluster_customer_attrs {
+        label="Customer Attributes"
+        style=filled fillcolor="#EBF5FB" color="#AED6F1"
+        fontsize=8
+        carrier [label="Carrier" shape=box fillcolor="#FDFEFE" fontsize=8]
+        typesale [label="Type Sale\n(price_level)" shape=box fillcolor="#FDFEFE" fontsize=8]
+        credit [label="Credit\n(financial)" shape=box fillcolor="#FDFEFE" fontsize=8]
+        source [label="AdSource\n(metadata.source)" shape=box fillcolor="#FDFEFE" fontsize=8]
+        salesid [label="Sales ID" shape=box fillcolor="#FDFEFE" fontsize=8]
+        rep [label="Rep" shape=box fillcolor="#FDFEFE" fontsize=8]
+        terms [label="Terms" shape=box fillcolor="#FDFEFE" fontsize=8]
+        taxjuris [label="Tax Juris\n(Setting)" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // Items
+    items [label="Item\n(products)" shape=box fillcolor="#FCF3CF"]
+
+    // Verify
+    verify [label="Verify details\nprice point\navailability" shape=octagon fillcolor="#F5CBA7"]
+
+    // Order
+    order [label="Order\n(Order model)\n\non_so += qty" shape=box fillcolor="#FCF3CF"]
+
+    // Production
+    production [label="Order\nProduction" shape=octagon fillcolor="#F5CBA7"]
+
+    // Production inputs
+    subgraph cluster_production {
+        label="Production Records"
+        style=filled fillcolor="#FEF9E7" color="#F9E79F"
+        fontsize=8
+        po [label="Purchase\nOrders\non_po += qty" shape=box fillcolor="#FDFEFE" fontsize=8]
+        wo [label="Work\nOrders\non_wo += qty" shape=box fillcolor="#FDFEFE" fontsize=8]
+        time_rec [label="Time" shape=box fillcolor="#FDFEFE" fontsize=8]
+        materials [label="Materials" shape=box fillcolor="#FDFEFE" fontsize=8]
+        wo_steps [label="WO Steps" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // Proposal and Requisition
+    proposal [label="Proposal\n\non_p += qty×prob" shape=box fillcolor="#E8DAEF"]
+    requisition [label="Requisition" shape=box fillcolor="#E8DAEF"]
+
+    // Workflow decision
+    workflow [label="Work Flow\nComplete?" shape=diamond fillcolor="#FADBD8"]
+
+    // Outcomes
+    backorder [label="Maintain\nBackorder" shape=octagon fillcolor="#F5CBA7"]
+    invoice [label="Invoice\n(Invoice model)\n\non_hand -= qty\non_so -= qty\non_in += qty" shape=box fillcolor="#ABEBC6"]
+
+    // Edges
+    customer -> verify
+    items -> verify
+    proposal -> order [style=dashed]
+    proposal -> requisition [style=dashed]
+    requisition -> po [style=dashed]
+    verify -> order
+    order -> production
+    po -> production [style=dashed]
+    wo -> production [style=dashed]
+    time_rec -> production [style=dashed]
+    materials -> production [style=dashed]
+    wo_steps -> wo [style=dashed]
+    production -> workflow
+    workflow -> backorder [label="partial"]
+    workflow -> invoice [label="complete"]
+    backorder -> order [label="remaining\nqty" style=dashed]
+
+    carrier -> customer [style=invis]
+}

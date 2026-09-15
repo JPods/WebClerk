@@ -1,0 +1,123 @@
+// WC3 Big 4 Transactions — Proposals, Orders, Purchases, Invoices
+// Shows line quantity fields and pending inventory flow
+// Render: dot -Tpdf wc3-big4-transactions.dot -o wc3-big4-transactions.pdf
+
+// CodeMap revision: 1 — 2026-08-11
+
+digraph wc3_big4 {
+    size="7.5,10.0"
+    ratio="compress"
+
+
+
+    // ── CodeMap Standard Style ──
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=TB
+    label="WC3 — Big 4 Transactions\nLine quantity flow and pending inventory"
+    labelloc=t
+
+    // Top
+    contacts [label="contacts" shape=box fillcolor="#F9E79F" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/contacts/models/contact.py" target="_blank" tooltip="Central identity — customers, vendors, employees, prospects.\nModel: apps/contacts/models/contact.py"]
+    customers [label="customers" shape=box fillcolor="#F4D03F" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/contacts/models/contact.py" target="_blank" tooltip="Contacts with customer role.\nModel: apps/contacts/models/contact.py"]
+    vendors [label="vendors" shape=box fillcolor="#E59866" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/contacts/models/contact.py" target="_blank" tooltip="Contacts with vendor role.\nModel: apps/contacts/models/contact.py"]
+
+    // Linkage
+    linkage [label="linkages\nshared by lines\nrelated data\nspecs\ndata at time of action" shape=box fillcolor="#82E0AA" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/models/linkage.py" target="_blank" tooltip="Shared line data — specs, related records, data at time of action.\nModel: apps/core/models/linkage.py"]
+
+    // Item
+    item [label="items\nquantity.on_hand\nquantity.allocated\nquantity.available\nquantity.on_p\nquantity.on_so\nquantity.on_in\nquantity.on_po\nquantity.on_wo\nquantity.on_r" shape=box fillcolor="#7D3C98" fontcolor=white fontsize=9 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/products/models/item.py:196" target="_blank" tooltip="Product with quantity JSON tracking all inventory buckets.\nModel: apps/products/models/item.py:196\nFunctions:
+  Item.quantity @ apps/products/models/item.py:238 (JSONField with on_hand, allocated, available, on_p, on_so, on_in, on_po, on_wo, on_r)"]
+
+    // Pending
+    pending [label="pending\n(PendingInventory\nAdjustment)" shape=box fillcolor="#922B21" fontcolor=white fontsize=9 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/models/pending.py:6" target="_blank" tooltip="Central hub for inventory quantity deltas. All quantity changes flow through Pending before updating Item.\nModel: apps/core/models/pending.py:6\nFunctions:
+  Pending.objects.create @ apps/transactions/services/order_to_invoice.py:332 (invoice creation)
+  Pending.objects.create @ apps/transactions/services/proposal_to_order.py:171 (order creation (+on_so))
+  Pending.objects.create @ apps/transactions/services/proposal_to_order.py:200 (order creation (-on_p))
+  Pending.objects.create @ apps/transactions/services/flow.py:308 (receive_purchase)
+  Pending.objects.create @ apps/transactions/services/flow.py:452 (complete_workorder)"]
+
+    // Big 4 transactions
+    proposals [label="proposals" shape=box fillcolor="#FCF3CF" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/proposal.py" target="_blank" tooltip="Sales proposals — forecasts weighted by probability.\nModel: apps/transactions/models/proposal.py"]
+    orders [label="orders" shape=box fillcolor="#ABEBC6" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/order.py" target="_blank" tooltip="Sales orders — customer commitments.\nModel: apps/transactions/models/order.py"]
+    purchases [label="purchases" shape=box fillcolor="#D6EAF8" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/purchase.py" target="_blank" tooltip="Purchase orders to vendors.\nModel: apps/transactions/models/purchase.py"]
+    invoices [label="invoices" shape=box fillcolor="#F5B7B1" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/invoice.py" target="_blank" tooltip="Invoices — shipment and financial events.\nModel: apps/transactions/models/invoice.py"]
+
+    // Lines
+    prop_line [label="lines\n\nid\nquantity.placed\nquantity.actioned\nquantity.remaining\nquantity.canceled\nitem_id" shape=box fillcolor="#FEF9E7" fontsize=8 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/line.py" target="_blank" tooltip="Proposal line — quantity.placed, actioned, remaining, canceled.\nModel: apps/transactions/models/line.py"]
+
+    order_line [label="lines\n\nid\nquantity.placed\nquantity.actioned\nquantity.remaining\nquantity.canceled\nitem_id" shape=box fillcolor="#D5F5E3" fontsize=8 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/line.py" target="_blank" tooltip="Order line — quantity.placed, actioned, remaining, canceled.\nModel: apps/transactions/models/line.py"]
+
+    purchase_line [label="lines\n\nid\nquantity.placed\nquantity.actioned\nquantity.remaining\nquantity.canceled\nquantity.received\nitem_id" shape=box fillcolor="#D6EAF8" fontsize=8 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/line.py" target="_blank" tooltip="Purchase line — quantity.placed, actioned, remaining, canceled, received.\nModel: apps/transactions/models/line.py"]
+
+    invoice_line [label="lines\n\nid\nquantity.placed\nquantity.actioned\nquantity.remaining\nquantity.canceled\nquantity.parent\nitem_id" shape=box fillcolor="#FADBD8" fontsize=8 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/line.py" target="_blank" tooltip="Invoice line — quantity.placed, actioned, remaining, canceled, parent.\nModel: apps/transactions/models/line.py"]
+
+    // Receipts
+    receipts [label="receipts\nvendor shipping\ndocument" shape=box fillcolor="#D6EAF8" fontsize=9 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/receipt.py" target="_blank" tooltip="Vendor shipping receipts.\nModel: apps/transactions/models/receipt.py"]
+
+    // Inventory layer
+    inv_layer [label="inventory layer\n(consolidate with)\nreceipt_line\nquantity.on_hand\nby cost" shape=box fillcolor="#7D3C98" fontcolor=white fontsize=9 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/products/models/inventory_layer.py" target="_blank" tooltip="Inventory costing layer — tracks on_hand by receipt cost.\nModel: apps/products/models/inventory_layer.py"]
+
+    // Quantity rules
+    rules [label="quantity.placed = input by user\nquantity.canceled affects quantity_ordered\nquantity.remaining = quantity_ordered - all child actions\n  \u2022 orders from proposals\n  \u2022 invoiced from orders\n  \u2022 invoices not packed\n  \u2022 purchases not received\nquantity.parent = parent's remaining when child created" shape=note fillcolor="#FDFEFE" fontsize=8]
+
+    // Edges
+    contacts -> customers [style=invis]
+    customers -> proposals [color="#F39C12"]
+    customers -> orders [color="#F39C12"]
+    vendors -> purchases [color="#E59866"]
+    orders -> invoices [color="#F39C12" style=dashed]
+
+    proposals -> prop_line
+    orders -> order_line
+    purchases -> purchase_line
+    invoices -> invoice_line
+
+    // Line → id chains
+    prop_line -> order_line [label="id→id" style=dashed]
+    order_line -> invoice_line [label="id→id" style=dashed]
+
+    // Pending inventory
+    order_line -> pending [label="+on_so" color="#E59866"]
+    purchase_line -> pending [label="+on_po" color="#E59866"]
+    invoice_line -> pending [label="-on_hand\n-on_so" color="#E74C3C"]
+    receipts -> pending [label="+on_hand\n-on_po" color="#27AE60"]
+    pending -> item [color="#922B21"]
+
+    // Receipts → inventory layer
+    receipts -> inv_layer [color="#2980B9"]
+    inv_layer -> item [style=dashed]
+
+    // Linkage connects to lines
+    linkage -> order_line [style=dashed color="#27AE60"]
+    linkage -> purchase_line [style=dashed color="#27AE60"]
+    linkage -> invoice_line [style=dashed color="#27AE60"]
+
+    // ── Cross-references ──
+    xref [label="See also:\n· Pending Records (p.16)\n· Payment GL (p.13)\n· Order to Invoice (p.10)\n· Flight Sim Lifecycle (p.38)" shape=note fillcolor="#F4ECF7" fontsize=8]
+}

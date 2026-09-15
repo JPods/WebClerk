@@ -1,0 +1,124 @@
+// Flight Simulator: Inventory — Transaction Flow with GL Impact
+// Render: dot -Tpdf wc3-flight-sim-inventory.dot -o wc3-flight-sim-inventory.pdf
+// Or view in VS Code with Graphviz extension
+
+digraph flight_sim_inventory {
+    rankdir=TB;
+    fontname="Helvetica";
+    node [fontname="Helvetica", fontsize=10, shape=record, style=filled];
+    edge [fontname="Helvetica", fontsize=9];
+
+    // Title
+    labelloc="t";
+    label="Flight Simulator: Inventory\nTransaction Flow with GL Impact\n5% Tax · 5% Commission · Unit Price $10 · Unit Cost $6";
+    fontsize=14;
+
+    // ---- Inventory States ----
+    subgraph cluster_inventory {
+        label="Item Quantities";
+        style=dashed;
+        color=gray60;
+
+        start [label="{Starting|on_hand: 100|available: 100}", fillcolor="#e8f5e9"];
+        after_prop [label="{After Proposal|on_hand: 100|on_p: 15|available: 100}", fillcolor="#e8f5e9"];
+        after_order [label="{After Order|on_hand: 100|on_p: 6|on_so: 9|available: 91}", fillcolor="#e8f5e9"];
+        after_invoice [label="{After Invoice|on_hand: 96|on_p: 6|on_so: 5|available: 91}", fillcolor="#e8f5e9"];
+        after_po [label="{After Purchase|on_hand: 96|on_po: 14|on_so: 5|available: 91}", fillcolor="#e8f5e9"];
+        after_receipt [label="{After Receipt|on_hand: 107|on_po: 3|on_so: 5|available: 102}", fillcolor="#e8f5e9"];
+    }
+
+    // ---- Transaction Steps ----
+    subgraph cluster_actions {
+        label="Transactions";
+        style=dashed;
+        color=gray60;
+
+        prop [label="Proposal\n15 units", fillcolor="#e3f2fd"];
+        order [label="Order\n9 of 15 units", fillcolor="#e3f2fd"];
+        invoice [label="Invoice\n4 of 9 units", fillcolor="#fff3e0"];
+        purchase [label="Purchase Order\n14 units", fillcolor="#e3f2fd"];
+        receipt [label="Receipt\n11 of 14 units", fillcolor="#fff3e0"];
+        payment [label="Payment\n$30 of $42", fillcolor="#fff3e0"];
+        discount [label="Discount\n$10", fillcolor="#fff3e0"];
+        writeoff [label="Write-off\n$2", fillcolor="#fff3e0"];
+    }
+
+    // ---- GL Impact ----
+    subgraph cluster_gl {
+        label="GL Entries (orange = has GL impact)";
+        style=dashed;
+        color=gray60;
+
+        no_gl_1 [label="No GL Impact\n(quote only)", fillcolor="#f5f5f5", fontcolor=gray50, shape=note];
+        no_gl_2 [label="No GL Impact\n(commitment only)", fillcolor="#f5f5f5", fontcolor=gray50, shape=note];
+        no_gl_3 [label="No GL Impact\n(until received)", fillcolor="#f5f5f5", fontcolor=gray50, shape=note];
+
+        gl_invoice [label="{Invoice GL|AR debit $42.00|Revenue credit $40.00|Tax Payable credit $2.00|COGS debit $24.00|Inventory credit $24.00|Commission Exp $2.00|Commission Pay $2.00}", fillcolor="#fff9c4"];
+        gl_receipt [label="{Receipt GL|Inventory debit $66.00|AP credit $66.00}", fillcolor="#fff9c4"];
+        gl_payment [label="{Payment GL|Cash debit $30.00|AR credit $30.00}", fillcolor="#fff9c4"];
+        gl_discount [label="{Discount GL|Discount Exp debit $10.00|AR credit $10.00}", fillcolor="#fff9c4"];
+        gl_writeoff [label="{Write-off GL|Bad Debt debit $2.00|AR credit $2.00}", fillcolor="#fff9c4"];
+    }
+
+    // ---- Pending Records ----
+    subgraph cluster_pending {
+        label="Pending Records (track movement)";
+        style=dashed;
+        color=gray60;
+
+        pend_proposal [label="Pending\non_p +15", fillcolor="#f3e5f5", shape=note];
+        pend_order [label="Pending\non_so +9\non_p -9", fillcolor="#f3e5f5", shape=note];
+        pend_invoice [label="Pending\non_hand -4\non_so -4", fillcolor="#f3e5f5", shape=note];
+        pend_po [label="Pending\non_po +14", fillcolor="#f3e5f5", shape=note];
+        pend_receipt [label="Pending\non_hand +11\non_po -11", fillcolor="#f3e5f5", shape=note];
+        pend_payment [label="Pending\nAR -$30", fillcolor="#f3e5f5", shape=note];
+        pend_discount [label="Pending\nAR -$10", fillcolor="#f3e5f5", shape=note];
+        pend_writeoff [label="Pending\nAR -$2", fillcolor="#f3e5f5", shape=note];
+    }
+
+    // ---- Settlement Summary ----
+    settlement [label="{Invoice Settlement|$42.00 total|Cash: $30.00|Discount: $10.00|Write-off: $2.00|Balance: $0.00}", fillcolor="#c8e6c9", shape=Mrecord];
+    margin [label="{Margin Waterfall|Revenue: $40.00|COGS: -$24.00|Gross: $16.00 (40%)|Commission: -$2.00|Discount: -$10.00|Bad Debt: -$2.00|Net: $2.00 (5%)}", fillcolor="#ffcdd2", shape=Mrecord];
+
+    // ---- Flow ----
+    start -> prop [label="Step 2"];
+    prop -> after_prop;
+    prop -> no_gl_1 [style=dashed, color=gray];
+    prop -> pend_proposal [style=dotted, color=purple];
+
+    after_prop -> order [label="Step 3"];
+    order -> after_order;
+    order -> no_gl_2 [style=dashed, color=gray];
+    order -> pend_order [style=dotted, color=purple];
+
+    after_order -> invoice [label="Step 4"];
+    invoice -> after_invoice;
+    invoice -> gl_invoice [color=orange, penwidth=2];
+    invoice -> pend_invoice [style=dotted, color=purple];
+
+    after_invoice -> purchase [label="Step 5"];
+    purchase -> after_po;
+    purchase -> no_gl_3 [style=dashed, color=gray];
+    purchase -> pend_po [style=dotted, color=purple];
+
+    after_po -> receipt [label="Step 6"];
+    receipt -> after_receipt;
+    receipt -> gl_receipt [color=orange, penwidth=2];
+    receipt -> pend_receipt [style=dotted, color=purple];
+
+    // Financial-only steps (no inventory change)
+    gl_invoice -> payment [label="Step 7"];
+    payment -> gl_payment [color=orange, penwidth=2];
+    payment -> pend_payment [style=dotted, color=purple];
+
+    gl_payment -> discount [label="Step 8"];
+    discount -> gl_discount [color=orange, penwidth=2];
+    discount -> pend_discount [style=dotted, color=purple];
+
+    gl_discount -> writeoff [label="Step 9"];
+    writeoff -> gl_writeoff [color=orange, penwidth=2];
+    writeoff -> pend_writeoff [style=dotted, color=purple];
+
+    gl_writeoff -> settlement;
+    settlement -> margin;
+}

@@ -1,0 +1,18 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import { useNavigate } from "react-router";
+
+const useGoBack = () => {
+  const navigate = useNavigate();
+
+  const goBack = () => {
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1); // Go back to the previous page
+    } else {
+      navigate("/dashboard"); // Redirect to dashboard if no history exists
+    }
+  };
+
+  return goBack;
+};
+
+export default useGoBack;

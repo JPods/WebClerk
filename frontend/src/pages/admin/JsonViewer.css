@@ -1,0 +1,186 @@
+/**
+ * JsonViewer.css — standalone JSON viewer window.
+ * Reuses the same CSS custom property names as DataBrowser
+ * so theme preference carries across windows.
+ */
+
+/* All --db-* variables inherited from theme.css — no local overrides needed */
+
+/* ---------------------------------------------------------------------------
+   Layout
+   --------------------------------------------------------------------------- */
+
+.jv-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--db-bg);
+  color: var(--db-text);
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: var(--jv-fs, var(--db-font-size, 13px));
+}
+
+.jv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--db-surface);
+  border-bottom: 1px solid var(--db-border);
+}
+
+.jv-title {
+  font-weight: 700;
+  color: var(--db-accent);
+  font-size: var(--jv-fs, var(--db-font-size, 13px));
+}
+
+.jv-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jv-depth-label {
+  font-size: calc(var(--jv-fs, var(--db-font-size, 13px)) - 2px);
+  color: var(--db-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.jv-depth-select {
+  background: var(--db-input-bg);
+  border: 1px solid var(--db-input-border);
+  border-radius: 3px;
+  color: var(--db-text);
+  font-size: calc(var(--jv-fs, var(--db-font-size, 13px)) - 2px);
+  padding: 1px 4px;
+}
+
+.jv-btn {
+  background: var(--db-btn-bg);
+  border: 1px solid var(--db-border-light);
+  border-radius: 3px;
+  color: var(--db-text-muted);
+  font-size: calc(var(--jv-fs, var(--db-font-size, 13px)) - 2px);
+  padding: 2px 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.jv-body {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 4px;
+}
+
+.jv-empty {
+  padding: 24px;
+  color: var(--db-text-dim);
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------------------
+   Tree nodes
+   --------------------------------------------------------------------------- */
+
+.jv-node-header {
+  cursor: pointer;
+  padding: 1px 0;
+  white-space: nowrap;
+}
+
+.jv-node-header:hover {
+  background: var(--db-surface-alt);
+}
+
+.jv-leaf {
+  padding: 1px 0;
+  white-space: nowrap;
+}
+
+.jv-chevron {
+  display: inline-block;
+  width: 14px;
+  font-size: calc(var(--jv-fs, var(--db-font-size, 13px)) - 3px);
+  color: var(--db-text-dim);
+  user-select: none;
+}
+
+.jv-key {
+  color: var(--db-accent);
+}
+
+.jv-key--id {
+  color: var(--db-accent-purple);
+}
+
+.jv-colon {
+  color: var(--db-text-dim);
+}
+
+.jv-bracket {
+  color: var(--db-text-dim);
+}
+
+.jv-bracket-close {
+  color: var(--db-text-dim);
+}
+
+.jv-collapsed-hint {
+  color: var(--db-text-dim);
+  font-size: calc(var(--jv-fs, var(--db-font-size, 13px)) - 2px);
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------------------
+   Value types
+   --------------------------------------------------------------------------- */
+
+.jv-string {
+  color: var(--db-accent-green);
+}
+
+.jv-number {
+  color: var(--db-accent-gold);
+}
+
+.jv-bool--true {
+  color: var(--db-accent-green);
+  font-weight: 600;
+}
+
+.jv-bool--false {
+  color: var(--db-accent-red);
+  font-weight: 600;
+}
+
+.jv-null {
+  color: var(--db-text-dim);
+  font-style: italic;
+}
+
+.jv-date {
+  color: var(--db-accent-purple);
+}
+
+.jv-url {
+  color: var(--db-accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.jv-url:hover {
+  color: var(--db-accent-green);
+}
+
+.jv-id-link {
+  color: var(--db-accent-purple);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.jv-id-link:hover {
+  color: var(--db-accent);
+}

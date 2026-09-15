@@ -1,0 +1,40 @@
+ 1. JSON is source of truth, scalars are indexes — Bill refactored all 5 models
+   into TransactionBaseModel. One compute engine.
+  2. Payment parent_id/parent_model = origin, not constraint — available != 0
+  not > 0
+  3. Commercial trust principle — negative available is a shortage, not an error
+  4. PendingPaymentApplication is dead — removed from registry, real records in
+  core.Pending
+  5. Line extended not recalculating server-side — open bug
+  6. Bill wants full alignment review — next priority
+
+  All of this is in the handoff and taught to Allie. If compression hits, the
+  next session picks it up clean.
+
+
+   Last session (2026-08-22) was a major architecture session. Three scars       
+  recorded (#62-64):
+                                                                                
+  1. **Scar #62:** Two totals engines producing different JSON — consolidated to
+   single recalculate_totals() on TransactionBaseModel
+  2. **Scar #63:** JSON envelope is the ONLY source of truth for ALL models, not
+   just transactions                                              
+  3. **Scar #64:** All calculations are json.path.value based — unbreakable
+  rule. The system teaches discipline or sloppiness.                            
+  
+  What was done:                                                                
+  - init-bundle.json (85 Settings + 52 Reports) with foundational protection
+  - useListFieldConfig reads wc:model Setting (single source of truth for
+  layouts)                                                                      
+  - Full compliance scrub — 12 violations fixed (6 backend, 6 frontend)
+  - Dark mode fix on totals bar                                                 
+  - Both repos pushed and merged to dev                           
+                                                                                
+  Urgent for this session:                                                      
+  1. Launch Chrome with --remote-debugging-port=9222, then do the payment-to-GL
+  flight simulator walkthrough Bill wanted                                      
+  2. Invoice line extended not recalculating on qty change (backend must
+  compute, not trust frontend)                                                  
+  3. Wrong columns in databrowser list (from 8/21)
+  4. Dead per-model totals files need archiving (invoice_totals.py,             
+  order_totals.py, etc.)      

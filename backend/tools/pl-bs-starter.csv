@@ -1,0 +1,78 @@
+PROFIT & LOSS / BALANCE SHEET,,,,,,,,,,,,,,,,,,
+Company:,________,,,,,,,,,,,,,,Start Year:,________,,
+,,,,,,,,,,,,,,,,,,
+INSTRUCTIONS,,,,,,,,,,,,,,,,,,
+"1. Enter your budget numbers in the monthly columns (Year 1) and annual columns (Years 2-5).",,,,,,,,,,,,,,,,,,
+"2. To add WebClerk actuals: export GL journals (Generic CSV), paste amounts into the Actuals row below each category.",,,,,,,,,,,,,,,,,,
+"3. Formulas auto-calculate totals, gross margin, net income, and margin percentages.",,,,,,,,,,,,,,,,,,
+"4. Balance Sheet is annual. Retained Earnings should tie to cumulative Net Income.",,,,,,,,,,,,,,,,,,
+"5. Save your version. Upload improvements to webclerk.com/library/ for the community.",,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+═══════════════,,,,,,,,,,,,,,,,,,
+PROFIT & LOSS,,,,,,,,,,,,,,,,,,
+═══════════════,,,,,,,,,,,,,,,,,,
+,Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec,Year 1,Year 2,Year 3,Year 4,Year 5,Growth %
+,,,,,,,,,,,,,,,,,,
+REVENUE,,,,,,,,,,,,,,,,,,
+Product Sales,,,,,,,,,,,,,,,,,,5%
+Services,,,,,,,,,,,,,,,,,,3%
+Licensing,,,,,,,,,,,,,,,,,,0%
+Other Revenue,,,,,,,,,,,,,,,,,,0%
+Total Revenue,=SUM(B19:B22),=SUM(C19:C22),=SUM(D19:D22),=SUM(E19:E22),=SUM(F19:F22),=SUM(G19:G22),=SUM(H19:H22),=SUM(I19:I22),=SUM(J19:J22),=SUM(K19:K22),=SUM(L19:L22),=SUM(M19:M22),=SUM(B23:M23),=SUM(O19:O22),=SUM(P19:P22),=SUM(Q19:Q22),=SUM(R19:R22),
+,,,,,,,,,,,,,,,,,,
+COST OF GOODS SOLD,,,,,,,,,,,,,,,,,,
+Materials,,,,,,,,,,,,,,,,,,3%
+Direct Labor,,,,,,,,,,,,,,,,,,2%
+Manufacturing,,,,,,,,,,,,,,,,,,2%
+Total COGS,=SUM(B27:B29),=SUM(C27:C29),=SUM(D27:D29),=SUM(E27:E29),=SUM(F27:F29),=SUM(G27:G29),=SUM(H27:H29),=SUM(I27:I29),=SUM(J27:J29),=SUM(K27:K29),=SUM(L27:L29),=SUM(M27:M29),=SUM(B30:M30),=SUM(O27:O29),=SUM(P27:P29),=SUM(Q27:Q29),=SUM(R27:R29),
+,,,,,,,,,,,,,,,,,,
+GROSS MARGIN,=B23-B30,=C23-C30,=D23-D30,=E23-E30,=F23-F30,=G23-G30,=H23-H30,=I23-I30,=J23-J30,=K23-K30,=L23-L30,=M23-M30,=N23-N30,=O23-O30,=P23-P30,=Q23-Q30,=R23-R30,
+Gross Margin %,=IF(B23=0,"",B32/B23),=IF(C23=0,"",C32/C23),=IF(D23=0,"",D32/D23),=IF(E23=0,"",E32/E23),=IF(F23=0,"",F32/F23),=IF(G23=0,"",G32/G23),=IF(H23=0,"",H32/H23),=IF(I23=0,"",I32/I23),=IF(J23=0,"",J32/J23),=IF(K23=0,"",K32/K23),=IF(L23=0,"",L32/L23),=IF(M23=0,"",M32/M23),=IF(N23=0,"",N32/N23),=IF(O23=0,"",O32/O23),=IF(P23=0,"",P32/P23),=IF(Q23=0,"",Q32/Q23),=IF(R23=0,"",R32/R23),
+,,,,,,,,,,,,,,,,,,
+OPERATING EXPENSES,,,,,,,,,,,,,,,,,,
+Salaries & Wages,,,,,,,,,,,,,,,,,,3%
+Payroll Tax & Benefits,,,,,,,,,,,,,,,,,,3%
+Rent / Lease,,,,,,,,,,,,,,,,,,2%
+Insurance,,,,,,,,,,,,,,,,,,2%
+Utilities,,,,,,,,,,,,,,,,,,2%
+Travel,,,,,,,,,,,,,,,,,,0%
+Marketing,,,,,,,,,,,,,,,,,,0%
+Depreciation,,,,,,,,,,,,,,,,,,0%
+Interest,,,,,,,,,,,,,,,,,,0%
+Other Expense,,,,,,,,,,,,,,,,,,0%
+Total Expenses,=SUM(B36:B45),=SUM(C36:C45),=SUM(D36:D45),=SUM(E36:E45),=SUM(F36:F45),=SUM(G36:G45),=SUM(H36:H45),=SUM(I36:I45),=SUM(J36:J45),=SUM(K36:K45),=SUM(L36:L45),=SUM(M36:M45),=SUM(B46:M46),=SUM(O36:O45),=SUM(P36:P45),=SUM(Q36:Q45),=SUM(R36:R45),
+,,,,,,,,,,,,,,,,,,
+NET INCOME,=B32-B46,=C32-C46,=D32-D46,=E32-E46,=F32-F46,=G32-G46,=H32-H46,=I32-I46,=J32-J46,=K32-K46,=L32-L46,=M32-M46,=N32-N46,=O32-O46,=P32-P46,=Q32-Q46,=R32-R46,
+Net Margin %,=IF(B23=0,"",B48/B23),=IF(C23=0,"",C48/C23),=IF(D23=0,"",D48/D23),=IF(E23=0,"",E48/E23),=IF(F23=0,"",F48/F23),=IF(G23=0,"",G48/G23),=IF(H23=0,"",H48/H23),=IF(I23=0,"",I48/I23),=IF(J23=0,"",J48/J23),=IF(K23=0,"",K48/K23),=IF(L23=0,"",L48/L23),=IF(M23=0,"",M48/M23),=IF(N23=0,"",N48/N23),=IF(O23=0,"",O48/O23),=IF(P23=0,"",P48/P23),=IF(Q23=0,"",Q48/Q23),=IF(R23=0,"",R48/R23),
+,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+═══════════════,,,,,,,,,,,,,,,,,,
+BALANCE SHEET,,,,,,,,,,,,,,,,,,
+═══════════════,,,,,,,,,,,,,,,,,,
+,,Year 1,Year 2,Year 3,Year 4,Year 5,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+ASSETS,,,,,,,,,,,,,,,,,,
+Cash,,,,,,,,,,,,,,,,,,
+Accounts Receivable,,,,,,,,,,,,,,,,,,
+Inventory,,,,,,,,,,,,,,,,,,
+Equipment (net of depreciation),,,,,,,,,,,,,,,,,,
+Other Assets,,,,,,,,,,,,,,,,,,
+Total Assets,,=SUM(C59:C63),=SUM(D59:D63),=SUM(E59:E63),=SUM(F59:F63),=SUM(G59:G63),,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+LIABILITIES,,,,,,,,,,,,,,,,,,
+Accounts Payable,,,,,,,,,,,,,,,,,,
+Accrued Expenses,,,,,,,,,,,,,,,,,,
+Short-term Debt,,,,,,,,,,,,,,,,,,
+Long-term Debt,,,,,,,,,,,,,,,,,,
+Total Liabilities,,=SUM(C68:C71),=SUM(D68:D71),=SUM(E68:E71),=SUM(F68:F71),=SUM(G68:G71),,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+EQUITY,,,,,,,,,,,,,,,,,,
+Paid-in Capital,,,,,,,,,,,,,,,,,,
+Retained Earnings,,,,,,,,,,,,,,,,,,
+Total Equity,,=SUM(C76:C77),=SUM(D76:D77),=SUM(E76:E77),=SUM(F76:F77),=SUM(G76:G77),,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+Total Liabilities & Equity,,=C72+C78,=D72+D78,=E72+E78,=F72+F78,=G72+G78,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+Balance Check (Assets - L&E),,=C64-C80,=D64-D80,=E64-E80,=F64-F80,=G64-G80,,,,,,,,,,,,

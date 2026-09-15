@@ -1,0 +1,105 @@
+// WC3 Connection: Bank Feed Import — statement sorting and transaction matching
+// Render: dot -Tpdf wc3-conn-banking.dot -o wc3-conn-banking.pdf
+
+// CodeMap revision: 1 — 2026-08-11
+
+digraph wc3_conn_banking {
+    size="7.5,10.0"
+    ratio="compress"
+
+
+
+    // ── CodeMap Standard Style ──
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=TB
+    label="WC3 Connection — Bank Feed Import Flow"
+    labelloc=t
+
+    // ── Bank ──
+    bank [label="Bank\n(user's institution)" shape=box fillcolor="#E8DAEF"]
+
+    // ── User download ──
+    download [label="User Downloads\nCSV / OFX File" shape=octagon fillcolor="#F5CBA7"]
+
+    // ── Upload ──
+    upload [label="Manual Upload\nto WC3\n(/sort/)" shape=box fillcolor="#D4E6F1" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/docs/views_upload.py:1" target="_blank" tooltip="File upload pipeline — checksum, inline encode, EXIF extract, virus scan, create Document.\nService: apps/docs/views_upload.py\nFunctions:
+  upload_view @ apps/docs/views_upload.py:46 (inline encoding: zlib+base64 for small files)
+  checksum computation @ apps/docs/views_upload.py:73 (SHA256 dedup check)"]
+
+    // ── Statement Sorter ──
+    sorter [label="Statement Sorter\n\nParse transactions\nNormalize dates/amounts\nDeduplicate" shape=octagon fillcolor="#F5CBA7"]
+
+    // ── Classify ──
+    classify [label="Classify\nTransactions\n\nCategory assignment\nVendor recognition\nPattern matching" shape=octagon fillcolor="#F5CBA7"]
+
+    // ── Decision: match? ──
+    match [label="Match\nFound?" shape=diamond fillcolor="#FADBD8"]
+
+    // ── Yes: link ──
+    link [label="Link to\nInvoice / Payment\n\nUpdate totals\nMark reconciled" shape=box fillcolor="#ABEBC6"]
+
+    // ── No: flag ──
+    flag [label="Flag for\nManual Review\n\nUnmatched queue\nUser decides" shape=box fillcolor="#FCF3CF"]
+
+    // ── Alice learning ──
+    alice [label="Alice\nLearns Categorization\nPatterns\n\nobserve -> log -> pattern\n-> recommend -> promote" shape=box fillcolor="#AED6F1"]
+
+    // ── Boundary note ──
+    boundary [label="DATA SOVEREIGNTY\n\nNo direct bank API.\nUser controls data entry.\nPersonal transactions\nnever enter DB." shape=note fillcolor="#FADBD8"]
+
+    // ── WC3 records ──
+    invoice [label="Invoice\n(Invoice model)" shape=box fillcolor="#FCF3CF" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/invoice.py" target="_blank" tooltip="Invoice — shipment event. Financial event triggers GL and inventory movement.\nModel: apps/transactions/models/invoice.py\nFunctions:
+  transfer_order_to_invoice @ apps/transactions/services/order_to_invoice.py:16 (creates invoice from order)
+  Pending.objects.create @ apps/transactions/services/order_to_invoice.py:332 (-on_hand, -on_so, +on_in)\nPending deltas: on_hand: -qty, on_so: -qty, on_in: +qty\nGL: AR debit, Revenue credit, Tax credit, COGS debit, Inventory credit, Commission"]
+    payment [label="Payment\n(Payment model)" shape=box fillcolor="#FCF3CF" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/payment.py" target="_blank" tooltip="Payment — handles AR (received) and AP (expense). Signed amounts. Category maps to GL. Statement Sorter feeds expense side.\nModel: apps/transactions/models/payment.py\nFunctions:
+  Payment @ apps/transactions/models/payment.py:1 (AR+AP via type field; signed amounts)"]
+
+    // ── Edges ──
+    bank -> download [label="user\ninitiates"]
+    download -> upload [label="file"]
+    upload -> sorter
+    sorter -> classify
+    classify -> match
+
+    match -> link [label="yes"]
+    match -> flag [label="no"]
+
+    link -> invoice [style=dashed label="reconcile"]
+    link -> payment [style=dashed label="reconcile"]
+
+    flag -> classify [style=dashed label="user\ncorrects"]
+
+    // ── Alice edges ──
+    classify -> alice [style=dashed label="observe\npatterns"]
+    alice -> classify [style=dashed label="recommend\ncategories"]
+    flag -> alice [style=dashed label="learn from\ncorrections"]
+
+    // ── Boundary placement ──
+    bank -> boundary [style=invis]
+}

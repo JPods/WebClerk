@@ -1,0 +1,15 @@
+We need to fix the setting records that may have been harmed. This is very     
+  important and we should look at our saved setting bundle.json. Every setting    
+  record should have setting.config.layout specifying field order and placement   
+  for db.card (floating dialog), db.form (View: App for editing), db.list         
+  (standard list), db.panel (display lists in parent records), db.column          
+  (db.list without toolbar), db.detail (View: Admin for editing).        
+
+
+  ❯ We need to fix the setting records that may have been harmed. This is very     
+  important and we should look at our saved setting bundle.json. Every setting    
+  record should have setting.config.layout specifying field order and placement   
+  for db.card (floating dialog), db.form (View: App for editing), db.list         
+  (standard list), db.panel (display lists in parent records, limited to most     
+  important for that relationship), db.column (db.list without toolbar),          
+  db.detail (View: Admin for editing).  

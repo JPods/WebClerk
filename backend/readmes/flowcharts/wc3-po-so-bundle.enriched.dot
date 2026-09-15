@@ -1,0 +1,101 @@
+// WC3 PO→SO Cross-Instance Bundle Flow
+// Render: dot -Tpdf wc3-po-so-bundle.dot -o wc3-po-so-bundle.pdf
+
+// CodeMap revision: 1 — 2026-08-11
+
+digraph wc3_po_so_bundle {
+    size="7.5,10.0"
+    ratio="compress"
+
+
+
+    // ── CodeMap Standard Style ──
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=TB
+    label="WC3 — PO→SO Cross-Instance Bundle"
+    labelloc=t
+
+    // ── Buyer side ──
+    subgraph cluster_buyer {
+        label="Buyer WC3 Instance"
+        style=filled fillcolor="#EBF5FB" color="#85C1E9"
+
+        po [label="Purchase Order\n(cost is authoritative)" shape=box fillcolor="#D4E6F1"]
+        create_bundle [label="Create Bundle\n\ncost→price mapping\nschema_map override\nencrypt payload" shape=box fillcolor="#FCF3CF"]
+        po_refs [label="PO refs.links.bundle[]\n\nbundle_uuid\nconnection_id\ndirection: sent\nstatus" shape=note fillcolor="#FADBD8"]
+        poll [label="Poll Status\n\nGET po-status/\n<id>/<uuid>/" shape=box fillcolor="#D5F5E3"]
+        callback_recv [label="Receive Callback\n\nPOST bundle/callback/\nX-Sync-Key auth" shape=box fillcolor="#D5F5E3"]
+        update_po [label="Update PO\n\nremote_order_id\nremote_order_ida\nstatus" shape=box fillcolor="#D4E6F1"]
+
+        po -> create_bundle [label="send to\nvendor"]
+        create_bundle -> po_refs [label="stamp\nbundle ref"]
+        callback_recv -> update_po [label="vendor\napproved"]
+        poll -> update_po [label="latest\nstatus"]
+    }
+
+    // ── Network ──
+    send [label="POST\n/wcapi/sync/receive/\n\nX-Sync-Key\nencrypted payload\nbundle_uuid" shape=octagon fillcolor="#F5CBA7"]
+    callback_send [label="POST\ncallback\n\norder_id\norder_ida\nstatus" shape=octagon fillcolor="#F5CBA7"]
+    status_req [label="GET\n/bundle/<uuid>/status/\n\nX-Sync-Key" shape=octagon fillcolor="#F5CBA7"]
+
+    // ── Vendor side ──
+    subgraph cluster_vendor {
+        label="Vendor WC3 Instance"
+        style=filled fillcolor="#FEF9E7" color="#F9E79F"
+
+        receive [label="BundleReceiveView\n\ndecrypt\nidempotency check\nauto-detect po_to_so" shape=box fillcolor="#FCF3CF"]
+        unpack [label="Unpack Bundle\n→ Order\n\nprice from buyer cost\ncost empty (vendor's)\nstatus: planned" shape=box fillcolor="#D4E6F1"]
+        so [label="Sales Order\n(pending approval)" shape=box fillcolor="#D4E6F1"]
+        so_refs [label="SO refs.links.bundle[]\n\nbundle_uuid\ndirection: received\nsender_purchase_id\nstatus" shape=note fillcolor="#FADBD8"]
+        review [label="Sales Team\nReview" shape=diamond fillcolor="#E8DAEF"]
+        approve [label="Approve\n\nPOST bundle/<uuid>/approve/\nstatus → released" shape=box fillcolor="#ABEBC6"]
+        status_resp [label="Status Response\n\norder_id, ida\nstatus, totals\ndt_approved\nflow_children" shape=box fillcolor="#D5F5E3"]
+
+        receive -> unpack [label="type:\npo_to_so"]
+        unpack -> so
+        unpack -> so_refs [label="stamp\nbundle ref"]
+        so -> review
+        review -> approve [label="approved"]
+        review -> so [label="changes\nneeded" style=dashed]
+    }
+
+    // ── Cross-instance edges ──
+    create_bundle -> send [label="encrypted\nbundle"]
+    send -> receive
+    approve -> callback_send [label="SO id"]
+    callback_send -> callback_recv
+    poll -> status_req
+    status_req -> status_resp
+    status_resp -> poll [style=dashed]
+
+    // ── Alice ──
+    alice [label="Alice\n\nmonitor bundle health\ntrack approval times\nflag stale bundles" shape=box fillcolor="#AED6F1"]
+    approve -> alice [label="approval\nevent" style=dashed]
+    send -> alice [label="send\nevent" style=dashed]
+}

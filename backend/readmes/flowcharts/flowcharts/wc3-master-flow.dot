@@ -1,0 +1,102 @@
+// WC3 Master Commerce Flow — top-level system overview
+// Updated 2026-08-08 with current WC3 table names
+// Render: dot -Tpdf wc3-master-flow.dot -o wc3-master-flow.pdf
+
+digraph wc3_master_flow {
+    rankdir=TB
+    fontname="Helvetica Neue"
+    fontsize=12
+    bgcolor="#FAFAFA"
+    node [fontname="Helvetica Neue" fontsize=10 style="filled,rounded" shape=box
+          color="#CCCCCC" penwidth=0.8]
+    edge [fontname="Helvetica Neue" fontsize=8 color="#888888" penwidth=0.8]
+    label="WebClerk 3 — Master Commerce Flow\n(current table names)"
+    labelloc=t
+    fontsize=15
+    pad=0.6
+
+    // ── Entry ──
+    market [label="Market Potential\n→ Customer wants\n→ Your capabilities" shape=parallelogram fillcolor="#E8EAF6" color="#9FA8DA"]
+    comms [label="Communications\n(emails)" fillcolor="#B3E5FC" color="#4FC3F7"]
+
+    // ── Core transaction flow ──
+    contact [label="Contact\nManagement\n(contacts)" shape=diamond fillcolor="#FFCDD2" color="#EF9A9A"]
+    proposal [label="Proposal\n(proposals)" fillcolor="#FFF9C4" color="#FFF176"]
+    order [label="Order\n(orders)" fillcolor="#FFF9C4" color="#FFF176"]
+    backorder [label="Maintain\nBackorder" shape=octagon fillcolor="#FFE0B2" color="#FFB74D"]
+    invoice [label="Invoice\n(invoices)" fillcolor="#C8E6C9" color="#81C784"]
+    payment [label="Payment\n(transactions_payment)\nAR / AP" fillcolor="#C8E6C9" color="#81C784"]
+
+    // ── Objectives & management ──
+    objectives [label="Set Objectives\nPerformance, Commissions\nCustomer Service\n(projects + actions)" fillcolor="#E0E0E0" color="#BDBDBD"]
+    forecast [label="Forecast" shape=octagon fillcolor="#FFE0B2" color="#FFB74D"]
+    risk [label="Manage\nFinancial Risk\n(erosion)" fillcolor="#E0E0E0" color="#BDBDBD"]
+
+    // ── Production / fulfillment ──
+    requisition [label="Requisition\n(requisitions)" fillcolor="#FFF9C4" color="#FFF176"]
+    workflow [label="Work Flow\n(actions)" shape=octagon fillcolor="#FFE0B2" color="#FFB74D"]
+    workorder [label="Work Order\n(work_orders)" fillcolor="#FFF9C4" color="#FFF176"]
+    item [label="Item\n(products_item)" fillcolor="#FFF9C4" color="#FFF176"]
+    po [label="Purchase Order\n(purchases)" fillcolor="#FFF9C4" color="#FFF176"]
+
+    // ── Journals ──
+    sales_jrnl [label="Sales\nJournals" fillcolor="#DCEDC8" color="#AED581"]
+    cash_jrnl [label="Cash\nJournals" fillcolor="#DCEDC8" color="#AED581"]
+    purch_jrnl [label="Purchase\nJournals" fillcolor="#DCEDC8" color="#AED581"]
+    gl [label="General Ledger\n(gl_journals)" fillcolor="#C8E6C9" color="#66BB6A"]
+
+    // ── Right sidebar: modules ──
+    subgraph cluster_modules {
+        label="Modules"
+        style="filled,rounded"
+        fillcolor="#F5F5F5"
+        color="#E0E0E0"
+        fontsize=9
+        fontcolor="#616161"
+
+        mod_setup [label="Setup\n(settings)" shape=box fillcolor="#EEEEEE" color="#BDBDBD" fontsize=8]
+        mod_sales [label="Sales" shape=box fillcolor="#EEEEEE" color="#BDBDBD" fontsize=8]
+        mod_orderentry [label="Order Entry" shape=box fillcolor="#EEEEEE" color="#BDBDBD" fontsize=8]
+        mod_mgmt [label="Management" shape=box fillcolor="#EEEEEE" color="#BDBDBD" fontsize=8]
+        mod_acct [label="Accounting" shape=box fillcolor="#EEEEEE" color="#BDBDBD" fontsize=8]
+        mod_databrowser [label="databrowser\n(reports)" shape=box fillcolor="#EEEEEE" color="#BDBDBD" fontsize=8]
+        mod_docs [label="Documents\n(documents)" shape=box fillcolor="#EEEEEE" color="#BDBDBD" fontsize=8]
+        mod_alice [label="Alice\n(AI Assistant)" shape=box fillcolor="#B3E5FC" color="#4FC3F7" fontsize=8]
+    }
+
+    // ── Edges: main flow ──
+    market -> comms
+    comms -> objectives
+    comms -> contact
+    contact -> proposal
+    proposal -> order
+    order -> backorder [label="partial"]
+    order -> invoice [label="complete"]
+    backorder -> order [style=dashed]
+    invoice -> payment
+    objectives -> forecast
+    objectives -> risk [dir=both]
+    forecast -> risk [style=dashed]
+
+    // ── Edges: production ──
+    contact -> requisition [style=dashed]
+    requisition -> workflow
+    workflow -> workorder
+    workorder -> order [label="materials\ntimes" style=dashed]
+    item -> order [style=dashed]
+    po -> item [label="receipt"]
+    requisition -> po [style=dashed]
+    forecast -> po [style=dashed]
+
+    // ── Edges: journals ──
+    invoice -> sales_jrnl
+    payment -> cash_jrnl
+    po -> purch_jrnl
+    sales_jrnl -> gl
+    cash_jrnl -> gl
+    purch_jrnl -> gl
+
+    // ── Module connections ──
+    mod_setup -> comms [style=invis]
+    mod_alice -> payment [style=dashed label="pattern\nrecognition" fontsize=7]
+}

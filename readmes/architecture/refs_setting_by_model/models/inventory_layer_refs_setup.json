@@ -1,0 +1,17 @@
+{
+    "self_fields": [
+        "lot",
+        "serial_batch",
+        "source_doc_type",
+        "site_code",
+        "movement_type",
+        "reason",
+        "state",
+        "cancel_reason"
+    ],
+    "related_keywords": {},
+    "related_models": [
+        "item"
+    ],
+    "jjj_comment": "setting model_name=\"inventory_layer\" purpose=\"refs_setup\""
+}

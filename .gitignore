@@ -1,0 +1,46 @@
+# ── Credentials — never commit ─────────────────────────────────────────
+.env
+.env.*
+!.env.template
+!.env.example
+**/git_bypass/save_env
+*.pem
+*.key
+credentials/
+
+# ── Data — never commit (demo data ships only as scanned bundles) ─────
+backups/
+**/backups/
+data/exports/
+data/snapshots/
+*.dump
+*.sql.gz
+*.sqlite3
+*_full_*.json
+*_backup_*.json
+statement*/
+
+# ── Runtime ────────────────────────────────────────────────────────────
+backend/.coverage
+logs/
+*.log
+nohup.out
+dump.rdb
+**/__pycache__/
+*.pyc
+backend/venv/
+backend/venv_*/
+frontend/node_modules/
+frontend/dist/
+.hypothesis/
+.pytest_cache/
+**/.claude/settings.local.json
+
+# ── macOS / iCloud ─────────────────────────────────────────────────────
+.DS_Store
+* 2.*
+* 2
+
+# Vite env files hold public build-time settings only (never secrets) — keep tracked
+!frontend/.env
+!frontend/.env.production

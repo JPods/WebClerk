@@ -1,0 +1,16 @@
+To launch Chrome with the DevTools protocol that the MCP connects to:
+
+  /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome
+  --remote-debugging-port=9222
+
+  If Chrome is already running, you need to quit it first and relaunch with that
+   flag. Or use a separate profile:
+
+  /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome
+  --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug-profile
+
+  As an AppleScript:
+
+  do shell script "open -a 'Google Chrome' --args --remote-debugging-port=9222"
+
+  The MCP server then connects to http://localhost:9222 to control the browser.

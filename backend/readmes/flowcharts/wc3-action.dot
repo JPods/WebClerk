@@ -1,0 +1,58 @@
+// WC3 Action — Universal task/workflow/support model
+// References any record via tableName+idNum; multiple display modes
+// Render: dot -Tpdf wc3-action.dot -o wc3-action.pdf
+
+digraph wc3_action {
+    rankdir=TB
+    fontname="Helvetica"
+    fontsize=11
+    node [fontname="Helvetica" fontsize=10 style=filled]
+    edge [fontname="Helvetica" fontsize=8]
+    label="WC3 — Action Model\nUniversal task: Who, What, Why, When, Where, How"
+    labelloc=t
+    fontsize=14
+    pad=0.5
+
+    // Action
+    action [label="Action\n(ActionEntity)\n\nWho\nWhat\nWhy\nWhen\nWhere\nHow\nCommunications\nLogistics" shape=diamond fillcolor="#F4D03F" fontsize=10]
+
+    // Reference
+    action_ref [label="Action.reference\n\ntableName\nidNum\nreason\netc..." shape=note fillcolor="#FDFEFE" fontsize=9]
+
+    // Any record
+    any_record [label="Any or multiple\ntablenames/collections\nrecord/document" shape=box fillcolor="#E59866" fontcolor=white]
+
+    // Record types
+    customer [label="Customer" shape=box fillcolor="#F4D03F"]
+    vendor [label="Vendor" shape=box fillcolor="#E59866"]
+    proposals [label="Proposals" shape=box fillcolor="#FCF3CF"]
+    sos [label="SOs" shape=box fillcolor="#ABEBC6"]
+    pos [label="POs" shape=box fillcolor="#D6EAF8"]
+    item_rec [label="Item" shape=box fillcolor="#E8DAEF"]
+    qa_rec [label="QA" shape=box fillcolor="#AED6F1"]
+    resource [label="Resource" shape=box fillcolor="#D5D8DC"]
+    dots [label="..." shape=box fillcolor="#F2F3F4"]
+
+    // Linkage
+    linkage [label="LinkageEntry\n\nshared by lines\nrelated data\nspecs\ndata at time of action" shape=box fillcolor="#82E0AA"]
+
+    // Display modes
+    displays [label="Display Modes\n\nAPI\nScrum (Kanban)\nGantt\nMap\nCalendar" shape=box fillcolor="#F5B7B1"]
+
+    // Edges
+    action -> action_ref [color="#E59866"]
+    action_ref -> any_record
+    any_record -> customer [style=invis]
+    any_record -> vendor [style=invis]
+    any_record -> proposals [style=invis]
+    any_record -> sos [style=invis]
+    any_record -> pos [style=invis]
+    any_record -> item_rec [style=invis]
+    any_record -> qa_rec [style=invis]
+    any_record -> resource [style=invis]
+
+    action -> linkage [color="#27AE60"]
+    linkage -> any_record [color="#27AE60"]
+
+    action -> displays [color="#E74C3C"]
+}

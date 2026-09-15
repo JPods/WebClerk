@@ -1,0 +1,13 @@
+ The Build Order
+
+  1. Create TransactionTotals schema — the most critical one. Wire it into
+  totals.py so the engine validates output before saving. This is the proof of
+  concept.
+  2. Create LinePrice, LineCost, LineQuantity — the line-level envelopes that
+  recalculate_line and recalculate_totals consume.
+  3. Build /wcapi/fields/ endpoint — introspects Pydantic schemas, returns field
+   metadata to React.
+  4. Migrate field_behaviors.py — move hardcoded UI metadata into Pydantic
+  json_schema_extra.
+  5. Alice weekly scan — schedule on Wednesday coordination day.
+  6. Remaining schemas — TransactionFinance, ItemPrice, ItemCost, etc.

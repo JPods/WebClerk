@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebClerk Portal</title>
+  <link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+  <header id="portal-header">
+    <div class="header-left">
+      <h1 class="logo">WebClerk</h1>
+      <nav id="portal-nav"></nav>
+    </div>
+    <div class="header-right">
+      <span id="user-greeting"></span>
+      <button id="btn-logout" class="btn btn-sm" style="display:none">Logout</button>
+    </div>
+  </header>
+
+  <main id="portal-main">
+    <!-- Login form (shown when not authenticated) -->
+    <div id="login-view" class="view">
+      <div class="login-card">
+        <h2>Sign In</h2>
+        <form id="login-form">
+          <label>Email
+            <input type="email" id="login-email" required autocomplete="email">
+          </label>
+          <label>Password
+            <input type="password" id="login-password" required autocomplete="current-password">
+          </label>
+          <p id="login-error" class="error-msg"></p>
+          <button type="submit" class="btn btn-primary">Sign In</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Dynamic content area -->
+    <div id="content-area" class="view" style="display:none"></div>
+  </main>
+
+  <footer id="portal-footer">
+    <small>WebClerk &mdash; bottom-up commerce</small>
+  </footer>
+
+  <!-- Core modules -->
+  <script type="module" src="js/pjpv.js?v=2"></script>
+  <script type="module" src="js/wcapi.js?v=2"></script>
+  <script type="module" src="js/router.js?v=2"></script>
+  <script type="module" src="js/app.js?v=2"></script>
+</body>
+</html>

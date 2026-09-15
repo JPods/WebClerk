@@ -1,0 +1,34 @@
+{
+  "_meta": {
+    "model": "contact",
+    "description": "Sample contact for report parade — customer detail with history",
+    "version": 1
+  },
+  "ida": "RHS-142",
+  "status": "active",
+  "dt_created": 1759363200000,
+  "attention": "Maria Santos",
+  "company": "Ridgeline Hardware & Supply",
+  "address_full": "420 Main Street\nBurlington, VT 05401",
+  "phone": "(802) 555-0173",
+  "email": "maria@ridgelinehardware.com",
+  "terms": "Net 30",
+  "price_level": "Wholesale",
+  "config": {
+    "tax_exempt": false,
+    "tax_id": "",
+    "credit_limit": 25000.00,
+    "salesperson": "Tom Hargrove",
+    "territory": "New England"
+  },
+  "refs": {
+    "links": {}
+  },
+  "totals": {
+    "ytd_sales": 48720.50,
+    "ytd_payments": 39987.15,
+    "balance": 9733.60,
+    "lifetime_sales": 287450.00
+  },
+  "metadata": {}
+}

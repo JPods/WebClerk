@@ -1,0 +1,124 @@
+{
+  "_meta": {
+    "model": "invoice",
+    "description": "Sample invoice for report parade — polished, realistic wholesale transaction",
+    "version": 1
+  },
+  "ida": "INV-2026-0847",
+  "status": "open",
+  "dt_created": 1785542400000,
+  "attention": "Maria Santos",
+  "company": "Ridgeline Hardware & Supply",
+  "address_full": "420 Main Street\nBurlington, VT 05401",
+  "phone": "(802) 555-0173",
+  "email": "maria@ridgelinehardware.com",
+  "terms": "Net 30",
+  "price_level": "Wholesale",
+  "conditions_description": "All sales are subject to our standard terms and conditions. Returns accepted within 30 days with original packaging. Freight claims must be filed within 5 business days of delivery.",
+  "comments": {
+    "public": "Ship complete — no partial shipments. Deliver to rear loading dock.",
+    "shipping": "Fragile items on pallet 2. Use liftgate."
+  },
+  "config": {
+    "ship_to": {
+      "attention": "Receiving Dept",
+      "company": "Ridgeline Hardware — Warehouse",
+      "address": "88 Industrial Park Dr\nSouth Burlington, VT 05403",
+      "phone": "(802) 555-0199"
+    },
+    "ship_via": "FedEx Freight",
+    "ship_date": 1785801600000
+  },
+  "source": {
+    "campaign_name": "PO-RH-4421"
+  },
+  "refs": {
+    "links": {
+      "contact": {"id": 142, "name": "Ridgeline Hardware & Supply", "ida": "RHS-142"}
+    }
+  },
+  "totals": {
+    "subtotal": 3847.50,
+    "tax": 230.85,
+    "shipping": 185.00,
+    "total": 4263.35,
+    "balance": 4263.35
+  },
+  "sell": {},
+  "cost": {},
+  "finance": {},
+  "flow": {},
+  "metadata": {},
+  "lines": [
+    {
+      "line_number": 1,
+      "item": {
+        "ida_item": "DW-735X",
+        "description": "DeWalt 13\" Three Knife Two-Speed Planer",
+        "uom": "Each"
+      },
+      "quantity": {"active": 2},
+      "price": {
+        "unit": 549.99,
+        "discount_percent": 0,
+        "extended": 1099.98
+      }
+    },
+    {
+      "line_number": 2,
+      "item": {
+        "ida_item": "MK-1229B",
+        "description": "Makita 12\" Dual-Bevel Sliding Compound Miter Saw",
+        "uom": "Each"
+      },
+      "quantity": {"active": 3},
+      "price": {
+        "unit": 429.00,
+        "discount_percent": 5,
+        "extended": 1222.65
+      }
+    },
+    {
+      "line_number": 3,
+      "item": {
+        "ida_item": "BH-4410",
+        "description": "Bosch 10\" Worksite Table Saw with Gravity-Rise Stand",
+        "uom": "Each"
+      },
+      "quantity": {"active": 1},
+      "price": {
+        "unit": 649.00,
+        "discount_percent": 0,
+        "extended": 649.00
+      }
+    },
+    {
+      "line_number": 4,
+      "item": {
+        "ida_item": "SB-220PK",
+        "description": "Stanley 220-Piece Mechanics Tool Set, Chrome Vanadium",
+        "uom": "Set"
+      },
+      "quantity": {"active": 6},
+      "price": {
+        "unit": 189.95,
+        "discount_percent": 10,
+        "extended": 1025.73
+      }
+    },
+    {
+      "line_number": 5,
+      "item": {
+        "ida_item": "FW-GLUE16",
+        "description": "Titebond III Ultimate Wood Glue, 16 oz",
+        "uom": "Case/12"
+      },
+      "quantity": {"active": 4},
+      "price": {
+        "unit": 89.88,
+        "discount_percent": 15,
+        "extended": 305.59
+      }
+    }
+  ]
+}

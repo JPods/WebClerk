@@ -1,0 +1,10 @@
+{
+    "self_fields": [
+        "name",
+        "code",
+        "symbol"
+    ],
+    "related_keywords": {},
+    "related_models": [],
+    "jjj_comment": "setting model_name=\"currency\" purpose=\"refs_setup\""
+}

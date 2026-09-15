@@ -1,0 +1,108 @@
+digraph touch_action_transaction {
+    rankdir=TB;
+    fontname="Helvetica";
+    node [fontname="Helvetica", fontsize=11, style="rounded,filled", color="#dee2e6"];
+    edge [fontname="Helvetica", fontsize=9, color="#6c757d"];
+
+    labelloc="t";
+    label="Touch → Action → Transaction Cycle\nHow work flows between your organization and the world";
+    fontsize=14;
+
+    // The external world
+    subgraph cluster_external {
+        label="External World";
+        style="rounded,dashed";
+        color="#adb5bd";
+        fontsize=11;
+        fontcolor="#6c757d";
+
+        customer [label="Customer\nVendor\nPartner\nProspect" shape=ellipse fillcolor="#f8f9fa"];
+    }
+
+    // The boundary — Touch
+    subgraph cluster_touch {
+        label="TOUCH — Outward Probe";
+        style="rounded,filled";
+        color="#3355FF";
+        fillcolor="#e8f0fe";
+        fontsize=11;
+        fontcolor="#3355FF";
+
+        touch_out [label="📞 Outbound\nCall · Email · Visit\nText · Meeting" shape=box fillcolor="#cce5ff" color="#3355FF"];
+        touch_in [label="📞 Inbound\nResponse · Request\nInquiry · Complaint" shape=box fillcolor="#cce5ff" color="#3355FF"];
+        touch_badge [label="📞 N · Xd\nBadge = cycle status\nOverdue = stalled cycle" shape=box fillcolor="#b3d4fc" color="#3355FF"];
+    }
+
+    // Internal — Action
+    subgraph cluster_action {
+        label="ACTION — Inward Commitment";
+        style="rounded,filled";
+        color="#28a745";
+        fillcolor="#e8f5e9";
+        fontsize=11;
+        fontcolor="#28a745";
+
+        action [label="Action Record\nWhat we will do\nWho · When · Priority\nKanban · Status" shape=box fillcolor="#d4edda" color="#28a745"];
+        action_plan [label="Follow-up Plan\ntouch.plan = N days\nNext touch scheduled" shape=box fillcolor="#c3e6cb" color="#28a745"];
+    }
+
+    // Evidence — Transaction
+    subgraph cluster_transaction {
+        label="TRANSACTION — Evidence";
+        style="rounded,filled";
+        color="#fd7e14";
+        fillcolor="#fff3e0";
+        fontsize=11;
+        fontcolor="#e65100";
+
+        proposal [label="Proposal\n\"Here's what we can do\"" shape=box fillcolor="#ffe0b2" color="#fd7e14"];
+        order [label="Order\n\"They said yes\"" shape=box fillcolor="#ffe0b2" color="#fd7e14"];
+        invoice [label="Invoice\n\"Here's what they owe\"" shape=box fillcolor="#ffe0b2" color="#fd7e14"];
+        payment [label="Payment\n\"They paid\"" shape=box fillcolor="#ffe0b2" color="#fd7e14"];
+        purchase [label="Purchase\n\"We bought to fulfill\"" shape=box fillcolor="#ffe0b2" color="#fd7e14"];
+    }
+
+    // Relationships — refs.parents + linkage_id
+    subgraph cluster_links {
+        label="LINKAGE — The Thread";
+        style="rounded,dashed";
+        color="#6f42c1";
+        fontsize=10;
+        fontcolor="#6f42c1";
+
+        linkage [label="linkage_id\nTies touch→action→transaction\ninto one continuous thread" shape=diamond fillcolor="#e2d5f1" color="#6f42c1"];
+        refs [label="refs.parents\nfrom · to · contact\ncustomer · action" shape=diamond fillcolor="#e2d5f1" color="#6f42c1"];
+    }
+
+    // Flow edges — the cycle
+    customer -> touch_in [label="inquiry\nrequest\ncomplaint" color="#3355FF"];
+    touch_out -> customer [label="call\nemail\nvisit" color="#3355FF"];
+
+    touch_in -> action [label="creates work\n\"we need to do X\"" color="#28a745"];
+    touch_out -> action [label="triggers follow-up\n\"call back in 7 days\"" color="#28a745"];
+
+    action -> proposal [label="respond to inquiry" color="#fd7e14"];
+    action -> order [label="process the deal" color="#fd7e14"];
+    action -> purchase [label="source the goods" color="#fd7e14"];
+
+    proposal -> touch_out [label="send proposal\nfollow up" color="#3355FF" style=dashed];
+    order -> invoice [label="bill for it" color="#fd7e14"];
+    invoice -> touch_out [label="collection call\npayment reminder" color="#3355FF" style=dashed];
+    invoice -> payment [label="payment received" color="#fd7e14"];
+
+    // Badge monitors the cycle
+    touch_out -> touch_badge [style=invis];
+    touch_in -> touch_badge [style=invis];
+
+    // Linkage threads everything
+    touch_out -> linkage [style=dotted color="#6f42c1"];
+    action -> linkage [style=dotted color="#6f42c1"];
+    order -> linkage [style=dotted color="#6f42c1"];
+
+    touch_out -> refs [style=dotted color="#6f42c1"];
+    action -> refs [style=dotted color="#6f42c1"];
+
+    // The cycle — transaction leads back to touch
+    payment -> action_plan [label="schedule\nnext check-in" color="#28a745" style=dashed];
+    action_plan -> touch_out [label="plan = 30 days\nre-engage customer" color="#3355FF" style=dashed];
+}

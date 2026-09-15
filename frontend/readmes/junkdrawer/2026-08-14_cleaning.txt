@@ -1,0 +1,48 @@
+xlsx is used in DataGrid.tsx for Excel export. No drop-in fix exists — the    
+  alternatives are exceljs or sheetjs-ce (community edition). That's a separate
+  task. For now, the input is server-controlled data, so the prototype pollution
+   risk is low in practice.                                                     
+                                                                                
+  Results:                                                                      
+                                                                                
+  ┌─────────────────────────────┬───────────────────────────────────────────┐
+  │            Issue            │                  Status                   │
+  ├─────────────────────────────┼───────────────────────────────────────────┤
+  │ 1. Axios (25+ CVEs)         │ Fixed — updated                           │
+  ├─────────────────────────────┼───────────────────────────────────────────┤
+  │ 2. DOMPurify XSS            │ Fixed — updated to safe version           │   
+  ├─────────────────────────────┼───────────────────────────────────────────┤
+  │ 4. DoS vectors              │                                           │   
+  │ (brace-expansion, flatted,  │ Fixed — all patched                       │   
+  │ js-yaml, etc.)              │                                           │
+  ├─────────────────────────────┼───────────────────────────────────────────┤   
+  │                             │ No fix available. Used only for Excel     │
+  │ Remaining: xlsx             │ export of server data — low real-world    │   
+  │                             │ risk. Replace with exceljs when           │
+  │                             │ convenient.                               │   
+  └─────────────────────────────┴───────────────────────────────────────────┘
+
+  ---                                                                           
+  Now, item 3 — dangerouslySetInnerHTML. The five uses are all for JSON syntax
+  highlighting via a syntaxHighlightJson() function that wraps JSON tokens in   
+  <span> tags using regex. Currently safe because the input is always
+  JSON.stringify()'d first (which escapes HTML), but it's fragile — one refactor
+   that passes raw user content and it becomes XSS.               
+
+  Two options:
+
+  A. Replace with React components — a <HighlightedJson> component that splits  
+  the string and returns <span> elements. No dangerouslySetInnerHTML at all.
+  Zero XSS surface.                                                             
+                                                                  
+  B. Keep the regex approach but run through DOMPurify — less work, still uses  
+  innerHTML but sanitized. Leaves the fragile pattern in place.
+                                                                                
+  I'd recommend A — it's the single-source-of-truth approach. One component,    
+  five call sites updated, no innerHTML anywhere. Want me to build it?
+                                         
+
+
+                                         In models we have several layouts lists (db.list), panels (list in a related record), cards     
+  (floating), detail (auto build input), .display or page (styled like .tsx). each of these has a   
+  lists of value pairs to display  

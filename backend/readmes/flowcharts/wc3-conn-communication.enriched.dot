@@ -1,0 +1,120 @@
+// WC3 Communication Flow — inbound and outbound email
+// Render: dot -Tpdf wc3-conn-communication.dot -o wc3-conn-communication.pdf
+
+// CodeMap revision: 1 — 2026-08-11
+
+digraph wc3_conn_communication {
+    size="7.5,10.0"
+    ratio="compress"
+
+
+
+    // ── CodeMap Standard Style ──
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=TB
+    label="WC3 — Email Communication Flow"
+    labelloc=t
+
+    // --- INBOUND PATH ---
+    subgraph cluster_inbound {
+        label="Inbound Path"
+        style=filled fillcolor="#EBF5FB" color="#AED6F1"
+
+        // External email providers
+        gmail_in [label="Gmail\n(inbound)" shape=box fillcolor="#E8DAEF"]
+        outlook_in [label="Outlook\n(inbound)" shape=box fillcolor="#E8DAEF"]
+
+        // Match contact
+        match [label="Match\nContact?" shape=diamond fillcolor="#FADBD8"]
+
+        // New contact
+        new_contact [label="Create\nContact" shape=octagon fillcolor="#F5CBA7"]
+
+        // Thread
+        thread [label="Communication\nThread\n\nFK to Contact\nsubject\ntimestamp" shape=box fillcolor="#FCF3CF"]
+
+        // Action creation
+        action_in [label="Create/Update\nAction\n\nassign owner\nset due date" shape=box fillcolor="#ABEBC6"]
+    }
+
+    // --- OUTBOUND PATH ---
+    subgraph cluster_outbound {
+        label="Outbound Path"
+        style=filled fillcolor="#FEF9E7" color="#F9E79F"
+
+        // WC3 events
+        evt_confirmed [label="Order\nConfirmed" shape=box fillcolor="#D4E6F1"]
+        evt_shipped [label="Order\nShipped" shape=box fillcolor="#D4E6F1"]
+        evt_invoiced [label="Invoice\nCreated" shape=box fillcolor="#D4E6F1"]
+        evt_reminder [label="Payment\nReminder" shape=box fillcolor="#D4E6F1"]
+
+        // Template engine
+        template [label="Email Template\nEngine\n\nmerge fields\nbranding\nlinks" shape=octagon fillcolor="#F5CBA7"]
+
+        // Transactional email
+        transactional [label="Transactional\nEmail\n(SMTP)" shape=box fillcolor="#FCF3CF"]
+
+        // External delivery
+        gmail_out [label="Gmail\n(outbound)" shape=box fillcolor="#E8DAEF"]
+        outlook_out [label="Outlook\n(outbound)" shape=box fillcolor="#E8DAEF"]
+    }
+
+    // Customer
+    customer [label="Customer" shape=box fillcolor="#D4E6F1"]
+
+    // Communication record
+    comm_record [label="Communication\nRecord\n\nFK to Contact\ndirection\ntimestamp\nthread_id" shape=box fillcolor="#FCF3CF"]
+
+    // Alice
+    alice [label="Alice\nMetadata Only\n\nresponse time\nthread volume\nunresolved threads" shape=box fillcolor="#AED6F1"]
+
+    // --- INBOUND EDGES ---
+    gmail_in -> match
+    outlook_in -> match
+    match -> thread [label="yes\nexisting\ncontact"]
+    match -> new_contact [label="no"]
+    new_contact -> thread
+    thread -> action_in
+    thread -> comm_record
+
+    // --- OUTBOUND EDGES ---
+    evt_confirmed -> template
+    evt_shipped -> template
+    evt_invoiced -> template
+    evt_reminder -> template
+    template -> transactional
+    transactional -> gmail_out
+    transactional -> outlook_out
+    gmail_out -> customer
+    outlook_out -> customer
+    transactional -> comm_record
+
+    // Alice sees metadata
+    comm_record -> alice [label="metadata\nonly" style=dashed]
+}

@@ -1,0 +1,11 @@
+{
+    "self_fields": [
+        "state",
+        "reason"
+    ],
+    "related_keywords": {},
+    "related_models": [
+        "item"
+    ],
+    "jjj_comment": "setting model_name=\"inventory_reservation\" purpose=\"refs_setup\""
+}

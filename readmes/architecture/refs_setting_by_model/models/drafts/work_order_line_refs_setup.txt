@@ -1,0 +1,6 @@
+setting model_name="work_order_line" purpose="refs_setup"
+{
+    "self_fields": ["price_level", "status"],
+    "related_keywords": {},
+    "related_models": []
+}

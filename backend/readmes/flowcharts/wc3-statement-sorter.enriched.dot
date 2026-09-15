@@ -1,0 +1,99 @@
+// WC3 Statement Sorter → Payment.expense pipeline
+// Render: dot -Tsvg wc3-statement-sorter.dot -o wc3-statement-sorter.svg
+
+// CodeMap revision: 4 — 2026-08-11
+
+digraph wc3_statement_sorter {
+    size="10,7.5"
+    ratio="compress"
+
+
+
+    // ── CodeMap Standard Style ──
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=LR
+    label="WC3 — Statement Sorter → Payment.expense"
+    labelloc=t
+
+    // Invisible anchor nodes for top-alignment
+    node [shape=point width=0 height=0 style=invis]
+    anchor1 [label=""]
+    anchor2 [label=""]
+
+    // Visible nodes
+    node [style=filled]
+
+    // Left column — inputs
+    bank_csv [label="Bank CSV\n(Wells Fargo, USAA,\nWise, GoDaddy)" shape=folder fillcolor="#AED6F1"]
+    categories [label="22 Categories\nOffice, Travel, Hosting,\nSoftware, Vehicle, ...\n+ user defined" shape=note fillcolor="#FEF9E7"]
+
+    // Center — pipeline
+    statement_sorter [label="Statement\nSorter" shape=box fillcolor="#F5CBA7" fontsize=12 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/sites/statement_sorter/sort.py:1" target="_blank" tooltip="Statement Sorter — free standalone tool. Drop bank CSVs, classify business vs personal, export. Lead gen for WebClerk. Feeds Payment.expense.\nService: sites/statement_sorter/sort.py\nFunctions:
+  detect @ sites/statement_sorter/sort.py:58 (auto-detect bank format from CSV headers)
+  build_html @ sites/statement_sorter/sort.py:216 (renders classification UI)
+  export @ sites/statement_sorter/sort.py:524 (CSV/JSON export of classified lines)"]
+    statement_classify [label="Classify\nbusiness / personal" shape=diamond fillcolor="#FCF3CF" width=2.2 height=1.4 tooltip="Classification step — user marks each line as business or personal, assigns category from 22 standard categories."]
+
+    // Right — outputs
+    statement_export [label="Export\n(CSV / JSON)" shape=box fillcolor="#D5F5E3" tooltip="Export — classified lines become Payment records in WebClerk. Business lines → expense, personal lines → excluded."]
+    personal [label="Personal\n(excluded)" shape=box fillcolor="#FADBD8" style="filled,dashed"]
+
+    // Far right — WebClerk vertical stack
+    payment [label="Payment\n(expense)" shape=box fillcolor="#D4E6F1" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/payment.py" target="_blank" tooltip="Payment — handles AR (received) and AP (expense). Signed amounts. Category maps to GL. Statement Sorter feeds expense side.\nModel: apps/transactions/models/payment.py\nFunctions:
+  Payment @ apps/transactions/models/payment.py:1 (AR+AP via type field; signed amounts)"]
+    expense [label="Expense\n(AP)" shape=box fillcolor="#85C1E9" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/payment.py" target="_blank" tooltip="Expense — Payment with type=expense. Category from Statement Sorter maps to GL account. Checkbook-style entry.\nModel: apps/transactions/models/payment.py"]
+    gl [label="GL Journal\nEntry" shape=box fillcolor="#E8DAEF"]
+
+    // Top row aligned
+    { rank=same; bank_csv; statement_sorter; statement_export; payment }
+
+    // Bottom row
+    { rank=same; categories; statement_classify; personal; expense }
+
+    // GL below expense
+    { rank=same; gl }
+
+    // Invisible edges to force top alignment
+    bank_csv -> categories [style=invis]
+    statement_sorter -> statement_classify [label="auto-detect\nbank format" color="#F39C12"]
+    statement_export -> personal [style=invis]
+    payment -> expense [label="type=expense" color="#2980B9"]
+    expense -> gl [label="journalize" color="#8E44AD"]
+
+    // Left inputs → center (diagonal)
+    bank_csv -> statement_sorter [label="drop files" color="#2980B9"]
+    categories -> statement_classify [style=dashed color="#8E44AD"]
+
+    // Center → right outputs (diagonal)
+    statement_classify -> statement_export [label="business" color="#27AE60"]
+    statement_classify -> personal [label="personal" color="#E74C3C" style=dashed]
+
+    // Export → Payment
+    statement_export -> payment [label="import to\nWebClerk" color="#2980B9"]
+}

@@ -1,0 +1,89 @@
+# WebClerk3 — Full stack in Docker
+#
+# Start:   docker compose up
+# Stop:    docker compose down
+# Reset:   docker compose down -v  (deletes database)
+#
+# First run auto-detects empty database, runs migrations,
+# seeds system data, and loads demo data.
+#
+# Access:  http://localhost:8000
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: commerce_expert
+      POSTGRES_USER: webclerk
+      POSTGRES_PASSWORD: webclerk
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # 5433 to avoid conflict with host PostgreSQL
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U webclerk -d commerce_expert"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"  # 6380 to avoid conflict with host Redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  web:
+    build: .
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-docker-dev-key-change-in-production}
+      LOCAL_DATABASE_NAME: commerce_expert
+      LOCAL_DATABASE_USER: webclerk
+      LOCAL_DATABASE_PASS: webclerk
+      LOCAL_DATABASE_HOST: db
+      LOCAL_DATABASE_PORT: 5432
+      DB_MODE: local
+      DATA_SET_ID: LOCAL
+      DATA_SET_NAME: Docker WebClerk
+      DEBUG: "True"
+      LOAD_DEMO_DATA: "1"
+      CELERY_BROKER_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/uploads
+
+  celery:
+    build: .
+    command: >
+      python -m celery -A webclerk3_api worker
+      -l info --concurrency=2 -P solo
+      --without-heartbeat -B
+      -s /tmp/celerybeat-schedule
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-docker-dev-key-change-in-production}
+      LOCAL_DATABASE_NAME: commerce_expert
+      LOCAL_DATABASE_USER: webclerk
+      LOCAL_DATABASE_PASS: webclerk
+      LOCAL_DATABASE_HOST: db
+      LOCAL_DATABASE_PORT: 5432
+      DB_MODE: local
+      DATA_SET_ID: LOCAL
+      CELERY_BROKER_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  uploads:

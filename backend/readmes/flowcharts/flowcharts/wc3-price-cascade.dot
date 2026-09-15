@@ -1,0 +1,70 @@
+// WC3 Price Cascade — first-match-wins pricing logic
+// Item price → price level → customer discount → final price
+// Render: dot -Tpdf wc3-price-cascade.dot -o wc3-price-cascade.pdf
+
+digraph wc3_price_cascade {
+    rankdir=TB
+    fontname="Helvetica Neue"
+    fontsize=12
+    bgcolor="#FAFAFA"
+    node [fontname="Helvetica Neue" fontsize=10 style="filled,rounded" shape=box
+          color="#CCCCCC" penwidth=0.8]
+    edge [fontname="Helvetica Neue" fontsize=8 color="#888888" penwidth=0.8]
+    label="WC3 — Price Cascade\nFirst-match-wins: item → level → customer → final price"
+    labelloc=t
+    fontsize=15
+    pad=0.6
+    nodesep=0.6
+    ranksep=0.7
+
+    // ── Item base ──
+    item [label="Item\n(products_item)\n\nprice: JSON\ncost: JSON" fillcolor="#E8EAF6" color="#9FA8DA" fontsize=11]
+
+    // ── Price levels ──
+    subgraph cluster_levels {
+        label="Price Levels (Setting records)"
+        style="filled,rounded"
+        fillcolor="#F0F4F8"
+        color="#B0BEC5"
+        fontsize=9
+        fontcolor="#546E7A"
+
+        level_retail [label="Retail\n(default)" fillcolor="#C8E6C9" color="#81C784"]
+        level_trade [label="Trade\n(volume)" fillcolor="#DCEDC8" color="#AED581"]
+        level_wholesale [label="Wholesale\n(distributor)" fillcolor="#F0F4C3" color="#DCE775"]
+        level_contract [label="Contract\n(negotiated)" fillcolor="#FFF9C4" color="#FFF176"]
+    }
+
+    // ── Customer ──
+    customer [label="Customer\n(contacts)\n\nprice_level\nterms\ndiscount schedule" fillcolor="#BBDEFB" color="#64B5F6"]
+
+    // ── Cascade decision ──
+    cascade [label="Price Cascade\nFirst Match Wins\n\n1. Contract price (item + customer)\n2. Customer price level\n3. Volume break\n4. Item base price\n\nNo stacking — clear, testable, auditable"
+             shape=octagon fillcolor="#FFF9C4" color="#FFF176" fontsize=10]
+
+    // ── OrgItem ──
+    orgitem [label="OrgItem\n(products_orgitem)\n\nvendor-specific pricing\nlanded cost" fillcolor="#FFE0B2" color="#FFB74D" fontsize=9]
+
+    // ── Line result ──
+    line [label="Transaction Line\n\nprice (resolved)\ncost (from layer or item)\nmargin = price - cost" fillcolor="#C8E6C9" color="#66BB6A" fontsize=10]
+
+    // ── Erosion ──
+    erosion [label="Erosion Detection\n\nProposal → Order → Invoice\nprice should not decrease\nwithout reason" fillcolor="#FFCDD2" color="#EF9A9A" fontsize=9]
+
+    // ── Alice ──
+    alice [label="Alice\nbelow-margin alerts\nnever block shipment\nflag and ship" fillcolor="#B3E5FC" color="#4FC3F7" fontsize=9]
+
+    // ── Edges ──
+    item -> cascade [label="base price" color="#7986CB"]
+    level_retail -> cascade [color="#66BB6A"]
+    level_trade -> cascade [color="#66BB6A"]
+    level_wholesale -> cascade [color="#66BB6A"]
+    level_contract -> cascade [color="#66BB6A"]
+    customer -> cascade [label="customer\nprice level" color="#42A5F5"]
+    orgitem -> cascade [label="vendor\nlanded cost" style=dashed color="#FF8F00"]
+
+    cascade -> line [label="resolved\nprice" color="#43A047" style=bold]
+
+    line -> erosion [label="compare across\npromotion chain" style=dashed color="#E57373"]
+    erosion -> alice [label="flag\npatterns" style=dashed color="#29B6F6"]
+}

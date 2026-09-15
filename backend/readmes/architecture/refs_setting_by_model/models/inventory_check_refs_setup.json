@@ -1,0 +1,10 @@
+{
+    "self_fields": [
+        "status"
+    ],
+    "related_keywords": {},
+    "related_models": [
+        "item"
+    ],
+    "jjj_comment": "setting model_name=\"inventory_check\" purpose=\"refs_setup\""
+}

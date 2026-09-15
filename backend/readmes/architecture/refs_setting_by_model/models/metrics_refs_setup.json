@@ -1,0 +1,8 @@
+{
+    "self_fields": [],
+    "related_keywords": {},
+    "related_models": [
+        "item"
+    ],
+    "jjj_comment": "setting model_name=\"metrics\" purpose=\"refs_setup\""
+}

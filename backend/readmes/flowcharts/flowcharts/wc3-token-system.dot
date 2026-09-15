@@ -1,0 +1,116 @@
+// WC3 Token System — handing data to better tools
+// Render: dot -Tsvg wc3-token-system.dot -o wc3-token-system.svg
+// Render: dot -Tpdf wc3-token-system.dot -o wc3-token-system.pdf
+
+digraph wc3_token_system {
+    rankdir=TB
+    fontname="Helvetica Neue"
+    fontsize=12
+    bgcolor="#FAFAFA"
+    node [fontname="Helvetica Neue" fontsize=10 style="filled,rounded" shape=box
+          color="#CCCCCC" penwidth=0.8]
+    edge [fontname="Helvetica Neue" fontsize=8 color="#888888" penwidth=0.8]
+    label="WC3 Token System\nBe expert in handing data to better tools"
+    labelloc=t
+    fontsize=16
+    pad=0.6
+    nodesep=0.5
+    ranksep=0.6
+
+    // ═══════════════════════════════════════════════
+    // WC3 — OUR JOB: DATA
+    // ═══════════════════════════════════════════════
+
+    subgraph cluster_wc3 {
+        label="WC3 — Data Layer (our job)"
+        style="filled,rounded"
+        fillcolor="#E8F5E9"
+        color="#81C784"
+        fontsize=11
+
+        record [label="Record Data\n──────────\nida · company · status\ntotals.total · config.*\nlines[].item · lines[].price"
+                fillcolor="#C8E6C9" color="#66BB6A"]
+
+        resolve [label="Token Resolution\n──────────\n{{field.path}} → value\n{{field|currency}} → $1,234\n{{#each lines}} → iterate\n\nOne function. Works everywhere."
+                 fillcolor="#A5D6A7" color="#4CAF50"]
+
+        token_builder [label="Token Builder\n──────────\nReports → {{Tokens}}\nClick = copy to clipboard\nShift-click = build set\nDetail mode | List mode"
+                       fillcolor="#A5D6A7" color="#4CAF50"]
+
+        field_registry [label="Field Registry\n──────────\n/wcapi/report-fields/\ndirect · related\njson_paths · lines"
+                        fillcolor="#C8E6C9" color="#66BB6A"]
+    }
+
+    // ═══════════════════════════════════════════════
+    // HANDOFF FORMATS — how we deliver data
+    // ═══════════════════════════════════════════════
+
+    subgraph cluster_handoff {
+        label="Handoff Formats"
+        style="filled,rounded"
+        fillcolor="#E3F2FD"
+        color="#64B5F6"
+        fontsize=10
+
+        clipboard [label="Clipboard\n──────────\n{{company}}\n{{attention}}\n{{totals.total|currency}}\n\nPaste anywhere"
+                   fillcolor="#BBDEFB" color="#42A5F5"]
+
+        csv [label="CSV Export\n──────────\nHeaders + rows\nmail merge ready\nGoogle Sheets / Excel"
+             fillcolor="#BBDEFB" color="#42A5F5"]
+
+        json_export [label="JSON Export\n──────────\nStructured data\nAPI consumption\nautomation scripts"
+                     fillcolor="#BBDEFB" color="#42A5F5"]
+
+        svg_populated [label="Populated SVG\n──────────\nIDs → data values\nLine panels cloned\nPrint-ready"
+                       fillcolor="#BBDEFB" color="#42A5F5"]
+
+        template_path [label="Template Path\n──────────\nconfig.template_path\nAppleScript (Mac)\nterminal (Win/Linux)\nOpen pre-populated"
+                       fillcolor="#BBDEFB" color="#42A5F5"]
+    }
+
+    // ═══════════════════════════════════════════════
+    // USER'S TOOLS — NOT OUR JOB
+    // ═══════════════════════════════════════════════
+
+    subgraph cluster_user_tools {
+        label="User's Tools (not our job — theirs are better)"
+        style="filled,rounded"
+        fillcolor="#FFF3E0"
+        color="#FFB74D"
+        fontsize=10
+
+        gmail [label="Gmail\nOutlook\nmail merge" fillcolor="#FFE0B2" color="#FFB74D"]
+        word [label="Word\nPages\nletters" fillcolor="#FFE0B2" color="#FFB74D"]
+        sheets [label="Google Sheets\nExcel\nanalysis" fillcolor="#FFE0B2" color="#FFB74D"]
+        affinity [label="Affinity\nFigma\nprint design" fillcolor="#FFE0B2" color="#FFB74D"]
+        printer [label="Printer\nPDF viewer" fillcolor="#FFE0B2" color="#FFB74D"]
+        automation [label="Scripts\nZapier\nAPI clients" fillcolor="#FFE0B2" color="#FFB74D"]
+    }
+
+    // ═══════════════════════════════════════════════
+    // EDGES — data flows OUT of WC3 into user tools
+    // ═══════════════════════════════════════════════
+
+    // Internal flow
+    field_registry -> token_builder [color="#43A047"]
+    record -> resolve [color="#43A047"]
+    token_builder -> resolve [label="user picks\nfields" color="#43A047"]
+
+    // Resolve → Handoff formats
+    resolve -> clipboard [label="click\ncopy" color="#1E88E5"]
+    resolve -> csv [label="export" color="#1E88E5"]
+    resolve -> json_export [label="export" color="#1E88E5"]
+    resolve -> svg_populated [label="populate\nSVG IDs" color="#1E88E5"]
+    resolve -> template_path [label="fill\ntemplate" color="#1E88E5"]
+
+    // Handoff → User tools (the boundary — data crosses, formatting doesn't)
+    clipboard -> gmail [label="paste" color="#FF8F00"]
+    clipboard -> word [label="paste" color="#FF8F00"]
+    csv -> gmail [label="mail merge" color="#FF8F00"]
+    csv -> sheets [label="import" color="#FF8F00"]
+    json_export -> automation [label="consume" color="#FF8F00"]
+    svg_populated -> printer [label="print" color="#FF8F00"]
+    svg_populated -> affinity [label="edit further" color="#FF8F00"]
+    template_path -> word [label="AppleScript\nopen" color="#FF8F00"]
+    template_path -> gmail [label="open\npopulated" color="#FF8F00"]
+}

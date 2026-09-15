@@ -1,0 +1,59 @@
+// WC3 Query Builder — Draft
+// Status: Draft — refine for deep and precise searching
+// 98%+ of users use the search box. This is for the rest.
+digraph query_builder {
+  rankdir=TB
+  node [shape=box style="rounded,filled" fontsize=10 fontname="Helvetica"]
+  edge [fontsize=9 fontname="Helvetica"]
+
+  // Entry
+  user [label="User needs\nto find records" fillcolor="#e8f4fd"]
+
+  // Tier 1
+  search_box [label="Search Box\n(keyword search)\n98%+ of use" fillcolor="#d4edda"]
+  found_simple [label="Records found" fillcolor="#d4edda" shape=ellipse]
+
+  // Tier 2
+  need_more [label="Need more\nprecision?" fillcolor="#fff3cd" shape=diamond]
+  filter_btn [label="Click Filter\nin toolbar" fillcolor="#fff3cd"]
+  query_panel [label="Query Builder Panel\nfield → type → operator → value" fillcolor="#cce5ff"]
+
+  // Type override
+  type_wrong [label="Type wrong?" fillcolor="#f8d7da" shape=diamond]
+  change_type [label="Change Type dropdown\nText / Number / Date\nBoolean / JSON" fillcolor="#f8d7da"]
+
+  // Actions
+  add_rule [label="+ Add rule\nAND / OR" fillcolor="#cce5ff"]
+  execute [label="Execute" fillcolor="#d4edda"]
+  results [label="Filtered results" fillcolor="#d4edda" shape=ellipse]
+
+  // Save/Load
+  save [label="Save search\n(Setting record)" fillcolor="#e2d9f3"]
+  load [label="Load saved\nfrom dropdown" fillcolor="#e2d9f3"]
+
+  // Copy/Paste
+  copy [label="Copy → JSON\non clipboard" fillcolor="#fde2e4"]
+  edit_ext [label="Edit externally\n(clean up, share)" fillcolor="#fde2e4"]
+  paste [label="Paste back\ninto builder" fillcolor="#fde2e4"]
+
+  // Edges
+  user -> search_box
+  search_box -> found_simple
+  search_box -> need_more [label="not enough"]
+  need_more -> filter_btn [label="yes"]
+  need_more -> found_simple [label="no"]
+  filter_btn -> query_panel
+  query_panel -> type_wrong
+  type_wrong -> change_type [label="yes"]
+  type_wrong -> add_rule [label="no"]
+  change_type -> add_rule
+  add_rule -> execute
+  execute -> results
+
+  query_panel -> save [style=dashed]
+  load -> query_panel [style=dashed]
+  query_panel -> copy [style=dashed]
+  copy -> edit_ext [style=dashed]
+  edit_ext -> paste [style=dashed]
+  paste -> query_panel [style=dashed]
+}

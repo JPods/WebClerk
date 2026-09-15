@@ -1,0 +1,11 @@
+{
+    "self_fields": [
+        "direction",
+        "alert",
+        "status",
+        "alert"
+    ],
+    "related_keywords": {},
+    "related_models": [],
+    "jjj_comment": "setting model_name=\"bundle\" purpose=\"refs_setup\""
+}

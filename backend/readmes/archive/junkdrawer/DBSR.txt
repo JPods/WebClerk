@@ -1,0 +1,41 @@
+ Here's the full landscape — 33 purpose categories, 424 records. The           
+  explanations look solid for the major categories. A few used the fallback     
+  template and need refinement:                                                 
+                                                        
+  ┌──────────────────┬───────┬───────────────────────────────────────┐
+  │     Purpose      │ Count │          Explanation quality          │          
+  ├──────────────────┼───────┼───────────────────────────────────────┤
+  │ field_access     │ 89    │ Good — per-model RBAC description     │          
+  ├──────────────────┼───────┼───────────────────────────────────────┤          
+  │ workbench_fields │ 82    │ Good — DataBrowser layout description │          
+  ├──────────────────┼───────┼───────────────────────────────────────┤          
+  │ schema_map       │ 80    │ Good — Pydantic schema contract       │          
+  ├──────────────────┼───────┼───────────────────────────────────────┤          
+  │ search           │ 31    │ Good — search preset description      │
+  ├──────────────────┼───────┼───────────────────────────────────────┤
+  │ detail_layout    │ 23    │ Good — DynamicDetail layout           │
+  ├──────────────────┼───────┼───────────────────────────────────────┤
+  │ db_defaults      │ 18    │ Good — default values                 │          
+  ├──────────────────┼───────┼───────────────────────────────────────┤
+  │ admin_selectlist │ 17    │ Good — pick lists                     │          
+  ├──────────────────┼───────┼───────────────────────────────────────┤          
+  │ keywords         │ 16    │ Good — search index                   │
+  ├──────────────────┼───────┼───────────────────────────────────────┤          
+  │ alice_coaching   │ 12    │ Good — AI assistant rules             │        
+  ├──────────────────┼───────┼───────────────────────────────────────┤
+  │ admin            │ 2     │ Generic fallback — needs refinement   │
+  ├──────────────────┼───────┼───────────────────────────────────────┤          
+  │ campaign         │ 1     │ Generic fallback                      │
+  ├──────────────────┼───────┼───────────────────────────────────────┤          
+  │ schema           │ 1     │ Generic fallback                      │        
+  ├──────────────────┼───────┼───────────────────────────────────────┤
+  │ system           │ 1     │ Generic fallback                      │
+  ├──────────────────┼───────┼───────────────────────────────────────┤          
+  │ ui_webclerk      │ 1     │ Generic fallback                      │
+  ├──────────────────┼───────┼───────────────────────────────────────┤          
+  │ view_edit        │ 1     │ Generic fallback                      │        
+  └──────────────────┴───────┴───────────────────────────────────────┘          
+                                                                              
+  6 records used the generic fallback. Want to start with those, or go through
+  by purpose category? You can also click any row in the DataBrowser to see the
+  full explanation in the detail panel.              

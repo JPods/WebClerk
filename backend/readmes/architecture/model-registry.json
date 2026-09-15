@@ -1,0 +1,558 @@
+[
+  {
+    "key": "action",
+    "app": "core",
+    "model": "apps.core.models.action.Action",
+    "endpoint": "actions",
+    "kind": "support",
+    "aliases": [
+      "actions"
+    ]
+  },
+  {
+    "key": "audit",
+    "app": "accounts",
+    "model": "apps.accounts.models.audit.Audit",
+    "endpoint": "audits",
+    "kind": "support",
+    "aliases": [
+      "audits"
+    ]
+  },
+  {
+    "key": "bill_of_material",
+    "app": "products",
+    "model": "apps.products.models.bill_of_material.BillOfMaterial",
+    "endpoint": "bills-of-material",
+    "kind": "support",
+    "aliases": [
+      "bill_of_materials",
+      "bill_of_material"
+    ]
+  },
+  {
+    "key": "catalog",
+    "app": "products",
+    "model": "apps.products.models.catalog.Catalog",
+    "endpoint": "catalogs",
+    "kind": "support",
+    "aliases": [
+      "catalogs"
+    ]
+  },
+  {
+    "key": "connection",
+    "app": "sync",
+    "model": "apps.sync.models.connection.Connection",
+    "endpoint": "connections",
+    "kind": "support",
+    "aliases": [
+      "connections"
+    ]
+  },
+  {
+    "key": "contact",
+    "app": "core",
+    "model": "apps.core.models.contact.Contact",
+    "endpoint": "contacts",
+    "kind": "support",
+    "aliases": [
+      "contacts"
+    ]
+  },
+  {
+    "key": "currency",
+    "app": "accounts",
+    "model": "apps.accounts.models.currency.Currency",
+    "endpoint": "currencies",
+    "kind": "support",
+    "aliases": [
+      "currencies"
+    ]
+  },
+  {
+    "key": "delivery_line",
+    "app": "products",
+    "model": "apps.products.models.flow.DeliveryLine",
+    "endpoint": "delivery-lines",
+    "kind": "support",
+    "aliases": [
+      "delivery_lines"
+    ]
+  },
+  {
+    "key": "delivery_visit",
+    "app": "products",
+    "model": "apps.products.models.flow.DeliveryVisit",
+    "endpoint": "delivery-visits",
+    "kind": "support",
+    "aliases": [
+      "delivery_visits"
+    ]
+  },
+  {
+    "key": "doc",
+    "app": "docs",
+    "model": "apps.docs.models.document.Document",
+    "endpoint": "docs",
+    "kind": "support",
+    "aliases": [
+      "documents",
+      "document",
+      "docs"
+    ]
+  },
+  {
+    "key": "linkage",
+    "app": "docs",
+    "model": "apps.docs.models.linkage.Linkage",
+    "endpoint": "doc-linkages",
+    "kind": "support",
+    "aliases": [
+      "linkages"
+    ]
+  },
+  {
+    "key": "question_answer",
+    "app": "docs",
+    "model": "apps.docs.models.question_answer.QuestionAnswer",
+    "endpoint": "doc-qas",
+    "kind": "support",
+    "aliases": [
+      "question_answer"
+    ]
+  },
+  {
+    "key": "tag",
+    "app": "docs",
+    "model": "apps.docs.models.tag.Tag",
+    "endpoint": "doc-tags",
+    "kind": "support",
+    "aliases": [
+      "tags"
+    ]
+  },
+  {
+    "key": "document",
+    "app": "docs",
+    "model": "apps.docs.models.document.Document",
+    "endpoint": "documents",
+    "kind": "support",
+    "aliases": [
+      "documents",
+      "doc"
+    ]
+  },
+  {
+    "key": "domain",
+    "app": "communications",
+    "model": "apps.communications.models.domain.Domain",
+    "endpoint": "domains",
+    "kind": "support",
+    "aliases": [
+      "domains"
+    ]
+  },
+  {
+    "key": "email",
+    "app": "communications",
+    "model": "apps.communications.models.email.Email",
+    "endpoint": "emails",
+    "kind": "support",
+    "aliases": [
+      "emails"
+    ]
+  },
+  {
+    "key": "exchange_rate",
+    "app": "accounts",
+    "model": "apps.accounts.models.exchange_rate.ExchangeRate",
+    "endpoint": "exchange-rates",
+    "kind": "support",
+    "aliases": [
+      "exchange_rates"
+    ]
+  },
+  {
+    "key": "exchange_transaction",
+    "app": "accounts",
+    "model": "apps.accounts.models.exchange_transaction.ExchangeTransaction",
+    "endpoint": "exchange-transactions",
+    "kind": "support",
+    "aliases": [
+      "exchange_transactions"
+    ]
+  },
+  {
+    "key": "gl_account",
+    "app": "accounts",
+    "model": "apps.accounts.models.gl_account.Gl_account",
+    "endpoint": "gl-accounts",
+    "kind": "support",
+    "aliases": [
+      "gl_accounts"
+    ]
+  },
+  {
+    "key": "gl_journal",
+    "app": "accounts",
+    "model": "apps.accounts.models.gl_journal.Gl_journal",
+    "endpoint": "gl-journals",
+    "kind": "support",
+    "aliases": [
+      "gl_journals"
+    ]
+  },
+  {
+    "key": "inventory_adjustment_run",
+    "app": "products",
+    "model": "apps.products.models.processor_runs.InventoryAdjustmentProcessorRun",
+    "endpoint": "inventory-adjustment-runs",
+    "kind": "support",
+    "aliases": [
+      "inventory_adjustment_runs"
+    ]
+  },
+  {
+    "key": "inventory_check",
+    "app": "products",
+    "model": "apps.products.models.inventory_check.InventoryCheck",
+    "endpoint": "inventory-checks",
+    "kind": "support",
+    "aliases": [
+      "inventory_checks"
+    ]
+  },
+  {
+    "key": "inventory_check_line",
+    "app": "products",
+    "model": "apps.products.models.inventory_check.InventoryCheckLine",
+    "endpoint": "inventory-check-lines",
+    "kind": "support",
+    "aliases": [
+      "inventory_check_lines"
+    ]
+  },
+  {
+    "key": "inventory_metrics_snapshot",
+    "app": "products",
+    "model": "apps.products.models.metrics.InventoryMetricsSnapshot",
+    "endpoint": "inventory-metrics-snapshots",
+    "kind": "support",
+    "aliases": [
+      "inventory_metrics_snapshots"
+    ]
+  },
+  {
+    "key": "inventory_reservation",
+    "app": "products",
+    "model": "apps.products.models.inventory_reservation.InventoryReservation",
+    "endpoint": "inventory-reservations",
+    "kind": "support",
+    "aliases": [
+      "inventory_reservations"
+    ]
+  },
+  {
+    "key": "invoice",
+    "app": "transactions",
+  "model": "apps.transactions.models.Invoice",
+    "endpoint": "invoices",
+    "kind": "header",
+    "aliases": [
+      "invoices"
+    ]
+  },
+  {
+    "key": "invoice_line",
+    "app": "transactions",
+  "model": "apps.transactions.models.InvoiceLine",
+    "endpoint": "invoice-lines",
+    "kind": "line",
+    "aliases": [
+      "invoice_lines"
+    ]
+  },
+  {
+    "key": "item",
+    "app": "products",
+    "model": "apps.products.models.item.Item",
+    "endpoint": "items",
+    "kind": "support",
+    "aliases": [
+      "items"
+    ]
+  },
+  {
+    "key": "ledger",
+    "app": "accounts",
+    "model": "apps.accounts.models.ledger.Ledger",
+    "endpoint": "ledgers",
+    "kind": "support",
+    "aliases": [
+      "ledgers"
+    ]
+  },
+  {
+    "key": "address",
+    "app": "communications",
+    "model": "apps.communications.models.address.Address",
+    "endpoint": "addresses",
+    "kind": "support",
+    "aliases": [
+      "locations",
+      "addresses",
+      "location"
+    ]
+  },
+  {
+    "key": "notification",
+    "app": "core",
+    "model": "apps.core.models.notification.Notification",
+    "endpoint": "notifications",
+    "kind": "support",
+    "aliases": [
+      "notifications"
+    ]
+  },
+  {
+    "key": "org_item",
+    "app": "products",
+    "model": "apps.products.models.org_item.OrgItem",
+    "endpoint": "org-items",
+    "kind": "support",
+    "aliases": [
+      "org_items"
+    ]
+  },
+  {
+    "key": "pending_inventory_adjustment",
+    "app": "products",
+    "model": "apps.products.models.inventory_layer.PendingInventoryAdjustment",
+    "endpoint": "pending-inventory-adjustments",
+    "kind": "support",
+    "aliases": [
+      "pending_inventory_adjustments"
+    ]
+  },
+  {
+    "key": "phone",
+    "app": "communications",
+    "model": "apps.communications.models.phone.Phone",
+    "endpoint": "phones",
+    "kind": "support",
+    "aliases": [
+      "phones"
+    ]
+  },
+  {
+    "key": "project",
+    "app": "transactions",
+    "model": "apps.transactions.models.projects.Project",
+    "endpoint": "projects",
+    "kind": "support",
+    "aliases": [
+      "projects"
+    ]
+  },
+  {
+    "key": "project_association",
+    "app": "transactions",
+    "model": "apps.transactions.models.project_links.ProjectAssociation",
+    "endpoint": "project-associations",
+    "kind": "support",
+    "aliases": [
+      "project_associations"
+    ]
+  },
+  {
+    "key": "proposal",
+    "app": "transactions",
+  "model": "apps.transactions.models.Proposal",
+    "endpoint": "proposals",
+    "kind": "header",
+    "aliases": [
+      "proposals"
+    ]
+  },
+  {
+    "key": "proposal_line",
+    "app": "transactions",
+  "model": "apps.transactions.models.ProposalLine",
+    "endpoint": "proposal-lines",
+    "kind": "line",
+    "aliases": [
+      "proposal_lines"
+    ]
+  },
+  {
+    "key": "purchase",
+    "app": "transactions",
+  "model": "apps.transactions.models.Purchase",
+    "endpoint": "purchase-orders",
+    "kind": "header",
+    "aliases": [
+      "purchases"
+    ]
+  },
+  {
+    "key": "purchase_line",
+    "app": "transactions",
+  "model": "apps.transactions.models.PurchaseLine",
+    "endpoint": "purchase-order-lines",
+    "kind": "line",
+    "aliases": [
+      "purchase_lines"
+    ]
+  },
+  {
+    "key": "purchase_receipt",
+    "app": "transactions",
+    "model": "apps.transactions.models.purchase_receipt.PurchaseReceipt",
+    "endpoint": "purchase-receipts",
+    "kind": "support",
+    "aliases": [
+      "purchase_receipts"
+    ]
+  },
+  {
+    "key": "report",
+    "app": "core",
+    "model": "apps.core.models.report.Report",
+    "endpoint": "reports",
+    "kind": "support",
+    "aliases": [
+      "reports"
+    ]
+  },
+  {
+    "key": "requisition",
+    "app": "transactions",
+  "model": "apps.transactions.models.Requisition",
+    "endpoint": "requisitions",
+    "kind": "header",
+    "aliases": [
+      "requisitions"
+    ]
+  },
+  {
+    "key": "requisition_line",
+    "app": "transactions",
+  "model": "apps.transactions.models.RequisitionLine",
+    "endpoint": "requisition-lines",
+    "kind": "line",
+    "aliases": [
+      "requisition_lines"
+    ]
+  },
+  {
+    "key": "order",
+    "app": "transactions",
+  "model": "apps.transactions.models.Order",
+    "endpoint": "orders",
+    "kind": "header",
+    "aliases": [
+      "orders"
+    ]
+  },
+  {
+    "key": "order_line",
+    "app": "transactions",
+  "model": "apps.transactions.models.OrderLine",
+    "endpoint": "order-lines",
+    "kind": "line",
+    "aliases": [
+      "order_lines"
+    ]
+  },
+  {
+    "key": "serial_log",
+    "app": "products",
+    "model": "apps.products.models.serial.SerialLog",
+    "endpoint": "serial-logs",
+    "kind": "support",
+    "aliases": [
+      "serial_logs"
+    ]
+  },
+  {
+    "key": "setting",
+    "app": "core",
+    "model": "apps.core.models.setting.Setting",
+    "endpoint": "settings",
+    "kind": "support",
+    "aliases": [
+      "settings"
+    ]
+  },
+  {
+    "key": "bundle",
+    "app": "sync",
+    "model": "apps.sync.models.Bundle",
+    "endpoint": "bundles",
+    "kind": "support",
+    "aliases": [
+      "bundles_sync"
+    ]
+  },
+  {
+    "key": "tax_jurisdiction",
+    "app": "accounts",
+    "model": "apps.accounts.models.tax_jurisdiction.TaxJurisdiction",
+    "endpoint": "tax-jurisdictions",
+    "kind": "support",
+    "aliases": [
+      "tax_jurisdictions"
+    ]
+  },
+  {
+    "key": "template",
+    "app": "core",
+    "model": "apps.core.models.template.Template",
+    "endpoint": "templates",
+    "kind": "support",
+    "aliases": [
+      "templates"
+    ]
+  },
+  {
+    "key": "term",
+    "app": "accounts",
+    "model": "apps.accounts.models.term.Term",
+    "endpoint": "terms",
+    "kind": "support",
+    "aliases": [
+      "terms"
+    ]
+  },
+  {
+    "key": "warehouse",
+    "app": "products",
+    "model": "apps.products.models.warehouse.Warehouse",
+    "endpoint": "warehouses",
+    "kind": "support",
+    "aliases": [
+      "warehouses"
+    ]
+  },
+  {
+    "key": "workorder",
+    "app": "transactions",
+  "model": "apps.transactions.models.WorkOrder",
+    "endpoint": "work-orders",
+    "kind": "header",
+    "aliases": [
+      "work_orders"
+    ]
+  },
+  {
+    "key": "workorder_line",
+    "app": "transactions",
+  "model": "apps.transactions.models.WorkOrderLine",
+    "endpoint": "workorder-lines",
+    "kind": "line",
+    "aliases": [
+      "work_order_lines"
+    ]
+  }
+]

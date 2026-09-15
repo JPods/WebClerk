@@ -1,0 +1,101 @@
+// WC3 Payment Lifecycle — Order → Invoice → Payment → Apply → Journal → Ledger
+// Render: dot -Tsvg wc3-payment-lifecycle.dot -o wc3-payment-lifecycle.svg
+// Render: dot -Tpdf wc3-payment-lifecycle.dot -o wc3-payment-lifecycle.pdf
+
+digraph wc3_payment_lifecycle {
+    rankdir=TB
+    fontname="Helvetica"
+    fontsize=11
+    node [fontname="Helvetica" fontsize=10 style=filled]
+    edge [fontname="Helvetica" fontsize=8]
+    label="WC3 — Payment Lifecycle\nOrder → Invoice → Payment → Apply → Journal → Ledger"
+    labelloc=t
+    fontsize=14
+    pad=0.5
+
+    // ── Transaction Flow ──────────────────────────────────────────
+
+    order [label="Order\n10 × $10 = $100\non_so += 10" shape=box fillcolor="#D5F5E3"]
+
+    invoice [label="Invoice (partial)\n6 of 10 = $63\n(subtotal $60 + 5% tax)\non_so -= 6, on_hand -= 6" shape=box fillcolor="#ABEBC6"]
+
+    // ── Payment Creation ──────────────────────────────────────────
+
+    subgraph cluster_payment {
+        label="Payment Record"
+        style=filled
+        fillcolor="#EBF5FB"
+        fontsize=11
+
+        pay_create [label="Create Payment\n\namount = $80\ntendered = $100\nchange = $20 (auto)\navailable = $80 (auto)" shape=box fillcolor="#AED6F1"]
+
+        pay_fields [label="Four Fields\n\namount — immutable\navailable — working (decrements)\ntendered — immutable (POS)\nchange — computed" shape=note fillcolor="#D6EAF8" fontsize=9]
+    }
+
+    // ── Application ───────────────────────────────────────────────
+
+    subgraph cluster_apply {
+        label="Apply Payment to Invoice"
+        style=filled
+        fillcolor="#FEF9E7"
+        fontsize=11
+
+        apply1 [label="Apply $50\n\nPayment.available: $80 → $30\nInvoice.balance: $63 → $13\nInvoice: partially_paid" shape=octagon fillcolor="#F9E79F"]
+
+        apply2 [label="Apply $13\n\nPayment.available: $30 → $17\nInvoice.balance: $13 → $0\nInvoice: paid" shape=octagon fillcolor="#F9E79F"]
+
+        pending [label="PendingPaymentApplication\n\nstate: pending → applied\ndt_applied stamped\naudit trail" shape=box fillcolor="#FCF3CF" fontsize=9]
+    }
+
+    // ── Journaling ────────────────────────────────────────────────
+
+    journal [label="Post to GL\n(user-initiated)\n\nDR Cash $80\nCR AR $80\n\nPayment locked after post" shape=box fillcolor="#D5F5E3"]
+
+    // ── Ledger ────────────────────────────────────────────────────
+
+    subgraph cluster_ledger {
+        label="Ledger (AR Aging)"
+        style=filled
+        fillcolor="#FDEDEC"
+        fontsize=11
+
+        inv_ledger [label="Invoice Ledger\nvalue_original = +$63\nvalue_available = +$13 → $0\n(tracks balance due)" shape=box fillcolor="#F5B7B1"]
+
+        pay_ledger [label="Payment Ledger\nvalue_original = −$80\nvalue_available = −$30 → −$17\n(tracks unapplied)" shape=box fillcolor="#AED6F1"]
+
+        net [label="Net Ledger\n$13 − $30 = −$17\n(customer credit)" shape=diamond fillcolor="#FADBD8"]
+    }
+
+    // ── Org Financial ─────────────────────────────────────────────
+
+    org [label="Org Financial\n\nbalance_due: from aging buckets\navailable_payments: $17\ntotal_exposure: due + open − available\nhigh_credit, days_avg_paid" shape=box fillcolor="#D4E6F1"]
+
+    remaining [label="$17 on Account\n\n• Apply to next invoice\n• Refund\n• Leave as credit" shape=box fillcolor="#E8DAEF"]
+
+    // ── WC2 Heritage ──────────────────────────────────────────────
+
+    wc2 [label="WC2 Heritage\n\n[Payment]amount → amount\n[Payment]amountAvailable → available\n[Payment]tendered → tendered\n[Payment]change → change\nLedger_PaySave → on_payment_save()\nLedger_TallyBal → update_org_balances()\nApplyPayments → payment_pending.py" shape=box fillcolor="#F2F3F4" fontsize=8]
+
+    // ── Edges ─────────────────────────────────────────────────────
+
+    order -> invoice [label="partial ship\n6 of 10"]
+    invoice -> inv_ledger [label="on_invoice_save()\ncreate AR schedule"]
+    invoice -> pay_create [label="customer pays" style=dashed]
+
+    pay_create -> apply1 [label="allocate $50\nof $80"]
+    apply1 -> pending [label="create" style=dashed]
+    apply1 -> pay_ledger [label="available\nupdated"]
+    apply1 -> inv_ledger [label="balance\nreduced"]
+
+    pay_create -> journal [label="post GL\n(full $80)"]
+    journal -> apply2 [label="apply\nremaining $13"]
+    apply2 -> pending [label="create" style=dashed]
+    apply2 -> pay_ledger [label="available\n$30 → $17"]
+    apply2 -> inv_ledger [label="balance\n$13 → $0"]
+
+    inv_ledger -> net
+    pay_ledger -> net
+    net -> org [label="update_org_balances()"]
+
+    pay_ledger -> remaining [label="$17\nunapplied"]
+}

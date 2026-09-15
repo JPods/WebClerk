@@ -1,0 +1,39 @@
+# Django project configuration for CommerceExpert webClerk3
+
+version: '3.13.3'
+services:
+  web:
+    build: .
+    command: /Users/williamjames/Documents/CommerceExpert/webClerk3/bin/python manage.py runserver 0.0.0.0:8000
+    environment:
+      - DJANGO_SETTINGS_MODULE=webclerk3_api.settings
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: commerceexpert
+      POSTGRES_USER: commerceuser
+      POSTGRES_PASSWORD: commercepass
+    ports:
+      - "5432:5432"
+
+# Python and Django versions
+python:
+  version: 3.13.3
+
+requirements:
+  - django==5.2.8
+  - djangorestframework==3.16.0
+  - psycopg2-binary==2.9.10
+  - celery==5.5.3
+  - redis==6.4.0
+  - pydantic==2.9.2
+  # Add other dependencies as needed
+
+# Additional configuration can be added as needed

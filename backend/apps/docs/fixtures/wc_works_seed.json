@@ -1,0 +1,19 @@
+[
+  {
+    "model": "docs.document",
+    "fields": {
+      "name": "How WebClerk Works",
+      "slug": "how-webclerk-works",
+      "status": "published",
+      "description": "Architecture flowcharts — inventory, transactions, connections, security",
+      "body": "Interactive architecture diagrams for WebClerk. Browse flowcharts covering the Big 4 transactions, inventory buckets, connections, serial tracking, and more. Each diagram links to the source code via VS Code.",
+      "config": {"purpose": "wc-works", "source": "codemap", "flowcharts": 32, "version": 1},
+      "confidential": "public",
+      "path": {"url": "https://webclerk.com/wc-works/", "type": "external", "format": "html"},
+      "comment": "Seed record — points to WC_HQ hosted flowchart index. Part of every install.",
+      "sequence": 1,
+      "is_active": true,
+      "metadata": {"library": true, "category": "documentation", "install": "seed"}
+    }
+  }
+]

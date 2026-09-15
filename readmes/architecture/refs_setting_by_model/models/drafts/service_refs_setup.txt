@@ -1,0 +1,6 @@
+setting model_name="service" purpose="refs_setup"
+{
+    "self_fields": ["description", "purpose", "category"],
+    "related_keywords": {},
+    "related_models": []
+}

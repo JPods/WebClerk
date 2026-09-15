@@ -1,0 +1,124 @@
+{
+  "item_id": 240,
+  "events": [
+    {
+      "timestamp": "2026-01-26T04:09:10.788284",
+      "event_type": "BASELINE",
+      "description": "Initial baseline capture",
+      "transaction": null,
+      "snapshot": {
+        "item_id": 240,
+        "timestamp": "2026-01-26T04:09:10.472621",
+        "quantity_on_hand": 100.0,
+        "quantity_reserved": 0.0,
+        "quantity_on_order": 0.0,
+        "quantity_available": 100.0,
+        "quantity_raw": {
+          "on_po": 0,
+          "on_so": 0,
+          "on_wo": 0,
+          "on_hand": 100,
+          "invoiced": 0,
+          "allocated": 0,
+          "available": 100,
+          "sell_default": 1,
+          "purchase_default": 1
+        }
+      },
+      "pending_records": [],
+      "transaction_counts": {
+        "order_lines": 0,
+        "purchase_lines": 0,
+        "invoice_lines": 0,
+        "proposal_lines": 0
+      },
+      "delta": null
+    },
+    {
+      "timestamp": "2026-01-26T04:11:15.666919",
+      "event_type": "ORDER_CREATED",
+      "description": "Created Order #39 with 5.0 units of item 240",
+      "transaction": {
+        "type": "order",
+        "id": 39,
+        "line_id": 96,
+        "quantity": 5.0
+      },
+      "snapshot": {
+        "item_id": 240,
+        "timestamp": "2026-01-26T04:11:15.358271",
+        "quantity_on_hand": 100.0,
+        "quantity_reserved": 0.0,
+        "quantity_on_order": 0.0,
+        "quantity_available": 100.0,
+        "quantity_raw": {
+          "on_po": 0,
+          "on_so": 0,
+          "on_wo": 0,
+          "on_hand": 100,
+          "invoiced": 0,
+          "allocated": 0,
+          "available": 100,
+          "sell_default": 1,
+          "purchase_default": 1
+        }
+      },
+      "pending_records": [],
+      "transaction_counts": {
+        "order_lines": 1,
+        "purchase_lines": 0,
+        "invoice_lines": 0,
+        "proposal_lines": 0
+      },
+      "delta": {
+        "quantity_on_hand": 0.0,
+        "quantity_reserved": 0.0,
+        "quantity_on_order": 0.0,
+        "quantity_available": 0.0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T04:11:26.264122",
+      "event_type": "PURCHASE_CREATED",
+      "description": "Created Purchase #31 with 10.0 units of item 240",
+      "transaction": {
+        "type": "purchase",
+        "id": 31,
+        "line_id": 58,
+        "quantity": 10.0
+      },
+      "snapshot": {
+        "item_id": 240,
+        "timestamp": "2026-01-26T04:11:25.924368",
+        "quantity_on_hand": 100.0,
+        "quantity_reserved": 0.0,
+        "quantity_on_order": 0.0,
+        "quantity_available": 100.0,
+        "quantity_raw": {
+          "on_po": 0,
+          "on_so": 0,
+          "on_wo": 0,
+          "on_hand": 100,
+          "invoiced": 0,
+          "allocated": 0,
+          "available": 100,
+          "sell_default": 1,
+          "purchase_default": 1
+        }
+      },
+      "pending_records": [],
+      "transaction_counts": {
+        "order_lines": 1,
+        "purchase_lines": 1,
+        "invoice_lines": 0,
+        "proposal_lines": 0
+      },
+      "delta": {
+        "quantity_on_hand": 0.0,
+        "quantity_reserved": 0.0,
+        "quantity_on_order": 0.0,
+        "quantity_available": 0.0
+      }
+    }
+  ]
+}

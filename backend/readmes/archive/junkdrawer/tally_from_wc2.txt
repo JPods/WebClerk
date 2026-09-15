@@ -1,0 +1,220 @@
+What WC2 Does — The Tally Architecture
+
+  Three distinct layers of data→information:
+
+  1. Line Extension (data → extended data)
+
+  OrdLnExtend, IvcLnExtend, PoLnExtend, PpLnExtend — these take a single
+  line item and compute:
+  - Backlog qty (ordered - shipped)
+  - Discounted unit price (via DiscountApply)
+  - Extended price, extended cost, extended weight
+  - Tax per line (via TaxCalcLine)
+  - Commission per line (via CM_LineCalc — supports both
+  sales-amount-based and margin-based)
+  - Handles unit-of-measure conversions (*10 meaning price-per-10)
+
+  2. Header Rollup (extended data → document totals)
+
+  calcOrder, calcInvoice, calcPO, calcProposal — loop all lines, sum
+  extensions into header fields:
+  - amount, totalCost, grossMargin, salesTax, taxOnCost, shipTotal, total
+  - Commission (with per-rep scriptable override via ExecuteText)
+  - Auto-freight calculation
+  - Multi-currency with exchange rate
+  - Running balance against customer credit limit
+  - Balance due = total - appliedDiscount - appliedAmount (invoice)
+
+  3. Cross-Document Consolidation (header totals → customer/GL/inventory
+  intelligence)
+
+  - Ledger_TallyBal — AR aging buckets (future, current, 30/60/90) from
+  unAppliedValue on ledger records, plus avg days paid, invoice count,
+  total exposure (open orders + balance due), high credit watermark
+  - GL_JrnlSummary — accumulates debits/credits by GL account + division,
+  net-settles (if debit > credit, show net debit)
+  - ConsolidateRecs — merges duplicate customer/item IDs across ALL
+  related tables (orders, invoices, payments, contacts, serials, etc.)
+  - ItemSiteTally — inventory by site/item, adjusts qty on hand from
+  inventory transactions
+  - DealLoc_Tally — aggregates invoice data by customer+type+ship-to into
+  TallyResult records for dealer locator display
+
+  4. TallyMaster — The Script Engine
+
+  The TallyMaster table stores named, purpose-tagged scripts that run via
+  ExecuteText. This is WC2's configurable calculation engine —
+  users/admins could define custom tallies without code changes. Used for
+  reports, email generation (EmailByTallyMaster), and custom business
+  logic.
+
+  ---
+  My Questions for Bill
+
+  1. TallyMaster as concept — This is essentially a stored-procedure
+  system inside 4D. In WC3, the closest equivalent would be Alice running
+  configurable scripts or Settings-driven calculation rules. Do you want
+  the concept (named, purpose-tagged, user-editable calculation scripts)
+  carried forward, or was TallyMaster a product of 4D's limitations that
+  Django/Python makes unnecessary?
+
+my comment: there are both exiting functions and user-created-scripts. What do you recommend. But as report records not as setting.
+
+  2. Commission flexibility — WC2 supports both sales-amount-based and
+  margin-based commission, with per-rep scriptable overrides
+  (aEmpRateScript). Is this commission flexibility something WC3 customers
+   actually use? How many different commission models do we need to
+  support?
+
+We can put this on a future maybe list. Commission can be very messy.
+
+  3. The line extension pattern — Every document type (order, invoice, PO,
+   proposal) has its own LnExtend method doing essentially the same
+  calculation with slightly different array names. Was this duplication a
+  pain point? In WC3, should there be ONE line calculation that works for
+  all document types?
+
+Yes. in wc3 I really worked on the schema to drive naming and behaviors into an inheritable base behavior and minimum model specifics.
+
+  4. AR aging buckets — Ledger_TallyBal computes future/current/30/60/90
+  buckets. The code has two competing approaches (date-due-relative vs
+  days-past-due) with one commented out. Which approach did customers
+  actually use? Are the bucket boundaries (30/60/90) always right, or do
+  some businesses need different periods?
+
+The fixed bucket boundaries were the only thing ever used. Future due is important for terms for selling to retailers for Christmas season were payments might be 6 months in the future.
+
+  5. GL Journal Summary netting — GL_JrnlSummary collapses debits and
+  credits into net positions per account. Is this the pattern WC3 should
+  follow for journal entries, or should WC3 keep gross debits and credits
+  separate (standard accounting practice) and only net for display?
+
+standard accounting practices
+
+
+  6. ConsolidateRecs — this walks every table that has a customerID or
+  itemNum and swaps old→new. It's essentially a merge tool. Is this still 
+  needed in WC3, and should it be Alice's job to orchestrate?
+
+No. this is why we have uuid for between data sets and manage all data imports from arranged in to bundle records outside wc3. data manage was a mess.
+
+  7. What was the hardest tally to get right? Which of these caused the   
+  most customer support calls or bugs over the years? 
+
+None were tough. Some used by some. But many small business people are just focus on sales and costs, a few margins. I was trying to get them to pay attention to margin velocity. Also there is an 20/200-60-20/100 rule: 20% of your transactions account for 200% of margins, 60% waffle along at break even, 20% cost 100% of margins, resulting in the final 100% of margins. People would do well to weed out product sales that cost them to sell.
+
+Do these make sense
+
+
+ Two follow-up questions:
+
+  1. Report records for scripts — when you say Report records, do you mean
+   the existing WC3 Report model, or a new model? The current Report model
+   has model_name, category, output_type, config. Should the script live
+  in config as a JSON field, or does it need its own field?
+
+existing report model. Do you have a different recommendation. In wc2 I had them scattered acrossed multiple tables. it was a mess
+
+  2. The 20/200-60-20/100 analysis — should this be a standard Report that
+   ships with every WC3 installation (Alice recommends it during
+  onboarding), or should it be something Alice proactively surfaces when
+  she detects the pattern in transaction data?
+
+standard report in the Alice, Product, and Support dashboards. different People
+
+
+
+
+What's Actually Worth Salvaging from WC2                                
+   
+  1. Shipping/Freight — the real gap                                      
+                                                                  
+  WC2's ShippingCost is substantial: carrier profiles with zones,         
+  weight-based rate tables (shipWtCost), fuel factors, per-package cost
+  splitting via LoadTags, insurance calculation, COD charges, handling    
+  charges, call tag rates. WC3 has nothing — only after-the-fact landed
+  cost capture.
+
+  Worth salvaging? The pattern, not the code. A Carrier model with zone   
+  rates, fuel factor, and a scriptable override (same pattern as
+  commission scripts in WC2).                                             
+                                                                  
+  2. Tax Jurisdiction — wire what exists
+
+  WC2's TaxCalcLine shows three tax modes: StandardSalesTax (rate ×       
+  amount), ByCost (rate × cost), and WebBased (external service call). WC3
+   already has the TaxJurisdiction model with rate fields — it just needs 
+  the calculation wired in. The WC2 pattern of jurisdiction-level 
+  scriptable tax (aTaxScriptSales) is worth noting.
+
+  Worth salvaging? The three-mode pattern. WC3 already has the model; it  
+  needs the calc function.
+                                                                          
+  3. RunningBalance — credit check pattern                        
+
+  WC2 checks credit limit minus balance due minus open orders in real time
+   during document editing, with a visual alert (beep + yellow background)
+   when over limit. WC3 has credit_utilization() but I don't know if it's 
+  called during order/invoice entry.                              
+
+  Worth salvaging? The trigger pattern — check credit at document save,   
+  not just on a report.
+                                                                          
+  4. BOM cost rollup — already done                               
+
+  WC3's recalc_parent_cost does what WC2's BOM_ExtendCost does. No salvage
+   needed.
+                                                                          
+  5. Discount hierarchy                                                   
+   
+  WC2's Get_Price shows a clean precedence: item-specific discount →      
+  type-of-sale price level (A/B/C/D/MSRP) → fallback. WC3's CatalogLine
+  has tiers but the precedence logic may need confirming.                 
+                                                                  
+  Worth salvaging? The precedence rule, not the code.                     
+   
+  ---                                                                     
+  Bottom line: Shipping/freight is the one real gap. Tax calc needs
+  wiring. Credit check needs a trigger point. Everything else either      
+  exists or is deferred (commission).                               
+                                                                          
+  Should I draft a Carrier model for WC3, or is there more WC2 territory
+  you want me to scan first?                                              
+   
+
+
+
+  1. Returns/RMA workflow — credit_note type exists but no return         
+  authorization flow (create RMA → receive returned goods → issue credit
+  note → adjust inventory). WC2 didn't have this formally either, but a   
+  commerce app needs it.                                          
+  2. Terms/early payment discount — "2% 10 net 30" calculation. terms
+  field exists on transactions but no calc that applies the discount when 
+  payment is within the discount window. WC2 had this via ShippingCost
+  terms parameter.                                                        
+  3. Customer statements — periodic AR statement generation (list of open
+  invoices, payments, balance). Not the bank statement import (that       
+  exists). The outbound statement you mail to the customer.
+  4. Multi-currency on transactions — WC2 had exchangeRate and currency on
+   every order/invoice. WC3 has currency in the cost envelope and         
+  exchange_expense in finance, but no exchange rate field on the
+  transaction header. No rate lookup.                                     
+  5. Recurring orders/subscriptions — auto-generate orders on a schedule.
+  Subscription commerce. Not present.                                     
+  6. Drop ship — order line flagged to ship from vendor directly to
+  customer. Automatically generates PO to vendor with customer's ship-to. 
+  WC2 had DropShipFill.                                           
+  7. Landed cost allocation — allocate freight, duty, customs costs across
+   received items to compute true cost. InventoryLayer has the fields     
+  (cost.freight, cost.duty) but no allocation service.
+  8. Batch operations — batch invoice (invoice all open orders), batch    
+  payment (apply one check to many invoices), batch ship. Individual      
+  operations exist but no batch orchestration.
+  9. Approval workflows — price below margin needs manager approval,      
+  credit limit override needs approval, large orders need approval. No    
+  workflow engine.
+  10. Consignment — goods at customer location, billed when sold/used. No 
+  model for this.   
+
+
+  /Users/williamjames/Documents/CommerceExpert/webclerk2/ComEx19ak/Project/Sources/Methods

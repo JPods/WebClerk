@@ -1,0 +1,220 @@
+{
+  "entries": [
+    {
+      "period": "2026-01",
+      "dt_period_start": 1767225600000,
+      "dt_period_end": 1769903999000,
+      "debit": { "account": "6100-SALARY", "amount": 12500.00 },
+      "credit": { "account": "2100-ACCRUED-PAYROLL", "amount": 12500.00 },
+      "description": "Salaried staff"
+    },
+    {
+      "period": "2026-01",
+      "dt_period_start": 1767225600000,
+      "dt_period_end": 1769903999000,
+      "debit": { "account": "6110-WAGES", "amount": 8200.00 },
+      "credit": { "account": "2100-ACCRUED-PAYROLL", "amount": 8200.00 },
+      "description": "Hourly employees"
+    },
+    {
+      "period": "2026-01",
+      "dt_period_start": 1767225600000,
+      "dt_period_end": 1769903999000,
+      "debit": { "account": "6120-BENEFITS", "amount": 3100.00 },
+      "credit": { "account": "2110-BENEFITS-PAYABLE", "amount": 3100.00 },
+      "description": "Health + dental"
+    },
+    {
+      "period": "2026-01",
+      "dt_period_start": 1767225600000,
+      "dt_period_end": 1769903999000,
+      "debit": { "account": "6130-PAYROLL-TAX", "amount": 2800.00 },
+      "credit": { "account": "2120-PAYROLL-TAX-PAYABLE", "amount": 2800.00 },
+      "description": "Employer FICA + state"
+    },
+    {
+      "period": "2026-01",
+      "dt_period_start": 1767225600000,
+      "dt_period_end": 1769903999000,
+      "debit": { "account": "6300-RENT", "amount": 4500.00 },
+      "credit": { "account": "1000-CASH", "amount": 4500.00 },
+      "description": "Office lease"
+    },
+    {
+      "period": "2026-01",
+      "dt_period_start": 1767225600000,
+      "dt_period_end": 1769903999000,
+      "debit": { "account": "6310-INSURANCE", "amount": 1200.00 },
+      "credit": { "account": "1000-CASH", "amount": 1200.00 },
+      "description": "Property + liability"
+    },
+    {
+      "period": "2026-01",
+      "dt_period_start": 1767225600000,
+      "dt_period_end": 1769903999000,
+      "debit": { "account": "6320-UTILITIES", "amount": 1100.00 },
+      "credit": { "account": "1000-CASH", "amount": 1100.00 },
+      "description": "Electric + water + internet (winter)"
+    },
+    {
+      "period": "2026-01",
+      "dt_period_start": 1767225600000,
+      "dt_period_end": 1769903999000,
+      "debit": { "account": "6400-TRAVEL", "amount": 800.00 },
+      "credit": { "account": "1000-CASH", "amount": 800.00 },
+      "description": "Minimal Jan travel"
+    },
+    {
+      "period": "2026-01",
+      "dt_period_start": 1767225600000,
+      "dt_period_end": 1769903999000,
+      "debit": { "account": "6500-DEPRECIATION", "amount": 833.00 },
+      "credit": { "account": "1500-EQUIPMENT", "amount": 833.00 },
+      "description": "CNC Mill 60mo straight-line"
+    },
+    {
+      "period": "2026-02",
+      "dt_period_start": 1769904000000,
+      "dt_period_end": 1772323199000,
+      "debit": { "account": "6100-SALARY", "amount": 12500.00 },
+      "credit": { "account": "2100-ACCRUED-PAYROLL", "amount": 12500.00 },
+      "description": "Salaried staff"
+    },
+    {
+      "period": "2026-02",
+      "dt_period_start": 1769904000000,
+      "dt_period_end": 1772323199000,
+      "debit": { "account": "6110-WAGES", "amount": 8200.00 },
+      "credit": { "account": "2100-ACCRUED-PAYROLL", "amount": 8200.00 },
+      "description": "Hourly employees"
+    },
+    {
+      "period": "2026-02",
+      "dt_period_start": 1769904000000,
+      "dt_period_end": 1772323199000,
+      "debit": { "account": "6120-BENEFITS", "amount": 3100.00 },
+      "credit": { "account": "2110-BENEFITS-PAYABLE", "amount": 3100.00 },
+      "description": "Health + dental"
+    },
+    {
+      "period": "2026-02",
+      "dt_period_start": 1769904000000,
+      "dt_period_end": 1772323199000,
+      "debit": { "account": "6130-PAYROLL-TAX", "amount": 2800.00 },
+      "credit": { "account": "2120-PAYROLL-TAX-PAYABLE", "amount": 2800.00 },
+      "description": "Employer FICA + state"
+    },
+    {
+      "period": "2026-02",
+      "dt_period_start": 1769904000000,
+      "dt_period_end": 1772323199000,
+      "debit": { "account": "6300-RENT", "amount": 4500.00 },
+      "credit": { "account": "1000-CASH", "amount": 4500.00 },
+      "description": "Office lease"
+    },
+    {
+      "period": "2026-02",
+      "dt_period_start": 1769904000000,
+      "dt_period_end": 1772323199000,
+      "debit": { "account": "6310-INSURANCE", "amount": 1200.00 },
+      "credit": { "account": "1000-CASH", "amount": 1200.00 },
+      "description": "Property + liability"
+    },
+    {
+      "period": "2026-02",
+      "dt_period_start": 1769904000000,
+      "dt_period_end": 1772323199000,
+      "debit": { "account": "6320-UTILITIES", "amount": 1050.00 },
+      "credit": { "account": "1000-CASH", "amount": 1050.00 },
+      "description": "Electric + water + internet (winter)"
+    },
+    {
+      "period": "2026-02",
+      "dt_period_start": 1769904000000,
+      "dt_period_end": 1772323199000,
+      "debit": { "account": "6400-TRAVEL", "amount": 1200.00 },
+      "credit": { "account": "1000-CASH", "amount": 1200.00 },
+      "description": "Trade show season"
+    },
+    {
+      "period": "2026-02",
+      "dt_period_start": 1769904000000,
+      "dt_period_end": 1772323199000,
+      "debit": { "account": "6500-DEPRECIATION", "amount": 833.00 },
+      "credit": { "account": "1500-EQUIPMENT", "amount": 833.00 },
+      "description": "CNC Mill 60mo straight-line"
+    },
+    {
+      "period": "2026-03",
+      "dt_period_start": 1772323200000,
+      "dt_period_end": 1775001599000,
+      "debit": { "account": "6100-SALARY", "amount": 12500.00 },
+      "credit": { "account": "2100-ACCRUED-PAYROLL", "amount": 12500.00 },
+      "description": "Salaried staff"
+    },
+    {
+      "period": "2026-03",
+      "dt_period_start": 1772323200000,
+      "dt_period_end": 1775001599000,
+      "debit": { "account": "6110-WAGES", "amount": 8200.00 },
+      "credit": { "account": "2100-ACCRUED-PAYROLL", "amount": 8200.00 },
+      "description": "Hourly employees"
+    },
+    {
+      "period": "2026-03",
+      "dt_period_start": 1772323200000,
+      "dt_period_end": 1775001599000,
+      "debit": { "account": "6120-BENEFITS", "amount": 3100.00 },
+      "credit": { "account": "2110-BENEFITS-PAYABLE", "amount": 3100.00 },
+      "description": "Health + dental"
+    },
+    {
+      "period": "2026-03",
+      "dt_period_start": 1772323200000,
+      "dt_period_end": 1775001599000,
+      "debit": { "account": "6130-PAYROLL-TAX", "amount": 2800.00 },
+      "credit": { "account": "2120-PAYROLL-TAX-PAYABLE", "amount": 2800.00 },
+      "description": "Employer FICA + state"
+    },
+    {
+      "period": "2026-03",
+      "dt_period_start": 1772323200000,
+      "dt_period_end": 1775001599000,
+      "debit": { "account": "6300-RENT", "amount": 4500.00 },
+      "credit": { "account": "1000-CASH", "amount": 4500.00 },
+      "description": "Office lease"
+    },
+    {
+      "period": "2026-03",
+      "dt_period_start": 1772323200000,
+      "dt_period_end": 1775001599000,
+      "debit": { "account": "6310-INSURANCE", "amount": 1200.00 },
+      "credit": { "account": "1000-CASH", "amount": 1200.00 },
+      "description": "Property + liability"
+    },
+    {
+      "period": "2026-03",
+      "dt_period_start": 1772323200000,
+      "dt_period_end": 1775001599000,
+      "debit": { "account": "6320-UTILITIES", "amount": 850.00 },
+      "credit": { "account": "1000-CASH", "amount": 850.00 },
+      "description": "Electric + water + internet"
+    },
+    {
+      "period": "2026-03",
+      "dt_period_start": 1772323200000,
+      "dt_period_end": 1775001599000,
+      "debit": { "account": "6400-TRAVEL", "amount": 2500.00 },
+      "credit": { "account": "1000-CASH", "amount": 2500.00 },
+      "description": "Spring trade shows"
+    },
+    {
+      "period": "2026-03",
+      "dt_period_start": 1772323200000,
+      "dt_period_end": 1775001599000,
+      "debit": { "account": "6500-DEPRECIATION", "amount": 833.00 },
+      "credit": { "account": "1500-EQUIPMENT", "amount": 833.00 },
+      "description": "CNC Mill 60mo straight-line"
+    }
+  ]
+}

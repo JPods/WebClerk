@@ -1,0 +1,6 @@
+setting model_name="specification" purpose="refs_setup"
+{
+    "self_fields": ["name", "description", "unit"],
+    "related_keywords": {},
+    "related_models": ["item"]
+}

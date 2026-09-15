@@ -1,0 +1,20 @@
+{
+    "self_fields": [
+        "address1",
+        "address2",
+        "city",
+        "state",
+        "zip",
+        "country",
+        "address_type"
+    ],
+    "related_keywords": {},
+    "related_models": [
+        "contact",
+        "customer",
+        "vendor",
+        "rep",
+        "manufacturer"
+    ],
+    "jjj_comment": "setting model_name=\"location\" purpose=\"refs_setup\""
+}

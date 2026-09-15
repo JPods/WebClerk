@@ -1,0 +1,86 @@
+{"setting":
+    {"model_name":"customer",
+    "org_type":"customer",
+
+    "purpose":"company_defaults",
+    "name":"company-primary"},
+"fields": {
+    "dt_created": 0,
+    "dt_modified": 0,
+    "version": 1,
+    "is_active": true,
+    "security_level": 0,
+    "metadata": {
+        "security": "",
+        "publish": "",
+        "priority": "",
+        "version": "1.0",
+        "access": {"view": [], "edit": []},
+        "resources": {"required": {}, "allocated": {}},
+        "flow": {},
+        "source": {},
+        "history": {
+            "created": {"dt": 0, "contact_id": 0},
+            "modified": {"dt": 0, "contact_id": 0},
+            "accessed": {"dt": 0, "contact_id": 0},
+            "verified": {"dt": 0, "contact_id": 0},
+            "synced": {"dt": 0, "contact_id": 0}
+        },
+        "health": {
+            "rating": 0,
+            "completeness": 0,
+            "accuracy": 0,
+            "freshness": 0,
+            "consistency": 0
+        },
+        "undefined": {},
+        "flags": {"schema_rev": 1}
+    },
+    "refs": {
+        "keywords": [],
+        "tags": [],
+        "links": {"contacts": [], "items": []},
+        "depends_on": {},
+        "categories": [],
+        "related_ids": []
+    },
+    "prefs": {"userdefined": {}},
+    "comments": {
+        "public": "",
+        "process": "",
+        "partner": "",
+        "notes": []
+    },
+    "actions": {},
+    "health_rating": 0,
+    "is_deleted": false,
+    "is_archived": false,
+    "org_type": "customer",
+    "company": "",
+    "status": "",
+    "contacts": {"sales":[1],"support":[1],"shipping":[1]},
+    "locations": {"billto":[1],"shipto":1},
+    "domains": {"main":[1],"support":[1],"info":[1],"billto":[1],"shipto":[1]},
+    "phones": {"main":[1],"support":[1],"info":[1],"billto":[1],"shipto":[1]},
+    "emails": {"support":[1],"info":[1],"billto":[1],"shipto":1},
+    "email_servers": {"server":"","port":0,"use_ssl":true,"username":"","password":"","folder":"","use_oauth":false,"oauth_token":""},
+    "docs_path": "",
+    "connections": {},
+    "relations": {"parents": [], "children": [], "linked_ids": []},
+    "financial": {"credit": {}, "balances": {}, "due_buckets": [], "metrics": {}},
+    "data": {},
+    "metrics": {"counts": {}, "periods": {}},
+    "gl_accounts": {"sales": "4000", "receivable": "1200", "deposit": "2100", "inventory": "1400", "cogs": "5000"},
+
+    "tax_status": "taxable",
+    "tax_exempt_code": "",
+    "tax_ids": {"default":1},
+    "default_terms": "internal",
+    "default_currency": "USD",
+    "default_language": "en",
+    "default_payment_method": "Credit Card",
+    "default_shipping_method": "Standard Ground",
+    "default_pricing_tier": "Retail"
+    }
+}
+

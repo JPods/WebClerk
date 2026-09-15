@@ -1,0 +1,14 @@
+let startTimestamp = toTimestampMilliseconds(state.startDate);
+    let dueTimestamp = toTimestampMilliseconds(state.dueDate);
+    let completedTimeStamp = toTimestampMilliseconds(state.endDate);
+    // dt_completed 
+
+    // completedTimeStamp must not modify dueTimestamp or startTimestamp
+    // Remove auto-propagation logic to keep fields independent
+    if (startTimestamp == null && dueTimestamp !== null) {
+      startTimestamp = dueTimestamp;
+    }
+    if (startTimestamp !== null && dueTimestamp !== null && dueTimestamp < startTimestamp) {
+      startTimestamp = dueTimestamp;
+      // return { error: "End date must be on or after start date." };
+    }

@@ -1,0 +1,6 @@
+We need to define a framework for users to understand:
+1. Touch records are light weight links in a chain that reach out beyond our data and organization to solicite actions from other sources.
+2. Action records define and drive our future actions
+2. Other records document the resulting relationships and transactions.
+
+What do you think of this conceptual approach? Is there a way to build a flowchart on this concept?

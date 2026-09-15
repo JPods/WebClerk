@@ -1,0 +1,152 @@
+// WC3 Action Touches — multi-touch communication tracking
+// Email, phone calls, visits logged as Action records with action_type
+// No new FKs — contact_id is the target, assigned_to is who made the touch, org via Contact
+// Render: dot -Tpdf wc3-action-touches.dot -o wc3-action-touches.pdf
+
+// CodeMap revision: 2 — 2026-08-11
+
+digraph wc3_action_touches {
+    size="10.0,7.5"
+    ratio="compress"
+
+
+
+    // ── CodeMap Standard Style ──
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=TB
+    label="WC3 — Action Multi-Touch\nEmail, Phone, Visit, Meeting — no new FKs needed"
+    labelloc=t
+
+    // ── The two existing relationships ──
+    subgraph cluster_identity {
+        label="Identity Layer (existing models)"
+        style=dashed
+        color="#888"
+        fontcolor="#888"
+
+        contact [label="Contact\n(target)\n\ncontact_id on Action\nindexed BigIntegerField\n\nIS the customer\nIS the vendor\nIS the employee\nroles — not separate models" shape=box fillcolor="#F4D03F" fontsize=9 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/contacts/models/contact.py" target="_blank" tooltip="Central identity — customers, vendors, employees. Has related Email, Phone, Address models.\nModel: apps/contacts/models/contact.py"]
+
+        org [label="Org\n(via Contact)\n\nContact.org FK\nno org_id on Action\norg is a property of\nthe contact, not the touch" shape=box fillcolor="#E59866" fontcolor=white fontsize=9]
+
+        toucher [label="Who Made the Touch\n\nassigned_to[0]\n= {id, email, name}\ncreated_by[0]\n= {id, email, dt_ms}\n\nno separate FK needed" shape=box fillcolor="#AED6F1" fontsize=9]
+
+        contact -> org [label="Contact.org\nFK exists" color="#E59866" style=dashed]
+    }
+
+    // ── Parent Action ──
+    parent_action [label="Parent Action\n(Opportunity / Case)\n\ncontact_id → target\nassigned_to → team\nproject_id → Project\nstatus: open/won/lost\npercent_complete\n\nNO org_id needed\n(derive from contact.org)" shape=diamond fillcolor="#F4D03F" fontsize=9 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/models/action.py:12" target="_blank" tooltip="Parent action — opportunity or case. Child actions are touches (email, call, visit).\nModel: apps/core/models/action.py:12\nFunctions:
+  Action.parent_action @ apps/core/models/action.py:12 (FK to self via uuid — parent-child hierarchy)"]
+
+    // ── Communication channels ──
+    subgraph cluster_channels {
+        label="Touch Types (action_type enum — choices.py:30)"
+        style=dashed
+        color="#2980B9"
+        fontcolor="#2980B9"
+
+        email_touch [label="action_type='email'\n\nsubject → action{en:...}\nbody → description{en:...}\nsent_to → assigned_to[]\ndt_completed = sent time\ntemplate_id → config" shape=box fillcolor="#85C1E9" fontsize=9 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/models/action.py:10" target="_blank" tooltip="Email touch — Action with action_type='email'. Subject in action field, body in description.\nModel: apps/core/models/action.py:10\nFunctions:
+  Action with action_type='email' @ apps/core/choices.py:30 (action_type enum includes call, email, visit, meeting, demo, etc.)"]
+
+        call_touch [label="action_type='call'\n\nnotes → description{en:...}\nduration → config.duration\noutcome → status\ndt_start / dt_completed\nconfig.call_direction" shape=box fillcolor="#82E0AA" fontsize=9 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/models/action.py:10" target="_blank" tooltip="Phone call touch — Action with action_type='call'. Notes in description, duration in config.\nModel: apps/core/models/action.py:10"]
+
+        visit_touch [label="action_type='visit'\n\nlocation → metadata.address\nnotes → description{en:...}\ndt_start / dt_completed\nconfig.visit_type\nphotos → LinkageEntry" shape=box fillcolor="#E8DAEF" fontsize=9 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/models/action.py:10" target="_blank" tooltip="Visit touch — Action with action_type='visit'. Location in metadata.address, photos via LinkageEntry.\nModel: apps/core/models/action.py:10"]
+
+        meeting_touch [label="action_type='meeting'\n\nagenda → description{en:...}\nattendees → assigned_to[]\ndt_start / dt_completed\nconfig.meeting_url\nconfig.location" shape=box fillcolor="#FADBD8" fontsize=9 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/models/action.py:10" target="_blank" tooltip="Meeting touch — Action with action_type='meeting'. Attendees in assigned_to, agenda in description.\nModel: apps/core/models/action.py:10"]
+    }
+
+    // ── Where data lives ──
+    subgraph cluster_field_map {
+        label="Field Map — every touch uses the same Action fields"
+        style=dashed
+        color="#27AE60"
+        fontcolor="#27AE60"
+
+        field_map [label="contact_id → who was touched (indexed)\nassigned_to → who did the touching\ncreated_by → audit: who created this record\nparent_action → links touch to opportunity\naction_type → email | call | visit | meeting\ndt_start / dt_completed → when\ndescription → notes / body / agenda\nconfig → type-specific data (duration, url, direction)\nmetadata.address → visit location\ncomments → threaded follow-up notes" shape=note fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── Touch sequence ──
+    touch_timeline [label="Touch Timeline\n\nQuery: Action.objects.filter(\n  parent_action=opportunity.uuid\n).order_by('dt_created')\n\nTouch 1: email (day 1)\nTouch 2: call (day 3)\nTouch 3: visit (day 7)\nTouch 4: email (day 10)\nTouch 5: meeting (day 14)" shape=note fillcolor="#FDFEFE" fontsize=8 tooltip="Touch timeline — all child actions for a parent, ordered by dt_created. Shows multi-touch sequence."]
+
+    // ── Retrospection ──
+    retro [label="Retrospection\n\nretrospection.intent\nretrospection.grade (A-F)\nretrospection.tfts\nimpact.predicted (1-5)\nimpact.actual (1-5)\nAlice auto-populates actual" shape=box fillcolor="#922B21" fontcolor=white fontsize=9 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/models/action.py:90" target="_blank" tooltip="Retrospection on Action — intent, grade A-F, TFTS arc, impact predicted vs actual. Alice auto-populates.\nModel: apps/core/models/action.py:90\nFunctions:
+  Action.retrospection @ apps/core/models/action.py:90 (JSONField: intent, grade, tfts, known_unknowns)
+  Action.impact @ apps/core/models/action.py:37 (JSONField: predicted 1-5, actual 1-5, refs, explanation)"]
+
+    // ── Mail merge ──
+    mail_merge [label="Mail Merge\n\nmerge_template()\npreview_merge()\nsend_email()\nbulk_send()\n\nemail touch creates\nAction + sends via template" shape=box fillcolor="#AED6F1" fontsize=9 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/communications/services/mail_merge.py:1" target="_blank" tooltip="Mail merge — template-based email generation. merge, preview, send, bulk_send.\nService: apps/communications/services/mail_merge.py\nFunctions:
+  merge_template @ apps/communications/services/mail_merge.py:1 (template rendering)
+  send_email @ apps/communications/services/mail_merge.py:1 (send via template)
+  bulk_send @ apps/communications/services/mail_merge.py:1 (batch send to multiple contacts)"]
+
+    // ── Documents ──
+    documents [label="Attached Documents\n\nproposal PDF\nmeeting notes\nsite photos / video\n\nvia LinkageEntry\n(group_id clusters\naction + documents)" shape=box fillcolor="#8E44AD" fontcolor=white fontsize=9 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/docs/models/document.py:22" target="_blank" tooltip="Attached documents — proposals, photos, videos, meeting notes. Linked via LinkageEntry.\nModel: apps/docs/models/document.py:22"]
+
+    // ── Kanban ──
+    kanban [label="Kanban View\n\nBacklog → Planning\n→ InProcess → Review\n→ Complete\n\nkanban_column field\napplies to parent action" shape=box fillcolor="#F5B7B1" fontsize=9 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/models/action.py:34" target="_blank" tooltip="Kanban view — Action workflow columns. Backlog → Planning → InProcess → Review → Complete.\nModel: apps/core/models/action.py:34\nFunctions:
+  Action.kanban_column @ apps/core/models/action.py:34 (choices: Backlog, Planning, InProcess, Review, Complete)"]
+
+    // ── Design decision ──
+    design_note [label="DESIGN DECISION\n\nNo new FKs for org, customer,\nvendor, employee.\n\ncontact_id is the identity.\nRoles are on Contact, not Action.\nOrg is via Contact.org FK.\nassigned_to is the toucher.\n\nrefs is cache, not authority.\nPKs are authoritative." shape=note fillcolor="#3a2a1b" fontcolor="#dcdcaa" fontsize=8]
+
+    // ── Edges ──
+
+    // Identity
+    contact -> parent_action [label="contact_id\n(indexed)" color="#E59866" style=bold]
+    toucher -> parent_action [label="assigned_to[]\ncreated_by[]" color="#2980B9"]
+
+    // Parent → children
+    parent_action -> email_touch [label="parent_action\n(child)" color="#2980B9"]
+    parent_action -> call_touch [label="parent_action\n(child)" color="#27AE60"]
+    parent_action -> visit_touch [label="parent_action\n(child)" color="#8E44AD"]
+    parent_action -> meeting_touch [label="parent_action\n(child)" color="#E74C3C"]
+
+    // Each touch inherits contact_id from parent
+    email_touch -> contact [label="same contact_id\nas parent" style=dashed color="#888"]
+    call_touch -> contact [label="same contact_id" style=dashed color="#888"]
+    visit_touch -> contact [label="same contact_id" style=dashed color="#888"]
+    meeting_touch -> contact [label="same contact_id" style=dashed color="#888"]
+
+    // Email → mail merge
+    email_touch -> mail_merge [label="template" color="#2980B9" style=dashed]
+
+    // Timeline and workflow
+    parent_action -> touch_timeline [color="#F39C12" style=dashed]
+    parent_action -> retro [label="at close" color="#922B21"]
+    parent_action -> kanban [label="workflow" color="#E74C3C" style=dashed]
+    parent_action -> field_map [style=invis]
+
+    // Attachments
+    email_touch -> documents [label="attach" style=dashed color="#8E44AD"]
+    call_touch -> documents [label="notes" style=dashed color="#8E44AD"]
+    visit_touch -> documents [label="photos/video" color="#8E44AD"]
+    meeting_touch -> documents [label="minutes" style=dashed color="#8E44AD"]
+
+    // ── Cross-references ──
+    xref [label="See also:\n· Action (p.17)\n· Action Documents (p.18)\n· Conn Communication (p.28)" shape=note fillcolor="#F4ECF7" fontsize=8]
+}

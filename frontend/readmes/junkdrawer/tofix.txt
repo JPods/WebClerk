@@ -1,0 +1,34 @@
+
+  Immediate polish:
+  1. Remove the db.header Light/Dark toggle — it conflicts with the Theme selector
+   in TopBar. One control, one place.
+  2. Remove the A-/A+ from db.header — move font size into a TopBar select list
+  alongside Theme. Clean up db.header to just: model picker + search + layouts.
+  3. The App/Admin toggle should become a select list matching the Theme selector
+  style, or move into the Menu button on the detail toolbar.
+
+  Short-term:
+  4. The /contact window tab in TopBar is redundant with the NavBar highlight and
+  db.header model picker. Consider: when only one window is open, hide the tab row
+   entirely. Show tabs only when 2+ windows are open.
+  5. db.header layouts row (BillTest, Bill3, ShellTest...) takes horizontal space.
+   Collapse into a dropdown — click "Layouts" to see the list, not a row of
+  buttons.
+  6. The list toolbar "Del Sel" should only appear when rows are selected — it's
+  disabled most of the time, wasting space.
+
+  Design principles to codify:
+  7. One control, one place — no more duplicate toggles (Light/Dark was in two
+  places).
+  8. Left-justified toolbars — established today, apply everywhere.
+  9. Dangerous actions last — Delete at the end, established today.
+  10. Prefs-driven personalization — contact.prefs.nav, contact.prefs.color_mode
+  pattern should extend to layouts, font size, density.
+
+  Bigger picture:
+  11. The TopBar is still showing information nobody uses in normal work (window
+  tabs for single-window use). Most users will run one window. The TopBar could
+  shrink to ~32px — just logo, user, Theme, signout.
+  12. Keyboard shortcuts — the minimal text buttons are great for discoverability,
+   but power users will want Cmd+S for Save, Cmd+N for Add, Escape for Cancel.
+  Wire those to the detail toolbar actions.

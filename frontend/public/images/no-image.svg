@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <rect width="120" height="120" rx="4" fill="#e5e7eb"/>
+  <!-- Back frame -->
+  <rect x="38" y="28" width="52" height="42" rx="3" stroke="#9ca3af" stroke-width="2.5" fill="#f3f4f6"/>
+  <!-- Front frame -->
+  <rect x="30" y="34" width="52" height="42" rx="3" stroke="#9ca3af" stroke-width="2.5" fill="#fff"/>
+  <!-- Mountain -->
+  <path d="M38 68 L50 52 L58 62 L63 56 L74 68Z" fill="#9ca3af"/>
+  <!-- Sun -->
+  <circle cx="66" cy="46" r="5" fill="#9ca3af"/>
+  <!-- Text -->
+  <text x="60" y="92" text-anchor="middle" font-family="system-ui,sans-serif" font-size="8" font-weight="600" fill="#6b7280">IMAGE NOT AVAILABLE</text>
+</svg>

@@ -1,0 +1,6 @@
+I would like to draft a plan to standardize as much as practical transaction app Detail.tsx
+
+Lets use 
+
+TableForms/42/Input/form.4DForm
+

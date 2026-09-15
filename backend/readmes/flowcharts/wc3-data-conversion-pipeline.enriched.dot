@@ -1,0 +1,209 @@
+// WC3 Data Conversion Pipeline — external file → clean bundle → sync receive
+// Alice + Claude + DynamicCatalogs + Athena → WC3
+// Render: dot -Tpdf wc3-data-conversion-pipeline.dot -o wc3-data-conversion-pipeline.pdf
+
+// CodeMap revision: 1 — 2026-08-11
+
+digraph wc3_data_conversion {
+    size="10.0,7.5"
+    ratio="compress"
+
+
+
+    // ── CodeMap Standard Style ──
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=TB
+    label="WC3 — Data Conversion Pipeline\nExternal file → Alice/Claude → DynamicCatalogs → Athena → Bundle → Sync Receive\nAll transformation outside WC3. Bulk only via bundle."
+    labelloc=t
+
+    // ── External Sources ──
+    subgraph cluster_sources {
+        label="External Data Sources"
+        style=filled fillcolor="#EBF5FB" color="#AED6F1"
+        csv [label="CSV / TSV\nSupplier price lists\nInventory files" shape=box fillcolor="#FDFEFE" fontsize=8]
+        xlsx [label="XLSX\nSpreadsheets\nCatalogs" shape=box fillcolor="#FDFEFE" fontsize=8]
+        edi [label="EDI / XML\nManufacturer feeds\nDistributor data" shape=box fillcolor="#FDFEFE" fontsize=8]
+        pdf [label="PDF / Other\nScanned docs\nLegacy exports" shape=box fillcolor="#FDFEFE" fontsize=8]
+        contacts [label="Contacts\nMac, Outlook\nCRM exports" shape=box fillcolor="#FDFEFE" fontsize=8 URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/contacts/models/contact.py" target="_blank" tooltip="Central identity — customers, vendors, employees, prospects.\nModel: apps/contacts/models/contact.py"]
+    }
+
+    // ── Connection.config — Source Intelligence ──
+    conn_config [label="Connection.config\n(per-source intelligence)\n\nimport_config.column_map\nimport_config.lessons[]\nimport_config.user_instructions[]\nimport_config.skip_rules\nimport_config.transforms" shape=box fillcolor="#D4E6F1"]
+
+    // ── Alice Conversion Workbench ──
+    subgraph cluster_alice_conversion {
+        label="Alice Conversion Workbench\n(alice_conversion database — separate from WC3)"
+        style=filled fillcolor="#E8DAEF" color="#D2B4DE"
+
+        project [label="ConversionProject\n\nname, supplier_name\nconnection_id\npass_count, stats" shape=box fillcolor="#FDFEFE" fontsize=8]
+        source_file [label="SourceFile\n\nfilename, file_type\nraw_headers\nsample_rows (→ Claude)\nencoding, delimiter" shape=box fillcolor="#FDFEFE" fontsize=8]
+
+        // Pass 1: Detect + Map
+        detect [label="Pass 1: Detect\n\nFormat, encoding\ndelimiter, headers\nchardet + pandas" shape=octagon fillcolor="#F5CBA7" fontsize=8]
+        map_cols [label="Claude Haiku\nColumn Mapping\n\nsource → WC3 field\nconfidence 0.0–1.0\nreasoning" shape=box fillcolor="#FCF3CF" fontsize=8]
+        col_map [label="ColumnMap\n\nsource_column\ntarget_model.field\nconfidence, transform\nproposed → confirmed" shape=box fillcolor="#FDFEFE" fontsize=8]
+
+        // Human review
+        review [label="Human Review\n\nConfirm/reject mappings\nAuto-confirm ≥ 80%\nAdd instructions" shape=diamond fillcolor="#FADBD8" fontsize=8]
+
+        // Pass 2+: Convert
+        convert [label="Pass 2+: Convert\n\nApply confirmed maps\nNormalize UOM, dates\nParse decimals\nMap GL accounts" shape=octagon fillcolor="#F5CBA7" fontsize=8]
+
+        // Oddities
+        oddity [label="Oddity Table\n\nduplicate_sku\nambiguous_uom\nmissing_price\nbad_date\ngl_unmapped\n\nInstitutional knowledge\nper supplier" shape=box fillcolor="#FDFEFE" fontsize=8]
+
+        // Staging
+        staging [label="StagingRow\n\nConverted records\nin WC3 schema format\nstaged / needs_review\n/ rejected" shape=box fillcolor="#FDFEFE" fontsize=8]
+
+        // Pass log
+        pass_log [label="PassLog\n\npass_number, focus\nrows processed/staged\noddities found/resolved\nLLM tokens used" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── DynamicCatalogs (WCHQ) ──
+    subgraph cluster_dc {
+        label="WCHQ DynamicCatalogs\n(upstream library service)"
+        style=filled fillcolor="#D5F5E3" color="#82E0AA"
+
+        dc_ingest [label="Ingest\n\nRaw manufacturer\n+ distributor files" shape=box fillcolor="#FDFEFE" fontsize=8]
+        dc_normalize [label="Normalize\n\nTranslate to\nWC3 schema" shape=box fillcolor="#FDFEFE" fontsize=8]
+        dc_translate [label="Apply Distribution\nAgreement\n\ndist cost → landed cost\nvolume tiers\nfreight zones\nduty/tariff\nmin order terms" shape=box fillcolor="#FDFEFE" fontsize=8]
+        dc_enrich [label="Enrich\n\nSKU validation\nSpec sheets\nCategory mapping\nUOM standardization" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── Other Services ──
+    subgraph cluster_services {
+        label="Data Quality Services"
+        style=filled fillcolor="#FCF3CF" color="#F9E79F"
+
+        addr_verify [label="Address\nVerification\nSmartyStreets/USPS" shape=box fillcolor="#FDFEFE" fontsize=8]
+        phone_norm [label="Phone\nNormalization\nphonenumbers lib" shape=box fillcolor="#FDFEFE" fontsize=8]
+        email_scrub [label="Email\nScrubbing\nZeroBounce" shape=box fillcolor="#FDFEFE" fontsize=8]
+        dedup [label="Dedup\nScan\nthefuzz" shape=box fillcolor="#FDFEFE" fontsize=8]
+        tax_lookup [label="Tax\nLookup\ntax_service" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── Bundle Assembly ──
+    bundle_asm [label="Bundle Assembly\n\nClean JSON payload\nWC3 schema exact\nNatural keys (SKU, ida)\nAll dt UTC ISO-8601 Z\nidempotency_key" shape=box fillcolor="#D4E6F1"]
+
+    // ── Athena ──
+    athena [label="Athena Review\n\nSign bundle\nCheck for:\n- malicious formulas\n- SQL injection\n- PII in wrong columns\n- suspicious patterns\n- encoding attacks" shape=octagon fillcolor="#FADBD8"]
+
+    athena_ok [label="Athena\nCleared?" shape=diamond fillcolor="#FADBD8"]
+
+    // ── Human Sign-off ──
+    signoff [label="Human Sign-Off\n\nResponsible person\nTimestamp + signature\nAthena findings reviewed" shape=diamond fillcolor="#FADBD8"]
+
+    // ── WC3 Boundary ──
+    sync_receive [label="POST /wcapi/sync/receive/\n\nX-Sync-Key: connection key\nBody: clean JSON bundle\nIdempotent\nEncrypted (Fernet)\nAudited" shape=box fillcolor="#ABEBC6"]
+
+    // ── WC3 Internal ──
+    subgraph cluster_wc3 {
+        label="WC3 (commerce_expert database)"
+        style=filled fillcolor="#ABEBC6" color="#82E0AA"
+
+        bundle_rec [label="Bundle Record\n\nFull payload\nResponse\nAudit trail\nNever deleted" shape=box fillcolor="#FDFEFE" fontsize=8]
+        connection [label="Connection Record\n\nname, type, status\nconfig (key, endpoint)\nmaps, rules, conflicts\nscripts, encryption\nsunset date" shape=box fillcolor="#FDFEFE" fontsize=8]
+        models [label="WC3 Models\n\nItem, Contact, OrgBase\nBillOfMaterial\nGlAccount, etc.\n\nSKU match: update\nNew: create" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── Complication feedback ──
+    complication [label="Complication\nFlags\n\nprice mismatch\ndiscontinued SKU\nwrong UOM\nmissing product" shape=box fillcolor="#FADBD8"]
+
+    // ═══ EDGES ═══
+
+    // Sources → Alice
+    csv -> detect
+    xlsx -> detect
+    edi -> detect
+    pdf -> detect
+    contacts -> detect
+
+    // Connection.config feeds Alice
+    conn_config -> detect [label="learned\nlessons" style=dashed]
+    conn_config -> map_cols [label="prior\ncolumn_map" style=dashed]
+    conn_config -> convert [label="transforms\nskip_rules" style=dashed]
+
+    // Alice internal flow
+    detect -> source_file
+    source_file -> project
+    detect -> map_cols [label="headers +\nsample rows"]
+    map_cols -> col_map
+    col_map -> review
+    review -> convert [label="confirmed"]
+    review -> col_map [label="rejected\nremap" style=dashed]
+    convert -> staging [label="clean rows"]
+    convert -> oddity [label="problems"]
+    oddity -> convert [label="resolved\nre-run" style=dashed]
+    convert -> pass_log
+
+    // DynamicCatalogs enrichment
+    staging -> dc_enrich [label="SKU lookup\nenrichment" style=dashed]
+    dc_ingest -> dc_normalize -> dc_translate -> dc_enrich
+    dc_enrich -> staging [label="enriched\ndata" style=dashed]
+
+    // Data quality services
+    staging -> addr_verify [label="addresses" style=dashed]
+    staging -> phone_norm [label="phones" style=dashed]
+    staging -> email_scrub [label="emails" style=dashed]
+    staging -> dedup [label="duplicates" style=dashed]
+    staging -> tax_lookup [label="tax codes" style=dashed]
+    addr_verify -> staging [style=dashed]
+    phone_norm -> staging [style=dashed]
+    email_scrub -> staging [style=dashed]
+    dedup -> staging [style=dashed]
+    tax_lookup -> staging [style=dashed]
+
+    // Bundle assembly
+    staging -> bundle_asm [label="all staged\nrows clean"]
+
+    // Athena
+    bundle_asm -> athena
+    athena -> athena_ok
+    athena_ok -> signoff [label="cleared"]
+    athena_ok -> oddity [label="flagged\nfix issues" style=dashed]
+
+    // Sign-off
+    signoff -> sync_receive [label="approved"]
+    signoff -> bundle_asm [label="rejected\nfix" style=dashed]
+
+    // WC3 internal
+    sync_receive -> bundle_rec
+    sync_receive -> models [label="apply\npayload"]
+    connection -> sync_receive [label="key auth" style=dashed]
+    bundle_rec -> connection [style=dashed]
+
+    // Complication feedback loop
+    models -> complication [label="detected\npost-load" style=dashed]
+    complication -> dc_enrich [label="report to\nDynamicCatalogs" style=dashed]
+    complication -> oddity [label="feed back to\nAlice lessons" style=dashed]
+
+    // Lessons flow back to Connection.config
+    col_map -> conn_config [label="confirmed maps\nbecome lessons" style=dashed]
+    oddity -> conn_config [label="resolved oddities\nbecome skip_rules" style=dashed]
+}

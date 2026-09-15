@@ -1,0 +1,108 @@
+  Connection classes for WC3 starter DB:
+
+  ┌───────────────┬──────────────────────────┬──────────────────────────────┐
+  │     Class     │       Connections        │            Status            │
+  ├───────────────┼──────────────────────────┼──────────────────────────────┤
+  │ Shipping      │ UPS, FedEx, USPS, DHL    │ Already seeded               │
+  ├───────────────┼──────────────────────────┼──────────────────────────────┤
+  │ Tax           │ Avalara/TaxJar/Vertex    │ Already seeded (generic)     │
+  ├───────────────┼──────────────────────────┼──────────────────────────────┤
+  │ Internal      │ alice-claude,            │ Already seeded               │
+  │               │ wchq-upstream, self      │                              │
+  ├───────────────┼──────────────────────────┼──────────────────────────────┤
+  │ Local Server  │ Andi deploy              │ Already seeded               │
+  ├───────────────┼──────────────────────────┼──────────────────────────────┤
+  │ Communication │ Gmail, Outlook           │ Needs creation               │
+  ├───────────────┼──────────────────────────┼──────────────────────────────┤
+  │ Calendar      │ Google Calendar, Outlook │ Needs creation               │
+  │               │  Calendar                │                              │
+  ├───────────────┼──────────────────────────┼──────────────────────────────┤
+  │ Payment       │ Stripe, Square, PayPal   │ Needs creation               │
+  ├───────────────┼──────────────────────────┼──────────────────────────────┤
+  │               │                          │ Needs creation — WC3         │
+  │ Accounting    │ QuickBooks, Xero         │ produces GL journal entries, │
+  │               │                          │  accounting consumes them    │
+  ├───────────────┼──────────────────────────┼──────────────────────────────┤
+  │               │                          │ Needs creation — Statement   │
+  │ Banking       │ Bank feed import         │ Sorter already exists as the │
+  │               │                          │  tool                        │
+  ├───────────────┼──────────────────────────┼──────────────────────────────┤
+  │ Identity      │ MyCarryOn                │ Needs creation — CarryOn is  │
+  │               │                          │ the portable identity layer  │
+  └───────────────┴──────────────────────────┴──────────────────────────────┘
+
+  WC3 is the CRM via actions/contacts, 
+  WC3 is project management via nested projects and weekly (user determines) kanban sprints, 
+  WC3 uses clouldflare and ngenx (spelling), django, react to serve to the web on a local macmini or it15 (hardware may shift)
+  WC3 does not do HR 
+  WC3 put production data into gl entries for accounting
+  WC3 does not do checkbooks or payables, but payable feedback for purchases/receipts is helpful
+
+
+                                                                               
+⏺ Agent "Create 5 more connection .dot files" completed                      
+                                                                                
+⏺ All 10 .dot files complete. Let me close out the tasks.                    
+                                                                                
+⏺ Everything built. Here's the final inventory:                                 
+                                                                                
+  Seed connections (seed_connections.py) — 15 new records added:                
+                                                                                
+  ┌───────────────┬───────────────────────────────────┐                      
+  │     Class     │            Connections            │                         
+  ├───────────────┼───────────────────────────────────┤                      
+  │ Communication │ Gmail, Outlook                    │                         
+  ├───────────────┼───────────────────────────────────┤                      
+  │ Calendar      │ Google Calendar, Outlook Calendar │                         
+  ├───────────────┼───────────────────────────────────┤                       
+  │ Payment       │ Stripe, Square, PayPal            │
+  ├───────────────┼───────────────────────────────────┤
+  │ Accounting    │ QuickBooks, Xero                  │
+  ├───────────────┼───────────────────────────────────┤                         
+  │ Banking       │ Bank Feed Import                  │
+  ├───────────────┼───────────────────────────────────┤                         
+  │ Identity      │ MyCarryOn                         │                       
+  └───────────────┴───────────────────────────────────┘
+                                               
+  Consolidated readme — readmes/connections/connection-classes.md
+  - Summary table of all 10 classes   
+  - Per-class detail (what flows, direction, auth, boundaries)                  
+  - "What WC3 Is and Is Not" table                                              
+  - Future classes section (WMS, catalog sync, marketing, customs)              
+  - Alice's monitoring role per class                                           
+  - Credential security rules                                                   
+                                                                                
+  Flowcharts — 10 .dot + .pdf files in readmes/flowcharts/:                     
+                                                                                
+  ┌────────────────────────────┬─────────────────────────────────────────────┐  
+  │            File            │                    Shows                    │  
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ wc3-conn-shipping.dot      │ Order → carriers → rates/labels/tracking    │
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ wc3-conn-tax.dot           │ Invoice → multi-jurisdiction decision →     │  
+  │                            │ external or built-in                        │  
+  ├────────────────────────────┼─────────────────────────────────────────────┤  
+  │ wc3-conn-communication.dot │ Inbound email → Actions, outbound           │  
+  │                            │ transactional email                         │  
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ wc3-conn-calendar.dot      │ Action ↔ calendar event bidirectional sync  │  
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ wc3-conn-payment.dot       │ Invoice → processor → webhook → GL journal  │
+  │                            │ + refund path                               │  
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ wc3-conn-accounting.dot    │ GL entries → QuickBooks/Xero, purchase      │  
+  │                            │ receipts back for landed cost               │  
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ wc3-conn-banking.dot       │ Bank CSV → Statement Sorter → classify →    │  
+  │                            │ match                                       │
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ wc3-conn-identity.dot      │ Person → MyCarryOn → carryon_uuid pointer → │
+  │                            │  Contact                                    │  
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ wc3-conn-internal.dot      │ Alice escalation + WC_HQ upstream +         │  
+  │                            │ self-connection                             │  
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ wc3-conn-deploy.dot        │ Dev Mac → rsync → Andi stack                │  
+  │                            │ (nginx/gunicorn/Django/PG/Redis)            │  
+  └────────────────────────────┴─────────────────────────────────────────────┘
+                                                                              

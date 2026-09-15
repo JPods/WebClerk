@@ -1,0 +1,92 @@
+#!/bin/bash
+# ── Git post-commit hook: auto-reindex AI knowledge base ──────────
+#
+# Checks which files changed in the last commit and reindexes
+# only the affected source categories. Runs in background to
+# avoid slowing down commits.
+#
+# Install:
+#   cp tools/hooks/post-commit .git/hooks/post-commit
+#   chmod +x .git/hooks/post-commit
+#
+# Or use the setup script:
+#   tools/setup_ai.sh --hooks
+
+set -e
+
+# Only run if the AI assistant is set up
+VENV_ACTIVATE="$(git rev-parse --show-toplevel)/bin/activate"
+if [ ! -f "$VENV_ACTIVATE" ]; then
+    exit 0
+fi
+
+# Get changed files in the last commit
+CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD 2>/dev/null || true)
+if [ -z "$CHANGED_FILES" ]; then
+    exit 0
+fi
+
+# Determine which sources need reindexing
+SOURCES_TO_INDEX=""
+
+# Check readmes
+if echo "$CHANGED_FILES" | grep -qE '\.md$|\.txt$|\.rst$'; then
+    SOURCES_TO_INDEX="$SOURCES_TO_INDEX readmes"
+fi
+
+# Check instructions
+if echo "$CHANGED_FILES" | grep -qE '\.github/instructions/'; then
+    SOURCES_TO_INDEX="$SOURCES_TO_INDEX instructions"
+fi
+
+# Check models
+if echo "$CHANGED_FILES" | grep -qE 'models\.py|models/'; then
+    SOURCES_TO_INDEX="$SOURCES_TO_INDEX models"
+fi
+
+# Check services
+if echo "$CHANGED_FILES" | grep -qE 'services/'; then
+    SOURCES_TO_INDEX="$SOURCES_TO_INDEX services"
+fi
+
+# Check views
+if echo "$CHANGED_FILES" | grep -qE 'views\.py|views/|urls\.py'; then
+    SOURCES_TO_INDEX="$SOURCES_TO_INDEX views"
+fi
+
+# Check tests
+if echo "$CHANGED_FILES" | grep -qE 'test_|conftest\.py'; then
+    SOURCES_TO_INDEX="$SOURCES_TO_INDEX tests"
+fi
+
+# Check common
+if echo "$CHANGED_FILES" | grep -qE '^common/'; then
+    SOURCES_TO_INDEX="$SOURCES_TO_INDEX common"
+fi
+
+# Check settings
+if echo "$CHANGED_FILES" | grep -qE 'settings\.py|celery\.py'; then
+    SOURCES_TO_INDEX="$SOURCES_TO_INDEX settings"
+fi
+
+# Check tasks
+if echo "$CHANGED_FILES" | grep -qE 'tasks\.py|tasks/|management/commands/'; then
+    SOURCES_TO_INDEX="$SOURCES_TO_INDEX tasks"
+fi
+
+# Nothing to reindex
+if [ -z "$SOURCES_TO_INDEX" ]; then
+    exit 0
+fi
+
+# Run reindex in background (don't block the commit)
+(
+    cd "$(git rev-parse --show-toplevel)"
+    source "$VENV_ACTIVATE" 2>/dev/null
+
+    for SOURCE in $SOURCES_TO_INDEX; do
+        python manage.py index_docs --source "$SOURCE" 2>/dev/null || true
+    done
+) &
+
+echo "AI knowledge base reindexing in background: $SOURCES_TO_INDEX"

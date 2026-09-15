@@ -1,0 +1,8 @@
+# gitleaks config — default rules plus narrow, documented allowlists only.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Legacy 4D record identifiers (UUIDKey, 32 hex) in sample data are not secrets"
+regexTarget = "match"
+regexes = ['''UUIDKey"\s*:\s*"[0-9A-Fa-f]{32}"''']

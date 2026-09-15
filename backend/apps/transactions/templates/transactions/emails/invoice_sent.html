@@ -1,0 +1,31 @@
+{% extends "base_email.html" %}
+
+{% block subject %}Invoice Sent - {{ invoice.name }}{% endblock %}
+
+{% block content %}
+<h2>Invoice Sent</h2>
+
+<p>Dear {{ contact.get_full_name }},</p>
+
+<p>Your invoice has been sent and is now available for payment.</p>
+
+<h3>Invoice Details:</h3>
+<ul>
+    <li><strong>Invoice:</strong> {{ invoice.name }}</li>
+    <li><strong>ID:</strong> {{ invoice.id }}</li>
+    <li><strong>Sent:</strong> {{ invoice.dt_modified|date:"F j, Y, g:i a" }}</li>
+    {% if invoice.totals.total %}
+    <li><strong>Total Amount:</strong> ${{ invoice.totals.total|floatformat:2 }}</li>
+    {% endif %}
+    {% if invoice.totals.balance %}
+    <li><strong>Balance Due:</strong> ${{ invoice.totals.balance|floatformat:2 }}</li>
+    {% endif %}
+</ul>
+
+<p>Please review the invoice and make payment at your earliest convenience. Payment terms are {{ payment_terms|default:"Net 30" }}.</p>
+
+<p>Thank you for your business!</p>
+
+<p>Best regards,<br>
+{{ company_name|default:"WebClerk3 Team" }}</p>
+{% endblock %}

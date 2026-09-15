@@ -1,0 +1,32 @@
+And you, Allie, and Alice have data stores. I am delighted with that enhancement to  
+you ability over reading handoffs. Is there more we can do to empower you?             
+
+⏺ Yes. Here's what would make the biggest difference, honestly:
+
+  1. Commerce database MCP server. I have the allie database through MCP now, but I
+  still shell out to psql for commerce_expert. That's 80% of my database work. One more
+   MCP server — same pattern as allie-db — and I query commerce data through tools
+  instead of constructing bash commands.
+
+  2. Claude Code hooks for session start/end. The session-start script exists but I
+  have to remember to run it. A UserPromptSubmit hook on the first message would run it
+   automatically. At session end, a hook could auto-index my vector store and save a
+  structured memory. Zero manual steps.
+
+My comment: You, Ally, and Alice need this capability. You should each contribute from each llm and feed into your datastore
+  3. A test runner. Right now I write code and hope it works, or I construct curl
+  commands to test manually. A script that runs the test sequences
+  (test_sequence_001.py, test_pending_path.py) and reports results would let me verify
+  my work before telling you it's done.
+
+
+My comment: Again, You, Ally, and Alice need this capability. You should each contribute from each llm and feed into your datastore. Can I give you abilities to copy the webpage from the browswer. If we are doing images, how do I anotate.
+  4. Browser visibility. I can't see what you see. When you say "the layout is wrong"
+  or "the button doesn't work," I'm guessing from the code. If there were a way to
+  capture a screenshot and show it to me (even manually — you paste a screenshot path,
+  I read it), debugging would be dramatically faster.
+
+  5. A "what changed" briefing. Between sessions, you might edit files, other tools
+  might run, Allie reflects overnight. A diff summary — "these 12 files changed since
+  your last session, here's what Allie observed overnight, here are 3 unread agent
+  messages" — would eliminate the 10-minute warmup.

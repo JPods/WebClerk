@@ -1,0 +1,142 @@
+// WC3 Payment Processing Flow — invoice to settlement with refund path
+// Render: dot -Tpdf wc3-conn-payment.dot -o wc3-conn-payment.pdf
+
+// CodeMap revision: 1 — 2026-08-11
+
+digraph wc3_conn_payment {
+    size="7.5,10.0"
+    ratio="compress"
+
+
+
+    // ── CodeMap Standard Style ──
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=TB
+    label="WC3 — Payment Processing Flow"
+    labelloc=t
+
+    // Invoice
+    invoice [label="Invoice\n(Invoice model)\n\ntotal\nbalance\nterms" shape=box fillcolor="#D4E6F1" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/invoice.py" target="_blank" tooltip="Invoice — shipment event. Financial event triggers GL and inventory movement.\nModel: apps/transactions/models/invoice.py\nFunctions:
+  transfer_order_to_invoice @ apps/transactions/services/order_to_invoice.py:16 (creates invoice from order)
+  Pending.objects.create @ apps/transactions/services/order_to_invoice.py:332 (-on_hand, -on_so, +on_in)\nPending deltas: on_hand: -qty, on_so: -qty, on_in: +qty\nGL: AR debit, Revenue credit, Tax credit, COGS debit, Inventory credit, Commission"]
+
+    // Payment intent
+    intent [label="Payment Intent\n\namount\ncurrency\ncustomer ref\nidempotency key" shape=box fillcolor="#FCF3CF"]
+
+    // PCI boundary
+    subgraph cluster_pci {
+        label="PCI Boundary — no card data in WC3"
+        style=filled fillcolor="#FDEDEC" color="#E74C3C"
+        fontcolor="#922B21"
+
+        // Processor cluster
+        subgraph cluster_processors {
+            label="Payment Processors"
+            style=filled fillcolor="#F5EEF8" color="#D7BDE2"
+            stripe [label="Stripe" shape=box fillcolor="#E8DAEF" fontsize=8]
+            square [label="Square" shape=box fillcolor="#E8DAEF" fontsize=8]
+            paypal [label="PayPal" shape=box fillcolor="#E8DAEF" fontsize=8]
+        }
+
+        // Tokenized
+        token [label="Tokenized\nCard Data\n\nWC3 never sees\nraw card numbers" shape=note fillcolor="#FCF3CF"]
+    }
+
+    // Webhook
+    webhook [label="Webhook\nCallback\n\nsucceeded\nfailed\ndisputed\nrefunded" shape=octagon fillcolor="#F5CBA7"]
+
+    // Payment record
+    payment [label="Payment\n(Payment model)\n\namount\nmethod\nprocessor_ref\ntimestamp" shape=box fillcolor="#FCF3CF" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/payment.py" target="_blank" tooltip="Payment — handles AR (received) and AP (expense). Signed amounts. Category maps to GL. Statement Sorter feeds expense side.\nModel: apps/transactions/models/payment.py\nFunctions:
+  Payment @ apps/transactions/models/payment.py:1 (AR+AP via type field; signed amounts)"]
+
+    // Fully paid decision
+    fully_paid [label="Fully\nPaid?" shape=diamond fillcolor="#FADBD8"]
+
+    // Partial
+    partial [label="Partial Payment\n\nbalance updated\nledger adjusted" shape=box fillcolor="#FCF3CF"]
+
+    // GL journal — payment
+    cash_journal [label="Cash Journal\nDebit Cash (1000)\nCredit AR (1200)" shape=box fillcolor="#D5F5E3"]
+
+    // Invoice status
+    paid_status [label="Invoice Status\n→ PAID\n\nbalance = 0" shape=box fillcolor="#ABEBC6"]
+
+    // --- REFUND PATH ---
+    subgraph cluster_refund {
+        label="Refund Path"
+        style=filled fillcolor="#FEF9E7" color="#F9E79F"
+
+        refund_req [label="Refund\nRequest\n\nfull or partial\nreason code" shape=box fillcolor="#FCF3CF"]
+        refund_proc [label="Processor\nRefund API" shape=octagon fillcolor="#F5CBA7"]
+        refund_webhook [label="Refund\nWebhook\n\nconfirmed\namount" shape=octagon fillcolor="#F5CBA7"]
+    }
+
+    // GL journal — refund
+    refund_journal [label="Refund Journal\nDebit AR (1200)\nCredit Cash (1000)" shape=box fillcolor="#D5F5E3"]
+
+    // GL
+    gl [label="General Ledger\n(JournalEntry)\n\nDebits = Credits" shape=box fillcolor="#82E0AA" fontsize=11]
+
+    // Alice
+    alice [label="Alice\nDispute Pattern\nMonitoring\n\nchargeback rate\nrefund frequency\nprocessor comparison" shape=box fillcolor="#AED6F1"]
+
+    // --- PAYMENT EDGES ---
+    invoice -> intent [label="initiate\npayment"]
+    intent -> stripe
+    intent -> square
+    intent -> paypal
+    token -> stripe [style=invis]
+    stripe -> webhook
+    square -> webhook
+    paypal -> webhook
+    webhook -> payment [label="succeeded"]
+    payment -> fully_paid
+
+    fully_paid -> paid_status [label="yes"]
+    fully_paid -> partial [label="no\nbalance > 0"]
+    partial -> invoice [label="update\nbalance" style=dashed]
+
+    paid_status -> cash_journal [label="post"]
+    partial -> cash_journal [label="post\npartial"]
+
+    // --- REFUND EDGES ---
+    payment -> refund_req [label="request\nrefund" style=dashed]
+    refund_req -> refund_proc
+    refund_proc -> refund_webhook
+    refund_webhook -> refund_journal [label="confirmed"]
+    refund_webhook -> invoice [label="reopen\nbalance" style=dashed]
+
+    // --- GL EDGES ---
+    cash_journal -> gl
+    refund_journal -> gl
+
+    // --- ALICE EDGES ---
+    webhook -> alice [label="dispute\nevents" style=dashed]
+    refund_webhook -> alice [label="refund\npatterns" style=dashed]
+}

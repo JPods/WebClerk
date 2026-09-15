@@ -1,0 +1,120 @@
+// WC3 Flight Simulator — Transaction Lifecycle Training
+// 12-step walk-through: proposal to GL to return/scrap/refund to orphan cleanup
+// Render: dot -Tsvg wc3-flight-sim-lifecycle.enriched.dot -o wc3-flight-sim-lifecycle.enriched.svg
+
+// CodeMap revision: 1 — 2026-08-26
+
+digraph flight_sim {
+    // ── CodeMap Standard Style ──
+    size="7.5,10"
+    ratio="compress"
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.3
+    ranksep=0.4
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=9
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+        margin="0.1,0.05"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=8
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=TB
+    compound=true
+    label="WC3 — Flight Simulator: Transaction Lifecycle Training\n12 steps: Proposal → GL → Return/Scrap/Refund → Orphan Cleanup"
+    labelloc=t
+
+    // --- Setup ---
+    start [label="Setup\nItem: qqbb200\non_hand=0 on_po=0\non_so=0 available=0" fillcolor="#D5D8DC" shape=ellipse]
+
+    // --- Forward flow ---
+    subgraph cluster_forward {
+        label="Forward Flow"
+        style="filled,rounded" fillcolor="#EBF5FB" color="#AED6F1"
+        fontsize=10
+
+        s1 [label="1. Proposal\n15x qqbb200\nNo inventory impact" fillcolor="#D6EAF8"]
+        s2 [label="2. Convert to Order\n11 ordered, 4 remain\non_so=11, available=-11" fillcolor="#D6EAF8"]
+        s3 [label="3. Post to Purchase\n11 on PO\non_po=11, available=0" fillcolor="#D6EAF8"]
+        s4 [label="4. Receive 9\n2 remain on PO\non_hand=9, on_po=2" fillcolor="#D6EAF8"]
+        s5 [label="5. Invoice for 7\n4 remain on SO\non_hand=2, on_so=4" fillcolor="#D6EAF8"]
+    }
+
+    // --- Time passes ---
+    subgraph cluster_aging {
+        label="Aging Timeline"
+        style="filled,rounded" fillcolor="#FEF9E7" color="#F9E79F"
+        fontsize=10
+
+        s6a [label="6a. Statement (15 days)\nInformational only\nNo pending, no GL" fillcolor="#FCF3CF"]
+        s6b [label="6b. Late Notice (30 days)\nCreates touch + action\nStill no financial event" fillcolor="#FCF3CF"]
+        s6c [label="6c. Late Fee (6 weeks)\n1.2% finance charge\nAR increases" fillcolor="#F9E79F"]
+    }
+
+    // --- Payment & GL ---
+    subgraph cluster_payment {
+        label="Payment & GL"
+        style="filled,rounded" fillcolor="#E8F8F5" color="#A3E4D7"
+        fontsize=10
+
+        s7 [label="7. Payment\n2% discount + $0.50 write-off\nInvoice balance = 0" fillcolor="#ABEBC6"]
+        s8 [label="8. Process GLs\nAR, revenue, cash,\ndiscount, write-off,\nlate fee entries" fillcolor="#ABEBC6"]
+    }
+
+    // --- Reverse flow ---
+    subgraph cluster_reverse {
+        label="Reverse Flow"
+        style="filled,rounded" fillcolor="#FDEDEC" color="#F5B7B1"
+        fontsize=10
+
+        s9 [label="9. Return 1\nCredit memo\non_hand 2→3" fillcolor="#FADBD8"]
+        s10 [label="10. Scrap returned item\nInventory adjustment\non_hand 3→2, loss to GL" fillcolor="#FADBD8"]
+        s11 [label="11. Refund customer\nOutbound payment\nagainst credit memo" fillcolor="#FADBD8"]
+    }
+
+    // --- Cleanup ---
+    s12 [label="12. Clean up orphans\nCancel 4 on proposal\nClose 4 on SO, 2 on PO\non_hand=2, available=2" fillcolor="#E8DAEF"]
+
+    done [label="Clean Books\non_hand=2\navailable=2" fillcolor="#ABEBC6" shape=ellipse]
+
+    // --- Edges ---
+    start -> s1
+    s1 -> s2 [label="partial\nconvert"]
+    s2 -> s3 [label="post"]
+    s3 -> s4 [label="partial\nreceive"]
+    s4 -> s5 [label="partial\ninvoice"]
+    s5 -> s6a [label="15 days"]
+    s6a -> s6b [label="30 days"]
+    s6b -> s6c [label="6 weeks"]
+    s6c -> s7 [label="customer\npays"]
+    s7 -> s8 [label="run GL"]
+    s8 -> s9 [label="customer\nreturns 1"]
+    s9 -> s10 [label="damaged"]
+    s10 -> s11 [label="issue\nrefund"]
+    s11 -> s12 [label="clean up"]
+    s12 -> done
+
+    // --- Side annotations ---
+    pending [label="Pending Records\nStage every change\nQuantity shown TWICE:\n1. After save\n2. After pending applies" fillcolor="#F4ECF7" shape=note]
+    console [label="Console Screen\nItem quantities\nTransactions\nPending records\nGL entries" fillcolor="#F4ECF7" shape=note]
+
+    pending -> s2 [style=dotted arrowhead=none]
+    console -> s4 [style=dotted arrowhead=none]
+}

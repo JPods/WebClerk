@@ -1,0 +1,3 @@
+Loop through all action records.
+each person listed in assigned_to should be denormalized into .refs.links.contact[{"id":#,"attention":"name.."}]
+We will use .refs to load records into r25 in the components

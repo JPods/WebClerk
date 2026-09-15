@@ -1,0 +1,365 @@
+{
+  "name": "Credit Memo - Standard",
+  "description": "Credit memo with line items, tax, totals. Based on invoice template adapted for returns/credits.",
+  "documentType": "creditmemo",
+  "template": {
+    "schemas": [
+      [
+        {
+          "type": "text",
+          "position": { "x": 20, "y": 20 },
+          "content": "",
+          "width": 80,
+          "height": 12,
+          "fontSize": 18,
+          "fontColor": "#111111",
+          "readOnly": true,
+          "name": "companyName"
+        },
+        {
+          "type": "text",
+          "position": { "x": 120, "y": 20 },
+          "content": "CREDIT MEMO",
+          "width": 70,
+          "height": 22,
+          "alignment": "right",
+          "verticalAlignment": "middle",
+          "fontSize": 34,
+          "fontColor": "#000000",
+          "readOnly": true,
+          "name": "head"
+        },
+        {
+          "type": "text",
+          "position": { "x": 20, "y": 34 },
+          "content": "",
+          "width": 80,
+          "height": 8,
+          "fontSize": 9,
+          "fontColor": "#666666",
+          "readOnly": true,
+          "name": "companyDetail"
+        },
+        {
+          "type": "text",
+          "position": { "x": 20, "y": 50 },
+          "content": "Bill To:",
+          "width": 85,
+          "height": 8,
+          "fontSize": 13,
+          "fontColor": "#000000",
+          "readOnly": true,
+          "name": "billToLabel"
+        },
+        {
+          "type": "text",
+          "content": "",
+          "position": { "x": 20, "y": 58 },
+          "width": 85,
+          "height": 34,
+          "fontSize": 13,
+          "fontColor": "#000000",
+          "dynamicFontSize": { "min": 8, "max": 13, "fit": "vertical" },
+          "name": "billTo"
+        },
+        {
+          "type": "text",
+          "position": { "x": 110, "y": 50 },
+          "content": "Ship To:",
+          "width": 80,
+          "height": 8,
+          "fontSize": 13,
+          "fontColor": "#000000",
+          "readOnly": true,
+          "name": "shipToLabel"
+        },
+        {
+          "type": "text",
+          "content": "",
+          "position": { "x": 110, "y": 58 },
+          "width": 80,
+          "height": 34,
+          "fontSize": 13,
+          "fontColor": "#000000",
+          "dynamicFontSize": { "min": 8, "max": 13, "fit": "vertical" },
+          "name": "shipTo"
+        },
+        {
+          "type": "multiVariableText",
+          "position": { "x": 120, "y": 95 },
+          "content": "{\"CreditMemoNo\":\"\",\"Date\":\"\",\"Terms\":\"\",\"InvoiceNo\":\"\"}",
+          "width": 70,
+          "height": 28,
+          "alignment": "right",
+          "fontSize": 11,
+          "lineHeight": 1.4,
+          "fontColor": "#000000",
+          "text": "Credit Memo #{CreditMemoNo}\n{Date}\nTerms: {Terms}\nInvoice: {InvoiceNo}",
+          "variables": ["CreditMemoNo", "Date", "Terms", "InvoiceNo"],
+          "name": "invoiceInfo"
+        },
+        {
+          "type": "multiVariableText",
+          "position": { "x": 20, "y": 95 },
+          "content": "{\"Account\":\"\",\"CustPO\":\"\",\"SalesID\":\"\",\"TypeSale\":\"\"}",
+          "width": 90,
+          "height": 28,
+          "fontSize": 11,
+          "lineHeight": 1.4,
+          "fontColor": "#333333",
+          "text": "Account: {Account}    Cust PO: {CustPO}\nSales: {SalesID}    Type: {TypeSale}",
+          "variables": ["Account", "CustPO", "SalesID", "TypeSale"],
+          "name": "metaInfo"
+        },
+        {
+          "type": "table",
+          "position": { "x": 20, "y": 128 },
+          "width": 170,
+          "height": 46,
+          "content": "[]",
+          "showHead": true,
+          "head": ["Item #", "Description", "Qty", "Unit Price", "Disc %", "Extended"],
+          "headWidthPercentages": [12, 38, 8, 14, 10, 18],
+          "tableStyles": { "borderWidth": 0, "borderColor": "#000000" },
+          "headStyles": {
+            "fontSize": 11,
+            "alignment": "center",
+            "verticalAlignment": "middle",
+            "fontColor": "#000000",
+            "borderColor": "#000000",
+            "backgroundColor": "#f0f0f0",
+            "borderWidth": { "top": 0.3, "right": 0, "bottom": 0.3, "left": 0 },
+            "padding": { "top": 4, "right": 4, "bottom": 4, "left": 4 }
+          },
+          "bodyStyles": {
+            "fontSize": 10,
+            "alignment": "center",
+            "verticalAlignment": "middle",
+            "fontColor": "#000000",
+            "borderColor": "#cccccc",
+            "backgroundColor": "",
+            "alternateBackgroundColor": "#fafafa",
+            "borderWidth": { "top": 0, "right": 0, "bottom": 0.1, "left": 0 },
+            "padding": { "top": 4, "right": 4, "bottom": 4, "left": 4 }
+          },
+          "columnStyles": {
+            "alignment": { "0": "left", "1": "left", "3": "right", "4": "right", "5": "right" }
+          },
+          "name": "lineItems"
+        },
+        {
+          "type": "text",
+          "position": { "x": 20, "y": 192 },
+          "content": "Comments",
+          "width": 40,
+          "height": 7,
+          "fontSize": 11,
+          "fontColor": "#666666",
+          "readOnly": true,
+          "name": "commentsLabel"
+        },
+        {
+          "type": "text",
+          "content": "",
+          "position": { "x": 20, "y": 199 },
+          "width": 95,
+          "height": 30,
+          "fontSize": 10,
+          "fontColor": "#333333",
+          "dynamicFontSize": { "min": 7, "max": 10, "fit": "vertical" },
+          "name": "comments"
+        },
+        {
+          "type": "text",
+          "position": { "x": 130, "y": 180 },
+          "content": "Subtotal",
+          "width": 30,
+          "height": 7,
+          "alignment": "right",
+          "fontSize": 11,
+          "fontColor": "#666666",
+          "readOnly": true,
+          "name": "subtotalLabel"
+        },
+        {
+          "type": "text",
+          "content": "",
+          "position": { "x": 162, "y": 180 },
+          "width": 28,
+          "height": 7,
+          "alignment": "right",
+          "fontSize": 11,
+          "fontColor": "#000000",
+          "name": "subtotal"
+        },
+        {
+          "type": "text",
+          "position": { "x": 130, "y": 188 },
+          "content": "Sales Tax",
+          "width": 30,
+          "height": 7,
+          "alignment": "right",
+          "fontSize": 11,
+          "fontColor": "#666666",
+          "readOnly": true,
+          "name": "taxLabel"
+        },
+        {
+          "type": "text",
+          "content": "",
+          "position": { "x": 162, "y": 188 },
+          "width": 28,
+          "height": 7,
+          "alignment": "right",
+          "fontSize": 11,
+          "fontColor": "#000000",
+          "name": "tax"
+        },
+        {
+          "type": "text",
+          "position": { "x": 130, "y": 196 },
+          "content": "Shipping",
+          "width": 30,
+          "height": 7,
+          "alignment": "right",
+          "fontSize": 11,
+          "fontColor": "#666666",
+          "readOnly": true,
+          "name": "shippingLabel"
+        },
+        {
+          "type": "text",
+          "content": "",
+          "position": { "x": 162, "y": 196 },
+          "width": 28,
+          "height": 7,
+          "alignment": "right",
+          "fontSize": 11,
+          "fontColor": "#000000",
+          "name": "shipping"
+        },
+        {
+          "type": "line",
+          "position": { "x": 130, "y": 204 },
+          "width": 60,
+          "height": 0.3,
+          "color": "#333333",
+          "readOnly": true,
+          "name": "totalDivider",
+          "content": ""
+        },
+        {
+          "type": "text",
+          "position": { "x": 130, "y": 206 },
+          "content": "Credit Total",
+          "width": 30,
+          "height": 9,
+          "alignment": "right",
+          "fontSize": 16,
+          "fontColor": "#000000",
+          "readOnly": true,
+          "name": "totalLabel"
+        },
+        {
+          "type": "text",
+          "content": "",
+          "position": { "x": 162, "y": 206 },
+          "width": 28,
+          "height": 9,
+          "alignment": "right",
+          "fontSize": 16,
+          "fontColor": "#000000",
+          "dynamicFontSize": { "min": 10, "max": 16, "fit": "horizontal" },
+          "name": "total"
+        },
+        {
+          "type": "text",
+          "position": { "x": 130, "y": 216 },
+          "content": "Credit Amount",
+          "width": 30,
+          "height": 7,
+          "alignment": "right",
+          "fontSize": 11,
+          "fontColor": "#333333",
+          "readOnly": true,
+          "name": "balanceLabel"
+        },
+        {
+          "type": "text",
+          "content": "",
+          "position": { "x": 162, "y": 216 },
+          "width": 28,
+          "height": 7,
+          "alignment": "right",
+          "fontSize": 11,
+          "fontColor": "#000000",
+          "name": "balance"
+        },
+        {
+          "type": "text",
+          "content": "",
+          "position": { "x": 120, "y": 248 },
+          "width": 70,
+          "height": 8,
+          "alignment": "right",
+          "fontSize": 14,
+          "fontColor": "#000000",
+          "readOnly": true,
+          "name": "sellerName"
+        },
+        {
+          "type": "text",
+          "content": "",
+          "position": { "x": 120, "y": 257 },
+          "width": 70,
+          "height": 15,
+          "alignment": "right",
+          "fontSize": 10,
+          "fontColor": "#555555",
+          "readOnly": true,
+          "name": "sellerAddress"
+        }
+      ]
+    ],
+    "basePdf": {
+      "width": 215.9,
+      "height": 279.4,
+      "padding": [12.7, 12.7, 12.7, 12.7],
+      "staticSchema": [
+        {
+          "name": "footerLine",
+          "type": "line",
+          "position": { "x": 12.7, "y": 268 },
+          "width": 190.5,
+          "height": 0.2,
+          "color": "#999999",
+          "readOnly": true,
+          "content": ""
+        },
+        {
+          "name": "footerText",
+          "type": "text",
+          "content": "Generated by WebClerk",
+          "position": { "x": 12.7, "y": 270 },
+          "width": 140,
+          "height": 8,
+          "fontSize": 9,
+          "fontColor": "#999999",
+          "readOnly": true
+        },
+        {
+          "name": "pageNumber",
+          "type": "text",
+          "content": "Page {currentPage} of {totalPages}",
+          "position": { "x": 155, "y": 270 },
+          "width": 48,
+          "height": 8,
+          "alignment": "right",
+          "fontSize": 9,
+          "fontColor": "#999999",
+          "readOnly": true
+        }
+      ]
+    }
+  }
+}

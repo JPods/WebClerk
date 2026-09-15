@@ -1,0 +1,7 @@
+I think we should convert their existing website in a separate session. Can   
+  you write an instruction to convert these two folders. Would it be better to   
+  convert the data first, then the websites?   
+
+
+  
+   

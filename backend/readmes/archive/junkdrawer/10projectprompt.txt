@@ -1,0 +1,19 @@
+Please create a .py in apps/core/management/commands/qqqBy20260115 that creates 10 project model records
+attention  
+
+
+Please draft a plan to test the transaction and inventory capabilities the combination of r25 and wc3. 
+
+We will limit this test to item id = 240. We need a log of each transactions for all changes to this item.quantity.on_hand, .on_so, .on_po, .on_in, .on_wo, .on_receipt
+
+The log may be a tab, newline delimited or a json.
+Each line of the log should contain a timestamp.
+The log should document the starting values in item_id = 240.
+I will create a proposal in r25 for 10 units. In wc3 log should document the saving of this record, its creation of a pending record to change item.quantity.on_p, the pending record applying its value to the item record, the pending.dt_processed change in value
+
+I will then tranfer from that proposals 8 item_id 240 to an order. The log should document the saving of this proposal record, the creation of the order record, the creation of a pending and order pending record to change item.quantity.on_p and on_so, the pending record applying its value to the item record, the pending.dt_processed change in value
+
+Please draft a pl
+
+
+the log to record the proposal_id, value of the pending record created, and the item.quantity.on_hand, .on_so, .on_po, .on_in, .on_wo, .on_receipt

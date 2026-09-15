@@ -1,0 +1,5 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+// Barrel exports for email model
+export * from './types/emailType';
+export * from './utils/emailSchema';
+export * from './services/emailApi';

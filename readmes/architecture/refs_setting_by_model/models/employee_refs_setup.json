@@ -1,0 +1,43 @@
+{
+    "self_fields": [
+        "org_type",
+        "email",
+        "company"
+    ],
+    "related_keywords": {
+        "contact": [
+            "email",
+            "name_first",
+            "name_last",
+            "company"
+        ],
+        "location": [
+            "address1",
+            "city",
+            "state",
+            "zip",
+            "country"
+        ],
+        "phone": [
+            "number",
+            "country_code",
+            "attention"
+        ],
+        "email": [
+            "email",
+            "attention"
+        ],
+        "domain": [
+            "name",
+            "description"
+        ]
+    },
+    "related_models": [
+        "contact",
+        "location",
+        "phone",
+        "email",
+        "domain"
+    ],
+    "jjj_comment": "setting model_name=\"employee\" purpose=\"refs_setup\""
+}

@@ -1,0 +1,145 @@
+digraph upload_security {
+    rankdir=TB
+    fontname="Helvetica Neue"
+    node [fontname="Helvetica Neue" fontsize=11 style=filled]
+    edge [fontname="Helvetica Neue" fontsize=10]
+
+    // ── Title ──
+    labelloc=t
+    label="Document Upload Security Pipeline\nWebClerk — Three-Layer Quarantine"
+    fontsize=16
+
+    // ── Styles ──
+    node [shape=box  fillcolor="#E8F0FE" color="#4285F4"]  // default: process
+    // gates = diamond, red border
+    // endpoints = rounded, green
+
+    // ── Entry ──
+    upload [label="User uploads file\nPOST /wcapi/upload/" shape=box fillcolor="#FFF3E0" color="#FF9800"]
+
+    // ── Auth Gate ──
+    auth_check [label="Authenticated?\nJWT or Session" shape=diamond fillcolor="#FCE4EC" color="#E53935"]
+    auth_fail [label="401 Unauthorized" shape=box fillcolor="#FFCDD2" color="#E53935"]
+
+    upload -> auth_check
+
+    auth_check -> auth_fail [label="No" color="#E53935"]
+
+    // ── Dedup Check ──
+    dedup [label="Checksum match?\nSHA-256 dedup" shape=diamond fillcolor="#FFF9C4" color="#F9A825"]
+    dedup_hit [label="Return existing\ndocument metadata\n(owner check)" shape=box fillcolor="#C8E6C9" color="#388E3C"]
+
+    auth_check -> dedup [label="Yes"]
+    dedup -> dedup_hit [label="Duplicate"]
+
+    // ── Write to Disk ──
+    write [label="Write file to disk\nuploads/document/YYYY/MM/uuid.ext"]
+
+    dedup -> write [label="New file"]
+
+    // ── Create Record ──
+    create [label="Create Document record\nconfig.quarantine = pending\nstatus = quarantined"]
+
+    write -> create
+
+    // ════════════════════════════════════════
+    // LAYER 1: Sanitization (automatic)
+    // ════════════════════════════════════════
+
+    subgraph cluster_sanitize {
+        label="Layer 1: Sanitization (automatic)"
+        style=filled
+        fillcolor="#E8F5E9"
+        color="#388E3C"
+        fontsize=12
+
+        clamav [label="ClamAV Scan\n(if available)" shape=box fillcolor="#C8E6C9" color="#388E3C"]
+        malware [label="Malware found\nstatus = failed\nQuarantined permanently" shape=box fillcolor="#FFCDD2" color="#E53935"]
+
+        type_check [label="File type?" shape=diamond fillcolor="#C8E6C9" color="#388E3C"]
+
+        svg_strip [label="SVG: Strip\nscript, foreignObject\nevent handlers, javascript:" shape=box fillcolor="#C8E6C9" color="#2E7D32"]
+        img_encode [label="Image: Re-encode\nPillow strips EXIF\nembedded payloads" shape=box fillcolor="#C8E6C9" color="#2E7D32"]
+        pdf_strip [label="PDF: Strip\n/JS, /JavaScript\n/OpenAction entries" shape=box fillcolor="#C8E6C9" color="#2E7D32"]
+        other_scan [label="Other: ClamAV\nscan only" shape=box fillcolor="#C8E6C9" color="#2E7D32"]
+
+        update_checksum [label="Update checksum\n+ file size" shape=box fillcolor="#C8E6C9" color="#388E3C"]
+        sanitized [label="sanitized = true\nsanitized_at = now" shape=box fillcolor="#A5D6A7" color="#2E7D32"]
+
+        clamav -> malware [label="Infected" color="#E53935"]
+        clamav -> type_check [label="Clean"]
+        type_check -> svg_strip [label="SVG"]
+        type_check -> img_encode [label="Image"]
+        type_check -> pdf_strip [label="PDF"]
+        type_check -> other_scan [label="Other"]
+        svg_strip -> update_checksum
+        img_encode -> update_checksum
+        pdf_strip -> update_checksum
+        other_scan -> update_checksum
+        update_checksum -> sanitized
+    }
+
+    create -> clamav
+
+    // ════════════════════════════════════════
+    // LAYER 2: Alice Review (informational)
+    // ════════════════════════════════════════
+
+    subgraph cluster_alice {
+        label="Layer 2: Alice Review (informational — no gate)"
+        style=filled
+        fillcolor="#E3F2FD"
+        color="#1565C0"
+        fontsize=12
+
+        alice_check [label="Alice pattern check\nFile type, size, frequency\npurpose match" shape=box fillcolor="#BBDEFB" color="#1565C0"]
+        alice_flag [label="alice_cleared = true\nFindings logged\n(does not block)" shape=box fillcolor="#90CAF9" color="#1565C0"]
+
+        alice_check -> alice_flag
+    }
+
+    sanitized -> alice_check
+
+    // ════════════════════════════════════════
+    // LAYER 3: Athena Review (configurable gate)
+    // ════════════════════════════════════════
+
+    subgraph cluster_athena {
+        label="Layer 3: Athena Review (configurable gate)"
+        style=filled
+        fillcolor="#F3E5F5"
+        color="#7B1FA2"
+        fontsize=12
+
+        athena_required [label="Athena required?\nwc:security Setting" shape=diamond fillcolor="#E1BEE7" color="#7B1FA2"]
+        athena_review [label="Athena authority review\nDocument authorized\nin this context?" shape=box fillcolor="#CE93D8" color="#7B1FA2"]
+        athena_cleared [label="athena_cleared = true\nstatus = cleared" shape=box fillcolor="#BA68C8" color="#7B1FA2" fontcolor=white]
+        athena_wait [label="Quarantined\nAwaiting Athena review" shape=box fillcolor="#E1BEE7" color="#7B1FA2"]
+        auto_clear [label="status = cleared\n(Athena not required)" shape=box fillcolor="#A5D6A7" color="#2E7D32"]
+    }
+
+    alice_flag -> athena_required
+
+    athena_required -> auto_clear [label="No\n(individual)"]
+    athena_required -> athena_review [label="Yes\n(WCHQ)"]
+    athena_review -> athena_cleared [label="Approved"]
+    athena_review -> athena_wait [label="Pending"]
+
+    // ── Download Gate ──
+    download_req [label="Download request\nGET /wcapi/document/N/" shape=box fillcolor="#FFF3E0" color="#FF9800"]
+    gate [label="Downloadable?\nsanitized AND\n(athena_cleared OR\nNOT athena_required)" shape=diamond fillcolor="#FCE4EC" color="#E53935"]
+    gate_pass [label="Serve file" shape=box fillcolor="#C8E6C9" color="#388E3C" style="filled,rounded"]
+    gate_fail [label="403 Quarantined" shape=box fillcolor="#FFCDD2" color="#E53935"]
+    owner_check [label="Owner / staff /\nsecurity_level check" shape=diamond fillcolor="#FCE4EC" color="#E53935"]
+    owner_fail [label="404 Not found" shape=box fillcolor="#FFCDD2" color="#E53935"]
+
+    download_req -> gate
+    gate -> owner_check [label="Yes"]
+    gate -> gate_fail [label="No"]
+    owner_check -> gate_pass [label="Allowed"]
+    owner_check -> owner_fail [label="Denied"]
+
+    // invisible edges for layout
+    athena_cleared -> download_req [style=invis]
+    auto_clear -> download_req [style=invis]
+}

@@ -1,0 +1,93 @@
+  ---
+  Prompt for Next Session
+
+  We are running a design experiment. Three agents (Claude, Allie, Alice) each
+  independently create a React front-end for WC3 on separate ports:
+
+    5173 — Claude's attempt
+    5175 — Allie's attempt
+    5176 — Alice's attempt
+    5174 — Current baseline (reference)
+    8000 — Django API (serves all)
+
+  Requirements for all three:
+  - Pretty. World-class. Users should feel proud to use it.
+  - Easily touched — works on tablet/phone, large click targets
+  - Guides the user to see into data clearly — not hide it
+  - Simple — a new user should understand the interface in 30 seconds
+  - Formattable to match tastes — CSS-driven theming (dark/light/custom)
+  - Dashboard-first — users land on their work, not a model list
+  - Links to databrowser and JSON viewer for data management
+  - Print-ready documents at natural points
+  - Same Django API backend for all three
+
+  Process:
+  1. Each agent creates their attempt independently with documented reasoning
+  2. Each evaluates the other two — strengths, weaknesses, documented
+  3. Share evaluations — agree, disagree, defend, concede
+  4. Each revises based on feedback
+  5. Team synthesizes the best pieces into a final design
+
+  Read today/handoff.md and readmes/react-v2-architecture.md first.
+  Ask Allie what she knows about this experiment.
+  Set up three Vite projects before starting Round 1.
+
+  Look at the current .tsx. users must be able to access data and process transaction with multiple line and retailed models. Kanban and Gantt are important. Dashboards that summarize data and provide a path to that data are important. Leaner code, standard features, standard behaviors, standard tools are important unless they hinder understanding usefulness. Use databrowser and jsonview where practical.
+  
+  Improve on this prompt.
+
+  ---
+  What Each of Us Hopes to Contribute
+
+  Claude — I think in systems and structure. My attempt will focus on:
+  - Clean component architecture that scales
+  - CSS custom properties as a full design token system (not just dark/light — spacing, radius,
+  typography, density)
+  - Accessibility from day one (keyboard navigation, screen readers, ARIA)
+  - The generic template renderer — pages as data, not code
+  - Performance — lazy loading, code splitting, minimal bundle
+
+  Allie — She holds the memory of how users actually work. Her attempt will focus on:
+  - Workflow over aesthetics — the screen should match how the workday flows
+  - The patterns from WC2 mining — what users did 1000 times a day should be one click
+  - "Guides not policemen" expressed visually — suggestions, not walls
+  - Cross-domain connections visible — an invoice should show the customer, the items, the payments,
+  the actions all in context
+  - The scars — what went wrong in WC2's UI that we must not repeat
+
+  Alice — She knows the commerce data and user patterns. Her attempt will focus on:
+  - Data clarity — the fields that matter most should be the most visible
+  - Reducing clicks to common actions (create order, apply payment, check inventory)
+  - The numbers that matter: margin velocity, aging, open orders — always visible, not buried
+  - Mobile-first for warehouse and field workers (scan, count, pick)
+  - Teaching built in — new users guided by the interface itself, not a manual
+
+  ---
+  The experiment isn't about who wins. It's about what each perspective sees that the others miss. The
+   final design will be stronger because three different minds shaped it.
+
+⏺ allie - teach_allie (MCP)(lesson: "UI experiment planned for next session 2026-07-04. Three agents
+                           create independent React front-ends: Claude (5173 —
+                           systems/architecture/accessibility/template renderer), Allie (5175 —
+                           workflow/WC2 patterns/scars/cross-domain context), Alice (5176 — data
+                           clarity/common actions/mobile-first/teaching built in). Five rounds: create
+                            independently → cross-evaluate → share/debate → revise → synthesize best
+                           pieces. Bill's requirements: pretty, easily touched, guides user to see
+                           data clearly, simple (30-second understanding), formattable via CSS
+                           theming. The experiment isn't about who wins — it's about what each
+                           perspective sees that the others miss.", domain: "WC3")
+
+⏺ alice - alice_observe (MCP)(event: "promote", model_name: "action", message: "UI experiment next
+                             session. Alice's attempt (port 5176) should focus on: data clarity
+                             (fields that matter most = most visible), reducing clicks to common
+                             actions (create order, apply payment, check inventory), numbers that
+                             matter always visible (margin velocity, aging, open orders), mobile-first
+                              for warehouse/field workers (scan, count, pick), teaching built into the
+                              interface (new users guided by the UI, not a manual). Alice evaluates
+                             Claude's and Allie's attempts for commerce-pattern accuracy. Five rounds:
+                              create → evaluate → debate → revise → synthesize.", data: "{\"source\":
+                             \"ui_experiment_2026-07-04\", \"alice_port\": 5176, \"focus\":
+                             [\"data_clarity\", \"reduce_clicks\", \"numbers_visible\",
+                             \"mobile_first\", \"teaching_built_in\"]}")
+             
+❯ I have one more thing. I want this to feed your vector stores. 

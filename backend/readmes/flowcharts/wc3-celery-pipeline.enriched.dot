@@ -1,0 +1,149 @@
+// WC3 Celery Pipeline — all background tasks organized by domain and owner
+// Alice owns: library, data quality, health, schema, margin, velocity, layout drift
+// Render: dot -Tpdf wc3-celery-pipeline.dot -o wc3-celery-pipeline.pdf
+
+// CodeMap revision: 1 — 2026-08-11
+
+digraph wc3_celery {
+    size="10.0,7.5"
+    ratio="compress"
+
+
+
+    // ── CodeMap Standard Style ──
+    fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+    fontsize=12
+    bgcolor="white"
+    pad=0.4
+    nodesep=0.5
+    ranksep=0.6
+    splines=true
+
+    node [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        style="filled,rounded"
+        shape=box
+        penwidth=1.2
+        color="#555555"
+    ]
+
+    edge [
+        fontname="Helvetica Neue,Helvetica,Arial,sans-serif"
+        fontsize=10
+        penwidth=2.0
+        arrowhead=normal
+        arrowsize=1.4
+        color="#666666"
+        fontcolor="#444444"
+    ]
+
+    rankdir=TB
+    label="WC3 — Celery Task Pipeline\nRedis broker · UTC · 30 min hard limit\nAlice owns library, data quality, health, schema, commerce analytics"
+    labelloc=t
+
+    // ── Infrastructure ──
+    redis [label="Redis\nlocalhost:6379/0\nBroker + Backend" shape=cylinder fillcolor="#FADBD8"]
+    worker [label="Celery Worker\nconcurrency=4\n-A webclerk3_api" shape=box fillcolor="#D4E6F1"]
+    beat [label="Celery Beat\nScheduler\ncrontab + intervals" shape=box fillcolor="#D4E6F1"]
+
+    redis -> worker [label="task queue"]
+    beat -> redis [label="enqueue on schedule"]
+
+    // ── High Frequency (seconds) ──
+    subgraph cluster_high_freq {
+        label="High Frequency (seconds)"
+        style=filled fillcolor="#FEF9E7" color="#F9E79F"
+
+        inv_drain [label="Inventory Pending\nDrain\n30s · adaptive\nlimit=200" shape=box fillcolor="#FDFEFE" fontsize=8]
+        layout_apply [label="Apply Pending\nLayouts\n10s\nDataBrowser saves" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── Periodic (minutes/hours) ──
+    subgraph cluster_periodic {
+        label="Periodic (minutes / hours)"
+        style=filled fillcolor="#EBF5FB" color="#AED6F1"
+
+        keywords [label="Search Keywords\nRefresh\nevery 15 min\nlimit=500" shape=box fillcolor="#FDFEFE" fontsize=8]
+        rel_counts [label="Relationship\nCounts\nhourly\nlimit=5000" shape=box fillcolor="#FDFEFE" fontsize=8]
+        athena [label="Athena Integrity\nVerify\nevery 4 hours\nsign + verify files" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── Nightly (crontab) ──
+    subgraph cluster_nightly {
+        label="Nightly Tasks (1:30 AM – 5:00 AM UTC)"
+        style=filled fillcolor="#E8DAEF" color="#D2B4DE"
+
+        user_logs [label="User Daily Log\nAggregation\n1:30 AM" shape=box fillcolor="#FDFEFE" fontsize=8]
+        defaults [label="Model Defaults\nEnsure JSONB\n2:00 AM" shape=box fillcolor="#FDFEFE" fontsize=8]
+        schema_watch [label="Alice: Schema\nWatch\n2:20 AM" shape=box fillcolor="#D5F5E3" fontsize=8]
+        health [label="Alice: Health\nScoring\n2:30 AM" shape=box fillcolor="#D5F5E3" fontsize=8]
+        aging [label="Aging\nReconciliation\n2:40 AM" shape=box fillcolor="#FDFEFE" fontsize=8]
+        backup [label="Data Backup\nExport\n3:00 AM" shape=box fillcolor="#FDFEFE" fontsize=8]
+        cleanup_alice [label="Alice: Data\nCleanup\n3:10 AM" shape=box fillcolor="#D5F5E3" fontsize=8]
+        meta_temp [label="Metadata Temp\nCleanup\n3:20 AM" shape=box fillcolor="#FDFEFE" fontsize=8]
+        json_opt [label="Alice: JSON\nOptimize\n3:30 AM" shape=box fillcolor="#D5F5E3" fontsize=8]
+        refs_fk [label="Refs↔FK\nMismatch Audit\n3:40 AM" shape=box fillcolor="#FDFEFE" fontsize=8]
+        rel_scan [label="Alice: Relationship\nScan\n4:00 AM" shape=box fillcolor="#D5F5E3" fontsize=8]
+        registry [label="Registry Docs\nRefresh\n5:00 AM" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── Weekly ──
+    subgraph cluster_weekly {
+        label="Weekly Tasks (Sunday / Monday)"
+        style=filled fillcolor="#FADBD8" color="#F5B7B1"
+
+        stats [label="Basic Stats\nNormalize\nSun 4:00 AM" shape=box fillcolor="#FDFEFE" fontsize=8]
+        schema_drift [label="Alice: Schema\nDrift\nMon 4:30 AM" shape=box fillcolor="#D5F5E3" fontsize=8]
+        margin [label="Alice: Margin\nTracking\nMon 5:00 AM" shape=box fillcolor="#D5F5E3" fontsize=8]
+        velocity [label="Alice: Velocity\nAnalysis\nMon 5:30 AM" shape=box fillcolor="#D5F5E3" fontsize=8]
+        layout_drift [label="Alice: Layout\nDrift\nMon 6:00 AM" shape=box fillcolor="#D5F5E3" fontsize=8]
+    }
+
+    // ── Alice Library Pipeline (NEW) ──
+    subgraph cluster_library {
+        label="Alice Library Pipeline (Celery tasks)"
+        style=filled fillcolor="#D5F5E3" color="#82E0AA"
+
+        lib_scan [label="Virus Scan\nevery 1 min\nstatus → scanned\nor virus_detected" shape=box fillcolor="#FDFEFE" fontsize=8]
+        lib_thumb [label="Thumbnail\nGeneration\nevery 1 min\n200×200 PNG" shape=box fillcolor="#FDFEFE" fontsize=8]
+        lib_transfer [label="Cloud Transfer\nasync\npath.remote_url" shape=box fillcolor="#FDFEFE" fontsize=8]
+        lib_verify [label="Transfer Verify\nevery 2 min\nchecksum match" shape=box fillcolor="#FDFEFE" fontsize=8]
+        lib_cleanup [label="Local Cleanup\nasync\nstatus → archived" shape=box fillcolor="#FDFEFE" fontsize=8]
+        lib_monitor [label="Failed Monitor\nevery 5 min\nretry or FAULT" shape=box fillcolor="#FDFEFE" fontsize=8]
+        lib_dedup [label="Dedup Scan\nevery 5 min\ncatchup check" shape=box fillcolor="#FDFEFE" fontsize=8]
+    }
+
+    // ── Library pipeline flow ──
+    lib_scan -> lib_thumb [label="clean"]
+    lib_thumb -> lib_transfer [label="ready"]
+    lib_transfer -> lib_verify
+    lib_verify -> lib_cleanup [label="match"]
+    lib_verify -> lib_monitor [label="mismatch"]
+    lib_monitor -> lib_transfer [label="retry" style=dashed]
+
+    // ── Upload entry ──
+    upload [label="POST /wcapi/upload/\nDocument record\nstatus=uploaded" shape=box fillcolor="#D4E6F1" URL="vscode://file/Users/williamjames/Documents/CommerceExpert/webClerk3/apps/docs/views_upload.py:1" target="_blank" tooltip="File upload pipeline — checksum, inline encode, EXIF extract, virus scan, create Document.\nService: apps/docs/views_upload.py\nFunctions:
+  upload_view @ apps/docs/views_upload.py:46 (inline encoding: zlib+base64 for small files)
+  checksum computation @ apps/docs/views_upload.py:73 (SHA256 dedup check)"]
+    upload -> lib_scan [label="Alice picks up"]
+
+    // ── Cloud target ──
+    cloud [label="Secure Cloud\nLibrary\nencrypted at rest\nsigned URLs" shape=box fillcolor="#ABEBC6"]
+    lib_cleanup -> cloud
+
+    // ── Worker connections ──
+    worker -> inv_drain [style=dotted]
+    worker -> layout_apply [style=dotted]
+    worker -> keywords [style=dotted]
+    worker -> lib_scan [style=dotted]
+
+    // ── Database ──
+    db [label="PostgreSQL\ncommerce_expert\nDocument, Setting,\nInventory, ScheduledTask" shape=cylinder fillcolor="#FCF3CF"]
+
+    inv_drain -> db [style=dashed]
+    keywords -> db [style=dashed]
+    health -> db [style=dashed]
+    backup -> db [style=dashed label="export"]
+    upload -> db [label="create record"]
+}

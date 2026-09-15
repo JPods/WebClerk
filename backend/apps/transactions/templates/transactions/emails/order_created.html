@@ -1,0 +1,28 @@
+{% extends "base_email.html" %}
+
+{% block subject %}Order Created - {{ order.name }}{% endblock %}
+
+{% block content %}
+<h2>Order Created</h2>
+
+<p>Dear {{ contact.get_full_name }},</p>
+
+<p>Your order has been created and is now being processed.</p>
+
+<h3>Order Details:</h3>
+<ul>
+    <li><strong>Order:</strong> {{ order.name }}</li>
+    <li><strong>ID:</strong> {{ order.id }}</li>
+    <li><strong>Created:</strong> {{ order.dt_modified|date:"F j, Y, g:i a" }}</li>
+    {% if order.totals.total %}
+    <li><strong>Total Amount:</strong> ${{ order.totals.total|floatformat:2 }}</li>
+    {% endif %}
+</ul>
+
+<p>We will keep you updated on the status of your order. You can expect to receive an invoice once the order is ready for shipment.</p>
+
+<p>Thank you for your business!</p>
+
+<p>Best regards,<br>
+{{ company_name|default:"WebClerk3 Team" }}</p>
+{% endblock %}

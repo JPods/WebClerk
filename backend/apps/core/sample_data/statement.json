@@ -1,0 +1,63 @@
+{
+  "_meta": {
+    "model": "statement",
+    "description": "Sample customer statement for report parade — aging with open invoices and recent payments",
+    "version": 1
+  },
+  "contact_name": "Ridgeline Hardware & Supply",
+  "attention": "Maria Santos, Accounts Payable",
+  "address_full": "420 Main Street\nBurlington, VT 05401",
+  "as_of_date": "2026-07-31",
+  "totals": {
+    "current": 4263.35,
+    "over_30": 3577.85,
+    "over_60": 1892.40,
+    "over_90": 0.00,
+    "total_due": 9733.60
+  },
+  "invoices": [
+    {
+      "ida": "INV-2026-0847",
+      "dt_created": "2026-06-30",
+      "due_date": "2026-07-30",
+      "total": 4263.35,
+      "balance": 4263.35,
+      "aging": "current",
+      "po_number": "PO-RH-4421"
+    },
+    {
+      "ida": "INV-2026-0791",
+      "dt_created": "2026-06-15",
+      "due_date": "2026-07-15",
+      "total": 5842.50,
+      "balance": 3577.85,
+      "aging": "over_30",
+      "po_number": "PO-RH-4388"
+    },
+    {
+      "ida": "INV-2026-0683",
+      "dt_created": "2026-05-20",
+      "due_date": "2026-06-19",
+      "total": 1892.40,
+      "balance": 1892.40,
+      "aging": "over_60",
+      "po_number": "PO-RH-4301"
+    }
+  ],
+  "payments": [
+    {
+      "ida": "PMT-2026-0512",
+      "dt_created": "2026-07-02",
+      "total": 2264.65,
+      "method": "Check #4892",
+      "applied_to": "INV-2026-0791"
+    },
+    {
+      "ida": "PMT-2026-0478",
+      "dt_created": "2026-06-10",
+      "total": 3200.00,
+      "method": "ACH Transfer",
+      "applied_to": "INV-2026-0650"
+    }
+  ]
+}

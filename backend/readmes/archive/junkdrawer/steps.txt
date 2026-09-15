@@ -1,0 +1,167 @@
+1. Order   
+Production workflow — this is the operational core for service and                       
+  manufacturing businesses. Without it, wc3 only handles buy-and-resell.                 
+  2. Inventory stacks / FIFO consumption — the COGS engine. Without it, margin velocity  
+  is theoretical.                                                                        
+  3. Serial lifecycle — high-value for equipment dealers, already has the model.         
+  4. Backorder management — expected by any business that ships physical goods.          
+  5. Campaign entity + ROI — you already discussed this today, source JSON is the        
+  foundation.            
+
+  Good guidance. Key decisions noted:
+
+  Usage — sales accumulation records, not "how the product is used." Track what sold,
+  how much, when. This feeds margin velocity and Alice's pattern recognition.
+
+  Variants — You're right to question it. The tradeoff:
+  - Individual items: More records, but each has its own inventory count, cost, price,
+  GL, vendor, manufacturer. No ambiguity. Every SKU is a row. Inventory control is
+  precise.
+  - Variants: Matches how people browse ("show me this shirt") but inventory becomes a
+  nested problem. "Do we have size M in blue?" requires a second lookup inside the
+  variant.
+
+  Individual items with a parent_item_id (or variant_group) link gives you both — each
+  size/color is its own item with full inventory control, but they're grouped for
+  display. The Item model already has a variants JSONField and variant_attrs. That's
+  the right structure — group for browsing, individual for operations.
+
+  Warehouse and Catalog — I'll check wc2 for the patterns. If they're simple table
+  structures, worth seeding now. If they're complex workflow systems, defer.
+
+⏺ allie - teach_allie (MCP)(lesson: "Product model design decisions from Bill: (1)
+                           Usage records = accumulation of product sales history, feeds
+                            margin velocity. (2) Variants — Bill prefers individual
+                           item IDs over variant records for inventory control
+                           precision. Group for display via parent_item_id, but each
+                           size/color is its own item with full inventory. (3)
+                           Warehouse and Catalog — implement if simple, defer if
+                           complex. Check wc2 patterns.", domain: "WC3")
+
+⏺ Allie has it. Let me check on the report records agent — should be finishing up.
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ The report agent is still working — it found the sync_reports command and is
+  investigating. It'll complete shortly. I'll report back when it finishes.
+
+✻ Churned for 1m 11s · 1 local agent still running
+
+⏺ Agent "Generate report records for models" completed
+
+⏺ Report records done. 19 new reports created, 239 total now covering 26 model types.
+
+  Everything built tonight — full summary for morning testing:
+
+  ┌──────────────────┬──────────────────────────────────┬─────────────────────────┐
+  │     Category     │               What               │      Files/Actions      │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │ Journalization   │ Line-level GL posting (wc2       │ journalize.py — 4       │
+  │                  │ pattern)                         │ actions                 │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │                  │ Commission object, level         │ commission.py — 2       │
+  │ Commissions      │ factors, splits, accrual, GL     │ actions                 │
+  │                  │ resolution chain                 │                         │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │ PendingInventory │ CoreModel migration, dt_created  │ inventory_layer.py +    │
+  │                  │ fix                              │ migration               │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │ PendingPayment   │ One-path cash system             │ payment_pending.py +    │
+  │                  │                                  │ model — 2 actions       │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │ Credit Check     │ Warnings not barriers, audit     │ credit_check.py — 2     │
+  │                  │ trail                            │ actions                 │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │ Vendor Scorecard │ On-time, fill rate, quality,     │ vendor_scorecard.py — 3 │
+  │                  │ pricing                          │  actions                │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │ Suggest Purchase │ Reorder automation, preferred    │ suggest_purchase.py — 3 │
+  │                  │ vendor                           │  actions                │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │ Campaign CAC     │ Source attribution, margin       │ campaign_roi.py         │
+  │                  │ velocity                         │ extended — 3 actions    │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │ Rebate Accrual   │ Manufacturer rebates + GL        │ rebate_accrual.py — 2   │
+  │                  │                                  │ actions                 │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │ MAP Enforcement  │ Price floor checks               │ map_enforcement.py — 3  │
+  │                  │                                  │ actions                 │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │ Inventory Rewire │ order_production →               │ order_production.py     │
+  │                  │ adjust_item_quantity             │ modified                │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │ Item vendor/mfr  │ FKs on Item model                │ Migration + SQL applied │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │ zzz GL accounts  │ 6 test accounts, item 308 +      │ DB data                 │
+  │                  │ customer assigned                │                         │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │ Commission       │ Alice training doc with 8 drills │ Document record         │
+  │ training         │                                  │                         │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │ 8 ORG action     │ Backlog items ORG-01 through     │ Action records          │
+  │ records          │ ORG-08                           │                         │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │ 19 report        │ Pick list, proforma, commission, │ 239 total reports       │
+  │ records          │  scorecards, etc.                │                         │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────┤
+  │ Test Dashboard   │ GL Journal section with batch    │ TestDashboard.tsx       │
+  │                  │ journalize                       │                         │
+  └──────────────────┴──────────────────────────────────┴─────────────────────────┘
+
+  37 manage actions total. GL balanced at $54,131.50. All DB migrations applied.
+
+  Design decisions recorded:
+  - qqq_/zzz_ = deletable (Allie + Alice both know)
+  - Variants = individual items with parent_item_id grouping
+  - Credit limits = warnings with acknowledgement audit trail
+  - Commission GL chain: transaction → rep → commission_config → gl_account_defaults →
+  hardcoded
+
+❯ sync services will be important. Please write readme on these feature and Alice      
+training documents.                                                                    
+
+⏺ Agent(Write service readmes + training docs)
+  ⎿  Backgrounded agent (↓ to manage · ctrl+o to expand)
+
+⏺ Agent launched — writing readmes/services-reference.md (full service reference with
+  function signatures, GL chains, one-path pattern) plus 6 Alice training documents
+  with practice drills for inventory, journalization, vendor management,
+  credit/payments, campaigns, and manufacturer/MAP. I'll report back when it completes.
+
+✻ Worked for 44s · 1 local agent still running
+
+⏺ Agent "Write service readmes + training docs" completed
+
+⏺ All done. Here's what's ready:
+
+  Services Reference: readmes/services-reference.md — 12 services, 33 manage actions,
+  GL chains, one-path pattern, all documented with function signatures.
+
+  7 Alice Training Documents (ids 92-98):
+
+  ┌─────┬────────────────┬───────────────────────┬────────┐
+  │ ID  │      IDA       │         Topic         │ Drills │
+  ├─────┼────────────────┼───────────────────────┼────────┤
+  │ 92  │ TRAIN-COMM     │ Commission Management │ 8      │
+  ├─────┼────────────────┼───────────────────────┼────────┤
+  │ 93  │ TRAIN-INV      │ Inventory (One Path)  │ 5      │
+  ├─────┼────────────────┼───────────────────────┼────────┤
+  │ 94  │ TRAIN-GL       │ GL Journalization     │ 5      │
+  ├─────┼────────────────┼───────────────────────┼────────┤
+  │ 95  │ TRAIN-VENDOR   │ Vendor Management     │ 5      │
+  ├─────┼────────────────┼───────────────────────┼────────┤
+  │ 96  │ TRAIN-CREDIT   │ Credit & Payment      │ 5      │
+  ├─────┼────────────────┼───────────────────────┼────────┤
+  │ 97  │ TRAIN-CAMPAIGN │ Campaign & Marketing  │ 5      │
+  ├─────┼────────────────┼───────────────────────┼────────┤
+  │ 98  │ TRAIN-MAP      │ Manufacturer & MAP    │ 5      │
+  └─────┴────────────────┴───────────────────────┴────────┘
+
+  38 practice drills total, all referencing actual manage actions with JSON examples.
+  Ready for your morning testing.
+
+
+
+
+There are a few more thing that our team needs to
+  polish on the databrowser  1. flashing loading of lists. 2.  
