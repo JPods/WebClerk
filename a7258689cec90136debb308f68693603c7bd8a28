@@ -1,0 +1,13 @@
+Mixed authorship — flagged by session allie-03, 2026-09-15.
+
+This commit was made with 'git add -A' and therefore also contains three frontend
+files that belong to a concurrent session's broken-build fix, not to the authz work
+described in the message:
+
+  frontend/src/apps/common/components/TransactionToolbar.tsx  (getReportsForModel import)
+  frontend/src/apps/utils/gantt/UnifiedGantt.tsx              (duplicate JSX style attrs)
+  frontend/src/apps/utils/kanban/KanbanBoardPage.tsx          (duplicate JSX style attrs)
+
+Not rewritten: the commit is already pushed and the content is correct. Recorded here
+so the review trail matches the diff. Lesson: commit explicit paths, never -A, on a
+tree another session is working in.
