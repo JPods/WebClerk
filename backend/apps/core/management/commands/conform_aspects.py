@@ -16,6 +16,10 @@ Steps
             written into action (source_agent, sprint_week, …) → metadata, where
             allie-reflect.py reads them; languages {} → []; user stamps with a
             non-numeric id keep their email and lose the id.
+  records   project objective / tasks / logistics stored as plain text → the
+            schema (text kept in summary / notes; goal and success_criteria →
+            summary and success.definition); document.path wc2_note / ask_bill →
+            description; org metrics periods {key: {...}} → [{period: key, ...}].
 """
 from __future__ import annotations
 
@@ -79,11 +83,11 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--apply', action='store_true')
-        parser.add_argument('--step', choices=['shipping', 'action'], default=None)
+        parser.add_argument('--step', choices=['shipping', 'action', 'records'], default=None)
 
     def handle(self, *args, **opts):
         apply = opts['apply']
-        steps = [opts['step']] if opts['step'] else ['shipping', 'action']
+        steps = [opts['step']] if opts['step'] else ['shipping', 'action', 'records']
         with transaction.atomic():
             for step in steps:
                 getattr(self, f'step_{step}')(apply)
@@ -97,8 +101,8 @@ class Command(BaseCommand):
         for key in SHIPPING_MODELS:
             model = MODEL_REGISTRY[key].import_model()
             reshaped = 0
-            for rec in model.objects.all().only('id', 'shipping'):
-                old = rec.shipping or {}
+            for pk, old in model.objects.values_list('id', 'shipping').iterator():
+                old = old or {}
                 new = dict(old)
                 new['ship_to'] = _ship_to_snapshot(old.get('ship_to') or {})
                 new['dt_shipped'] = _epoch_or_none(old.get('dt_shipped'))
@@ -107,7 +111,7 @@ class Command(BaseCommand):
                 if new != old:
                     reshaped += 1
                     if apply:
-                        model.objects.filter(pk=rec.pk).update(shipping=new)
+                        model.objects.filter(pk=pk).update(shipping=new)
             self.stdout.write(f'  {key}: {reshaped} records reshaped')
         n = rename_paths_in_settings(SHIPPING_PATH_RENAMES, self.stdout, apply)
         self.stdout.write(f'  settings: {n} records with flat shipping paths')
@@ -126,8 +130,10 @@ class Command(BaseCommand):
         Action = MODEL_REGISTRY['action'].import_model()
         self.stdout.write('action:')
         counts = dict(text=0, agent=0, languages=0, stamps=0)
-        for rec in Action.objects.all().only(
-                'id', 'action', 'description', 'languages', 'metadata', *self.STAMP_FIELDS):
+        from types import SimpleNamespace
+        cols = ('id', 'action', 'description', 'languages', 'metadata', *self.STAMP_FIELDS)
+        for row in Action.objects.values(*cols).iterator():
+            rec = SimpleNamespace(pk=row['id'], **row)
             update = {}
             act = rec.action
             if isinstance(act, dict) and 'title' in act:
@@ -173,3 +179,71 @@ class Command(BaseCommand):
             if update and apply:
                 Action.objects.filter(pk=rec.pk).update(**update)
         self.stdout.write('  ' + ', '.join(f'{k}: {v}' for k, v in counts.items()))
+
+    def step_records(self, apply: bool):
+        from apps.core.constants.model_registry import MODEL_REGISTRY
+        from apps.core.services.field_leaves import ORG_MODELS
+        from common.schemas.record_aspects import (
+            DocumentPath, PeriodMetrics, ProjectLogistics, ProjectObjective, ProjectTasks)
+
+        self.stdout.write('records:')
+        Project = MODEL_REGISTRY['project'].import_model()
+        n = 0
+        from types import SimpleNamespace
+        for row in Project.objects.values('id', 'objective', 'tasks', 'logistics').iterator():
+            rec = SimpleNamespace(pk=row['id'], **row)
+            update = {}
+            obj = rec.objective
+            if isinstance(obj, str):
+                obj = {'summary': obj}
+            if isinstance(obj, dict) and ('goal' in obj or 'success_criteria' in obj):
+                obj = dict(obj)
+                goal = obj.pop('goal', '')
+                crit = obj.pop('success_criteria', '')
+                obj['summary'] = obj.get('summary') or goal
+                obj.setdefault('success', {})
+                obj['success'] = dict(obj['success'])
+                obj['success']['definition'] = obj['success'].get('definition') or crit
+            if obj != rec.objective:
+                update['objective'] = ProjectObjective.model_validate(obj or {}).model_dump(by_alias=True)
+            for field, cls in (('tasks', ProjectTasks), ('logistics', ProjectLogistics)):
+                val = getattr(rec, field)
+                if isinstance(val, str):
+                    update[field] = cls(notes=val).model_dump()
+            if update:
+                n += 1
+                if apply:
+                    Project.objects.filter(pk=rec.pk).update(**update)
+        self.stdout.write(f'  project: {n} records reshaped')
+
+        Document = MODEL_REGISTRY['document'].import_model()
+        n = 0
+        for pk, p in Document.objects.values_list('id', 'path').iterator():
+            if isinstance(p, dict) and ('wc2_note' in p or 'ask_bill' in p):
+                p = dict(p)
+                extra = [p.pop('wc2_note', ''), p.pop('ask_bill', '')]
+                p['description'] = '\n'.join(x for x in [p.get('description', '')] + extra if x)
+                n += 1
+                if apply:
+                    Document.objects.filter(pk=pk).update(
+                        path=DocumentPath.model_validate(p).model_dump())
+        self.stdout.write(f'  document: {n} records reshaped')
+
+        n = 0
+        for key in ORG_MODELS:
+            Model = MODEL_REGISTRY[key].import_model()
+            for pk, m in Model.objects.values_list('id', 'metrics').iterator():
+                original = m
+                if not isinstance(m, dict):
+                    continue
+                periods = m.get('periods')
+                if isinstance(periods, dict) or 'counts' not in m:
+                    m = dict(m)
+                    if isinstance(periods, dict):
+                        m['periods'] = [{'period': k, **(v or {})} for k, v in periods.items()]
+                    new = PeriodMetrics.model_validate(m).model_dump()
+                    if new != original:
+                        n += 1
+                        if apply:
+                            Model.objects.filter(pk=pk).update(metrics=new)
+        self.stdout.write(f'  org metrics: {n} records reshaped')

@@ -46,6 +46,7 @@ _TE = 'common.schemas.transaction_envelopes'
 # A model-specific entry ("order.cost") wins over a shared one ("cost").
 _AS = 'common.schemas.aspects'
 _AC = 'common.schemas.action_aspects'
+_RA = 'common.schemas.record_aspects'
 LEAF = 'leaf'
 
 # Secrets. Never a leaf, for any role.
@@ -68,6 +69,29 @@ FIELD_SCHEMAS: dict[str, str] = {
     'action.retrospection': f'{_AC}:ActionRetrospection',
     **{f'action.{s}_by': f'{_AC}:UserStamp' for s in
        ('created', 'updated', 'start', 'deadline', 'expected', 'completed', 'end')},
+    'question_answer.answered_by': f'{_AC}:UserStamp',
+    'item.gls': f'{_RA}:ItemGls',
+    'item.flags': f'{_RA}:ItemFlags',
+    'item.tax_code': f'{_RA}:ItemTaxCode',
+    'project.objective': f'{_RA}:ProjectObjective',
+    'project.tasks': f'{_RA}:ProjectTasks',
+    'project.logistics': f'{_RA}:ProjectLogistics',
+    **{f'{m}.paths': f'{_RA}:SettingPaths' for m in ('setting', 'report', 'wc', 'databrowser', 'gantt')},
+    'document.path': f'{_RA}:DocumentPath',
+    'bill_of_material.op_data': f'{_TE}:BomOperationalData',
+    'serial.site': f'{_RA}:SerialSite',
+    'serial.warranty': f'{_RA}:SerialWarranty',
+    'warehouse.location': f'{_RA}:WarehouseLocation',
+    'warehouse.count': f'{_RA}:WarehouseCount',
+    # Outside payloads and free-form logs: shown whole (Bill, 2026-09-18).
+    **{ref: LEAF for ref in (
+        'bundle.payload', 'bundle.response', 'bundle.maps', 'bundle.rules', 'bundle.conflicts',
+        'cash.gateway_response', 'ai_message.context',
+        'connection.maps', 'connection.rules', 'connection.scripts',
+        'connection.relationships', 'connection.changes', 'connection.conflicts',
+        'audit.changes', 'audit.conflicts', 'audit.recommendations',
+        'pending.changes', 'tax_jurisdiction.scripts',
+    )},
     'inventory_layer.source': f'{_TE}:TransactionSource',
     'inventory_layer.cost': f'{_TE}:TransactionCost',
     'item_xref.cost': f'{_TE}:TransactionCost',
@@ -90,6 +114,7 @@ for _m in ORG_MODELS:
         f'{_m}.docs': f'{_OA}:OrgDoc',              # list of
         f'{_m}.connections': f'{_OA}:OrgConnections',
         f'{_m}.gl_accounts': f'{_OA}:OrgGlAccounts',
+        f'{_m}.metrics': 'common.schemas.record_aspects:PeriodMetrics',
     })
 FIELD_SCHEMAS['item.stats'] = f'{_OA}:RecordStats'
 
@@ -142,7 +167,7 @@ def walk_schema(cls, prefix: str, leaves: set, open_maps: set, _depth: int = 0) 
     if _depth > 8:
         raise ValueError(f'schema nesting deeper than 8 at {prefix}')
     for name, field in cls.model_fields.items():
-        path = f'{prefix}.{name}'
+        path = f'{prefix}.{field.alias or name}'
         t = _unwrap(field.annotation)
         origin = typing.get_origin(t)
         if _is_schema(t):
