@@ -60,8 +60,6 @@ class Command(BaseCommand):
         'inventorylayer.json',
         'inventorymovement.json',
         'inventoryreservation.json',
-        'inventorycheck.json',
-        'inventorycheckline.json',
         'inventorymetricsnapshot.json',
         'pendinginventoryadjustment.json',
         'inventoryadjustmentprocessorrun.json',
@@ -80,7 +78,6 @@ class Command(BaseCommand):
         'purchasereceipt.json',
         'requisition.json',
         'workorder.json',
-        'deliveryvisit.json',
         'cash.json',
         
         # 9. Transaction lines
@@ -90,7 +87,6 @@ class Command(BaseCommand):
         'purchaseline.json',
         'requisitionline.json',
         'workorderline.json',
-        'deliveryline.json',
         'cashapplication.json',
         
         # 10. Cross-references and actions

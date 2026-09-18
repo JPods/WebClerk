@@ -5,7 +5,7 @@ from common.admin_mixins import ScalarFirstFieldsetMixin  # noqa: F401 re-export
 from .models import (
     Item, ItemXRef, BillOfMaterial, Warehouse, InventoryLayer, SiteInventory, 
     InventoryMovement, Serial, SerialLog, Catalog, CatalogLine,
-    InventoryCheck, InventoryCheckLine, DeliveryVisit, DeliveryLine, ItemUsage,
+    ItemUsage,
     InventoryMetricsSnapshot, InventoryAdjustmentProcessorRun, Variant
 )
 from .models.inventory_reservation import InventoryReservation
@@ -97,38 +97,6 @@ class CatalogAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.Model
 class CatalogLineAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     # Scalar fields: discount_amount, discount_percent, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, is_locked, price_unit, security_level, status, uuid, version
     list_display = ("status", "discount_amount", "discount_percent", "health_rating", "is_locked", "price_unit", "is_active", "dt_created")
-    list_filter = ("is_active",)
-    search_fields = ("ida", "description")
-
-
-@admin.register(InventoryCheck)
-class InventoryCheckAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: dt_created, dt_modified, dt_performed, health_rating, is_active, is_archived, is_deleted, is_locked, notes, security_level, status, uuid, version
-    list_display = ("status", "dt_performed", "health_rating", "is_locked", "security_level", "is_active", "dt_created")
-    list_filter = ("is_active",)
-    search_fields = ("ida", "description")
-
-
-@admin.register(InventoryCheckLine)
-class InventoryCheckLineAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: auto_flag, counted_qty, description, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, is_locked, item_ida, prior_qty, security_level, uuid, variance_qty, version
-    list_display = ("description", "auto_flag", "counted_qty", "health_rating", "is_locked", "item_ida", "is_active", "dt_created")
-    list_filter = ("is_active",)
-    search_fields = ("ida", "description")
-
-
-@admin.register(DeliveryVisit)
-class DeliveryVisitAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: dt_arrived, dt_completed, dt_created, dt_modified, dt_scheduled, health_rating, is_active, is_archived, is_deleted, is_locked, notes, security_level, status, uuid, version
-    list_display = ("status", "dt_arrived", "dt_completed", "dt_scheduled", "health_rating", "is_locked", "is_active", "dt_created")
-    list_filter = ("is_active",)
-    search_fields = ("ida", "description")
-
-
-@admin.register(DeliveryLine)
-class DeliveryLineAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: delivered_qty, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, is_locked, loaded_qty, planned_qty, security_level, skipped_reason, status, uuid, version
-    list_display = ("status", "delivered_qty", "health_rating", "is_locked", "loaded_qty", "planned_qty", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 

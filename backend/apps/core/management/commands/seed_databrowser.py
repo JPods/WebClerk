@@ -92,11 +92,7 @@ LAYOUTS = {
     'sync_bundle': {'list': ['id', 'ida', 'is_active', 'dt_created'], 'detail': ['id', 'ida', 'is_active', 'dt_created', 'dt_modified']},
 
     # --- Products (additional) ---
-    'delivery_line':   {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
-    'delivery_visit':  {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
     'inventory_adjustment_run': {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
-    'inventory_check':      {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
-    'inventory_check_line': {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
     'inventory_metrics_snapshot': {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
     'inventory_reservation': {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
     'pending_inventory_adjustment': {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},

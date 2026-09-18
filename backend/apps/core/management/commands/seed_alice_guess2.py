@@ -153,16 +153,12 @@ LIST_PRIORITIES = {
     'sync_bundle':  ['ida', 'name', 'status', 'model_name', 'dt_created'],
 
     # Inventory
-    'inventory_check': ['ida', 'status', 'dt_created'],
-    'inventory_check_line': ['ida', 'item', 'qty', 'dt_created'],
     'inventory_reservation': ['ida', 'item', 'qty', 'status'],
     'inventory_adjustment_run': ['ida', 'status', 'dt_created'],
     'inventory_metrics_snapshot': ['ida', 'item', 'dt_created'],
     'pending_inventory_adjustment': ['ida', 'item', 'qty', 'status'],
 
     # Delivery
-    'delivery_visit': ['ida', 'status', 'dt_created'],
-    'delivery_line': ['ida', 'item', 'qty', 'status'],
 
     # Other
     'currency':  ['ida', 'name', 'code', 'is_active'],

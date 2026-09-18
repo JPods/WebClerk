@@ -93,11 +93,7 @@ _APP_SCHEMA_MAP = {
     # products
     'bill_of_material':              'apps.products.models.bill_of_material_pydantic',
     'catalog':                       'apps.products.models.catalog_pydantic',
-    'delivery_line':                 'apps.products.models.flow_pydantic',
-    'delivery_visit':                'apps.products.models.flow_pydantic',
     'inventory_adjustment_run':      'apps.products.models.processor_runs_pydantic',
-    'inventory_check':               'apps.products.models.inventory_check_pydantic',
-    'inventory_check_line':          'apps.products.models.inventory_check_pydantic',
     'inventory_layer':               'apps.products.models.inventory_layer_pydantic',
     'inventory_metrics_snapshot':     'apps.products.models.metrics_pydantic',
     'inventory_reservation':         'apps.products.models.inventory_reservation_pydantic',

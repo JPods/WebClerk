@@ -11,29 +11,6 @@ ITEM_KIND_CHOICES: Final[ChoiceList] = (
     ("bundle", "Bundle"),
 )
 
-DELIVERY_VISIT_STATUS_CHOICES: Final[ChoiceList] = (
-    ("planned", "Planned"),
-    ("en_route", "En Route"),
-    ("arrived", "Arrived"),
-    ("closed", "Closed"),
-    ("canceled", "Canceled"),
-)
-
-DELIVERY_LINE_STATUS_CHOICES: Final[ChoiceList] = (
-    ("planned", "Planned"),
-    ("loaded", "Loaded"),
-    ("delivered", "Delivered"),
-    ("skipped", "Skipped"),
-    ("partial", "Partial"),
-)
-
-INVENTORY_CHECK_STATUS_CHOICES: Final[ChoiceList] = (
-    ("planned", "Planned"),
-    ("in_progress", "In Progress"),
-    ("completed", "Completed"),
-    ("canceled", "Canceled"),
-)
-
 INVENTORY_RESERVATION_STATE_CHOICES: Final[ChoiceList] = (
     ("pending", "Pending"),
     ("committed", "Committed"),
@@ -67,15 +44,6 @@ ITEM_XREF_SOURCE_CHOICES: Final[ChoiceList] = (
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
     "Item": {
         "kind": ITEM_KIND_CHOICES,
-    },
-    "DeliveryVisit": {
-        "status": DELIVERY_VISIT_STATUS_CHOICES,
-    },
-    "DeliveryLine": {
-        "status": DELIVERY_LINE_STATUS_CHOICES,
-    },
-    "InventoryCheck": {
-        "status": INVENTORY_CHECK_STATUS_CHOICES,
     },
     "InventoryReservation": {
         "state": INVENTORY_RESERVATION_STATE_CHOICES,

@@ -491,9 +491,8 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
                 'term': 'term', 'warehouse': 'warehouse', 'setting': 'setting',
                 'catalog': 'catalog', 'taxjurisdiction': 'tax_jurisdiction',
                 'workorder': 'workorder', 'workorderline': 'workorder_line',
-                'purchaseline': 'purchase_line', 'inventorycheck': 'inventory_check',
+                'purchaseline': 'purchase_line',
                 'inventorylayer': 'inventory_layer',
-                'deliveryvisit': 'delivery_visit',
             }
             lookup_model = model_map.get(related_name, related_name)
             display = 'display_name' if related_name in ('orgbase', 'customer') else 'name' if hasattr(related, 'name') else 'ida'

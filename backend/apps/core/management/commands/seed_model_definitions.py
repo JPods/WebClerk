@@ -572,8 +572,6 @@ MODEL_LIST_COLUMNS = {
     'serial': SERIAL_LIST_COLUMNS, 'serial_log': SERIAL_LOG_LIST_COLUMNS,
     'service': SERVICE_LIST_COLUMNS, 'variant': VARIANT_LIST_COLUMNS,
     'warehouse': WAREHOUSE_LIST_COLUMNS,
-    'inventory_check': INVENTORY_CHECK_LIST_COLUMNS,
-    'inventory_check_line': INVENTORY_CHECK_LIST_COLUMNS,
     'inventory_metrics_snapshot': INVENTORY_CHECK_LIST_COLUMNS,
     'inventory_adjustment_run': INVENTORY_CHECK_LIST_COLUMNS,
     'inventory_reservation': INVENTORY_RESERVATION_LIST_COLUMNS,
@@ -604,7 +602,6 @@ MODEL_LIST_COLUMNS = {
     'alice_coaching_log': ALICE_LIST_COLUMNS, 'alice_observation': ALICE_LIST_COLUMNS,
     'alice_preset': ALICE_LIST_COLUMNS,
     # Other
-    'delivery_line': DELIVERY_LIST_COLUMNS, 'delivery_visit': DELIVERY_LIST_COLUMNS,
     'project_association': DELIVERY_LIST_COLUMNS,
 }
 

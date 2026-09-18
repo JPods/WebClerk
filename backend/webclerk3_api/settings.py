@@ -559,8 +559,6 @@ WCAPI_BLESSED_MODELS = {
     # Products models
     "bill_of_material": "products.BillOfMaterial",
     "catalog": "products.Catalog",
-    "flow": "products.Flow",
-    "inventory_check": "products.InventoryCheck",
     "inventory_layer": "products.InventoryLayer",
     "inventory_reservation": "products.InventoryReservation",
     "item": "products.Item",

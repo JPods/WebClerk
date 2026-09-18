@@ -407,21 +407,6 @@ PANEL_COLUMNS = {
         f('qty', width=60, align='right'),
         f('reason', width=100),
     ],
-    'inventory_check': [
-        f('ida', width=80),
-        f('purpose', width=80),
-        f('status', width=70),
-        f('dt_performed', width=90, format='date'),
-        f('notes', width=180),
-    ],
-    'inventory_check_line': [
-        f('ida', width=80),
-        f('purpose', width=80),
-        f('status', width=70),
-        f('item_ida', width=100),
-        f('counted_qty', width=70, align='right'),
-        f('variance_qty', width=70, align='right'),
-    ],
     'inventory_adjustment_run': [
         f('ida', width=80),
         f('purpose', width=80),
@@ -443,21 +428,6 @@ PANEL_COLUMNS = {
         f('item_ida', width=100),
         f('year', width=50, align='right'),
         f('month', width=50, align='right'),
-    ],
-    'delivery_visit': [
-        f('ida', width=80),
-        f('purpose', width=80),
-        f('status', width=70),
-        f('dt_scheduled', width=90, format='date'),
-        f('dt_arrived', width=90, format='date'),
-    ],
-    'delivery_line': [
-        f('ida', width=80),
-        f('purpose', width=80),
-        f('status', width=70),
-        f('planned_qty', width=70, align='right'),
-        f('delivered_qty', width=70, align='right'),
-        f('skipped_reason', width=100),
     ],
 
     # ── Accounts ────────────────────────────────────────────────────────

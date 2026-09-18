@@ -8,7 +8,7 @@ To ensure all product-related models in the `apps/products/models/` directory ha
 - `description` (CharField or TextField, human-readable description)
 
 ## Implementation Details
-- All models representing a product instance (e.g., BillOfMaterial, Variant, ItemUsage, Serial, InventoryReservation, InventoryCheckLine) now include:
+- All models representing a product instance (e.g., BillOfMaterial, Variant, ItemUsage, Serial, InventoryReservation) now include:
   - `item_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this record")`
   - `description = models.CharField(max_length=255, blank=True, help_text="Description for this record")`
 - Properties `ida`, `item_ida_value`, and `description_value` are provided for admin and code compatibility.

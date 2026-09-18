@@ -92,8 +92,6 @@ DENORM_REGISTRY: Dict[str, List[str]] = {
     # ── Child / Detail records ──────────────────────────────────────────
     "questionanswer":              ["ida", "question"],
     "seriallog":                   ["ida", "serial_number"],
-    "inventorycheck":              ["ida", "name"],
-    "deliveryvisit":               ["ida", "status"],
     "purchasereceipt":             ["ida", "receipt_number"],
     "cashapplication":          ["ida", "amount_applied"],
     "projectassociation":          ["ida", "project_id"],
