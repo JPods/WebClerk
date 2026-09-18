@@ -20,7 +20,7 @@ movement; the inventory check validates stock accuracy pre/post movement.
 Granularity
 -----------
 The parent `InventoryCheck` stores metadata, actor, timing and status. Each
-`InventoryCheckLine` stores a counted quantity for a specific `OrgItem`. Variance
+`InventoryCheckLine` stores a counted quantity for a specific `Item`. Variance
 is derived (counted - prior) and persisted for downstream reporting, exception
 flagging, or reconciliation workflows.
 
@@ -131,7 +131,7 @@ class InventoryCheckLine(BaseModel):
 
     @property
     def description_value(self):
-        return self.description or str(self.orgitem) if hasattr(self, 'orgitem') else ""
+        return self.description or (str(self.item) if self.item_id else "")
 
     """Per-item counted quantity within an InventoryCheck.
 
@@ -158,7 +158,7 @@ class InventoryCheckLine(BaseModel):
     """
 
     inventory_check = models.ForeignKey(InventoryCheck, on_delete=models.CASCADE, related_name='lines', db_column='inventorycheck_id')
-    orgitem = models.ForeignKey('products.OrgItem', on_delete=models.CASCADE, related_name='inventory_check_lines', db_column='orgitem_id')
+    item = models.ForeignKey('products.Item', on_delete=models.CASCADE, related_name='inventory_check_lines', db_column='item_id')
     counted_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     prior_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True, help_text="Optional previously known quantity for variance calc")
     variance_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True, help_text="counted - prior if both available")
@@ -167,7 +167,7 @@ class InventoryCheckLine(BaseModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=("inventory_check", "orgitem"), name="uniq_invchk_orgitem"),
+            models.UniqueConstraint(fields=("inventory_check", "item"), name="uniq_invchk_item"),
         ]
         indexes = [
             models.Index(fields=("auto_flag",), name="invchkline_autoflag_idx"),

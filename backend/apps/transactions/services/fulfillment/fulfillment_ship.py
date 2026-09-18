@@ -61,8 +61,7 @@ def _extract_item_id(line) -> Optional[int]:
 def _get_item_warehouse_info(item_id: Optional[int]) -> Dict[str, str]:
     """Look up bin location and warehouse name for an item.
 
-    Checks item.metadata.warehouse first, then falls back to OrgItem
-    and Warehouse records linked via refs.
+    Checks item.metadata.warehouse first, then Warehouse records linked via refs.
     """
     if not item_id:
         return {"bin_location": "", "warehouse": ""}

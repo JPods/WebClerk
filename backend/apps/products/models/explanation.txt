@@ -16,8 +16,6 @@ productions.models.bill_of_material.py combines items at specific quantities to 
 
 productions.models.catalog.py created a set of item records for the benefit of one or more customer’s
 
-productions.models.org_item.py creates a set of item records to manage vendors.
-
 productions.models.warehouse.py documents the various locations quanties of an item are stored.
 
 productions.models.usage.py is a history by period of time of the purchase and sales of items. Not all items are tracked. Some may be tracked by type such as consumables to keep the number of records managable.

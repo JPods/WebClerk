@@ -126,8 +126,6 @@ export const REST_PATH_TO_MODEL: Record<string, string> = {
   'products/usages': 'usage',
   'products/matrics': 'matrics',
   'products/metrics': 'matrics',  // alias — "matrics" is the canonical model name
-  'products/org-item': 'org_item',
-  'products/orgitem': 'org_item',
   'products/item-xref': 'item_xref',
   'products/itemxref': 'item_xref',
   

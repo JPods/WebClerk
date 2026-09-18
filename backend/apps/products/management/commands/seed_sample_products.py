@@ -4,11 +4,11 @@ from django.db import transaction
 from django.conf import settings
 from django.core.management import call_command
 from apps.orgs.models import OrgBase, OrgType
-from apps.products.models import Catalog, Item, OrgItem, CatalogLine
+from apps.products.models import Catalog, Item, CatalogLine
 
 
 class Command(BaseCommand):
-    help = "Create a tiny sample vendor/customer, catalog, items, and org_items then print them. Safe to run multiple times (idempotent)."
+    help = "Create a tiny sample vendor/customer, catalog, and items then print them. Safe to run multiple times (idempotent)."
 
     def handle(self, *args, **options):
         # Ensure migrations applied if using in-memory SQLite (new process each run)
@@ -41,19 +41,6 @@ class Command(BaseCommand):
                 items.append(item)
                 CatalogLine.objects.get_or_create(catalog=catalog, item=item, defaults={})
 
-            created_links = []
-            for item in items:
-                oi, created = OrgItem.objects.get_or_create(
-                    org=customer,
-                    item=item,
-                    catalog=catalog,
-                    defaults={
-                        "availability_state": OrgItem.STATE_ENABLED,
-                    },
-                )
-                if created:
-                    created_links.append(oi)
-
         self.stdout.write(self.style.SUCCESS("Sample data ensured."))
 
         self.stdout.write("\nCatalog:")
@@ -63,13 +50,3 @@ class Command(BaseCommand):
         self.stdout.write("\nItems:")
         for it in items:
             self.stdout.write(f"  id={it.id} sku={it.sku} name={it.name}")
-        self.stdout.write("\nOrgItems (customer view):")
-        qs = OrgItem.objects.filter(org=customer, catalog=catalog).select_related("item")
-        for oi in qs:
-            self.stdout.write(
-                f"  org_item={oi.id} item_sku={oi.item.sku} state={oi.availability_state} next_check={oi.dt_next_check}"
-            )
-        if created_links:
-            self.stdout.write(self.style.SUCCESS(f"\nCreated {len(created_links)} new OrgItem links."))
-        else:
-            self.stdout.write("\n(No new OrgItems created; already present.)")

@@ -41,19 +41,6 @@ INVENTORY_RESERVATION_STATE_CHOICES: Final[ChoiceList] = (
     ("expired", "Expired"),
 )
 
-ORG_ITEM_AVAILABILITY_CHOICES: Final[ChoiceList] = (
-    ("enabled", "Enabled"),
-    ("paused", "Paused"),
-    ("retired", "Retired"),
-)
-
-ORG_ITEM_INVENTORY_FREQUENCY_CHOICES: Final[ChoiceList] = (
-    ("daily", "Daily"),
-    ("weekly", "Weekly"),
-    ("monthly", "Monthly"),
-    ("30d", "Every 30 Days"),
-)
-
 INVENTORY_MOVEMENT_TYPE_CHOICES: Final[ChoiceList] = (
     ("receipt", "Receipt"),
     ("issue", "Issue"),
@@ -92,10 +79,6 @@ DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
     },
     "InventoryReservation": {
         "state": INVENTORY_RESERVATION_STATE_CHOICES,
-    },
-    "OrgItem": {
-        "availability_state": ORG_ITEM_AVAILABILITY_CHOICES,
-        "inventory_frequency": ORG_ITEM_INVENTORY_FREQUENCY_CHOICES,
     },
     "InventoryMovement": {
         "movement_type": INVENTORY_MOVEMENT_TYPE_CHOICES,

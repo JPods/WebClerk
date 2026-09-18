@@ -70,7 +70,6 @@ export type EntityType =
   | "bill_of_material"
   | "flow"
   | "item_xref"
-  | "org_item"
   | "matrics"
   | "specification"
   | "usage"

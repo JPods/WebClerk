@@ -456,10 +456,6 @@ ITEM_USAGE_LIST_COLUMNS = [
     _lc('ida', width=100), _lc('purpose', width=140), _lc('status', width=80),
     _lc('dt_created', width=90), _lc('comments.process', width=200),
 ]
-ORG_ITEM_LIST_COLUMNS = [
-    _lc('ida', width=100), _lc('purpose', width=140), _lc('name', width=200),
-    _lc('status', width=80), _lc('comments.process', width=200),
-]
 SERIAL_LIST_COLUMNS = [
     _lc('ida', width=100), _lc('purpose', width=140), _lc('name', width=200),
     _lc('status', width=80), _lc('comments.process', width=200),
@@ -572,7 +568,7 @@ MODEL_LIST_COLUMNS = {
     # Products
     'item': ITEM_LIST_COLUMNS, 'bill_of_material': BOM_LIST_COLUMNS,
     'catalog': CATALOG_LIST_COLUMNS, 'item_xref': ITEM_XREF_LIST_COLUMNS,
-    'item_usage': ITEM_USAGE_LIST_COLUMNS, 'org_item': ORG_ITEM_LIST_COLUMNS,
+    'item_usage': ITEM_USAGE_LIST_COLUMNS,
     'serial': SERIAL_LIST_COLUMNS, 'serial_log': SERIAL_LOG_LIST_COLUMNS,
     'service': SERVICE_LIST_COLUMNS, 'variant': VARIANT_LIST_COLUMNS,
     'warehouse': WAREHOUSE_LIST_COLUMNS,

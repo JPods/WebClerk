@@ -15,7 +15,7 @@ Conceptual distinctions:
       operational stop (with optional fulfillment activity). An InventoryCheck
       is a focused quantitative audit event. A visit might embed a lightweight
       spot verification but its primary purpose is executing a logistic flow.
-    * DeliveryLine captures the intent + outcome for a single org_item on that
+    * DeliveryLine captures the intent + outcome for a single item on that
       stop (planned, loaded, delivered, skipped, partial) and carries flexible
       JSON for device / pricing / adjustment metadata.
 
@@ -148,7 +148,7 @@ class DeliveryLine(BaseModel):
     STATUSES = DELIVERY_LINE_STATUS_CHOICES
 
     delivery_visit = models.ForeignKey(DeliveryVisit, on_delete=models.CASCADE, related_name='lines', db_column='deliveryvisit_id')
-    orgitem = models.ForeignKey('products.OrgItem', on_delete=models.CASCADE, related_name='delivery_lines', db_column='orgitem_id')
+    item = models.ForeignKey('products.Item', on_delete=models.CASCADE, related_name='delivery_lines', db_column='item_id')
     planned_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     loaded_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     delivered_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
@@ -161,7 +161,7 @@ class DeliveryLine(BaseModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=("delivery_visit", "orgitem"), name="uniq_delivery_visit_orgitem"),
+            models.UniqueConstraint(fields=("delivery_visit", "item"), name="uniq_delivery_visit_item"),
         ]
         indexes = [
             models.Index(fields=("status",), name="delvline_status_idx"),

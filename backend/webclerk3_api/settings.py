@@ -566,7 +566,6 @@ WCAPI_BLESSED_MODELS = {
     "item": "products.Item",
     "item_xref": "products.ItemXRef",
     "metrics": "products.InventoryMetricsSnapshot",
-    "org_item": "products.OrgItem",
     "processor_runs": "products.InventoryAdjustmentProcessorRun",
     "serial": "products.Serial",
     "specification": "products.Specification",

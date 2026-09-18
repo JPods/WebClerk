@@ -71,7 +71,6 @@
   static readonly productsItemList: string = "/products/item/list";
   static readonly productsItemXrefList: string = "/products/item-xref/list";
   static readonly productsMatricsList: string = "/products/matrics/list";
-  static readonly productsOrgItemList: string = "/products/org-item/list";
   static readonly productsSerialList: string = "/products/serial/list";
   static readonly productsServiceList: string = "/products/service/list";
   static readonly productsSpecificationList: string =

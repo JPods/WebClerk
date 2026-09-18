@@ -124,7 +124,6 @@ LIST_PRIORITIES = {
     'variant':      ['ida', 'name', 'sku', 'price'],
     'serial':       ['ida', 'item', 'status', 'dt_created'],
     'catalog':      ['ida', 'name', 'status', 'dt_created'],
-    'org_item':     ['ida', 'item', 'org', 'price', 'is_active'],
 
     # Accounting
     'gl_account':   ['ida', 'name', 'type', 'category', 'is_active'],
@@ -186,7 +185,7 @@ RELATED_PANELS = {
     'invoice':  ['invoice_line', 'cash'],
     'purchase': ['purchase_line'],
     'proposal': ['proposal_line'],
-    'item':     ['serial', 'item_xref', 'org_item', 'bill_of_material'],
+    'item':     ['serial', 'item_xref', 'bill_of_material'],
     'project':  ['action'],
     'action':   ['document', 'question_answer'],
 }

@@ -104,7 +104,6 @@ _APP_SCHEMA_MAP = {
     'item':                          'apps.products.models.item_pydantic',
     'item_usage':                    'apps.products.models.usage_pydantic',
     'item_xref':                     'apps.products.models.item_xref_pydantic',
-    'org_item':                      'apps.products.models.org_item_pydantic',
     'serial':                        'apps.products.models.serial_pydantic',
     'serial_log':                    'apps.products.models.serial_pydantic',
     'variant':                       'apps.products.models.variant_pydantic',

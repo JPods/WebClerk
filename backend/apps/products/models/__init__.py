@@ -3,7 +3,6 @@ from .item_xref import ItemXRef
 from .bill_of_material import BillOfMaterial
 from .warehouse import Warehouse
 from .inventory_layer import InventoryLayer, SiteInventory, InventoryMovement
-from .org_item import OrgItem
 from .serial import Serial, SerialLog
 from .catalog import Catalog, CatalogLine
 from .inventory_check import InventoryCheck, InventoryCheckLine
@@ -21,7 +20,6 @@ __all__ = [
 	"InventoryLayer",
 	"SiteInventory",
 	"InventoryMovement",
-	"OrgItem",
 	"Serial",
 	"SerialLog",
 	"Catalog",

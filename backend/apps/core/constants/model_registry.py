@@ -105,7 +105,6 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'inventory_reservation': ModelMeta('inventory_reservation', 'apps.products.models.inventory_reservation.InventoryReservation', 'Inventory Reservation', 'Inventory Reservations', 'inventory-reservations', kind='support', aliases=['inventory_reservations']),
     'item_usage': ModelMeta('item_usage', 'apps.products.models.ItemUsage', 'Item Usage', 'Item Usages', 'item-usages', kind='support', aliases=['item_usages']),
     'item_xref': ModelMeta('item_xref', 'apps.products.models.ItemXRef', 'Item XRef', 'Item XRefs', 'item-xrefs', kind='support', aliases=['item_xrefs']),
-    'org_item': ModelMeta('org_item', 'apps.products.models.org_item.OrgItem', 'Org Item', 'Org Items', 'org-items', kind='support', aliases=['org_items']),
     'serial': ModelMeta('serial', 'apps.products.models.serial.Serial', 'Serial', 'Serials', 'serials', kind='support', aliases=['serials']),
     'serial_log': ModelMeta('serial_log', 'apps.products.models.serial.SerialLog', 'Serial Log', 'Serial Logs', 'serial-logs', kind='support', aliases=['serial_logs']),
     'variant': ModelMeta('variant', 'apps.products.models.Variant', 'Variant', 'Variants', 'variants', kind='support', aliases=['variants']),

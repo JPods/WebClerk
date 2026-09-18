@@ -358,14 +358,6 @@ PANEL_COLUMNS = {
         f('external_sku', width=100),
         f('source_name', width=100),
     ],
-    'org_item': [
-        f('ida', width=80),
-        f('purpose', width=80),
-        f('status', width=70),
-        f('item_ida', width=100),
-        f('description', width=160),
-        f('availability_state', width=80),
-    ],
     'bill_of_material': [
         f('ida', width=80),
         f('purpose', width=80),

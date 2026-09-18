@@ -4,7 +4,7 @@ Computes recommended min (reorder point) and max
 for an Item based on:
   - Sales velocity (ItemUsage monthly actuals)
   - BOM consumption (as a component in assemblies)
-  - Lead time (from preferred vendor OrgItem or ItemUsage metrics)
+  - Lead time (from ItemUsage metrics)
   - Pending records (on_so, on_po — committed intent signals)
   - Receipt history (InventoryLayer receipt patterns)
   - Margin factor (higher margin justifies more safety stock)
@@ -18,9 +18,7 @@ Best practices implemented:
   - EOQ (Economic Order Quantity) for max when cost data available
 
 The recommender writes to Item.quantity.min/max — the one stocking pair
-(2026-09-17: OrgItem's duplicate thresholds were removed; whether OrgItem's
-remaining behaviors belong on Item is an open question, see
-readmes/products/org-item-open-question.md).
+(2026-09-17: OrgItem's duplicate thresholds removed; 2026-09-18: OrgItem removed).
 """
 from __future__ import annotations
 
@@ -38,11 +36,10 @@ logger = logging.getLogger(__name__)
 def _get_models():
     """Lazy-load Django models."""
     Item = dj_apps.get_model('products', 'Item')
-    OrgItem = dj_apps.get_model('products', 'OrgItem')
     ItemUsage = dj_apps.get_model('products', 'ItemUsage')
     BillOfMaterial = dj_apps.get_model('products', 'BillOfMaterial')
     InventoryLayer = dj_apps.get_model('products', 'InventoryLayer')
-    return Item, OrgItem, ItemUsage, BillOfMaterial, InventoryLayer
+    return Item, ItemUsage, BillOfMaterial, InventoryLayer
 
 
 def _safe_float(val, default=0.0) -> float:
@@ -80,7 +77,7 @@ def _compute_adaptive_window(item_id: int) -> Dict[str, Any]:
     Returns:
         {months, cv, band, monthly_qtys}
     """
-    _, _, ItemUsage, _, _ = _get_models()
+    _, ItemUsage, _, _ = _get_models()
 
     usages = (
         ItemUsage.objects
@@ -127,7 +124,7 @@ def _get_sales_velocity(item_id: int, months: int = 6) -> Dict[str, float]:
     Returns:
         {avg_daily, std_dev_daily, avg_monthly, months_with_data}
     """
-    _, _, ItemUsage, _, _ = _get_models()
+    _, ItemUsage, _, _ = _get_models()
 
     usages = (
         ItemUsage.objects
@@ -170,7 +167,7 @@ def _get_bom_demand(item_id: int, months: int = 6) -> float:
     When this item is a child in BOMs, the parent's sales velocity
     multiplied by the BOM quantity drives component demand.
     """
-    _, _, ItemUsage, BillOfMaterial, _ = _get_models()
+    _, ItemUsage, BillOfMaterial, _ = _get_models()
 
     bom_lines = (
         BillOfMaterial.objects
@@ -196,28 +193,15 @@ def _get_bom_demand(item_id: int, months: int = 6) -> float:
 
 
 def _get_lead_time(item_id: int) -> Dict[str, float]:
-    """Get lead time in days from OrgItem vendor data or ItemUsage metrics.
+    """Get lead time in days from ItemUsage metrics.
 
     Returns:
         {lead_time_days, lead_time_std_dev}
     """
-    _, OrgItem, ItemUsage, _, _ = _get_models()
-
-    # Try OrgItem for vendor-type orgs
-    org_items = (
-        OrgItem.objects
-        .filter(item_id=item_id, is_active=True)
-        .values('data')
-    )
+    _, ItemUsage, _, _ = _get_models()
 
     lead_times = []
-    for oi in org_items:
-        data = oi['data'] if isinstance(oi['data'], dict) else {}
-        lt = _safe_float(data.get('lead_time_days'))
-        if lt > 0:
-            lead_times.append(lt)
-
-    # Also check ItemUsage for lead.time metric
+    # ItemUsage lead.time metric
     recent_usage = (
         ItemUsage.objects
         .filter(item_id=item_id, is_active=True)
@@ -251,7 +235,7 @@ def _get_pending_signals(item_id: int) -> Dict[str, float]:
       on_wo = work order demand (BOM consumption in progress)
       on_p  = proposal demand (probability-weighted)
     """
-    Item, _, _, _, _ = _get_models()
+    Item, _, _, _ = _get_models()
 
     try:
         item = Item.objects.get(pk=item_id)
@@ -284,7 +268,7 @@ def _get_margin_factor(item_id: int) -> float:
 
     Returns factor >= 1.0 (1.0 = no margin boost, 1.5 = 50% boost)
     """
-    Item, _, _, _, _ = _get_models()
+    Item, _, _, _ = _get_models()
 
     try:
         item = Item.objects.get(pk=item_id)
@@ -313,7 +297,7 @@ def _get_receipt_pattern(item_id: int) -> Dict[str, float]:
     Returns:
         {avg_receipt_qty, receipt_count}
     """
-    _, _, _, _, InventoryLayer = _get_models()
+    _, _, _, InventoryLayer = _get_models()
 
     layers = (
         InventoryLayer.objects
@@ -374,7 +358,7 @@ def recommend_inventory_bounds(
     Returns:
         Dict with recommendation, inputs, and reasoning.
     """
-    Item, _, _, _, _ = _get_models()
+    Item, _, _, _ = _get_models()
 
     # Determine adaptive window
     adaptive = _compute_adaptive_window(item_id)
@@ -496,7 +480,7 @@ def recommend_bounds_bulk(
 
     Returns list of recommendation dicts.
     """
-    Item, _, _, _, _ = _get_models()
+    Item, _, _, _ = _get_models()
 
     if item_ids is None:
         qs = Item.objects.filter(is_active=True)

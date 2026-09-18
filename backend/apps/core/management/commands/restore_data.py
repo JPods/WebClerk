@@ -53,7 +53,6 @@ class Command(BaseCommand):
         'bundle.json',
         'catalogline.json',
         'itemxref.json',
-        'orgitem.json',
         'service.json',
         
         # 6. Inventory

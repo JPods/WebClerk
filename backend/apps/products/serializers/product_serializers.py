@@ -105,21 +105,6 @@ class CatalogSerializer(serializers.ModelSerializer):
         read_only_fields = _BASE_RO
 
 
-class OrgItemSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = _model("OrgItem")
-        fields = [
-            "id", "uuid", "dt_created", "dt_modified", "version",
-            "is_active", "security_level", "is_deleted", "is_archived",
-            "metadata", "refs", "prefs", "actions", "comments", "health_rating",
-            "item_id", "status", "orgbase_id", "catalog_id", "item_ida",
-            "description", "availability_state",
-            "quantity_minimum", "quantity_maximum", "inventory_frequency",
-            "dt_last_checked", "dt_next_check", "config", "metrics",
-        ]
-        read_only_fields = _BASE_RO
-
-
 class WarehouseSerializer(serializers.ModelSerializer):
     class Meta:
         model = _model("Warehouse")

@@ -2,13 +2,15 @@
 
 Cascade (first match wins, no stacking):
   1. price_locked (manual override on the line — skip everything)
-  2. OrgItem (contact + item negotiated price)
-  3. Catalog rule match (scope + applies_to + date window, highest priority)
+  2. Catalog rule match (scope + applies_to + date window, highest priority)
      a. Universal % (blanket promo on all items)
      b. CatalogLine match by scope (item, category, vendor)
      c. Qty-break within a matching CatalogLine
-  4. Contact price level (wholesale/distributor/retail tier)
-  5. Item base price (fallback)
+  3. Contact price level (wholesale/distributor/retail tier)
+  4. Item base price (fallback)
+
+A customer-specific negotiated price is a CatalogLine scoped to that customer
+(OrgItem, which once held it, was removed 2026-09-18).
 
 Returns a PriceResolution with full audit trail — which step resolved, catalog_id, discount.
 Below margin_floor triggers an Action for approval.
@@ -35,7 +37,6 @@ class PriceResolution:
     catalog_id: Optional[int] = None    # catalog that matched (if any)
     catalog_name: str = ''              # human-readable catalog name
     catalog_line_id: Optional[int] = None
-    org_item_id: Optional[int] = None   # OrgItem that matched (if any)
     price_level: str = ''               # price level used (if any)
     margin_pct: Optional[Decimal] = None
     below_margin_floor: bool = False    # true = needs approval
@@ -71,14 +72,7 @@ def resolve_price(
         return _build_result(price_locked_value, base_price, cost_avg, 'price_locked',
                              price_locked=True)
 
-    # --- Step 2: OrgItem (contact + item negotiated price) ---
-    if contact_id:
-        org_item_price = _check_org_item(item_id, contact_id)
-        if org_item_price is not None:
-            return _build_result(org_item_price['price'], base_price, cost_avg, 'org_item',
-                                 org_item_id=org_item_price['org_item_id'])
-
-    # --- Step 3: Catalog rules ---
+    # --- Step 2: Catalog rules ---
     catalog_result = _check_catalogs(item, contact_id, qty, now_ms, base_price)
     if catalog_result is not None:
         result = _build_result(catalog_result['price'], base_price, cost_avg, catalog_result['resolved_by'],
@@ -94,31 +88,20 @@ def resolve_price(
                 _create_margin_approval(item, result, contact_id)
         return result
 
-    # --- Step 4: Contact price level ---
+    # --- Step 3: Contact price level ---
     if contact_id:
         level_price = _check_contact_price_level(item, contact_id, price_data)
         if level_price is not None:
             return _build_result(level_price['price'], base_price, cost_avg, 'contact_price_level',
                                  price_level=level_price['level'])
 
-    # --- Step 5: Item base price (fallback) ---
+    # --- Step 4: Item base price (fallback) ---
     return _build_result(base_price, base_price, cost_avg, 'base_price')
 
 
 # ---------------------------------------------------------------------------
 # Cascade helpers
 # ---------------------------------------------------------------------------
-
-def _check_org_item(item_id: int, contact_id: int) -> Optional[dict]:
-    """Check OrgItem for a negotiated price."""
-    try:
-        from apps.products.models.org_item import OrgItem
-        org_item = OrgItem.objects.filter(item_id=item_id, org_id=contact_id).first()
-        if org_item and org_item.price_unit and org_item.price_unit > 0:
-            return {'price': Decimal(str(org_item.price_unit)), 'org_item_id': org_item.id}
-    except Exception:
-        pass
-    return None
 
 
 def _check_catalogs(item, contact_id, qty, now_ms, base_price) -> Optional[dict]:
@@ -665,11 +648,10 @@ def resolve_price_legacy(
     """Legacy price resolution chain (from pricing.py).
 
     Resolution chain (first non-empty wins):
-      1. OrgItem contract price_override (customer-specific)
-      2. Customer's price_level on the item
-      3. Explicit price_level parameter
-      4. Item base price
-      5. Fallback -- 0
+      1. Customer's price_level on the item
+      2. Explicit price_level parameter
+      3. Item base price
+      4. Fallback -- 0
 
     After level resolution, quantity breaks are applied.
     Then margin floor is enforced via pricing_config Setting.
@@ -705,25 +687,7 @@ def resolve_price_legacy(
             elif catalog_result.get('universal_pct'):
                 catalog_universal_pct = Decimal(str(catalog_result['universal_pct']))
 
-    # Step 1: OrgItem contract price
-    if source == 'fallback' and customer_id:
-        try:
-            OrgItem = dj_apps.get_model('products', 'OrgItem')
-            org_item = OrgItem.objects.filter(
-                orgbase_id=customer_id, item_id=item_id,
-            ).first()
-            if org_item and isinstance(org_item.config, dict):
-                override = org_item.config.get('price_override')
-                if override is not None and override != '':
-                    try:
-                        resolved_price = Decimal(str(override))
-                        source = 'contract'
-                    except Exception:
-                        pass
-        except Exception:
-            pass
-
-    # Step 2: Customer price_level
+    # Step 1: Customer price_level
     if source == 'fallback' and customer_id:
         try:
             OrgBase = dj_apps.get_model('orgs', 'OrgBase')
@@ -743,7 +707,7 @@ def resolve_price_legacy(
         except Exception:
             pass
 
-    # Step 3: Explicit price_level param
+    # Step 2: Explicit price_level param
     if source == 'fallback' and price_level:
         cleaned = price_level.strip().lower()
         level_val = item_price.get(cleaned)
@@ -755,7 +719,7 @@ def resolve_price_legacy(
             except Exception:
                 pass
 
-    # Step 4: Item base price
+    # Step 3: Item base price
     if source == 'fallback':
         base_val = item_price.get('base')
         if base_val is not None and base_val != '':

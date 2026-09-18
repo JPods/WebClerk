@@ -719,11 +719,10 @@ Every request requires JWT auth. Role-based query scoping restricts external use
 ## The Chain
 Every line item resolves its price through this chain (first match wins):
 
-1. **Catalog item-specific** — item listed in an active catalog for this customer
-2. **OrgItem contract** — customer-specific price override
-3. **Customer price_level** — retail, wholesale, distributor, or sample
-4. **Explicit level** — line or header override
-5. **Item base price** — fallback
+1. **Catalog item-specific** — item listed in an active catalog for this customer (a customer's negotiated price lives here)
+2. **Customer price_level** — retail, wholesale, distributor, or sample
+3. **Explicit level** — line or header override
+4. **Item base price** — fallback
 
 After the price resolves: quantity breaks adjust it, then universal catalog % discounts apply.
 

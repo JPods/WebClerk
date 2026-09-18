@@ -81,7 +81,6 @@ const MODEL_NAME_MAP: Record<string, string> = {
   usage: "usage",
   matrics: "matrics",
   metrics: "matrics",  // "metrics" is a common misspelling of "matrics" — both resolve to the same model
-  orgitem: "org_item",
   itemxref: "item_xref",
 
   // Core
@@ -169,7 +168,6 @@ const PATH_PATTERN_MAP: Record<string, string> = {
   "products/usage": "usage",
   "products/matrics": "matrics",
   "products/metrics": "matrics",  // alias — "matrics" is the canonical model name
-  "products/org-item": "org_item",
   "products/item-xref": "item_xref",
 
   // Core

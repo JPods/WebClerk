@@ -228,8 +228,6 @@ class Command(BaseCommand):
                     value = fake.file_path().replace(' ', '_')[:max_length]
                 elif 'code' in field_name.lower():
                     value = fake.currency_code() if 'currency' in model._meta.label.lower() else fake.lexify(text='???')[:max_length]
-                elif field_name == 'status' and model._meta.label == 'products.OrgItem':
-                    value = 'active'
                 elif field_name == 'movement_type' and model._meta.label == 'products.InventoryMovement':
                     value = 'issue'
                 elif field_name == 'site' and model._meta.label == 'products.Serial':

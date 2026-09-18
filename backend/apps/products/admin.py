@@ -4,7 +4,7 @@ from common.admin_schema_labels import SchemaLabelsAdminMixin
 from common.admin_mixins import ScalarFirstFieldsetMixin  # noqa: F401 re-exported for app use
 from .models import (
     Item, ItemXRef, BillOfMaterial, Warehouse, InventoryLayer, SiteInventory, 
-    InventoryMovement, OrgItem, Serial, SerialLog, Catalog, CatalogLine,
+    InventoryMovement, Serial, SerialLog, Catalog, CatalogLine,
     InventoryCheck, InventoryCheckLine, DeliveryVisit, DeliveryLine, ItemUsage,
     InventoryMetricsSnapshot, InventoryAdjustmentProcessorRun, Variant
 )
@@ -65,14 +65,6 @@ class SiteInventoryAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin
 class InventoryMovementAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     # Scalar fields: dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, is_locked, movement_type, quantity, reason, security_level, site_code, source_doc_id, source_doc_type, status, uuid, version
     list_display = ("status", "health_rating", "is_locked", "movement_type", "quantity", "reason", "is_active", "dt_created")
-    list_filter = ("is_active",)
-    search_fields = ("ida", "description")
-
-
-@admin.register(OrgItem)
-class OrgItemAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: availability_state, description, dt_created, dt_last_checked, dt_modified, dt_next_check, health_rating, inventory_frequency, is_active, is_archived, is_deleted, is_locked, item_ida, security_level, status, uuid, version
-    list_display = ("description", "status", "availability_state", "dt_last_checked", "dt_next_check", "health_rating", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 

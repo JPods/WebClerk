@@ -492,7 +492,7 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
                 'catalog': 'catalog', 'taxjurisdiction': 'tax_jurisdiction',
                 'workorder': 'workorder', 'workorderline': 'workorder_line',
                 'purchaseline': 'purchase_line', 'inventorycheck': 'inventory_check',
-                'inventorylayer': 'inventory_layer', 'orgitem': 'org_item',
+                'inventorylayer': 'inventory_layer',
                 'deliveryvisit': 'delivery_visit',
             }
             lookup_model = model_map.get(related_name, related_name)

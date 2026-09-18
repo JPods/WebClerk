@@ -52,7 +52,6 @@ export const modelRegistry: ModelRegistration[] = [
   { app: "products", model: "item", label: kebabCaseToTitle("item") },
   { app: "products", model: "item_xref", label: kebabCaseToTitle("item_xref") },
   { app: "products", model: "matrics", label: kebabCaseToTitle("matrics") },
-  { app: "products", model: "org_item", label: kebabCaseToTitle("org_item") },
   { app: "products", model: "serial", label: kebabCaseToTitle("serial") },
   { app: "products", model: "service", label: kebabCaseToTitle("service") },
   { app: "products", model: "specification", label: kebabCaseToTitle("specification") },

@@ -13,13 +13,13 @@ One function resolves any price: `resolve_price(item, contact, qty, date)`. Retu
 
 ```
 1. price_locked          → manual override on the line — skip everything
-2. OrgItem               → negotiated price for this vendor+item
-3. Catalog rule          → highest-priority matching catalog:
+2. Catalog rule          → highest-priority matching catalog:
    a. Universal %        → blanket % off all items
    b. CatalogLine match  → by specific item, category, or vendor scope
+                            (a customer's negotiated price is a CatalogLine scoped to them)
    c. Qty break          → min_qty/max_qty range on CatalogLine
-4. Contact price level   → wholesale/distributor/retail tier
-5. Item base price       → fallback
+3. Contact price level   → wholesale/distributor/retail tier
+4. Item base price       → fallback
 ```
 
 One path wins. The `resolved_by` field on PriceResolution tells you which step.
@@ -78,11 +78,13 @@ Catalog (the promotion/agreement)
 When creating a PO line, the default cost cascades:
 
 ```
-1. OrgItem (this vendor's price for this item)
+1. ItemXRef.cost (this vendor's price for this item)
 2. Setting rule (last, avg, lowest_vendor, landed)
 ```
 
-The buying flow: Item → ItemXRef (vendor's part#) → OrgItem (vendor's price) → PO line.
+The buying flow: Item → ItemXRef (vendor's part# and price) → PO line.
+
+OrgItem, which once held the vendor×item price, was removed 2026-09-18.
 
 JSON viewer on PO lines shows ALL vendors for the item — not just this PO's vendor — plus the cost layer stack.
 
@@ -141,5 +143,4 @@ No PriceLevel or PriceMatrix models needed — Item.price.tiers[] handles named 
 |------|---------|
 | `apps/products/services/price_resolver.py` | resolve_price() + cascade logic |
 | `apps/products/models/catalog.py` | Catalog + CatalogLine models |
-| `apps/products/models/org_item.py` | OrgItem (vendor×item price) |
-| `apps/products/models/item_xref.py` | ItemXRef (vendor part number mapping) |
+| `apps/products/models/item_xref.py` | ItemXRef (vendor part number and price) |

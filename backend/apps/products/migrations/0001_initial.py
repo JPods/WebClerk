@@ -3,7 +3,6 @@
 import apps.products.models.catalog
 import apps.products.models.inventory_layer
 import apps.products.models.item
-import apps.products.models.org_item
 import apps.products.models.serial
 import apps.products.models.item  # service module removed; defaults inlined
 import apps.products.models.specification
@@ -495,8 +494,8 @@ class Migration(migrations.Migration):
                 ('inventory_frequency', models.CharField(blank=True, choices=[('daily', 'Daily'), ('weekly', 'Weekly'), ('monthly', 'Monthly'), ('30d', 'Every 30 Days')], help_text='Inventory verification cadence code', max_length=30)),
                 ('dt_last_checked', models.BigIntegerField(blank=True, db_index=True, help_text='Epoch ms of last verification (duplicate of data.dt_last_check for indexable queries)', null=True)),
                 ('dt_next_check', models.BigIntegerField(blank=True, db_index=True, help_text='Epoch ms when next inventory verification is due (mirrors data.dt_next_check)', null=True)),
-                ('config', models.JSONField(blank=True, default=apps.products.models.org_item.default_org_item_data, help_text='Operational inventory / verification attributes (thresholds, scheduling, last check metadata)', null=True)),
-                ('metrics', models.JSONField(blank=True, default=apps.products.models.org_item.default_org_item_metrics, help_text='Aggregated plan vs actual performance metrics (consumption, variance, accuracy)', null=True)),
+                ('config', models.JSONField(blank=True, default=dict, help_text='Operational inventory / verification attributes (thresholds, scheduling, last check metadata)', null=True)),
+                ('metrics', models.JSONField(blank=True, default=dict, help_text='Aggregated plan vs actual performance metrics (consumption, variance, accuracy)', null=True)),
                 ('catalog', models.ForeignKey(blank=True, db_column='catalog_id', help_text='Optional catalog / channel context scoping this association', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='org_items', to='products.catalog')),
                 ('item', models.ForeignKey(db_column='item_id', on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_related', to='products.item')),
                 ('orgbase', models.ForeignKey(db_column='orgbase_id', on_delete=django.db.models.deletion.CASCADE, related_name='org_items', to='orgs.orgbase')),

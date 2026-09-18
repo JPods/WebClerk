@@ -137,7 +137,6 @@ const PRESETS: Preset[] = [
     info: {
       description: 'List items (canonical product model).',
       requires: { query: ['model_name'] },
-      notes: ['Prefer item over org_item. org_item is an association (org↔item).'],
     },
   },
   {

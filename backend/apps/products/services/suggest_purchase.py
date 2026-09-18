@@ -1,16 +1,15 @@
 """Suggest Purchase service — preferred vendor resolution and reorder suggestions.
 
-When items drop below their reorder point (OrgItem.quantity_minimum),
+When items drop below their reorder point (item.quantity.min),
 this service identifies them, resolves the preferred vendor for each,
 and groups the suggestions into draft purchase orders.
 
 Resolution chain for preferred vendor:
   1. Item.vendor_id (direct FK on item record)
   2. ItemXRef where is_preferred=True and source='wholesaler'
-  3. First OrgItem where orgbase.org_type='vendor'
 
-All quantities read from Item.quantity (JSONB with on_hand, available, etc.)
-and compared against OrgItem.quantity_minimum / quantity_maximum.
+All quantities, including the stocking pair (min = reorder point, max = order up to),
+read from Item.quantity. OrgItem was removed 2026-09-18.
 """
 from __future__ import annotations
 
@@ -27,12 +26,11 @@ logger = logging.getLogger(__name__)
 def _get_models():
     """Lazy-load Django models to avoid import-time app registry issues."""
     Item = dj_apps.get_model('products', 'Item')
-    OrgItem = dj_apps.get_model('products', 'OrgItem')
     ItemXRef = dj_apps.get_model('products', 'ItemXRef')
     OrgBase = dj_apps.get_model('orgs', 'OrgBase')
     Purchase = dj_apps.get_model('transactions', 'Purchase')
     PurchaseLine = dj_apps.get_model('transactions', 'PurchaseLine')
-    return Item, OrgItem, ItemXRef, OrgBase, Purchase, PurchaseLine
+    return Item, ItemXRef, OrgBase, Purchase, PurchaseLine
 
 
 def _safe_decimal(val) -> Decimal:
@@ -52,19 +50,33 @@ def _qty_value(quantity_json: dict, key: str) -> Decimal:
     return _safe_decimal(quantity_json.get(key))
 
 
+def _item_warehouse_ids(item) -> List[int]:
+    """Warehouse ids an item is linked to through item.refs.links.warehouse."""
+    refs = item.refs if isinstance(item.refs, dict) else {}
+    ids = (refs.get('links') or {}).get('warehouse') or []
+    if not isinstance(ids, list):
+        ids = [ids]
+    out = []
+    for v in ids:
+        try:
+            out.append(int(v))
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
 def get_preferred_vendor(item_id: int) -> Dict[str, Any]:
     """Resolve the preferred vendor for an item.
 
     Resolution chain:
       1. item.vendor_id (direct FK)
       2. ItemXRef where is_preferred=True and source='wholesaler'
-      3. First active OrgItem where orgbase.org_type='vendor'
 
     Returns:
         {vendor_id, vendor_name, vendor_ida, cost}
         or empty dict if no vendor found.
     """
-    Item, OrgItem, ItemXRef, OrgBase, _, _ = _get_models()
+    Item, ItemXRef, OrgBase, _, _ = _get_models()
 
     try:
         item = Item.objects.select_related('vendor').get(pk=item_id, is_active=True)
@@ -104,21 +116,6 @@ def get_preferred_vendor(item_id: int) -> Dict[str, Any]:
                 'vendor_ida': getattr(vendor, 'ida', ''),
                 'cost': float(cost_val) if cost_val is not None else None,
             }
-
-    # --- Chain 3: first OrgItem with vendor-type org ---
-    oi = (
-        OrgItem.objects
-        .filter(item_id=item_id, is_active=True, orgbase__org_type='vendor')
-        .select_related('orgbase')
-        .first()
-    )
-    if oi and oi.orgbase:
-        return {
-            'vendor_id': oi.orgbase.pk,
-            'vendor_name': oi.orgbase.display_name,
-            'vendor_ida': getattr(oi.orgbase, 'ida', ''),
-            'cost': None,
-        }
 
     return {}
 
@@ -203,71 +200,39 @@ def compute_velocity_reorder_point(item_id: int, months: int = 3) -> Optional[De
 def get_items_below_reorder(warehouse_id: Optional[int] = None) -> List[Dict[str, Any]]:
     """Find items where on_hand or available is below the reorder point.
 
-    The reorder point is OrgItem.quantity_minimum for any vendor-type org
-    (or any org if warehouse_id is specified).
+    The reorder point is item.quantity.min; the order-up-to level is item.quantity.max.
 
     Args:
-        warehouse_id: optional OrgBase id to restrict to a specific warehouse/org.
+        warehouse_id: optional Warehouse id — only items linked to it through
+            item.refs.links.warehouse are considered.
 
     Returns:
         List of dicts with item details and vendor info.
     """
-    Item, OrgItem, ItemXRef, OrgBase, _, _ = _get_models()
+    Item, ItemXRef, OrgBase, _, _ = _get_models()
 
-    # Build OrgItem filter for reorder thresholds
-    oi_filter = Q(is_active=True, quantity_minimum__isnull=False, quantity_minimum__gt=0)
-    if warehouse_id:
-        oi_filter &= Q(orgbase_id=warehouse_id)
-
-    org_items = (
-        OrgItem.objects
-        .filter(oi_filter)
-        .select_related('orgbase')
-        .values('item_id', 'quantity_minimum', 'quantity_maximum', 'orgbase_id',
-                'orgbase__display_name', 'orgbase__org_type')
-    )
-
-    # Build a map: item_id -> best reorder record (prefer vendor-type orgs)
-    reorder_map: Dict[int, Dict[str, Any]] = {}
-    for oi in org_items:
-        iid = oi['item_id']
-        is_vendor_org = oi.get('orgbase__org_type') == 'vendor'
-        existing = reorder_map.get(iid)
-        # Prefer vendor-type org records over others
-        if existing is None or (is_vendor_org and not existing.get('_is_vendor_org')):
-            reorder_map[iid] = {
-                'reorder_point': oi['quantity_minimum'],
-                'reorder_max': oi['quantity_maximum'],
-                'orgbase_id': oi['orgbase_id'],
-                'orgbase_name': oi['orgbase__display_name'],
-                '_is_vendor_org': is_vendor_org,
-            }
-
-    if not reorder_map:
-        return []
-
-    # Fetch items that have reorder records
     items = (
         Item.objects
-        .filter(pk__in=reorder_map.keys(), is_active=True)
+        .filter(is_active=True, is_deleted=False, quantity__min__gt=0)
         .select_related('vendor')
     )
+    if warehouse_id:
+        items = [i for i in items if warehouse_id in _item_warehouse_ids(i)]
 
     results = []
     for item in items:
-        rr = reorder_map[item.pk]
         qty = item.quantity if isinstance(item.quantity, dict) else {}
         on_hand = _qty_value(qty, 'on_hand')
         available = _qty_value(qty, 'available')
-        reorder_point = _safe_decimal(rr['reorder_point'])
+        reorder_point = _qty_value(qty, 'min')
 
         # Check if below reorder point
         if on_hand >= reorder_point and available >= reorder_point:
             continue
 
         # Calculate reorder quantity
-        reorder_max = _safe_decimal(rr['reorder_max']) if rr['reorder_max'] else None
-        if reorder_max and reorder_max > 0:
+        reorder_max = _qty_value(qty, 'max')
+        if reorder_max > 0:
             reorder_qty = reorder_max - on_hand
         else:
             reorder_qty = reorder_point * 2
@@ -313,7 +278,7 @@ def suggest_purchase_orders(warehouse_id: Optional[int] = None) -> List[Dict[str
         vendor_groups.setdefault(vid, []).append(rec)
 
     # Resolve vendor costs where missing
-    _, _, ItemXRef, _, _, _ = _get_models()
+    _, ItemXRef, _, _, _ = _get_models()
 
     suggestions = []
     for vid, items in vendor_groups.items():
@@ -362,7 +327,7 @@ def create_draft_purchase(vendor_id: int, items: List[Dict[str, Any]]) -> Dict[s
     Returns:
         Dict with purchase_id, line_count, and total.
     """
-    Item, _, _, OrgBase, Purchase, PurchaseLine = _get_models()
+    Item, _, OrgBase, Purchase, PurchaseLine = _get_models()
 
     # Validate vendor
     try:
