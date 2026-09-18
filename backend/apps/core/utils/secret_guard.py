@@ -158,6 +158,19 @@ def _looks_like_secret_value(v: str) -> bool:
     return len(v) >= 12 and _entropy(v) >= 3.2
 
 
+
+# A value that is itself code — an attribute path (obj.pass_number), or a bare
+# snake_case identifier carrying no digits (has_token) — is a reference, not a
+# literal. Source files are full of these and none of them is a secret.
+_CODE_VALUE_RE = re.compile(
+    r"^(?:[A-Za-z_][A-Za-z0-9_]*\.)+[A-Za-z_][A-Za-z0-9_]*$"   # obj.attr, self.x.y
+    r"|^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$"                          # has_token, pass_log
+)
+
+
+def _is_code_reference(v: str) -> bool:
+    return bool(_CODE_VALUE_RE.match(v))
+
 def scan(text: str | None) -> list[Finding]:
     """Return findings for anything in text that looks like a credential. Never the value."""
     if not text or not isinstance(text, str):
@@ -189,6 +202,8 @@ def scan(text: str | None) -> list[Finding]:
         digits_pw = bool(strong) and re.fullmatch(r"\d{6,}", v) and re.search(r"[=:]|\bis\b", m.group("sep"))
         if overlaps(s, e) or not (digits_pw or _looks_like_secret_value(v)):
             continue
+        if _is_code_reference(v):
+            continue  # obj.pass_number / has_token — a reference, not a literal
         if _NON_SECRET_LABEL_SUFFIX.search(m.group("label")):
             continue
         if re.fullmatch(r"[0-9a-f]{7,40}", v) and not re.search(r"(?i)pass|pwd|pw\b|pin|wi-?fi|psk|wpa", m.group("label")):
@@ -217,6 +232,8 @@ def scan(text: str | None) -> list[Finding]:
                 continue
             if re.fullmatch(r"[A-Z0-9]+", v) or _IFACE_RE.match(v):
                 continue  # model numbers, SKUs (RTAC86U), interface names (wlp132s0f0)
+            if _is_code_reference(v):
+                continue  # identifiers in source, not credentials
             found.append(Finding("password", kw.group(0).lower(), v[:2], len(v), m.start(), m.end()))
             taken.append((m.start(), m.end()))
 
