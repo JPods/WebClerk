@@ -1135,92 +1135,93 @@ class OrgDomain(BaseModel):
 # Transaction Shipping — logistics envelope (not the dollar amount; that's totals.shipping)
 # ═══════════════════════════════════════════════════════════════════════
 
-class TransactionShipping(BaseModel):
-    """Shipping logistics — carrier, tracking, costs, weight, fulfillment status.
+class ShippingPackageItem(BaseModel):
+    """One item in a shipping package."""
+    item_id: Optional[int] = None
+    description: str = ''
+    quantity: float = 0.0
+    weight: float = 0.0
 
-    packages[] is the operational array (LoadTag/LoadItem from WC2) but is not
-    schema-declared here — it's a variable-length nested structure. Only the
-    header-level summary fields are in this schema for PJPV display.
+    class Config:
+        extra = 'forbid'
+
+
+class ShippingCosts(BaseModel):
+    """Cost breakdown for a shipment."""
+    freight: float = Field(0.0, ge=0, title="Freight", description="Base carrier freight cost", json_schema_extra={'widget': 'currency', 'precision': 2})
+    fuel_surcharge: float = Field(0.0, ge=0, title="Fuel Surcharge", json_schema_extra={'widget': 'currency', 'precision': 2})
+    insurance: float = Field(0.0, ge=0, title="Insurance", json_schema_extra={'widget': 'currency', 'precision': 2})
+    handling: float = Field(0.0, ge=0, title="Handling", json_schema_extra={'widget': 'currency', 'precision': 2})
+    estimated: float = Field(0.0, ge=0, title="Estimated", description="Pre-ship estimate", json_schema_extra={'widget': 'currency', 'precision': 2})
+    actual: float = Field(0.0, ge=0, title="Actual", description="What we paid the carrier", json_schema_extra={'widget': 'currency', 'precision': 2})
+    customer: float = Field(0.0, ge=0, title="Customer Charge", description="What we charge the customer (mirrors totals.shipping)", json_schema_extra={'widget': 'currency', 'precision': 2})
+
+    class Config:
+        extra = 'forbid'
+
+
+class ShippingPackage(BaseModel):
+    """One package in a shipment (LoadTag equivalent)."""
+    type: str = ''                            # box, pallet, envelope, tube
+    tracking: str = ''
+    weight: float = 0.0
+    length: float = 0.0
+    width: float = 0.0
+    height: float = 0.0
+    declared_value: float = 0.0
+    items: list[ShippingPackageItem] = Field(default_factory=list)
+    costs: ShippingCosts = Field(default_factory=ShippingCosts)
+
+    class Config:
+        extra = 'forbid'
+
+
+class ShippingWeight(BaseModel):
+    """Weight summary for a shipment."""
+    gross: float = Field(0.0, ge=0, title="Gross Weight", json_schema_extra={'widget': 'number', 'precision': 1})
+    unit: str = Field('lbs', title="Weight Unit", json_schema_extra={'widget': 'select', 'selectlist_key': 'weight_unit'})
+    dimensional: float = Field(0.0, ge=0, title="Dimensional Weight", json_schema_extra={'widget': 'number', 'precision': 1})
+    billable: float = Field(0.0, ge=0, title="Billable Weight", json_schema_extra={'widget': 'number', 'precision': 1})
+
+    class Config:
+        extra = 'forbid'
+
+
+class ShipToSnapshot(BaseModel):
+    """The address a shipment actually went to, frozen at ship time.
+
+    Not a copy of addresses.ship_to: that is where the customer wants goods now;
+    this is where these goods went. Phone is here because the carrier needs it.
     """
-    status: str = Field(
-        '', title="Status",
-        description="Fulfillment status: partial, shipped, delivered",
-        json_schema_extra={'widget': 'select', 'selectlist_key': 'shipping_status'},
-    )
-    carrier: str = Field(
-        '', title="Carrier",
-        description="UPS, FedEx, USPS, freight, etc.",
-        json_schema_extra={'widget': 'select', 'selectlist_key': 'shipping_carrier'},
-    )
-    carrier_account: str = Field(
-        '', title="Carrier Account",
-        description="Carrier account number for third-party billing",
-        json_schema_extra={'widget': 'text'},
-    )
-    service: str = Field(
-        '', title="Service",
-        description="Ground, 2Day, NextDay, etc.",
-        json_schema_extra={'widget': 'select', 'selectlist_key': 'shipping_service'},
-    )
-    package_count: int = Field(
-        0, ge=0, title="Package Count",
-        description="Number of packages in this shipment",
-        json_schema_extra={'widget': 'number'},
-    )
-    freight: float = Field(
-        0.0, ge=0, title="Freight",
-        description="Base carrier freight cost",
-        json_schema_extra={'widget': 'currency', 'precision': 2},
-    )
-    fuel_surcharge: float = Field(
-        0.0, ge=0, title="Fuel Surcharge",
-        json_schema_extra={'widget': 'currency', 'precision': 2},
-    )
-    insurance: float = Field(
-        0.0, ge=0, title="Insurance",
-        json_schema_extra={'widget': 'currency', 'precision': 2},
-    )
-    handling: float = Field(
-        0.0, ge=0, title="Handling",
-        json_schema_extra={'widget': 'currency', 'precision': 2},
-    )
-    estimated: float = Field(
-        0.0, ge=0, title="Estimated",
-        description="Pre-ship estimate",
-        json_schema_extra={'widget': 'currency', 'precision': 2},
-    )
-    actual: float = Field(
-        0.0, ge=0, title="Actual",
-        description="What we paid the carrier",
-        json_schema_extra={'widget': 'currency', 'precision': 2},
-    )
-    customer_charge: float = Field(
-        0.0, ge=0, title="Customer Charge",
-        description="What we charge the customer (mirrors totals.shipping)",
-        json_schema_extra={'widget': 'currency', 'precision': 2},
-    )
-    gross_weight: float = Field(
-        0.0, ge=0, title="Gross Weight",
-        json_schema_extra={'widget': 'number', 'precision': 1},
-    )
-    weight_unit: str = Field(
-        'lbs', title="Weight Unit",
-        json_schema_extra={'widget': 'select', 'selectlist_key': 'weight_unit'},
-    )
-    dt_shipped: str = Field(
-        '', title="Date Shipped",
-        description="When last package shipped (ISO 8601 UTC)",
-        json_schema_extra={'widget': 'date'},
-    )
-    dt_delivered: str = Field(
-        '', title="Date Delivered",
-        description="Carrier delivery confirmation (ISO 8601 UTC)",
-        json_schema_extra={'widget': 'date'},
-    )
-    notes: str = Field(
-        '', title="Notes",
-        json_schema_extra={'widget': 'textarea'},
-    )
+    company: str = Field('', title="Ship To Company")
+    attention: str = Field('', title="Ship To Attention")
+    full_address: str = Field('', title="Ship To Address", json_schema_extra={'widget': 'textarea'})
+    phone: str = Field('', title="Ship To Phone")
+
+    class Config:
+        extra = 'forbid'
+
+
+class TransactionShipping(BaseModel):
+    """Shipping logistics on a transaction header — carrier, costs, weight, packages.
+
+    packages[] is the operational array (LoadTag/LoadItem from WC2).
+    """
+    status: str = Field('', title="Status", description="Fulfillment status: partial, shipped, delivered", json_schema_extra={'widget': 'select', 'selectlist_key': 'shipping_status'})
+    carrier: str = Field('', title="Carrier", description="UPS, FedEx, USPS, freight, etc.", json_schema_extra={'widget': 'select', 'selectlist_key': 'shipping_carrier'})
+    carrier_account: str = Field('', title="Carrier Account", description="Carrier account number for third-party billing", json_schema_extra={'widget': 'text'})
+    service: str = Field('', title="Service", description="Ground, 2Day, NextDay, etc.", json_schema_extra={'widget': 'select', 'selectlist_key': 'shipping_service'})
+    package_count: int = Field(0, ge=0, title="Package Count", json_schema_extra={'widget': 'number'})
+    ship_to: ShipToSnapshot = Field(default_factory=ShipToSnapshot)
+    packages: list[ShippingPackage] = Field(default_factory=list)
+    costs: ShippingCosts = Field(default_factory=ShippingCosts)
+    weight: ShippingWeight = Field(default_factory=ShippingWeight)
+    dt_shipped: Optional[int] = Field(None, title="Date Shipped", description="When the last package shipped (epoch ms UTC)", json_schema_extra={'widget': 'date'})
+    dt_delivered: Optional[int] = Field(None, title="Date Delivered", description="Carrier delivery confirmation (epoch ms UTC)", json_schema_extra={'widget': 'date'})
+    notes: str = Field('', title="Notes", json_schema_extra={'widget': 'textarea'})
+
+    class Config:
+        extra = 'forbid'
 
 
 # Schema → LEAF_BEHAVIORS bridge
@@ -1370,15 +1371,26 @@ AUXILIARY_SCHEMA_MAP = {
 }
 
 
-def schema_to_leaf_behaviors(schema_cls: type[BaseModel]) -> dict:
+def schema_to_leaf_behaviors(schema_cls: type[BaseModel], _prefix: str = '') -> dict:
     """Convert a Pydantic schema to LEAF_BEHAVIORS format.
 
     Reads Field(title=, json_schema_extra={widget, precision, readonly})
     and produces the dict format that field_behaviors.py expects:
       {field_name: {type, label, precision?, readonly?}}
+
+    A nested schema is a container, not a leaf: its fields appear under their
+    dotted path ("costs.freight") and the container itself gets no entry.
     """
+    import typing
     behaviors = {}
     for name, field_info in schema_cls.model_fields.items():
+        ann = field_info.annotation
+        if typing.get_origin(ann) in (typing.Union, getattr(__import__('types'), 'UnionType', None)):
+            args = [a for a in typing.get_args(ann) if a is not type(None)]
+            ann = args[0] if len(args) == 1 else ann
+        if isinstance(ann, type) and issubclass(ann, BaseModel):
+            behaviors.update(schema_to_leaf_behaviors(ann, f'{_prefix}{name}.'))
+            continue
         extra = field_info.json_schema_extra or {}
         widget = extra.get('widget', 'text')
         entry = {
@@ -1393,7 +1405,7 @@ def schema_to_leaf_behaviors(schema_cls: type[BaseModel]) -> dict:
             entry['description'] = field_info.description
         if 'selectlist_key' in extra:
             entry['selectlist_key'] = extra['selectlist_key']
-        behaviors[name] = entry
+        behaviors[f'{_prefix}{name}'] = entry
     return behaviors
 
 
@@ -1464,74 +1476,3 @@ class TransactionSignoff(BaseModel):
 # Shipping — fulfillment structure on transaction header
 # ═══════════════════════════════════════════════════════════════════════
 
-class ShippingPackageItem(BaseModel):
-    """One item in a shipping package."""
-    item_id: Optional[int] = None
-    description: str = ''
-    quantity: float = 0.0
-    weight: float = 0.0
-
-    class Config:
-        extra = 'forbid'
-
-
-class ShippingPackage(BaseModel):
-    """One package in a shipment (LoadTag equivalent)."""
-    type: str = ''                            # box, pallet, envelope, tube
-    tracking: str = ''
-    weight: float = 0.0
-    length: float = 0.0
-    width: float = 0.0
-    height: float = 0.0
-    declared_value: float = 0.0
-    items: list[ShippingPackageItem] = Field(default_factory=list)
-    costs: dict = Field(default_factory=dict)
-
-    class Config:
-        extra = 'forbid'
-
-
-class ShippingCosts(BaseModel):
-    """Cost breakdown for a shipment."""
-    freight: float = 0.0
-    fuel_surcharge: float = 0.0
-    insurance: float = 0.0
-    handling: float = 0.0
-    estimated: float = 0.0
-    actual: float = 0.0
-    customer: float = 0.0                     # amount charged to customer
-
-    class Config:
-        extra = 'forbid'
-
-
-class ShippingWeight(BaseModel):
-    """Weight summary for a shipment."""
-    actual: float = 0.0
-    dimensional: float = 0.0
-    billable: float = 0.0
-
-    class Config:
-        extra = 'forbid'
-
-
-class TransactionShipping(BaseModel):
-    """Shipping/fulfillment structure on transaction header.
-
-    Carried on the shipping JSON field of TransactionBaseModel.
-    """
-    status: str = ''                          # unfulfilled, partial, shipped, delivered
-    carrier: str = ''
-    carrier_account: str = ''
-    service: str = ''
-    ship_to: dict = Field(default_factory=dict)
-    packages: list[ShippingPackage] = Field(default_factory=list)
-    costs: ShippingCosts = Field(default_factory=ShippingCosts)
-    weight: ShippingWeight = Field(default_factory=ShippingWeight)
-    package_count: int = 0
-    dt_shipped: Optional[int] = None          # epoch ms
-    dt_delivered: Optional[int] = None        # epoch ms
-    notes: str = ''
-
-    class Config:
-        extra = 'forbid'

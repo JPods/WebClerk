@@ -49,6 +49,10 @@ FIELD_SCHEMAS: dict[str, str] = {
     'item.quantity': 'apps.products.models.item_pydantic:ItemQuantity',
     'purchase.capital_asset': 'apps.transactions.models.purchase_pydantic:CapitalAsset',
     'action.project_metadata': 'apps.transactions.models.project_pydantic:ProjectMetadata',
+    'cash.company': f'{_TE}:TransactionCompany',
+    'inventory_layer.source': f'{_TE}:TransactionSource',
+    'inventory_layer.cost': f'{_TE}:TransactionCost',
+    'item_xref.cost': f'{_TE}:TransactionCost',
 }
 
 # Organisations share one shape for contact channels.
@@ -83,6 +87,7 @@ TRANSACTION_HEADER_SCHEMAS = {
     'addresses': f'{_AS}:TransactionAddresses',
     'emails': f'{_AS}:TransactionEmails',
     'phones': f'{_AS}:TransactionPhones',
+    'shipping': f'{_TE}:TransactionShipping',
 }
 TRANSACTION_LINE_SCHEMAS = {
     'quantity': f'{_TE}:LineQuantity',
