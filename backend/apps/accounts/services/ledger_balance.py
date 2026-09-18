@@ -193,10 +193,16 @@ def update_org_balances(org: 'OrgBase', save: bool = True) -> Dict[str, Any]:
     WHAT THIS UPDATES:
     1. org.financial[org_type].balances.due      - Total amount owed
     2. org.financial[org_type].balances.current  - Amount not yet past due
-    3. org.financial[org_type].balances.future   - Amount due more than 30 days out
+    3. org.financial[org_type].aging.future      - Amount due more than 30 days out
     4. org.financial[org_type].aging.period_1/2/3 - Past due buckets
     5. org.financial[org_type].credit.available  - Credit limit minus balance due
     6. org.financial[org_type].credit.used       - Current credit utilization
+    7. customer only: deposits.unapplied, credit.high, balances.open_orders,
+       balances.total_exposure, cash.days_avg_paid, cash.invoices_settled
+    8. org.financial.common.net_balance
+
+    The shape is common.schemas.org_aspects.OrgFinancial. Any failure raises —
+    a credit figure that silently becomes 0 approves credit it should refuse.
     
     FINANCIAL IMPACT:
     - Credit available directly affects whether new orders are blocked
@@ -224,105 +230,65 @@ def update_org_balances(org: 'OrgBase', save: bool = True) -> Dict[str, Any]:
     # This ensures displayed balances always match actual ledger state
     buckets = calculate_aging_buckets(org_id)
     
-    # Get or initialize financial dict
-    financial = org.financial or {}
-    
-    # Determine org role (customer, vendor, etc.)
+    # The schema is the only shape org.financial may take. Loading through it
+    # drops keys it does not declare and fills the ones it does.
+    from common.schemas.org_aspects import OrgFinancial
+    fin = OrgFinancial.model_validate(org.financial or {})
+
+    total = float(buckets['total'])
+    fin.common.net_balance = total
+
     org_type = getattr(org, 'org_type', 'customer')
-    
-    # Update balances structure
     if org_type in ('customer', 'vendor'):
-        role_key = org_type
-        role_financial = financial.get(role_key, {})
-        
-        # Update balances
-        role_financial['balances'] = {
-            'due': float(buckets['total']),
-            'current': float(buckets['current'] + buckets['future']),
-            'future': float(buckets['future']),
-        }
-        
-        # Update aging (customer/vendor specific)
-        role_financial['aging'] = {
-            'period_1': float(buckets['period_1']),
-            'period_2': float(buckets['period_2']),
-            'period_3': float(buckets['period_3']),
-        }
-        
-        # Update credit available if credit limit exists
-        credit = role_financial.get('credit', {})
-        if credit.get('limit'):
-            credit['available'] = max(0, credit['limit'] - float(buckets['total']))
-            credit['used'] = float(buckets['total'])
-            role_financial['credit'] = credit
+        role = getattr(fin, org_type)
+        role.balances.due = total
+        role.balances.current = float(buckets['current'] + buckets['future'])
+        role.aging.future = float(buckets['future'])
+        role.aging.period_1 = float(buckets['period_1'])
+        role.aging.period_2 = float(buckets['period_2'])
+        role.aging.period_3 = float(buckets['period_3'])
+        if role.credit.limit:
+            role.credit.available = max(0.0, role.credit.limit - total)
+            role.credit.used = total
 
+    if org_type == 'customer':
         # --- Credit decision metrics (from WC2 mining) ---
+        cust = fin.customer
 
-        # Available cash: sum of unapplied cash money on account
+        # Unapplied cash on account.
         # WC2: $oCust.balanceAvailableCashEntries := ds.Cash.query("amountAvailable # 0 & ida_customer").sum(amountAvailable)
-        try:
-            Cash = dj_apps.get_model('transactions', 'Cash')
-            available_cash_entries = Cash.objects.filter(
-                customer_id=org_id,
-                available__gt=0,
-            ).aggregate(total=models.Sum('available'))['total'] or Decimal('0')
-            role_financial['available_cash_entries'] = float(available_cash_entries)
-        except Exception:
-            role_financial['available_cash_entries'] = 0
+        Cash = dj_apps.get_model('transactions', 'Cash')
+        cust.deposits.unapplied = float(Cash.objects.filter(
+            customer_id=org_id, available__gt=0,
+        ).aggregate(total=models.Sum('available'))['total'] or Decimal('0'))
 
-        # High credit: peak balance ever reached
-        high_credit = role_financial.get('high_credit', 0)
-        if float(buckets['total']) > high_credit:
-            role_financial['high_credit'] = float(buckets['total'])
+        # High credit: peak balance ever reached.
+        cust.credit.high = max(cust.credit.high, total)
 
-        # Open orders exposure
-        try:
-            Order = dj_apps.get_model('transactions', 'Order')
-            from common.json_lookups import totals_total
-            open_order_total = Order.objects.filter(
-                customer_id=org_id,
-                status__in=['planned', 'released', 'in_progress'],
-            ).annotate(_total=totals_total()).aggregate(total=models.Sum('_total'))['total'] or Decimal('0')
-            role_financial['open_orders'] = float(open_order_total)
-            avail_pay = role_financial.get('available_cash_entries', 0)
-            role_financial['total_exposure'] = float(buckets['total']) + float(open_order_total) - avail_pay
-        except Exception:
-            role_financial['open_orders'] = 0
-            avail_pay = role_financial.get('available_cash_entries', 0)
-            role_financial['total_exposure'] = float(buckets['total']) - avail_pay
+        # Open orders exposure.
+        Order = dj_apps.get_model('transactions', 'Order')
+        from common.json_lookups import totals_total
+        cust.balances.open_orders = float(Order.objects.filter(
+            customer_id=org_id,
+            status__in=['planned', 'released', 'in_progress'],
+        ).annotate(_total=totals_total()).aggregate(total=models.Sum('_total'))['total'] or Decimal('0'))
+        cust.balances.total_exposure = total + cust.balances.open_orders - cust.deposits.unapplied
 
-        # Days average paid: mean days from invoice date to cash date on settled ledgers
-        try:
-            Ledger = dj_apps.get_model('accounts', 'Ledger')
-            settled = Ledger.objects.filter(
-                org_id=org_id, model_name='invoice',
-                dt_due__isnull=False, dt_applied__isnull=False,
-            ).values_list('dt_due', 'dt_applied')
-            if settled:
-                total_days = 0
-                count = 0
-                for dt_due, dt_applied in settled:
-                    if dt_due and dt_applied:
-                        due_d = dt_due.date() if isinstance(dt_due, datetime) else dt_due
-                        applied_d = dt_applied.date() if isinstance(dt_applied, datetime) else dt_applied
-                        total_days += (applied_d - due_d).days
-                        count += 1
-                role_financial['days_avg_paid'] = round(total_days / count) if count > 0 else 0
-                role_financial['invoice_count_settled'] = count
-            else:
-                role_financial['days_avg_paid'] = 0
-        except Exception:
-            role_financial['days_avg_paid'] = 0
+        # Days average paid: mean days from due date to cash applied, settled invoices.
+        Ledger = dj_apps.get_model('accounts', 'Ledger')
+        days = []
+        for dt_due, dt_applied in Ledger.objects.filter(
+            org_id=org_id, model_name='invoice',
+            dt_due__isnull=False, dt_applied__isnull=False,
+        ).values_list('dt_due', 'dt_applied'):
+            due_d = dt_due.date() if isinstance(dt_due, datetime) else dt_due
+            applied_d = dt_applied.date() if isinstance(dt_applied, datetime) else dt_applied
+            days.append((applied_d - due_d).days)
+        cust.cash.days_avg_paid = round(sum(days) / len(days)) if days else 0
+        cust.cash.invoices_settled = len(days)
 
-        financial[role_key] = role_financial
+    financial = fin.model_dump()
 
-    # Update common financial data
-    common = financial.get('common', {})
-    common['balances'] = {
-        'total': float(buckets['total']),
-    }
-    financial['common'] = common
-    
     # Set on org
     org.financial = financial
     

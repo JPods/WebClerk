@@ -45,6 +45,7 @@ class FinSettings(BaseModel):
 
 class FinCommon(BaseModel):
     currency: str = 'USD'                # ISO 4217
+    net_balance: float = 0               # net ledger balance across every role
     account: FinAccount = Field(default_factory=FinAccount)
     rating: FinRating = Field(default_factory=FinRating)
     settings: FinSettings = Field(default_factory=FinSettings)
@@ -132,17 +133,19 @@ class CustCredit(BaseModel):
     limit: float = 0
     high: float = 0                      # historical high balance
     available: float = 0
+    used: float = 0
 
 
 class CustBalances(BaseModel):
     due: float = 0
-    current: float = 0
+    current: float = 0                   # not past due, including aging.future
     open_orders: float = 0
-    total_exposure: float = 0
+    total_exposure: float = 0            # due + open_orders - deposits.unapplied
 
 
 class CustCash(BaseModel):
     days_avg_paid: int = 0
+    invoices_settled: int = 0            # invoices in the days_avg_paid mean
     days_pay: int = 0
     dt_last_cash: Optional[int] = None
     last_cash_amount: float = 0
@@ -162,7 +165,7 @@ class CustReturns(Period):
 
 
 class CustDeposits(BaseModel):
-    unapplied: float = 0
+    unapplied: float = 0                 # cash on account not yet applied (WC2 balanceAvailableCashEntries)
 
 
 class CustCollection(BaseModel):
@@ -207,11 +210,13 @@ class FinCustomer(BaseModel):
 class VendCredit(BaseModel):
     limit: float = 0
     terms_days: int = 0
+    available: float = 0
+    used: float = 0
 
 
 class VendBalances(BaseModel):
     due: float = 0
-    current: float = 0
+    current: float = 0                   # not past due, including aging.future
     open_pos: float = 0
 
 
