@@ -141,14 +141,16 @@ class ActionLifecycle(BaseModel):
 
 
 class ActionInquiry(BaseModel):
-    """Who asked, from a public web form (inquiry_view). Not a Contact: unverified input
-    never creates one. Email verification comes when outgoing mail exists."""
+    """Who asked, from the public inquiry form (inquiry_view). Not a Contact: the email is
+    proven by the emailed link; nothing else the visitor typed is."""
     name: str
     email: str
-    organization: str = ''
+    phone: str = ''
+    company: str = ''
     topic: str = ''
-    page: str = ''                            # page the form was on
+    page: str = ''                            # page the visitor started from
     email_verified: bool = False
+    token_id: str = ''                        # sha256 of the emailed token: one Action per link
 
     class Config:
         extra = 'forbid'

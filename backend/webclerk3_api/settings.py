@@ -335,7 +335,8 @@ REST_FRAMEWORK = {
         "cash": "10/minute",
         "webhook": "30/minute",
         "tx_line": "60/minute",
-        "inquiry": "5/hour",         # public web form — per IP
+        "inquiry": "5/hour",         # public inquiry: emails sent, per IP
+        "inquiry_form": "30/hour",   # public inquiry: link check + submit, per IP
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
@@ -403,6 +404,7 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER or 'noreply@example.com')
+EMAIL_TIMEOUT = 15  # seconds — a stalled SMTP server must not hang a request
 
 # Email Notification Settings
 COMPANY_NAME = config('COMPANY_NAME', default='WebClerk3')
