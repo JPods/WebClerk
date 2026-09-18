@@ -26,6 +26,8 @@ interface ParadeReport {
   model_name: string;
   category: string;
   has_sample_data: boolean;
+  /** What the report can draw: a form layout, letter text, an operation, or nothing yet. */
+  layout_kind?: "form" | "letter" | "operation" | "none";
   render_url: string;
   feedback: ReportFeedback | null;
 }
@@ -248,7 +250,11 @@ const FormParade: React.FC = () => {
                         <span
                           className={`
                             inline-block w-2 h-2 rounded-full shrink-0
-                            ${report.has_sample_data ? "bg-green-500" : "bg-gray-300"}
+                            ${!report.has_sample_data
+                              ? "bg-gray-300"
+                              : report.layout_kind === "form" || report.layout_kind === "letter"
+                                ? "bg-green-500"
+                                : "bg-amber-400"}
                           `}
                         />
                         <span className="text-sm font-medium text-gray-800 truncate">

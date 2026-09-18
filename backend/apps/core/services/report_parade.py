@@ -171,6 +171,15 @@ def build_parade_manifest(
             "category": report.category or "",
             "description": report.description or "",
             "has_sample_data": has_sample,
+            # What the record can actually draw: a form layout, letter text with
+            # tokens, or nothing yet. The parade should not promise a document it
+            # cannot show.
+            "layout_kind": (
+                "form" if config.get("form")
+                else "letter" if config.get("body")
+                else "operation" if config.get("action")
+                else "none"
+            ),
             "render_url": (
                 f"{base_url}/wcapi/parade-preview/"
                 f"?report_id={report.id}"

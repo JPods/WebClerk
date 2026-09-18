@@ -79,6 +79,84 @@ def _get_company_logo_url() -> str:
     return ""
 
 
+def _fill_tokens(text: str, sample: dict) -> str:
+    """Fill {{token}} and {{a.b}} from the sample record. An unknown token is left
+    visible as [[token]] rather than blanked — a preview should show the gap."""
+    import re as _re
+
+    def one(match):
+        path = match.group(1).strip()
+        value = sample
+        for part in path.split('.'):
+            if isinstance(value, dict) and part in value:
+                value = value[part]
+            else:
+                return f'[[{path}]]'
+        return '' if value is None else str(value)
+
+    return _re.sub(r'\{\{([^}]+)\}\}', one, text or '')
+
+
+def _render_letter_html(report, config: dict, sample: dict) -> str:
+    """Letters and touch templates: subject + body with the tokens filled."""
+    subject = _fill_tokens(config.get('subject') or report.name, sample)
+    body = _fill_tokens(config.get('body') or '', sample)
+    channel = config.get('channel') or 'letter'
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>{report.name} — Preview</title>
+    <style>
+      body {{ font-family: Georgia, serif; max-width: 6.5in; margin: 0 auto;
+              padding: 0.75in 0.5in; color: #222; line-height: 1.5; }}
+      .kind {{ font-family: Helvetica, sans-serif; font-size: 11px; letter-spacing: .08em;
+               text-transform: uppercase; color: #888; margin-bottom: 1.5em; }}
+      h1 {{ font-size: 18px; margin: 0 0 1.2em; }}
+      .body {{ white-space: pre-wrap; }}
+      .gap {{ background: #FDEDEC; }}
+    </style></head><body>
+    <div class="kind">{channel} · {report.category or 'letter'}</div>
+    <h1>{subject}</h1>
+    <div class="body">{body}</div>
+    </body></html>"""
+
+
+def _render_no_layout_html(report, config: dict, sample: dict) -> str:
+    """No layout of any kind. Say what the record actually has — a dangling
+    template name is the finding, and the sample data belongs below the fold,
+    not dumped as if it were the document."""
+    pointer = config.get('template')
+    if pointer:
+        what = (f'This report points at a template named '
+                f'<code>{pointer}</code>, and nothing defines it. '
+                'The layout has not been built yet.')
+    elif config.get('action'):
+        what = (f'This is an operation (<code>{config.get("action")}</code>), '
+                'not a printed document.')
+    else:
+        what = 'This report has no layout and no template pointer — it is an empty shell.'
+
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>{report.name} — No layout</title>
+    <style>
+      body {{ font-family: Helvetica, Arial, sans-serif; max-width: 42em;
+              margin: 0 auto; padding: 2.5em 1.5em; color: #222; }}
+      h1 {{ font-size: 20px; margin: 0 0 .25em; }}
+      .meta {{ color: #888; font-size: 13px; margin-bottom: 1.5em; }}
+      .note {{ background: #FEF9E7; border: 1px solid #F9E79F; border-radius: 6px;
+               padding: 1em 1.2em; line-height: 1.55; }}
+      code {{ background: #EAECEE; padding: 1px 5px; border-radius: 3px; }}
+      details {{ margin-top: 2em; }}
+      summary {{ cursor: pointer; color: #555; font-size: 13px; }}
+      pre {{ background: #F8F9F9; padding: 1em; overflow-x: auto;
+             font-size: 12px; line-height: 1.45; }}
+    </style></head><body>
+    <h1>{report.name}</h1>
+    <div class="meta">{report.model_name or '—'} · {report.category or 'report'}</div>
+    <div class="note"><strong>No layout to show.</strong><br>{what}</div>
+    <details><summary>Sample data this report would print from</summary>
+    <pre>{json.dumps(sample, indent=2)}</pre></details>
+    </body></html>"""
+
+
 def _render_sample_html(report_name: str, model_name: str, sample: dict, form: dict) -> str:
     """Render sample data using the config.form layout as standalone HTML."""
 
@@ -403,21 +481,17 @@ class ParadePreviewView(APIView):
                 message=f"No sample data on report '{report.name}'",
             )
 
-        if not form:
-            # No form layout — render a simple data dump
-            html = f"""<!DOCTYPE html><html><head>
-            <meta charset="utf-8"><title>{report.name} — Sample Data</title>
-            <style>body {{ font-family: monospace; padding: 20px; }} pre {{ white-space: pre-wrap; }}</style>
-            </head><body>
-            <h2>{report.name}</h2>
-            <p>Model: {report.model_name} | Category: {report.category or 'report'}</p>
-            <p><em>No form layout defined — showing raw sample data:</em></p>
-            <pre>{json.dumps(sample, indent=2)}</pre>
-            </body></html>"""
-        else:
+        body = config.get("body")
+        if form:
             html = _render_sample_html(
                 report.name, report.model_name or "", sample, form,
             )
+        elif body:
+            # Letters and touch templates are text with {{tokens}}, not layouts.
+            # Filling the tokens from sample data is the real preview.
+            html = _render_letter_html(report, config, sample)
+        else:
+            html = _render_no_layout_html(report, config, sample)
 
         response = HttpResponse(html, content_type="text/html")
         response["Content-Disposition"] = f'inline; filename="parade-{report.id}.html"'
