@@ -29,7 +29,7 @@ def search_qa(params: dict[str, Any]) -> dict[str, Any]:
         return {'results': [], 'count': 0}
 
     qs = Document.objects.filter(
-        config__purpose='support_qa',
+        purpose='support_qa',
         status='published',
     )
 
@@ -73,8 +73,8 @@ def ask_qa(params: dict[str, Any]) -> dict[str, Any]:
         name=question,
         description=context[:255] if context else '',
         status='draft',
+        purpose='support_qa',
         config={
-            'purpose': 'support_qa',
             'source': 'user',
             'asked_by': asked_by,
             'dt_asked': now,
@@ -84,9 +84,8 @@ def ask_qa(params: dict[str, Any]) -> dict[str, Any]:
             'score_sum': 0,
             'score_avg': 0,
             'escalation_chain': [],
-            'keywords': [],
         },
-        refs={'tags': ['support', 'qa']},
+        refs={'tags': ['support', 'qa'], 'keywords': []},
     )
 
     return {
@@ -111,7 +110,7 @@ def answer_qa(params: dict[str, Any]) -> dict[str, Any]:
 
     doc = Document.objects.get(pk=doc_id)
     cfg = doc.config or {}
-    if cfg.get('purpose') != 'support_qa':
+    if doc.purpose != 'support_qa':
         raise ValueError('Document is not a support Q&A record')
 
     doc.body = answer
@@ -141,7 +140,7 @@ def score_qa(params: dict[str, Any]) -> dict[str, Any]:
 
     doc = Document.objects.get(pk=doc_id)
     cfg = doc.config or {}
-    if cfg.get('purpose') != 'support_qa':
+    if doc.purpose != 'support_qa':
         raise ValueError('Document is not a support Q&A record')
 
     cfg['score_count'] = cfg.get('score_count', 0) + 1
@@ -176,7 +175,7 @@ def escalate_qa(params: dict[str, Any]) -> dict[str, Any]:
 
     doc = Document.objects.get(pk=doc_id)
     cfg = doc.config or {}
-    if cfg.get('purpose') != 'support_qa':
+    if doc.purpose != 'support_qa':
         raise ValueError('Document is not a support Q&A record')
 
     chain = cfg.get('escalation_chain', [])
@@ -229,7 +228,7 @@ def post_qa_to_wchq(params: dict[str, Any]) -> dict[str, Any]:
 
     doc = Document.objects.get(pk=doc_id)
     cfg = doc.config or {}
-    if cfg.get('purpose') != 'support_qa':
+    if doc.purpose != 'support_qa':
         raise ValueError('Document is not a support Q&A record')
 
     # Find the WCHQ upstream connection

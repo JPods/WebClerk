@@ -24,7 +24,8 @@ def upstream(db):
     from apps.sync.models.connection import Connection
     return Connection.objects.create(
         ida=rh.WCHQ_CONNECTION_IDA, name='WCHQ upstream', purpose='sync', is_active=True,
-        config={'wchq_base_url': 'https://wchq.example', 'athena_token': 'shared-secret'},
+        config={'wchq_base_url': 'https://wchq.example'},
+        encryption={'athena_token': 'shared-secret'},
     )
 
 

@@ -163,7 +163,8 @@ class Document(BaseModel):
                     Pending.objects.create(
                         model_name=model_key,
                         record_id=self.id,
-                        config={'reason': 'keywords', 'model': 'Document', 'tracked_fields': tracked_fields}
+                        purpose='keywords',
+                        config={'tracked_fields': tracked_fields}
                     )
         except Exception:
             pass

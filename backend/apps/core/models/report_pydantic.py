@@ -33,6 +33,48 @@ REPORT_PURPOSE_CHOICES = [
 
 # -- .config ----------------------------------------------------------------
 
+class FormRow(BaseModel):
+    """One row of a detail form layout (DynamicDetail)."""
+    cols: int = 1
+    fields: list[str] = Field(default_factory=list)
+
+    class Config:
+        extra = 'forbid'
+
+
+class ToolParam(BaseModel):
+    """One admin-tool parameter (AdminTools.tsx ToolParam)."""
+    name: str
+    type: str = 'text'                      # text | boolean
+    label: str = ''
+    required: bool = False
+    default: Optional[object] = None
+
+    class Config:
+        extra = 'forbid'
+
+
+class ParadeFeedback(BaseModel):
+    """report_parade.save_parade_feedback."""
+    decision: Optional[str] = None          # Keep | Modify | Don't Need
+    notes: str = ''
+    user_id: Optional[int] = None
+    dt_feedback: Optional[str] = None       # ISO UTC
+
+    class Config:
+        extra = 'forbid'
+
+
+class LibraryOriginal(BaseModel):
+    """form_library checkout snapshot, kept for restore."""
+    form: dict = Field(default_factory=dict)
+    source_uuid: Optional[str] = None
+    checked_out_at: Optional[int] = None    # epoch ms
+
+    class Config:
+        extra = 'forbid'
+
+
 class ReportConfig(ConfigBase):
     """Extended config for Report records.
 
@@ -40,7 +82,56 @@ class ReportConfig(ConfigBase):
     or config.rows + config.fields for detail forms).
     Library checkout stores the original in config.library_original.
     """
-    pass
+    # -- print / render --
+    template: Optional[str] = None          # built-in template key (render_report._resolve_template_key)
+    form: Optional[dict] = None             # PrintLayout (UniversalPrint)
+    pdfme_template: Optional[dict] = None   # pdfme {basePdf, schemas}
+    statement: Optional[dict] = None        # conditional_text rules, e.g. statement.comments
+    sample_data: Optional[dict] = None      # parade preview data
+
+    # -- detail form layout (DynamicDetail) --
+    rows: list[FormRow] = Field(default_factory=list)
+    fields: dict[str, dict] = Field(default_factory=dict)
+
+    # -- letters / touch templates --
+    subject: Optional[str] = None
+    body: Optional[str] = None
+    channel: Optional[str] = None           # email | text | letter
+    topic: Optional[str] = None
+
+    # -- toolbar actions (DetailToolbar) --
+    action: Optional[str] = None            # manage action name, open_url, import_vcard_dialog
+    url: Optional[str] = None
+    confirm: Optional[str] = None
+    params: dict = Field(default_factory=dict)
+    params_from_record: dict[str, str] = Field(default_factory=dict)
+    download: Optional[bool] = None
+    download_ext: Optional[str] = None
+    download_mime: Optional[str] = None
+    download_field: Optional[str] = None
+
+    # -- admin tools (AdminTools) --
+    command: Optional[str] = None
+    parameters: list[ToolParam] = Field(default_factory=list)
+    default_args: list[str] = Field(default_factory=list)
+
+    # -- shared saved search (save_search_view writes; wcapi reads) --
+    keyword: Optional[str] = None
+    search_fields: list[str] = Field(default_factory=list)
+    filters: dict = Field(default_factory=dict)
+    ordering: Optional[str] = None
+    limit: Optional[int] = None
+    pagination: Optional[dict] = None
+    relative_period: Optional[dict] = None  # {field, preset}
+    request_filters: Optional[dict] = None
+    request_keyword: Optional[str] = None
+
+    # -- hooks (Report.save gate + report_hooks.validate_hooks own the shape) --
+    hooks: Optional[dict] = None
+
+    # -- parade + library --
+    parade_feedback: Optional[ParadeFeedback] = None
+    library_original: Optional[LibraryOriginal] = None
 
 
 # -- .metadata (inherits MetadataBase) --------------------------------------

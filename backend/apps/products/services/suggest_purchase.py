@@ -339,7 +339,7 @@ def create_draft_purchase(vendor_id: int, items: List[Dict[str, Any]]) -> Dict[s
     purchase = Purchase(
         status='planned',
         vendor=vendor,
-        metadata={'source': 'suggest_purchase', 'auto_generated': True},
+        metadata={'source': {'type': 'suggest_purchase', 'auto_generated': True}},
     )
     purchase.save()
 

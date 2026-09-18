@@ -114,7 +114,6 @@ _APP_SCHEMA_MAP = {
     'order_line':                    'apps.transactions.models.order_line_pydantic',
     'cash':                       'apps.transactions.models.cash_pydantic',
     'project':                       'apps.transactions.models.project_pydantic',
-    'project_association':           'apps.transactions.models.project_links_pydantic',
     'proposal':                      'apps.transactions.models.proposal_pydantic',
     'proposal_line':                 'apps.transactions.models.proposal_line_pydantic',
     'purchase':                      'apps.transactions.models.purchase_pydantic',
@@ -129,55 +128,56 @@ _APP_SCHEMA_MAP = {
 }
 
 
-def get_envelope_default(model_key: str, envelope: str) -> dict:
-    """Return the default dict for a model's config/metadata/prefs/refs.
+def _schema_key(model_key: str) -> str:
+    """Registry keys that are views over another model's table (databrowser, gantt, wc
+    over Setting) take that model's schema: the table decides, not the name."""
+    if model_key in _APP_SCHEMA_MAP:
+        return model_key
+    from apps.core.constants.model_registry import MODEL_REGISTRY
+    meta = MODEL_REGISTRY.get(model_key)
+    if meta:
+        for key, other in MODEL_REGISTRY.items():
+            if other.model == meta.model and key in _APP_SCHEMA_MAP:
+                return key
+    return model_key
 
-    Looks up the Pydantic schema by model_key:
-      1. Check _APP_SCHEMA_MAP for schemas co-located with their Django models.
-      2. Fall back to common.schemas.{model_key} (legacy convention).
-      3. Fall back to the envelope base class.
+
+def schema_class(model_key: str, envelope: str) -> type:
+    """The Pydantic class for one envelope of one model. Code is the only source.
+
+    A model in _APP_SCHEMA_MAP must define {PascalKey}{Suffix} in its module — a missing
+    module or class raises, because a schema that silently fails to load means every
+    save of that model goes unvalidated. A model not in the map uses the envelope base
+    class: that is its declared schema, not a fallback.
     """
     if envelope not in _ENVELOPE_SUFFIXES:
         raise ValueError(f"envelope must be one of {list(_ENVELOPE_SUFFIXES)}")
-
-    suffix = _ENVELOPE_SUFFIXES[envelope]
-    class_name = _model_key_to_class(model_key) + suffix
-
-    # 1. App-level schemas (co-located with Django models)
-    if model_key in _APP_SCHEMA_MAP:
-        try:
-            module = importlib.import_module(_APP_SCHEMA_MAP[model_key])
-            cls = getattr(module, class_name)
-            return cls().model_dump()
-        except (ModuleNotFoundError, AttributeError) as exc:
-            logger.warning(
-                'get_envelope_default: app schema %s.%s not found (%s)',
-                _APP_SCHEMA_MAP[model_key], class_name, exc,
-            )
-            return _base_fallback(envelope)
-
-    # 2. Standard path — common/schemas/{model_key}.py
+    model_key = _schema_key(model_key)
+    if model_key not in _APP_SCHEMA_MAP:
+        from common.schemas.envelopes import ConfigBase, MetadataBase, RecordPrefsBase, RefsBase
+        return {'config': ConfigBase, 'metadata': MetadataBase,
+                'prefs': RecordPrefsBase, 'refs': RefsBase}[envelope]
+    module = importlib.import_module(_APP_SCHEMA_MAP[model_key])
+    class_name = _model_key_to_class(model_key) + _ENVELOPE_SUFFIXES[envelope]
     try:
-        module = importlib.import_module(f'common.schemas.{model_key}')
-        cls = getattr(module, class_name)
-        return cls().model_dump()
-    except (ModuleNotFoundError, AttributeError) as exc:
-        logger.warning(
-            'get_envelope_default: no schema %s.%s — falling back to base (%s)',
-            model_key, class_name, exc,
-        )
-        return _base_fallback(envelope)
+        return getattr(module, class_name)
+    except AttributeError:
+        raise AttributeError(f'{_APP_SCHEMA_MAP[model_key]} has no {class_name}') from None
 
 
-def _base_fallback(envelope: str) -> dict:
-    """Return base envelope defaults when no model-specific schema exists."""
-    from common.schemas.envelopes import (
-        ConfigBase, MetadataBase, RecordPrefsBase, RefsBase,
-    )
-    bases = {
-        'config': ConfigBase,
-        'metadata': MetadataBase,
-        'prefs': RecordPrefsBase,
-        'refs': RefsBase,
-    }
-    return bases[envelope]().model_dump()
+def schema_classes(model_key: str) -> dict[str, type]:
+    """{envelope: Pydantic class} for each envelope field the model has.
+
+    A model that is not a registered Django model is taken to carry all four.
+    """
+    from apps.core.constants.model_registry import MODEL_REGISTRY
+    envelopes = list(_ENVELOPE_SUFFIXES)
+    if model_key in MODEL_REGISTRY:
+        names = {f.name for f in MODEL_REGISTRY[model_key].import_model()._meta.get_fields()}
+        envelopes = [e for e in envelopes if e in names]
+    return {envelope: schema_class(model_key, envelope) for envelope in envelopes}
+
+
+def get_envelope_default(model_key: str, envelope: str) -> dict:
+    """Return the default dict for a model's config/metadata/prefs/refs."""
+    return schema_class(model_key, envelope)().model_dump()

@@ -14,28 +14,9 @@ from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+from apps.sync.services.athena_auth import validate_athena as _validate_athena
 
 logger = logging.getLogger(__name__)
-
-
-def _validate_athena(request):
-    """Validate `Authorization: Athena <token>` against Connection records."""
-    from apps.sync.models.connection import Connection
-
-    header = request.META.get('HTTP_AUTHORIZATION', '')
-    if not header.startswith('Athena '):
-        return None, JsonResponse({'error': 'Missing Authorization: Athena <token>'}, status=401)
-
-    token = header[7:].strip()
-    if not token:
-        return None, JsonResponse({'error': 'Empty Athena token'}, status=401)
-
-    for connection in Connection.objects.filter(status='active', is_active=True):
-        config = connection.config if isinstance(connection.config, dict) else {}
-        if config.get('athena_token') == token:
-            return connection, None
-
-    return None, JsonResponse({'error': 'Athena token not recognized'}, status=403)
 
 
 @method_decorator(csrf_exempt, name='dispatch')

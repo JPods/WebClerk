@@ -155,6 +155,22 @@ class ImportBundleHeader(BaseModel):
         extra = "forbid"
 
 
+class ShipFrom(BaseModel):
+    """Carrier ship-from address (USPS label origin)."""
+    company: str = ''
+    name: str = ''
+    street1: str = ''
+    city: str = ''
+    state: str = ''
+    zip_code: str = ''
+    country: str = 'US'
+    phone: str = ''
+    email: str = ''
+
+    class Config:
+        extra = "forbid"
+
+
 class ConnectionConfig(ConfigBase):
     """Integration protocol metadata.
 
@@ -179,6 +195,15 @@ class ConnectionConfig(ConfigBase):
     carrier_code: str = ''                   # ups, fedex, usps, dhl
     credentials: Optional[CarrierCredentials] = None
     settings: Optional[CarrierSettings] = None
+    ship_from: Optional[ShipFrom] = None
+    help_url: str = ''                       # WebClerk how-to-connect page
+    developer_portal: str = ''               # carrier developer site for credentials
+    # WC_HQ link
+    wchq_base_url: str = ''
+    instance_uuid: str = ''                  # identity of the instance on the other end
+    reviewer: str = ''                       # agent that reviews before send (e.g. 'alice')
+    episode_harvest: bool = False            # WCHQ harvests episodes over this connection
+    last_episode_harvest_ms: int = 0         # UTC epoch ms of last harvest
     # Agent escalation
     from_agent: str = ''
     to_agent: str = ''

@@ -9,11 +9,8 @@ Usage:
 """
 from __future__ import annotations
 
-import importlib
 import logging
 from typing import Any
-
-from django.apps import apps as dj_apps
 
 logger = logging.getLogger(__name__)
 
@@ -43,70 +40,27 @@ def audit_model_schemas(model_names: list[str] | None = None, limit_per_model: i
     Returns summary dict.
     """
     from apps.ai_assistant.services.user_patterns import log_schema_question
-    from apps.core.models import Setting
-
-    # Get model definition settings (wc:model preferred, fall back to legacy wc:schema_map)
-    settings_qs = Setting.objects.filter(purpose='wc:model', is_active=True)
-    if model_names:
-        settings_qs = settings_qs.filter(parent_model__in=model_names)
-    if not settings_qs.exists():
-        settings_qs = Setting.objects.filter(purpose='wc:schema_map', is_active=True)
-        if model_names:
-            settings_qs = settings_qs.filter(parent_model__in=model_names)
+    from apps.core.constants.model_registry import MODEL_REGISTRY
+    from common.schemas.defaults import schema_classes
 
     results = {}
+    errors = {}
     total_questions = 0
 
-    for setting in settings_qs:
-        model_key = setting.parent_model
-        cfg = setting.config or {}
-        # wc:model stores schema under 'schema' key; legacy stores at top level
-        schema_cfg = cfg.get('schema', cfg) if setting.purpose == 'wc:model' else cfg
-        schema_module_path = schema_cfg.get('pydantic_schema', '')
-        if not schema_module_path:
-            continue
-
-        # Try to import the schema module
+    for model_key in (model_names or sorted(MODEL_REGISTRY)):
+        # A model that cannot be checked is a finding, never a silent skip.
         try:
-            mod = importlib.import_module(schema_module_path)
-        except ImportError:
+            envelope_schemas = schema_classes(model_key)
+            app_model = MODEL_REGISTRY[model_key].import_model()
+            sample = list(app_model.objects.order_by('-dt_modified')[:limit_per_model])
+        except Exception as e:
+            errors[model_key] = f'{type(e).__name__}: {e}'
             log_schema_question(
                 model_name=model_key,
-                question=f'Schema module {schema_module_path} not found',
-                detail=f'Setting id={setting.pk} references a missing module',
+                question=f'Cannot audit {model_key} envelopes',
+                detail=errors[model_key][:500],
             )
             total_questions += 1
-            continue
-
-        # Get schema classes for each envelope
-        envelope_schemas = {}
-        for envelope in ['config', 'metadata', 'prefs', 'refs']:
-            class_name = cfg.get(f'{envelope}_schema', '')
-            if class_name and hasattr(mod, class_name):
-                envelope_schemas[envelope] = getattr(mod, class_name)
-
-        if not envelope_schemas:
-            continue
-
-        # Get the Django model
-        from apps.core.constants.model_registry import get_model_meta
-        meta = get_model_meta(model_key)
-        if not meta:
-            continue
-
-        try:
-            parts = meta.model_class.rsplit('.', 1)
-            app_model = dj_apps.get_model(
-                parts[0].replace('apps.', '').split('.')[0],
-                parts[1]
-            )
-        except Exception:
-            continue
-
-        # Sample recent records
-        try:
-            sample = app_model.objects.order_by('-dt_modified')[:limit_per_model]
-        except Exception:
             continue
 
         model_questions = 0
@@ -142,4 +96,5 @@ def audit_model_schemas(model_names: list[str] | None = None, limit_per_model: i
         'models_audited': len(results),
         'total_questions': total_questions,
         'by_model': {k: v for k, v in results.items() if v > 0},
+        'errors': errors,
     }

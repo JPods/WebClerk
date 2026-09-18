@@ -29,6 +29,7 @@ natural key for dedup. source_instance UUID stamps origin.
 import logging
 import time
 import uuid as uuid_lib
+from apps.sync.services.athena_auth import athena_token
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +164,7 @@ def harvest_episodes(connection) -> dict:
         with httpx.Client(timeout=30) as client:
             resp = client.get(
                 url,
-                headers={'Authorization': f'Athena {config.get("athena_token", key)}'},
+                headers={'Authorization': f'Athena {athena_token(connection) or key}'},
                 params={'since_ms': last_harvest},
             )
             resp.raise_for_status()

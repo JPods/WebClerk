@@ -951,35 +951,8 @@ class SearchFeedbackView(APIView):
 
 def _validate_athena_token(request):
     """Validate Authorization: Athena <token> against Connection records."""
-    from apps.sync.models.connection import Connection
-
-    auth_header = request.META.get('HTTP_AUTHORIZATION', '')
-    if not auth_header.startswith('Athena '):
-        return None, api_response(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            message="Missing or invalid Authorization header. Expected: Athena <token>",
-            error_code="invalid_auth",
-        )
-
-    token = auth_header[7:].strip()
-    if not token:
-        return None, api_response(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            message="Empty Athena token",
-            error_code="empty_token",
-        )
-
-    connections = Connection.objects.filter(status='active', is_active=True)
-    for conn in connections:
-        config = conn.config if isinstance(conn.config, dict) else {}
-        if config.get('athena_token') == token:
-            return conn, None
-
-    return None, api_response(
-        status_code=status.HTTP_403_FORBIDDEN,
-        message="Athena token not recognized",
-        error_code="invalid_token",
-    )
+    from apps.sync.services.athena_auth import validate_athena
+    return validate_athena(request)
 
 
 def _log_upstream_exchange(connection, question, answer, tier_used, pii_count):

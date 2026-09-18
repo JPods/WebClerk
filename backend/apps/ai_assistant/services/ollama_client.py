@@ -42,17 +42,11 @@ PRICE_PER_PERSON_PROFESSIONAL = 900  # cents
 
 
 def _get_athena_token() -> str:
-    """Get the Athena token for WCHQ authentication."""
-    try:
-        from apps.core.models import Setting
-        conn = Setting.objects.filter(
-            purpose='wchq_connection', is_active=True
-        ).first()
-        if conn and isinstance(conn.config, dict):
-            return conn.config.get('athena_token', '')
-    except Exception:
-        pass
-    return ''
+    """The Athena token for WCHQ authentication, from the upstream Connection."""
+    from apps.ai_assistant.services.hook_review import wchq_connection
+    from apps.sync.services.athena_auth import athena_token
+    connection = wchq_connection()
+    return athena_token(connection) if connection else ''
 
 
 def _is_subscribed() -> bool:

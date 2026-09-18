@@ -31,7 +31,7 @@ import {
   type IssuePriority,
 } from "../apps/support/services/issueApi";
 import { useConsoleCapture } from "../hooks/useConsoleCapture";
-import { saveRecord } from "@/api/wcapi";
+import { saveRecord, submitToWchq } from "@/api/wcapi";
 import { useSelector } from "react-redux";
 import type { RootState } from "../store";
 import useDataSetInfo from "../hooks/useDataSetInfo";
@@ -168,32 +168,23 @@ export function IssueReporter() {
         const localId = localResult?.id ?? null;
         const localUuid = localResult?.uuid ?? null;
 
-        // Forward to WC HQ (best-effort — don't block on failure)
-        const hqUrl = systemInfo?.wchq?.url;
-        const hqToken = systemInfo?.wchq?.token;
-        if (hqUrl && hqToken) {
+        // Forward to WC HQ through our server, which holds the Athena token.
+        if (systemInfo?.wchq?.url) {
+          const hqPayload = {
+            ...actionPayload,
+            metadata: {
+              ...(actionPayload.metadata as Record<string, unknown>),
+              source_instance: {
+                instance_uuid: systemInfo?.instance_uuid ?? "",
+                local_id: localId,
+                local_uuid: localUuid,
+              },
+            },
+          };
           try {
-            const hqPayload = {
-              ...actionPayload,
-              metadata: {
-                ...(actionPayload.metadata as Record<string, unknown>),
-                source_instance: {
-                  instance_uuid: systemInfo?.instance_uuid ?? "",
-                  local_id: localId,
-                  local_uuid: localUuid,
-                },
-              },
-            };
-            await fetch(`${hqUrl}/wcapi/instance/submit/`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Athena ${hqToken}`,
-              },
-              body: JSON.stringify({ model_name: "action", record: hqPayload }),
-            });
-          } catch {
-            // HQ forwarding is best-effort — local save already succeeded
+            await submitToWchq("action", hqPayload);
+          } catch (hqErr: any) {
+            throw new Error(`Saved locally (#${localId}), but not sent to WC HQ: ${hqErr?.message}`);
           }
         }
 

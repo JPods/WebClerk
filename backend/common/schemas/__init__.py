@@ -25,5 +25,5 @@ Usage:
     record.metadata = meta.model_dump()
 
 Image schemas:
-    from common.schemas.images import ImageSet, ContactImages, OrgImages, ItemImages
+    from common.schemas.images import ImageFlags
 """

@@ -65,16 +65,16 @@ async function getComponentHelp(): Promise<Record<string, { source: string; desc
     const { getRecords } = await import('@/api/wcapi');
     const res = await getRecords('document', {
       status: 'active',
-      config__doc_system: 'help-alice',
+      purpose: 'help-alice',
       limit: 200,
     }) as any;
     const docs = res?.results || [];
     const map: Record<string, { source: string; description: string }> = {};
     for (const doc of docs) {
-      const name = doc.config?.component_name || doc.name;
+      const name = doc.name;
       if (name) {
         map[name] = {
-          source: doc.config?.source_path || doc.path?.source || '',
+          source: doc.path?.source || '',
           description: doc.body?.slice(0, 500) || doc.description || '',
         };
       }

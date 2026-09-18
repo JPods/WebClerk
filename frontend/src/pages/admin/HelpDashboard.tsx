@@ -297,7 +297,8 @@ export default function HelpDashboard() {
                   status: 'published',
                   model_name: 'system',
                   confidential: 'internal',
-                  metadata: { health: 'bookmark', url: newBookmark.url, context, model },
+                  purpose: 'bookmark',
+                  metadata: { url: newBookmark.url, context, model },
                 });
                 // Add to bookmarks
                 const newId = `local-${(doc as any)?.record?.id || (doc as any)?.id}`;

@@ -8,7 +8,7 @@ Usage:
     python manage.py load_demo_data --data-only              # skip settings, load data only
     python manage.py load_demo_data --settings-only          # load settings only, skip data
 
-All non-Setting records are tagged refs.source="demo-baseline" so they
+All non-Setting records are tagged refs.demo_source="demo-baseline" so they
 can be cleanly removed later via remove_demo_data.
 
 FK resolution: every record in the bundle carries its uuid and the original
@@ -188,7 +188,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"\nData: {total} records {'would load' if dry_run else 'loaded'} (ids preserved)"))
 
     def _load_data(self, data, demo_source, dry_run=False):
-        """Load demo data records, tagging each with refs.source.
+        """Load demo data records, tagging each with refs.demo_source.
 
         Builds a uuid→new_pk array per model as records are imported.
         FK fields on later models are remapped using this array.
@@ -327,7 +327,7 @@ class Command(BaseCommand):
                 refs = fields.get('refs') or {}
                 if not isinstance(refs, dict):
                     refs = {}
-                refs['source'] = demo_source
+                refs['demo_source'] = demo_source
                 fields['refs'] = refs
 
             try:

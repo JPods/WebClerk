@@ -5,7 +5,7 @@ Inherits standard bases. Add model-specific fields only.
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 from common.schemas.envelopes import ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, SourceRef
@@ -95,8 +95,113 @@ class DocumentCopyright(BaseModel):
         extra = 'forbid'
 
 
+class QaEscalation(BaseModel):
+    """One hop in a support Q&A escalation (support_qa.escalate_qa)."""
+    agent: str = ''
+    reason: str = ''
+    dt: Optional[str] = None                # ISO UTC, as written by escalate_qa
+    wchq_posted: Optional[bool] = None
+
+    class Config:
+        extra = 'forbid'
+
+
+class QaTemplateDefaults(BaseModel):
+    """Per-template answer options (qa_service.create_question_group);
+    each question may override them."""
+    allow_freeform: bool = False
+    allow_multiple: bool = False
+    require_image: bool = False
+    image_max: int = 5
+    image_types: list[str] = Field(default_factory=lambda: ['jpg', 'png', 'webp'])
+
+    class Config:
+        extra = 'forbid'
+
+
+class AthenaCheckpoint(BaseModel):
+    """One signed file in the Athena integrity manifest (athena_sign)."""
+    path: str
+    hash: str
+    signed: Optional[str] = None            # ISO UTC
+    type: str = 'unknown'
+
+    class Config:
+        extra = 'forbid'
+
+
+class DocumentQuarantine(BaseModel):
+    """Upload quarantine state (document_sanitizer.default_quarantine)."""
+    status: str = 'pending'                 # pending | sanitized | cleared | failed
+    sanitized: bool = False
+    sanitized_at: Optional[int] = None      # epoch ms
+    alice_cleared: bool = False
+    alice_cleared_at: Optional[int] = None
+    alice_findings: list[str] = Field(default_factory=list)
+    athena_cleared: bool = False
+    athena_cleared_at: Optional[int] = None
+    athena_required: bool = True
+    athena_reviewer: Optional[int] = None
+    threats_found: list[str] = Field(default_factory=list)
+    actions_taken: list[str] = Field(default_factory=list)
+
+    class Config:
+        extra = 'forbid'
+
+
 class DocumentConfig(ConfigBase):
     copyright: Optional[DocumentCopyright] = None
+
+    # -- support Q&A (ai_assistant/services/support_qa.py) --
+    source: Optional[str] = None            # user | readme_mining | ...
+    domain: Optional[str] = None
+    asked_by: Optional[str] = None
+    dt_asked: Optional[str] = None          # ISO UTC
+    answered_by: Optional[str] = None
+    dt_answered: Optional[str] = None       # ISO UTC
+    score_count: int = 0
+    score_sum: int = 0
+    score_avg: float = 0
+    escalation_chain: list[QaEscalation] = Field(default_factory=list)
+    context: Optional[dict] = None          # browser diagnostics captured at ask time
+    wchq_posted: Optional[bool] = None
+    wchq_bundle_id: Optional[int] = None
+    wchq_dt_posted: Optional[str] = None    # ISO UTC
+
+    # -- question templates (docs/services/qa_service.py) --
+    template: Optional[QaTemplateDefaults] = None
+    questions: list[dict] = Field(default_factory=list)
+
+    # -- Athena integrity manifest (support/scheduler/tasks.py, athena_sign) --
+    checkpoints: list[AthenaCheckpoint] = Field(default_factory=list)
+    last_sign: Optional[str] = None         # ISO UTC
+    last_check: Optional[str] = None        # ISO UTC
+    last_result: Optional[str] = None       # PASS | FAIL
+    check_count: int = 0
+
+    # -- uploads (docs/views/upload_view.py, docs/services/document_sanitizer.py) --
+    quarantine: Optional[DocumentQuarantine] = None
+    inline_encoding: Optional[str] = None   # zlib+base64
+    inline_content_b64: Optional[str] = None
+    inline_size_bytes: Optional[int] = None
+
+    # -- serial trends (products/services/serial/serial_trends.py) --
+    item_id: Optional[int] = None
+    item_ida: Optional[str] = None
+    data: Optional[dict] = None
+
+    # -- WCHQ hook review (ai_assistant/services/hook_review_hq.py) --
+    instance_uuid: Optional[str] = None
+    report_ida: Optional[str] = None
+    hook_hash: Optional[str] = None
+    hooks: Optional[dict] = None
+    note: Optional[str] = None
+    findings: list = Field(default_factory=list)
+    simulation: Optional[dict] = None
+    elapsed_ms: Optional[int] = None
+    decision: Optional[Literal['cleared', 'denied', 'auto_cleared']] = None  # lifecycle is Document.status
+    signed_off_by: Optional[str] = None
+    reason: Optional[str] = None
 
 
 # -- .metadata (inherits MetadataBase) --------------------------------------

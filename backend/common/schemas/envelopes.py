@@ -19,6 +19,8 @@ from __future__ import annotations
 from typing import Any, Optional, Union
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from common.schemas.images import ImageFlags
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # userdefined constraints — flat scalar bag, bounded
@@ -237,9 +239,7 @@ class MetadataBase(BaseModel):
     audit_trail: list[AuditEntry] = Field(default_factory=list)
     import_data: Optional[ImportProvenance] = None
     userdefined: dict[str, UserDefinedValue] = Field(default_factory=dict)
-    images: dict = Field(default_factory=lambda: {
-        "source": "", "tn": False, "md": False, "hr": False,
-    })
+    images: ImageFlags = Field(default_factory=ImageFlags)
     documents: list = Field(default_factory=list)
 
     @field_validator('userdefined', mode='before')
@@ -396,6 +396,7 @@ class RefsBase(BaseModel):
     """Standard refs fields. Links are denormalized cache — FKs are truth."""
     links: dict = Field(default_factory=dict)
     source: Optional[SourceRef] = None
+    demo_source: str = ''                 # demo bundle tag — remove_demo_data deletes by it
 
 
 # ═══════════════════════════════════════════════════════════════════════

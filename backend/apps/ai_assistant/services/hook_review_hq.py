@@ -190,7 +190,8 @@ def sign_answer(instance_uuid: str, hook_hash: str, report_ida: str,
     from apps.ai_assistant.services.hook_review import wchq_connection
 
     connection = wchq_connection()
-    secret = ((connection.config or {}).get('athena_token') or '') if connection else ''
+    from apps.sync.services.athena_auth import athena_token
+    secret = athena_token(connection) if connection else ''
     if not secret:
         return {'status': 'error', 'problems': ['no athena token to sign with']}
 
@@ -207,9 +208,10 @@ def _hold_for_record(payload: dict, findings: list, simulation: dict, elapsed_ms
         from apps.docs.models.document import Document
         doc = Document.objects.create(
             name=f"Hook review {payload.get('report_ida', '?')}",
+            purpose='hook_review',
+            status='in_review' if held else 'archived',
             config={
-                'purpose': 'hook_review',
-                'status': 'awaiting_signoff' if held else 'auto_cleared',
+                **({} if held else {'decision': 'auto_cleared'}),
                 'instance_uuid': payload.get('instance_uuid', ''),
                 'report_ida': payload.get('report_ida', ''),
                 'hook_hash': payload.get('hook_hash', ''),
@@ -236,29 +238,30 @@ def sign_off(review_id: str, approved: bool, by: str, reason: str = '') -> Dict[
         return {'status': 'error', 'problems': [f'review {review_id} not found']}
 
     config = doc.config or {}
-    if config.get('purpose') != 'hook_review':
+    if doc.purpose != 'hook_review':
         return {'status': 'error', 'problems': ['not a hook review record']}
-    if config.get('status') != 'awaiting_signoff':
-        return {'status': 'error', 'problems': [f"review is {config.get('status')}"]}
+    if doc.status != 'in_review':
+        return {'status': 'error', 'problems': [f"review is {config.get('decision') or doc.status}"]}
 
     if not approved:
-        config.update({'status': 'denied', 'signed_off_by': by, 'reason': reason})
+        config.update({'decision': 'denied', 'signed_off_by': by, 'reason': reason})
         doc.config = config
-        doc.save(update_fields=['config', 'dt_modified'])
+        doc.status = 'archived'
+        doc.save(update_fields=['config', 'status', 'dt_modified'])
         return {'status': 'denied', 'kind': 'hook.review.answer',
                 'report_ida': config.get('report_ida', ''),
                 'hook_hash': config.get('hook_hash', ''), 'reason': reason, 'reviewer': by}
 
     answer = sign_answer(config.get('instance_uuid', ''), config.get('hook_hash', ''),
                          config.get('report_ida', ''), reviewer=by)
-    config.update({'status': 'cleared', 'signed_off_by': by, 'reason': reason})
+    config.update({'decision': 'cleared', 'signed_off_by': by, 'reason': reason})
     doc.config = config
-    doc.save(update_fields=['config', 'dt_modified'])
+    doc.status = 'archived'
+    doc.save(update_fields=['config', 'status', 'dt_modified'])
     return answer
 
 
 def awaiting_signoff():
     """Reviews holding for a person at WCHQ."""
     from apps.docs.models.document import Document
-    return Document.objects.filter(config__purpose='hook_review',
-                                   config__status='awaiting_signoff')
+    return Document.objects.filter(purpose='hook_review', status='in_review')

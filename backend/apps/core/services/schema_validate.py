@@ -17,7 +17,6 @@ Established: 2026-08-09
 """
 from __future__ import annotations
 
-import importlib
 import logging
 from typing import Any
 
@@ -44,8 +43,8 @@ M2M_SKIP_FIELDS = frozenset({
 })
 
 # ── Required Pydantic inheritance ──
-# Each schema_map Setting must declare these keys, and each must point to a
-# class that inherits from the corresponding base in common/schemas/envelopes.py.
+# Each model's schema class (common.schemas.defaults) must inherit from the
+# corresponding base in common/schemas/envelopes.py.
 REQUIRED_SCHEMA_KEYS = {
     'metadata_schema': 'MetadataBase',
     'refs_schema': 'RefsBase',
@@ -98,9 +97,7 @@ def validate_schema_setting(setting) -> list[dict[str, Any]]:
 
     if purpose == 'wc:model':
         # Combined record — validate each section
-        schema = config.get('schema', {})
-        if schema:
-            _check_schema_inheritance(schema, model_name, violations)
+        _check_schema_inheritance(model_name, violations)
         enrichment = config.get('enrichment', {})
         if enrichment:
             _check_enrichment_panels(enrichment, model_name, violations)
@@ -111,7 +108,7 @@ def validate_schema_setting(setting) -> list[dict[str, Any]]:
         if roles:
             _check_field_access(roles, model_name, violations)
     elif purpose == 'wc:schema_map':
-        _check_schema_inheritance(config, model_name, violations)
+        _check_schema_inheritance(model_name, violations)
     elif purpose == 'wc:enrichment_panels':
         _check_enrichment_panels(config, model_name, violations)
     elif purpose == 'wc:detail_layout':
@@ -122,114 +119,40 @@ def validate_schema_setting(setting) -> list[dict[str, Any]]:
     return violations
 
 
-def _check_schema_inheritance(config: dict, model_name: str, violations: list):
-    """Core check: does each Pydantic schema inherit from BaseModel's envelope bases?"""
-    module_path = config.get('pydantic_schema', '')
-
-    if not module_path:
-        violations.append({
-            'field': 'pydantic_schema',
-            'violation_type': 'missing_module',
-            'message': f'{model_name}: no pydantic_schema module path in schema_map',
-        })
-        return
-
-    # Import the module
+def _check_schema_inheritance(model_name: str, violations: list):
+    """Does each of the model's Pydantic schemas (from code) inherit from its envelope base
+    and accept what BaseModel's default factory produces?"""
+    from common.schemas.defaults import schema_classes
     try:
-        mod = importlib.import_module(module_path)
+        classes = schema_classes(model_name)
     except Exception as e:
         violations.append({
-            'field': 'pydantic_schema',
+            'field': 'schema',
             'violation_type': 'import_error',
-            'message': f'{model_name}: cannot import {module_path}: {type(e).__name__}: {e}',
+            'message': f'{model_name}: {type(e).__name__}: {e}',
         })
         return
 
-    # Get the envelope base classes
-    try:
-        bases = _get_envelope_bases()
-    except Exception as e:
-        violations.append({
-            'field': 'envelopes',
-            'violation_type': 'base_import_error',
-            'message': f'Cannot import envelope base classes: {e}',
-        })
-        return
-
-    # Check each required schema key
+    bases = _get_envelope_bases()
+    defaults = _get_defaults()
     for schema_key, base_name in REQUIRED_SCHEMA_KEYS.items():
-        class_name = config.get(schema_key, '')
-
-        if not class_name:
+        envelope = schema_key.removesuffix('_schema')
+        cls = classes[envelope]
+        if not issubclass(cls, bases[schema_key]):
             violations.append({
                 'field': schema_key,
-                'violation_type': 'missing_schema',
-                'message': f'{model_name}: missing {schema_key} — model Pydantic must '
-                           f'declare a class that inherits from {base_name}',
+                'violation_type': 'inheritance_missing',
+                'message': f'{model_name}: {cls.__name__} does NOT inherit from '
+                           f'{base_name} — BaseModel envelopes will not be supported',
             })
-            continue
-
-        cls = getattr(mod, class_name, None)
-        if cls is None:
-            violations.append({
-                'field': schema_key,
-                'violation_type': 'class_not_found',
-                'message': f'{model_name}: {class_name} not found in {module_path}',
-            })
-            continue
-
-        required_base = bases[schema_key]
         try:
-            if not issubclass(cls, required_base):
-                violations.append({
-                    'field': schema_key,
-                    'violation_type': 'inheritance_missing',
-                    'message': f'{model_name}: {class_name} does NOT inherit from '
-                               f'{base_name} — BaseModel envelopes will not be supported',
-                })
-        except Exception as e:
-            violations.append({
-                'field': schema_key,
-                'violation_type': 'inheritance_check_error',
-                'message': f'{model_name}: error checking {class_name}: {type(e).__name__}',
-            })
-            continue
-
-    # Check that the Pydantic schemas can accept BaseModel's default outputs
-    _check_default_acceptance(mod, config, model_name, violations)
-
-
-def _check_default_acceptance(mod, config: dict, model_name: str, violations: list):
-    """Verify each Pydantic schema can parse what BaseModel's default factory produces."""
-    try:
-        defaults = _get_defaults()
-    except Exception:
-        return  # Can't get defaults — skip this check
-
-    schema_to_default = {
-        'metadata_schema': 'metadata',
-        'refs_schema': 'refs',
-        'prefs_schema': 'prefs',
-        'config_schema': 'config',
-    }
-
-    for schema_key, default_key in schema_to_default.items():
-        class_name = config.get(schema_key, '')
-        if not class_name:
-            continue
-        cls = getattr(mod, class_name, None)
-        if cls is None:
-            continue
-
-        default_value = defaults[default_key]
-        try:
-            cls.model_validate(default_value)
+            cls.model_validate(defaults[envelope])
         except Exception as e:
             violations.append({
                 'field': schema_key,
                 'violation_type': 'default_rejection',
-                'message': f'{model_name}: {class_name} rejects BaseModel default '
-                           f'for {default_key}: {type(e).__name__}: {str(e)[:200]}',
+                'message': f'{model_name}: {cls.__name__} rejects BaseModel default '
+                           f'for {envelope}: {type(e).__name__}: {str(e)[:200]}',
             })
 
 
@@ -543,53 +466,9 @@ def enforce_pjpv_schemas(
 
 
 def _load_model_schemas(model_key: str) -> dict:
-    """Load Pydantic schema classes for a model's envelope fields.
-
-    Returns dict mapping field name → Pydantic class, e.g.:
-      {'metadata': ContactMetadata, 'config': ContactConfig, ...}
-    """
-    Setting = apps.get_model('core', 'Setting')
-
-    try:
-        setting = Setting.objects.filter(
-            purpose__in=['wc:model', 'wc:schema_map'],
-            parent_model=model_key,
-            is_active=True,
-            is_deleted=False,
-        ).first()
-    except Exception:
-        return {}
-
-    if not setting or not isinstance(setting.config, dict):
-        return {}
-
-    config = setting.config
-    # Try wc:model schema section first, then top-level schema_map keys
-    schema_section = config.get('schema', config)
-    module_path = schema_section.get('pydantic_schema', '')
-    if not module_path:
-        return {}
-
-    try:
-        mod = importlib.import_module(module_path)
-    except Exception:
-        return {}
-
-    schema_map = {
-        'metadata': schema_section.get('metadata_schema'),
-        'refs': schema_section.get('refs_schema'),
-        'prefs': schema_section.get('prefs_schema'),
-        'config': schema_section.get('config_schema'),
-    }
-
-    result = {}
-    for field_name, class_name in schema_map.items():
-        if class_name:
-            cls = getattr(mod, class_name, None)
-            if cls:
-                result[field_name] = cls
-
-    return result
+    """Pydantic classes for a model's envelopes, e.g. {'metadata': ContactMetadata, ...}."""
+    from common.schemas.defaults import schema_classes
+    return schema_classes(model_key)
 
 
 def validate_record_envelopes(obj) -> list[dict[str, Any]]:

@@ -13,7 +13,7 @@ export interface DataSetInfo {
 
 export interface SystemInfo {
   instance_uuid?: string;
-  wchq?: { url: string; token: string };
+  wchq?: { url: string };
   data_set: DataSetInfo;
   database: {
     host: string;

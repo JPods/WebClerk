@@ -6,10 +6,11 @@ Inherits standard bases. Item has the richest prefs (import, display, shipping, 
 from __future__ import annotations
 
 from typing import Optional
-from pydantic import BaseModel, Field
+from uuid import UUID
+
+from pydantic import BaseModel, Field, field_validator
 
 from common.schemas.envelopes import ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, SourceRef
-from common.schemas.images import ItemImages
 
 
 # ── .quantity (Item-specific, not an envelope — lives on Item.quantity JSONB) ──
@@ -97,7 +98,7 @@ class ItemQuantity(BaseModel):
 # ── .config ────────────────────────────────────────────────────────
 
 class ItemConfig(ConfigBase):
-    pass
+    service: Optional[dict] = None     # kind='service' billing rules — shape: item.default_service_config()
 
 
 # ── .metadata (inherits MetadataBase) ─────────────────────────────
@@ -105,7 +106,6 @@ class ItemConfig(ConfigBase):
 class ItemMetadata(MetadataBase):
     """Item-specific metadata. Standard fields inherited."""
     variants: Optional[dict] = None    # system-managed variant matrix
-    images: Optional[ItemImages] = None
 
 
 # ── .prefs ─────────────────────────────────────────────────────────
@@ -122,14 +122,40 @@ class ItemPrefs(RecordPrefsBase):
 
 # ── .refs ──────────────────────────────────────────────────────────
 
+class ItemVariantRefs(BaseModel):
+    """refs.variants — written by Item.save / set_variant_attrs (item.py)."""
+    key: str = ''
+    attrs: dict = Field(default_factory=dict)
+    parent_uuid: Optional[str] = None
+    parent_id: Optional[int] = None
+
+    class Config:
+        extra = 'forbid'
+
+
 class ItemRefs(RefsBase):
     tags: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)
     categories: list[str] = Field(default_factory=list)
-    variants: list = Field(default_factory=list)
+    variants: ItemVariantRefs = Field(default_factory=lambda: ItemVariantRefs())
     depends_on: dict = Field(default_factory=dict)
-    related_ids: list[int] = Field(default_factory=list)
+    # Items shown alongside this one. Item uuids only — a uuid travels with the item
+    # between instances; a row id does not. Every entry must be an existing Item.
+    related_uuids: list[UUID] = Field(default_factory=list)
     source: Optional[SourceRef] = None
+
+    @field_validator('related_uuids')
+    @classmethod
+    def _related_items_exist(cls, v: list[UUID]) -> list[UUID]:
+        if len(set(v)) != len(v):
+            raise ValueError('related_uuids has duplicates')
+        if v:
+            from apps.products.models import Item
+            found = set(Item.objects.filter(uuid__in=v).values_list('uuid', flat=True))
+            missing = [str(u) for u in v if u not in found]
+            if missing:
+                raise ValueError(f'related_uuids: no item with uuid {", ".join(missing)}')
+        return v
 
 
 # ── Setting defaults ──────────────────────────────────────────────

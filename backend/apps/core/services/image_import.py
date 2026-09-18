@@ -377,15 +377,9 @@ def _process_and_store_image(
 
 
 def _update_item_images(item, image_set: dict):
-    """Update item.metadata.images with the new ImageSet."""
+    """Mark which sizes now exist in item.metadata.images (the flags resolve_image reads)."""
     metadata = item.metadata or {}
     metadata["images"] = {
-        "primary": image_set,
-        "gallery": [],
-    }
-    # Also set the resolve_image cache
-    metadata.setdefault("_image_cache", {})
-    metadata["_image_cache"] = {
         "source": "local",
         "tn": bool(image_set.get("tn")),
         "md": bool(image_set.get("md")),

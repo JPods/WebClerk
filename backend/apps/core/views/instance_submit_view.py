@@ -3,7 +3,7 @@
 Only active when WC_IS_HQ=true in .env. Otherwise returns 404.
 
 Authentication: Authorization: Athena <token>
-Validates against Connection records with config.athena_token.
+Validates against Connection records (encryption.athena_token).
 
 POST /wcapi/instance/submit/
 Body: { "model_name": "action", "record": { ... } }
@@ -16,6 +16,7 @@ from django.http import JsonResponse
 from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from apps.sync.services.athena_auth import validate_athena as _validate_athena
 
 logger = logging.getLogger(__name__)
 
@@ -23,29 +24,6 @@ IS_HQ = config('WC_IS_HQ', default='false').lower() in ('true', '1', 'yes')
 
 # Models that remote instances are allowed to submit
 ALLOWED_MODELS = {'action'}
-
-
-def _validate_athena(request):
-    """Validate Authorization: Athena <token> against Connection records."""
-    from apps.sync.models.connection import Connection
-
-    auth_header = request.META.get('HTTP_AUTHORIZATION', '')
-    if not auth_header.startswith('Athena '):
-        return None, JsonResponse(
-            {'error': 'Missing Authorization: Athena <token>'}, status=401
-        )
-
-    token = auth_header[7:].strip()
-    if not token:
-        return None, JsonResponse({'error': 'Empty Athena token'}, status=401)
-
-    connections = Connection.objects.filter(status='active', is_active=True)
-    for conn in connections:
-        cfg = conn.config if isinstance(conn.config, dict) else {}
-        if cfg.get('athena_token') == token:
-            return conn, None
-
-    return None, JsonResponse({'error': 'Athena token not recognized'}, status=403)
 
 
 @method_decorator(csrf_exempt, name='dispatch')

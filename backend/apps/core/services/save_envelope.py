@@ -4,8 +4,7 @@ Validates JSON envelope fields (metadata, config, refs, prefs) against
 their Pydantic schemas before write. Front-end validation handles good
 behavior; this handles bad actors.
 
-Uses the schema registry in Setting(purpose='wc:model').config.schema
-to look up the correct Pydantic class for each model + envelope field.
+Schema classes come from code: common.schemas.defaults.schema_classes.
 
 Part of the save_* service cluster:
   save_field_assignment.py  — field coercion, JSON merge
@@ -14,7 +13,6 @@ Part of the save_* service cluster:
 """
 from __future__ import annotations
 
-import importlib
 import logging
 from typing import Any
 
@@ -22,61 +20,14 @@ from pydantic import ValidationError as PydanticValidationError
 
 logger = logging.getLogger(__name__)
 
-# Envelope fields and their schema_map keys
-ENVELOPE_FIELDS = {
-    'metadata': 'metadata_schema',
-    'config': 'config_schema',
-    'refs': 'refs_schema',
-    'prefs': 'prefs_schema',
-}
-
-# Cache: model_name → {field → Pydantic class}
-_schema_cache: dict[str, dict[str, type]] = {}
-
-
 def _load_schema_classes(model_name: str) -> dict[str, type]:
-    """Load Pydantic schema classes for a model from the Setting registry.
+    """Pydantic classes for a model's envelopes — from code (common.schemas.defaults).
 
-    Returns dict mapping field name → Pydantic class.
-    Caches after first lookup.
+    Raises if a mapped schema is missing: a save must never pass because its
+    validator failed to load.
     """
-    if model_name in _schema_cache:
-        return _schema_cache[model_name]
-
-    result: dict[str, type] = {}
-
-    try:
-        from apps.core.models.setting import Setting
-        setting = Setting.objects.filter(
-            purpose='wc:model',
-            parent_model=model_name,
-        ).first()
-
-        if not setting:
-            _schema_cache[model_name] = result
-            return result
-
-        schema_config = (setting.config or {}).get('schema', {})
-        module_path = schema_config.get('pydantic_schema', '')
-
-        if not module_path:
-            _schema_cache[model_name] = result
-            return result
-
-        mod = importlib.import_module(module_path)
-
-        for field_name, schema_key in ENVELOPE_FIELDS.items():
-            class_name = schema_config.get(schema_key, '')
-            if class_name:
-                cls = getattr(mod, class_name, None)
-                if cls is not None:
-                    result[field_name] = cls
-
-    except Exception as e:
-        logger.warning(f"[SAVE_ENVELOPE] Failed to load schemas for {model_name}: {e}")
-
-    _schema_cache[model_name] = result
-    return result
+    from common.schemas.defaults import schema_classes
+    return schema_classes(model_name)
 
 
 def validate_envelope(
@@ -162,8 +113,3 @@ def validate_and_reject(
 
     logger.warning(f"[SAVE_ENVELOPE] {model_name} rejected: {msg}")
     return msg
-
-
-def clear_cache():
-    """Clear the schema class cache. Call after schema Setting changes."""
-    _schema_cache.clear()

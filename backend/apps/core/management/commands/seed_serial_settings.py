@@ -35,8 +35,6 @@ class Command(BaseCommand):
         config = {
             "serial_actions": DEFAULT_SERIAL_ACTIONS,
             "serial_statuses": SERIAL_STATUSES,
-            "pydantic_schema": "common.schemas.serial",
-            "config_schema": "SerialConfig",
             "action_schema": "SerialAction",
             "behaviors": {
                 "warranty_starts_on": "issued",

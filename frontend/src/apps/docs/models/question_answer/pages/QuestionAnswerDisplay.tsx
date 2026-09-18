@@ -148,17 +148,6 @@ export default function QuestionAnswerDisplay({
     setData({ ...data, [field]: value });
   };
 
-  const handleNestedFieldChange = (path: string[], value: string) => {
-    const newData = { ...data };
-    let current = newData;
-    for (let i = 0; i < path.length - 1; i++) {
-      if (!current[path[i]]) current[path[i]] = {};
-      current = current[path[i]];
-    }
-    current[path[path.length - 1]] = value;
-    setData(newData);
-  };
-
   return (
     <>
       {/* Header */}
@@ -271,61 +260,17 @@ export default function QuestionAnswerDisplay({
         </ComponentCard>
       )}
 
-      {/* Image Paths Panel */}
-      {!loading && (
+      {/* Image — standard library path, same route as items */}
+      {!loading && data?.ida && (
         <ComponentCard>
           <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <Image size={16} /> Image Paths
+            <Image size={16} /> Image
           </h3>
-          <div className={getGridClassName(columnCount)}>
-            <HorizontalField label="Primary Image" htmlFor="image_primary" icon={<Image size={14} />}>
-              <Input
-                type="text"
-                id="image_primary"
-                placeholder="/path/to/image.jpg"
-                value={data?.metadata?.images?.primary || ""}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleNestedFieldChange(["metadata", "images", "primary"], e.target.value)}
-                disabled={currentMode === "view"}
-              />
-            </HorizontalField>
-            <HorizontalField label="Thumbnail" htmlFor="image_thumbnail" icon={<Image size={14} />}>
-              <Input
-                type="text"
-                id="image_thumbnail"
-                placeholder="/path/to/thumbnail.jpg"
-                value={data?.metadata?.images?.thumbnail || ""}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleNestedFieldChange(["metadata", "images", "thumbnail"], e.target.value)}
-                disabled={currentMode === "view"}
-              />
-            </HorizontalField>
-          </div>
-          {/* Image Preview */}
-          {(data?.metadata?.images?.primary || data?.metadata?.images?.thumbnail) && (
-            <div className="mt-4 flex gap-4">
-              {data?.metadata?.images?.primary && (
-                <div className="text-center">
-                  <p className="text-xs text-slate-500 mb-1">Primary</p>
-                  <img
-                    src={data.metadata.images.primary}
-                    alt="Primary"
-                    className="max-h-32 rounded border border-gray-200 dark:border-gray-700"
-                    onError={(e) => (e.currentTarget.style.display = 'none')}
-                  />
-                </div>
-              )}
-              {data?.metadata?.images?.thumbnail && (
-                <div className="text-center">
-                  <p className="text-xs text-slate-500 mb-1">Thumbnail</p>
-                  <img
-                    src={data.metadata.images.thumbnail}
-                    alt="Thumbnail"
-                    className="max-h-32 rounded border border-gray-200 dark:border-gray-700"
-                    onError={(e) => (e.currentTarget.style.display = 'none')}
-                  />
-                </div>
-              )}
-            </div>
-          )}
+          <img
+            src={`/wcapi/_image/QuestionAnswer/${encodeURIComponent(data.ida)}/md.jpg`}
+            alt={data?.name || "Image"}
+            className="max-h-32 rounded border border-gray-200 dark:border-gray-700"
+          />
         </ComponentCard>
       )}
 

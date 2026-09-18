@@ -1,5 +1,5 @@
 """
-remove_demo_data — Remove all demo data tagged with refs.source="demo-baseline".
+remove_demo_data — Remove all demo data tagged with refs.demo_source="demo-baseline".
 
 Usage:
     python manage.py remove_demo_data                     # remove demo data
@@ -20,9 +20,8 @@ from apps.core.services.demo_bundle import demo_tables_children_first
 
 
 # Demo-data tables come from apps/core/services/demo_bundle.py (one source of truth).
-# Records are tagged refs.source=<tag> (uuid-remap loader) or refs.demo_source=<tag>
-# (preserve-ids loader, which keeps refs.source lineage intact on transaction lines).
-TAG_MATCH = "(refs->>'source' = %s OR refs->>'demo_source' = %s)"
+# Both loaders tag records refs.demo_source=<tag>; refs.source stays the record's lineage.
+TAG_MATCH = "refs->>'demo_source' = %s"
 
 # Tables referencing demo records via FK (not directly tagged).
 # Delete these by FK reference before deleting their parents.
@@ -59,13 +58,13 @@ FK_CLEANUP = [
 
 
 class Command(BaseCommand):
-    help = 'Remove all demo data tagged with refs.source="demo-baseline"'
+    help = 'Remove all demo data tagged with refs.demo_source="demo-baseline"'
 
     def add_arguments(self, parser):
         parser.add_argument('--dry-run', action='store_true',
                             help='Show what would be deleted without deleting')
         parser.add_argument('--source', type=str, default='demo-baseline',
-                            help='Value of refs.source to match (default: demo-baseline)')
+                            help='Value of refs.demo_source to match (default: demo-baseline)')
         parser.add_argument('--json', action='store_true',
                             help='Output results as JSON')
 
@@ -86,10 +85,10 @@ class Command(BaseCommand):
                 if not (table_exists(child_table) and table_exists(parent_table)):
                     continue
                 where = f"{fk_col} IN (SELECT id FROM {parent_table} WHERE {TAG_MATCH})"
-                cursor.execute(f"SELECT COUNT(*) FROM {child_table} WHERE {where}", [source, source])
+                cursor.execute(f"SELECT COUNT(*) FROM {child_table} WHERE {where}", [source])
                 count = cursor.fetchone()[0]
                 if not dry_run and count > 0:
-                    cursor.execute(f"DELETE FROM {child_table} WHERE {where}", [source, source])
+                    cursor.execute(f"DELETE FROM {child_table} WHERE {where}", [source])
                 if count > 0:
                     action = "would delete" if dry_run else "deleted"
                     self.stdout.write(f"  {child_table}: {action} {count} (FK cleanup)")
@@ -99,10 +98,10 @@ class Command(BaseCommand):
             for table in demo_tables_children_first():
                 if not table_exists(table):
                     continue
-                cursor.execute(f"SELECT COUNT(*) FROM {table} WHERE {TAG_MATCH}", [source, source])
+                cursor.execute(f"SELECT COUNT(*) FROM {table} WHERE {TAG_MATCH}", [source])
                 count = cursor.fetchone()[0]
                 if not dry_run and count > 0:
-                    cursor.execute(f"DELETE FROM {table} WHERE {TAG_MATCH}", [source, source])
+                    cursor.execute(f"DELETE FROM {table} WHERE {TAG_MATCH}", [source])
                 results[table] = count
                 total += count
                 if count > 0:

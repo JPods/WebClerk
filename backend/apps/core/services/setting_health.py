@@ -29,7 +29,7 @@ REQUIRED_SYSTEM_SETTINGS = [
 # ── Required keys per purpose ───────────────────────────────────────────
 # What must exist in config for the Setting to be considered healthy
 REQUIRED_CONFIG_KEYS = {
-    'wc:model': ['layout', 'access', 'schema'],
+    'wc:model': ['layout', 'access'],
     'wc:company_profile': ['company', 'gl_defaults', 'tax'],
     'wc:admin': ['lists'],
     'wc:dd_card': ['cards', 'dashboards'],
@@ -77,7 +77,7 @@ def check_settings_health() -> dict[str, Any]:
             })
 
     # ── Check wc:model Settings — one per registered model ──────────
-    skip_keys = {'wc', 'gantt', 'databrowser', 'project_association'}
+    skip_keys = {'wc', 'gantt', 'databrowser'}
     registry_keys = {k for k in MODEL_REGISTRY if k not in skip_keys}
 
     model_settings = {}

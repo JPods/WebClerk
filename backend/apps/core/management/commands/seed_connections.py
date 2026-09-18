@@ -22,6 +22,7 @@ import uuid as uuid_mod
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from apps.sync.models.connection import Connection
+from apps.sync.services.athena_auth import athena_token as athena_token_of, set_athena_token
 
 
 def _generate_athena_token():
@@ -120,7 +121,6 @@ CONNECTIONS = [
             'direction': 'push',
             'wchq_base_url': 'https://webclerk.com',
             'instance_uuid': '',   # filled at seed time from settings
-            'athena_token': '',    # filled at seed time — Athena auth pattern
             'auth_method': 'athena',
             'content_types': [
                 'issue_report',
@@ -945,7 +945,6 @@ CONNECTIONS = [
         'config': {
             'endpoint': '',                 # e.g. 'https://hq.example.com'
             'key': '',                      # shared sync key
-            'athena_token': '',             # for Alice escalation
             'subscription_tier': 'standard',
             'content_types': [
                 'gl_journal',               # journal entries → curated for accounting
@@ -1085,7 +1084,6 @@ class Command(BaseCommand):
                 continue
             if spec['ida'] == 'wchq-conn-upstream' and spec.get('config'):
                 spec['config']['instance_uuid'] = instance_uuid
-                spec['config']['athena_token'] = athena_token
             ida = spec['ida']
             # Build comments from spec — 'comment' (string) or 'comments' (dict)
             comments_val = spec.get('comments', {})
@@ -1104,6 +1102,10 @@ class Command(BaseCommand):
             conn, was_created = Connection.objects.update_or_create(
                 ida=ida, defaults=defaults,
             )
+
+            if ida == 'wchq-conn-upstream' and not athena_token_of(conn):
+                set_athena_token(conn, athena_token)
+                conn.save(update_fields=['encryption'])
 
             if was_created:
                 conn.config = spec.get('config', {})

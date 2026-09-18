@@ -1,7 +1,7 @@
 """
 seed_model_definitions — One Setting record per model (purpose='wc:model').
 
-Consolidates schema_map, field_access, enrichment_panels, detail_layout,
+Consolidates field_access, enrichment_panels, detail_layout,
 workbench_fields, db_defaults, and select_lists into a single config per model.
 
 Usage:
@@ -12,7 +12,6 @@ Usage:
 
 Config structure:
     {
-        "schema":       { pydantic_schema, config_schema, metadata_schema, ... },
         "access":       { roles, query_scope, publish },
         "behaviors":    { field_name: { type, action, ... }, ... },
         "field_groups":  [ { key, label, fields }, ... ],
@@ -39,22 +38,6 @@ from apps.core.services.field_behaviors import (
 def _all_except(fields, exclude):
     return [f for f in fields if f not in exclude]
 
-
-def _to_class_name(key):
-    return ''.join(word.capitalize() for word in key.split('_'))
-
-
-# ─── Schema section ──────────────────────────────────────────────────────
-
-def _build_schema(model_key):
-    class_name = _to_class_name(model_key)
-    return {
-        'pydantic_schema': f'common.schemas.{model_key}',
-        'config_schema': f'{class_name}Config',
-        'metadata_schema': f'{class_name}Metadata',
-        'prefs_schema': f'{class_name}Prefs',
-        'refs_schema': f'{class_name}Refs',
-    }
 
 
 # ─── Access section (roles, query_scope, publish) ────────────────────────
@@ -545,11 +528,6 @@ ALICE_LIST_COLUMNS = [
 
 # ── Other ──
 OTHER_ORG_LIST_COLUMNS = ORG_LIST_COLUMNS
-DELIVERY_LIST_COLUMNS = [
-    _lc('ida', width=100), _lc('purpose', width=140), _lc('status', width=80),
-    _lc('dt_created', width=90), _lc('comments.process', width=200),
-]
-
 # Map model_key → custom list columns
 MODEL_LIST_COLUMNS = {
     # Transactions
@@ -602,7 +580,6 @@ MODEL_LIST_COLUMNS = {
     'alice_coaching_log': ALICE_LIST_COLUMNS, 'alice_observation': ALICE_LIST_COLUMNS,
     'alice_preset': ALICE_LIST_COLUMNS,
     # Other
-    'project_association': DELIVERY_LIST_COLUMNS,
 }
 
 
@@ -753,7 +730,6 @@ def _build_layout(salvaged, model_key, field_map):
 # ─── Salvage existing records ────────────────────────────────────────────
 
 SALVAGE_PURPOSES = [
-    'wc:schema_map',
     'wc:enrichment_panels',
     'wc:workbench_fields',
     'wc:db_defaults',
@@ -771,9 +747,7 @@ def _salvage_existing(model_key):
     )
     for s in existing:
         cfg = s.config or {}
-        if s.purpose == 'wc:schema_map':
-            salvaged['schema'] = cfg
-        elif s.purpose == 'wc:enrichment_panels':
+        if s.purpose == 'wc:enrichment_panels':
             salvaged['enrichment'] = cfg
         elif s.purpose == 'wc:detail_layout':
             salvaged['layout'] = cfg
@@ -795,7 +769,6 @@ def build_model_config(model_key):
     salvaged = _salvage_existing(model_key)
 
     config = {
-        'schema': salvaged.get('schema') or _build_schema(model_key),
         'access': salvaged.get('access') or (
             _build_access(model_key, fields, field_map) if fields else {}
         ),

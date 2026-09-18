@@ -66,7 +66,7 @@ def build_coaching_feed(since_ms: int = 0) -> dict:
 
     # Coaching documents — how-to guides
     docs_qs = Document.objects.filter(
-        config__purpose='coaching', is_active=True, status='published',
+        purpose='coaching', is_active=True, status='published',
     )
     if since_ms:
         docs_qs = docs_qs.filter(dt_modified__gte=since_ms)
@@ -301,7 +301,7 @@ def get_support_summary(period_days: int = 7) -> dict:
 
     # Q&A counts
     qa_base = Document.objects.filter(
-        config__purpose='support_qa', is_active=True,
+        purpose='support_qa', is_active=True,
     )
     qa_total = qa_base.count()
     qa_published = qa_base.filter(status='published').count()

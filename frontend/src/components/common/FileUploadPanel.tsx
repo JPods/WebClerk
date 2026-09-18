@@ -79,8 +79,8 @@ const FileUploadPanel: React.FC<Props> = ({
     setLoadingDocs(true);
     try {
       const res = await getRecords("document", {
-        "config__parent_model": modelName,
-        "config__parent_id": String(recordId),
+        model_name: modelName,
+        record_id: String(recordId),
         ordering: "-dt_created",
         limit: 50,
       }) as any;
@@ -272,13 +272,13 @@ const FileUploadPanel: React.FC<Props> = ({
       {!compact && attachments.length > 0 && (
         <div className="mt-2 space-y-1">
           {attachments.map((doc) => {
-            const isImage = doc.config?.mime_type?.startsWith("image/");
+            const isImage = doc.mime_type?.startsWith("image/");
             return (
               <div
                 key={doc.id}
                 className="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-400 py-0.5 px-1 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
               >
-                <span>{roleIcon(doc.config?.role)}</span>
+                <span>{roleIcon(doc.purpose)}</span>
                 {isImage && (
                   <img
                     src={`/wcapi/document/${doc.id}/`}
@@ -288,11 +288,11 @@ const FileUploadPanel: React.FC<Props> = ({
                   />
                 )}
                 <span className="truncate flex-1">{doc.name}</span>
-                {doc.config?.size_bytes && (
+                {doc.size_bytes && (
                   <span className="text-[9px] text-gray-400">
-                    {doc.config.size_bytes > 1048576
-                      ? `${(doc.config.size_bytes / 1048576).toFixed(1)}MB`
-                      : `${(doc.config.size_bytes / 1024).toFixed(0)}KB`}
+                    {doc.size_bytes > 1048576
+                      ? `${(doc.size_bytes / 1048576).toFixed(1)}MB`
+                      : `${(doc.size_bytes / 1024).toFixed(0)}KB`}
                   </span>
                 )}
                 <a

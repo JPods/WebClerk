@@ -100,7 +100,7 @@ def _serialize_document(doc: Document) -> Dict[str, Any]:
         "size_bytes": doc.size_bytes,
         "path": doc.path,
         "checksum": doc.checksum,
-        "model_name": (doc.config or {}).get("parent_model", ""),
+        "model_name": doc.model_name or "",
         "dt_created": doc.dt_created,
     }
 
@@ -186,12 +186,7 @@ class DocumentUploadView(APIView):
                 pass
 
         url = f"/wcapi/document/placeholder/"  # updated after create
-        config_data = {
-            "parent_model": model_name or "",
-            "parent_id": parent_id,
-            "role": purpose,
-            "purpose": purpose,
-        }
+        config_data = {}
 
         # Quarantine: every new upload starts in quarantine
         from apps.docs.services.document_sanitizer import (
@@ -207,6 +202,8 @@ class DocumentUploadView(APIView):
             path={"storage": "local", "key": storage["key"], "url": "", "full": storage["full"]},
             checksum=checksum,
             purpose=purpose,
+            model_name=model_name,
+            record_id=int(parent_id) if parent_id else None,
             config=config_data,
             metadata=metadata,
         )
@@ -251,7 +248,7 @@ class DocumentDownloadView(APIView):
         # Row-level access: staff sees all; others only see their own or public docs
         if not request.user.is_staff:
             config = doc.config if isinstance(doc.config, dict) else {}
-            owner_id = config.get('owner_id') or config.get('parent_id')
+            owner_id = config.get('owner_id') or doc.record_id
             security = getattr(doc, 'security_level', 0) or 0
             confidential = getattr(doc, 'confidential', False)
             if confidential or security > 0:
@@ -295,7 +292,7 @@ class DocumentDeleteView(APIView):
         # Only staff or the document owner can delete
         if not request.user.is_staff:
             config = doc.config if isinstance(doc.config, dict) else {}
-            owner_id = config.get('owner_id') or config.get('parent_id')
+            owner_id = config.get('owner_id') or doc.record_id
             if str(owner_id) != str(request.user.pk):
                 return Response({'error': 'Permission denied'}, status=403)
 

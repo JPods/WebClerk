@@ -277,13 +277,6 @@ PANEL_COLUMNS = {
         f('amount', width=90, align='right', format='currency'),
         f('category', width=80),
     ],
-    'project_association': [
-        f('ida', width=80),
-        f('purpose', width=80),
-        f('status', width=70),
-        f('model_code', width=100),
-        f('dt_created', width=90, format='date'),
-    ],
 
     # ── Actions / Documents ─────────────────────────────────────────────
     'action': [

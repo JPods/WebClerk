@@ -822,6 +822,17 @@ export async function saveWorkbenchFieldsSetting(setting: SettingRecord) {
  * @param action  - The action name (e.g. "generate_kanban_projects")
  * @param params  - Action-specific parameters
  */
+/**
+ * Forward a record to WC HQ. The server holds the Athena token and relays it.
+ */
+export async function submitToWchq(model_name: string, record: Record<string, unknown>) {
+  try {
+    return await wcapiPost<any>("_wchq_submit/", { model_name, record });
+  } catch (err: any) {
+    throw new Error(getBackendErrorMessage(err, "WC HQ submit failed"));
+  }
+}
+
 export async function manageAction(
   action: string,
   params: Record<string, any> = {},

@@ -62,15 +62,6 @@ CASH_STATUS_CHOICES: Final[ChoiceList] = (
     ("partially_refunded", "Partially Refunded"),
 )
 
-PROJECT_LINK_MODEL_CHOICES: Final[ChoiceList] = (
-    ("proposal", "Proposal"),
-    ("order", "Order"),
-    ("invoice", "Invoice"),
-    ("purchase", "Purchase"),
-    ("workorder", "WorkOrder"),
-    ("requisition", "Requisition"),
-)
-
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
     "TransactionBaseModel": {
         "status": TRANSACTION_STATUS_CHOICES,
@@ -83,8 +74,5 @@ DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
     "Cash": {
         "gateway": CASH_GATEWAY_CHOICES,
         "status": CASH_STATUS_CHOICES,
-    },
-    "ProjectAssociation": {
-        "model_code": PROJECT_LINK_MODEL_CHOICES,
     },
 }

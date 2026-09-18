@@ -8245,13 +8245,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "ActionRefs",
-          "prefs_schema": "ActionPrefs",
-          "config_schema": "ActionConfig",
-          "metadata_schema": "ActionMetadata",
-          "pydantic_schema": "common.schemas.action"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -9764,13 +9757,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "AddressRefs",
-          "prefs_schema": "AddressPrefs",
-          "config_schema": "AddressConfig",
-          "metadata_schema": "AddressMetadata",
-          "pydantic_schema": "common.schemas.address"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -10885,13 +10871,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "AiMessageRefs",
-          "prefs_schema": "AiMessagePrefs",
-          "config_schema": "AiMessageConfig",
-          "metadata_schema": "AiMessageMetadata",
-          "pydantic_schema": "common.schemas.ai_message"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -11887,13 +11866,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "AliceCoachingLogRefs",
-          "prefs_schema": "AliceCoachingLogPrefs",
-          "config_schema": "AliceCoachingLogConfig",
-          "metadata_schema": "AliceCoachingLogMetadata",
-          "pydantic_schema": "common.schemas.alice_coaching_log"
         },
         "defaults": {},
         "searches": [],
@@ -12920,13 +12892,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "AliceObservationRefs",
-          "prefs_schema": "AliceObservationPrefs",
-          "config_schema": "AliceObservationConfig",
-          "metadata_schema": "AliceObservationMetadata",
-          "pydantic_schema": "common.schemas.alice_observation"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -13931,13 +13896,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "AlicePresetRefs",
-          "prefs_schema": "AlicePresetPrefs",
-          "config_schema": "AlicePresetConfig",
-          "metadata_schema": "AlicePresetMetadata",
-          "pydantic_schema": "common.schemas.alice_preset"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -14841,13 +14799,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "AuditRefs",
-          "prefs_schema": "AuditPrefs",
-          "config_schema": "AuditConfig",
-          "metadata_schema": "AuditMetadata",
-          "pydantic_schema": "common.schemas.audit"
         },
         "defaults": {},
         "searches": [],
@@ -15878,13 +15829,6 @@
               "fields": []
             }
           }
-        },
-        "schema": {
-          "refs_schema": "BillOfMaterialRefs",
-          "prefs_schema": "BillOfMaterialPrefs",
-          "config_schema": "BillOfMaterialConfig",
-          "metadata_schema": "BillOfMaterialMetadata",
-          "pydantic_schema": "common.schemas.bill_of_material"
         },
         "defaults": {},
         "searches": [],
@@ -17204,13 +17148,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "CashRefs",
-          "prefs_schema": "CashPrefs",
-          "config_schema": "CashConfig",
-          "metadata_schema": "CashMetadata",
-          "pydantic_schema": "common.schemas.cash"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -18490,13 +18427,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "CatalogRefs",
-          "prefs_schema": "CatalogPrefs",
-          "config_schema": "CatalogConfig",
-          "metadata_schema": "CatalogMetadata",
-          "pydantic_schema": "common.schemas.catalog"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -19613,13 +19543,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "ConnectionRefs",
-          "prefs_schema": "ConnectionPrefs",
-          "config_schema": "ConnectionConfig",
-          "metadata_schema": "ConnectionMetadata",
-          "pydantic_schema": "common.schemas.connection"
         },
         "defaults": {},
         "searches": [],
@@ -21003,13 +20926,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "ContactRefs",
-          "prefs_schema": "ContactPrefs",
-          "config_schema": "ContactConfig",
-          "metadata_schema": "ContactMetadata",
-          "pydantic_schema": "common.schemas.contact"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -22082,13 +21998,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "CurrencyRefs",
-          "prefs_schema": "CurrencyPrefs",
-          "config_schema": "CurrencyConfig",
-          "metadata_schema": "CurrencyMetadata",
-          "pydantic_schema": "common.schemas.currency"
         },
         "defaults": {},
         "searches": [],
@@ -23405,13 +23314,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "CustomerRefs",
-          "prefs_schema": "CustomerPrefs",
-          "config_schema": "CustomerConfig",
-          "metadata_schema": "CustomerMetadata",
-          "pydantic_schema": "common.schemas.customer"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -24577,13 +24479,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "DatabrowserRefs",
-          "prefs_schema": "DatabrowserPrefs",
-          "config_schema": "DatabrowserConfig",
-          "metadata_schema": "DatabrowserMetadata",
-          "pydantic_schema": "common.schemas.databrowser"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -25719,13 +25614,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "DocumentRefs",
-          "prefs_schema": "DocumentPrefs",
-          "config_schema": "DocumentConfig",
-          "metadata_schema": "DocumentMetadata",
-          "pydantic_schema": "common.schemas.document"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -26694,13 +26582,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "DomainRefs",
-          "prefs_schema": "DomainPrefs",
-          "config_schema": "DomainConfig",
-          "metadata_schema": "DomainMetadata",
-          "pydantic_schema": "common.schemas.domain"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -27664,13 +27545,6 @@
               "fields": []
             }
           }
-        },
-        "schema": {
-          "refs_schema": "EmailRefs",
-          "prefs_schema": "EmailPrefs",
-          "config_schema": "EmailConfig",
-          "metadata_schema": "EmailMetadata",
-          "pydantic_schema": "common.schemas.email"
         },
         "defaults": {},
         "searches": [],
@@ -28997,13 +28871,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "EmployeeRefs",
-          "prefs_schema": "EmployeePrefs",
-          "config_schema": "EmployeeConfig",
-          "metadata_schema": "EmployeeMetadata",
-          "pydantic_schema": "common.schemas.employee"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -30126,13 +29993,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "GanttRefs",
-          "prefs_schema": "GanttPrefs",
-          "config_schema": "GanttConfig",
-          "metadata_schema": "GanttMetadata",
-          "pydantic_schema": "common.schemas.gantt"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -31047,13 +30907,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "GlAccountRefs",
-          "prefs_schema": "GlAccountPrefs",
-          "config_schema": "GlAccountConfig",
-          "metadata_schema": "GlAccountMetadata",
-          "pydantic_schema": "common.schemas.gl_account"
         },
         "defaults": {},
         "searches": [],
@@ -32143,13 +31996,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "GlJournalRefs",
-          "prefs_schema": "GlJournalPrefs",
-          "config_schema": "GlJournalConfig",
-          "metadata_schema": "GlJournalMetadata",
-          "pydantic_schema": "common.schemas.gl_journal"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -33190,13 +33036,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "InventoryAdjustmentRunRefs",
-          "prefs_schema": "InventoryAdjustmentRunPrefs",
-          "config_schema": "InventoryAdjustmentRunConfig",
-          "metadata_schema": "InventoryAdjustmentRunMetadata",
-          "pydantic_schema": "common.schemas.inventory_adjustment_run"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -34138,13 +33977,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "InventoryLayerRefs",
-          "prefs_schema": "InventoryLayerPrefs",
-          "config_schema": "InventoryLayerConfig",
-          "metadata_schema": "InventoryLayerMetadata",
-          "pydantic_schema": "common.schemas.inventory_layer"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -34981,13 +34813,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "InventoryMetricsSnapshotRefs",
-          "prefs_schema": "InventoryMetricsSnapshotPrefs",
-          "config_schema": "InventoryMetricsSnapshotConfig",
-          "metadata_schema": "InventoryMetricsSnapshotMetadata",
-          "pydantic_schema": "common.schemas.inventory_metrics_snapshot"
         },
         "defaults": {},
         "searches": [],
@@ -35915,13 +35740,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "InventoryReservationRefs",
-          "prefs_schema": "InventoryReservationPrefs",
-          "config_schema": "InventoryReservationConfig",
-          "metadata_schema": "InventoryReservationMetadata",
-          "pydantic_schema": "common.schemas.inventory_reservation"
         },
         "defaults": {},
         "searches": [],
@@ -37422,13 +37240,6 @@
               "fields": []
             }
           }
-        },
-        "schema": {
-          "refs_schema": "InvoiceRefs",
-          "prefs_schema": "InvoicePrefs",
-          "config_schema": "InvoiceConfig",
-          "metadata_schema": "InvoiceMetadata",
-          "pydantic_schema": "common.schemas.invoice"
         },
         "defaults": {},
         "searches": [],
@@ -39276,13 +39087,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "InvoiceLineRefs",
-          "prefs_schema": "InvoiceLinePrefs",
-          "config_schema": "InvoiceLineConfig",
-          "metadata_schema": "InvoiceLineMetadata",
-          "pydantic_schema": "common.schemas.invoice_line"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -40906,13 +40710,6 @@
           },
           "related": []
         },
-        "schema": {
-          "refs_schema": "ItemRefs",
-          "prefs_schema": "ItemPrefs",
-          "config_schema": "ItemConfig",
-          "metadata_schema": "ItemMetadata",
-          "pydantic_schema": "common.schemas.item"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -42077,13 +41874,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "ItemUsageRefs",
-          "prefs_schema": "ItemUsagePrefs",
-          "config_schema": "ItemUsageConfig",
-          "metadata_schema": "ItemUsageMetadata",
-          "pydantic_schema": "common.schemas.item_usage"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -42964,13 +42754,6 @@
               "fields": []
             }
           }
-        },
-        "schema": {
-          "refs_schema": "ItemXrefRefs",
-          "prefs_schema": "ItemXrefPrefs",
-          "config_schema": "ItemXrefConfig",
-          "metadata_schema": "ItemXrefMetadata",
-          "pydantic_schema": "common.schemas.item_xref"
         },
         "defaults": {},
         "searches": [],
@@ -43954,13 +43737,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "JournalBatchRefs",
-          "prefs_schema": "JournalBatchPrefs",
-          "config_schema": "JournalBatchConfig",
-          "metadata_schema": "JournalBatchMetadata",
-          "pydantic_schema": "common.schemas.journal_batch"
         },
         "defaults": {},
         "searches": [],
@@ -45046,13 +44822,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "LedgerRefs",
-          "prefs_schema": "LedgerPrefs",
-          "config_schema": "LedgerConfig",
-          "metadata_schema": "LedgerMetadata",
-          "pydantic_schema": "common.schemas.ledger"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -46011,13 +45780,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "LinkageRefs",
-          "prefs_schema": "LinkagePrefs",
-          "config_schema": "LinkageConfig",
-          "metadata_schema": "LinkageMetadata",
-          "pydantic_schema": "common.schemas.linkage"
         },
         "defaults": {},
         "searches": [],
@@ -47295,13 +47057,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "ManufacturerRefs",
-          "prefs_schema": "ManufacturerPrefs",
-          "config_schema": "ManufacturerConfig",
-          "metadata_schema": "ManufacturerMetadata",
-          "pydantic_schema": "common.schemas.manufacturer"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -48493,13 +48248,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "NotificationRefs",
-          "prefs_schema": "NotificationPrefs",
-          "config_schema": "NotificationConfig",
-          "metadata_schema": "NotificationMetadata",
-          "pydantic_schema": "common.schemas.notification"
         },
         "defaults": {},
         "searches": [],
@@ -49880,13 +49628,6 @@
               "fields": []
             }
           }
-        },
-        "schema": {
-          "refs_schema": "OrderRefs",
-          "prefs_schema": "OrderPrefs",
-          "config_schema": "OrderConfig",
-          "metadata_schema": "OrderMetadata",
-          "pydantic_schema": "common.schemas.order"
         },
         "defaults": {},
         "searches": [],
@@ -51729,13 +51470,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "OrderLineRefs",
-          "prefs_schema": "OrderLinePrefs",
-          "config_schema": "OrderLineConfig",
-          "metadata_schema": "OrderLineMetadata",
-          "pydantic_schema": "common.schemas.order_line"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -53198,13 +52932,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "OtherOrgRefs",
-          "prefs_schema": "OtherOrgPrefs",
-          "config_schema": "OtherOrgConfig",
-          "metadata_schema": "OtherOrgMetadata",
-          "pydantic_schema": "common.schemas.other_org"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -54322,13 +54049,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "PendingInventoryAdjustmentRefs",
-          "prefs_schema": "PendingInventoryAdjustmentPrefs",
-          "config_schema": "PendingInventoryAdjustmentConfig",
-          "metadata_schema": "PendingInventoryAdjustmentMetadata",
-          "pydantic_schema": "common.schemas.pending_inventory_adjustment"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -55103,13 +54823,6 @@
               "fields": []
             }
           }
-        },
-        "schema": {
-          "refs_schema": "PhoneRefs",
-          "prefs_schema": "PhonePrefs",
-          "config_schema": "PhoneConfig",
-          "metadata_schema": "PhoneMetadata",
-          "pydantic_schema": "common.schemas.phone"
         },
         "defaults": {},
         "searches": [],
@@ -56324,13 +56037,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "ProjectRefs",
-          "prefs_schema": "ProjectPrefs",
-          "config_schema": "ProjectConfig",
-          "metadata_schema": "ProjectMetadata",
-          "pydantic_schema": "common.schemas.project"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -57411,13 +57117,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "ProjectAssociationRefs",
-          "prefs_schema": "ProjectAssociationPrefs",
-          "config_schema": "ProjectAssociationConfig",
-          "metadata_schema": "ProjectAssociationMetadata",
-          "pydantic_schema": "common.schemas.project_association"
         },
         "defaults": {},
         "searches": [],
@@ -58806,13 +58505,6 @@
               "fields": []
             }
           }
-        },
-        "schema": {
-          "refs_schema": "ProposalRefs",
-          "prefs_schema": "ProposalPrefs",
-          "config_schema": "ProposalConfig",
-          "metadata_schema": "ProposalMetadata",
-          "pydantic_schema": "common.schemas.proposal"
         },
         "defaults": {},
         "searches": [],
@@ -60660,13 +60352,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "ProposalLineRefs",
-          "prefs_schema": "ProposalLinePrefs",
-          "config_schema": "ProposalLineConfig",
-          "metadata_schema": "ProposalLineMetadata",
-          "pydantic_schema": "common.schemas.proposal_line"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -62361,13 +62046,6 @@
               "fields": []
             }
           }
-        },
-        "schema": {
-          "refs_schema": "PurchaseRefs",
-          "prefs_schema": "PurchasePrefs",
-          "config_schema": "PurchaseConfig",
-          "metadata_schema": "PurchaseMetadata",
-          "pydantic_schema": "common.schemas.purchase"
         },
         "defaults": {},
         "searches": [],
@@ -64190,13 +63868,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "PurchaseLineRefs",
-          "prefs_schema": "PurchaseLinePrefs",
-          "config_schema": "PurchaseLineConfig",
-          "metadata_schema": "PurchaseLineMetadata",
-          "pydantic_schema": "common.schemas.purchase_line"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -65364,13 +65035,6 @@
               "fields": []
             }
           }
-        },
-        "schema": {
-          "refs_schema": "QuestionAnswerRefs",
-          "prefs_schema": "QuestionAnswerPrefs",
-          "config_schema": "QuestionAnswerConfig",
-          "metadata_schema": "QuestionAnswerMetadata",
-          "pydantic_schema": "common.schemas.question_answer"
         },
         "defaults": {},
         "searches": [],
@@ -66631,13 +66295,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "ReceiptRefs",
-          "prefs_schema": "ReceiptPrefs",
-          "config_schema": "ReceiptConfig",
-          "metadata_schema": "ReceiptMetadata",
-          "pydantic_schema": "common.schemas.receipt"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -67721,13 +67378,6 @@
               "fields": []
             }
           }
-        },
-        "schema": {
-          "refs_schema": "ReceiptLineRefs",
-          "prefs_schema": "ReceiptLinePrefs",
-          "config_schema": "ReceiptLineConfig",
-          "metadata_schema": "ReceiptLineMetadata",
-          "pydantic_schema": "common.schemas.receipt_line"
         },
         "defaults": {},
         "searches": [],
@@ -69304,13 +68954,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "RepRefs",
-          "prefs_schema": "RepPrefs",
-          "config_schema": "RepConfig",
-          "metadata_schema": "RepMetadata",
-          "pydantic_schema": "common.schemas.rep"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -70632,13 +70275,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "ReportRefs",
-          "prefs_schema": "ReportPrefs",
-          "config_schema": "ReportConfig",
-          "metadata_schema": "ReportMetadata",
-          "pydantic_schema": "common.schemas.report"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -71867,13 +71503,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "RequisitionRefs",
-          "prefs_schema": "RequisitionPrefs",
-          "config_schema": "RequisitionConfig",
-          "metadata_schema": "RequisitionMetadata",
-          "pydantic_schema": "common.schemas.requisition"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -72818,13 +72447,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "RequisitionLineRefs",
-          "prefs_schema": "RequisitionLinePrefs",
-          "config_schema": "RequisitionLineConfig",
-          "metadata_schema": "RequisitionLineMetadata",
-          "pydantic_schema": "common.schemas.requisition_line"
         },
         "defaults": {},
         "searches": [],
@@ -73979,13 +73601,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "SerialRefs",
-          "prefs_schema": "SerialPrefs",
-          "config_schema": "SerialConfig",
-          "metadata_schema": "SerialMetadata",
-          "pydantic_schema": "common.schemas.serial"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -74838,13 +74453,6 @@
               "fields": []
             }
           }
-        },
-        "schema": {
-          "refs_schema": "SerialLogRefs",
-          "prefs_schema": "SerialLogPrefs",
-          "config_schema": "SerialLogConfig",
-          "metadata_schema": "SerialLogMetadata",
-          "pydantic_schema": "common.schemas.serial_log"
         },
         "defaults": {},
         "searches": [],
@@ -75721,13 +75329,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "SettingRefs",
-          "prefs_schema": "SettingPrefs",
-          "config_schema": "SettingConfig",
-          "metadata_schema": "SettingMetadata",
-          "pydantic_schema": "common.schemas.setting"
         },
         "defaults": {},
         "searches": [],
@@ -76736,13 +76337,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "StatementLineRefs",
-          "prefs_schema": "StatementLinePrefs",
-          "config_schema": "StatementLineConfig",
-          "metadata_schema": "StatementLineMetadata",
-          "pydantic_schema": "common.schemas.statement_line"
         },
         "defaults": {},
         "searches": [],
@@ -77776,13 +77370,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "BundleRefs",
-          "prefs_schema": "BundlePrefs",
-          "config_schema": "BundleConfig",
-          "metadata_schema": "BundleMetadata",
-          "pydantic_schema": "common.schemas.bundle"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -78724,13 +78311,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "TagRefs",
-          "prefs_schema": "TagPrefs",
-          "config_schema": "TagConfig",
-          "metadata_schema": "TagMetadata",
-          "pydantic_schema": "common.schemas.tag"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -79630,13 +79210,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "TaxJurisdictionRefs",
-          "prefs_schema": "TaxJurisdictionPrefs",
-          "config_schema": "TaxJurisdictionConfig",
-          "metadata_schema": "TaxJurisdictionMetadata",
-          "pydantic_schema": "common.schemas.tax_jurisdiction"
         },
         "defaults": {},
         "searches": [],
@@ -80599,13 +80172,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "TermRefs",
-          "prefs_schema": "TermPrefs",
-          "config_schema": "TermConfig",
-          "metadata_schema": "TermMetadata",
-          "pydantic_schema": "common.schemas.term"
         },
         "defaults": {},
         "searches": [],
@@ -81651,13 +81217,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "TouchRefs",
-          "prefs_schema": "TouchPrefs",
-          "config_schema": "TouchConfig",
-          "metadata_schema": "TouchMetadata",
-          "pydantic_schema": "common.schemas.touch"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -82670,13 +82229,6 @@
               "fields": []
             }
           }
-        },
-        "schema": {
-          "refs_schema": "VariantRefs",
-          "prefs_schema": "VariantPrefs",
-          "config_schema": "VariantConfig",
-          "metadata_schema": "VariantMetadata",
-          "pydantic_schema": "common.schemas.variant"
         },
         "defaults": {},
         "searches": [],
@@ -83963,13 +83515,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "VendorRefs",
-          "prefs_schema": "VendorPrefs",
-          "config_schema": "VendorConfig",
-          "metadata_schema": "VendorMetadata",
-          "pydantic_schema": "common.schemas.vendor"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -85183,13 +84728,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "WarehouseRefs",
-          "prefs_schema": "WarehousePrefs",
-          "config_schema": "WarehouseConfig",
-          "metadata_schema": "WarehouseMetadata",
-          "pydantic_schema": "common.schemas.warehouse"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -86039,13 +85577,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "WcRefs",
-          "prefs_schema": "WcPrefs",
-          "config_schema": "WcConfig",
-          "metadata_schema": "WcMetadata",
-          "pydantic_schema": "common.schemas.wc"
         },
         "defaults": {},
         "searches": [],
@@ -87358,13 +86889,6 @@
               "fields": []
             }
           }
-        },
-        "schema": {
-          "refs_schema": "WorkorderRefs",
-          "prefs_schema": "WorkorderPrefs",
-          "config_schema": "WorkorderConfig",
-          "metadata_schema": "WorkorderMetadata",
-          "pydantic_schema": "common.schemas.workorder"
         },
         "defaults": {},
         "searches": [],
@@ -89162,13 +88686,6 @@
             }
           }
         },
-        "schema": {
-          "refs_schema": "WorkorderLineRefs",
-          "prefs_schema": "WorkorderLinePrefs",
-          "config_schema": "WorkorderLineConfig",
-          "metadata_schema": "WorkorderLineMetadata",
-          "pydantic_schema": "common.schemas.workorder_line"
-        },
         "defaults": {},
         "searches": [],
         "behaviors": {
@@ -90352,13 +89869,6 @@
               ]
             }
           }
-        },
-        "schema": {
-          "refs_schema": "WorkspaceRefs",
-          "prefs_schema": "WorkspacePrefs",
-          "config_schema": "WorkspaceConfig",
-          "metadata_schema": "WorkspaceMetadata",
-          "pydantic_schema": "common.schemas.workspace"
         },
         "defaults": {},
         "searches": [],

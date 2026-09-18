@@ -13,7 +13,6 @@ from common.schemas.envelopes import (
     ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, SourceRef,
     StaffPrefsMixin, RepPrefsMixin, EmployeePrefsMixin, CartPrefsMixin,
 )
-from common.schemas.images import ContactImages
 
 
 # ── .config ────────────────────────────────────────────────────────────
@@ -75,13 +74,101 @@ class DeactivatedByMerge(BaseModel):
         extra = "allow"
 
 
+class _UIBlock(BaseModel):
+    class Config:
+        extra = "forbid"
+
+
+class UIThemeFont(_UIBlock):
+    size: int = 14
+
+
+class UIThemeMode(_UIBlock):
+    colors: dict[str, str] = Field(default_factory=dict)   # text | surface | accent → hex
+    font: UIThemeFont = Field(default_factory=UIThemeFont)
+
+
+class UITheme(_UIBlock):
+    active: str = "dark"                                   # dark | light
+    dark: UIThemeMode = Field(default_factory=UIThemeMode)
+    light: UIThemeMode = Field(default_factory=UIThemeMode)
+
+
+class UINavbar(_UIBlock):
+    models: list[str] = Field(default_factory=list)
+    dashboards: list[str] = Field(default_factory=list)
+
+
+class UIConsole(_UIBlock):
+    visible: bool = True
+    position: str = "bottom"
+    height: int = 200
+
+
+class UIDetail(_UIBlock):
+    auto_edit: bool = True
+    default_view: str = "app"
+    collapsed: dict[str, list[str]] = Field(default_factory=dict)   # model → collapsed section keys
+
+
+class UIList(_UIBlock):
+    page_size: int = 50
+    default_sort: str = "dt_modified"
+
+
+class UIBadge(_UIBlock):
+    bg_color: str = ""
+    text_color: str = ""
+    initials: str = ""
+
+
+class UIFormat(_UIBlock):
+    button_style: str = "glass"
+    phone_display: str = "local"
+    date_format: str = "MM/DD/YYYY"
+    currency_locale: str = "en-US"
+    phone_separator: Optional[str] = None
+    default_country: Optional[str] = None
+
+
+class UIGantt(_UIBlock):
+    scale: Optional[str] = None                            # day | week | month | quarter ...
+    font_scale: Optional[int] = None
+    show_full_text: Optional[bool] = None
+    show_all_levels: Optional[bool] = None
+
+
+class UIDedup(_UIBlock):
+    font_size: Optional[int] = None
+
+
+class ContactUIConfig(_UIBlock):
+    """config.ui — the user's interface configuration (one namespace).
+
+    Writer: apps/core/services/ui_config.py save_ui_config (wcapi/manage
+    save_ui_config), fed by frontend/src/utils/contactUI.ts setUI().
+    Shape mirrors DEFAULT_UI_CONFIG plus the gantt/dedup/detail.collapsed
+    paths the frontend writes.
+    """
+    theme: Optional[UITheme] = None
+    navbar: Optional[UINavbar] = None
+    console: Optional[UIConsole] = None
+    detail: Optional[UIDetail] = None
+    list: Optional[UIList] = None
+    badge: Optional[UIBadge] = None
+    format: Optional[UIFormat] = None
+    gantt: Optional[UIGantt] = None
+    dedup: Optional[UIDedup] = None
+
+
 class ContactConfig(ConfigBase):
-    """Structural data — import originals, touch preferences, merge backup."""
+    """Structural data — import originals, touch preferences, merge backup, UI config."""
     original_mac: Optional[dict] = None
     phone_original: Optional[str] = None
     touch: TouchConfig = Field(default_factory=TouchConfig)
     backup: Optional[MergeBackup] = None
     deactivated_by_merge: Optional[DeactivatedByMerge] = None
+    ui: Optional[ContactUIConfig] = None
 
     class Config:
         extra = "forbid"
@@ -175,6 +262,7 @@ class ContactRefsLinks(BaseModel):
     email: list[dict] = Field(default_factory=list)
     order: list = Field(default_factory=list)
     phone: list[dict] = Field(default_factory=list)
+    domain: list[dict] = Field(default_factory=list)   # [{id, path, name, status}] — rebuilt from Domain rows in Contact.save
     vendor: list = Field(default_factory=list)
     address: list[dict] = Field(default_factory=list)
     contact: list = Field(default_factory=list)

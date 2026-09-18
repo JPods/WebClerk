@@ -126,14 +126,14 @@ ADMIN_TOOLS = [
         },
         'explanation': (
             'Loads a demo bundle (Settings + sample data) from a JSON file. '
-            'All non-Setting records are tagged refs.source="demo-baseline" so they '
+            'All non-Setting records are tagged refs.demo_source="demo-baseline" so they '
             'can be cleanly removed later. Settings are merged (add missing, never replace existing).'
         ),
     },
     {
         'ida': 'admin-tool-remove-demo-data',
         'name': 'Remove Demo Data',
-        'description': 'Delete all demo records (refs.source="demo-baseline"). Settings are preserved.',
+        'description': 'Delete all demo records (refs.demo_source="demo-baseline"). Settings are preserved.',
         'model_name': 'setting',
         'category': 'utility',
         'output_type': 'json',
@@ -170,7 +170,7 @@ ADMIN_TOOLS = [
         },
         'explanation': (
             'Creates 12 items (bats, balls, gloves, bags, training, kit with BOM), '
-            '5 customers, 1 vendor, and 7 contacts. All tagged refs.source="demo-baseline". '
+            '5 customers, 1 vendor, and 7 contacts. All tagged refs.demo_source="demo-baseline". '
             'Run seed_demo_transactions after this to create full transaction cycles.'
         ),
     },
@@ -194,7 +194,7 @@ ADMIN_TOOLS = [
             'Creates 3 transaction cycles using items and contacts from seed_demo: '
             'Riverside Sports (fully paid), Metro Baseball Academy (split cash), '
             'Eastside Little League (single installment). Each cycle: proposal → order → '
-            'invoice → cash → GL journal entries. All tagged refs.source="demo-baseline".'
+            'invoice → cash → GL journal entries. All tagged refs.demo_source="demo-baseline".'
         ),
     },
     {

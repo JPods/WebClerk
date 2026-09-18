@@ -50,13 +50,13 @@ class SystemInfoView(APIView):
             db_host_masked = db_host
 
         # WC HQ connection info (for issue forwarding + Alice escalation)
-        wchq = {'url': '', 'token': ''}
+        # The Athena token never leaves the server — the browser posts through /wcapi/_wchq_submit/.
+        wchq = {'url': ''}
         try:
             from apps.sync.models.connection import Connection
             upstream = Connection.objects.filter(ida='wchq-conn-upstream').first()
             if upstream and upstream.config:
                 wchq['url'] = upstream.config.get('wchq_base_url', '')
-                wchq['token'] = upstream.config.get('athena_token', '')
         except Exception:
             pass
 

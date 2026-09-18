@@ -811,18 +811,7 @@ def _file_small_sting(params: dict) -> dict:
         model_name='alice_log',
         record_id=str(action.pk),
         purpose='small_sting',
-        name=f'STING: {complaint[:80]}',
-        config={
-            'event': 'small_sting',
-            'severity': severity,
-            'complaint': complaint,
-            'model_name': model_name,
-            'record_id': str(record_id) if record_id else '',
-            'action_id': action.pk,
-            'action_ida': action.ida,
-            'dt_filed': ts.isoformat(),
-            'wchq_report': True,  # flag for WCHQ sync
-        },
+        name=f'STING: {complaint[:80]}',  # the facts live on the Action (record_id points at it)
     )
 
     return {

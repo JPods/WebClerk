@@ -46,7 +46,7 @@ class DbFieldSpec(BaseModel):
     # is the authority; this overrides only when explicitly set per layout.
     format: Optional[Literal[
         'currency', 'percent', 'date', 'number',
-        'json', 'phone', 'masked'
+        'json', 'phone', 'masked', 'image'
     ]] = None
     wrap: bool = False                       # true = word-wrap, false = ellipsis
     frozen: bool = False                     # sticky left
@@ -97,7 +97,7 @@ class CardFieldSpec(BaseModel):
     field: str
     label: Optional[str] = None
     type: Optional[str] = None               # select, readonly, editable, search, action
-    options: Optional[List[str]] = None      # for select fields
+    options: Optional[List[Union[str, int, float]]] = None      # for select fields; numeric scales allowed
     help: Optional[str] = None               # Shift+hover tooltip
 
     class Config:
@@ -170,7 +170,7 @@ class NamedFormLayout(BaseModel):
     detail: str = 'default'                  # paired detail layout name
     header: Optional[FormHeader] = None
     lines: Optional[FormLines] = None
-    tabs: List[FormTab] = Field(default_factory=list)
+    tabs: List[FormTab] = Field(default_factory=lambda: [])  # `list` is a field in this class
     edit_rules: Optional[EditRules] = None
 
     class Config:
@@ -208,9 +208,10 @@ class LayoutConfig(BaseModel):
     column: Dict[str, NamedColumnLayout] = Field(default_factory=lambda: {'default': NamedColumnLayout()})
     detail: Dict[str, NamedDetailLayout] = Field(default_factory=lambda: {'default': NamedDetailLayout()})
     form: Dict[str, NamedFormLayout] = Field(default_factory=lambda: {'default': NamedFormLayout()})
-    panel: List[DbFieldSpec] = Field(default_factory=list)
+    panel: List[DbFieldSpec] = Field(default_factory=lambda: [])  # `list` is a field in this class
     card: Dict[str, CardSpec] = Field(default_factory=dict)
-    related: List[str] = Field(default_factory=list)
+    related: List[str] = Field(default_factory=lambda: [])  # `list` is a field in this class
+    tabs: List[str] = Field(default_factory=lambda: [])  # DynamicDetail.tsx tab order
 
     class Config:
         extra = 'forbid'

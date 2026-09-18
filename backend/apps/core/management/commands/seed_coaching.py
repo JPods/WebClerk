@@ -971,7 +971,7 @@ class Command(BaseCommand):
                 project_ida='alice-onboarding',
                 dt_created=now,
                 dt_modified=now,
-                metadata={'health': 'seed', 'coaching': True},
+                metadata={'coaching': True},
             )
             a_created += 1
             self.stdout.write(f'  Action: {title}')

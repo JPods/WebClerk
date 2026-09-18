@@ -654,7 +654,8 @@ def expected_token(payload_hash: str, issuer: str = ISSUER_WCHQ) -> str:
         secret = f'athena-hook:{django_settings.SECRET_KEY}'
     else:
         upstream = _upstream()
-        secret = ((upstream.config or {}).get('athena_token') or '') if upstream else ''
+        from apps.sync.services.athena_auth import athena_token
+        secret = athena_token(upstream) if upstream else ''
     if not secret:
         return ''
     message = f'{issuer}:{_instance_uuid()}:{payload_hash}'.encode()
