@@ -406,6 +406,15 @@ EMAIL_USE_SSL = False
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER or 'noreply@example.com')
 EMAIL_TIMEOUT = 15  # seconds — a stalled SMTP server must not hang a request
 
+# Public inquiry (apps/core/views/inquiry_view.py). The only places an emailed inquiry link
+# may point, and the only other origins allowed to call /wcapi/_inquiry/*. A relative
+# form_url is on this server (webclerk.com).
+INQUIRY_SITES = {
+    'market-hub': {'name': 'WebClerk', 'form_url': '/tfm/inquiry.html', 'origins': []},
+    'jpods': {'name': 'JPods', 'form_url': 'https://jpods.com/register.html',
+              'origins': ['https://jpods.com', 'https://www.jpods.com']},
+}
+
 # Email Notification Settings
 COMPANY_NAME = config('COMPANY_NAME', default='WebClerk3')
 

@@ -147,6 +147,7 @@ class ActionInquiry(BaseModel):
     email: str
     phone: str = ''
     company: str = ''
+    role: str = ''                            # 'I am a…' — farmer, chef, city official, ...
     topic: str = ''
     page: str = ''                            # page the visitor started from
     email_verified: bool = False

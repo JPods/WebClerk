@@ -1,10 +1,10 @@
 """Public inquiry → emailed link → form → Action.
 
-1. POST /wcapi/_inquiry/start/  {email, topic?, page?, website?}
-   Emails a signed link (24 h) to /tfm/inquiry.html?t=<token>. Writes nothing.
+1. POST /wcapi/_inquiry/start/  {site, email, topic?, role?, page?, website?}
+   Emails a signed link (24 h) to that site's form page (settings.INQUIRY_SITES). Writes nothing.
 2. GET  /wcapi/_inquiry/?t=<token>
    The form page checks its link: {email, topic} or 400 (expired / tampered / used).
-3. POST /wcapi/_inquiry/?t=<token>  {name, company, message, phone?, website?}
+3. POST /wcapi/_inquiry/?t=<token>  {name, company, message, phone?, role?, website?}
    (the link code rides in the URL, never the body: SecretGuard scans bodies, and the
    visitor's own text should still be scanned)
    Creates one Action (action_type='inquiry', Backlog). The email comes from the token,
@@ -12,7 +12,8 @@
 
 No login, no Contact created. Accepted fields only, lengths capped, sending mail 5/hour per IP (the form 30/hour),
 `website` is a honeypot a person never sees. If mail cannot be sent, the visitor is told —
-nothing pretends to have worked.
+nothing pretends to have worked. Sites listed in INQUIRY_SITES may call these paths
+cross-origin; no other path opens to them.
 """
 from __future__ import annotations
 
@@ -24,6 +25,7 @@ from django.core import signing
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.core.validators import validate_email
+from corsheaders.signals import check_request_enabled
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -36,8 +38,8 @@ logger = logging.getLogger(__name__)
 
 SALT = 'wc-inquiry'
 MAX_AGE = 24 * 60 * 60
-FORM_PATH = '/tfm/inquiry.html'
-LIMITS = {'name': 120, 'email': 254, 'phone': 40, 'company': 120, 'topic': 80, 'page': 200, 'message': 4000}
+LIMITS = {'site': 40, 'name': 120, 'email': 254, 'phone': 40, 'company': 120, 'role': 60, 'topic': 80,
+          'page': 200, 'message': 4000}
 
 
 def _clean(data, keys):
@@ -61,6 +63,16 @@ def _read_token(token: str) -> dict:
     return payload
 
 
+def _inquiry_cors(sender, request, **kwargs):
+    if not request.path.startswith('/wcapi/_inquiry/'):
+        return False
+    origin = request.headers.get('Origin', '')
+    return any(origin in site['origins'] for site in settings.INQUIRY_SITES.values())
+
+
+check_request_enabled.connect(_inquiry_cors, dispatch_uid='wc-inquiry-cors')
+
+
 def _token_id(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
@@ -77,8 +89,11 @@ class InquiryStartView(_Public):
     def post(self, request):
         if str(request.data.get('website') or '').strip():
             return Response({'ok': True})    # honeypot filled: a bot. Look accepted, send nothing.
-        fields = _clean(request.data, ('email', 'topic', 'page'))
+        fields = _clean(request.data, ('site', 'email', 'topic', 'role', 'page'))
         errors = _too_long(fields)
+        site = settings.INQUIRY_SITES.get(fields['site'])
+        if site is None:
+            errors['site'] = f"unknown site — expected one of {', '.join(settings.INQUIRY_SITES)}"
         if not fields['email']:
             errors['email'] = 'required'
         elif 'email' not in errors:
@@ -90,14 +105,14 @@ class InquiryStartView(_Public):
             return Response({'ok': False, 'errors': errors}, status=400)
 
         token = signing.dumps(fields, salt=SALT)
-        link = request.build_absolute_uri(f'{FORM_PATH}?t={token}')
-        topic = fields['topic'] or 'WebClerk'
+        link = request.build_absolute_uri(f"{site['form_url']}?t={token}")
+        topic = fields['topic'] or site['name']
         body = (
             f"Thank you for your interest in {topic}.\n\n"
             f"Open this link to tell us who you are and what you need. It works once, for 24 hours:\n\n"
             f"{link}\n\n"
             f"If you did not ask for this, ignore this email — nothing has been recorded.\n\n"
-            f"WebClerk — open source commerce, locally governed.\n"
+            f"{site['name']}\n"
         )
         try:
             send_mail(f'Your {topic} form', body, settings.DEFAULT_FROM_EMAIL, [fields['email']])
@@ -117,7 +132,8 @@ class InquiryView(_Public):
             payload = _read_token(str(request.query_params.get('t') or ''))
         except ValueError as e:
             return Response({'ok': False, 'errors': {'token': str(e)}}, status=400)
-        return Response({'ok': True, 'email': payload['email'], 'topic': payload.get('topic', '')})
+        return Response({'ok': True, 'email': payload['email'], 'topic': payload.get('topic', ''),
+                         'role': payload.get('role', '')})
 
     def post(self, request):
         if str(request.data.get('website') or '').strip():
@@ -128,7 +144,7 @@ class InquiryView(_Public):
         except ValueError as e:
             return Response({'ok': False, 'errors': {'token': str(e)}}, status=400)
 
-        fields = _clean(request.data, ('name', 'phone', 'company', 'message'))
+        fields = _clean(request.data, ('name', 'phone', 'company', 'role', 'message'))
         errors = {k: 'required' for k in ('name', 'company', 'message') if not fields[k]}
         errors.update(_too_long(fields))
         if errors:
@@ -136,7 +152,8 @@ class InquiryView(_Public):
 
         config = {'inquiry': {
             'name': fields['name'], 'email': payload['email'], 'phone': fields['phone'],
-            'company': fields['company'], 'topic': payload.get('topic', ''), 'page': payload.get('page', ''),
+            'company': fields['company'], 'role': fields['role'] or payload.get('role', ''),
+            'topic': payload.get('topic', ''), 'page': payload.get('page', ''),
             'email_verified': True, 'token_id': _token_id(token),
         }}
         metadata = {'source': {'type': 'web_inquiry'}}

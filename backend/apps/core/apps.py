@@ -15,6 +15,9 @@ class CoreConfig(AppConfig):
 
         # Import signal handlers to auto-populate cache after Django is ready
         # This avoids the Django warning about database access during app initialization
+        # Lets the sites in INQUIRY_SITES call /wcapi/_inquiry/* cross-origin (and nothing else)
+        from .views import inquiry_view  # noqa: F401
+
         try:
             from . import init_handlers  # noqa: F401
         except Exception:
