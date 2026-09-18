@@ -28,6 +28,7 @@ from apps.core.views.selectlist_view import SelectListCatalogView
 from apps.core.views.view_query import ViewQueryView
 from apps.core.views.system_info import SystemInfoView
 from apps.core.views.wchq_submit_view import WchqSubmitView
+from apps.core.views.inquiry_view import InquiryView
 from apps.core.views.bootstrap_view import BootstrapView
 from apps.core.views.dev_tools import dev_config_status, dev_switch_mode, dev_restart_servers, dev_sync_status, dev_sync_data
 from apps.core.views.refs_mismatch_view import RefsMismatchView
@@ -91,6 +92,7 @@ urlpatterns = [
     path("wcapi/_bootstrap/", BootstrapView.as_view(), name="wcapi-bootstrap"),
     path("wcapi/_system_info/", SystemInfoView.as_view(), name="system-info"),
     path("wcapi/_wchq_submit/", WchqSubmitView.as_view(), name="wchq-submit"),
+    path("wcapi/_inquiry/", InquiryView.as_view(), name="wcapi-inquiry"),
     # QA
     path("wcapi/_qa_apply/", ApplyQuestionsView.as_view(), name="wcapi-qa-apply"),
     path("wcapi/_qa_groups/", ListQuestionGroupsView.as_view(), name="wcapi-qa-groups"),

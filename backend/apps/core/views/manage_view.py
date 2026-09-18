@@ -791,7 +791,7 @@ def _file_small_sting(params: dict) -> dict:
         ida=f'STING-{ts_str}',
         status='open',
         priority=min(severity, 5),
-        task={'en': f'Small-Sting: {complaint[:100]}'},
+        action={'en': f'Small-Sting: {complaint[:100]}'},
         description={'en': complaint},
         metadata={
             'type': 'small_sting',
@@ -799,7 +799,7 @@ def _file_small_sting(params: dict) -> dict:
             'model_name': model_name,
             'record_id': str(record_id) if record_id else '',
             'dt_filed': ts.isoformat(),
-            'source': 'user_complaint',
+            'source': {'type': 'user_complaint'},
         },
     )
     if contact_id:

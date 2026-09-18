@@ -39,6 +39,7 @@ ACTION_TYPE_CHOICES: Final[ChoiceList] = (
     ("social", "Social Media"),
     ("event", "Event"),
     ("follow_up", "Follow-up"),
+    ("inquiry", "Inquiry"),
     ("other", "Other"),
 )
 

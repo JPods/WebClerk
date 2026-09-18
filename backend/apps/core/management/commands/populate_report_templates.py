@@ -580,7 +580,7 @@ class Command(BaseCommand):
                 review_info = NEEDS_EXAMPLE.get(rname, {})
                 refs_text = "\n".join(f"  - {r}" for r in review_info.get("refs", []))
                 Action.objects.create(
-                    task={"en": f"Review/edit report template: {rname} ({rmodel})"},
+                    action={"en": f"Review/edit report template: {rname} ({rmodel})"},
                     description={"en": f"Report #{rid} needs human review.\n\n"
                                        f"Reason: {reason}\n\n"
                                        f"References:\n{refs_text}\n\n"

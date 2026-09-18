@@ -335,6 +335,7 @@ REST_FRAMEWORK = {
         "cash": "10/minute",
         "webhook": "30/minute",
         "tx_line": "60/minute",
+        "inquiry": "5/hour",         # public web form — per IP
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }

@@ -140,7 +140,22 @@ class ActionLifecycle(BaseModel):
         extra = 'forbid'
 
 
+class ActionInquiry(BaseModel):
+    """Who asked, from a public web form (inquiry_view). Not a Contact: unverified input
+    never creates one. Email verification comes when outgoing mail exists."""
+    name: str
+    email: str
+    organization: str = ''
+    topic: str = ''
+    page: str = ''                            # page the form was on
+    email_verified: bool = False
+
+    class Config:
+        extra = 'forbid'
+
+
 class ActionConfig(ConfigBase):
+    inquiry: Optional[ActionInquiry] = None
     times: Optional[ActionTimes] = None
     billable: Optional[ActionBillable] = None
     lifecycle: Optional[ActionLifecycle] = None
