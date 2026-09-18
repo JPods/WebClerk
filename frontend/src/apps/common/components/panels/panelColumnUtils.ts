@@ -8,8 +8,33 @@
  * Format heuristics apply in both paths: currency for total/price/amount,
  * date for dt_*, phone for phone fields, etc.
  */
+import React from 'react';
 import type { PanelColumnDef } from './PanelTable';
 import { formatField, type FieldType } from '@/utils/fieldFormatters';
+
+// ── Thumbnails ────────────────────────────────────────────────────────
+// A column spec of { field: "ida_item", format: "image" } renders the item's
+// thumbnail. The field supplies the identity; the format supplies the picture.
+// The path segment is lowercase "item" — it must match the on-disk image
+// library directory, which is case-sensitive on Linux.
+const IMAGE_SIZE = 28;
+
+function thumbnail(ida: string): React.ReactNode {
+  return React.createElement('img', {
+    src: `/wcapi/_image/item/${encodeURIComponent(ida)}/tn.jpg`,
+    alt: '',
+    loading: 'lazy',
+    width: IMAGE_SIZE,
+    height: IMAGE_SIZE,
+    style: { width: IMAGE_SIZE, height: IMAGE_SIZE, objectFit: 'contain',
+             borderRadius: 3, display: 'block' },
+    // the endpoint answers with a placeholder rather than 404, so this only
+    // fires if the server is unreachable
+    onError: (e: React.SyntheticEvent<HTMLImageElement>) => {
+      (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+    },
+  });
+}
 
 // ── Dot-path resolution (e.g. "comments.process") ──────────────────────
 
@@ -31,7 +56,7 @@ interface DbFieldSpec {
   width?: number;
   align?: 'left' | 'center' | 'right';
   visible?: boolean;
-  format?: 'currency' | 'percent' | 'date' | 'number' | 'json' | 'phone' | 'masked';
+  format?: 'currency' | 'percent' | 'date' | 'number' | 'json' | 'phone' | 'masked' | 'image';
 }
 
 // ── Format heuristics by field name ──────────────────────────────────────
@@ -78,7 +103,7 @@ export function buildColumnsFromSpecs(specs: DbFieldSpec[]): PanelColumnDef<Reco
       const flex = width ? '' : 'min-w-[60px] flex-1';
 
       // Label: use leaf segment for dot-paths (e.g. "comments.process" → "process")
-      const label = s.field.includes('.')
+      const label = String(s.format) === 'image' ? '' : s.field.includes('.')
         ? s.field.split('.').pop()!.replace(/_/g, ' ')
         : s.field.replace(/_/g, ' ');
 
@@ -88,6 +113,11 @@ export function buildColumnsFromSpecs(specs: DbFieldSpec[]): PanelColumnDef<Reco
         cellClassName: `truncate ${width} ${flex} ${align} `.trim(),
         render: (r: Record<string, unknown>) => {
           const val = resolveDotPath(r, s.field);
+          // an image column stays blank rather than showing an em dash — a
+          // missing picture should not look like missing data
+          if (String(s.format) === 'image') {
+            return val == null || val === '' ? null : thumbnail(String(val));
+          }
           if (val == null || val === '') return '—';
           if (fmt) return formatField(val, fmt, s.field);
           if (typeof val === 'object') return JSON.stringify(val).slice(0, 80);
