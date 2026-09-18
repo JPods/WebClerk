@@ -53,10 +53,23 @@ FIELD_SCHEMAS: dict[str, str] = {
 
 # Organisations share one shape for contact channels.
 ORG_MODELS = ('customer', 'employee', 'manufacturer', 'other_org', 'rep', 'vendor')
+_OA = 'common.schemas.org_aspects'
 for _m in ORG_MODELS:
-    FIELD_SCHEMAS[f'{_m}.addresses'] = f'{_AS}:OrgAddresses'
-    FIELD_SCHEMAS[f'{_m}.emails'] = f'{_AS}:OrgEmails'
-    FIELD_SCHEMAS[f'{_m}.phones'] = f'{_AS}:OrgPhones'
+    FIELD_SCHEMAS.update({
+        f'{_m}.addresses': f'{_AS}:OrgAddresses',
+        f'{_m}.emails': f'{_AS}:OrgEmails',
+        f'{_m}.phones': f'{_AS}:OrgPhones',
+        f'{_m}.financial': f'{_OA}:OrgFinancial',
+        f'{_m}.relations': f'{_OA}:OrgRelations',
+        f'{_m}.relationship_stats': f'{_OA}:OrgRelationshipStats',
+        f'{_m}.stats': f'{_OA}:RecordStats',
+        f'{_m}.contacts': f'{_OA}:OrgContactRef',   # list of
+        f'{_m}.domains': f'{_OA}:OrgDomain',        # list of
+        f'{_m}.docs': f'{_OA}:OrgDoc',              # list of
+        f'{_m}.connections': f'{_OA}:OrgConnections',
+        f'{_m}.gl_accounts': f'{_OA}:OrgGlAccounts',
+    })
+FIELD_SCHEMAS['item.stats'] = f'{_OA}:RecordStats'
 
 TRANSACTION_HEADER_SCHEMAS = {
     'company': f'{_TE}:TransactionCompany',
