@@ -106,6 +106,7 @@ class Command(BaseCommand):
             ida='RPT-SAVE-LOG',
             name='Log every invoice save',
             category='function',
+            output_type='json',   # a hook is not a printed form — keep it out of the parade
             model_name='invoice',
             description='Appends one line to logs/hooks/record_saves.jsonl on each invoice save.',
             explanation=(

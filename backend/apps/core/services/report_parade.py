@@ -147,6 +147,9 @@ def build_parade_manifest(
         is_active=True,
         is_deleted=False,
         output_type="print",
+    ).exclude(
+        # A hook is a Report, but it is not a form — it has no layout to parade.
+        config__hooks__isnull=False,
     ).order_by("model_name", "sort_order", "name")
 
     if report_ids:

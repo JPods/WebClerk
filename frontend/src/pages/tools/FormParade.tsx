@@ -55,7 +55,11 @@ const FormParade: React.FC = () => {
   const [feedbackMap, setFeedbackMap] = useState<Record<number, ReportFeedback>>({});
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  // The preview HTML is fetched, not framed by URL: the access token is a Bearer
+  // header held in JS, so an iframe src request carries no auth and gets a 401.
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   /* Fetch manifest on mount */
   useEffect(() => {
@@ -81,11 +85,30 @@ const FormParade: React.FC = () => {
   }, []);
 
   /* When a report is selected, build the preview URL */
-  const handleSelectReport = (report: ParadeReport) => {
+  const handleSelectReport = async (report: ParadeReport) => {
     if (!report.has_sample_data) return;
     setSelectedReport(report);
     setNotes(feedbackMap[report.id]?.notes ?? "");
-    setPreviewUrl(`/wcapi/_parade_preview/?report_id=${report.id}`);
+    setPreviewHtml(null);
+    setPreviewError(null);
+    setPreviewLoading(true);
+    try {
+      const { data } = await apiClient.get("/wcapi/_parade_preview/", {
+        params: { report_id: report.id },
+        responseType: "text",
+        transformResponse: [(body) => body],
+      });
+      setPreviewHtml(typeof data === "string" ? data : JSON.stringify(data));
+    } catch (err: any) {
+      const detail =
+        err?.response?.data?.error?.details ??
+        err?.response?.data?.message ??
+        err?.message ??
+        "Preview failed";
+      setPreviewError(String(detail));
+    } finally {
+      setPreviewLoading(false);
+    }
   };
 
   /* Submit feedback */
@@ -111,8 +134,11 @@ const FormParade: React.FC = () => {
 
   /* Print / open in new tab */
   const handlePrint = () => {
-    if (!previewUrl) return;
-    window.open(previewUrl, "_blank");
+    if (!previewHtml) return;
+    const url = URL.createObjectURL(new Blob([previewHtml], { type: "text/html" }));
+    window.open(url, "_blank");
+    // Let the new tab load before the blob is released.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
 
   /* Feedback badge color */
@@ -350,9 +376,20 @@ const FormParade: React.FC = () => {
 
             {/* Preview area */}
             <div className="flex-1 min-h-0 bg-white">
-              {previewUrl ? (
+              {previewLoading ? (
+                <div className="flex items-center justify-center h-full text-gray-400">
+                  Loading preview...
+                </div>
+              ) : previewError ? (
+                <div className="flex items-center justify-center h-full text-red-600">
+                  <div className="text-center">
+                    <p className="text-lg mb-2">Preview failed</p>
+                    <p className="text-sm">{previewError}</p>
+                  </div>
+                </div>
+              ) : previewHtml ? (
                 <iframe
-                  src={previewUrl}
+                  srcDoc={previewHtml}
                   className="w-full h-full border-0"
                   title={`Preview: ${selectedReport?.name ?? ""}`}
                 />
