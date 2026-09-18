@@ -1,0 +1,402 @@
+import logging
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST, require_GET
+from django.shortcuts import get_object_or_404
+from django.conf import settings
+from rest_framework import viewsets, status
+from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.response import Response
+from apps.transactions.models import Cash, Invoice, Receipt
+from apps.transactions.serializers.cash_serializer import CashSerializer
+from apps.transactions.services.cash.spreedly_gateway import SpreedlyService, SpreedlyError, process_cash as spreedly_process, refund_cash as spreedly_refund
+from apps.transactions.services.pricing.dual_pricing import compute_dual_pricing, compute_cash_amount, get_dual_pricing_config
+from apps.core.services import record_serialize as wcapi
+
+logger = logging.getLogger(__name__)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([ScopedRateThrottle])
+def process_cash(request):
+    """Process a cash entry through Spreedly.
+
+    The client-side Spreedly SDK collects card data in a secure iframe
+    and returns a payment_method_token. That token is all we receive.
+    WC3 never sees the card number.
+
+    POST body: { invoice_id, amount, payment_method_token, cash_method? }
+
+    If dual pricing is enabled and cash_method is not exempt (cash/ACH/etc),
+    the charge amount is adjusted upward by the card surcharge rate.
+    The surcharge is recorded in fee_amount and metadata.processing_fees.
+    """
+    request.throttle_scope = 'cash'
+    try:
+        data = request.data
+        invoice_id = data.get('invoice_id')
+        amount = data.get('amount')
+        payment_method_token = data.get('payment_method_token')
+
+        if not invoice_id or not amount or not payment_method_token:
+            return Response(
+                {'error': 'invoice_id, amount, and payment_method_token are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        invoice = get_object_or_404(Invoice, pk=invoice_id)
+
+        # Dual pricing: determine actual charge amount based on cash method
+        cash_method = data.get('cash_method', '')
+        totals = getattr(invoice, 'totals', None) or {}
+        pricing = compute_cash_amount(totals, cash_method)
+        charge_amount = pricing['amount'] if pricing['surcharge'] > 0 else float(amount)
+
+        cash = Cash.objects.create(
+            invoice=invoice,
+            contact_id=request.user.pk,
+            amount=charge_amount,
+            method=cash_method,
+            fee_amount=pricing['surcharge'],
+            gateway='spreedly',
+            status='pending',
+        )
+
+        # Record dual pricing detail in metadata for audit
+        if pricing['surcharge'] > 0:
+            meta = cash.metadata or {}
+            meta['processing_fees'].append({
+                'type': 'dual_pricing_surcharge',
+                'rate': pricing['card_rate'],
+                'amount': pricing['surcharge'],
+                'base_total': pricing['amount'] - pricing['surcharge'],
+            })
+            cash.metadata = meta
+            cash.save(update_fields=['metadata'])
+
+        result = spreedly_process(cash.id, payment_method_token)
+        txn = result.get('transaction', {})
+
+        return Response({
+            'cash_id': cash.id,
+            'status': cash.status,
+            'gateway_transaction_id': txn.get('gateway_transaction_id', ''),
+            'message': txn.get('message', ''),
+            'surcharge': pricing['surcharge'],
+            'is_cash_price': pricing['is_cash_price'],
+        })
+
+    except SpreedlyError as e:
+        logger.error(f"Spreedly error processing cash: {e}")
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        logger.error(f"Error processing cash: {e}")
+        return Response(
+            {'error': 'Cash processing failed'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([ScopedRateThrottle])
+def refund_cash_view(request):
+    """Refund a completed cash via Spreedly.
+
+    Tries void first (pre-settlement), falls back to credit.
+    POST body: { cash_id, amount_cents? }
+    """
+    request.throttle_scope = 'cash'
+    try:
+        cash_id = request.data.get('cash_id')
+        amount_cents = request.data.get('amount_cents')
+
+        if not cash_id:
+            return Response({'error': 'cash_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verify the user owns this cash or is staff
+        try:
+            cash_check = Cash.objects.get(pk=cash_id)
+        except Cash.DoesNotExist:
+            return Response({'error': 'Cash not found'}, status=status.HTTP_404_NOT_FOUND)
+        if cash_check.contact_id != request.user.pk and not request.user.is_staff:
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        result = spreedly_refund(int(cash_id), amount_cents)
+        txn = result.get('transaction', {})
+
+        cash = Cash.objects.get(pk=cash_id)
+        return Response({
+            'cash_id': cash.id,
+            'status': cash.status,
+            'message': txn.get('message', ''),
+        })
+
+    except SpreedlyError as e:
+        return Response({'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+    except Exception as e:
+        logger.error(f"Error refunding cash: {e}")
+        return Response({'error': 'Refund failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@csrf_exempt
+@require_POST
+def spreedly_webhook(request):
+    """Handle Spreedly webhook/callback events.
+
+    Spreedly sends transaction lifecycle events. We verify by retrieving
+    the transaction from Spreedly's API using our access credentials,
+    rather than trusting the webhook body. This ensures the state change
+    is authentic regardless of who sent the request.
+    """
+    try:
+        webhook_data = json.loads(request.body.decode('utf-8'))
+        txn = webhook_data.get('transaction', {})
+        txn_token = txn.get('token', '')
+
+        if not txn_token:
+            return JsonResponse({'error': 'No transaction token'}, status=400)
+
+        try:
+            cash = Cash.objects.get(gateway_transaction_id=txn_token)
+        except Cash.DoesNotExist:
+            logger.warning(f"Spreedly webhook: no cash for token {txn_token}")
+            return JsonResponse({'status': 'ignored'})
+
+        # Verify by fetching the transaction from Spreedly's API.
+        # Do not trust the webhook body for state changes.
+        try:
+            from apps.transactions.services.cash.spreedly_gateway import SpreedlyService
+            svc = SpreedlyService()
+            verified_txn = svc.show_transaction(txn_token)
+            state = verified_txn.get('transaction', {}).get('state', '')
+        except Exception as verify_err:
+            logger.error(f"Spreedly webhook: could not verify transaction {txn_token}: {verify_err}")
+            return JsonResponse({'error': 'Verification failed'}, status=502)
+
+        if state == 'succeeded' and cash.status != 'completed':
+            cash.status = 'completed'
+            from django.utils import timezone as tz
+            cash.dt_processed = tz.now()
+            cash.add_audit_entry('webhook_confirmed', {'state': state, 'token': txn_token, 'verified': True})
+            cash.save()
+        elif state in ('failed', 'gateway_processing_failed'):
+            cash.status = 'failed'
+            cash.gateway_response = {'message': verified_txn.get('transaction', {}).get('message', ''), 'state': state}
+            cash.save()
+
+        return JsonResponse({'status': 'ok'})
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Spreedly webhook error: {e}")
+        return JsonResponse({'error': 'Webhook processing failed'}, status=500)
+
+
+# Legacy webhook aliases — redirect to Spreedly
+stripe_webhook = spreedly_webhook
+paypal_webhook = spreedly_webhook
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def cash_status(request, cash_id):
+    """Get cash status"""
+    try:
+        cash = get_object_or_404(Cash, pk=cash_id)
+
+        # Check if user has permission to view this cash
+        if cash.contact_id != request.user.pk and not request.user.is_staff:
+            return Response(
+                {'error': 'Permission denied'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        return Response({
+            'cash_id': cash.id,
+            'status': cash.status,
+            'amount': cash.amount,
+            'gateway': cash.gateway,
+            'gateway_transaction_id': cash.gateway_transaction_id,
+            'processed_at': cash.dt_processed,
+            'reconciled': cash.reconciled
+        })
+
+    except Cash.DoesNotExist:
+        return Response(
+            {'error': 'Cash not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"Error getting cash status: {e}")
+        return Response(
+            {'error': 'Failed to get cash status'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def cash_history(request):
+    """Get cash history for the authenticated user"""
+    try:
+        cash_entries = Cash.objects.filter(contact_id=request.user.pk).order_by('-dt_created')
+
+        # Paginate if needed
+        page = request.query_params.get('page', 1)
+        per_page = request.query_params.get('per_page', 20)
+
+        start = (int(page) - 1) * int(per_page)
+        end = start + int(per_page)
+
+        cash_entries_page = cash_entries[start:end]
+
+        data = []
+        for cash in cash_entries_page:
+            data.append({
+                'id': cash.id,
+                'invoice_id': cash.invoice.pk if cash.invoice else None,
+                'amount': cash.amount,
+                'status': cash.status,
+                'gateway': cash.gateway,
+                'created_at': cash.dt_created,
+                'processed_at': cash.dt_processed
+            })
+
+        return Response({
+            'cash_entries': data,
+            'total_count': cash_entries.count(),
+            'page': page,
+            'per_page': per_page
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting cash history: {e}")
+        return Response(
+            {'error': 'Failed to get cash history'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def gateway_config(request):
+    """Return public gateway configuration for client-side SDK.
+
+    Only exposes the environment_key (public, safe for iframes)
+    and test_mode flag. NEVER exposes access_secret.
+    """
+    from apps.core.models import Setting
+    try:
+        setting = Setting.objects.get(purpose='wc:cash_gateway', is_active=True)
+        config = setting.config or {}
+        spreedly = config.get('spreedly', {})
+        gateway_response = {
+            'environment_key': spreedly.get('environment_key', ''),
+            'test_mode': config.get('test_mode', True),
+            'active_gateway_type': config.get('active_gateway_type', ''),
+            'currency': config.get('currency', 'USD'),
+        }
+    except Setting.DoesNotExist:
+        gateway_response = {
+            'environment_key': '',
+            'test_mode': True,
+            'active_gateway_type': '',
+            'currency': 'USD',
+        }
+
+    # Include dual pricing config (public fields only — no GL accounts)
+    dp_config = get_dual_pricing_config()
+    gateway_response['dual_pricing'] = {
+        'enabled': dp_config.get('enabled', False),
+        'card_rate': dp_config.get('card_rate', 0),
+        'disclosure_text': dp_config.get('disclosure_text', '').replace(
+            '{rate}', f'{dp_config.get("card_rate", 0):.1f}'
+        ),
+        'exempt_methods': dp_config.get('exempt_methods', []),
+    }
+
+    return Response(gateway_response)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def checkout_pricing(request, invoice_id):
+    """Return dual pricing options for an invoice at checkout.
+
+    GET /api/cash/checkout-pricing/<invoice_id>/
+
+    Returns both cash and card totals so the checkout UI can display
+    two cash options with the appropriate disclosure text.
+    """
+    invoice = get_object_or_404(Invoice, pk=invoice_id)
+    totals = getattr(invoice, 'totals', None) or {}
+    projection = compute_dual_pricing(totals)
+    return Response({
+        'invoice_id': invoice.id,
+        'totals': {
+            'subtotal': totals.get('subtotal', 0),
+            'tax': totals.get('tax', 0),
+            'shipping': totals.get('shipping', 0),
+        },
+        'dual_pricing': projection,
+    })
+
+
+class CashViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for Cash. Writes go through /wcapi/save/."""
+
+    queryset = Cash.objects.active()
+    serializer_class = CashSerializer
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'cash'
+
+    @action(detail=True, methods=['get'])
+    def status(self, request, pk=None):
+        """Get detailed cash status."""
+        cash = self.get_object()
+
+        # Invoices this cash was applied to — read from Pending application records
+        from apps.core.models.pending import Pending
+        from apps.transactions.services.cash.cash_pending import CASH_PURPOSE
+        rows = (Pending.objects.filter(purpose=CASH_PURPOSE, changes__cash_id=cash.pk)
+                .order_by('-dt_created').values('id', 'changes', 'dt_processed'))
+        invoice_totals = {i.pk: (i.totals or {}) for i in Invoice.objects.filter(
+            pk__in={r['changes'].get('invoice_id') for r in rows})}
+        invoice_statuses = [
+            {
+                'pending_id': r['id'],
+                'invoice_id': r['changes'].get('invoice_id'),
+                'amount': r['changes'].get('amount'),
+                'state': r['changes'].get('state', 'pending'),
+                'invoice_total': invoice_totals.get(r['changes'].get('invoice_id'), {}).get('total'),
+                'invoice_balance': invoice_totals.get(r['changes'].get('invoice_id'), {}).get('balance'),
+            }
+            for r in rows
+        ]
+
+        return Response({
+            'cash_id': cash.id,
+            'status': cash.status,
+            'amount': cash.amount,
+            'gateway': cash.gateway,
+            'reconciled': cash.reconciled,
+            'refs': cash.refs,
+            'metadata': cash.metadata,
+            'invoice_statuses': invoice_statuses,
+            'dt_created': cash.dt_created,
+            'dt_modified': cash.dt_modified
+        })
+
+    @action(detail=False, methods=['post'])
+    def process_gateway_cash(self, request):
+        """Process a cash entry through gateway (alternative to function-based view)."""
+        return process_cash(request)

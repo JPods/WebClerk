@@ -1,0 +1,141 @@
+{
+  "_meta": {
+    "model": "requisition",
+    "description": "Sample internal purchase requisition for report parade — maintenance department supplies",
+    "version": 1
+  },
+  "ida": "REQ-2026-0088",
+  "status": "pending_approval",
+  "dt_created": 1785542400000,
+  "attention": "Tom Kowalski",
+  "company": "Maintenance Department",
+  "department": "Facilities — Building A",
+  "requestor": "Tom Kowalski",
+  "approver": "Linda Chen, Director of Operations",
+  "comments": {
+    "public": "Quarterly restock for preventive maintenance program. Filter replacements are past due — HVAC units 3 and 7 running on backup filters. Bearing grease needed before August shutdown schedule.",
+    "internal": "Budget code 4200-MNT. Approved in Q3 maintenance plan."
+  },
+  "config": {
+    "deliver_to": "Building A — Maintenance Shop, Room B-14",
+    "needed_by": 1786147200000,
+    "budget_code": "4200-MNT-Q3",
+    "suggested_vendor": "Grainger Industrial Supply"
+  },
+  "source": {},
+  "refs": {},
+  "sell": {},
+  "cost": {},
+  "finance": {},
+  "flow": {},
+  "metadata": {},
+  "totals": {
+    "total": 2847.60
+  },
+  "lines": [
+    {
+      "line_number": 1,
+      "item": {
+        "ida_item": "FLT-MERV13-20x25",
+        "description": "MERV-13 Pleated Air Filter, 20x25x4 (HVAC Units 3, 7)",
+        "uom": "Case/6"
+      },
+      "quantity": {"staged": 4},
+      "cost": {
+        "unit": 89.40,
+        "extended": 357.60
+      }
+    },
+    {
+      "line_number": 2,
+      "item": {
+        "ida_item": "BRG-MOBIL-EP2",
+        "description": "Mobilgrease XHP 222 Bearing Grease, 14oz Cartridge",
+        "uom": "Case/10"
+      },
+      "quantity": {"staged": 3},
+      "cost": {
+        "unit": 124.50,
+        "extended": 373.50
+      }
+    },
+    {
+      "line_number": 3,
+      "item": {
+        "ida_item": "BLT-5VX-1000",
+        "description": "Gates 5VX1000 Cogged V-Belt (Blower Motor)",
+        "uom": "Each"
+      },
+      "quantity": {"staged": 6},
+      "cost": {
+        "unit": 38.75,
+        "extended": 232.50
+      }
+    },
+    {
+      "line_number": 4,
+      "item": {
+        "ida_item": "LMP-LED-4FT-T8",
+        "description": "Philips LED T8 Tube, 4ft 18W 5000K Direct Fit",
+        "uom": "Case/25"
+      },
+      "quantity": {"staged": 2},
+      "cost": {
+        "unit": 287.50,
+        "extended": 575.00
+      }
+    },
+    {
+      "line_number": 5,
+      "item": {
+        "ida_item": "CLN-SF-5GAL",
+        "description": "Simple Green Industrial Cleaner/Degreaser, 5 Gallon Pail",
+        "uom": "Each"
+      },
+      "quantity": {"staged": 4},
+      "cost": {
+        "unit": 68.25,
+        "extended": 273.00
+      }
+    },
+    {
+      "line_number": 6,
+      "item": {
+        "ida_item": "PPE-GLOVE-LG",
+        "description": "Ansell HyFlex 11-800 Nitrile Coated Gloves, Large",
+        "uom": "Box/12 pair"
+      },
+      "quantity": {"staged": 10},
+      "cost": {
+        "unit": 42.90,
+        "extended": 429.00
+      }
+    },
+    {
+      "line_number": 7,
+      "item": {
+        "ida_item": "SEAL-PTFE-1/2",
+        "description": "PTFE Thread Seal Tape, 1/2\" x 520\" (Plumbing)",
+        "uom": "Box/10 rolls"
+      },
+      "quantity": {"staged": 3},
+      "cost": {
+        "unit": 18.50,
+        "extended": 55.50
+      }
+    },
+    {
+      "line_number": 8,
+      "item": {
+        "ida_item": "WD40-11OZ",
+        "description": "WD-40 Multi-Use Product, 11oz Smart Straw Spray",
+        "uom": "Case/12"
+      },
+      "quantity": {"staged": 2},
+      "cost": {
+        "unit": 275.75,
+        "extended": 551.50
+      }
+    }
+  ]
+}

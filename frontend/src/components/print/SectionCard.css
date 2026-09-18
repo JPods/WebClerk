@@ -1,0 +1,282 @@
+/**
+ * SectionCard.css — styles for the SectionCard component.
+ * Uses CSS custom properties from the nearest .db-root ancestor (set by DataBrowser.css).
+ * Font-size tiers set on .sc-root via --sc-fs, --sc-fs-sm, --sc-fs-xs.
+ */
+
+/* ---------------------------------------------------------------------------
+   Root card
+   --------------------------------------------------------------------------- */
+
+.sc-root {
+  border: 1px solid var(--db-border-light, #e9ecef);
+  border-radius: 4px;
+  margin-bottom: 4px;
+  background: var(--db-surface, #fff);
+  transition: opacity 0.1s, border-color 0.1s;
+}
+
+.sc-root--dragging {
+  border-color: #d97706;
+  background: var(--db-surface-alt, #f1f3f5);
+  opacity: 0.5;
+}
+
+/* ---------------------------------------------------------------------------
+   Header
+   --------------------------------------------------------------------------- */
+
+.sc-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sc-drag-grip {
+  color: var(--db-text-dim, #adb5bd);
+  font-size: var(--sc-fs-sm, 12px);
+  cursor: grab;
+}
+
+.sc-type-badge {
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: var(--sc-fs-xs, 11px);
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sc-expand-indicator {
+  color: var(--db-text-dim, #adb5bd);
+  font-size: var(--sc-fs-sm, 12px);
+  flex: 1;
+}
+
+.sc-delete-btn {
+  color: var(--db-text-dim, #adb5bd);
+  font-size: var(--sc-fs-sm, 12px);
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.sc-delete-btn:hover {
+  color: #e55;
+}
+
+/* ---------------------------------------------------------------------------
+   Body
+   --------------------------------------------------------------------------- */
+
+.sc-body {
+  padding: 0 8px 8px 28px;
+}
+
+.sc-body-inner {
+  padding: 4px 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Toggle
+   --------------------------------------------------------------------------- */
+
+.sc-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.sc-toggle-label {
+  font-size: var(--sc-fs-sm, 12px);
+  color: var(--db-text-muted, #6c757d);
+  width: 100px;
+}
+
+.sc-toggle-value {
+  cursor: pointer;
+  font-size: var(--sc-fs-sm, 12px);
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--db-border-light, #e9ecef);
+  user-select: none;
+  color: var(--db-text-dim, #adb5bd);
+}
+
+.sc-toggle-value--on {
+  color: var(--db-accent, #0d6efd);
+  border-color: var(--db-accent, #0d6efd);
+}
+
+/* ---------------------------------------------------------------------------
+   Inputs (source, label, preamble, etc.)
+   --------------------------------------------------------------------------- */
+
+.sc-input-label {
+  font-size: var(--sc-fs-sm, 12px);
+  color: var(--db-text-muted, #6c757d);
+}
+
+.sc-input-label--block {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.sc-input {
+  background: var(--db-bg, #f8f9fa);
+  color: var(--db-text, #212529);
+  border: 1px solid var(--db-border-light, #e9ecef);
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: var(--sc-fs-sm, 12px);
+}
+
+.sc-input--mono {
+  font-family: monospace;
+}
+
+.sc-input--bold {
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+   Signature blocks
+   --------------------------------------------------------------------------- */
+
+.sc-sig-block {
+  border: 1px solid var(--db-border-light, #e9ecef);
+  border-radius: 4px;
+  padding: 6px;
+  margin-bottom: 4px;
+}
+
+.sc-sig-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.sc-sig-line-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+
+.sc-sig-line-row .sc-input {
+  flex: 1;
+}
+
+/* ---------------------------------------------------------------------------
+   Address blocks
+   --------------------------------------------------------------------------- */
+
+.sc-addr-block {
+  border: 1px solid var(--db-border-light, #e9ecef);
+  border-radius: 4px;
+  padding: 6px;
+  margin-bottom: 6px;
+}
+
+.sc-addr-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+/* ---------------------------------------------------------------------------
+   Dismiss / action links
+   --------------------------------------------------------------------------- */
+
+.sc-remove-btn {
+  cursor: pointer;
+  color: var(--db-text-dim, #adb5bd);
+  font-size: var(--sc-fs-sm, 12px);
+}
+
+.sc-add-link {
+  cursor: pointer;
+  color: var(--db-accent, #0d6efd);
+  font-size: var(--sc-fs-sm, 12px);
+}
+
+/* ---------------------------------------------------------------------------
+   Field-list header row
+   --------------------------------------------------------------------------- */
+
+.sc-field-header {
+  display: grid;
+  gap: 4px;
+  padding: 0 0 3px 0;
+  font-size: var(--sc-fs-xs, 11px);
+  font-weight: 700;
+  color: var(--db-text-dim, #adb5bd);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--db-border, #dee2e6);
+}
+
+.sc-field-header--standard {
+  grid-template-columns: 18px 1fr 1fr 36px 70px 50px 20px;
+}
+
+.sc-field-header--with-style {
+  grid-template-columns: 18px 1fr 1fr 36px 70px 50px 40px 20px;
+}
+
+.sc-field-header-center {
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------------------
+   Add-field row
+   --------------------------------------------------------------------------- */
+
+.sc-add-field-row {
+  padding: 4px 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Section options (data_table group, totals left_text)
+   --------------------------------------------------------------------------- */
+
+.sc-options-column {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.sc-options-label {
+  font-size: var(--sc-fs-sm, 12px);
+  color: var(--db-text-muted, #6c757d);
+  display: block;
+  margin-top: 4px;
+}
+
+/* ---------------------------------------------------------------------------
+   No-content placeholder
+   --------------------------------------------------------------------------- */
+
+.sc-no-content {
+  font-size: var(--sc-fs-sm, 12px);
+  color: var(--db-text-dim, #adb5bd);
+  padding: 4px;
+}
+
+/* ---------------------------------------------------------------------------
+   Source / comments layout
+   --------------------------------------------------------------------------- */
+
+.sc-source-column {
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

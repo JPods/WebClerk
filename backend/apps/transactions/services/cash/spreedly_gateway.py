@@ -1,0 +1,306 @@
+"""Cash gateway integration via Spreedly.
+
+Spreedly is a universal payment aggregator. One integration, 100+ gateways.
+Users configure their own gateway (Stripe, PayPal, Braintree, etc.) in Settings.
+WC3 talks to Spreedly; Spreedly talks to the gateway.
+
+TOKEN RULE (established 2026-08-05):
+  WC3 stores ONLY: gateway reference ID (pm_xxx), last4, brand, exp.
+  NEVER: card number, CVV, full token, or anything replayable.
+  The gateway's client-side SDK (iframe) collects card data.
+  Our HTML/JS never touches card data. Token in a token.
+"""
+
+import logging
+import requests
+from decimal import Decimal
+from django.utils import timezone
+
+logger = logging.getLogger(__name__)
+
+
+class SpreedlyService:
+    """Universal cash gateway via Spreedly."""
+
+    BASE = "https://core.spreedly.com/v1"
+
+    def __init__(self, env_key: str, access_secret: str, gateway_token: str):
+        self.env_key = env_key
+        self.access_secret = access_secret
+        self.gateway_token = gateway_token
+
+    @classmethod
+    def from_gateway(cls, gateway_name: str = ''):
+        """Build from a gateway entry in the cash_gateway Setting.
+
+        Looks up the named gateway in config.gateway[], follows connection_id
+        to a Connection record that holds Spreedly credentials.
+        If no name given, uses the first Spreedly-type gateway found.
+        """
+        from apps.core.models.setting import Setting
+        try:
+            setting = Setting.objects.get(purpose='wc:cash_gateway')
+        except Setting.DoesNotExist:
+            raise RuntimeError("No cash_gateway Setting found. Run: manage.py seed_cash_gateway")
+
+        cfg = setting.config or {}
+        gateways = cfg.get('gateway', [])
+
+        entry = None
+        for gw in gateways:
+            if gateway_name and gw.get('name') == gateway_name:
+                entry = gw
+                break
+            if not gateway_name and gw.get('type') == 'spreedly':
+                entry = gw
+                break
+
+        if not entry or entry.get('type') != 'spreedly':
+            raise RuntimeError("No Spreedly gateway configured")
+
+        conn_id = entry.get('connection_id')
+        if not conn_id:
+            raise RuntimeError(
+                f"Gateway '{entry['name']}' has no connection_id — "
+                "configure a Connection with Spreedly credentials"
+            )
+
+        from apps.sync.models.connection import Connection
+        try:
+            conn = Connection.objects.get(pk=conn_id, is_active=True)
+        except Connection.DoesNotExist:
+            raise RuntimeError(f"Connection {conn_id} not found or inactive")
+
+        conn_cfg = conn.config or {}
+        spreedly = conn_cfg.get('spreedly', {})
+        env_key = spreedly.get('environment_key', '')
+        access_secret = spreedly.get('access_secret', '')
+        gateway_token = spreedly.get('gateway_token', '')
+
+        if not env_key or not access_secret:
+            raise RuntimeError("Spreedly credentials not configured in Connection")
+        if not gateway_token:
+            raise RuntimeError("No gateway_token configured in Connection")
+
+        return cls(env_key, access_secret, gateway_token)
+
+    @classmethod
+    def from_settings(cls):
+        """Backward-compatible wrapper — delegates to from_gateway()."""
+        return cls.from_gateway()
+
+    def _request(self, method: str, path: str, body: dict | None = None) -> dict:
+        """Make authenticated request to Spreedly API."""
+        resp = requests.request(
+            method,
+            f"{self.BASE}{path}",
+            auth=(self.env_key, self.access_secret),
+            json=body,
+            headers={"Content-Type": "application/json"},
+            timeout=30,
+        )
+        data = resp.json()
+        if resp.status_code >= 400:
+            errors = data.get('errors', [])
+            msg = errors[0].get('message', resp.text) if errors else resp.text
+            logger.error(f"Spreedly {method} {path} → {resp.status_code}: {msg}")
+            raise SpreedlyError(msg, status_code=resp.status_code, response=data)
+        return data
+
+    # ── Transactions ─────────────────────────────────────────────────
+
+    def purchase(self, payment_method_token: str, amount_cents: int,
+                 currency: str = "USD", order_id: str = "",
+                 retain: bool = True) -> dict:
+        """Authorize + capture in one step."""
+        body = {
+            "transaction": {
+                "payment_method_token": payment_method_token,
+                "amount": amount_cents,
+                "currency_code": currency,
+                "order_id": order_id,
+                "retain_on_success": retain,
+            }
+        }
+        return self._request("POST", f"/gateways/{self.gateway_token}/purchase.json", body)
+
+    def authorize(self, payment_method_token: str, amount_cents: int,
+                  currency: str = "USD", order_id: str = "",
+                  retain: bool = True) -> dict:
+        """Authorize only — capture later."""
+        body = {
+            "transaction": {
+                "payment_method_token": payment_method_token,
+                "amount": amount_cents,
+                "currency_code": currency,
+                "order_id": order_id,
+                "retain_on_success": retain,
+            }
+        }
+        return self._request("POST", f"/gateways/{self.gateway_token}/authorize.json", body)
+
+    def capture(self, transaction_token: str, amount_cents: int | None = None) -> dict:
+        """Capture a prior authorization. Omit amount for full capture."""
+        body = {"transaction": {}}
+        if amount_cents is not None:
+            body["transaction"]["amount"] = amount_cents
+        return self._request("POST", f"/transactions/{transaction_token}/capture.json", body)
+
+    def void(self, transaction_token: str) -> dict:
+        """Void a transaction before settlement."""
+        return self._request("POST", f"/transactions/{transaction_token}/void.json")
+
+    def credit(self, transaction_token: str, amount_cents: int | None = None) -> dict:
+        """Refund after settlement. Omit amount for full refund."""
+        body = {"transaction": {}}
+        if amount_cents is not None:
+            body["transaction"]["amount"] = amount_cents
+        return self._request("POST", f"/transactions/{transaction_token}/credit.json", body)
+
+    def refund(self, transaction_token: str, amount_cents: int | None = None) -> dict:
+        """Try void first, fall back to credit."""
+        try:
+            return self.void(transaction_token)
+        except SpreedlyError:
+            return self.credit(transaction_token, amount_cents)
+
+    # ── Gateway management ───────────────────────────────────────────
+
+    def add_gateway(self, gateway_type: str, credentials: dict) -> dict:
+        """Add a cash gateway (Stripe, PayPal, etc.)."""
+        body = {"gateway": {"gateway_type": gateway_type, **credentials}}
+        return self._request("POST", "/gateways.json", body)
+
+    def list_gateways(self) -> dict:
+        """List all configured gateways."""
+        return self._request("GET", "/gateways.json")
+
+    # ── Cash method info ──────────────────────────────────────────
+
+    def get_payment_method(self, pm_token: str) -> dict:
+        """Retrieve Spreedly payment method details (never returns full card number)."""
+        return self._request("GET", f"/payment_methods/{pm_token}.json")
+
+    def retain_payment_method(self, pm_token: str) -> dict:
+        """Retain (vault) a Spreedly payment method for future use."""
+        return self._request("PUT", f"/payment_methods/{pm_token}/retain.json")
+
+    def redact_payment_method(self, pm_token: str) -> dict:
+        """Permanently remove a Spreedly payment method from the vault."""
+        return self._request("PUT", f"/payment_methods/{pm_token}/redact.json")
+
+
+class SpreedlyError(Exception):
+    def __init__(self, message: str, status_code: int = 0, response: dict | None = None):
+        super().__init__(message)
+        self.status_code = status_code
+        self.response = response or {}
+
+
+# ── Helper: process a WC3 Cash record ─────────────────────────────
+
+def process_cash(cash_id: int, payment_method_token: str) -> dict:
+    """Process a Cash record through Spreedly.
+
+    Called from the cash UI after the client-side SDK returns a token.
+    The token is a reference to a card vaulted in Spreedly — WC3 never saw
+    the card number.
+
+    Returns the Spreedly transaction result.
+    """
+    from apps.transactions.models import Cash
+
+    cash = Cash.objects.get(pk=cash_id)
+    svc = SpreedlyService.from_settings()
+
+    amount_cents = int(cash.amount * 100)
+    order_id = f"wc3-{cash.id}"
+
+    cash.gateway = 'spreedly'
+    cash.status = 'processing'
+    cash.save(update_fields=['gateway', 'status'])
+
+    try:
+        result = svc.purchase(payment_method_token, amount_cents, order_id=order_id)
+        txn = result.get('transaction', {})
+        pm = txn.get('payment_method', {})
+
+        cash.gateway_transaction_id = txn.get('token', '')
+        cash.gateway_payment_intent_id = txn.get('gateway_transaction_id', '')
+        cash.dt_processed = timezone.now()
+
+        # Token-in-a-token: store only the reference, last4, brand
+        cash.refs = cash.refs or {}
+        cash.refs['card'] = {
+            'pm_token': pm.get('token', ''),
+            'last4': pm.get('last_four_digits', ''),
+            'brand': pm.get('card_type', ''),
+            'exp_month': pm.get('month', ''),
+            'exp_year': pm.get('year', ''),
+            'fingerprint': pm.get('fingerprint', ''),
+        }
+
+        if txn.get('succeeded'):
+            cash.status = 'completed'
+            cash.gateway_response = {
+                'spreedly_token': txn.get('token', ''),
+                'gateway_transaction_id': txn.get('gateway_transaction_id', ''),
+                'message': txn.get('message', ''),
+                'succeeded': True,
+            }
+            cash.add_audit_entry('gateway_cash_completed', {
+                'gateway': 'spreedly',
+                'transaction_token': txn.get('token', ''),
+                'amount_cents': amount_cents,
+            })
+        else:
+            cash.status = 'failed'
+            cash.gateway_response = {
+                'succeeded': False,
+                'message': txn.get('message', 'Transaction failed'),
+            }
+
+        cash.save()
+        logger.info(f"Cash {cash.id} processed via Spreedly: {cash.status}")
+        return result
+
+    except SpreedlyError as e:
+        cash.status = 'failed'
+        cash.gateway_response = {'succeeded': False, 'message': str(e)}
+        cash.save(update_fields=['status', 'gateway_response'])
+        logger.error(f"Cash {cash.id} failed via Spreedly: {e}")
+        raise
+
+
+def refund_cash(cash_id: int, amount_cents: int | None = None) -> dict:
+    """Refund a completed Cash through Spreedly.
+
+    Tries void first (pre-settlement), falls back to credit (post-settlement).
+    """
+    from apps.transactions.models import Cash
+
+    cash = Cash.objects.get(pk=cash_id)
+    if not cash.gateway_transaction_id:
+        raise ValueError("Cash has no gateway transaction to refund")
+
+    svc = SpreedlyService.from_settings()
+    result = svc.refund(cash.gateway_transaction_id, amount_cents)
+
+    txn = result.get('transaction', {})
+    if txn.get('succeeded'):
+        if amount_cents and amount_cents < int(cash.amount * 100):
+            cash.status = 'partially_refunded'
+        else:
+            cash.status = 'refunded'
+        cash.add_audit_entry('gateway_refund', {
+            'refund_token': txn.get('token', ''),
+            'amount_cents': amount_cents or int(cash.amount * 100),
+        })
+    else:
+        cash.add_audit_entry('gateway_refund_failed', {
+            'message': txn.get('message', ''),
+        })
+
+    cash.save()
+    logger.info(f"Cash {cash.id} refund: {cash.status}")
+    return result

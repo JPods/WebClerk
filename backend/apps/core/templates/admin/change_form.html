@@ -1,0 +1,164 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{% block submit_buttons_bottom %}
+<div class="submit-row" style="display: flex; justify-content: space-between; align-items: center;">
+    {# WCAPI buttons on left - green #}
+    <div>
+        <input type="button" id="wcapi-save" value="WCAPI Save" class="default" style="background: #28a745; border-color: #28a745;">
+        <input type="button" id="wcapi-save-continue" value="WCAPI Save & Continue" style="background: #28a745; border-color: #28a745; margin-left: 5px;">
+    </div>
+    
+    {# Standard Django buttons and delete on right #}
+    <div>
+        <input type="submit" value="{% translate 'Save' %}" class="default" name="_save" style="background: #417690;">
+        {% if show_save_and_add_another %}<input type="submit" value="{% translate 'Save and add another' %}" name="_addanother">{% endif %}
+        {% if show_save_and_continue %}<input type="submit" value="{% translate 'Save and continue editing' %}" name="_continue">{% endif %}
+        <input type="button" id="delete-btn" value="DELETE" style="background: #ba2121; color: white; border-color: #ba2121; margin-left: 10px;">
+    </div>
+</div>
+
+<script>
+(function() {
+    // Get model info from URL path: /admin/app_label/model_name/id/change/
+    const pathParts = window.location.pathname.split('/').filter(p => p);
+    const appLabel = pathParts[1] || '';
+    const modelName = pathParts[2] || '';
+    const objectId = pathParts[3] || '';
+    
+    // Only enable wcapi buttons on change pages (not add)
+    const isAddPage = !objectId || objectId === 'add';
+    
+    const wcapiSaveBtn = document.getElementById('wcapi-save');
+    const wcapiContinueBtn = document.getElementById('wcapi-save-continue');
+    const deleteBtn = document.getElementById('delete-btn');
+    
+    if (isAddPage) {
+        if (wcapiSaveBtn) wcapiSaveBtn.style.display = 'none';
+        if (wcapiContinueBtn) wcapiContinueBtn.style.display = 'none';
+        if (deleteBtn) deleteBtn.style.display = 'none';
+    } else {
+        // Wire up delete button
+        if (deleteBtn) {
+            const deleteUrl = window.location.pathname.replace('/change/', '/delete/');
+            deleteBtn.addEventListener('click', () => {
+                window.location.href = deleteUrl;
+            });
+        }
+    }
+    
+    if (isAddPage) return;
+    
+    async function doWcapiSave(reload) {
+        // Collect form data as JSON
+        const form = document.querySelector('#content-main form') || document.querySelector('form');
+        const formData = new FormData(form);
+        const payload = {};
+        
+        // First, find all checkboxes to handle unchecked ones (they're not in FormData)
+        const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+        const checkboxNames = new Set();
+        checkboxes.forEach(cb => {
+            if (cb.name && !cb.name.startsWith('_')) {
+                checkboxNames.add(cb.name);
+                // Default to false, will be set to true below if checked
+                payload[cb.name] = false;
+            }
+        });
+        
+        for (const [key, value] of formData.entries()) {
+            // Skip csrf and internal Django fields
+            if (key.startsWith('csrf') || key.startsWith('_') || key.startsWith('initial-')) continue;
+            
+            // Handle checkbox values - "on" means true
+            if (checkboxNames.has(key)) {
+                payload[key] = (value === 'on' || value === true || value === 'true');
+                continue;
+            }
+            
+            // Handle JSON fields - try to parse them
+            if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
+                try {
+                    payload[key] = JSON.parse(value);
+                } catch {
+                    payload[key] = value;
+                }
+            } else {
+                payload[key] = value;
+            }
+        }
+        
+        const url = `/wcapi/save/?model_name=${modelName}&id=${objectId}`;
+        const btn = reload ? wcapiSaveBtn : wcapiContinueBtn;
+        const origValue = btn.value;
+        
+        try {
+            btn.value = 'Saving...';
+            btn.disabled = true;
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(payload),
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.success !== false) {
+                // Show success message
+                const msgList = document.querySelector('.messagelist') || createMessageList();
+                const msg = document.createElement('li');
+                msg.className = 'success';
+                msg.textContent = `Saved via WCAPI: ${result.message || 'Success'}`;
+                msgList.appendChild(msg);
+                
+                if (reload) {
+                    // Go back to list
+                    setTimeout(() => {
+                        window.location.href = window.location.pathname.replace(/\/\d+\/change\/$/, '/');
+                    }, 500);
+                } else {
+                    // Stay on page, reload to show updated data
+                    setTimeout(() => window.location.reload(), 500);
+                }
+            } else {
+                const errMsg = result.error?.details || result.error?.message || result.message || result.detail || 'Unknown error';
+                alert(`WCAPI Error: ${errMsg}`);
+                btn.value = origValue;
+                btn.disabled = false;
+            }
+        } catch (err) {
+            alert(`WCAPI Error: ${err.message}`);
+            btn.value = origValue;
+            btn.disabled = false;
+        }
+    }
+    
+    function createMessageList() {
+        const ml = document.createElement('ul');
+        ml.className = 'messagelist';
+        const content = document.getElementById('content');
+        content.insertBefore(ml, content.firstChild);
+        return ml;
+    }
+    
+    if (wcapiSaveBtn) {
+        wcapiSaveBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            doWcapiSave(true);
+        });
+    }
+    
+    if (wcapiContinueBtn) {
+        wcapiContinueBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            doWcapiSave(false);
+        });
+    }
+})();
+</script>
+{% endblock %}

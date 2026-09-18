@@ -1,0 +1,134 @@
+{
+  "_meta": {
+    "model": "customer",
+    "description": "Sample customer aging report for report parade — list-style report with multiple customers across reps",
+    "version": 1
+  },
+  "report_type": "aging",
+  "dt_created": 1785542400000,
+  "as_of_date": 1785542400000,
+  "company": "Summit Distribution Group",
+  "title": "Accounts Receivable Aging Summary",
+  "lines": [
+    {
+      "ida": "PCBM-287",
+      "company": "Pacific Coast Building Materials",
+      "rep": "Karen Volz",
+      "aging": {
+        "current": 9395.97,
+        "past_1_30": 4210.00,
+        "past_31_60": 0.00,
+        "past_61": 0.00,
+        "balance_due": 13605.97
+      }
+    },
+    {
+      "ida": "RHS-142",
+      "company": "Ridgeline Hardware & Supply",
+      "rep": "Karen Volz",
+      "aging": {
+        "current": 4263.35,
+        "past_1_30": 0.00,
+        "past_31_60": 2180.50,
+        "past_61": 0.00,
+        "balance_due": 6443.85
+      }
+    },
+    {
+      "ida": "CNT-401",
+      "company": "Central Nebraska Tools & Fasteners",
+      "rep": "Karen Volz",
+      "aging": {
+        "current": 1875.00,
+        "past_1_30": 3620.40,
+        "past_31_60": 1450.00,
+        "past_61": 0.00,
+        "balance_due": 6945.40
+      }
+    },
+    {
+      "ida": "MWS-088",
+      "company": "Midwest Steel & Supply",
+      "rep": "David Okoye",
+      "aging": {
+        "current": 12450.00,
+        "past_1_30": 8340.75,
+        "past_31_60": 0.00,
+        "past_61": 0.00,
+        "balance_due": 20790.75
+      }
+    },
+    {
+      "ida": "HBR-312",
+      "company": "Harbor Point Marine Services",
+      "rep": "David Okoye",
+      "aging": {
+        "current": 0.00,
+        "past_1_30": 5120.00,
+        "past_31_60": 3890.25,
+        "past_61": 2415.00,
+        "balance_due": 11425.25
+      }
+    },
+    {
+      "ida": "GVL-177",
+      "company": "Greenville Contractors Warehouse",
+      "rep": "David Okoye",
+      "aging": {
+        "current": 7830.00,
+        "past_1_30": 0.00,
+        "past_31_60": 0.00,
+        "past_61": 0.00,
+        "balance_due": 7830.00
+      }
+    },
+    {
+      "ida": "ALP-503",
+      "company": "Alpine Plumbing & Heating Supply",
+      "rep": "Rachel Dunn",
+      "aging": {
+        "current": 3240.80,
+        "past_1_30": 1580.00,
+        "past_31_60": 0.00,
+        "past_61": 4750.60,
+        "balance_due": 9571.40
+      }
+    },
+    {
+      "ida": "LCC-205",
+      "company": "Lakeview Community Center",
+      "rep": "Rachel Dunn",
+      "aging": {
+        "current": 4925.00,
+        "past_1_30": 0.00,
+        "past_31_60": 0.00,
+        "past_61": 0.00,
+        "balance_due": 4925.00
+      }
+    },
+    {
+      "ida": "TRC-619",
+      "company": "Tri-County Rental & Equipment",
+      "rep": "Rachel Dunn",
+      "aging": {
+        "current": 0.00,
+        "past_1_30": 6780.00,
+        "past_31_60": 4250.00,
+        "past_61": 3190.50,
+        "balance_due": 14220.50
+      }
+    },
+    {
+      "ida": "PKR-044",
+      "company": "Parker Industrial Coatings",
+      "rep": "David Okoye",
+      "aging": {
+        "current": 2890.00,
+        "past_1_30": 2890.00,
+        "past_31_60": 1445.00,
+        "past_61": 0.00,
+        "balance_due": 7225.00
+      }
+    }
+  ]
+}

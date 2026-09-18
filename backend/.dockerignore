@@ -1,0 +1,21 @@
+.git
+.env
+venv/
+__pycache__
+*.pyc
+node_modules/
+.DS_Store
+logs/
+uploads/
+*_backup_*.json
+tools/dev-config.json
+tools/.sync_status.json
+# Data and credentials — never bake into images (2026-09-15)
+backups/
+git_bypass/
+*.dump
+*_full_*.json
+.env.*
+!.env.template
+* 2.*
+venv_*/

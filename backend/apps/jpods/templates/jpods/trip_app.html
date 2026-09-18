@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>JPods</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0a0e1a;
+      --surface: #141929;
+      --border:  #2a3350;
+      --text:    #e8edf8;
+      --muted:   #7a87a8;
+      --green:   #3ddb6b;
+      --amber:   #f0b429;
+      --red:     #f45b5b;
+      --radius:  12px;
+    }
+
+    html, body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #app {
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+    .logo {
+      font-size: 28px;
+      line-height: 1;
+    }
+    .logo-text  { font-size: 22px; font-weight: 700; }
+    .logo-sub   { font-size: 12px; color: var(--muted); }
+
+    /* Form fields */
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    select {
+      width: 100%;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 17px;
+      font-family: inherit;
+      padding: 14px 16px;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a87a8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      cursor: pointer;
+      margin-bottom: 20px;
+      transition: border-color 0.15s;
+    }
+    select:focus { outline: none; border-color: var(--green); }
+    select option { background: #1c2338; }
+
+    /* Price display */
+    #price-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 8px 0 20px;
+      display: none;
+    }
+    #price-box.visible { display: block; }
+
+    .price-amount {
+      font-size: 38px;
+      font-weight: 700;
+      color: var(--amber);
+      letter-spacing: -1px;
+    }
+    .price-level {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* Travel button */
+    #travel-btn {
+      width: 100%;
+      background: var(--green);
+      color: #0a0e1a;
+      border: none;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 18px;
+      cursor: pointer;
+      display: none;
+      transition: opacity 0.15s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #travel-btn.visible { display: block; }
+    #travel-btn:active  { transform: scale(0.98); }
+    #travel-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Confirmation */
+    #confirm-box {
+      background: rgba(61, 219, 107, 0.08);
+      border: 1px solid var(--green);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-top: 20px;
+      display: none;
+    }
+    #confirm-box.visible { display: block; }
+
+    .confirm-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--green);
+      margin-bottom: 12px;
+    }
+    .confirm-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      padding: 6px 0;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .confirm-row span:last-child { color: var(--text); font-weight: 500; }
+
+    #new-trip-btn {
+      width: 100%;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 16px;
+      padding: 14px;
+      cursor: pointer;
+      margin-top: 14px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Warning */
+    #warn-msg {
+      background: rgba(240, 180, 41, 0.1);
+      border: 1px solid var(--amber);
+      border-radius: var(--radius);
+      color: var(--amber);
+      font-size: 14px;
+      padding: 12px 14px;
+      margin-top: 4px;
+      display: none;
+    }
+    #warn-msg.visible { display: block; }
+
+    /* Error */
+    #error-msg {
+      color: var(--red);
+      font-size: 14px;
+      margin-top: 12px;
+      display: none;
+    }
+    #error-msg.visible { display: block; }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(10,14,26,0.3);
+      border-top-color: #0a0e1a;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <div class="header">
+    <div class="logo">🚁</div>
+    <div>
+      <div class="logo-text">JPods</div>
+      <div class="logo-sub">Personal Rapid Transit</div>
+    </div>
+  </div>
+
+  <label for="network">Network</label>
+  <select id="network">
+    <option value="sketchup">SketchUp</option>
+    <option value="physical">Physical</option>
+    <option value="route-time">Route-Time</option>
+  </select>
+
+  <label for="rider">Who are you?</label>
+  <select id="rider" onchange="onRiderChange()">
+    <option value="">Select rider…</option>
+    <option value="Child">Child</option>
+    <option value="Adult">Adult</option>
+    <option value="Elderly">Elderly</option>
+  </select>
+
+  <label for="origin">From</label>
+  <select id="origin" onchange="onOriginChange()">
+    <option value="">Select station…</option>
+  </select>
+
+  <label for="destination">To</label>
+  <select id="destination" onchange="onDestinationChange()">
+    <option value="">Select station…</option>
+  </select>
+
+  <div id="price-box">
+    <div class="price-amount" id="price-amount"></div>
+    <div class="price-level"  id="price-level"></div>
+  </div>
+
+  <div id="warn-msg"></div>
+  <div id="error-msg"></div>
+
+  <button id="travel-btn" onclick="doTravel()">Travel</button>
+
+  <div id="confirm-box">
+    <div class="confirm-title">🚁 Pod Dispatched!</div>
+    <div class="confirm-row"><span>Rider</span>     <span id="c-rider"></span></div>
+    <div class="confirm-row"><span>Route</span>     <span id="c-route"></span></div>
+    <div class="confirm-row"><span>Fare</span>      <span id="c-fare"></span></div>
+    <div class="confirm-row"><span>Invoice</span>   <span id="c-invoice"></span></div>
+    <div class="confirm-row"><span>Trip ID</span>   <span id="c-trip"></span></div>
+    <div class="confirm-row" id="c-time-row" style="display:none"><span>Est. time</span> <span id="c-time"></span></div>
+    <button id="new-trip-btn" onclick="reset()">New Trip</button>
+  </div>
+
+</div>
+<script>
+const API = "/wcapi/jpods/ui";
+
+const state = {
+  token:      null,
+  contactId:  null,
+  stations:   [],
+  pairs:      [],
+  priceData:  null,
+};
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", loadStations);
+
+async function loadStations() {
+  const res  = await fetch(`${API}/stations/`);
+  const data = await res.json();
+  state.stations = data.stations || [];
+  state.pairs    = data.pairs    || [];
+  populateOrigin();
+}
+
+// ── Rider select ──────────────────────────────────────────────────────────────
+async function onRiderChange() {
+  const nameFirst = document.getElementById("rider").value;
+  state.token = null;
+  state.priceData = null;
+  clearPrice();
+
+  if (!nameFirst) return;
+
+  const res  = await fetch(`${API}/identify/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name_first: nameFirst }),
+  });
+  const data = await res.json();
+
+  if (!res.ok) { showError(data.error || "Rider not found"); return; }
+
+  state.token     = data.token;
+  state.contactId = data.contact_id;
+  clearError();
+  tryFetchPrice();
+}
+
+// ── Station selects ───────────────────────────────────────────────────────────
+function populateOrigin() {
+  const origins = [...new Set(state.pairs.map(p => p[0]))].sort();
+  const sel = document.getElementById("origin");
+  sel.innerHTML = `<option value="">Select station…</option>` +
+    origins.map(id => `<option value="${id}">${stationName(id)}</option>`).join("");
+}
+
+function onOriginChange() {
+  const origin = document.getElementById("origin").value;
+  const dests  = state.pairs.filter(p => p[0] === origin).map(p => p[1]).sort();
+  const sel    = document.getElementById("destination");
+  sel.innerHTML = `<option value="">Select destination…</option>` +
+    dests.map(id => `<option value="${id}">${stationName(id)}</option>`).join("");
+  clearPrice();
+  document.getElementById("warn-msg").classList.remove("visible");
+}
+
+function onDestinationChange() {
+  clearPrice();
+  const origin = document.getElementById("origin").value;
+  const dest   = document.getElementById("destination").value;
+  const warn   = document.getElementById("warn-msg");
+  if (origin && dest && origin === dest) {
+    warn.textContent = "Note: you are making a trip and returning to the same station.";
+    warn.classList.add("visible");
+  } else {
+    warn.textContent = "";
+    warn.classList.remove("visible");
+  }
+  tryFetchPrice();
+}
+
+function stationName(id) {
+  return state.stations.find(s => s.id === id)?.name || id;
+}
+
+// ── Price ─────────────────────────────────────────────────────────────────────
+function tryFetchPrice() {
+  const rider  = document.getElementById("rider").value;
+  const origin = document.getElementById("origin").value;
+  const dest   = document.getElementById("destination").value;
+  if (rider && origin && dest && state.token) fetchPrice(origin, dest);
+}
+
+async function fetchPrice(origin, dest) {
+  const res  = await fetch(`${API}/price/`, {
+    method: "POST",
+    headers: {
+      "Content-Type":  "application/json",
+      "Authorization": `Bearer ${state.token}`,
+    },
+    body: JSON.stringify({ origin_station_id: origin, destination_station_id: dest }),
+  });
+  const data = await res.json();
+
+  if (!res.ok) { showError(data.error || "Could not get price"); return; }
+
+  state.priceData = data;
+  document.getElementById("price-amount").textContent = data.display;
+  document.getElementById("price-level").textContent  =
+    data.discount_applied ? `Discount: ${data.discount_applied}` : `${data.price_level} rate`;
+  document.getElementById("price-box").classList.add("visible");
+  document.getElementById("travel-btn").classList.add("visible");
+  clearError();
+}
+
+function clearPrice() {
+  state.priceData = null;
+  document.getElementById("price-box").classList.remove("visible");
+  document.getElementById("travel-btn").classList.remove("visible");
+  document.getElementById("confirm-box").classList.remove("visible");
+}
+
+// ── Travel ────────────────────────────────────────────────────────────────────
+async function doTravel() {
+  if (!state.priceData || !state.token) return;
+  const btn = document.getElementById("travel-btn");
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span>Dispatching…`;
+
+  const pd  = state.priceData;
+  const res = await fetch(`${API}/travel/`, {
+    method: "POST",
+    headers: {
+      "Content-Type":  "application/json",
+      "Authorization": `Bearer ${state.token}`,
+    },
+    body: JSON.stringify({
+      origin_station_id:      pd.origin_station_id,
+      destination_station_id: pd.destination_station_id,
+      price:                  pd.price,
+      currency:               pd.currency,
+      item_id:                pd.item_id,
+      price_level:            pd.price_level,
+      discount_applied:       pd.discount_applied,
+      network_id:             pd.network_id || "default",
+      dispatch_target:        document.getElementById("network").value,
+    }),
+  });
+  const data = await res.json();
+
+  btn.disabled = false;
+  btn.innerHTML = "Travel";
+
+  if (!res.ok) { showError(data.error || "Dispatch failed"); return; }
+
+  document.getElementById("c-rider").textContent   = data.contact_name;
+  document.getElementById("c-route").textContent   = `${data.origin_name} → ${data.destination_name}`;
+  document.getElementById("c-fare").textContent    = data.display;
+  document.getElementById("c-invoice").textContent = `#${data.invoice_id}`;
+  document.getElementById("c-trip").textContent    = data.trip_id;
+
+  if (data.travel_time_s) {
+    document.getElementById("c-time").textContent = `${data.travel_time_s} s (Route-Time est.)`;
+    document.getElementById("c-time-row").style.display = "flex";
+  } else {
+    document.getElementById("c-time-row").style.display = "none";
+  }
+  document.getElementById("confirm-box").classList.add("visible");
+  document.getElementById("travel-btn").classList.remove("visible");
+  clearError();
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+function reset() {
+  document.getElementById("rider").value = "";
+  document.getElementById("origin").value = "";
+  document.getElementById("destination").innerHTML = `<option value="">Select destination…</option>`;
+  state.token = null;
+  state.priceData = null;
+  clearPrice();
+  clearError();
+  document.getElementById("warn-msg").classList.remove("visible");
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function showError(msg) {
+  const el = document.getElementById("error-msg");
+  el.textContent = msg;
+  el.classList.add("visible");
+}
+function clearError() {
+  const el = document.getElementById("error-msg");
+  el.textContent = "";
+  el.classList.remove("visible");
+}
+</script>
+</body>
+</html>

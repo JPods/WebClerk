@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <!-- Magnifying glass -->
+  <circle cx="20" cy="20" r="10" fill="none" stroke="#000" stroke-width="3"/>
+  <line x1="27" y1="27" x2="30" y2="30" stroke="#000" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,92 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import type React from "react";
+import type { FC } from "react";
+
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  type?: "text" | "number" | "email" | "password" | "date" | "time" | string;
+  id?: string;
+  name?: string;
+  placeholder?: string;
+  value?: string | number | readonly string[];
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  className?: string;
+  min?: string | number;
+  max?: string | number;
+  step?: number | string;
+  disabled?: boolean;
+  success?: boolean;
+  error?: boolean;
+  hint?: string;
+  ref?: React.Ref<HTMLInputElement>;
+}
+
+const Input: FC<InputProps> = ({
+  type = "text",
+  id,
+  name,
+  placeholder,
+  value,
+  onChange,
+  className = "",
+  min,
+  max,
+  step,
+  disabled = false,
+  success = false,
+  error = false,
+  hint,
+  ref,
+  ...rest
+}) => {
+  let inputClasses = `h-8 w-full rounded-lg border appearance-none px-4 py-2.5 text-xs shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 ${className}`;
+
+  if (disabled) {
+    inputClasses += ` text-gray-800 border-gray-300 opacity-40 bg-gray-100 cursor-not-allowed dark:bg-gray-800 dark:text-gray-800 dark:border-gray-700 opacity-80`;
+  } else if (error) {
+    inputClasses += ` border-error-500 focus:border-error-300 focus:ring-error-500/20 dark:text-error-400 dark:border-error-500 dark:focus:border-error-800`;
+  } else if (success) {
+    inputClasses += ` border-success-500 focus:border-success-300 focus:ring-success-500/20 dark:text-success-400 dark:border-success-500 dark:focus:border-success-800`;
+  } else {
+    inputClasses += ` bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-blue-500/20 dark:border-gray-700 dark:text-white/90 dark:focus:border-brand-800`;
+  }
+
+  // Convert min/max to string if they're numbers (HTML input attributes expect strings)
+  const minValue = typeof min === "number" ? min.toString() : min;
+  const maxValue = typeof max === "number" ? max.toString() : max;
+
+  return (
+    <div className={`relative ${className}`}>
+      <input
+        type={type}
+        id={id}
+        name={name}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        min={minValue}
+        max={maxValue}
+        step={step}
+        disabled={disabled}
+        className={inputClasses}
+        ref={ref}
+        {...rest}
+      />
+
+      {hint && (
+        <p
+          className={`mt-1.5 text-xs ${
+            error
+              ? "text-error-500"
+              : success
+              ? "text-success-500"
+              : "text-gray-500"
+          }`}
+        >
+          {hint}
+        </p>
+      )}
+    </div>
+  );
+};
+
+export default Input;

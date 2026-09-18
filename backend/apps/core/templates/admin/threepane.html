@@ -1,0 +1,206 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-C47HwF27rEMGJg4zRChVnYX5ojjRfw5pfgsWiKYVwFnmPG5KH0uDsLk0W8nI2f7P" crossorigin="anonymous"></script>
+<script>
+  (function() {
+    function getCookie(name) {
+      const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith(name + '='));
+      return cookieValue ? decodeURIComponent(cookieValue.split('=')[1]) : null;
+    }
+
+    document.addEventListener('htmx:configRequest', function(event) {
+      const csrfToken = getCookie('csrftoken');
+      if (csrfToken) {
+        event.detail.headers['X-CSRFToken'] = csrfToken;
+      }
+    });
+  })();
+</script>
+{% endblock %}
+
+{% block content %}
+<style>
+  .tp-wrap { display: grid; grid-template-columns: 260px 1fr 1fr; gap: 12px; height: calc(100vh - 140px); }
+  .tp-col { border: 1px solid var(--hairline-color, #ddd); border-radius: 6px; overflow: auto; padding: 14px; background: var(--body-bg, #fff); display: flex; flex-direction: column; }
+  .tp-col h2 { margin: 0 0 12px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .tp-link { display: block; padding: 6px 8px; border-radius: 4px; text-decoration: none; color: inherit; margin-bottom: 2px; }
+  .tp-link:hover, .tp-link:focus { background: rgba(0,0,0,0.05); text-decoration: none; }
+  .tp-link.is-active { background: rgba(25, 103, 210, 0.12); color: rgb(25, 103, 210); font-weight: 600; }
+  .tp-placeholder { color: var(--body-quiet-color, #777); font-size: 13px; }
+  @media (max-width: 1200px) {
+    .tp-wrap { grid-template-columns: 1fr; height: auto; }
+    .tp-col { min-height: 220px; }
+  }
+</style>
+
+<div class="tp-wrap">
+  <div class="tp-col" id="tp-navigation" data-initial-app="{{ initial_app_label }}" data-initial-model="{{ initial_model_name }}">
+    <h2>{% trans "Apps" %}</h2>
+    {% for app in app_list %}
+      <div style="margin:10px 0 6px; font-weight:600;">{{ app.name }}</div>
+      {% for model in app.models %}
+        {% if model.perms.view or model.perms.change %}
+          {% if model.tp_app_label and model.tp_model_name %}
+            <a
+              class="tp-link{% if model.tp_app_label == initial_app_label and model.tp_model_name == initial_model_name %} is-active{% endif %}"
+              data-app-label="{{ model.tp_app_label }}"
+              data-model-name="{{ model.tp_model_name }}"
+              href="{% url 'admin:threepane_model_list' model.tp_app_label model.tp_model_name %}"
+              hx-get="{% url 'admin:threepane_model_list' model.tp_app_label model.tp_model_name %}"
+              hx-target="#tp-list"
+              hx-swap="innerHTML"
+              hx-push-url="true"
+            >
+              {{ model.name }}
+            </a>
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  </div>
+
+  <div
+    class="tp-col"
+    id="tp-list"
+    {% if initial_list_url %}
+      hx-get="{{ initial_list_url }}"
+      hx-target="#tp-list"
+      hx-trigger="load"
+      hx-swap="innerHTML"
+    {% endif %}
+  >
+    <h2>{% trans "Select a table" %}</h2>
+    <p class="tp-placeholder">{% trans "Choose a model on the left to load records." %}</p>
+  </div>
+
+  <div class="tp-col" id="tp-detail" data-title="{% trans "Details" %}" data-initial-detail="{{ initial_detail_url }}">
+    <h2>{% trans "Select a record" %}</h2>
+    <p class="tp-placeholder">{% trans "Pick a row in the middle column to inspect its fields." %}</p>
+  </div>
+</div>
+
+<script>
+  (function() {
+    if (typeof htmx === 'undefined') {
+      return;
+    }
+    function buildListUrl(baseUrl, href) {
+      if (!href) return baseUrl;
+      if (href.startsWith('http')) {
+        try {
+          const parsed = new URL(href);
+          return baseUrl + (parsed.search || '');
+        } catch (err) {
+          return href;
+        }
+      }
+      if (href.startsWith('?')) {
+        return baseUrl + href;
+      }
+      return href;
+    }
+
+    const navigation = document.getElementById('tp-navigation');
+    if (navigation) {
+      const initialApp = navigation.dataset.initialApp;
+      const initialModel = navigation.dataset.initialModel;
+      if (initialApp && initialModel) {
+        const initialLink = navigation.querySelector(`a.tp-link[data-app-label="${initialApp}"][data-model-name="${initialModel}"]`);
+        if (initialLink) {
+          initialLink.classList.add('is-active');
+        }
+      }
+    }
+
+    document.body.addEventListener('click', function(event) {
+      if (navigation && navigation.contains(event.target)) {
+        const navLink = event.target.closest('a.tp-link');
+        if (navLink) {
+          navigation.querySelectorAll('a.tp-link.is-active').forEach(function(link) {
+            if (link !== navLink) {
+              link.classList.remove('is-active');
+            }
+          });
+          navLink.classList.add('is-active');
+        }
+      }
+
+      const listPane = document.getElementById('tp-list');
+      if (!listPane || !listPane.contains(event.target)) {
+        return;
+      }
+
+      const anchor = event.target.closest('a');
+      if (!anchor) {
+        return;
+      }
+
+      const listInner = listPane.querySelector('[data-app-label][data-model-name]');
+      if (!listInner) {
+        return;
+      }
+
+      const href = anchor.getAttribute('href') || '';
+      const appLabel = listInner.dataset.appLabel;
+      const modelName = listInner.dataset.modelName;
+      const baseListUrl = listInner.dataset.listUrl || `/admin/threepane/${appLabel}/${modelName}/list/`;
+
+      if (!href) {
+        return;
+      }
+
+      const changeMatch = href.match(/\/(\d+)\/change\/?$/);
+      if (changeMatch) {
+        event.preventDefault();
+        const objectId = changeMatch[1];
+        const detailUrl = `/admin/threepane/${appLabel}/${modelName}/${objectId}/`;
+        htmx.ajax('GET', detailUrl, { target: '#tp-detail', swap: 'innerHTML', pushURL: true });
+        return;
+      }
+
+      if (anchor.dataset.tpStatic === '1') {
+        return;
+      }
+
+      if (href.startsWith('#')) {
+        event.preventDefault();
+        return;
+      }
+
+      event.preventDefault();
+      const targetUrl = anchor.dataset.listUrl || buildListUrl(baseListUrl, href);
+      htmx.ajax('GET', targetUrl, { target: '#tp-list', swap: 'innerHTML', pushURL: true });
+    });
+
+    htmx.on('htmx:afterSwap', function(evt) {
+      if (evt.detail.target && evt.detail.target.id === 'tp-list') {
+        const detailPane = document.getElementById('tp-detail');
+        if (detailPane) {
+          detailPane.innerHTML = `
+            <h2>${detailPane.dataset.title || 'Details'}</h2>
+            <p class="tp-placeholder">{% filter escapejs %}{% trans "Pick a row in the middle column to inspect its fields." %}{% endfilter %}</p>
+          `;
+          let detailUrl = '';
+          if (detailPane.dataset.initialDetail) {
+            detailUrl = detailPane.dataset.initialDetail;
+            detailPane.dataset.initialDetail = '';
+          } else {
+            const firstRecordMarker = document.getElementById('tp-first-record');
+            if (firstRecordMarker && firstRecordMarker.dataset.detailUrl) {
+              detailUrl = firstRecordMarker.dataset.detailUrl;
+            }
+          }
+          if (detailUrl) {
+            htmx.ajax('GET', detailUrl, { target: '#tp-detail', swap: 'innerHTML' });
+          }
+        }
+      }
+    });
+  })();
+</script>
+{% endblock %}

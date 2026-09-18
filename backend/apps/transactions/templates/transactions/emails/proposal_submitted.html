@@ -1,0 +1,28 @@
+{% extends "base_email.html" %}
+
+{% block subject %}Proposal Submitted - {{ proposal.name }}{% endblock %}
+
+{% block content %}
+<h2>Proposal Submitted</h2>
+
+<p>Dear {{ contact.get_full_name }},</p>
+
+<p>Your proposal has been submitted successfully.</p>
+
+<h3>Proposal Details:</h3>
+<ul>
+    <li><strong>Proposal:</strong> {{ proposal.name }}</li>
+    <li><strong>ID:</strong> {{ proposal.id }}</li>
+    <li><strong>Submitted:</strong> {{ proposal.dt_modified|date:"F j, Y, g:i a" }}</li>
+    {% if proposal.totals.total %}
+    <li><strong>Total Amount:</strong> ${{ proposal.totals.total|floatformat:2 }}</li>
+    {% endif %}
+</ul>
+
+<p>You will be notified when this proposal is reviewed and approved.</p>
+
+<p>Thank you for your business!</p>
+
+<p>Best regards,<br>
+{{ company_name|default:"WebClerk3 Team" }}</p>
+{% endblock %}

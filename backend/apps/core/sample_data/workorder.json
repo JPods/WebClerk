@@ -1,0 +1,168 @@
+{
+  "_meta": {
+    "model": "workorder",
+    "description": "Sample work order for report parade — service/contractor job with labor and materials",
+    "version": 1
+  },
+  "ida": "WO-2026-0341",
+  "status": "in_progress",
+  "dt_created": 1785542400000,
+  "attention": "Sarah Mitchell",
+  "company": "Lakeview Community Center",
+  "address_full": "850 Lakeshore Drive\nMadison, WI 53703",
+  "phone": "(608) 555-0214",
+  "email": "smitchell@lakeviewcc.org",
+  "customer_id": "LCC-205",
+  "description": "Commercial HVAC system repair — rooftop unit #3 compressor replacement and refrigerant recharge. Unit is a Carrier 48TM016, serving the main gymnasium and east wing offices.",
+  "config": {
+    "priority": "High",
+    "deadline": 1786147200000,
+    "assigned_tech": "Mike Donovan",
+    "tech_phone": "(608) 555-0177",
+    "equipment_tag": "RTU-03",
+    "warranty_status": "Out of warranty — unit installed 2018"
+  },
+  "comments": {
+    "public": "Compressor showing 142 psi high-side at startup — well below normal operating range. Short-cycling on high-pressure cutout. Recommend full compressor swap rather than repair given unit age. Customer approved estimate WO-EST-0339 on 2026-07-28.",
+    "internal": "Parts ordered from Carrier direct — 3-day lead time. Schedule crane for rooftop access."
+  },
+  "source": {
+    "campaign_name": "Service Contract SC-2026-LCC"
+  },
+  "refs": {
+    "links": {
+      "contact": {"id": 205, "name": "Lakeview Community Center", "ida": "LCC-205"}
+    }
+  },
+  "sell": {},
+  "cost": {},
+  "finance": {},
+  "flow": {},
+  "metadata": {},
+  "signature": {
+    "preamble": "I acknowledge that the above work has been completed to my satisfaction.",
+    "blocks": [
+      {"label": "Customer Signature", "lines": ["Signature", "Print Name", "Date"]},
+      {"label": "Technician Signature", "lines": ["Signature", "Print Name", "Date"]}
+    ]
+  },
+  "totals": {
+    "materials": 3245.00,
+    "labor": 1680.00,
+    "total": 4925.00
+  },
+  "lines": [
+    {
+      "line_number": 1,
+      "item": {
+        "ida_item": "SVC-HVAC-DIAG",
+        "description": "HVAC Diagnostic — Rooftop Unit Inspection & Report",
+        "uom": "Hour",
+        "category": "labor"
+      },
+      "quantity": {"staged": 2},
+      "cost": {
+        "unit": 120.00,
+        "extended": 240.00
+      }
+    },
+    {
+      "line_number": 2,
+      "item": {
+        "ida_item": "SVC-HVAC-COMP",
+        "description": "Compressor Replacement — Remove & Install (Carrier 48TM016)",
+        "uom": "Hour",
+        "category": "labor"
+      },
+      "quantity": {"staged": 8},
+      "cost": {
+        "unit": 120.00,
+        "extended": 960.00
+      }
+    },
+    {
+      "line_number": 3,
+      "item": {
+        "ida_item": "SVC-CRANE",
+        "description": "Crane Service — Rooftop Equipment Access",
+        "uom": "Half Day",
+        "category": "labor"
+      },
+      "quantity": {"staged": 1},
+      "cost": {
+        "unit": 480.00,
+        "extended": 480.00
+      }
+    },
+    {
+      "line_number": 4,
+      "item": {
+        "ida_item": "PRT-COMP-06DA",
+        "description": "Carrier 06DA Scroll Compressor, 5-Ton, R-410A",
+        "uom": "Each",
+        "category": "materials"
+      },
+      "quantity": {"staged": 1},
+      "cost": {
+        "unit": 2450.00,
+        "extended": 2450.00
+      }
+    },
+    {
+      "line_number": 5,
+      "item": {
+        "ida_item": "REF-R410A-25",
+        "description": "R-410A Refrigerant, 25 lb Cylinder",
+        "uom": "Each",
+        "category": "materials"
+      },
+      "quantity": {"staged": 1},
+      "cost": {
+        "unit": 385.00,
+        "extended": 385.00
+      }
+    },
+    {
+      "line_number": 6,
+      "item": {
+        "ida_item": "PRT-FILTER-DRY",
+        "description": "Sporlan Catch-All Filter-Drier, 3/8\" Flare",
+        "uom": "Each",
+        "category": "materials"
+      },
+      "quantity": {"staged": 2},
+      "cost": {
+        "unit": 65.00,
+        "extended": 130.00
+      }
+    },
+    {
+      "line_number": 7,
+      "item": {
+        "ida_item": "PRT-CONTACTOR",
+        "description": "Definite Purpose Contactor, 40A 2-Pole 24V Coil",
+        "uom": "Each",
+        "category": "materials"
+      },
+      "quantity": {"staged": 1},
+      "cost": {
+        "unit": 45.00,
+        "extended": 45.00
+      }
+    },
+    {
+      "line_number": 8,
+      "item": {
+        "ida_item": "SUP-BRAZING",
+        "description": "Brazing Alloy & Flux Kit (Copper-to-Copper)",
+        "uom": "Kit",
+        "category": "materials"
+      },
+      "quantity": {"staged": 1},
+      "cost": {
+        "unit": 235.00,
+        "extended": 235.00
+      }
+    }
+  ]
+}

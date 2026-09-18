@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P&L / Balance Sheet — Free by WebClerk</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d1117;--panel:#161b22;--input:#21262d;--hover:#30363d;--border:#30363d;
+  --text:#c9d1d9;--dim:#8b949e;--head:#fff;--faint:#484f58;--link:#58a6ff;
+  --pos:#4ade80;--neg:#f87171;--accent:#ea580c;--accent-border:#f97316;
+}
+[data-theme="light"]{
+  --bg:#f5f5f5;--panel:#fff;--input:#e8e8e8;--hover:#d4d4d4;--border:#c0c0c0;
+  --text:#1a1a1a;--dim:#555;--head:#000;--faint:#888;--link:#0969da;
+  --pos:#15803d;--neg:#b91c1c;--accent:#d35400;--accent-border:#e67e22;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,system-ui,"Segoe UI",sans-serif;font-size:13px;padding:0 16px 40px}
+h1{font-size:20px;color:var(--head);padding:12px 0 2px;display:flex;align-items:center;gap:8px}
+h1 .brand{font-size:11px;color:var(--dim);font-weight:normal;background:var(--input);padding:2px 8px;border-radius:10px}
+.bar{display:flex;gap:6px;padding:6px 0;flex-wrap:wrap;align-items:center}
+.bar button,.bar select,.bar label{padding:4px 10px;border:1px solid var(--border);background:var(--input);color:var(--text);border-radius:4px;cursor:pointer;font-size:11px}
+.bar button:hover{background:var(--hover)}
+.org{background:var(--accent)!important;border-color:var(--accent-border)!important;color:#fff!important}
+.grn{background:#1a6b35!important;border-color:#2ea043!important;color:#fff!important}
+.blu{background:#1a3a6b!important;border-color:#388bfd!important;color:#fff!important}
+.theme-toggle{background:none!important;border:none!important;font-size:16px!important;cursor:pointer;padding:2px 6px!important}
+
+.tabs{display:flex;gap:2px;margin:12px 0 0}
+.tab{padding:6px 16px;background:var(--input);border:1px solid var(--border);border-bottom:none;border-radius:6px 6px 0 0;cursor:pointer;font-size:12px;color:var(--dim)}
+.tab.active{background:var(--panel);color:var(--head);font-weight:600}
+.sheet{display:none;background:var(--panel);border:1px solid var(--border);border-radius:0 6px 6px 6px;padding:16px;overflow-x:auto}
+.sheet.active{display:block}
+
+table{border-collapse:collapse;width:100%;min-width:900px}
+th,td{padding:3px 8px;border:1px solid var(--border);font-size:12px;white-space:nowrap}
+th{background:var(--input);color:var(--dim);font-weight:600;text-align:center;position:sticky;top:0;z-index:2}
+td{text-align:right;font-family:"SF Mono",Consolas,monospace;font-size:11px}
+td:first-child{text-align:left;font-family:inherit;font-size:12px;font-weight:500;color:var(--text)}
+td.indent{padding-left:24px;font-weight:normal;color:var(--dim)}
+td.total{font-weight:700;border-top:2px solid var(--dim);color:var(--head)}
+td.grand{font-weight:700;border-top:3px double var(--dim);color:var(--head);font-size:13px}
+td.section{font-weight:700;color:var(--head);background:var(--input);font-size:12px}
+td.neg{color:var(--neg)}
+td.pos{color:var(--pos)}
+input.cell{width:100%;background:transparent;border:none;color:var(--text);font-family:"SF Mono",Consolas,monospace;font-size:11px;text-align:right;padding:0;outline:none}
+input.cell:focus{background:var(--input);border-radius:2px}
+input.cell-name{width:100%;background:transparent;border:none;color:var(--text);font-size:12px;padding:0;outline:none}
+input.cell-name:focus{background:var(--input);border-radius:2px}
+
+.help{font-size:11px;color:var(--dim);margin:8px 0;line-height:1.5}
+.status{font-size:11px;color:var(--dim);padding:4px 0}
+
+#toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--input);color:var(--text);
+  border:1px solid var(--border);border-radius:6px;padding:10px 20px;font-size:13px;z-index:999;
+  opacity:0;transition:opacity 0.3s;pointer-events:none}
+#toast.show{opacity:1}
+</style>
+</head><body>
+
+<h1>P&L / Balance Sheet <span class="brand">Free by WebClerk</span></h1>
+<div class="bar">
+  <button class="org" onclick="newModel()">New</button>
+  <button class="grn" onclick="saveModel()">Save</button>
+  <button onclick="loadModel()">Load</button>
+  <button class="blu" onclick="exportCSV()">Export CSV</button>
+  <button onclick="importActuals()">Import Actuals</button>
+  <label>Company: <input id="company" value="My Company" style="background:var(--input);border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:3px;font-size:12px;width:160px"></label>
+  <label>Year 1: <input id="startYear" type="number" value="2026" style="background:var(--input);border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:3px;font-size:12px;width:60px" onchange="render()"></label>
+  <button class="theme-toggle" onclick="toggleTheme()">&#9681;</button>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('pl')">Profit & Loss</div>
+  <div class="tab" onclick="showTab('bs')">Balance Sheet</div>
+</div>
+
+<div id="pl" class="sheet active"></div>
+<div id="bs" class="sheet"></div>
+
+<div class="help">
+  Click any number to edit. Tab to move between cells. Revenue/expense categories are editable.
+  <strong>Import Actuals</strong> accepts WebClerk GL export CSV (period, account, debit, credit).
+  <strong>Save</strong> stores to browser localStorage. <strong>Export CSV</strong> downloads both statements.
+</div>
+<div class="status" id="status"></div>
+<div id="toast"></div>
+<input type="file" id="fileInput" accept=".csv,.json" style="display:none">
+
+<script>
+'use strict';
+
+// ── Data Model ──────────────────────────────────────────────────
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const ANNUAL = ['Y2','Y3','Y4','Y5'];
+
+function defaultPL() {
+  return {
+    revenue: [
+      {name:'Product Sales', m:[0,0,0,0,0,0,0,0,0,0,0,0], y:[0,0,0,0], growth:0.05},
+      {name:'Services', m:[0,0,0,0,0,0,0,0,0,0,0,0], y:[0,0,0,0], growth:0.03},
+      {name:'Other Revenue', m:[0,0,0,0,0,0,0,0,0,0,0,0], y:[0,0,0,0], growth:0},
+    ],
+    cogs: [
+      {name:'Materials', m:[0,0,0,0,0,0,0,0,0,0,0,0], y:[0,0,0,0], growth:0.03},
+      {name:'Direct Labor', m:[0,0,0,0,0,0,0,0,0,0,0,0], y:[0,0,0,0], growth:0.02},
+      {name:'Manufacturing', m:[0,0,0,0,0,0,0,0,0,0,0,0], y:[0,0,0,0], growth:0.02},
+    ],
+    expenses: [
+      {name:'Salaries & Wages', m:[0,0,0,0,0,0,0,0,0,0,0,0], y:[0,0,0,0], growth:0.03},
+      {name:'Rent / Lease', m:[0,0,0,0,0,0,0,0,0,0,0,0], y:[0,0,0,0], growth:0.02},
+      {name:'Insurance', m:[0,0,0,0,0,0,0,0,0,0,0,0], y:[0,0,0,0], growth:0.02},
+      {name:'Utilities', m:[0,0,0,0,0,0,0,0,0,0,0,0], y:[0,0,0,0], growth:0.02},
+      {name:'Travel', m:[0,0,0,0,0,0,0,0,0,0,0,0], y:[0,0,0,0], growth:0},
+      {name:'Depreciation', m:[0,0,0,0,0,0,0,0,0,0,0,0], y:[0,0,0,0], growth:0},
+      {name:'Interest', m:[0,0,0,0,0,0,0,0,0,0,0,0], y:[0,0,0,0], growth:0},
+    ],
+  };
+}
+
+function defaultBS() {
+  return {
+    assets: [
+      {name:'Cash', v:[0,0,0,0,0]},
+      {name:'Accounts Receivable', v:[0,0,0,0,0]},
+      {name:'Inventory', v:[0,0,0,0,0]},
+      {name:'Equipment (net)', v:[0,0,0,0,0]},
+    ],
+    liabilities: [
+      {name:'Accounts Payable', v:[0,0,0,0,0]},
+      {name:'Accrued Expenses', v:[0,0,0,0,0]},
+      {name:'Long-term Debt', v:[0,0,0,0,0]},
+    ],
+    equity: [
+      {name:'Paid-in Capital', v:[0,0,0,0,0]},
+      {name:'Retained Earnings', v:[0,0,0,0,0]},
+    ],
+  };
+}
+
+let model = { pl: defaultPL(), bs: defaultBS() };
+
+// ── Rendering ───────────────────────────────────────────────────
+function sumM(arr) { return arr.reduce((a,b) => a+b, 0); }
+function sumSection(items, idx, field) {
+  return items.reduce((s, item) => s + (field === 'm' ? item.m[idx] : item.y[idx]), 0);
+}
+function sumSectionTotal(items) { return items.reduce((s, item) => s + sumM(item.m), 0); }
+function sumSectionY(items, idx) { return items.reduce((s, item) => s + item.y[idx], 0); }
+function fmt(v) {
+  if (v === 0) return '';
+  const neg = v < 0;
+  const s = Math.abs(v).toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+  return neg ? `(${s})` : s;
+}
+function fmtClass(v) { return v < 0 ? 'neg' : v > 0 ? 'pos' : ''; }
+function pct(num, den) { return den === 0 ? '' : (num/den*100).toFixed(1) + '%'; }
+
+function cellInput(section, idx, rowIdx, field, arrField) {
+  const val = model.pl[section][rowIdx][arrField][idx];
+  return `<input class="cell" value="${val||''}" data-s="${section}" data-r="${rowIdx}" data-f="${arrField}" data-i="${idx}"
+    onchange="cellChanged(this)" onfocus="this.select()">`;
+}
+
+function nameInput(section, rowIdx) {
+  const val = model.pl[section][rowIdx].name;
+  return `<input class="cell-name" value="${val}" data-s="${section}" data-r="${rowIdx}"
+    onchange="nameChanged(this)">`;
+}
+
+function bsCellInput(section, rowIdx, colIdx) {
+  const val = model.bs[section][rowIdx].v[colIdx];
+  return `<input class="cell" value="${val||''}" data-bs="${section}" data-r="${rowIdx}" data-i="${colIdx}"
+    onchange="bsCellChanged(this)" onfocus="this.select()">`;
+}
+
+function bsNameInput(section, rowIdx) {
+  const val = model.bs[section][rowIdx].name;
+  return `<input class="cell-name" value="${val}" data-bs="${section}" data-r="${rowIdx}"
+    onchange="bsNameChanged(this)">`;
+}
+
+function render() {
+  renderPL();
+  renderBS();
+}
+
+function renderPL() {
+  const y1 = parseInt(document.getElementById('startYear').value) || 2026;
+  const p = model.pl;
+
+  let h = '<table><colgroup><col style="width:180px">';
+  for (let i=0;i<12;i++) h += '<col style="width:70px">';
+  h += '<col style="width:80px">'; // Y1 total
+  for (let i=0;i<4;i++) h += '<col style="width:80px">';
+  h += '</colgroup><thead><tr><th></th>';
+  for (let i=0;i<12;i++) h += `<th>${MONTHS[i]}</th>`;
+  h += `<th>${y1}</th>`;
+  for (let i=0;i<4;i++) h += `<th>${y1+1+i}</th>`;
+  h += '</tr></thead><tbody>';
+
+  // Revenue
+  h += sectionHeader('Revenue', 17);
+  p.revenue.forEach((r,ri) => { h += editRow('revenue', ri, 17); });
+  h += '<tr><td class="total" onclick="addRow(\'revenue\')">+ Add Row</td>';
+  const revTotM = []; for(let i=0;i<12;i++) revTotM.push(sumSection(p.revenue,i,'m'));
+  for(let i=0;i<12;i++) h += `<td class="total ${fmtClass(revTotM[i])}">${fmt(revTotM[i])}</td>`;
+  const revY1 = sumSectionTotal(p.revenue);
+  h += `<td class="total ${fmtClass(revY1)}">${fmt(revY1)}</td>`;
+  for(let i=0;i<4;i++) { const v=sumSectionY(p.revenue,i); h+=`<td class="total ${fmtClass(v)}">${fmt(v)}</td>`; }
+  h += '</tr>';
+
+  // COGS
+  h += sectionHeader('Cost of Goods Sold', 17);
+  p.cogs.forEach((r,ri) => { h += editRow('cogs', ri, 17); });
+  h += '<tr><td class="total" onclick="addRow(\'cogs\')">+ Add Row</td>';
+  const cogsTotM = []; for(let i=0;i<12;i++) cogsTotM.push(sumSection(p.cogs,i,'m'));
+  for(let i=0;i<12;i++) h += `<td class="total ${fmtClass(cogsTotM[i])}">${fmt(cogsTotM[i])}</td>`;
+  const cogsY1 = sumSectionTotal(p.cogs);
+  h += `<td class="total ${fmtClass(cogsY1)}">${fmt(cogsY1)}</td>`;
+  for(let i=0;i<4;i++) { const v=sumSectionY(p.cogs,i); h+=`<td class="total ${fmtClass(v)}">${fmt(v)}</td>`; }
+  h += '</tr>';
+
+  // Gross Margin
+  h += '<tr><td class="total">Gross Margin</td>';
+  for(let i=0;i<12;i++) { const v=revTotM[i]-cogsTotM[i]; h+=`<td class="total ${fmtClass(v)}">${fmt(v)}</td>`; }
+  const gmY1 = revY1 - cogsY1;
+  h += `<td class="total ${fmtClass(gmY1)}">${fmt(gmY1)}</td>`;
+  for(let i=0;i<4;i++) { const v=sumSectionY(p.revenue,i)-sumSectionY(p.cogs,i); h+=`<td class="total ${fmtClass(v)}">${fmt(v)}</td>`; }
+  h += '</tr>';
+  h += '<tr><td class="total" style="color:var(--dim)">Gross Margin %</td>';
+  for(let i=0;i<12;i++) h+=`<td class="total" style="color:var(--dim)">${pct(revTotM[i]-cogsTotM[i],revTotM[i])}</td>`;
+  h += `<td class="total" style="color:var(--dim)">${pct(gmY1,revY1)}</td>`;
+  for(let i=0;i<4;i++) { const r=sumSectionY(p.revenue,i); const c=sumSectionY(p.cogs,i); h+=`<td class="total" style="color:var(--dim)">${pct(r-c,r)}</td>`; }
+  h += '</tr>';
+
+  // Expenses
+  h += sectionHeader('Operating Expenses', 17);
+  p.expenses.forEach((r,ri) => { h += editRow('expenses', ri, 17); });
+  h += '<tr><td class="total" onclick="addRow(\'expenses\')">+ Add Row</td>';
+  const expTotM = []; for(let i=0;i<12;i++) expTotM.push(sumSection(p.expenses,i,'m'));
+  for(let i=0;i<12;i++) h += `<td class="total ${fmtClass(expTotM[i])}">${fmt(expTotM[i])}</td>`;
+  const expY1 = sumSectionTotal(p.expenses);
+  h += `<td class="total ${fmtClass(expY1)}">${fmt(expY1)}</td>`;
+  for(let i=0;i<4;i++) { const v=sumSectionY(p.expenses,i); h+=`<td class="total ${fmtClass(v)}">${fmt(v)}</td>`; }
+  h += '</tr>';
+
+  // Net Income
+  h += '<tr><td class="grand">Net Income</td>';
+  for(let i=0;i<12;i++) { const v=revTotM[i]-cogsTotM[i]-expTotM[i]; h+=`<td class="grand ${fmtClass(v)}">${fmt(v)}</td>`; }
+  const niY1 = gmY1 - expY1;
+  h += `<td class="grand ${fmtClass(niY1)}">${fmt(niY1)}</td>`;
+  for(let i=0;i<4;i++) { const v=sumSectionY(p.revenue,i)-sumSectionY(p.cogs,i)-sumSectionY(p.expenses,i); h+=`<td class="grand ${fmtClass(v)}">${fmt(v)}</td>`; }
+  h += '</tr>';
+  h += '<tr><td class="grand" style="color:var(--dim)">Net Margin %</td>';
+  for(let i=0;i<12;i++) { const r=revTotM[i]; const ni=r-cogsTotM[i]-expTotM[i]; h+=`<td class="grand" style="color:var(--dim)">${pct(ni,r)}</td>`; }
+  h += `<td class="grand" style="color:var(--dim)">${pct(niY1,revY1)}</td>`;
+  for(let i=0;i<4;i++) { const r=sumSectionY(p.revenue,i); const ni=r-sumSectionY(p.cogs,i)-sumSectionY(p.expenses,i); h+=`<td class="grand" style="color:var(--dim)">${pct(ni,r)}</td>`; }
+  h += '</tr>';
+
+  h += '</tbody></table>';
+  document.getElementById('pl').innerHTML = h;
+}
+
+function sectionHeader(title, cols) {
+  return `<tr><td class="section" colspan="${cols}">${title}</td></tr>`;
+}
+
+function editRow(section, rowIdx, cols) {
+  let h = `<tr><td class="indent">${nameInput(section, rowIdx)}</td>`;
+  for(let i=0;i<12;i++) h += `<td>${cellInput(section, i, rowIdx, 'm', 'm')}</td>`;
+  // Y1 total (computed)
+  const y1 = sumM(model.pl[section][rowIdx].m);
+  h += `<td class="total ${fmtClass(y1)}">${fmt(y1)}</td>`;
+  for(let i=0;i<4;i++) h += `<td>${cellInput(section, i, rowIdx, 'y', 'y')}</td>`;
+  h += '</tr>';
+  return h;
+}
+
+function renderBS() {
+  const y1 = parseInt(document.getElementById('startYear').value) || 2026;
+  const b = model.bs;
+
+  let h = '<table><colgroup><col style="width:200px">';
+  for(let i=0;i<5;i++) h += '<col style="width:100px">';
+  h += '</colgroup><thead><tr><th></th>';
+  for(let i=0;i<5;i++) h += `<th>${y1+i}</th>`;
+  h += '</tr></thead><tbody>';
+
+  // Assets
+  h += bsSectionHeader('ASSETS', 6);
+  b.assets.forEach((r,ri) => { h += bsEditRow('assets', ri); });
+  h += '<tr><td class="total" onclick="addBsRow(\'assets\')">+ Add Row</td>';
+  for(let i=0;i<5;i++) { const v=b.assets.reduce((s,r)=>s+r.v[i],0); h+=`<td class="total ${fmtClass(v)}">${fmt(v)}</td>`; }
+  h += '</tr>';
+  h += bsTotalRow('Total Assets', i => b.assets.reduce((s,r)=>s+r.v[i],0));
+
+  // Liabilities
+  h += bsSectionHeader('LIABILITIES', 6);
+  b.liabilities.forEach((r,ri) => { h += bsEditRow('liabilities', ri); });
+  h += '<tr><td class="total" onclick="addBsRow(\'liabilities\')">+ Add Row</td>';
+  for(let i=0;i<5;i++) { const v=b.liabilities.reduce((s,r)=>s+r.v[i],0); h+=`<td class="total ${fmtClass(v)}">${fmt(v)}</td>`; }
+  h += '</tr>';
+
+  // Equity
+  h += bsSectionHeader('EQUITY', 6);
+  b.equity.forEach((r,ri) => { h += bsEditRow('equity', ri); });
+  h += '<tr><td class="total" onclick="addBsRow(\'equity\')">+ Add Row</td>';
+  for(let i=0;i<5;i++) { const v=b.equity.reduce((s,r)=>s+r.v[i],0); h+=`<td class="total ${fmtClass(v)}">${fmt(v)}</td>`; }
+  h += '</tr>';
+
+  // Total L+E
+  h += bsTotalRow('Total Liabilities & Equity', i => {
+    return b.liabilities.reduce((s,r)=>s+r.v[i],0) + b.equity.reduce((s,r)=>s+r.v[i],0);
+  });
+
+  // Balance check
+  h += '<tr><td class="grand" style="color:var(--dim)">Balance Check (A - L - E)</td>';
+  for(let i=0;i<5;i++) {
+    const a = b.assets.reduce((s,r)=>s+r.v[i],0);
+    const le = b.liabilities.reduce((s,r)=>s+r.v[i],0) + b.equity.reduce((s,r)=>s+r.v[i],0);
+    const diff = a - le;
+    h += `<td class="grand ${Math.abs(diff) > 0.01 ? 'neg' : 'pos'}">${diff === 0 ? 'OK' : fmt(diff)}</td>`;
+  }
+  h += '</tr>';
+
+  h += '</tbody></table>';
+  document.getElementById('bs').innerHTML = h;
+}
+
+function bsSectionHeader(title, cols) {
+  return `<tr><td class="section" colspan="${cols}">${title}</td></tr>`;
+}
+
+function bsEditRow(section, rowIdx) {
+  let h = `<tr><td class="indent">${bsNameInput(section, rowIdx)}</td>`;
+  for(let i=0;i<5;i++) h += `<td>${bsCellInput(section, rowIdx, i)}</td>`;
+  h += '</tr>';
+  return h;
+}
+
+function bsTotalRow(label, fn) {
+  let h = `<tr><td class="grand">${label}</td>`;
+  for(let i=0;i<5;i++) { const v=fn(i); h+=`<td class="grand ${fmtClass(v)}">${fmt(v)}</td>`; }
+  h += '</tr>';
+  return h;
+}
+
+// ── Cell Editing ────────────────────────────────────────────────
+function cellChanged(el) {
+  const s = el.dataset.s, r = parseInt(el.dataset.r), f = el.dataset.f, i = parseInt(el.dataset.i);
+  const v = parseFloat(el.value.replace(/[,$()]/g,'')) || 0;
+  model.pl[s][r][f][i] = v;
+  render();
+}
+
+function nameChanged(el) {
+  const s = el.dataset.s, r = parseInt(el.dataset.r);
+  model.pl[s][r].name = el.value;
+}
+
+function bsCellChanged(el) {
+  const s = el.dataset.bs, r = parseInt(el.dataset.r), i = parseInt(el.dataset.i);
+  const v = parseFloat(el.value.replace(/[,$()]/g,'')) || 0;
+  model.bs[s][r].v[i] = v;
+  render();
+}
+
+function bsNameChanged(el) {
+  const s = el.dataset.bs, r = parseInt(el.dataset.r);
+  model.bs[s][r].name = el.value;
+}
+
+// ── Row Management ──────────────────────────────────────────────
+function addRow(section) {
+  model.pl[section].push({name:'New Line', m:[0,0,0,0,0,0,0,0,0,0,0,0], y:[0,0,0,0], growth:0});
+  render();
+}
+
+function addBsRow(section) {
+  model.bs[section].push({name:'New Line', v:[0,0,0,0,0]});
+  render();
+}
+
+// ── Save / Load ─────────────────────────────────────────────────
+function saveModel() {
+  const data = {
+    company: document.getElementById('company').value,
+    startYear: document.getElementById('startYear').value,
+    pl: model.pl, bs: model.bs,
+    saved: new Date().toISOString()
+  };
+  localStorage.setItem('wc_plbs', JSON.stringify(data));
+  // Also offer download
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${data.company.replace(/\s+/g,'_')}_PLBS_${data.startYear}.json`;
+  a.click();
+  toast('Saved to browser + downloaded JSON');
+}
+
+function loadModel() {
+  // Try file first
+  const input = document.getElementById('fileInput');
+  input.onchange = function() {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (data.pl) model.pl = data.pl;
+        if (data.bs) model.bs = data.bs;
+        if (data.company) document.getElementById('company').value = data.company;
+        if (data.startYear) document.getElementById('startYear').value = data.startYear;
+        render();
+        toast('Loaded from file');
+      } catch(err) { toast('Invalid JSON file'); }
+    };
+    reader.readAsText(file);
+    input.value = '';
+  };
+  // Check localStorage first
+  const stored = localStorage.getItem('wc_plbs');
+  if (stored) {
+    try {
+      const data = JSON.parse(stored);
+      if (data.pl) model.pl = data.pl;
+      if (data.bs) model.bs = data.bs;
+      if (data.company) document.getElementById('company').value = data.company;
+      if (data.startYear) document.getElementById('startYear').value = data.startYear;
+      render();
+      toast('Loaded from browser storage (click Load again to load from file)');
+      return;
+    } catch(e) {}
+  }
+  input.click();
+}
+
+function newModel() {
+  if (!confirm('Start fresh? Current data will be lost unless saved.')) return;
+  model = { pl: defaultPL(), bs: defaultBS() };
+  document.getElementById('company').value = 'My Company';
+  document.getElementById('startYear').value = new Date().getFullYear();
+  render();
+  toast('New model created');
+}
+
+// ── Import Actuals ──────────────────────────────────────────────
+// Accepts two CSV formats:
+//   Budget CSV:  period, account, debit, credit, description
+//   GL Export:   Date, Account, Debit, Credit, Description, Reference, Division, Source
+function importActuals() {
+  const input = document.getElementById('fileInput');
+  input.onchange = function() {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const lines = e.target.result.split('\n').filter(l => l.trim() && !l.startsWith('#'));
+      if (lines.length < 2) { toast('Empty file'); return; }
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g,''));
+
+      // Find columns — accept both budget CSV and GL export formats
+      let dateIdx = headers.indexOf('date');
+      if (dateIdx < 0) dateIdx = headers.indexOf('period');
+      const acctIdx = Math.max(headers.indexOf('account'), headers.indexOf('account_debit'));
+      const debitIdx = headers.indexOf('debit');
+      const creditIdx = headers.indexOf('credit');
+      const descIdx = Math.max(headers.indexOf('description'), headers.indexOf('note'));
+
+      if (acctIdx < 0 || debitIdx < 0) {
+        toast('CSV needs columns: Date/Period, Account, Debit, Credit');
+        return;
+      }
+
+      let imported = 0, skipped = 0;
+      for (let i = 1; i < lines.length; i++) {
+        // Parse CSV respecting quoted fields
+        const cols = parseCSVLine(lines[i]);
+        const acct = (cols[acctIdx] || '').replace(/['"]/g,'');
+        const debit = parseFloat((cols[debitIdx]||'').replace(/[,$"]/g,'')) || 0;
+        const credit = parseFloat((cols[creditIdx]||'').replace(/[,$"]/g,'')) || 0;
+        const dateStr = (cols[dateIdx >= 0 ? dateIdx : 0] || '').replace(/['"]/g,'');
+        const desc = descIdx >= 0 ? (cols[descIdx]||'').replace(/['"]/g,'') : '';
+
+        const mIdx = parseMonthIndex(dateStr);
+        if (mIdx < 0 || mIdx > 11) { skipped++; continue; }
+        if (debit === 0 && credit === 0) continue;
+
+        const matched = matchAccount(acct, debit, credit, mIdx, desc);
+        if (matched) imported++;
+        else skipped++;
+      }
+      render();
+      toast(`Imported ${imported} entries` + (skipped ? `, ${skipped} skipped` : ''));
+    };
+    reader.readAsText(file);
+    input.value = '';
+  };
+  input.click();
+}
+
+function parseCSVLine(line) {
+  const result = []; let current = ''; let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQuotes = !inQuotes; }
+    else if (c === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+    else { current += c; }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+function parseMonthIndex(dateStr) {
+  // "2026-01" or "2026-01-15" → month 0
+  const iso = dateStr.match(/(\d{4})-(\d{2})/);
+  if (iso) return parseInt(iso[2]) - 1;
+  // "01/15/2026" (US format from GL export)
+  const us = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (us) return parseInt(us[1]) - 1;
+  // "w41_2026" weekly format — approximate to month
+  const w = dateStr.match(/w(\d+)/i);
+  if (w) { const week = parseInt(w[1]); return Math.min(11, Math.floor((week-1) * 7 / 30.44)); }
+  // epoch ms
+  if (/^\d{13}$/.test(dateStr)) {
+    return new Date(parseInt(dateStr)).getUTCMonth();
+  }
+  return -1;
+}
+
+function matchAccount(acct, debit, credit, mIdx, desc) {
+  const lower = acct.toLowerCase();
+  const label = lower.split('-').slice(1).join('-').replace(/_/g,' ') || lower;
+
+  // Revenue accounts (4xxx) — credit increases revenue
+  if (lower.match(/^4/)) {
+    return addToMatch(model.pl.revenue, lower, label, credit || debit, mIdx);
+  }
+  // COGS accounts (5xxx) — debit increases COGS
+  if (lower.match(/^5/)) {
+    return addToMatch(model.pl.cogs, lower, label, debit || credit, mIdx);
+  }
+  // Expense accounts (6xxx-9xxx) — debit increases expense
+  if (lower.match(/^[6-9]/)) {
+    return addToMatch(model.pl.expenses, lower, label, debit || credit, mIdx);
+  }
+  // Asset accounts (1xxx) — update balance sheet
+  if (lower.match(/^1/)) {
+    return addToBsMatch(model.bs.assets, lower, label, debit - credit, mIdx);
+  }
+  // Liability accounts (2xxx)
+  if (lower.match(/^2/)) {
+    return addToBsMatch(model.bs.liabilities, lower, label, credit - debit, mIdx);
+  }
+  // Equity accounts (3xxx)
+  if (lower.match(/^3/)) {
+    return addToBsMatch(model.bs.equity, lower, label, credit - debit, mIdx);
+  }
+  // Try keyword matching for non-numbered accounts
+  if (lower.includes('revenue') || lower.includes('sales') || lower.includes('ticket') || lower.includes('income')) {
+    return addToMatch(model.pl.revenue, lower, label, credit || debit, mIdx);
+  }
+  if (lower.includes('cogs') || lower.includes('cost of good')) {
+    return addToMatch(model.pl.cogs, lower, label, debit || credit, mIdx);
+  }
+  if (lower.includes('expense') || lower.includes('salary') || lower.includes('wage') || lower.includes('rent') ||
+      lower.includes('insurance') || lower.includes('depreciation') || lower.includes('interest') || lower.includes('travel')) {
+    return addToMatch(model.pl.expenses, lower, label, debit || credit, mIdx);
+  }
+  return false;
+}
+
+function addToMatch(items, acctLower, label, amount, mIdx) {
+  if (!amount) return false;
+  // Try matching by account name keywords
+  for (const item of items) {
+    const itemWords = item.name.toLowerCase().split(/[\s\/&]+/);
+    for (const w of itemWords) {
+      if (w.length > 2 && acctLower.includes(w)) {
+        item.m[mIdx] += amount;
+        return true;
+      }
+    }
+  }
+  // No match — create a new row with the account label
+  const cleanLabel = label.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || acctLower;
+  items.push({name: cleanLabel, m:[0,0,0,0,0,0,0,0,0,0,0,0], y:[0,0,0,0], growth:0});
+  items[items.length-1].m[mIdx] += amount;
+  return true;
+}
+
+function addToBsMatch(items, acctLower, label, amount, mIdx) {
+  if (!amount) return false;
+  // Map month to year index (0 = Y1)
+  const yIdx = 0; // GL actuals go into Year 1
+  for (const item of items) {
+    const itemWords = item.name.toLowerCase().split(/[\s\/&]+/);
+    for (const w of itemWords) {
+      if (w.length > 2 && acctLower.includes(w)) {
+        item.v[yIdx] += amount;
+        return true;
+      }
+    }
+  }
+  const cleanLabel = label.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || acctLower;
+  items.push({name: cleanLabel, v:[0,0,0,0,0]});
+  items[items.length-1].v[yIdx] += amount;
+  return true;
+}
+
+// ── Export CSV ───────────────────────────────────────────────────
+function exportCSV() {
+  const y1 = parseInt(document.getElementById('startYear').value) || 2026;
+  const company = document.getElementById('company').value;
+  let csv = `"${company} - Profit & Loss"\n`;
+  csv += ',' + MONTHS.join(',') + `,${y1},${y1+1},${y1+2},${y1+3},${y1+4}\n`;
+
+  csv += '\nRevenue\n';
+  model.pl.revenue.forEach(r => {
+    csv += `"${r.name}",${r.m.join(',')},${sumM(r.m)},${r.y.join(',')}\n`;
+  });
+  csv += `Total Revenue,${monthTotals(model.pl.revenue).join(',')},${sumSectionTotal(model.pl.revenue)},${yearTotals(model.pl.revenue).join(',')}\n`;
+
+  csv += '\nCost of Goods Sold\n';
+  model.pl.cogs.forEach(r => {
+    csv += `"${r.name}",${r.m.join(',')},${sumM(r.m)},${r.y.join(',')}\n`;
+  });
+  csv += `Total COGS,${monthTotals(model.pl.cogs).join(',')},${sumSectionTotal(model.pl.cogs)},${yearTotals(model.pl.cogs).join(',')}\n`;
+
+  const gmM = monthTotals(model.pl.revenue).map((v,i) => v - monthTotals(model.pl.cogs)[i]);
+  const gmY1 = sumSectionTotal(model.pl.revenue) - sumSectionTotal(model.pl.cogs);
+  const gmY = yearTotals(model.pl.revenue).map((v,i) => v - yearTotals(model.pl.cogs)[i]);
+  csv += `\nGross Margin,${gmM.join(',')},${gmY1},${gmY.join(',')}\n`;
+
+  csv += '\nOperating Expenses\n';
+  model.pl.expenses.forEach(r => {
+    csv += `"${r.name}",${r.m.join(',')},${sumM(r.m)},${r.y.join(',')}\n`;
+  });
+  csv += `Total Expenses,${monthTotals(model.pl.expenses).join(',')},${sumSectionTotal(model.pl.expenses)},${yearTotals(model.pl.expenses).join(',')}\n`;
+
+  const niM = gmM.map((v,i) => v - monthTotals(model.pl.expenses)[i]);
+  const niY1 = gmY1 - sumSectionTotal(model.pl.expenses);
+  const niY = gmY.map((v,i) => v - yearTotals(model.pl.expenses)[i]);
+  csv += `\nNet Income,${niM.join(',')},${niY1},${niY.join(',')}\n`;
+
+  csv += `\n\n"${company} - Balance Sheet"\n`;
+  csv += `,${y1},${y1+1},${y1+2},${y1+3},${y1+4}\n`;
+  csv += '\nAssets\n';
+  model.bs.assets.forEach(r => { csv += `"${r.name}",${r.v.join(',')}\n`; });
+  csv += `Total Assets,${bsSectionTotals(model.bs.assets).join(',')}\n`;
+  csv += '\nLiabilities\n';
+  model.bs.liabilities.forEach(r => { csv += `"${r.name}",${r.v.join(',')}\n`; });
+  csv += `Total Liabilities,${bsSectionTotals(model.bs.liabilities).join(',')}\n`;
+  csv += '\nEquity\n';
+  model.bs.equity.forEach(r => { csv += `"${r.name}",${r.v.join(',')}\n`; });
+  csv += `Total Equity,${bsSectionTotals(model.bs.equity).join(',')}\n`;
+  csv += `\nTotal Liabilities & Equity,${bsSectionTotals(model.bs.liabilities).map((v,i) => v + bsSectionTotals(model.bs.equity)[i]).join(',')}\n`;
+
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${company.replace(/\s+/g,'_')}_PLBS_${y1}.csv`;
+  a.click();
+  toast('Exported CSV');
+}
+
+function monthTotals(items) { const t=[]; for(let i=0;i<12;i++) t.push(sumSection(items,i,'m')); return t; }
+function yearTotals(items) { const t=[]; for(let i=0;i<4;i++) t.push(sumSectionY(items,i)); return t; }
+function bsSectionTotals(items) { const t=[]; for(let i=0;i<5;i++) t.push(items.reduce((s,r)=>s+r.v[i],0)); return t; }
+
+// ── Tabs ────────────────────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.sheet').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── Theme ───────────────────────────────────────────────────────
+function toggleTheme() {
+  const t = document.documentElement.dataset.theme === 'light' ? '' : 'light';
+  document.documentElement.dataset.theme = t;
+  localStorage.setItem('wc_theme', t);
+}
+if (localStorage.getItem('wc_theme') === 'light') document.documentElement.dataset.theme = 'light';
+
+// ── Toast ───────────────────────────────────────────────────────
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ── Init ────────────────────────────────────────────────────────
+document.getElementById('startYear').value = new Date().getFullYear();
+render();
+</script>
+</body></html>

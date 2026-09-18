@@ -1,0 +1,90 @@
+"""Default choice lists for the transactions domain."""
+
+from typing import Final, Tuple
+
+Choice = Tuple[str, str]
+ChoiceList = Tuple[Choice, ...]
+
+TRANSACTION_STATUS_CHOICES: Final[ChoiceList] = (
+    ("", "---------"),
+    ("planned", "Planned"),
+    ("signoff_request", "SignOff Request"),
+    ("released", "Released"),
+    ("in_progress", "In Progress"),
+    ("hold", "Hold"),
+    ("consigned", "Consigned"),
+    ("deferred", "Deferred"),
+    ("complete", "Complete"),
+    ("canceled", "Canceled"),
+)
+
+TRANSACTION_PARENT_MODEL_CHOICES: Final[ChoiceList] = (
+    ("proposal", "Proposal"),
+    ("order", "Order"),
+    ("invoice", "Invoice"),
+    ("purchase", "Purchase"),
+    ("workorder", "Work Order"),
+    ("requisition", "Requisition"),
+)
+
+PROJECT_STATUS_CHOICES: Final[ChoiceList] = (
+    ("", "---------"),
+    ("draft", "Draft"),
+    ("active", "Active"),
+    ("onhold", "On Hold"),
+    ("blocked", "Blocked"),
+    ("done", "Done"),
+    ("canceled", "Canceled"),
+)
+
+PROJECT_ATTENTION_CHOICES: Final[ChoiceList] = (
+    ("", "---------"),
+    ("low", "Low"),
+    ("normal", "Normal"),
+    ("high", "High"),
+    ("critical", "Critical"),
+)
+
+CASH_GATEWAY_CHOICES: Final[ChoiceList] = (
+    ("", "---------"),
+    ("manual", "Manual"),
+    ("spreedly", "Spreedly"),
+)
+
+CASH_STATUS_CHOICES: Final[ChoiceList] = (
+    ("", "---------"),
+    ("pending", "Pending"),
+    ("processing", "Processing"),
+    ("completed", "Completed"),
+    ("failed", "Failed"),
+    ("cancelled", "Cancelled"),
+    ("refunded", "Refunded"),
+    ("partially_refunded", "Partially Refunded"),
+)
+
+PROJECT_LINK_MODEL_CHOICES: Final[ChoiceList] = (
+    ("proposal", "Proposal"),
+    ("order", "Order"),
+    ("invoice", "Invoice"),
+    ("purchase", "Purchase"),
+    ("workorder", "WorkOrder"),
+    ("requisition", "Requisition"),
+)
+
+DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
+    "TransactionBaseModel": {
+        "status": TRANSACTION_STATUS_CHOICES,
+        "parent_model": TRANSACTION_PARENT_MODEL_CHOICES,
+    },
+    "Project": {
+        "status": PROJECT_STATUS_CHOICES,
+        "attention": PROJECT_ATTENTION_CHOICES,
+    },
+    "Cash": {
+        "gateway": CASH_GATEWAY_CHOICES,
+        "status": CASH_STATUS_CHOICES,
+    },
+    "ProjectAssociation": {
+        "model_code": PROJECT_LINK_MODEL_CHOICES,
+    },
+}

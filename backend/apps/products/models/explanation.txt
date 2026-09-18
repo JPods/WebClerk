@@ -1,0 +1,27 @@
+products.models.item.py is our base table. It is a list of all products we are interested in.
+
+products.models.varient.py modifies an item to account for specific features.
+
+product.model.service.py is a service based item number. Perhaps we should remove this so service is just another item. We need to decide this.
+
+It contains product data, pricing, costs, gl accounts, and links to specifications, drawings, sources, etc....
+
+products.models.item_xref.py identifies multiple sources for the same item.id
+
+products.models.serial.py the unique serial number if that is required of an item. It also has an object recording each significant event associated with that serial number.
+
+productions.models.specification.py points to drawings, videos, and other details shared by 1 or more item numbers. 
+
+productions.models.bill_of_material.py combines items at specific quantities to build another item.
+
+productions.models.catalog.py created a set of item records for the benefit of one or more customer’s
+
+productions.models.org_item.py creates a set of item records to manage vendors.
+
+productions.models.warehouse.py documents the various locations quanties of an item are stored.
+
+productions.models.usage.py is a history by period of time of the purchase and sales of items. Not all items are tracked. Some may be tracked by type such as consumables to keep the number of records managable.
+
+productions.models.inventory_reservation.py is a temporary storage of item inventories that are scarce and pulled from available inventory for a period of time to prevent scarce quanties from being sold multiple times.
+
+

@@ -1,0 +1,240 @@
+/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import apiClient, { notionClient } from "./axios"; // unified protected API client
+import { IntegrationURL, PostLoginURL } from "../routes/network"; // Adjust the import path as necessary
+import { enqueueSaveRequest } from "./saveQueue";
+import {
+  NotionModule,
+  NotionModuleUpdatePayload,
+  NotionProgressResponse,
+  NotionAuthStatus,
+} from "../type/notion";
+
+export const patchUserProfile = async (data:any) => {
+  try {
+  const res = await apiClient.patch(PostLoginURL.updateProfile,{...data});
+    return res;
+  }
+  catch (error: any) { 
+    throw error.response?.data || { message: error.message || 'Request failed' };
+  }  
+};
+
+export const postPhone = async (data:any) => {
+  try {
+  const res = await apiClient.post(PostLoginURL.addPhone,{...data});
+    return res;
+  }
+  catch (error: any) { 
+    throw error.response?.data || { message: error.message || 'Request failed' };
+  }  
+};
+
+export const getPhone = async (id:any = '') => {
+  const url = (id === '') ? PostLoginURL.addPhone : PostLoginURL.addPhone + id;
+  try {
+  const res = await apiClient.get(url);
+    return res.data;
+  }
+  catch (error: any) { 
+    throw error.response?.data || { message: error.message || 'Request failed' };
+  }  
+};
+
+export const postEmail = async (data:any) => {
+  try {
+  const res = await apiClient.post(PostLoginURL.addEmail,{...data});
+    return res;
+  }
+  catch (error: any) { 
+    throw error.response?.data || { message: error.message || 'Request failed' };
+  }  
+};
+
+export const getEmail = async (id:any = '') => {
+  const url = (id === '') ? PostLoginURL.addEmail : PostLoginURL.addEmail + id;
+  try {
+  const res = await apiClient.get(url);
+    return res.data;
+  }
+  catch (error: any) { 
+    throw error.response?.data || { message: error.message || 'Request failed' };
+  }  
+};
+
+export const postAddress = async (data:any) => {
+  try {
+  const res = await apiClient.post(PostLoginURL.addAddress,{...data});
+    return res;
+  }
+  catch (error: any) { 
+    throw error.response?.data || { message: error.message || 'Request failed' };
+  }  
+};
+
+export const getAddress = async (id:any='') => {
+   const url = (id === '') ? PostLoginURL.addAddress : PostLoginURL.addAddress + id;
+  try {
+  const res = await apiClient.get(url);
+    return res.data;
+  }
+  catch (error: any) { 
+    throw error.response?.data || { message: error.message || 'Request failed' };
+  }  
+};
+
+export const postDomain = async (data:any) => {
+  try {
+  const res = await apiClient.post(PostLoginURL.addDomains,{...data});
+    return res;
+  }
+  catch (error: any) { 
+    throw error.response?.data || { message: error.message || 'Request failed' };
+  }  
+};
+
+export const getDomain = async (id:any='') => {
+   const url = (id === '') ? PostLoginURL.addDomains : PostLoginURL.addDomains + id;
+  try {
+  const res = await apiClient.get(url);
+    return res.data;
+  }
+  catch (error: any) { 
+    throw error.response?.data || { message: error.message || 'Request failed' };
+  }  
+};
+
+export const postAction = async (data:any) => {
+  try {
+  const res = await apiClient.post(PostLoginURL.addActions,{...data});
+    return res;
+  }
+  catch (error: any) { 
+    throw error.response?.data || { message: error.message || 'Request failed' };
+  }  
+};
+
+export const getAction = async (id:any = '') => {
+  const url = (id === '') ? PostLoginURL.addActions : PostLoginURL.addActions + id;
+  try {
+  const res = await apiClient.get(url);
+    return res;
+  }
+  catch (error: any) { 
+    throw error.response?.data || { message: error.message || 'Request failed' };
+  }  
+};
+
+
+
+export const deleteAction = async (id:any) => {
+  try {
+  const res = await apiClient.delete(PostLoginURL.addActions + id +'/');
+    return res;
+  }
+  catch (error: any) { 
+    throw error.response?.data || { message: error.message || 'Request failed' };
+  }  
+};  
+
+type WcapiQueryValue = string | number | boolean | null | undefined;
+
+const buildWcapiQuery = (modelName: string, params?: Record<string, WcapiQueryValue | WcapiQueryValue[]>): string => {
+  const searchParams = new URLSearchParams();
+  searchParams.set("model_name", modelName);
+
+  if (params) {
+    Object.entries(params).forEach(([key, rawValue]) => {
+      if (rawValue === undefined || rawValue === null) {
+        return;
+      }
+      const appendValue = (value: WcapiQueryValue) => {
+        if (value === undefined || value === null) {
+          return;
+        }
+        searchParams.append(key, String(value));
+      };
+
+      if (Array.isArray(rawValue)) {
+        rawValue.forEach((value) => appendValue(value));
+        return;
+      }
+
+      appendValue(rawValue);
+    });
+  }
+
+  const queryString = searchParams.toString();
+  return `${PostLoginURL.allTypes}${queryString}`;
+};
+
+export const Actions = async (params?: Record<string, WcapiQueryValue | WcapiQueryValue[]>) => {
+  try {
+    const res = await apiClient.get(buildWcapiQuery("action", params));
+    return res;
+  }
+  catch (error: any) { 
+    throw error.response?.data || { message: error.message || 'Request failed' };
+  }  
+};
+
+export const Projects = async (params?: Record<string, WcapiQueryValue | WcapiQueryValue[]>) => {
+  try {
+    const res = await apiClient.get(buildWcapiQuery("project", params));
+    return res;
+  }
+  catch (error: any) {
+    throw error.response?.data || { message: error.message || 'Request failed' };
+  }
+};
+
+export const patchAction = async (data: any) => {
+  const label = (() => {
+    if (data?.action?.value?.en) return `Action: ${data.action.value.en}`;
+    if (data?.action_en) return `Action: ${data.action_en}`;
+    if (data?.model_name) return `${data.model_name} save`;
+    return "Save";
+  })();
+
+  const { promise } = enqueueSaveRequest(data, label);
+  return promise;
+};
+
+
+// --------------------
+// Notion integration
+// --------------------
+
+const normalizeEnvelope = <T>(response: any): T => {
+  if (!response) return {} as T;
+  if (response?.data && response.data.data) return response.data.data as T;
+  if (response?.data) return response.data as T;
+  return response as T;
+};
+
+export const fetchNotionAuthStatus = async (): Promise<NotionAuthStatus> => {
+  const res = await notionClient.get(IntegrationURL.notionStatus);
+  return normalizeEnvelope<NotionAuthStatus>(res);
+};
+
+export const startNotionLogin = async (): Promise<{ url?: string }> => {
+  const res = await notionClient.post(IntegrationURL.notionLogin);
+  return normalizeEnvelope<{ url?: string }>(res);
+};
+
+export const fetchNotionProgress = async (): Promise<NotionProgressResponse> => {
+  const res = await notionClient.get(IntegrationURL.notionProgress);
+  return normalizeEnvelope<NotionProgressResponse>(res);
+};
+
+export const triggerNotionSync = async (): Promise<{ message: string }> => {
+  const res = await notionClient.post(IntegrationURL.notionSync);
+  return normalizeEnvelope<{ message: string }>(res);
+};
+
+export const updateNotionModule = async (
+  moduleId: string,
+  payload: NotionModuleUpdatePayload
+): Promise<NotionModule> => {
+  const res = await notionClient.patch(`${IntegrationURL.notionProgress}${moduleId}/`, payload);
+  return normalizeEnvelope<NotionModule>(res);
+};

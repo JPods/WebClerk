@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://webclerk.com/schemas/hooks.schema.json",
+  "title": "WebClerk report hook",
+  "description": "The config.hooks payload on a Report record. Write it here, paste it into the record, submit it to WCHQ.",
+  "type": "object",
+  "required": ["point"],
+  "additionalProperties": false,
+  "properties": {
+    "point": {
+      "type": "string",
+      "pattern": "^[a-z_]+\\.(save_pre|save_post|report_before|report_during|report_after)$",
+      "description": "Where this hook attaches, as model.phase. Must be declared in the wc:hook_points Setting."
+    },
+    "before": {"$ref": "#/$defs/rules", "description": "Once on the selection; the pre-save phase for model saves."},
+    "during": {"$ref": "#/$defs/rules", "description": "Per record, while records are gathered."},
+    "after": {"$ref": "#/$defs/rules", "description": "Per record once results are known; the post-save phase for model saves."},
+    "athena": {
+      "type": "object",
+      "description": "Written by WebClerk and WCHQ — do not hand-edit. Editing the rules drops clearance automatically.",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "rules": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/rule"}
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "anyOf": [
+        {"required": ["require"]}, {"required": ["match"]}, {"required": ["range"]},
+        {"required": ["block"]}, {"required": ["set"]}, {"required": ["add_note"]},
+        {"required": ["create_action"]}, {"required": ["append_log"]}, {"required": ["run_report"]}
+      ],
+      "properties": {
+        "when": {
+          "type": "object",
+          "description": "Condition: run this rule only when each field equals its value.",
+          "additionalProperties": {"type": ["string", "number", "boolean", "null"]}
+        },
+        "when_changed": {
+          "type": "string",
+          "description": "Condition: run this rule only when this field changed on this save."
+        },
+        "require": {
+          "oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}],
+          "description": "Validate: field must be present and non-empty."
+        },
+        "match": {
+          "type": "object",
+          "description": "Validate: field must match this regular expression.",
+          "additionalProperties": {"type": "string", "format": "regex"}
+        },
+        "range": {
+          "type": "object",
+          "description": "Validate: field must fall within [low, high].",
+          "additionalProperties": {
+            "type": "array", "minItems": 2, "maxItems": 2,
+            "items": {"type": ["number", "null"]}
+          }
+        },
+        "block": {
+          "type": "string",
+          "description": "Refuse the save with this message. Pre-save points with may_block only."
+        },
+        "set": {
+          "type": "object",
+          "description": "Write a value or a {{token}} to a field or JSON path. Must be inside may_set.",
+          "additionalProperties": true
+        },
+        "add_note": {
+          "type": "string",
+          "description": "Append a note to the record's comments. Needs may_create: note."
+        },
+        "create_action": {
+          "type": "object",
+          "description": "Create an Action record. Needs may_create: action.",
+          "additionalProperties": true
+        },
+        "append_log": {
+          "oneOf": [
+            {"type": "string", "pattern": "^[a-z0-9_-]{1,64}$"},
+            {
+              "type": "object",
+              "required": ["log"],
+              "properties": {
+                "log": {
+                  "type": "string", "pattern": "^[a-z0-9_-]{1,64}$",
+                  "description": "Log name — a name, never a path. Must be inside may_log. Lands in logs/hooks/<name>.jsonl."
+                }
+              },
+              "additionalProperties": {"type": ["string", "number", "boolean", "null"]}
+            }
+          ],
+          "description": "Append one JSON line to a named log."
+        },
+        "run_report": {
+          "type": "string",
+          "description": "Run another report's after phase. Must be inside may_run. Depth 5, cycles refused."
+        },
+        "message": {
+          "type": "string",
+          "description": "The text a failed validate shows the user."
+        }
+      }
+    }
+  }
+}
