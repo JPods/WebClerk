@@ -301,7 +301,6 @@ const registry: Record<string, PanelRenderer> = {
     return wrap(createElement(FinancialsPanel, {
       totals: ctx.data.totals,
       cost: ctx.data.cost,
-      sell: ctx.data.sell,
       currency: ctx.data.currency,
     }));
   },

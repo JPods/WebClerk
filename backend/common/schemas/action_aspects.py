@@ -56,3 +56,17 @@ class ActionRetrospection(BaseModel):
     confidence: int = 0
     grade: str = ''                          # A-F against the memory markers
     grade_note: str = ''
+
+
+class AssignedPerson(BaseModel):
+    """One person on an action's roster. The first entry is responsible.
+
+    org_id is the person's organisation: it is how a customer or vendor login
+    finds the actions they are on (kanban), scoped to their own org.
+    Same {id, name} shape the ContactSelectWidget reads and writes.
+    """
+    id: Optional[int] = None                 # contact id
+    org_id: Optional[int] = None
+    name: str = ''
+    email: str = ''
+    role: str = ''                           # customer, vendor, rep, sales, admin, agent …

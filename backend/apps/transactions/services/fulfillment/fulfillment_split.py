@@ -327,9 +327,10 @@ def create_commission_invoice(
             header_total = order_comm.get('total', 0)
             if header_total:
                 src_price = (src_line.price or {}).get('extended', 0) or 0
-                order_sell = (order.sell or {}).get('total', 0) or 0
-                if order_sell > 0:
-                    comm_amount = round(header_total * (src_price / order_sell), 2)
+                # Share of goods: Σ line extended is totals.subtotal
+                goods = (order.totals or {}).get('subtotal', 0) or 0
+                if goods > 0:
+                    comm_amount = round(header_total * (src_price / goods), 2)
 
         if not comm_amount:
             continue

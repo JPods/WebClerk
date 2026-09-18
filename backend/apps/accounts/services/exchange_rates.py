@@ -170,8 +170,8 @@ def set_rate(currency_code: str, rate: float, source: str = 'manual'):
 def capture_rate(currency_code: str, transaction) -> Optional[float]:
     """Stamp the current exchange rate onto a transaction.
 
-    Stores in transaction.sell or transaction.cost envelope as
-    'exchange_rate' and 'exchange_currency'. Call this when creating
+    Stores in the transaction's finance envelope as exchange_rate,
+    exchange_currency and dt_exchange. Call this when creating
     an order/invoice for a foreign-currency customer.
 
     Args:
@@ -187,14 +187,13 @@ def capture_rate(currency_code: str, transaction) -> Optional[float]:
 
     rate_float = float(rate)
 
-    # Stamp on sell envelope
-    sell = getattr(transaction, 'sell', None) or {}
-    if isinstance(sell, dict):
-        sell['exchange_rate'] = rate_float
-        sell['exchange_currency'] = currency_code
-        sell['exchange_dt'] = _now_ms()
-        transaction.sell = sell
-        transaction.save(update_fields=['sell', 'dt_modified', 'version'])
+    # Stamp on the finance envelope (TransactionFinance)
+    finance = dict(transaction.finance or {})
+    finance['exchange_rate'] = rate_float
+    finance['exchange_currency'] = currency_code
+    finance['dt_exchange'] = _now_ms()
+    transaction.finance = finance
+    transaction.save(update_fields=['finance', 'dt_modified', 'version'])
 
     return rate_float
 
@@ -210,7 +209,7 @@ def settle_fx_difference(
     This is journalized to the FX gain/loss GL account.
 
     Args:
-        invoice_id: Invoice PK (has captured rate in sell envelope)
+        invoice_id: Invoice PK (has captured rate in finance envelope)
         cash_id: Cash PK (just received)
 
     Returns:
@@ -229,9 +228,9 @@ def settle_fx_difference(
     except Cash.DoesNotExist:
         return {'error': f'Cash {cash_id} not found'}
 
-    sell = invoice.sell or {}
-    captured_rate = sell.get('exchange_rate')
-    currency = sell.get('exchange_currency')
+    finance = invoice.finance or {}
+    captured_rate = finance.get('exchange_rate')
+    currency = finance.get('exchange_currency')
 
     if not captured_rate or not currency:
         return {'fx_amount': 0, 'direction': 'none', 'message': 'No exchange rate on invoice'}
@@ -247,7 +246,7 @@ def settle_fx_difference(
         return {'fx_amount': 0, 'direction': 'none', 'message': 'Rates unchanged'}
 
     # FX difference on the invoice total
-    invoice_total = Decimal(str(sell.get('total', 0) or 0))
+    invoice_total = Decimal(str((invoice.totals or {}).get('total', 0) or 0))
     if invoice_total <= 0:
         return {'fx_amount': 0, 'direction': 'none'}
 

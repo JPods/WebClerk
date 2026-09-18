@@ -87,7 +87,7 @@ def _build_access(model_key, fields, field_map):
 
     json_fields = [
         'metadata', 'refs', 'prefs', 'comments', 'actions', 'data',
-        'price', 'cost', 'totals', 'sell', 'finance', 'flow', 'source',
+        'price', 'cost', 'totals', 'finance', 'flow', 'source',
         'quantity', 'physical', 'tax', 'item', 'catalog', 'flags',
         'billing', 'process', 'travel', 'rates', 'gl_accounts',
         'contacts', 'addresses', 'domains', 'phones', 'emails',
@@ -611,7 +611,7 @@ def _build_columns(model_key, field_map):
               'parent_id', 'parent_model', 'line_increment', 'row_version'}
     JSON_ENVELOPES = {
         'metadata', 'refs', 'prefs', 'config', 'comments', 'actions',
-        'cost', 'sell', 'totals', 'commission', 'finance', 'flow', 'source',
+        'cost', 'totals', 'commission', 'finance', 'flow', 'source',
         'price', 'quantity', 'physical', 'tax', 'item', 'catalog', 'flags',
         'contacts', 'addresses', 'domains', 'phones', 'emails', 'docs',
         'connections', 'relations', 'financial', 'metrics', 'gl_accounts',

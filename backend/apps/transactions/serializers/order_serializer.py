@@ -97,7 +97,7 @@ class OrderSerializer(RoleAwareModelSerializer):
         fields = [
             'id', 'uuid', 'ida', 'status', 'priority', 'price_level',
             'customer_id', 'manufacturer_id', 'vendor_id',
-            'cost', 'sell', 'totals',
+            'cost', 'totals',
             'finance', 'flow', 'source', 'refs', 'prefs', 'metadata',
             'line_count', 'customer_name', 'vendor_name', 'lines',
             'dt_created', 'dt_modified', 'version'

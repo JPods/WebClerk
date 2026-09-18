@@ -410,7 +410,6 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
               <FinancialsPanel
                 totals={recordData?.financial?.totals}
                 cost={recordData?.financial?.cost}
-                sell={recordData?.financial?.sell}
                 currency={recordData?.financial?.currency}
               />
             )}

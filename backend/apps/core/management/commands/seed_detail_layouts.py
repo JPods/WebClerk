@@ -157,7 +157,7 @@ SELL_PANELS = [
     {"type": "panel", "content": "notes", "label": "comments"},
     {"type": "tabs", "tabs": STANDARD_TABS},
     {"type": "json_tree", "label": "json", "collapsed": True,
-     "fields": ["config", "totals", "sell", "cost", "tax", "metadata", "refs", "prefs"]},
+     "fields": ["config", "totals", "cost", "tax", "metadata", "refs", "prefs"]},
 ]
 
 EXEC_PANELS = [

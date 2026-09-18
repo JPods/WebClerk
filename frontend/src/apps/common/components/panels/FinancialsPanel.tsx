@@ -1,6 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
- * FinancialsPanel - Summary of totals, cost, sell with margin calculation
+ * FinancialsPanel - Summary of totals and cost with margin calculation
  *
  * Shared/common version used by detail pages.
  */
@@ -15,7 +15,6 @@ import {
 import type {
   TransactionTotals,
   TransactionCost,
-  TransactionSell,
 } from "@/apps/transactions/types/transactionTypes";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import { formatCurrency, formatPercent } from '@/utils/stringUtils';
@@ -23,7 +22,6 @@ import { formatCurrency, formatPercent } from '@/utils/stringUtils';
 interface FinancialsPanelProps {
   totals?: TransactionTotals | null;
   cost?: TransactionCost | null;
-  sell?: TransactionSell | null;
   currency?: string;
   /** Back-compat with old FinancialsCard usage (not used currently) */
   isEditing?: boolean;
@@ -71,15 +69,13 @@ const StatBox: React.FC<{
 const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
   totals: totalsProp,
   cost: costProp,
-  sell: sellProp,
   currency = "USD",
 }) => {
-  // A default parameter covers undefined, not null. Records carry null envelopes
-  // (5 of 16 purchases have sell = null: a purchase has nothing to sell), and
-  // reading a field off null crashed the whole purchase form.
+  // A default parameter covers undefined, not null. Records carry null envelopes,
+  // and reading a field off null crashed the whole purchase form.
+  // totals is the only total (Bill, 2026-09-18) — the old sell envelope is gone.
   const totals = totalsProp ?? ({} as TransactionTotals);
   const cost = costProp ?? ({} as TransactionCost);
-  const sell = sellProp ?? ({} as TransactionSell);
   // WC3-aligned: margin lives on the totals envelope
   const marginAmount = totals.margin ?? 0;
   const marginPercent = totals.margin_pc ?? undefined;
@@ -104,46 +100,41 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
         </div>
       </div>
 
-      {/* ── Sell summary ──────────────────────────────────────── */}
+      {/* ── Totals ────────────────────────────────────────────── */}
       <div className="p-4 border-b db-border-color">
         <h4 className="db-font-xs font-semibold uppercase tracking-wide mb-3 flex items-center gap-2 db-text-muted">
           <FaChartLine size={10} />
-          Sell Totals
+          Totals
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatBox
-            label="Line Goods"
-            value={formatCurrency(sell.line_sum_goods)}
+            label="Subtotal"
+            value={formatCurrency(totals.subtotal)}
             sublabel="Σ extended"
             mandatory
           />
           <StatBox
             label="Discount"
-            value={formatCurrency(sell.discount)}
-            sublabel="Line discounts"
+            value={formatCurrency(totals.discount)}
           />
           <StatBox
             label="Tax"
-            value={formatCurrency(sell.tax)}
+            value={formatCurrency(totals.tax)}
           />
           <StatBox
-            label="Sell Total"
-            value={formatCurrency(sell.total)}
+            label="Total"
+            value={formatCurrency(totals.total)}
             highlight
           />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-3 mt-3">
           <StatBox
             label="Shipping"
-            value={formatCurrency(sell.shipping)}
-          />
-          <StatBox
-            label="Handling"
-            value={formatCurrency(sell.handling)}
+            value={formatCurrency(totals.shipping)}
           />
           <StatBox
             label="Other"
-            value={formatCurrency(sell.other)}
+            value={formatCurrency(totals.other)}
           />
         </div>
       </div>

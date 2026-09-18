@@ -54,7 +54,7 @@ class ProposalSerializer(RoleAwareModelSerializer):
         fields = [
             'id', 'uuid', 'ida', 'status', 'customer_id', 'vendor_id',
             'customer_name', 'vendor_name',
-            'cost', 'sell', 'totals',
+            'cost', 'totals',
             'finance', 'flow', 'source', 'refs', 'prefs', 'metadata',
             'line_count', 'lines',
             'dt_created', 'dt_modified', 'version'

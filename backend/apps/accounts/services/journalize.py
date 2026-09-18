@@ -403,8 +403,8 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
         return {'created': 0, 'error': 'No amounts to post'}
 
     # Verify balance — with FX rounding absorption for foreign currency
-    sell = invoice.sell if isinstance(getattr(invoice, 'sell', None), dict) else {}
-    has_fx = bool(sell.get('exchange_rate') and sell.get('exchange_rate') != 1)
+    finance = invoice.finance or {}
+    has_fx = bool(finance.get('exchange_rate') and finance.get('exchange_rate') != 1)
     balance_check = _check_balance(postings, has_exchange_rate=has_fx)
     if not balance_check['balanced']:
         return {
@@ -638,9 +638,9 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
         try:
             Invoice = dj_apps.get_model('transactions', 'Invoice')
             invoice = Invoice.objects.get(pk=invoice_id)
-            sell = invoice.sell if isinstance(getattr(invoice, 'sell', None), dict) else {}
-            captured_rate = sell.get('exchange_rate')
-            currency = sell.get('exchange_currency')
+            finance = invoice.finance or {}
+            captured_rate = finance.get('exchange_rate')
+            currency = finance.get('exchange_currency')
 
             if captured_rate and currency and captured_rate != 1:
                 from apps.accounts.services.exchange_rates import get_rate
@@ -698,8 +698,8 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
                             })
 
                             # Document FX in the cash record
-                            pay_sell = cash.sell if isinstance(getattr(cash, 'sell', None), dict) else {}
-                            pay_sell['fx'] = {
+                            cash_meta = dict(cash.metadata or {})
+                            cash_meta['fx'] = {
                                 'captured_rate': float(captured),
                                 'current_rate': float(current),
                                 'currency': currency,
@@ -707,7 +707,7 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
                                 'amount': float(fx_amount),
                                 'invoice_id': invoice_id,
                             }
-                            Cash.objects.filter(pk=cash_id).update(sell=pay_sell)
+                            Cash.objects.filter(pk=cash_id).update(metadata=cash_meta)
 
                             fx_result = {
                                 'fx_amount': float(fx_amount),
@@ -820,8 +820,8 @@ def journalize_purchase(purchase_id: int, ida_prefix: str = '') -> dict:
         return {'created': 0, 'error': 'No amounts to post'}
 
     # Verify balance — purchases can have FX too
-    sell = purchase.sell if isinstance(getattr(purchase, 'sell', None), dict) else {}
-    has_fx = bool(sell.get('exchange_rate') and sell.get('exchange_rate') != 1)
+    finance = purchase.finance or {}
+    has_fx = bool(finance.get('exchange_rate') and finance.get('exchange_rate') != 1)
     balance_check = _check_balance(postings, has_exchange_rate=has_fx)
     if not balance_check['balanced']:
         return {

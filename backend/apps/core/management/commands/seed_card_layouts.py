@@ -210,7 +210,7 @@ def build_card_layout(model_name):
             continue
         # Skip large JSON envelope fields that aren't useful in cards
         if f.get_internal_type() == 'JSONField' and name in {
-            'comments', 'cost', 'sell', 'totals', 'finance', 'commission',
+            'comments', 'cost', 'totals', 'finance', 'commission',
             'flow', 'source', 'addresses', 'emails', 'phones', 'company',
             'shipping', 'assigned_to', 'created_by', 'start_by', 'deadline_by',
             'expected_by', 'completed_by', 'updated_by', 'end_by',

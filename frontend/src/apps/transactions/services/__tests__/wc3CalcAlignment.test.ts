@@ -17,7 +17,6 @@ import { round, toNumber, formatCurrency, formatPercent } from '../calculationUt
 import {
   computeHeaderTotals,
   computeCostOnlyTotals,
-  defaultSell,
   defaultCost,
   defaultTotals,
 } from '../headerTotals';
@@ -186,9 +185,9 @@ describe('computeHeaderTotals()', () => {
     ];
     const result = computeHeaderTotals(lines, { transactionType: 'order' });
 
-    expect(result.sell.line_sum_goods).toBe(1000);
-    expect(result.sell.discount).toBe(50);
-    expect(result.sell.total).toBe(1000);
+    expect(result.totals.subtotal).toBe(1000);
+    expect(result.totals.discount).toBe(50);
+    expect(result.totals.total).toBe(1000);
 
     expect(result.cost.line_sum_goods).toBe(600);
     expect(result.cost.line_sum_shipping).toBe(25);
@@ -207,19 +206,18 @@ describe('computeHeaderTotals()', () => {
     ];
     const result = computeHeaderTotals(lines, { transactionType: 'order' });
 
-    expect(result.sell.line_sum_goods).toBe(500);
+    expect(result.totals.subtotal).toBe(500);
     expect(result.cost.line_sum_goods).toBe(300);
   });
 
-  it('handles exec-side (no sell)', () => {
+  it('handles exec-side (no sales subtotal)', () => {
     const lines = [
       makeLine({ costExt: 200, costFreight: 30, costComm: 10 }),
     ];
     const result = computeHeaderTotals(lines, { transactionType: 'purchase' });
 
-    expect(result.sell.line_sum_goods).toBe(0);
-    expect(result.sell.total).toBe(0);
-    expect(result.cost.total).toBe(240);
+    expect(result.totals.subtotal).toBe(0);
+        expect(result.cost.total).toBe(240);
     expect(result.totals.total).toBe(240); // exec: total = cost.total
   });
 
@@ -267,11 +265,6 @@ describe('computeCostOnlyTotals()', () => {
 // ============================================================================
 
 describe('default envelopes', () => {
-  it('defaultSell() has WC3 keys', () => {
-    const s = defaultSell();
-    expect(s).toHaveProperty('line_sum_goods', 0);
-    expect(s).toHaveProperty('total', 0);
-  });
 
   it('defaultCost() has WC3 keys', () => {
     const c = defaultCost();

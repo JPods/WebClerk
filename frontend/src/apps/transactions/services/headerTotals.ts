@@ -5,18 +5,13 @@
  * Implements the same aggregation that the WC3 Django services perform when
  * `update_sell_cost_totals(persist=True)` is called on a header model.
  *
- * Backend reference files:
- *   apps/transactions/services/order_totals.py     — compute_order_sell_cost_totals()
- *   apps/transactions/services/proposal_totals.py  — compute_proposal_sell_cost_totals()
- *   apps/transactions/services/invoice_totals.py   — compute_invoice_sell_cost_totals()
- *   apps/transactions/services/purchase_totals.py  — compute_purchase_sell_cost_totals()
- *   apps/transactions/services/po_totals.py        — compute_purchase_cost_totals()
+ * Backend: apps/transactions/services/pricing/totals_compute.py — recalculate_totals().
+ * totals is the only total (Bill, 2026-09-18); there is no sell envelope.
  *
  * Formulae:
  *   SELL SIDE (order, proposal, invoice):
- *     sell.line_sum_goods   = Σ line.price.extended
- *     sell.discount         = Σ line.price.discount_amount
- *     sell.total            = sell.line_sum_goods
+ *     totals.subtotal       = Σ line.price.extended
+ *     totals.discount       = Σ line.price.discount_amount
  *
  *     cost.line_sum_goods   = Σ line.cost.extended
  *     cost.line_sum_tax     = Σ line.cost.tax
@@ -26,15 +21,14 @@
  *     cost.commissions      = Σ line.cost.commissions
  *     cost.total            = goods + tax + shipping + handling + freight + commissions
  *
- *     totals.total     = sell.total
+ *     totals.total     = totals.subtotal
  *     totals.cost      = cost.total
- *     totals.margin    = sell.total − cost.total
- *     totals.margin_pc = (margin / sell.total) × 100   if sell.total > 0
+ *     totals.margin    = totals.total − cost.total
+ *     totals.margin_pc = (margin / totals.total) × 100   if totals.total > 0
  *     totals.received  = (preserved from existing header value)
  *     totals.balance   = totals.total − totals.received
  *
  *   EXEC SIDE (purchase, workorder):
- *     No sell envelope.
  *     totals.total = cost.total
  *
  * @see webClerk3/readmes/topics/transactions/transactions-totals.md §3
@@ -46,16 +40,14 @@ import type {
   TransactionLine,
   TransactionTotals,
   HeaderCost,
-  HeaderSell,
 } from '../types/transactionTypes';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-/** The three-envelope shape returned by WC3 compute_*_sell_cost_totals(). */
+/** The cost and totals envelopes a recalculation produces. */
 export interface HeaderTotalsResult {
-  sell: HeaderSell;
   cost: HeaderCost;
   totals: TransactionTotals;
 }
@@ -70,18 +62,6 @@ export interface ComputeTotalsOptions {
 // ============================================================================
 // Default (empty) envelopes
 // ============================================================================
-
-export function defaultSell(): HeaderSell {
-  return {
-    line_sum_goods: 0,
-    discount: 0,
-    tax: 0,
-    shipping: 0,
-    handling: 0,
-    other: 0,
-    total: 0,
-  };
-}
 
 export function defaultCost(): HeaderCost {
   return {
@@ -113,7 +93,7 @@ export function defaultTotals(): TransactionTotals {
 // ============================================================================
 
 /**
- * Compute sell, cost, and totals envelopes from an array of lines.
+ * Compute cost and totals envelopes from an array of lines.
  *
  * This is the client-side equivalent of WC3's
  * `compute_order_sell_cost_totals()` (and the proposal/invoice/purchase
@@ -123,7 +103,7 @@ export function defaultTotals(): TransactionTotals {
  *
  * @param lines - Array of TransactionLine records from the API or local state.
  * @param options - Transaction type and any preserved values (received, etc.).
- * @returns The three-envelope `{ sell, cost, totals }` shape.
+ * @returns `{ cost, totals }`.
  */
 export function computeHeaderTotals(
   lines: TransactionLine[],
@@ -166,17 +146,6 @@ export function computeHeaderTotals(
     costCommissions += toNumber(c.commissions);
   }
 
-  // --- Build sell envelope ---
-  const sell: HeaderSell = {
-    line_sum_goods: round(sellGoods),
-    discount: round(sellDiscount),
-    tax: 0,
-    shipping: 0,
-    handling: 0,
-    other: 0,
-    total: round(sellGoods),
-  };
-
   // --- Build cost envelope ---
   const costTotal = round(
     costGoods + costTax + costShipping + costHandling + costFreight + costCommissions,
@@ -201,6 +170,8 @@ export function computeHeaderTotals(
   const balance = round(totalAmt - received);
 
   const totals: TransactionTotals = {
+    subtotal: isSales ? round(sellGoods) : 0,
+    discount: isSales ? round(sellDiscount) : 0,
     total: totalAmt,
     cost: costTotal,
     margin,
@@ -209,7 +180,7 @@ export function computeHeaderTotals(
     balance,
   };
 
-  return { sell, cost, totals };
+  return { cost, totals };
 }
 
 // ============================================================================
@@ -217,7 +188,7 @@ export function computeHeaderTotals(
 // ============================================================================
 
 /**
- * Compute cost-only rollup for purchase/workorder (no sell envelope).
+ * Compute cost-only rollup for purchase/workorder.
  *
  * Identical to `computeHeaderTotals` with `transactionType='purchase'`,
  * but returns only the flat cost dict — matching WC3's

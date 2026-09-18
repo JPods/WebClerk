@@ -238,7 +238,6 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const isSellSide = ['order', 'invoice', 'proposal'].includes(modelName);
   const totals = data?.totals || {};
-  const sell = data?.sell || {};
   const cost = data?.cost || {};
 
   // All values from json.path.value — never compute independently
@@ -293,9 +292,8 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
         <div className="db-font-xs font-bold text-[var(--db-text,#212529)] mb-2">order totals</div>
         <div className="space-y-0.5">
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">lines</span><span className="font-mono">{lines.length}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">sell amount</span><span className="font-mono">{fmt(sell.line_sum_goods ?? 0)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">subtotal</span><span className="font-mono">{fmt(totals.subtotal)}</span></div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">discount</span><span className="font-mono">{fmt(totals.discount)}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">sell total</span><span className="font-mono font-medium">{fmt(sell.total ?? 0)}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">taxable</span><span className="font-mono">{fmt(totals.taxable)}</span></div>
           <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">tax</span><span className="font-mono">{fmt(totals.tax)}</span></div>

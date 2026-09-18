@@ -252,6 +252,19 @@ class TransactionFinance(BaseModel):
         None, title="Exchange Expense",
         json_schema_extra={'widget': 'currency', 'precision': 2},
     )
+    exchange_rate: Optional[float] = Field(
+        None, title="Exchange Rate",
+        description="Rate captured when the document was issued; 1 or None = home currency",
+        json_schema_extra={'widget': 'number', 'precision': 6},
+    )
+    exchange_currency: str = Field(
+        "", title="Exchange Currency", description="ISO 4217 code the rate converts from",
+        json_schema_extra={'widget': 'text'},
+    )
+    dt_exchange: Optional[int] = Field(
+        None, title="Exchange Captured", description="When the rate was captured (epoch ms UTC)",
+        json_schema_extra={'widget': 'date'},
+    )
     custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:

@@ -26,7 +26,6 @@ class ProposalSerializerTest(TestCase):
             status="planned",
             customer_id=self.customer.id,
             vendor_id=self.vendor.id,
-            sell={'total': 100.00},
             cost={'total': 80.00}
         )
 
@@ -37,7 +36,7 @@ class ProposalSerializerTest(TestCase):
 
         expected_fields = [
             'id', 'uuid', 'ida', 'status', 'customer_id', 'vendor_id',
-            'customer_name', 'vendor_name', 'cost', 'sell', 'totals',
+            'customer_name', 'vendor_name', 'cost', 'totals',
             'finance', 'flow',
             'source', 'line_count',
             'lines', 'dt_created', 'dt_modified', 'version'

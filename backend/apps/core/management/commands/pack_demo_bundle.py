@@ -50,7 +50,7 @@ SKIP_FIELDS = {'_state', '_pydantic_cache'}
 
 # JSON-serializable field types that need special handling
 JSON_FIELDS = {'config', 'metadata', 'refs', 'prefs', 'comments', 'price', 'cost',
-               'gls', 'totals', 'item', 'quantity', 'sell', 'source', 'terms_json',
+               'gls', 'totals', 'item', 'quantity', 'source', 'terms_json',
                'op_data', 'health_rating', 'paths', 'cost_snapshot', 'actions'}
 
 

@@ -282,65 +282,59 @@ class Action(BaseModel):
         self.refs = refs
         
         # Note: Save is handled by the calling thread in save_view.py
-    def _resolve_contact_from_assigned_to(self):
-        """
-        Resolve contact_id from assigned_to entries.
-        Returns (contact_id, contact_email) tuple.
-        First tries to match by id/contact_id in assigned_to, then by name against Contact.attention.
+    def _normalize_roster(self):
+        """Bring assigned_to to the roster shape and resolve each person.
+
+        assigned_to = [{id, org_id, name, email, role}], first entry responsible
+        (common.schemas.action_aspects.AssignedPerson). A person is resolved by
+        id, then exact email, then a full name that matches exactly one contact.
+        No partial-name guessing: with customers and vendors reading actions, a
+        wrong match shows a record to the wrong organisation. An unresolved
+        person keeps the name given and no id.
         """
         from apps.core.models import Contact
-        
-        if not self.assigned_to or not isinstance(self.assigned_to, list) or not self.assigned_to:
-            return None, None
-        
-        first_assigned = self.assigned_to[0]
-        if not isinstance(first_assigned, dict):
-            # If it's just an id
-            try:
-                cid = int(first_assigned)
-                contact = Contact.objects.filter(id=cid).first()
-                if contact:
-                    return contact.id, contact.email
-            except (ValueError, TypeError):
-                pass
-            return None, None
-        
-        # Try to get id from dict
-        assigned_id = first_assigned.get('id') or first_assigned.get('contact_id')
-        if assigned_id:
-            try:
-                cid = int(assigned_id)
-                contact = Contact.objects.filter(id=cid).first()
-                if contact:
-                    return contact.id, contact.email
-            except (ValueError, TypeError):
-                pass
-        
-        # Try to match by name against attention field
-        name = first_assigned.get('name', '').strip()
-        if name:
-            name_lower = name.lower()
-            # Exact match first
-            contact = Contact.objects.filter(attention__iexact=name).first()
-            if contact:
-                return contact.id, contact.email
-            # Try partial match (first name or last name)
-            for c in Contact.objects.exclude(attention='').exclude(attention__isnull=True):
-                attn_lower = (c.attention or '').lower()
-                if attn_lower == name_lower:
-                    return c.id, c.email
-                # Check if name is part of attention (e.g., "Bill" matches "Bill James")
-                if name_lower in attn_lower.split() or attn_lower.startswith(name_lower):
-                    return c.id, c.email
-        
-        return None, None
+        from common.schemas.action_aspects import AssignedPerson
+
+        value = self.assigned_to
+        if not value:
+            self.assigned_to = []
+            return
+        if isinstance(value, dict):          # legacy {en: name}
+            value = [value.get('en', '')]
+        if not isinstance(value, list):
+            raise ValueError('assigned_to must be a list of people')
+
+        roster = []
+        for entry in value:
+            person = {'name': entry} if isinstance(entry, str) else dict(entry or {})
+            contact = None
+            if person.get('id'):
+                contact = Contact.objects.filter(id=person['id']).first()
+            if contact is None and person.get('email'):
+                contact = Contact.objects.filter(email__iexact=person['email'].strip()).first()
+            if contact is None and person.get('name'):
+                parts = person['name'].split()
+                if len(parts) >= 2:
+                    hits = Contact.objects.filter(
+                        name_first__iexact=parts[0], name_last__iexact=' '.join(parts[1:]))[:2]
+                    contact = hits[0] if len(hits) == 1 else None
+            if contact is not None:
+                person.update({
+                    'id': contact.id,
+                    'org_id': contact.customer_id or contact.vendor_id,
+                    'name': ' '.join(x for x in (contact.name_first, contact.name_last) if x)
+                            or person.get('name', ''),
+                    'email': contact.email or '',
+                    'role': person.get('role') or contact.role or '',
+                })
+            roster.append(AssignedPerson.model_validate(person).model_dump())
+        self.assigned_to = roster
 
     def save(self, *args, **kwargs):
-        # Auto-populate contact_id from assigned_to if not already set or if assigned_to changed
-        if self.assigned_to and (not self.contact_id or self.contact_id == 0):
-            resolved_id, _ = self._resolve_contact_from_assigned_to()
-            if resolved_id:
-                self.contact_id = resolved_id
+        # assigned_to is a roster; contact_id is its responsible (first) person.
+        self._normalize_roster()
+        if self.assigned_to and self.assigned_to[0].get('id'):
+            self.contact_id = self.assigned_to[0]['id']
         
         # Duration-based date calculation
         # Duration is in days, dates are in milliseconds
@@ -425,12 +419,6 @@ class Action(BaseModel):
                 new = getattr(self, attr)
                 if old != new:
                     changed_fields.append(name)
-        
-        # If assigned_to changed, re-resolve contact_id
-        if 'assigned_to' in changed_fields and self.assigned_to:
-            resolved_id, _ = self._resolve_contact_from_assigned_to()
-            if resolved_id:
-                self.contact_id = resolved_id
         
         # set the _by based on changed_fields
         from django.utils import timezone

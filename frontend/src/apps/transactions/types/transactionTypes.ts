@@ -303,22 +303,8 @@ export interface HeaderCost {
   total?: number | null;
 }
 
-export interface HeaderSell {
-  /** Σ line.price.extended — matches WC3 sell.line_sum_goods */
-  line_sum_goods?: number | null;
-  /** Σ line.price.discount_amount */
-  discount?: number | null;
-  tax?: number | null;
-  shipping?: number | null;
-  handling?: number | null;
-  other?: number | null;
-  /** = line_sum_goods (sell total equals sum of extended prices) */
-  total?: number | null;
-}
-
 // Aliases used by FinancialsPanel and other UI components
 export type TransactionCost = HeaderCost;
-export type TransactionSell = HeaderSell;
 
 export interface TransactionFinance {
   sales_tax_id?: number;
@@ -379,7 +365,6 @@ export interface Transaction {
   // JSONB fields from TransactionBaseModel
   totals?: TransactionTotals;
   cost?: HeaderCost;
-  sell?: HeaderSell;
   finance?: TransactionFinance;
   flow?: TransactionFlow;
   source?: TransactionSource;

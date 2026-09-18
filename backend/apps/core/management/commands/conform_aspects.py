@@ -15,7 +15,9 @@ Steps
   action    action / description: plain strings → {en}; agent-proposal keys
             written into action (source_agent, sprint_week, …) → metadata, where
             allie-reflect.py reads them; languages {} → []; user stamps with a
-            non-numeric id keep their email and lose the id.
+            non-numeric id keep their email and lose the id;
+            assigned_to {en: name} / [names] → [{id, org_id, name, email, role}]
+            matched to contacts by name or email (unmatched names are listed).
   records   project objective / tasks / logistics stored as plain text → the
             schema (text kept in summary / notes; goal and success_criteria →
             summary and success.definition); document.path wc2_note / ask_bill →
@@ -129,9 +131,10 @@ class Command(BaseCommand):
 
         Action = MODEL_REGISTRY['action'].import_model()
         self.stdout.write('action:')
-        counts = dict(text=0, agent=0, languages=0, stamps=0)
+        counts = dict(text=0, agent=0, languages=0, stamps=0, roster=0)
+        unmatched = set()
         from types import SimpleNamespace
-        cols = ('id', 'action', 'description', 'languages', 'metadata', *self.STAMP_FIELDS)
+        cols = ('id', 'action', 'description', 'languages', 'metadata', 'assigned_to', *self.STAMP_FIELDS)
         for row in Action.objects.values(*cols).iterator():
             rec = SimpleNamespace(pk=row['id'], **row)
             update = {}
@@ -176,9 +179,55 @@ class Command(BaseCommand):
                 if fixed != stamps:
                     update[f] = fixed
                     counts['stamps'] += 1
+            roster = self._roster(rec.assigned_to, unmatched)
+            if roster is not None:
+                update['assigned_to'] = roster
+                counts['roster'] += 1
             if update and apply:
                 Action.objects.filter(pk=rec.pk).update(**update)
         self.stdout.write('  ' + ', '.join(f'{k}: {v}' for k, v in counts.items()))
+        if unmatched:
+            self.stdout.write(f'  assigned_to names with no contact: {sorted(unmatched)}')
+
+    def _contact_index(self):
+        if not hasattr(self, '_contacts'):
+            from apps.core.constants.model_registry import MODEL_REGISTRY
+            Contact = MODEL_REGISTRY['contact'].import_model()
+            idx = {}
+            for c in Contact.objects.values('id', 'name_first', 'name_last', 'email',
+                                            'role', 'customer_id', 'vendor_id'):
+                entry = {
+                    'id': c['id'], 'org_id': c['customer_id'] or c['vendor_id'],
+                    'name': ' '.join(x for x in (c['name_first'], c['name_last']) if x),
+                    'email': c['email'] or '', 'role': c['role'] or '',
+                }
+                keys = {entry['name'].lower(), (c['name_first'] or '').lower()}
+                if c['email']:
+                    keys |= {c['email'].lower(), c['email'].split('@')[0].lower()}
+                for k in keys - {''}:
+                    idx.setdefault(k, []).append(entry)
+            self._contacts = idx
+        return self._contacts
+
+    def _roster(self, value, unmatched: set):
+        """Old assigned_to → roster list, or None when already a roster."""
+        from common.schemas.action_aspects import AssignedPerson
+        if value in (None, [], {}):
+            return None
+        if isinstance(value, list) and all(isinstance(v, dict) for v in value):
+            return None
+        names = [value['en']] if isinstance(value, dict) and 'en' in value else \
+                [v for v in value if isinstance(v, str)] if isinstance(value, list) else []
+        idx = self._contact_index()
+        roster = []
+        for name in names:
+            hits = idx.get(name.strip().lower(), [])
+            if len(hits) == 1:
+                roster.append(AssignedPerson(**hits[0]).model_dump())
+            else:
+                unmatched.add(f'{name} ({len(hits)} matches)')
+                roster.append(AssignedPerson(name=name).model_dump())
+        return roster
 
     def step_records(self, apply: bool):
         from apps.core.constants.model_registry import MODEL_REGISTRY

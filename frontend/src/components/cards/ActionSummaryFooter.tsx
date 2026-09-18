@@ -15,23 +15,25 @@ const ActionSummaryFooter: React.FC<FooterComponentProps> = ({ data }) => {
     ? nextAction.action?.en
     : nextAction.action;
 
+  // assigned_to is a roster: [{id, name, …}], first entry responsible.
+  const roster = Array.isArray(nextAction.assigned_to) ? nextAction.assigned_to : [];
+  const assignedNames = roster.map((p: { name?: string }) => p?.name).filter(Boolean).join(', ');
+
   return (
-    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--db-border)' }}>
+    <div className="mt-2 pt-2 border-t db-border-color">
       <div
-        style={{ fontSize: 10, fontWeight: 500, color: 'var(--db-text-muted)', cursor: 'pointer' }}
+        className="db-font-xs font-medium db-text-muted cursor-pointer"
         onClick={() => {
           const actionId = nextAction.id;
           if (actionId) window.open(`/action?id=${actionId}`, '_blank');
         }}
         title="Click to open action record"
       >Next Action</div>
-      <div style={{ fontSize: '0.75rem', color: 'var(--db-text)' }}>
+      <div className="text-xs db-text">
         {actionText ? `${actionText} — ${nextAction.status || 'pending'}` : '—'}
       </div>
-      {nextAction.assigned_to && (
-        <div style={{ fontSize: 10, color: 'var(--db-text-muted)', marginTop: 2 }}>
-          {nextAction.assigned_to}
-        </div>
+      {assignedNames && (
+        <div className="db-font-xs db-text-muted mt-0.5">{assignedNames}</div>
       )}
     </div>
   );

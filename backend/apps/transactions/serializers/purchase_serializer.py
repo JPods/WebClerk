@@ -54,7 +54,7 @@ class PurchaseSerializer(RoleAwareModelSerializer):
             'id', 'uuid', 'ida', 'status', 'priority', 'price_level',
             'customer_id', 'manufacturer_id', 'vendor_id',
             'customer_name', 'vendor_name',
-            'cost', 'sell', 'totals',
+            'cost', 'totals',
             'finance', 'flow', 'source', 'refs', 'metadata',
             'line_count', 'lines',
             'dt_created', 'dt_modified', 'version'

@@ -70,6 +70,7 @@ FIELD_SCHEMAS: dict[str, str] = {
     **{f'action.{s}_by': f'{_AC}:UserStamp' for s in
        ('created', 'updated', 'start', 'deadline', 'expected', 'completed', 'end')},
     'question_answer.answered_by': f'{_AC}:UserStamp',
+    'action.assigned_to': f'{_AC}:AssignedPerson',   # list of
     'item.gls': f'{_RA}:ItemGls',
     'item.flags': f'{_RA}:ItemFlags',
     'item.tax_code': f'{_RA}:ItemTaxCode',

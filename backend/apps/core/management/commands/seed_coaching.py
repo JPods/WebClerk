@@ -98,7 +98,6 @@ COACHING = {
             'cost': 'Cost-side data — landed cost, margin analysis. Not shown to customers.',
             'finance': 'GL posting data — account codes, journal references, posting status.',
             'config': 'Custom settings — alternate ship-to, special handling instructions.',
-            'sell': 'Sales-side envelope — commission data, rep assignments.',
             'source': 'Origin tracking — which order, proposal, or import created this invoice.',
         },
         'actions': {

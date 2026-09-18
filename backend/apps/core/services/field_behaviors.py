@@ -688,7 +688,7 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
 # Classification sets for field grouping
 _JSON_ENVELOPE_FIELDS = {
     'metadata', 'refs', 'prefs', 'config', 'comments', 'actions',
-    'cost', 'sell', 'totals', 'commission', 'finance', 'flow',
+    'cost', 'totals', 'commission', 'finance', 'flow',
     'source', 'price', 'quantity', 'physical', 'tax', 'item',
     'catalog', 'flags', 'spec', 'quality', 'bom', 'routing',
     'tracking', 'dimensions', 'hazmat', 'compliance', 'yield_data',
@@ -711,7 +711,7 @@ _FK_ID_FIELDS = {
     'conditions_id', 'terms_fk',
 }
 _FINANCIAL_FIELDS = {
-    'total', 'balance', 'cost', 'sell', 'totals', 'commission',
+    'total', 'balance', 'cost', 'totals', 'commission',
     'price_level', 'terms', 'discount', 'amount', 'tax_rate', 'margin',
 }
 _COMM_FIELDS = {'email', 'phone', 'fax', 'mobile', 'website', 'url'}

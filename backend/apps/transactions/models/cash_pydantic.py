@@ -68,8 +68,19 @@ class CashConfig(ConfigBase):
 
 # ── Cash .metadata ───────────────────────────────────────────────
 
+class CashFx(BaseModel):
+    """Exchange gain or loss realised when this cash settled a foreign-currency invoice."""
+    captured_rate: float = 0
+    current_rate: float = 0
+    currency: str = ''
+    direction: str = ''                       # gain | loss
+    amount: float = 0
+    invoice_id: Optional[int] = None
+
+
 class CashMetadata(MetadataBase):
     """System-written data on a Cash record."""
+    fx: Optional[CashFx] = None
     gl_accounts: Optional[GlStage] = None
     reconciliation: Optional[ReconciliationData] = None
     gateway_metadata: dict = Field(default_factory=dict)

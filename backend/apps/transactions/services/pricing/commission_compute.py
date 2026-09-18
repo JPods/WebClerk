@@ -513,8 +513,7 @@ def get_commission_report(
         if not reps:
             continue
 
-        sell = inv.sell or {}
-        inv_total = Decimal(str(sell.get('total', 0) or 0))
+        inv_total = Decimal(str((inv.totals or {}).get('total', 0) or 0))
         inv_ida = inv.ida or f'INV-{inv.pk}'
         inv_date = ''
         if inv.dt_created:
