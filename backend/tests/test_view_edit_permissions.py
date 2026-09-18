@@ -30,17 +30,14 @@ def _rules(user, model_name='invoice', pk=None):
 
 
 def _portal_user(django_user_model, email, role, org_kind):
-    from apps.core.models import Contact, UserProfile
+    """A login is a Contact; its role is contact.role (access.py)."""
     from apps.orgs.models import OrgBase
 
     org = OrgBase.objects.create(display_name=f'{org_kind} co', org_type=org_kind,
                                  price_level='wholesale')
-    contact = Contact.objects.create(email=email, name_first='P', name_last='U',
-                                     **{org_kind: org}, refs={'roles': [role]})
-    user = django_user_model.objects.create_user(
-        email=f'login_{email}', password=get_random_string(20))
-    UserProfile.objects.create(user=user, contact=contact, cached_roles=[role])
-    return user
+    return django_user_model.objects.create_user(
+        email=email, password=get_random_string(20), role=role,
+        name_first='P', name_last='U', **{org_kind: org})
 
 
 @pytest.mark.django_db
@@ -51,8 +48,8 @@ def test_unauthenticated_caller_gets_no_rules():
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('role,org_kind', [
-    ('user_customer', 'customer'),
-    ('user_vendor', 'vendor'),
+    ('customer', 'customer'),
+    ('vendor', 'vendor'),
 ])
 def test_portal_users_edit_nothing(django_user_model, role, org_kind):
     """Editing is staff-only for now (Bill, 2026-09-17)."""
@@ -73,7 +70,8 @@ def test_staff_edits_everything_except_what_a_record_locks(django_user_model):
     invoice = Invoice.objects.create(status='planned', totals={'total': 100})
 
     open_data = _rules(user, pk=invoice.pk).data['data']
-    assert open_data['edit'] == ['*']
+    assert '*' not in open_data['edit']              # a list of leaves, never a wildcard
+    assert 'totals.total' in open_data['edit']
     assert open_data['locked'] == []
 
     invoice.is_locked = True
@@ -82,14 +80,25 @@ def test_staff_edits_everything_except_what_a_record_locks(django_user_model):
     locked_data = _rules(user, pk=invoice.pk).data['data']
     assert 'totals' in locked_data['locked']
     assert 'totals' in locked_data['edit_deny']   # even for a superuser
+    assert not any(f.startswith('totals.') for f in locked_data['edit'])
 
 
 @pytest.mark.django_db
 def test_customer_rules_hide_costs(django_user_model):
-    user = _portal_user(django_user_model, 'cust_rules@example.fake',
-                        'user_customer', 'customer')
+    """The customer item policy (Bill, 2026-09-17) as data: their price tier, no cost."""
+    from apps.core.services import access
+    item = Setting.objects.get(purpose='wc:model', parent_model='item')
+    cfg = dict(item.config)
+    cfg['access'] = {**cfg['access'], 'roles': {**cfg['access']['roles'], 'customer': {
+        'view': ['id', 'ida', 'name', 'price.$user.price_level'], 'edit': [], 'scope': {}}}}
+    item.config = cfg
+    item._setting_update_authorized = True
+    item.save()
+    access.clear_cache()
+
+    user = _portal_user(django_user_model, 'cust_rules@example.fake', 'customer', 'customer')
     data = _rules(user, model_name='item').data['data']
-    assert 'cost' in data['view_deny']
+    assert not any(f == 'cost' or f.startswith('cost.') for f in data['view'])
     assert 'price.wholesale' in data['view']   # their level, resolved
 
 

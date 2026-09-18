@@ -37,8 +37,7 @@ OLD_TO_SHORT = {
     'user_warehouse': 'warehouse',
 }
 DERIVED = {'employee': 'sales', 'buyer': 'customer'}
-ACCOUNTING_MODELS = {'cash', 'ledger', 'gl_account', 'gl_journal', 'journal_batch',
-                     'currency', 'term', 'tax_jurisdiction'}
+ACCOUNTING_MODELS = access.ACCOUNTING_MODELS
 OLD_MODEL_NAME = {'bill_of_material': 'bom', 'gl_account': 'glaccount'}
 
 

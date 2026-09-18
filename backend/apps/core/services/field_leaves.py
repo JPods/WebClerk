@@ -50,7 +50,7 @@ _RA = 'common.schemas.record_aspects'
 LEAF = 'leaf'
 
 # Secrets. Never a leaf, for any role.
-NEVER_EXPOSED = frozenset({'connection.encryption', 'bundle.encryption'})
+NEVER_EXPOSED = frozenset({'connection.encryption', 'sync_bundle.encryption'})
 
 FIELD_SCHEMAS: dict[str, str] = {
     'comments': 'common.schemas.envelopes:CommentsBase',
@@ -86,7 +86,8 @@ FIELD_SCHEMAS: dict[str, str] = {
     'warehouse.count': f'{_RA}:WarehouseCount',
     # Outside payloads and free-form logs: shown whole (Bill, 2026-09-18).
     **{ref: LEAF for ref in (
-        'bundle.payload', 'bundle.response', 'bundle.maps', 'bundle.rules', 'bundle.conflicts',
+        'sync_bundle.payload', 'sync_bundle.response', 'sync_bundle.maps',
+        'sync_bundle.rules', 'sync_bundle.conflicts',
         'cash.gateway_response', 'ai_message.context',
         'connection.maps', 'connection.rules', 'connection.scripts',
         'connection.relationships', 'connection.changes', 'connection.conflicts',
@@ -230,18 +231,50 @@ def schema_for(model_key: str, field_name: str):
     return _import(ref) if ref and ref != LEAF else None
 
 
+def canonical_key(name: str):
+    """The ModelMeta.key for any name the API accepts, or None.
+
+    Registry key, meta key, alias or plural (get_model_meta), or a Django model
+    name such as 'workorderline' (registry.resolve) mapped back to its meta.
+    """
+    from apps.core.constants.model_registry import MODEL_REGISTRY, get_model_meta
+    meta = get_model_meta(name)
+    if meta is not None:
+        return meta.key
+    from apps.core.utils import registry
+    model = registry.resolve(name)
+    if model is None:
+        return None
+    path = f'{model.__module__}.{model.__name__}'
+    for m in MODEL_REGISTRY.values():
+        if m.model == path or m.model.rsplit('.', 1)[-1] == model.__name__ and \
+                m.import_model() is model:
+            return m.key
+    return None
+
+
 def resolve_model(model_key: str):
-    """The Django model for a MODEL_REGISTRY key. Raises when unknown."""
-    from apps.core.constants.model_registry import MODEL_REGISTRY
-    meta = MODEL_REGISTRY.get(model_key)
-    if meta is None:
+    """The Django model for any accepted name. Raises when unknown."""
+    from apps.core.constants.model_registry import get_model_meta
+    key = canonical_key(model_key)
+    if key is None:
         raise LookupError(f'not in MODEL_REGISTRY: {model_key}')
-    return meta.import_model()
+    return get_model_meta(key).import_model()
+
+
+def model_leaves(model_key: str) -> dict:
+    """{'leaves', 'opaque', 'missing_schemas', 'open_maps'} for one model.
+
+    Any registry key, meta key or alias; answered for the canonical key (ModelMeta.key).
+    """
+    key = canonical_key(model_key)
+    if key is None:
+        raise LookupError(f'not in MODEL_REGISTRY: {model_key}')
+    return _model_leaves(key)
 
 
 @lru_cache(maxsize=None)
-def model_leaves(model_key: str) -> dict:
-    """{'leaves', 'opaque', 'missing_schemas', 'open_maps'} for one model."""
+def _model_leaves(model_key: str) -> dict:
     from django.db.models import JSONField
 
     model = resolve_model(model_key)
@@ -252,7 +285,11 @@ def model_leaves(model_key: str) -> dict:
     missing: list[str] = []
     for f in model._meta.concrete_fields:
         if not isinstance(f, JSONField):
+            # A foreign key is one fact under two names: serializers emit
+            # 'invoice', the column is 'invoice_id'. Both are its leaf.
             leaves.add(f.attname)
+            if f.is_relation:
+                leaves.add(f.name)
             continue
         if f'{model_key}.{f.name}' in NEVER_EXPOSED:
             continue
@@ -286,4 +323,4 @@ def is_leaf(model_key: str, path: str) -> bool:
 
 
 def clear_cache() -> None:
-    model_leaves.cache_clear()
+    _model_leaves.cache_clear()

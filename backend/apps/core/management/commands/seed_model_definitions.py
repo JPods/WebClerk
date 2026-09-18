@@ -81,77 +81,10 @@ OVERRIDES = {
 }
 
 
-def _build_access(model_key, fields, field_map):
-    all_view = fields
-    all_edit = _all_except(fields, NEVER_EDIT)
-
-    json_fields = [
-        'metadata', 'refs', 'prefs', 'comments', 'actions', 'data',
-        'price', 'cost', 'totals', 'finance', 'flow', 'source',
-        'quantity', 'physical', 'tax', 'item', 'catalog', 'flags',
-        'billing', 'process', 'travel', 'rates', 'gl_accounts',
-        'contacts', 'addresses', 'domains', 'phones', 'emails',
-        'docs', 'connections', 'relations', 'financial', 'metrics',
-        'gateway_response', 'scripts', 'path',
-        'search_vector', 'count', 'location', 'warranty', 'site',
-        'op_data', 'answered_by', 'project_metadata',
-    ]
-    business_fields = _all_except(all_edit, json_fields)
-
-    customer_view = [f for f in fields if f in (
-        'id', 'ida', 'display_name', 'name', 'status', 'email', 'phone',
-        'address_full', 'attention', 'total', 'balance', 'dt_created',
-        'description', 'sku', 'kind', 'uom', 'question', 'answer',
-    )]
-    vendor_view = [f for f in fields if f in (
-        'id', 'ida', 'display_name', 'name', 'status', 'email', 'phone',
-        'total', 'dt_created', 'description', 'sku', 'availability',
-    )]
-    rep_view = _all_except(all_view, list(COST_FIELDS))
-
-    access = {
-        'roles': {
-            'admin': {'view': '*', 'edit': all_edit, 'create': True, 'delete': True},
-            'manager': {'view': '*', 'edit': business_fields, 'create': True, 'delete': True},
-            'sales': {
-                'view': all_view,
-                'edit': [f for f in business_fields if f not in (
-                    'type', 'category', 'division',
-                    'debit', 'credit', 'reconciled', 'fee_amount',
-                )],
-                'create': True, 'delete': False,
-            },
-            'warehouse': {
-                'view': [f for f in all_view if f not in (
-                    'price_level', 'terms', 'total', 'balance', 'amount',
-                    'debit', 'credit', 'discount_potential',
-                )],
-                'edit': [f for f in business_fields if f in (
-                    'status', 'description', 'name', 'display_name',
-                )],
-                'create': False, 'delete': False,
-            },
-            'accounting': {'view': '*', 'edit': [], 'create': False, 'delete': False},
-            'customer': {'view': customer_view, 'edit': [], 'create': False, 'delete': False},
-            'vendor': {'view': vendor_view, 'edit': [], 'create': False, 'delete': False},
-            'rep': {'view': rep_view, 'edit': [], 'create': False, 'delete': False},
-        },
-        'query_scope': _build_query_scope(model_key),
-        'publish': {
-            'web': customer_view[:8],
-            'api': customer_view,
-            'partner': ['id', 'ida', 'display_name', 'name', 'email'],
-        },
-    }
-
-    overrides = OVERRIDES.get(model_key)
-    if overrides:
-        for role, role_overrides in overrides.items():
-            if role in access['roles']:
-                access['roles'][role].update(role_overrides)
-
-    return access
-
+def _build_access(model_key):
+    """Default positive lists for a new model Setting (apps/core/services/access.py)."""
+    from apps.core.services.access import default_access
+    return default_access(model_key)
 
 def _build_query_scope(model_key):
     if model_key in ('order', 'invoice', 'proposal', 'purchase', 'workorder', 'requisition'):
@@ -770,7 +703,7 @@ def build_model_config(model_key):
 
     config = {
         'access': salvaged.get('access') or (
-            _build_access(model_key, fields, field_map) if fields else {}
+            _build_access(model_key) if fields else {}
         ),
         'behaviors': get_field_behaviors(model_key, field_map),
         'field_groups': get_field_groups(model_key, fields),

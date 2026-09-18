@@ -102,15 +102,13 @@ def apply_act_as_user(user, meta: dict) -> Optional[str]:
 # ── Blocks ──────────────────────────────────────────────────────────────
 
 def model_key(name: str) -> Optional[str]:
-    """Normalise a model name to its MODEL_REGISTRY key, or None."""
-    from apps.core.constants.model_registry import MODEL_REGISTRY
-    if name in MODEL_REGISTRY:
-        return name
-    flat = name.replace('_', '').lower()
-    for key in MODEL_REGISTRY:
-        if key.replace('_', '') == flat:
-            return key
-    return None
+    """The key a model's wc:model Setting uses (ModelMeta.key), or None.
+
+    Accepts any name the API accepts ('bundle' → 'sync_bundle',
+    'workorderline' → 'workorder_line').
+    """
+    from apps.core.services.field_leaves import canonical_key
+    return canonical_key(name)
 
 
 def expand_sets(paths: list, sets: dict) -> list:
@@ -162,6 +160,30 @@ def clear_cache(name: Optional[str] = None) -> None:
         _cache.clear()
     else:
         _cache.pop(model_key(name) or name, None)
+
+
+# ── Defaults ────────────────────────────────────────────────────────────
+
+ACCOUNTING_MODELS = frozenset({'cash', 'ledger', 'gl_account', 'gl_journal', 'journal_batch',
+                               'currency', 'term', 'tax_jurisdiction'})
+
+
+def default_access(key: str) -> dict:
+    """The access a new install starts with for one model.
+
+    superuser and admin see and edit every leaf; agent sees every leaf and edits
+    every leaf except on accounting models, never deletes. 'all' is the model's
+    leaves enumerated now — a leaf added later is in no list until someone adds
+    it. Every other role starts with nothing and is granted by an admin.
+    """
+    from apps.core.services import field_leaves as fl
+    leaves = sorted(fl.model_leaves(key)['leaves'])
+    full = {'view': ['@all'], 'edit': ['@all'], 'scope': {}, 'create': True, 'delete': True}
+    agent = dict(full, delete=False)
+    if key in ACCOUNTING_MODELS:
+        agent.update(edit=[], create=False)
+    return {'sets': {'all': leaves},
+            'roles': {'superuser': full, 'admin': dict(full), 'agent': agent}}
 
 
 # ── Validation ──────────────────────────────────────────────────────────

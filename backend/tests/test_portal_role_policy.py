@@ -41,14 +41,16 @@ STAFF_EDIT = ['name', 'description', 'sku']
 @pytest.fixture
 def item_policy(db):
     """The 2026-09-17 item policy as a wc:model Setting."""
-    s = Setting(purpose='wc:model', parent_model='item', name='Item Model Definition',
-                ida='wc-model-item', config={'access': {'roles': {
+    s = Setting.objects.filter(purpose='wc:model', parent_model='item').first() or Setting(
+        purpose='wc:model', parent_model='item', name='Item Model Definition', ida='wc-model-item')
+    s.config = {**(s.config or {}), 'access': {'roles': {
                     'customer': {'view': CUSTOMER_VIEW, 'edit': [], 'scope': {}},
                     'vendor': {'view': VENDOR_VIEW, 'edit': [], 'scope': {}},
                     'superuser': {'view': VENDOR_VIEW + ['price.retail'],
                                   'edit': STAFF_EDIT, 'scope': {}},
-                }}})
+                }}}
     s._setting_create_authorized = True
+    s._setting_update_authorized = True
     s.save()
     access.clear_cache()
     yield s

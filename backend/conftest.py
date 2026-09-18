@@ -36,11 +36,42 @@ def _ensure_company_profile():
     company.save()
 
 
+def _ensure_model_access():
+    """Every model starts with the install defaults: superuser/admin/agent lists.
+
+    Positive lists: a database with no wc:model access shows nothing, even to a
+    superuser. A new install gets these from seed_model_definitions; the test
+    database gets the same, from the same function (access.default_access).
+    """
+    from apps.core.constants.model_registry import MODEL_REGISTRY
+    from apps.core.models import Setting
+    from apps.core.services import access
+
+    if Setting.objects.filter(purpose="wc:model", config__access__roles__has_key="superuser").exists():
+        return
+    for meta in MODEL_REGISTRY.values():
+        key = meta.key
+        try:
+            acc = access.default_access(key)
+        except Exception:
+            continue          # a registry entry with no Django model has no leaves
+        s = Setting.objects.filter(purpose="wc:model", parent_model=key).first() or Setting(
+            purpose="wc:model", parent_model=key, ida=f"wc-model-{key}", name=f"{key} model", config={})
+        config = dict(s.config or {})
+        config["access"] = acc
+        s.config = config
+        s._setting_create_authorized = True
+        s._setting_update_authorized = True
+        s.save()
+    access.clear_cache()
+
+
 @pytest.fixture(scope="session")
 def django_db_setup(django_db_setup, django_db_blocker):
     """Created once at database setup so Django TestCase classes (setUpTestData) see it too."""
     with django_db_blocker.unblock():
         _ensure_company_profile()
+        _ensure_model_access()
 
 
 @pytest.fixture(autouse=True)
@@ -53,3 +84,4 @@ def _company_profile_after_flush(request):
         return
     request.getfixturevalue("transactional_db" if (marker and marker.kwargs.get("transaction")) else "db")
     _ensure_company_profile()
+    _ensure_model_access()
