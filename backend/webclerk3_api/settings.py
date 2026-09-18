@@ -411,8 +411,9 @@ EMAIL_TIMEOUT = 15  # seconds — a stalled SMTP server must not hang a request
 # form_url is on this server (webclerk.com).
 INQUIRY_SITES = {
     'market-hub': {'name': 'WebClerk', 'form_url': '/tfm/inquiry.html', 'origins': []},
-    'jpods': {'name': 'JPods', 'form_url': 'https://jpods.com/register.html',
-              'origins': ['https://jpods.com', 'https://www.jpods.com']},
+    # jpods.com serves a fixed file list (.htaccess); the form page lives on the library site.
+    'jpods': {'name': 'JPods', 'form_url': 'https://library.jpods.com/register.html',
+              'origins': ['https://jpods.com', 'https://www.jpods.com', 'https://library.jpods.com']},
 }
 
 # Email Notification Settings
