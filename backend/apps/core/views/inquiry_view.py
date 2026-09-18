@@ -7,7 +7,8 @@
 3. POST /wcapi/_inquiry/?t=<token>  {name, company, message, phone?, role?, website?}
    (the link code rides in the URL, never the body: SecretGuard scans bodies, and the
    visitor's own text should still be scanned)
-   Creates one Action (action_type='inquiry', Backlog). The email comes from the token,
+   Creates one Action (action_type='inquiry', Backlog), assigned to the site's `assign`
+   roster; an unresolved answerer is logged as an error. The email comes from the token,
    so it is proven; each token creates at most one Action.
 
 No login, no Contact created. Accepted fields only, lengths capped, sending mail 5/hour per IP (the form 30/hour),
@@ -162,6 +163,7 @@ class InquiryView(_Public):
         classes['metadata'].model_validate(metadata)
 
         topic = payload.get('topic') or 'Inquiry'
+        site = settings.INQUIRY_SITES.get(payload.get('site', ''), {})
         action = Action.objects.create(
             status='open',
             kanban_column='Backlog',
@@ -169,10 +171,15 @@ class InquiryView(_Public):
             priority=2,
             action={'en': f"{topic}: {fields['name']}, {fields['company']}"[:200]},
             description={'en': fields['message']},
+            assigned_to=[dict(p) for p in site.get('assign', [])],
             config=config,
             metadata=metadata,
         )
         action.ida = f'INQ-{action.pk}'
         action.save(update_fields=['ida'])
         logger.info('[INQUIRY] action %s from %s', action.ida, payload['email'])
+        if not (action.assigned_to and action.assigned_to[0].get('id')):
+            # The visitor was promised a person; the Action exists but nobody owns it.
+            logger.error('[INQUIRY] %s has no responsible contact — INQUIRY_SITES[%r].assign %r '
+                         'resolved to no Contact', action.ida, payload.get('site'), site.get('assign'))
         return Response({'ok': True, 'reference': action.ida})
