@@ -97,6 +97,45 @@ def _fill_tokens(text: str, sample: dict) -> str:
     return _re.sub(r'\{\{([^}]+)\}\}', one, text or '')
 
 
+def _render_raw_html(report, config: dict, sample: dict) -> str:
+    """The sample data, pretty-printed. What Shift-click shows — the record behind
+    the document, whether or not the document has a layout."""
+    layout = ("form layout" if config.get("form")
+              else "letter text" if config.get("body")
+              else f"template pointer \u2192 {config.get('template')}" if config.get("template")
+              else "no layout")
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>{report.name} — sample data</title>
+    <style>
+      body {{ font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+              margin: 0; padding: 1.5em; background: #1B2631; color: #EAECEE;
+              font-size: 12.5px; line-height: 1.55; }}
+      h1 {{ font-family: Helvetica, Arial, sans-serif; font-size: 15px;
+            margin: 0 0 .2em; color: #FFF; }}
+      .meta {{ font-family: Helvetica, Arial, sans-serif; font-size: 12px;
+               color: #85929E; margin-bottom: 1.4em; }}
+      pre {{ margin: 0; white-space: pre-wrap; word-break: break-word; }}
+      .k {{ color: #7FB3D5; }} .s {{ color: #A9DFBF; }} .n {{ color: #F7DC6F; }}
+    </style></head><body>
+    <h1>{report.name}</h1>
+    <div class="meta">{report.model_name or '—'} · {report.category or 'report'} · {layout}</div>
+    <pre>{_colorize_json(json.dumps(sample, indent=2))}</pre>
+    </body></html>"""
+
+
+def _colorize_json(text: str) -> str:
+    """Keys, strings and numbers in three colors. Escapes first — sample data is
+    data, not markup."""
+    import html as _html
+    import re as _re
+
+    escaped = _html.escape(text)
+    escaped = _re.sub(r'&quot;([^&]*?)&quot;(\s*:)', r'<span class="k">&quot;\1&quot;</span>\2', escaped)
+    escaped = _re.sub(r'(:\s*)&quot;(.*?)&quot;', r'\1<span class="s">&quot;\2&quot;</span>', escaped)
+    escaped = _re.sub(r'(:\s*)(-?\d+\.?\d*)', r'\1<span class="n">\2</span>', escaped)
+    return escaped
+
+
 def _render_letter_html(report, config: dict, sample: dict) -> str:
     """Letters and touch templates: subject + body with the tokens filled."""
     subject = _fill_tokens(config.get('subject') or report.name, sample)
@@ -480,6 +519,13 @@ class ParadePreviewView(APIView):
                 success=False, status_code=404,
                 message=f"No sample data on report '{report.name}'",
             )
+
+        # Shift-click asks for the data behind the document. Same endpoint, ?raw=1.
+        if request.query_params.get("raw") in ("1", "true", "yes"):
+            html = _render_raw_html(report, config, sample)
+            response = HttpResponse(html, content_type="text/html")
+            response["Disposition"] = "inline"
+            return response
 
         body = config.get("body")
         if form:

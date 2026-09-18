@@ -62,6 +62,8 @@ const FormParade: React.FC = () => {
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  // Shift-click shows the sample data behind the document (Shift-for-Help standard).
+  const [rawMode, setRawMode] = useState(false);
 
   /* Fetch manifest on mount */
   useEffect(() => {
@@ -87,16 +89,17 @@ const FormParade: React.FC = () => {
   }, []);
 
   /* When a report is selected, build the preview URL */
-  const handleSelectReport = async (report: ParadeReport) => {
+  const handleSelectReport = async (report: ParadeReport, raw = false) => {
     if (!report.has_sample_data) return;
     setSelectedReport(report);
+    setRawMode(raw);
     setNotes(feedbackMap[report.id]?.notes ?? "");
     setPreviewHtml(null);
     setPreviewError(null);
     setPreviewLoading(true);
     try {
       const { data } = await apiClient.get("/wcapi/_parade_preview/", {
-        params: { report_id: report.id },
+        params: raw ? { report_id: report.id, raw: 1 } : { report_id: report.id },
         responseType: "text",
         transformResponse: [(body) => body],
       });
@@ -235,9 +238,13 @@ const FormParade: React.FC = () => {
                   return (
                     <button
                       key={report.id}
-                      onClick={() => handleSelectReport(report)}
+                      onClick={(e) => handleSelectReport(report, e.shiftKey)}
+                      title={
+                        report.has_sample_data
+                          ? "Click for the document · Shift-click for the sample data"
+                          : "No sample data"
+                      }
                       disabled={disabled}
-                      title={disabled ? "No sample data available" : report.name}
                       className={`
                         w-full text-left px-4 py-2.5 border-b border-gray-100
                         transition-colors
@@ -291,6 +298,28 @@ const FormParade: React.FC = () => {
                   <span className="text-sm font-semibold text-gray-700">
                     {selectedReport.name}
                   </span>
+
+                  {/* Document / JSON — Shift-click a report does the same thing */}
+                  <div className="inline-flex rounded overflow-hidden border border-gray-300">
+                    <button
+                      onClick={() => handleSelectReport(selectedReport, false)}
+                      className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+                        rawMode ? "bg-white text-gray-600 hover:bg-gray-100" : "bg-gray-700 text-white"
+                      }`}
+                      title="The document as it prints"
+                    >
+                      Document
+                    </button>
+                    <button
+                      onClick={() => handleSelectReport(selectedReport, true)}
+                      className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+                        rawMode ? "bg-gray-700 text-white" : "bg-white text-gray-600 hover:bg-gray-100"
+                      }`}
+                      title="The sample data behind it — same as Shift-click in the list"
+                    >
+                      JSON
+                    </button>
+                  </div>
 
                   {/* Divider */}
                   <div className="w-px h-5 bg-gray-300" />
