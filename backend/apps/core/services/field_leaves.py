@@ -17,6 +17,11 @@ Where a JSON field's schema lives:
   3. Otherwise the field has no schema, has no leaves, and cannot be exposed.
      ``missing_schemas`` reports it.
 
+A field mapped to LEAF is itself one leaf: a list of plain values
+(action.languages), or an outside system's payload that is shown whole and never
+walked (bundle.payload, cash.gateway_response — Bill, 2026-09-18). A field in
+NEVER_EXPOSED (secrets) is a leaf of no role, superuser included.
+
 A dict[str, X] with open keys (price levels, user-defined fields) has no
 leaves of its own. Its known keys are named in OPEN_MAP_KEYS; an unnamed key
 cannot be exposed.
@@ -40,6 +45,12 @@ _TE = 'common.schemas.transaction_envelopes'
 # JSON field → "module:Class". Header fields on transactions, then line fields.
 # A model-specific entry ("order.cost") wins over a shared one ("cost").
 _AS = 'common.schemas.aspects'
+_AC = 'common.schemas.action_aspects'
+LEAF = 'leaf'
+
+# Secrets. Never a leaf, for any role.
+NEVER_EXPOSED = frozenset({'connection.encryption', 'bundle.encryption'})
+
 FIELD_SCHEMAS: dict[str, str] = {
     'comments': 'common.schemas.envelopes:CommentsBase',
     'actions': 'common.schemas.envelopes:ActionsBase',
@@ -50,6 +61,13 @@ FIELD_SCHEMAS: dict[str, str] = {
     'purchase.capital_asset': 'apps.transactions.models.purchase_pydantic:CapitalAsset',
     'action.project_metadata': 'apps.transactions.models.project_pydantic:ProjectMetadata',
     'cash.company': f'{_TE}:TransactionCompany',
+    'action.action': f'{_AC}:LocalizedText',
+    'action.description': f'{_AC}:LocalizedText',
+    'action.languages': LEAF,
+    'action.impact': f'{_AC}:ActionImpact',
+    'action.retrospection': f'{_AC}:ActionRetrospection',
+    **{f'action.{s}_by': f'{_AC}:UserStamp' for s in
+       ('created', 'updated', 'start', 'deadline', 'expected', 'completed', 'end')},
     'inventory_layer.source': f'{_TE}:TransactionSource',
     'inventory_layer.cost': f'{_TE}:TransactionCost',
     'item_xref.cost': f'{_TE}:TransactionCost',
@@ -157,11 +175,7 @@ def _import(ref: str):
     return getattr(importlib.import_module(module), attr)
 
 
-def schema_for(model_key: str, field_name: str):
-    """The Pydantic class describing one JSON field, or None."""
-    if field_name in ENVELOPES:
-        from common.schemas.defaults import schema_class
-        return schema_class(model_key, field_name)
+def _ref_for(model_key: str, field_name: str):
     ref = FIELD_SCHEMAS.get(f'{model_key}.{field_name}')
     if ref is None and model_key in TRANSACTION_HEADERS:
         ref = TRANSACTION_HEADER_SCHEMAS.get(field_name)
@@ -169,7 +183,16 @@ def schema_for(model_key: str, field_name: str):
         ref = TRANSACTION_LINE_SCHEMAS.get(field_name)
     if ref is None:
         ref = FIELD_SCHEMAS.get(field_name)
-    return _import(ref) if ref else None
+    return ref
+
+
+def schema_for(model_key: str, field_name: str):
+    """The Pydantic class describing one JSON field, or None (also None for LEAF)."""
+    if field_name in ENVELOPES:
+        from common.schemas.defaults import schema_class
+        return schema_class(model_key, field_name)
+    ref = _ref_for(model_key, field_name)
+    return _import(ref) if ref and ref != LEAF else None
 
 
 def resolve_model(model_key: str):
@@ -194,6 +217,11 @@ def model_leaves(model_key: str) -> dict:
     for f in model._meta.concrete_fields:
         if not isinstance(f, JSONField):
             leaves.add(f.attname)
+            continue
+        if f'{model_key}.{f.name}' in NEVER_EXPOSED:
+            continue
+        if _ref_for(model_key, f.name) == LEAF:
+            leaves.add(f.name)
             continue
         cls = schema_for(model_key, f.name)
         if cls is None:

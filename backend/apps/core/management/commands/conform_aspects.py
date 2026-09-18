@@ -12,6 +12,10 @@ Steps
             ship_to {address1, city_state_zip, …} → ShipToSnapshot,
             dt_shipped / dt_delivered '' → None, validated through the schema;
             wc:model Settings: flat leaf paths → the nested ones.
+  action    action / description: plain strings → {en}; agent-proposal keys
+            written into action (source_agent, sprint_week, …) → metadata, where
+            allie-reflect.py reads them; languages {} → []; user stamps with a
+            non-numeric id keep their email and lose the id.
 """
 from __future__ import annotations
 
@@ -75,11 +79,11 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--apply', action='store_true')
-        parser.add_argument('--step', choices=['shipping'], default=None)
+        parser.add_argument('--step', choices=['shipping', 'action'], default=None)
 
     def handle(self, *args, **opts):
         apply = opts['apply']
-        steps = [opts['step']] if opts['step'] else ['shipping']
+        steps = [opts['step']] if opts['step'] else ['shipping', 'action']
         with transaction.atomic():
             for step in steps:
                 getattr(self, f'step_{step}')(apply)
@@ -107,3 +111,65 @@ class Command(BaseCommand):
             self.stdout.write(f'  {key}: {reshaped} records reshaped')
         n = rename_paths_in_settings(SHIPPING_PATH_RENAMES, self.stdout, apply)
         self.stdout.write(f'  settings: {n} records with flat shipping paths')
+
+    AGENT_KEYS = ('source_agent', 'capacity', 'hypothesis_id', 'confidence',
+                  'requires_human', 'requires_claude', 'sprint_week', 'claude_prompt',
+                  'claude_response', 'claude_usage', 'claude_error', 'result')
+    STAMP_FIELDS = ('created_by', 'updated_by', 'start_by', 'deadline_by',
+                    'expected_by', 'completed_by', 'end_by')
+
+    def step_action(self, apply: bool):
+        from apps.core.constants.model_registry import MODEL_REGISTRY
+        from apps.core.models.action_pydantic import ActionMetadata
+        from common.schemas.action_aspects import LocalizedText, UserStamp
+
+        Action = MODEL_REGISTRY['action'].import_model()
+        self.stdout.write('action:')
+        counts = dict(text=0, agent=0, languages=0, stamps=0)
+        for rec in Action.objects.all().only(
+                'id', 'action', 'description', 'languages', 'metadata', *self.STAMP_FIELDS):
+            update = {}
+            act = rec.action
+            if isinstance(act, dict) and 'title' in act:
+                meta = dict(rec.metadata or {})
+                meta['agent'] = True
+                for k in self.AGENT_KEYS:
+                    if k in act:
+                        meta[k] = act[k]
+                if act.get('completed_at'):
+                    from datetime import datetime
+                    meta['dt_completed'] = int(datetime.fromisoformat(
+                        act['completed_at'].replace('Z', '+00:00')).timestamp() * 1000)
+                update['metadata'] = ActionMetadata.model_validate(meta).model_dump()
+                update['action'] = LocalizedText(en=act.get('title', '')).model_dump()
+                counts['agent'] += 1
+            elif isinstance(act, str):
+                update['action'] = LocalizedText(en=act).model_dump()
+                counts['text'] += 1
+            desc = rec.description
+            if isinstance(desc, str):
+                update['description'] = LocalizedText(en=desc).model_dump()
+                counts['text'] += 1
+            elif isinstance(desc, dict) and ('summary' in desc or 'proposed_by' in desc):
+                update['description'] = LocalizedText(
+                    en=desc.get('en') or desc.get('summary', '')).model_dump()
+                counts['text'] += 1
+            if not isinstance(rec.languages, list):
+                update['languages'] = []
+                counts['languages'] += 1
+            for f in self.STAMP_FIELDS:
+                stamps = getattr(rec, f)
+                if not isinstance(stamps, list):
+                    continue
+                fixed = []
+                for st in stamps:
+                    st = dict(st or {})
+                    if st.get('id') is not None and not str(st['id']).isdigit():
+                        st['id'] = None
+                    fixed.append(UserStamp.model_validate(st).model_dump())
+                if fixed != stamps:
+                    update[f] = fixed
+                    counts['stamps'] += 1
+            if update and apply:
+                Action.objects.filter(pk=rec.pk).update(**update)
+        self.stdout.write('  ' + ', '.join(f'{k}: {v}' for k, v in counts.items()))

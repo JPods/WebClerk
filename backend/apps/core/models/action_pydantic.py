@@ -166,8 +166,28 @@ class ActionConfig(ConfigBase):
 
 # -- .metadata (inherits MetadataBase) --------------------------------------
 
+class ClaudeUsage(BaseModel):
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+
 class ActionMetadata(MetadataBase):
-    pass
+    # Agent proposals (~/Allie/scripts/agent-sprint.py writes, allie-reflect.py
+    # rolls sprints forward). Flat so their metadata->>'key' queries hold.
+    agent: bool = False
+    source_agent: str = ''                    # nora, natalie, noelle, sally, alice…
+    capacity: str = ''                        # ops | hc | librarian
+    hypothesis_id: str = ''
+    confidence: float = 0
+    requires_human: bool = False
+    requires_claude: bool = False
+    sprint_week: Optional[int] = None         # ISO week the proposal belongs to
+    claude_prompt: str = ''
+    claude_response: str = ''                 # first 4000 chars
+    claude_usage: 'ClaudeUsage' = Field(default_factory=lambda: ClaudeUsage())
+    claude_error: str = ''
+    result: str = ''
+    dt_completed: Optional[int] = None        # epoch ms
 
 
 # -- .prefs (inherits RecordPrefsBase) --------------------------------------
