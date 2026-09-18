@@ -181,10 +181,11 @@ class Command(BaseCommand):
             )
             from apps.core.models import Contact
 
-            # Find or simulate a guest user
-            guest = Contact.objects.filter(role='guest').first()
+            # A login whose role is not an access role (e.g. 'user') must see nothing
+            from apps.core.services.access import ROLES
+            guest = Contact.objects.exclude(role__in=ROLES).filter(is_superuser=False).first()
             if not guest:
-                self._warn("No guest-role contacts exist — cannot verify")
+                self._warn("No logins without an access role exist — cannot verify")
                 return 0, 0, 1
 
             # Build context and check org_ids

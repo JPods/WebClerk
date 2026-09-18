@@ -135,15 +135,13 @@ def _transaction_save_denial(request, model_key: str, record_data: dict, lines_d
     customer_id = their org, contact_id = themselves, status = planned, and every
     line re-priced server-side (client price/cost fields are discarded).
     """
-    from apps.core.services.role_defaults import ROLE_DEFAULTS
+    from apps.core.services import access
     from apps.core.services.role_filter import build_user_context, get_user_filter_config
     from apps.products.services.price_resolver import resolve_price_legacy
 
     user = request.user
     if not (user and user.is_authenticated):
         return status.HTTP_401_UNAUTHORIZED, "Authentication required"
-    if user.is_superuser:
-        return None
 
     config = get_user_filter_config(user, model_key)
     if not config:
@@ -158,12 +156,11 @@ def _transaction_save_denial(request, model_key: str, record_data: dict, lines_d
         visible = HeaderModel is not None and HeaderModel.objects.filter(
             inject_role_filters(user, model_key)
         ).filter(pk=record_id).exists()
-        if not visible or not config.get("edit_fields"):
+        if not visible or not config.get("edit"):
             return status.HTTP_403_FORBIDDEN, f"Not permitted to edit this {model_key}"
 
     context = build_user_context(user)
-    is_portal = any(ROLE_DEFAULTS.get(r, {}).get("is_portal") for r in context.get("roles", []))
-    if not is_portal or record_id or model_key not in _PORTAL_ORDER_MODELS:
+    if not access.is_portal(user) or record_id or model_key not in _PORTAL_ORDER_MODELS:
         return None
 
     customer_ids = (context.get("org_ids") or {}).get("customer") or []

@@ -78,7 +78,6 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("compact_layout", "compact_layout"),
     ("wc:list_column_config", "wc:list_column_config"),
     ("field_registry", "field_registry"),
-    ("wc:view_edit", "wc:view_edit"),
     ("detail_field_access", "detail_field_access"),
     ("wc:workbench_fields", "wc:workbench_fields"),
     # Defaults

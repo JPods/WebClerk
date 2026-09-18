@@ -2,9 +2,9 @@
 Role-Based Query Filter Service.
 
 Applies role-based access restrictions to database queries.
-Resolves role configuration → query filter variables → Django Q objects.
-
-See readmes/topics/architecture/role-based-access-plan.md for full documentation.
+The rules live in each model's wc:model Setting (config.access.roles) — see
+apps/core/services/access.py. This module turns a role's block into Q objects
+and field lists. No superuser bypass: superuser has its own full lists.
 """
 from __future__ import annotations
 
@@ -14,8 +14,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 
-from apps.core.models import ModelRoleConfig, RoleConfig, UserProfile
-from apps.core.services.role_defaults import ROLE_DEFAULTS, get_effective_config
+from apps.core.services import access
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
@@ -115,22 +114,21 @@ def build_user_context(user: AbstractUser) -> dict:
         "is_superuser": user.is_superuser,
     }
     
-    # Get profile if exists
-    try:
-        profile = user.profile
-    except UserProfile.DoesNotExist:
-        return context
-    
-    if not profile.contact:
-        return context
-    
-    context["contact_id"] = profile.contact.id
-    context["roles"] = profile.get_roles()
-    
-    # Get org IDs for each type
-    for org_type in ["customer", "vendor", "manufacturer", "employee"]:
-        context["org_ids"][org_type] = profile.get_org_ids(org_type)
-    
+    # The login is the Contact (AUTH_USER_MODEL = core.Contact).
+    context["contact_id"] = user.id
+    role = access.user_role(user)
+    context["roles"] = [role] if role else []
+    links = ((getattr(user, 'refs', None) or {}).get('links') or {})
+    for org_type in ("customer", "vendor", "manufacturer", "employee"):
+        ids = []
+        fk_id = getattr(user, f"{org_type}_id", None)
+        if fk_id:
+            ids.append(fk_id)
+        for link in links.get(org_type, []) or []:
+            link_id = link.get("id") if isinstance(link, dict) else None
+            if link_id and link_id not in ids:
+                ids.append(link_id)
+        context["org_ids"][org_type] = ids
     return context
 
 
@@ -138,113 +136,12 @@ def build_user_context(user: AbstractUser) -> dict:
 # Filter Configuration Lookup
 # =============================================================================
 
-def get_role_filter_config(
-    model_name: str,
-    role: str,
-    use_db: bool = True
-) -> Optional[dict]:
-    """
-    Get the filter configuration for a model/role combination.
-    
-    Checks database config first, falls back to ROLE_DEFAULTS.
-    
-    Args:
-        model_name: e.g., "order", "invoice", "customer"
-        role: e.g., "user_sales", "user_customer"
-        use_db: If True, check DB first; if False, use defaults only
-    
-    Returns:
-        Dict with query_filters, view_fields, edit_fields, etc.
-        or None if role has no access to model
-    """
-    # Try database first
-    if use_db:
-        try:
-            # Check role is active via RoleConfig
-            role_active = RoleConfig.objects.filter(
-                role=role, is_active=True
-            ).exists()
-            if role_active:
-                db_config = ModelRoleConfig.objects.filter(
-                    role=role,
-                    model_name=model_name,
-                ).first()
+def get_user_filter_config(user: AbstractUser, model_name: str) -> Optional[dict]:
+    """The access block for this user on this model, or None (no access).
 
-                if db_config:
-                    return {
-                        "query_filters": db_config.query_filters or {},
-                        "view_fields": db_config.view_fields or [],
-                        "edit_fields": db_config.edit_fields or [],
-                        "allow_create": db_config.allow_create,
-                        "allow_delete": db_config.allow_delete,
-                    }
-        except Exception:
-            pass  # Fall back to defaults
-    
-    # Use code defaults
-    return get_effective_config(role, model_name)
-
-
-def get_user_filter_config(
-    user: AbstractUser,
-    model_name: str
-) -> Optional[dict]:
+    Block keys: view, edit, scope, edit_scope, create, delete (access.py).
     """
-    Get the filter configuration for a user/model based on their roles.
-    
-    If user has multiple roles, uses the most permissive (superuser > admin > others).
-    
-    Args:
-        user: Django User instance
-        model_name: Model name to get config for
-    
-    Returns:
-        Dict with query_filters, view_fields, etc.
-    """
-    # Superusers see everything
-    if user.is_superuser:
-        return {
-            "query_filters": {},  # No filters = all records
-            "view_fields": ["*"],
-            "edit_fields": ["*"],
-            "allow_create": True,
-            "allow_delete": True,
-        }
-    
-    # Get user's roles
-    context = build_user_context(user)
-    roles = context.get("roles", [])
-    
-    if not roles:
-        return None  # No access
-    
-    # Priority order for roles (most permissive first)
-    role_priority = [
-        "admin",
-        "user_accounting",
-        "user_sales",
-        "user_production",
-        "user_warehouse",
-        "user_rep",
-        "user_manufacturer",
-        "user_vendor",
-        "user_customer",
-    ]
-    
-    # Find the highest-priority role that has config for this model
-    for priority_role in role_priority:
-        if priority_role in roles:
-            config = get_role_filter_config(model_name, priority_role)
-            if config:
-                return config
-    
-    # Try any role the user has
-    for role in roles:
-        config = get_role_filter_config(model_name, role)
-        if config:
-            return config
-    
-    return None  # No matching config
+    return access.block_for(user, model_name)
 
 
 # =============================================================================
@@ -353,22 +250,15 @@ def inject_role_filters(
         orders = Order.objects.filter(q)
     """
     existing_q = existing_q or Q()
-    
-    # Superusers bypass all filters
-    if user.is_superuser:
-        return existing_q
-    
-    # Get config for user's roles
+
     config = get_user_filter_config(user, model_name)
-    
     if not config:
-        # No access config means deny all
-        return Q(pk__isnull=True)  # Returns no results
-    
-    query_filters = config.get("query_filters", {})
-    
+        # No block for this role on this model: no rows.
+        return Q(pk__isnull=True)
+
+    query_filters = dict(config.get("scope") or {})
     if not query_filters:
-        # Empty filters = no restrictions (e.g., admin role)
+        # An empty scope is every row (a row rule, not a field wildcard).
         return existing_q
     
     # Resolve variables
@@ -404,18 +294,12 @@ def get_allowed_fields(
         mode: "view" or "edit"
 
     Returns:
-        List of field names, or ["*"] for all fields
+        List of leaf paths. Empty = nothing.
     """
-    if user.is_superuser:
-        return ["*"]
-
     config = get_user_filter_config(user, model_name)
-
     if not config:
         return []
-
-    field_key = "view_fields" if mode == "view" else "edit_fields"
-    return _resolve_field_tokens(config.get(field_key, []), user)
+    return _resolve_field_tokens(config.get("view" if mode == "view" else "edit", []), user)
 
 
 def user_price_level(user: AbstractUser) -> str:
@@ -425,8 +309,7 @@ def user_price_level(user: AbstractUser) -> str:
     say price.$user.price_level (Bill, 2026-09-17).
     """
     try:
-        contact = getattr(getattr(user, 'profile', None), 'contact', None)
-        org = getattr(contact, 'customer', None) or getattr(contact, 'vendor', None)
+        org = getattr(user, 'customer', None) or getattr(user, 'vendor', None)
         return (getattr(org, 'price_level', '') or '').strip()
     except Exception:
         return ''
@@ -449,72 +332,26 @@ def _resolve_field_tokens(fields, user) -> list:
     return resolved
 
 
-def get_denied_fields(
-    user: AbstractUser,
-    model_name: str,
-) -> list:
-    """
-    Get list of denied view fields for user/model.
-
-    Returns:
-        List of field names to exclude, or [] for no denials
-    """
-    if user.is_superuser:
-        return []
-
-    config = get_user_filter_config(user, model_name)
-    if not config:
-        return []
-
-    return config.get("view_deny", [])
-
-
 def get_edit_filters(
     user: AbstractUser,
     model_name: str,
 ) -> Optional[dict]:
-    """
-    Get row-level edit filters for user/model.
-
-    When present, the save endpoint must verify the record matches these
-    filters before allowing edits. This enables wide visibility (see all
-    project actions) with narrow edit authority (edit only assigned actions).
-
-    Returns:
-        Dict of filter conditions with $user variables resolved, or None
-        if no row-level edit restriction applies.
-    """
-    if user.is_superuser:
+    """Row-level edit rule for user/model, variables resolved; None when every
+    visible row may be edited. Wide visibility, narrow edit (e.g. a customer sees
+    the project's actions but edits only those assigned to them)."""
+    config = get_user_filter_config(user, model_name)
+    if not config or not config.get("edit_scope"):
         return None
-
-    # edit_filters lives in code defaults (ROLE_DEFAULTS), not in the DB
-    # ModelRoleConfig table. This avoids a migration — edit_filters is a
-    # rare, security-critical config that belongs in code.
-    context = build_user_context(user)
-    roles = context.get("roles", [])
-
-    for role in roles:
-        from apps.core.services.role_defaults import get_effective_config
-        cfg = get_effective_config(role, model_name)
-        if cfg and cfg.get("edit_filters"):
-            return resolve_filter_variables(cfg["edit_filters"], context)
-
-    return None
+    return resolve_filter_variables(config["edit_scope"], build_user_context(user))
 
 
 def can_create(user: AbstractUser, model_name: str) -> bool:
     """Check if user can create records for a model."""
-    if user.is_superuser:
-        return True
-    
     config = get_user_filter_config(user, model_name)
-    return config.get("allow_create", False) if config else False
+    return bool(config and config.get("create"))
 
 
 def can_delete(user: AbstractUser, model_name: str) -> bool:
     """Check if user can delete records for a model."""
-    if user.is_superuser:
-        return True
-    
     config = get_user_filter_config(user, model_name)
-    return config.get("allow_delete", False) if config else False
+    return bool(config and config.get("delete"))

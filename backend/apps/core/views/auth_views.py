@@ -144,25 +144,14 @@ class AuthLoginView(APIView):
                 contact_prefs = contact.prefs or {}
                 contact_config = contact.config or {}
                 contact_id = contact.pk
-                refs = contact.refs or {}
-                roles = refs.get("roles", [])
-                is_portal = any(r.startswith("user_") and r != "user_sales"
-                               and r != "user_accounting" and r != "user_production"
-                               and r != "user_warehouse"
-                               for r in roles)
         except Exception:
             pass
 
-        # Also check UserProfile for cached roles
-        if not roles:
-            try:
-                profile = user.profile
-                roles = profile.get_roles()
-                is_portal = any(r in ("user_customer", "user_vendor",
-                                      "user_manufacturer", "user_rep")
-                                for r in roles)
-            except Exception:
-                pass
+        # One role: the login's own (contact.role). access.py owns the vocabulary.
+        from apps.core.services.access import PORTAL_ROLES, own_role
+        role = own_role(user)
+        roles = [role] if role else []
+        is_portal = role in PORTAL_ROLES
 
         data = {
             "user": {

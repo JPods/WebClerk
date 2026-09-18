@@ -23,6 +23,12 @@ class CoreConfig(AppConfig):
         except Exception:
             pass
 
+        # Positive view/edit lists: refuse a wc:model Setting whose access lists are
+        # not all leaves, and clear the access cache on save. No try: a guard that
+        # fails to load must stop the server, not leave it unguarded.
+        from apps.core.signals.access_signals import register_access_signals
+        register_access_signals()
+
         # Auto-wire AuditLog to capture field-level changes on save
         try:
             from apps.core.signals.audit_signals import register_audit_signals

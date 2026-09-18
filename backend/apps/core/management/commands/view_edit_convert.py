@@ -1,17 +1,20 @@
-"""Convert today's role rules into positive leaf lists — dry run.
+"""Write every role's positive leaf lists into the wc:model Settings.
 
-Reads the rules the API enforces today (ModelRoleConfig rows, falling back to
-role_defaults.py exactly as role_filter does) and writes, for every wc:model
-Setting, the access block it would carry under the positive-list rule:
+One-time conversion (Bill, 2026-09-18). Reads the old rules — ModelRoleConfig
+rows, falling back to role_defaults.ROLE_DEFAULTS exactly as the old
+role_filter did — and writes, for every model Setting:
 
-    config.access.roles.<role> = {view: [leaves], edit: [leaves],
-                                  scope: {...}, create: bool, delete: bool}
+    config.access.roles.<role> = {view, edit, scope, edit_scope, create, delete}
 
-Every "*" becomes the model's full leaf list; every parent path becomes the
-leaves under it. Nothing is written to the database. The report says what was
-expanded, what could not be resolved, and where edit is not a subset of view.
+Every "*" becomes the model's full leaf list and every parent path the leaves
+under it. Old role names map to the short ones. New roles:
+  employee — starts from sales
+  agent    — admin's view lists; no edit on accounting models; may act as others
+  buyer    — starts from customer
+config.access.query_scope (never enforced) is dropped; publish is kept.
 
-    python manage.py view_edit_convert --out /path/report.json
+    python manage.py view_edit_convert --out report.json            # report
+    python manage.py view_edit_convert --out report.json --apply    # write
 """
 from __future__ import annotations
 
@@ -19,33 +22,50 @@ import json
 from collections import defaultdict
 
 from django.core.management.base import BaseCommand
+from django.db import transaction
 
+from apps.core.constants.model_registry import MODEL_REGISTRY
 from apps.core.models.setting import Setting
+from apps.core.services import access
 from apps.core.services import field_leaves as fl
 
-# Enforced role name → short name (Bill, 2026-09-18).
-ROLE_SHORT = {
-    'superuser': 'superuser',
-    'admin': 'admin',
-    'user_accounting': 'accounting',
-    'user_customer': 'customer',
-    'user_manufacturer': 'manufacturer',
-    'user_production': 'production',
-    'user_rep': 'rep',
-    'user_sales': 'sales',
-    'user_vendor': 'vendor',
+OLD_TO_SHORT = {
+    'superuser': 'superuser', 'admin': 'admin',
+    'user_accounting': 'accounting', 'user_customer': 'customer',
+    'user_manufacturer': 'manufacturer', 'user_production': 'production',
+    'user_rep': 'rep', 'user_sales': 'sales', 'user_vendor': 'vendor',
     'user_warehouse': 'warehouse',
 }
+DERIVED = {'employee': 'sales', 'buyer': 'customer'}
+ACCOUNTING_MODELS = {'cash', 'ledger', 'gl_account', 'gl_journal', 'journal_batch',
+                     'currency', 'term', 'tax_jurisdiction'}
+OLD_MODEL_NAME = {'bill_of_material': 'bom', 'gl_account': 'glaccount'}
 
-# RBAC model_name → wc:model key, where they differ.
-RBAC_MODEL_KEY = {
-    'bom': 'bill_of_material',
-    'glaccount': 'gl_account',
-}
+
+def old_rule(old_model: str, old_role: str):
+    """The rule to carry forward.
+
+    A code default with a view_deny is Bill's refined policy (2026-09-17: a
+    customer sees their own price tier and no cost; a vendor sees last cost and
+    inventory, no price). The old runtime let an older DB row override it, which
+    showed customers every price tier. The refined default wins. Otherwise: the
+    DB row if the role was active, else the code default — what actually ran.
+    """
+    from apps.core.models import ModelRoleConfig, RoleConfig
+    from apps.core.services.role_defaults import get_effective_config
+    code = get_effective_config(old_role, old_model) or None
+    if code and code.get('view_deny'):
+        return code
+    if RoleConfig.objects.filter(role=old_role, is_active=True).exists():
+        row = ModelRoleConfig.objects.filter(role=old_role, model_name=old_model).first()
+        if row:
+            return {'query_filters': row.query_filters or {}, 'view_fields': row.view_fields or [],
+                    'edit_fields': row.edit_fields or [], 'allow_create': row.allow_create,
+                    'allow_delete': row.allow_delete}
+    return get_effective_config(old_role, old_model) or None
 
 
 def expand(paths, leaves: frozenset, report: dict, where: str) -> list:
-    """Paths → sorted leaves. Records wildcards, parents, tokens and unknowns."""
     if paths == '*' or paths == ['*']:
         report['wildcards'].append(where)
         return sorted(leaves)
@@ -55,7 +75,6 @@ def expand(paths, leaves: frozenset, report: dict, where: str) -> list:
             report['wildcards'].append(where)
             out |= leaves
         elif '$user.' in p:
-            report['tokens'].append(f'{where}: {p}')
             out.add(p)
         elif p in leaves:
             out.add(p)
@@ -69,75 +88,111 @@ def expand(paths, leaves: frozenset, report: dict, where: str) -> list:
     return sorted(out)
 
 
+def to_block(cfg: dict, leaves: frozenset, report: dict, where: str) -> dict:
+    view = expand(cfg.get('view_fields'), leaves, report, f'{where}/view')
+    deny = set(cfg.get('view_deny') or [])
+    if deny:
+        view = [v for v in view if v not in deny and not any(v.startswith(d + '.') for d in deny)]
+    edit = [e for e in expand(cfg.get('edit_fields'), leaves, report, f'{where}/edit') if e in view]
+    scope = dict(cfg.get('query_filters') or {})
+    edit_scope = scope.pop('_edit_filters', None) or cfg.get('edit_filters') or {}
+    return {'view': view, 'edit': edit, 'scope': scope, 'edit_scope': edit_scope,
+            'create': bool(cfg.get('allow_create')), 'delete': bool(cfg.get('allow_delete'))}
+
+
 class Command(BaseCommand):
-    help = 'Dry run: convert role rules into positive leaf lists per wc:model Setting'
+    help = 'Write positive leaf lists per role into every wc:model Setting'
+
+    @staticmethod
+    def pack(roles: dict, leaves: frozenset) -> dict:
+        """Store each distinct long list once as a set; roles reference it by @name."""
+        full = sorted(leaves)
+        sets: dict = {'all': full}
+        by_value = {tuple(full): 'all'}
+        packed = {}
+        for role in sorted(roles, key=access.ROLES.index):
+            block = dict(roles[role])
+            for kind in ('view', 'edit'):
+                lst = sorted(block.get(kind, []))
+                if len(lst) < 20:
+                    block[kind] = lst
+                    continue
+                name = by_value.get(tuple(lst))
+                if name is None:
+                    name = f'{role}_{kind}'
+                    sets[name] = lst
+                    by_value[tuple(lst)] = name
+                block[kind] = [f'@{name}']
+            packed[role] = block
+        return {'sets': sets, 'roles': packed}
 
     def add_arguments(self, parser):
-        parser.add_argument('--out', required=True, help='Where to write the JSON report')
+        parser.add_argument('--out', required=True)
+        parser.add_argument('--apply', action='store_true')
 
     def handle(self, *args, **opts):
-        from apps.core.models import ModelRoleConfig, RoleConfig
-        from apps.core.services.role_filter import get_role_filter_config
-
         report = defaultdict(list)
-        proposed: dict = {}
-        leaf_counts: dict = {}
-
-        rbac_models = set(ModelRoleConfig.objects.values_list('model_name', flat=True))
-        wc_keys = set(Setting.objects.filter(purpose='wc:model').values_list('parent_model', flat=True))
-
-        # RBAC model names that match no wc:model key are reported, not guessed.
-        for m in sorted(rbac_models):
-            if RBAC_MODEL_KEY.get(m, m) not in wc_keys:
-                report['rbac_model_without_setting'].append(m)
-
-        active_roles = set(RoleConfig.objects.filter(is_active=True).values_list('role', flat=True))
-        for r in sorted(set(ModelRoleConfig.objects.values_list('role', flat=True)) - active_roles):
-            report['dead_role_rows'].append(r)
-
-        key_to_rbac = {RBAC_MODEL_KEY.get(m, m): m for m in rbac_models}
-
-        for model_key in sorted(wc_keys):
-            try:
-                info = fl.model_leaves(model_key)
-            except LookupError as e:
-                report['orphan_settings'].append(f'{model_key}: {e}')
+        proposed = {}
+        settings = {s.parent_model: s for s in Setting.objects.filter(purpose='wc:model', is_deleted=False)}
+        for key in sorted(settings):
+            if key not in MODEL_REGISTRY:
+                report['orphan_settings'].append(key)
                 continue
-            leaves = info['leaves']
-            leaf_counts[model_key] = len(leaves)
-            rbac_name = key_to_rbac.get(model_key, model_key)
-            roles_out = {}
-            for long_role, short in ROLE_SHORT.items():
-                cfg = get_role_filter_config(rbac_name, long_role)
-                if not cfg:
-                    continue
-                where = f'{model_key}/{short}'
-                view = expand(cfg.get('view_fields'), leaves, report, f'{where}/view')
-                edit = expand(cfg.get('edit_fields'), leaves, report, f'{where}/edit')
-                deny = set(cfg.get('view_deny') or [])
-                if deny:
-                    view = [v for v in view
-                            if v not in deny and not any(v.startswith(d + '.') for d in deny)]
-                stray = sorted(set(edit) - set(view))
-                if stray:
-                    report['edit_not_viewable'].append(f'{where}: {len(stray)} leaves')
-                roles_out[short] = {
-                    'view': view,
-                    'edit': edit,
-                    'scope': cfg.get('query_filters') or {},
-                    'create': bool(cfg.get('allow_create')),
-                    'delete': bool(cfg.get('allow_delete')),
-                }
-            proposed[model_key] = {
-                'missing_schemas': list(info['missing_schemas']),
-                'open_maps': list(info['open_maps']),
-                'roles': roles_out,
-            }
+            try:
+                info = fl.model_leaves(key)
+                leaves = info['leaves']
+            except Exception as e:
+                report['orphan_settings'].append(f'{key}: {e}')
+                continue
+            old_model = OLD_MODEL_NAME.get(key, key)
+            roles = {}
+            for old_role, short in OLD_TO_SHORT.items():
+                cfg = old_rule(old_model, old_role)
+                if cfg:
+                    roles[short] = to_block(cfg, leaves, report, f'{key}/{short}')
+            # Opaque (untyped) leaves never go to people outside the company.
+            for role, block in roles.items():
+                if role in access.PORTAL_ROLES:
+                    dropped = [p for p in block['view'] if p in info['opaque']]
+                    if dropped:
+                        report['opaque_dropped_portal'].append(f'{key}/{role}: {len(dropped)}')
+                    block['view'] = [p for p in block['view'] if p not in info['opaque']]
+                    block['edit'] = [p for p in block['edit'] if p in block['view']]
+            for new, base in DERIVED.items():
+                if base in roles:
+                    roles[new] = json.loads(json.dumps(roles[base]))
+            if 'admin' in roles:
+                agent = json.loads(json.dumps(roles['admin']))
+                if key in ACCOUNTING_MODELS:
+                    agent.update(edit=[], create=False, delete=False)
+                agent['delete'] = False
+                roles['agent'] = agent
+            acc = self.pack(roles, leaves)
+            problems = access.validate_access(key, acc)
+            if problems:
+                report['invalid'].extend(problems)
+                continue
+            proposed[key] = acc
+
+        if opts['apply'] and not report.get('invalid'):
+            with transaction.atomic():
+                for key, roles in proposed.items():
+                    s = settings[key]
+                    cfg = dict(s.config or {})
+                    acc = dict(cfg.get('access') or {})
+                    acc.pop('query_scope', None)
+                    acc.update(roles)          # {sets, roles}
+                    cfg['access'] = acc
+                    s.config = cfg
+                    s._setting_update_authorized = True   # admin conversion, run by hand
+                    s.save(update_fields=['config'])
+            access.clear_cache()
 
         summary = {
             'models': len(proposed),
-            'leaves': sum(leaf_counts.values()),
-            'role_blocks': sum(len(p['roles']) for p in proposed.values()),
+            'role_blocks': sum(len(a['roles']) for a in proposed.values()),
+            'set_leaves_stored': sum(len(m) for a in proposed.values() for m in a['sets'].values()),
+            'applied': bool(opts['apply'] and not report.get('invalid')),
             **{k: len(v) for k, v in report.items()},
         }
         with open(opts['out'], 'w') as fh:

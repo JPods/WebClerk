@@ -18,9 +18,9 @@ class RoleValidatingJWTAuthentication(JWTAuthentication):
                 code='missing_role'
             )
 
-        allowed_roles = {'admin', 'employee', 'user', 'customer', 'vendor', 'manufacturer', 'rep'}
+        from apps.core.services.access import LOGIN_ROLES
         norm_token_role = str(token_role).lower()
-        if norm_token_role not in allowed_roles:
+        if norm_token_role not in LOGIN_ROLES:
             raise exceptions.AuthenticationFailed(
                 _('Invalid role in token.'),
                 code='invalid_role'
@@ -35,4 +35,12 @@ class RoleValidatingJWTAuthentication(JWTAuthentication):
                 code='role_mismatch'
             )
 
+        # An agent may act as another role for this request (X-WC-Act-As).
+        # DRF authenticates lazily, so this runs before any view reads the role.
+        from apps.core.services.access import apply_act_as_user
+        apply_act_as_user(user, self._request_meta)
         return user
+
+    def authenticate(self, request):
+        self._request_meta = getattr(request, 'META', {})
+        return super().authenticate(request)

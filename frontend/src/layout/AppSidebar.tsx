@@ -175,8 +175,8 @@ const AppSidebar: React.FC = () => {
   const user = useAppSelector(s => s.auth.user);
   const isPortal = user?.is_portal === true;
   const portalRoles = user?.roles || [];
-  const isCustomer = portalRoles.includes('user_customer');
-  const isVendor = portalRoles.includes('user_vendor') || portalRoles.includes('user_manufacturer');
+  const isCustomer = portalRoles.includes('customer') || portalRoles.includes('buyer');
+  const isVendor = portalRoles.includes('vendor') || portalRoles.includes('manufacturer');
 
   const PORTAL_CUSTOMER_MODELS = ['invoice', 'order', 'item', 'contact', 'action'];
   const PORTAL_VENDOR_MODELS = ['purchase', 'item', 'contact', 'action'];

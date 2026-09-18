@@ -1,456 +1,169 @@
 """
-Field Projection Service.
+Field Projection Service — positive lists of leaves.
 
-Filters record data based on role field permissions.
-- filter_data_by_fields(): View projection - remove disallowed fields from response
-- validate_edit_fields(): Edit validation - ensure only allowed fields are being modified
+- filter_data_by_fields(): view projection — only named leaves leave the server
+- validate_edit_fields(): edit check — every changed leaf must be named
 
-See readmes/topics/architecture/role-based-access-plan.md for full documentation.
+A list is a set of leaf paths (apps/core/services/field_leaves). There is no
+wildcard and no parent path: naming "totals" grants nothing; "totals.total"
+grants that value. An element of a list of objects shares the list's path
+(lines.quantity.ordered is that value on every line). A leaf whose value is a
+list of plain values or an outside payload is passed whole.
+
+Rules live in each model's wc:model Setting (apps/core/services/access.py).
 """
 from __future__ import annotations
 
 import copy
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Iterable, Optional
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
 
 from apps.core.services.role_filter import get_allowed_fields
-from common.json_path import get_nested_value, set_nested_value
 
 
 # =============================================================================
-# Field Path Utilities
+# Paths
 # =============================================================================
 
-def is_field_allowed(field_path: str, allowed_fields: list) -> bool:
-    """
-    Check if a field path is allowed by the allowed_fields list.
-    
-    Args:
-        field_path: Dotted path like "totals.total" or "refs.links.customer"
-        allowed_fields: List of allowed paths, or ["*"] for all
-    
-    Returns:
-        True if field is allowed
-    
-    Rules:
-    - "*" allows all fields
-    - Exact match allows field
-    - Parent path allows children (e.g., "totals" allows "totals.total")
-    """
-    if not allowed_fields:
-        return False
-    
-    if "*" in allowed_fields:
+def is_field_allowed(field_path: str, allowed_fields: Iterable[str]) -> bool:
+    """True only when field_path is itself a named leaf."""
+    return field_path in set(allowed_fields or ())
+
+
+def _reachable(path: str, allowed: set) -> bool:
+    """True when path is a named leaf or lies on the way to one."""
+    if path in allowed:
         return True
-    
-    # Exact match
-    if field_path in allowed_fields:
-        return True
-    
-    # Parent path allows children
-    parts = field_path.split(".")
-    for i in range(len(parts)):
-        parent = ".".join(parts[:i + 1])
-        if parent in allowed_fields:
-            return True
-    
-    return False
+    prefix = path + '.'
+    return any(a.startswith(prefix) for a in allowed)
+
+
+def _leaf_paths(value, prefix: str) -> set:
+    """Every leaf path a value occupies under prefix."""
+    if isinstance(value, dict):
+        if not value:
+            return {prefix} if prefix else set()
+        out = set()
+        for k, v in value.items():
+            out |= _leaf_paths(v, f'{prefix}.{k}' if prefix else k)
+        return out
+    if isinstance(value, list) and value and all(isinstance(v, dict) for v in value):
+        out = set()
+        for v in value:
+            out |= _leaf_paths(v, prefix)
+        return out
+    return {prefix}
 
 
 # =============================================================================
-# View Field Projection
+# View projection
 # =============================================================================
 
-def filter_data_by_fields(
-    data: dict,
-    allowed_fields: list,
-    mode: str = "view"
-) -> dict:
-    """
-    Filter record data to only allowed fields.
-    
-    Args:
-        data: Record data dictionary
-        allowed_fields: List of allowed field paths, or ["*"] for all
-        mode: "view" or "edit" (affects logging)
-    
-    Returns:
-        New dict with only allowed fields
-    
-    Examples:
-        allowed = ["id", "ida", "totals.total", "refs.tags"]
-        filter_data_by_fields(data, allowed)
-        → {"id": 1, "ida": "ORD-001", "totals": {"total": 100.0}, "refs": {"tags": [...]}}
-    """
-    if not data:
+def _project(value, prefix: str, allowed: set):
+    if isinstance(value, dict):
+        out = {}
+        for k, v in value.items():
+            path = f'{prefix}.{k}' if prefix else k
+            if path in allowed:
+                out[k] = copy.deepcopy(v)
+            elif _reachable(path, allowed) and isinstance(v, (dict, list)):
+                out[k] = _project(v, path, allowed)
+        return out
+    if isinstance(value, list):
+        return [_project(v, prefix, allowed) for v in value if isinstance(v, dict)]
+    return None
+
+
+def filter_data_by_fields(data: dict, allowed_fields: Iterable[str], mode: str = "view") -> dict:
+    """Keep only the named leaves of a record. Nothing named → nothing returned."""
+    if not data or not allowed_fields:
         return {}
-    
-    if not allowed_fields:
-        return {}
-    
-    # "*" means all fields allowed
-    if "*" in allowed_fields:
-        return copy.deepcopy(data)
-    
-    result = {}
-    
-    # Build allowed top-level fields and their subpath allowances
-    top_level_allowed = set()
-    nested_allowed = {}  # field -> list of subpaths
-    
-    for field in allowed_fields:
-        parts = field.split(".")
-        top = parts[0]
-        top_level_allowed.add(top)
-        
-        if len(parts) > 1:
-            subpath = ".".join(parts[1:])
-            if top not in nested_allowed:
-                nested_allowed[top] = []
-            nested_allowed[top].append(subpath)
-    
-    # Process each allowed top-level field
-    for top in top_level_allowed:
-        if top not in data:
-            continue
-        
-        value = data[top]
-        
-        # If entire field is allowed (no subpath restrictions), copy it fully
-        if top in allowed_fields:
-            result[top] = copy.deepcopy(value)
-        elif top in nested_allowed:
-            # Only specific subpaths allowed
-            if isinstance(value, dict):
-                result[top] = _filter_nested(value, nested_allowed[top])
-            elif isinstance(value, list):
-                # For lists (like lines), filter each item
-                result[top] = [
-                    _filter_nested(item, nested_allowed[top])
-                    if isinstance(item, dict) else item
-                    for item in value
-                ]
-            else:
-                # Primitive with subpath spec - just include it
-                result[top] = copy.deepcopy(value)
-    
-    return result
+    return _project(data, '', set(allowed_fields))
 
 
-def _filter_nested(data: dict, allowed_subpaths: list) -> dict:
-    """
-    Filter nested dict to only allowed subpaths.
-    
-    Args:
-        data: Nested dictionary
-        allowed_subpaths: List of allowed paths within this dict
-    
-    Returns:
-        Filtered dict
-    """
-    if not isinstance(data, dict):
-        return data
-    
-    result = {}
-    
-    # Group by first component
-    top_allowed = set()
-    deeper = {}
-    
-    for subpath in allowed_subpaths:
-        parts = subpath.split(".")
-        top = parts[0]
-        top_allowed.add(top)
-        
-        if len(parts) > 1:
-            rest = ".".join(parts[1:])
-            if top not in deeper:
-                deeper[top] = []
-            deeper[top].append(rest)
-    
-    for key in top_allowed:
-        if key not in data:
-            continue
-        
-        value = data[key]
-        
-        if key in [sp for sp in allowed_subpaths if "." not in sp]:
-            # Entire key allowed
-            result[key] = copy.deepcopy(value)
-        elif key in deeper:
-            # Recurse
-            if isinstance(value, dict):
-                result[key] = _filter_nested(value, deeper[key])
-            else:
-                result[key] = copy.deepcopy(value)
-    
-    return result
+def filter_response_data(user: AbstractUser, model_name: str, data: dict) -> dict:
+    """Project a record to what this user's role may see."""
+    return filter_data_by_fields(data, get_allowed_fields(user, model_name, mode="view"))
 
 
-def filter_response_data(
-    user: AbstractUser,
-    model_name: str,
-    data: dict
-) -> dict:
-    """
-    Filter response data based on user's view permissions.
-    
-    High-level API for use in views/serializers.
-    
-    Args:
-        user: Django User instance
-        model_name: Model name for permission lookup
-        data: Record data to filter
-    
-    Returns:
-        Filtered data based on user's view_fields
-    """
-    allowed = get_allowed_fields(user, model_name, mode="view")
-    return filter_data_by_fields(data, allowed, mode="view")
+def filter_lines_data(lines: list, allowed_line_fields: Iterable[str]) -> list:
+    """Project line records to the named leaves."""
+    allowed = set(allowed_line_fields or ())
+    return [_project(line, '', allowed) for line in (lines or []) if isinstance(line, dict)]
 
 
 def filter_setting_layout(user, setting_data: dict) -> dict:
+    """Drop layout columns for fields this user's role may not see.
+
+    Applies to wc:model / wc:workbench_fields Settings describing parent_model.
+    A role that may see nothing on the model gets no columns.
     """
-    Filter a Setting record's config.layout columns to only include
-    fields the user is allowed to view on the target model.
-
-    Settings with purpose='wc:model' or 'wc:workbench_fields' contain
-    layout specs (list, detail, panel, etc.) for a target model identified
-    by parent_model. Portal users should only see columns for fields
-    their role permits.
-
-    Args:
-        user: Django User instance
-        setting_data: Serialized Setting record dict
-
-    Returns:
-        Setting data with layout columns filtered by role view_fields
-    """
-    purpose = setting_data.get('purpose', '')
-    if purpose not in ('wc:model', 'wc:workbench_fields'):
+    if setting_data.get('purpose', '') not in ('wc:model', 'wc:workbench_fields'):
         return setting_data
-
     target_model = setting_data.get('parent_model', '')
-    if not target_model:
-        return setting_data
-
-    from apps.core.services.role_filter import get_denied_fields
-
-    allowed = get_allowed_fields(user, target_model, mode="view")
-    denied = get_denied_fields(user, target_model)
-
-    # If unrestricted and no deny list, pass through
-    if (not allowed or allowed == ["*"]) and not denied:
-        return setting_data
-
-    # Build deny set (always applied)
-    deny_set = set(denied) if denied else set()
-
-    # Build allow set
-    if allowed and allowed != ["*"]:
-        allowed_set = set(allowed)
-        allowed_set.update({'id', 'ida', 'uuid', 'dt_created', 'dt_modified', 'status', 'is_active'})
-    else:
-        allowed_set = None  # unrestricted — only deny applies
-
     config = setting_data.get('config')
-    if not config or not isinstance(config, dict):
+    if not target_model or not isinstance(config, dict) or not isinstance(config.get('layout'), dict):
         return setting_data
 
-    layout = config.get('layout')
-    if not layout or not isinstance(layout, dict):
-        return setting_data
+    allowed = set(get_allowed_fields(user, target_model, mode="view"))
 
-    # Recursively filter column arrays in the layout tree
+    def column_allowed(col) -> bool:
+        field = col if isinstance(col, str) else (col.get('field', '') if isinstance(col, dict) else '')
+        return bool(field) and _reachable(field, allowed)
+
     def filter_tree(node):
         if isinstance(node, list):
-            return [item for item in node if _column_allowed(item, allowed_set, deny_set)]
+            return [item for item in node
+                    if not isinstance(item, (str, dict)) or
+                    (isinstance(item, dict) and 'field' not in item) or column_allowed(item)]
         if isinstance(node, dict):
-            # If this dict has a 'columns' key with a list, filter it
-            out = {}
-            for k, v in node.items():
-                if k == 'columns' and isinstance(v, list):
-                    out[k] = [col for col in v if _column_allowed(col, allowed_set, deny_set)]
-                else:
-                    out[k] = filter_tree(v)
-            return out
+            return {k: ([c for c in v if column_allowed(c)] if k == 'columns' and isinstance(v, list)
+                        else filter_tree(v))
+                    for k, v in node.items()}
         return node
 
     result = dict(setting_data)
     result['config'] = dict(config)
-    result['config']['layout'] = filter_tree(layout)
+    result['config']['layout'] = filter_tree(config['layout'])
     return result
 
 
-def _column_allowed(col, allowed_set, deny_set: set) -> bool:
-    """Check if a column spec is allowed and not denied."""
-    if isinstance(col, str):
-        root = col.split('.')[0]
-        field = col
-    elif isinstance(col, dict):
-        field = col.get('field', '')
-        root = field.split('.')[0] if field else ''
-    else:
-        return True  # unknown format — keep
-
-    # Deny list always wins
-    if root in deny_set or field in deny_set:
-        return False
-
-    # If allow set exists (not "*"), check membership
-    if allowed_set is not None:
-        return root in allowed_set
-
-    return True  # unrestricted
-
-
 # =============================================================================
-# Edit Field Validation
+# Edit validation
 # =============================================================================
 
 def get_modified_fields(original: dict, modified: dict) -> set:
-    """
-    Get set of field paths that differ between original and modified.
-    
-    Args:
-        original: Original record data
-        modified: Modified record data
-    
-    Returns:
-        Set of dotted paths that were changed
-    """
-    changes = set()
-    _compare_dicts(original or {}, modified or {}, "", changes)
+    """Leaf paths whose value differs between original and modified."""
+    changes: set = set()
+    _compare(original or {}, modified or {}, '', changes)
     return changes
 
 
-def _compare_dicts(
-    orig: dict,
-    mod: dict,
-    prefix: str,
-    changes: set
-) -> None:
-    """Recursively compare dicts and collect changed paths."""
-    all_keys = set(orig.keys()) | set(mod.keys())
-    
-    for key in all_keys:
-        path = f"{prefix}.{key}" if prefix else key
-        
-        orig_val = orig.get(key)
-        mod_val = mod.get(key)
-        
-        if orig_val == mod_val:
-            continue
-        
-        # Different - record the path
-        if isinstance(orig_val, dict) and isinstance(mod_val, dict):
-            # Recurse for nested dicts
-            _compare_dicts(orig_val, mod_val, path, changes)
-        else:
-            changes.add(path)
+def _compare(orig, mod, prefix: str, changes: set) -> None:
+    if orig == mod:
+        return
+    if isinstance(orig, dict) and isinstance(mod, dict):
+        for key in set(orig) | set(mod):
+            _compare(orig.get(key), mod.get(key), f'{prefix}.{key}' if prefix else key, changes)
+        return
+    # A replaced value: every leaf it had or now has has changed.
+    before = _leaf_paths(orig, prefix) if orig not in (None, {}, []) else set()
+    after = _leaf_paths(mod, prefix) if mod not in (None, {}, []) else set()
+    changes |= (before | after) or {prefix}
 
 
-def validate_edit_fields(
-    original: Optional[dict],
-    modified: dict,
-    allowed_fields: list
-) -> tuple[bool, list]:
-    """
-    Validate that only allowed fields are being modified.
-    
-    Args:
-        original: Original record data (None for new records)
-        modified: Modified/new record data
-        allowed_fields: List of allowed edit paths, or ["*"] for all
-    
-    Returns:
-        Tuple of (is_valid, list of disallowed fields)
-    
-    Example:
-        allowed = ["status", "notes", "refs.tags"]
-        validate_edit_fields(orig, mod, allowed)
-        → (True, []) if only status/notes/refs.tags changed
-        → (False, ["totals.total"]) if totals.total was modified
-    """
-    if "*" in allowed_fields:
-        return True, []
-    
-    if not allowed_fields:
-        # No fields allowed - any change is invalid
-        if original is None:
-            # New record - all fields in modified are changes
-            return False, list(modified.keys())
-        changes = get_modified_fields(original, modified)
-        return len(changes) == 0, list(changes)
-    
-    # Get changed fields
-    if original is None:
-        # New record - all provided fields are "changes"
-        changed = set(modified.keys())
-    else:
-        changed = get_modified_fields(original, modified)
-    
-    # Check each change against allowed
-    disallowed = []
-    for field_path in changed:
-        if not is_field_allowed(field_path, allowed_fields):
-            disallowed.append(field_path)
-    
-    return len(disallowed) == 0, disallowed
+def validate_edit_fields(original: Optional[dict], modified: dict,
+                         allowed_fields: Iterable[str]) -> tuple[bool, list]:
+    """(ok, disallowed leaf paths). Every changed leaf must be named in allowed_fields."""
+    allowed = set(allowed_fields or ())
+    changed = _leaf_paths(modified or {}, '') if original is None else get_modified_fields(original, modified)
+    disallowed = sorted(p for p in changed if p not in allowed)
+    return not disallowed, disallowed
 
 
-def validate_user_edit(
-    user: AbstractUser,
-    model_name: str,
-    original: Optional[dict],
-    modified: dict
-) -> tuple[bool, list]:
-    """
-    Validate user's edit based on their role permissions.
-    
-    High-level API for use in save views.
-    
-    Args:
-        user: Django User instance
-        model_name: Model name for permission lookup
-        original: Original record (None for creates)
-        modified: Modified/new record data
-    
-    Returns:
-        Tuple of (is_valid, list of disallowed fields)
-    """
-    allowed = get_allowed_fields(user, model_name, mode="edit")
-    return validate_edit_fields(original, modified, allowed)
-
-
-# =============================================================================
-# Lines Field Filtering
-# =============================================================================
-
-def filter_lines_data(
-    lines: list,
-    allowed_line_fields: list
-) -> list:
-    """
-    Filter line items to only allowed fields.
-    
-    Args:
-        lines: List of line item dicts
-        allowed_line_fields: Allowed fields for each line
-    
-    Returns:
-        Filtered lines list
-    """
-    if not lines:
-        return []
-    
-    if "*" in allowed_line_fields:
-        return copy.deepcopy(lines)
-    
-    return [
-        filter_data_by_fields(line, allowed_line_fields)
-        for line in lines
-        if isinstance(line, dict)
-    ]
+def validate_user_edit(user: AbstractUser, model_name: str,
+                       original: Optional[dict], modified: dict) -> tuple[bool, list]:
+    """Validate an edit against the user's role edit list."""
+    return validate_edit_fields(original, modified, get_allowed_fields(user, model_name, mode="edit"))

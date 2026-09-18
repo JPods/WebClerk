@@ -163,8 +163,13 @@ def _is_schema(t) -> bool:
     return isinstance(t, type) and issubclass(t, PydanticModel)
 
 
-def walk_schema(cls, prefix: str, leaves: set, open_maps: set, _depth: int = 0) -> None:
-    """Add every leaf path under ``cls`` to ``leaves``; open dicts to ``open_maps``."""
+def walk_schema(cls, prefix: str, leaves: set, open_maps: set, _depth: int = 0,
+                opaque: set | None = None) -> None:
+    """Add every leaf path under ``cls`` to ``leaves``; open dicts to ``open_maps``.
+
+    A leaf whose type is an untyped dict, Any, or a list of those is opaque: it
+    carries content no schema describes. Opaque leaves go into ``opaque`` too.
+    """
     if _depth > 8:
         raise ValueError(f'schema nesting deeper than 8 at {prefix}')
     for name, field in cls.model_fields.items():
@@ -172,14 +177,16 @@ def walk_schema(cls, prefix: str, leaves: set, open_maps: set, _depth: int = 0) 
         t = _unwrap(field.annotation)
         origin = typing.get_origin(t)
         if _is_schema(t):
-            walk_schema(t, path, leaves, open_maps, _depth + 1)
+            walk_schema(t, path, leaves, open_maps, _depth + 1, opaque)
         elif origin is list:
             args = typing.get_args(t)
             inner = _unwrap(args[0]) if args else None
             if _is_schema(inner):
-                walk_schema(inner, path, leaves, open_maps, _depth + 1)
+                walk_schema(inner, path, leaves, open_maps, _depth + 1, opaque)
             else:
                 leaves.add(path)
+                if opaque is not None and inner in (None, dict, typing.Any):
+                    opaque.add(path)
         elif origin is dict:
             known = OPEN_MAP_KEYS.get(path)
             if known is None:
@@ -189,11 +196,13 @@ def walk_schema(cls, prefix: str, leaves: set, open_maps: set, _depth: int = 0) 
             inner = _unwrap(args[1]) if len(args) == 2 else None
             for key in known:
                 if _is_schema(inner):
-                    walk_schema(inner, f'{path}.{key}', leaves, open_maps, _depth + 1)
+                    walk_schema(inner, f'{path}.{key}', leaves, open_maps, _depth + 1, opaque)
                 else:
                     leaves.add(f'{path}.{key}')
         else:
             leaves.add(path)
+            if opaque is not None and (t is dict or t is typing.Any or t is list):
+                opaque.add(path)
 
 
 def _import(ref: str):
@@ -232,13 +241,14 @@ def resolve_model(model_key: str):
 
 @lru_cache(maxsize=None)
 def model_leaves(model_key: str) -> dict:
-    """{'leaves': frozenset, 'missing_schemas': tuple, 'open_maps': tuple}."""
+    """{'leaves', 'opaque', 'missing_schemas', 'open_maps'} for one model."""
     from django.db.models import JSONField
 
     model = resolve_model(model_key)
 
     leaves: set[str] = set()
     open_maps: set[str] = set()
+    opaque: set[str] = set()
     missing: list[str] = []
     for f in model._meta.concrete_fields:
         if not isinstance(f, JSONField):
@@ -248,21 +258,24 @@ def model_leaves(model_key: str) -> dict:
             continue
         if _ref_for(model_key, f.name) == LEAF:
             leaves.add(f.name)
+            opaque.add(f.name)
             continue
         cls = schema_for(model_key, f.name)
         if cls is None:
             missing.append(f.name)
             continue
-        walk_schema(cls, f.name, leaves, open_maps)
+        walk_schema(cls, f.name, leaves, open_maps, opaque=opaque)
 
     # A transaction's lines are rows of the line model, served under "lines".
     if model_key in TRANSACTION_HEADERS:
         line = model_leaves(f'{model_key}_line')
         leaves.update(f'lines.{p}' for p in line['leaves'])
+        opaque.update(f'lines.{p}' for p in line['opaque'])
         open_maps.update(f'lines.{p}' for p in line['open_maps'])
         missing.extend(f'lines.{p}' for p in line['missing_schemas'])
     return {
         'leaves': frozenset(leaves),
+        'opaque': frozenset(opaque),
         'missing_schemas': tuple(missing),
         'open_maps': tuple(sorted(open_maps)),
     }

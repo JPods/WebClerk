@@ -1,31 +1,42 @@
 from __future__ import annotations
 from typing import Any, Optional, List
 from apps.docs.models import Tag
-from apps.core.utils.mixins import SettingsDrivenCRUDMixin
+from django.forms.models import model_to_dict
+
+from apps.core.services.field_projection import filter_response_data
+from apps.core.services.role_filter import get_allowed_fields, inject_role_filters
 from apps.core.utils.hierarchy import parent_field_name, children_qs, parent_chain
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
-class TagHierarchyView(SettingsDrivenCRUDMixin, APIView):
+class TagHierarchyView(APIView):
 
     """
     Tag hierarchy endpoint (custom; standard CRUD is via wcapi).
     Returns item + parents + children; POST links/unlinks child via the Tag parent FK.
     """
     model = Tag
+    model_key = "tag"
     http_method_names = ["get", "post", "options", "head"]
 
+    def _visible(self, request):
+        return self.model.objects.filter(inject_role_filters(request.user, self.model_key))
+
+    def _project(self, request, obj) -> dict:
+        return filter_response_data(request.user, self.model_key, model_to_dict(obj))
+
     def get(self, request, pk: int):
-        try:
-            obj = self.model.objects.get(pk=pk)
-        except self.model.DoesNotExist:
+        obj = self._visible(request).filter(pk=pk).first()
+        if obj is None:
             return Response({"detail": "not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        item = self.serialize_with_view_allowlist(obj, request=request, ctx="display")
+        visible_ids = set(self._visible(request).values_list("pk", flat=True))
         pf = parent_field_name(self.model)
-        kids = children_qs(self.model, obj, pf)
-        children = [self.serialize_with_view_allowlist(c, request=request, ctx="list") for c in kids]
-        parents = [self.serialize_with_view_allowlist(p, request=request, ctx="list") for p in parent_chain(self.model, obj, pf=pf)]
+        item = self._project(request, obj)
+        children = [self._project(request, c) for c in children_qs(self.model, obj, pf)
+                    if c.pk in visible_ids]
+        parents = [self._project(request, p) for p in parent_chain(self.model, obj, pf=pf)
+                   if p.pk in visible_ids]
 
         return Response({"item": item, "parents": parents, "children": children, "count_children": len(children)})
 
@@ -40,14 +51,14 @@ class TagHierarchyView(SettingsDrivenCRUDMixin, APIView):
         if not pf:
             return Response({"detail": "hierarchy unsupported"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Enforce edit permission on the parent field via settings
-        _, edit_fields, _, _meta = self.get_view_edit_allowlists(self.model, request=request, ctx="display")
-        if edit_fields is not None and pf not in edit_fields:
+        # The parent link is an edit of the child's parent field: it must be on
+        # this role's edit list for tag (positive list, access.py).
+        parent_leaf = self.model._meta.get_field(pf).attname
+        if parent_leaf not in get_allowed_fields(request.user, self.model_key, mode="edit"):
             return Response({"detail": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
 
-        try:
-            parent = self.model.objects.get(pk=pk)
-        except self.model.DoesNotExist:
+        parent = self._visible(request).filter(pk=pk).first()
+        if parent is None:
             return Response({"detail": "not found"}, status=status.HTTP_404_NOT_FOUND)
 
         data = getattr(request, "data", {}) or {}
@@ -55,9 +66,8 @@ class TagHierarchyView(SettingsDrivenCRUDMixin, APIView):
         if not child_id:
             return Response({"detail": "missing child id"}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            child = self.model.objects.get(pk=child_id)
-        except self.model.DoesNotExist:
+        child = self._visible(request).filter(pk=child_id).first()
+        if child is None:
             return Response({"detail": "invalid child"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Link or unlink
@@ -66,9 +76,6 @@ class TagHierarchyView(SettingsDrivenCRUDMixin, APIView):
         else:
             setattr(child, pf, parent)
 
-        try:
-            child.save(update_fields=[pf])
-        except Exception:
-            child.save()
+        child.save(update_fields=[pf])
 
         return Response({"ok": True, "parent_id": getattr(parent, "id", None), "child_id": getattr(child, "id", None)}, status=status.HTTP_200_OK)

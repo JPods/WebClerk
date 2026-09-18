@@ -42,9 +42,9 @@ class UserPermissionsView(APIView):
         "models": {
             "order": {
                 "view": true,
-                "view_fields": ["*"] or ["id", "ida", ...],
+                "view_fields": ["id", "ida", "totals.total", ...],   # leaves
                 "edit": true,
-                "edit_fields": ["*"] or ["status", ...],
+                "edit_fields": ["status", ...],                      # leaves
                 "create": true,
                 "delete": false
             },
@@ -80,16 +80,16 @@ class UserPermissionsView(APIView):
             config = get_user_filter_config(user, model_name)
             
             if config:
-                view_fields = config.get("view_fields", [])
-                edit_fields = config.get("edit_fields", [])
-                
+                view_fields = get_allowed_fields(user, model_name, mode="view")
+                edit_fields = get_allowed_fields(user, model_name, mode="edit")
+
                 models_perms[model_name] = {
                     "view": bool(view_fields),
                     "view_fields": view_fields,
                     "edit": bool(edit_fields),
                     "edit_fields": edit_fields,
-                    "create": config.get("allow_create", False),
-                    "delete": config.get("allow_delete", False),
+                    "create": bool(config.get("create")),
+                    "delete": bool(config.get("delete")),
                 }
             else:
                 # No config = no access
@@ -123,7 +123,7 @@ class ModelPermissionsView(APIView):
     {
         "model": "order",
         "view": true,
-        "view_fields": ["*"],
+        "view_fields": ["id", "ida", ...],
         "edit": true,
         "edit_fields": ["status", "notes"],
         "create": true,
@@ -156,13 +156,15 @@ class ModelPermissionsView(APIView):
                 "query_filters": {},
             }, status=status.HTTP_200_OK)
         
+        view_fields = get_allowed_fields(user, model_name, mode="view")
+        edit_fields = get_allowed_fields(user, model_name, mode="edit")
         return Response({
             "model": model_name,
-            "view": bool(config.get("view_fields")),
-            "view_fields": config.get("view_fields", []),
-            "edit": bool(config.get("edit_fields")),
-            "edit_fields": config.get("edit_fields", []),
-            "create": config.get("allow_create", False),
-            "delete": config.get("allow_delete", False),
-            "query_filters": config.get("query_filters", {}),
+            "view": bool(view_fields),
+            "view_fields": view_fields,
+            "edit": bool(edit_fields),
+            "edit_fields": edit_fields,
+            "create": bool(config.get("create")),
+            "delete": bool(config.get("delete")),
+            "query_filters": config.get("scope") or {},
         }, status=status.HTTP_200_OK)

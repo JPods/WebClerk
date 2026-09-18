@@ -298,7 +298,7 @@ const PortalDashboard: React.FC = () => {
   const roles = user?.roles || [];
 
   const portalRole = roles.find(r =>
-    ['user_customer', 'user_vendor', 'user_manufacturer', 'user_rep'].includes(r)
+    ['customer', 'buyer', 'vendor', 'manufacturer', 'rep'].includes(r)
   );
 
   return (
@@ -307,9 +307,9 @@ const PortalDashboard: React.FC = () => {
         <h2>Welcome, {user?.name_first || 'User'}</h2>
         {user?.company && <span className="wc-portal-company">{user.company}</span>}
       </div>
-      {portalRole === 'user_customer' && <CustomerDashboard />}
-      {portalRole === 'user_vendor' || portalRole === 'user_manufacturer' ? <VendorDashboard /> : null}
-      {portalRole === 'user_rep' && <RepDashboard />}
+      {(portalRole === 'customer' || portalRole === 'buyer') && <CustomerDashboard />}
+      {portalRole === 'vendor' || portalRole === 'manufacturer' ? <VendorDashboard /> : null}
+      {portalRole === 'rep' && <RepDashboard />}
       {!portalRole && (
         <p className="wc-portal-empty">No portal role assigned. Contact your administrator.</p>
       )}

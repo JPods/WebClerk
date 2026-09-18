@@ -168,7 +168,7 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({
  *
  * if (loading) return <Spinner />;
  *
- * if (!hasRole("user_sales")) {
+ * if (!hasRole("sales")) {
  *   return <AccessDenied />;
  * }
  *

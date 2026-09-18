@@ -42,18 +42,24 @@ export interface UserPermissions {
   models: Record<string, ModelPermissions>;
 }
 
-/** Role identifiers */
+/** Role identifiers — the one vocabulary (backend apps/core/services/access.py). */
 export type RoleName =
-  | "user_customer"
-  | "user_vendor"
-  | "user_manufacturer"
-  | "user_rep"
-  | "user_sales"
-  | "user_production"
-  | "user_accounting"
-  | "user_warehouse"
+  | "superuser"
   | "admin"
-  | "superuser";
+  | "accounting"
+  | "sales"
+  | "production"
+  | "warehouse"
+  | "employee"
+  | "agent"
+  | "rep"
+  | "customer"
+  | "buyer"
+  | "vendor"
+  | "manufacturer";
+
+/** People outside the company. */
+export const PORTAL_ROLES: RoleName[] = ["rep", "customer", "buyer", "vendor", "manufacturer"];
 
 /** Common model names for type safety */
 export type ModelName =
