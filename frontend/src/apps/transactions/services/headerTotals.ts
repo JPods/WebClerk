@@ -10,10 +10,10 @@
  *
  * Formulae:
  *   SELL SIDE (order, quote, invoice):
- *     totals.amount       = Σ line.price.amount
+ *     totals.amount       = Σ line.totals.amount
  *     totals.discount       = Σ line.price.discount_amount
  *
- *     cost.line_sum_goods   = Σ line.cost.extended
+ *     cost.line_sum_goods   = Σ line.totals.cost
  *     cost.line_sum_tax     = Σ line.cost.tax
  *     cost.line_sum_shipping= Σ line.cost.shipping
  *     cost.line_sum_handling= Σ line.cost.handling
@@ -128,17 +128,17 @@ export function computeHeaderTotals(
     const item = ln.item as Record<string, unknown> | undefined;
     if (item?.is_deleted) continue;
 
-    const p = (ln.price ?? {}) as Record<string, unknown>;
+    const t = ((ln as any).totals ?? {}) as Record<string, unknown>;
     const c = (ln.cost ?? {}) as Record<string, unknown>;
 
     // Sell aggregation (sales-side only)
     if (isSales) {
-      sellGoods += toNumber(p.amount);
-      sellDiscount += toNumber(p.discount_amount);
+      sellGoods += toNumber(t.amount);
+      sellDiscount += toNumber(t.discount);
     }
 
     // Cost aggregation (all transaction types)
-    costGoods += toNumber(c.extended);
+    costGoods += toNumber(t.cost ?? t.amount);
     costTax += toNumber(c.tax);
     costShipping += toNumber(c.shipping);
     costHandling += toNumber(c.handling);

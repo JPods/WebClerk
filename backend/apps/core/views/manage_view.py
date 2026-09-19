@@ -662,7 +662,7 @@ def _get_training_activity(params: dict) -> dict:
                 'qty_remaining': qty.get('remaining', 0),
                 'unit_price': price.get('unit', 0) if isinstance(price, dict) else 0,
                 'unit_cost': cost.get('unit', 0),
-                'amount': price.get('amount', 0) if isinstance(price, dict) else 0,
+                'amount': (getattr(ln, 'totals', None) or {}).get('amount', 0),
                 'line_id': ln.pk,
                 'line_status': getattr(ln, 'status', ''),
             })

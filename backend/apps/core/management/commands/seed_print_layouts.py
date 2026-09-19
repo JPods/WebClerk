@@ -48,7 +48,7 @@ def sell_lines(qty_field="quantity.active", qty_label="Qty"):
         {"field": "item.description", "label": "Description", "align": "left", "width": "35%"},
         {"field": qty_field, "label": qty_label, "align": "right", "format": "number"},
         {"field": "price.unit", "label": "Unit Price", "align": "right", "format": "currency"},
-        {"field": "price.amount", "label": "Extended", "align": "right", "format": "currency"},
+        {"field": "totals.amount", "label": "amount", "align": "right", "format": "currency"},
     ]}
 
 
@@ -58,7 +58,7 @@ def cost_lines(qty_field="quantity.staged", qty_label="Qty"):
         {"field": "item.description", "label": "Description", "align": "left", "width": "35%"},
         {"field": qty_field, "label": qty_label, "align": "right", "format": "number"},
         {"field": "cost.unit", "label": "Unit Cost", "align": "right", "format": "currency"},
-        {"field": "cost.extended", "label": "Extended", "align": "right", "format": "currency"},
+        {"field": "totals.cost", "label": "cost", "align": "right", "format": "currency"},
     ]}
 
 

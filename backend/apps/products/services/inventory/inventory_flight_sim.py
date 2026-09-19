@@ -1473,7 +1473,7 @@ def _get_invoice_lines(item_id: int, item_dict: dict) -> list:
         qty = _line_qty(il)
         price = _line_price(il)
         active_qty = Decimal(str(qty.get('active', qty.get('staged', 0)) or 0))
-        extended = Decimal(str(price.get('amount', 0) or 0))
+        extended = Decimal(str((il.totals or {}).get('amount', 0) or 0))
 
         if extended == 0 and active_qty > 0:
             unit_price = Decimal(str(price.get('unit', price.get('base', 0)) or 0))
@@ -1544,7 +1544,7 @@ def _get_purchase_lines(item_id: int, item_dict: dict) -> list:
             cost_dict = cost
         else:
             cost_dict = {}
-        extended = Decimal(str(cost_dict.get('extended', 0) or 0))
+        extended = Decimal(str((pl.totals or {}).get('amount', 0) or 0))
 
         # PO line has no GL until received
         lines.append({

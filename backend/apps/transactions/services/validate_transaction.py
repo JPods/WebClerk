@@ -76,8 +76,7 @@ def validate_quote_for_conversion(quote: Quote) -> ValidationResult:
             continue
 
         # Check pricing
-        price = line.price or {}
-        extended = price.get('amount', 0)
+        extended = (line.totals or {}).get('amount', 0)
         if extended <= 0:
             invalid_lines += 1
             continue

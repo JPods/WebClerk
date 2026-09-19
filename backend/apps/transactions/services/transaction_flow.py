@@ -41,6 +41,8 @@ from apps.products.models.inventory_layer import InventoryLayer
 LINE_JSON_FIELDS_TO_COPY = (
     'item', 'quantity', 'cost', 'price', 'tax',
     'actions', 'physical',
+    # Results: copied as they are, then recomputed by the totals engine on the new document.
+    'totals',
     # Extended / newer additions (may be no-ops until fields are present):
     'metadata', 'refs', 'prefs', 'comments',
     # Carried forward by the convert services (convert.py, convert_quote_to_order.py,
@@ -301,7 +303,7 @@ def receive_purchase(po: Purchase,
             serial_batch=rl.serial_batch or '',
             item=pol.item or {'item_id': item_id},  # Copy item JSON from PO line
             quantity={'staged': float(rl.qty), 'active': float(rl.qty), 'remaining': 0, 'received': float(rl.qty)},
-            cost={'unit': unit_cost, 'extended': float(rl.qty) * unit_cost},
+            cost={'unit': unit_cost},
         )
         created_receipt_line_ids.append(receipt_line.id)
 
@@ -446,7 +448,7 @@ def complete_workorder(wo: WorkOrder,
             serial_batch=cl.serial_batch or '',
             item=wol.item or {'item_id': item_id},  # Copy item JSON from WO line
             quantity={'staged': float(cl.qty_completed), 'active': float(cl.qty_completed), 'remaining': 0, 'received': float(cl.qty_completed)},
-            cost={'unit': unit_cost, 'extended': float(cl.qty_completed) * unit_cost},
+            cost={'unit': unit_cost},
         )
         created_receipt_line_ids.append(receipt_line.id)
 
@@ -587,7 +589,7 @@ def adjust_inventory(adjustment_id: str,
             adjustment_reason=al.reason,
             item={'item_id': al.item_id, 'item_number': item.item_number, 'name': item.name},
             quantity={'adjustment': float(qty_delta)},  # Can be negative
-            cost={'unit': unit_cost, 'extended': float(qty_delta) * unit_cost} if unit_cost else {},
+            cost={'unit': unit_cost} if unit_cost else {},
         )
         created_receipt_line_ids.append(receipt_line.id)
 

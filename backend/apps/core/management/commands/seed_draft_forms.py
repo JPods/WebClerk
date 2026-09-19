@@ -63,7 +63,7 @@ def priced_lines(qty_field="quantity.active", show_totals=True):
         {"field": "item.description", "label": "Description", "align": "left", "width": "42%"},
         {"field": qty_field, "label": "Qty", "align": "right", "format": "number"},
         {"field": "price.unit", "label": "Unit", "align": "right", "format": "currency"},
-        {"field": "price.amount", "label": "Amount", "align": "right", "format": "currency"},
+        {"field": "totals.amount", "label": "Amount", "align": "right", "format": "currency"},
     ]}
 
 
@@ -222,7 +222,7 @@ DRAFTS = {
             {"field": "item.description", "label": "Description", "align": "left", "width": "44%"},
             {"field": "quantity.staged", "label": "Qty / Hrs", "align": "right", "format": "number"},
             {"field": "cost.unit", "label": "Rate", "align": "right", "format": "currency"},
-            {"field": "cost.extended", "label": "Amount", "align": "right", "format": "currency"},
+            {"field": "totals.cost", "label": "Amount", "align": "right", "format": "currency"},
         ]},
         {"type": "detail_fields", "fields": [
             {"field": "description", "label": "Scope"},
@@ -238,7 +238,7 @@ DRAFTS = {
         {"type": "data_table", "grand_totals": True, "columns": [
             {"field": "item.ida_item", "label": "Account", "align": "left", "width": "22%"},
             {"field": "item.description", "label": "Description", "align": "left", "width": "46%"},
-            {"field": "price.amount", "label": "Amount", "align": "right", "format": "currency"},
+            {"field": "totals.amount", "label": "Amount", "align": "right", "format": "currency"},
         ]},
         totals(kind="short"),
         footer(("ida", "Entry #")),
@@ -250,7 +250,7 @@ DRAFTS = {
         {"type": "data_table", "grand_totals": True, "columns": [
             {"field": "item.ida_item", "label": "Account", "align": "left", "width": "22%"},
             {"field": "item.description", "label": "Description", "align": "left", "width": "46%"},
-            {"field": "price.amount", "label": "Amount", "align": "right", "format": "currency"},
+            {"field": "totals.amount", "label": "Amount", "align": "right", "format": "currency"},
         ]},
         {"type": "comments", "source": "comments.public", "label": "Note"},
         footer(("ida", "Reference")),

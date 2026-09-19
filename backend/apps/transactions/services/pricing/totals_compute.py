@@ -128,19 +128,14 @@ def recalculate_totals(
         update_fields.append('metadata')
     header.save(update_fields=update_fields)
 
-    # ── Then each line's tax, on the line (after the header save, so a
+    # ── Then each line's totals, on the line (after the header save, so a
     #    journalized document's lock stops both) — queryset update, no signals ──
     LineModel = lines.model if hasattr(lines, 'model') else None
     if LineModel is not None:
         for line in lines:
-            new = computed['line_taxes'].get(line.pk)
-            if new is None:
-                continue
-            old = line.tax if isinstance(line.tax, dict) else {}
-            merged = {**old, **new}
-            if merged != old:
-                LineModel.objects.filter(pk=line.pk).update(tax=merged)
-
+            new = computed['line_totals'].get(line.pk)
+            if new is not None and new != (line.totals or {}):
+                LineModel.objects.filter(pk=line.pk).update(totals=new)
 
     logger.info(
         "Recalculated totals for %s #%s: amount=%.2f tax=%.2f total=%.2f margin=%.1f%%",
@@ -161,125 +156,132 @@ def recalculate_totals(
     }
 
 
+LINE_TOTAL_KEYS = ('amount', 'discount', 'taxable', 'tax', 'shipping', 'other',
+                   'finance_charge', 'cost', 'margin', 'total')
+
+
+def _allocate(total: Decimal, weights: List[Decimal]) -> List[Decimal]:
+    """Split total into cents by weight; the last share takes the remainder so they add exactly."""
+    n = len(weights)
+    if n == 0 or total == 0:
+        return [Decimal(0)] * n
+    base = sum(weights, Decimal(0))
+    if base == 0:
+        weights, base = [Decimal(1)] * n, Decimal(n)
+    shares, given = [], Decimal(0)
+    for i, w in enumerate(weights):
+        share = total - given if i == n - 1 else _d(total * w / base)
+        shares.append(share)
+        given += share
+    return shares
+
+
+def _discounted_unit(unit: Decimal, qty: Decimal, pct: Decimal, flat: Decimal, places: int) -> Decimal:
+    """The customer's discounted unit price, in the price's precision (Bill: discounted unit first).
+
+    When a line has both a percent and a dollar discount, the larger one applies (Bill,
+    2026-09-19). The dollar discount is for the whole line, so per unit it is flat ÷ qty."""
+    by_pct = unit * pct / 100
+    by_flat = (flat / qty) if qty else Decimal(0)
+    return _d(unit - max(by_pct, by_flat, Decimal(0)), places=places)
+
+
 def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
     """The one totals calculation. Pure: reads header and lines, writes nothing.
 
-    ``header`` and each line may be a model instance or any object with the
-    same attributes (the pre-save verifier passes unsaved payload data), so
-    saved totals and verified totals come from the same arithmetic.
+    Bill's line model (2026-09-19): most actions happen on the line, and every
+    document number is the sum of the same number on its lines:
+        header totals.X = Σ line totals.X
+    The customer's discounted unit comes first; the line amount is qty × that unit,
+    and the line's discount is derived (gross − amount), so every line ties. The gap
+    to an exact percentage is a rounding difference.
 
-    Returns {'totals', 'tax_decisions', 'is_exempt', 'header_rate',
-    'jurisdiction', 'lines_recalculated'}. ``totals`` is not yet validated.
+    Document-level inputs in header ``allocations`` are spread over the lines:
+    discount_percent / discount_amount (by the lines' amounts, as a per-unit
+    reduction), shipping and other (exact cents, last line takes the remainder).
+
+    ``header`` and each line may be a model instance or any object with the same
+    attributes (the pre-save verifier passes unsaved payload data).
+
+    Returns {'totals', 'line_totals': {pk: {...}}, 'tax_decisions', 'is_exempt',
+    'header_rate', 'jurisdiction', 'lines_recalculated'}. ``totals`` is not validated.
     """
     is_sell = is_sell_side(model_name)
+    lines = list(lines)
 
-    # Accumulators
-    subtotal = Decimal(0)       # sum of line extended sell prices
-    cost_total = Decimal(0)     # sum of line extended costs
-    tax_total = Decimal(0)      # sum of line taxes
-    taxable_total = Decimal(0)  # amount subject to tax: the base each tax was computed on
-    shipping_total = Decimal(0) # sum of line shipping + handling
-    finance_charge_total = Decimal(0)  # finance_charge lines: interest on past-due balances
-    discount_total = Decimal(0) # sum of line discounts
-    lines_recalculated = 0
-
-    # Resolve header tax rate for per-line application
     finance = getattr(header, 'finance', None) or {}
     header_tax_rate = _d(finance.get('sales_tax_rate', 0), places=6)
-    # Normalize: if rate > 1, treat as percentage (e.g., 8.25 → 0.0825)
-    if header_tax_rate > 1:
+    if header_tax_rate > 1:                      # 8.25 is read as 8.25%
         header_tax_rate = header_tax_rate / 100
-    # Check if transaction is tax exempt
     tax_envelope = getattr(header, 'tax', None) or {}
     is_exempt = bool(tax_envelope.get('exempt_code'))
     tax_jurisdiction_name = finance.get('sales_tax_name', '')
-    tax_decisions: List[Dict[str, Any]] = []
+    shipping_tax_rate = _d(tax_envelope.get('shipping', 0) or finance.get('tax_on_shipping_rate', 0), places=6)
+    if shipping_tax_rate > 1:
+        shipping_tax_rate = shipping_tax_rate / 100
+    if is_exempt:
+        shipping_tax_rate = Decimal(0)
 
-    # ── The line model (Bill, 2026-09-19) ──────────────────────────────
-    #   line amount   = qty.active × unit − line discount      (price.amount)
-    #   line tax      = r2(line amount × line rate)             (stored on the line: tax.sales)
-    #   document amount = Σ line amounts;  total = amount + Σ line tax + shipping + finance charge + other
-    # A document discount is not a separate calculation: apply_document_discount
-    # spreads it into the lines' own discounts, so every tax is a line's tax.
-    lines = list(lines)
-    line_taxes: Dict[Any, Dict[str, Any]] = {}
+    alloc = getattr(header, 'allocations', None) or {}
+    doc_pct = _d(alloc.get('discount_percent', 0), places=6)
+    doc_amt = _d(alloc.get('discount_amount', 0))
+    doc_shipping = _d(alloc.get('shipping', 0))
+    doc_other = _d(alloc.get('other', 0))
 
+    def num(env, key, places=2):
+        return _d((env or {}).get(key, 0) or 0, places=places)
+
+    # ── Pass 1: each product line's discounted unit before the document discount ──
+    goods = []   # (line, qty, unit, line_unit, places) for product lines
     for line in lines:
-        qty_data = getattr(line, 'quantity', None) or {}
-        qty = _d(qty_data.get('active', 0) or 0)
-        cost_data = getattr(line, 'cost', None) or {}
-        lt = getattr(line, 'line_type', 'product') or 'product'
-
-        # ── Route by line_type ────────────────────────────────────────
-        # tax            → amount goes to tax_total (special taxes: environmental, recycling, etc.)
-        # shipping       → amount goes to shipping_total (freight lines, handling charges)
-        # finance_charge → amount goes to finance_charge_total
-        # discount       → reduces the amount, untaxed. Only a settlement (cash) discount
-        #                  reaches here; a document discount is spread into line discounts.
-        # product        → line amount, taxed at the line's rate
-
-        if lt == 'tax':
-            unit = _d(cost_data.get('unit', 0))
-            if is_sell:
-                price_data = getattr(line, 'price', None) or {}
-                unit = _d(price_data.get('unit', 0)) or unit
-            tax_total += _d(qty * unit)
-            lines_recalculated += 1
+        if (getattr(line, 'line_type', 'product') or 'product') != 'product':
             continue
+        qty = num(getattr(line, 'quantity', None), 'active', places=6)
+        env = (getattr(line, 'price', None) if is_sell else getattr(line, 'cost', None)) or {}
+        places = int(env.get('precision', 2) or 2)
+        unit = num(env, 'unit', places=6)
+        line_unit = _discounted_unit(unit, qty, num(env, 'discount_percent', 6),
+                                     num(env, 'discount_amount'), places)
+        goods.append((line, qty, unit, line_unit, places))
 
-        if lt == 'finance_charge':
-            unit = _d((getattr(line, 'price', None) or {}).get('unit', 0)) if is_sell else _d(cost_data.get('unit', 0))
-            finance_charge_total += _d(qty * unit)
-            lines_recalculated += 1
-            continue
+    # ── The document discount, as a per-unit reduction ────────────────────
+    doc_share = {}
+    if is_sell and goods and (doc_pct or doc_amt):
+        pre = [_d(q * lu) for (_, q, _, lu, _) in goods]
+        # Both set: the larger discount applies (Bill, 2026-09-19).
+        if doc_amt and doc_amt >= _d(sum(pre, Decimal(0)) * doc_pct / 100):
+            doc_pct = Decimal(0)
+            for (line, *_), share in zip(goods, _allocate(doc_amt, pre)):
+                doc_share[id(line)] = share
 
-        if lt == 'shipping':
-            unit = _d(cost_data.get('unit', 0))
-            if is_sell:
-                price_data = getattr(line, 'price', None) or {}
-                unit = _d(price_data.get('unit', 0)) or unit
-            shipping_total += _d(qty * unit)
-            lines_recalculated += 1
-            continue
+    line_totals: Dict[Any, Dict[str, Any]] = {}
+    tax_decisions: List[Dict[str, Any]] = []
+    amounts = {}
 
-        if lt == 'discount':
-            # One sign convention: a discount line always reduces the amount,
-            # whichever sign its unit was stored with.
-            if is_sell:
-                price_data = getattr(line, 'price', None) or {}
-                off = abs(_d(qty * _d(price_data.get('unit', 0))))
-                subtotal -= off
-                discount_total += off
-            lines_recalculated += 1
-            continue
+    for line, qty, unit, line_unit, places in goods:
+        if doc_pct:
+            du = _d(line_unit * (1 - doc_pct / 100), places=places)
+        elif id(line) in doc_share and qty:
+            du = _d(line_unit - doc_share[id(line)] / qty, places=places)
+        else:
+            du = line_unit
+        amount = _d(qty * du)
+        gross = _d(qty * unit)
+        amounts[id(line)] = amount
 
-        # ── Product line ──────────────────────────────────────────────
-        line_amount = Decimal(0)
-        discount_amt = Decimal(0)
-        if is_sell:
-            price_data = getattr(line, 'price', None) or {}
-            discount_amt = _d(price_data.get('discount_amount', 0))
-            line_amount = _d(qty * _d(price_data.get('unit', 0))) - discount_amt
-            subtotal += line_amount
-            discount_total += discount_amt
+        cost_env = getattr(line, 'cost', None) or {}
+        cplaces = int(cost_env.get('precision', 2) or 2)
+        cost_unit = _discounted_unit(num(cost_env, 'unit', 6), qty, num(cost_env, 'discount_percent', 6),
+                                     num(cost_env, 'discount_amount'), cplaces)
+        cost = _d(qty * cost_unit) if is_sell else amount
 
-        cost_extended = _d(qty * _d(cost_data.get('unit', 0)))
-        cost_total += cost_extended
-
-        # Cost-side surcharges (on product lines only)
-        shipping_total += _d(cost_data.get('shipping', 0))
-        shipping_total += _d(cost_data.get('handling', 0))
-
-        # ── The line's tax rate and tax ───────────────────────────────
-        # A rate typed on the line (rate_source 'line') wins; then an exempt
-        # customer or non-taxable item is 0; otherwise the header's rate.
-        line_tax_data = getattr(line, 'tax', None) or {}
-        typed_rate = _d(line_tax_data.get('sales_rate', 0), places=6)
-        rate_source = line_tax_data.get('rate_source')
-        tax_code = (cost_data.get('tax_code', '') or '').upper()
-        if rate_source == 'line' or (rate_source is None and typed_rate > 0):
-            rate = typed_rate / 100 if typed_rate > 1 else typed_rate
-            source = 'line'
+        # The line's tax rate: typed on the line, else exempt / non-taxable 0, else the header's
+        line_tax_env = getattr(line, 'tax', None) or {}
+        typed = num(line_tax_env, 'sales_rate', 6)
+        source = line_tax_env.get('rate_source')
+        tax_code = (cost_env.get('tax_code', '') or '').upper()
+        if source == 'line' or (source is None and typed > 0):
+            rate, source = (typed / 100 if typed > 1 else typed), 'line'
         elif is_exempt:
             rate, source = Decimal(0), 'exempt'
         elif tax_code in ('EXEMPT', 'NONTAXABLE', 'NON-TAXABLE'):
@@ -287,91 +289,101 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
         else:
             rate, source = header_tax_rate, 'header'
 
-        tax_base = line_amount if is_sell else cost_extended
-        line_tax = _d(tax_base * rate)
-        tax_total += line_tax
-        if rate > 0:
-            taxable_total += tax_base
-        line_taxes[getattr(line, 'pk', None)] = {
-            'sales_rate': float(rate), 'sales': float(line_tax), 'rate_source': source,
+        line_totals[id(line)] = {
+            'discounted_unit': float(du),
+            'amount': amount,
+            'discount': gross - amount if is_sell else Decimal(0),
+            'taxable': amount if rate > 0 else Decimal(0),
+            'tax_rate': float(rate),
+            'rate_source': source,
+            'tax': _d(amount * rate),
+            'shipping': num(cost_env, 'shipping') + num(cost_env, 'handling'),
+            'other': Decimal(0),
+            'finance_charge': Decimal(0),
+            'cost': cost,
         }
-        tax_decisions.append({
-            'line_id': getattr(line, 'pk', None),
-            'rate': float(rate),
-            'taxable': float(tax_base) if rate > 0 else 0,
-            'tax': float(line_tax),
-            'source': source,
-            'jurisdiction': tax_jurisdiction_name,
-        })
+        tax_decisions.append({'line_id': getattr(line, 'pk', None), 'rate': float(rate),
+                              'taxable': float(amount if rate > 0 else 0),
+                              'tax': float(_d(amount * rate)), 'source': source,
+                              'jurisdiction': tax_jurisdiction_name})
 
-        lines_recalculated += 1
-
-    # If exec-side (purchase/workorder), subtotal is the cost total
-    if not is_sell:
-        subtotal = cost_total
-
-    # Header-level cost freight (separate from line shipping)
-    header_cost = getattr(header, 'cost', None) or {}
-    header_freight = _d(header_cost.get('freight', 0))
-    shipping_total += header_freight
-
-    # Ship-via priced as a percent of goods (e.g. USPS 4%) — the customer's charge.
+    # ── Document shipping (+ ship-via % of goods) and other: exact cents by amount ──
+    goods_amount = sum(amounts.values(), Decimal(0))
+    shipping_to_spread = doc_shipping
     if is_sell:
         from apps.transactions.services.fulfillment.fulfillment_freight import percent_of_goods_shipping
-        ship_charge = percent_of_goods_shipping(getattr(header, 'ship_via', '') or '', subtotal)
+        ship_charge = percent_of_goods_shipping(getattr(header, 'ship_via', '') or '', goods_amount)
         if ship_charge is not None:
-            shipping_total += ship_charge
+            shipping_to_spread += _d(ship_charge)
+    weights = [amounts[id(g[0])] for g in goods]
+    for (line, *_), s_share, o_share in zip(goods, _allocate(shipping_to_spread, weights), _allocate(doc_other, weights)):
+        lt = line_totals[id(line)]
+        lt['shipping'] += s_share
+        lt['other'] += o_share
 
-    # ── Tax on shipping (WC2: <>aTaxRateShipping per jurisdiction) ─
-    # finance.tax_on_shipping_rate or tax.shipping carries the rate
-    shipping_tax_rate = _d(tax_envelope.get('shipping', 0) or finance.get('tax_on_shipping_rate', 0), places=6)
-    if shipping_tax_rate > 1:
-        shipping_tax_rate = shipping_tax_rate / 100
-    if not is_exempt and shipping_tax_rate > 0 and shipping_total > 0:
-        tax_total += _d(shipping_total * shipping_tax_rate)
-        taxable_total += shipping_total
+    # ── Non-product lines ─────────────────────────────────────────────
+    for line in lines:
+        lt_type = getattr(line, 'line_type', 'product') or 'product'
+        if lt_type == 'product':
+            continue
+        qty = num(getattr(line, 'quantity', None), 'active', places=6)
+        env = (getattr(line, 'price', None) if is_sell else getattr(line, 'cost', None)) or {}
+        value = _d(qty * num(env, 'unit', 6))
+        t = {k: Decimal(0) for k in LINE_TOTAL_KEYS}
+        if lt_type == 'tax':
+            t['tax'] = value
+        elif lt_type == 'shipping':
+            t['shipping'] = value
+        elif lt_type == 'finance_charge':
+            t['finance_charge'] = value
+        elif lt_type == 'discount' and is_sell:
+            # Only a settlement (cash) discount reaches here; a document discount lives in
+            # allocations. One sign convention: it always reduces.
+            t['amount'] = -abs(value)
+            t['discount'] = abs(value)
+        line_totals[id(line)] = t
 
-    # ── Grand total: the amount plus every component extra ──────────
+    # ── Finish each line: tax on its shipping, margin, total ──────────
+    for t in line_totals.values():
+        for k in LINE_TOTAL_KEYS:
+            t.setdefault(k, Decimal(0))
+        if t['shipping'] and shipping_tax_rate:
+            t['tax'] += _d(t['shipping'] * shipping_tax_rate)
+            t['taxable'] += t['shipping']
+        t['margin'] = t['amount'] - t['cost'] if is_sell else Decimal(0)
+        t['total'] = t['amount'] + t['tax'] + t['shipping'] + t['other'] + t['finance_charge']
+
+    # ── The document: Σ of its lines ──────────────────────────────────
+    doc = {k: sum((t[k] for t in line_totals.values()), Decimal(0)) for k in LINE_TOTAL_KEYS}
+    margin_pc = float(_d(doc['margin'] / doc['amount'] * 100)) if doc['amount'] > 0 else 0.0
+
     existing_totals = getattr(header, 'totals', None) or {}
-    other_total = _d(existing_totals.get('other', 0))   # landed costs and other charges
-    total = subtotal + tax_total + shipping_total + finance_charge_total + other_total
-    margin = subtotal - cost_total
-    margin_pc = float(_d((margin / subtotal * 100))) if subtotal > 0 else 0.0
-
-    # ── Received / balance (for invoices) ──────────────────────────
     received = _d(existing_totals.get('received', 0))
-    balance = total - received
+    balance = doc['total'] - received
     state = ''
     if model_name == 'invoice':
         from apps.transactions.services.cash.cash_pending import cash_state
-        state = cash_state(total, received)
+        state = cash_state(doc['total'], received)
 
-    # ── Build the totals dict ──────────────────────────────────────
-    totals = {
-        'amount': float(subtotal),
-        'discount': float(discount_total),
-        'taxable': float(taxable_total),
-        'tax': float(tax_total),
-        'shipping': float(shipping_total),
-        'finance_charge': float(finance_charge_total),
-        'other': float(other_total),
-        'total': float(total),
-        'cost': float(cost_total),
-        'margin': float(margin),
-        'margin_pc': margin_pc,
-        'received': float(received),
-        'balance': float(balance),
-        'cash_state': state,
-    }
+    totals = {k: float(v) for k, v in doc.items()}
+    totals.update({'margin_pc': margin_pc, 'received': float(received),
+                   'balance': float(balance), 'cash_state': state})
+
+    by_pk = {}
+    for line in lines:
+        t = line_totals.get(id(line))
+        if t is None:
+            continue
+        by_pk[getattr(line, 'pk', None)] = {k: (float(v) if isinstance(v, Decimal) else v) for k, v in t.items()}
 
     return {
         'totals': totals,
+        'line_totals': by_pk,
         'tax_decisions': tax_decisions,
         'is_exempt': is_exempt,
         'header_rate': float(header_tax_rate),
         'jurisdiction': tax_jurisdiction_name,
-        'lines_recalculated': lines_recalculated,
-        'line_taxes': line_taxes,
+        'lines_recalculated': len(line_totals),
     }
 
 
@@ -497,10 +509,6 @@ def recalculate_line(
     qty = _d(qty_data.get('active', 0) or 0)
     line_result = {'line_id': line_id, 'quantity': float(qty)}
 
-    if hasattr(line, 'price') and isinstance(line.price, dict):
-        line_result['price_extended'] = line.price.get('amount', 0)
-    if hasattr(line, 'cost') and isinstance(line.cost, dict):
-        line_result['cost_extended'] = line.cost.get('extended', 0)
 
     # Now recalculate parent totals
     parent = getattr(line, 'parent', None)

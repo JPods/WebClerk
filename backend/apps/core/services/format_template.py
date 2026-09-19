@@ -154,13 +154,14 @@ def get_template_fields(model_name: str) -> Dict[str, Any]:
             "fields": ["ida", "status", "dt", "due_date", ...],
             "json_fields": {
                 "totals": ["total", "amount", "tax", "shipping", "received", "balance"],
-                "price": ["unit", "amount", "discount"],
+                "price": ["unit", "discount_percent", "discount_amount"],
+                "totals": ["amount", "discount", "tax", "shipping", "other", "total", "cost", "margin"],
                 ...
             },
             "related": {
                 "customer": ["ida", "display_name", "company", "email", "phone", "credit_limit"],
                 "contact": ["name_first", "name_last", "email", "phone"],
-                "lines": ["item.ida", "item.description", "quantity.staged", "price.unit", "price.amount"]
+                "lines": ["item.ida", "item.description", "quantity.staged", "price.unit", "totals.amount"]
             },
             "examples": [
                 "{{order.ida}}", "{{order.totals.total}}", "{{customer.company}}", "{{contact.name_first}}"
@@ -218,9 +219,9 @@ def _get_json_subfields(model_name: str, field_name: str) -> List[str]:
     KNOWN_JSON = {
         'totals': ['total', 'amount', 'tax', 'shipping', 'other', 'received', 'balance',
                     'sell_total', 'cost_total', 'margin', 'margin_pct'],
-        'price': ['unit', 'amount', 'discount', 'discount_pct', 'base', 'retail',
+        'price': ['unit', 'discount_percent', 'discount_amount', 'base', 'retail',
                   'wholesale', 'distributor', 'sample', 'currency'],
-        'cost': ['unit', 'extended', 'standard', 'avg', 'last'],
+        'cost': ['unit', 'standard', 'avg', 'last'],
         'quantity': ['staged', 'active', 'remaining', 'received', 'shipped',
                      'on_hand', 'on_so', 'on_po', 'on_qt', 'available'],
         'item': ['item_id', 'ida_item', 'description', 'unit_measure'],

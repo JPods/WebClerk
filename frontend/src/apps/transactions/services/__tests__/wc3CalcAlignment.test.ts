@@ -163,12 +163,12 @@ describe('computeHeaderTotals()', () => {
   }): TransactionLine {
     return {
       item: { is_deleted: overrides.deleted ?? false },
-      price: {
+      totals: {
         amount: overrides.priceExt ?? 0,
-        discount_amount: overrides.priceDis ?? 0,
+        discount: overrides.priceDis ?? 0,
+        cost: overrides.costExt ?? 0,
       },
       cost: {
-        extended: overrides.costExt ?? 0,
         tax: overrides.costTax ?? 0,
         shipping: overrides.costShip ?? 0,
         handling: overrides.costHandl ?? 0,
@@ -249,7 +249,8 @@ describe('computeCostOnlyTotals()', () => {
     const lines = [
       {
         item: {},
-        cost: { extended: 100, tax: 5, shipping: 3, handling: 2, freight: 1, commissions: 0.5 },
+        totals: { cost: 100 },
+        cost: { tax: 5, shipping: 3, handling: 2, freight: 1, commissions: 0.5 },
       } as unknown as TransactionLine,
     ];
     const cost = computeCostOnlyTotals(lines);

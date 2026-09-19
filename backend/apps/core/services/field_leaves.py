@@ -123,6 +123,7 @@ FIELD_SCHEMAS['item.stats'] = f'{_OA}:RecordStats'
 TRANSACTION_HEADER_SCHEMAS = {
     'company': f'{_TE}:TransactionCompany',
     'totals': f'{_TE}:TransactionTotals',
+    'allocations': f'{_TE}:TransactionAllocations',
     'finance': f'{_TE}:TransactionFinance',
     'cost': f'{_TE}:TransactionCost',
     'tax': f'{_TE}:TransactionTax',
@@ -139,6 +140,7 @@ TRANSACTION_LINE_SCHEMAS = {
     'price': f'{_TE}:LinePrice',
     'cost': f'{_TE}:LineCost',
     'tax': f'{_TE}:LineTax',
+    'totals': f'{_TE}:LineTotals',
     'physical': f'{_TE}:LinePhysical',
     'item': f'{_TE}:LineItem',
     'commission': f'{_TE}:LineCommission',

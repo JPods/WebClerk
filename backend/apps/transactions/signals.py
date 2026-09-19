@@ -233,6 +233,8 @@ def register_line_totals_signals(line_model, parent_attr: str):
         parent = getattr(instance, parent_attr, None)
         if parent:
             parent.update_sell_cost_totals(persist=True)
+            # The engine wrote this line's totals to the database; the caller holds this instance.
+            instance.refresh_from_db(fields=['totals'])
 
     @receiver(post_delete, sender=line_model)
     def update_totals_on_delete(sender, instance, **kwargs):
@@ -344,27 +346,34 @@ for _sell_line_model in (QuoteLine, OrderLine, InvoiceLine):
 # includes finance, so this cannot loop.
 # =============================================================================
 
+_RECOMPUTE_FIELDS = ('finance', 'allocations')
+
+
 def register_header_finance_recompute(header_model):
+    """A change to the header's tax settings (finance) or its document-level
+    inputs (allocations: discount, shipping, other) recomputes the totals."""
     @receiver(pre_save, sender=header_model)
-    def remember_finance(sender, instance, **kwargs):
+    def remember_inputs(sender, instance, **kwargs):
         update_fields = kwargs.get('update_fields')
-        if not instance.pk or (update_fields is not None and 'finance' not in update_fields):
-            instance._finance_before = None
+        watched = [f for f in _RECOMPUTE_FIELDS
+                   if update_fields is None or f in update_fields]
+        if not instance.pk or not watched:
+            instance._inputs_before = None
             return
-        row = sender.objects.filter(pk=instance.pk).values_list('finance', flat=True).first()
-        instance._finance_before = row or {}
+        row = sender.objects.filter(pk=instance.pk).values(*watched).first()
+        instance._inputs_before = {f: (row or {}).get(f) or {} for f in watched}
 
     @receiver(post_save, sender=header_model)
-    def recompute_on_finance_change(sender, instance, created, **kwargs):
-        before = getattr(instance, '_finance_before', None)
-        instance._finance_before = None
+    def recompute_on_input_change(sender, instance, created, **kwargs):
+        before = getattr(instance, '_inputs_before', None)
+        instance._inputs_before = None
         if created or before is None:
             return
-        if (instance.finance or {}) != before:
+        if any((getattr(instance, f, None) or {}) != old for f, old in before.items()):
             instance.update_sell_cost_totals(persist=True)
 
 
-for _header_model in (Quote, Order, Invoice):
+for _header_model in (Quote, Order, Invoice, Purchase, WorkOrder):
     register_header_finance_recompute(_header_model)
 
 

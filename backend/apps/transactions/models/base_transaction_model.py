@@ -19,7 +19,7 @@ def default_totals() -> Dict[str, Any]:
     # Header-level searchable totals (designed for frequent filtering).
     # Keep keys flat for common query patterns and indexability.
     return {
-        "amount": 0,        # Σ line price.amount: goods after discounts, before tax/ship/other
+        "amount": 0,        # Σ line totals.amount: goods after discounts, before tax/ship/other
         "discount": 0,      # header discount amount
         "taxable": 0,       # Σ amounts of lines with a tax rate > 0
         "tax": 0,           # sales tax amount
@@ -287,6 +287,9 @@ class TransactionBaseModel(BaseModel):
     # Header-level cached totals for quick filtering and reporting. Persisted so
     # services that compute totals can save results for queries and UI display.
     totals = models.JSONField(default=default_totals, blank=True, null=True)
+    # Document-level inputs the totals engine spreads over the lines by amount:
+    # discount_percent, discount_amount, shipping, other (landed costs).
+    allocations = models.JSONField(default=dict, blank=True, null=True)
     finance = models.JSONField(default=dict, blank=True, null=True)
     commission = models.JSONField(default=dict, blank=True, null=True)
     flow = models.JSONField(default=dict, blank=True, null=True)

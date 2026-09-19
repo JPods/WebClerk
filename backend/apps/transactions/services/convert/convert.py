@@ -147,6 +147,21 @@ def _copy_header_fields(source, target, is_sell_side: bool = True, extra_fields:
             setattr(target, field, copy.deepcopy(val) if isinstance(val, (dict, list)) else val)
 
 
+def _carry_document_discount(source, target) -> None:
+    """A document discount travels to the next document as a percent (design v2):
+    a percent as is; a dollar discount as its share of the source's amount, so a
+    partial conversion gets its proportion. Shipping and other do not carry."""
+    alloc = getattr(source, "allocations", None) or {}
+    pct = Decimal(str(alloc.get("discount_percent") or 0))
+    amt = Decimal(str(alloc.get("discount_amount") or 0))
+    if amt:
+        gross = Decimal(str((getattr(source, "totals", None) or {}).get("amount") or 0)) + amt
+        if gross > 0:
+            pct = max(pct, (amt / gross * 100).quantize(Decimal("0.000001")))
+    if pct:
+        target.allocations = {**(getattr(target, "allocations", None) or {}), "discount_percent": float(pct)}
+
+
 def _item_unit_cost_for_line(src_line) -> Decimal:
     """The line's item cost at the company unit_cost_default."""
     from apps.products.services.inventory.inventory_layers import item_unit_cost
@@ -428,6 +443,8 @@ def _do_convert(
     target.parent_id = source.pk
     target.parent_model = source_type
     _copy_header_fields(source, target, is_sell_side=is_sell_side)
+    if is_sell_side:
+        _carry_document_discount(source, target)
 
     # Commission flows forward at header level
     source_comm = getattr(source, "commission", None)
@@ -459,6 +476,10 @@ def _do_convert(
 
         if remaining == 0:
             continue
+        # A document discount line was moved into allocations; it carries through
+        # the target's allocations, not as a line.
+        if isinstance(getattr(src_line, "metadata", None), dict) and src_line.metadata.get("document_discount"):
+            continue
 
         lines_available += 1
         item_data = getattr(src_line, "item", None) or {}
@@ -479,7 +500,6 @@ def _do_convert(
             # sell line — that line's cost was an estimate and may be zero.
             unit = _item_unit_cost_for_line(src_line)
             cost["unit"] = float(unit)
-            cost["extended"] = float(round(unit * Decimal(str(remaining)), 2))
 
         lines_for_review.append({
             "line_number": getattr(src_line, "line_number", 0) or 0,

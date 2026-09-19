@@ -20,6 +20,22 @@ import { lineKey } from '@/apps/transactions/utils/lineHelpers';
 import type { RichColumn } from '@/components/common/DataGrid';
 import { useItemImagePopup } from '@/components/common/ItemImagePopup';
 import { useItemCard } from '@/components/common/ItemCard';
+import { round } from '@/apps/transactions/services/calculationUtils';
+
+/** Preview of a line's totals while it is edited, by the server's rule (Bill 2026-09-19):
+ *  the discounted unit first, in cents; amount = qty × that unit; discount = gross − amount.
+ *  The server's line.totals replaces it on save (it also spreads any document discount). */
+export function previewLineTotals(line: any, isSellSide: boolean): Record<string, number> {
+  const qty = Number(line.quantity?.active ?? 0);
+  const env = (isSellSide ? line.price : line.cost) ?? {};
+  const unit = Number(env.unit ?? 0);
+  const pct = Number(env.discount_percent ?? 0);
+  const flat = Number(env.discount_amount ?? 0);
+  // Both set: the larger discount applies (Bill, 2026-09-19)
+  const discountedUnit = round(unit - Math.max(unit * pct / 100, qty ? flat / qty : 0, 0));
+  const amount = round(qty * discountedUnit);
+  return { ...(line.totals ?? {}), discounted_unit: discountedUnit, amount, discount: round(round(qty * unit) - amount) };
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -81,14 +97,13 @@ function flattenLine(line: any, idx: number, isSellSide: boolean): any {
   const priceRecord = lineRecord.price as Record<string, unknown> | undefined;
   const unitPrice = Number(priceRecord?.sell ?? priceRecord?.unit ?? line.price?.unit ?? 0);
   const discountPct = Number(priceRecord?.discount_percent ?? line.price?.discount_percent ?? 0);
-  const discountedUnit = discountPct > 0 ? unitPrice * (1 - discountPct / 100) : unitPrice;
 
   const costRecord = lineRecord.cost as Record<string, unknown> | undefined;
   const unitCost = Number(costRecord?.unit ?? line.cost?.unit ?? 0);
 
-  const extended = isSellSide
-    ? Number(priceRecord?.amount ?? line.price?.amount ?? qty * discountedUnit)
-    : Number(costRecord?.extended ?? line.cost?.extended ?? qty * unitCost);
+  const preview = previewLineTotals(line, isSellSide);
+  const discountedUnit = Number(line.totals?.discounted_unit ?? preview.discounted_unit);
+  const extended = Number(line._dirty ? preview.amount : (line.totals?.amount ?? preview.amount));
 
   const weight = Number(line.physical?.weight ?? 0);
 
@@ -115,7 +130,7 @@ function flattenLine(line: any, idx: number, isSellSide: boolean): any {
     _itemIsActive: line.item?.is_active !== false,
     _hasBacklog: remaining > 0 && !isComplete,
     line_type: String(line.line_type || 'product'),
-    tax_rate: Number(line.tax?.sales_rate ?? line.tax?.sales ?? 0),
+    tax_rate: Number(line.totals?.tax_rate ?? line.tax?.sales_rate ?? 0),
     // Commission — from commission.reps[] envelope
     comm_total: Number(line.commission?.total ?? 0),
     comm_rate: Number(line.commission?.reps?.[0]?.rate_pct ?? 0),
@@ -175,32 +190,18 @@ export function useLineCard(options: UseLineCardOptions) {
         const isComplete = updated.quantity?.is_complete;
         const remaining = isComplete ? 0 : newQty;
         const result: any = { ...updated, quantity: { ...updated.quantity, active: newQty, staged: newQty, remaining } };
-        if (updated.price) {
-          const unitP = updated.price?.unit ?? 0;
-          const discPct = updated.price?.discount_percent ?? 0;
-          const discUnit = discPct > 0 ? unitP * (1 - discPct / 100) : unitP;
-          result.price = { ...updated.price, amount: newQty * discUnit };
-        }
-        if (isExecSide && updated.cost) {
-          result.cost = { ...updated.cost, extended: newQty * (updated.cost?.unit ?? 0) };
-        }
+        result.totals = previewLineTotals(result, isSellSide);
         return result;
       }
       case "description":
         return { ...updated, item: { ...updated.item, description: String(value) } };
       case "unit_price": {
-        const newPrice = Number(value);
-        const qty = updated.quantity?.active ?? 0;
-        const discPct = updated.price?.discount_percent ?? 0;
-        const discUnit = discPct > 0 ? newPrice * (1 - discPct / 100) : newPrice;
-        return { ...updated, price: { ...updated.price, unit: newPrice, amount: qty * discUnit } };
+        const result = { ...updated, price: { ...updated.price, unit: Number(value) } };
+        return { ...result, totals: previewLineTotals(result, isSellSide) };
       }
       case "discount_pct": {
-        const newDiscPct = Number(value);
-        const qty = updated.quantity?.active ?? 0;
-        const unitP = updated.price?.unit ?? 0;
-        const discUnit = newDiscPct > 0 ? unitP * (1 - newDiscPct / 100) : unitP;
-        return { ...updated, price: { ...updated.price, discount_percent: newDiscPct, amount: qty * discUnit } };
+        const result = { ...updated, price: { ...updated.price, discount_percent: Number(value) } };
+        return { ...result, totals: previewLineTotals(result, isSellSide) };
       }
       case "is_complete": {
         const complete = Boolean(value);
@@ -213,18 +214,17 @@ export function useLineCard(options: UseLineCardOptions) {
         return { ...updated, quantity: newQuantity };
       }
       case "unit_cost": {
-        const newCost = Number(value);
-        const qty = updated.quantity?.active ?? 0;
-        return { ...updated, cost: { ...updated.cost, unit: newCost, extended: qty * newCost } };
+        const result = { ...updated, cost: { ...updated.cost, unit: Number(value) } };
+        return { ...result, totals: previewLineTotals(result, isSellSide) };
       }
       case "tax_rate": {
         const newRate = Number(value);
-        return { ...updated, tax: { ...updated.tax, sales_rate: newRate, sales: newRate } };
+        return { ...updated, tax: { ...updated.tax, sales_rate: newRate, rate_source: 'line' } };
       }
       case "comm_rate": {
         const newRate = Number(value);
-        const priceExt = updated.price?.amount ?? 0;
-        const costExt = updated.cost?.extended ?? 0;
+        const priceExt = updated.totals?.amount ?? 0;
+        const costExt = updated.totals?.cost ?? 0;
         const existingComm = updated.commission || {};
         const existingReps = existingComm.reps || [];
         const basis = existingComm.basis || 'revenue';
@@ -258,7 +258,7 @@ export function useLineCard(options: UseLineCardOptions) {
       default:
         return updated;
     }
-  }, [isExecSide]);
+  }, [isExecSide, isSellSide]);
 
   const handleCellEdit = useCallback((recordId: number, field: string, value: unknown) => {
     if (!canEdit || !onLinesChange) return;

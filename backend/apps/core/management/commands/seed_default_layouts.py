@@ -85,8 +85,8 @@ FORMAT_MAP = {
     'totals.shipping': 'currency', 'totals.margin': 'currency',
     'totals.cost': 'currency', 'totals.discount': 'currency',
     'totals.received': 'currency',
-    'price.unit': 'currency', 'price.amount': 'currency',
-    'cost.unit': 'currency', 'cost.extended': 'currency',
+    'price.unit': 'currency', 'totals.amount': 'currency',
+    'cost.unit': 'currency', 'totals.cost': 'currency',
     'quantity.active': 'number', 'quantity.staged': 'number',
     'quantity.remaining': 'number',
 }
@@ -109,7 +109,7 @@ SELL_LINE_ENVELOPE_FIELDS = [
     {'field': 'quantity.staged', 'width': 70, 'align': 'right', 'format': 'number', 'visible': True},
     {'field': 'quantity.remaining', 'width': 70, 'align': 'right', 'format': 'number', 'visible': True},
     {'field': 'price.unit', 'width': 90, 'align': 'right', 'format': 'currency', 'visible': True},
-    {'field': 'price.amount', 'width': 100, 'align': 'right', 'format': 'currency', 'visible': True},
+    {'field': 'totals.amount', 'width': 100, 'align': 'right', 'format': 'currency', 'visible': True},
     {'field': 'cost.unit', 'width': 90, 'align': 'right', 'format': 'currency', 'visible': True},
 ]
 
@@ -119,7 +119,7 @@ EXEC_LINE_ENVELOPE_FIELDS = [
     {'field': 'quantity.staged', 'width': 70, 'align': 'right', 'format': 'number', 'visible': True},
     {'field': 'quantity.remaining', 'width': 70, 'align': 'right', 'format': 'number', 'visible': True},
     {'field': 'cost.unit', 'width': 90, 'align': 'right', 'format': 'currency', 'visible': True},
-    {'field': 'cost.extended', 'width': 100, 'align': 'right', 'format': 'currency', 'visible': True},
+    {'field': 'totals.cost', 'width': 100, 'align': 'right', 'format': 'currency', 'visible': True},
 ]
 
 # Item: quantity + price envelopes

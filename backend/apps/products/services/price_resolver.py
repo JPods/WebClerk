@@ -875,7 +875,7 @@ def apply_line_pricing(
 
     Reads item from line.item_fk_id, qty from line.quantity.active,
     customer from parent transaction. Updates line.price.unit and
-    line.price.amount. Returns the pricing result.
+    line.totals.amount (via the totals engine). Returns the pricing result.
     """
     from django.apps import apps as dj_apps
     from apps.core.constants.model_registry import get_model_meta
@@ -918,13 +918,12 @@ def apply_line_pricing(
     if not isinstance(line.price, dict):
         line.price = {}
     line.price['unit'] = result['unit_price']
-    line.price['amount'] = float(Decimal(str(result['unit_price'])) * Decimal(str(qty)))
 
-    line.save(update_fields=['price'])
+    line.save(update_fields=['price'])      # the totals engine writes line.totals
 
     result['line_id'] = line_id
     result['quantity'] = qty
-    result['amount'] = line.price['amount']
+    result['amount'] = (line.totals or {}).get('amount', 0)
     return result
 
 

@@ -64,7 +64,7 @@ def allocate_landed_costs(receipt) -> dict:
         else:
             # value (default) — extended cost
             cost_data = line.cost if isinstance(line.cost, dict) else {}
-            ext = float(cost_data.get('extended', 0) or 0)
+            ext = float((getattr(line, 'totals', None) or {}).get('cost', 0) or 0)
             if ext == 0:
                 unit = float(cost_data.get('unit', 0) or 0)
                 ext = unit * _get_qty(line)

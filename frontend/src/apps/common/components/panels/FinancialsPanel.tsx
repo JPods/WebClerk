@@ -148,7 +148,7 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
           <StatBox
             label="Line Goods"
             value={formatCurrency(cost.line_sum_goods)}
-            sublabel="Σ cost extended"
+            sublabel="Σ line totals.cost"
           />
           <StatBox
             label="Shipping"

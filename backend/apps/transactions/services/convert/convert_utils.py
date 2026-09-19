@@ -13,7 +13,7 @@ def sum_price_extended(lines: Iterable[Model]) -> float:
     for ln in lines:
         p = (getattr(ln, "price", None) or {})
         try:
-            total += Decimal(str(p.get("amount", 0) or 0))
+            total += Decimal(str((getattr(ln, "totals", None) or {}).get("amount", 0) or 0))
         except Exception:
             total += Decimal(0)
     return float(total)
@@ -137,13 +137,11 @@ def build_line_payload(src_line, src_kind: str) -> List[Dict[str, Any]]:
         },
         "price": {
             "unit": _to_decimal_safe(price.get("unit")),
-            "amount": _to_decimal_safe(price.get("amount")),
             "currency": price.get("currency"),
             "precision": price.get("precision"),
         },
         "cost": {
             "unit": _to_decimal_safe(cost.get("unit")),
-            "extended": _to_decimal_safe(cost.get("extended")),
             "currency": cost.get("currency"),
         },
         "meta": {

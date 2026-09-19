@@ -37645,7 +37645,7 @@
             "type": "currency",
             "label": "Cost",
             "precision": 2,
-            "description": "Total cost (sum of line cost.extended)"
+            "description": "Total cost (sum of line totals.cost)"
           },
           "dt_journaled": {
             "type": "timestamp",
@@ -38988,7 +38988,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "price.amount",
+                  "field": "totals.amount",
                   "label": ".extended",
                   "width": 90,
                   "format": "currency",
@@ -39363,7 +39363,7 @@
             "label": "Custom",
             "description": "User-defined extensions — Alice tracks and documents"
           },
-          "cost.extended": {
+          "totals.cost": {
             "type": "currency",
             "label": "Extended Cost",
             "readonly": true,
@@ -39411,7 +39411,7 @@
             "label": "Base Cost",
             "precision": 2
           },
-          "price.amount": {
+          "totals.amount": {
             "type": "currency",
             "label": "Amount",
             "readonly": true,
@@ -40998,7 +40998,7 @@
             "type": "json-tree",
             "label": "Internal Notes"
           },
-          "price.amount": {
+          "totals.amount": {
             "type": "currency",
             "label": "Amount",
             "readonly": true,
@@ -50033,7 +50033,7 @@
             "type": "currency",
             "label": "Cost",
             "precision": 2,
-            "description": "Total cost (sum of line cost.extended)"
+            "description": "Total cost (sum of line totals.cost)"
           },
           "dt_journaled": {
             "type": "timestamp",
@@ -51371,7 +51371,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "price.amount",
+                  "field": "totals.amount",
                   "label": ".extended",
                   "width": 90,
                   "format": "currency",
@@ -51746,7 +51746,7 @@
             "label": "Custom",
             "description": "User-defined extensions — Alice tracks and documents"
           },
-          "cost.extended": {
+          "totals.cost": {
             "type": "currency",
             "label": "Extended Cost",
             "readonly": true,
@@ -51794,7 +51794,7 @@
             "label": "Base Cost",
             "precision": 2
           },
-          "price.amount": {
+          "totals.amount": {
             "type": "currency",
             "label": "Amount",
             "readonly": true,
@@ -58914,7 +58914,7 @@
             "type": "currency",
             "label": "Cost",
             "precision": 2,
-            "description": "Total cost (sum of line cost.extended)"
+            "description": "Total cost (sum of line totals.cost)"
           },
           "dt_journaled": {
             "type": "timestamp",
@@ -60253,7 +60253,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "price.amount",
+                  "field": "totals.amount",
                   "label": ".extended",
                   "width": 90,
                   "format": "currency",
@@ -60628,7 +60628,7 @@
             "label": "Custom",
             "description": "User-defined extensions — Alice tracks and documents"
           },
-          "cost.extended": {
+          "totals.cost": {
             "type": "currency",
             "label": "Extended Cost",
             "readonly": true,
@@ -60676,7 +60676,7 @@
             "label": "Base Cost",
             "precision": 2
           },
-          "price.amount": {
+          "totals.amount": {
             "type": "currency",
             "label": "Amount",
             "readonly": true,
@@ -62451,7 +62451,7 @@
             "type": "currency",
             "label": "Cost",
             "precision": 2,
-            "description": "Total cost (sum of line cost.extended)"
+            "description": "Total cost (sum of line totals.cost)"
           },
           "dt_journaled": {
             "type": "timestamp",
@@ -63785,7 +63785,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "cost.extended",
+                  "field": "totals.cost",
                   "label": ".extended",
                   "width": 90,
                   "format": "currency",
@@ -64129,7 +64129,7 @@
             "type": "timestamp",
             "label": "dt last used"
           },
-          "cost.extended": {
+          "totals.cost": {
             "type": "currency",
             "label": "Extended Cost",
             "readonly": true,
@@ -66027,7 +66027,7 @@
                     {
                       "flex": 1,
                       "align": "right",
-                      "field": "cost.extended",
+                      "field": "totals.cost",
                       "label": ".extended",
                       "format": "currency"
                     },
@@ -67315,7 +67315,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "cost.extended",
+                  "field": "totals.cost",
                   "label": ".extended",
                   "width": 90,
                   "format": "currency",
@@ -67654,7 +67654,7 @@
             "type": "text",
             "label": "serial batch"
           },
-          "cost.extended": {
+          "totals.cost": {
             "type": "currency",
             "label": "Extended Cost",
             "readonly": true,
@@ -72366,7 +72366,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "cost.extended",
+                  "field": "totals.cost",
                   "label": ".extended",
                   "width": 90,
                   "format": "currency",
@@ -72709,7 +72709,7 @@
             "type": "timestamp",
             "label": "dt last used"
           },
-          "cost.extended": {
+          "totals.cost": {
             "type": "currency",
             "label": "Extended Cost",
             "readonly": true,
@@ -87294,7 +87294,7 @@
             "type": "currency",
             "label": "Cost",
             "precision": 2,
-            "description": "Total cost (sum of line cost.extended)"
+            "description": "Total cost (sum of line totals.cost)"
           },
           "dt_journaled": {
             "type": "timestamp",
@@ -88621,7 +88621,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "cost.extended",
+                  "field": "totals.cost",
                   "label": ".extended",
                   "width": 90,
                   "format": "currency",
@@ -88947,7 +88947,7 @@
             "type": "timestamp",
             "label": "dt last used"
           },
-          "cost.extended": {
+          "totals.cost": {
             "type": "currency",
             "label": "Extended Cost",
             "readonly": true,

@@ -114,6 +114,7 @@ def _extract_line_fields(line) -> Dict[str, Any]:
     price_data = getattr(line, "price", None) or {}
     cost_data = getattr(line, "cost", None) or {}
     tax_data = getattr(line, "tax", None) or {}
+    line_totals = getattr(line, "totals", None) or {}
     physical_data = getattr(line, "physical", None) or {}
     commission_data = getattr(line, "commission", None) or {}
 
@@ -128,13 +129,13 @@ def _extract_line_fields(line) -> Dict[str, Any]:
     qty_shipped = qty_data.get("shipped", 0) if isinstance(qty_data, dict) else 0
 
     unit_price = price_data.get("unit", 0) if isinstance(price_data, dict) else 0
-    extended = price_data.get("amount", 0) if isinstance(price_data, dict) else 0
+    extended = line_totals.get("amount", 0)
     discount_pct = price_data.get("discount_pct", 0) if isinstance(price_data, dict) else 0
 
     unit_cost = cost_data.get("unit", 0) if isinstance(cost_data, dict) else 0
-    extended_cost = cost_data.get("extended", 0) if isinstance(cost_data, dict) else 0
+    extended_cost = line_totals.get("cost", 0)
 
-    tax_amount = tax_data.get("amount", 0) if isinstance(tax_data, dict) else 0
+    tax_amount = line_totals.get("tax", 0)
 
     weight = physical_data.get("weight", "") if isinstance(physical_data, dict) else ""
     country_of_origin = physical_data.get("country_of_origin", "") if isinstance(physical_data, dict) else ""
@@ -1243,6 +1244,7 @@ def _normalize_sample_data(raw: Dict) -> Dict:
         qty = ln.get("quantity", {}) or {}
         price = ln.get("price", {}) or {}
         cost = ln.get("cost", {}) or {}
+        line_totals = ln.get("totals", {}) or {}
 
         flat_lines.append({
             "line_number": ln.get("line_number", ""),
@@ -1253,11 +1255,11 @@ def _normalize_sample_data(raw: Dict) -> Dict:
             "qty_ordered": qty.get("active", 0) or qty.get("ordered", 0),
             "qty_shipped": qty.get("shipped", 0),
             "unit_price": price.get("unit", 0),
-            "amount": price.get("amount", 0),
+            "amount": line_totals.get("amount", 0),
             "discount_pct": price.get("discount_percent", 0) or price.get("discount_pct", 0),
             "unit_cost": cost.get("unit", 0),
-            "extended_cost": cost.get("extended", 0),
-            "tax_amount": 0,
+            "extended_cost": line_totals.get("cost", 0),
+            "tax_amount": line_totals.get("tax", 0),
             "weight": "",
             "country_of_origin": "",
             "hs_code": "",

@@ -404,8 +404,7 @@ def _dry_run_invoice_balance(invoice) -> dict:
     total_credit = Decimal('0')
 
     for line in lines:
-        price_data = line.price or {}
-        extended = Decimal(str(price_data.get('amount', 0) or 0))
+        extended = Decimal(str((line.totals or {}).get('amount', 0) or 0))
         if extended == 0:
             continue
 
@@ -451,8 +450,7 @@ def _dry_run_purchase_balance(purchase) -> dict:
     total_credit = Decimal('0')
 
     for line in lines:
-        cost_data = getattr(line, 'cost', None) or getattr(line, 'price', None) or {}
-        extended = Decimal(str(cost_data.get('extended', 0) or 0))
+        extended = Decimal(str((line.totals or {}).get('amount', 0) or 0))
         if extended == 0:
             continue
         total_debit += extended

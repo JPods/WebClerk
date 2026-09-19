@@ -56,9 +56,9 @@ def _compute_line_aggregate_internal(parent_id: int,
         total_lines += model_count
         price_sum = Decimal('0')
         cost_sum = Decimal('0')
-        for obj in qs.only('price', 'cost'):
-            price_ext = (obj.price or {}).get('amount')
-            cost_ext = (obj.cost or {}).get('extended')
+        for obj in qs.only('totals'):
+            price_ext = (obj.totals or {}).get('amount')
+            cost_ext = (obj.totals or {}).get('cost')
             dec_price = _cast_decimal(price_ext)
             dec_cost = _cast_decimal(cost_ext)
             total_price_extended += dec_price

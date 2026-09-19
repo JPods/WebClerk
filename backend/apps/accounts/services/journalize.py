@@ -262,7 +262,8 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
       - Credit shipping_revenue for totals.shipping
       - Credit other_income for totals.other
     For each invoice line:
-      - Credit Revenue for price.amount (item.gls.revenue, net of line discount)
+      - Credit Revenue for line totals.amount (item.gls.revenue, net of every discount)
+      - Debit sales discounts for a settlement (cash) discount line
       - Debit COGS / Credit Inventory at item cost
     Balanced when totals.total = sum of line extended + tax + shipping + other;
     anything else is reported as out of balance, never absorbed.
@@ -329,12 +330,15 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
     for line in lines:
         # Lines the totals engine routes to a header total (tax, shipping,
         # finance charge) post through that total below, not as line revenue.
-        if (getattr(line, 'line_type', 'product') or 'product') in ('tax', 'shipping', 'finance_charge'):
+        line_type = getattr(line, 'line_type', 'product') or 'product'
+        if line_type in ('tax', 'shipping', 'finance_charge'):
             continue
-        # Get extended price from line
-        price_data = line.price or {}
-        extended = Decimal(str(price_data.get('amount', 0) or 0))
+        extended = Decimal(str((line.totals or {}).get('amount', 0) or 0))
         if extended == 0:
+            continue
+        if line_type == 'discount':
+            # A settlement (cash) discount: the customer paid less; debit sales discounts.
+            _add(_role('discount_given', f'invoice {invoice.ida} discount'), 'debit', -extended, 'sales_discount')
             continue
 
         # Get item GL accounts
@@ -798,8 +802,7 @@ def journalize_purchase(purchase_id: int, ida_prefix: str = '') -> dict:
 
     for line in lines:
         # PurchaseLine uses 'cost' not 'price'
-        cost_data = getattr(line, 'cost', None) or getattr(line, 'price', None) or {}
-        extended = Decimal(str(cost_data.get('extended', 0) or 0))
+        extended = Decimal(str((line.totals or {}).get('amount', 0) or 0))
         if extended == 0:
             continue
 

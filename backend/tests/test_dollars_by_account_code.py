@@ -86,11 +86,11 @@ def test_dollars_by_account_code(simple_sale_invoice):
 
     # Read line-level data for GL sub-breakdowns
     line = simple_sale_invoice.lines.first()
-    price = line.price or {}
     cost = line.cost or {}
+    line_totals = line.totals or {}
 
-    sell_revenue = _d(price.get("amount", 0))
-    cost_goods = _d(cost.get("extended", 0))
+    sell_revenue = _d(line_totals.get("amount", 0))
+    cost_goods = _d(line_totals.get("cost", 0))
     commissions = _d(cost.get("commissions", 0))
     tax_payable = _d(cost.get("tax", 0))
     handling = _d(cost.get("handling", 0))

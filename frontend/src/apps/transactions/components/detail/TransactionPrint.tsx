@@ -88,7 +88,7 @@ export async function openPrintWindow(
     const cost = l.cost || {};
     const qty = l.quantity || {};
     const unitVal = isSellSide ? (price.unit ?? 0) : (cost.unit ?? 0);
-    const extVal = isSellSide ? (price.amount ?? 0) : (cost.extended ?? 0);
+    const extVal = l.totals?.amount ?? 0;
     return `<tr>
       <td>${item.ida_item || ''}</td>
       <td style="text-align:right">${qty.active ?? ''}</td>
@@ -103,7 +103,7 @@ export async function openPrintWindow(
   const totalQty = lines.reduce((s: number, l: any) => s + (l.quantity?.active ?? 0), 0);
   // Extended total: use server totals envelope when available, fall back to line aggregate
   const totalExt = Number(totals.amount ?? totals.total) || lines.reduce((s: number, l: any) => {
-    return s + (isSellSide ? (l.price?.amount ?? 0) : (l.cost?.extended ?? 0));
+    return s + (l.totals?.amount ?? 0);
   }, 0);
 
   const printName = `${modelName.toUpperCase()}_${d.ida}_${(d.company || '').replace(/\s+/g, '_')}`;

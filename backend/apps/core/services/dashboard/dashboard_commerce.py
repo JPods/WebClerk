@@ -138,9 +138,10 @@ def get_sales_dashboard(params):
         comm_d = line.commission if isinstance(line.commission, dict) else {}
         qty_d = line.quantity if isinstance(line.quantity, dict) else {}
 
-        sell = price_d.get('amount') or price_d.get('unit')
-        cost = cost_d.get('extended') or cost_d.get('unit')
-        tax = tax_d.get('amount') or tax_d.get('total') or 0
+        line_totals = line.totals if isinstance(line.totals, dict) else {}
+        sell = line_totals.get('amount') or 0
+        cost = line_totals.get('cost') or 0
+        tax = line_totals.get('tax') or 0
         commission = comm_d.get('amount') or comm_d.get('total') or 0
 
         if sell and cost:

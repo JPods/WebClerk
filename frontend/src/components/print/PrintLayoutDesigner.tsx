@@ -192,7 +192,7 @@ const PANEL_TEMPLATES: Record<string, () => PrintLayoutSection> = {
       { field: 'item.description', label: 'description', align: 'left' as const, width: '40%' },
       { field: 'quantity.active', label: 'qty', align: 'right' as const },
       { field: 'price.unit', label: 'unit price', align: 'right' as const, format: 'currency' as const },
-      { field: 'price.amount', label: 'amount', align: 'right' as const, format: 'currency' as const },
+      { field: 'totals.amount', label: 'amount', align: 'right' as const, format: 'currency' as const },
     ],
     show_footer_totals: true,
   }),

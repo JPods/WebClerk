@@ -213,7 +213,6 @@ export class LineItemService {
         const discountAmount = gross * (options.discountPercent / 100);
         priceEnvelope.discount_percent = options.discountPercent;
         priceEnvelope.discount_amount = round(discountAmount);
-        priceEnvelope.amount = round(gross - discountAmount);
       }
     }
 
@@ -407,22 +406,13 @@ export class LineItemService {
     const calc = this.calculateLine(line);
     const updatedLine = { ...line };
 
-    // Update price extended
-    if (typeof updatedLine.price === 'object' && updatedLine.price !== null) {
-      updatedLine.price = {
-        ...updatedLine.price,
-        amount: calc.extended,
-        discount_amount: calc.discountAmount,
-      };
-    }
-
-    // Update cost extended
-    if (typeof updatedLine.cost === 'object' && updatedLine.cost !== null) {
-      updatedLine.cost = {
-        ...updatedLine.cost,
-        extended: calc.costExtended,
-      };
-    }
+    // Results live in line.totals (the server's totals engine writes them; this is a preview)
+    (updatedLine as any).totals = {
+      ...((updatedLine as any).totals ?? {}),
+      amount: calc.extended,
+      discount: calc.discountAmount,
+      cost: calc.costExtended,
+    };
 
     return updatedLine;
   }

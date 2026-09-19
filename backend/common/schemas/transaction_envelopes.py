@@ -111,7 +111,7 @@ class TransactionTotals(BaseModel):
     amount: float = Field(
         0.0,
         title="Amount",
-        description="Sum of the line amounts (price.amount): goods after discounts, before tax, shipping and other charges",
+        description="Σ line totals.amount: goods after discounts, before tax, shipping and other charges",
         json_schema_extra={'widget': 'currency', 'precision': 2},
     )
     discount: float = Field(
@@ -159,7 +159,7 @@ class TransactionTotals(BaseModel):
     cost: float = Field(
         0.0,
         title="Cost",
-        description="Total cost (sum of line cost.extended)",
+        description="Σ line totals.cost",
         json_schema_extra={'widget': 'currency', 'precision': 2},
     )
     margin: float = Field(
@@ -528,7 +528,7 @@ class LinePrice(BaseModel):
     """Line price envelope — sell-side lines only (quote, order, invoice).
 
     Extended is computed by recalculate_line():
-      extended = (qty * unit) - discount_amount
+      inputs only; results are in line totals (LineTotals)
     """
     unit: float = Field(
         0.0, ge=0, title="Unit Price",
@@ -550,11 +550,6 @@ class LinePrice(BaseModel):
         description="Discount amount in currency",
         json_schema_extra={'widget': 'currency', 'precision': 2},
     )
-    amount: float = Field(
-        0.0, title="Amount",
-        description="The line's total before tax: (qty.active × unit) − discount_amount. Adds into totals.amount",
-        json_schema_extra={'widget': 'currency', 'precision': 2, 'readonly': True},
-    )
     is_fixed: bool = Field(
         False, title="Price Fixed",
         description="Whether price is locked from editing",
@@ -575,7 +570,7 @@ class LineCost(BaseModel):
     """Line cost envelope — all lines (sell-side and exec-side).
 
     Extended is computed by recalculate_line():
-      extended = (qty * unit) - discount_amount
+      inputs only; results are in line totals (LineTotals)
     """
     unit: float = Field(
         0.0, ge=0, title="Unit Cost",
@@ -592,11 +587,6 @@ class LineCost(BaseModel):
     discount_amount: float = Field(
         0.0, title="Disc Amt",
         json_schema_extra={'widget': 'currency', 'precision': 2},
-    )
-    extended: float = Field(
-        0.0, title="Extended Cost",
-        description="Computed: (qty * unit) - discount_amount",
-        json_schema_extra={'widget': 'currency', 'precision': 2, 'readonly': True},
     )
     shipping: float = Field(
         0.0, title="Cost: Shipping",
@@ -656,14 +646,9 @@ class LineTax(BaseModel):
         description="Per-line tax rate override (decimal, not percentage)",
         json_schema_extra={'widget': 'number', 'precision': 6},
     )
-    sales: Optional[float] = Field(
-        None, title="Sales Tax",
-        description="Per-line sales tax amount = line amount × sales_rate (computed by the totals engine)",
-        json_schema_extra={'widget': 'currency', 'precision': 2},
-    )
     rate_source: Optional[str] = Field(
         None, title="Rate Source",
-        description="Where sales_rate came from: line (typed on the line), header, exempt, item_exempt",
+        description="'line' when sales_rate was typed on the line; the rate used is in line totals.tax_rate",
         json_schema_extra={'widget': 'text'},
     )
     cost_rate: Optional[float] = Field(
@@ -685,6 +670,58 @@ class LineTax(BaseModel):
         json_schema_extra={'widget': 'number'},
     )
     custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
+
+    class Config:
+        extra = "forbid"
+
+
+def _money(title, description):
+    return Field(0.0, title=title, description=description,
+                 json_schema_extra={'widget': 'currency', 'precision': 2, 'readonly': True})
+
+
+class LineTotals(BaseModel):
+    """The results of a line's math, written only by the totals engine.
+
+    The header's totals.X is Σ line totals.X for every X (Bill, 2026-09-19).
+    The discounted unit comes first; the gap to an exact percentage is a rounding difference.
+    """
+    discounted_unit: float = Field(0.0, title="Discounted Unit",
+        description="The customer's unit price after every discount, in the price's precision",
+        json_schema_extra={'widget': 'currency', 'precision': 6, 'readonly': True})
+    amount: float = _money("Amount", "qty.active × discounted_unit: the line's total before tax; adds into totals.amount")
+    discount: float = _money("Discount", "r2(qty × unit) − amount: every discount on this line, including its share of a document discount")
+    taxable: float = _money("Taxable", "The amount the tax was computed on (0 when the rate is 0)")
+    tax_rate: float = Field(0.0, title="Tax Rate", description="The rate used: typed on the line, else 0 if exempt or non-taxable, else the header's",
+        json_schema_extra={'widget': 'number', 'precision': 6, 'readonly': True})
+    rate_source: str = Field('', title="Rate Source", description="line, header, exempt or item_exempt",
+        json_schema_extra={'widget': 'text', 'readonly': True})
+    tax: float = _money("Tax", "r2(amount × tax_rate) + tax on this line's shipping")
+    shipping: float = _money("Shipping", "The line's own shipping and handling + its share of the document's shipping")
+    other: float = _money("Other", "Its share of the document's other charges (landed costs)")
+    finance_charge: float = _money("Finance Charge", "A finance_charge line's amount")
+    cost: float = _money("Cost", "qty × discounted unit cost")
+    margin: float = _money("Margin", "amount − cost")
+    total: float = _money("Total", "amount + tax + shipping + other + finance_charge")
+
+    class Config:
+        extra = "allow"
+
+
+class TransactionAllocations(BaseModel):
+    """Document-level inputs the totals engine spreads over the lines by amount."""
+    discount_percent: float = Field(0.0, title="Discount %",
+        description="A discount on the whole document, as a percent of each line's discounted unit",
+        json_schema_extra={'widget': 'number', 'precision': 4})
+    discount_amount: float = Field(0.0, title="Discount $",
+        description="A discount on the whole document, spread over the lines in proportion to their amounts",
+        json_schema_extra={'widget': 'currency', 'precision': 2})
+    shipping: float = Field(0.0, title="Shipping",
+        description="Document shipping, spread over the lines by amount (exact cents)",
+        json_schema_extra={'widget': 'currency', 'precision': 2})
+    other: float = Field(0.0, title="Other",
+        description="Landed costs and other charges, spread over the lines by amount (exact cents)",
+        json_schema_extra={'widget': 'currency', 'precision': 2})
 
     class Config:
         extra = "forbid"
@@ -1252,6 +1289,7 @@ ENVELOPE_SCHEMA_MAP = {
     # Transaction header envelopes
     'company': TransactionCompany,
     'totals': TransactionTotals,
+    'allocations': TransactionAllocations,
     'finance': TransactionFinance,
     'header_cost': TransactionCost,
     'header_tax': TransactionTax,
@@ -1265,6 +1303,7 @@ ENVELOPE_SCHEMA_MAP = {
     'price': LinePrice,
     'cost': LineCost,
     'tax': LineTax,
+    'line_totals': LineTotals,
     'physical': LinePhysical,
     'item': LineItem,
     'commission': LineCommission,

@@ -1355,7 +1355,7 @@ type ActivityRow = {
   qty_remaining?: number;
   unit_price?: number;
   unit_cost?: number;
-  extended?: number;
+  amount?: number;
   line_id?: number;
   line_status?: string;
   detail?: string;
@@ -1531,7 +1531,7 @@ function TrainingTab() {
                         {isPending ? "--" : fmtDec(row.unit_price || 0)}
                       </td>
                       <td className="px-3 py-1.5 text-right font-mono">
-                        {isPending ? "--" : fmtDec(row.extended || 0)}
+                        {isPending ? "--" : fmtDec(row.amount || 0)}
                       </td>
                       <td className="px-3 py-1.5 text-xs text-gray-500">
                         {isPending

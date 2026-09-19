@@ -364,6 +364,7 @@ export interface Transaction {
 
   // JSONB fields from TransactionBaseModel
   totals?: TransactionTotals;
+  allocations?: TransactionAllocations;
   cost?: HeaderCost;
   finance?: TransactionFinance;
   flow?: TransactionFlow;
@@ -424,7 +425,6 @@ export interface LineCost {
   unit_base?: number;
   discount_percent?: number;
   discount_amount?: number;
-  extended?: number;
   shipping?: number;
   handling?: number;
   freight?: number;
@@ -438,12 +438,37 @@ export interface LineCost {
   tax_lookup_id?: number;
 }
 
+/** Results of a line's math, written only by the server's totals engine.
+ *  The header's totals.X is the sum of line totals.X (Bill, 2026-09-19). */
+export interface LineTotals {
+  discounted_unit?: number;
+  amount?: number;
+  discount?: number;
+  taxable?: number;
+  tax_rate?: number;
+  rate_source?: string;
+  tax?: number;
+  shipping?: number;
+  other?: number;
+  finance_charge?: number;
+  cost?: number;
+  margin?: number;
+  total?: number;
+}
+
+/** Document-level inputs spread over the lines by amount. */
+export interface TransactionAllocations {
+  discount_percent?: number;
+  discount_amount?: number;
+  shipping?: number;
+  other?: number;
+}
+
 export interface LinePrice {
   unit?: number;
   unit_base?: number;
   discount_percent?: number;
   discount_amount?: number;
-  amount?: number;
   is_fixed?: boolean;
   precision?: number;
 }
@@ -501,6 +526,7 @@ export interface TransactionLine {
   quantity?: LineQuantity;
   cost?: LineCost;
   price?: LinePrice;
+  totals?: LineTotals;
   tax?: LineTax;
   commission?: LineCommission;
   physical?: LinePhysical;

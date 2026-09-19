@@ -354,7 +354,7 @@ LAYOUTS = {
                  _f("quantity.ordered", flex=1, align="right"),
                  _f("quantity.staged", flex=1, align="right"),
                  _f("cost.unit", flex=1, align="right", format="currency"),
-                 _f("cost.extended", flex=1, align="right", format="currency"),
+                 _f("totals.cost", flex=1, align="right", format="currency"),
                  _f("cost.landed_per_unit", flex=1, align="right", format="currency"),
                  _f("warehouse_name", flex=1),
                  _f("lot", flex=1),
