@@ -7,7 +7,7 @@ Endpoints: https://api.usps.com/
 Authentication: OAuth 2.0 client credentials.
   POST /oauth2/v3/token with client_id + client_secret
 
-Connection config.credentials:
+Connection encryption.credentials:
   client_id       — USPS developer app client ID
   client_secret   — USPS developer app client secret
 

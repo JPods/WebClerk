@@ -167,7 +167,7 @@ def _country_code(country: str) -> str:
 # Carrier validation helpers
 # ---------------------------------------------------------------------------
 
-def _get_carrier_connections() -> Dict[str, dict]:
+def _get_carrier_connections() -> Dict[str, Any]:
     """Load all active carrier Connection records, keyed by carrier_code."""
     Connection = apps.get_model("sync", "Connection")
     carriers = {}
@@ -175,7 +175,7 @@ def _get_carrier_connections() -> Dict[str, dict]:
         config = getattr(conn, "config", {}) or {}
         code = config.get("carrier_code", "")
         if code:
-            carriers[code] = config
+            carriers[code] = conn
     return carriers
 
 

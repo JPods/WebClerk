@@ -144,6 +144,16 @@ class WCAPIDeleteView(APIView):
                 error={"code": "invalid_payload", "details": {"model_name": model_key, "id": record_id}},
             )
 
+        # The role's `delete` flag (wc:model Setting config.access), or superuser for Settings.
+        from apps.core.services.role_filter import can_delete
+        if not can_delete(request.user, model_key):
+            return api_response(
+                success=False,
+                status_code=status.HTTP_403_FORBIDDEN,
+                message=f"Your role may not delete {model_key} records.",
+                error={"code": "delete_not_permitted", "details": {"model_name": model_key, "id": record_id}},
+            )
+
         try:
             deleted = services.delete_item(model_key, request=request, id=record_id)
         except Exception:

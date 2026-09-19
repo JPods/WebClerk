@@ -139,6 +139,13 @@ def send_review_request(report, note: str = '') -> Dict[str, Any]:
     connection = wchq_connection()
     if not connection:
         return _no_connection_fault(report.ida)
+    if connection.status != 'active':
+        # Mute toward WC_HQ until the owner documents the relationship (status active).
+        observe('info', f'{report.ida}: hook review not sent — this instance is mute toward WC_HQ',
+                detail=f"Set Connection {WCHQ_CONNECTION_IDA} status to active to send reviews.",
+                report=report)
+        return {'ok': False, 'error': 'wchq_mute',
+                'message': f'Mute toward WC_HQ: {WCHQ_CONNECTION_IDA} is {connection.status or "not active"}.'}
 
     payload = {
         'content_type': 'hook_review',

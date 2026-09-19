@@ -19,13 +19,16 @@ POINTS = {
 
 
 @pytest.fixture
-def upstream(db):
-    """The WCHQ connection carries the shared Athena secret."""
+def upstream(db, settings):
+    """The WCHQ connection documents the relationship; the shared Athena secret and the
+    url are in .env (settings.WCHQ_API_KEY / WCHQ_URL)."""
+    from apps.ai_assistant.services.hook_review import WCHQ_CONNECTION_IDA
     from apps.sync.models.connection import Connection
+    settings.WCHQ_URL = 'https://wchq.example'
+    settings.WCHQ_API_KEY = 'shared-secret'
     return Connection.objects.create(
-        ida=rh.WCHQ_CONNECTION_IDA, name='WCHQ upstream', purpose='sync', is_active=True,
-        config={'wchq_base_url': 'https://wchq.example'},
-        encryption={'athena_token': 'shared-secret'},
+        ida=WCHQ_CONNECTION_IDA, name='WCHQ upstream', purpose='sync', is_active=True, status='active',
+        config={},
     )
 
 

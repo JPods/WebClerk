@@ -138,7 +138,7 @@ def _carrier_action(method_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError('connection_id required — the Connection record with carrier credentials')
 
     conn = Connection.objects.get(pk=conn_id, is_active=True)
-    carrier = get_carrier(conn.config or {})
+    carrier = get_carrier(conn)
 
     if method_name == 'get_rates':
         rates = carrier.get_rates(

@@ -298,9 +298,14 @@ def gateway_config(request):
     try:
         setting = Setting.objects.get(purpose='wc:cash_gateway', is_active=True)
         config = setting.config or {}
-        spreedly = config.get('spreedly', {})
+        # The environment key is on the gateway's Connection (credentials.client_id).
+        from apps.transactions.services.cash.spreedly_gateway import SpreedlyService
+        try:
+            environment_key = SpreedlyService.from_gateway().env_key
+        except RuntimeError:
+            environment_key = ''
         gateway_response = {
-            'environment_key': spreedly.get('environment_key', ''),
+            'environment_key': environment_key,
             'test_mode': config.get('test_mode', True),
             'active_gateway_type': config.get('active_gateway_type', ''),
             'currency': config.get('currency', 'USD'),

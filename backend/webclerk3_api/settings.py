@@ -297,6 +297,19 @@ DATABASE_ROUTERS = [
 DATA_SET_ID = config('DATA_SET_ID', default='UNKNOWN')
 IDA_PREFIX = config('IDA_PREFIX', default='')  # empty → auto-derived from DATA_SET_ID in common/ida.py
 WC_INSTANCE_UUID = config('WC_INSTANCE_UUID', default='')
+# What the server needs before it can trust its own database (common/instance_env.py).
+# WC_HQ support link — works when the database is damaged.
+WCHQ_URL = config('WCHQ_URL', default='https://webclerk.com')
+WCHQ_API_KEY = config('WCHQ_API_KEY', default='')
+# Every instance has three agent logins (role 'agent'); manage.py sync_agent_logins applies them.
+# Athena (security) is mute toward WC_HQ unless there is an attack or an active
+# wchq-conn-upstream Connection (apps/sync/services/connections.wchq_speak).
+ALICE_WC_EMAIL = config('ALICE_WC_EMAIL', default='')
+ALICE_WC_PASSWORD = config('ALICE_WC_PASSWORD', default='')
+ANDI_WC_EMAIL = config('ANDI_WC_EMAIL', default='')
+ANDI_WC_PASSWORD = config('ANDI_WC_PASSWORD', default='')
+ATHENA_WC_EMAIL = config('ATHENA_WC_EMAIL', default='')
+ATHENA_WC_PASSWORD = config('ATHENA_WC_PASSWORD', default='')
 
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -391,19 +404,17 @@ CSP_IMG_SRC     = ("'self'", "data:", "cdn.jsdelivr.net")
 # Email configuration
 # - Default to SMTP backend, but switch to console backend automatically during pytest runs
 # - Provide safe defaults for host/port/user/pass so settings import never fails in CI
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+# Server and login come from the 'smtp' Connection; *.internal addresses are never sent to.
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='common.mail_backend.ConnectionEmailBackend')
 
 # Use console backend when running tests to avoid real SMTP connections
 if os.environ.get('PYTEST_CURRENT_TEST'):
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-EMAIL_HOST = config('EMAIL_HOST', default='localhost')
-EMAIL_PORT = config('EMAIL_PORT', default=1025, cast=int)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+# Host, port and login: the active Connection with channel 'smtp' (common/mail_backend.py).
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER or 'noreply@example.com')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@example.com')
 EMAIL_TIMEOUT = 15  # seconds — a stalled SMTP server must not hang a request
 
 # Public inquiry (apps/core/views/inquiry_view.py). The only places an emailed inquiry link
@@ -1225,7 +1236,9 @@ INVENTORY_PENDING_BATCH_SIZE = int(config('INVENTORY_PENDING_BATCH_SIZE', defaul
 INVENTORY_PENDING_AUTO_PROCESS = config('INVENTORY_PENDING_AUTO_PROCESS', default=False, cast=bool)  # enable in prod
 
 # ── AI Assistant ────────────────────────────────────────────────────
-OLLAMA_BASE_URL = config('OLLAMA_BASE_URL', default='http://localhost:11434')
+# Empty = no LLM on this hardware: Alice and Andi are passengers (log in, keep the bus and
+# rules, skip LLM work).
+OLLAMA_BASE_URL = config('OLLAMA_BASE_URL', default='')
 OLLAMA_MODEL = config('OLLAMA_MODEL', default='gpt-oss:20b')
 OLLAMA_TIMEOUT = int(config('OLLAMA_TIMEOUT', default=120))
 CHROMA_PERSIST_DIR = os.path.join(DATA_DIR, 'chroma')

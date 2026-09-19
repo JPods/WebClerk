@@ -51,14 +51,8 @@ class SystemInfoView(APIView):
 
         # WC HQ connection info (for issue forwarding + Alice escalation)
         # The Athena token never leaves the server — the browser posts through /wcapi/_wchq_submit/.
-        wchq = {'url': ''}
-        try:
-            from apps.sync.models.connection import Connection
-            upstream = Connection.objects.filter(ida='wchq-conn-upstream').first()
-            if upstream and upstream.config:
-                wchq['url'] = upstream.config.get('wchq_base_url', '')
-        except Exception:
-            pass
+        from apps.sync.services.connections import wchq_link
+        wchq = {'url': wchq_link()[0]}
 
         # Pending queue health check
         pending_health = self._check_pending_health()

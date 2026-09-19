@@ -26,12 +26,13 @@ from .prompt_templates import get_system_prompt, wrap_query
 logger = logging.getLogger(__name__)
 
 # Defaults — override in settings.py
-OLLAMA_BASE_URL = getattr(settings, "OLLAMA_BASE_URL", "http://localhost:11434")
+# Empty = no LLM on this hardware: Alice and Andi are passengers.
+OLLAMA_BASE_URL = settings.OLLAMA_BASE_URL
 OLLAMA_MODEL = getattr(settings, "OLLAMA_MODEL", "deepseek-r1:8b")
 OLLAMA_TIMEOUT = getattr(settings, "OLLAMA_TIMEOUT", 120)
 
 # WCHQ fallback — used when Ollama is unavailable
-WCHQ_LLM_URL = "https://webclerk.com/wcapi/alice/llm/"
+WCHQ_LLM_PATH = "/wcapi/alice/llm/"   # on WCHQ_URL
 
 # Pricing: per person per month. Alice counts is_staff.
 # Community (free) = run your own Ollama.
@@ -42,11 +43,12 @@ PRICE_PER_PERSON_PROFESSIONAL = 900  # cents
 
 
 def _get_athena_token() -> str:
-    """The Athena token for WCHQ authentication, from the upstream Connection."""
-    from apps.ai_assistant.services.hook_review import wchq_connection
-    from apps.sync.services.athena_auth import athena_token
-    connection = wchq_connection()
-    return athena_token(connection) if connection else ''
+    """The Athena token for WCHQ — '' while this instance is mute toward WC_HQ."""
+    from apps.sync.services.connections import WchqMute, wchq_speak
+    try:
+        return wchq_speak()[1]
+    except WchqMute:
+        return ''
 
 
 def _is_subscribed() -> bool:
@@ -147,6 +149,7 @@ class OllamaClient:
         Sends the prompt (not raw data) to WCHQ. WCHQ never sees
         the installation's commerce data — only the formulated question.
         """
+        from apps.sync.services.connections import wchq_link
         if not _is_subscribed():
             logger.info("No WCHQ subscription — returning algorithm-only response")
             raise ConnectionError(
@@ -164,7 +167,7 @@ class OllamaClient:
         try:
             with httpx.Client(timeout=self.timeout) as client:
                 resp = client.post(
-                    WCHQ_LLM_URL,
+                    wchq_link()[0] + WCHQ_LLM_PATH,
                     headers={
                         'Authorization': f'Athena {athena_token}',
                         'X-Alice-Mode': mode,
@@ -248,7 +251,9 @@ class OllamaClient:
         return self._ollama_available() or self._wchq_available_check()
 
     def _ollama_available(self) -> bool:
-        """Check if local Ollama is running with the configured model."""
+        """Check if local Ollama is running with the configured model. False for a passenger."""
+        if not self.base_url:
+            return False
         try:
             with httpx.Client(timeout=5) as client:
                 resp = client.get(f"{self.base_url}/api/tags")

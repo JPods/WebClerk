@@ -32,7 +32,8 @@ import time
 from django.core.management.base import BaseCommand
 
 ALLIE      = pathlib.Path("/Users/williamjames/Allie")
-OLLAMA_URL = "http://localhost:11434/api/generate"
+from django.conf import settings as _settings
+OLLAMA_URL = f"{_settings.OLLAMA_BASE_URL}/api/generate" if _settings.OLLAMA_BASE_URL else ""
 SCRIPTS    = ALLIE / "scripts"
 
 DEFAULT_REASONER  = "deepseek-r1:8b"
@@ -231,6 +232,9 @@ class Command(BaseCommand):
                             help="Skip WC3 writes (useful when WC3 is unreachable)")
 
     def handle(self, *args, **options):
+        if not OLLAMA_URL:
+            self.stdout.write("passenger: no LLM on this hardware (OLLAMA_BASE_URL empty) — nothing to deliberate")
+            return
         dry_run   = options["dry_run"]
         no_wc3    = options["no_wc3"]
         reasoner  = options["reasoner"]

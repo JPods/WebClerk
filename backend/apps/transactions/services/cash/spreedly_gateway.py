@@ -71,11 +71,13 @@ class SpreedlyService:
         except Connection.DoesNotExist:
             raise RuntimeError(f"Connection {conn_id} not found or inactive")
 
-        conn_cfg = conn.config or {}
-        spreedly = conn_cfg.get('spreedly', {})
-        env_key = spreedly.get('environment_key', '')
-        access_secret = spreedly.get('access_secret', '')
-        gateway_token = spreedly.get('gateway_token', '')
+        # encryption.credentials: client_id = Spreedly environment key, client_secret =
+        # access secret, token = gateway token (apps/sync/models/connection_pydantic.py).
+        from apps.sync.services.connections import credentials
+        creds = credentials(conn)
+        env_key = creds.get('client_id', '')
+        access_secret = creds.get('client_secret', '')
+        gateway_token = creds.get('token', '')
 
         if not env_key or not access_secret:
             raise RuntimeError("Spreedly credentials not configured in Connection")

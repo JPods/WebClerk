@@ -229,9 +229,8 @@ def export_rows(label: str, excluded_contacts: set) -> list[dict]:
             # Only carrier templates ship in the demo, and never with credentials.
             if not (row.get("ida") or "").startswith("conn-carrier-"):
                 continue
-            creds = (row.get("config") or {}).get("credentials")
-            if isinstance(creds, dict):
-                row["config"]["credentials"] = {k: "" for k in creds}
+            # Keys live in encryption, which never leaves a server.
+            row.pop("encryption", None)
         if label == "core.Contact":
             if obj.pk in excluded_contacts:
                 continue

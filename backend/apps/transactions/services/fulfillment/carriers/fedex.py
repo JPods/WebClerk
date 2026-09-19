@@ -8,7 +8,7 @@ Authentication: OAuth 2.0 client credentials flow.
   POST /oauth/token with client_id + client_secret + grant_type
   Bearer token for all subsequent calls.
 
-Connection config.credentials:
+Connection encryption.credentials:
   client_id       — FedEx developer app API key
   client_secret   — FedEx developer app secret key
   account_number  — FedEx account number

@@ -251,6 +251,9 @@ def inject_role_filters(
     """
     existing_q = existing_q or Q()
 
+    if access.is_open_read(model_name):
+        return existing_q if access.user_role(user) else Q(pk__isnull=True)
+
     config = get_user_filter_config(user, model_name)
     if not config:
         # No block for this role on this model: no rows.
@@ -296,6 +299,11 @@ def get_allowed_fields(
     Returns:
         List of leaf paths. Empty = nothing.
     """
+    if access.is_open_read(model_name):
+        from apps.core.services import field_leaves as fl
+        if not access.user_role(user) or (mode != "view" and not access.open_read_can_write(user)):
+            return []
+        return sorted(fl.model_leaves(access.model_key(model_name))['leaves'])
     config = get_user_filter_config(user, model_name)
     if not config:
         return []
@@ -347,11 +355,15 @@ def get_edit_filters(
 
 def can_create(user: AbstractUser, model_name: str) -> bool:
     """Check if user can create records for a model."""
+    if access.is_open_read(model_name):
+        return access.open_read_can_write(user)
     config = get_user_filter_config(user, model_name)
     return bool(config and config.get("create"))
 
 
 def can_delete(user: AbstractUser, model_name: str) -> bool:
     """Check if user can delete records for a model."""
+    if access.is_open_read(model_name):
+        return access.open_read_can_write(user)
     config = get_user_filter_config(user, model_name)
     return bool(config and config.get("delete"))

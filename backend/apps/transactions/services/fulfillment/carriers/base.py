@@ -144,7 +144,7 @@ class CarrierBase(ABC):
     def __init__(self, connection_config: Dict[str, Any]):
         """Initialize with the Connection record's config dict."""
         self.config = connection_config
-        self.credentials = connection_config.get('credentials', {})
+        self.credentials: Dict[str, Any] = {}    # set by get_carrier from Connection.encryption
         self.settings = connection_config.get('settings', {})
 
     # -- Surcharges (from WC2 carrier-level fields, now in config) ----------
@@ -249,11 +249,14 @@ def register_carrier(cls: type) -> type:
     return cls
 
 
-def get_carrier(connection_config: Dict[str, Any]) -> CarrierBase:
-    """Instantiate the right carrier from a Connection config.
+def get_carrier(connection) -> CarrierBase:
+    """Instantiate the right carrier from a Connection record.
 
-    The config must have 'carrier_code' (e.g. 'ups', 'fedex').
+    config must have 'carrier_code' (e.g. 'ups', 'fedex'); the keys come from
+    encryption.credentials, which never leaves the server.
     """
+    from apps.sync.services.connections import credentials
+    connection_config = connection.config or {}
     code = connection_config.get('carrier_code', '')
     cls = _CARRIER_REGISTRY.get(code)
     if not cls:
@@ -261,7 +264,9 @@ def get_carrier(connection_config: Dict[str, Any]) -> CarrierBase:
             f"Unknown carrier code '{code}'. "
             f"Available: {list(_CARRIER_REGISTRY.keys())}"
         )
-    return cls(connection_config)
+    carrier = cls(connection_config)
+    carrier.credentials = credentials(connection)
+    return carrier
 
 
 def available_carriers() -> List[str]:

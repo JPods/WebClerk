@@ -26,7 +26,7 @@ class ShippingServiceEntry(BaseModel):
     Thin registry entry. Denormalized from Connection for scanning.
     Manual services (will-call, local delivery): connection_id is null.
     API carriers (FedEx, UPS): connection_id points to a Connection
-    with CarrierCredentials and full carrier config.
+    with ConnectionCredentials and full carrier config.
     """
     name: str                                     # unique key
     type: str = 'manual'                          # manual | api

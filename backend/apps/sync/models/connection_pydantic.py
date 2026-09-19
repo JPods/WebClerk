@@ -13,14 +13,22 @@ from common.schemas.envelopes import ConfigBase, MetadataBase, RecordPrefsBase, 
 
 # -- .config ----------------------------------------------------------------
 
-class CarrierCredentials(BaseModel):
-    """Carrier API credentials (UPS, FedEx, USPS, DHL)."""
+class ConnectionCredentials(BaseModel):
+    """Every key this server holds for an outside service: Connection.encryption.credentials.
+    Never in config (returned by the API) and never in a Setting (read by every login);
+    encryption never leaves the server (field_leaves.NEVER_EXPOSED)."""
     client_id: str = ''
+    user_id: str = ''                          # DHL
     client_secret: str = ''
     account_number: str = ''
+    username: str = ''
+    password: str = ''
+    api_key: str = ''
+    signing_key: str = ''                    # webhook signature verification
+    token: str = ''                          # e.g. a gateway token
 
     class Config:
-        extra = "forbid"  # carrier-specific fields
+        extra = "forbid"
 
 
 class CarrierSettings(BaseModel):
@@ -186,21 +194,22 @@ class ConnectionConfig(ConfigBase):
     direction: str = ''                      # push, pull, bidirectional
     endpoint: str = ''                       # URL or host
     auth_method: str = ''                    # api_key, oauth, token
-    api_key_setting: str = ''                # Setting ida for credentials
+    provider: str = ''                       # usps, google (address_validation); anthropic (claude_api)
+    model: str = ''                          # AI model id (channel 'claude_api')
+    auto_correct: bool = True                # channel 'address_validation': apply the provider's correction
+    port: int = 0                            # channel 'smtp'
+    use_tls: bool = True                     # channel 'smtp'
     content_types: list[str] = Field(default_factory=list)
     review_required: bool = False
     # Import pipeline (channel='import')
     import_config: Optional[ImportConfig] = None
     # Carrier-specific
     carrier_code: str = ''                   # ups, fedex, usps, dhl
-    credentials: Optional[CarrierCredentials] = None
     settings: Optional[CarrierSettings] = None
     ship_from: Optional[ShipFrom] = None
     help_url: str = ''                       # WebClerk how-to-connect page
     developer_portal: str = ''               # carrier developer site for credentials
-    # WC_HQ link
-    wchq_base_url: str = ''
-    instance_uuid: str = ''                  # identity of the instance on the other end
+    # WC_HQ link (url and key: settings.WCHQ_URL / WCHQ_API_KEY from .env)
     reviewer: str = ''                       # agent that reviews before send (e.g. 'alice')
     episode_harvest: bool = False            # WCHQ harvests episodes over this connection
     last_episode_harvest_ms: int = 0         # UTC epoch ms of last harvest

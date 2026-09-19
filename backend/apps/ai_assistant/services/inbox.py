@@ -26,8 +26,12 @@ logger = logging.getLogger('alice.inbox')
 
 
 def _connect_allie():
-    """Connect to the allie database (agent bus)."""
-    return psycopg2.connect(dbname="allie", user="williamjames", host="localhost")
+    """The Allie agent bus — the active Connection with channel 'agent_bus'."""
+    from apps.sync.services.connections import connect_agent_bus
+    return connect_agent_bus()
+
+
+_unavailable_logged = False
 
 
 def _now_ms():
@@ -38,8 +42,17 @@ def process_inbox(batch_size: int = 50) -> dict:
     """Read and process Alice's unread agent bus messages.
 
     Returns dict with counts of processed, observations created, errors.
+    On a server with no agent-bus Connection: {'skipped': reason}, logged once per process.
     """
-    conn = _connect_allie()
+    from apps.sync.services.connections import ConnectionUnavailable
+    global _unavailable_logged
+    try:
+        conn = _connect_allie()
+    except ConnectionUnavailable as e:
+        if not _unavailable_logged:
+            logger.warning("Alice inbox skipped — agent bus not connected: %s", e)
+            _unavailable_logged = True
+        return {'skipped': str(e)}
     try:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute("""

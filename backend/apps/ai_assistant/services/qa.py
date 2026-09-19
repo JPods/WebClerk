@@ -181,7 +181,10 @@ def _build_answer(question: str, results: list) -> str:
             "prompt": prompt,
             "stream": False,
         }).encode()
-        req = ur.Request("http://localhost:11434/api/generate",
+        from django.conf import settings
+        if not settings.OLLAMA_BASE_URL:
+            raise RuntimeError('passenger: no LLM on this hardware')
+        req = ur.Request(f"{settings.OLLAMA_BASE_URL}/api/generate",
                          data=payload,
                          headers={"Content-Type": "application/json"})
         with ur.urlopen(req, timeout=120) as resp:

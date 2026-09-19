@@ -9,7 +9,7 @@ Authentication: OAuth 2.0 client credentials flow.
   2. Bearer token in Authorization header for all subsequent calls
   Token TTL: ~4 hours. Cache and refresh.
 
-Connection config.credentials:
+Connection encryption.credentials:
   client_id       — UPS developer app client ID
   client_secret   — UPS developer app client secret
   account_number  — UPS shipper account number

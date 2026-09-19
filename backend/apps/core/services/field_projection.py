@@ -85,6 +85,9 @@ def filter_data_by_fields(data: dict, allowed_fields: Iterable[str], mode: str =
 
 def filter_response_data(user: AbstractUser, model_name: str, data: dict) -> dict:
     """Project a record to what this user's role may see."""
+    from apps.core.services import access
+    if access.is_open_read(model_name):
+        return data if access.user_role(user) else {}
     return filter_data_by_fields(data, get_allowed_fields(user, model_name, mode="view"))
 
 
@@ -166,4 +169,7 @@ def validate_edit_fields(original: Optional[dict], modified: dict,
 def validate_user_edit(user: AbstractUser, model_name: str,
                        original: Optional[dict], modified: dict) -> tuple[bool, list]:
     """Validate an edit against the user's role edit list."""
+    from apps.core.services import access
+    if access.is_open_read(model_name):
+        return (True, []) if access.open_read_can_write(user) else (False, [f'{model_name}: superuser only'])
     return validate_edit_fields(original, modified, get_allowed_fields(user, model_name, mode="edit"))

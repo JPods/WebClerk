@@ -43,18 +43,18 @@ GIT_BUNDLE_PATH = Path(__file__).resolve().parent.parent.parent.parent.parent / 
 
 
 def _wchq_url_from_connection():
-    """Read WCHQ init-bundle URL from the wchq-conn-downstream Connection record.
+    """WCHQ init-bundle URL: WCHQ_URL (.env) + the downstream Connection's init_bundle path.
 
-    Returns the configured URL if the Connection exists, else None.
-    The Connection record is the installation's persistent link to WCHQ.
+    Returns the URL, else None.
     """
     try:
         from apps.sync.models.connection import Connection
+        from apps.sync.services.connections import wchq_link
         conn = Connection.objects.filter(
             ida='wchq-conn-downstream', is_active=True,
         ).first()
         if conn and conn.config:
-            base = conn.config.get('wchq_base_url', '')
+            base = wchq_link()[0]
             endpoint = (conn.config.get('endpoints') or {}).get('init_bundle', '')
             if base and endpoint:
                 return base.rstrip('/') + endpoint
@@ -151,17 +151,24 @@ class Command(BaseCommand):
         if not conn:
             return None, 'wchq-conn-downstream Connection not found'
 
-        # Check if already registered
-        encryption = conn.encryption or {}
-        existing_token = encryption.get('athena_token')
-        if existing_token:
-            self.stdout.write(f'  Already registered (token starts {existing_token[:12]}...)')
-            return existing_token, 'existing'
+        # Mute toward WC_HQ unless the owner documented the relationship (status active).
+        from apps.sync.services.connections import wchq_relationship
+        if wchq_relationship() is None:
+            return None, ("mute: Connection wchq-conn-upstream is not active — set it active, "
+                          "then run: manage.py db_init --register-only")
 
-        # Get installation UUID from system Setting
+        # Already registered: the key is in .env (WCHQ_API_KEY) — never printed.
+        from django.conf import settings as django_settings
+        from common.instance_env import set_env
+        if django_settings.WCHQ_API_KEY:
+            self.stdout.write('  Already registered (WCHQ_API_KEY is set in .env)')
+            return django_settings.WCHQ_API_KEY, 'existing'
+
+        # The instance's identity: WC_INSTANCE_UUID (.env, written by init_instance_env)
+        installation_id = django_settings.WC_INSTANCE_UUID
+        if not installation_id:
+            return None, 'WC_INSTANCE_UUID is not set — run: manage.py init_instance_env'
         from apps.core.models.setting import Setting
-        sys_setting = Setting.objects.filter(purpose='wc:system').first()
-        installation_id = str(sys_setting.uuid) if sys_setting and sys_setting.uuid else ''
 
         # Get onboarding profile from company_profile Setting
         profile_setting = Setting.objects.filter(purpose='wc:company_profile').first()
@@ -216,13 +223,10 @@ class Command(BaseCommand):
             source = 'provisional'
             self.stdout.write('  Generated provisional token (upgrade when WCHQ available)')
 
-        # Store in Connection.encryption
-        encryption['athena_token'] = token
-        encryption['token_source'] = source
-        encryption['dt_registered'] = datetime.now(timezone.utc).isoformat()
-        encryption['installation_id'] = installation_id
-        conn.encryption = encryption
-        conn.save(update_fields=['encryption'])
+        # Store in .env — support must work when the database is damaged.
+        set_env({'WCHQ_API_KEY': token})
+        django_settings.WCHQ_API_KEY = token
+        self.stdout.write(f'  WCHQ_API_KEY written to .env ({source})')
 
         # Add to Athena manifest for tamper detection
         try:
@@ -342,9 +346,7 @@ class Command(BaseCommand):
             base_url = wchq_url.rsplit('/wcapi/', 1)[0] if '/wcapi/' in wchq_url else 'https://webclerk.com'
             token, token_source = self._register_with_wchq(base_url)
             if token:
-                self.stdout.write(self.style.SUCCESS(
-                    f'  Registered ({token_source}). Token: {token[:12]}...'
-                ))
+                self.stdout.write(self.style.SUCCESS(f'  Registered ({token_source}).'))
             else:
                 self.stdout.write(self.style.WARNING(
                     f'  Registration failed: {token_source}'

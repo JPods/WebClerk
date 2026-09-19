@@ -125,16 +125,17 @@ def score_confidence(
 
 # ── WCHQ endpoints ──────────────────────────────────────────────────
 
-WCHQ_ALICE_URL = "https://webclerk.com/wcapi/ai/alice/ask/"
-WCHQ_ALICE_CLAUDE_URL = "https://webclerk.com/wcapi/ai/alice/ask-claude/"
+WCHQ_ALICE_PATH = "/wcapi/ai/alice/ask/"                # on WCHQ_URL
+WCHQ_ALICE_CLAUDE_PATH = "/wcapi/ai/alice/ask-claude/"
 
 
 def _get_athena_token() -> str:
-    """The Athena token for WCHQ authentication, from the upstream Connection."""
-    from apps.ai_assistant.services.hook_review import wchq_connection
-    from apps.sync.services.athena_auth import athena_token
-    connection = wchq_connection()
-    return athena_token(connection) if connection else ''
+    """The Athena token for WCHQ — '' while this instance is mute toward WC_HQ."""
+    from apps.sync.services.connections import WchqMute, wchq_speak
+    try:
+        return wchq_speak()[1]
+    except WchqMute:
+        return ''
 
 
 def _get_subscription_config() -> dict:
@@ -225,9 +226,8 @@ def escalate_to_wchq(
 
     # Choose endpoint based on subscription tier
     # Standard: WCHQ Alice only. Professional: WCHQ can escalate to Claude.
-    url = WCHQ_ALICE_URL
-    if tier == 'professional':
-        url = WCHQ_ALICE_CLAUDE_URL
+    from apps.sync.services.connections import wchq_link
+    url = wchq_link()[0] + (WCHQ_ALICE_CLAUDE_PATH if tier == 'professional' else WCHQ_ALICE_PATH)
 
     # Scrub PII before sending upstream
     from .pii_scrub import scrub_pii

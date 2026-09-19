@@ -623,12 +623,6 @@ def run_save_hooks(model_key: str, phase: str, record, changed=None, user=None) 
 # confirmed hook keeps running when WCHQ is unreachable, and a payload that
 # changes by one character stops running until it is confirmed again.
 
-WCHQ_CONNECTION_IDA = 'wchq-conn-upstream'
-
-
-def _upstream():
-    from apps.sync.models.connection import Connection
-    return Connection.objects.filter(ida=WCHQ_CONNECTION_IDA, is_active=True).first()
 
 
 def _instance_uuid() -> str:
@@ -653,9 +647,8 @@ def expected_token(payload_hash: str, issuer: str = ISSUER_WCHQ) -> str:
         from django.conf import settings as django_settings
         secret = f'athena-hook:{django_settings.SECRET_KEY}'
     else:
-        upstream = _upstream()
-        from apps.sync.services.athena_auth import athena_token
-        secret = athena_token(upstream) if upstream else ''
+        from apps.sync.services.connections import wchq_link
+        secret = wchq_link()[1]
     if not secret:
         return ''
     message = f'{issuer}:{_instance_uuid()}:{payload_hash}'.encode()

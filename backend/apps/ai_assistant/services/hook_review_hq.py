@@ -187,11 +187,8 @@ def sign_answer(instance_uuid: str, hook_hash: str, report_ida: str,
     """Sign the token that binds one payload to one instance."""
     import hashlib
     import hmac
-    from apps.ai_assistant.services.hook_review import wchq_connection
-
-    connection = wchq_connection()
-    from apps.sync.services.athena_auth import athena_token
-    secret = athena_token(connection) if connection else ''
+    from apps.sync.services.connections import wchq_link
+    secret = wchq_link()[1]               # the shared Athena secret — WCHQ_API_KEY in .env
     if not secret:
         return {'status': 'error', 'problems': ['no athena token to sign with']}
 

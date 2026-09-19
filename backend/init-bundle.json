@@ -3496,7 +3496,6 @@
       "config": {
         "tax": {
           "note": "Tax calculation config. Use WCHQ data services for Avalara/TaxJar integration.",
-          "api_key": "",
           "api_endpoint": "",
           "api_provider": "",
           "collect_tax_ids": true,
@@ -3612,8 +3611,7 @@
           "smtp_host": "",
           "smtp_port": 587,
           "smtp_user": "",
-          "from_email": "",
-          "smtp_password": ""
+          "from_email": ""
         },
         "leads": {
           "recent_days": 730,
@@ -3739,7 +3737,6 @@
           "supported_currencies": [
             "USD"
           ],
-          "exchange_rate_api_key": "",
           "exchange_rate_provider": ""
         },
         "identity": {
@@ -3798,7 +3795,6 @@
           "ui_language": "en",
           "translations": {
             "source": "local",
-            "api_key": "",
             "api_provider": ""
           },
           "rtl_languages": [
@@ -3866,25 +3862,21 @@
             {
               "name": "UPS",
               "account": "",
-              "api_key": "",
               "enabled": false
             },
             {
               "name": "FedEx",
               "account": "",
-              "api_key": "",
               "enabled": false
             },
             {
               "name": "USPS",
               "account": "",
-              "api_key": "",
               "enabled": false
             },
             {
               "name": "Local Delivery",
               "account": "",
-              "api_key": "",
               "enabled": true
             }
           ],
@@ -6014,9 +6006,7 @@
         "cash_gateway": {
           "currency": "USD",
           "spreedly": {
-            "access_secret": "",
-            "environment_key": "",
-            "webhook_signing_key": ""
+            "environment_key": ""
           },
           "test_mode": true,
           "token_rule": {
@@ -6071,8 +6061,7 @@
               "description": "Authorize.Net via Spreedly"
             }
           },
-          "active_gateway_type": "",
-          "active_gateway_token": ""
+          "active_gateway_type": ""
         }
       },
       "metadata": {
@@ -7116,7 +7105,6 @@
         },
         "claude_api": {
           "model": "claude-sonnet-4-5-20250514",
-          "api_key": "",
           "privacy": {
             "no_raw_business_data": true,
             "exchanges_logged_locally": true,

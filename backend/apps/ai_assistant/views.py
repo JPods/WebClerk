@@ -313,7 +313,9 @@ class DiagnoseView(APIView):
             from django.conf import settings
             import urllib.request
             configured = getattr(settings, 'OLLAMA_MODEL', 'unknown')
-            base_url = getattr(settings, 'OLLAMA_BASE_URL', 'http://localhost:11434')
+            base_url = settings.OLLAMA_BASE_URL
+            if not base_url:
+                return {'ok': True, 'status': 'passenger', 'detail': 'no LLM on this hardware (OLLAMA_BASE_URL empty)'}
             resp = urllib.request.urlopen(f'{base_url}/api/tags', timeout=5)
             import json as _json
             data = _json.loads(resp.read())
@@ -1128,22 +1130,19 @@ class AliceAskClaudeUpstreamView(APIView):
         })
 
     def _ask_claude(self, question, local_answer, alice_answer, context_summary, mode):
-        """Call Claude API — key held centrally in Setting(purpose='wchq_claude_key')."""
+        """Call Claude API — key held centrally on the Connection with channel 'claude_api'."""
         import anthropic
-        from apps.core.models import Setting
+        from apps.sync.services.connections import ConnectionUnavailable, active_connection, credentials
 
-        key_setting = Setting.objects.filter(
-            purpose='wchq_claude_key', is_active=True,
-        ).first()
-        if not key_setting:
-            raise ValueError("No wchq_claude_key Setting configured")
-
-        config = key_setting.config if isinstance(key_setting.config, dict) else {}
-        api_key = config.get('api_key', '')
+        try:
+            conn = active_connection('claude_api')
+        except ConnectionUnavailable as e:
+            raise ValueError(f"No Claude API Connection: {e}")
+        api_key = credentials(conn).get('api_key', '')
         if not api_key:
-            raise ValueError("wchq_claude_key has no api_key")
+            raise ValueError(f"Connection {conn.pk} ({conn.name}) has no credentials.api_key")
 
-        model = config.get('model', 'claude-sonnet-4-5-20250514')
+        model = (conn.config or {}).get('model') or 'claude-sonnet-4-5-20250514'
 
         system_prompt = (
             "You are Alice, a commerce assistant for WebClerk installations. "

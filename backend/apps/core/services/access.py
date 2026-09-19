@@ -99,6 +99,23 @@ def apply_act_as_user(user, meta: dict) -> Optional[str]:
     return wanted
 
 
+# ── Open-read models ────────────────────────────────────────────────────
+# Settings are the React app's interface: any signed-in role reads the whole
+# record, only a superuser writes (Bill, 2026-09-18). Treat a Setting as seen by
+# every login — nothing private goes in one; credentials live on Connection
+# records. Not per-leaf: Setting config varies by purpose and is untyped.
+OPEN_READ_MODELS = frozenset({'setting'})
+
+
+def is_open_read(name: str) -> bool:
+    return model_key(name) in OPEN_READ_MODELS
+
+
+def open_read_can_write(user) -> bool:
+    """Writes to an open-read model: the login's own superuser role (never act-as)."""
+    return own_role(user) == 'superuser' and getattr(user, ACT_AS_ATTR, None) is None
+
+
 # ── Blocks ──────────────────────────────────────────────────────────────
 
 def model_key(name: str) -> Optional[str]:

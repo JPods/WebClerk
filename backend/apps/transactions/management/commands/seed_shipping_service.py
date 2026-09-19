@@ -89,7 +89,7 @@ class Command(BaseCommand):
             for svc in SHIPPING_SERVICE_CONFIG['service']:
                 self.stdout.write(f"  - {svc['name']} [{svc['type']}] — dormant until Connection created")
             self.stdout.write("\nTo activate a carrier:")
-            self.stdout.write("  1. Create a Connection with CarrierCredentials in config")
+            self.stdout.write("  1. Create a Connection with credentials in config")
             self.stdout.write("  2. Set connection_id, connection_purpose, connection_status on the entry")
         else:
             config = setting.config or {}

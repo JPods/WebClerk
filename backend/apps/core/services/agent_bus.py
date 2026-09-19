@@ -21,12 +21,10 @@ import psycopg2.extras
 
 
 def _connect():
-    """Connect to the allie database (not commerce_expert)."""
-    return psycopg2.connect(
-        dbname="allie",
-        user="williamjames",
-        host="localhost",
-    )
+    """The Allie agent bus — the active Connection with channel 'agent_bus'.
+    Raises ConnectionUnavailable on a server that has none."""
+    from apps.sync.services.connections import connect_agent_bus
+    return connect_agent_bus()
 
 
 def _now_ms():
@@ -39,7 +37,11 @@ def send_to_bus(from_agent, to_agent, subject, body="", priority=0,
 
     Returns dict with message id on success, or error info on failure.
     """
-    conn = _connect()
+    from apps.sync.services.connections import ConnectionUnavailable
+    try:
+        conn = _connect()
+    except ConnectionUnavailable as e:
+        return {"success": False, "error": f"agent bus not connected: {e}"}
     try:
         with conn.cursor() as cur:
             cur.execute(
@@ -66,7 +68,11 @@ def check_inbox(agent_name="alice", unread_only=True):
 
     Returns dict with messages list on success, or error info on failure.
     """
-    conn = _connect()
+    from apps.sync.services.connections import ConnectionUnavailable
+    try:
+        conn = _connect()
+    except ConnectionUnavailable as e:
+        return {"success": False, "error": f"agent bus not connected: {e}"}
     try:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             where = "WHERE (to_agent = %s OR to_agent = 'all')"

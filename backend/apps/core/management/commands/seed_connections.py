@@ -16,25 +16,9 @@ Usage:
     ./manage.py seed_connections
     ./manage.py seed_connections --force   # overwrite existing config
 """
-import hashlib
-import uuid as uuid_mod
 
-from django.conf import settings
 from django.core.management.base import BaseCommand
 from apps.sync.models.connection import Connection
-from apps.sync.services.athena_auth import athena_token as athena_token_of, set_athena_token
-
-
-def _generate_athena_token():
-    """Generate a stable Athena token from the instance UUID.
-
-    The token is a SHA-256 hash of the instance UUID + a salt.  Stable means
-    re-running the seed produces the same token for the same instance.
-    Uses the existing Athena auth pattern: Authorization: Athena <token>.
-    """
-    instance_uuid = getattr(settings, 'WC_INSTANCE_UUID', '') or str(uuid_mod.uuid4())
-    raw = f"wchq-athena:{instance_uuid}:webclerk"
-    return hashlib.sha256(raw.encode()).hexdigest()
 
 
 CONNECTIONS = [
@@ -109,7 +93,7 @@ CONNECTIONS = [
         'name': 'WC_HQ Upstream',
         'type': 'api',
         'purpose': 'sync',
-        'status': 'active',
+        'status': 'draft',   # mute toward WC_HQ until the owner sets it active
         'comment': (
             'User contributions flow upstream to WC_HQ. Bug reports, template '
             'improvements, schema feedback, layout submissions, Alice escalations. '
@@ -119,8 +103,6 @@ CONNECTIONS = [
         'config': {
             'channel': 'bundle',
             'direction': 'push',
-            'wchq_base_url': 'https://webclerk.com',
-            'instance_uuid': '',   # filled at seed time from settings
             'auth_method': 'athena',
             'content_types': [
                 'issue_report',
@@ -155,7 +137,7 @@ CONNECTIONS = [
         'name': 'WC_HQ Downstream',
         'type': 'api',
         'purpose': 'sync',
-        'status': 'active',
+        'status': 'draft',   # mute toward WC_HQ until the owner sets it active
         'comments': {
             'public': [{
                 'text': (
@@ -170,7 +152,6 @@ CONNECTIONS = [
         'config': {
             'channel': 'api',
             'direction': 'pull',
-            'wchq_base_url': 'https://webclerk.com',
             'endpoints': {
                 'init_bundle': '/wcapi/init-bundle/',
                 'register': '/wcapi/register-installation/',
@@ -180,7 +161,6 @@ CONNECTIONS = [
                 'version': '/wcapi/version-check/',
             },
             'auth_method': 'api_key',
-            'api_key_setting': 'wchq_api_key',
             'content_types': [
                 'init_bundle',
                 'coaching_updates',
@@ -294,11 +274,6 @@ CONNECTIONS = [
             'carrier_code': 'ups',
             'help_url': 'https://webclerk.com/wc-works/connections/ups.html',
             'developer_portal': 'https://developer.ups.com',
-            'credentials': {
-                'client_id': '',
-                'client_secret': '',
-                'account_number': '',
-            },
             'settings': {
                 'test_mode': True,
                 'label_format': 'pdf',
@@ -320,11 +295,6 @@ CONNECTIONS = [
             'carrier_code': 'fedex',
             'help_url': 'https://webclerk.com/wc-works/connections/fedex.html',
             'developer_portal': 'https://developer.fedex.com',
-            'credentials': {
-                'client_id': '',
-                'client_secret': '',
-                'account_number': '',
-            },
             'settings': {
                 'test_mode': True,
                 'label_format': 'pdf',
@@ -344,10 +314,6 @@ CONNECTIONS = [
             'carrier_code': 'usps',
             'help_url': 'https://webclerk.com/wc-works/connections/usps.html',
             'developer_portal': 'https://developer.usps.com',
-            'credentials': {
-                'client_id': '',
-                'client_secret': '',
-            },
             'settings': {
                 'test_mode': True,
                 'label_format': 'pdf',
@@ -375,11 +341,6 @@ CONNECTIONS = [
         'comment': 'DHL Express REST API. Get credentials at developer.dhl.com. Set status=active when ready.',
         'config': {
             'carrier_code': 'dhl',
-            'credentials': {
-                'user_id': '',
-                'password': '',
-                'account_number': '',
-            },
             'settings': {
                 'test_mode': True,
                 'label_format': 'pdf',
@@ -401,11 +362,6 @@ CONNECTIONS = [
         ),
         'config': {
             'provider': '',  # 'avalara', 'taxjar', 'vertex'
-            'credentials': {
-                'api_key': '',
-                'account_id': '',
-                'url': '',
-            },
             'settings': {
                 'test_mode': True,
                 'company_code': 'DEFAULT',
@@ -429,16 +385,6 @@ CONNECTIONS = [
         ),
         'config': {
             'provider': 'google',
-            'credentials': {
-                'client_id': '',
-                'client_secret': '',
-                'refresh_token': '',
-                'scopes': [
-                    'https://www.googleapis.com/auth/gmail.readonly',
-                    'https://www.googleapis.com/auth/gmail.send',
-                    'https://www.googleapis.com/auth/gmail.labels',
-                ],
-            },
             'settings': {
                 'watch_labels': ['INBOX'],
                 'auto_action': True,
@@ -480,15 +426,6 @@ CONNECTIONS = [
         ),
         'config': {
             'provider': 'microsoft',
-            'credentials': {
-                'client_id': '',
-                'client_secret': '',
-                'tenant_id': '',
-                'scopes': [
-                    'https://graph.microsoft.com/Mail.ReadWrite',
-                    'https://graph.microsoft.com/Mail.Send',
-                ],
-            },
             'settings': {
                 'watch_folders': ['Inbox'],
                 'auto_action': True,
@@ -531,15 +468,6 @@ CONNECTIONS = [
         ),
         'config': {
             'provider': 'google',
-            'credentials': {
-                'client_id': '',
-                'client_secret': '',
-                'refresh_token': '',
-                'scopes': [
-                    'https://www.googleapis.com/auth/calendar',
-                    'https://www.googleapis.com/auth/calendar.events',
-                ],
-            },
             'settings': {
                 'calendar_id': 'primary',
                 'sync_direction': 'bidirectional',
@@ -577,14 +505,6 @@ CONNECTIONS = [
         ),
         'config': {
             'provider': 'microsoft',
-            'credentials': {
-                'client_id': '',
-                'client_secret': '',
-                'tenant_id': '',
-                'scopes': [
-                    'https://graph.microsoft.com/Calendars.ReadWrite',
-                ],
-            },
             'settings': {
                 'calendar_id': 'primary',
                 'sync_direction': 'bidirectional',
@@ -624,11 +544,6 @@ CONNECTIONS = [
         ),
         'config': {
             'provider': 'stripe',
-            'credentials': {
-                'publishable_key': '',
-                'secret_key': '',
-                'webhook_secret': '',
-            },
             'settings': {
                 'test_mode': True,
                 'currency': 'usd',
@@ -673,12 +588,6 @@ CONNECTIONS = [
         ),
         'config': {
             'provider': 'square',
-            'credentials': {
-                'access_token': '',
-                'application_id': '',
-                'location_id': '',
-                'webhook_signature_key': '',
-            },
             'settings': {
                 'test_mode': True,
                 'currency': 'usd',
@@ -712,11 +621,6 @@ CONNECTIONS = [
         ),
         'config': {
             'provider': 'paypal',
-            'credentials': {
-                'client_id': '',
-                'client_secret': '',
-                'webhook_id': '',
-            },
             'settings': {
                 'test_mode': True,
                 'currency': 'usd',
@@ -754,12 +658,6 @@ CONNECTIONS = [
         ),
         'config': {
             'provider': 'quickbooks',
-            'credentials': {
-                'client_id': '',
-                'client_secret': '',
-                'realm_id': '',
-                'refresh_token': '',
-            },
             'settings': {
                 'test_mode': True,
                 'export': {
@@ -805,11 +703,6 @@ CONNECTIONS = [
         ),
         'config': {
             'provider': 'xero',
-            'credentials': {
-                'client_id': '',
-                'client_secret': '',
-                'tenant_id': '',
-            },
             'settings': {
                 'test_mode': True,
                 'export': {
@@ -898,10 +791,6 @@ CONNECTIONS = [
         ),
         'config': {
             'provider': 'mycarryon',
-            'credentials': {
-                'api_key': '',
-                'instance_url': '',
-            },
             'settings': {
                 'sync_direction': 'bidirectional',
                 'contact_field': 'carryon_uuid',
@@ -1076,14 +965,11 @@ class Command(BaseCommand):
         only = {i.strip() for i in (options.get('only') or '').split(',') if i.strip()}
         created = updated = skipped = 0
 
-        # Inject instance identity into upstream connection
-        instance_uuid = getattr(settings, 'WC_INSTANCE_UUID', '')
-        athena_token = _generate_athena_token()
+        # WC_HQ url, key and instance identity are in .env (WCHQ_URL, WCHQ_API_KEY,
+        # WC_INSTANCE_UUID) — never on a Connection.
         for spec in CONNECTIONS:
             if only and spec['ida'] not in only:
                 continue
-            if spec['ida'] == 'wchq-conn-upstream' and spec.get('config'):
-                spec['config']['instance_uuid'] = instance_uuid
             ida = spec['ida']
             # Build comments from spec — 'comment' (string) or 'comments' (dict)
             comments_val = spec.get('comments', {})
@@ -1094,18 +980,15 @@ class Command(BaseCommand):
                 'name': spec['name'],
                 'type': spec['type'],
                 'purpose': spec.get('purpose', ''),
-                'status': spec.get('status', 'draft'),
                 'comments': comments_val,
                 'is_active': True,
             }
 
+            # status is the owner's decision — set on create, never reset by a reseed
             conn, was_created = Connection.objects.update_or_create(
                 ida=ida, defaults=defaults,
+                create_defaults={**defaults, 'status': spec.get('status', 'draft')},
             )
-
-            if ida == 'wchq-conn-upstream' and not athena_token_of(conn):
-                set_athena_token(conn, athena_token)
-                conn.save(update_fields=['encryption'])
 
             if was_created:
                 conn.config = spec.get('config', {})

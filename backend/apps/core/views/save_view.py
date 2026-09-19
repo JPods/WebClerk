@@ -713,6 +713,17 @@ class SaveWcapiView(APIView):
                     error={'code': 'staff_only_model', 'details': model_key},
                 )
 
+        # ── Open-read models (Settings): superuser writes only ──
+        from apps.core.services import access
+        if access.is_open_read(model_key) and not access.open_read_can_write(request.user):
+            console_logger.warning("[SAVE_VIEW] Non-superuser write refused on %s by user=%s",
+                                   model_key, getattr(request.user, 'id', None))
+            return api_response(
+                success=False, status_code=403,
+                message=f'Only a superuser may change {model_key} records.',
+                error={'code': 'superuser_only_model', 'details': model_key},
+            )
+
         # ── Transaction lines belong to the transaction endpoint ──
         # /wcapi/transaction/save/ enforces create/edit rights and re-prices portal
         # lines server-side. This endpoint does neither, and `lines` is a passthrough

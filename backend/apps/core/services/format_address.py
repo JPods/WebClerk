@@ -209,33 +209,30 @@ def validate_and_format(location_record) -> dict:
 def _external_validate(result, country_code):
     """Call external validation API if configured.
 
-    Reads Setting: purpose=wc:system, name=address_validation
+    Reads the active Connection with channel 'address_validation' (provider, auto_correct,
+    credentials.api_key). No Connection → no external check.
     """
+    from apps.sync.services.connections import ConnectionUnavailable, active_connection, credentials
     try:
-        from apps.core.models import Setting
-        setting = Setting.objects.filter(
-            purpose='wc:system', name='address_validation'
-        ).first()
-        if not setting:
-            return result
-
-        config = setting.config or {}
-        provider = config.get('provider', 'none')
-        if provider == 'none':
-            return result
-
+        conn = active_connection('address_validation')
+    except ConnectionUnavailable:
+        return result
+    try:
+        config = conn.config or {}
+        provider = config.get('provider', '')
+        api_key = credentials(conn).get('api_key', '')
         auto_correct = config.get('auto_correct', True)
 
         if provider == 'usps' and country_code == 'US':
-            return _validate_usps(result, config, auto_correct)
+            return _validate_usps(result, api_key, auto_correct)
         elif provider == 'google':
-            return _validate_google(result, config, country_code, auto_correct)
+            return _validate_google(result, api_key, country_code, auto_correct)
     except Exception:
         pass
     return result
 
 
-def _validate_usps(result, config, auto_correct):
+def _validate_usps(result, user_id, auto_correct):
     """Validate US address via USPS Web Tools API (free, requires registration).
 
     API: https://secure.shippingapis.com/ShippingAPI.dll
@@ -244,7 +241,6 @@ def _validate_usps(result, config, auto_correct):
     import urllib.request
     import xml.etree.ElementTree as ET
 
-    user_id = config.get('api_key', '')
     if not user_id:
         return result
 
@@ -301,7 +297,7 @@ def _validate_usps(result, config, auto_correct):
     return result
 
 
-def _validate_google(result, config, country_code, auto_correct):
+def _validate_google(result, api_key, country_code, auto_correct):
     """Validate address via Google Address Validation API.
 
     API: https://addressvalidation.googleapis.com/v1:validateAddress
@@ -309,7 +305,6 @@ def _validate_google(result, config, country_code, auto_correct):
     import json
     import urllib.request
 
-    api_key = config.get('api_key', '')
     if not api_key:
         return result
 

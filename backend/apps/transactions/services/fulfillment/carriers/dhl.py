@@ -5,7 +5,7 @@ Endpoints: https://express.api.dhl.com/mydhlapi/
 
 Authentication: Basic Auth (user ID + password from DHL developer portal).
 
-Connection config.credentials:
+Connection encryption.credentials:
   user_id         — DHL Express API user ID
   password        — DHL Express API password
   account_number  — DHL Express account number

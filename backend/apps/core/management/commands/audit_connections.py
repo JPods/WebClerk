@@ -45,7 +45,8 @@ class Command(BaseCommand):
             urls.append(('endpoint', endpoint))
 
         # Named endpoints dict
-        base_url = config.get('wchq_base_url', '').rstrip('/')
+        from apps.sync.services.connections import wchq_link
+        base_url = wchq_link()[0]   # named endpoints are WC_HQ paths; the base is WCHQ_URL (.env)
         endpoints = config.get('endpoints', {})
         for name, path in endpoints.items():
             if path:
