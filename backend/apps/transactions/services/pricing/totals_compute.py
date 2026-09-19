@@ -181,6 +181,30 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
     tax_jurisdiction_name = finance.get('sales_tax_name', '')
     tax_decisions: List[Dict[str, Any]] = []
 
+    # ── Tax is applied to the discounted price (Bill, 2026-09-19) ─────
+    # A line's own discount already comes off its taxable amount. A discount
+    # line (a discount on the whole document) is spread over the product
+    # lines in proportion to their net amounts, so each line is taxed on its
+    # share of the discounted price:
+    #     tax_factor = 1 − Σ discount lines / Σ product-line nets
+    #     line taxable = line net × tax_factor
+    lines = list(lines)
+    tax_factor = Decimal(1)
+    if is_sell:
+        product_net = Decimal(0)
+        document_discount = Decimal(0)
+        for line in lines:
+            lt = getattr(line, 'line_type', 'product') or 'product'
+            p = getattr(line, 'price', None) or {}
+            q = _d((getattr(line, 'quantity', None) or {}).get('active', 0) or 0)
+            gross = _d(q * _d(p.get('unit', 0)))
+            if lt == 'product':
+                product_net += gross - _d(p.get('discount_amount', 0))
+            elif lt == 'discount':
+                document_discount += gross
+        if product_net > 0 and document_discount > 0:
+            tax_factor = min(max(1 - document_discount / product_net, Decimal(0)), Decimal(1))
+
     for line in lines:
         qty_data = getattr(line, 'quantity', None) or {}
         qty = _d(qty_data.get('active', 0) or 0)
@@ -258,7 +282,7 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
                 # Line has explicit tax rate override (user set per-line rate)
                 if line_tax_rate_override > 1:
                     line_tax_rate_override = line_tax_rate_override / 100
-                line_taxable = price_extended - discount_amt if is_sell else cost_extended
+                line_taxable = _d((price_extended - discount_amt) * tax_factor) if is_sell else cost_extended
                 line_tax = _d(line_taxable * line_tax_rate_override)
                 tax_total += line_tax
                 taxable_total += line_taxable
@@ -273,7 +297,7 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
             elif line_tax_sales > 0:
                 # Line has explicit tax amount (user override or prior calc)
                 tax_total += line_tax_sales
-                taxable_total += price_extended - discount_amt if is_sell else cost_extended
+                taxable_total += _d((price_extended - discount_amt) * tax_factor) if is_sell else cost_extended
                 tax_decisions.append({
                     'line_id': getattr(line, 'pk', None),
                     'rate': None,
@@ -286,7 +310,7 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
                 line_tax_code = (cost_data.get('tax_code', '') or '').upper()
                 item_exempt = line_tax_code in ('EXEMPT', 'NONTAXABLE', 'NON-TAXABLE')
                 if not item_exempt:
-                    line_taxable = price_extended - discount_amt if is_sell else cost_extended
+                    line_taxable = _d((price_extended - discount_amt) * tax_factor) if is_sell else cost_extended
                     line_tax = _d(line_taxable * header_tax_rate)
                     tax_total += line_tax
                     taxable_total += line_taxable

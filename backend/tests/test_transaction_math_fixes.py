@@ -113,5 +113,21 @@ def test_verifier_uses_the_same_engine():
     for rate in (5, 0.05):
         t = calculate_header_totals(lines, {"finance": {"sales_tax_rate": rate}}, "quote")
         assert float(t["subtotal"]) == pytest.approx(90.00)
-        assert float(t["tax"]) == pytest.approx(5.00)   # discount line does not reduce tax (policy open)
-        assert float(t["total"]) == pytest.approx(95.00)
+        assert float(t["tax"]) == pytest.approx(4.50)   # tax on the discounted price
+        assert float(t["total"]) == pytest.approx(94.50)
+
+
+@pytest.mark.django_db
+def test_tax_is_applied_to_the_discounted_price():
+    """Bill 2026-09-19: a document discount comes off the taxable amount, spread over
+    the taxable and non-taxable lines by their nets (calc 06 of Bite 1)."""
+    q = Quote.objects.create(finance={"sales_tax_rate": 0.05})
+    _line(q, 15, 10.00)                                              # 150.00
+    _line(q, 3, 19.99, discount_percent=12.5)                        # 52.47
+    _line(q, 2, 7.33, discount_amount=1.00, tax_code='NONTAXABLE')   # 13.66
+    _line(q, 1, 10.00, line_type='discount')                         # −10.00
+    q.refresh_from_db()
+    # factor = 1 − 10 / 216.13; taxable lines 150.00 → 143.06, 52.47 → 50.04
+    assert q.totals["subtotal"] == pytest.approx(206.13)
+    assert q.totals["taxable"] == pytest.approx(193.10)
+    assert q.totals["tax"] == pytest.approx(9.65)                    # 7.15 + 2.50, rounded per line
