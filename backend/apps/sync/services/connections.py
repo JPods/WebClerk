@@ -71,10 +71,11 @@ def connect_agent_bus():
 
 
 # ── Speaking to WC_HQ ───────────────────────────────────────────────────
-# An instance is mute toward WC_HQ by default (Bill, 2026-09-18). It speaks only
+# An instance speaks to WC_HQ only (Bill, 2026-09-18)
 #   1. to report an attack (reason='attack'), or
-#   2. when an active Connection documents the relationship: ida 'wchq-conn-upstream',
-#      status 'active' — the owner's decision, recorded where anyone can see it.
+#   2. while an active Connection documents the relationship: ida 'wchq-conn-upstream',
+#      status 'active'. New installs start active (free for the first two months); the
+#      owner may deactivate it at any time, and then the instance is mute.
 # Pulling public bundles is not speaking; registering, relaying, escalating and
 # sending reviews are.
 WCHQ_RELATIONSHIP_IDA = 'wchq-conn-upstream'

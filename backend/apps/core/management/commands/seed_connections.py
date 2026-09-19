@@ -93,7 +93,7 @@ CONNECTIONS = [
         'name': 'WC_HQ Upstream',
         'type': 'api',
         'purpose': 'sync',
-        'status': 'draft',   # mute toward WC_HQ until the owner sets it active
+        'status': 'active',  # on by default — free for the first two months; the owner may deactivate
         'comment': (
             'User contributions flow upstream to WC_HQ. Bug reports, template '
             'improvements, schema feedback, layout submissions, Alice escalations. '
@@ -137,7 +137,7 @@ CONNECTIONS = [
         'name': 'WC_HQ Downstream',
         'type': 'api',
         'purpose': 'sync',
-        'status': 'draft',   # mute toward WC_HQ until the owner sets it active
+        'status': 'active',  # on by default — free for the first two months; the owner may deactivate
         'comments': {
             'public': [{
                 'text': (
