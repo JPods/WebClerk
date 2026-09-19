@@ -45,7 +45,7 @@ def format_pending(p):
         'type_id': data.get('type_id', '??'),
         'qty_on_so': data.get('on_so', 0),
         'qty_on_po': data.get('on_po', 0),
-        'qty_on_p': data.get('on_p', 0),
+        'qty_on_p': data.get('on_qt', 0),
         'qty_on_in': data.get('on_in', 0),
         'doc_id': data.get('doc_id', ''),
         'line_id': data.get('line_id', ''),
@@ -97,7 +97,7 @@ def main():
                         print(f'\n🆕 NEW PENDING #{p.pk}:')
                         print(f'   Purpose: {fp["purpose"]}')
                         print(f'   Type: {fp["type_id"]}')
-                        print(f'   on_so: {fp["qty_on_so"]}, on_po: {fp["qty_on_po"]}, on_p: {fp["qty_on_p"]}, on_in: {fp["qty_on_in"]}')
+                        print(f'   on_so: {fp["qty_on_so"]}, on_po: {fp["qty_on_po"]}, on_qt: {fp["qty_on_p"]}, on_in: {fp["qty_on_in"]}')
                         print(f'   Doc: {fp["doc_id"]}, Line: {fp["line_id"]}')
                         print(f'   Created: {fp["created_at"]}')
                     
@@ -116,7 +116,7 @@ def main():
             processed_count = sum(1 for s in seen_pending.values() if s['processed_time'])
             
             print(f'\r[{ts}] Pending: {new_count} new ({processed_count} processed) | '
-                  f'on_so={qty.get("on_so", 0)} on_po={qty.get("on_po", 0)} on_p={qty.get("on_p", 0)} '
+                  f'on_so={qty.get("on_so", 0)} on_po={qty.get("on_po", 0)} on_qt={qty.get("on_qt", 0)} '
                   f'on_hand={qty.get("on_hand", 0)}', end='', flush=True)
             
             time.sleep(POLL_INTERVAL)

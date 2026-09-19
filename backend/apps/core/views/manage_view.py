@@ -690,7 +690,7 @@ def _get_training_activity(params: dict) -> dict:
     rows.sort(key=lambda r: r['dt'])
 
     # Item inventory summary
-    inv = {'on_hand': 0, 'on_so': 0, 'on_po': 0, 'on_p': 0, 'available': 0}
+    inv = {'on_hand': 0, 'on_so': 0, 'on_po': 0, 'on_qt': 0, 'available': 0}
     qty_field = getattr(item, 'quantity', None) or {}
     if isinstance(qty_field, dict):
         inv.update({k: qty_field.get(k, 0) for k in inv})

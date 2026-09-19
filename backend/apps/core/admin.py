@@ -306,7 +306,7 @@ class SettingAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.Model
 class PendingAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Pending model."""
     # Scalar fields: dt_created, dt_modified, dt_processed, ida, is_active, model_name, name, purpose, record_id, security_level, uuid, version
-    list_display = ("ida", "name", "dt_processed", "model_name", "purpose", "record_id", "on_hand", "on_p", "on_so", "on_in", "on_po", "is_active", "dt_created")
+    list_display = ("ida", "name", "dt_processed", "model_name", "purpose", "record_id", "on_hand", "on_qt", "on_so", "on_in", "on_po", "is_active", "dt_created")
     list_filter = ('model_name', 'purpose')
     search_fields = ('model_name', 'record_id', 'name')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
@@ -326,9 +326,9 @@ class PendingAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.Model
     def on_hand(self, obj):
         return self._data_field(obj, 'on_hand')
 
-    @admin.display(description='.on_p')
-    def on_p(self, obj):
-        return self._data_field(obj, 'on_p')
+    @admin.display(description='.on_qt')
+    def on_qt(self, obj):
+        return self._data_field(obj, 'on_qt')
 
     @admin.display(description='.on_so')
     def on_so(self, obj):

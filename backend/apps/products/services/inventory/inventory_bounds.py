@@ -233,29 +233,29 @@ def _get_pending_signals(item_id: int) -> Dict[str, float]:
       on_so = demand committed but not shipped
       on_po = supply committed but not received
       on_wo = work order demand (BOM consumption in progress)
-      on_p  = quote demand (probability-weighted)
+      on_qt  = quote demand (probability-weighted)
     """
     Item, _, _, _ = _get_models()
 
     try:
         item = Item.objects.get(pk=item_id)
     except Item.DoesNotExist:
-        return {'on_so': 0, 'on_po': 0, 'on_wo': 0, 'on_p': 0, 'net_committed': 0}
+        return {'on_so': 0, 'on_po': 0, 'on_wo': 0, 'on_qt': 0, 'net_committed': 0}
 
     qty = item.quantity if isinstance(item.quantity, dict) else {}
     on_so = _safe_float(qty.get('on_so'))
     on_po = _safe_float(qty.get('on_po'))
     on_wo = _safe_float(qty.get('on_wo'))
-    on_p = _safe_float(qty.get('on_p'))
+    on_qt = _safe_float(qty.get('on_qt'))
 
     # Net committed demand beyond normal velocity
-    net_committed = (on_so + on_wo + on_p * 0.5) - on_po
+    net_committed = (on_so + on_wo + on_qt * 0.5) - on_po
 
     return {
         'on_so': on_so,
         'on_po': on_po,
         'on_wo': on_wo,
-        'on_p': on_p,
+        'on_qt': on_qt,
         'net_committed': max(0, net_committed),  # only positive = unfilled demand
     }
 

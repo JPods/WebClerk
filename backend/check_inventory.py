@@ -23,7 +23,7 @@ pendings = Pending.objects.filter(model_name='item', record_id='259').order_by('
 for p in pendings:
     data = p.data or {}
     print(f'  #{p.pk}: {p.purpose} ({data.get("type_id", "?")})')
-    print(f'    on_so={data.get("on_so", 0)}, on_po={data.get("on_po", 0)}, on_p={data.get("on_p", 0)}, on_in={data.get("on_in", 0)}')
+    print(f'    on_so={data.get("on_so", 0)}, on_po={data.get("on_po", 0)}, on_qt={data.get("on_qt", 0)}, on_in={data.get("on_in", 0)}')
     print(f'    processed: {p.dt_processed}')
 
 print()

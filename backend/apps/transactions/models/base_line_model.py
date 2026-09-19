@@ -344,12 +344,12 @@ def default_physical() -> Dict[str, Any]:
 # out longhand in each of the pending builders in services/line_manage.py, three
 # times in three different shapes. The copies drifted: a fix to the quote
 # probability guard in the line-add builder left the quantity-change and delete
-# builders still zeroing on_p, so editing or deleting a quote line silently
+# builders still zeroing on_qt, so editing or deleting a quote line silently
 # wrote a zero. One rule, one place.
 
 #: pending type code -> the Item.quantity bucket that type moves.
 PENDING_TYPE_BUCKET: Dict[str, str] = {
-    'PP': 'on_p',    # quote — forecast, weighted by close probability
+    'QT': 'on_qt',    # quote — forecast, weighted by close probability
     'SO': 'on_so',   # sales order — reserved
     'PO': 'on_po',   # purchase order — incoming
     'WO': 'on_wo',   # work order — reserved for production
@@ -358,7 +358,7 @@ PENDING_TYPE_BUCKET: Dict[str, str] = {
 }
 
 #: every bucket a pending record carries, so callers always emit a full envelope.
-QUANTITY_BUCKETS: tuple = ('on_so', 'on_po', 'on_wo', 'on_in', 'on_r', 'on_p', 'on_hand')
+QUANTITY_BUCKETS: tuple = ('on_so', 'on_po', 'on_wo', 'on_in', 'on_r', 'on_qt', 'on_hand')
 
 #: pending types that also move on_hand, and in which direction, on a line ADD.
 #: Quantity changes and deletes do not touch on_hand.
@@ -412,7 +412,7 @@ def quantity_bucket_deltas(
         return deltas
 
     qty = float(quantity or 0)
-    if pending_type == 'PP':
+    if pending_type == 'QT':
         qty = qty * forecast_probability(transaction)
     deltas[bucket] = qty
 

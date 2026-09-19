@@ -51,7 +51,7 @@ def _resolve_parent_fk(LineModel, HeaderModel, model_key: str) -> str:
 CALC_TOLERANCE = Decimal("0.01")
 # Pending type codes — mirrors line_item_service._get_pending_type
 _PENDING_TYPE_MAP = {
-    'quote': 'PP',
+    'quote': 'QT',
     'order': 'SO',
     'invoice': 'IN',
     'purchase': 'PO',
@@ -94,7 +94,7 @@ def _create_pending_from_deltas(
             'SO': 'on_so',
             'PO': 'on_po',
             'WO': 'on_wo',
-            'PP': 'on_p',
+            'QT': 'on_qt',
             'IN': 'on_in',
         }.get(type_code)
 
@@ -161,7 +161,7 @@ def _create_pending_from_deltas(
             'line_num': 0,
             # Quantity buckets — zeroed, then set by type
             'on_so': 0, 'on_po': 0, 'on_wo': 0,
-            'on_in': 0, 'on_r': 0, 'on_p': 0, 'on_hand': 0,
+            'on_in': 0, 'on_r': 0, 'on_qt': 0, 'on_hand': 0,
             # Pricing snapshot
             'unit_cost': delta.get('unit_cost', 0),
             'unit_price': delta.get('unit_price', 0),

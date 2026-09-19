@@ -67,7 +67,7 @@ interface ItemQuantity {
   on_hand: number;
   on_po: number;
   on_so: number;
-  on_p: number;
+  on_qt: number;
   available: number;
   [key: string]: number;
 }
@@ -134,7 +134,7 @@ const QTY_FIELDS = [
   { value: "on_hand", label: "On Hand" },
   { value: "on_po", label: "On PO" },
   { value: "on_so", label: "On SO" },
-  { value: "on_p", label: "On Quote" },
+  { value: "on_qt", label: "On Quote" },
   { value: "available", label: "Available" },
 ];
 
@@ -546,7 +546,7 @@ function AdjustTab() {
           id: i.id,
           ida: i.ida || "",
           name: i.name || "",
-          quantity: i.quantity || { on_hand: 0, on_po: 0, on_so: 0, on_p: 0, available: 0 },
+          quantity: i.quantity || { on_hand: 0, on_po: 0, on_so: 0, on_qt: 0, available: 0 },
         }))
       );
     } catch (err: any) {
@@ -1306,7 +1306,7 @@ const TRAINING_INSTRUCTIONS = [
   {
     step: 1,
     action: "Create a Quote for 15 zz-fake-item",
-    effect: "+15 on_p",
+    effect: "+15 on_qt",
     detail: "Products > New Quote. Add 15 × zz-fake-item for zzCustomer. Save. Print it.",
     icon: <FaClipboardList />,
     color: "text-blue-600",
@@ -1314,7 +1314,7 @@ const TRAINING_INSTRUCTIONS = [
   {
     step: 2,
     action: "Transfer 11 from Quote to Order",
-    effect: "-11 on_p, +11 on_so",
+    effect: "-11 on_qt, +11 on_so",
     detail: "Go to Open Quotes. Open your quote. Transfer 11 of the 15 to Order. Come back here — see the quantities change.",
     icon: <FaShoppingCart />,
     color: "text-indigo-600",
@@ -1366,7 +1366,7 @@ type ActivityRow = {
 
 type TrainingData = {
   item: { id: number; ida: string; description: string };
-  inventory: { on_hand: number; on_so: number; on_po: number; on_p: number; available: number };
+  inventory: { on_hand: number; on_so: number; on_po: number; on_qt: number; available: number };
   activity: ActivityRow[];
   count: number;
   error?: string;
@@ -1448,7 +1448,7 @@ function TrainingTab() {
                 { label: "On Hand", value: inv.on_hand, color: "text-green-700 bg-green-50" },
                 { label: "On SO", value: inv.on_so, color: "text-blue-700 bg-blue-50" },
                 { label: "On PO", value: inv.on_po, color: "text-orange-700 bg-orange-50" },
-                { label: "On Quote", value: inv.on_p, color: "text-purple-700 bg-purple-50" },
+                { label: "On Quote", value: inv.on_qt, color: "text-purple-700 bg-purple-50" },
                 { label: "Available", value: inv.available, color: "text-emerald-700 bg-emerald-50" },
               ].map((b) => (
                 <div key={b.label} className={`px-4 py-2 rounded text-center ${b.color}`}>

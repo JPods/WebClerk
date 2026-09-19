@@ -514,9 +514,9 @@ class SaveWcapiView(APIView):
         remaining/status are not written here — see services/line_parent.py.
 
         Only sell-side conversions adjust source lines:
-          order    → quote_line_id  → QuoteLine (on_p)
+          order    → quote_line_id  → QuoteLine (on_qt)
           invoice  → order_line_id     → OrderLine    (on_so)
-          invoice  → quote_line_id  → QuoteLine (on_p)  [direct quote→invoice]
+          invoice  → quote_line_id  → QuoteLine (on_qt)  [direct quote→invoice]
 
         Purchase does NOT adjust the source order — it's a buy-side action.
         The order's on_so stays committed until an invoice consumes it.
@@ -529,7 +529,7 @@ class SaveWcapiView(APIView):
 
         # Determine which source line to adjust.
         source_lookups = [
-            ('quote_line_id', 'apps.transactions.models.quote_line', 'QuoteLine', 'quote', 'on_p'),
+            ('quote_line_id', 'apps.transactions.models.quote_line', 'QuoteLine', 'quote', 'on_qt'),
             ('order_line_id',    'apps.transactions.models.order_line',    'OrderLine',    'order',    'on_so'),
         ]
         source_key = source_id = module_path = class_name = parent_attr = bucket_field = None

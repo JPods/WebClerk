@@ -141,7 +141,7 @@ class TestInventoryPending:
             'SO': 'on_so',
             'PO': 'on_po',
             'WO': 'on_wo',
-            'PP': 'on_p',
+            'QT': 'on_qt',
             'IN': 'on_in',
         }
         # This mapping is defined inside _create_pending_from_deltas

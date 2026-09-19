@@ -167,7 +167,7 @@ FLAGS_SCHEMA_DESC = {
 
 # One stocking pair beside the counts: min = reorder point, max = order up to
 # (Bill, 2026-09-17 — inventory_min/max renamed, vendor_min/max deleted: no writer, no data).
-QUANTITY_CANONICAL_KEYS = {"on_hand", "allocated", "available", "on_so", "on_po", "on_p", "on_reciept", "on_in", "on_wo", "min", "max", "rate_expected", "rate_actual"}
+QUANTITY_CANONICAL_KEYS = {"on_hand", "allocated", "available", "on_so", "on_po", "on_qt", "on_reciept", "on_in", "on_wo", "min", "max", "rate_expected", "rate_actual"}
 
 
 def default_service_config():
@@ -363,8 +363,8 @@ class Item(StatsMixin, BaseModel):
         return self.quantity.get('on_po', None)
 
     @property
-    def on_p(self):
-        return self.quantity.get('on_p', None)
+    def on_qt(self):
+        return self.quantity.get('on_qt', None)
 
     @property
     def on_reciept(self):

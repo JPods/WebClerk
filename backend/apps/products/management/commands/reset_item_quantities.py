@@ -11,7 +11,7 @@ Sets all items to:
 - on_wo: 0
 - on_so: 0
 - on_in: 0
-- on_p: 0
+- on_qt: 0
 
 Usage:
     python manage.py reset_item_quantities
@@ -109,7 +109,7 @@ class Command(BaseCommand):
             ("on_wo", 0),
             ("on_so", 0),
             ("on_in", 0),
-            ("on_p", 0),
+            ("on_qt", 0),
         ])
 
         updated = 0
@@ -128,7 +128,7 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f"Reset {updated} items: on_hand={on_hand}, "
-                f"on_so=0, on_po=0, on_wo=0, on_in=0, on_p=0"
+                f"on_so=0, on_po=0, on_wo=0, on_in=0, on_qt=0"
             )
         )
         if errors:

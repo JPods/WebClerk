@@ -66,7 +66,7 @@ class QuoteLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, gene
     pagination_class = DefaultPagination
 
     def perform_create(self, serializer):
-        """Create line via LineItemService for inventory tracking (on_p forecast)."""
+        """Create line via LineItemService for inventory tracking (on_qt forecast)."""
         from apps.transactions.services.line_manage import LineItemService
         
         instance = serializer.save()

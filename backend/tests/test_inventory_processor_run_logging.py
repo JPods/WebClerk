@@ -12,7 +12,7 @@ pytestmark = pytest.mark.django_db
 def make_item_and_stack(qty=10):
     item = Item.objects.create(name="Test Item", quantity={
         'on_hand': float(qty), 'available': float(qty),
-        'on_so': 0, 'on_po': 0, 'on_p': 0,
+        'on_so': 0, 'on_po': 0, 'on_qt': 0,
     })
     wh = Warehouse.objects.create(name="Main WH", code=f"WH{item.id}")
     stack = InventoryLayer.objects.create(
@@ -27,11 +27,11 @@ def test_pending_applies_on_save():
     p = Pending.objects.create(
         model_name='item', record_id=str(item.pk),
         purpose='inventory_line_add', name='Test apply',
-        changes={'on_p': 15, 'item_id': item.pk},
+        changes={'on_qt': 15, 'item_id': item.pk},
     )
     assert p.is_processed()
     item.refresh_from_db()
-    assert item.quantity.get('on_p') == 15
+    assert item.quantity.get('on_qt') == 15
 
 
 def test_celery_processor_picks_up_unprocessed():

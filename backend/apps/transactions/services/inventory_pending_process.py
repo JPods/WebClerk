@@ -231,7 +231,7 @@ def _process_pending_for_item(
             on_so_delta += Decimal(str(data.get('on_so', 0) or 0))
             on_po_delta += Decimal(str(data.get('on_po', 0) or 0))
             on_wo_delta += Decimal(str(data.get('on_wo', 0) or 0))
-            on_p_delta += Decimal(str(data.get('on_p', 0) or 0))
+            on_p_delta += Decimal(str(data.get('on_qt', 0) or 0))
             on_in_delta += Decimal(str(data.get('on_in', 0) or 0))
             on_r_delta += Decimal(str(data.get('on_r', 0) or 0))
             on_hand_delta += Decimal(str(data.get('on_hand', 0) or 0))
@@ -254,7 +254,7 @@ def _process_pending_for_item(
         current_so = Decimal(str(quantity.get('on_so', 0) or 0))
         current_po = Decimal(str(quantity.get('on_po', 0) or 0))
         current_wo = Decimal(str(quantity.get('on_wo', 0) or 0))
-        current_p = Decimal(str(quantity.get('on_p', 0) or 0))
+        current_p = Decimal(str(quantity.get('on_qt', 0) or 0))
         current_on_in = Decimal(str(quantity.get('on_in', 0) or 0))
         current_on_r = Decimal(str(quantity.get('on_r', 0) or 0))
         current_on_hand = Decimal(str(quantity.get('on_hand', 0) or 0))
@@ -262,7 +262,7 @@ def _process_pending_for_item(
         quantity['on_so'] = float(current_so + on_so_delta)
         quantity['on_po'] = float(current_po + on_po_delta)
         quantity['on_wo'] = float(current_wo + on_wo_delta)
-        quantity['on_p'] = float(current_p + on_p_delta)
+        quantity['on_qt'] = float(current_p + on_p_delta)
         quantity['on_in'] = float(current_on_in + on_in_delta)
         quantity['on_r'] = float(current_on_r + on_r_delta)
 
@@ -293,7 +293,7 @@ def _process_pending_for_item(
     if on_so_delta: deltas['on_so'] = f'{on_so_delta:+}'
     if on_po_delta: deltas['on_po'] = f'{on_po_delta:+}'
     if on_wo_delta: deltas['on_wo'] = f'{on_wo_delta:+}'
-    if on_p_delta: deltas['on_p'] = f'{on_p_delta:+}'
+    if on_p_delta: deltas['on_qt'] = f'{on_p_delta:+}'
     if on_in_delta: deltas['on_in'] = f'{on_in_delta:+}'
     if on_r_delta: deltas['on_r'] = f'{on_r_delta:+}'
     if on_hand_delta: deltas['on_hand'] = f'{on_hand_delta:+}'

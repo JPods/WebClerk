@@ -11,7 +11,7 @@ class IssueVsReservationTests(TestCase):
 
     def setUp(self):
         self.item = Item.objects.create(name='TestItem', quantity={
-            'on_hand': 100, 'available': 100, 'on_so': 0, 'on_po': 0, 'on_p': 0,
+            'on_hand': 100, 'available': 100, 'on_so': 0, 'on_po': 0, 'on_qt': 0,
         })
         self.wh = Warehouse.objects.create(name='Main', code='MAIN')
         self.stack = InventoryLayer.objects.create(

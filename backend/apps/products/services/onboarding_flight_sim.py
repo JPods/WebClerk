@@ -295,7 +295,7 @@ def get_first_item_scenario() -> Dict[str, Any]:
                     'on_hand': 100,
                     'on_so': 0,
                     'on_po': 0,
-                    'on_p': 0,
+                    'on_qt': 0,
                     'on_wo': 0,
                     'available': 100,
                 },
@@ -315,7 +315,7 @@ def get_first_item_scenario() -> Dict[str, Any]:
                 '| on_hand   | Physically in warehouse | Invoice (down), Receipt (up) |\n'
                 '| on_so     | Committed to sales orders | Order (up), Invoice (down) |\n'
                 '| on_po     | On order from vendors | PO (up), Receipt (down) |\n'
-                '| on_p      | On quotes (quotes) | Quote (up), Convert (down) |\n'
+                '| on_qt      | On quotes (quotes) | Quote (up), Convert (down) |\n'
                 '| on_wo     | On work orders | WO (up), Complete (down) |\n'
                 '| available | on_hand - allocated | Computed |\n\n'
                 'Quotes DON\'T reduce available (they\'re just quotes). '
@@ -364,7 +364,7 @@ def get_first_sale_scenario() -> Dict[str, Any]:
             'model': 'quote',
             'qty': 15,
             'expected_quantity_change': {
-                'on_p': '+15',
+                'on_qt': '+15',
                 'on_hand': '100 (unchanged)',
                 'available': '100 (unchanged)',
             },
@@ -372,7 +372,7 @@ def get_first_sale_scenario() -> Dict[str, Any]:
                 'A Quote is a quote — a conversation with the customer about what '
                 'they might buy. It is NOT a commitment.\n\n'
                 'What happens when you save the quote line:\n'
-                '• on_p increases by 15 (we\'re quoting 15 units)\n'
+                '• on_qt increases by 15 (we\'re quoting 15 units)\n'
                 '• on_hand stays at 100 (nothing moved)\n'
                 '• available stays at 100 (quotes don\'t allocate)\n'
                 '• NO GL entries (a quote has no financial weight)\n'
@@ -397,7 +397,7 @@ def get_first_sale_scenario() -> Dict[str, Any]:
             'model': 'order',
             'qty': 9,
             'expected_quantity_change': {
-                'on_p': '15 → 6 (−9)',
+                'on_qt': '15 → 6 (−9)',
                 'on_so': '0 → 9 (+9)',
                 'on_hand': '100 (unchanged)',
                 'available': '100 → 91 (−9)',
@@ -409,7 +409,7 @@ def get_first_sale_scenario() -> Dict[str, Any]:
                 '3. Reduces the quote line to 6 remaining\n'
                 '4. Creates Pending records for the quantity changes\n\n'
                 'Quantity changes:\n'
-                '• on_p: 15 → 6 (9 units moved from quote to order)\n'
+                '• on_qt: 15 → 6 (9 units moved from quote to order)\n'
                 '• on_so: 0 → 9 (9 units committed to this sales order)\n'
                 '• available: 100 → 91 (orders ALLOCATE — these 9 are spoken for)\n'
                 '• on_hand: still 100 (nothing has physically moved)\n\n'
@@ -431,7 +431,7 @@ def get_first_sale_scenario() -> Dict[str, Any]:
                 '• 1 line: qqBB200 × 9 at $10.00 = $90.00\n'
                 '• Status: planned or released\n\n'
                 'Check the left panel quantities:\n'
-                '• on_hand = 100, on_so = 9, on_p = 6, available = 91\n\n'
+                '• on_hand = 100, on_so = 9, on_qt = 6, available = 91\n\n'
                 'This order is ready to invoice (ship).'
             ),
             'action': 'review_order',
@@ -440,7 +440,7 @@ def get_first_sale_scenario() -> Dict[str, Any]:
                 'name': 'Your First Sale Complete',
                 'summary': (
                     'You created a quote for 15 units, converted 9 to an order. '
-                    'The customer has 9 units committed (on_so=9), 6 still quoted (on_p=6), '
+                    'The customer has 9 units committed (on_so=9), 6 still quoted (on_qt=6), '
                     'and 91 units available for other customers.\n\n'
                     'Next: run the "Inventory Quantity Tracking" flight sim to continue '
                     'this order through invoicing, purchasing, and receiving.'

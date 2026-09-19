@@ -5,7 +5,7 @@ End-to-end test:
   1. Create customer with rep assignment
   2. Create quote with lines for item 308
   3. Populate commission on quote
-  4. Convert quote → order (commission flows forward, on_p → on_so)
+  4. Convert quote → order (commission flows forward, on_qt → on_so)
   5. Convert order → invoice (on_so → on_hand)
   6. Journalize invoice (GL entries + commission accrual)
   7. Apply cash to invoice

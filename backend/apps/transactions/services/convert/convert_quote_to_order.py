@@ -208,7 +208,7 @@ def transfer_quote_to_order(
     # Quote lines are NOT modified here. They are only copied.
     # When the user saves the order:
     #   1. OrderLine records are created → each fires on_so pending
-    #   2. OrderLine tells QuoteLine how to adjust → QuoteLine saves → fires on_p pending
+    #   2. OrderLine tells QuoteLine how to adjust → QuoteLine saves → fires on_qt pending
 
     return {
         "success": True,

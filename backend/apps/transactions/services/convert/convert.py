@@ -254,17 +254,17 @@ def _apply_inventory_adjustments(
     """Apply inventory adjustments through the ONE PATH (Pending).
 
     Inventory bucket semantics:
-      on_p    = quote forecast
+      on_qt    = quote forecast
       on_so   = sales order commitment
       on_po   = purchase order commitment
       on_hand = physical inventory
       on_in   = invoiced (shipped)
 
     Conversion impacts:
-      quote → order:   on_p -= qty,  on_so += qty
+      quote → order:   on_qt -= qty,  on_so += qty
       order → invoice:    on_so -= qty, on_hand -= qty
       order → purchase:   on_po += qty
-      quote → invoice: on_p -= qty,  on_hand -= qty
+      quote → invoice: on_qt -= qty,  on_hand -= qty
     """
     from apps.core.models import Pending
 
@@ -276,14 +276,14 @@ def _apply_inventory_adjustments(
     # Do NOT double-count by adjusting both here.
     adjustments_map = {
         ("quote", "order"): [
-            {"field": "on_p", "sign": -1},
+            {"field": "on_qt", "sign": -1},
         ],
         ("order", "invoice"): [
             {"field": "on_so", "sign": -1},
         ],
         ("order", "purchase"): [],  # no source bucket to release
         ("quote", "invoice"): [
-            {"field": "on_p", "sign": -1},
+            {"field": "on_qt", "sign": -1},
         ],
     }
 
@@ -550,7 +550,7 @@ def convert_quote_to_order(
     """Convert a Quote (or selected lines) to an Order.
 
     Commission set on the quote flows forward to the order unchanged.
-    Inventory: on_p -= qty, on_so += qty per line.
+    Inventory: on_qt -= qty, on_so += qty per line.
 
     Args:
         quote_id: PK of the source Quote
@@ -652,7 +652,7 @@ def convert_quote_to_invoice(
     """Convert a Quote directly to an Invoice (over-the-counter sale).
 
     Skips the Order stage. Commission flows forward from quote.
-    Inventory: on_p -= qty, on_hand -= qty per line.
+    Inventory: on_qt -= qty, on_hand -= qty per line.
 
     Args:
         quote_id: PK of the source Quote

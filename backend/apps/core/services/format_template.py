@@ -222,7 +222,7 @@ def _get_json_subfields(model_name: str, field_name: str) -> List[str]:
                   'wholesale', 'distributor', 'sample', 'currency'],
         'cost': ['unit', 'extended', 'standard', 'avg', 'last'],
         'quantity': ['staged', 'active', 'remaining', 'received', 'shipped',
-                     'on_hand', 'on_so', 'on_po', 'on_p', 'available'],
+                     'on_hand', 'on_so', 'on_po', 'on_qt', 'available'],
         'item': ['item_id', 'ida_item', 'description', 'unit_measure'],
         'tax': ['rate', 'amount', 'jurisdiction', 'taxable_amount'],
         'physical': ['weight', 'dimensions', 'packages'],

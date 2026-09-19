@@ -31,7 +31,7 @@ interface TransactionRow {
   type: "item" | "quote_line" | "order_line" | "invoice_line" | "purchase_line" | "workorder_line" | "pending";
   label: string;
   on_hand: number | string;
-  on_p: number | string;
+  on_qt: number | string;
   on_so: number | string;
   on_po: number | string;
   on_wo: number | string;
@@ -120,7 +120,7 @@ const SIMULATIONS: SimulationDef[] = [
   {
     id: "first-sale",
     label: "3. Your First Sale",
-    description: "Create a Quote for 15 units, convert 9 to an Order — watch on_p and on_so change",
+    description: "Create a Quote for 15 units, convert 9 to an Order — watch on_qt and on_so change",
     needsItem: true,
     firstModel: "quote",
   },
@@ -229,11 +229,11 @@ const SectionRefresh: React.FC<{ onClick: () => void; loading: boolean }> = ({ o
 /*  Column definitions for transaction array                           */
 /* ------------------------------------------------------------------ */
 
-const QUANTITY_FIELDS = ["on_hand", "on_p", "on_so", "on_po", "on_wo", "available"] as const;
+const QUANTITY_FIELDS = ["on_hand", "on_qt", "on_so", "on_po", "on_wo", "available"] as const;
 
 const QUANTITY_LABELS: Record<string, string> = {
   on_hand: "On Hand",
-  on_p: "On Prop",
+  on_qt: "On Prop",
   on_so: "On SO",
   on_po: "On PO",
   on_wo: "On WO",
@@ -259,7 +259,7 @@ function transformRows(data: any): TransactionRow[] {
       type: row.type,
       label: row.label,
       on_hand: row.values?.on_hand ?? "",
-      on_p: row.values?.on_p ?? "",
+      on_qt: row.values?.on_qt ?? "",
       on_so: row.values?.on_so ?? "",
       on_po: row.values?.on_po ?? "",
       on_wo: row.values?.on_wo ?? "",
@@ -551,13 +551,13 @@ const FlightSimConsole: React.FC = () => {
           setRightModel('setting');
           setRightRecordId(rec.id);
           setRows([
-            { id: 'company', type: 'item' as const, label: 'Company Name & Address', on_hand: rec.config?.company?.name ? '✓' : '—', on_p: '', on_so: '', on_po: '', on_wo: '', available: '', gl_summary: 'config.company' },
-            { id: 'ship_to', type: 'item' as const, label: 'Ship-To Address', on_hand: rec.config?.company?.address_ship_to?.street1 ? '✓' : '—', on_p: '', on_so: '', on_po: '', on_wo: '', available: '', gl_summary: 'config.company.address_ship_to' },
-            { id: 'logos', type: 'item' as const, label: 'Logos', on_hand: rec.config?.logos?.primary ? '✓' : '—', on_p: '', on_so: '', on_po: '', on_wo: '', available: '', gl_summary: 'config.logos' },
-            { id: 'documents', type: 'item' as const, label: 'Document Templates', on_hand: rec.config?.documents?.invoice_template ? '✓' : '—', on_p: '', on_so: '', on_po: '', on_wo: '', available: '', gl_summary: 'config.documents' },
-            { id: 'print', type: 'item' as const, label: 'Print Defaults', on_hand: rec.config?.print_defaults?.paper_size ? '✓' : '—', on_p: '', on_so: '', on_po: '', on_wo: '', available: '', gl_summary: 'config.print_defaults' },
-            { id: 'receivables', type: 'item' as const, label: 'Receivables & Statements', on_hand: rec.config?.receivables?.finance_charge_pct !== undefined ? '✓' : '—', on_p: '', on_so: '', on_po: '', on_wo: '', available: '', gl_summary: 'config.receivables' },
-            { id: 'accounting', type: 'item' as const, label: 'Accounting Integration', on_hand: rec.config?.accounting?.package ? '✓' : '—', on_p: '', on_so: '', on_po: '', on_wo: '', available: '', gl_summary: 'config.accounting' },
+            { id: 'company', type: 'item' as const, label: 'Company Name & Address', on_hand: rec.config?.company?.name ? '✓' : '—', on_qt: '', on_so: '', on_po: '', on_wo: '', available: '', gl_summary: 'config.company' },
+            { id: 'ship_to', type: 'item' as const, label: 'Ship-To Address', on_hand: rec.config?.company?.address_ship_to?.street1 ? '✓' : '—', on_qt: '', on_so: '', on_po: '', on_wo: '', available: '', gl_summary: 'config.company.address_ship_to' },
+            { id: 'logos', type: 'item' as const, label: 'Logos', on_hand: rec.config?.logos?.primary ? '✓' : '—', on_qt: '', on_so: '', on_po: '', on_wo: '', available: '', gl_summary: 'config.logos' },
+            { id: 'documents', type: 'item' as const, label: 'Document Templates', on_hand: rec.config?.documents?.invoice_template ? '✓' : '—', on_qt: '', on_so: '', on_po: '', on_wo: '', available: '', gl_summary: 'config.documents' },
+            { id: 'print', type: 'item' as const, label: 'Print Defaults', on_hand: rec.config?.print_defaults?.paper_size ? '✓' : '—', on_qt: '', on_so: '', on_po: '', on_wo: '', available: '', gl_summary: 'config.print_defaults' },
+            { id: 'receivables', type: 'item' as const, label: 'Receivables & Statements', on_hand: rec.config?.receivables?.finance_charge_pct !== undefined ? '✓' : '—', on_qt: '', on_so: '', on_po: '', on_wo: '', available: '', gl_summary: 'config.receivables' },
+            { id: 'accounting', type: 'item' as const, label: 'Accounting Integration', on_hand: rec.config?.accounting?.package ? '✓' : '—', on_qt: '', on_so: '', on_po: '', on_wo: '', available: '', gl_summary: 'config.accounting' },
           ]);
         }
         setLoading(false);

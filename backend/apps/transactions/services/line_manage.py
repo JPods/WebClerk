@@ -126,7 +126,7 @@ def _is_exec_transaction(transaction_type: str) -> bool:
 # -----------------------------------------------------------------------------
 PENDING_TYPE_MAP = {
     'order': 'SO',
-    'quote': 'PP',  # Quotes don't affect inventory until converted
+    'quote': 'QT',  # Quotes don't affect inventory until converted
     'invoice': 'IN',
     'receipt': 'RC',
     'purchase': 'PO',
@@ -150,7 +150,7 @@ def _should_track_inventory(transaction_type: str) -> bool:
     """
     Determine if a transaction type should create pending inventory records.
     
-    Quotes track on_p (forecast bucket) - qty times probability.
+    Quotes track on_qt (forecast bucket) - qty times probability.
     Sales Orders reserve inventory (qtyOnSO).
     Invoices issue inventory (qtyOnHand decreases).
     Purchase Orders reserve incoming (qtyOnPO).
@@ -162,7 +162,7 @@ def _should_track_inventory(transaction_type: str) -> bool:
 
 
 def _is_quote(transaction_type: str) -> bool:
-    """Check if transaction type is a quote (tracks on_p forecast bucket)."""
+    """Check if transaction type is a quote (tracks on_qt forecast bucket)."""
     kind = _normalize_line_kind(transaction_type)
     return kind == 'quote'
 

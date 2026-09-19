@@ -93,7 +93,7 @@ Each Pending record's `data` JSON contains:
     "on_so": -3.0,                      # release SO commitment (transfer)
     "on_po": 0, "on_wo": 0,
     "on_in": 3.0,                       # invoice add
-    "on_r": 0, "on_p": 0,
+    "on_r": 0, "on_qt": 0,
     "on_hand": -3.0,                    # deduct on_hand (transfer)
     # Pricing snapshot
     "unit_cost": 345.6,

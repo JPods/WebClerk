@@ -5,8 +5,8 @@ Shows how quantities, pending records, and GL entries change at each
 stage of a transaction lifecycle. The user walks through:
 
   1. Starting inventory (item with on_hand=100)
-  2. Add Quote for 15 units → on_p changes, NO GL
-  3. Convert 9 to Order → on_p decreases, on_so increases, pending created, NO GL
+  2. Add Quote for 15 units → on_qt changes, NO GL
+  3. Convert 9 to Order → on_qt decreases, on_so increases, pending created, NO GL
   4. Create Invoice for 4 → on_so decreases, on_hand decreases, GL: AR/Revenue/COGS/Inventory + Tax + Commission
   5. Create Purchase for 14 → on_po increases, NO GL
   6. Receive 11 from Purchase → on_po decreases, on_hand increases, GL: Inventory/AP
@@ -136,7 +136,7 @@ def reset_flight_simulator(item_ida: str) -> Dict[str, Any]:
 
     # Reset item quantity
     item.quantity = {
-        'on_p': 0, 'on_po': 0, 'on_so': 0, 'on_wo': 0,
+        'on_qt': 0, 'on_po': 0, 'on_so': 0, 'on_wo': 0,
         'on_hand': 100, 'allocated': 0, 'available': 100,
     }
     item.save(update_fields=['quantity'])
@@ -189,7 +189,7 @@ def get_flight_transactions(item_id: int, since: Optional[int] = None) -> Dict[s
     # Displayed columns. 'allocated' is carried in the running state (no pending
     # delta touches it) because the production availability formula needs it —
     # it is not displayed.
-    COLUMNS = ['on_hand', 'on_so', 'on_po', 'on_p', 'on_wo', 'available']
+    COLUMNS = ['on_hand', 'on_so', 'on_po', 'on_qt', 'on_wo', 'available']
     STATE_COLUMNS = COLUMNS + ['allocated']
 
     Item = dj_apps.get_model('products', 'Item')
@@ -640,7 +640,7 @@ def get_item_flight_state(item_id: int) -> Dict[str, Any]:
             'on_hand': _dec(quantity.get('on_hand', 0)),
             'on_so': _dec(quantity.get('on_so', 0)),
             'on_po': _dec(quantity.get('on_po', 0)),
-            'on_p': _dec(quantity.get('on_p', 0)),
+            'on_qt': _dec(quantity.get('on_qt', 0)),
             'on_wo': _dec(quantity.get('on_wo', 0)),
             'allocated': _dec(quantity.get('allocated', 0)),
             'available': _dec(quantity.get('available', 0)),
@@ -705,7 +705,7 @@ def get_flight_scenario() -> Dict[str, Any]:
             'instruction': 'Select an item with on_hand = 100, price = $10.00, cost = $6.00',
             'action': None,
             'expected_quantity': {
-                'on_hand': 100, 'on_so': 0, 'on_po': 0, 'on_p': 0,
+                'on_hand': 100, 'on_so': 0, 'on_po': 0, 'on_qt': 0,
                 'allocated': 0, 'available': 100,
             },
             'expected_gl': [],
@@ -718,11 +718,11 @@ def get_flight_scenario() -> Dict[str, Any]:
             'action': 'create_quote_line',
             'qty': 15,
             'expected_quantity': {
-                'on_hand': 100, 'on_so': 0, 'on_po': 0, 'on_p': 15,
+                'on_hand': 100, 'on_so': 0, 'on_po': 0, 'on_qt': 15,
                 'allocated': 0, 'available': 100,
             },
             'expected_gl': [],
-            'explanation': 'Quote reserves 15 units (on_p=15). No GL impact — a quote is just a quote. Available stays 100 because quotes don\'t allocate.',
+            'explanation': 'Quote reserves 15 units (on_qt=15). No GL impact — a quote is just a quote. Available stays 100 because quotes don\'t allocate.',
         },
         {
             'step': 3,
@@ -731,12 +731,12 @@ def get_flight_scenario() -> Dict[str, Any]:
             'action': 'create_order_from_quote',
             'qty': 9,
             'expected_quantity': {
-                'on_hand': 100, 'on_so': 9, 'on_po': 0, 'on_p': 6,
+                'on_hand': 100, 'on_so': 9, 'on_po': 0, 'on_qt': 6,
                 'allocated': 9, 'available': 91,
             },
             'expected_pending': [
                 {'purpose': 'on_so', 'delta': '+9'},
-                {'purpose': 'on_p', 'delta': '-9'},
+                {'purpose': 'on_qt', 'delta': '-9'},
             ],
             'expected_gl': [],
             'explanation': 'Order commits 9 units (on_so=9). Quote drops to 6 remaining. Available drops to 91 (100 - 9 allocated). Pending records track the movement. Still NO GL impact — an order is a commitment, not a financial event.',
@@ -748,7 +748,7 @@ def get_flight_scenario() -> Dict[str, Any]:
             'action': 'create_invoice_from_order',
             'qty': 4,
             'expected_quantity': {
-                'on_hand': 96, 'on_so': 5, 'on_po': 0, 'on_p': 6,
+                'on_hand': 96, 'on_so': 5, 'on_po': 0, 'on_qt': 6,
                 'allocated': 5, 'available': 91,
             },
             'expected_pending': [
@@ -789,7 +789,7 @@ def get_flight_scenario() -> Dict[str, Any]:
             'action': 'create_purchase',
             'qty': 14,
             'expected_quantity': {
-                'on_hand': 96, 'on_so': 5, 'on_po': 14, 'on_p': 6,
+                'on_hand': 96, 'on_so': 5, 'on_po': 14, 'on_qt': 6,
                 'allocated': 5, 'available': 91,
             },
             'expected_pending': [
@@ -805,7 +805,7 @@ def get_flight_scenario() -> Dict[str, Any]:
             'action': 'receive_purchase',
             'qty': 11,
             'expected_quantity': {
-                'on_hand': 107, 'on_so': 5, 'on_po': 3, 'on_p': 6,
+                'on_hand': 107, 'on_so': 5, 'on_po': 3, 'on_qt': 6,
                 'allocated': 5, 'available': 102,
             },
             'expected_pending': [
@@ -898,7 +898,7 @@ def get_flight_scenario() -> Dict[str, Any]:
             'qty': 1,
             'section': 'Reverse Flow',
             'expected_quantity': {
-                'on_hand': 108, 'on_so': 5, 'on_po': 3, 'on_p': 6,
+                'on_hand': 108, 'on_so': 5, 'on_po': 3, 'on_qt': 6,
                 'allocated': 5, 'available': 103,
             },
             'expected_pending': [
@@ -934,7 +934,7 @@ def get_flight_scenario() -> Dict[str, Any]:
             'qty': 1,
             'section': 'Reverse Flow',
             'expected_quantity': {
-                'on_hand': 107, 'on_so': 5, 'on_po': 3, 'on_p': 6,
+                'on_hand': 107, 'on_so': 5, 'on_po': 3, 'on_qt': 6,
                 'allocated': 5, 'available': 102,
             },
             'expected_pending': [
@@ -1009,11 +1009,11 @@ def get_flight_scenario() -> Dict[str, Any]:
             'qty': 6,
             'section': 'Cleanup',
             'expected_quantity': {
-                'on_hand': 107, 'on_so': 5, 'on_po': 3, 'on_p': 0,
+                'on_hand': 107, 'on_so': 5, 'on_po': 3, 'on_qt': 0,
                 'allocated': 5, 'available': 102,
             },
             'expected_pending': [
-                {'purpose': 'on_p', 'delta': '-6'},
+                {'purpose': 'on_qt', 'delta': '-6'},
             ],
             'expected_gl': [],
             'explanation': (
@@ -1033,7 +1033,7 @@ def get_flight_scenario() -> Dict[str, Any]:
                 'summary': 'All orphans cleared. Books are clean: on_hand=107, available=107, no open commitments.',
             },
             'expected_quantity': {
-                'on_hand': 107, 'on_so': 0, 'on_po': 0, 'on_p': 0,
+                'on_hand': 107, 'on_so': 0, 'on_po': 0, 'on_qt': 0,
                 'allocated': 0, 'available': 107,
             },
             'expected_pending': [

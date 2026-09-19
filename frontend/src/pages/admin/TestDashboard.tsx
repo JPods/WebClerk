@@ -218,7 +218,7 @@ export default function TestDashboard() {
         }
       }
 
-      // Quote lines → on_p increase
+      // Quote lines → on_qt increase
       const propLines1 = await getRecords('quote_line', { item_fk: itemId, dt_created__gte: periodStart, limit: 50 }) as any;
       const propLines2 = await getRecords('quote_line', { item__item_id: itemId, dt_created__gte: periodStart, limit: 50 }) as any;
       const propLineIds = new Set<number>();
@@ -229,7 +229,7 @@ export default function TestDashboard() {
           const parentId = l.quote_id || l.quote;
           let parentIda = '';
           try { const p = await getRecord('quote', parentId) as any; parentIda = p?.record?.ida || `#${parentId}`; } catch { /* no-op */ }
-          impactList.push({ type: 'quote_line', id: l.id, parentModel: 'quote', parentId, parentIda, lineNumber: l.line_number, qtyField: 'on_p', qtyDelta: qty, description: `Quoted ${qty} → on_p +${qty}`, dt: l.dt_created });
+          impactList.push({ type: 'quote_line', id: l.id, parentModel: 'quote', parentId, parentIda, lineNumber: l.line_number, qtyField: 'on_qt', qtyDelta: qty, description: `Quoted ${qty} → on_qt +${qty}`, dt: l.dt_created });
         }
       }
 
@@ -411,7 +411,7 @@ export default function TestDashboard() {
                 { key: 'on_hand', label: 'On Hand', color: 'blue' },
                 { key: 'on_po', label: 'On PO', color: 'purple' },
                 { key: 'on_so', label: 'On SO', color: 'green' },
-                { key: 'on_p', label: 'On Quote', color: 'yellow' },
+                { key: 'on_qt', label: 'On Quote', color: 'yellow' },
                 { key: 'available', label: 'Available', color: 'emerald' },
               ].map(({ key, label, color }) => (
                 <div key={key} className={`text-center p-3 rounded-lg border border-${color}-200 dark:border-${color}-800 bg-${color}-50 dark:bg-${color}-900/20`}>
@@ -455,7 +455,7 @@ export default function TestDashboard() {
                     <th className="py-2 pr-2 text-gray-500">Line#</th>
                     <th className="py-2 pr-2 text-gray-500">Impact</th>
                     <th className="py-2 pr-2 text-gray-500 text-center">on_hand</th>
-                    <th className="py-2 pr-2 text-gray-500 text-center">on_p</th>
+                    <th className="py-2 pr-2 text-gray-500 text-center">on_qt</th>
                     <th className="py-2 pr-2 text-gray-500 text-center">on_so</th>
                     <th className="py-2 pr-2 text-gray-500 text-center">on_po</th>
                     <th className="py-2 text-gray-500">When</th>
@@ -495,11 +495,11 @@ export default function TestDashboard() {
                       </td>
                       <td className="py-2 pr-2 text-gray-600 text-center">{imp.lineNumber ?? '—'}</td>
                       <td className="py-2 pr-2 text-gray-600">{imp.description}</td>
-                      {['on_hand', 'on_p', 'on_so', 'on_po'].map((col) => {
+                      {['on_hand', 'on_qt', 'on_so', 'on_po'].map((col) => {
                         // Determine delta per column based on transaction type
                         let delta = 0;
                         const qty = Math.abs(imp.qtyDelta);
-                        if (imp.type === 'quote_line')    { if (col === 'on_p') delta = qty; }
+                        if (imp.type === 'quote_line')    { if (col === 'on_qt') delta = qty; }
                         else if (imp.type === 'order_line')  { if (col === 'on_so') delta = qty; }
                         else if (imp.type === 'purchase_line') { if (col === 'on_po') delta = qty; }
                         else if (imp.type === 'invoice_line') { if (col === 'on_hand') delta = -qty; if (col === 'on_so') delta = -qty; }
@@ -592,7 +592,7 @@ export default function TestDashboard() {
                 </tr>
                 <tr className="border-b border-gray-100 dark:border-gray-800">
                   <td className="py-2 font-medium">On Quote</td>
-                  <td className="py-2 text-right font-mono">{q.on_p ?? '—'}</td>
+                  <td className="py-2 text-right font-mono">{q.on_qt ?? '—'}</td>
                   <td className="py-2 pl-4 text-gray-500">Quoted − transferred to order</td>
                 </tr>
                 <tr>

@@ -49,7 +49,7 @@ KEY FRONTEND PATTERNS:
 TRANSACTION FLOW:
 - Quotes → Orders → Invoices (with line-level Pending inventory tracking)
 - Collect-then-Create pattern: save all lines first, then batch-create Pending records
-- Pending types: SO (sales order), IN (invoice), PO (purchase), PP (purchase cash), WO (work order)
+- Pending types: SO (sales order), IN (invoice), PO (purchase), QT (quote), WO (work order)
 
 DATABASE:
 - PostgreSQL on Render (remote), connection via DATABASE_URL

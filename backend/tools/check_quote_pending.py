@@ -36,4 +36,4 @@ print(f'Quote pending records (PP type): {pending_pp.count()}')
 for p in pending_pp:
     data = p.data or {}
     print(f'  [{p.pk}] {p.purpose}: item_id={data.get("item_id")}, processed={p.dt_processed}')
-    print(f'       on_p={data.get("on_p", "N/A")}, qty_delta={data.get("quantity_delta", "N/A")}')
+    print(f'       on_qt={data.get("on_qt", "N/A")}, qty_delta={data.get("quantity_delta", "N/A")}')

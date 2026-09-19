@@ -13,7 +13,7 @@ pytestmark = pytest.mark.django_db
 def make_item_and_stack(qty=10):
     item = Item.objects.create(name="Metrics Item", quantity={
         'on_hand': float(qty), 'available': float(qty),
-        'on_so': 0, 'on_po': 0, 'on_p': 0,
+        'on_so': 0, 'on_po': 0, 'on_qt': 0,
     })
     wh = Warehouse.objects.create(name="WH", code=f"W{item.id}")
     stack = InventoryLayer.objects.create(
@@ -28,11 +28,11 @@ def test_pending_applies_on_create():
     p = Pending.objects.create(
         model_name='item', record_id=str(item.pk),
         purpose='inventory_line_add', name='Test',
-        changes={'on_p': 3, 'item_id': item.pk},
+        changes={'on_qt': 3, 'item_id': item.pk},
     )
     assert p.is_processed()
     item.refresh_from_db()
-    assert item.quantity.get('on_p') == 3
+    assert item.quantity.get('on_qt') == 3
 
 
 def test_celery_fallback_processes():

@@ -8,7 +8,7 @@ Tracks item.quantity fields:
   - available:  on_hand - allocated
   - on_so:      On Sales Order (pending orders)
   - on_po:      On Purchase Order (incoming)
-  - on_p:       On Quote (quotes)
+  - on_qt:       On Quote (quotes)
   - on_r:       On Receipt (informational - tracks qty received)
   - on_in:      On Invoice (informational - tracks qty invoiced)
   - on_wo:      On Work Order (manufacturing)
@@ -61,7 +61,7 @@ ITEM_ID = 240
 LOG_DIR = PROJECT_ROOT / 'logs' / 'inventory_tests'
 
 # All quantity keys we track from item.quantity JSON field
-QUANTITY_KEYS = ['on_hand', 'allocated', 'available', 'on_so', 'on_po', 'on_p', 'on_r', 'on_in', 'on_wo']
+QUANTITY_KEYS = ['on_hand', 'allocated', 'available', 'on_so', 'on_po', 'on_qt', 'on_r', 'on_in', 'on_wo']
 
 
 def get_daily_log_paths():
@@ -403,7 +403,7 @@ def print_status():
     print(f"  {'available':<15} {snapshot.get('qty_available', 0):>12.2f}  on_hand - allocated")
     print(f"  {'on_so':<15} {snapshot.get('qty_on_so', 0):>12.2f}  On Sales Orders")
     print(f"  {'on_po':<15} {snapshot.get('qty_on_po', 0):>12.2f}  On Purchase Orders")
-    print(f"  {'on_p':<15} {snapshot.get('qty_on_p', 0):>12.2f}  On Quotes")
+    print(f"  {'on_qt':<15} {snapshot.get('qty_on_p', 0):>12.2f}  On Quotes")
     print(f"  {'on_r':<15} {snapshot.get('qty_on_r', 0):>12.2f}  On Receipts (informational)")
     print(f"  {'on_in':<15} {snapshot.get('qty_on_in', 0):>12.2f}  On Invoices (informational)")
     print(f"  {'on_wo':<15} {snapshot.get('qty_on_wo', 0):>12.2f}  On Work Orders")
@@ -467,7 +467,7 @@ def print_history():
             print(f"    Pending Created: #{pc.get('id')} purpose={pc.get('purpose')} data={pc.get('data')}")
         
         snap = event['snapshot']
-        print(f"    Quantities: on_hand={snap.get('qty_on_hand', 0):.1f}, on_so={snap.get('qty_on_so', 0):.1f}, on_po={snap.get('qty_on_po', 0):.1f}, on_p={snap.get('qty_on_p', 0):.1f}")
+        print(f"    Quantities: on_hand={snap.get('qty_on_hand', 0):.1f}, on_so={snap.get('qty_on_so', 0):.1f}, on_po={snap.get('qty_on_po', 0):.1f}, on_qt={snap.get('qty_on_p', 0):.1f}")
         print(f"                allocated={snap.get('qty_allocated', 0):.1f}, available={snap.get('qty_available', 0):.1f}, on_in={snap.get('qty_on_in', 0):.1f}")
         
         # Show unapplied pending summary
@@ -651,7 +651,7 @@ def create_quote(quantity: float):
     print(f"  Quantity: {quantity}")
     if pending_info:
         print(f"  Pending Record Created: #{pending_info['id']} purpose={pending_info['purpose']}")
-    print(f"  NOTE: Run 'process_pending' to update item.quantity.on_p")
+    print(f"  NOTE: Run 'process_pending' to update item.quantity.on_qt")
     print_status()
     
     return quote, line

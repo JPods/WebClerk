@@ -12,7 +12,7 @@ class PendingInventoryTests(TestCase):
 
     def setUp(self):
         self.item = Item.objects.create(name='TestItem', quantity={
-            'on_hand': 100, 'available': 100, 'on_so': 0, 'on_po': 0, 'on_p': 0,
+            'on_hand': 100, 'available': 100, 'on_so': 0, 'on_po': 0, 'on_qt': 0,
         })
         self.wh = Warehouse.objects.create(name='Main', code='MAIN')
 
@@ -21,11 +21,11 @@ class PendingInventoryTests(TestCase):
         p = Pending.objects.create(
             model_name='item', record_id=str(self.item.pk),
             purpose='inventory_line_add', name='Test',
-            changes={'on_p': 15, 'item_id': self.item.pk},
+            changes={'on_qt': 15, 'item_id': self.item.pk},
         )
         self.assertTrue(p.is_processed())
         self.item.refresh_from_db()
-        self.assertEqual(self.item.quantity.get('on_p'), 15)
+        self.assertEqual(self.item.quantity.get('on_qt'), 15)
 
     def test_pending_queues_when_locked(self):
         """Pending.save() calls try_apply() — item locked → stays pending for celery."""
