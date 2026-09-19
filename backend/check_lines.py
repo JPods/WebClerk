@@ -5,17 +5,17 @@ import os
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webclerk3_api.settings')
 django.setup()
 
-from apps.transactions.models import ProposalLine, OrderLine, InvoiceLine, PurchaseLine
+from apps.transactions.models import QuoteLine, OrderLine, InvoiceLine, PurchaseLine
 from django.db import connection
 
 print('=== RECENT LINES FOR ITEM 259 ===')
 
 # Use raw SQL to check what columns exist
 with connection.cursor() as cursor:
-    # Check proposal_lines columns
-    cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'proposal_lines' AND column_name LIKE 'proposal%'")
+    # Check quote_lines columns
+    cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'quote_lines' AND column_name LIKE 'quote%'")
     cols = cursor.fetchall()
-    print(f'\nproposal_lines FK columns: {[c[0] for c in cols]}')
+    print(f'\nquote_lines FK columns: {[c[0] for c in cols]}')
     
     # Check invoice_lines columns  
     cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'invoice_lines' AND column_name LIKE 'invoice%'")
@@ -56,15 +56,15 @@ try:
 except Exception as e:
     print(f'  Error: {e}')
 
-# Check proposal lines
-print('\n--- PROPOSAL LINES for item 259 ---')
+# Check quote lines
+print('\n--- QUOTE LINES for item 259 ---')
 try:
-    for line in ProposalLine.objects.order_by('-id')[:10]:
+    for line in QuoteLine.objects.order_by('-id')[:10]:
         item_data = line.item or {}
         item_id = item_data.get('item_id') or item_data.get('id')
         if item_id == 259:
             qty = (line.quantity or {}).get('placed', 0)
-            print(f'  #{line.pk}: proposal_id={line.proposal_id}, qty={qty}')
+            print(f'  #{line.pk}: quote_id={line.quote_id}, qty={qty}')
 except Exception as e:
     print(f'  Error: {e}')
 

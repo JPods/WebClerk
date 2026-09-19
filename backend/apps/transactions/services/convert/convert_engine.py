@@ -4,8 +4,8 @@ Routes all transfer scenarios through a single entry point and applies the
 correct quantity / lineage rules for each source→target combination.
 
 Three transfer modes:
-  1. Clone      — Proposal→Proposal: copy with quantities reset
-  2. Convert    — Proposal→Order/Invoice: increment-based partial transfer
+  1. Clone      — Quote→Quote: copy with quantities reset
+  2. Convert    — Quote→Order/Invoice: increment-based partial transfer
   3. Cross-type — Sell↔Purchase: full quantity copy, no customer
 
 See: readmes/topics/transactions/transaction_transfer.md
@@ -18,7 +18,7 @@ from django.db import transaction
 from django.db.models import Model
 
 from apps.transactions.models import (
-    Proposal, ProposalLine,
+    Quote, QuoteLine,
     Order, OrderLine,
     Invoice, InvoiceLine,
     Purchase, PurchaseLine,
@@ -49,13 +49,13 @@ def _sanitize_for_json(obj):
 # Registry — maps (source_type, target_type) to a transfer mode
 # ---------------------------------------------------------------------------
 
-SELL_TYPES = {"proposal", "order", "invoice"}
+SELL_TYPES = {"quote", "order", "invoice"}
 BUY_TYPES = {"purchase"}
 EXEC_TYPES = {"workorder"}
 ALL_TRANSFER_TYPES = SELL_TYPES | BUY_TYPES | EXEC_TYPES
 
 HEADER_MODELS: Dict[str, Type[Model]] = {
-    "proposal": Proposal,
+    "quote": Quote,
     "order":    Order,
     "invoice":  Invoice,
     "purchase": Purchase,
@@ -63,7 +63,7 @@ HEADER_MODELS: Dict[str, Type[Model]] = {
 }
 
 LINE_MODELS: Dict[str, Type[Model]] = {
-    "proposal": ProposalLine,
+    "quote": QuoteLine,
     "order":    OrderLine,
     "invoice":  InvoiceLine,
     "purchase": PurchaseLine,
@@ -72,7 +72,7 @@ LINE_MODELS: Dict[str, Type[Model]] = {
 
 # FK field name on the line model that points to the header
 LINE_FK_FIELD: Dict[str, str] = {
-    "proposal": "proposal",
+    "quote": "quote",
     "order":    "order",
     "invoice":  "invoice",
     "purchase": "purchase",
@@ -80,7 +80,7 @@ LINE_FK_FIELD: Dict[str, str] = {
 }
 
 DEFAULT_TARGET_STATUS: Dict[str, str] = {
-    "proposal": "planned",
+    "quote": "planned",
     "order":    "confirmed",
     "invoice":  "pending",
     "purchase": "open",
@@ -90,9 +90,9 @@ DEFAULT_TARGET_STATUS: Dict[str, str] = {
 
 def _get_transfer_mode(source_type: str, target_type: str) -> str:
     """Determine the transfer mode for a source→target pair."""
-    if source_type == "proposal" and target_type == "proposal":
+    if source_type == "quote" and target_type == "quote":
         return "clone"
-    # Same-type transfers (other than proposal clone) are not supported
+    # Same-type transfers (other than quote clone) are not supported
     if source_type == target_type:
         raise TransferError(
             f"Unsupported transfer: {source_type} → {target_type}"
@@ -143,7 +143,7 @@ def _convert_quantity(src_qty: Dict) -> Dict:
     if remaining == 0:
         return {}  # signal: skip this line
 
-    # increment applies to blanket lines only: a blanket proposal line releases to
+    # increment applies to blanket lines only: a blanket quote line releases to
     # orders in increment-sized pieces (Bill, 2026-09-17). Everything else transfers
     # what is left, in the direction the remaining points.
     if not src_qty.get("is_blanket", False) or increment == 0 or abs(increment) >= abs(remaining):
@@ -340,9 +340,9 @@ def execute_transfer(
     """Execute a transaction transfer.
 
     Args:
-        source_type:    "proposal", "order", "invoice", or "purchase"
+        source_type:    "quote", "order", "invoice", or "purchase"
         source_id:      PK of the source transaction
-        target_type:    "proposal", "order", "invoice", or "purchase"
+        target_type:    "quote", "order", "invoice", or "purchase"
         line_ids:       Specific line IDs to transfer (None = all)
         transfer_all:   If True and line_ids is None, transfer all lines
         preserve_source: If False, mark source as converted/fulfilled

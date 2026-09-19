@@ -86,7 +86,7 @@ _JSON_PATHS = {
             "totals.subtotal", "totals.total",
         ],
     },
-    "proposal": {
+    "quote": {
         "totals": [
             "totals.subtotal", "totals.tax", "totals.total",
         ],
@@ -122,7 +122,7 @@ _RELATED_FIELDS = {
     "purchase": {
         "vendor": ["company", "attention", "address_full", "phone", "email", "ida"],
     },
-    "proposal": {
+    "quote": {
         "customer": ["company", "attention", "address_full", "phone", "email", "ida"],
     },
     "workorder": {
@@ -179,7 +179,7 @@ _LINE_FIELDS = {
         {"field": "cost.unit", "label": "Unit Cost", "type": "money"},
         {"field": "cost.extended", "label": "Extended", "type": "money"},
     ],
-    "proposal_line": [
+    "quote_line": [
         {"field": "item.ida", "label": "Item #", "type": "text"},
         {"field": "item.name", "label": "Item Name", "type": "text"},
         {"field": "item.description", "label": "Description", "type": "text"},
@@ -194,7 +194,7 @@ _MODEL_TO_LINE = {
     "order": "order_line",
     "invoice": "invoice_line",
     "purchase": "purchase_line",
-    "proposal": "proposal_line",
+    "quote": "quote_line",
 }
 
 

@@ -382,7 +382,7 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
                       item: '/products/item/detail',
                       order: '/transactions/order/detail',
                       invoice: '/transactions/invoice/detail',
-                      proposal: '/transactions/proposal/detail',
+                      quote: '/transactions/quote/detail',
                       purchase: '/transactions/purchase/detail',
                       action: '/core/actions/detail',
                     };

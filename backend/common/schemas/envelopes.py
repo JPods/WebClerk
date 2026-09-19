@@ -445,14 +445,14 @@ class FinancialMetadataMixin(BaseModel):
 class NavPrefs(BaseModel):
     """Sidebar navigation customization."""
     models: list[str] = Field(default_factory=lambda: [
-        "contact", "customer", "proposal", "order", "invoice", "purchase"
+        "contact", "customer", "quote", "order", "invoice", "purchase"
     ])
     dashboards: list[str] = Field(default_factory=lambda: [
         "dashboard", "products", "transactions", "orgs", "administration",
         "kanban", "gantt", "alice", "databrowser"
     ])
     cards: list[str] = Field(default_factory=lambda: [
-        "order", "invoice", "proposal", "customer", "contact", "purchase"
+        "order", "invoice", "quote", "customer", "contact", "purchase"
     ])
 
 

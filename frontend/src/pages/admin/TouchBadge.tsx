@@ -41,7 +41,7 @@ async function fetchTouchSummary(model: string, recordId: number, contactId: num
   } else if (['customer', 'vendor', 'manufacturer', 'rep', 'employee'].includes(model)) {
     filter.org_id = recordId;
     filter.org_model = model;
-  } else if (['invoice', 'order', 'proposal', 'purchase', 'workorder', 'requisition'].includes(model)) {
+  } else if (['invoice', 'order', 'quote', 'purchase', 'workorder', 'requisition'].includes(model)) {
     // Transaction touches are linked via linkage_id
     filter.linkage_id = recordId;
   } else if (contactId) {

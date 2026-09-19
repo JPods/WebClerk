@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 # model _meta.model_name -> config.sequences key
 DOCUMENT_SEQUENCES = {
-    'proposal': 'proposal',
+    'quote': 'quote',
     'order': 'order',
     'invoice': 'invoice',
     'purchase': 'purchase',
@@ -41,7 +41,7 @@ TRAINING_SUFFIX = 'qq'
 
 # The standard sequences a new company profile starts with (config.sequences).
 DEFAULT_SEQUENCES = {
-    'proposal': {'tag': 'qt', 'pad': 4, 'next': 1001, 'format': '{number}-{tag}'},
+    'quote': {'tag': 'qt', 'pad': 4, 'next': 1001, 'format': '{number}-{tag}'},
     'order': {'tag': 'so', 'pad': 4, 'next': 1001, 'format': '{number}-{tag}'},
     'invoice': {'tag': 'inv', 'pad': 4, 'next': 1001, 'format': '{number}-{tag}'},
     'purchase': {'tag': 'po', 'pad': 4, 'next': 1001, 'format': '{number}-{tag}'},

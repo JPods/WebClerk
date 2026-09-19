@@ -51,7 +51,7 @@ def _resolve_parent_fk(LineModel, HeaderModel, model_key: str) -> str:
 CALC_TOLERANCE = Decimal("0.01")
 # Pending type codes — mirrors line_item_service._get_pending_type
 _PENDING_TYPE_MAP = {
-    'proposal': 'PP',
+    'quote': 'PP',
     'order': 'SO',
     'invoice': 'IN',
     'purchase': 'PO',
@@ -317,7 +317,7 @@ def _validate_transfer_quantities_and_inventory(
     """Validate transfer requests before creating/updating lines.
 
     Rules:
-    1) Parent-child pairs only (proposal->order, order->invoice; line_parent.PARENT_OF):
+    1) Parent-child pairs only (quote->order, order->invoice; line_parent.PARENT_OF):
        sum transferred qty per source line and block if request > source.remaining.
        Every other conversion is history and consumes nothing.
     2) Invoice only: block when required qty exceeds item available stock
@@ -919,7 +919,7 @@ def save_transaction_with_lines(
                 )
 
     # ── Phase 6: Erosion detection (invoice, order) ──────────────────
-    # Detects margin erosion vs ancestor proposals/orders and discount erosion.
+    # Detects margin erosion vs ancestor quotes/orders and discount erosion.
     if model_key in ('invoice', 'order'):
         try:
             from apps.accounts.services.value_erosion import detect_margin_erosion, detect_discount_erosion

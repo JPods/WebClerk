@@ -79,7 +79,7 @@ def _table(name, x, y, w, h, heads, widths):
     }
 
 
-# --- Transaction document (invoice, order, proposal, purchase, etc.) ---
+# --- Transaction document (invoice, order, quote, purchase, etc.) ---
 def build_transaction_template(doc_type, doc_title):
     """Standard transaction form: header + addresses + line items + totals."""
     return {
@@ -219,7 +219,7 @@ EXPORT_FIELDS = {
     "order":     ["ida", "status", "attention", "dt_created",
                    "totals.subtotal", "totals.tax", "totals.total", "totals.balance",
                    "refs.links.customer"],
-    "proposal":  ["ida", "status", "attention", "dt_created",
+    "quote":  ["ida", "status", "attention", "dt_created",
                    "totals.subtotal", "totals.tax", "totals.total", "totals.balance",
                    "refs.links.customer"],
     "purchase":  ["ida", "status", "attention", "dt_created",
@@ -251,7 +251,7 @@ def build_export_config(model_name):
 EMAIL_SUBJECTS = {
     "invoice":  "Invoice {{ida}} from {{company_name}}",
     "order":    "Order Confirmation {{ida}} from {{company_name}}",
-    "proposal": "Proposal {{ida}} from {{company_name}}",
+    "quote": "Quote {{ida}} from {{company_name}}",
     "purchase": "Purchase Order {{ida}} — {{company_name}}",
     "customer": "{{subject}} — {{company_name}}",
     "statement":"Account Statement — {{company_name}}",
@@ -299,19 +299,19 @@ def build_email_config(model_name, report_name):
 # ---------------------------------------------------------------------------
 
 NEEDS_EXAMPLE = {
-    # Proposals — WC2 had 4 distinct layouts, we need to understand each
-    "Proposal 1": {
-        "reason": "WC2 had 4 numbered proposal layouts with different column structures. Need WC2 example PDF to replicate.",
+    # Quotes — WC2 had 4 distinct layouts, we need to understand each
+    "Quote 1": {
+        "reason": "WC2 had 4 numbered quote layouts with different column structures. Need WC2 example PDF to replicate.",
         "refs": [
             "~/Documents/CommerceExpert/Printing/WebClerk v 10.6r.pdf",
             "~/Documents/CommerceExpert/wc3_form_examples/Report_Selection/Report_wc2_Preview.png",
-            "React2025/src/apps/transactions/components/print/ProposalPrintDocument.tsx",
+            "React2025/src/apps/transactions/components/print/QuotePrintDocument.tsx",
         ],
     },
-    "Proposal 2": {"reason": "Distinct WC2 layout — need example to differentiate from Proposal 1.",
+    "Quote 2": {"reason": "Distinct WC2 layout — need example to differentiate from Quote 1.",
                     "refs": ["~/Documents/CommerceExpert/Printing/"]},
-    "Proposal 3": {"reason": "Distinct WC2 layout — need example.", "refs": ["~/Documents/CommerceExpert/Printing/"]},
-    "Proposal 4": {"reason": "Distinct WC2 layout — need example.", "refs": ["~/Documents/CommerceExpert/Printing/"]},
+    "Quote 3": {"reason": "Distinct WC2 layout — need example.", "refs": ["~/Documents/CommerceExpert/Printing/"]},
+    "Quote 4": {"reason": "Distinct WC2 layout — need example.", "refs": ["~/Documents/CommerceExpert/Printing/"]},
     "Customer Quote Form": {"reason": "Custom quote format — need WC2 example.",
                             "refs": ["~/Documents/CommerceExpert/Printing/"]},
 
@@ -395,7 +395,7 @@ SUMMARY_COLUMNS = {
     "AP Aging Summary":      (["Vendor", "Current", "30 Days", "60 Days", "90+ Days", "Total"], None),
     "Invoice Summary":       (["Date", "Count", "Subtotal", "Tax", "Total"], None),
     "Order Summary":         (["Date", "Count", "Subtotal", "Tax", "Total"], None),
-    "Proposal Summary":      (["Date", "Count", "Subtotal", "Tax", "Total"], None),
+    "Quote Summary":      (["Date", "Count", "Subtotal", "Tax", "Total"], None),
     "Purchase Summary":      (["Date", "Count", "Subtotal", "Tax", "Total"], None),
     "Work Order Summary":    (["Date", "Count", "Subtotal", "Total"], None),
     "Trial Balance":         (["Account", "Debit", "Credit", "Balance"], None),
@@ -514,12 +514,12 @@ class Command(BaseCommand):
                 elif category == "statement":
                     cfg["pdfme_template"] = build_statement_template()
                     stats["generated"] += 1
-                elif model in ("invoice", "order", "proposal", "purchase",
+                elif model in ("invoice", "order", "quote", "purchase",
                                "receipt", "requisition", "workorder"):
                     # Transaction document
                     title_map = {
                         "invoice": "Invoice", "order": "Order",
-                        "proposal": "Proposal", "purchase": "Purchase Order",
+                        "quote": "Quote", "purchase": "Purchase Order",
                         "receipt": "Receipt", "requisition": "Requisition",
                         "workorder": "Work Order",
                     }

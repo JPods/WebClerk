@@ -3,9 +3,9 @@ Test Sequence 002 — Full Commerce Cycle with Conversion Chain, Commissions, an
 
 End-to-end test:
   1. Create customer with rep assignment
-  2. Create proposal with lines for item 308
-  3. Populate commission on proposal
-  4. Convert proposal → order (commission flows forward, on_p → on_so)
+  2. Create quote with lines for item 308
+  3. Populate commission on quote
+  4. Convert quote → order (commission flows forward, on_p → on_so)
   5. Convert order → invoice (on_so → on_hand)
   6. Journalize invoice (GL entries + commission accrual)
   7. Apply cash to invoice
@@ -105,12 +105,12 @@ class TestSequence002(TestCase):
         self.contact = Contact.objects.filter(email='claude@jpods.com').first()
         self.contact_id = self.contact.pk if self.contact else None
 
-    def test_01_create_proposal(self):
-        """Create a proposal with 2 lines for item 308."""
-        Proposal = apps.get_model('transactions', 'Proposal')
-        ProposalLine = apps.get_model('transactions', 'ProposalLine')
+    def test_01_create_quote(self):
+        """Create a quote with 2 lines for item 308."""
+        Quote = apps.get_model('transactions', 'Quote')
+        QuoteLine = apps.get_model('transactions', 'QuoteLine')
 
-        self.proposal = Proposal.objects.create(
+        self.quote = Quote.objects.create(
             ida='zzz-prop-002',
             customer=self.customer,
             status='planned',
@@ -119,8 +119,8 @@ class TestSequence002(TestCase):
         )
 
         # Line 1: qty 5 @ $25
-        ProposalLine.objects.create(
-            proposal=self.proposal,
+        QuoteLine.objects.create(
+            quote=self.quote,
             item_fk=self.item,
             item={'item_id': 308, 'name': self.item.name},
             quantity={'staged': 5, 'active': 5, 'remaining': 5},
@@ -130,8 +130,8 @@ class TestSequence002(TestCase):
         )
 
         # Line 2: qty 3 @ $25
-        ProposalLine.objects.create(
-            proposal=self.proposal,
+        QuoteLine.objects.create(
+            quote=self.quote,
             item_fk=self.item,
             item={'item_id': 308, 'name': self.item.name},
             quantity={'staged': 3, 'active': 3, 'remaining': 3},
@@ -140,16 +140,16 @@ class TestSequence002(TestCase):
             line_number=20,
         )
 
-        self.assertEqual(ProposalLine.objects.filter(proposal=self.proposal).count(), 2)
-        print(f'  ✓ Proposal {self.proposal.ida} created with 2 lines')
+        self.assertEqual(QuoteLine.objects.filter(quote=self.quote).count(), 2)
+        print(f'  ✓ Quote {self.quote.ida} created with 2 lines')
 
     def test_02_populate_commission(self):
-        """Populate commission on the proposal from rep assignment."""
+        """Populate commission on the quote from rep assignment."""
         from apps.transactions.services.pricing.commission_compute import populate_transaction_commission
 
-        self.test_01_create_proposal()
+        self.test_01_create_quote()
 
-        result = populate_transaction_commission(self.proposal.pk, 'proposal')
+        result = populate_transaction_commission(self.quote.pk, 'quote')
         self.assertGreater(result.get('header_total', 0), 0, 'Commission should be > 0')
         self.assertEqual(result.get('lines_updated', 0), 2, 'Both lines should have commission')
 
@@ -157,13 +157,13 @@ class TestSequence002(TestCase):
         self.assertAlmostEqual(result['header_total'], 20.0, places=1)
         print(f'  ✓ Commission populated: ${result["header_total"]} ({result["lines_updated"]} lines)')
 
-    def test_03_convert_proposal_to_order(self):
-        """Convert proposal to order — commission flows forward, inventory adjusts."""
-        from apps.transactions.services.convert.convert import convert_proposal_to_order
+    def test_03_convert_quote_to_order(self):
+        """Convert quote to order — commission flows forward, inventory adjusts."""
+        from apps.transactions.services.convert.convert import convert_quote_to_order
 
         self.test_02_populate_commission()
 
-        result = convert_proposal_to_order(self.proposal.pk, contact_id=self.contact_id)
+        result = convert_quote_to_order(self.quote.pk, contact_id=self.contact_id)
         self.assertNotIn('error', result, f'Conversion failed: {result.get("error")}')
         self.assertGreater(result['order_id'], 0)
 
@@ -173,29 +173,29 @@ class TestSequence002(TestCase):
         self.assertTrue(order.commission.get('reps'), 'Order should have commission reps')
         self.assertGreater(order.commission.get('total', 0), 0, 'Order commission total > 0')
 
-        # Save the reviewed order — order lines become children of the proposal lines
+        # Save the reviewed order — order lines become children of the quote lines
         self.assertEqual(result['lines_for_review'], 2)
         _save_reviewed('order', result['order_id'], result['lines'])
         OrderLine = apps.get_model('transactions', 'OrderLine')
-        ProposalLine = apps.get_model('transactions', 'ProposalLine')
+        QuoteLine = apps.get_model('transactions', 'QuoteLine')
         order_lines = list(OrderLine.objects.filter(order=order))
         self.assertEqual(len(order_lines), 2)
-        proposal_line_ids = set(ProposalLine.objects.filter(proposal=self.proposal).values_list('pk', flat=True))
+        quote_line_ids = set(QuoteLine.objects.filter(quote=self.quote).values_list('pk', flat=True))
         for ol in order_lines:
-            self.assertIn(ol.parent_line_id, proposal_line_ids)
+            self.assertIn(ol.parent_line_id, quote_line_ids)
             self.assertTrue(ol.commission.get('reps'), 'Line commission should flow forward')
-        for pl in ProposalLine.objects.filter(proposal=self.proposal):
+        for pl in QuoteLine.objects.filter(quote=self.quote):
             self.assertEqual(pl.quantity['remaining'], 0)
             self.assertEqual(pl.status, 'transferred')
 
         self.order_id = result['order_id']
-        print(f'  ✓ Proposal → Order {order.ida}: commission=${order.commission.get("total", 0)}, lines={len(order_lines)}')
+        print(f'  ✓ Quote → Order {order.ida}: commission=${order.commission.get("total", 0)}, lines={len(order_lines)}')
 
     def test_04_convert_order_to_invoice(self):
         """Convert order to invoice."""
         from apps.transactions.services.convert.convert import convert_order_to_invoice
 
-        self.test_03_convert_proposal_to_order()
+        self.test_03_convert_quote_to_order()
 
         result = convert_order_to_invoice(self.order_id, contact_id=self.contact_id)
         self.assertNotIn('error', result, f'Conversion failed: {result.get("error")}')
@@ -288,7 +288,7 @@ class TestSequence002(TestCase):
         """Clone the order — fresh dates, re-priced, commission reset."""
         from apps.core.services.record_clone import clone_record
 
-        self.test_03_convert_proposal_to_order()
+        self.test_03_convert_quote_to_order()
 
         result = clone_record('order', self.order_id, include_children=True, contact_id=self.contact_id)
         self.assertNotIn('error', result)
@@ -315,7 +315,7 @@ class TestSequence002(TestCase):
         """Convert order to purchase order."""
         from apps.transactions.services.convert.convert import convert_order_to_purchase
 
-        self.test_03_convert_proposal_to_order()
+        self.test_03_convert_quote_to_order()
 
         # Need a vendor
         OrgBase = apps.get_model('orgs', 'OrgBase')
@@ -340,7 +340,7 @@ class TestSequence002(TestCase):
 
         self.test_04_convert_order_to_invoice()
 
-        # Check invoice → should trace back to order → proposal
+        # Check invoice → should trace back to order → quote
         history = get_conversion_history(self.invoice_id, 'invoice')
         self.assertNotIn('error', history)
 
@@ -356,24 +356,24 @@ class TestSequence002(TestCase):
         print('TEST SEQUENCE 002 — Full Commerce Cycle')
         print('=' * 60)
 
-        self.test_01_create_proposal()
+        self.test_01_create_quote()
         self.test_02_populate_commission()
 
-        # Re-create proposal for the full chain (setUp runs fresh each test)
-        self.test_01_create_proposal()
+        # Re-create quote for the full chain (setUp runs fresh each test)
+        self.test_01_create_quote()
         from apps.transactions.services.pricing.commission_compute import populate_transaction_commission
-        populate_transaction_commission(self.proposal.pk, 'proposal')
+        populate_transaction_commission(self.quote.pk, 'quote')
 
-        from apps.transactions.services.convert.convert import convert_proposal_to_order, convert_order_to_invoice
+        from apps.transactions.services.convert.convert import convert_quote_to_order, convert_order_to_invoice
         from apps.accounts.services.journalize import journalize_invoice
         from apps.core.services.record_clone import clone_record
 
-        # Convert proposal → order
-        order_result = convert_proposal_to_order(self.proposal.pk, contact_id=self.contact_id)
+        # Convert quote → order
+        order_result = convert_quote_to_order(self.quote.pk, contact_id=self.contact_id)
         assert 'error' not in order_result, order_result.get('error')
         self.order_id = order_result['order_id']
         _save_reviewed('order', self.order_id, order_result['lines'])
-        print(f'  ✓ Proposal → Order: {order_result["lines_for_review"]} lines')
+        print(f'  ✓ Quote → Order: {order_result["lines_for_review"]} lines')
 
         # Convert order → invoice
         inv_result = convert_order_to_invoice(self.order_id, contact_id=self.contact_id)

@@ -47,10 +47,10 @@ COMPONENTS = [
     {
         'name': 'TransactionDetail',
         'source': 'apps/transactions/components/TransactionDetail.tsx',
-        'description': 'Shared transaction renderer — orders, invoices, proposals, purchases.',
+        'description': 'Shared transaction renderer — orders, invoices, quotes, purchases.',
         'body': (
             'TransactionDetail is the single renderer for all transaction types. It reads '
-            'the detail_layout Setting for the specific model (order, invoice, proposal, '
+            'the detail_layout Setting for the specific model (order, invoice, quote, '
             'purchase, receipt, requisition, workorder) and renders the form.\n\n'
             'Built from 8 single-purpose components: HeaderRenderer, FieldRow, '
             'LineCardRenderer, TabsRenderer, DesignMode, TransactionPrint, PackingPanel, '
@@ -145,7 +145,7 @@ COMPONENTS = [
         'source': 'apps/transactions/components/CustomerSalesPanel.tsx',
         'description': 'Customer sales history panel — shown on customer and contact detail.',
         'body': (
-            'Shows transaction history for a customer: orders, invoices, proposals, '
+            'Shows transaction history for a customer: orders, invoices, quotes, '
             'cash_entries. Includes totals, aging, and trend data. Embedded as a tab in '
             'OrgDetailJson and ContactDetailJson.'
         ),

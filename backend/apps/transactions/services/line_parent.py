@@ -3,7 +3,7 @@
 Definitions: readmes/transactions/line-quantity.md
 
 Parent-child exists for two pairs only:
-    proposal_line -> order_line
+    quote_line -> order_line
     order_line    -> invoice_line
 
 The child stores parent_line_id; the child's model names the parent table.
@@ -29,13 +29,13 @@ logger = logging.getLogger(__name__)
 
 #: child line model -> (parent line model, refs.source key naming the parent line)
 PARENT_OF: Dict[str, Tuple[str, str]] = {
-    'orderline': ('ProposalLine', 'proposal_line_id'),
+    'orderline': ('QuoteLine', 'quote_line_id'),
     'invoiceline': ('OrderLine', 'order_line_id'),
 }
 
 #: parent line model -> child line model
 CHILD_OF: Dict[str, str] = {
-    'proposalline': 'OrderLine',
+    'quoteline': 'OrderLine',
     'orderline': 'InvoiceLine',
 }
 

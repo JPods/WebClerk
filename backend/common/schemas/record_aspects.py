@@ -162,7 +162,7 @@ class MetricPeriod(BaseModel):
 class MetricCounts(BaseModel):
     orders: int = 0
     invoices: int = 0
-    proposals: int = 0
+    quotes: int = 0
     purchases: int = 0
     cash_entries: int = 0
 

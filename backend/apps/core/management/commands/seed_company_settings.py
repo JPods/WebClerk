@@ -52,7 +52,7 @@ COMPANY_PROFILE_CONFIG = {
         "letterhead_template": "",   # path or Document id for letterhead
         "invoice_template": "",
         "po_template": "",
-        "proposal_template": "",
+        "quote_template": "",
         "statement_template": "",
         "packing_slip_template": "",
     },

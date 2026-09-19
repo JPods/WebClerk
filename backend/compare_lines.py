@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Compare lineitem quantity structure consistency across:
-- Proposal / ProposalLine
+- Quote / QuoteLine
 - Order / OrderLine  
 - Invoice / InvoiceLine
 - Purchase / PurchaseLine
@@ -28,7 +28,7 @@ print()
 print('1. default_quantity() Structures')
 print('-' * 50)
 
-tx_types = ['proposal', 'order', 'invoice', 'purchase', 'work_order']
+tx_types = ['quote', 'order', 'invoice', 'purchase', 'work_order']
 for tx_type in tx_types:
     qty = default_quantity(tx_type)
     print(f'\n  {tx_type.upper()}:')
@@ -65,7 +65,7 @@ print('3. Transaction-Specific Tracking Fields')
 print('-' * 50)
 
 tracking_fields = {
-    'proposal': ('placed', 'ordered', 'remaining'),
+    'quote': ('placed', 'ordered', 'remaining'),
     'order': ('placed', 'invoiced', 'remaining'),
     'invoice': ('placed', 'packed', 'remaining'),
     'purchase': ('placed', 'received', 'remaining'),
@@ -106,7 +106,7 @@ print('5. Line Kind Normalization')
 print('-' * 50)
 
 test_inputs = [
-    'proposal', 'proposal_line', 'proposalline', 'Proposal',
+    'quote', 'quote_line', 'quoteline', 'Quote',
     'order', 'order_line',
     'invoice', 'invoice_line', 'invoiceline',
     'purchase', 'purchase_order', 'purchase_order_line', 'purchaseorderline',

@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, Tuple
 
 # Map public model names -> (module, class)
 _MAPPING = {
-    'Proposal': ('proposal', 'Proposal'),
-    'ProposalLine': ('proposal_line', 'ProposalLine'),
+    'Quote': ('quote', 'Quote'),
+    'QuoteLine': ('quote_line', 'QuoteLine'),
 
     'Order': ('order', 'Order'),
     'OrderLine': ('order_line', 'OrderLine'),
@@ -55,7 +55,7 @@ def __dir__():
 __all__: Tuple[str, ...] = tuple(_MAPPING.keys())
 
 # Eagerly import and bind all mapped models so Django can resolve string FK targets
-# like "transactions.Proposal" during system checks.
+# like "transactions.Quote" during system checks.
 try:
     _eager_bind_all()  # defined above in this module
 except Exception:

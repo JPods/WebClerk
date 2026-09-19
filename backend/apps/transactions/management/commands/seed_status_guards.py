@@ -29,7 +29,7 @@ PRECONDITIONS = {
 }
 
 MODEL_PRECONDITIONS = {
-    'proposal': {
+    'quote': {
         'released': [
             {'check': 'has_lines', 'message': 'Must have at least one line'},
             {'check': 'has_customer', 'message': 'Must have a customer assigned'},
@@ -44,12 +44,12 @@ MODEL_PRECONDITIONS = {
 
 
 TRANSACTION_MODELS = [
-    'proposal', 'order', 'invoice', 'purchase',
+    'quote', 'order', 'invoice', 'purchase',
     'workorder', 'requisition', 'cash',
 ]
 
 TX_STATUSES = {
-    'proposal': [
+    'quote': [
         {'value': 'planned', 'label': 'Planned'},
         {'value': 'released', 'label': 'Released'},
         {'value': 'sent', 'label': 'Sent'},

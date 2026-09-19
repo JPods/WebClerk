@@ -82,7 +82,7 @@ class ItemQuantity(BaseModel):
     available: Optional[float] = None
     on_so: Optional[float] = None       # on sales order
     on_po: Optional[float] = None       # on purchase order
-    on_p: Optional[float] = None        # on proposal (probability-weighted)
+    on_p: Optional[float] = None        # on quote (probability-weighted)
     on_reciept: Optional[float] = None  # in receiving (spelling preserved for compat)
     on_in: Optional[float] = None       # on invoice (shipped, pending GL)
     on_wo: Optional[float] = None       # on work order

@@ -32,7 +32,7 @@ import PrintReportDropdown, { type ReportRecord } from "@/components/common/Prin
 const TRANSACTION_TYPES = [
   { value: "invoice", label: "Invoice" },
   { value: "order", label: "Order" },
-  { value: "proposal", label: "Proposal" },
+  { value: "quote", label: "Quote" },
   { value: "purchase", label: "Purchase" },
   { value: "workorder", label: "Work Order" },
 ] as const;

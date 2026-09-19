@@ -33,7 +33,7 @@ OrgBase
   └── tax_exempt_code      → CharField: empty=taxable, certificate#=exempt, 'DoTax'=force taxable
 ```
 
-- `tax_jurisdiction` — FK to TaxJurisdiction. When a proposal/order/invoice is created for this customer, the tax calc uses this jurisdiction's rate.
+- `tax_jurisdiction` — FK to TaxJurisdiction. When a quote/order/invoice is created for this customer, the tax calc uses this jurisdiction's rate.
 - `tax_exempt_code` — empty = taxable, any value = exempt certificate number. Special: `'DoTax'` forces taxable even when code is non-empty (for resellers buying for own use).
 - Both are real indexed fields, visible in DataBrowser, filterable.
 

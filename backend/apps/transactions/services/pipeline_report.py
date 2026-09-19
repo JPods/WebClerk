@@ -1,7 +1,7 @@
 """
 Sales Pipeline Service — Connect actions to future outcomes.
 
-Funnel: Actions → Proposals → Orders → Revenue (Invoices)
+Funnel: Actions → Quotes → Orders → Revenue (Invoices)
 
 Each stage counts records and dollar values. Actions carry a
 predicted_impact score (1-5, user's gut feel). The pipeline
@@ -57,7 +57,7 @@ def get_sales_pipeline(
          by_action_type: [...], by_rep: [...], summary: {...}}
     """
     Action = dj_apps.get_model('core', 'Action')
-    Proposal = dj_apps.get_model('transactions', 'Proposal')
+    Quote = dj_apps.get_model('transactions', 'Quote')
     Order = dj_apps.get_model('transactions', 'Order')
     Invoice = dj_apps.get_model('transactions', 'Invoice')
 
@@ -100,18 +100,18 @@ def get_sales_pipeline(
     # Impact is a JSONField — aggregate in Python, not ORM
     action_by_impact = _count_by_impact(action_qs)
 
-    # ---- Stage 2: Proposals ----
-    proposal_qs = Proposal.objects.filter(
+    # ---- Stage 2: Quotes ----
+    quote_qs = Quote.objects.filter(
         is_active=True, is_deleted=False,
         **pf, **cf,
     )
     from common.json_lookups import totals_total
-    proposal_count = proposal_qs.count()
-    proposal_value = float(
-        proposal_qs.annotate(_total=totals_total()).aggregate(s=Sum('_total'))['s'] or 0
+    quote_count = quote_qs.count()
+    quote_value = float(
+        quote_qs.annotate(_total=totals_total()).aggregate(s=Sum('_total'))['s'] or 0
     )
 
-    # ---- Stage 3: Orders (from proposals) ----
+    # ---- Stage 3: Orders (from quotes) ----
     order_qs = Order.objects.filter(
         is_active=True, is_deleted=False,
         **pf, **cf,
@@ -121,13 +121,13 @@ def get_sales_pipeline(
         order_qs.annotate(_total=totals_total()).aggregate(s=Sum('_total'))['s'] or 0
     )
 
-    # Orders that came from proposals
-    orders_from_proposals = order_qs.filter(
-        parent_model='proposal',
+    # Orders that came from quotes
+    orders_from_quotes = order_qs.filter(
+        parent_model='quote',
     ).exclude(parent_id__isnull=True).exclude(parent_id=0)
-    converted_count = orders_from_proposals.count()
+    converted_count = orders_from_quotes.count()
     converted_value = float(
-        orders_from_proposals.annotate(_total=totals_total()).aggregate(s=Sum('_total'))['s'] or 0
+        orders_from_quotes.annotate(_total=totals_total()).aggregate(s=Sum('_total'))['s'] or 0
     )
 
     # ---- Stage 4: Revenue (invoiced) ----
@@ -155,14 +155,14 @@ def get_sales_pipeline(
 
     conversions = [
         {
-            'from': 'actions', 'to': 'proposals',
-            'from_count': action_count, 'to_count': proposal_count,
-            'rate': _rate(proposal_count, action_count),
+            'from': 'actions', 'to': 'quotes',
+            'from_count': action_count, 'to_count': quote_count,
+            'rate': _rate(quote_count, action_count),
         },
         {
-            'from': 'proposals', 'to': 'orders',
-            'from_count': proposal_count, 'to_count': converted_count,
-            'rate': _rate(converted_count, proposal_count),
+            'from': 'quotes', 'to': 'orders',
+            'from_count': quote_count, 'to_count': converted_count,
+            'rate': _rate(converted_count, quote_count),
             'value_converted': converted_value,
         },
         {
@@ -175,8 +175,8 @@ def get_sales_pipeline(
 
     # ---- Impact analysis: predicted vs actual ----
     # For actions with predicted_impact, trace forward to see if they
-    # led to proposals/orders within a reasonable time window
-    impact_analysis = _analyze_impact(action_qs, Proposal, Order, pf, cf)
+    # led to quotes/orders within a reasonable time window
+    impact_analysis = _analyze_impact(action_qs, Quote, Order, pf, cf)
 
     # ---- By rep (contact_id on actions) ----
     by_rep = list(
@@ -195,9 +195,9 @@ def get_sales_pipeline(
             'color': '#6366f1',  # indigo
         },
         {
-            'name': 'Proposals',
-            'count': proposal_count,
-            'value': proposal_value,
+            'name': 'Quotes',
+            'count': quote_count,
+            'value': quote_value,
             'color': '#8b5cf6',  # violet
         },
         {
@@ -223,14 +223,14 @@ def get_sales_pipeline(
         'by_rep': by_rep,
         'summary': {
             'action_count': action_count,
-            'proposal_count': proposal_count,
+            'quote_count': quote_count,
             'order_count': order_count,
             'invoice_count': invoice_count,
-            'proposal_value': proposal_value,
+            'quote_value': quote_value,
             'order_value': order_value,
             'invoice_value': invoice_value,
             'conversion_actions_to_orders': _rate(order_count, action_count),
-            'conversion_proposals_to_orders': _rate(converted_count, proposal_count),
+            'conversion_quotes_to_orders': _rate(converted_count, quote_count),
             'conversion_orders_to_revenue': _rate(invoiced_from_orders_count, order_count),
         },
         'period': f'{year}-{month:02d}' if year and month else 'all',
@@ -256,11 +256,11 @@ def _count_by_impact(action_qs) -> list:
     return [{'predicted': k, 'count': v} for k, v in sorted(counts.items())]
 
 
-def _analyze_impact(action_qs, Proposal, Order, pf, cf):
+def _analyze_impact(action_qs, Quote, Order, pf, cf):
     """Compare predicted impact against actual outcomes — retrospection, not precision.
 
     Groups actions by impact.predicted level and checks how many of their
-    associated customers produced proposals/orders. The gap between predicted
+    associated customers produced quotes/orders. The gap between predicted
     and actual is the learning signal.
     """
     contacts_by_level = defaultdict(set)
@@ -287,8 +287,8 @@ def _analyze_impact(action_qs, Proposal, Order, pf, cf):
     results = []
     for level in sorted(contacts_by_level.keys()):
         contact_ids = contacts_by_level[level]
-        proposal_customers = set(
-            Proposal.objects.filter(
+        quote_customers = set(
+            Quote.objects.filter(
                 customer_id__in=contact_ids,
                 is_active=True, is_deleted=False,
                 **pf,
@@ -307,10 +307,10 @@ def _analyze_impact(action_qs, Proposal, Order, pf, cf):
             'predicted_level': level,
             'action_count': counts_by_level[level],
             'unique_contacts': total_contacts,
-            'contacts_with_proposals': len(proposal_customers),
+            'contacts_with_quotes': len(quote_customers),
             'contacts_with_orders': len(order_customers),
-            'proposal_rate': round(
-                len(proposal_customers) / total_contacts * 100, 1
+            'quote_rate': round(
+                len(quote_customers) / total_contacts * 100, 1
             ) if total_contacts > 0 else 0,
             'order_rate': round(
                 len(order_customers) / total_contacts * 100, 1

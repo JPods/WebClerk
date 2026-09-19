@@ -1,5 +1,5 @@
 """Abstract base line model for transaction line items.
-Used by ProposalLine, OrderLine, RequisitionLine, WorkOrderLine, InvoiceLine, PurchaseLine.
+Used by QuoteLine, OrderLine, RequisitionLine, WorkOrderLine, InvoiceLine, PurchaseLine.
 The goal is to keep a compact set of JSON fields that capture the rich
 state of a line (pricing, cost, quantities, taxes, metadata, workflow, etc.)
     without exploding the relational schema. Each JSON field has a structured
@@ -49,7 +49,7 @@ def _normalize_line_kind(name: str | None) -> str:
     n = n.replace("-", "_")
     # collapse common variants
     aliases = {
-        "proposal": "proposal", "proposal_line": "proposal", "proposalline": "proposal",
+        "quote": "quote", "quote_line": "quote", "quoteline": "quote",
         "order": "order", "order_line": "order", "orderline": "order",
         "invoice": "invoice", "invoice_line": "invoice", "invoiceline": "invoice",
         "workorder": "workorder", "workorderline": "workorder", "work_order": "workorder",
@@ -64,7 +64,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
     """Return the canonical quantity JSONB structure for a line.
 
     quantity.active is the verb of the document:
-      - proposal_line:   quantity being proposed
+      - quote_line:   quantity being proposed
       - order_line:      quantity being ordered
       - invoice_line:    quantity being shipped
       - purchase_line:   quantity being purchased
@@ -85,7 +85,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
     Quantity flow for standalone lines (no parent):
       All types: active=10 → staged=10, remaining=10
 
-    Parent-child (proposal_line -> order_line, order_line -> invoice_line only):
+    Parent-child (quote_line -> order_line, order_line -> invoice_line only):
       child.parent_line_id = parent line pk, set at creation
       parent.remaining     = parent.active − Σ children.active   (recomputed, never decremented)
 
@@ -105,7 +105,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
     # normalize_quantity_map() fills the staged snapshot on creation and
     # computes remaining. See readmes/transactions/line-quantity.md.
     _KNOWN_KINDS = {
-        "proposal", "order", "invoice", "purchase", "workorder", "receipt",
+        "quote", "order", "invoice", "purchase", "workorder", "receipt",
     }
     kind = _normalize_line_kind(transaction_type)
     if kind in _KNOWN_KINDS:
@@ -342,14 +342,14 @@ def default_physical() -> Dict[str, Any]:
 # Every transaction line does the same thing to inventory — it moves quantity
 # into exactly one bucket, chosen by its transaction type. That rule was written
 # out longhand in each of the pending builders in services/line_manage.py, three
-# times in three different shapes. The copies drifted: a fix to the proposal
+# times in three different shapes. The copies drifted: a fix to the quote
 # probability guard in the line-add builder left the quantity-change and delete
-# builders still zeroing on_p, so editing or deleting a proposal line silently
+# builders still zeroing on_p, so editing or deleting a quote line silently
 # wrote a zero. One rule, one place.
 
 #: pending type code -> the Item.quantity bucket that type moves.
 PENDING_TYPE_BUCKET: Dict[str, str] = {
-    'PP': 'on_p',    # proposal — forecast, weighted by close probability
+    'PP': 'on_p',    # quote — forecast, weighted by close probability
     'SO': 'on_so',   # sales order — reserved
     'PO': 'on_po',   # purchase order — incoming
     'WO': 'on_wo',   # work order — reserved for production
@@ -366,11 +366,11 @@ ON_HAND_DIRECTION: Dict[str, int] = {'IN': -1, 'RC': 1}
 
 
 def forecast_probability(transaction: Any) -> float:
-    """Close probability for a proposal, as a 0.0-1.0 multiplier.
+    """Close probability for a quote, as a 0.0-1.0 multiplier.
 
-    Proposal.probability is a FloatField defaulting to 0.0, so an untouched
-    proposal cannot be told apart from a deliberate 0%. Treating that default as
-    a real probability multiplied every proposal line's forecast by zero. Zero
+    Quote.probability is a FloatField defaulting to 0.0, so an untouched
+    quote cannot be told apart from a deliberate 0%. Treating that default as
+    a real probability multiplied every quote line's forecast by zero. Zero
     means "not set" here and yields 1.0.
 
     Accepts either scale: a stored value above 1.0 is read as a percentage.
@@ -464,7 +464,7 @@ class BaseLineCore(BaseModel):
         db_column='item_id_fk', related_name='%(class)s_lines',
     )
 
-    # The line whose backlog this line consumes. Only order_line (parent: proposal_line)
+    # The line whose backlog this line consumes. Only order_line (parent: quote_line)
     # and invoice_line (parent: order_line) set it; the child's type names the parent table.
     # BigInt, not FK: deleting a parent line must not delete its children.
     # Named parent_line_id because parent_id on a line means the header.
@@ -729,7 +729,7 @@ def _num(value) -> float:
 
 
 class BaseSellLineModel(BaseLineCore):
-    """Sell-side line base for Proposal, Order, Invoice.
+    """Sell-side line base for Quote, Order, Invoice.
 
     Adds the ``price`` JSON envelope and auto-computes extended values
     on every save via _calculate_extended_price().

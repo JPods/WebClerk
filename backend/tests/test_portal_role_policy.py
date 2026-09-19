@@ -87,7 +87,7 @@ class TestCustomerPortal:
 
     def test_edits_nothing(self, django_user_model, item_policy):
         user = _login(django_user_model, 'cust4@example.fake', 'customer', 'customer', 'retail')
-        for model in ('order', 'invoice', 'proposal', 'item', 'contact'):
+        for model in ('order', 'invoice', 'quote', 'item', 'contact'):
             assert get_allowed_fields(user, model, mode='edit') == [], model
 
 

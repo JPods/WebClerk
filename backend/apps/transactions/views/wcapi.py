@@ -115,7 +115,7 @@ def inject_constraints(qs: QuerySet, request, model_key: str) -> QuerySet:
         return qs  # Return unfiltered queryset on error
 
 TRANSACTION_MODELS_WITH_LINES = {
-    "proposal",
+    "quote",
     "order",
     "invoice",
     "purchase",
@@ -124,14 +124,14 @@ TRANSACTION_MODELS_WITH_LINES = {
 
 # Header fields a portal customer may supply; everything else is set by the server.
 _PORTAL_HEADER_FIELDS = ("attention", "notes", "comments", "dt_needed", "ship_via", "purpose")
-_PORTAL_ORDER_MODELS = {"order", "proposal"}
+_PORTAL_ORDER_MODELS = {"order", "quote"}
 
 
 def _transaction_save_denial(request, model_key: str, record_data: dict, lines_data: list):
     """Enforce role create/edit permission on /wcapi/transaction/save/.
 
     Returns (http_status, message) when denied, else None.
-    For portal customers creating an order/proposal, rewrites the payload in place:
+    For portal customers creating an order/quote, rewrites the payload in place:
     customer_id = their org, contact_id = themselves, status = planned, and every
     line re-priced server-side (client price/cost fields are discarded).
     """
@@ -542,7 +542,7 @@ class WCAPISaveView(APIView):
 
         # ── Status guard: validate transitions and journalized locks ───
         GUARDED_MODELS = {
-            'proposal', 'order', 'invoice', 'purchase', 'workorder',
+            'quote', 'order', 'invoice', 'purchase', 'workorder',
             'requisition', 'cash', 'invoice_line', 'purchase_line',
             'receipt_line',
         }

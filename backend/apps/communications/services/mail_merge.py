@@ -79,7 +79,7 @@ def _load_record(model_name: str, record_id: int):
     model_map = {
         "order": ("transactions", "Order"),
         "invoice": ("transactions", "Invoice"),
-        "proposal": ("transactions", "Proposal"),
+        "quote": ("transactions", "Quote"),
         "purchase": ("transactions", "Purchase"),
         "cash": ("transactions", "Cash"),
         "contact": ("core", "Contact"),

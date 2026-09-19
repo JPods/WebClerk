@@ -62,7 +62,7 @@ PANEL_COLUMNS = {
         f('qty', width=50, align='right'),
         f('extended', width=90, align='right', format='currency'),
     ],
-    'proposal_line': [
+    'quote_line': [
         f('ida', width=70),
         f('purpose', width=80),
         f('status', width=70),
@@ -221,7 +221,7 @@ PANEL_COLUMNS = {
         f('total', width=90, align='right', format='currency'),
         f('balance', width=90, align='right', format='currency'),
     ],
-    'proposal': [
+    'quote': [
         f('ida', width=80),
         f('purpose', width=80),
         f('status', width=70),

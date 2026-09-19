@@ -106,7 +106,7 @@ interface QuantityData {
   available?: number;  // Computed: on_hand - allocated
   on_so?: number;      // On sales orders
   on_po?: number;      // On purchase orders
-  on_p?: number;       // On proposals
+  on_p?: number;       // On quotes
   on_wo?: number;      // On work orders
   on_reciept?: number; // In receiving
   on_in?: number;      // In inspection

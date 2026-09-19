@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 from apps.communications.models import Email
 from apps.core.models import Contact
-from apps.transactions.models import Proposal, Order, Invoice, Cash
+from apps.transactions.models import Quote, Order, Invoice, Cash
 
 
 class TransactionEmailService:
@@ -106,27 +106,27 @@ class TransactionEmailService:
             return False
 
     @classmethod
-    def send_proposal_submitted_notification(cls, proposal: Proposal) -> bool:
-        """Send notification when a proposal is submitted."""
+    def send_quote_submitted_notification(cls, quote: Quote) -> bool:
+        """Send notification when a quote is submitted."""
         if not getattr(settings, 'EMAIL_NOTIFICATIONS_ENABLED', True):
             return False
-        if not getattr(settings, 'EMAIL_PROPOSAL_SUBMITTED_ENABLED', True):
+        if not getattr(settings, 'EMAIL_QUOTE_SUBMITTED_ENABLED', True):
             return False
 
-        recipient_emails = cls.get_recipient_emails(proposal.customer_id)
+        recipient_emails = cls.get_recipient_emails(quote.customer_id)
         if not recipient_emails:
             return False
 
         context = {
-            'proposal': proposal,
-            'contact': Contact.objects.get(id=proposal.customer_id),
+            'quote': quote,
+            'contact': Contact.objects.get(id=quote.customer_id),
             'company_name': getattr(settings, 'COMPANY_NAME', 'WebClerk3'),
         }
 
-        subject = f"Proposal Submitted - {proposal.name}"
+        subject = f"Quote Submitted - {quote.name}"
 
         return cls.send_transaction_email(
-            'proposal_submitted',
+            'quote_submitted',
             subject,
             recipient_emails,
             context

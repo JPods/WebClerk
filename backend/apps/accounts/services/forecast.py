@@ -6,7 +6,7 @@ Combines operational data from WC3 transactions with budget entries
 (Budget) to project cash inflows and outflows.
 
 Formula:
-    Cash Inflow  = proposals × probability
+    Cash Inflow  = quotes × probability
                  + orders × (delivery timing + terms cash delay)
 
     Cash Outflow = purchase orders × (delivery + our cash delay)
@@ -138,7 +138,7 @@ def cash_flow_forecast(
             'summary': {...},
         }
     """
-    Proposal = dj_apps.get_model('transactions', 'Proposal')
+    Quote = dj_apps.get_model('transactions', 'Quote')
     Order = dj_apps.get_model('transactions', 'Order')
     Purchase = dj_apps.get_model('transactions', 'Purchase')
 
@@ -163,14 +163,14 @@ def cash_flow_forecast(
     range_end_ms = _epoch_ms(future_periods[-1]['end']) + 86400000  # inclusive
     budget_by_period = _get_budget_for_range(range_start_ms, range_end_ms)
 
-    # ── Pipeline inflow: proposals × probability ──
-    pipeline_proposals = Proposal.objects.filter(
+    # ── Pipeline inflow: quotes × probability ──
+    pipeline_quotes = Quote.objects.filter(
         status__in=['planned', 'signoff_request', 'released', 'in_progress'],
         probability__gt=0,
     ).values('id', 'probability', 'totals', 'terms_fk_id')
 
     pipeline_by_month: dict[str, Decimal] = {}
-    for prop in pipeline_proposals:
+    for prop in pipeline_quotes:
         total = Decimal(str((prop['totals'] or {}).get('total', 0)))
         prob = Decimal(str(prop['probability'] or 0))
         weighted = total * prob

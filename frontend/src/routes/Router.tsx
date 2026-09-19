@@ -68,7 +68,7 @@ const HomeRedirect: React.FC = () => {
 
 // Transaction models — use UiDetail
 const TRANSACTION_MODELS = [
-  'order', 'invoice', 'proposal', 'purchase', 'workorder',
+  'order', 'invoice', 'quote', 'purchase', 'workorder',
   'receipt', 'requisition', 'cash',
 ];
 

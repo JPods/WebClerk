@@ -2,7 +2,7 @@
 Line Item Service - Single Point of Authority for transaction line management.
 
 Handles adding, updating, and managing transaction line items across all
-transaction types (order, proposal, invoice, purchase, workorder).
+transaction types (order, quote, invoice, purchase, workorder).
 
 Includes deferred inventory adjustment via Pending records to reduce lock contention
 on Item records. When quantity changes occur, a Pending record is created instead of
@@ -51,7 +51,7 @@ from apps.transactions.services.trace_debug import (
 if TYPE_CHECKING:
     from apps.transactions.models import (
         OrderLine,
-        ProposalLine,
+        QuoteLine,
         InvoiceLine,
         PurchaseLine,
         WorkOrderLine,
@@ -126,7 +126,7 @@ def _is_exec_transaction(transaction_type: str) -> bool:
 # -----------------------------------------------------------------------------
 PENDING_TYPE_MAP = {
     'order': 'SO',
-    'proposal': 'PP',  # Proposals don't affect inventory until converted
+    'quote': 'PP',  # Quotes don't affect inventory until converted
     'invoice': 'IN',
     'receipt': 'RC',
     'purchase': 'PO',
@@ -150,28 +150,28 @@ def _should_track_inventory(transaction_type: str) -> bool:
     """
     Determine if a transaction type should create pending inventory records.
     
-    Proposals track on_p (forecast bucket) - qty times probability.
+    Quotes track on_p (forecast bucket) - qty times probability.
     Sales Orders reserve inventory (qtyOnSO).
     Invoices issue inventory (qtyOnHand decreases).
     Purchase Orders reserve incoming (qtyOnPO).
     Work Orders reserve for production (qtyOnWO).
     """
     kind = _normalize_line_kind(transaction_type)
-    # All transaction types track inventory (including proposals for forecast)
+    # All transaction types track inventory (including quotes for forecast)
     return True
 
 
-def _is_proposal(transaction_type: str) -> bool:
-    """Check if transaction type is a proposal (tracks on_p forecast bucket)."""
+def _is_quote(transaction_type: str) -> bool:
+    """Check if transaction type is a quote (tracks on_p forecast bucket)."""
     kind = _normalize_line_kind(transaction_type)
-    return kind == 'proposal'
+    return kind == 'quote'
 
 
 class LineItemService:
     """
     Single Point of Authority for managing transaction line items.
     
-    Supports both sales transactions (proposal, order, invoice) 
+    Supports both sales transactions (quote, order, invoice) 
     and purchase transactions (purchase, workorder).
     
     Key behaviors:
@@ -211,7 +211,7 @@ class LineItemService:
         Add an item to a transaction as a new line.
         
         Args:
-            transaction: The parent transaction (Order, Proposal, Invoice, Purchase, WorkOrder)
+            transaction: The parent transaction (Order, Quote, Invoice, Purchase, WorkOrder)
             item_id: ID of the item to add
             quantity: Quantity to order (default: 1)
             unit_price: Override unit price (if None, uses item's default price)
@@ -1039,8 +1039,8 @@ class LineItemService:
         the line_data and creates the appropriate pending record.
 
         Args:
-            parent: The parent transaction object (Order, Proposal, etc.)
-            parent_model_key: The model key ('order', 'proposal', etc.)
+            parent: The parent transaction object (Order, Quote, etc.)
+            parent_model_key: The model key ('order', 'quote', etc.)
             line: The created line object
             line_data: The raw dict data used to create the line
 
@@ -1050,8 +1050,8 @@ class LineItemService:
         # Normalize transaction type
         tx_type_map = {
             'order': 'order',
-            'proposal': 'proposal',
-            'quote': 'proposal',
+            'quote': 'quote',
+            'quote': 'quote',
             'invoice': 'invoice',
             'purchase': 'purchase',
             'workorder': 'workorder',

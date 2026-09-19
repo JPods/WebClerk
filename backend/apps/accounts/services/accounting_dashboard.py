@@ -117,7 +117,7 @@ def _get_gl_balance() -> Dict[str, Any]:
 def _get_transaction_volume() -> Dict[str, Any]:
     """Transaction counts by type and status."""
     result = {}
-    for model_name in ['Order', 'Invoice', 'Proposal', 'Purchase', 'WorkOrder']:
+    for model_name in ['Order', 'Invoice', 'Quote', 'Purchase', 'WorkOrder']:
         try:
             Model = dj_apps.get_model('transactions', model_name)
             total = Model.objects.filter(is_deleted=False).count()

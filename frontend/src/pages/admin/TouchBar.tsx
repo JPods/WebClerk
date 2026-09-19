@@ -10,7 +10,7 @@ import { TouchBadge } from './TouchBadge';
 
 export const TOUCH_MODELS = new Set([
   'action', 'contact', 'customer', 'vendor', 'manufacturer', 'rep', 'employee', 'other_org',
-  'invoice', 'order', 'proposal', 'purchase', 'workorder', 'requisition',
+  'invoice', 'order', 'quote', 'purchase', 'workorder', 'requisition',
 ]);
 
 export interface TouchPrefs {
@@ -30,7 +30,7 @@ export const TouchBar: React.FC<{ model: string; record: any; recordId: number; 
 
   const isContact = model === 'contact';
   const isOrg = ['customer', 'vendor', 'manufacturer', 'rep', 'employee', 'other_org'].includes(model);
-  const isTx = ['invoice', 'order', 'proposal', 'purchase', 'workorder', 'requisition'].includes(model);
+  const isTx = ['invoice', 'order', 'quote', 'purchase', 'workorder', 'requisition'].includes(model);
 
   const contactId = isContact ? recordId : (record.contact_id || record.contact || 0);
 

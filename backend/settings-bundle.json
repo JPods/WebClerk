@@ -1460,11 +1460,11 @@
             "where_used": "",
             "wc2_array_name": "<>aActionsProjects"
           },
-          "proposals_status": {
+          "quotes_status": {
             "choices": [],
             "list_name": "PplStatus",
-            "where_used": "This popup is used in the proposal and order record  to record the status of the proposal or order.",
-            "wc2_array_name": "<>aProposalsStatus"
+            "where_used": "This popup is used in the quote and order record  to record the status of the quote or order.",
+            "wc2_array_name": "<>aQuotesStatus"
           },
           "service_profile1": {
             "choices": [],
@@ -1581,11 +1581,11 @@
             "where_used": "",
             "wc2_array_name": "<>aVendorsProfile7"
           },
-          "actions_proposals": {
+          "actions_quotes": {
             "choices": [],
-            "list_name": "ProposalsActions",
+            "list_name": "QuotesActions",
             "where_used": "",
-            "wc2_array_name": "<>aActionsProposals"
+            "wc2_array_name": "<>aActionsQuotes"
           },
           "bill_instructions": {
             "choices": [],
@@ -3348,7 +3348,7 @@
             "route": "/flight-sim",
             "source": "system",
             "category": "Training",
-            "description": "Step through proposal→order→invoice→cash lifecycle"
+            "description": "Step through quote→order→invoice→cash lifecycle"
           },
           {
             "icon": "📦",
@@ -3517,7 +3517,7 @@
             "item",
             "order",
             "invoice",
-            "proposal",
+            "quote",
             "purchase",
             "cash",
             "contact"
@@ -3688,7 +3688,7 @@
                 "Alice Dashboard with LLM config",
                 "Help Dashboard with bookmarks and MCP guide",
                 "Org pages config-driven (5 types, 1 component)",
-                "Print pages (invoice, order, proposal, QA)"
+                "Print pages (invoice, order, quote, QA)"
               ],
               "version": "3.0.0-alpha"
             }
@@ -3755,7 +3755,7 @@
             "order": "Order",
             "invoice": "Invoice",
             "customer": "Customer",
-            "proposal": "Proposal",
+            "quote": "Quote",
             "purchase": "Purchase Order"
           },
           "ui_template": "default",
@@ -3764,7 +3764,7 @@
             "orders": true,
             "invoices": true,
             "campaigns": false,
-            "proposals": true,
+            "quotes": true,
             "purchases": true,
             "commissions": false,
             "territories": false,
@@ -3910,7 +3910,7 @@
             "auto_email": false,
             "default_report_id": null
           },
-          "proposal": {
+          "quote": {
             "copies": 1,
             "auto_email": false,
             "default_report_id": null
@@ -3932,7 +3932,7 @@
           },
           "po_template": "",
           "invoice_template": "",
-          "proposal_template": "",
+          "quote_template": "",
           "statement_template": "",
           "letterhead_template": "",
           "packing_slip_template": ""
@@ -3983,7 +3983,7 @@
             "next": 1030,
             "format": "{number}-{tag}"
           },
-          "proposal": {
+          "quote": {
             "pad": 4,
             "tag": "qt",
             "next": 1057,
@@ -4095,7 +4095,7 @@
             "print_forms": {
               "label": "Print Form Templates",
               "enabled": true,
-              "description": "Invoice, proposal, PO, packing slip, pick list, BOL, statement, and other print templates. WCHQ maintains a library of tested layouts.",
+              "description": "Invoice, quote, PO, packing slip, pick list, BOL, statement, and other print templates. WCHQ maintains a library of tested layouts.",
               "last_sync_utc": "",
               "pending_count": 0,
               "accepted_count": 0,
@@ -4203,7 +4203,7 @@
             "workflow_automation": {
               "label": "Workflow Automation",
               "enabled": true,
-              "description": "Document conversion chains (proposal→order→invoice), approval workflows, notification triggers, scheduled reports.",
+              "description": "Document conversion chains (quote→order→invoice), approval workflows, notification triggers, scheduled reports.",
               "last_sync_utc": "",
               "pending_count": 0,
               "accepted_count": 0,
@@ -5773,8 +5773,8 @@
             "label": "Invoice Actions",
             "options": []
           },
-          "actions_proposals": {
-            "label": "Proposal Actions",
+          "actions_quotes": {
+            "label": "Quote Actions",
             "options": []
           },
           "actions_purchases": {
@@ -5874,10 +5874,10 @@
               "show_balance": true,
               "show_cash_info": true
             },
-            "proposal": {
+            "quote": {
               "template_id": "invoice",
               "validity_days": 30,
-              "title_override": "PROPOSAL",
+              "title_override": "QUOTE",
               "show_terms_and_conditions": true
             },
             "purchase": {
@@ -6234,7 +6234,7 @@
           "last_cost_update": true,
           "order_line_track": true,
           "lead_response_days": 20,
-          "track_proposal_qty": true,
+          "track_quote_qty": true,
           "manual_order_status": false
         },
         "currency": {
@@ -6693,9 +6693,9 @@
               }
             ]
           },
-          "proposal": {
-            "link": "/proposal",
-            "label": "Proposals",
+          "quote": {
+            "link": "/quote",
+            "label": "Quotes",
             "filters": {
               "is_active": true
             },
@@ -6915,7 +6915,7 @@
               [
                 "order",
                 "invoice",
-                "proposal",
+                "quote",
                 "customer",
                 "contact",
                 "cash",
@@ -6931,8 +6931,8 @@
                 "accent": "blue"
               },
               {
-                "to": "/proposal?action=new",
-                "label": "+ Proposal",
+                "to": "/quote?action=new",
+                "label": "+ Quote",
                 "accent": "indigo"
               },
               {
@@ -7000,7 +7000,7 @@
                 "cash"
               ],
               [
-                "proposal",
+                "quote",
                 "receipt",
                 "workorder",
                 "requisition"
@@ -22427,7 +22427,7 @@
           "tips": [
             {
               "id": "cust-01",
-              "body": "Every order, invoice, proposal, and cash links to a customer. Start here.",
+              "body": "Every order, invoice, quote, and cash links to a customer. Start here.",
               "type": "concept",
               "level": "beginner",
               "title": "Customers are the center"
@@ -36273,7 +36273,7 @@
             "terms": "Cash terms — determines due date on the ledger record.",
             "total": "Sum of all line items. Edit lines to change — total recalculates automatically.",
             "config": "Custom settings — alternate ship-to, special handling instructions.",
-            "source": "Origin tracking — which order, proposal, or import created this invoice.",
+            "source": "Origin tracking — which order, quote, or import created this invoice.",
             "status": "planned = draft. released = sent to customer. complete = paid and closed.",
             "totals": "Subtotal, tax, shipping, and grand total. Computed from lines — read-only.",
             "balance": "Total minus cash received. Read-only. Updated when cash are applied.",
@@ -36710,7 +36710,7 @@
                   "field": "parent_model",
                   "label": "parent_model",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -36979,7 +36979,7 @@
                   "family": "sell",
                   "actions": [
                     "apply_cash",
-                    "post_to_proposal",
+                    "post_to_quote",
                     "post_to_po",
                     "clone"
                   ],
@@ -48701,7 +48701,7 @@
             "attention": "Contact name at the customer for this order.",
             "dt_needed": "Customer-requested delivery date. Drives pick list priority.",
             "price_level": "Price tier — flows from customer unless overridden here.",
-            "source_name": "Where this order came from — web, phone, proposal conversion.",
+            "source_name": "Where this order came from — web, phone, quote conversion.",
             "address_full": "Ship-to address. Cmd+click label to open in maps.",
             "conditions_description": "Special order conditions printed on documents."
           },
@@ -49108,7 +49108,7 @@
                   "field": "parent_model",
                   "label": "parent_model",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -56917,7 +56917,7 @@
                   "field": "model_code",
                   "label": "model_code",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -57532,46 +57532,46 @@
     },
     {
       "uuid": "74cd1ed4-9631-4233-b1d5-43a5829dd0ef",
-      "ida": "wc-model-proposal",
-      "name": "Proposal Model Definition",
+      "ida": "wc-model-quote",
+      "name": "Quote Model Definition",
       "scope": "system",
       "purpose": "wc:model",
-      "parent_model": "proposal",
-      "explanation": "Model definition for Proposal. Governs named layouts (list columns, detail fields, ui sections), field behaviors, schema metadata, and access configuration.",
+      "parent_model": "quote",
+      "explanation": "Model definition for Quote. Governs named layouts (list columns, detail fields, ui sections), field behaviors, schema metadata, and access configuration.",
       "paths": {
-        "schema": "common/schemas/proposal.py"
+        "schema": "common/schemas/quote.py"
       },
       "config": {
         "help": {
           "tips": [
             {
               "id": "prop-01",
-              "body": "A proposal is a price quote sent to a customer. If accepted, it converts to an order.",
+              "body": "A quote is a price quote sent to a customer. If accepted, it converts to an order.",
               "type": "concept",
               "level": "beginner",
-              "title": "Proposals are quotes"
+              "title": "Quotes are quotes"
             },
             {
               "id": "prop-02",
-              "body": "Proposal lines show both MSRP and the offered unit price so the customer sees the discount.",
+              "body": "Quote lines show both MSRP and the offered unit price so the customer sees the discount.",
               "type": "concept",
               "level": "beginner",
               "title": "MSRP vs Unit Price"
             }
           ],
           "fields": {
-            "ida": "Proposal number — unique identifier.",
+            "ida": "Quote number — unique identifier.",
             "email": "Contact email. Cmd+click label to compose.",
             "phone": "Contact phone. Cmd+click label to dial.",
             "total": "Proposed total — what the customer would pay if they accept.",
             "status": "planned = draft. released = sent to customer. complete = accepted or expired.",
             "totals": "Subtotal, tax, shipping, total. Computed from lines.",
             "company": "Customer company name.",
-            "attention": "Who at the customer receives this proposal.",
-            "dt_needed": "Proposal expiration or decision-needed date.",
+            "attention": "Who at the customer receives this quote.",
+            "dt_needed": "Quote expiration or decision-needed date.",
             "price_level": "Price tier for this quote — may differ from customer default.",
             "address_full": "Customer address. Cmd+click label to open in maps.",
-            "conditions_description": "Terms and conditions printed on the proposal."
+            "conditions_description": "Terms and conditions printed on the quote."
           }
         },
         "access": {
@@ -57979,7 +57979,7 @@
                   "field": "parent_model",
                   "label": "parent_model",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -58099,7 +58099,7 @@
           },
           "form": {
             "default": {
-              "model": "proposal",
+              "model": "quote",
               "family": "sell",
               "sections": [
                 {
@@ -58167,7 +58167,7 @@
                       ]
                     },
                     {
-                      "title": "proposal",
+                      "title": "quote",
                       "fields": [
                         {
                           "type": "select",
@@ -59793,11 +59793,11 @@
           "metadata",
           "model",
           "named",
-          "proposal",
+          "quote",
           "schema",
           "sections",
           "system",
-          "wc-model-proposal",
+          "wc-model-quote",
           "wc:model",
           "wcmodel"
         ],
@@ -59808,14 +59808,14 @@
     },
     {
       "uuid": "2964240a-8209-4953-96af-2fb3baf7bdcf",
-      "ida": "wc-model-proposal_line",
-      "name": "Proposal Line Model Definition",
+      "ida": "wc-model-quote_line",
+      "name": "Quote Line Model Definition",
       "scope": "system",
       "purpose": "wc:model",
-      "parent_model": "proposal_line",
-      "explanation": "Model definition for Proposal Line. Governs named layouts (list columns, detail fields, ui sections), field behaviors, schema metadata, and access configuration.",
+      "parent_model": "quote_line",
+      "explanation": "Model definition for Quote Line. Governs named layouts (list columns, detail fields, ui sections), field behaviors, schema metadata, and access configuration.",
       "paths": {
-        "schema": "common/schemas/proposal_line.py"
+        "schema": "common/schemas/quote_line.py"
       },
       "config": {
         "access": {
@@ -59856,7 +59856,7 @@
                 "tax",
                 "physical",
                 "price",
-                "proposal"
+                "quote"
               ],
               "create": false,
               "delete": false
@@ -59886,7 +59886,7 @@
                 "tax",
                 "physical",
                 "price",
-                "proposal"
+                "quote"
               ],
               "view": "*",
               "create": true,
@@ -59906,7 +59906,7 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "proposal"
+                "quote"
               ],
               "view": [
                 "id",
@@ -59943,7 +59943,7 @@
                 "tax",
                 "physical",
                 "price",
-                "proposal"
+                "quote"
               ],
               "create": true,
               "delete": false
@@ -59973,7 +59973,7 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "proposal"
+                "quote"
               ],
               "view": "*",
               "create": true,
@@ -60028,7 +60028,7 @@
                 "tax",
                 "physical",
                 "price",
-                "proposal"
+                "quote"
               ],
               "create": false,
               "delete": false
@@ -60108,8 +60108,8 @@
                   "label": "price_level"
                 },
                 {
-                  "field": "proposal",
-                  "label": "proposal"
+                  "field": "quote",
+                  "label": "quote"
                 },
                 {
                   "field": "tax",
@@ -60497,10 +60497,10 @@
             "type": "json",
             "label": "physical"
           },
-          "proposal": {
+          "quote": {
             "type": "lookup",
-            "label": "proposal",
-            "model": "proposal",
+            "label": "quote",
+            "model": "quote",
             "display": "name"
           },
           "quantity": {
@@ -60904,7 +60904,7 @@
               "line_number",
               "line_type",
               "item_fk",
-              "proposal"
+              "quote"
             ]
           },
           {
@@ -61074,13 +61074,13 @@
           "metadata",
           "model",
           "named",
-          "proposal",
-          "proposal_line",
-          "proposalline",
+          "quote",
+          "quote_line",
+          "quoteline",
           "schema",
           "sections",
           "system",
-          "wc-model-proposal_line",
+          "wc-model-quote_line",
           "wc:model",
           "wcmodel"
         ],
@@ -61539,7 +61539,7 @@
                   "field": "parent_model",
                   "label": "parent_model",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -86420,7 +86420,7 @@
                   "field": "parent_model",
                   "label": "parent_model",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",

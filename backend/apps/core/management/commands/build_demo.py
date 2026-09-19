@@ -329,7 +329,7 @@ class Command(BaseCommand):
         tx_tables = [
             ('orders', 'customer_id'),
             ('invoices', 'customer_id'),
-            ('proposals', 'customer_id'),
+            ('quotes', 'customer_id'),
             ('work_orders', 'customer_id'),
             ('purchases', 'vendor_id'),
         ]
@@ -375,7 +375,7 @@ class Command(BaseCommand):
             ('products_item', 'Item'),
             ('orders', 'Order'),
             ('invoices', 'Invoice'),
-            ('proposals', 'Proposal'),
+            ('quotes', 'Quote'),
             ('purchases', 'Purchase'),
             ('work_orders', 'WorkOrder'),
         ]

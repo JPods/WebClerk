@@ -8,7 +8,7 @@ Tests for the erosion detection pipeline:
   Discount detection → standalone erosion record
 
 Covers:
-  1. Margin erosion (invoice vs order, invoice vs proposal)
+  1. Margin erosion (invoice vs order, invoice vs quote)
   2. Late-payment carrying cost
   3. Discount erosion
   4. Org erosion summary
@@ -38,10 +38,10 @@ def org():
 
 
 @pytest.fixture
-def proposal(org):
-    """Create a proposal with 40% margin."""
-    from apps.transactions.models import Proposal
-    return Proposal.objects.create(
+def quote(org):
+    """Create a quote with 40% margin."""
+    from apps.transactions.models import Quote
+    return Quote.objects.create(
         status='planned',
         customer=org,
         totals={
@@ -52,14 +52,14 @@ def proposal(org):
 
 
 @pytest.fixture
-def order_from_proposal(org, proposal):
-    """Create an order linked to proposal with 35% margin (eroded by 5pp)."""
+def order_from_quote(org, quote):
+    """Create an order linked to quote with 35% margin (eroded by 5pp)."""
     from apps.transactions.models import Order
     return Order.objects.create(
         status='planned',
         customer=org,
-        parent_id=proposal.id,
-        parent_model='proposal',
+        parent_id=quote.id,
+        parent_model='quote',
         totals={
             'subtotal': 1000, 'discount': 0, 'total': 1000,
             'cost': 650, 'margin': 350, 'margin_pc': 35,
@@ -68,13 +68,13 @@ def order_from_proposal(org, proposal):
 
 
 @pytest.fixture
-def invoice_from_order(org, order_from_proposal):
+def invoice_from_order(org, order_from_quote):
     """Create an invoice linked to order with 31% margin (eroded further)."""
     from apps.transactions.models import Invoice
     return Invoice.objects.create(
         status='planned',
         customer=org,
-        parent_id=order_from_proposal.id,
+        parent_id=order_from_quote.id,
         parent_model='order',
         totals={
             'subtotal': 1000, 'discount': 0, 'total': 1000,
@@ -125,7 +125,7 @@ def contact():
 class TestMarginErosion:
     """Tests for detect_margin_erosion()."""
 
-    def test_detects_erosion_invoice_vs_order(self, invoice_from_order, order_from_proposal):
+    def test_detects_erosion_invoice_vs_order(self, invoice_from_order, order_from_quote):
         from apps.accounts.services.value_erosion import detect_margin_erosion
         from apps.accounts.models import Erosion
 
@@ -140,19 +140,19 @@ class TestMarginErosion:
         assert order_erosion[0].source_model == 'invoice'
         assert order_erosion[0].org_id == invoice_from_order.customer_id
 
-    def test_walks_full_chain_invoice_to_proposal(self, invoice_from_order, order_from_proposal, proposal):
+    def test_walks_full_chain_invoice_to_quote(self, invoice_from_order, order_from_quote, quote):
         from apps.accounts.services.value_erosion import detect_margin_erosion
 
         events = detect_margin_erosion(invoice_from_order)
 
-        # Should detect erosion vs both order AND proposal
+        # Should detect erosion vs both order AND quote
         models_found = {e.parent_model for e in events}
         assert 'order' in models_found
-        assert 'proposal' in models_found
+        assert 'quote' in models_found
 
-        # Proposal erosion: 400 - 310 = $90
-        proposal_erosion = [e for e in events if e.parent_model == 'proposal']
-        assert proposal_erosion[0].amount == Decimal('90')
+        # Quote erosion: 400 - 310 = $90
+        quote_erosion = [e for e in events if e.parent_model == 'quote']
+        assert quote_erosion[0].amount == Decimal('90')
 
     def test_no_erosion_when_margin_improves(self, org):
         """If invoice margin is higher than order, no erosion should be recorded."""
@@ -172,7 +172,7 @@ class TestMarginErosion:
         events = detect_margin_erosion(invoice)
         assert events == []
 
-    def test_idempotent_replace(self, invoice_from_order, order_from_proposal):
+    def test_idempotent_replace(self, invoice_from_order, order_from_quote):
         """Running detect_margin_erosion twice replaces, not duplicates."""
         from apps.accounts.services.value_erosion import detect_margin_erosion
         from apps.accounts.models import Erosion
@@ -184,7 +184,7 @@ class TestMarginErosion:
         count = Erosion.objects.filter(
             source_model='invoice', source_id=invoice_from_order.id, is_auto=True,
         ).count()
-        assert count == 2  # one vs order, one vs proposal
+        assert count == 2  # one vs order, one vs quote
 
     def test_no_parent_returns_empty(self, org):
         """Invoice without parent chain → no erosion."""
@@ -296,7 +296,7 @@ class TestDiscountErosion:
 class TestOrgErosionSummary:
     """Tests for get_org_erosion_summary()."""
 
-    def test_summary_aggregates(self, invoice_from_order, order_from_proposal, proposal, invoice_with_discount):
+    def test_summary_aggregates(self, invoice_from_order, order_from_quote, quote, invoice_with_discount):
         from apps.accounts.services.value_erosion import (
             detect_margin_erosion, detect_discount_erosion, get_org_erosion_summary,
         )

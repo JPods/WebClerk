@@ -12,7 +12,7 @@ from apps.docs.choices import (
     DOCUMENT_STATUS_CHOICES,
 )
 # this table provides a path to documents
-# example use is to link line items in orders, proposals, etc.
+# example use is to link line items in orders, quotes, etc.
 # with one document that passes on specs, paths, comments, and other details
 
 # If you need a model for the "paths" table, define it as a Django model below.

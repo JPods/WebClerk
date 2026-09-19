@@ -45,12 +45,12 @@ MODEL_MAP = {
     'contact': 'core.Contact',
     'order': 'transactions.Order',
     'invoice': 'transactions.Invoice',
-    'proposal': 'transactions.Proposal',
+    'quote': 'transactions.Quote',
     'purchase': 'transactions.Purchase',
     'cash': 'transactions.Cash',
     'order_line': 'transactions.OrderLine',
     'invoice_line': 'transactions.InvoiceLine',
-    'proposal_line': 'transactions.ProposalLine',
+    'quote_line': 'transactions.QuoteLine',
     'purchase_line': 'transactions.PurchaseLine',
 }
 

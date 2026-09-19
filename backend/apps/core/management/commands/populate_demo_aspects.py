@@ -14,7 +14,7 @@ import random
 from django.core.management.base import BaseCommand
 
 from apps.transactions.models import (
-    Proposal, Order, Invoice, Purchase,
+    Quote, Order, Invoice, Purchase,
 )
 from apps.orgs.models import OrgBase
 from apps.core.models import Contact
@@ -126,7 +126,7 @@ class Command(BaseCommand):
 
     def _populate_transactions(self, dry_run):
         """Fill transaction aspects from customer/vendor org data."""
-        sell_models = [Proposal, Order, Invoice]
+        sell_models = [Quote, Order, Invoice]
         for model in sell_models:
             self._fill_trans(model, 'customer', dry_run)
         self._fill_trans(Purchase, 'vendor', dry_run)

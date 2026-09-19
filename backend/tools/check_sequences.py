@@ -5,9 +5,9 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webclerk3_api.settings')
 django.setup()
 
 from django.db import connection
-from apps.transactions.models import Order, Invoice, Proposal, Purchase, WorkOrder, Requisition
+from apps.transactions.models import Order, Invoice, Quote, Purchase, WorkOrder, Requisition
 
-for Model in [Order, Invoice, Proposal, Purchase, WorkOrder, Requisition]:
+for Model in [Order, Invoice, Quote, Purchase, WorkOrder, Requisition]:
     name = Model.__name__
     table = Model._meta.db_table
     count = Model.objects.count()

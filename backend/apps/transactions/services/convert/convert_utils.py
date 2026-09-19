@@ -84,7 +84,7 @@ def _resolve_line_parent_id(src_line: Any) -> Any:
     if parent_obj is not None:
         return getattr(parent_obj, 'id', None)
     for field_name in (
-        'proposal_id', 'order_id', 'invoice_id', 'purchase_id',
+        'quote_id', 'order_id', 'invoice_id', 'purchase_id',
         'workorder_id', 'receipt_id', 'requisition_id'
     ):
         if hasattr(src_line, field_name):

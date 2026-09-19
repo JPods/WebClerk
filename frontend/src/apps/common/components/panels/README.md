@@ -192,7 +192,7 @@ Any new panel component must use `DbColumns` as its base. No custom table render
 | `CommentsPanel.tsx` | Four-tab comment editor (Public/Process/Partner/Notes) |
 | `DocumentsPanel.tsx` | File upload, preview, download, virus scan |
 | `FinancialsPanel.tsx` | Margin calculation, aging summary, credit display |
-| `LinkagesPanel.tsx` | Transaction flow visualization (Proposal→Order→Invoice→Cash) |
+| `LinkagesPanel.tsx` | Transaction flow visualization (Quote→Order→Invoice→Cash) |
 | `CashPanel.tsx` | Cash-specific actions (apply, refund) |
 | `SerialPanel.tsx` | Serial lifecycle tracking |
 | `ShippingPanel.tsx` | Carrier, tracking, freight |

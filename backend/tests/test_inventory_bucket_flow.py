@@ -1,7 +1,7 @@
 """End-to-end inventory bucket flow test.
 
 Exercises the complete lifecycle:
-  Proposal(5) → Order(4) → Invoice(3) → PO(10) → Receive(8)
+  Quote(5) → Order(4) → Invoice(3) → PO(10) → Receive(8)
 
 Verifies that Pending records are created with correct bucket
 transitions at each step. The Pending processor (Celery) applies
@@ -9,8 +9,8 @@ these to InventoryLayer — this test verifies the Pending data,
 not the processed result (that's the processor's test).
 
 Bucket rules:
-  - Proposal: no inventory effect
-  - Proposal → Order: on_so += qty
+  - Quote: no inventory effect
+  - Quote → Order: on_so += qty
   - Order → Invoice: on_in += qty, on_so -= qty, on_hand -= qty
   - PO: on_po += qty
   - PO → Receipt: on_hand += qty, on_po -= qty
@@ -48,20 +48,20 @@ class TestInventoryBucketFlow:
         customer = CustomerFactory(display_name='Test Customer')
         return item, wh, customer
 
-    def test_proposal_no_inventory_effect(self):
-        """Step 1: Creating a proposal does NOT create inventory Pending."""
+    def test_quote_no_inventory_effect(self):
+        """Step 1: Creating a quote does NOT create inventory Pending."""
         from apps.core.models import Pending
-        from apps.transactions.models import Proposal, ProposalLine
+        from apps.transactions.models import Quote, QuoteLine
 
         item, wh, customer = self._setup_item_with_inventory()
 
-        # Create proposal with 5 units
-        proposal = Proposal.objects.create(
+        # Create quote with 5 units
+        quote = Quote.objects.create(
             ida='QT-TEST-001', status='open',
             customer=customer,
         )
-        ProposalLine.objects.create(
-            proposal=proposal,
+        QuoteLine.objects.create(
+            quote=quote,
             item_fk=item,
             item={'id': item.pk, 'ida': item.ida},
             price={'unit': 50.0, 'quantity': 5.0, 'extended': 250.0},
@@ -69,7 +69,7 @@ class TestInventoryBucketFlow:
             status='open',
         )
 
-        # Proposals should NOT create inventory pending records
+        # Quotes should NOT create inventory pending records
         # (inventory only moves on orders, invoices, POs, receipts)
         pendings = Pending.objects.filter(
             model_name='item',

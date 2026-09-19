@@ -92,7 +92,7 @@ R25_DYNAMIC_LISTS = [
     {"key": "reps",                "label": "Sales Reps",          "options": []},
     {"key": "actions_orders",      "label": "Order Actions",       "options": []},
     {"key": "actions_invoices",    "label": "Invoice Actions",     "options": []},
-    {"key": "actions_proposals",   "label": "Proposal Actions",    "options": []},
+    {"key": "actions_quotes",   "label": "Quote Actions",    "options": []},
     {"key": "actions_purchases",   "label": "Purchase Actions",    "options": []},
     {"key": "tax_juris",           "label": "Tax Jurisdictions",   "options": []},
     {

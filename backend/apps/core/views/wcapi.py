@@ -581,7 +581,7 @@ class WCAPIGetView(APIView):
 
         def _resolve_parent_field() -> Optional[str]:
             parent_candidates = (
-                'proposal', 'order', 'invoice', 'purchase',
+                'quote', 'order', 'invoice', 'purchase',
                 'workorder', 'receipt', 'requisition'
             )
             for candidate in parent_candidates:
@@ -1384,7 +1384,7 @@ class WCAPIGetView(APIView):
         for label, model_key, filters in [
             ("Orders", "order", None),
             ("Invoices", "invoice", None),
-            ("Proposals", "proposal", None),
+            ("Quotes", "quote", None),
             ("Contacts", "contact", None),
         ]:
             count_val = safe_count(model_key, filters)
@@ -1392,7 +1392,7 @@ class WCAPIGetView(APIView):
                 stats.append({"label": label, "value": count_val})
 
         # Activities: prefer transactional signals first
-        activities = safe_recent("order", limit=5) or safe_recent("proposal", limit=5) or []
+        activities = safe_recent("order", limit=5) or safe_recent("quote", limit=5) or []
 
         # Notifications: reuse activities but keep lightweight; can be swapped to a dedicated model if available
         notifications = safe_recent("communication", limit=5) or safe_recent("support_ticket", limit=5) or activities[:5]
@@ -1404,7 +1404,7 @@ class WCAPIGetView(APIView):
         shortcuts = []
         for label, to in [
             ("Create Order", "/orders/create"),
-            ("New Proposal", "/proposals/create"),
+            ("New Quote", "/quotes/create"),
             ("Add Contact", "/contacts/create"),
             ("Open Tasks", "/tasks"),
         ]:

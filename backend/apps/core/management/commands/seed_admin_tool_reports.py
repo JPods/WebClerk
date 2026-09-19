@@ -177,7 +177,7 @@ ADMIN_TOOLS = [
     {
         'ida': 'admin-tool-seed-demo-transactions',
         'name': 'Seed Demo Transactions',
-        'description': 'Create 3 complete transaction cycles: proposal → order → invoice → cash → GL.',
+        'description': 'Create 3 complete transaction cycles: quote → order → invoice → cash → GL.',
         'model_name': 'setting',
         'category': 'utility',
         'output_type': 'json',
@@ -193,7 +193,7 @@ ADMIN_TOOLS = [
         'explanation': (
             'Creates 3 transaction cycles using items and contacts from seed_demo: '
             'Riverside Sports (fully paid), Metro Baseball Academy (split cash), '
-            'Eastside Little League (single installment). Each cycle: proposal → order → '
+            'Eastside Little League (single installment). Each cycle: quote → order → '
             'invoice → cash → GL journal entries. All tagged refs.demo_source="demo-baseline".'
         ),
     },

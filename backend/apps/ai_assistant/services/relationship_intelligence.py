@@ -75,9 +75,9 @@ CUSTOMER_TRIGGERS = [
         'priority': 0,
     },
     {
-        'id': 'proposal_no_followup',
-        'name': 'Proposal Without Follow-up',
-        'desc': 'Inspection/proposal sent 30+ days ago with no resulting order',
+        'id': 'quote_no_followup',
+        'name': 'Quote Without Follow-up',
+        'desc': 'Inspection/quote sent 30+ days ago with no resulting order',
         'category': 'alert',
         'priority': 1,
     },

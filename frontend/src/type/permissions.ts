@@ -65,7 +65,7 @@ export const PORTAL_ROLES: RoleName[] = ["rep", "customer", "buyer", "vendor", "
 export type ModelName =
   | "order"
   | "invoice"
-  | "proposal"
+  | "quote"
   | "purchase"
   | "workorder"
   | "customer"

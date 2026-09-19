@@ -3,8 +3,8 @@ from .base_line_serializer import BaseLineSerializer
 from .helpers import _name_from_refs, BASE_RO
 
 # Per-model serializers
-from .proposal_serializer import (
-    ProposalSerializer, ProposalLineSerializer, ProposalLineRichSerializer,
+from .quote_serializer import (
+    QuoteSerializer, QuoteLineSerializer, QuoteLineRichSerializer,
 )
 from .order_serializer import (
     OrderSerializer, OrderLineSerializer, OrderLineRichSerializer,
@@ -43,7 +43,7 @@ __all__ = [
     'BaseLineSerializer',
 
     # Header serializers
-    'ProposalSerializer',
+    'QuoteSerializer',
     'OrderSerializer',
     'PurchaseSerializer',
     'InvoiceSerializer',
@@ -54,7 +54,7 @@ __all__ = [
     'RequisitionSerializer',
 
     # Line serializers (deep-merge)
-    'ProposalLineSerializer',
+    'QuoteLineSerializer',
     'OrderLineSerializer',
     'InvoiceLineSerializer',
     'PurchaseLineSerializer',
@@ -62,7 +62,7 @@ __all__ = [
     'RequisitionLineSerializer',
 
     # Rich line serializers (nested display)
-    'ProposalLineRichSerializer',
+    'QuoteLineRichSerializer',
     'OrderLineRichSerializer',
     'PurchaseLineRichSerializer',
 

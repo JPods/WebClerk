@@ -64,7 +64,7 @@ ACTION_ENTRIES = [
     {'title': 'Update price levels for fall season', 'project': 'Sales', 'priority': 2},
     {'title': 'Schedule equipment delivery to Metro High School', 'project': 'Fulfillment', 'priority': 3},
     {'title': 'Reconcile July credit card statement', 'project': 'Accounting', 'priority': 2},
-    {'title': 'Send proposal to Oklahoma City Parks Dept', 'project': 'Sales', 'priority': 3},
+    {'title': 'Send quote to Oklahoma City Parks Dept', 'project': 'Sales', 'priority': 3},
     {'title': 'Inventory count — gloves and bags', 'project': 'Warehouse', 'priority': 1},
     {'title': 'Call back Mike Torres about league discount', 'project': 'Sales', 'priority': 2},
     {'title': 'File sales tax return for Q2', 'project': 'Accounting', 'priority': 3},

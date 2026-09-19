@@ -56,7 +56,7 @@ PRIORITY_MAX = 5
 class Project(BaseModel):
     """Cross-document initiative / scrum-style aggregator.
 
-    Intent: unify related transactions (proposals, orders...) and actions under
+    Intent: unify related transactions (quotes, orders...) and actions under
     a single planning / governance artifact. Uses BaseModel envelopes for
     metadata, prefs, refs, comments, etc.
     """

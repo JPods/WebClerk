@@ -67,8 +67,8 @@ INVOICE_INFO_CARD = {
     ],
 }
 
-PROPOSAL_INFO_CARD = {
-    'title': 'Proposal',
+QUOTE_INFO_CARD = {
+    'title': 'Quote',
     'fields': [
         {'field': 'type_sale', 'label': 'Type Sale', 'type': 'select'},
         {'field': 'terms', 'label': 'Terms'},
@@ -146,7 +146,7 @@ CASH_INFO_CARD = {
     ],
 }
 
-# ── Sell-side tabs (order, invoice, proposal) ──────────────────────────
+# ── Sell-side tabs (order, invoice, quote) ──────────────────────────
 
 SELL_TABS = [
     {'label': 'Summary', 'content': 'summary'},
@@ -212,12 +212,12 @@ MODELS = {
         'tabs': SELL_TABS,
         'locked_statuses': ['posted', 'void'],
     },
-    'proposal': {
+    'quote': {
         'family': 'sell',
         'cards': {
             'bill_to': BILL_TO_CARD,
             'ship_to': SHIP_TO_CARD,
-            'info': PROPOSAL_INFO_CARD,
+            'info': QUOTE_INFO_CARD,
         },
         'header_cards': ['bill_to', 'ship_to', 'info'],
         'line_toolbar': ['L', 'S'],

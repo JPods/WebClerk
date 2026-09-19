@@ -14,7 +14,7 @@ const layoutCache = new Map<string, PrintLayout>();
 
 /** Generate a sensible default print layout for a transaction model */
 function defaultPrintLayout(model: string): PrintLayout {
-  const isSell = ['order', 'invoice', 'proposal'].includes(model);
+  const isSell = ['order', 'invoice', 'quote'].includes(model);
   const title = model.charAt(0).toUpperCase() + model.slice(1).replace(/_/g, ' ');
 
   return {

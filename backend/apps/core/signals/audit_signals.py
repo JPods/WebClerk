@@ -25,7 +25,7 @@ AUDIT_EXCLUDE_FIELDS = {
 AUDITED_MODELS = {
     'transactions.Invoice',
     'transactions.Order',
-    'transactions.Proposal',
+    'transactions.Quote',
     'transactions.Purchase',
     'transactions.WorkOrder',
     'transactions.Cash',

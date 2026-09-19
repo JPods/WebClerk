@@ -19,7 +19,7 @@ function getContextFromPath(path: string): { model: string; context: string; lab
   if (p.includes('/gantt')) return { model: 'system', context: 'gantt', label: 'Gantt' };
   if (p.includes('/invoice')) return { model: 'invoice', context: 'invoice', label: 'Invoices' };
   if (p.includes('/order')) return { model: 'order', context: 'order', label: 'Orders' };
-  if (p.includes('/proposal')) return { model: 'proposal', context: 'proposal', label: 'Proposals' };
+  if (p.includes('/quote')) return { model: 'quote', context: 'quote', label: 'Quotes' };
   if (p.includes('/purchase')) return { model: 'purchase', context: 'purchase', label: 'Purchases' };
   if (p.includes('/cash')) return { model: 'cash', context: 'cash', label: 'Cash' };
   if (p.includes('/customer')) return { model: 'customer', context: 'customer', label: 'Customers' };

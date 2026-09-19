@@ -19,7 +19,7 @@ REQUIRED_FK_RELATIONSHIPS = [
     # Transaction lines → headers
     ('transactions', 'OrderLine', 'order_id', 'transactions', 'Order'),
     ('transactions', 'InvoiceLine', 'invoice_id', 'transactions', 'Invoice'),
-    ('transactions', 'ProposalLine', 'proposal_id', 'transactions', 'Proposal'),
+    ('transactions', 'QuoteLine', 'quote_id', 'transactions', 'Quote'),
     ('transactions', 'PurchaseLine', 'purchase_id', 'transactions', 'Purchase'),
     ('transactions', 'WorkOrderLine', 'workorder_id', 'transactions', 'WorkOrder'),
     ('transactions', 'RequisitionLine', 'requisition_id', 'transactions', 'Requisition'),

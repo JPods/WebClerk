@@ -9,7 +9,7 @@
  *   2. Adjust    — manual quantity adjustments with reason codes
  *   3. Warehouse — inventory by warehouse with reorder alerts
  *   4. Reconcile — physical count vs system, variance adjustments
- *   5. Training  — Alice's guided Proposal→Order→Invoice→Cash→PO→Receive cycle
+ *   5. Training  — Alice's guided Quote→Order→Invoice→Cash→PO→Receive cycle
  *
  * All mutations go through manageAction → backend services:
  *   - receive_inventory (inventory_stacks.py)
@@ -134,7 +134,7 @@ const QTY_FIELDS = [
   { value: "on_hand", label: "On Hand" },
   { value: "on_po", label: "On PO" },
   { value: "on_so", label: "On SO" },
-  { value: "on_p", label: "On Proposal" },
+  { value: "on_p", label: "On Quote" },
   { value: "available", label: "Available" },
 ];
 
@@ -1305,17 +1305,17 @@ function ReconcileTab() {
 const TRAINING_INSTRUCTIONS = [
   {
     step: 1,
-    action: "Create a Proposal for 15 zz-fake-item",
+    action: "Create a Quote for 15 zz-fake-item",
     effect: "+15 on_p",
-    detail: "Products > New Proposal. Add 15 × zz-fake-item for zzCustomer. Save. Print it.",
+    detail: "Products > New Quote. Add 15 × zz-fake-item for zzCustomer. Save. Print it.",
     icon: <FaClipboardList />,
     color: "text-blue-600",
   },
   {
     step: 2,
-    action: "Transfer 11 from Proposal to Order",
+    action: "Transfer 11 from Quote to Order",
     effect: "-11 on_p, +11 on_so",
-    detail: "Go to Open Proposals. Open your proposal. Transfer 11 of the 15 to Order. Come back here — see the quantities change.",
+    detail: "Go to Open Quotes. Open your quote. Transfer 11 of the 15 to Order. Come back here — see the quantities change.",
     icon: <FaShoppingCart />,
     color: "text-indigo-600",
   },
@@ -1373,7 +1373,7 @@ type TrainingData = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  proposal: "bg-blue-100 text-blue-800",
+  quote: "bg-blue-100 text-blue-800",
   order: "bg-indigo-100 text-indigo-800",
   invoice: "bg-green-100 text-green-800",
   purchase: "bg-orange-100 text-orange-800",
@@ -1448,7 +1448,7 @@ function TrainingTab() {
                 { label: "On Hand", value: inv.on_hand, color: "text-green-700 bg-green-50" },
                 { label: "On SO", value: inv.on_so, color: "text-blue-700 bg-blue-50" },
                 { label: "On PO", value: inv.on_po, color: "text-orange-700 bg-orange-50" },
-                { label: "On Proposal", value: inv.on_p, color: "text-purple-700 bg-purple-50" },
+                { label: "On Quote", value: inv.on_p, color: "text-purple-700 bg-purple-50" },
                 { label: "Available", value: inv.available, color: "text-emerald-700 bg-emerald-50" },
               ].map((b) => (
                 <div key={b.label} className={`px-4 py-2 rounded text-center ${b.color}`}>

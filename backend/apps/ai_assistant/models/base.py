@@ -57,10 +57,10 @@ class InventoryEvent(models.Model):
         ('po_line_update', 'PO line changed'),
         ('po_line_delete', 'PO line removed'),
         ('po_receive', 'PO goods received'),
-        # Proposal events
-        ('proposal_line_add', 'Line added to proposal'),
-        ('proposal_line_update', 'Proposal line changed'),
-        ('proposal_line_delete', 'Proposal line removed'),
+        # Quote events
+        ('quote_line_add', 'Line added to quote'),
+        ('quote_line_update', 'Quote line changed'),
+        ('quote_line_delete', 'Quote line removed'),
         # Adjustment events
         ('qty_adjust_up', 'Quantity increased'),
         ('qty_adjust_down', 'Quantity decreased'),

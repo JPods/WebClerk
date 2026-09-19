@@ -31,7 +31,7 @@ DEFAULT_UI_CONFIG = {
         },
     },
     "navbar": {
-        "models": ["proposal", "order", "invoice", "purchase", "action"],
+        "models": ["quote", "order", "invoice", "purchase", "action"],
         "dashboards": [
             "dashboard", "products", "transactions", "orgs",
             "administration", "alice", "kanban", "gantt",

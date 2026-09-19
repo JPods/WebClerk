@@ -7,7 +7,7 @@ API round-trips.
 
 Rules
 -----
-* **proposal / order / invoice** — always snapshot ``customer`` if present;
+* **quote / order / invoice** — always snapshot ``customer`` if present;
   optionally snapshot ``vendor`` and ``manufacturer`` when referenced.
 * **purchase** — always snapshot ``vendor`` if present;
   optionally snapshot ``customer`` and ``manufacturer`` when referenced.
@@ -47,7 +47,7 @@ except ImportError:
 
 # Which transaction types treat which role as "primary" (always captured)
 # and which roles are "optional" (captured only when FK is set).
-_SALES_TYPES: Set[str] = {"proposal", "order", "invoice"}
+_SALES_TYPES: Set[str] = {"quote", "order", "invoice"}
 _PURCHASE_TYPES: Set[str] = {"purchase"}
 
 # All org-role FK column names we inspect
@@ -74,7 +74,7 @@ def denormalize_org_links(obj: "Model", model_key: str) -> bool:
     Parameters
     ----------
     obj : Model
-        A saved transaction instance (Proposal, Order, Invoice, Purchase, …).
+        A saved transaction instance (Quote, Order, Invoice, Purchase, …).
     model_key : str
         Lowercase model key, e.g. ``"invoice"``, ``"purchase"``.
 

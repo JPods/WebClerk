@@ -470,7 +470,7 @@ class LineQuantity(BaseModel):
     """Line quantity envelope — the three canonical keys plus controls.
 
     quantity.active is the verb of the document:
-      proposal → proposed, order → ordered, invoice → shipped,
+      quote → proposed, order → ordered, invoice → shipped,
       purchase → purchased, receipt → received, workorder → produced.
 
     The same three keys carry every document type:
@@ -525,7 +525,7 @@ class LineQuantity(BaseModel):
 
 
 class LinePrice(BaseModel):
-    """Line price envelope — sell-side lines only (proposal, order, invoice).
+    """Line price envelope — sell-side lines only (quote, order, invoice).
 
     Extended is computed by recalculate_line():
       extended = (qty * unit) - discount_amount
@@ -1469,7 +1469,7 @@ class SignoffBlockedTransition(BaseModel):
 class TransactionSignoff(BaseModel):
     """Approval workflow stamped on config['signoff'] by validate_status.py.
 
-    Written to Invoice, Order, Proposal, Purchase, WorkOrder.
+    Written to Invoice, Order, Quote, Purchase, WorkOrder.
     """
     required: bool = True
     action_id: Optional[int] = None           # linked Action record

@@ -161,12 +161,12 @@ const PRESETS: Preset[] = [
     },
   },
   {
-    label: 'wcapi › Proposal Detail + Lines',
+    label: 'wcapi › Quote Detail + Lines',
     method: 'GET',
-    url: '/wcapi/get/?model_name=proposal&id=1',
+    url: '/wcapi/get/?model_name=quote&id=1',
     body: {},
     info: {
-      description: 'Proposal detail with embedded line items.',
+      description: 'Quote detail with embedded line items.',
       requires: { query: ['model_name', 'id'] },
     },
   },
@@ -360,21 +360,21 @@ const PRESETS: Preset[] = [
     },
   },
   {
-    label: 'REST › /api/transactions/proposals/',
+    label: 'REST › /api/transactions/quotes/',
     method: 'GET',
-    url: '/api/transactions/proposals/',
+    url: '/api/transactions/quotes/',
     body: {},
     info: {
-      description: 'REST proposal list → redirects to /wcapi/get/?model_name=proposal',
+      description: 'REST quote list → redirects to /wcapi/get/?model_name=quote',
     },
   },
   {
-    label: 'REST › /api/transactions/proposals/1/',
+    label: 'REST › /api/transactions/quotes/1/',
     method: 'GET',
-    url: '/api/transactions/proposals/1/',
+    url: '/api/transactions/quotes/1/',
     body: {},
     info: {
-      description: 'REST proposal detail → redirects to /wcapi/get/?model_name=proposal&id=1',
+      description: 'REST quote detail → redirects to /wcapi/get/?model_name=quote&id=1',
     },
   },
   {

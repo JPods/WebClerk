@@ -2,7 +2,7 @@
 Transaction signals — inventory tracking and header-link maintenance.
 
 Signal factory eliminates ~600 lines of copy-pasted code for 5 line types.
-Each line model (ProposalLine, OrderLine, InvoiceLine, PurchaseLine,
+Each line model (QuoteLine, OrderLine, InvoiceLine, PurchaseLine,
 WorkOrderLine) registers the same pre_save/post_save/post_delete pattern via
 ``register_line_inventory_signals()`` and ``register_line_header_links()``.
 
@@ -19,8 +19,8 @@ from django.db.models.signals import post_save, pre_save, post_delete
 from common.allie_capture import allie_capture as _allie
 from django.dispatch import receiver
 from apps.transactions.models import (
-    ProposalLine, OrderLine, InvoiceLine, PurchaseLine, WorkOrderLine,
-    Proposal, Order, Invoice, Cash, Purchase, WorkOrder,
+    QuoteLine, OrderLine, InvoiceLine, PurchaseLine, WorkOrderLine,
+    Quote, Order, Invoice, Cash, Purchase, WorkOrder,
 )
 from apps.transactions.services.notify_email import TransactionEmailService
 
@@ -222,7 +222,7 @@ def register_line_totals_signals(line_model, parent_attr: str):
     When a line is saved or deleted, calls parent.update_sell_cost_totals(persist=True)
     which triggers the matching compute_*_sell_cost_totals() aggregation.
 
-    Wired for all 5 line types: ProposalLine, OrderLine, InvoiceLine,
+    Wired for all 5 line types: QuoteLine, OrderLine, InvoiceLine,
     PurchaseLine, and WorkOrderLine (see bottom of this file).
 
     See: readmes/topics/transactions/transactions-totals.md §3 (signal table)
@@ -251,7 +251,7 @@ def register_line_totals_signals(line_model, parent_attr: str):
 
 _LINE_CONFIG = [
     # (model,         parent_attr,  model_key,    txn_type,         link_key)
-    (ProposalLine,   'parent',     'proposal',   'proposal',       'proposal_line'),
+    (QuoteLine,   'parent',     'quote',   'quote',       'quote_line'),
     (OrderLine,      'order',      'order',      'order',          'order_line'),
     (InvoiceLine,    'invoice',    'invoice',    'invoice',        'invoice_line'),
     (PurchaseLine,   'purchase',   'purchase',   'purchase',       'purchase_line'),
@@ -263,8 +263,8 @@ for _model, _parent, _key, _txn, _link in _LINE_CONFIG:
     register_line_header_links(_model, _parent, _link)
 
 # Line types that auto-recalculate parent header totals on save/delete.
-# (Previously only ProposalLine was wired; all types added Feb 2026.)
-register_line_totals_signals(ProposalLine, 'parent')
+# (Previously only QuoteLine was wired; all types added Feb 2026.)
+register_line_totals_signals(QuoteLine, 'parent')
 register_line_totals_signals(OrderLine, 'order')
 register_line_totals_signals(InvoiceLine, 'invoice')
 register_line_totals_signals(PurchaseLine, 'purchase')
@@ -318,23 +318,23 @@ register_line_parent_signals(InvoiceLine)
 # HEADER STATUS-CHANGE + NOTIFICATION SIGNALS
 # =============================================================================
 
-@receiver(pre_save, sender=Proposal)
-def track_proposal_status_change(sender, instance: Proposal, **kwargs):
+@receiver(pre_save, sender=Quote)
+def track_quote_status_change(sender, instance: Quote, **kwargs):
     if instance.pk:
         try:
-            instance._original_status = Proposal.objects.get(pk=instance.pk).status
-        except Proposal.DoesNotExist:
+            instance._original_status = Quote.objects.get(pk=instance.pk).status
+        except Quote.DoesNotExist:
             instance._original_status = None
     else:
         instance._original_status = None
 
 
-@receiver(post_save, sender=Proposal)
-def send_proposal_submitted_notification(sender, instance: Proposal, created, **kwargs):
+@receiver(post_save, sender=Quote)
+def send_quote_submitted_notification(sender, instance: Quote, created, **kwargs):
     if created or instance.status != instance.STATUS_RELEASED:
         return
     if getattr(instance, '_original_status', None) != instance.STATUS_RELEASED:
-        TransactionEmailService.send_proposal_submitted_notification(instance)
+        TransactionEmailService.send_quote_submitted_notification(instance)
 
 
 @receiver(post_save, sender=Order)
@@ -528,9 +528,9 @@ def bus_invoice_saved(sender, instance, created, **kwargs):
     _bus_notify('Invoice', instance, created)
 
 
-@receiver(post_save, sender=Proposal)
-def bus_proposal_saved(sender, instance, created, **kwargs):
-    _bus_notify('Proposal', instance, created)
+@receiver(post_save, sender=Quote)
+def bus_quote_saved(sender, instance, created, **kwargs):
+    _bus_notify('Quote', instance, created)
 
 
 @receiver(post_save, sender=Purchase)
@@ -560,7 +560,7 @@ def bus_cash_saved(sender, instance, created, **kwargs):
 _AGGREGATE_MODELS = [
     (Order, 'order'),
     (Invoice, 'invoice'),
-    (Proposal, 'proposal'),
+    (Quote, 'quote'),
     (Purchase, 'purchase'),
     (WorkOrder, 'workorder'),
 ]

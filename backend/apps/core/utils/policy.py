@@ -111,8 +111,8 @@ def inject_constraints(qs: QuerySet, *, request, model_key: str) -> QuerySet:
         # not ownership fields. RBAC inject_role_filters handles org-level scoping
         # via $user.org_ids. Skip ownership clauses entirely for transaction models.
         transaction_models = {
-            'proposal', 'order', 'invoice', 'purchase', 'workorder',
-            'proposalline', 'orderline', 'invoiceline', 'purchaseline', 'workorderline',
+            'quote', 'order', 'invoice', 'purchase', 'workorder',
+            'quoteline', 'orderline', 'invoiceline', 'purchaseline', 'workorderline',
             'document', 'item', 'setting',
         }
         is_txn = model_name.lower() in transaction_models
@@ -230,7 +230,7 @@ def get_accessible_fields(model_name: str, mode: str, user) -> Optional[List[str
     model_specific = {
         'invoice': ['amount', 'tax', 'total', 'sales_tax'],
         'order': ['order_no', 'total'],
-        'proposal': ['proposal_no', 'estimated_total'],
+        'quote': ['quote_no', 'estimated_total'],
         'purchase': ['po_number', 'vendor_id']
     }
 

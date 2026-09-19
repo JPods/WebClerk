@@ -130,12 +130,12 @@ ITEM_ENVELOPE_FIELDS = [
 ]
 
 # Models that get envelope fields injected instead of flat JSON blob columns
-TRANSACTION_HEADER_MODELS = {'order', 'invoice', 'proposal', 'purchase', 'requisition'}
+TRANSACTION_HEADER_MODELS = {'order', 'invoice', 'quote', 'purchase', 'requisition'}
 # Receipt is a receiving document (BaseModel), not a financial transaction header.
 # It does not have a totals JSONField.
 
 # Sell-side lines (BaseSellLineModel) — have quantity + price + cost
-SELL_LINE_MODELS = {'order_line', 'invoice_line', 'proposal_line'}
+SELL_LINE_MODELS = {'order_line', 'invoice_line', 'quote_line'}
 # Exec-side lines (BaseExecLineModel) — have quantity + cost, NO price
 EXEC_LINE_MODELS = {'purchase_line', 'requisition_line', 'receipt_line', 'workorder_line'}
 

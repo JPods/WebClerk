@@ -41,10 +41,10 @@ Average: customer calls with a problem. Great: you call before the problem.
 |--------|-----------|--------|
 | Reorder overdue | 1.5x typical cycle | Check-in email: "Everything OK? Need to reorder?" |
 | Seasonal window | Service date + seasonal offset | "Time to schedule your annual [service]" |
-| Equipment end-of-life | Install date + expected lifecycle | Maintenance reminder + replacement proposal |
+| Equipment end-of-life | Install date + expected lifecycle | Maintenance reminder + replacement quote |
 | Health score drops 20+ | Monthly scan | Flag to owner with recommended action |
 | New product in their category | Item added matching past purchases | "We now carry X — fits what you've bought before" |
-| Proposal no follow-up | 30+ days after proposal, no order | Resurface the proposal |
+| Quote no follow-up | 30+ days after quote, no order | Resurface the quote |
 | High-value customer inactive | Top 20% by revenue, 90+ days silent | Personal outreach from owner/rep |
 
 ### Customer Health Scoring
@@ -181,13 +181,13 @@ Alice watches (when data is available):
 ### Pipeline Health
 
 For sales reps (rep_id on orders):
-- Open proposals vs. closed — conversion rate trending
-- Follow-up discipline — days between proposal and next contact
+- Open quotes vs. closed — conversion rate trending
+- Follow-up discipline — days between quote and next contact
 - Customer satisfaction for their accounts
 - Revenue per rep trending up or down
 
 ### What to recommend:
-- "Rep X has 12 open proposals older than 30 days — follow-up sweep needed"
+- "Rep X has 12 open quotes older than 30 days — follow-up sweep needed"
 - "Rep Y's conversion rate dropped from 40% to 25% this quarter — investigate"
 - "Rep Z's customers have the highest health scores — what's their approach?
   Can other reps learn from it?"
@@ -220,7 +220,7 @@ AI (plain-language revenue reports), Coach AI (growth advice from company's
 own data). Users save 3.2 hours/week.
 
 **QuoteIQ:** AI-generated inspection reports with before/after photos,
-NFPA-compliant documentation, auto-generated service proposals from
+NFPA-compliant documentation, auto-generated service quotes from
 inspection findings.
 
 ### Supply Chain AI

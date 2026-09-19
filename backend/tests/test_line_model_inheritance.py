@@ -2,7 +2,7 @@ import pytest
 from django.core.exceptions import FieldDoesNotExist
 
 from apps.transactions.models import (
-    ProposalLine,
+    QuoteLine,
     OrderLine,
     InvoiceLine,
     PurchaseLine,

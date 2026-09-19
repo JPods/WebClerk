@@ -143,7 +143,7 @@ TRANSACTION_LINE_SCHEMAS = {
     'item': f'{_TE}:LineItem',
     'commission': f'{_TE}:LineCommission',
 }
-TRANSACTION_HEADERS = ('order', 'invoice', 'proposal', 'purchase', 'receipt',
+TRANSACTION_HEADERS = ('order', 'invoice', 'quote', 'purchase', 'receipt',
                        'requisition', 'workorder')
 TRANSACTION_LINES = tuple(f'{m}_line' for m in TRANSACTION_HEADERS)
 

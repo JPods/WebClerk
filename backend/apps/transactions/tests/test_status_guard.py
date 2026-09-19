@@ -68,13 +68,13 @@ class TestTransitionMatrix(TestCase):
         self.assertIn('in_progress', TRANSITIONS['order']['hold'])
 
     def test_all_models_have_transitions(self):
-        for model in ('proposal', 'order', 'invoice', 'purchase',
+        for model in ('quote', 'order', 'invoice', 'purchase',
                        'workorder', 'requisition', 'cash'):
             self.assertIn(model, TRANSITIONS, f'{model} missing from TRANSITIONS')
 
-    def test_proposal_has_sent_accepted(self):
-        self.assertIn('sent', TRANSITIONS['proposal'])
-        self.assertIn('accepted', TRANSITIONS['proposal'])
+    def test_quote_has_sent_accepted(self):
+        self.assertIn('sent', TRANSITIONS['quote'])
+        self.assertIn('accepted', TRANSITIONS['quote'])
 
     def test_cash_has_voided(self):
         self.assertIn('voided', TRANSITIONS['cash'])
@@ -82,7 +82,7 @@ class TestTransitionMatrix(TestCase):
     def test_invoice_standalone_allowed(self):
         """Over-the-counter invoice — no order required."""
         obj = _make_instance(model_name='Invoice', status='planned', customer_id=42)
-        # Invoice doesn't require customer for release (unlike proposal)
+        # Invoice doesn't require customer for release (unlike quote)
         self.assertIn('released', TRANSITIONS['invoice']['planned'])
 
 
@@ -139,8 +139,8 @@ class TestJournalizedLock(TestCase):
         self.assertFalse(result.can_proceed)
 
     def test_non_journalizable_model_always_modifiable(self):
-        obj = _make_instance(model_name='Proposal')
-        result = validate_modification(obj, 'proposal')
+        obj = _make_instance(model_name='Quote')
+        result = validate_modification(obj, 'quote')
         self.assertTrue(result.can_proceed)
 
 
@@ -181,5 +181,5 @@ class TestJournalizableModels(TestCase):
     def test_order_not_journalizable(self):
         self.assertNotIn('order', JOURNALIZABLE_MODELS)
 
-    def test_proposal_not_journalizable(self):
-        self.assertNotIn('proposal', JOURNALIZABLE_MODELS)
+    def test_quote_not_journalizable(self):
+        self.assertNotIn('quote', JOURNALIZABLE_MODELS)

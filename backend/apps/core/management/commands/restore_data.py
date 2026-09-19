@@ -71,7 +71,7 @@ class Command(BaseCommand):
         
         # 8. Transactions - headers first
         'project.json',
-        'proposal.json',
+        'quote.json',
         'order.json',
         'invoice.json',
         'purchase.json',
@@ -81,7 +81,7 @@ class Command(BaseCommand):
         'cash.json',
         
         # 9. Transaction lines
-        'proposalline.json',
+        'quoteline.json',
         'orderline.json',
         'invoiceline.json',
         'purchaseline.json',

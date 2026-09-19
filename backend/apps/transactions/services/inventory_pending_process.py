@@ -2,7 +2,7 @@
 Pending Inventory Processor for Line Item Changes.
 
 Processes Pending records created by the transaction save pipeline
-(save_transaction_with_lines, proposal_to_order, order_to_invoice,
+(save_transaction_with_lines, quote_to_order, order_to_invoice,
 execute_transfer) to update Item inventory quantities
 (on_so, on_po, on_wo, on_in, on_r, etc.).
 

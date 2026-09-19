@@ -7,10 +7,10 @@ class Command(BaseCommand):
     help = "Audit FK fields on transaction records for zero/negative values"
 
     def handle(self, *args, **options):
-        from apps.transactions.models import Order, Invoice, Proposal, Purchase
+        from apps.transactions.models import Order, Invoice, Quote, Purchase
         from apps.orgs.models import OrgBase
 
-        for Model in [Order, Invoice, Proposal, Purchase]:
+        for Model in [Order, Invoice, Quote, Purchase]:
             t = Model._meta.db_table
             name = Model.__name__
             c = connection.cursor()

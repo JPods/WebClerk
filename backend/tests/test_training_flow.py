@@ -9,7 +9,7 @@ from tests.conftest import CustomerFactory, ItemFactory, WarehouseFactory
 
 @pytest.mark.django_db
 class TestTrainingFlow:
-    """Full training cycle: proposal → order → invoice → cash → PO → receive."""
+    """Full training cycle: quote → order → invoice → cash → PO → receive."""
 
     def _setup(self):
         from apps.products.models import InventoryLayer
@@ -38,7 +38,7 @@ class TestTrainingFlow:
         report = flow.run_full_cycle()
 
         assert len(report['steps']) == 6
-        assert report['records_created']['proposal'] is not None
+        assert report['records_created']['quote'] is not None
         assert report['records_created']['order'] is not None
         assert report['records_created']['invoice'] is not None
         assert report['records_created']['cash'] is not None
@@ -47,7 +47,7 @@ class TestTrainingFlow:
     def test_training_flag_set(self):
         """All created records have metadata.training=True."""
         from apps.transactions.services.training_flow import TrainingFlow
-        from apps.transactions.models import Proposal, Order, Invoice, Purchase, Cash
+        from apps.transactions.models import Quote, Order, Invoice, Purchase, Cash
 
         customer, item = self._setup()
         flow = TrainingFlow(customer.pk, item.pk)
@@ -55,20 +55,20 @@ class TestTrainingFlow:
 
         ids = report['records_created']
         for Model, key in [
-            (Proposal, 'proposal'), (Order, 'order'),
+            (Quote, 'quote'), (Order, 'order'),
             (Invoice, 'invoice'), (Purchase, 'purchase'),
         ]:
             record = Model.objects.get(pk=ids[key])
             meta = getattr(record, 'metadata', {}) or {}
             assert meta.get('training') is True, f"{key} missing training flag"
 
-    def test_proposal_no_inventory_effect(self):
-        """Step 1: proposal doesn't change inventory."""
+    def test_quote_no_inventory_effect(self):
+        """Step 1: quote doesn't change inventory."""
         from apps.transactions.services.training_flow import TrainingFlow
 
         customer, item = self._setup()
         flow = TrainingFlow(customer.pk, item.pk)
-        step = flow.step_1_create_proposal(5)
+        step = flow.step_1_create_quote(5)
 
         assert step['inventory_changed'] is False
 
@@ -103,10 +103,10 @@ class TestTrainingFlow:
         result = _run_training_flow({
             'customer_id': customer.pk,
             'item_id': item.pk,
-            'proposal_qty': 3,
+            'quote_qty': 3,
             'order_qty': 2,
             'invoice_qty': 1,
         })
 
         assert len(result['steps']) == 6
-        assert result['records_created']['proposal'] is not None
+        assert result['records_created']['quote'] is not None

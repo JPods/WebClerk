@@ -45,7 +45,7 @@ const MODEL_WINDOW_PRESET: Partial<Record<string, EnsureWindowOptions>> = {
   // Transactions get detail preset (they have lines, so plenty of height)
   order:    WINDOW_PRESETS.DETAIL,
   invoice:  WINDOW_PRESETS.DETAIL,
-  proposal: WINDOW_PRESETS.DETAIL,
+  quote: WINDOW_PRESETS.DETAIL,
   purchase: WINDOW_PRESETS.DETAIL,
   receipt:  WINDOW_PRESETS.DETAIL,
   workorder: WINDOW_PRESETS.DETAIL,

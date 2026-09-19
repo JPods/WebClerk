@@ -17,7 +17,7 @@ from apps.transactions.views.transfer_views import (
     execute_transfer,
     reserve_inventory,
     release_inventory,
-    bulk_transfer_proposals,
+    bulk_transfer_quotes,
     bulk_transfer_orders,
 )
 
@@ -25,7 +25,7 @@ app_name = 'transactions'
 
 # Transaction CRUD views (using DRF ViewSets)
 from apps.transactions.views.transaction_views import (
-    ProposalViewSet,
+    QuoteViewSet,
     OrderViewSet,
     PurchaseViewSet,
     InvoiceViewSet,
@@ -36,7 +36,7 @@ from apps.transactions.views.actions import OrderToPurchaseView
 router = DefaultRouter()
 # wcapi paths are wcapi/<model_name>/... — the app name never appears in the path,
 # and a model name is singular, as WC3 names its models (Bill, 2026-09-17).
-router.register(r'proposal', ProposalViewSet, basename='proposal')
+router.register(r'quote', QuoteViewSet, basename='quote')
 router.register(r'order', OrderViewSet, basename='order')
 router.register(r'purchase', PurchaseViewSet, basename='purchase')
 router.register(r'invoice', InvoiceViewSet, basename='invoice')
@@ -47,7 +47,7 @@ urlpatterns = [
     path('', include(router.urls)),
 
     # Conversion endpoints
-    path('proposal/<int:pk>/convert-to-order/', ProposalViewSet.as_view({'post': 'convert_to_order'}), name='proposal-convert-to-order'),
+    path('quote/<int:pk>/convert-to-order/', QuoteViewSet.as_view({'post': 'convert_to_order'}), name='quote-convert-to-order'),
     path('order/<int:pk>/convert-to-invoice/', OrderViewSet.as_view({'post': 'convert_to_invoice'}), name='order-convert-to-invoice'),
     path('order/<int:pk>/convert-to-purchase/', OrderToPurchaseView.as_view(), name='order-convert-to-purchase'),
     path('purchase/<int:pk>/receive-goods/', PurchaseViewSet.as_view({'post': 'receive_goods'}), name='purchase-receive-goods'),
@@ -55,7 +55,7 @@ urlpatterns = [
     # Transfer operations
     path('transfers/validate/', validate_transfer, name='validate_transfer'),
     path('transfers/execute/', execute_transfer, name='execute_transfer'),
-    path('transfers/bulk/proposals-to-orders/', bulk_transfer_proposals, name='bulk_transfer_proposals'),
+    path('transfers/bulk/quotes-to-orders/', bulk_transfer_quotes, name='bulk_transfer_quotes'),
     path('transfers/bulk/orders-to-invoices/', bulk_transfer_orders, name='bulk_transfer_orders'),
 
     # Cash operations

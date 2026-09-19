@@ -20,7 +20,7 @@ class SummaryModelSpec:
 SUMMARY_MODEL_SPECS: tuple[SummaryModelSpec, ...] = (
     SummaryModelSpec("transactions", "Invoice", "invoice", "Invoices"),
     SummaryModelSpec("transactions", "Order", "order", "Orders"),
-    SummaryModelSpec("transactions", "Proposal", "proposal", "Proposals"),
+    SummaryModelSpec("transactions", "Quote", "quote", "Quotes"),
     SummaryModelSpec("transactions", "Purchase", "purchase", "Purchases"),
     SummaryModelSpec("transactions", "Cash", "cash", "Cash"),  # model renamed Cash -> Cash
     SummaryModelSpec("transactions", "Workorder", "workorder", "Work Orders"),

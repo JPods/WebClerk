@@ -9,7 +9,7 @@ import React, { useEffect, useState } from 'react';
 const APP_DETAIL_ROUTES: Record<string, string> = {
   order: '/order',
   invoice: '/invoice',
-  proposal: '/proposal',
+  quote: '/quote',
   purchase: '/purchase',
   workorder: '/workorder',
   receipt: '/receipt',

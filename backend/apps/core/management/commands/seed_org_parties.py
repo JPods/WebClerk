@@ -15,7 +15,7 @@ from django.core.management.base import BaseCommand
 from apps.orgs.models.base import OrgBase
 from apps.core.models import Contact
 from apps.communications.models import Phone, Email, Address
-from apps.transactions.models import Order, Invoice, Purchase, Proposal
+from apps.transactions.models import Order, Invoice, Purchase, Quote
 
 
 def _contact_party(contact, org):
@@ -129,7 +129,7 @@ class Command(BaseCommand):
             org_updated += 1
 
             # Propagate to transactions
-            for Model in [Order, Invoice, Purchase, Proposal]:
+            for Model in [Order, Invoice, Purchase, Quote]:
                 txns = Model.objects.filter(is_active=True).filter(
                     **{'customer_id' if org.org_type == 'customer' else 'vendor_id': org.pk}
                 )

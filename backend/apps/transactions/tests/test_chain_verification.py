@@ -1,16 +1,16 @@
 """
-Chain Verification: Proposal → Order → Invoice(s)
+Chain Verification: Quote → Order → Invoice(s)
 
 Creates the exact 7-step chain from the user's example using
 customer_id=82 and item_id=243, verifying parent_line_id links, parent remaining
 (active − Σ children.active, children summed by query) and parent status at each step.
 
 Expected chain:
-  Step 1: Create proposal      → staged=15, active=15, remaining=15
+  Step 1: Create quote      → staged=15, active=15, remaining=15
   Step 2: Create child order   → staged=15, active=15, remaining=15
-                                  proposal remaining→0  (Σ children.active=15)
+                                  quote remaining→0  (Σ children.active=15)
   Step 3: Edit order active→7  → staged=15, active=7,  remaining=7
-                                  proposal remaining→8  (Σ children.active=7)
+                                  quote remaining→8  (Σ children.active=7)
   Step 4: Create invoice #1    → staged=7,  active=7,  remaining=7
                                   order remaining→0     (Σ children.active=7)
   Step 5: Edit invoice1 active→3 → staged=7, active=3, remaining=3
@@ -49,12 +49,12 @@ def _children(ChildModel, parent_line_pk):
     return sum(float(r.quantity.get('active', 0)) for r in rows), [r.pk for r in rows]
 
 
-class TestProposalOrderInvoiceChain:
-    """Full chain verification: Proposal → Order → Invoice(s)."""
+class TestQuoteOrderInvoiceChain:
+    """Full chain verification: Quote → Order → Invoice(s)."""
 
     def test_full_chain(self):
         from apps.transactions.models import (
-            Proposal, ProposalLine,
+            Quote, QuoteLine,
             Order, OrderLine,
             Invoice, InvoiceLine,
         )
@@ -94,10 +94,10 @@ class TestProposalOrderInvoiceChain:
                 org_type="customer",
             )
 
-        # ── Step 1: Create Proposal with qty=15 ──────────────────────
-        print("\n═══ Step 1: Create Proposal (qty=15) ═══")
-        proposal_result = save_transaction_with_lines(
-            model_key='proposal',
+        # ── Step 1: Create Quote with qty=15 ──────────────────────
+        print("\n═══ Step 1: Create Quote (qty=15) ═══")
+        quote_result = save_transaction_with_lines(
+            model_key='quote',
             header_data={
                 'status': 'planned',
                 'customer_id': CUSTOMER_ID,
@@ -113,27 +113,27 @@ class TestProposalOrderInvoiceChain:
             verify_calculations=False,
             save_only_dirty=False,
         )
-        proposal_id = proposal_result['header']['id']
-        proposal_line_id = proposal_result['lines'][0]['id']
-        print(f"  Proposal #{proposal_id}, line #{proposal_line_id}")
+        quote_id = quote_result['header']['id']
+        quote_line_id = quote_result['lines'][0]['id']
+        print(f"  Quote #{quote_id}, line #{quote_line_id}")
 
-        pl = ProposalLine.objects.get(pk=proposal_line_id)
+        pl = QuoteLine.objects.get(pk=quote_line_id)
         pq = _qty(pl)
-        _print_qty("Proposal line", pq)
+        _print_qty("Quote line", pq)
 
         assert pq['staged'] == 15.0
         assert pq['active'] == 15.0
         assert pq['remaining'] == 15.0
 
-        # ── Step 2: Create child Order from proposal.remaining=15 ────
-        print("\n═══ Step 2: Create Child Order (staged=15 from proposal) ═══")
+        # ── Step 2: Create child Order from quote.remaining=15 ────
+        print("\n═══ Step 2: Create Child Order (staged=15 from quote) ═══")
         order_result = save_transaction_with_lines(
             model_key='order',
             header_data={
                 'status': 'planned',
                 'customer_id': CUSTOMER_ID,
-                'parent_id': proposal_id,
-                'parent_model': 'proposal',
+                'parent_id': quote_id,
+                'parent_model': 'quote',
             },
             lines_data=[{
                 '_dirty': True,
@@ -143,9 +143,9 @@ class TestProposalOrderInvoiceChain:
                 'cost': {'unit': 5.0, 'extended': 75.0},
                 'refs': {
                     'source': {
-                        'proposal_line_id': proposal_line_id,
-                        'proposal_id': proposal_id,
-                        'converted_from': 'proposal',
+                        'quote_line_id': quote_line_id,
+                        'quote_id': quote_id,
+                        'converted_from': 'quote',
                     }
                 },
             }],
@@ -165,17 +165,17 @@ class TestProposalOrderInvoiceChain:
         assert oq['active'] == 15.0
         assert oq['remaining'] == 15.0
 
-        # Check proposal line was updated
+        # Check quote line was updated
         pl.refresh_from_db()
         pq = _qty(pl)
-        _print_qty("Proposal line (after transfer)", pq)
+        _print_qty("Quote line (after transfer)", pq)
 
-        assert ol.parent_line_id == proposal_line_id
-        assert pq['remaining'] == 0.0, f"Expected proposal remaining=0, got {pq['remaining']}"
-        total, ids = _children(OrderLine, proposal_line_id)
+        assert ol.parent_line_id == quote_line_id
+        assert pq['remaining'] == 0.0, f"Expected quote remaining=0, got {pq['remaining']}"
+        total, ids = _children(OrderLine, quote_line_id)
         assert total == 15.0, f"Expected Σ children.active=15, got {total}"
         assert ids == [order_line_id]
-        assert pl.status == 'transferred', f"Expected proposal line transferred, got {pl.status!r}"
+        assert pl.status == 'transferred', f"Expected quote line transferred, got {pl.status!r}"
         assert 'children_active' not in pq
 
         # ── Step 3: User reduces order active to 7 ───────────────────
@@ -204,14 +204,14 @@ class TestProposalOrderInvoiceChain:
         assert oq['active'] == 7.0
         assert oq['remaining'] == 7.0
 
-        # Check proposal remaining updated
+        # Check quote remaining updated
         pl.refresh_from_db()
         pq = _qty(pl)
-        _print_qty("Proposal line (after order edit)", pq)
+        _print_qty("Quote line (after order edit)", pq)
 
-        assert pq['remaining'] == 8.0, f"Expected proposal remaining=8, got {pq['remaining']}"
-        assert _children(OrderLine, proposal_line_id)[0] == 7.0
-        assert pl.status != 'transferred', "Proposal line should reopen when backlog returns"
+        assert pq['remaining'] == 8.0, f"Expected quote remaining=8, got {pq['remaining']}"
+        assert _children(OrderLine, quote_line_id)[0] == 7.0
+        assert pl.status != 'transferred', "Quote line should reopen when backlog returns"
 
         # ── Step 4: Create Invoice #1 from order.remaining=7 ─────────
         print("\n═══ Step 4: Create Invoice #1 (staged=7 from order) ═══")
@@ -261,7 +261,7 @@ class TestProposalOrderInvoiceChain:
         assert oq['remaining'] == 0.0, f"Expected order remaining=0, got {oq['remaining']}"
         assert _children(InvoiceLine, order_line_id)[0] == 7.0
         assert ol.status == 'transferred'
-        # One level per event: the invoice does not reach the proposal
+        # One level per event: the invoice does not reach the quote
         pl.refresh_from_db()
         assert _qty(pl)['remaining'] == 8.0
 
@@ -389,7 +389,7 @@ class TestProposalOrderInvoiceChain:
         il1.refresh_from_db()
         il2.refresh_from_db()
 
-        _print_qty(f"Proposal #{proposal_id} line #{proposal_line_id}", _qty(pl))
+        _print_qty(f"Quote #{quote_id} line #{quote_line_id}", _qty(pl))
         _print_qty(f"Order #{order_id} line #{order_line_id}", _qty(ol))
         _print_qty(f"Invoice #1 #{inv1_id} line #{inv1_line_id}", _qty(il1))
         _print_qty(f"Invoice #2 #{inv2_id} line #{inv2_line_id}", _qty(il2))

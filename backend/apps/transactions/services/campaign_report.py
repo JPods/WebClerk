@@ -1,7 +1,7 @@
 """
 Campaign / Ad Source ROI Service — GAP-10
 
-Tracks campaign costs against leads, proposals, orders generated.
+Tracks campaign costs against leads, quotes, orders generated.
 Calculates cost per acquisition and ROI.
 
 Campaign data lives in Setting records (purpose='user:campaign').
@@ -14,7 +14,7 @@ from typing import Dict, List, Optional
 from decimal import Decimal
 from django.db.models import Sum, Count, Q
 from apps.core.models.setting import Setting
-from apps.transactions.models import Order, Invoice, Proposal
+from apps.transactions.models import Order, Invoice, Quote
 import time
 
 
@@ -56,7 +56,7 @@ def create_campaign(
             'dt_end': end_date,
             'metrics': {
                 'leads': 0,
-                'proposals': 0,
+                'quotes': 0,
                 'orders': 0,
                 'invoices': 0,
                 'revenue': '0',
@@ -99,7 +99,7 @@ def calculate_campaign_roi(campaign_id: int) -> Dict:
 
     # Count transactions linked to this campaign
     # Transactions store campaign_id in source JSON
-    proposals = Proposal.objects.filter(
+    quotes = Quote.objects.filter(
         source__campaign_id=campaign_id,
         is_deleted=False,
     )
@@ -112,7 +112,7 @@ def calculate_campaign_roi(campaign_id: int) -> Dict:
         is_deleted=False,
     )
 
-    proposal_count = proposals.count()
+    quote_count = quotes.count()
     order_count = orders.count()
     invoice_count = invoices.count()
 
@@ -130,7 +130,7 @@ def calculate_campaign_roi(campaign_id: int) -> Dict:
     roi = ((total_revenue - spent) / spent * 100) if spent > 0 else Decimal('0')
 
     metrics = {
-        'proposals': proposal_count,
+        'quotes': quote_count,
         'orders': order_count,
         'invoices': invoice_count,
         'revenue': str(total_revenue),
@@ -179,7 +179,7 @@ def link_transaction_to_campaign(model_name: str, record_id: int, campaign_id: i
     MODEL_MAP = {
         'order': Order,
         'invoice': Invoice,
-        'proposal': Proposal,
+        'quote': Quote,
     }
 
     ModelCls = MODEL_MAP.get(model_name)

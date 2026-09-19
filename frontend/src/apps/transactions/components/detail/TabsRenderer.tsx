@@ -236,7 +236,7 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
   const isStaff = authUser?.is_staff || authUser?.is_superuser || false;
   const lines = data?.lines || [];
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const isSellSide = ['order', 'invoice', 'proposal'].includes(modelName);
+  const isSellSide = ['order', 'invoice', 'quote'].includes(modelName);
   const totals = data?.totals || {};
   const cost = data?.cost || {};
 

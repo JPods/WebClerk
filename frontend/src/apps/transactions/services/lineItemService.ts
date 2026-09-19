@@ -3,7 +3,7 @@
  * Line Item Service - Single Point of Authority for transaction line management
  * 
  * Handles adding, updating, and managing transaction line items across all
- * transaction types (order, proposal, invoice, purchase, workorder).
+ * transaction types (order, quote, invoice, purchase, workorder).
  * 
  * Key behaviors:
  * - Sales transactions: price.unit is the primary value
@@ -31,7 +31,7 @@ import { round } from './calculationUtils';
  * adjust_inventory) and doesn't participate in line-level pending or
  * dirty-tracking via this service.
  */
-export type TransactionType = 'order' | 'proposal' | 'invoice' | 'purchase' | 'workorder';
+export type TransactionType = 'order' | 'quote' | 'invoice' | 'purchase' | 'workorder';
 
 export interface LineItemServiceConfig {
   transactionType: TransactionType;
@@ -67,7 +67,7 @@ export interface LineCalculation {
  */
 export function isSalesTransaction(transactionType: string): boolean {
   const kind = transactionType.toLowerCase().replace(/-/g, '_');
-  return ['order', 'proposal', 'invoice'].includes(kind);
+  return ['order', 'quote', 'invoice'].includes(kind);
 }
 
 /**
@@ -530,7 +530,7 @@ export class LineItemService {
 /**
  * Create a LineItemService configured for sales transactions
  */
-export function createSalesLineItemService(transactionType: 'order' | 'proposal' | 'invoice' = 'order'): LineItemService {
+export function createSalesLineItemService(transactionType: 'order' | 'quote' | 'invoice' = 'order'): LineItemService {
   return new LineItemService({
     transactionType,
     useCost: false,

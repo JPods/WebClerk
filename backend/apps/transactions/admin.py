@@ -7,7 +7,7 @@ from common.admin_mixins import ScalarFirstFieldsetMixin
 from .models import (
     Invoice, InvoiceLine,
     WorkOrderLine, Order, OrderLine, Purchase, PurchaseLine,
-    Proposal, ProposalLine, Requisition, RequisitionLine, WorkOrder,
+    Quote, QuoteLine, Requisition, RequisitionLine, WorkOrder,
     Project, Cash,
 )
 from .models.receipt import Receipt
@@ -275,16 +275,16 @@ class PurchaseLineAdmin(SchemaLabelsAdminMixin, LineDisplayMixin, TransactionTot
     search_fields = ("id", "ida")
 
 
-@admin.register(Proposal)
-class ProposalAdmin(SchemaLabelsAdminMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
+@admin.register(Quote)
+class QuoteAdmin(SchemaLabelsAdminMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
     # Scalar fields: address_full, attention, balance, conditions_description, conditions_id, dt_created, dt_modified, email, health_rating, ida, is_active, is_archived, is_commission, is_deleted, is_locked, line_increment, parent_id, parent_model, phone, price_level, priority, security_level, status, terms, total, uuid, version
     list_display = ("ida", "status", "email", "phone", "address_full", "attention", "is_active", "dt_created")
     list_filter = ("status", "is_active")
     search_fields = ("id", "ida")
 
 
-@admin.register(ProposalLine)
-class ProposalLineAdmin(SchemaLabelsAdminMixin, LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
+@admin.register(QuoteLine)
+class QuoteLineAdmin(SchemaLabelsAdminMixin, LineDisplayMixin, TransactionTotalsDisplayMixin, JSONBFieldsetMixin, admin.ModelAdmin):
     # Scalar fields: dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, line_number, price_level, security_level, status, uuid, version
     list_display = ("ida", "status", "health_rating", "is_locked", "line_number", "price_level", "is_active", "dt_created")
     list_filter = ("status", "is_active")

@@ -1460,11 +1460,11 @@
             "where_used": "",
             "wc2_array_name": "<>aActionsProjects"
           },
-          "proposals_status": {
+          "quotes_status": {
             "choices": [],
             "list_name": "PplStatus",
-            "where_used": "This popup is used in the proposal and order record  to record the status of the proposal or order.",
-            "wc2_array_name": "<>aProposalsStatus"
+            "where_used": "This popup is used in the quote and order record  to record the status of the quote or order.",
+            "wc2_array_name": "<>aQuotesStatus"
           },
           "service_profile1": {
             "choices": [],
@@ -1581,11 +1581,11 @@
             "where_used": "",
             "wc2_array_name": "<>aVendorsProfile7"
           },
-          "actions_proposals": {
+          "actions_quotes": {
             "choices": [],
-            "list_name": "ProposalsActions",
+            "list_name": "QuotesActions",
             "where_used": "",
-            "wc2_array_name": "<>aActionsProposals"
+            "wc2_array_name": "<>aActionsQuotes"
           },
           "bill_instructions": {
             "choices": [],
@@ -3348,7 +3348,7 @@
             "route": "/flight-sim",
             "source": "system",
             "category": "Training",
-            "description": "Step through proposal→order→invoice→cash lifecycle"
+            "description": "Step through quote→order→invoice→cash lifecycle"
           },
           {
             "icon": "📦",
@@ -3517,7 +3517,7 @@
             "item",
             "order",
             "invoice",
-            "proposal",
+            "quote",
             "purchase",
             "cash",
             "contact"
@@ -3688,7 +3688,7 @@
                 "Alice Dashboard with LLM config",
                 "Help Dashboard with bookmarks and MCP guide",
                 "Org pages config-driven (5 types, 1 component)",
-                "Print pages (invoice, order, proposal, QA)"
+                "Print pages (invoice, order, quote, QA)"
               ],
               "version": "3.0.0-alpha"
             }
@@ -3768,7 +3768,7 @@
             "order": "Order",
             "invoice": "Invoice",
             "customer": "Customer",
-            "proposal": "Proposal",
+            "quote": "Quote",
             "purchase": "Purchase Order"
           },
           "ui_template": "default",
@@ -3777,7 +3777,7 @@
             "orders": true,
             "invoices": true,
             "campaigns": false,
-            "proposals": true,
+            "quotes": true,
             "purchases": true,
             "commissions": false,
             "territories": false,
@@ -3923,7 +3923,7 @@
             "auto_email": false,
             "default_report_id": null
           },
-          "proposal": {
+          "quote": {
             "copies": 1,
             "auto_email": false,
             "default_report_id": null
@@ -3945,7 +3945,7 @@
           },
           "po_template": "",
           "invoice_template": "",
-          "proposal_template": "",
+          "quote_template": "",
           "statement_template": "",
           "letterhead_template": "",
           "packing_slip_template": ""
@@ -3996,7 +3996,7 @@
             "next": 1030,
             "format": "{number}-{tag}"
           },
-          "proposal": {
+          "quote": {
             "pad": 4,
             "tag": "qt",
             "next": 1057,
@@ -4108,7 +4108,7 @@
             "print_forms": {
               "label": "Print Form Templates",
               "enabled": true,
-              "description": "Invoice, proposal, PO, packing slip, pick list, BOL, statement, and other print templates. WCHQ maintains a library of tested layouts.",
+              "description": "Invoice, quote, PO, packing slip, pick list, BOL, statement, and other print templates. WCHQ maintains a library of tested layouts.",
               "last_sync_utc": "",
               "pending_count": 0,
               "accepted_count": 0,
@@ -4216,7 +4216,7 @@
             "workflow_automation": {
               "label": "Workflow Automation",
               "enabled": true,
-              "description": "Document conversion chains (proposal→order→invoice), approval workflows, notification triggers, scheduled reports.",
+              "description": "Document conversion chains (quote→order→invoice), approval workflows, notification triggers, scheduled reports.",
               "last_sync_utc": "",
               "pending_count": 0,
               "accepted_count": 0,
@@ -5765,8 +5765,8 @@
             "label": "Invoice Actions",
             "options": []
           },
-          "actions_proposals": {
-            "label": "Proposal Actions",
+          "actions_quotes": {
+            "label": "Quote Actions",
             "options": []
           },
           "actions_purchases": {
@@ -5866,10 +5866,10 @@
               "show_balance": true,
               "show_cash_info": true
             },
-            "proposal": {
+            "quote": {
               "template_id": "invoice",
               "validity_days": 30,
-              "title_override": "PROPOSAL",
+              "title_override": "QUOTE",
               "show_terms_and_conditions": true
             },
             "purchase": {
@@ -6186,7 +6186,7 @@
           "last_cost_update": true,
           "order_line_track": true,
           "lead_response_days": 20,
-          "track_proposal_qty": true,
+          "track_quote_qty": true,
           "manual_order_status": false
         },
         "currency": {
@@ -6652,9 +6652,9 @@
               }
             ]
           },
-          "proposal": {
-            "link": "/proposal",
-            "label": "Proposals",
+          "quote": {
+            "link": "/quote",
+            "label": "Quotes",
             "filters": {
               "is_active": true
             },
@@ -6874,7 +6874,7 @@
               [
                 "order",
                 "invoice",
-                "proposal",
+                "quote",
                 "customer",
                 "contact",
                 "cash",
@@ -6890,8 +6890,8 @@
                 "accent": "blue"
               },
               {
-                "to": "/proposal?action=new",
-                "label": "+ Proposal",
+                "to": "/quote?action=new",
+                "label": "+ Quote",
                 "accent": "indigo"
               },
               {
@@ -6959,7 +6959,7 @@
                 "cash"
               ],
               [
-                "proposal",
+                "quote",
                 "receipt",
                 "workorder",
                 "requisition"
@@ -22386,7 +22386,7 @@
           "tips": [
             {
               "id": "cust-01",
-              "body": "Every order, invoice, proposal, and cash links to a customer. Start here.",
+              "body": "Every order, invoice, quote, and cash links to a customer. Start here.",
               "type": "concept",
               "level": "beginner",
               "title": "Customers are the center"
@@ -36232,7 +36232,7 @@
             "terms": "Cash terms — determines due date on the ledger record.",
             "total": "Sum of all line items. Edit lines to change — total recalculates automatically.",
             "config": "Custom settings — alternate ship-to, special handling instructions.",
-            "source": "Origin tracking — which order, proposal, or import created this invoice.",
+            "source": "Origin tracking — which order, quote, or import created this invoice.",
             "status": "planned = draft. released = sent to customer. complete = paid and closed.",
             "totals": "Subtotal, tax, shipping, and grand total. Computed from lines — read-only.",
             "balance": "Total minus cash received. Read-only. Updated when cash are applied.",
@@ -36669,7 +36669,7 @@
                   "field": "parent_model",
                   "label": "parent_model",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -36938,7 +36938,7 @@
                   "family": "sell",
                   "actions": [
                     "apply_cash",
-                    "post_to_proposal",
+                    "post_to_quote",
                     "post_to_po",
                     "clone"
                   ],
@@ -48660,7 +48660,7 @@
             "attention": "Contact name at the customer for this order.",
             "dt_needed": "Customer-requested delivery date. Drives pick list priority.",
             "price_level": "Price tier — flows from customer unless overridden here.",
-            "source_name": "Where this order came from — web, phone, proposal conversion.",
+            "source_name": "Where this order came from — web, phone, quote conversion.",
             "address_full": "Ship-to address. Cmd+click label to open in maps.",
             "conditions_description": "Special order conditions printed on documents."
           },
@@ -49067,7 +49067,7 @@
                   "field": "parent_model",
                   "label": "parent_model",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -56876,7 +56876,7 @@
                   "field": "model_code",
                   "label": "model_code",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -57491,46 +57491,46 @@
     },
     {
       "uuid": "74cd1ed4-9631-4233-b1d5-43a5829dd0ef",
-      "ida": "wc-model-proposal",
-      "name": "Proposal Model Definition",
+      "ida": "wc-model-quote",
+      "name": "Quote Model Definition",
       "scope": "system",
       "purpose": "wc:model",
-      "parent_model": "proposal",
-      "explanation": "Model definition for Proposal. Governs named layouts (list columns, detail fields, ui sections), field behaviors, schema metadata, and access configuration.",
+      "parent_model": "quote",
+      "explanation": "Model definition for Quote. Governs named layouts (list columns, detail fields, ui sections), field behaviors, schema metadata, and access configuration.",
       "paths": {
-        "schema": "common/schemas/proposal.py"
+        "schema": "common/schemas/quote.py"
       },
       "config": {
         "help": {
           "tips": [
             {
               "id": "prop-01",
-              "body": "A proposal is a price quote sent to a customer. If accepted, it converts to an order.",
+              "body": "A quote is a price quote sent to a customer. If accepted, it converts to an order.",
               "type": "concept",
               "level": "beginner",
-              "title": "Proposals are quotes"
+              "title": "Quotes are quotes"
             },
             {
               "id": "prop-02",
-              "body": "Proposal lines show both MSRP and the offered unit price so the customer sees the discount.",
+              "body": "Quote lines show both MSRP and the offered unit price so the customer sees the discount.",
               "type": "concept",
               "level": "beginner",
               "title": "MSRP vs Unit Price"
             }
           ],
           "fields": {
-            "ida": "Proposal number — unique identifier.",
+            "ida": "Quote number — unique identifier.",
             "email": "Contact email. Cmd+click label to compose.",
             "phone": "Contact phone. Cmd+click label to dial.",
             "total": "Proposed total — what the customer would pay if they accept.",
             "status": "planned = draft. released = sent to customer. complete = accepted or expired.",
             "totals": "Subtotal, tax, shipping, total. Computed from lines.",
             "company": "Customer company name.",
-            "attention": "Who at the customer receives this proposal.",
-            "dt_needed": "Proposal expiration or decision-needed date.",
+            "attention": "Who at the customer receives this quote.",
+            "dt_needed": "Quote expiration or decision-needed date.",
             "price_level": "Price tier for this quote — may differ from customer default.",
             "address_full": "Customer address. Cmd+click label to open in maps.",
-            "conditions_description": "Terms and conditions printed on the proposal."
+            "conditions_description": "Terms and conditions printed on the quote."
           }
         },
         "access": {
@@ -57938,7 +57938,7 @@
                   "field": "parent_model",
                   "label": "parent_model",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -58058,7 +58058,7 @@
           },
           "form": {
             "default": {
-              "model": "proposal",
+              "model": "quote",
               "family": "sell",
               "sections": [
                 {
@@ -58126,7 +58126,7 @@
                       ]
                     },
                     {
-                      "title": "proposal",
+                      "title": "quote",
                       "fields": [
                         {
                           "type": "select",
@@ -59752,11 +59752,11 @@
           "metadata",
           "model",
           "named",
-          "proposal",
+          "quote",
           "schema",
           "sections",
           "system",
-          "wc-model-proposal",
+          "wc-model-quote",
           "wc:model",
           "wcmodel"
         ],
@@ -59767,14 +59767,14 @@
     },
     {
       "uuid": "2964240a-8209-4953-96af-2fb3baf7bdcf",
-      "ida": "wc-model-proposal_line",
-      "name": "Proposal Line Model Definition",
+      "ida": "wc-model-quote_line",
+      "name": "Quote Line Model Definition",
       "scope": "system",
       "purpose": "wc:model",
-      "parent_model": "proposal_line",
-      "explanation": "Model definition for Proposal Line. Governs named layouts (list columns, detail fields, ui sections), field behaviors, schema metadata, and access configuration.",
+      "parent_model": "quote_line",
+      "explanation": "Model definition for Quote Line. Governs named layouts (list columns, detail fields, ui sections), field behaviors, schema metadata, and access configuration.",
       "paths": {
-        "schema": "common/schemas/proposal_line.py"
+        "schema": "common/schemas/quote_line.py"
       },
       "config": {
         "access": {
@@ -59815,7 +59815,7 @@
                 "tax",
                 "physical",
                 "price",
-                "proposal"
+                "quote"
               ],
               "create": false,
               "delete": false
@@ -59845,7 +59845,7 @@
                 "tax",
                 "physical",
                 "price",
-                "proposal"
+                "quote"
               ],
               "view": "*",
               "create": true,
@@ -59865,7 +59865,7 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "proposal"
+                "quote"
               ],
               "view": [
                 "id",
@@ -59902,7 +59902,7 @@
                 "tax",
                 "physical",
                 "price",
-                "proposal"
+                "quote"
               ],
               "create": true,
               "delete": false
@@ -59932,7 +59932,7 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "proposal"
+                "quote"
               ],
               "view": "*",
               "create": true,
@@ -59987,7 +59987,7 @@
                 "tax",
                 "physical",
                 "price",
-                "proposal"
+                "quote"
               ],
               "create": false,
               "delete": false
@@ -60067,8 +60067,8 @@
                   "label": "price_level"
                 },
                 {
-                  "field": "proposal",
-                  "label": "proposal"
+                  "field": "quote",
+                  "label": "quote"
                 },
                 {
                   "field": "tax",
@@ -60456,10 +60456,10 @@
             "type": "json",
             "label": "physical"
           },
-          "proposal": {
+          "quote": {
             "type": "lookup",
-            "label": "proposal",
-            "model": "proposal",
+            "label": "quote",
+            "model": "quote",
             "display": "name"
           },
           "quantity": {
@@ -60863,7 +60863,7 @@
               "line_number",
               "line_type",
               "item_fk",
-              "proposal"
+              "quote"
             ]
           },
           {
@@ -61033,13 +61033,13 @@
           "metadata",
           "model",
           "named",
-          "proposal",
-          "proposal_line",
-          "proposalline",
+          "quote",
+          "quote_line",
+          "quoteline",
           "schema",
           "sections",
           "system",
-          "wc-model-proposal_line",
+          "wc-model-quote_line",
           "wc:model",
           "wcmodel"
         ],
@@ -61498,7 +61498,7 @@
                   "field": "parent_model",
                   "label": "parent_model",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -86379,7 +86379,7 @@
                   "field": "parent_model",
                   "label": "parent_model",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -134356,7 +134356,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -134562,7 +134562,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -134964,7 +134964,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -135171,7 +135171,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -135570,7 +135570,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -135777,7 +135777,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -136177,7 +136177,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -136384,7 +136384,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -136784,7 +136784,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -136994,7 +136994,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -137409,7 +137409,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -137616,7 +137616,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -137944,7 +137944,7 @@
             "project": [],
             "customer": [],
             "document": [],
-            "proposal": [
+            "quote": [
               {
                 "id": 150,
                 "name": "1020-qt-qq"
@@ -138258,7 +138258,7 @@
             "project": [],
             "customer": [],
             "document": [],
-            "proposal": [
+            "quote": [
               {
                 "id": 151,
                 "name": "1021-qt-qq"
@@ -138562,7 +138562,7 @@
             "project": [],
             "customer": [],
             "document": [],
-            "proposal": [
+            "quote": [
               {
                 "id": 156,
                 "name": "1026-qt-qq"
@@ -139773,7 +139773,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -139984,7 +139984,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -140272,7 +140272,7 @@
             "project": [],
             "customer": [],
             "document": [],
-            "proposal": [
+            "quote": [
               {
                 "id": 80,
                 "name": "qq80"
@@ -140441,7 +140441,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -140648,7 +140648,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -140960,7 +140960,7 @@
             "project": [],
             "customer": [],
             "document": [],
-            "proposal": [
+            "quote": [
               {
                 "id": 79,
                 "name": "1001-qt-qq"
@@ -141222,10 +141222,10 @@
                 "name": "FS-FULL-001"
               }
             ],
-            "proposal": [
+            "quote": [
               {
                 "id": 81,
-                "name": "zz-fake-proposal"
+                "name": "zz-fake-quote"
               },
               {
                 "id": 147,
@@ -141474,7 +141474,7 @@
                 "name": "FS-CLEAN-001"
               }
             ],
-            "proposal": [
+            "quote": [
               {
                 "id": 162,
                 "name": "1032-qt-qq"
@@ -142083,7 +142083,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -142294,7 +142294,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -142689,7 +142689,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -142896,7 +142896,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -143295,7 +143295,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -143502,7 +143502,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -143901,7 +143901,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -144108,7 +144108,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -144507,7 +144507,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -144714,7 +144714,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -145114,7 +145114,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -145321,7 +145321,7 @@
                   "value": 0
                 }
               },
-              "proposals": {
+              "quotes": {
                 "issued": {
                   "count": 0,
                   "value": 0
@@ -179038,7 +179038,7 @@
       }
     ],
     "products.BillOfMaterial": [],
-    "transactions.Proposal": [
+    "transactions.Quote": [
       {
         "id": 79,
         "uuid": "a3b23467-b387-4a20-9a98-869fff77a398",
@@ -179156,7 +179156,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 207
               },
@@ -179217,7 +179217,7 @@
               "commission": "",
               "dt_created": 1787071824247,
               "is_deleted": false,
-              "model_name": "proposal",
+              "model_name": "quote",
               "dt_modified": 1787071824247,
               "is_archived": false,
               "price_level": "",
@@ -179470,7 +179470,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 188
               },
@@ -179543,7 +179543,7 @@
               "commission": "",
               "dt_created": 1787080319414,
               "is_deleted": false,
-              "model_name": "proposal",
+              "model_name": "quote",
               "dt_modified": 1787080319414,
               "is_archived": false,
               "price_level": "A",
@@ -179767,7 +179767,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 106
               },
@@ -180004,7 +180004,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 276
               },
@@ -180247,7 +180247,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 292
               },
@@ -180504,7 +180504,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 185
               },
@@ -180747,7 +180747,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 309
               },
@@ -180990,7 +180990,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 300
               },
@@ -181236,7 +181236,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 197
               },
@@ -181488,7 +181488,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 272
               },
@@ -181734,7 +181734,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 148
               },
@@ -181986,7 +181986,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 229
               },
@@ -182232,7 +182232,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 312
               },
@@ -182478,7 +182478,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 260
               },
@@ -182736,7 +182736,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 329
               },
@@ -182985,7 +182985,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 239
               },
@@ -183228,7 +183228,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 160
               },
@@ -183483,7 +183483,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 254
               },
@@ -183735,7 +183735,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 242
               },
@@ -183987,7 +183987,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 224
               },
@@ -184236,7 +184236,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 334
               },
@@ -184491,7 +184491,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 109
               },
@@ -184734,7 +184734,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 112
               },
@@ -184989,7 +184989,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 280
               },
@@ -185238,7 +185238,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 194
               },
@@ -185481,7 +185481,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 99
               },
@@ -185736,7 +185736,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 268
               },
@@ -185982,7 +185982,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 203
               },
@@ -186228,7 +186228,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 136
               },
@@ -186483,7 +186483,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 216
               },
@@ -186741,7 +186741,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 210
               },
@@ -186993,7 +186993,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 143
               },
@@ -187242,7 +187242,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 167
               },
@@ -187491,7 +187491,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 123
               },
@@ -187746,7 +187746,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 322
               },
@@ -188001,7 +188001,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 248
               },
@@ -188253,7 +188253,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 316
               },
@@ -188505,7 +188505,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 233
               },
@@ -188757,7 +188757,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 119
               },
@@ -188988,7 +188988,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 177
               },
@@ -189218,7 +189218,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 172
               },
@@ -189439,7 +189439,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 154
               },
@@ -189663,7 +189663,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 304
               },
@@ -189928,7 +189928,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 130
               },
@@ -190196,7 +190196,7 @@
           "links": {
             "item": [],
             "contact": [],
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 285
               },
@@ -190464,7 +190464,7 @@
         },
         "refs": {
           "links": {
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 341
               }
@@ -190651,7 +190651,7 @@
               "address_full": "",
               "display_name": "Beacon LLC 23"
             },
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 342
               }
@@ -191070,7 +191070,7 @@
               "address_full": "",
               "display_name": "Oakdale Trading 27"
             },
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 345
               }
@@ -191524,7 +191524,7 @@
               "address_full": "",
               "display_name": "Oakdale Trading 27"
             },
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 349
               }
@@ -192172,7 +192172,7 @@
               "address_full": "",
               "display_name": "Oakdale Trading 27"
             },
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 364
               }
@@ -192637,7 +192637,7 @@
               "address_full": "",
               "display_name": "Oakdale Trading 27"
             },
-            "proposal_line": [
+            "quote_line": [
               {
                 "id": 365
               }
@@ -192795,7 +192795,7 @@
         "probability": 0.0
       }
     ],
-    "transactions.ProposalLine": [
+    "transactions.QuoteLine": [
       {
         "id": 99,
         "uuid": "6c4e6586-eb4b-49d4-be42-1663b332f8ac",
@@ -192982,7 +192982,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 156
+        "quote_id": 156
       },
       {
         "id": 100,
@@ -193170,7 +193170,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 156
+        "quote_id": 156
       },
       {
         "id": 101,
@@ -193358,7 +193358,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 156
+        "quote_id": 156
       },
       {
         "id": 102,
@@ -193546,7 +193546,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 156
+        "quote_id": 156
       },
       {
         "id": 103,
@@ -193734,7 +193734,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 156
+        "quote_id": 156
       },
       {
         "id": 104,
@@ -193922,7 +193922,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 156
+        "quote_id": 156
       },
       {
         "id": 105,
@@ -194110,7 +194110,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 156
+        "quote_id": 156
       },
       {
         "id": 106,
@@ -194298,7 +194298,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 81
+        "quote_id": 81
       },
       {
         "id": 107,
@@ -194486,7 +194486,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 81
+        "quote_id": 81
       },
       {
         "id": 108,
@@ -194674,7 +194674,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 81
+        "quote_id": 81
       },
       {
         "id": 109,
@@ -194862,7 +194862,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 152
+        "quote_id": 152
       },
       {
         "id": 110,
@@ -195050,7 +195050,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 152
+        "quote_id": 152
       },
       {
         "id": 111,
@@ -195238,7 +195238,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 152
+        "quote_id": 152
       },
       {
         "id": 112,
@@ -195426,7 +195426,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 153
+        "quote_id": 153
       },
       {
         "id": 113,
@@ -195614,7 +195614,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 153
+        "quote_id": 153
       },
       {
         "id": 114,
@@ -195802,7 +195802,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 153
+        "quote_id": 153
       },
       {
         "id": 115,
@@ -195990,7 +195990,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 153
+        "quote_id": 153
       },
       {
         "id": 116,
@@ -196178,7 +196178,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 153
+        "quote_id": 153
       },
       {
         "id": 117,
@@ -196366,7 +196366,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 153
+        "quote_id": 153
       },
       {
         "id": 118,
@@ -196554,7 +196554,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 153
+        "quote_id": 153
       },
       {
         "id": 119,
@@ -196742,7 +196742,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 169
+        "quote_id": 169
       },
       {
         "id": 120,
@@ -196930,7 +196930,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 169
+        "quote_id": 169
       },
       {
         "id": 121,
@@ -197118,7 +197118,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 169
+        "quote_id": 169
       },
       {
         "id": 122,
@@ -197306,7 +197306,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 169
+        "quote_id": 169
       },
       {
         "id": 123,
@@ -197494,7 +197494,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 164
+        "quote_id": 164
       },
       {
         "id": 124,
@@ -197682,7 +197682,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 164
+        "quote_id": 164
       },
       {
         "id": 125,
@@ -197870,7 +197870,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 164
+        "quote_id": 164
       },
       {
         "id": 126,
@@ -198058,7 +198058,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 164
+        "quote_id": 164
       },
       {
         "id": 127,
@@ -198246,7 +198246,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 164
+        "quote_id": 164
       },
       {
         "id": 128,
@@ -198434,7 +198434,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 164
+        "quote_id": 164
       },
       {
         "id": 129,
@@ -198622,7 +198622,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 164
+        "quote_id": 164
       },
       {
         "id": 130,
@@ -198810,7 +198810,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 176
+        "quote_id": 176
       },
       {
         "id": 131,
@@ -198998,7 +198998,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 176
+        "quote_id": 176
       },
       {
         "id": 132,
@@ -199186,7 +199186,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 176
+        "quote_id": 176
       },
       {
         "id": 133,
@@ -199374,7 +199374,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 176
+        "quote_id": 176
       },
       {
         "id": 134,
@@ -199562,7 +199562,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 176
+        "quote_id": 176
       },
       {
         "id": 135,
@@ -199750,7 +199750,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 176
+        "quote_id": 176
       },
       {
         "id": 136,
@@ -199938,7 +199938,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 159
+        "quote_id": 159
       },
       {
         "id": 137,
@@ -200126,7 +200126,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 159
+        "quote_id": 159
       },
       {
         "id": 138,
@@ -200314,7 +200314,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 159
+        "quote_id": 159
       },
       {
         "id": 139,
@@ -200502,7 +200502,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 159
+        "quote_id": 159
       },
       {
         "id": 140,
@@ -200690,7 +200690,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 159
+        "quote_id": 159
       },
       {
         "id": 141,
@@ -200878,7 +200878,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 159
+        "quote_id": 159
       },
       {
         "id": 142,
@@ -201066,7 +201066,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 159
+        "quote_id": 159
       },
       {
         "id": 143,
@@ -201254,7 +201254,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 162
+        "quote_id": 162
       },
       {
         "id": 144,
@@ -201442,7 +201442,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 162
+        "quote_id": 162
       },
       {
         "id": 145,
@@ -201630,7 +201630,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 162
+        "quote_id": 162
       },
       {
         "id": 146,
@@ -201818,7 +201818,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 162
+        "quote_id": 162
       },
       {
         "id": 147,
@@ -202006,7 +202006,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 162
+        "quote_id": 162
       },
       {
         "id": 148,
@@ -202194,7 +202194,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 141
+        "quote_id": 141
       },
       {
         "id": 149,
@@ -202382,7 +202382,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 141
+        "quote_id": 141
       },
       {
         "id": 150,
@@ -202570,7 +202570,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 141
+        "quote_id": 141
       },
       {
         "id": 151,
@@ -202758,7 +202758,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 141
+        "quote_id": 141
       },
       {
         "id": 152,
@@ -202946,7 +202946,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 141
+        "quote_id": 141
       },
       {
         "id": 153,
@@ -203134,7 +203134,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 141
+        "quote_id": 141
       },
       {
         "id": 154,
@@ -203322,7 +203322,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 172
+        "quote_id": 172
       },
       {
         "id": 155,
@@ -203510,7 +203510,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 172
+        "quote_id": 172
       },
       {
         "id": 156,
@@ -203698,7 +203698,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 172
+        "quote_id": 172
       },
       {
         "id": 157,
@@ -203886,7 +203886,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 172
+        "quote_id": 172
       },
       {
         "id": 158,
@@ -204074,7 +204074,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 172
+        "quote_id": 172
       },
       {
         "id": 159,
@@ -204262,7 +204262,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 172
+        "quote_id": 172
       },
       {
         "id": 160,
@@ -204450,7 +204450,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 147
+        "quote_id": 147
       },
       {
         "id": 161,
@@ -204638,7 +204638,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 147
+        "quote_id": 147
       },
       {
         "id": 162,
@@ -204826,7 +204826,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 147
+        "quote_id": 147
       },
       {
         "id": 163,
@@ -205014,7 +205014,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 147
+        "quote_id": 147
       },
       {
         "id": 164,
@@ -205202,7 +205202,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 147
+        "quote_id": 147
       },
       {
         "id": 165,
@@ -205390,7 +205390,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 147
+        "quote_id": 147
       },
       {
         "id": 166,
@@ -205578,7 +205578,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 147
+        "quote_id": 147
       },
       {
         "id": 167,
@@ -205766,7 +205766,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 163
+        "quote_id": 163
       },
       {
         "id": 168,
@@ -205954,7 +205954,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 163
+        "quote_id": 163
       },
       {
         "id": 169,
@@ -206142,7 +206142,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 163
+        "quote_id": 163
       },
       {
         "id": 170,
@@ -206330,7 +206330,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 163
+        "quote_id": 163
       },
       {
         "id": 171,
@@ -206518,7 +206518,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 163
+        "quote_id": 163
       },
       {
         "id": 172,
@@ -206706,7 +206706,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 171
+        "quote_id": 171
       },
       {
         "id": 173,
@@ -206894,7 +206894,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 171
+        "quote_id": 171
       },
       {
         "id": 174,
@@ -207082,7 +207082,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 171
+        "quote_id": 171
       },
       {
         "id": 175,
@@ -207270,7 +207270,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 171
+        "quote_id": 171
       },
       {
         "id": 176,
@@ -207458,7 +207458,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 171
+        "quote_id": 171
       },
       {
         "id": 177,
@@ -207646,7 +207646,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 170
+        "quote_id": 170
       },
       {
         "id": 178,
@@ -207834,7 +207834,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 170
+        "quote_id": 170
       },
       {
         "id": 179,
@@ -208022,7 +208022,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 170
+        "quote_id": 170
       },
       {
         "id": 180,
@@ -208210,7 +208210,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 170
+        "quote_id": 170
       },
       {
         "id": 181,
@@ -208398,7 +208398,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 170
+        "quote_id": 170
       },
       {
         "id": 182,
@@ -208586,7 +208586,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 170
+        "quote_id": 170
       },
       {
         "id": 183,
@@ -208774,7 +208774,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 170
+        "quote_id": 170
       },
       {
         "id": 184,
@@ -208962,7 +208962,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 170
+        "quote_id": 170
       },
       {
         "id": 185,
@@ -209150,7 +209150,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 120
+        "quote_id": 120
       },
       {
         "id": 186,
@@ -209338,7 +209338,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 120
+        "quote_id": 120
       },
       {
         "id": 187,
@@ -209526,7 +209526,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 120
+        "quote_id": 120
       },
       {
         "id": 188,
@@ -209714,7 +209714,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 80
+        "quote_id": 80
       },
       {
         "id": 189,
@@ -209902,7 +209902,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 80
+        "quote_id": 80
       },
       {
         "id": 190,
@@ -210090,7 +210090,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 80
+        "quote_id": 80
       },
       {
         "id": 191,
@@ -210278,7 +210278,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 80
+        "quote_id": 80
       },
       {
         "id": 192,
@@ -210466,7 +210466,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 80
+        "quote_id": 80
       },
       {
         "id": 193,
@@ -210654,7 +210654,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 80
+        "quote_id": 80
       },
       {
         "id": 194,
@@ -210842,7 +210842,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 155
+        "quote_id": 155
       },
       {
         "id": 195,
@@ -211030,7 +211030,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 155
+        "quote_id": 155
       },
       {
         "id": 196,
@@ -211218,7 +211218,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 155
+        "quote_id": 155
       },
       {
         "id": 197,
@@ -211406,7 +211406,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 139
+        "quote_id": 139
       },
       {
         "id": 198,
@@ -211594,7 +211594,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 139
+        "quote_id": 139
       },
       {
         "id": 199,
@@ -211782,7 +211782,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 139
+        "quote_id": 139
       },
       {
         "id": 200,
@@ -211970,7 +211970,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 139
+        "quote_id": 139
       },
       {
         "id": 201,
@@ -212158,7 +212158,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 139
+        "quote_id": 139
       },
       {
         "id": 202,
@@ -212346,7 +212346,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 139
+        "quote_id": 139
       },
       {
         "id": 203,
@@ -212534,7 +212534,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 158
+        "quote_id": 158
       },
       {
         "id": 204,
@@ -212722,7 +212722,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 158
+        "quote_id": 158
       },
       {
         "id": 205,
@@ -212910,7 +212910,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 158
+        "quote_id": 158
       },
       {
         "id": 206,
@@ -213098,7 +213098,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 158
+        "quote_id": 158
       },
       {
         "id": 207,
@@ -213286,7 +213286,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 79
+        "quote_id": 79
       },
       {
         "id": 208,
@@ -213474,7 +213474,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 79
+        "quote_id": 79
       },
       {
         "id": 209,
@@ -213662,7 +213662,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 79
+        "quote_id": 79
       },
       {
         "id": 210,
@@ -213850,7 +213850,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 161
+        "quote_id": 161
       },
       {
         "id": 211,
@@ -214038,7 +214038,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 161
+        "quote_id": 161
       },
       {
         "id": 212,
@@ -214226,7 +214226,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 161
+        "quote_id": 161
       },
       {
         "id": 213,
@@ -214414,7 +214414,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 161
+        "quote_id": 161
       },
       {
         "id": 214,
@@ -214602,7 +214602,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 161
+        "quote_id": 161
       },
       {
         "id": 215,
@@ -214790,7 +214790,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 161
+        "quote_id": 161
       },
       {
         "id": 216,
@@ -214978,7 +214978,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 160
+        "quote_id": 160
       },
       {
         "id": 217,
@@ -215166,7 +215166,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 160
+        "quote_id": 160
       },
       {
         "id": 218,
@@ -215354,7 +215354,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 160
+        "quote_id": 160
       },
       {
         "id": 219,
@@ -215542,7 +215542,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 160
+        "quote_id": 160
       },
       {
         "id": 220,
@@ -215730,7 +215730,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 160
+        "quote_id": 160
       },
       {
         "id": 221,
@@ -215918,7 +215918,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 160
+        "quote_id": 160
       },
       {
         "id": 222,
@@ -216106,7 +216106,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 160
+        "quote_id": 160
       },
       {
         "id": 223,
@@ -216294,7 +216294,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 160
+        "quote_id": 160
       },
       {
         "id": 224,
@@ -216482,7 +216482,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 150
+        "quote_id": 150
       },
       {
         "id": 225,
@@ -216670,7 +216670,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 150
+        "quote_id": 150
       },
       {
         "id": 226,
@@ -216858,7 +216858,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 150
+        "quote_id": 150
       },
       {
         "id": 227,
@@ -217046,7 +217046,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 150
+        "quote_id": 150
       },
       {
         "id": 228,
@@ -217234,7 +217234,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 150
+        "quote_id": 150
       },
       {
         "id": 229,
@@ -217422,7 +217422,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 142
+        "quote_id": 142
       },
       {
         "id": 230,
@@ -217610,7 +217610,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 142
+        "quote_id": 142
       },
       {
         "id": 231,
@@ -217798,7 +217798,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 142
+        "quote_id": 142
       },
       {
         "id": 232,
@@ -217986,7 +217986,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 142
+        "quote_id": 142
       },
       {
         "id": 233,
@@ -218174,7 +218174,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 168
+        "quote_id": 168
       },
       {
         "id": 234,
@@ -218362,7 +218362,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 168
+        "quote_id": 168
       },
       {
         "id": 235,
@@ -218550,7 +218550,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 168
+        "quote_id": 168
       },
       {
         "id": 236,
@@ -218738,7 +218738,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 168
+        "quote_id": 168
       },
       {
         "id": 237,
@@ -218926,7 +218926,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 168
+        "quote_id": 168
       },
       {
         "id": 238,
@@ -219114,7 +219114,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 168
+        "quote_id": 168
       },
       {
         "id": 239,
@@ -219302,7 +219302,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 146
+        "quote_id": 146
       },
       {
         "id": 240,
@@ -219490,7 +219490,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 146
+        "quote_id": 146
       },
       {
         "id": 241,
@@ -219678,7 +219678,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 146
+        "quote_id": 146
       },
       {
         "id": 242,
@@ -219866,7 +219866,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 149
+        "quote_id": 149
       },
       {
         "id": 243,
@@ -220054,7 +220054,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 149
+        "quote_id": 149
       },
       {
         "id": 244,
@@ -220242,7 +220242,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 149
+        "quote_id": 149
       },
       {
         "id": 245,
@@ -220430,7 +220430,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 149
+        "quote_id": 149
       },
       {
         "id": 246,
@@ -220618,7 +220618,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 149
+        "quote_id": 149
       },
       {
         "id": 247,
@@ -220806,7 +220806,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 149
+        "quote_id": 149
       },
       {
         "id": 248,
@@ -220994,7 +220994,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 166
+        "quote_id": 166
       },
       {
         "id": 249,
@@ -221182,7 +221182,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 166
+        "quote_id": 166
       },
       {
         "id": 250,
@@ -221370,7 +221370,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 166
+        "quote_id": 166
       },
       {
         "id": 251,
@@ -221558,7 +221558,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 166
+        "quote_id": 166
       },
       {
         "id": 252,
@@ -221746,7 +221746,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 166
+        "quote_id": 166
       },
       {
         "id": 253,
@@ -221934,7 +221934,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 166
+        "quote_id": 166
       },
       {
         "id": 254,
@@ -222122,7 +222122,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 148
+        "quote_id": 148
       },
       {
         "id": 255,
@@ -222310,7 +222310,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 148
+        "quote_id": 148
       },
       {
         "id": 256,
@@ -222498,7 +222498,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 148
+        "quote_id": 148
       },
       {
         "id": 257,
@@ -222686,7 +222686,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 148
+        "quote_id": 148
       },
       {
         "id": 258,
@@ -222874,7 +222874,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 148
+        "quote_id": 148
       },
       {
         "id": 259,
@@ -223062,7 +223062,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 148
+        "quote_id": 148
       },
       {
         "id": 260,
@@ -223250,7 +223250,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 144
+        "quote_id": 144
       },
       {
         "id": 261,
@@ -223438,7 +223438,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 144
+        "quote_id": 144
       },
       {
         "id": 262,
@@ -223626,7 +223626,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 144
+        "quote_id": 144
       },
       {
         "id": 263,
@@ -223814,7 +223814,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 144
+        "quote_id": 144
       },
       {
         "id": 264,
@@ -224002,7 +224002,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 144
+        "quote_id": 144
       },
       {
         "id": 265,
@@ -224190,7 +224190,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 144
+        "quote_id": 144
       },
       {
         "id": 266,
@@ -224378,7 +224378,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 144
+        "quote_id": 144
       },
       {
         "id": 267,
@@ -224566,7 +224566,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 144
+        "quote_id": 144
       },
       {
         "id": 268,
@@ -224754,7 +224754,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 157
+        "quote_id": 157
       },
       {
         "id": 269,
@@ -224942,7 +224942,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 157
+        "quote_id": 157
       },
       {
         "id": 270,
@@ -225130,7 +225130,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 157
+        "quote_id": 157
       },
       {
         "id": 271,
@@ -225318,7 +225318,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 157
+        "quote_id": 157
       },
       {
         "id": 272,
@@ -225506,7 +225506,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 140
+        "quote_id": 140
       },
       {
         "id": 273,
@@ -225694,7 +225694,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 140
+        "quote_id": 140
       },
       {
         "id": 274,
@@ -225882,7 +225882,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 140
+        "quote_id": 140
       },
       {
         "id": 275,
@@ -226070,7 +226070,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 140
+        "quote_id": 140
       },
       {
         "id": 276,
@@ -226258,7 +226258,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 106
+        "quote_id": 106
       },
       {
         "id": 277,
@@ -226446,7 +226446,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 106
+        "quote_id": 106
       },
       {
         "id": 278,
@@ -226634,7 +226634,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 106
+        "quote_id": 106
       },
       {
         "id": 279,
@@ -226822,7 +226822,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 106
+        "quote_id": 106
       },
       {
         "id": 280,
@@ -227010,7 +227010,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 154
+        "quote_id": 154
       },
       {
         "id": 281,
@@ -227198,7 +227198,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 154
+        "quote_id": 154
       },
       {
         "id": 282,
@@ -227386,7 +227386,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 154
+        "quote_id": 154
       },
       {
         "id": 283,
@@ -227574,7 +227574,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 154
+        "quote_id": 154
       },
       {
         "id": 284,
@@ -227762,7 +227762,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 154
+        "quote_id": 154
       },
       {
         "id": 285,
@@ -227950,7 +227950,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 177
+        "quote_id": 177
       },
       {
         "id": 286,
@@ -228138,7 +228138,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 177
+        "quote_id": 177
       },
       {
         "id": 287,
@@ -228326,7 +228326,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 177
+        "quote_id": 177
       },
       {
         "id": 288,
@@ -228514,7 +228514,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 177
+        "quote_id": 177
       },
       {
         "id": 289,
@@ -228702,7 +228702,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 177
+        "quote_id": 177
       },
       {
         "id": 290,
@@ -228890,7 +228890,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 177
+        "quote_id": 177
       },
       {
         "id": 291,
@@ -229078,7 +229078,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 177
+        "quote_id": 177
       },
       {
         "id": 292,
@@ -229266,7 +229266,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 107
+        "quote_id": 107
       },
       {
         "id": 293,
@@ -229454,7 +229454,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 107
+        "quote_id": 107
       },
       {
         "id": 294,
@@ -229642,7 +229642,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 107
+        "quote_id": 107
       },
       {
         "id": 295,
@@ -229830,7 +229830,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 107
+        "quote_id": 107
       },
       {
         "id": 296,
@@ -230018,7 +230018,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 107
+        "quote_id": 107
       },
       {
         "id": 297,
@@ -230206,7 +230206,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 107
+        "quote_id": 107
       },
       {
         "id": 298,
@@ -230394,7 +230394,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 107
+        "quote_id": 107
       },
       {
         "id": 299,
@@ -230582,7 +230582,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 107
+        "quote_id": 107
       },
       {
         "id": 300,
@@ -230770,7 +230770,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 138
+        "quote_id": 138
       },
       {
         "id": 301,
@@ -230958,7 +230958,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 138
+        "quote_id": 138
       },
       {
         "id": 302,
@@ -231146,7 +231146,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 138
+        "quote_id": 138
       },
       {
         "id": 303,
@@ -231334,7 +231334,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 138
+        "quote_id": 138
       },
       {
         "id": 304,
@@ -231522,7 +231522,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 175
+        "quote_id": 175
       },
       {
         "id": 305,
@@ -231710,7 +231710,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 175
+        "quote_id": 175
       },
       {
         "id": 306,
@@ -231898,7 +231898,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 175
+        "quote_id": 175
       },
       {
         "id": 307,
@@ -232086,7 +232086,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 175
+        "quote_id": 175
       },
       {
         "id": 308,
@@ -232274,7 +232274,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 175
+        "quote_id": 175
       },
       {
         "id": 309,
@@ -232462,7 +232462,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 137
+        "quote_id": 137
       },
       {
         "id": 310,
@@ -232650,7 +232650,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 137
+        "quote_id": 137
       },
       {
         "id": 311,
@@ -232838,7 +232838,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 137
+        "quote_id": 137
       },
       {
         "id": 312,
@@ -233026,7 +233026,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 143
+        "quote_id": 143
       },
       {
         "id": 313,
@@ -233214,7 +233214,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 143
+        "quote_id": 143
       },
       {
         "id": 314,
@@ -233402,7 +233402,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 143
+        "quote_id": 143
       },
       {
         "id": 315,
@@ -233590,7 +233590,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 143
+        "quote_id": 143
       },
       {
         "id": 316,
@@ -233778,7 +233778,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 167
+        "quote_id": 167
       },
       {
         "id": 317,
@@ -233966,7 +233966,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 167
+        "quote_id": 167
       },
       {
         "id": 318,
@@ -234154,7 +234154,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 167
+        "quote_id": 167
       },
       {
         "id": 319,
@@ -234342,7 +234342,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 167
+        "quote_id": 167
       },
       {
         "id": 320,
@@ -234530,7 +234530,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 167
+        "quote_id": 167
       },
       {
         "id": 321,
@@ -234718,7 +234718,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 167
+        "quote_id": 167
       },
       {
         "id": 322,
@@ -234906,7 +234906,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 165
+        "quote_id": 165
       },
       {
         "id": 323,
@@ -235094,7 +235094,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 165
+        "quote_id": 165
       },
       {
         "id": 324,
@@ -235282,7 +235282,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 165
+        "quote_id": 165
       },
       {
         "id": 325,
@@ -235470,7 +235470,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 165
+        "quote_id": 165
       },
       {
         "id": 326,
@@ -235658,7 +235658,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 165
+        "quote_id": 165
       },
       {
         "id": 327,
@@ -235846,7 +235846,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 165
+        "quote_id": 165
       },
       {
         "id": 328,
@@ -236034,7 +236034,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 165
+        "quote_id": 165
       },
       {
         "id": 329,
@@ -236222,7 +236222,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 145
+        "quote_id": 145
       },
       {
         "id": 330,
@@ -236410,7 +236410,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 145
+        "quote_id": 145
       },
       {
         "id": 331,
@@ -236598,7 +236598,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 145
+        "quote_id": 145
       },
       {
         "id": 332,
@@ -236786,7 +236786,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 145
+        "quote_id": 145
       },
       {
         "id": 333,
@@ -236974,7 +236974,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 145
+        "quote_id": 145
       },
       {
         "id": 334,
@@ -237162,7 +237162,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 151
+        "quote_id": 151
       },
       {
         "id": 335,
@@ -237350,7 +237350,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 151
+        "quote_id": 151
       },
       {
         "id": 336,
@@ -237538,7 +237538,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 151
+        "quote_id": 151
       },
       {
         "id": 337,
@@ -237726,7 +237726,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 151
+        "quote_id": 151
       },
       {
         "id": 338,
@@ -237914,7 +237914,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 151
+        "quote_id": 151
       },
       {
         "id": 339,
@@ -238102,7 +238102,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 151
+        "quote_id": 151
       },
       {
         "id": 340,
@@ -238290,7 +238290,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 151
+        "quote_id": 151
       },
       {
         "id": 341,
@@ -238489,7 +238489,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 178
+        "quote_id": 178
       },
       {
         "id": 342,
@@ -238694,7 +238694,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 179
+        "quote_id": 179
       },
       {
         "id": 345,
@@ -238889,7 +238889,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 183
+        "quote_id": 183
       },
       {
         "id": 349,
@@ -239084,7 +239084,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 191
+        "quote_id": 191
       },
       {
         "id": 364,
@@ -239279,7 +239279,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 208
+        "quote_id": 208
       },
       {
         "id": 365,
@@ -239474,7 +239474,7 @@
           "discount_amount": 0.0,
           "discount_percent": 0.0
         },
-        "proposal_id": 210
+        "quote_id": 210
       }
     ],
     "transactions.Order": [
@@ -241832,7 +241832,7 @@
         "manufacturer_id": null,
         "vendor_id": null,
         "parent_id": 98,
-        "parent_model": "proposal",
+        "parent_model": "quote",
         "contact_id": 10630,
         "attention": "Sarah Chen",
         "company": {
@@ -242087,7 +242087,7 @@
             "main",
             "n30",
             "planned",
-            "proposal",
+            "quote",
             "sarah",
             "usera2a77993@riversidesports.fake",
             "tulsa",
@@ -242121,7 +242121,7 @@
         "manufacturer_id": null,
         "vendor_id": null,
         "parent_id": 111,
-        "parent_model": "proposal",
+        "parent_model": "quote",
         "contact_id": 10630,
         "attention": "Sarah Chen",
         "company": {
@@ -242366,7 +242366,7 @@
             "main",
             "n30",
             "planned",
-            "proposal",
+            "quote",
             "sarah",
             "usera2a77993@riversidesports.fake",
             "tulsa",
@@ -242403,7 +242403,7 @@
         "manufacturer_id": null,
         "vendor_id": null,
         "parent_id": 113,
-        "parent_model": "proposal",
+        "parent_model": "quote",
         "contact_id": 10630,
         "attention": "Sarah Chen",
         "company": {
@@ -242668,7 +242668,7 @@
         "manufacturer_id": null,
         "vendor_id": null,
         "parent_id": 115,
-        "parent_model": "proposal",
+        "parent_model": "quote",
         "contact_id": 10630,
         "attention": "Sarah Chen",
         "company": {
@@ -242925,7 +242925,7 @@
             "main",
             "n30",
             "planned",
-            "proposal",
+            "quote",
             "sarah",
             "usera2a77993@riversidesports.fake",
             "tulsa"
@@ -242958,7 +242958,7 @@
         "manufacturer_id": null,
         "vendor_id": null,
         "parent_id": 117,
-        "parent_model": "proposal",
+        "parent_model": "quote",
         "contact_id": 10630,
         "attention": "Sarah Chen",
         "company": {
@@ -243205,7 +243205,7 @@
             "medium",
             "net30",
             "planned",
-            "proposal",
+            "quote",
             "1014-so-qq",
             "retail",
             "sale",
@@ -243239,7 +243239,7 @@
         "manufacturer_id": null,
         "vendor_id": null,
         "parent_id": 118,
-        "parent_model": "proposal",
+        "parent_model": "quote",
         "contact_id": 10630,
         "attention": "Sarah Chen",
         "company": {
@@ -244758,7 +244758,7 @@
         "manufacturer_id": null,
         "vendor_id": null,
         "parent_id": 178,
-        "parent_model": "proposal",
+        "parent_model": "quote",
         "contact_id": null,
         "attention": null,
         "company": {
@@ -244953,7 +244953,7 @@
         "manufacturer_id": null,
         "vendor_id": null,
         "parent_id": 178,
-        "parent_model": "proposal",
+        "parent_model": "quote",
         "contact_id": null,
         "attention": null,
         "company": {
@@ -245148,7 +245148,7 @@
         "manufacturer_id": null,
         "vendor_id": null,
         "parent_id": 178,
-        "parent_model": "proposal",
+        "parent_model": "quote",
         "contact_id": null,
         "attention": null,
         "company": {
@@ -245343,7 +245343,7 @@
         "manufacturer_id": null,
         "vendor_id": null,
         "parent_id": 178,
-        "parent_model": "proposal",
+        "parent_model": "quote",
         "contact_id": null,
         "attention": null,
         "company": {
@@ -245546,7 +245546,7 @@
         "manufacturer_id": null,
         "vendor_id": null,
         "parent_id": 179,
-        "parent_model": "proposal",
+        "parent_model": "quote",
         "contact_id": null,
         "attention": null,
         "company": {
@@ -245763,7 +245763,7 @@
         "manufacturer_id": null,
         "vendor_id": null,
         "parent_id": 179,
-        "parent_model": "proposal",
+        "parent_model": "quote",
         "contact_id": null,
         "attention": null,
         "company": {
@@ -245951,7 +245951,7 @@
             "lee",
             "n30",
             "planned",
-            "proposal",
+            "quote",
             "young"
           ],
           "categories": [],
@@ -245986,7 +245986,7 @@
         "manufacturer_id": null,
         "vendor_id": null,
         "parent_id": 210,
-        "parent_model": "proposal",
+        "parent_model": "quote",
         "contact_id": null,
         "attention": "Lee Young",
         "company": {
@@ -264419,7 +264419,7 @@
           },
           "source": {
             "audit": "audit-opus",
-            "proposal_line_id": 341
+            "quote_line_id": 341
           },
           "parents": [],
           "keywords": [],
@@ -264621,7 +264621,7 @@
           },
           "source": {
             "audit": "audit-fable",
-            "proposal_line_id": 342
+            "quote_line_id": 342
           },
           "parents": [],
           "keywords": [],
@@ -264834,7 +264834,7 @@
             "contact": []
           },
           "source": {
-            "proposal_line_id": 342
+            "quote_line_id": 342
           },
           "parents": [],
           "keywords": [],
@@ -265038,7 +265038,7 @@
             "contact": []
           },
           "source": {
-            "proposal_line_id": 365
+            "quote_line_id": 365
           },
           "parents": [],
           "keywords": [],
@@ -268770,7 +268770,7 @@
               "address_full": "2200 Hennepin Ave\nMinneapolis, MN 55405",
               "display_name": "Acme Sporting Goods"
             },
-            "proposal": [
+            "quote": [
               {
                 "id": 168
               }
@@ -298121,8 +298121,8 @@
             "audit": "audit-fable",
             "order_id": 104,
             "order_line_id": 230,
-            "proposal_line_id": 342,
-            "original_proposal_line_id": 342
+            "quote_line_id": 342,
+            "original_quote_line_id": 342
           },
           "parents": [],
           "keywords": [],
@@ -298329,8 +298329,8 @@
             "audit": "audit-fable",
             "order_id": 104,
             "order_line_id": 230,
-            "proposal_line_id": 342,
-            "original_proposal_line_id": 342
+            "quote_line_id": 342,
+            "original_quote_line_id": 342
           },
           "parents": [],
           "keywords": [],
@@ -345032,7 +345032,7 @@
             "kits",
             "out",
             "pdf",
-            "proposal",
+            "quote",
             "sales",
             "send"
           ],
@@ -345059,8 +345059,8 @@
         "contact_id": null,
         "channel": "email",
         "direction": "out",
-        "subject": "Send proposal PDF",
-        "summary": "Attached proposal for 10 kits",
+        "subject": "Send quote PDF",
+        "summary": "Attached quote for 10 kits",
         "duration": null,
         "email_message_id": "",
         "action_id": null,
@@ -347707,8 +347707,8 @@
         "contact_id": 10697,
         "channel": "email",
         "direction": "out",
-        "subject": "Proposal: Deck lumber package",
-        "summary": "Sent proposal for 400 bf pressure-treated 2x6 and 2x8. Net 30.",
+        "subject": "Quote: Deck lumber package",
+        "summary": "Sent quote for 400 bf pressure-treated 2x6 and 2x8. Net 30.",
         "duration": 0,
         "email_message_id": "",
         "action_id": null,
@@ -352053,7 +352053,7 @@
           "keywords": [
             "ida-3",
             "portal",
-            "proposal",
+            "quote",
             "user_customer"
           ],
           "categories": [],
@@ -352071,7 +352071,7 @@
           "process": ""
         },
         "health_rating": 35,
-        "model_name": "proposal",
+        "model_name": "quote",
         "role": "user_customer (portal)",
         "query_filters": {
           "OR": [
@@ -353361,7 +353361,7 @@
           "keywords": [
             "ida-13",
             "portal",
-            "proposal",
+            "quote",
             "user_rep"
           ],
           "categories": [],
@@ -353379,7 +353379,7 @@
           "process": ""
         },
         "health_rating": 35,
-        "model_name": "proposal",
+        "model_name": "quote",
         "role": "user_rep (portal)",
         "query_filters": {
           "refs__links__rep__contains": [
@@ -354274,7 +354274,7 @@
           "parents": [],
           "keywords": [
             "ida-20",
-            "proposal",
+            "quote",
             "user_sales"
           ],
           "categories": [],
@@ -354292,7 +354292,7 @@
           "process": ""
         },
         "health_rating": 35,
-        "model_name": "proposal",
+        "model_name": "quote",
         "role": "user_sales",
         "query_filters": {},
         "view_fields": [
@@ -358415,7 +358415,7 @@
           "keywords": [
             "51",
             "9b11029b-8e2d-4095-93b4-01c282df3fa6",
-            "proposal",
+            "quote",
             "user_customer",
             "usercustomer"
           ],
@@ -358439,7 +358439,7 @@
           "records": {}
         },
         "health_rating": 35,
-        "model_name": "proposal",
+        "model_name": "quote",
         "role": "user_customer",
         "query_filters": {
           "OR": [
@@ -359868,7 +359868,7 @@
           "keywords": [
             "52ce7148-9461-41ae-9bd0-ecf20e88d9f3",
             "dev-61",
-            "proposal",
+            "quote",
             "user_rep"
           ],
           "categories": [],
@@ -359891,7 +359891,7 @@
           "records": {}
         },
         "health_rating": 35,
-        "model_name": "proposal",
+        "model_name": "quote",
         "role": "user_rep",
         "query_filters": {
           "refs__links__rep__contains": [
@@ -362489,7 +362489,7 @@
       {
         "id": 336,
         "uuid": "052e0b21-b6d6-479b-8f6a-46e250419c62",
-        "ida": "FORM-PROPOSAL",
+        "ida": "FORM-QUOTE",
         "dt_created": 1786106913714,
         "dt_modified": 1786106913714,
         "version": 1,
@@ -362561,7 +362561,7 @@
           },
           "versioning": {},
           "audit_trail": [],
-          "explanation": "Printable form template. Structured input documents — purchase orders, work orders, receiving forms, inspection checklists. Includes data fields plus blank areas for handwritten notes. This report: Screen form layout for proposal",
+          "explanation": "Printable form template. Structured input documents — purchase orders, work orders, receiving forms, inspection checklists. Includes data fields plus blank areas for handwritten notes. This report: Screen form layout for quote",
           "import_data": null,
           "userdefined": {},
           "foundational": true,
@@ -362596,17 +362596,17 @@
           "records": {}
         },
         "health_rating": 55,
-        "name": "Proposal Form",
-        "description": "Screen form layout for proposal",
-        "model_name": "proposal",
+        "name": "Quote Form",
+        "description": "Screen form layout for quote",
+        "model_name": "quote",
         "record_id": null,
         "output_type": "screen",
         "category": "form",
         "role_required": null,
         "sort_order": 0,
-        "explanation": "React detail form definition for proposal. Config.fields defines the field layout — which fields appear, their order, grouping, and widget types. Config.rows defines row grouping for the form display. Read by DynamicDetail to render the record edit/view page.",
+        "explanation": "React detail form definition for quote. Config.fields defines the field layout — which fields appear, their order, grouping, and widget types. Config.rows defines row grouping for the form display. Read by DynamicDetail to render the record edit/view page.",
         "paths": {
-          "schema": "common/schemas/proposal.py"
+          "schema": "common/schemas/quote.py"
         },
         "config": {
           "rows": [
@@ -362984,8 +362984,8 @@
               "label": "Parent Model",
               "options": [
                 {
-                  "label": "Proposal",
-                  "value": "proposal"
+                  "label": "Quote",
+                  "value": "quote"
                 },
                 {
                   "label": "Order",
@@ -363044,7 +363044,7 @@
       {
         "id": 337,
         "uuid": "0aa62e43-c3d0-49e3-92d9-5752169e593d",
-        "ida": "FORM-PROPOSALLINE",
+        "ida": "FORM-QUOTELINE",
         "dt_created": 1786106913717,
         "dt_modified": 1786106913717,
         "version": 1,
@@ -363116,7 +363116,7 @@
           },
           "versioning": {},
           "audit_trail": [],
-          "explanation": "Printable form template. Structured input documents — purchase orders, work orders, receiving forms, inspection checklists. Includes data fields plus blank areas for handwritten notes. This report: Screen form layout for proposalline",
+          "explanation": "Printable form template. Structured input documents — purchase orders, work orders, receiving forms, inspection checklists. Includes data fields plus blank areas for handwritten notes. This report: Screen form layout for quoteline",
           "import_data": null,
           "userdefined": {},
           "foundational": true,
@@ -363151,17 +363151,17 @@
           "records": {}
         },
         "health_rating": 55,
-        "name": "ProposalLine Form",
-        "description": "Screen form layout for proposalline",
-        "model_name": "proposalline",
+        "name": "QuoteLine Form",
+        "description": "Screen form layout for quoteline",
+        "model_name": "quoteline",
         "record_id": null,
         "output_type": "screen",
         "category": "form",
         "role_required": null,
         "sort_order": 0,
-        "explanation": "React detail form definition for proposalline. Config.fields defines the field layout — which fields appear, their order, grouping, and widget types. Config.rows defines row grouping for the form display. Read by DynamicDetail to render the record edit/view page.",
+        "explanation": "React detail form definition for quoteline. Config.fields defines the field layout — which fields appear, their order, grouping, and widget types. Config.rows defines row grouping for the form display. Read by DynamicDetail to render the record edit/view page.",
         "paths": {
-          "schema": "common/schemas/proposalline.py"
+          "schema": "common/schemas/quoteline.py"
         },
         "config": {
           "rows": [
@@ -363259,7 +363259,7 @@
               "cols": 2,
               "fields": [
                 "item_fk",
-                "proposal"
+                "quote"
               ]
             },
             {
@@ -363319,9 +363319,9 @@
               "type": "json-text",
               "label": "Physical"
             },
-            "proposal": {
+            "quote": {
               "type": "readonly",
-              "label": "Proposal"
+              "label": "Quote"
             },
             "quantity": {
               "type": "json-text",
@@ -363901,8 +363901,8 @@
               "label": "Parent Model",
               "options": [
                 {
-                  "label": "Proposal",
-                  "value": "proposal"
+                  "label": "Quote",
+                  "value": "quote"
                 },
                 {
                   "label": "Order",
@@ -364846,8 +364846,8 @@
               "label": "Parent Model",
               "options": [
                 {
-                  "label": "Proposal",
-                  "value": "proposal"
+                  "label": "Quote",
+                  "value": "quote"
                 },
                 {
                   "label": "Order",
@@ -365763,8 +365763,8 @@
               "label": "Parent Model",
               "options": [
                 {
-                  "label": "Proposal",
-                  "value": "proposal"
+                  "label": "Quote",
+                  "value": "quote"
                 },
                 {
                   "label": "Order",
@@ -370430,7 +370430,7 @@
             "keywords_dt_refreshed": 1786903303601
           },
           "audit_trail": [],
-          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, proposals. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Customer invoice with line items, totals, and payment terms",
+          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, quotes. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Customer invoice with line items, totals, and payment terms",
           "import_data": null,
           "userdefined": {},
           "foundational": true,
@@ -371427,7 +371427,7 @@
             "keywords_dt_refreshed": 1786401509846
           },
           "audit_trail": [],
-          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, proposals. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Credit note / reversal document with reason code",
+          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, quotes. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Credit note / reversal document with reason code",
           "import_data": null,
           "userdefined": {},
           "foundational": true,
@@ -373582,7 +373582,7 @@
             "keywords_dt_refreshed": 1786401510047
           },
           "audit_trail": [],
-          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, proposals. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Customer order confirmation with line items, pricing, and delivery terms",
+          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, quotes. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Customer order confirmation with line items, pricing, and delivery terms",
           "import_data": null,
           "userdefined": {},
           "foundational": true,
@@ -377020,7 +377020,7 @@
       {
         "id": 416,
         "uuid": "00011c75-4e01-430c-befb-9475c3627579",
-        "ida": "MVP-PROPOSAL",
+        "ida": "MVP-QUOTE",
         "dt_created": 1786230956075,
         "dt_modified": 1786401409964,
         "version": 2,
@@ -377095,7 +377095,7 @@
             "keywords_dt_refreshed": 1786401510869
           },
           "audit_trail": [],
-          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, proposals. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Customer proposal/quote with line items — no AR impact until converted",
+          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, quotes. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Customer quote/quote with line items — no AR impact until converted",
           "import_data": null,
           "userdefined": {},
           "foundational": true,
@@ -377120,8 +377120,8 @@
             "line",
             "mvp",
             "print",
-            "proposal",
-            "proposal/quote",
+            "quote",
+            "quote/quote",
             "until"
           ],
           "categories": [],
@@ -377144,21 +377144,21 @@
           "records": {}
         },
         "health_rating": 65,
-        "name": "Proposal",
-        "description": "Customer proposal/quote with line items — no AR impact until converted",
-        "model_name": "proposal",
+        "name": "Quote",
+        "description": "Customer quote/quote with line items — no AR impact until converted",
+        "model_name": "quote",
         "record_id": null,
         "output_type": "print",
         "category": "customer_facing",
         "role_required": "",
         "sort_order": 10,
-        "explanation": "Print document template — Proposal. Minimum viable print definition. Config holds template structure, field mappings, and layout for PDF/print output. Used by the print pipeline to generate formatted documents.",
+        "explanation": "Print document template — Quote. Minimum viable print definition. Config holds template structure, field mappings, and layout for PDF/print output. Used by the print pipeline to generate formatted documents.",
         "paths": {},
         "config": {
           "form": {
-            "model": "proposal",
+            "model": "quote",
             "paper": "letter",
-            "title": "Proposal",
+            "title": "Quote",
             "sections": [
               {
                 "logo": true,
@@ -377187,11 +377187,11 @@
                     ]
                   },
                   {
-                    "title": "Proposal Info",
+                    "title": "Quote Info",
                     "fields": [
                       {
                         "field": "ida",
-                        "label": "Proposal #"
+                        "label": "Quote #"
                       },
                       {
                         "field": "status",
@@ -377301,7 +377301,7 @@
                 "fields": [
                   {
                     "field": "ida",
-                    "label": "Proposal #"
+                    "label": "Quote #"
                   }
                 ]
               }
@@ -377349,10 +377349,10 @@
               "fields": [
                 "conditions_description"
               ],
-              "acceptance": "To accept this proposal, please sign below and return.\n\nSignature: _________________ Date: _________________"
+              "acceptance": "To accept this quote, please sign below and return.\n\nSignature: _________________ Date: _________________"
             },
             "header": {
-              "title": "Proposal",
+              "title": "Quote",
               "fields": [
                 "company_name",
                 "company_address",
@@ -377391,14 +377391,14 @@
               "fields": {
                 "Date": "dt_created",
                 "Terms": "terms",
-                "Proposal #": "ida",
+                "Quote #": "ida",
                 "Valid Until": "expiry_date"
               }
             }
           },
-          "template": "proposal",
-          "data_source": "proposal_detail",
-          "document_type": "proposal",
+          "template": "quote",
+          "data_source": "quote_detail",
+          "document_type": "quote",
           "pdfme_template": {
             "basePdf": {
               "width": 215.9,
@@ -377457,7 +377457,7 @@
                   "type": "text",
                   "width": 46,
                   "height": 10,
-                  "content": "Proposal",
+                  "content": "Quote",
                   "fontSize": 18,
                   "position": {
                     "x": 150,
@@ -377472,7 +377472,7 @@
                   "type": "text",
                   "width": 30,
                   "height": 4,
-                  "content": "PROPOSAL #",
+                  "content": "QUOTE #",
                   "fontSize": 7,
                   "position": {
                     "x": 14,
@@ -377950,7 +377950,7 @@
                   "type": "text",
                   "width": 182,
                   "height": 10,
-                  "content": "To accept this proposal, sign below and return.   Signature: _________________   Date: _________________",
+                  "content": "To accept this quote, sign below and return.   Signature: _________________   Date: _________________",
                   "fontSize": 8,
                   "position": {
                     "x": 14,
@@ -379682,7 +379682,7 @@
             "keywords_dt_refreshed": 1786401510661
           },
           "audit_trail": [],
-          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, proposals. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Payment receipt / proof of payment for customer",
+          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, quotes. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Payment receipt / proof of payment for customer",
           "import_data": null,
           "userdefined": {},
           "foundational": true,
@@ -381651,7 +381651,7 @@
             "keywords_dt_refreshed": 1786710698733
           },
           "audit_trail": [],
-          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, proposals. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: SVG template invoice — select fields, export SVG, design externally, import back, populate with data.",
+          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, quotes. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: SVG template invoice — select fields, export SVG, design externally, import back, populate with data.",
           "import_data": null,
           "userdefined": {},
           "small_stings": []
@@ -381982,7 +381982,7 @@
             "keywords_dt_refreshed": 1786710698946
           },
           "audit_trail": [],
-          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, proposals. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: SVG template order confirmation.",
+          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, quotes. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: SVG template order confirmation.",
           "import_data": null,
           "userdefined": {},
           "small_stings": []
@@ -382221,7 +382221,7 @@
       {
         "id": 444,
         "uuid": "85317ee2-0c93-43c5-9d90-2cbce4610227",
-        "ida": "SVG-PROPOSAL-001",
+        "ida": "SVG-QUOTE-001",
         "dt_created": 1786671532336,
         "dt_modified": 1786671532336,
         "version": 1,
@@ -382296,7 +382296,7 @@
             "keywords_dt_refreshed": 1786710699380
           },
           "audit_trail": [],
-          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, proposals. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: SVG template proposal.",
+          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, quotes. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: SVG template quote.",
           "import_data": null,
           "userdefined": {},
           "small_stings": []
@@ -382314,10 +382314,10 @@
             "customer_facing",
             "form",
             "print",
-            "proposal",
+            "quote",
             "svg",
             "svg-form-staged",
-            "svg-proposal-001",
+            "svg-quote-001",
             "template"
           ],
           "categories": [],
@@ -382340,21 +382340,21 @@
           "records": {}
         },
         "health_rating": 0,
-        "name": "Proposal (SVG Form)",
-        "description": "SVG template proposal.",
-        "model_name": "proposal",
+        "name": "Quote (SVG Form)",
+        "description": "SVG template quote.",
+        "model_name": "quote",
         "record_id": null,
         "output_type": "print",
         "category": "customer_facing",
         "role_required": null,
         "sort_order": 20,
-        "explanation": "SVG-based print form — Proposal (SVG Form). Config holds SVG template reference, field placement coordinates, and data bindings. Renders as vector graphic for high-quality print output. Staged for review before production use.",
+        "explanation": "SVG-based print form — Quote (SVG Form). Config holds SVG template reference, field placement coordinates, and data bindings. Renders as vector graphic for high-quality print output. Staged for review before production use.",
         "paths": {},
         "config": {
           "form": {
-            "model": "proposal",
+            "model": "quote",
             "paper": "letter",
-            "title": "Proposal",
+            "title": "Quote",
             "sections": [
               {
                 "logo": true,
@@ -382383,11 +382383,11 @@
                     ]
                   },
                   {
-                    "title": "Proposal Info",
+                    "title": "Quote Info",
                     "fields": [
                       {
                         "field": "ida",
-                        "label": "Proposal #"
+                        "label": "Quote #"
                       },
                       {
                         "field": "status",
@@ -382465,7 +382465,7 @@
                   }
                 ],
                 "type": "totals",
-                "left_text": "Valid for 30 days from date of proposal."
+                "left_text": "Valid for 30 days from date of quote."
               },
               {
                 "type": "conditions",
@@ -382489,7 +382489,7 @@
                 "fields": [
                   {
                     "field": "ida",
-                    "label": "Proposal #"
+                    "label": "Quote #"
                   },
                   {
                     "field": "customer_id",
@@ -382881,7 +382881,7 @@
             "keywords_dt_refreshed": 1786710699194
           },
           "audit_trail": [],
-          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, proposals. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: SVG template payment receipt.",
+          "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, quotes. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: SVG template payment receipt.",
           "import_data": null,
           "userdefined": {},
           "small_stings": []
@@ -386211,7 +386211,7 @@
             "email",
             "plain",
             "print",
-            "proposal",
+            "quote",
             "quote",
             "send",
             "touch",
@@ -386238,7 +386238,7 @@
         },
         "health_rating": 0,
         "name": "Quote Attached",
-        "description": "Send a quote or proposal",
+        "description": "Send a quote or quote",
         "model_name": "touch",
         "record_id": null,
         "output_type": "print",
@@ -389754,7 +389754,7 @@
             "plain",
             "pricing",
             "print",
-            "proposal",
+            "quote",
             "quote",
             "report",
             "sales",
@@ -389782,9 +389782,9 @@
           "records": {}
         },
         "health_rating": 0,
-        "name": "Proposal / Quote",
-        "description": "Sales proposal with pricing, terms, and acceptance signature",
-        "model_name": "proposal",
+        "name": "Quote / Quote",
+        "description": "Sales quote with pricing, terms, and acceptance signature",
+        "model_name": "quote",
         "record_id": null,
         "output_type": "print",
         "category": "report",
@@ -389793,8 +389793,8 @@
         "explanation": "",
         "paths": {},
         "config": {
-          "route": "/transactions/proposal/print/{id}",
-          "template": "proposal"
+          "route": "/transactions/quote/print/{id}",
+          "template": "quote"
         },
         "editor_type": "plain",
         "content": "",
@@ -389903,7 +389903,7 @@
             "estimate",
             "plain",
             "print",
-            "proposal",
+            "quote",
             "purposes",
             "report",
             "seed",
@@ -389932,7 +389932,7 @@
         "health_rating": 0,
         "name": "Estimate",
         "description": "Estimate without binding terms — for budgeting purposes",
-        "model_name": "proposal",
+        "model_name": "quote",
         "record_id": null,
         "output_type": "print",
         "category": "report",
@@ -390051,7 +390051,7 @@
             "plain",
             "pricing",
             "print",
-            "proposal",
+            "quote",
             "report",
             "response",
             "seed",
@@ -390079,7 +390079,7 @@
         "health_rating": 0,
         "name": "Bid Document",
         "description": "Formal bid response with specifications and pricing",
-        "model_name": "proposal",
+        "model_name": "quote",
         "record_id": null,
         "output_type": "print",
         "category": "report",
@@ -390196,7 +390196,7 @@
             "email",
             "letter",
             "plain",
-            "proposal",
+            "quote",
             "review",
             "seed"
           ],
@@ -390220,9 +390220,9 @@
           "records": {}
         },
         "health_rating": 0,
-        "name": "Proposal Email",
-        "description": "Email proposal to customer for review",
-        "model_name": "proposal",
+        "name": "Quote Email",
+        "description": "Email quote to customer for review",
+        "model_name": "quote",
         "record_id": null,
         "output_type": "email",
         "category": "letter",
@@ -390231,7 +390231,7 @@
         "explanation": "",
         "paths": {},
         "config": {
-          "template": "proposal_email"
+          "template": "quote_email"
         },
         "editor_type": "plain",
         "content": "",
@@ -397020,7 +397020,7 @@
             "paid",
             "cash",
             "plain",
-            "proposal",
+            "quote",
             "refs.source=\"demo-baseline",
             "riverside",
             "seed",
@@ -397056,14 +397056,14 @@
         },
         "health_rating": 0,
         "name": "Seed Demo Transactions",
-        "description": "Create 3 complete transaction cycles: proposal → order → invoice → cash → GL.",
+        "description": "Create 3 complete transaction cycles: quote → order → invoice → cash → GL.",
         "model_name": "setting",
         "record_id": null,
         "output_type": "json",
         "category": "utility",
         "role_required": "admin",
         "sort_order": 80,
-        "explanation": "Creates 3 transaction cycles using items and contacts from seed_demo: Riverside Sports (fully paid), Metro Baseball Academy (split payment), Eastside Little League (single payment). Each cycle: proposal → order → invoice → payment → GL journal entries. All tagged refs.source=\"demo-baseline\".",
+        "explanation": "Creates 3 transaction cycles using items and contacts from seed_demo: Riverside Sports (fully paid), Metro Baseball Academy (split payment), Eastside Little League (single payment). Each cycle: quote → order → invoice → payment → GL journal entries. All tagged refs.source=\"demo-baseline\".",
         "paths": {},
         "config": {
           "command": "seed_demo_transactions",
@@ -397858,8 +397858,8 @@
     "products.Item",
     "products.Catalog",
     "products.BillOfMaterial",
-    "transactions.Proposal",
-    "transactions.ProposalLine",
+    "transactions.Quote",
+    "transactions.QuoteLine",
     "transactions.Order",
     "transactions.OrderLine",
     "transactions.Invoice",

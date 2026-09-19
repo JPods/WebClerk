@@ -5,7 +5,7 @@ Shows how quantities, pending records, and GL entries change at each
 stage of a transaction lifecycle. The user walks through:
 
   1. Starting inventory (item with on_hand=100)
-  2. Add Proposal for 15 units → on_p changes, NO GL
+  2. Add Quote for 15 units → on_p changes, NO GL
   3. Convert 9 to Order → on_p decreases, on_so increases, pending created, NO GL
   4. Create Invoice for 4 → on_so decreases, on_hand decreases, GL: AR/Revenue/COGS/Inventory + Tax + Commission
   5. Create Purchase for 14 → on_po increases, NO GL
@@ -91,7 +91,7 @@ def reset_flight_simulator(item_ida: str) -> Dict[str, Any]:
 
     Item = dj_apps.get_model('products', 'Item')
     Pending = dj_apps.get_model('core', 'Pending')
-    Proposal = dj_apps.get_model('transactions', 'Proposal')
+    Quote = dj_apps.get_model('transactions', 'Quote')
     Order = dj_apps.get_model('transactions', 'Order')
     Invoice = dj_apps.get_model('transactions', 'Invoice')
 
@@ -107,7 +107,7 @@ def reset_flight_simulator(item_ida: str) -> Dict[str, Any]:
 
     # Collect parent header IDs from lines, then delete lines and orphaned headers
     line_configs = [
-        ('transactions', 'ProposalLine', 'proposal_id', 'transactions', 'Proposal'),
+        ('transactions', 'QuoteLine', 'quote_id', 'transactions', 'Quote'),
         ('transactions', 'OrderLine', 'order_id', 'transactions', 'Order'),
         ('transactions', 'InvoiceLine', 'invoice_id', 'transactions', 'Invoice'),
         ('transactions', 'PurchaseLine', 'purchase_id', 'transactions', 'Purchase'),
@@ -212,7 +212,7 @@ def get_flight_transactions(item_id: int, since: Optional[int] = None) -> Dict[s
     # ── Gather transaction lines ─────────────────────────────────────
     tx_lines = []
     line_models = [
-        ('transactions', 'ProposalLine', 'proposal'),
+        ('transactions', 'QuoteLine', 'quote'),
         ('transactions', 'OrderLine', 'order'),
         ('transactions', 'InvoiceLine', 'invoice'),
         ('transactions', 'PurchaseLine', 'purchase'),
@@ -665,7 +665,7 @@ def get_item_flight_state(item_id: int) -> Dict[str, Any]:
 
     # Gather all transaction lines for this item
     lines = []
-    lines.extend(_get_proposal_lines(item_id, item_dict))
+    lines.extend(_get_quote_lines(item_id, item_dict))
     lines.extend(_get_order_lines(item_id, item_dict))
     lines.extend(_get_invoice_lines(item_id, item_dict))
     lines.extend(_get_purchase_lines(item_id, item_dict))
@@ -713,22 +713,22 @@ def get_flight_scenario() -> Dict[str, Any]:
         },
         {
             'step': 2,
-            'title': 'Create Proposal for 15 units',
-            'instruction': 'Create a Proposal with 1 line: 15 units of this item at $10.00',
-            'action': 'create_proposal_line',
+            'title': 'Create Quote for 15 units',
+            'instruction': 'Create a Quote with 1 line: 15 units of this item at $10.00',
+            'action': 'create_quote_line',
             'qty': 15,
             'expected_quantity': {
                 'on_hand': 100, 'on_so': 0, 'on_po': 0, 'on_p': 15,
                 'allocated': 0, 'available': 100,
             },
             'expected_gl': [],
-            'explanation': 'Proposal reserves 15 units (on_p=15). No GL impact — a proposal is just a quote. Available stays 100 because proposals don\'t allocate.',
+            'explanation': 'Quote reserves 15 units (on_p=15). No GL impact — a quote is just a quote. Available stays 100 because quotes don\'t allocate.',
         },
         {
             'step': 3,
             'title': 'Convert 9 units to Order',
-            'instruction': 'Create an Order from the Proposal for 9 of the 15 units',
-            'action': 'create_order_from_proposal',
+            'instruction': 'Create an Order from the Quote for 9 of the 15 units',
+            'action': 'create_order_from_quote',
             'qty': 9,
             'expected_quantity': {
                 'on_hand': 100, 'on_so': 9, 'on_po': 0, 'on_p': 6,
@@ -739,7 +739,7 @@ def get_flight_scenario() -> Dict[str, Any]:
                 {'purpose': 'on_p', 'delta': '-9'},
             ],
             'expected_gl': [],
-            'explanation': 'Order commits 9 units (on_so=9). Proposal drops to 6 remaining. Available drops to 91 (100 - 9 allocated). Pending records track the movement. Still NO GL impact — an order is a commitment, not a financial event.',
+            'explanation': 'Order commits 9 units (on_so=9). Quote drops to 6 remaining. Available drops to 91 (100 - 9 allocated). Pending records track the movement. Still NO GL impact — an order is a commitment, not a financial event.',
         },
         {
             'step': 4,
@@ -1003,9 +1003,9 @@ def get_flight_scenario() -> Dict[str, Any]:
         # ── Cleanup ───────────────────────────────────────────────────
         {
             'step': 14,
-            'title': 'Cancel remaining proposal (6 units)',
-            'instruction': 'Cancel the 6 units still sitting on the original proposal.',
-            'action': 'cancel_proposal_remainder',
+            'title': 'Cancel remaining quote (6 units)',
+            'instruction': 'Cancel the 6 units still sitting on the original quote.',
+            'action': 'cancel_quote_remainder',
             'qty': 6,
             'section': 'Cleanup',
             'expected_quantity': {
@@ -1017,9 +1017,9 @@ def get_flight_scenario() -> Dict[str, Any]:
             ],
             'expected_gl': [],
             'explanation': (
-                'The remaining 6 proposal units are stale — cancel them.\n'
-                'On_p drops from 6→0. No GL impact (proposals never had financial weight).\n'
-                'This is housekeeping — orphan proposals clutter reports and confuse users.'
+                'The remaining 6 quote units are stale — cancel them.\n'
+                'On_p drops from 6→0. No GL impact (quotes never had financial weight).\n'
+                'This is housekeeping — orphan quotes clutter reports and confuse users.'
             ),
         },
         {
@@ -1047,7 +1047,7 @@ def get_flight_scenario() -> Dict[str, Any]:
                 '• PO: 3 units cancelled (on_po 3→0)\n'
                 'No GL — these were commitments, not financial events.\n'
                 'Available goes from 102→107. All inventory is free.\n\n'
-                'The books are clean. Every transaction from proposal to cleanup '
+                'The books are clean. Every transaction from quote to cleanup '
                 'is accounted for. No orphans, no dangling commitments.'
             ),
         },
@@ -1399,30 +1399,30 @@ def _dec(val) -> float:
         return 0.0
 
 
-def _get_proposal_lines(item_id: int, item_dict: dict) -> list:
-    """Get all proposal lines for this item."""
+def _get_quote_lines(item_id: int, item_dict: dict) -> list:
+    """Get all quote lines for this item."""
     try:
-        ProposalLine = dj_apps.get_model('transactions', 'ProposalLine')
+        QuoteLine = dj_apps.get_model('transactions', 'QuoteLine')
     except LookupError:
         return []
 
     lines = []
-    for pl in ProposalLine.objects.filter(item_fk_id=item_id, is_active=True, is_deleted=False):
+    for pl in QuoteLine.objects.filter(item_fk_id=item_id, is_active=True, is_deleted=False):
         qty = _line_qty(pl)
         price = _line_price(pl)
         lines.append({
-            'type': 'proposal_line',
+            'type': 'quote_line',
             'id': pl.pk,
-            'parent_id': pl.proposal_id,
-            'parent_ida': getattr(pl.proposal, 'ida', '') if hasattr(pl, 'proposal') else '',
-            'parent_model': 'proposal',
+            'parent_id': pl.quote_id,
+            'parent_ida': getattr(pl.quote, 'ida', '') if hasattr(pl, 'quote') else '',
+            'parent_model': 'quote',
             'quantity': qty,
             'price': price,
             'status': getattr(pl, 'status', ''),
             'dt_created': getattr(pl, 'dt_created', None),
             'gl_impact': {
                 'has_impact': False,
-                'reason': 'Proposal — no GL impact (quote only)',
+                'reason': 'Quote — no GL impact (quote only)',
                 'entries': [],
             },
         })

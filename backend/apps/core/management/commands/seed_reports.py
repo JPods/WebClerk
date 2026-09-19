@@ -30,11 +30,11 @@ REPORTS = [
     {'model_name': 'invoice', 'name': 'Invoice Email', 'description': 'Email invoice to customer with PDF attachment', 'output_type': 'email', 'category': 'letter', 'sort_order': 10, 'config': {'template': 'invoice_email'}},
     {'model_name': 'invoice', 'name': 'Invoice Line Export', 'description': 'CSV export of invoice lines', 'output_type': 'export', 'category': 'export', 'sort_order': 20, 'config': {'template': 'invoice_lines_csv'}},
 
-    # ── Proposals ──
-    {'model_name': 'proposal', 'name': 'Proposal / Quote', 'description': 'Sales proposal with pricing, terms, and acceptance signature', 'output_type': 'print', 'category': 'report', 'sort_order': 1, 'config': {'template': 'proposal', 'route': '/transactions/proposal/print/{id}'}},
-    {'model_name': 'proposal', 'name': 'Estimate', 'description': 'Estimate without binding terms — for budgeting purposes', 'output_type': 'print', 'category': 'report', 'sort_order': 2, 'config': {'template': 'estimate'}},
-    {'model_name': 'proposal', 'name': 'Bid Document', 'description': 'Formal bid response with specifications and pricing', 'output_type': 'print', 'category': 'report', 'sort_order': 3, 'config': {'template': 'bid_document'}},
-    {'model_name': 'proposal', 'name': 'Proposal Email', 'description': 'Email proposal to customer for review', 'output_type': 'email', 'category': 'letter', 'sort_order': 10, 'config': {'template': 'proposal_email'}},
+    # ── Quotes ──
+    {'model_name': 'quote', 'name': 'Quote / Quote', 'description': 'Sales quote with pricing, terms, and acceptance signature', 'output_type': 'print', 'category': 'report', 'sort_order': 1, 'config': {'template': 'quote', 'route': '/transactions/quote/print/{id}'}},
+    {'model_name': 'quote', 'name': 'Estimate', 'description': 'Estimate without binding terms — for budgeting purposes', 'output_type': 'print', 'category': 'report', 'sort_order': 2, 'config': {'template': 'estimate'}},
+    {'model_name': 'quote', 'name': 'Bid Document', 'description': 'Formal bid response with specifications and pricing', 'output_type': 'print', 'category': 'report', 'sort_order': 3, 'config': {'template': 'bid_document'}},
+    {'model_name': 'quote', 'name': 'Quote Email', 'description': 'Email quote to customer for review', 'output_type': 'email', 'category': 'letter', 'sort_order': 10, 'config': {'template': 'quote_email'}},
 
     # ── Purchases ──
     {'model_name': 'purchase', 'name': 'Purchase Order', 'description': 'Purchase order sent to vendor', 'output_type': 'print', 'category': 'report', 'sort_order': 1, 'config': {'template': 'purchase_order'}},

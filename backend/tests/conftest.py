@@ -120,9 +120,9 @@ class InvoiceFactory(DjangoModelFactory):
     is_deleted = False
 
 
-class ProposalFactory(DjangoModelFactory):
+class QuoteFactory(DjangoModelFactory):
     class Meta:
-        model = "transactions.Proposal"
+        model = "transactions.Quote"
 
     ida = factory.Sequence(lambda n: f"QT-{n:05d}")
     status = "open"
@@ -205,9 +205,9 @@ def invoice(db):
 
 
 @pytest.fixture
-def proposal(db):
-    """A single active proposal/quote."""
-    return ProposalFactory()
+def quote(db):
+    """A single active quote/quote."""
+    return QuoteFactory()
 
 
 @pytest.fixture

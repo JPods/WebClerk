@@ -71,7 +71,7 @@ export interface DetailLayout {
 
 // Default layout for models without form sections
 function defaultLayout(modelName: string): DetailLayout {
-  const isSell = ['order', 'invoice', 'proposal'].includes(modelName);
+  const isSell = ['order', 'invoice', 'quote'].includes(modelName);
   return {
     model: modelName,
     family: isSell ? 'sell' : 'exec',

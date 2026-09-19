@@ -4,7 +4,7 @@ Flight Simulator: Onboarding — Phase 1 foundation exercises.
 Three guided simulations that create the data all later sims depend on:
   1. Your First Customer — Contact → Customer Org → Credit limit
   2. Your First Item — Item → Price/Cost/GL → Opening inventory
-  3. Your First Sale — Proposal → Convert to Order
+  3. Your First Sale — Quote → Convert to Order
 
 Each returns a scenario dict with steps, expected values, and explanations.
 The frontend walks through the steps; the user does real actions on real forms.
@@ -315,10 +315,10 @@ def get_first_item_scenario() -> Dict[str, Any]:
                 '| on_hand   | Physically in warehouse | Invoice (down), Receipt (up) |\n'
                 '| on_so     | Committed to sales orders | Order (up), Invoice (down) |\n'
                 '| on_po     | On order from vendors | PO (up), Receipt (down) |\n'
-                '| on_p      | On proposals (quotes) | Proposal (up), Convert (down) |\n'
+                '| on_p      | On quotes (quotes) | Quote (up), Convert (down) |\n'
                 '| on_wo     | On work orders | WO (up), Complete (down) |\n'
                 '| available | on_hand - allocated | Computed |\n\n'
-                'Proposals DON\'T reduce available (they\'re just quotes). '
+                'Quotes DON\'T reduce available (they\'re just quotes). '
                 'Orders DO reduce available (they\'re commitments). '
                 'This is the most important distinction in inventory management.\n\n'
                 'Starting at 100 gives us room to run all the flight sim scenarios '
@@ -341,7 +341,7 @@ def get_first_item_scenario() -> Dict[str, Any]:
 # ── Sim 3: Your First Sale ─────────────────────────────────────────────
 
 def get_first_sale_scenario() -> Dict[str, Any]:
-    """Your First Sale — Proposal → Convert to Order.
+    """Your First Sale — Quote → Convert to Order.
 
     Uses the customer from sim 1 and the item from sim 2.
     Bridges Phase 1 into Phase 2 (inventory tracking).
@@ -349,9 +349,9 @@ def get_first_sale_scenario() -> Dict[str, Any]:
     steps = [
         {
             'step': 1,
-            'title': 'Create a Proposal',
+            'title': 'Create a Quote',
             'instruction': (
-                'Open the right panel form (Proposal). Fill in:\n'
+                'Open the right panel form (Quote). Fill in:\n'
                 '• Customer: Training Corp (from exercise 1)\n'
                 '• Contact: Training User\n\n'
                 'Save the header first, then add a line:\n'
@@ -360,8 +360,8 @@ def get_first_sale_scenario() -> Dict[str, Any]:
                 '• Price: $10.00 (should auto-fill from item)\n\n'
                 'Save.'
             ),
-            'action': 'create_proposal',
-            'model': 'proposal',
+            'action': 'create_quote',
+            'model': 'quote',
             'qty': 15,
             'expected_quantity_change': {
                 'on_p': '+15',
@@ -369,17 +369,17 @@ def get_first_sale_scenario() -> Dict[str, Any]:
                 'available': '100 (unchanged)',
             },
             'explanation': (
-                'A Proposal is a quote — a conversation with the customer about what '
+                'A Quote is a quote — a conversation with the customer about what '
                 'they might buy. It is NOT a commitment.\n\n'
-                'What happens when you save the proposal line:\n'
+                'What happens when you save the quote line:\n'
                 '• on_p increases by 15 (we\'re quoting 15 units)\n'
                 '• on_hand stays at 100 (nothing moved)\n'
-                '• available stays at 100 (proposals don\'t allocate)\n'
+                '• available stays at 100 (quotes don\'t allocate)\n'
                 '• NO GL entries (a quote has no financial weight)\n'
                 '• A Pending record is created (tracks the quantity delta)\n\n'
-                'Why proposals don\'t allocate: imagine quoting 50 units to 10 customers. '
-                'If proposals allocated, you\'d need 500 units for $5,000 in quotes — '
-                'but most quotes don\'t convert. Proposals are visibility, not commitment.\n\n'
+                'Why quotes don\'t allocate: imagine quoting 50 units to 10 customers. '
+                'If quotes allocated, you\'d need 500 units for $5,000 in quotes — '
+                'but most quotes don\'t convert. Quotes are visibility, not commitment.\n\n'
                 'WC2: This was the Quote window → [QT_Lines] table.'
             ),
         },
@@ -387,10 +387,10 @@ def get_first_sale_scenario() -> Dict[str, Any]:
             'step': 2,
             'title': 'Convert to Order — partial (9 of 15)',
             'instruction': (
-                'On the Proposal, click the Convert to Order button.\n'
+                'On the Quote, click the Convert to Order button.\n'
                 'Change the quantity to 9 (the customer only wants 9 of the 15 quoted).\n\n'
                 'The conversion creates a new Order record and copies the line.\n'
-                'The proposal line quantity drops to 6 remaining.\n\n'
+                'The quote line quantity drops to 6 remaining.\n\n'
                 'Watch the left panel — quantities will change.'
             ),
             'action': 'convert_to_order',
@@ -404,9 +404,9 @@ def get_first_sale_scenario() -> Dict[str, Any]:
             },
             'explanation': (
                 'NOW it\'s a commitment. The conversion:\n\n'
-                '1. Creates a new Order header (linked to the proposal via refs)\n'
+                '1. Creates a new Order header (linked to the quote via refs)\n'
                 '2. Copies the line to the order with quantity = 9\n'
-                '3. Reduces the proposal line to 6 remaining\n'
+                '3. Reduces the quote line to 6 remaining\n'
                 '4. Creates Pending records for the quantity changes\n\n'
                 'Quantity changes:\n'
                 '• on_p: 15 → 6 (9 units moved from quote to order)\n'
@@ -417,7 +417,7 @@ def get_first_sale_scenario() -> Dict[str, Any]:
                 'The financial event happens at invoicing.\n\n'
                 'Why partial? Real commerce rarely converts 100% of a quote. '
                 'The customer negotiates, reduces quantities, drops items. The 6 remaining '
-                'on the proposal can convert later, expire, or be cancelled.\n\n'
+                'on the quote can convert later, expire, or be cancelled.\n\n'
                 'WC2: Convert button in the Quote window → creates [SalesOrder].'
             ),
         },
@@ -439,7 +439,7 @@ def get_first_sale_scenario() -> Dict[str, Any]:
             'exit_point': {
                 'name': 'Your First Sale Complete',
                 'summary': (
-                    'You created a proposal for 15 units, converted 9 to an order. '
+                    'You created a quote for 15 units, converted 9 to an order. '
                     'The customer has 9 units committed (on_so=9), 6 still quoted (on_p=6), '
                     'and 91 units available for other customers.\n\n'
                     'Next: run the "Inventory Quantity Tracking" flight sim to continue '
@@ -453,14 +453,14 @@ def get_first_sale_scenario() -> Dict[str, Any]:
                 '| Contact | Training User | People are separate from companies |\n'
                 '| Customer | Training Corp | Companies have financial data (credit, aging) |\n'
                 '| Item | qqBB200 | Products have price, cost, GL accounts, quantity buckets |\n'
-                '| Proposal | 15 × $10 | Quotes don\'t allocate inventory |\n'
+                '| Quote | 15 × $10 | Quotes don\'t allocate inventory |\n'
                 '| Order | 9 × $10 | Orders DO allocate inventory |\n\n'
                 'The data you created here is the foundation for every flight sim in '
                 'Phase 2, 3, and 4. The training item qqBB200 with 100 units on hand '
                 'at $10 price / $6 cost is the standard starting point.\n\n'
-                'The progression: Contact → Customer → Item → Proposal → Order → '
+                'The progression: Contact → Customer → Item → Quote → Order → '
                 'Invoice → Cash → GL. Each step adds financial weight. The first '
-                'three have none. The proposal has visibility only. The order commits. '
+                'three have none. The quote has visibility only. The order commits. '
                 'The invoice is the financial event.'
             ),
         },
@@ -470,7 +470,7 @@ def get_first_sale_scenario() -> Dict[str, Any]:
         'id': 'first-sale',
         'label': 'Your First Sale',
         'steps': steps,
-        'models_used': ['proposal', 'order'],
+        'models_used': ['quote', 'order'],
         'prerequisite': 'first-item',
         'next_sim': 'inventory',
     }

@@ -128,7 +128,7 @@ Customer (OrgBase.price_level = "wholesale")
       → price_resolver uses Item.price.wholesale = $62.99
 ```
 
-- Prices are set at line creation — they do NOT auto-update when passing between transactions (proposal→order→invoice) unless the user commands it.
+- Prices are set at line creation — they do NOT auto-update when passing between transactions (quote→order→invoice) unless the user commands it.
 - Lines can be individually adjusted: discount, price_point change, manual override.
 - We are guides, not policemen. Users know what they are doing to stay in business.
 - We report on margins and margins by salesperson so management has visibility.

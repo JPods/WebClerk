@@ -49,7 +49,7 @@ NAME_CANDIDATES = [
 ]
 
 # Transaction header models that get a financial card
-TRANSACTION_MODELS = {'order', 'invoice', 'proposal', 'purchase', 'workorder'}
+TRANSACTION_MODELS = {'order', 'invoice', 'quote', 'purchase', 'workorder'}
 
 # Virtual model keys — no real model class, skip
 VIRTUAL_KEYS = {'wc', 'gantt', 'databrowser'}

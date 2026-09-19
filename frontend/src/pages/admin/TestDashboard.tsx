@@ -13,9 +13,9 @@ import RecordLink from '@/components/common/RecordLink';
 import { formatCurrency } from '@/utils/stringUtils';
 
 interface InventoryImpact {
-  type: string;        // 'invoice_line', 'order_line', 'purchase_line', 'proposal_line', 'inventory_layer', 'pending_adjustment'
+  type: string;        // 'invoice_line', 'order_line', 'purchase_line', 'quote_line', 'inventory_layer', 'pending_adjustment'
   id: number;
-  parentModel: string; // 'invoice', 'order', 'purchase', 'proposal'
+  parentModel: string; // 'invoice', 'order', 'purchase', 'quote'
   parentId: number;
   parentIda: string;
   lineNumber?: number;
@@ -218,18 +218,18 @@ export default function TestDashboard() {
         }
       }
 
-      // Proposal lines → on_p increase
-      const propLines1 = await getRecords('proposal_line', { item_fk: itemId, dt_created__gte: periodStart, limit: 50 }) as any;
-      const propLines2 = await getRecords('proposal_line', { item__item_id: itemId, dt_created__gte: periodStart, limit: 50 }) as any;
+      // Quote lines → on_p increase
+      const propLines1 = await getRecords('quote_line', { item_fk: itemId, dt_created__gte: periodStart, limit: 50 }) as any;
+      const propLines2 = await getRecords('quote_line', { item__item_id: itemId, dt_created__gte: periodStart, limit: 50 }) as any;
       const propLineIds = new Set<number>();
       const propLines = { results: [...(propLines1?.results || []), ...(propLines2?.results || [])].filter((r: any) => { if (propLineIds.has(r.id)) return false; propLineIds.add(r.id); return true; }) };
       for (const l of (propLines?.results || [])) {
         const qty = l.quantity?.active || l.quantity?.staged || 0;
         if (qty) {
-          const parentId = l.proposal_id || l.proposal;
+          const parentId = l.quote_id || l.quote;
           let parentIda = '';
-          try { const p = await getRecord('proposal', parentId) as any; parentIda = p?.record?.ida || `#${parentId}`; } catch { /* no-op */ }
-          impactList.push({ type: 'proposal_line', id: l.id, parentModel: 'proposal', parentId, parentIda, lineNumber: l.line_number, qtyField: 'on_p', qtyDelta: qty, description: `Quoted ${qty} → on_p +${qty}`, dt: l.dt_created });
+          try { const p = await getRecord('quote', parentId) as any; parentIda = p?.record?.ida || `#${parentId}`; } catch { /* no-op */ }
+          impactList.push({ type: 'quote_line', id: l.id, parentModel: 'quote', parentId, parentIda, lineNumber: l.line_number, qtyField: 'on_p', qtyDelta: qty, description: `Quoted ${qty} → on_p +${qty}`, dt: l.dt_created });
         }
       }
 
@@ -308,11 +308,11 @@ export default function TestDashboard() {
         }
       });
 
-      // Proposals
-      const propRes = await getRecords('proposal', { keyword: 'alice', limit: 10 }) as any;
+      // Quotes
+      const propRes = await getRecords('quote', { keyword: 'alice', limit: 10 }) as any;
       (propRes?.results || []).forEach((r: any) => {
-        records.push({ model: 'proposal', id: r.id, ida: r.ida || '', label: `Proposal ${r.ida}`, status: r.status, amount: r.totals?.total });
-        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Proposal created', detail: `${r.ida} total=${r.totals?.total}` });
+        records.push({ model: 'quote', id: r.id, ida: r.ida || '', label: `Quote ${r.ida}`, status: r.status, amount: r.totals?.total });
+        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Quote created', detail: `${r.ida} total=${r.totals?.total}` });
       });
 
       // Orders
@@ -411,7 +411,7 @@ export default function TestDashboard() {
                 { key: 'on_hand', label: 'On Hand', color: 'blue' },
                 { key: 'on_po', label: 'On PO', color: 'purple' },
                 { key: 'on_so', label: 'On SO', color: 'green' },
-                { key: 'on_p', label: 'On Proposal', color: 'yellow' },
+                { key: 'on_p', label: 'On Quote', color: 'yellow' },
                 { key: 'available', label: 'Available', color: 'emerald' },
               ].map(({ key, label, color }) => (
                 <div key={key} className={`text-center p-3 rounded-lg border border-${color}-200 dark:border-${color}-800 bg-${color}-50 dark:bg-${color}-900/20`}>
@@ -436,7 +436,7 @@ export default function TestDashboard() {
               <>{/* Flow path legend */}
               <div className="flex items-center gap-3 mb-3 text-[10px] text-gray-500">
                 <span>Flow:</span>
-                <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-bold">Proposal</span>
+                <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-bold">Quote</span>
                 <span>→</span>
                 <span className="px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-bold">Order</span>
                 <span>→</span>
@@ -469,7 +469,7 @@ export default function TestDashboard() {
                           imp.type.includes('invoice') ? 'bg-yellow-100 text-yellow-700' :
                           imp.type.includes('order') ? 'bg-green-100 text-green-700' :
                           imp.type.includes('purchase') ? 'bg-red-100 text-red-700' :
-                          imp.type.includes('proposal') ? 'bg-purple-100 text-purple-700' :
+                          imp.type.includes('quote') ? 'bg-purple-100 text-purple-700' :
                           imp.type.includes('layer') ? 'bg-blue-100 text-blue-700' :
                           imp.type.includes('pending') ? 'bg-orange-100 text-orange-700' :
                           'bg-gray-100 text-gray-700'
@@ -499,7 +499,7 @@ export default function TestDashboard() {
                         // Determine delta per column based on transaction type
                         let delta = 0;
                         const qty = Math.abs(imp.qtyDelta);
-                        if (imp.type === 'proposal_line')    { if (col === 'on_p') delta = qty; }
+                        if (imp.type === 'quote_line')    { if (col === 'on_p') delta = qty; }
                         else if (imp.type === 'order_line')  { if (col === 'on_so') delta = qty; }
                         else if (imp.type === 'purchase_line') { if (col === 'on_po') delta = qty; }
                         else if (imp.type === 'invoice_line') { if (col === 'on_hand') delta = -qty; if (col === 'on_so') delta = -qty; }
@@ -531,7 +531,7 @@ export default function TestDashboard() {
                       r.model === 'customer' ? 'bg-blue-100 text-blue-700' :
                       r.model === 'order' ? 'bg-green-100 text-green-700' :
                       r.model === 'invoice' ? 'bg-yellow-100 text-yellow-700' :
-                      r.model === 'proposal' ? 'bg-purple-100 text-purple-700' :
+                      r.model === 'quote' ? 'bg-purple-100 text-purple-700' :
                       r.model === 'purchase' ? 'bg-red-100 text-red-700' :
                       'bg-gray-100 text-gray-700'
                     }`}>{r.model}</span>
@@ -591,7 +591,7 @@ export default function TestDashboard() {
                   <td className="py-2 pl-4 text-gray-500">Customer ordered − shipped</td>
                 </tr>
                 <tr className="border-b border-gray-100 dark:border-gray-800">
-                  <td className="py-2 font-medium">On Proposal</td>
+                  <td className="py-2 font-medium">On Quote</td>
                   <td className="py-2 text-right font-mono">{q.on_p ?? '—'}</td>
                   <td className="py-2 pl-4 text-gray-500">Quoted − transferred to order</td>
                 </tr>

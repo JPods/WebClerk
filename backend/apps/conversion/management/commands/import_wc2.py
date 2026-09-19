@@ -300,7 +300,7 @@ IMPORT_ORDER = [
     'Employee',    # → OrgBase (org_type=employee) — skip if empty
     'Contact',     # → Contact (linked to OrgBase via customerID)
     'Item',        # → Item
-    'Proposal',    # → Proposal header
+    'Proposal',    # → Quote header
     'ProposalLine',
     'Order',       # → Order header
     'OrderLine',
@@ -775,37 +775,37 @@ def _convert_line(wc2_row, parent_pk, lookup, line_type='order'):
     }
 
 
-def convert_proposals(wc2_rows, lookup, stats, dry_run=False):
-    from apps.transactions.models import Proposal
+def convert_quotes(wc2_rows, lookup, stats, dry_run=False):
+    from apps.transactions.models import Quote
     created = 0
     for row in wc2_rows:
-        defaults = _convert_transaction_header(row, Proposal, lookup)
+        defaults = _convert_transaction_header(row, Quote, lookup)
         ida = defaults['ida']
         if not ida:
             continue
         if not dry_run:
-            obj, was_created = Proposal.objects.update_or_create(
+            obj, was_created = Quote.objects.update_or_create(
                 ida=ida, defaults=defaults
             )
             if was_created:
                 created += 1
-            lookup['proposal'][ida] = obj.pk
+            lookup['quote'][ida] = obj.pk
         else:
             created += 1
     stats['Proposal'] = {'total': len(wc2_rows), 'created': created}
 
 
-def convert_proposal_lines(wc2_rows, lookup, stats, dry_run=False):
-    from apps.transactions.models import ProposalLine
+def convert_quote_lines(wc2_rows, lookup, stats, dry_run=False):
+    from apps.transactions.models import QuoteLine
     created = 0
     for row in wc2_rows:
         parent_ida = safe_str(row.get('idNumProposal'))
-        parent_pk = lookup['proposal'].get(parent_ida)
+        parent_pk = lookup['quote'].get(parent_ida)
         if not parent_pk:
             continue
-        defaults = _convert_line(row, parent_pk, lookup, line_type='proposal')
+        defaults = _convert_line(row, parent_pk, lookup, line_type='quote')
         if not dry_run:
-            obj = ProposalLine.objects.create(**defaults)
+            obj = QuoteLine.objects.create(**defaults)
             created += 1
         else:
             created += 1
@@ -1086,7 +1086,7 @@ def compute_audit(folder):
         'vendors': len(load_wc2(folder, 'Vendor')),
         'gl_accounts': len(load_wc2(folder, 'GLAccount')),
         'items': len(items),
-        'proposals': len(load_wc2(folder, 'Proposal')),
+        'quotes': len(load_wc2(folder, 'Proposal')),
         'orders': len(orders),
         'invoices': len(invoices),
         'cash_entries': len(cash_entries),
@@ -1191,7 +1191,7 @@ class Command(BaseCommand):
             'vendor': {},    # vendorID → OrgBase.pk
             'rep': {},       # repID → OrgBase.pk
             'item': {},      # itemNum → Item.pk
-            'proposal': {},  # idNum → Proposal.pk
+            'quote': {},  # idNum → Quote.pk
             'order': {},     # idNum → Order.pk
             'invoice': {},   # idNum → Invoice.pk
             'purchase': {},  # idNum → Purchase.pk
@@ -1208,8 +1208,8 @@ class Command(BaseCommand):
             'Employee': lambda rows: None,  # TODO: map to OrgBase employee
             'Contact': lambda rows: convert_contacts(rows, lookup, stats, dry_run),
             'Item': lambda rows: convert_items(rows, lookup, stats, dry_run),
-            'Proposal': lambda rows: convert_proposals(rows, lookup, stats, dry_run),
-            'ProposalLine': lambda rows: convert_proposal_lines(rows, lookup, stats, dry_run),
+            'Proposal': lambda rows: convert_quotes(rows, lookup, stats, dry_run),
+            'ProposalLine': lambda rows: convert_quote_lines(rows, lookup, stats, dry_run),
             'Order': lambda rows: convert_orders(rows, lookup, stats, dry_run),
             'OrderLine': lambda rows: convert_order_lines(rows, lookup, stats, dry_run),
             'Invoice': lambda rows: convert_invoices(rows, lookup, stats, dry_run),
@@ -1258,7 +1258,7 @@ class Command(BaseCommand):
         from apps.core.models import Contact
         from apps.products.models import Item
         from apps.transactions.models import (
-            Proposal, ProposalLine, Order, OrderLine,
+            Quote, QuoteLine, Order, OrderLine,
             Invoice, InvoiceLine, Purchase, PurchaseLine, Cash,
         )
 
@@ -1518,7 +1518,7 @@ class Command(BaseCommand):
 
         # FK name per line model
         LINE_FK = {
-            ProposalLine: 'proposal_id',
+            QuoteLine: 'quote_id',
             OrderLine: 'order_id',
             InvoiceLine: 'invoice_id',
             PurchaseLine: 'purchase_id',
@@ -1552,8 +1552,8 @@ class Command(BaseCommand):
                 line_kwargs['price'] = {'unit': unit_price, 'unit_base': unit_price, 'discount_percent': safe_float(r.get('discount')), 'discount_amount': 0.0, 'extended': extended or (qty * unit_price), 'is_fixed': False, 'precision': 2}
             return Model(**line_kwargs)
 
-        # ── Proposals + Lines ──
-        proposal_pk = {}
+        # ── Quotes + Lines ──
+        quote_pk = {}
         if not _skip('Proposal'):
             rows = load_wc2(folder, 'Proposal')
             objs = []
@@ -1563,21 +1563,21 @@ class Command(BaseCommand):
                 if not ida:
                     continue
                 ida_map[ida] = len(objs)
-                objs.append(_make_header(Proposal, r, customer_pk, vendor_pk))
-            created = _bulk(Proposal, objs, 'Proposal')
+                objs.append(_make_header(Quote, r, customer_pk, vendor_pk))
+            created = _bulk(Quote, objs, 'Proposal')
             for ida, idx in ida_map.items():
-                proposal_pk[ida] = created[idx].pk if not dry_run else 0
+                quote_pk[ida] = created[idx].pk if not dry_run else 0
 
         if not _skip('ProposalLine'):
             rows = load_wc2(folder, 'ProposalLine')
             objs = []
             for r in rows:
                 parent_ida = safe_str(r.get('idNumProposal'))
-                ppk = proposal_pk.get(parent_ida)
+                ppk = quote_pk.get(parent_ida)
                 if not ppk:
                     continue
-                objs.append(_make_line(ProposalLine, r, ppk, item_pk))
-            _bulk(ProposalLine, objs, 'ProposalLine')
+                objs.append(_make_line(QuoteLine, r, ppk, item_pk))
+            _bulk(QuoteLine, objs, 'ProposalLine')
 
         # ── Orders + Lines ──
         order_pk = {}

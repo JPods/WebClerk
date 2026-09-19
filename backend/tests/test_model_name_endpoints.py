@@ -27,11 +27,11 @@ def test_model_name_list_and_detail(user):
     assert resp.status_code == 200
 
     # detail
-    resp2 = cast(Response, c.get('/wcapi/model_name/detail/?model_name=proposal_line'))
+    resp2 = cast(Response, c.get('/wcapi/model_name/detail/?model_name=quote_line'))
     assert resp2.status_code == 200
 
     # repeat detail to ensure stability
-    resp2 = cast(Response, c.get('/wcapi/model_name/detail/?model_name=proposal_line'))
+    resp2 = cast(Response, c.get('/wcapi/model_name/detail/?model_name=quote_line'))
     assert resp2.status_code == 200
 
     # envelope shape and payload
@@ -40,7 +40,7 @@ def test_model_name_list_and_detail(user):
     assert isinstance(data, dict)
     payload = cast(Dict[str, Any], data.get('model'))
     assert isinstance(payload, dict)
-    assert payload.get('model_name') == 'proposal_line'
+    assert payload.get('model_name') == 'quote_line'
     assert 'fields' in payload and isinstance(payload['fields'], dict)
 
 @pytest.mark.django_db

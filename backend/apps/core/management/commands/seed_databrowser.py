@@ -36,7 +36,7 @@ LAYOUTS = {
     # --- Transactions (headers) ---
     'invoice':      {'list': ['id', 'ida', 'status', 'total', 'balance', 'dt_created', 'priority'], 'detail': ['id', 'ida', 'status', 'total', 'balance', 'priority', 'price_level', 'attention', 'email', 'phone', 'address_full', 'terms', 'dt_created', 'dt_modified']},
     'order':        {'list': ['id', 'ida', 'status', 'total', 'dt_created', 'priority'], 'detail': ['id', 'ida', 'status', 'total', 'priority', 'price_level', 'attention', 'email', 'phone', 'address_full', 'terms', 'dt_created', 'dt_modified']},
-    'proposal':     {'list': ['id', 'ida', 'status', 'total', 'dt_created', 'priority'], 'detail': ['id', 'ida', 'status', 'total', 'priority', 'price_level', 'attention', 'email', 'address_full', 'terms', 'dt_created', 'dt_modified']},
+    'quote':     {'list': ['id', 'ida', 'status', 'total', 'dt_created', 'priority'], 'detail': ['id', 'ida', 'status', 'total', 'priority', 'price_level', 'attention', 'email', 'address_full', 'terms', 'dt_created', 'dt_modified']},
     'purchase':     {'list': ['id', 'ida', 'status', 'total', 'dt_created', 'priority'], 'detail': ['id', 'ida', 'status', 'total', 'priority', 'price_level', 'attention', 'email', 'address_full', 'terms', 'dt_created', 'dt_modified']},
     'workorder':    {'list': ['id', 'ida', 'status', 'total', 'dt_created', 'priority'], 'detail': ['id', 'ida', 'status', 'total', 'priority', 'attention', 'dt_created', 'dt_modified']},
     'requisition':  {'list': ['id', 'ida', 'status', 'total', 'dt_created', 'priority'], 'detail': ['id', 'ida', 'status', 'total', 'priority', 'dt_created', 'dt_modified']},
@@ -44,7 +44,7 @@ LAYOUTS = {
     # --- Transaction lines ---
     'invoice_line':     {'list': ['id', 'line_number', 'status', 'dt_created'], 'detail': ['id', 'line_number', 'status', 'price_level', 'dt_created', 'dt_modified']},
     'order_line':       {'list': ['id', 'line_number', 'status', 'dt_created'], 'detail': ['id', 'line_number', 'status', 'price_level', 'dt_created', 'dt_modified']},
-    'proposal_line':    {'list': ['id', 'line_number', 'status', 'dt_created'], 'detail': ['id', 'line_number', 'status', 'price_level', 'dt_created', 'dt_modified']},
+    'quote_line':    {'list': ['id', 'line_number', 'status', 'dt_created'], 'detail': ['id', 'line_number', 'status', 'price_level', 'dt_created', 'dt_modified']},
     'purchase_line':    {'list': ['id', 'line_number', 'status', 'dt_created'], 'detail': ['id', 'line_number', 'status', 'dt_created', 'dt_modified']},
     'workorder_line':   {'list': ['id', 'line_number', 'status', 'dt_created'], 'detail': ['id', 'line_number', 'status', 'dt_created', 'dt_modified']},
     'requisition_line': {'list': ['id', 'line_number', 'status', 'dt_created'], 'detail': ['id', 'line_number', 'status', 'dt_created', 'dt_modified']},
@@ -342,7 +342,7 @@ class Command(BaseCommand):
             kwargs.setdefault('days_due', 0)
         elif model_key == 'warehouse':
             kwargs['code'] = 'ZZ-FAKE'
-        elif model_key in ('invoice', 'order', 'proposal', 'purchase', 'workorder', 'requisition'):
+        elif model_key in ('invoice', 'order', 'quote', 'purchase', 'workorder', 'requisition'):
             kwargs.setdefault('total', 0)
             if 'balance' in fields:
                 kwargs.setdefault('balance', 0)

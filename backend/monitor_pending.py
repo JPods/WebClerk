@@ -75,7 +75,7 @@ def main():
     seen_pending = {}  # {pk: {'created': time, 'processed': time}}
     
     print('\n--- WAITING FOR NEW PENDING RECORDS ---')
-    print('(Add items to proposal, order, invoice, purchase in frontend...)')
+    print('(Add items to quote, order, invoice, purchase in frontend...)')
     print('Press Ctrl+C to stop monitoring\n')
     
     try:

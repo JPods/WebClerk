@@ -258,7 +258,7 @@ class ActionMetadata(MetadataBase):
     confidence: float = 0
     requires_human: bool = False
     requires_claude: bool = False
-    sprint_week: Optional[int] = None         # ISO week the proposal belongs to
+    sprint_week: Optional[int] = None         # ISO week the quote belongs to
     claude_prompt: str = ''
     claude_response: str = ''                 # first 4000 chars
     claude_usage: 'ClaudeUsage' = Field(default_factory=lambda: ClaudeUsage())

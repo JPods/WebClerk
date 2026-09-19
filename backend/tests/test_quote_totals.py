@@ -1,27 +1,27 @@
 from __future__ import annotations
 import pytest
-from apps.transactions.models import Proposal, ProposalLine, Order, OrderLine
-from apps.transactions.services.convert.convert_proposal_to_order import (
-    transfer_proposal_to_order,
-    validate_proposal_for_transfer,
-    ProposalToOrderTransferError
+from apps.transactions.models import Quote, QuoteLine, Order, OrderLine
+from apps.transactions.services.convert.convert_quote_to_order import (
+    transfer_quote_to_order,
+    validate_quote_for_transfer,
+    QuoteToOrderTransferError
 )
 from apps.transactions.services.transaction_save import save_transaction_with_lines
 
 
 @pytest.mark.django_db
-def test_proposal_update_sell_cost_totals():
-    """Proposal header totals aggregate from lines via the single totals engine
+def test_quote_update_sell_cost_totals():
+    """Quote header totals aggregate from lines via the single totals engine
     (services/pricing/totals_compute.recalculate_totals). Extended = active x unit."""
-    pr = Proposal.objects.create()
-    ProposalLine.objects.create(
-        proposal=pr,
+    pr = Quote.objects.create()
+    QuoteLine.objects.create(
+        quote=pr,
         quantity={"active": 1},
         price={"unit": 200.0, "discount_amount": 10.0, "precision": 2},
         cost={"unit": 120.0, "shipping": 5.0, "handling": 0.0, "precision": 2},
     )
-    ProposalLine.objects.create(
-        proposal=pr,
+    QuoteLine.objects.create(
+        quote=pr,
         quantity={"active": 2},
         price={"unit": 25.0, "discount_amount": 0.0, "precision": 2},
         cost={"unit": 15.0, "shipping": 0.0, "handling": 0.0, "precision": 2},
@@ -46,17 +46,17 @@ def test_proposal_update_sell_cost_totals():
 def test_models_exported_correctly():
     """Verify models are exported correctly."""
     import apps.transactions.models as models
-    assert hasattr(models, "Proposal")
-    assert hasattr(models, "ProposalLine")
+    assert hasattr(models, "Quote")
+    assert hasattr(models, "QuoteLine")
 
-# Proposals Module
+# Quotes Module
 
 ## Overview
 '''
-The proposals module handles sales 
+The quotes module handles sales 
 quotations and estimates within 
 webClerk3's transaction system. 
-Proposals represent potential sales 
+Quotes represent potential sales 
 opportunities that can later be converted 
 to sales orders and invoices.
 
@@ -64,25 +64,25 @@ to sales orders and invoices.
 ## Architecture
 
 ### Models
-- **Proposal**: Header model extending `TransactionBaseModel`
+- **Quote**: Header model extending `TransactionBaseModel`
   - Inherits standard fields: `ida`, `status`, `party_id`, `refs`, `prefs`, `metadata`
-  - Database table: `proposals`
+  - Database table: `quotes`
   
-- **ProposalLine**: Line items extending `BaseSellLineModel`
+- **QuoteLine**: Line items extending `BaseSellLineModel`
   - Has `price` JSON field (unit, discount_percent, discount_amount, extended, etc.)
   - Has `cost` JSON field (unit, extended, shipping, handling, freight, etc.)
-  - Database table: `proposal_lines`
+  - Database table: `quote_lines`
 
 ### Key Features
 - **Sell-side document**: Includes customer-facing pricing via `price` JSON
 - **Cost tracking**: Internal cost structure for margin analysis
 - **Totals rollup**: Automatic aggregation from lines to header
-- **Links management**: Maintains `refs.links.proposal_line` array
+- **Links management**: Maintains `refs.links.quote_line` array
 
 ## Data Flow
 ### Line Structure
 ```json
-// ProposalLine.price
+// QuoteLine.price
 {
   "unit": 100.0,
   "discount_percent": 5.0,
@@ -92,7 +92,7 @@ to sales orders and invoices.
   "precision": 2
 }
 
-// ProposalLine.cost
+// QuoteLine.cost
 {
   "unit": 60.0,
   "extended": 60.0,
@@ -108,8 +108,8 @@ to sales orders and invoices.
 ### Header Aggregation
 ```python
 # Compute totals from lines
-proposal = Proposal.objects.get(pk=1)
-totals = proposal.update_sell_cost_totals(persist=False)
+quote = Quote.objects.get(pk=1)
+totals = quote.update_sell_cost_totals(persist=False)
 
 # Returns structure:
 {
@@ -147,18 +147,18 @@ totals = proposal.update_sell_cost_totals(persist=False)
 
 ### WCAPI Save Endpoint
 ```bash
-# Create proposal with lines
+# Create quote with lines
 POST /wcapi/save/
 {
-  "model_name": "proposal",
+  "model_name": "quote",
   "status": "draft",
   "party_id": 123
 }
 
-# Add proposal line
+# Add quote line
 POST /wcapi/save/
 {
-  "model_name": "proposal_line",
+  "model_name": "quote_line",
   "parent_id": 456,
   "price": {
     "unit": 100.0,
@@ -178,15 +178,15 @@ POST /wcapi/save/
 
 ## Services
 
-### `apps/transactions/services/proposal_totals.py`
-- `compute_proposal_sell_cost_totals(proposal)`: Aggregates line data into header structure
-- Used by `Proposal.update_sell_cost_totals(persist=False)` method
+### `apps/transactions/services/quote_totals.py`
+- `compute_quote_sell_cost_totals(quote)`: Aggregates line data into header structure
+- Used by `Quote.update_sell_cost_totals(persist=False)` method
 - Handles Decimal precision and JSON-safe float conversion
 
 ## Signals & Automation
 
 ### Links Maintenance
-- `maintain_proposal_links` signal updates `proposal.refs.links.proposal_line` on line creation
+- `maintain_quote_links` signal updates `quote.refs.links.quote_line` on line creation
 - Uses singular model name as key (consistent with other transaction types)
 
 ### Future Enhancements
@@ -196,22 +196,22 @@ POST /wcapi/save/
 ## Testing
 
 ### Test Files
-- `tests/test_proposal_totals.py`: Validates aggregation logic and model exports
+- `tests/test_quote_totals.py`: Validates aggregation logic and model exports
 - `tests/test_line_model_inheritance.py`: Confirms price field presence on sell-side lines
 
 ### Running Tests
 ```bash
 source bin/activate
-pytest -xvs tests/test_proposal_totals.py
+pytest -xvs tests/test_quote_totals.py
 ```
 
 ## Development Workflow
 
-### Adding Proposal Features
+### Adding Quote Features
 1. **Line modifications**: Update `BaseSellLineModel` in `base_line_model.py`
-2. **Header fields**: Extend `Proposal` model (migrations required)
-3. **Rollup logic**: Modify `proposal_totals.py` service
-4. **Tests**: Add coverage in `tests/test_proposal_totals.py`
+2. **Header fields**: Extend `Quote` model (migrations required)
+3. **Rollup logic**: Modify `quote_totals.py` service
+4. **Tests**: Add coverage in `tests/test_quote_totals.py`
 
 ### Migration Path
 1. Current: Computation on-demand via `update_sell_cost_totals()`
@@ -224,11 +224,11 @@ pytest -xvs tests/test_proposal_totals.py
 - [WCAPI Deep Merge](../readme.md#write-policy)
 
 ## References
-- Models: `apps/transactions/models/proposal.py`, `apps/transactions/models/proposal_line.py`
-- Services: `apps/transactions/services/proposal_totals.py`
+- Models: `apps/transactions/models/quote.py`, `apps/transactions/models/quote_line.py`
+- Services: `apps/transactions/services/quote_totals.py`
 - Signals: `apps/transactions/signals.py`
-- Tests: `tests/test_proposal_totals.py`
-- Tests: `tests/test_proposal_totals.py`
+- Tests: `tests/test_quote_totals.py`
+- Tests: `tests/test_quote_totals.py`
 
 '''
 def _save_reviewed_order(result):
@@ -251,45 +251,45 @@ def _no_pending_dispatch(monkeypatch):
 
 
 @pytest.mark.django_db
-class TestProposalToOrderTransfer:
-    """Test proposal to order transfer functionality.
+class TestQuoteToOrderTransfer:
+    """Test quote to order transfer functionality.
 
     Conversion creates the order header and returns lines for review; lines are
     created when the reviewed order is saved. Each order line is a child of its
-    proposal line (parent_line_id); the proposal line's remaining is recomputed.
+    quote line (parent_line_id); the quote line's remaining is recomputed.
     """
 
     def test_transfer_all_lines_success(self):
-        """Test successful transfer of all proposal lines to order."""
-        proposal = Proposal.objects.create(status='approved',)
-        line1 = ProposalLine.objects.create(
-            proposal=proposal,
+        """Test successful transfer of all quote lines to order."""
+        quote = Quote.objects.create(status='approved',)
+        line1 = QuoteLine.objects.create(
+            quote=quote,
             price={'unit': 100.0, 'precision': 2},
             cost={'unit': 60.0, 'precision': 2},
             quantity={'active': 1, 'is_blanket': False, 'increment': 0}
         )
-        line2 = ProposalLine.objects.create(
-            proposal=proposal,
+        line2 = QuoteLine.objects.create(
+            quote=quote,
             price={'unit': 100.0, 'precision': 2},
             cost={'unit': 60.0, 'precision': 2},
             quantity={'active': 2, 'is_blanket': False, 'increment': 0}
         )
 
-        result = transfer_proposal_to_order(
-            proposal=proposal,
+        result = transfer_quote_to_order(
+            quote=quote,
             transfer_all=True,
             order_status='confirmed',
         )
 
         assert result['success'] is True
-        assert result['proposal_id'] == proposal.id
+        assert result['quote_id'] == quote.id
         assert result['lines_for_review'] == 2
-        source_ids = {ln['refs']['source']['proposal_line_id'] for ln in result['lines']}
+        source_ids = {ln['refs']['source']['quote_line_id'] for ln in result['lines']}
         assert source_ids == {line1.id, line2.id}
 
         order = Order.objects.get(id=result['order_id'])
         assert order.status == 'confirmed'
-        assert order.refs['source']['proposal_id'] == proposal.id
+        assert order.refs['source']['quote_id'] == quote.id
         # Header only — no lines until the reviewed order is saved
         assert OrderLine.objects.filter(order=order).count() == 0
 
@@ -298,7 +298,7 @@ class TestProposalToOrderTransfer:
         order_lines = OrderLine.objects.filter(order=order)
         assert order_lines.count() == 2
         for order_line in order_lines:
-            assert order_line.parent_line_id == order_line.refs['source']['proposal_line_id']
+            assert order_line.parent_line_id == order_line.refs['source']['quote_line_id']
             assert order_line.quantity['active'] == order_line.quantity['staged']
             assert order_line.quantity['remaining'] == order_line.quantity['active']
         for pl in (line1, line2):
@@ -308,32 +308,32 @@ class TestProposalToOrderTransfer:
 
     def test_transfer_selected_lines_only(self):
         """Test transfer of selected lines only."""
-        proposal = Proposal.objects.create(status='approved',)
-        line1 = ProposalLine.objects.create(
-            proposal=proposal,
+        quote = Quote.objects.create(status='approved',)
+        line1 = QuoteLine.objects.create(
+            quote=quote,
             price={'unit': 100.0, 'precision': 2},
             quantity={'active': 1}
         )
-        line2 = ProposalLine.objects.create(
-            proposal=proposal,
+        line2 = QuoteLine.objects.create(
+            quote=quote,
             price={'unit': 100.0, 'precision': 2},
             quantity={'active': 2}
         )
-        line3 = ProposalLine.objects.create(
-            proposal=proposal,
+        line3 = QuoteLine.objects.create(
+            quote=quote,
             price={'unit': 50.0, 'precision': 2},
             quantity={'active': 1}
         )
 
-        result = transfer_proposal_to_order(
-            proposal=proposal,
+        result = transfer_quote_to_order(
+            quote=quote,
             line_ids=[line1.id, line3.id],
             transfer_all=False,
         )
 
         assert result['success'] is True
         assert result['lines_for_review'] == 2
-        source_ids = {ln['refs']['source']['proposal_line_id'] for ln in result['lines']}
+        source_ids = {ln['refs']['source']['quote_line_id'] for ln in result['lines']}
         assert source_ids == {line1.id, line3.id}
 
         _save_reviewed_order(result)
@@ -351,37 +351,37 @@ class TestProposalToOrderTransfer:
 
     def test_transfer_validation_errors(self):
         """Test various validation error conditions."""
-        proposal = Proposal.objects.create(status='approved',)
+        quote = Quote.objects.create(status='approved',)
         
         # Test missing line_ids when transfer_all=False
-        with pytest.raises(ProposalToOrderTransferError, match="Must specify line_ids"):
-            transfer_proposal_to_order(
-                proposal=proposal,
+        with pytest.raises(QuoteToOrderTransferError, match="Must specify line_ids"):
+            transfer_quote_to_order(
+                quote=quote,
                 line_ids=None,
                 transfer_all=False
             )
         
         # Test invalid line IDs
-        with pytest.raises(ProposalToOrderTransferError, match="Line IDs not found"):
-            transfer_proposal_to_order(
-                proposal=proposal,
+        with pytest.raises(QuoteToOrderTransferError, match="Line IDs not found"):
+            transfer_quote_to_order(
+                quote=quote,
                 line_ids=[999, 1000],
                 transfer_all=False
             )
         
         # Test no lines to transfer
-        with pytest.raises(ProposalToOrderTransferError, match="No lines to transfer"):
-            transfer_proposal_to_order(
-                proposal=proposal,
+        with pytest.raises(QuoteToOrderTransferError, match="No lines to transfer"):
+            transfer_quote_to_order(
+                quote=quote,
                 transfer_all=True
             )
     
     def test_quantity_conversion(self):
-        """Quantity carried from proposal line to order line: active/staged = proposal
+        """Quantity carried from quote line to order line: active/staged = quote
         remaining; precision and is_fixed preserved."""
-        proposal = Proposal.objects.create(status='approved',)
-        line = ProposalLine.objects.create(
-            proposal=proposal,
+        quote = Quote.objects.create(status='approved',)
+        line = QuoteLine.objects.create(
+            quote=quote,
             price={'unit': 100.0, 'precision': 2},
             quantity={
                 'active': 3,
@@ -392,7 +392,7 @@ class TestProposalToOrderTransfer:
             }
         )
 
-        result = transfer_proposal_to_order(proposal=proposal, transfer_all=True)
+        result = transfer_quote_to_order(quote=quote, transfer_all=True)
         reviewed = result['lines'][0]['quantity']
         assert reviewed['active'] == 3
         assert reviewed['staged'] == 3
@@ -415,24 +415,24 @@ class TestProposalToOrderTransfer:
 
 
 @pytest.mark.django_db
-class TestProposalTransferValidation:
-    """Test proposal transfer validation."""
+class TestQuoteTransferValidation:
+    """Test quote transfer validation."""
     
     def test_validation_success(self):
         """Test successful validation."""
-        proposal = Proposal.objects.create(status='approved',)
-        ProposalLine.objects.create(
-            proposal=proposal,
+        quote = Quote.objects.create(status='approved',)
+        QuoteLine.objects.create(
+            quote=quote,
             quantity={'active': 1},
             price={'unit': 100.0, 'precision': 2}
         )
-        ProposalLine.objects.create(
-            proposal=proposal,
+        QuoteLine.objects.create(
+            quote=quote,
             quantity={'active': 2},
             price={'unit': 100.0, 'precision': 2}
         )
 
-        result = validate_proposal_for_transfer(proposal)
+        result = validate_quote_for_transfer(quote)
 
         assert result['can_transfer'] is True
         assert len(result['errors']) == 0
@@ -441,18 +441,18 @@ class TestProposalTransferValidation:
     
     def test_validation_warnings(self):
         """Test validation with warnings."""
-        proposal = Proposal.objects.create(status='converted',)
-        line1 = ProposalLine.objects.create(
-            proposal=proposal,
+        quote = Quote.objects.create(status='converted',)
+        line1 = QuoteLine.objects.create(
+            quote=quote,
             price={'extended': 100.0, 'unit': 100.0, 'precision': 2}
         )
-        line2 = ProposalLine.objects.create(
-            proposal=proposal,
+        line2 = QuoteLine.objects.create(
+            quote=quote,
             status='transferred',
             price={'extended': 200.0, 'unit': 200.0, 'precision': 2}
         )
         
-        result = validate_proposal_for_transfer(proposal)
+        result = validate_quote_for_transfer(quote)
         
         assert result['can_transfer'] is True
         assert len(result['warnings']) == 2
@@ -461,85 +461,85 @@ class TestProposalTransferValidation:
     
     def test_validation_errors(self):
         """Test validation errors."""
-        # Test missing proposal
-        result = validate_proposal_for_transfer(None)
+        # Test missing quote
+        result = validate_quote_for_transfer(None)
         assert result['can_transfer'] is False
-        assert 'Proposal not found' in result['errors']
+        assert 'Quote not found' in result['errors']
         
         # Test no lines
-        proposal = Proposal.objects.create(status='approved',)
-        result = validate_proposal_for_transfer(proposal)
+        quote = Quote.objects.create(status='approved',)
+        result = validate_quote_for_transfer(quote)
         assert result['can_transfer'] is False
         assert 'No lines to transfer' in result['errors']
         
         # Test invalid line IDs
-        ProposalLine.objects.create(proposal=proposal, price={'extended': 100.0})
-        result = validate_proposal_for_transfer(proposal, line_ids=[999])
+        QuoteLine.objects.create(quote=quote, price={'extended': 100.0})
+        result = validate_quote_for_transfer(quote, line_ids=[999])
         assert result['can_transfer'] is False
         assert 'Line IDs not found' in result['errors'][0]
 # """
 # python
-# # Proposal to Order Transfer Service
+# # Quote to Order Transfer Service
 
 # ## Overview
-# The proposal-to-order transfer service handles conversion of sales proposals into sales orders within webClerk3's transaction system. This enables the sales workflow from quote to confirmed order.
+# The quote-to-order transfer service handles conversion of sales quotes into sales orders within webClerk3's transaction system. This enables the sales workflow from quote to confirmed order.
 
 # ## Service API
 
-# ### `transfer_proposal_to_order()`
+# ### `transfer_quote_to_order()`
 # Main transfer function with full control over the conversion process.
 
 # ```python
-# from apps.transactions.services.convert.convert_proposal_to_order import transfer_proposal_to_order
+# from apps.transactions.services.convert.convert_quote_to_order import transfer_quote_to_order
 
 # # Transfer all lines
-# result = transfer_proposal_to_order(
-#     proposal=proposal,
+# result = transfer_quote_to_order(
+#     quote=quote,
 #     transfer_all=True,
 #     order_status='confirmed',
-#     preserve_proposal=True
+#     preserve_quote=True
 # )
 
 # # Transfer selected lines only
-# result = transfer_proposal_to_order(
-#     proposal=proposal,
+# result = transfer_quote_to_order(
+#     quote=quote,
 #     line_ids=[123, 456, 789],
 #     transfer_all=False,
 #     order_status='pending',
-#     preserve_proposal=True
+#     preserve_quote=True
 # )
 # ```
 
 # #### Parameters
-# - `proposal`: Source Proposal instance
-# - `line_ids`: Optional list of ProposalLine IDs to transfer
+# - `quote`: Source Quote instance
+# - `line_ids`: Optional list of QuoteLine IDs to transfer
 # - `transfer_all`: If True and line_ids is None, transfer all lines
 # - `order_status`: Status to set on new order (default: 'confirmed')
-# - `preserve_proposal`: If True, keep original proposal; if False, mark as converted
+# - `preserve_quote`: If True, keep original quote; if False, mark as converted
 
 # #### Returns
 # ```python
 # {
 #     'success': True,
 #     'order_id': 123,
-#     'proposal_id': 456,
+#     'quote_id': 456,
 #     'lines_transferred': 3,
-#     'line_mapping': {789: 101, 790: 102, 791: 103},  # proposal_line_id -> order_line_id
-#     'proposal_preserved': True,
+#     'line_mapping': {789: 101, 790: 102, 791: 103},  # quote_line_id -> order_line_id
+#     'quote_preserved': True,
 #     'order_status': 'confirmed'
 # }
 # ```
 
-# ### `validate_proposal_for_transfer()`
+# ### `validate_quote_for_transfer()`
 # Pre-transfer validation to check readiness and identify potential issues.
 
 # ```python
-# from apps.transactions.services.convert.convert_proposal_to_order import validate_proposal_for_transfer
+# from apps.transactions.services.convert.convert_quote_to_order import validate_quote_for_transfer
 
-# validation = validate_proposal_for_transfer(proposal, line_ids=[123, 456])
+# validation = validate_quote_for_transfer(quote, line_ids=[123, 456])
 # if validation['can_transfer']:
 #     # Proceed with transfer
-#     result = transfer_proposal_to_order(...)
+#     result = transfer_quote_to_order(...)
 # else:
 #     # Handle errors
 #     print(validation['errors'])
@@ -550,7 +550,7 @@ class TestProposalTransferValidation:
 # {
 #     'can_transfer': True,
 #     'errors': [],
-#     'warnings': ['Proposal status is expired'],
+#     'warnings': ['Quote status is expired'],
 #     'line_count': 3,
 #     'total': 1500.0
 # }
@@ -559,24 +559,24 @@ class TestProposalTransferValidation:
 # ## Data Transformation
 
 # ### Header Level
-# - **Party**: Copied from proposal to order
+# - **Party**: Copied from quote to order
 # - **Status**: Set to specified order_status
 # - **Refs**: Enhanced with source tracking and conversion metadata
-# - **Prefs**: Copied directly from proposal
+# - **Prefs**: Copied directly from quote
 # - **Metadata**: Enhanced with conversion tracking
 
 # ### Line Level
 # - **Price/Cost**: Copied directly (both are sell-side models)
-# - **Quantity**: Converted from proposal structure to order structure
-# - **Status**: Set to 'pending' or copied from proposal line
+# - **Quantity**: Converted from quote structure to order structure
+# - **Status**: Set to 'pending' or copied from quote line
 # - **Refs/Prefs**: Copied with source line tracking added
 # - **Metadata**: Enhanced with conversion lineage
 
 # ### Quantity Conversion
-# Proposal and order lines have different quantity semantics:
+# Quote and order lines have different quantity semantics:
 
 # ```python
-# # Proposal quantity
+# # Quote quantity
 # {
 #     'is_blanket': False,
 #     'increment': 0,
@@ -587,10 +587,10 @@ class TestProposalTransferValidation:
 # # Converts to order quantity
 # {
 #     'invoiced': 0,
-#     'remaining': 5,  # From proposal.ordered
+#     'remaining': 5,  # From quote.ordered
 #     'precision': 2,
 #     'is_fixed': False,
-#     'converted_from_proposal': {
+#     'converted_from_quote': {
 #         'is_blanket': False,
 #         'increment': 0,
 #         'original_ordered': 5,
@@ -602,34 +602,34 @@ class TestProposalTransferValidation:
 # ## Transfer Modes
 
 # ### Full Transfer
-# Transfer all proposal lines to a new order:
+# Transfer all quote lines to a new order:
 # - Sets `transfer_all=True`
-# - Optionally preserve or convert proposal status
-# - Creates complete order matching proposal scope
+# - Optionally preserve or convert quote status
+# - Creates complete order matching quote scope
 
 # ### Partial Transfer
 # Transfer selected lines only:
 # - Sets `transfer_all=False` with specific `line_ids`
 # - Marks transferred lines as 'transferred'
-# - Leaves remaining lines on original proposal
-# - Enables incremental order creation from large proposals
+# - Leaves remaining lines on original quote
+# - Enables incremental order creation from large quotes
 
 # ### Conversion vs Preservation
-# - **Preserve**: Original proposal remains active for additional transfers
-# - **Convert**: Proposal marked as 'converted', preventing further transfers
+# - **Preserve**: Original quote remains active for additional transfers
+# - **Convert**: Quote marked as 'converted', preventing further transfers
 
 # ## Error Handling
 
-# ### `ProposalToOrderTransferError`
+# ### `QuoteToOrderTransferError`
 # Custom exception for business logic violations:
 # - Missing required parameters
 # - Invalid line ID references
 # - No lines available for transfer
-# - Proposal state conflicts
+# - Quote state conflicts
 
 # ### Validation Errors
 # Pre-transfer validation catches:
-# - Missing proposals or lines
+# - Missing quotes or lines
 # - Invalid line ID specifications
 # - State inconsistencies
 # - Data completeness issues
@@ -647,7 +647,7 @@ class TestProposalTransferValidation:
 # # Via API endpoint (to be implemented)
 # POST /api/transactions/transfer/
 # {
-#     "source_type": "proposal",
+#     "source_type": "quote",
 #     "source_id": 456,
 #     "target_type": "order",
 #     "line_ids": [789, 790],
@@ -664,8 +664,8 @@ class TestProposalTransferValidation:
 
 # ### Audit Trail
 # Complete conversion tracking via:
-# - Order refs.source pointing to original proposal
-# - Line refs.source linking to original proposal lines
+# - Order refs.source pointing to original quote
+# - Line refs.source linking to original quote lines
 # - Metadata.conversion capturing transfer details
 # - Timestamps and version tracking
 
@@ -682,16 +682,16 @@ class TestProposalTransferValidation:
 # ### Running Tests
 # ```bash
 # source bin/activate
-# pytest -xvs tests/test_proposal_to_order_transfer.py
+# pytest -xvs tests/test_quote_to_order_transfer.py
 # ```
 
 # ## Development Workflow
 
 # ### Adding Transfer Features
-# 1. **Service Logic**: Extend functions in `proposal_to_order.py`
-# 2. **Validation**: Add checks in `validate_proposal_for_transfer()`
-# 3. **Error Handling**: Use `ProposalToOrderTransferError` for business logic errors
-# 4. **Tests**: Add coverage in `test_proposal_to_order_transfer.py`
+# 1. **Service Logic**: Extend functions in `quote_to_order.py`
+# 2. **Validation**: Add checks in `validate_quote_for_transfer()`
+# 3. **Error Handling**: Use `QuoteToOrderTransferError` for business logic errors
+# 4. **Tests**: Add coverage in `test_quote_to_order_transfer.py`
 
 # ### Future Enhancements
 # - Order-to-invoice transfer service (similar pattern)
@@ -701,7 +701,7 @@ class TestProposalTransferValidation:
 # - Cross-company transfer support
 
 # ## References
-# - Service: `apps/transactions/services/proposal_to_order.py`
-# - Tests: `tests/test_proposal_to_order_transfer.py`
+# - Service: `apps/transactions/services/quote_to_order.py`
+# - Tests: `tests/test_quote_to_order_transfer.py`
 # - Base Documentation: [Transactions Overview](transactions-totals.md)
 # ```

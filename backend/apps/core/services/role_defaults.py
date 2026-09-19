@@ -78,7 +78,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
                 "allow_create": False,
                 "allow_delete": False,
             },
-            "proposal": {
+            "quote": {
                 "query_filters": {
                     "OR": [
                         {"customer_id__in": "$user.org_ids.customer"},
@@ -296,7 +296,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
                 "allow_create": True,
                 "allow_delete": False,
             },
-            "proposal": {
+            "quote": {
                 "query_filters": {
                     "refs__links__rep__contains": [{"id": "$user.contact_id"}]
                 },
@@ -386,7 +386,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
                 "allow_create": True,
                 "allow_delete": False,
             },
-            "proposal": {
+            "quote": {
                 "query_filters": {},
                 "view_fields": "*",
                 "edit_fields": "*",

@@ -43,9 +43,9 @@ DD_CARD_CONFIG = {
                 {"agg": "pct", "fields": ["balance", "total"], "label": "Collected", "format": "percent", "invert": True},
             ],
         },
-        "proposal": {
-            "label": "Proposals",
-            "link": "/proposal",
+        "quote": {
+            "label": "Quotes",
+            "link": "/quote",
             "filters": {"is_active": True},
             "metrics": [
                 {"field": "id", "agg": "count", "label": "Count"},
@@ -303,12 +303,12 @@ DD_CARD_CONFIG = {
             "label": "Sales & Service",
             "route": "/dashboard",
             "rows": [
-                ["order", "invoice", "proposal", "customer", "contact", "cash", "rep"],
+                ["order", "invoice", "quote", "customer", "contact", "cash", "rep"],
             ],
             "default_model": "action",
             "quick_adds": [
                 {"label": "+ Order", "to": "/order?action=new", "accent": "blue"},
-                {"label": "+ Proposal", "to": "/proposal?action=new", "accent": "indigo"},
+                {"label": "+ Quote", "to": "/quote?action=new", "accent": "indigo"},
                 {"label": "+ Purchase", "to": "/purchase?action=new", "accent": "emerald"},
                 {"label": "+ Customer", "to": "/customer?action=new", "accent": "amber"},
                 {"label": "+ Contact", "to": "/contact?action=new", "accent": "purple"},
@@ -328,7 +328,7 @@ DD_CARD_CONFIG = {
             "route": "/transactions",
             "rows": [
                 ["order", "invoice", "purchase", "cash"],
-                ["proposal", "receipt", "workorder", "requisition"],
+                ["quote", "receipt", "workorder", "requisition"],
             ],
             "default_model": "action",
         },

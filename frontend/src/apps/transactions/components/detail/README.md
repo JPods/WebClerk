@@ -1,7 +1,7 @@
 # Transaction Detail Components
 
 Single-purpose components that compose to render any transaction document
-(order, invoice, proposal, purchase, requisition, receipt, workorder).
+(order, invoice, quote, purchase, requisition, receipt, workorder).
 
 ## Architecture
 

@@ -2,7 +2,7 @@
 Fill customer/vendor data into transaction headers and set ida = 'qq' + str(id)
 on all transaction headers and lines.
 
-- Proposals, Orders, Invoices: fill from customer org + contact
+- Quotes, Orders, Invoices: fill from customer org + contact
 - Purchases: fill from vendor org + contact
 - All headers and lines: ida = 'qq' + str(id)
 
@@ -14,7 +14,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from apps.transactions.models import (
-    Proposal, ProposalLine,
+    Quote, QuoteLine,
     Order, OrderLine,
     Invoice, InvoiceLine,
     Purchase, PurchaseLine,
@@ -33,7 +33,7 @@ class Command(BaseCommand):
 
         # Sell-side: fill from customer org
         sell_models = [
-            (Proposal, ProposalLine, 'proposal'),
+            (Quote, QuoteLine, 'quote'),
             (Order, OrderLine, 'order'),
             (Invoice, InvoiceLine, 'invoice'),
         ]

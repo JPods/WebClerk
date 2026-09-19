@@ -207,7 +207,7 @@ MODEL_LINK_TEMPLATES: dict[str, dict[str, Any]] = {
         },
     },
     
-    "proposal": {
+    "quote": {
         "keyword_fields": ["ida", "name"],
         "link_template": {
             "id": "id",

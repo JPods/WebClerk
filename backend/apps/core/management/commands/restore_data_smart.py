@@ -62,14 +62,14 @@ class Command(BaseCommand):
         
         # Transactions - headers
         ('transactions', 'Project', 'project.json'),
-        ('transactions', 'Proposal', 'proposal.json'),
+        ('transactions', 'Quote', 'quote.json'),
         ('transactions', 'Invoice', 'invoice.json'),
         ('transactions', 'Requisition', 'requisition.json'),
         ('transactions', 'WorkOrder', 'workorder.json'),
         ('transactions', 'Cash', 'cash.json'),  # renamed Cash -> Cash, and it lives in transactions, not accounts
         
         # Transaction lines
-        ('transactions', 'ProposalLine', 'proposalline.json'),
+        ('transactions', 'QuoteLine', 'quoteline.json'),
         ('transactions', 'InvoiceLine', 'invoiceline.json'),
         ('transactions', 'RequisitionLine', 'requisitionline.json'),
         ('transactions', 'WorkOrderLine', 'workorderline.json'),

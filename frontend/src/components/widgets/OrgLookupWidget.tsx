@@ -1,7 +1,7 @@
 /**
  * OrgLookupWidget — standard reusable customer/vendor/contact search widget.
  *
- * One widget for all org lookups: customer search on orders/proposals/actions,
+ * One widget for all org lookups: customer search on orders/quotes/actions,
  * vendor search on purchases. Driven by parameters:
  *   searchModel:  'customer' | 'vendor' | 'contact'
  *   onSelect:     (record) => void — caller maps fields

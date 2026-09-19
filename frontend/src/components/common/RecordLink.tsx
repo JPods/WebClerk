@@ -24,7 +24,7 @@ const MODEL_ROUTES: Record<string, string> = {
   manufacturer: '/org/manufacturer',
   order: '/transactions/order/detail',
   invoice: '/transactions/invoice/detail',
-  proposal: '/transactions/proposal/detail',
+  quote: '/transactions/quote/detail',
   purchase: '/transactions/purchase/detail',
   workorder: '/transactions/workorder/detail',
   cash: '/transactions/cash/detail',

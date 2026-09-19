@@ -41,12 +41,12 @@ class TestScoreConfidence:
         cs_no_hedge = score_confidence(
             answer="The function is in transaction_flow.py line 42.",
             sources=[{'distance': 0.4, 'source': 'flow.py'}],
-            question="Where is proposal_to_order?",
+            question="Where is quote_to_order?",
         )
         cs_hedge = score_confidence(
             answer="I'm not sure, but I think the function might be somewhere. I don't have enough information.",
             sources=[{'distance': 0.4, 'source': 'flow.py'}],
-            question="Where is proposal_to_order?",
+            question="Where is quote_to_order?",
         )
         assert cs_hedge.score < cs_no_hedge.score
         assert cs_hedge.hedging_count >= 2
@@ -59,7 +59,7 @@ class TestScoreConfidence:
             question="Can I do X?",
         )
         cs_long = score_confidence(
-            answer="Yes, you can do X by calling the proposal_to_order function. It copies all line fields and creates a new Order record.",
+            answer="Yes, you can do X by calling the quote_to_order function. It copies all line fields and creates a new Order record.",
             sources=[{'distance': 0.3, 'source': 'doc.md'}],
             question="Can I do X?",
         )

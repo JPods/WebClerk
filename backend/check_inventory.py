@@ -10,7 +10,7 @@ django.setup()
 
 from apps.products.models import Item
 from apps.core.models import Pending
-from apps.transactions.models import ProposalLine, OrderLine, InvoiceLine, PurchaseLine
+from apps.transactions.models import QuoteLine, OrderLine, InvoiceLine, PurchaseLine
 
 item = Item.objects.get(pk=259)
 print('=== ITEM 259 QUANTITY ===')
@@ -28,12 +28,12 @@ for p in pendings:
 
 print()
 print('=== LINES FOR ITEM 259 ===')
-print('Proposal lines:')
-for line in ProposalLine.objects.order_by('-id')[:10]:
+print('Quote lines:')
+for line in QuoteLine.objects.order_by('-id')[:10]:
     item_data = line.item or {}
     if item_data.get('item_id') == 259 or item_data.get('id') == 259:
         qty = (line.quantity or {}).get('staged', 0) or (line.quantity or {}).get('active', 0)
-        print(f'  #{line.pk}: proposal={line.proposal_id}, qty={qty}')
+        print(f'  #{line.pk}: quote={line.quote_id}, qty={qty}')
 
 print('Order lines:')
 for line in OrderLine.objects.order_by('-id')[:10]:

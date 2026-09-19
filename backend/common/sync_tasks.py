@@ -40,7 +40,7 @@ logger = logging.getLogger('wcapi.sync_tasks')
 
 # Transaction header model keys that have child line models
 HEADER_MODEL_KEYS = frozenset({
-    'order', 'invoice', 'purchase', 'workorder', 'proposal', 'requisition',
+    'order', 'invoice', 'purchase', 'workorder', 'quote', 'requisition',
 })
 
 # Max depth for FK dependency collection (prevents cycles)

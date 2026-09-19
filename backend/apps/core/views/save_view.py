@@ -102,7 +102,7 @@ def coerce_int(value):
 _STAFF_ONLY_MODELS = ('connection', 'bundle', 'setting', 'report', 'rolebase', 'roleconfig',
                       'modelroleconfig', 'group', 'permission', 'session')
 # Header models whose lines must go through the transaction endpoint.
-_TRANSACTION_LINE_MODELS = ('order', 'invoice', 'proposal', 'purchase', 'requisition',
+_TRANSACTION_LINE_MODELS = ('order', 'invoice', 'quote', 'purchase', 'requisition',
                             'workorder', 'receipt', 'delivery')
 
 _CONTACT_AUTHORITY_FIELDS = ('is_superuser', 'is_staff', 'is_active', 'role', 'groups',
@@ -514,9 +514,9 @@ class SaveWcapiView(APIView):
         remaining/status are not written here — see services/line_parent.py.
 
         Only sell-side conversions adjust source lines:
-          order    → proposal_line_id  → ProposalLine (on_p)
+          order    → quote_line_id  → QuoteLine (on_p)
           invoice  → order_line_id     → OrderLine    (on_so)
-          invoice  → proposal_line_id  → ProposalLine (on_p)  [direct proposal→invoice]
+          invoice  → quote_line_id  → QuoteLine (on_p)  [direct quote→invoice]
 
         Purchase does NOT adjust the source order — it's a buy-side action.
         The order's on_so stays committed until an invoice consumes it.
@@ -529,7 +529,7 @@ class SaveWcapiView(APIView):
 
         # Determine which source line to adjust.
         source_lookups = [
-            ('proposal_line_id', 'apps.transactions.models.proposal_line', 'ProposalLine', 'proposal', 'on_p'),
+            ('quote_line_id', 'apps.transactions.models.quote_line', 'QuoteLine', 'quote', 'on_p'),
             ('order_line_id',    'apps.transactions.models.order_line',    'OrderLine',    'order',    'on_so'),
         ]
         source_key = source_id = module_path = class_name = parent_attr = bucket_field = None
@@ -732,7 +732,7 @@ class SaveWcapiView(APIView):
         # lines here. So apply the SAME authorization the transaction endpoint applies
         # rather than refusing the payload: role create/edit rights, and for portal
         # customers a server-set customer/status and server-side re-pricing.
-        # (An earlier version of this guard refused outright and broke every proposal
+        # (An earlier version of this guard refused outright and broke every quote
         # save in the UI — the hole was missing enforcement, not the endpoint.)
         if model_key in _TRANSACTION_LINE_MODELS and data.get('lines'):
             from apps.transactions.views.wcapi import _transaction_save_denial

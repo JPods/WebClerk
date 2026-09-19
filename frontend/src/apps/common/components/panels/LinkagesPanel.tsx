@@ -4,7 +4,7 @@
  * 
  * Displays the records from multiple tables that are linked together through
  * a Linkage hub. Tracks document/record relationships as items flow through
- * business processes (e.g., Proposal → Order → Invoice → Cash).
+ * business processes (e.g., Quote → Order → Invoice → Cash).
  * 
  * The Linkage record acts as a central hub connecting IDs from multiple tables,
  * allowing tracking of the full "paper trail" of an item through the system.
@@ -101,8 +101,8 @@ const DEFAULT_EDIT_ROLES: UserRole[] = ADMIN_ROLES;
 
 /** Icons for common table types */
 const TABLE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  proposal: FiClipboard,
-  proposal_line: FiClipboard,
+  quote: FiClipboard,
+  quote_line: FiClipboard,
   order: FiShoppingCart,
   order_line: FiShoppingCart,
   invoice: FiDollarSign,
@@ -119,8 +119,8 @@ const TABLE_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
 
 /** Default table display names */
 const DEFAULT_TABLE_NAMES: Record<string, string> = {
-  proposal: 'Proposals',
-  proposal_line: 'Proposal Lines',
+  quote: 'Quotes',
+  quote_line: 'Quote Lines',
   order: 'Orders',
   order_line: 'Order Lines',
   invoice: 'Invoices',
@@ -136,8 +136,8 @@ const DEFAULT_TABLE_NAMES: Record<string, string> = {
 
 /** Common business flow order */
 const DEFAULT_FLOW_ORDER = [
-  'proposal',
-  'proposal_line',
+  'quote',
+  'quote_line',
   'order',
   'order_line',
   'invoice',

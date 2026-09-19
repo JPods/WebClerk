@@ -1,0 +1,3 @@
+# Quote Line Model
+
+This model manages individual line items within quotes.

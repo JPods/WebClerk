@@ -4,7 +4,7 @@ Switchable views: by date range, salesperson, rep, customer.
 No approval gates — flag and ship, review here.
 
 Metrics:
-  - Transaction counts by type (order/invoice/proposal)
+  - Transaction counts by type (order/invoice/quote)
   - Margin velocity for the period
   - Order and invoice counts with below/above margin identification
   - Margin velocity by item
@@ -30,12 +30,12 @@ class SalesDashboard:
     # Transaction counts
     order_count: int = 0
     invoice_count: int = 0
-    proposal_count: int = 0
+    quote_count: int = 0
 
     # Revenue
     order_total: float = 0
     invoice_total: float = 0
-    proposal_total: float = 0
+    quote_total: float = 0
 
     # Margin
     avg_margin_pct: float = 0
@@ -68,7 +68,7 @@ def compute_dashboard(
     """Compute the full sales dashboard for a given period and filter."""
     from apps.transactions.models.order import Order
     from apps.transactions.models.invoice import Invoice
-    from apps.transactions.models.proposal import Proposal
+    from apps.transactions.models.quote import Quote
     from apps.products.models.item import Item
 
     now_ms = int(timezone.now().timestamp() * 1000)
@@ -122,8 +122,8 @@ def compute_dashboard(
         pass
 
     try:
-        proposals = Proposal.objects.filter(date_filter & contact_filter & Q(is_active=True, is_deleted=False))
-        dashboard.proposal_count = proposals.count()
+        quotes = Quote.objects.filter(date_filter & contact_filter & Q(is_active=True, is_deleted=False))
+        dashboard.quote_count = quotes.count()
     except Exception:
         pass
 
@@ -180,7 +180,7 @@ def dashboard_to_dict(d: SalesDashboard) -> dict:
         'transactions': {
             'orders': {'count': d.order_count, 'total': d.order_total},
             'invoices': {'count': d.invoice_count, 'total': d.invoice_total},
-            'proposals': {'count': d.proposal_count, 'total': d.proposal_total},
+            'quotes': {'count': d.quote_count, 'total': d.quote_total},
         },
         'margin': {
             'avg_pct': d.avg_margin_pct,

@@ -205,31 +205,31 @@ REPORT_DEFS: dict[str, list[dict]] = {
     ],
 
     # ===================================================================
-    # PROPOSAL reports  (wc2: Proposals table — 8 reports)
+    # QUOTE reports  (wc2: Quotes table — 8 reports)
     # ===================================================================
-    "proposal": [
+    "quote": [
         # -- print (multiple formats) --
-        {"name": "Proposal / Quote",                "description": "Customer-facing quotation document",             "output_type": "print", "category": "report",    "sort_order": 5},
+        {"name": "Quote / Quote",                "description": "Customer-facing quotation document",             "output_type": "print", "category": "report",    "sort_order": 5},
         {"name": "Estimate",                        "description": "Estimate / rough quote document",                "output_type": "print", "category": "report",    "sort_order": 6},
         {"name": "Bid Document",                    "description": "Formal bid response document",                   "output_type": "print", "category": "report",    "sort_order": 7},
-        {"name": "Proposal 1",                      "description": "Proposal format 1 (standard)",                   "output_type": "print", "category": "report",    "sort_order": 10},   # wc2: Proposal 1
-        {"name": "Proposal 2",                      "description": "Proposal format 2",                              "output_type": "print", "category": "report",    "sort_order": 20},   # wc2: Proposal 2
-        {"name": "Proposal 3",                      "description": "Proposal format 3",                              "output_type": "print", "category": "report",    "sort_order": 30},   # wc2: Proposal 3
-        {"name": "Proposal 4",                      "description": "Proposal format 4",                              "output_type": "print", "category": "report",    "sort_order": 40},   # wc2: Proposal 4
+        {"name": "Quote 1",                      "description": "Quote format 1 (standard)",                   "output_type": "print", "category": "report",    "sort_order": 10},   # wc2: Quote 1
+        {"name": "Quote 2",                      "description": "Quote format 2",                              "output_type": "print", "category": "report",    "sort_order": 20},   # wc2: Quote 2
+        {"name": "Quote 3",                      "description": "Quote format 3",                              "output_type": "print", "category": "report",    "sort_order": 30},   # wc2: Quote 3
+        {"name": "Quote 4",                      "description": "Quote format 4",                              "output_type": "print", "category": "report",    "sort_order": 40},   # wc2: Quote 4
         {"name": "Customer Quote Form",             "description": "Customer-facing quote form",                     "output_type": "print", "category": "report",    "sort_order": 50},   # wc2: !Customer Quote Form
-        {"name": "Proposal Checklist",              "description": "Proposal preparation checklist",                 "output_type": "print", "category": "utility",   "sort_order": 60},   # wc2: SR[Ppl]Proposal CheckList
-        {"name": "Proposal Summary",                "description": "Proposal selection summary",                     "output_type": "print", "category": "summary",   "sort_order": 70},
+        {"name": "Quote Checklist",              "description": "Quote preparation checklist",                 "output_type": "print", "category": "utility",   "sort_order": 60},   # wc2: SR[Ppl]Quote CheckList
+        {"name": "Quote Summary",                "description": "Quote selection summary",                     "output_type": "print", "category": "summary",   "sort_order": 70},
         # -- email --
-        {"name": "Email Proposal Basic w/ Q&A",     "description": "Email proposal with question/answer section",    "output_type": "email", "category": "letter",    "sort_order": 200},  # wc2: Email Proposal Basic w/ Q&A
-        {"name": "Proposal Email",                  "description": "Email proposal document to customer",            "output_type": "email", "category": "letter",    "sort_order": 205},
+        {"name": "Email Quote Basic w/ Q&A",     "description": "Email quote with question/answer section",    "output_type": "email", "category": "letter",    "sort_order": 200},  # wc2: Email Quote Basic w/ Q&A
+        {"name": "Quote Email",                  "description": "Email quote document to customer",            "output_type": "email", "category": "letter",    "sort_order": 205},
         # -- api --
-        {"name": "Post Out Proposal",               "description": "POST proposal to external system",               "output_type": "api",   "category": "utility",   "sort_order": 300},  # wc2: PostOutProposal
+        {"name": "Post Out Quote",               "description": "POST quote to external system",               "output_type": "api",   "category": "utility",   "sort_order": 300},  # wc2: PostOutQuote
         # -- merge --
-        {"name": "Post to Word",                    "description": "Merge proposal into Word document",              "output_type": "merge", "category": "letter",    "sort_order": 400},  # wc2: Post to Word
+        {"name": "Post to Word",                    "description": "Merge quote into Word document",              "output_type": "merge", "category": "letter",    "sort_order": 400},  # wc2: Post to Word
         # -- export --
-        {"name": "Proposal Export",                 "description": "Export proposals to CSV",                         "output_type": "export", "category": "export",   "sort_order": 500},
+        {"name": "Quote Export",                 "description": "Export quotes to CSV",                         "output_type": "export", "category": "export",   "sort_order": 500},
         # -- json --
-        {"name": "Proposal JSON",                   "description": "Return proposal data as structured JSON",        "output_type": "json",  "category": "export",   "sort_order": 600},
+        {"name": "Quote JSON",                   "description": "Return quote data as structured JSON",        "output_type": "json",  "category": "export",   "sort_order": 600},
     ],
 
     # ===================================================================

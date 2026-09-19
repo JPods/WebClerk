@@ -30,7 +30,7 @@ from django.db.models.functions import Cast
 
 logger = logging.getLogger('alice.aggregates')
 
-TRANSACTION_MODELS = ['invoice', 'order', 'proposal', 'purchase', 'workorder']
+TRANSACTION_MODELS = ['invoice', 'order', 'quote', 'purchase', 'workorder']
 
 SETTING_PURPOSE = 'alice:aggregates'
 

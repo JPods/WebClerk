@@ -1,7 +1,7 @@
 """Commerce Dashboard aggregate queries.
 
 Five actions matching the CommerceDashboard.tsx tabs:
-  get_sales_dashboard      — orders/invoices/proposals counts+totals, margin summary
+  get_sales_dashboard      — orders/invoices/quotes counts+totals, margin summary
   get_purchasing_dashboard  — POs/WOs/receipts/layers, stale PO list
   get_inventory_summary     — item counts, layer counts, low stock, value
   get_velocity_report       — margin velocity distribution
@@ -107,7 +107,7 @@ def _base_filters(params):
 
 
 def get_sales_dashboard(params):
-    from apps.transactions.models import Order, Invoice, Proposal
+    from apps.transactions.models import Order, Invoice, Quote
 
     period = params.get('period_days', 30)
     cutoff = _cutoff_ms(period)
@@ -118,7 +118,7 @@ def get_sales_dashboard(params):
         count=Count('id'), total=Sum('_total'))
     invoices = Invoice.objects.filter(base_q).annotate(_total=totals_total()).aggregate(
         count=Count('id'), total=Sum('_total'))
-    proposals = Proposal.objects.filter(base_q).annotate(_total=totals_total()).aggregate(
+    quotes = Quote.objects.filter(base_q).annotate(_total=totals_total()).aggregate(
         count=Count('id'), total=Sum('_total'))
 
     # Margin from invoice lines — iterate and compute from price/cost JSON
@@ -168,7 +168,7 @@ def get_sales_dashboard(params):
         'transactions': {
             'orders': {'count': orders['count'] or 0, 'total': float(orders['total'] or 0)},
             'invoices': {'count': invoices['count'] or 0, 'total': float(invoices['total'] or 0)},
-            'proposals': {'count': proposals['count'] or 0, 'total': float(proposals['total'] or 0)},
+            'quotes': {'count': quotes['count'] or 0, 'total': float(quotes['total'] or 0)},
         },
         'margin': {
             'avg_pct': round(avg_pct, 1),

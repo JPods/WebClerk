@@ -80,7 +80,7 @@ export function buildInvoice(overrides?: Record<string, unknown>) {
   };
 }
 
-export function buildProposal(overrides?: Record<string, unknown>) {
+export function buildQuote(overrides?: Record<string, unknown>) {
   const id = nextId();
   return {
     ...baseRecord({ id }),

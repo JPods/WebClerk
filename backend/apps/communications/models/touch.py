@@ -106,7 +106,7 @@ class Touch(BaseModel):
         null=True,
         blank=True,
         db_index=True,
-        help_text="Linkage group — ties touch to the transaction graph (proposal→order→invoice)"
+        help_text="Linkage group — ties touch to the transaction graph (quote→order→invoice)"
     )
 
     logged_by = models.BigIntegerField(

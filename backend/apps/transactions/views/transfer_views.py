@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
-from apps.transactions.models import Proposal, Order, Invoice
+from apps.transactions.models import Quote, Order, Invoice
 from apps.transactions.services import inventory_flow
 from apps.transactions.services import validate_transaction as validation
 from apps.transactions.serializers.transfer_serializer import (
@@ -25,7 +25,7 @@ def validate_transfer(request):
 
     POST /tx/transfers/validate/
     {
-        "source_type": "proposal",
+        "source_type": "quote",
         "source_id": 123,
         "target_type": "order"
     }
@@ -53,7 +53,7 @@ def execute_transfer(request):
 
     POST /tx/transfers/execute/
     {
-        "source_type": "proposal",
+        "source_type": "quote",
         "source_id": 123,
         "target_type": "order",
         "line_ids": [1, 2, 3],
@@ -63,7 +63,7 @@ def execute_transfer(request):
     }
 
     Supports all combinations in the transfer matrix:
-      proposal → proposal (clone), proposal → order/invoice (convert),
+      quote → quote (clone), quote → order/invoice (convert),
       sell ↔ purchase (cross-type).
     See: readmes/topics/transactions/transaction_transfer.md
     """
@@ -175,26 +175,26 @@ def release_inventory(request, invoice_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def bulk_transfer_proposals(request):
+def bulk_transfer_quotes(request):
     """
-    Convert multiple proposals to orders in one operation.
+    Convert multiple quotes to orders in one operation.
 
-    POST /tx/transfers/bulk/proposals-to-orders/
+    POST /tx/transfers/bulk/quotes-to-orders/
     {
-        "proposal_ids": [1, 2, 3],
+        "quote_ids": [1, 2, 3],
         "order_status": "confirmed",
-        "preserve_proposals": true
+        "preserve_quotes": true
     }
     """
-    from apps.transactions.services.convert import convert_proposal_to_order as proposal_to_order
+    from apps.transactions.services.convert import convert_quote_to_order as quote_to_order
 
-    proposal_ids = request.data.get('proposal_ids', [])
+    quote_ids = request.data.get('quote_ids', [])
     order_status = request.data.get('order_status', 'confirmed')
-    preserve_proposals = request.data.get('preserve_proposals', True)
+    preserve_quotes = request.data.get('preserve_quotes', True)
 
-    if not proposal_ids:
+    if not quote_ids:
         return Response(
-            {'error': 'proposal_ids is required'},
+            {'error': 'quote_ids is required'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
@@ -202,20 +202,20 @@ def bulk_transfer_proposals(request):
     success_count = 0
     error_count = 0
 
-    for proposal_id in proposal_ids:
+    for quote_id in quote_ids:
         try:
-            proposal = get_object_or_404(Proposal, id=proposal_id)
+            quote = get_object_or_404(Quote, id=quote_id)
 
-            result = proposal_to_order.transfer_proposal_to_order(
-                proposal=proposal,
+            result = quote_to_order.transfer_quote_to_order(
+                quote=quote,
                 line_ids=None,  # Transfer all lines
                 transfer_all=True,
                 order_status=order_status,
-                preserve_proposal=preserve_proposals
+                preserve_quote=preserve_quotes
             )
 
             results.append({
-                'proposal_id': proposal_id,
+                'quote_id': quote_id,
                 'success': result['success'],
                 'order_id': result.get('order_id'),
                 'lines_transferred': result.get('lines_transferred')
@@ -228,14 +228,14 @@ def bulk_transfer_proposals(request):
 
         except Exception as e:
             results.append({
-                'proposal_id': proposal_id,
+                'quote_id': quote_id,
                 'success': False,
                 'error': str(e)
             })
             error_count += 1
 
     return Response({
-        'total_proposals': len(proposal_ids),
+        'total_quotes': len(quote_ids),
         'successful_transfers': success_count,
         'failed_transfers': error_count,
         'results': results
@@ -316,6 +316,6 @@ __all__ = [
     'execute_transfer',
     'reserve_inventory',
     'release_inventory',
-    'bulk_transfer_proposals',
+    'bulk_transfer_quotes',
     'bulk_transfer_orders',
 ]

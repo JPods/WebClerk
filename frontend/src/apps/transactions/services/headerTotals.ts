@@ -9,7 +9,7 @@
  * totals is the only total (Bill, 2026-09-18); there is no sell envelope.
  *
  * Formulae:
- *   SELL SIDE (order, proposal, invoice):
+ *   SELL SIDE (order, quote, invoice):
  *     totals.subtotal       = Σ line.price.extended
  *     totals.discount       = Σ line.price.discount_amount
  *
@@ -96,7 +96,7 @@ export function defaultTotals(): TransactionTotals {
  * Compute cost and totals envelopes from an array of lines.
  *
  * This is the client-side equivalent of WC3's
- * `compute_order_sell_cost_totals()` (and the proposal/invoice/purchase
+ * `compute_order_sell_cost_totals()` (and the quote/invoice/purchase
  * variants which share the same logic).
  *
  * Lines whose `item.is_deleted` flag is true are excluded.

@@ -66,7 +66,7 @@ class TestParseRestPath:
 
         # Action verbs after ID are NOT parsed (should return None)
         ("/api/transactions/orders/5/convert-to-invoice/", None, None),
-        ("/api/transactions/proposals/3/convert-to-order/", None, None),
+        ("/api/transactions/quotes/3/convert-to-order/", None, None),
         ("/api/transactions/purchases/1/receive-goods/", None, None),
 
         # Unparseable

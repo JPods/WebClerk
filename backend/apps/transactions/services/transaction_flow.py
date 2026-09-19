@@ -8,7 +8,7 @@ from django.db import transaction
 from django.core.exceptions import ValidationError
 
 from apps.transactions.models import (
-    Proposal, ProposalLine,
+    Quote, QuoteLine,
     Order, OrderLine,
     Invoice, InvoiceLine,
     Purchase, PurchaseLine,
@@ -22,7 +22,7 @@ from apps.products.models.inventory_layer import InventoryLayer
 
 # ---------------------------------------------------------------------------
 # Central review list of JSON-esque line attributes we expect to deep-copy
-# when creating a new transactional line from another (proposal -> order,
+# when creating a new transactional line from another (quote -> order,
 # order -> invoice, PO -> receipt derived lines, etc.).
 #
 # IMPORTANT (review process):
@@ -43,7 +43,7 @@ LINE_JSON_FIELDS_TO_COPY = (
     'actions', 'physical',
     # Extended / newer additions (may be no-ops until fields are present):
     'metadata', 'refs', 'prefs', 'comments',
-    # Carried forward by the convert services (convert.py, convert_proposal_to_order.py,
+    # Carried forward by the convert services (convert.py, convert_quote_to_order.py,
     # convert_order_to_invoice.py) into lines returned for review.
     'commission', 'config',
 )
@@ -59,7 +59,7 @@ class ReceiveLine:
     serial_batch: str | None = None
 
 
-def _copy_common_line_fields(src: ProposalLine | OrderLine | PurchaseLine,
+def _copy_common_line_fields(src: QuoteLine | OrderLine | PurchaseLine,
                              dst: OrderLine | InvoiceLine | PurchaseLine):
     """Copy scalar + JSON attributes from one line to a new line instance.
 
@@ -142,9 +142,9 @@ def ensure_linkage_for_lines(lines) -> Optional[int]:
     return None
 
 
-def proposal_to_order(proposal: Proposal, order_no: Optional[str] = None) -> Order:
-    so = Order.objects.create(order_no=order_no or f"SO-{proposal.pk or 'new'}")
-    src_lines = list(ProposalLine.objects.filter(proposal=proposal).order_by('id'))
+def quote_to_order(quote: Quote, order_no: Optional[str] = None) -> Order:
+    so = Order.objects.create(order_no=order_no or f"SO-{quote.pk or 'new'}")
+    src_lines = list(QuoteLine.objects.filter(quote=quote).order_by('id'))
     # Linkage disabled - pass None
     linkage_id = None
     # Copy lines after ensuring linkage id
@@ -160,7 +160,7 @@ def proposal_to_order(proposal: Proposal, order_no: Optional[str] = None) -> Ord
                 if not lst:
                     lst.append(linkage_id)
                 setattr(sol, 'refs', refs)
-        # proposal quantity schema can be different; leave as-is and let later edits normalize
+        # quote quantity schema can be different; leave as-is and let later edits normalize
         sol.save()
     return so
 
@@ -212,7 +212,7 @@ def order_to_purchase(so: Order, po_no: Optional[str] = None) -> Purchase:
     return po
 
 
-def _resolve_item_id_from_line(line: PurchaseLine | OrderLine | ProposalLine | WorkOrderLine) -> Optional[int]:
+def _resolve_item_id_from_line(line: PurchaseLine | OrderLine | QuoteLine | WorkOrderLine) -> Optional[int]:
     item = getattr(line, 'item', {}) or {}
     # Prefer id_num, fallback: try 'id' or 'item_id' if present
     return item.get('id_num') or item.get('id') or item.get('item_id')
@@ -685,7 +685,7 @@ __all__ = [
     'CompleteWorkOrderLine',
     'AdjustmentLine',
     # Transaction flow conversions
-    'proposal_to_order',
+    'quote_to_order',
     'order_to_invoice',
     'order_to_purchase',
     # Inventory receiving functions

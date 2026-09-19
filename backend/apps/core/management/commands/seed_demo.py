@@ -9,7 +9,7 @@ Creates realistic demo data showing the full commerce cycle:
   - 5 customers (different types: retail, wholesale, team, online, school)
   - 1 vendor (baseball equipment supplier)
   - 12 items (bats, balls, gloves, bags, kit with BOM)
-  - 3 complete transaction cycles (proposal → order → invoice → cash)
+  - 3 complete transaction cycles (quote → order → invoice → cash)
 
 All demo records are tagged refs.source="demo-baseline" for clean removal
 via remove_demo_data.
@@ -196,7 +196,7 @@ TRANSACTION_CYCLES = [
         'customer_ida': 'CUST-03',   # Metro Baseball Academy
         'contact_ida': 'CON-03',
         'ida_prefix': 'DEMO-C',
-        'status': 'planned',         # proposal only, not yet ordered
+        'status': 'planned',         # quote only, not yet ordered
         'lines': [
             {'item_ida': 'KIT-01', 'qty': 20, 'price': Decimal('449.99')},
             {'item_ida': 'BALL-02', 'qty': 48, 'price': Decimal('49.99')},
@@ -231,7 +231,7 @@ class Command(BaseCommand):
     def _delete_demo(self):
         from apps.products.models.bill_of_material import BillOfMaterial
         from apps.transactions.models import (
-            Proposal, ProposalLine, Order, OrderLine,
+            Quote, QuoteLine, Order, OrderLine,
             Invoice, InvoiceLine, Cash,
         )
         # Delete in dependency order — children before parents
@@ -240,15 +240,15 @@ class Command(BaseCommand):
         d_inv = Invoice.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
         d_ol = OrderLine.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
         d_ord = Order.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
-        d_pl = ProposalLine.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
-        d_prop = Proposal.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
+        d_pl = QuoteLine.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
+        d_prop = Quote.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
         d_bom = BillOfMaterial.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
         d_item = Item.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
         d_org = OrgBase.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
         d_con = Contact.objects.filter(refs__demo_source=DEMO_SOURCE).delete()[0]
         self.stdout.write(
             f'Deleted demo data: {d_pay} cash_entries, {d_il+d_ol+d_pl} lines, '
-            f'{d_inv} invoices, {d_ord} orders, {d_prop} proposals, '
+            f'{d_inv} invoices, {d_ord} orders, {d_prop} quotes, '
             f'{d_bom} BOM, {d_item} items, {d_org} orgs, {d_con} contacts'
         )
 
@@ -337,7 +337,7 @@ class Command(BaseCommand):
     def _seed_transaction_cycles(self):
         """Create 3 transaction cycles showing different stages of commerce."""
         from apps.transactions.models import (
-            Proposal, ProposalLine, Order, OrderLine,
+            Quote, QuoteLine, Order, OrderLine,
             Invoice, InvoiceLine, Cash,
         )
         created = 0
@@ -346,7 +346,7 @@ class Command(BaseCommand):
         for cycle in TRANSACTION_CYCLES:
             prefix = cycle['ida_prefix']
             # Skip if already seeded
-            if Proposal.objects.filter(ida=f'{prefix}-PROP').exists():
+            if Quote.objects.filter(ida=f'{prefix}-PROP').exists():
                 continue
 
             customer = OrgBase.objects.filter(ida=cycle['customer_ida']).first()
@@ -393,8 +393,8 @@ class Command(BaseCommand):
                     'refs': _demo_refs(),
                 }
 
-            # 1. Proposal (always created)
-            proposal = Proposal.objects.create(
+            # 1. Quote (always created)
+            quote = Quote.objects.create(
                 ida=f'{prefix}-PROP', status='complete',
                 customer=customer, contact=contact,
                 attention=contact.attention,
@@ -402,11 +402,11 @@ class Command(BaseCommand):
                 dt_created=now_ms, dt_modified=now_ms,
             )
             for i, ld in enumerate(line_data):
-                ProposalLine.objects.create(
-                    proposal=proposal,
+                QuoteLine.objects.create(
+                    quote=quote,
                     **_make_line_kwargs(ld, (i + 1) * 10),
                 )
-            self.stdout.write(f'  {prefix}: proposal {proposal.ida}')
+            self.stdout.write(f'  {prefix}: quote {quote.ida}')
 
             if cycle['status'] == 'planned':
                 created += 1

@@ -24,9 +24,9 @@
       "reports": ["Cash Receipt", "Cash Remittance", "Cash Application"],
       "business_type": ["all"]
     },
-    "proposal": {
-      "file": "proposal.json",
-      "reports": ["Proposal", "Quote", "Estimate"],
+    "quote": {
+      "file": "quote.json",
+      "reports": ["Quote", "Quote", "Estimate"],
       "business_type": ["service", "retail", "contractor"]
     },
     "statement": {
@@ -62,7 +62,7 @@
   },
   "parade_sequence": {
     "onboarding": [
-      {"group": "Selling", "models": ["invoice", "order", "proposal"]},
+      {"group": "Selling", "models": ["invoice", "order", "quote"]},
       {"group": "Getting Paid", "models": ["cash", "statement", "aging"]},
       {"group": "Buying", "models": ["purchase", "requisition"]},
       {"group": "Service", "models": ["workorder"]},

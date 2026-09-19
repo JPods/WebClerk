@@ -233,7 +233,7 @@ def _get_pending_signals(item_id: int) -> Dict[str, float]:
       on_so = demand committed but not shipped
       on_po = supply committed but not received
       on_wo = work order demand (BOM consumption in progress)
-      on_p  = proposal demand (probability-weighted)
+      on_p  = quote demand (probability-weighted)
     """
     Item, _, _, _ = _get_models()
 

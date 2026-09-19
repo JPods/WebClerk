@@ -10,7 +10,7 @@ c = connection.cursor()
 tables = [
     'transactions_order',
     'transactions_invoice',
-    'transactions_proposal',
+    'transactions_quote',
     'transactions_purchase',
 ]
 fk_cols = ['customer_id', 'vendor_id', 'manufacturer_id', 'contact_id']

@@ -279,8 +279,8 @@ def _customize_for_report(base_data: dict, report_name: str, model_name: str) ->
         elif "cash flow" in name_lower:
             data["_list_mode"] = True
 
-    # ── Proposal variants ──
-    elif model_name == "proposal":
+    # ── Quote variants ──
+    elif model_name == "quote":
         if "bid" in name_lower:
             data["ida"] = "BID-2026-0034"
             data.setdefault("config", {})["bid_deadline"] = 1787616000000

@@ -2,7 +2,7 @@ import pytest
 
 from apps.core.models.setting import Setting
 from apps.transactions.models import (
-    Proposal, ProposalLine,
+    Quote, QuoteLine,
     Order, OrderLine,
     Purchase, PurchaseLine,
 )
@@ -24,18 +24,18 @@ def _auth(user):
 
 
 @pytest.mark.django_db
-def test_proposal_to_order_action(django_user_model):
-    # Minimal permission rules for Proposal (header) actions
-    _permission_setting('proposal', {"USER": {"view": ["id"], "edit": ["id"]}})
+def test_quote_to_order_action(django_user_model):
+    # Minimal permission rules for Quote (header) actions
+    _permission_setting('quote', {"USER": {"view": ["id"], "edit": ["id"]}})
     user = django_user_model.objects.create_user(email='flow1@example.com', password='pass12345', role='USER')
     client = _auth(user)
 
-    proposal = Proposal.objects.create(name="P-ACT")
+    quote = Quote.objects.create(name="P-ACT")
     # Optional: include a line to exercise copy path (not strictly required)
-    ProposalLine.objects.create(proposal=proposal, status='OPEN',
+    QuoteLine.objects.create(quote=quote, status='OPEN',
                                 item={"id_num": 1}, quantity={"active": 1}, price={"extended": 1})
 
-    resp = client.post(f'/wcapi/proposal/{proposal.pk}/convert-to-order/', {}, format='json')
+    resp = client.post(f'/wcapi/quote/{quote.pk}/convert-to-order/', {}, format='json')
     assert resp.status_code == 201  # type: ignore[attr-defined]
     body = resp.data  # type: ignore[attr-defined]
     payload = body.get('data') if isinstance(body, dict) else None

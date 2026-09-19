@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Any
 from decimal import Decimal
 
-from apps.transactions.models import Proposal, Order, Invoice, Purchase, WorkOrder
+from apps.transactions.models import Quote, Order, Invoice, Purchase, WorkOrder
 
 
 class ValidationResult:
@@ -32,9 +32,9 @@ class ValidationResult:
         return result
 
 
-def validate_proposal_for_conversion(proposal: Proposal) -> ValidationResult:
+def validate_quote_for_conversion(quote: Quote) -> ValidationResult:
     """
-    Validate that a proposal can be converted to an order.
+    Validate that a quote can be converted to an order.
 
     Checks:
     - Status allows conversion
@@ -45,22 +45,22 @@ def validate_proposal_for_conversion(proposal: Proposal) -> ValidationResult:
     warnings = []
     data = {'line_count': 0, 'total': 0.0}
 
-    if not proposal:
-        return ValidationResult(False, ["Proposal not found"])
+    if not quote:
+        return ValidationResult(False, ["Quote not found"])
 
     # Status check
-    if proposal.status not in ['sent', 'accepted']:
-        errors.append(f"Proposal status '{proposal.status}' does not allow conversion")
-    elif proposal.status == 'sent':
-        warnings.append("Proposal is sent but not yet accepted")
+    if quote.status not in ['sent', 'accepted']:
+        errors.append(f"Quote status '{quote.status}' does not allow conversion")
+    elif quote.status == 'sent':
+        warnings.append("Quote is sent but not yet accepted")
 
     # Check for lines
-    from apps.transactions.models import ProposalLine
-    lines = list(ProposalLine.objects.filter(proposal=proposal))
+    from apps.transactions.models import QuoteLine
+    lines = list(QuoteLine.objects.filter(quote=quote))
     data['line_count'] = len(lines)
 
     if not lines:
-        errors.append("Proposal has no lines to convert")
+        errors.append("Quote has no lines to convert")
         return ValidationResult(False, errors, warnings, data)
 
     # Validate lines
@@ -90,8 +90,8 @@ def validate_proposal_for_conversion(proposal: Proposal) -> ValidationResult:
         errors.append(f"{invalid_lines} line(s) have invalid quantity or pricing")
 
     # Customer check
-    if not proposal.customer_id:
-        errors.append("Proposal must have a customer assigned")
+    if not quote.customer_id:
+        errors.append("Quote must have a customer assigned")
 
     can_proceed = len(errors) == 0
     return ValidationResult(can_proceed, errors, warnings, data)
@@ -208,7 +208,7 @@ def validate_transaction_flow(
     Validate that a transaction can flow to the next stage.
 
     Args:
-        source_type: 'proposal', 'order', 'invoice', 'purchase', 'workorder'
+        source_type: 'quote', 'order', 'invoice', 'purchase', 'workorder'
         source_id: ID of source transaction
         target_type: any supported target in transfer matrix
     """
@@ -218,8 +218,8 @@ def validate_transaction_flow(
 
     # Get source transaction
     source = None
-    if source_type == 'proposal':
-        source = Proposal.objects.filter(id=source_id).first()
+    if source_type == 'quote':
+        source = Quote.objects.filter(id=source_id).first()
     elif source_type == 'order':
         source = Order.objects.filter(id=source_id).first()
     elif source_type == 'invoice':
@@ -233,13 +233,13 @@ def validate_transaction_flow(
         return ValidationResult(False, [f"{source_type} {source_id} not found"])
 
     # Validate based on flow
-    if source_type == 'proposal' and target_type == 'order':
-        return validate_proposal_for_conversion(source)
+    if source_type == 'quote' and target_type == 'order':
+        return validate_quote_for_conversion(source)
     elif source_type == 'order' and target_type == 'invoice':
         return validate_order_for_invoicing(source)
     elif source_type == 'invoice' and target_type == 'cash':
         return validate_invoice_for_cash(source)
-    elif target_type in {'proposal', 'order', 'invoice', 'purchase', 'workorder'} and source_type in {'proposal', 'order', 'invoice', 'purchase', 'workorder'} and source_type != target_type:
+    elif target_type in {'quote', 'order', 'invoice', 'purchase', 'workorder'} and source_type in {'quote', 'order', 'invoice', 'purchase', 'workorder'} and source_type != target_type:
         return ValidationResult(True, [], [], {'source_id': source_id})
     else:
         errors.append(f"Invalid flow: {source_type} -> {target_type}")
@@ -249,7 +249,7 @@ def validate_transaction_flow(
 
 __all__ = [
     'ValidationResult',
-    'validate_proposal_for_conversion',
+    'validate_quote_for_conversion',
     'validate_order_for_invoicing',
     'validate_invoice_for_cash',
     'validate_transaction_flow',

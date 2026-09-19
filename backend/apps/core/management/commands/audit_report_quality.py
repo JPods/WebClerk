@@ -6,7 +6,7 @@ she creates Action records to force the user to review and improve them.
 Checks:
   1. Missing or vague descriptions (< 30 chars)
   2. Duplicate names within the same model_name
-  3. Generic numbered names ("Proposal 1", "Invoice 2") with no distinction
+  3. Generic numbered names ("Quote 1", "Invoice 2") with no distinction
   4. Missing model_name (orphan reports)
   5. Duplicate entries (same name + same model_name)
 
@@ -23,8 +23,8 @@ from apps.core.models import Report
 # Descriptions that don't distinguish a report from its siblings
 VAGUE_PATTERNS = [
     'format 1', 'format 2', 'format 3', 'format 4', 'format 5',
-    'standard invoice', 'standard proposal', 'standard order',
-    'print proposal', 'print invoice', 'print order',
+    'standard invoice', 'standard quote', 'standard order',
+    'print quote', 'print invoice', 'print order',
 ]
 
 MIN_USEFUL_DESC_LEN = 30
@@ -41,7 +41,7 @@ class Command(BaseCommand):
         parser.add_argument('--coach', action='store_true',
                             help='Alice compares forms, finds duplicates, generates descriptions')
         parser.add_argument('--model', type=str, default=None,
-                            help='Audit only this model_name (e.g. proposal)')
+                            help='Audit only this model_name (e.g. quote)')
 
     def handle(self, *args, **options):
         do_fix = options['fix']
@@ -286,15 +286,15 @@ class Command(BaseCommand):
                 desc = (
                     f"Alice report audit found {len(model_issues)} issue(s) in {model} reports.\n\n"
                     f"Each report must have a description that helps the user choose between them. "
-                    f"Vague names like 'Proposal 2' or duplicate entries waste the user's time.\n\n"
+                    f"Vague names like 'Quote 2' or duplicate entries waste the user's time.\n\n"
                     f"Issues:\n" + "\n".join(issue_lines) + "\n\n"
                     f"For each issue:\n"
                     f"- VAGUE: Open the report record and write a description that explains "
                     f"WHAT MAKES THIS FORMAT DIFFERENT from the others.\n"
                     f"- DUPLICATE: Decide which to keep, deactivate the other.\n"
                     f"- NO_MODEL_NAME: Assign the correct model_name so it appears in the right list.\n"
-                    f"- GENERIC_NUMBERED: Rename from 'Proposal 2' to something like "
-                    f"'Proposal - Wholesale with Discount Grid'."
+                    f"- GENERIC_NUMBERED: Rename from 'Quote 2' to something like "
+                    f"'Quote - Wholesale with Discount Grid'."
                 )
 
                 action = Action(

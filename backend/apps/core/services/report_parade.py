@@ -38,11 +38,11 @@ PARADE_GROUPS = [
     {
         "name": "Selling",
         "description": "Documents you send to customers",
-        "models": ["invoice", "order", "proposal", "workorder"],
+        "models": ["invoice", "order", "quote", "workorder"],
         "report_patterns": [
             "invoice", "credit memo", "order confirmation",
             "packing slip", "pick", "bill of lading", "work order",
-            "proposal", "quote", "estimate", "proforma",
+            "quote", "quote", "estimate", "proforma",
         ],
     },
     {

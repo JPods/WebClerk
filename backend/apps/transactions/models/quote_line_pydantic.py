@@ -1,5 +1,5 @@
 """
-Pydantic schemas for Proposal JSON envelopes.
+Pydantic schemas for Quote Line JSON envelopes.
 
 Inherits standard bases. Add model-specific fields only.
 """
@@ -9,31 +9,29 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from common.schemas.envelopes import ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, SourceRef
-from common.schemas.transaction_envelopes import TransactionSignoff
 
 
 # -- .config ----------------------------------------------------------------
 
-class ProposalConfig(ConfigBase):
-    """Proposal config. Signoff written by validate_status.py."""
-    signoff: Optional[TransactionSignoff] = None
+class QuoteLineConfig(ConfigBase):
+    pass
 
 
 # -- .metadata (inherits MetadataBase) --------------------------------------
 
-class ProposalMetadata(MetadataBase):
+class QuoteLineMetadata(MetadataBase):
     pass
 
 
 # -- .prefs (inherits RecordPrefsBase) --------------------------------------
 
-class ProposalPrefs(RecordPrefsBase):
+class QuoteLinePrefs(RecordPrefsBase):
     pass
 
 
 # -- .refs (inherits RefsBase) ----------------------------------------------
 
-class ProposalRefs(RefsBase):
+class QuoteLineRefs(RefsBase):
     tags: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)
     source: Optional[SourceRef] = None

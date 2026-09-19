@@ -2,7 +2,7 @@ from django.db import models
 from common.models import BaseModel
 from django.utils import timezone
 # bulk of this table is in the .refs to relate other tables
-# example use is to link line items in orders, proposals, etc. 
+# example use is to link line items in orders, quotes, etc. 
 # with one document that passes on specs, paths, comments, and other details
 class Audit(BaseModel):
     name = models.CharField(max_length=255, blank=True, null=True)

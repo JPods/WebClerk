@@ -67,7 +67,7 @@ apps/
 ├── products/        # item, catalog, inventory, warehouse, BOM, delivery
 ├── support/         # shared support utilities
 ├── sync/            # connections, bundles, external integrations
-└── transactions/    # proposal, order, invoice, purchase, requisition, work_order + lines
+└── transactions/    # quote, order, invoice, purchase, requisition, work_order + lines
 ```
 
 Business logic lives in each app's `services/` package. Shared logic goes in `common/`.
@@ -185,7 +185,7 @@ Models have JSONB columns for schema-less extension: `metadata`, `refs`, `prefs`
 
 | Type | Direction | Lines Model | Flow |
 |------|-----------|------------|------|
-| Proposal | Sell | `ProposalLine` | proposal → order |
+| Quote | Sell | `QuoteLine` | quote → order |
 | Order | Sell | `OrderLine` | order → invoice |
 | Invoice | Sell | `InvoiceLine` | terminal |
 | Purchase | Buy | `PurchaseLine` | purchase → receipt |
@@ -596,7 +596,7 @@ All 5 transaction line types automatically emit `InventoryEvent` records:
 # Event types per transaction type:
 # order_line_add, order_line_update, order_line_delete, order_line_item_change
 # invoice_line_add, invoice_line_update, invoice_line_delete, ...
-# proposal_line_add, purchase_line_add, workorder_line_add, ...
+# quote_line_add, purchase_line_add, workorder_line_add, ...
 ```
 
 ### Observer Capabilities (4 Phases)

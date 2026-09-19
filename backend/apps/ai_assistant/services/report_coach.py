@@ -16,7 +16,7 @@ This service is called by:
 Usage:
     from apps.ai_assistant.services.report_coach import ReportCoach
     coach = ReportCoach()
-    findings = coach.analyze_model('proposal')
+    findings = coach.analyze_model('quote')
     coach.apply_coaching(findings)
 """
 import json
@@ -43,16 +43,16 @@ KNOWN_TEMPLATE_DESCRIPTIONS = {
     'invoice_foreign': 'Foreign/international invoice — includes currency, customs info',
     'credit_memo': 'Credit memo — negative invoice for returns/adjustments',
     'net_invoice': 'Net invoice — shows net amounts after discounts applied',
-    # Proposals
-    'proposal': 'Basic proposal — customer info, line items, totals',
-    'proposal_1': 'WC2 Proposal 1 — Accept/Use columns, Base/Disc%/Unit pricing, dual signature',
-    'proposal_2': 'WC2 Proposal 2 — (description needed from WC2 form review)',
-    'proposal_3': 'WC2 Proposal 3 — (description needed from WC2 form review)',
-    'proposal_4': 'WC2 Proposal 4 — (description needed from WC2 form review)',
+    # Quotes
+    'quote': 'Basic quote — customer info, line items, totals',
+    'quote_1': 'WC2 Quote 1 — Accept/Use columns, Base/Disc%/Unit pricing, dual signature',
+    'quote_2': 'WC2 Quote 2 — (description needed from WC2 form review)',
+    'quote_3': 'WC2 Quote 3 — (description needed from WC2 form review)',
+    'quote_4': 'WC2 Quote 4 — (description needed from WC2 form review)',
     'customer_quote': 'Customer-facing quote without internal pricing columns',
     'bid_document': 'Formal bid response — specifications, pricing, terms, acceptance block',
     'estimate': 'Estimate — budgetary only, not binding, no acceptance signature',
-    'proposal_email': 'Email-formatted proposal — HTML body for sending to customer',
+    'quote_email': 'Email-formatted quote — HTML body for sending to customer',
     # Orders
     'order': 'Standard order confirmation — Bill To, Ship To, line items, totals',
     'pick_list': 'Warehouse pick list — Bin location, Qty, Picked checkbox',

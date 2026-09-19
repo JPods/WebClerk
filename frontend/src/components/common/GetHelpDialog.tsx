@@ -48,7 +48,7 @@ const WC_HELP_MAP: Record<string, { label: string; topic: string; training?: str
 // Falls back to this static map only if the query fails or returns empty.
 const COMPONENT_HELP_FALLBACK: Record<string, { source: string; description: string }> = {
   'ModelDetailPage': { source: 'components/common/ModelDetailPage.tsx', description: 'Unified detail page — JSON-driven layout for contact, org, item, and any model with a detail_layout Setting.' },
-  'UiDetail': { source: 'apps/transactions/components/TransactionDetail.tsx', description: 'Shared transaction renderer — orders, invoices, proposals, purchases.' },
+  'UiDetail': { source: 'apps/transactions/components/TransactionDetail.tsx', description: 'Shared transaction renderer — orders, invoices, quotes, purchases.' },
   'DynamicDetail': { source: 'components/common/DynamicDetail.tsx', description: 'Generic data-driven form renderer. Reads layout JSON, renders any model.' },
   'DataBrowser': { source: 'pages/admin/DataBrowser.tsx', description: 'Universal databrowser — lists and details for any model.' },
 };

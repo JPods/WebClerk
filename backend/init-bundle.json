@@ -1461,11 +1461,11 @@
             "where_used": "",
             "wc2_array_name": "<>aActionsProjects"
           },
-          "proposals_status": {
+          "quotes_status": {
             "choices": [],
             "list_name": "PplStatus",
-            "where_used": "This popup is used in the proposal and order record  to record the status of the proposal or order.",
-            "wc2_array_name": "<>aProposalsStatus"
+            "where_used": "This popup is used in the quote and order record  to record the status of the quote or order.",
+            "wc2_array_name": "<>aQuotesStatus"
           },
           "service_profile1": {
             "choices": [],
@@ -1582,11 +1582,11 @@
             "where_used": "",
             "wc2_array_name": "<>aVendorsProfile7"
           },
-          "actions_proposals": {
+          "actions_quotes": {
             "choices": [],
-            "list_name": "ProposalsActions",
+            "list_name": "QuotesActions",
             "where_used": "",
-            "wc2_array_name": "<>aActionsProposals"
+            "wc2_array_name": "<>aActionsQuotes"
           },
           "bill_instructions": {
             "choices": [],
@@ -3349,7 +3349,7 @@
             "route": "/flight-sim",
             "source": "system",
             "category": "Training",
-            "description": "Step through proposal→order→invoice→cash lifecycle"
+            "description": "Step through quote→order→invoice→cash lifecycle"
           },
           {
             "icon": "📦",
@@ -3518,7 +3518,7 @@
             "item",
             "order",
             "invoice",
-            "proposal",
+            "quote",
             "purchase",
             "cash",
             "contact"
@@ -3689,7 +3689,7 @@
                 "Alice Dashboard with LLM config",
                 "Help Dashboard with bookmarks and MCP guide",
                 "Org pages config-driven (5 types, 1 component)",
-                "Print pages (invoice, order, proposal, QA)"
+                "Print pages (invoice, order, quote, QA)"
               ],
               "version": "3.0.0-alpha"
             }
@@ -3769,7 +3769,7 @@
             "order": "Order",
             "invoice": "Invoice",
             "customer": "Customer",
-            "proposal": "Proposal",
+            "quote": "Quote",
             "purchase": "Purchase Order"
           },
           "ui_template": "default",
@@ -3778,7 +3778,7 @@
             "orders": true,
             "invoices": true,
             "campaigns": false,
-            "proposals": true,
+            "quotes": true,
             "purchases": true,
             "commissions": false,
             "territories": false,
@@ -3924,7 +3924,7 @@
             "auto_email": false,
             "default_report_id": null
           },
-          "proposal": {
+          "quote": {
             "copies": 1,
             "auto_email": false,
             "default_report_id": null
@@ -3946,7 +3946,7 @@
           },
           "po_template": "",
           "invoice_template": "",
-          "proposal_template": "",
+          "quote_template": "",
           "statement_template": "",
           "letterhead_template": "",
           "packing_slip_template": ""
@@ -3997,7 +3997,7 @@
             "next": 1030,
             "format": "{number}-{tag}"
           },
-          "proposal": {
+          "quote": {
             "pad": 4,
             "tag": "qt",
             "next": 1057,
@@ -4109,7 +4109,7 @@
             "print_forms": {
               "label": "Print Form Templates",
               "enabled": true,
-              "description": "Invoice, proposal, PO, packing slip, pick list, BOL, statement, and other print templates. WCHQ maintains a library of tested layouts.",
+              "description": "Invoice, quote, PO, packing slip, pick list, BOL, statement, and other print templates. WCHQ maintains a library of tested layouts.",
               "last_sync_utc": "",
               "pending_count": 0,
               "accepted_count": 0,
@@ -4217,7 +4217,7 @@
             "workflow_automation": {
               "label": "Workflow Automation",
               "enabled": true,
-              "description": "Document conversion chains (proposal→order→invoice), approval workflows, notification triggers, scheduled reports.",
+              "description": "Document conversion chains (quote→order→invoice), approval workflows, notification triggers, scheduled reports.",
               "last_sync_utc": "",
               "pending_count": 0,
               "accepted_count": 0,
@@ -5766,8 +5766,8 @@
             "label": "Invoice Actions",
             "options": []
           },
-          "actions_proposals": {
-            "label": "Proposal Actions",
+          "actions_quotes": {
+            "label": "Quote Actions",
             "options": []
           },
           "actions_purchases": {
@@ -5867,10 +5867,10 @@
               "show_balance": true,
               "show_cash_info": true
             },
-            "proposal": {
+            "quote": {
               "template_id": "invoice",
               "validity_days": 30,
-              "title_override": "PROPOSAL",
+              "title_override": "QUOTE",
               "show_terms_and_conditions": true
             },
             "purchase": {
@@ -6187,7 +6187,7 @@
           "last_cost_update": true,
           "order_line_track": true,
           "lead_response_days": 20,
-          "track_proposal_qty": true,
+          "track_quote_qty": true,
           "manual_order_status": false
         },
         "currency": {
@@ -6653,9 +6653,9 @@
               }
             ]
           },
-          "proposal": {
-            "link": "/proposal",
-            "label": "Proposals",
+          "quote": {
+            "link": "/quote",
+            "label": "Quotes",
             "filters": {
               "is_active": true
             },
@@ -6875,7 +6875,7 @@
               [
                 "order",
                 "invoice",
-                "proposal",
+                "quote",
                 "customer",
                 "contact",
                 "cash",
@@ -6891,8 +6891,8 @@
                 "accent": "blue"
               },
               {
-                "to": "/proposal?action=new",
-                "label": "+ Proposal",
+                "to": "/quote?action=new",
+                "label": "+ Quote",
                 "accent": "indigo"
               },
               {
@@ -6960,7 +6960,7 @@
                 "cash"
               ],
               [
-                "proposal",
+                "quote",
                 "receipt",
                 "workorder",
                 "requisition"
@@ -22389,7 +22389,7 @@
           "tips": [
             {
               "id": "cust-01",
-              "body": "Every order, invoice, proposal, and cash links to a customer. Start here.",
+              "body": "Every order, invoice, quote, and cash links to a customer. Start here.",
               "type": "concept",
               "level": "beginner",
               "title": "Customers are the center"
@@ -36236,7 +36236,7 @@
             "terms": "Cash terms — determines due date on the ledger record.",
             "total": "Sum of all line items. Edit lines to change — total recalculates automatically.",
             "config": "Custom settings — alternate ship-to, special handling instructions.",
-            "source": "Origin tracking — which order, proposal, or import created this invoice.",
+            "source": "Origin tracking — which order, quote, or import created this invoice.",
             "status": "planned = draft. released = sent to customer. complete = paid and closed.",
             "totals": "Subtotal, tax, shipping, and grand total. Computed from lines — read-only.",
             "balance": "Total minus cash received. Read-only. Updated when cash are applied.",
@@ -36673,7 +36673,7 @@
                   "field": "parent_model",
                   "label": "parent_model",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -36942,7 +36942,7 @@
                   "family": "sell",
                   "actions": [
                     "apply_cash",
-                    "post_to_proposal",
+                    "post_to_quote",
                     "post_to_po",
                     "clone"
                   ],
@@ -48664,7 +48664,7 @@
             "attention": "Contact name at the customer for this order.",
             "dt_needed": "Customer-requested delivery date. Drives pick list priority.",
             "price_level": "Price tier — flows from customer unless overridden here.",
-            "source_name": "Where this order came from — web, phone, proposal conversion.",
+            "source_name": "Where this order came from — web, phone, quote conversion.",
             "address_full": "Ship-to address. Cmd+click label to open in maps.",
             "conditions_description": "Special order conditions printed on documents."
           },
@@ -49071,7 +49071,7 @@
                   "field": "parent_model",
                   "label": "parent_model",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -56880,7 +56880,7 @@
                   "field": "model_code",
                   "label": "model_code",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -57495,46 +57495,46 @@
     },
     {
       "uuid": "74cd1ed4-9631-4233-b1d5-43a5829dd0ef",
-      "ida": "wc-model-proposal",
-      "name": "Proposal Model Definition",
+      "ida": "wc-model-quote",
+      "name": "Quote Model Definition",
       "scope": "system",
       "purpose": "wc:model",
-      "parent_model": "proposal",
-      "explanation": "Model definition for Proposal. Governs named layouts (list columns, detail fields, ui sections), field behaviors, schema metadata, and access configuration.",
+      "parent_model": "quote",
+      "explanation": "Model definition for Quote. Governs named layouts (list columns, detail fields, ui sections), field behaviors, schema metadata, and access configuration.",
       "paths": {
-        "schema": "common/schemas/proposal.py"
+        "schema": "common/schemas/quote.py"
       },
       "config": {
         "help": {
           "tips": [
             {
               "id": "prop-01",
-              "body": "A proposal is a price quote sent to a customer. If accepted, it converts to an order.",
+              "body": "A quote is a price quote sent to a customer. If accepted, it converts to an order.",
               "type": "concept",
               "level": "beginner",
-              "title": "Proposals are quotes"
+              "title": "Quotes are quotes"
             },
             {
               "id": "prop-02",
-              "body": "Proposal lines show both MSRP and the offered unit price so the customer sees the discount.",
+              "body": "Quote lines show both MSRP and the offered unit price so the customer sees the discount.",
               "type": "concept",
               "level": "beginner",
               "title": "MSRP vs Unit Price"
             }
           ],
           "fields": {
-            "ida": "Proposal number — unique identifier.",
+            "ida": "Quote number — unique identifier.",
             "email": "Contact email. Cmd+click label to compose.",
             "phone": "Contact phone. Cmd+click label to dial.",
             "total": "Proposed total — what the customer would pay if they accept.",
             "status": "planned = draft. released = sent to customer. complete = accepted or expired.",
             "totals": "Subtotal, tax, shipping, total. Computed from lines.",
             "company": "Customer company name.",
-            "attention": "Who at the customer receives this proposal.",
-            "dt_needed": "Proposal expiration or decision-needed date.",
+            "attention": "Who at the customer receives this quote.",
+            "dt_needed": "Quote expiration or decision-needed date.",
             "price_level": "Price tier for this quote — may differ from customer default.",
             "address_full": "Customer address. Cmd+click label to open in maps.",
-            "conditions_description": "Terms and conditions printed on the proposal."
+            "conditions_description": "Terms and conditions printed on the quote."
           }
         },
         "access": {
@@ -57942,7 +57942,7 @@
                   "field": "parent_model",
                   "label": "parent_model",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -58062,7 +58062,7 @@
           },
           "form": {
             "default": {
-              "model": "proposal",
+              "model": "quote",
               "family": "sell",
               "sections": [
                 {
@@ -58130,7 +58130,7 @@
                       ]
                     },
                     {
-                      "title": "proposal",
+                      "title": "quote",
                       "fields": [
                         {
                           "type": "select",
@@ -59756,11 +59756,11 @@
           "metadata",
           "model",
           "named",
-          "proposal",
+          "quote",
           "schema",
           "sections",
           "system",
-          "wc-model-proposal",
+          "wc-model-quote",
           "wc:model",
           "wcmodel"
         ],
@@ -59771,14 +59771,14 @@
     },
     {
       "uuid": "2964240a-8209-4953-96af-2fb3baf7bdcf",
-      "ida": "wc-model-proposal_line",
-      "name": "Proposal Line Model Definition",
+      "ida": "wc-model-quote_line",
+      "name": "Quote Line Model Definition",
       "scope": "system",
       "purpose": "wc:model",
-      "parent_model": "proposal_line",
-      "explanation": "Model definition for Proposal Line. Governs named layouts (list columns, detail fields, ui sections), field behaviors, schema metadata, and access configuration.",
+      "parent_model": "quote_line",
+      "explanation": "Model definition for Quote Line. Governs named layouts (list columns, detail fields, ui sections), field behaviors, schema metadata, and access configuration.",
       "paths": {
-        "schema": "common/schemas/proposal_line.py"
+        "schema": "common/schemas/quote_line.py"
       },
       "config": {
         "access": {
@@ -59819,7 +59819,7 @@
                 "tax",
                 "physical",
                 "price",
-                "proposal"
+                "quote"
               ],
               "create": false,
               "delete": false
@@ -59849,7 +59849,7 @@
                 "tax",
                 "physical",
                 "price",
-                "proposal"
+                "quote"
               ],
               "view": "*",
               "create": true,
@@ -59869,7 +59869,7 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "proposal"
+                "quote"
               ],
               "view": [
                 "id",
@@ -59906,7 +59906,7 @@
                 "tax",
                 "physical",
                 "price",
-                "proposal"
+                "quote"
               ],
               "create": true,
               "delete": false
@@ -59936,7 +59936,7 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "proposal"
+                "quote"
               ],
               "view": "*",
               "create": true,
@@ -59991,7 +59991,7 @@
                 "tax",
                 "physical",
                 "price",
-                "proposal"
+                "quote"
               ],
               "create": false,
               "delete": false
@@ -60071,8 +60071,8 @@
                   "label": "price_level"
                 },
                 {
-                  "field": "proposal",
-                  "label": "proposal"
+                  "field": "quote",
+                  "label": "quote"
                 },
                 {
                   "field": "tax",
@@ -60460,10 +60460,10 @@
             "type": "json",
             "label": "physical"
           },
-          "proposal": {
+          "quote": {
             "type": "lookup",
-            "label": "proposal",
-            "model": "proposal",
+            "label": "quote",
+            "model": "quote",
             "display": "name"
           },
           "quantity": {
@@ -60867,7 +60867,7 @@
               "line_number",
               "line_type",
               "item_fk",
-              "proposal"
+              "quote"
             ]
           },
           {
@@ -61037,13 +61037,13 @@
           "metadata",
           "model",
           "named",
-          "proposal",
-          "proposal_line",
-          "proposalline",
+          "quote",
+          "quote_line",
+          "quoteline",
           "schema",
           "sections",
           "system",
-          "wc-model-proposal_line",
+          "wc-model-quote_line",
           "wc:model",
           "wcmodel"
         ],
@@ -61502,7 +61502,7 @@
                   "field": "parent_model",
                   "label": "parent_model",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -86383,7 +86383,7 @@
                   "field": "parent_model",
                   "label": "parent_model",
                   "options": [
-                    "proposal",
+                    "quote",
                     "order",
                     "invoice",
                     "purchase",
@@ -101595,7 +101595,7 @@
           "keywords_dt_refreshed": 1786401509846
         },
         "audit_trail": [],
-        "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, proposals. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Credit note / reversal document with reason code",
+        "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, quotes. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Credit note / reversal document with reason code",
         "import_data": null,
         "userdefined": {},
         "foundational": true,
@@ -102550,7 +102550,7 @@
           "keywords_dt_refreshed": 1786903303601
         },
         "audit_trail": [],
-        "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, proposals. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Customer invoice with line items, totals, and payment terms",
+        "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, quotes. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Customer invoice with line items, totals, and payment terms",
         "import_data": null,
         "userdefined": {},
         "foundational": true,
@@ -103137,8 +103137,8 @@
             "label": "Parent Model",
             "options": [
               {
-                "label": "Proposal",
-                "value": "proposal"
+                "label": "Quote",
+                "value": "quote"
               },
               {
                 "label": "Order",
@@ -106924,7 +106924,7 @@
           "keywords_dt_refreshed": 1786401510047
         },
         "audit_trail": [],
-        "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, proposals. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Customer order confirmation with line items, pricing, and delivery terms",
+        "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, quotes. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Customer order confirmation with line items, pricing, and delivery terms",
         "import_data": null,
         "userdefined": {},
         "foundational": true,
@@ -107472,8 +107472,8 @@
             "label": "Parent Model",
             "options": [
               {
-                "label": "Proposal",
-                "value": "proposal"
+                "label": "Quote",
+                "value": "quote"
               },
               {
                 "label": "Order",
@@ -110293,7 +110293,7 @@
           "keywords_dt_refreshed": 1786401510661
         },
         "audit_trail": [],
-        "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, proposals. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Payment receipt / proof of payment for customer",
+        "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, quotes. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Payment receipt / proof of payment for customer",
         "import_data": null,
         "userdefined": {},
         "foundational": true,
@@ -111533,22 +111533,22 @@
     },
     {
       "uuid": "00011c75-4e01-430c-befb-9475c3627579",
-      "ida": "MVP-PROPOSAL",
-      "name": "Proposal",
-      "description": "Customer proposal/quote with line items — no AR impact until converted",
-      "model_name": "proposal",
+      "ida": "MVP-QUOTE",
+      "name": "Quote",
+      "description": "Customer quote/quote with line items — no AR impact until converted",
+      "model_name": "quote",
       "record_id": "",
       "output_type": "print",
       "category": "customer_facing",
       "role_required": "",
       "sort_order": 10,
-      "explanation": "Print document template — Proposal. Minimum viable print definition. Config holds template structure, field mappings, and layout for PDF/print output. Used by the print pipeline to generate formatted documents.",
+      "explanation": "Print document template — Quote. Minimum viable print definition. Config holds template structure, field mappings, and layout for PDF/print output. Used by the print pipeline to generate formatted documents.",
       "paths": {},
       "config": {
         "form": {
-          "model": "proposal",
+          "model": "quote",
           "paper": "letter",
-          "title": "Proposal",
+          "title": "Quote",
           "sections": [
             {
               "logo": true,
@@ -111577,11 +111577,11 @@
                   ]
                 },
                 {
-                  "title": "Proposal Info",
+                  "title": "Quote Info",
                   "fields": [
                     {
                       "field": "ida",
-                      "label": "Proposal #"
+                      "label": "Quote #"
                     },
                     {
                       "field": "status",
@@ -111691,7 +111691,7 @@
               "fields": [
                 {
                   "field": "ida",
-                  "label": "Proposal #"
+                  "label": "Quote #"
                 }
               ]
             }
@@ -111739,10 +111739,10 @@
             "fields": [
               "conditions_description"
             ],
-            "acceptance": "To accept this proposal, please sign below and return.\n\nSignature: _________________ Date: _________________"
+            "acceptance": "To accept this quote, please sign below and return.\n\nSignature: _________________ Date: _________________"
           },
           "header": {
-            "title": "Proposal",
+            "title": "Quote",
             "fields": [
               "company_name",
               "company_address",
@@ -111781,14 +111781,14 @@
             "fields": {
               "Date": "dt_created",
               "Terms": "terms",
-              "Proposal #": "ida",
+              "Quote #": "ida",
               "Valid Until": "expiry_date"
             }
           }
         },
-        "template": "proposal",
-        "data_source": "proposal_detail",
-        "document_type": "proposal",
+        "template": "quote",
+        "data_source": "quote_detail",
+        "document_type": "quote",
         "pdfme_template": {
           "basePdf": {
             "width": 215.9,
@@ -111847,7 +111847,7 @@
                 "type": "text",
                 "width": 46,
                 "height": 10,
-                "content": "Proposal",
+                "content": "Quote",
                 "fontSize": 18,
                 "position": {
                   "x": 150,
@@ -111862,7 +111862,7 @@
                 "type": "text",
                 "width": 30,
                 "height": 4,
-                "content": "PROPOSAL #",
+                "content": "QUOTE #",
                 "fontSize": 7,
                 "position": {
                   "x": 14,
@@ -112340,7 +112340,7 @@
                 "type": "text",
                 "width": 182,
                 "height": 10,
-                "content": "To accept this proposal, sign below and return.   Signature: _________________   Date: _________________",
+                "content": "To accept this quote, sign below and return.   Signature: _________________   Date: _________________",
                 "fontSize": 8,
                 "position": {
                   "x": 14,
@@ -112414,7 +112414,7 @@
           "keywords_dt_refreshed": 1786401510869
         },
         "audit_trail": [],
-        "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, proposals. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Customer proposal/quote with line items — no AR impact until converted",
+        "explanation": "Customer-facing document template. Generates output that customers see — invoices, statements, order confirmations, quotes. The template defines layout, fields, and formatting. Data is populated from the transaction record at print/email time. This report: Customer quote/quote with line items — no AR impact until converted",
         "import_data": null,
         "userdefined": {},
         "foundational": true,
@@ -112445,8 +112445,8 @@
           "line",
           "mvp",
           "print",
-          "proposal",
-          "proposal/quote",
+          "quote",
+          "quote/quote",
           "until"
         ],
         "categories": [],
@@ -112461,18 +112461,18 @@
     },
     {
       "uuid": "052e0b21-b6d6-479b-8f6a-46e250419c62",
-      "ida": "FORM-PROPOSAL",
-      "name": "Proposal Form",
-      "description": "Screen form layout for proposal",
-      "model_name": "proposal",
+      "ida": "FORM-QUOTE",
+      "name": "Quote Form",
+      "description": "Screen form layout for quote",
+      "model_name": "quote",
       "record_id": "",
       "output_type": "screen",
       "category": "form",
       "role_required": "",
       "sort_order": 0,
-      "explanation": "React detail form definition for proposal. Config.fields defines the field layout — which fields appear, their order, grouping, and widget types. Config.rows defines row grouping for the form display. Read by DynamicDetail to render the record edit/view page.",
+      "explanation": "React detail form definition for quote. Config.fields defines the field layout — which fields appear, their order, grouping, and widget types. Config.rows defines row grouping for the form display. Read by DynamicDetail to render the record edit/view page.",
       "paths": {
-        "schema": "common/schemas/proposal.py"
+        "schema": "common/schemas/quote.py"
       },
       "config": {
         "rows": [
@@ -112850,8 +112850,8 @@
             "label": "Parent Model",
             "options": [
               {
-                "label": "Proposal",
-                "value": "proposal"
+                "label": "Quote",
+                "value": "quote"
               },
               {
                 "label": "Order",
@@ -112959,7 +112959,7 @@
         },
         "versioning": {},
         "audit_trail": [],
-        "explanation": "Printable form template. Structured input documents — purchase orders, work orders, receiving forms, inspection checklists. Includes data fields plus blank areas for handwritten notes. This report: Screen form layout for proposal",
+        "explanation": "Printable form template. Structured input documents — purchase orders, work orders, receiving forms, inspection checklists. Includes data fields plus blank areas for handwritten notes. This report: Screen form layout for quote",
         "import_data": null,
         "userdefined": {},
         "foundational": true,
@@ -112993,9 +112993,9 @@
     {
       "uuid": "ca989279-717e-4c47-8798-e695e1e80b61",
       "ida": "493",
-      "name": "Proposal Email",
-      "description": "Email proposal to customer for review",
-      "model_name": "proposal",
+      "name": "Quote Email",
+      "description": "Email quote to customer for review",
+      "model_name": "quote",
       "record_id": "",
       "output_type": "email",
       "category": "letter",
@@ -113004,7 +113004,7 @@
       "explanation": "",
       "paths": {},
       "config": {
-        "template": "proposal_email"
+        "template": "quote_email"
       },
       "metadata": {
         "flow": {},
@@ -113096,7 +113096,7 @@
           "email",
           "letter",
           "plain",
-          "proposal",
+          "quote",
           "review",
           "seed"
         ],
@@ -113115,7 +113115,7 @@
       "ida": "492",
       "name": "Bid Document",
       "description": "Formal bid response with specifications and pricing",
-      "model_name": "proposal",
+      "model_name": "quote",
       "record_id": "",
       "output_type": "print",
       "category": "report",
@@ -113218,7 +113218,7 @@
           "plain",
           "pricing",
           "print",
-          "proposal",
+          "quote",
           "report",
           "response",
           "seed",
@@ -113239,7 +113239,7 @@
       "ida": "491",
       "name": "Estimate",
       "description": "Estimate without binding terms — for budgeting purposes",
-      "model_name": "proposal",
+      "model_name": "quote",
       "record_id": "",
       "output_type": "print",
       "category": "report",
@@ -113341,7 +113341,7 @@
           "estimate",
           "plain",
           "print",
-          "proposal",
+          "quote",
           "purposes",
           "report",
           "seed",
@@ -113361,9 +113361,9 @@
     {
       "uuid": "ccc6311d-337d-40f2-ac81-27da76e66cd1",
       "ida": "490",
-      "name": "Proposal / Quote",
-      "description": "Sales proposal with pricing, terms, and acceptance signature",
-      "model_name": "proposal",
+      "name": "Quote / Quote",
+      "description": "Sales quote with pricing, terms, and acceptance signature",
+      "model_name": "quote",
       "record_id": "",
       "output_type": "print",
       "category": "report",
@@ -113372,8 +113372,8 @@
       "explanation": "",
       "paths": {},
       "config": {
-        "route": "/transactions/proposal/print/{id}",
-        "template": "proposal"
+        "route": "/transactions/quote/print/{id}",
+        "template": "quote"
       },
       "metadata": {
         "flow": {},
@@ -113465,7 +113465,7 @@
           "plain",
           "pricing",
           "print",
-          "proposal",
+          "quote",
           "quote",
           "report",
           "sales",
@@ -113485,18 +113485,18 @@
     },
     {
       "uuid": "0aa62e43-c3d0-49e3-92d9-5752169e593d",
-      "ida": "FORM-PROPOSALLINE",
-      "name": "ProposalLine Form",
-      "description": "Screen form layout for proposalline",
-      "model_name": "proposalline",
+      "ida": "FORM-QUOTELINE",
+      "name": "QuoteLine Form",
+      "description": "Screen form layout for quoteline",
+      "model_name": "quoteline",
       "record_id": "",
       "output_type": "screen",
       "category": "form",
       "role_required": "",
       "sort_order": 0,
-      "explanation": "React detail form definition for proposalline. Config.fields defines the field layout — which fields appear, their order, grouping, and widget types. Config.rows defines row grouping for the form display. Read by DynamicDetail to render the record edit/view page.",
+      "explanation": "React detail form definition for quoteline. Config.fields defines the field layout — which fields appear, their order, grouping, and widget types. Config.rows defines row grouping for the form display. Read by DynamicDetail to render the record edit/view page.",
       "paths": {
-        "schema": "common/schemas/proposalline.py"
+        "schema": "common/schemas/quoteline.py"
       },
       "config": {
         "rows": [
@@ -113594,7 +113594,7 @@
             "cols": 2,
             "fields": [
               "item_fk",
-              "proposal"
+              "quote"
             ]
           },
           {
@@ -113654,9 +113654,9 @@
             "type": "json-text",
             "label": "Physical"
           },
-          "proposal": {
+          "quote": {
             "type": "readonly",
-            "label": "Proposal"
+            "label": "Quote"
           },
           "quantity": {
             "type": "json-text",
@@ -113800,7 +113800,7 @@
         },
         "versioning": {},
         "audit_trail": [],
-        "explanation": "Printable form template. Structured input documents — purchase orders, work orders, receiving forms, inspection checklists. Includes data fields plus blank areas for handwritten notes. This report: Screen form layout for proposalline",
+        "explanation": "Printable form template. Structured input documents — purchase orders, work orders, receiving forms, inspection checklists. Includes data fields plus blank areas for handwritten notes. This report: Screen form layout for quoteline",
         "import_data": null,
         "userdefined": {},
         "foundational": true,
@@ -114332,8 +114332,8 @@
             "label": "Parent Model",
             "options": [
               {
-                "label": "Proposal",
-                "value": "proposal"
+                "label": "Quote",
+                "value": "quote"
               },
               {
                 "label": "Order",
@@ -118836,14 +118836,14 @@
       "uuid": "0e354dc0-b906-4b81-b49b-7cb184664f68",
       "ida": "admin-tool-seed-demo-transactions",
       "name": "Seed Demo Transactions",
-      "description": "Create 3 complete transaction cycles: proposal → order → invoice → cash → GL.",
+      "description": "Create 3 complete transaction cycles: quote → order → invoice → cash → GL.",
       "model_name": "setting",
       "record_id": "",
       "output_type": "json",
       "category": "utility",
       "role_required": "admin",
       "sort_order": 80,
-      "explanation": "Creates 3 transaction cycles using items and contacts from seed_demo: Riverside Sports (fully paid), Metro Baseball Academy (split payment), Eastside Little League (single payment). Each cycle: proposal → order → invoice → payment → GL journal entries. All tagged refs.source=\"demo-baseline\".",
+      "explanation": "Creates 3 transaction cycles using items and contacts from seed_demo: Riverside Sports (fully paid), Metro Baseball Academy (split payment), Eastside Little League (single payment). Each cycle: quote → order → invoice → payment → GL journal entries. All tagged refs.source=\"demo-baseline\".",
       "paths": {},
       "config": {
         "command": "seed_demo_transactions",
@@ -118967,7 +118967,7 @@
           "paid",
           "cash",
           "plain",
-          "proposal",
+          "quote",
           "refs.source=\"demo-baseline",
           "riverside",
           "seed",
@@ -120675,7 +120675,7 @@
       "uuid": "0170966f-e029-456d-a9b5-a7dfc0b5c473",
       "ida": "466",
       "name": "Quote Attached",
-      "description": "Send a quote or proposal",
+      "description": "Send a quote or quote",
       "model_name": "touch",
       "record_id": "",
       "output_type": "print",
@@ -120781,7 +120781,7 @@
           "email",
           "plain",
           "print",
-          "proposal",
+          "quote",
           "quote",
           "send",
           "touch",

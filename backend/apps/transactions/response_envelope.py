@@ -166,7 +166,7 @@ def wrap_error_response(
     
     Example:
         return wrap_error_response(
-            message="Invalid proposal status",
+            message="Invalid quote status",
             status_code=400,
             error_code="INVALID_STATUS",
             details={"current_status": "canceled"},

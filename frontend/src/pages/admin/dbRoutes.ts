@@ -5,7 +5,7 @@ import React from 'react';
 export const APP_DETAIL_ROUTES: Record<string, string> = {
   order: '/order',
   invoice: '/invoice',
-  proposal: '/proposal',
+  quote: '/quote',
   purchase: '/purchase',
   workorder: '/workorder',
   receipt: '/receipt',
@@ -40,7 +40,7 @@ export const APP_DETAIL_COMPONENTS: Record<string, React.LazyExoticComponent<Rea
   item: React.lazy(() => import('@/components/common/ModelDetailPage')),
   serial_log: React.lazy(() => import('@/apps/products/models/serial/pages/SerialDisplay')),
   // Transactions
-  proposal: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
+  quote: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
   order: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
   invoice: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
   purchase: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),

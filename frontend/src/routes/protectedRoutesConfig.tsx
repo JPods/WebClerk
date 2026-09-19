@@ -106,8 +106,8 @@ export const protectedRoutesConfig = [
   { path: "/accounting", element: <DDCardDashboard dashboardName="accounting" /> },
 
   // User-facing: Transactions — lists via DataBrowser, details via custom pages
-  { path: PageRoutes.transactionsProposalList, element: <Navigate to="/proposal" replace /> },
-  { path: PageRoutes.transactionsProposalDetail, element: <S><UiDetail modelName="proposal" /></S> },
+  { path: PageRoutes.transactionsQuoteList, element: <Navigate to="/quote" replace /> },
+  { path: PageRoutes.transactionsQuoteDetail, element: <S><UiDetail modelName="quote" /></S> },
   { path: PageRoutes.transactionsOrderList, element: <Navigate to="/order" replace /> },
   { path: PageRoutes.transactionsOrderDetail, element: <S><UiDetail modelName="order" /></S> },
   { path: PageRoutes.transactionsInvoiceList, element: <Navigate to="/invoice" replace /> },
@@ -149,7 +149,7 @@ export const protectedRoutesConfig = [
   // /:model/:id = record detail pages
   { path: "/order/:id", element: <S><UiDetail modelName="order" /></S> },
   { path: "/invoice/:id", element: <S><UiDetail modelName="invoice" /></S> },
-  { path: "/proposal/:id", element: <S><UiDetail modelName="proposal" /></S> },
+  { path: "/quote/:id", element: <S><UiDetail modelName="quote" /></S> },
   { path: "/purchase/:id", element: <S><UiDetail modelName="purchase" /></S> },
   { path: "/workorder/:id", element: <S><UiDetail modelName="workorder" /></S> },
   { path: "/receipt/:id", element: <S><UiDetail modelName="receipt" /></S> },

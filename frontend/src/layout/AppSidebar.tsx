@@ -52,7 +52,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   manufacturer: Factory,
   employee: Briefcase,
   rep: Briefcase,
-  proposal: ClipboardList,
+  quote: ClipboardList,
   order: ShoppingCart,
   invoice: FileText,
   purchase: CreditCard,
@@ -183,7 +183,7 @@ const AppSidebar: React.FC = () => {
   const PORTAL_DASHBOARDS = ['portal', 'kanban', 'gantt'];
 
   // All available items — superset the user can pick from
-  const ALL_MODELS = ['agenda', 'proposal', 'order', 'invoice', 'purchase', 'receipt', 'requisition', 'workorder', 'cash', 'action', 'contact', 'customer', 'vendor', 'manufacturer', 'employee', 'rep', 'item', 'serial', 'setting'];
+  const ALL_MODELS = ['agenda', 'quote', 'order', 'invoice', 'purchase', 'receipt', 'requisition', 'workorder', 'cash', 'action', 'contact', 'customer', 'vendor', 'manufacturer', 'employee', 'rep', 'item', 'serial', 'setting'];
   const ALL_DASHBOARDS = ['dashboard', 'products', 'transactions', 'orgs', 'administration', 'alice', 'kanban', 'gantt', 'databrowser', 'json', 'accounting', 'flight-simulator'];
 
   const [editingSection, setEditingSection] = useState<'models' | 'dashboards' | null>(null);
@@ -192,7 +192,7 @@ const AppSidebar: React.FC = () => {
 
   const savedModels: string[] = isPortal
     ? (isCustomer ? PORTAL_CUSTOMER_MODELS : isVendor ? PORTAL_VENDOR_MODELS : ['contact', 'action'])
-    : getUI<string[]>('navbar.models', ['agenda', 'proposal', 'order', 'invoice', 'purchase', 'action']);
+    : getUI<string[]>('navbar.models', ['agenda', 'quote', 'order', 'invoice', 'purchase', 'action']);
   const savedDashboards: string[] = isPortal
     ? PORTAL_DASHBOARDS
     : getUI<string[]>('navbar.dashboards', ['dashboard', 'products', 'transactions', 'orgs', 'administration', 'kanban', 'gantt', 'alice', 'databrowser', 'json']);

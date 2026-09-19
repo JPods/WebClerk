@@ -57,7 +57,7 @@ export type EntityType =
   | "order"
   | "invoice"
   | "purchase"
-  | "proposal"
+  | "quote"
   | "workorder"
   | "workorder"
   // Products
@@ -205,7 +205,7 @@ export interface EntityRefs {
     order?: RefLink[];
     invoice?: RefLink[];
     purchase?: RefLink[];
-    proposal?: RefLink[];
+    quote?: RefLink[];
     workorder?: RefLink[];
     item?: RefLink[];
     email?: RefLink[];

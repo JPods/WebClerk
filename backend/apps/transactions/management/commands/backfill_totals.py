@@ -12,14 +12,14 @@ Usage:
 from django.core.management.base import BaseCommand
 from django.db.models import Q
 from apps.transactions.models import (
-    Invoice, Order, Proposal, Purchase, WorkOrder
+    Invoice, Order, Quote, Purchase, WorkOrder
 )
 
 
 MODEL_MAP = {
     'invoice': Invoice,
     'order': Order,
-    'proposal': Proposal,
+    'quote': Quote,
     'purchase': Purchase,
     'workorder': WorkOrder,
 }
@@ -53,7 +53,7 @@ class Command(BaseCommand):
         if options['model']:
             models = [MODEL_MAP[options['model']]]
         else:
-            models = [Invoice, Order, Proposal, Purchase, WorkOrder]
+            models = [Invoice, Order, Quote, Purchase, WorkOrder]
 
         total_backfilled = 0
 

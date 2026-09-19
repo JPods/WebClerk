@@ -28,7 +28,7 @@ const VCardImportDialog = React.lazy(() => import("../../components/common/VCard
 
 interface TransactionRow {
   id: string;
-  type: "item" | "proposal_line" | "order_line" | "invoice_line" | "purchase_line" | "workorder_line" | "pending";
+  type: "item" | "quote_line" | "order_line" | "invoice_line" | "purchase_line" | "workorder_line" | "pending";
   label: string;
   on_hand: number | string;
   on_p: number | string;
@@ -120,17 +120,17 @@ const SIMULATIONS: SimulationDef[] = [
   {
     id: "first-sale",
     label: "3. Your First Sale",
-    description: "Create a Proposal for 15 units, convert 9 to an Order — watch on_p and on_so change",
+    description: "Create a Quote for 15 units, convert 9 to an Order — watch on_p and on_so change",
     needsItem: true,
-    firstModel: "proposal",
+    firstModel: "quote",
   },
   // ── Phase 2: Sell Side ──
   {
     id: "inventory",
     label: "4. Inventory Quantity Tracking",
-    description: "Proposal → Order → Invoice → Purchase → Receive — watch on_hand, on_so, on_po, pending, and GL change at each step",
+    description: "Quote → Order → Invoice → Purchase → Receive — watch on_hand, on_so, on_po, pending, and GL change at each step",
     needsItem: true,
-    firstModel: "proposal",
+    firstModel: "quote",
   },
   {
     id: "cash",
@@ -215,7 +215,7 @@ interface SimDoc {
 const MAX_DOC_CHIPS = 6;
 
 /** Documents that get a chip. The ida names the type (1023-inv), so the chip shows the ida. */
-const DOC_MODELS = new Set(["proposal", "order", "invoice", "purchase", "workorder"]);
+const DOC_MODELS = new Set(["quote", "order", "invoice", "purchase", "workorder"]);
 
 /** Refresh control for a panel section. All three panels come from one call,
  *  so each button refreshes the same data. */

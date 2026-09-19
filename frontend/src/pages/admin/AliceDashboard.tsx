@@ -370,8 +370,8 @@ export default function AliceDashboard() {
             <div className="p-4 border-t border-indigo-200 dark:border-indigo-800">
               {[
                 { title: 'Core Commerce Flow', charts: [
-                  { name: 'Master Commerce Flow', file: 'wc3-master-flow', desc: 'Market → Contact → Proposal → Order → Invoice → Cash → GL' },
-                  { name: 'Big 4 Transactions', file: 'wc3-big4-transactions', desc: 'Proposal/Order/Purchase/Invoice line quantities and pending inventory' },
+                  { name: 'Master Commerce Flow', file: 'wc3-master-flow', desc: 'Market → Contact → Quote → Order → Invoice → Cash → GL' },
+                  { name: 'Big 4 Transactions', file: 'wc3-big4-transactions', desc: 'Quote/Order/Purchase/Invoice line quantities and pending inventory' },
                   { name: 'Order to Invoice', file: 'wc3-order-to-invoice', desc: 'Customer → verify → order → production → backorder/invoice' },
                   { name: 'Customer-Centered Sales', file: 'wc3-customer-centered-sales', desc: 'Commerce from the customer perspective' },
                 ]},
@@ -1017,7 +1017,7 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
               { name: 'Packing Slip', model: 'order', cat: 'operations', desc: 'Shipment list — items and quantities, no prices' },
               { name: 'Purchase Order', model: 'purchase', cat: 'vendor_facing', desc: 'Vendor-facing PO with costs' },
               { name: 'Receiving Report', model: 'purchase', cat: 'operations', desc: 'What arrived vs. what was ordered' },
-              { name: 'Proposal', model: 'proposal', cat: 'customer_facing', desc: 'Quote with acceptance signature block' },
+              { name: 'Quote', model: 'quote', cat: 'customer_facing', desc: 'Quote with acceptance signature block' },
               { name: 'Requisition', model: 'requisition', cat: 'operations', desc: 'Internal purchase request with approvals' },
               { name: 'Work Order', model: 'workorder', cat: 'operations', desc: 'Job ticket with materials and labor' },
               { name: 'Cash Receipt', model: 'cash', cat: 'customer_facing', desc: 'Proof of cash with applied invoices' },

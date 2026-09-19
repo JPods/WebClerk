@@ -6,7 +6,7 @@ import pytest
 pytestmark = pytest.mark.skip(reason="Line aggregation/auth endpoints not yet implemented (/tx/ prefix does not exist)")
 from rest_framework.test import APIClient
 from apps.transactions.models import (
-    Proposal, ProposalLine,
+    Quote, QuoteLine,
     Order, OrderLine,
     Invoice, InvoiceLine,
     Purchase, PurchaseLine,
@@ -26,16 +26,16 @@ def _auth(user):
 
 @pytest.mark.django_db
 def test_line_aggregation_simple(django_user_model):
-    # Allow minimal view for aggregation auth (proposal_line & order_line)
-    make_setting(purpose='wc:view_edit', parent_model='proposal_line', is_active=True,
+    # Allow minimal view for aggregation auth (quote_line & order_line)
+    make_setting(purpose='wc:view_edit', parent_model='quote_line', is_active=True,
                            config={"USER": {"view": ["id"], "edit": []}})
     make_setting(purpose='wc:view_edit', parent_model='order_lines', is_active=True,
                            config={"USER": {"view": ["id"], "edit": []}})
-    parent = Proposal.objects.create(name="P1")
+    parent = Quote.objects.create(name="P1")
     # Create two lines under the same parent with mixed numeric/string extended values
-    ProposalLine.objects.create(proposal=parent, status='OPEN',
+    QuoteLine.objects.create(quote=parent, status='OPEN',
                                 price={"extended": "10.50"}, cost={"extended": 5})
-    ProposalLine.objects.create(proposal=parent, status='OPEN',
+    QuoteLine.objects.create(quote=parent, status='OPEN',
                                 price={"extended": 2}, cost={"extended": "1.25"})
     client = _auth(user)
     resp = client.get(f'/tx/lines/aggregate/?parent_ref_id={parent.pk}')
@@ -69,13 +69,13 @@ def test_multi_model_permission_order_line(django_user_model):
 @pytest.mark.django_db
 def test_public_fallback(django_user_model):
     # No USER key; should fallback to PUBLIC
-    make_setting(purpose='wc:view_edit', parent_model='proposal_line', is_active=True,
+    make_setting(purpose='wc:view_edit', parent_model='quote_line', is_active=True,
                            config={"PUBLIC": {"view": ["id", "status"], "edit": []}})
     user = django_user_model.objects.create_user(email='pub@example.com', password='pass12345', role='USER')
-    parent = Proposal.objects.create(name="P2")
-    ProposalLine.objects.create(proposal=parent, status='OPEN')
+    parent = Quote.objects.create(name="P2")
+    QuoteLine.objects.create(quote=parent, status='OPEN')
     client = _auth(user)
-    resp = client.get(f'/tx/proposal-lines/?parent_ref_id={parent.pk}')
+    resp = client.get(f'/tx/quote-lines/?parent_ref_id={parent.pk}')
     assert resp.status_code == 200  # type: ignore[attr-defined]
     payload = resp.data  # type: ignore[attr-defined]
     item = payload['data']['results'][0]
@@ -83,18 +83,18 @@ def test_public_fallback(django_user_model):
 
 @pytest.mark.django_db
 def test_scoped_aggregation(django_user_model):
-    make_setting(purpose='wc:view_edit', parent_model='proposal_line', is_active=True,
+    make_setting(purpose='wc:view_edit', parent_model='quote_line', is_active=True,
                            config={"USER": {"view": ["id"], "edit": []}})
     make_setting(purpose='wc:view_edit', parent_model='invoice_line', is_active=True,
                            config={"USER": {"view": ["id"], "edit": []}})
     user = django_user_model.objects.create_user(email='scope@example.com', password='pass12345', role='USER')
-    parent = Proposal.objects.create(name="P3")
+    parent = Quote.objects.create(name="P3")
     inv_parent = Invoice.objects.create()
-    ProposalLine.objects.create(proposal=parent, status='OPEN', price={'extended': '3'}, cost={'extended': '1'})
+    QuoteLine.objects.create(quote=parent, status='OPEN', price={'extended': '3'}, cost={'extended': '1'})
     InvoiceLine.objects.create(invoice=inv_parent, status='OPEN', price={'extended': '7'}, cost={'extended': '2'})
     client = _auth(user)
     # Unscoped will sum both if parent_ref_ids collide; ensure different IDs first
-    resp_scoped = client.get(f'/tx/lines/aggregate/?parent_ref_id={parent.pk}&model=proposal-line')
+    resp_scoped = client.get(f'/tx/lines/aggregate/?parent_ref_id={parent.pk}&model=quote-line')
     assert resp_scoped.status_code == 200  # type: ignore[attr-defined]
     scoped_payload = resp_scoped.data  # type: ignore[attr-defined]
     assert scoped_payload.get('status') == 'success'
@@ -132,13 +132,13 @@ def test_permissions_remaining_line_models(django_user_model):
 @pytest.mark.django_db
 def test_negative_edit_error_detail(django_user_model):
     # USER can edit only status
-    make_setting(purpose='wc:view_edit', parent_model='proposal_line', is_active=True,
+    make_setting(purpose='wc:view_edit', parent_model='quote_line', is_active=True,
                            config={"USER": {"view": ["id","status","probability"], "edit": ["status"]}})
     user = django_user_model.objects.create_user(email='neg@example.com', password='pass12345', role='USER')
-    parent = Proposal.objects.create(name='NP')
-    line = ProposalLine.objects.create(proposal=parent, status='OPEN', probability=50)
+    parent = Quote.objects.create(name='NP')
+    line = QuoteLine.objects.create(quote=parent, status='OPEN', probability=50)
     client = _auth(user)
-    resp = client.patch(f'/tx/proposal-lines/{line.pk}/', {"status": "CLOSED", "probability": 10}, format='json')
+    resp = client.patch(f'/tx/quote-lines/{line.pk}/', {"status": "CLOSED", "probability": 10}, format='json')
     # Expect 400 with per-field errors for probability only
     assert resp.status_code == 400  # type: ignore[attr-defined]
     payload = resp.data  # type: ignore[attr-defined]
@@ -154,11 +154,11 @@ def test_negative_edit_error_detail(django_user_model):
 
 @pytest.mark.django_db
 def test_aggregation_invalid_model(django_user_model):
-    make_setting(purpose='wc:view_edit', parent_model='proposal_line', is_active=True,
+    make_setting(purpose='wc:view_edit', parent_model='quote_line', is_active=True,
                            config={"USER": {"view": ["id"], "edit": []}})
     user = django_user_model.objects.create_user(email='badagg@example.com', password='pass12345', role='USER')
-    parent = Proposal.objects.create(name='BadAgg')
-    ProposalLine.objects.create(proposal=parent, status='OPEN')
+    parent = Quote.objects.create(name='BadAgg')
+    QuoteLine.objects.create(quote=parent, status='OPEN')
     client = _auth(user)
     resp = client.get(f'/tx/lines/aggregate/?parent_ref_id={parent.pk}&model=not-a-model')
     assert resp.status_code == 400  # type: ignore[attr-defined]
@@ -167,7 +167,7 @@ def test_aggregation_invalid_model(django_user_model):
 
 @pytest.mark.django_db
 def test_unscoped_aggregation_breakdown(django_user_model):
-    for tbl in ['proposal_line','order_lines']:
+    for tbl in ['quote_line','order_lines']:
         make_setting(
             purpose='wc:view_edit',
             parent_model=tbl,
@@ -175,60 +175,60 @@ def test_unscoped_aggregation_breakdown(django_user_model):
             config={"USER": {"view": ["id"], "edit": []}}
         )
     user = django_user_model.objects.create_user(email='breakdown@example.com', password='pass12345', role='USER')
-    proposal = Proposal.objects.create(name='BD')
+    quote = Quote.objects.create(name='BD')
     order = Order.objects.create(order_no='BD1')
-    ProposalLine.objects.create(proposal=proposal, status='OPEN', price={'extended':'2'}, cost={'extended':'1'})
+    QuoteLine.objects.create(quote=quote, status='OPEN', price={'extended':'2'}, cost={'extended':'1'})
     OrderLine.objects.create(order=order, status='OPEN', price={'extended':'3'}, cost={'extended':'2'})
     client = _auth(user)
-    # Use proposal parent_ref_id so only proposal line counts; breakdown should reflect just that model
-    resp = client.get(f'/tx/lines/aggregate/?parent_ref_id={proposal.pk}')
+    # Use quote parent_ref_id so only quote line counts; breakdown should reflect just that model
+    resp = client.get(f'/tx/lines/aggregate/?parent_ref_id={quote.pk}')
     assert resp.status_code == 200  # type: ignore[attr-defined]
     data = resp.data  # type: ignore[attr-defined]
     assert 'breakdown' in data['data']
-    assert 'proposal-line' in data['data']['breakdown']
-    assert data['data']['breakdown']['proposal-line']['price_extended'] == '2'
+    assert 'quote-line' in data['data']['breakdown']
+    assert data['data']['breakdown']['quote-line']['price_extended'] == '2'
 
 
 @pytest.mark.django_db
 def test_scoped_aggregation_with_breakdown_and_ttl_override(django_user_model):
-    make_setting(purpose='wc:view_edit', parent_model='proposal_line', is_active=True,
+    make_setting(purpose='wc:view_edit', parent_model='quote_line', is_active=True,
                            config={"USER": {"view": ["id"], "edit": []}})
     user = django_user_model.objects.create_user(email='scopedbd@example.com', password='pass12345', role='USER')
-    proposal = Proposal.objects.create(name='SBD')
-    ProposalLine.objects.create(proposal=proposal, status='OPEN', price={'extended':'5'}, cost={'extended':'2'})
+    quote = Quote.objects.create(name='SBD')
+    QuoteLine.objects.create(quote=quote, status='OPEN', price={'extended':'5'}, cost={'extended':'2'})
     client = _auth(user)
-    resp = client.get(f'/tx/lines/aggregate/?parent_ref_id={proposal.pk}&model=proposal-line&include_breakdown=1&ttl=15')
+    resp = client.get(f'/tx/lines/aggregate/?parent_ref_id={quote.pk}&model=quote-line&include_breakdown=1&ttl=15')
     assert resp.status_code == 200  # type: ignore[attr-defined]
     data = resp.data  # type: ignore[attr-defined]
-    assert data['data']['model'] == 'proposal-line'
-    assert 'breakdown' in data['data'] and 'proposal-line' in data['data']['breakdown']
+    assert data['data']['model'] == 'quote-line'
+    assert 'breakdown' in data['data'] and 'quote-line' in data['data']['breakdown']
     assert data['data']['ttl_seconds'] == 15
 
 
 
 @pytest.mark.django_db
 def test_field_auth_matrix_batch(django_user_model):
-    make_setting(purpose='wc:view_edit', parent_model='proposal_line', is_active=True,
+    make_setting(purpose='wc:view_edit', parent_model='quote_line', is_active=True,
                            config={"USER": {"view": ["id","status"], "edit": ["status"]}})
     make_setting(purpose='wc:view_edit', parent_model='order_lines', is_active=True,
                            config={"USER": {"view": ["id"], "edit": []}})
     user = django_user_model.objects.create_user(email='batch@example.com', password='pass12345', role='USER')
     client = _auth(user)
-    resp = client.get('/tx/auth/fields/batch/?models=proposal-line,order-line,missing-line')
+    resp = client.get('/tx/auth/fields/batch/?models=quote-line,order-line,missing-line')
     assert resp.status_code == 200  # type: ignore[attr-defined]
     data = resp.data  # type: ignore[attr-defined]
     models_block = data['data']['models']
-    assert 'proposal-line' in models_block and 'order-line' in models_block
+    assert 'quote-line' in models_block and 'order-line' in models_block
     assert models_block['missing-line']['error'] == 'invalid-model'
 
 @pytest.mark.django_db
 def test_field_auth_matrix_batch_post(django_user_model):
-    make_setting(purpose='wc:view_edit', parent_model='proposal_line', is_active=True,
+    make_setting(purpose='wc:view_edit', parent_model='quote_line', is_active=True,
                            config={"USER": {"view": ["id","status"], "edit": ["status"]}})
     user = django_user_model.objects.create_user(email='batchpost@example.com', password='pass12345', role='USER')
     client = _auth(user)
-    resp = client.post('/tx/auth/fields/batch/', {"models": ["proposal-line", "missing-line"]}, format='json')
+    resp = client.post('/tx/auth/fields/batch/', {"models": ["quote-line", "missing-line"]}, format='json')
     assert resp.status_code == 200  # type: ignore[attr-defined]
     data = resp.data  # type: ignore[attr-defined]
     models_block = data['data']['models']
-    assert 'proposal-line' in models_block and models_block['missing-line']['error'] == 'invalid-model'
+    assert 'quote-line' in models_block and models_block['missing-line']['error'] == 'invalid-model'

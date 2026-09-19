@@ -1,12 +1,12 @@
 """
 Document Conversion Chain — the fundamental commerce workflow.
 
-    Proposal → Order → Invoice → Cash
+    Quote → Order → Invoice → Cash
                 Order → Purchase (procurement / drop-ship)
-    Proposal → Invoice (over-the-counter, skip order)
+    Quote → Invoice (over-the-counter, skip order)
 
 This module is the public API for all document conversions.  It delegates
-to the existing transfer infrastructure (transfer.py, proposal_to_order.py,
+to the existing transfer infrastructure (transfer.py, quote_to_order.py,
 order_to_invoice.py, order_to_purchase.py) where possible, and adds:
 
   - Commission carry-forward (set at earliest point, flows downstream)
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-# Fields copied from source header to target header (sell-side: proposal→order→invoice)
+# Fields copied from source header to target header (sell-side: quote→order→invoice)
 # Customer data transfers — same party through the sell chain.
 _HEADER_COPY_FIELDS_SELL = (
     "customer", "customer_id", "contact_id",
@@ -85,7 +85,7 @@ class ConversionError(Exception):
 def _get_model(model_name: str):
     """Resolve a transaction model by lowercase name."""
     name_map = {
-        "proposal": "Proposal",
+        "quote": "Quote",
         "order": "Order",
         "invoice": "Invoice",
         "purchase": "Purchase",
@@ -100,7 +100,7 @@ def _get_model(model_name: str):
 def _get_line_model(model_name: str):
     """Resolve a transaction line model by lowercase name."""
     name_map = {
-        "proposal": "ProposalLine",
+        "quote": "QuoteLine",
         "order": "OrderLine",
         "invoice": "InvoiceLine",
         "purchase": "PurchaseLine",
@@ -113,7 +113,7 @@ def _get_line_model(model_name: str):
 
 def _get_line_fk_field(model_name: str) -> str:
     """Return the FK field name on the line model that points to the header."""
-    return model_name  # proposal, order, invoice, purchase
+    return model_name  # quote, order, invoice, purchase
 
 
 def _get_lines(header, model_name: str, line_ids: Optional[List[int]] = None):
@@ -180,7 +180,7 @@ def _copy_line(
         target_header: the target header instance
         target_fk_field: FK field name on the target line (e.g. "order")
         TargetLineModel: the target line model class
-        is_sell_side: True for proposal/order/invoice, False for purchase
+        is_sell_side: True for quote/order/invoice, False for purchase
         qty_override: if set, use this qty instead of source remaining
 
     Returns:
@@ -254,17 +254,17 @@ def _apply_inventory_adjustments(
     """Apply inventory adjustments through the ONE PATH (Pending).
 
     Inventory bucket semantics:
-      on_p    = proposal forecast
+      on_p    = quote forecast
       on_so   = sales order commitment
       on_po   = purchase order commitment
       on_hand = physical inventory
       on_in   = invoiced (shipped)
 
     Conversion impacts:
-      proposal → order:   on_p -= qty,  on_so += qty
+      quote → order:   on_p -= qty,  on_so += qty
       order → invoice:    on_so -= qty, on_hand -= qty
       order → purchase:   on_po += qty
-      proposal → invoice: on_p -= qty,  on_hand -= qty
+      quote → invoice: on_p -= qty,  on_hand -= qty
     """
     from apps.core.models import Pending
 
@@ -275,14 +275,14 @@ def _apply_inventory_adjustments(
     # target line's own save path via _create_pending_for_new_line.
     # Do NOT double-count by adjusting both here.
     adjustments_map = {
-        ("proposal", "order"): [
+        ("quote", "order"): [
             {"field": "on_p", "sign": -1},
         ],
         ("order", "invoice"): [
             {"field": "on_so", "sign": -1},
         ],
         ("order", "purchase"): [],  # no source bucket to release
-        ("proposal", "invoice"): [
+        ("quote", "invoice"): [
             {"field": "on_p", "sign": -1},
         ],
     }
@@ -542,18 +542,18 @@ def _do_convert(
 # ---------------------------------------------------------------------------
 
 @transaction.atomic
-def convert_proposal_to_order(
-    proposal_id: int,
+def convert_quote_to_order(
+    quote_id: int,
     line_ids: Optional[List[int]] = None,
     contact_id: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """Convert a Proposal (or selected lines) to an Order.
+    """Convert a Quote (or selected lines) to an Order.
 
-    Commission set on the proposal flows forward to the order unchanged.
+    Commission set on the quote flows forward to the order unchanged.
     Inventory: on_p -= qty, on_so += qty per line.
 
     Args:
-        proposal_id: PK of the source Proposal
+        quote_id: PK of the source Quote
         line_ids: specific line IDs to convert (None = all)
         contact_id: override contact on the new Order
 
@@ -561,9 +561,9 @@ def convert_proposal_to_order(
         {order_id, order_ida, lines_for_review, lines} — lines are created when the order is saved
     """
     return _do_convert(
-        source_type="proposal",
+        source_type="quote",
         target_type="order",
-        source_id=proposal_id,
+        source_id=quote_id,
         line_ids=line_ids,
         contact_id=contact_id,
         is_sell_side=True,
@@ -644,18 +644,18 @@ def convert_order_to_purchase(
 
 
 @transaction.atomic
-def convert_proposal_to_invoice(
-    proposal_id: int,
+def convert_quote_to_invoice(
+    quote_id: int,
     line_ids: Optional[List[int]] = None,
     contact_id: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """Convert a Proposal directly to an Invoice (over-the-counter sale).
+    """Convert a Quote directly to an Invoice (over-the-counter sale).
 
-    Skips the Order stage. Commission flows forward from proposal.
+    Skips the Order stage. Commission flows forward from quote.
     Inventory: on_p -= qty, on_hand -= qty per line.
 
     Args:
-        proposal_id: PK of the source Proposal
+        quote_id: PK of the source Quote
         line_ids: specific line IDs to convert (None = all)
         contact_id: override contact on the new Invoice
 
@@ -663,9 +663,9 @@ def convert_proposal_to_invoice(
         {invoice_id, invoice_ida, lines_for_review, lines} — lines are created when the invoice is saved
     """
     return _do_convert(
-        source_type="proposal",
+        source_type="quote",
         target_type="invoice",
-        source_id=proposal_id,
+        source_id=quote_id,
         line_ids=line_ids,
         contact_id=contact_id,
         is_sell_side=True,
@@ -684,7 +684,7 @@ def get_conversion_history(
 
     Args:
         transaction_id: PK of the transaction
-        model_name: lowercase model name ("proposal", "order", "invoice", "purchase")
+        model_name: lowercase model name ("quote", "order", "invoice", "purchase")
 
     Returns:
         {
@@ -746,7 +746,7 @@ def get_conversion_history(
 
     # Walk down — find children that reference this record as parent
     children = []
-    child_types = ["proposal", "order", "invoice", "purchase"]
+    child_types = ["quote", "order", "invoice", "purchase"]
     for child_type in child_types:
         try:
             ChildModel = _get_model(child_type)
@@ -787,7 +787,7 @@ def bulk_convert(
     Calls the appropriate single conversion function for each source.
 
     Args:
-        source_model: "proposal" or "order"
+        source_model: "quote" or "order"
         source_ids: list of source PKs
         target_model: "order", "invoice", or "purchase"
         contact_id: optional contact override for all conversions
@@ -799,8 +799,8 @@ def bulk_convert(
     # Resolve which conversion function to call
     conversion_key = (source_model, target_model)
     conversion_funcs = {
-        ("proposal", "order"): convert_proposal_to_order,
-        ("proposal", "invoice"): convert_proposal_to_invoice,
+        ("quote", "order"): convert_quote_to_order,
+        ("quote", "invoice"): convert_quote_to_invoice,
         ("order", "invoice"): convert_order_to_invoice,
         ("order", "purchase"): convert_order_to_purchase,
     }

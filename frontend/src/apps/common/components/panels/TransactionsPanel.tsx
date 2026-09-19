@@ -2,7 +2,7 @@
 /**
  * TransactionsPanel - Displays transactions for an org (Customer or Vendor)
  *
- * Customer sub-tables: proposals, orders, invoices, ledgers, cash
+ * Customer sub-tables: quotes, orders, invoices, ledgers, cash
  * Vendor sub-tables:   purchases, receipts
  *
  * Fetches records via wcapi getRecords filtered by parent org ID.
@@ -81,7 +81,7 @@ export interface TransactionsPanelProps {
 // ---------------------------------------------------------------------------
 
 const CUSTOMER_TABLES: SubTable[] = [
-  { model: "proposal", label: "Proposals", filterField: "customer" },
+  { model: "quote", label: "Quotes", filterField: "customer" },
   { model: "order", label: "Orders", filterField: "customer" },
   { model: "invoice", label: "Invoices", filterField: "customer" },
   { model: "ledger", label: "Ledgers", filterField: "customer" },

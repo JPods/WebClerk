@@ -112,7 +112,7 @@ def reconcile_freight(orders_with_actuals: list[dict], shipper_setting: dict) ->
         shipper_setting: current config from Setting #481
 
     Returns:
-        List of adjustment proposals:
+        List of adjustment quotes:
             carrier, bracket, current_factor, proposed_factor, sample_size, avg_variance_pct
     """
     buckets: dict[tuple[str, str], list[float]] = defaultdict(list)

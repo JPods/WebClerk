@@ -8,7 +8,7 @@ Alice_local reviews and accepts/rejects. Nothing is forced — the local
 instance is sovereign.
 
 Collaboration categories cover:
-  - Print form templates (invoices, proposals, POs, etc.)
+  - Print form templates (invoices, quotes, POs, etc.)
   - Cash portal configuration (Stripe, gateway setup)
   - Shipping portal configuration (UPS, FedEx, DHL, USPS)
   - DataBrowser layouts
@@ -39,7 +39,7 @@ COLLABORATE_CONFIG = {
         "print_forms": {
             "enabled": True,
             "label": "Print Form Templates",
-            "description": "Invoice, proposal, PO, packing slip, pick list, BOL, statement, and other print templates. WCHQ maintains a library of tested layouts.",
+            "description": "Invoice, quote, PO, packing slip, pick list, BOL, statement, and other print templates. WCHQ maintains a library of tested layouts.",
             "last_sync_utc": "",
             "pending_count": 0,
             "accepted_count": 0,
@@ -138,7 +138,7 @@ COLLABORATE_CONFIG = {
         "workflow_automation": {
             "enabled": True,
             "label": "Workflow Automation",
-            "description": "Document conversion chains (proposal→order→invoice), approval workflows, notification triggers, scheduled reports.",
+            "description": "Document conversion chains (quote→order→invoice), approval workflows, notification triggers, scheduled reports.",
             "last_sync_utc": "",
             "pending_count": 0,
             "accepted_count": 0,

@@ -87,13 +87,13 @@ def _build_access(model_key):
     return default_access(model_key)
 
 def _build_query_scope(model_key):
-    if model_key in ('order', 'invoice', 'proposal', 'purchase', 'workorder', 'requisition'):
+    if model_key in ('order', 'invoice', 'quote', 'purchase', 'workorder', 'requisition'):
         return {
             'customer': {'customer_id__in': '$user.org_ids.customer'},
             'vendor': {'vendor_id__in': '$user.org_ids.vendor'},
             'rep': {},
         }
-    elif model_key in ('order_line', 'invoice_line', 'proposal_line', 'purchase_line',
+    elif model_key in ('order_line', 'invoice_line', 'quote_line', 'purchase_line',
                         'workorder_line', 'requisition_line'):
         return {'customer': {}, 'vendor': {}}
     elif model_key in ('customer', 'vendor', 'manufacturer', 'employee', 'rep'):
@@ -138,7 +138,7 @@ def _lc(field, width=None, **kwargs):
     return col
 
 
-# Transactions: order, proposal, invoice, purchase, workorder
+# Transactions: order, quote, invoice, purchase, workorder
 TX_LIST_COLUMNS = [
     _lc('ida', width=100),
     _lc('dt_needed', width=90),
@@ -464,12 +464,12 @@ OTHER_ORG_LIST_COLUMNS = ORG_LIST_COLUMNS
 # Map model_key → custom list columns
 MODEL_LIST_COLUMNS = {
     # Transactions
-    'order': TX_LIST_COLUMNS, 'proposal': TX_LIST_COLUMNS, 'invoice': TX_LIST_COLUMNS,
+    'order': TX_LIST_COLUMNS, 'quote': TX_LIST_COLUMNS, 'invoice': TX_LIST_COLUMNS,
     'purchase': TX_LIST_COLUMNS, 'workorder': TX_LIST_COLUMNS,
     'requisition': TX_LIST_COLUMNS, 'receipt': TX_LIST_COLUMNS,
     # Transaction lines
     'order_line': SELL_LINE_LIST_COLUMNS, 'invoice_line': SELL_LINE_LIST_COLUMNS,
-    'proposal_line': SELL_LINE_LIST_COLUMNS, 'purchase_line': EXEC_LINE_LIST_COLUMNS,
+    'quote_line': SELL_LINE_LIST_COLUMNS, 'purchase_line': EXEC_LINE_LIST_COLUMNS,
     'receipt_line': EXEC_LINE_LIST_COLUMNS, 'requisition_line': EXEC_LINE_LIST_COLUMNS,
     'workorder_line': EXEC_LINE_LIST_COLUMNS,
     # Orgs

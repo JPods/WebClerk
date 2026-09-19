@@ -1,5 +1,5 @@
 """
-Check item quantities before/after proposal creation.
+Check item quantities before/after quote creation.
 
 Run with: python manage.py shell < tools/check_item_quantities.py
 """

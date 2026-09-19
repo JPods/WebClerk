@@ -105,7 +105,7 @@ PURPOSE_EXPLANATIONS = {
     'wc:conditions_sales': (
         'Sales conditions and terms templates for {model} transactions. '
         'These are the standard terms, disclaimers, and conditions that '
-        'appear on proposals, orders, and invoices. Editable per transaction '
+        'appear on quotes, orders, and invoices. Editable per transaction '
         'but seeded from these defaults.'
     ),
     'wc:config': (
@@ -196,7 +196,7 @@ DEFAULT_EXPLANATION = (
 REPORT_CATEGORY_EXPLANATIONS = {
     'customer_facing': (
         'Customer-facing document template. Generates output that customers '
-        'see — invoices, statements, order confirmations, proposals. '
+        'see — invoices, statements, order confirmations, quotes. '
         'The template defines layout, fields, and formatting. Data is '
         'populated from the transaction record at print/email time.'
     ),

@@ -1,6 +1,6 @@
 # Transactions App
 
-> Core transaction management module for CommerceExpert - handles all business documents including orders, invoices, proposals, purchases, work orders, and requisitions.
+> Core transaction management module for CommerceExpert - handles all business documents including orders, invoices, quotes, purchases, work orders, and requisitions.
 
 ---
 
@@ -17,8 +17,8 @@ transactions/
 │   ├── invoice_line/     # Invoice line items
 │   ├── order/            # Sales Order header & detail
 │   ├── order_line/       # Sales Order line items
-│   ├── proposal/         # Proposal/Quote management
-│   ├── proposal_line/    # Proposal line items
+│   ├── quote/         # Quote/Quote management
+│   ├── quote_line/    # Quote line items
 │   ├── purchase/         # Purchase Order header
 │   ├── purchase_line/    # Purchase Order line items
 │   ├── workorder/        # Work Order header
@@ -47,7 +47,7 @@ transactions/
 ├─────────────────────────────────────────────────────────────────┤
 │  SALES SIDE              │  EXECUTION SIDE                      │
 │  ─────────────           │  ───────────────                     │
-│  • Proposal              │  • Purchase Order                    │
+│  • Quote              │  • Purchase Order                    │
 │  • Sales Order           │  • Work Order                        │
 │  • Invoice               │  • Requisition                       │
 │                          │  • Receipt                           │
@@ -61,7 +61,7 @@ transactions/
 
 ### Sales vs Execution Transactions
 
-| Aspect          | Sales (Order, Invoice, Proposal) | Execution (Purchase, WorkOrder) |
+| Aspect          | Sales (Order, Invoice, Quote) | Execution (Purchase, WorkOrder) |
 | --------------- | -------------------------------- | ------------------------------- |
 | Primary Value   | `price.unit`                     | `cost.unit`                     |
 | Customer/Vendor | Customer linked                  | Vendor linked                   |
@@ -123,7 +123,7 @@ type TransactionStatus =
 type TransactionParentType =
   | "order"
   | "invoice"
-  | "proposal"
+  | "quote"
   | "purchase"
   | "workorder"
   | "requisition"

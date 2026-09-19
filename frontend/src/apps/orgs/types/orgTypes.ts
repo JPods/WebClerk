@@ -160,7 +160,7 @@ export interface OrgStatCategory {
 }
 
 export interface OrgStats {
-  proposals?: OrgStatCategory;
+  quotes?: OrgStatCategory;
   orders?: OrgStatCategory;
   invoices?: OrgStatCategory;
   cash_entries?: OrgStatCategory;

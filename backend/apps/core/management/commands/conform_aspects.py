@@ -8,7 +8,7 @@ and renames Setting paths that pointed at the older shape. Dry run by default.
     python manage.py conform_aspects --apply
 
 Steps
-  shipping  TransactionShipping on order/invoice/proposal/purchase/workorder:
+  shipping  TransactionShipping on order/invoice/quote/purchase/workorder:
             ship_to {address1, city_state_zip, …} → ShipToSnapshot,
             dt_shipped / dt_delivered '' → None, validated through the schema;
             wc:model Settings: flat leaf paths → the nested ones.
@@ -31,7 +31,7 @@ import re
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-SHIPPING_MODELS = ('order', 'invoice', 'proposal', 'purchase', 'workorder')
+SHIPPING_MODELS = ('order', 'invoice', 'quote', 'purchase', 'workorder')
 
 # Flat shipping leaves the layouts used → the leaves the data actually has.
 SHIPPING_PATH_RENAMES = {

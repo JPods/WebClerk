@@ -66,7 +66,7 @@ Automatically selects the correct party type based on transaction category:
 ```tsx
 import { TransactionPartySelector } from '@/apps/transactions/components';
 
-// For sales transactions (proposal, order, invoice) → selects Customer
+// For sales transactions (quote, order, invoice) → selects Customer
 // For purchase transactions (purchase, work_order) → selects Vendor
 <TransactionPartySelector
   transactionType="sales"  // or "purchase"
@@ -163,7 +163,7 @@ The component is already integrated into `TransactionDetailBase`. When in edit m
 For transactions that could be either sales or purchase:
 
 ```tsx
-const isSalesTransaction = ['proposal', 'order', 'invoice'].includes(transactionType);
+const isSalesTransaction = ['quote', 'order', 'invoice'].includes(transactionType);
 
 {isSalesTransaction ? (
   <CustomerSelector value={data.customer_id} onChange={...} label="Customer" required />
@@ -213,7 +213,7 @@ The component uses Tailwind CSS and supports:
 
 | Transaction | Primary Party | Secondary Party |
 |-------------|---------------|-----------------|
-| Proposal | Customer | - |
+| Quote | Customer | - |
 | Sales Order | Customer | Vendor (drop-ship) |
 | Invoice | Customer | - |
 | Purchase Order | Vendor | Manufacturer |

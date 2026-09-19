@@ -71,7 +71,7 @@ interface LinkedRecordsPanelProps {
 
 const MODEL_ICONS: Record<string, string> = {
   action: "📋", touch: "📞", document: "📄", contact: "👤",
-  item: "📦", order: "🛒", invoice: "🧾", proposal: "📝",
+  item: "📦", order: "🛒", invoice: "🧾", quote: "📝",
   purchase: "🏷️", receipt: "📥", workorder: "🔧", project: "📊",
   customer: "🏢", vendor: "🏭", manufacturer: "🏭", email: "✉️",
   serial: "🔢", cash: "💳", warehouse: "🏪", campaign: "📣",
@@ -149,7 +149,7 @@ function defaultColumns(
       label: "total",
       width: "90px",
       className: "text-right",
-      defaultVisible: ["order", "invoice", "proposal", "purchase", "cash"].includes(linkedModel),
+      defaultVisible: ["order", "invoice", "quote", "purchase", "cash"].includes(linkedModel),
       render: (r) => {
         const total = r.totals?.total ?? r.total;
         return total != null ? <span>${Number(total).toFixed(2)}</span> : null;

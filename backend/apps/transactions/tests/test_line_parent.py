@@ -1,6 +1,6 @@
 """Parent-child line quantities — readmes/transactions/line-quantity.md
 
-proposal_line -> order_line and order_line -> invoice_line only.
+quote_line -> order_line and order_line -> invoice_line only.
 parent.remaining = parent.active − Σ children.active, recomputed on every child
 create / edit / delete, whatever path saved the child.
 """
@@ -8,7 +8,7 @@ import pytest
 
 from apps.products.models import Item
 from apps.transactions.models import (
-    Invoice, InvoiceLine, Order, OrderLine, Proposal, ProposalLine, Purchase, PurchaseLine,
+    Invoice, InvoiceLine, Order, OrderLine, Quote, QuoteLine, Purchase, PurchaseLine,
 )
 from apps.transactions.services.line_parent import parent_quantities
 
@@ -107,50 +107,50 @@ class TestSignedQuantities:
 
 
 @pytest.mark.django_db
-class TestProposalToOrder:
-    def test_order_line_consumes_proposal_line(self, item):
-        proposal = Proposal.objects.create(status="draft")
-        pl = ProposalLine.objects.create(proposal=proposal, item_fk=item, quantity={"active": 5})
+class TestQuoteToOrder:
+    def test_order_line_consumes_quote_line(self, item):
+        quote = Quote.objects.create(status="draft")
+        pl = QuoteLine.objects.create(quote=quote, item_fk=item, quantity={"active": 5})
         order = Order.objects.create(status="draft")
         ol = OrderLine.objects.create(
             order=order, item_fk=item, quantity={"active": 5},
-            refs={"source": {"proposal_line_id": pl.pk}},
+            refs={"source": {"quote_line_id": pl.pk}},
         )
         assert ol.parent_line_id == pl.pk
         pl.refresh_from_db()
         assert pl.quantity["remaining"] == 0
         assert pl.status == "transferred"
 
-    def test_invoice_edit_reaches_order_not_proposal(self, item):
-        """One level per event: an invoice edit does not touch the proposal line."""
-        proposal = Proposal.objects.create(status="draft")
-        pl = ProposalLine.objects.create(proposal=proposal, item_fk=item, quantity={"active": 5})
+    def test_invoice_edit_reaches_order_not_quote(self, item):
+        """One level per event: an invoice edit does not touch the quote line."""
+        quote = Quote.objects.create(status="draft")
+        pl = QuoteLine.objects.create(quote=quote, item_fk=item, quantity={"active": 5})
         order = Order.objects.create(status="draft")
         ol = OrderLine.objects.create(
             order=order, item_fk=item, quantity={"active": 5},
-            refs={"source": {"proposal_line_id": pl.pk}},
+            refs={"source": {"quote_line_id": pl.pk}},
         )
         pl.refresh_from_db()
-        proposal_version = pl.version
+        quote_version = pl.version
 
         inv = _invoice_line(item, ol, 2)
         inv.quantity = {**inv.quantity, "active": 1}
         inv.save()
 
         pl.refresh_from_db()
-        assert pl.version == proposal_version
+        assert pl.version == quote_version
         assert _q(ol)["remaining"] == 4
 
 
 @pytest.mark.django_db
 class TestOnlyTwoPairs:
-    def test_invoice_from_proposal_is_not_a_child(self, item):
-        proposal = Proposal.objects.create(status="draft")
-        pl = ProposalLine.objects.create(proposal=proposal, item_fk=item, quantity={"active": 5})
+    def test_invoice_from_quote_is_not_a_child(self, item):
+        quote = Quote.objects.create(status="draft")
+        pl = QuoteLine.objects.create(quote=quote, item_fk=item, quantity={"active": 5})
         invoice = Invoice.objects.create(status="draft")
         inv = InvoiceLine.objects.create(
             invoice=invoice, item_fk=item, quantity={"active": 5},
-            refs={"source": {"proposal_line_id": pl.pk}},
+            refs={"source": {"quote_line_id": pl.pk}},
         )
         assert inv.parent_line_id is None
         assert _q(pl)["remaining"] == 5
@@ -170,7 +170,7 @@ class TestOnlyTwoPairs:
         invoice = Invoice.objects.create(status="draft")
         inv = InvoiceLine.objects.create(
             invoice=invoice, item_fk=item, quantity={"active": 4},
-            refs={"source": {"order_line_id": order_line.pk, "proposal_line_id": 999999}},
+            refs={"source": {"order_line_id": order_line.pk, "quote_line_id": 999999}},
         )
         assert inv.parent_line_id == order_line.pk
         assert _q(order_line)["remaining"] == 6

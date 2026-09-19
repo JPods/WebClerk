@@ -435,7 +435,7 @@ COMPANY_NAME = config('COMPANY_NAME', default='WebClerk3')
 # Transaction Email Notifications
 # Enable/disable specific email notifications
 EMAIL_NOTIFICATIONS_ENABLED = config('EMAIL_NOTIFICATIONS_ENABLED', default=True, cast=bool)
-EMAIL_PROPOSAL_SUBMITTED_ENABLED = config('EMAIL_PROPOSAL_SUBMITTED_ENABLED', default=True, cast=bool)
+EMAIL_QUOTE_SUBMITTED_ENABLED = config('EMAIL_QUOTE_SUBMITTED_ENABLED', default=True, cast=bool)
 EMAIL_ORDER_CREATED_ENABLED = config('EMAIL_ORDER_CREATED_ENABLED', default=True, cast=bool)
 EMAIL_INVOICE_SENT_ENABLED = config('EMAIL_INVOICE_SENT_ENABLED', default=True, cast=bool)
 EMAIL_CASH_RECEIVED_ENABLED = config('EMAIL_CASH_RECEIVED_ENABLED', default=True, cast=bool)
@@ -626,8 +626,8 @@ WCAPI_BLESSED_MODELS = {
     "purchase_receipt": "transactions.PurchaseReceipt",
     "work_order": "transactions.WorkOrder",
     "work_order_line": "transactions.WorkOrderLine",
-    "proposal": "transactions.Proposal",
-    "proposal_line": "transactions.ProposalLine",
+    "quote": "transactions.Quote",
+    "quote_line": "transactions.QuoteLine",
     "requisition": "transactions.Requisition",
     "requisition_line": "transactions.RequisitionLine",
     "project": "transactions.Project",
@@ -764,7 +764,7 @@ WCAPI_MODEL_POLICIES = {
             },
         },
     },
-    "proposal": {
+    "quote": {
         "fields": {
             "write": {
                 "default": _TX_HEADER_WRITE_USER,
@@ -832,13 +832,13 @@ WCAPI_MODEL_POLICIES = {
             },
         },
     },
-    "proposalline": {
+    "quoteline": {
         "fields": {
             "write": {
                 "default": _TX_LINE_WRITE_USER,
                 "by_role": {
                     "admin": ["*"],
-                    "employee": _TX_LINE_WRITE_EMPLOYEE + ["proposal_id"],
+                    "employee": _TX_LINE_WRITE_EMPLOYEE + ["quote_id"],
                 },
             },
         },

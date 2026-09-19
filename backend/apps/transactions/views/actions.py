@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from common.decorators import allow_write
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
-from apps.transactions.models import Proposal, Order, Purchase, WorkOrder, WorkOrderLine
+from apps.transactions.models import Quote, Order, Purchase, WorkOrder, WorkOrderLine
 from apps.core.models.action import Action
 from apps.transactions.serializers.convert_serializer import (
     ConvertRequestSerializer,
@@ -14,7 +14,7 @@ from apps.transactions.serializers.convert_serializer import (
     TransitionRequestSerializer,
 )
 from apps.transactions.services.transaction_flow import (
-    proposal_to_order,
+    quote_to_order,
     order_to_invoice,
     order_to_purchase,
     receive_purchase,
@@ -79,17 +79,17 @@ def _check_dependencies(depends_on: dict | None) -> tuple[bool, str | None]:
 
 
 @allow_write
-class ProposalToOrderView(APIView):
+class QuoteToOrderView(APIView):
     permission_classes = [BasePermission]
-    queryset = Proposal.objects.active()
+    queryset = Quote.objects.active()
 
     @extend_schema(request=ConvertRequestSerializer, responses={201: OpenApiResponse(description="Order created")})
     def post(self, request, *args, **kwargs):
-        proposal_id = kwargs.get('pk')
-        proposal = Proposal.objects.filter(pk=proposal_id).first()
-        if not proposal:
-            return response.Response({'detail': 'Proposal not found'}, status=404)
-        so = proposal_to_order(proposal)
+        quote_id = kwargs.get('pk')
+        quote = Quote.objects.filter(pk=quote_id).first()
+        if not quote:
+            return response.Response({'detail': 'Quote not found'}, status=404)
+        so = quote_to_order(quote)
         return response.Response({'order_id': so.id, 'order_no': so.order_no}, status=status.HTTP_201_CREATED)  # type: ignore[attr-defined]
 
 
@@ -137,9 +137,9 @@ class LinkageCommentsAggregateView(APIView):
         aggregated: list[dict] = []
         links = (getattr(linkage, 'refs', {}) or {}).get('links', {})
         from apps.transactions.models import (
-            ProposalLine, OrderLine, InvoiceLine, PurchaseLine
+            QuoteLine, OrderLine, InvoiceLine, PurchaseLine
         )
-        line_models = [ProposalLine, OrderLine, InvoiceLine, PurchaseLine]
+        line_models = [QuoteLine, OrderLine, InvoiceLine, PurchaseLine]
         if isinstance(links, dict):
             for id_list in links.values():
                 if not isinstance(id_list, list):

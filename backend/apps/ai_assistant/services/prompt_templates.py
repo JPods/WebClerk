@@ -47,7 +47,7 @@ KEY FRONTEND PATTERNS:
 - API SDK: src/api/wcapiSDK.ts wraps all WCAPI calls
 
 TRANSACTION FLOW:
-- Proposals → Orders → Invoices (with line-level Pending inventory tracking)
+- Quotes → Orders → Invoices (with line-level Pending inventory tracking)
 - Collect-then-Create pattern: save all lines first, then batch-create Pending records
 - Pending types: SO (sales order), IN (invoice), PO (purchase), PP (purchase cash), WO (work order)
 
@@ -121,7 +121,7 @@ When analyzing errors:
 WebClerk is a commerce platform that helps businesses manage:
 - Customers, vendors, and contacts
 - Products, inventory, and catalogs
-- Sales proposals, orders, and invoices
+- Sales quotes, orders, and invoices
 - Purchasing and work orders
 - Accounting and financial records
 

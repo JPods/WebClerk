@@ -30,7 +30,7 @@ from apps.transactions.services.validate_transaction import ValidationResult
 TERMINAL = {'complete', 'canceled', 'paid', 'voided'}
 
 TRANSITIONS = {
-    'proposal': {
+    'quote': {
         'planned':          ['signoff_request', 'released', 'canceled'],
         'signoff_request':  ['released', 'planned', 'canceled'],
         'released':         ['sent', 'in_progress', 'hold', 'canceled'],
@@ -152,7 +152,7 @@ def is_journalized(instance) -> bool:
 def _get_line_count(instance, model_type: str) -> int:
     """Count lines for a transaction header."""
     line_model_map = {
-        'proposal': ('transactions', 'ProposalLine', 'proposal_id'),
+        'quote': ('transactions', 'QuoteLine', 'quote_id'),
         'order': ('transactions', 'OrderLine', 'order_id'),
         'invoice': ('transactions', 'InvoiceLine', 'invoice_id'),
         'purchase': ('transactions', 'PurchaseLine', 'purchase_id'),
@@ -184,14 +184,14 @@ def _check_preconditions(instance, model_type: str, from_status: str, to_status:
     errors = []
 
     # ── Released requires at least one line ──
-    if to_status == 'released' and model_type in ('proposal', 'order', 'invoice', 'purchase', 'workorder', 'requisition'):
+    if to_status == 'released' and model_type in ('quote', 'order', 'invoice', 'purchase', 'workorder', 'requisition'):
         if _get_line_count(instance, model_type) == 0:
             errors.append(f"Cannot release {model_type} with no lines")
 
-    # ── Proposal → released requires customer ──
-    if model_type == 'proposal' and to_status == 'released':
+    # ── Quote → released requires customer ──
+    if model_type == 'quote' and to_status == 'released':
         if not getattr(instance, 'customer_id', None):
-            errors.append("Proposal must have a customer before release")
+            errors.append("Quote must have a customer before release")
 
     # ── Cancel blocked if cash_entries applied ──
     if to_status == 'canceled':
@@ -232,7 +232,7 @@ def validate_transition(
 
     Args:
         instance: The transaction model instance (current state)
-        model_type: 'order', 'invoice', 'proposal', 'purchase',
+        model_type: 'order', 'invoice', 'quote', 'purchase',
                     'workorder', 'requisition', 'cash'
         to_status: The requested new status
 

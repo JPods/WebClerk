@@ -220,11 +220,11 @@ export const DYNAMIC_LISTS: SelectListDef[] = [
     options: [],
   },
   {
-    key: 'actions_proposals',
-    label: 'Proposal Actions',
+    key: 'actions_quotes',
+    label: 'Quote Actions',
     editable: true,
     field: 'actions',
-    model: 'proposal',
+    model: 'quote',
     options: [],
   },
   {

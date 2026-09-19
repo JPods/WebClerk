@@ -116,8 +116,8 @@ TEMPLATES = {
         'title': 'ORDER CONFIRMATION',
         'fields': COMPANY_HEADER + DOCUMENT_TITLE + BILL_TO + SHIP_TO + LINE_ITEMS + TOTALS + FOOTER,
     },
-    'proposal': {
-        'title': 'PROPOSAL',
+    'quote': {
+        'title': 'QUOTE',
         'fields': COMPANY_HEADER + DOCUMENT_TITLE + BILL_TO + SHIP_TO + LINE_ITEMS + TOTALS + FOOTER,
     },
     'purchase': {
@@ -189,7 +189,7 @@ REPORT_NAME_MAP = {
     'Invoice': 'invoice',
     'Credit Memo': 'credit_memo',
     'Order Confirmation': 'order',
-    'Proposal': 'proposal',
+    'Quote': 'quote',
     'Purchase Order': 'purchase',
     'Pick Ticket': 'pick_ticket',
     'Packing Slip': 'packing_slip',

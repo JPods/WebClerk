@@ -1,15 +1,15 @@
 """Tests for the unified transaction transfer engine.
 
 Covers all three transfer modes:
-  1. Clone      -- Proposal -> Proposal
-  2. Convert    -- Proposal -> Order, Proposal -> Invoice (increment logic)
-  3. Cross-type -- Proposal -> Purchase, Purchase -> Order
+  1. Clone      -- Quote -> Quote
+  2. Convert    -- Quote -> Order, Quote -> Invoice (increment logic)
+  3. Cross-type -- Quote -> Purchase, Purchase -> Order
 
 See: readmes/topics/transactions/transaction_transfer.md
 """
 import pytest
 from apps.transactions.models import (
-    Proposal, ProposalLine,
+    Quote, QuoteLine,
     Order, OrderLine,
     Invoice, InvoiceLine,
     Purchase, PurchaseLine,
@@ -29,18 +29,18 @@ def customer():
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_proposal(**kw):
+def _make_quote(**kw):
     defaults = {"status": "planned"}
     defaults.update(kw)
-    return Proposal.objects.create(**defaults)
+    return Quote.objects.create(**defaults)
 
 
-def _make_proposal_line(proposal, staged=10, active=0, remaining=None,
+def _make_quote_line(quote, staged=10, active=0, remaining=None,
                         increment=0, is_blanket=False, **kw):
     if remaining is None:
         remaining = staged - active
     defaults = {
-        "proposal": proposal,
+        "quote": quote,
         "item": {"description": "Widget", "sku": "WDG-100"},
         "price": {"unit": 25.0, "extended": 25.0 * staged},
         "cost": {"unit": 12.0, "extended": 12.0 * staged},
@@ -55,15 +55,15 @@ def _make_proposal_line(proposal, staged=10, active=0, remaining=None,
         },
     }
     defaults.update(kw)
-    return ProposalLine.objects.create(**defaults)
+    return QuoteLine.objects.create(**defaults)
 
 
-def _consume(proposal_line, qty):
-    """Consume qty of a proposal line the way the system does: a child order line
+def _consume(quote_line, qty):
+    """Consume qty of a quote line the way the system does: a child order line
     with parent_line_id. remaining = active - sum(children.active)."""
     child = _make_order_line(_make_order(), staged=qty, active=qty, remaining=qty,
-                             parent_line_id=proposal_line.pk)
-    proposal_line.refresh_from_db()
+                             parent_line_id=quote_line.pk)
+    quote_line.refresh_from_db()
     return child
 
 
@@ -141,36 +141,36 @@ def _make_workorder_line(workorder, staged=10, active=0, remaining=None, **kw):
 
 
 # ===================================================================
-# 1. CLONE -- Proposal -> Proposal
+# 1. CLONE -- Quote -> Quote
 # ===================================================================
 
 @pytest.mark.django_db
-class TestCloneProposalToProposal:
+class TestCloneQuoteToQuote:
 
     def test_basic_clone(self):
-        """Clone creates a new proposal with reset quantities.
+        """Clone creates a new quote with reset quantities.
 
         Note: normalize_quantity_map sets remaining = active for standalone
         lines (no children), so after save remaining == active.
         """
-        prop = _make_proposal()
+        prop = _make_quote()
         # After normalization: staged=10, active=3, remaining=3
         # (remaining is always computed as active - children_active.sum, or just active if no children)
-        pl = _make_proposal_line(prop, staged=10, active=3, remaining=3)
+        pl = _make_quote_line(prop, staged=10, active=3, remaining=3)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
-            target_type="proposal",
+            target_type="quote",
         )
 
         assert result["success"] is True
-        assert result["target_type"] == "proposal"
+        assert result["target_type"] == "quote"
         assert result["lines_transferred"] == 1
 
-        # Target proposal
-        target = Proposal.objects.get(pk=result["target_id"])
-        assert target.parent_model == "proposal"
+        # Target quote
+        target = Quote.objects.get(pk=result["target_id"])
+        assert target.parent_model == "quote"
         assert target.parent_id == prop.pk
         assert target.price_level == "retail"
         assert target.status == "planned"
@@ -179,13 +179,13 @@ class TestCloneProposalToProposal:
 
         # A clone is standalone: it copies the source's live active and takes its own
         # creation snapshot; no parent link (Bill, 2026-09-17)
-        tl = ProposalLine.objects.get(pk=result["line_mapping"][pl.pk])
+        tl = QuoteLine.objects.get(pk=result["line_mapping"][pl.pk])
         assert tl.quantity["staged"] == 3
         assert tl.quantity["active"] == 3
         assert tl.quantity["remaining"] == 3
         assert tl.parent_line_id is None
         assert "source" not in (tl.refs or {})
-        assert (tl.refs or {}).get("cloned_from", {}).get("proposal_line_id") == pl.pk
+        assert (tl.refs or {}).get("cloned_from", {}).get("quote_line_id") == pl.pk
 
         # Source should be UNCHANGED
         pl.refresh_from_db()
@@ -194,69 +194,69 @@ class TestCloneProposalToProposal:
 
     def test_clone_preserves_item_and_price(self):
         """Clone copies item, price, cost data."""
-        prop = _make_proposal()
-        pl = _make_proposal_line(prop, staged=5)
+        prop = _make_quote()
+        pl = _make_quote_line(prop, staged=5)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
-            target_type="proposal",
+            target_type="quote",
         )
 
-        tl = ProposalLine.objects.get(pk=result["line_mapping"][pl.pk])
+        tl = QuoteLine.objects.get(pk=result["line_mapping"][pl.pk])
         assert tl.item["sku"] == "WDG-100"
         assert tl.price["unit"] == 25.0
         assert tl.cost["unit"] == 12.0
 
     def test_clone_multiple_lines(self):
         """Clone transfers all lines."""
-        prop = _make_proposal()
-        _make_proposal_line(prop, staged=10)
-        _make_proposal_line(prop, staged=20)
+        prop = _make_quote()
+        _make_quote_line(prop, staged=10)
+        _make_quote_line(prop, staged=20)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
-            target_type="proposal",
+            target_type="quote",
         )
         assert result["lines_transferred"] == 2
 
     def test_clone_updates_source_flow(self):
-        """Source proposal gets flow.children updated."""
-        prop = _make_proposal()
-        _make_proposal_line(prop, staged=5)
+        """Source quote gets flow.children updated."""
+        prop = _make_quote()
+        _make_quote_line(prop, staged=5)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
-            target_type="proposal",
+            target_type="quote",
         )
 
         prop.refresh_from_db()
-        assert {"type": "proposal", "id": result["target_id"]} in prop.flow["children"]
+        assert {"type": "quote", "id": result["target_id"]} in prop.flow["children"]
 
 
 # ===================================================================
-# 2. CONVERT -- Proposal -> Order (increment logic)
+# 2. CONVERT -- Quote -> Order (increment logic)
 # ===================================================================
 
 @pytest.mark.django_db
-class TestConvertProposalToOrder:
+class TestConvertQuoteToOrder:
 
     def test_increment_zero_takes_all(self, customer):
         """increment=0 -> transfer all remaining."""
-        prop = _make_proposal(customer_id=customer.pk)
-        pl = _make_proposal_line(prop, staged=10, active=10, remaining=10, increment=0)
+        prop = _make_quote(customer_id=customer.pk)
+        pl = _make_quote_line(prop, staged=10, active=10, remaining=10, increment=0)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
             target_type="order",
         )
 
         assert result["success"] is True
         order = Order.objects.get(pk=result["target_id"])
-        assert order.parent_model == "proposal"
+        assert order.parent_model == "quote"
         assert order.parent_id == prop.pk
         assert order.customer_id == customer.pk
         assert order.status == "confirmed"
@@ -273,12 +273,12 @@ class TestConvertProposalToOrder:
 
     def test_increment_less_than_remaining(self):
         """A blanket line releases increment-sized pieces (Bill, 2026-09-17)."""
-        prop = _make_proposal()
-        pl = _make_proposal_line(prop, staged=10, active=10, remaining=10, increment=3,
+        prop = _make_quote()
+        pl = _make_quote_line(prop, staged=10, active=10, remaining=10, increment=3,
                                  is_blanket=True)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
             target_type="order",
         )
@@ -298,13 +298,13 @@ class TestConvertProposalToOrder:
 
         An existing child order line consumes 7: remaining = 10 - 7 = 3.
         """
-        prop = _make_proposal()
-        pl = _make_proposal_line(prop, staged=10, active=10, remaining=10, increment=5)
+        prop = _make_quote()
+        pl = _make_quote_line(prop, staged=10, active=10, remaining=10, increment=5)
         _consume(pl, 7)
         assert pl.quantity["remaining"] == 3
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
             target_type="order",
         )
@@ -322,14 +322,14 @@ class TestConvertProposalToOrder:
 
         A child order line consumes all 10 units: remaining = 10 - 10 = 0.
         """
-        prop = _make_proposal()
-        exhausted = _make_proposal_line(prop, staged=10, active=10, remaining=10)
+        prop = _make_quote()
+        exhausted = _make_quote_line(prop, staged=10, active=10, remaining=10)
         _consume(exhausted, 10)
         assert exhausted.quantity["remaining"] == 0
-        pl2 = _make_proposal_line(prop, staged=5, active=5, remaining=5)
+        pl2 = _make_quote_line(prop, staged=5, active=5, remaining=5)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
             target_type="order",
         )
@@ -339,15 +339,15 @@ class TestConvertProposalToOrder:
 
     def test_copies_customer_info(self, customer):
         """Convert mode copies customer, price_level from source."""
-        prop = _make_proposal(
+        prop = _make_quote(
             customer_id=customer.pk,
             price_level="wholesale",
             attention="Jane Doe",
         )
-        _make_proposal_line(prop, staged=5, active=5, remaining=5)
+        _make_quote_line(prop, staged=5, active=5, remaining=5)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
             target_type="order",
         )
@@ -359,11 +359,11 @@ class TestConvertProposalToOrder:
 
     def test_preserve_source_false_marks_converted(self):
         """When all remaining -> 0 and preserve_source=False, source -> converted."""
-        prop = _make_proposal()
-        _make_proposal_line(prop, staged=5, active=5, remaining=5, increment=0)
+        prop = _make_quote()
+        _make_quote_line(prop, staged=5, active=5, remaining=5, increment=0)
 
         execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
             target_type="order",
             preserve_source=False,
@@ -374,12 +374,12 @@ class TestConvertProposalToOrder:
 
     def test_partial_transfer_does_not_convert_source(self):
         """While a blanket line still has remaining, the source stays unconverted."""
-        prop = _make_proposal()
-        _make_proposal_line(prop, staged=10, active=10, remaining=10, increment=3,
+        prop = _make_quote()
+        _make_quote_line(prop, staged=10, active=10, remaining=10, increment=3,
                             is_blanket=True)
 
         execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
             target_type="order",
             preserve_source=False,
@@ -390,26 +390,26 @@ class TestConvertProposalToOrder:
 
 
 # ===================================================================
-# 3. CONVERT -- Proposal -> Invoice
+# 3. CONVERT -- Quote -> Invoice
 # ===================================================================
 
 @pytest.mark.django_db
-class TestConvertProposalToInvoice:
+class TestConvertQuoteToInvoice:
 
-    def test_proposal_to_invoice_basic(self, customer):
-        """Direct proposal->invoice with increment logic."""
-        prop = _make_proposal(customer_id=customer.pk)
-        pl = _make_proposal_line(prop, staged=8, active=8, remaining=8, increment=0)
+    def test_quote_to_invoice_basic(self, customer):
+        """Direct quote->invoice with increment logic."""
+        prop = _make_quote(customer_id=customer.pk)
+        pl = _make_quote_line(prop, staged=8, active=8, remaining=8, increment=0)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
             target_type="invoice",
         )
 
         assert result["success"] is True
         inv = Invoice.objects.get(pk=result["target_id"])
-        assert inv.parent_model == "proposal"
+        assert inv.parent_model == "quote"
         assert inv.parent_id == prop.pk
         assert inv.customer_id == customer.pk
         assert inv.status == "pending"
@@ -422,27 +422,27 @@ class TestConvertProposalToInvoice:
 
 
 # ===================================================================
-# 4. CROSS-TYPE -- Proposal -> Purchase
+# 4. CROSS-TYPE -- Quote -> Purchase
 # ===================================================================
 
 @pytest.mark.django_db
-class TestCrossTypeProposalToPurchase:
+class TestCrossTypeQuoteToPurchase:
 
     def test_cross_type_basic(self, customer):
         """Cross-type copies full staged qty, no customer."""
-        prop = _make_proposal(customer_id=customer.pk)
+        prop = _make_quote(customer_id=customer.pk)
         # After normalization: remaining = active = 3 (no children)
-        pl = _make_proposal_line(prop, staged=10, active=3, remaining=3)
+        pl = _make_quote_line(prop, staged=10, active=3, remaining=3)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
             target_type="purchase",
         )
 
         assert result["success"] is True
         po = Purchase.objects.get(pk=result["target_id"])
-        assert po.parent_model == "proposal"
+        assert po.parent_model == "quote"
         assert po.parent_id == prop.pk
         # Customer NOT copied for cross-type
         assert po.customer_id is None or po.customer_id == 0
@@ -461,11 +461,11 @@ class TestCrossTypeProposalToPurchase:
 
     def test_cross_purchase_line_has_no_price(self):
         """Purchase lines (BaseExecLineModel) should not have price."""
-        prop = _make_proposal()
-        _make_proposal_line(prop, staged=5, active=5, remaining=5)
+        prop = _make_quote()
+        _make_quote_line(prop, staged=5, active=5, remaining=5)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
             target_type="purchase",
         )
@@ -559,26 +559,26 @@ class TestLineageTracking:
 
     def test_refs_source_on_target_line(self):
         """Target line has refs.source with source line/header IDs."""
-        prop = _make_proposal()
-        pl = _make_proposal_line(prop, staged=5, active=5, remaining=5)
+        prop = _make_quote()
+        pl = _make_quote_line(prop, staged=5, active=5, remaining=5)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
             target_type="order",
         )
 
         ol = OrderLine.objects.get(pk=result["line_mapping"][pl.pk])
-        assert ol.refs["source"]["proposal_line_id"] == pl.pk
-        assert ol.refs["source"]["proposal_id"] == prop.pk
+        assert ol.refs["source"]["quote_line_id"] == pl.pk
+        assert ol.refs["source"]["quote_id"] == prop.pk
 
     def test_refs_xfer_audit_trail(self):
         """Target line has refs.xfer audit payload."""
-        prop = _make_proposal()
-        pl = _make_proposal_line(prop, staged=5, active=5, remaining=5)
+        prop = _make_quote()
+        pl = _make_quote_line(prop, staged=5, active=5, remaining=5)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
             target_type="order",
         )
@@ -587,37 +587,37 @@ class TestLineageTracking:
         xfer = ol.refs["xfer"]
         assert isinstance(xfer, list)
         assert len(xfer) >= 1
-        assert xfer[0]["source"]["kind"] == "proposal"
+        assert xfer[0]["source"]["kind"] == "quote"
         assert xfer[0]["source"]["line_id"] == pl.pk
 
     def test_flow_on_target_header(self):
         """Target header has flow.source pointing back to source."""
-        prop = _make_proposal()
-        _make_proposal_line(prop, staged=5, active=5, remaining=5)
+        prop = _make_quote()
+        _make_quote_line(prop, staged=5, active=5, remaining=5)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
             target_type="order",
         )
 
         order = Order.objects.get(pk=result["target_id"])
-        assert order.flow["source"] == [{"type": "proposal", "id": prop.pk}]
+        assert order.flow["source"] == [{"type": "quote", "id": prop.pk}]
 
     def test_metadata_parent_link(self):
         """Target line metadata has parent_link."""
-        prop = _make_proposal()
-        pl = _make_proposal_line(prop, staged=8, active=8, remaining=8)
+        prop = _make_quote()
+        pl = _make_quote_line(prop, staged=8, active=8, remaining=8)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
             target_type="order",
         )
 
         ol = OrderLine.objects.get(pk=result["line_mapping"][pl.pk])
         link = ol.metadata["parent_link"]
-        assert link["parent_model"] == "proposal"
+        assert link["parent_model"] == "quote"
         assert link["quantity_at_parent"]["staged"] == 8
 
 
@@ -631,7 +631,7 @@ class TestTransferErrors:
     def test_source_not_found(self):
         with pytest.raises(TransferError, match="Source not found"):
             execute_transfer(
-                source_type="proposal",
+                source_type="quote",
                 source_id=999999,
                 target_type="order",
             )
@@ -646,24 +646,24 @@ class TestTransferErrors:
             )
 
     def test_no_lines_to_transfer(self):
-        """Proposal with no lines raises error."""
-        prop = _make_proposal()
+        """Quote with no lines raises error."""
+        prop = _make_quote()
         with pytest.raises(TransferError, match="No lines"):
             execute_transfer(
-                source_type="proposal",
+                source_type="quote",
                 source_id=prop.pk,
                 target_type="order",
             )
 
     def test_all_lines_exhausted(self):
         """All lines with remaining=0 raises 'No lines to transfer'."""
-        prop = _make_proposal()
-        exhausted = _make_proposal_line(prop, staged=10, active=10, remaining=10)
+        prop = _make_quote()
+        exhausted = _make_quote_line(prop, staged=10, active=10, remaining=10)
         _consume(exhausted, 10)
 
         with pytest.raises(TransferError, match="No lines"):
             execute_transfer(
-                source_type="proposal",
+                source_type="quote",
                 source_id=prop.pk,
                 target_type="order",
             )
@@ -677,12 +677,12 @@ class TestTransferErrors:
             )
 
     def test_invalid_line_ids(self):
-        prop = _make_proposal()
-        _make_proposal_line(prop, staged=5, active=5, remaining=5)
+        prop = _make_quote()
+        _make_quote_line(prop, staged=5, active=5, remaining=5)
 
         with pytest.raises((TransferError, ValueError)):
             execute_transfer(
-                source_type="proposal",
+                source_type="quote",
                 source_id=prop.pk,
                 target_type="order",
                 line_ids=[999999],
@@ -699,12 +699,12 @@ class TestSelectiveTransfer:
 
     def test_transfer_specific_lines(self):
         """Only transfer the specified line IDs."""
-        prop = _make_proposal()
-        pl1 = _make_proposal_line(prop, staged=10, active=10, remaining=10)
-        pl2 = _make_proposal_line(prop, staged=20, active=20, remaining=20)
+        prop = _make_quote()
+        pl1 = _make_quote_line(prop, staged=10, active=10, remaining=10)
+        pl2 = _make_quote_line(prop, staged=20, active=20, remaining=20)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
             target_type="order",
             line_ids=[pl1.pk],
@@ -717,11 +717,11 @@ class TestSelectiveTransfer:
 
     def test_custom_target_status(self):
         """Override the default target status."""
-        prop = _make_proposal()
-        _make_proposal_line(prop, staged=5, active=5, remaining=5)
+        prop = _make_quote()
+        _make_quote_line(prop, staged=5, active=5, remaining=5)
 
         result = execute_transfer(
-            source_type="proposal",
+            source_type="quote",
             source_id=prop.pk,
             target_type="order",
             target_status="hold",

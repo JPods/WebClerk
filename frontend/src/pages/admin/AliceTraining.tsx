@@ -1,6 +1,6 @@
 /* Alice Training Window — Interactive inventory flow coaching
  *
- * Walks users through: Proposal → Order → Invoice → Cash → PO → Receive
+ * Walks users through: Quote → Order → Invoice → Cash → PO → Receive
  * Shows live inventory buckets (on_hand, on_so, on_po) as visual bars
  * Alice provides coaching text explaining what happened and why
  *
@@ -48,11 +48,11 @@ type TrainingReport = {
 // Step definitions with Alice coaching text
 const STEP_CONFIG = [
   {
-    label: "Create Proposal",
+    label: "Create Quote",
     icon: <FaClipboardList />,
-    coaching: "A proposal is a quote — no commitment, no inventory impact. The customer can review pricing before deciding. Watch: inventory doesn't change.",
+    coaching: "A quote is a quote — no commitment, no inventory impact. The customer can review pricing before deciding. Watch: inventory doesn't change.",
     color: "bg-blue-500",
-    param: "proposal_qty",
+    param: "quote_qty",
     defaultQty: 10,
   },
   {
@@ -134,7 +134,7 @@ export default function AliceTraining() {
   const [trainingItem, setTrainingItem] = useState<{ id: number; ida: string } | null>(null);
   const [trainingCustomer, setTrainingCustomer] = useState<{ id: number } | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>({
-    proposal_qty: 10, order_qty: 10, invoice_qty: 10, po_qty: 10, receive_qty: 10,
+    quote_qty: 10, order_qty: 10, invoice_qty: 10, po_qty: 10, receive_qty: 10,
   });
   const [currentStep, setCurrentStep] = useState(-1);
   const [steps, setSteps] = useState<StepResult[]>([]);

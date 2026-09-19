@@ -155,11 +155,11 @@ def get_user_permissions(user) -> List[str]:
             'view_all', 'edit_own', 'edit_team', 'approve', 'manage_team',
             'create_invoice', 'edit_invoice', 'delete_invoice',
             'create_order', 'edit_order', 'approve_order',
-            'create', 'create_proposal', 'edit_proposal', 'view_invoice', 'view_order'
+            'create', 'create_quote', 'edit_quote', 'view_invoice', 'view_order'
         ],
         'user': [
             'view_own', 'edit_own', 'create',
-            'create_proposal', 'edit_proposal',
+            'create_quote', 'edit_quote',
             'view_invoice', 'view_order'
         ],
     }

@@ -249,7 +249,7 @@ const UiDetail: React.FC<UiDetailProps> = ({
       dispatch(showToast({ message: `${modelName} saved`, type: 'success' }));
       // Auto-populate commission if customer has reps — staff only
       const txId = editData.id;
-      const sellModels = ['order', 'proposal', 'invoice'];
+      const sellModels = ['order', 'quote', 'invoice'];
       const isStaff = authUser?.is_staff || authUser?.is_superuser;
       if (isStaff && editData.has_reps && txId && sellModels.includes(modelName)) {
         try {

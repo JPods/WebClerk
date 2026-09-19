@@ -1,7 +1,7 @@
 /**
  * TransactionFlowIndicator — horizontal lineage strip for transaction detail pages.
  *
- * Shows the document chain: Proposal → Order → Invoice → Cash
+ * Shows the document chain: Quote → Order → Invoice → Cash
  * Walks up via parent_id/parent_model, down via flow.children.
  * Current document highlighted. Clickable nodes open in WindowManager.
  */
@@ -39,14 +39,14 @@ interface TransactionFlowIndicatorProps {
 
 // Canonical order for the flow strip
 const FLOW_ORDER: Record<string, number> = {
-  proposal: 0,
+  quote: 0,
   order: 1,
   invoice: 2,
   cash: 3,
 };
 
 const MODEL_LABELS: Record<string, string> = {
-  proposal: 'Proposal',
+  quote: 'Quote',
   order: 'Order',
   invoice: 'Invoice',
   cash: 'Cash',
@@ -88,7 +88,7 @@ export default function TransactionFlowIndicator({ modelName, record, onNavigate
     // Fallback: check refs.source if no parent_id
     if (!walkId && record.refs?.source) {
       const src = record.refs.source;
-      if (src.proposal_id) { walkModel = 'proposal'; walkId = src.proposal_id as number; }
+      if (src.quote_id) { walkModel = 'quote'; walkId = src.quote_id as number; }
       else if (src.order_id) { walkModel = 'order'; walkId = src.order_id as number; }
     }
 
@@ -117,7 +117,7 @@ export default function TransactionFlowIndicator({ modelName, record, onNavigate
           walkId = nextId;
         } else if (rec?.refs?.source) {
           const src = rec.refs.source;
-          if (src.proposal_id) { walkModel = 'proposal'; walkId = src.proposal_id; }
+          if (src.quote_id) { walkModel = 'quote'; walkId = src.quote_id; }
           else if (src.order_id) { walkModel = 'order'; walkId = src.order_id; }
           else break;
         } else break;

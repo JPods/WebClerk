@@ -19,7 +19,7 @@ apps/{domain}/
 | core | contact, action, setting, report, template, pending, audit, notification | BaseModel, save_view, bootstrap, wcapi |
 | orgs | customer, vendor, manufacturer, employee, rep, organization | All inherit OrgBase |
 | products | item, serial, warehouse, variant, specification, catalog, bom, flow, usage, service, item_xref | Inventory, serial lifecycle |
-| transactions | order, invoice, proposal, purchase, receipt, requisition, work_order, cash, project + all line models | Totals, transfers, GL journalizing |
+| transactions | order, invoice, quote, purchase, receipt, requisition, work_order, cash, project + all line models | Totals, transfers, GL journalizing |
 | communications | email, phone, address, domain | Contact communications |
 | docs | document, tag, question_answer, linkage | File storage, tagging |
 | sync | connection, bundle | Bidirectional sync, carrier APIs |

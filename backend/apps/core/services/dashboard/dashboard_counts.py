@@ -5,7 +5,7 @@ Usage via manage endpoint:
     {
         "action": "get_dashboard_counts",
         "params": {
-            "models": ["order", "invoice", "proposal"],
+            "models": ["order", "invoice", "quote"],
             "periods": [
                 {"key": "this_mo", "from": 1722470400000, "to": 1725148800000},
                 {"key": "last_mo", "from": 1719792000000, "to": 1722470400000}

@@ -16,7 +16,7 @@ This dashboard provides a comprehensive interface for managing customer records,
 
 ### 2.3. Related Business Objects
 - View and access:
-  - Proposals
+  - Quotes
   - Orders
   - Invoices
   - Cash

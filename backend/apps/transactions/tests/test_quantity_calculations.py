@@ -52,8 +52,8 @@ from apps.transactions.models.base_line_model import (
 class TestDefaultQuantity:
     """Test default_quantity() factory function."""
 
-    def test_proposal_defaults(self):
-        qty = default_quantity("proposal")
+    def test_quote_defaults(self):
+        qty = default_quantity("quote")
         assert qty["staged"] == 0
         assert qty["active"] == 0
         assert qty["remaining"] == 0

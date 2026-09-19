@@ -52,8 +52,8 @@ WHITELIST: List[str] = [
     r'^/api/orgs/customers/$',       # GET/POST – Customer list/create
     r'^/api/orgs/customers/\d+/$',   # GET/PUT/PATCH/DELETE – Customer detail
     # Transaction APIs
-    r'^/api/transactions/proposals/$',        # GET/POST – Proposal list/create
-    r'^/api/transactions/proposals/\d+/$',    # GET/PUT/PATCH/DELETE – Proposal detail
+    r'^/api/transactions/quotes/$',        # GET/POST – Quote list/create
+    r'^/api/transactions/quotes/\d+/$',    # GET/PUT/PATCH/DELETE – Quote detail
     r'^/api/transactions/orders/$',           # GET/POST – Order list/create
     r'^/api/transactions/orders/\d+/$',       # GET/PUT/PATCH/DELETE – Order detail
     r'^/api/transactions/purchases/$',        # GET/POST – Purchase list/create

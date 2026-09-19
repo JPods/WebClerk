@@ -18,7 +18,7 @@ export interface DetailFeatures {
   print?: boolean;
   /** Clone / duplicate record */
   clone?: boolean;
-  /** Transaction flow (proposals → orders → invoices etc.) */
+  /** Transaction flow (quotes → orders → invoices etc.) */
   transactions?: boolean;
 }
 

@@ -114,8 +114,8 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'invoice': ModelMeta('invoice', 'apps.transactions.models.Invoice', 'Invoice', 'Invoices', 'invoices', kind='header', aliases=['invoices']),
     'invoice_line': ModelMeta('invoice_line', 'apps.transactions.models.InvoiceLine', 'Invoice Line', 'Invoice Lines', 'invoice-lines', kind='line', aliases=['invoice_lines']),
     'project': ModelMeta('project', 'apps.transactions.models.project.Project', 'Project', 'Projects', 'projects', kind='support', aliases=['projects']),
-    'proposal': ModelMeta('proposal', 'apps.transactions.models.Proposal', 'Proposal', 'Proposals', 'proposals', kind='header', aliases=['proposals', 'quote']),
-    'proposal_line': ModelMeta('proposal_line', 'apps.transactions.models.ProposalLine', 'Proposal Line', 'Proposal Lines', 'proposal-lines', kind='line', aliases=['proposal_lines', 'quoteline']),
+    'quote': ModelMeta('quote', 'apps.transactions.models.Quote', 'Quote', 'Quotes', 'quotes', kind='header', aliases=['quotes', 'quote']),
+    'quote_line': ModelMeta('quote_line', 'apps.transactions.models.QuoteLine', 'Quote Line', 'Quote Lines', 'quote-lines', kind='line', aliases=['quote_lines', 'quoteline']),
     'purchase': ModelMeta('purchase', 'apps.transactions.models.Purchase', 'Purchase', 'Purchases', 'purchases', kind='header', aliases=['purchases', 'po']),
     'purchase_line': ModelMeta('purchase_line', 'apps.transactions.models.PurchaseLine', 'Purchase Line', 'Purchase Lines', 'purchase-lines', kind='line', aliases=['purchase_lines', 'poline']),
     # 'purchase_receipt': ModelMeta('purchase_receipt', 'apps.transactions.models.purchase_receipt.PurchaseReceipt', 'Purchase Receipt', 'Purchase Receipts', 'purchase-receipts', kind='support', aliases=['purchase_receipts']),  # model not yet created
@@ -225,7 +225,7 @@ VALID_MODEL_NAMES: List[str] = list(MODEL_REGISTRY.keys())
 
 # --- Transaction type subset (for routing) ---
 TRANSACTION_TYPES = frozenset({
-    'order', 'invoice', 'purchase', 'proposal', 'workorder', 'requisition',
+    'order', 'invoice', 'purchase', 'quote', 'workorder', 'requisition',
 })
 
 

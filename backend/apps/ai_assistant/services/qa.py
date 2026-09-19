@@ -48,7 +48,7 @@ TOPIC_BUCKETS = {
     "inventory": ["stock", "reorder", "on_hand", "overstock", "understock",
                    "warehouse", "quantity", "bom", "velocity", "dead stock",
                    "safety stock", "available"],
-    "transactions": ["order", "invoice", "cash", "proposal", "purchase",
+    "transactions": ["order", "invoice", "cash", "quote", "purchase",
                       "requisition", "work order", "convert", "status",
                       "line item", "totals"],
     "pricing": ["price", "discount", "margin", "cost", "markup", "tier",

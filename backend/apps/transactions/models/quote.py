@@ -2,20 +2,20 @@ from django.db import models
 from .base_transaction_model import TransactionBaseModel
 
 
-class Proposal(TransactionBaseModel):
+class Quote(TransactionBaseModel):
     # Totals: inherited from TransactionBaseModel.update_sell_cost_totals()
     # One engine: recalculate_totals(). JSON is source of truth.
 
     class Meta:
-        db_table = "proposals"
+        db_table = "quotes"
 
     dt_due = models.BigIntegerField(null=True, blank=True,
-        help_text="Proposal expiry date (epoch ms) — quote valid until this date")
+        help_text="Quote expiry date (epoch ms) — quote valid until this date")
     probability = models.FloatField(default=0.0, db_index=True,
         help_text="Close probability 0.0–1.0. Feeds forecast: totals × probability = weighted pipeline.")
 
     def __str__(self) -> str:
-        return f"Proposal #{self.id} ({self.ida or ''})"
+        return f"Quote #{self.id} ({self.ida or ''})"
 
     @property
     def name(self) -> str:
@@ -37,5 +37,5 @@ class Proposal(TransactionBaseModel):
         elif hasattr(self, 'display_name'):
             self.display_name = value
         else:
-            # Transient (not persisted) but allows Proposal.objects.create(name=...)
+            # Transient (not persisted) but allows Quote.objects.create(name=...)
             self._transient_name = value

@@ -6,13 +6,13 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from common.base_views import BaseOptimisticDetailView
 from apps.transactions.models import (
-    Proposal, Order, Purchase, Invoice, Cash
+    Quote, Order, Purchase, Invoice, Cash
 )
 from apps.transactions.serializers import (
-    ProposalSerializer, OrderSerializer, PurchaseSerializer,
+    QuoteSerializer, OrderSerializer, PurchaseSerializer,
     InvoiceSerializer, CashSerializer
 )
-from apps.transactions.services.convert import convert_proposal_to_order as proposal_to_order
+from apps.transactions.services.convert import convert_quote_to_order as quote_to_order
 from apps.transactions.services.convert import convert_order_to_invoice as order_to_invoice
 from apps.transactions.services import inventory_flow
 from apps.transactions.services.transaction_flow import receive_purchase, ReceiveLine
@@ -30,25 +30,25 @@ def _require_staff(request):
     return None
 
 
-class ProposalViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only ViewSet for Proposal. Writes go through /wcapi/save/."""
+class QuoteViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for Quote. Writes go through /wcapi/save/."""
 
-    queryset = Proposal.objects.active().prefetch_related('lines')
-    serializer_class = ProposalSerializer
+    queryset = Quote.objects.active().prefetch_related('lines')
+    serializer_class = QuoteSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['status', 'customer', 'vendor']
 
     @action(detail=True, methods=['post'])
     def convert_to_order(self, request, pk=None):
-        """Convert proposal to order."""
-        proposal = self.get_object()
+        """Convert quote to order."""
+        quote = self.get_object()
         try:
-            result = proposal_to_order.transfer_proposal_to_order(
-                proposal=proposal,
+            result = quote_to_order.transfer_quote_to_order(
+                quote=quote,
                 line_ids=request.data.get('line_ids'),
                 transfer_all=request.data.get('transfer_all', True),
                 order_status=request.data.get('order_status', 'confirmed'),
-                preserve_proposal=request.data.get('preserve_proposal', True),
+                preserve_quote=request.data.get('preserve_quote', True),
             )
             return Response(result, status=status.HTTP_201_CREATED)
         except Exception as e:
@@ -61,9 +61,9 @@ class ProposalViewSet(viewsets.ReadOnlyModelViewSet):
         denied = _require_staff(request)
         if denied:
             return denied
-        proposal = self.get_object()
+        quote = self.get_object()
         try:
-            result = populate_transaction_commission(proposal.pk, 'proposal')
+            result = populate_transaction_commission(quote.pk, 'quote')
             return Response(result, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -221,7 +221,7 @@ class CashViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 __all__ = [
-    'ProposalViewSet',
+    'QuoteViewSet',
     'OrderViewSet',
     'PurchaseViewSet',
     'InvoiceViewSet',

@@ -204,10 +204,10 @@ REPORT_LAYOUTS = {
         ],
     },
 
-    # --- PROPOSAL ---
+    # --- QUOTE ---
 
-    416: {  # Proposal
-        "model": "proposal", "title": "Proposal", "paper": "letter",
+    416: {  # Quote
+        "model": "quote", "title": "Quote", "paper": "letter",
         "sections": [
             COMPANY_HEADER,
             {"type": "address_blocks", "columns": [
@@ -216,8 +216,8 @@ REPORT_LAYOUTS = {
                     {"field": "company", "label": "Company"},
                     {"field": "address_full", "label": "Address"},
                 ]},
-                {"title": "Proposal Info", "fields": [
-                    {"field": "ida", "label": "Proposal #"},
+                {"title": "Quote Info", "fields": [
+                    {"field": "ida", "label": "Quote #"},
                     {"field": "status", "label": "Status"},
                     {"field": "dt_created", "label": "Date", "format": "date"},
                     {"field": "terms", "label": "Terms"},
@@ -231,7 +231,7 @@ REPORT_LAYOUTS = {
                 {"label": "Customer Signature", "lines": ["Signature", "Printed Name", "Date"]},
             ]},
             {"type": "footer", "fields": [
-                {"field": "ida", "label": "Proposal #"},
+                {"field": "ida", "label": "Quote #"},
             ]},
         ],
     },

@@ -2,7 +2,7 @@
 """
 Repair children_active on parent transaction lines.
 
-Scans child transactions (Order→Proposal, Invoice→Order) and rebuilds
+Scans child transactions (Order→Quote, Invoice→Order) and rebuilds
 the parent's children_active tracker from actual child data.
 
 Usage:
@@ -14,7 +14,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webclerk3_api.settings')
 django.setup()
 
 from apps.transactions.models import (
-    Proposal, ProposalLine,
+    Quote, QuoteLine,
     Order, OrderLine,
     Invoice, InvoiceLine,
 )
@@ -95,10 +95,10 @@ if __name__ == '__main__':
     mode = "DRY RUN" if DRY_RUN else "FIXING"
     print(f"\n=== Rebuild children_active ({mode}) ===\n")
     
-    print("--- Orders → Proposal lines ---")
+    print("--- Orders → Quote lines ---")
     f1 = rebuild_children_active(
-        Proposal, ProposalLine, Order, OrderLine,
-        'proposal', 'order', 'proposal')
+        Quote, QuoteLine, Order, OrderLine,
+        'quote', 'order', 'quote')
     
     print("\n--- Invoices → Order lines ---")
     f2 = rebuild_children_active(

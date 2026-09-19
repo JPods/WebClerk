@@ -11,9 +11,9 @@ django.setup()
 from django.db import connection
 
 TABLES = [
-    'orders', 'invoices', 'proposals', 'purchases',
+    'orders', 'invoices', 'quotes', 'purchases',
     'work_orders', 'requisitions',
-    'order_lines', 'invoice_lines', 'proposal_lines',
+    'order_lines', 'invoice_lines', 'quote_lines',
     'purchase_lines', 'work_order_lines', 'requisition_lines',
 ]
 

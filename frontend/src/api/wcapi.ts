@@ -472,7 +472,7 @@ export async function saveTransactionWithLines(
   };
 
   // Use save/ directly — transaction/save/ has intermittent 404 issues.
-  // save/ handles lines in the payload for header models (order, invoice, proposal, purchase).
+  // save/ handles lines in the payload for header models (order, invoice, quote, purchase).
   try {
     return await wcapiPost<any>("save/", body);
   } catch (err: any) {
@@ -483,7 +483,7 @@ export async function saveTransactionWithLines(
 /**
  * Populate commission on a transaction from customer's rep assignments.
  * Calls the backend populate_transaction_commission service.
- * @param modelName - 'order', 'proposal', or 'invoice'
+ * @param modelName - 'order', 'quote', or 'invoice'
  * @param transactionId - PK of the transaction
  */
 export async function populateCommission(
@@ -491,7 +491,7 @@ export async function populateCommission(
   transactionId: number,
 ): Promise<{ header_total: number; lines_updated: number; reps: any[] }> {
   const pluralMap: Record<string, string> = {
-    order: 'orders', proposal: 'proposals', invoice: 'invoices',
+    order: 'orders', quote: 'quotes', invoice: 'invoices',
   };
   const plural = pluralMap[modelName] || `${modelName}s`;
   const res = await apiClient.post<any>(

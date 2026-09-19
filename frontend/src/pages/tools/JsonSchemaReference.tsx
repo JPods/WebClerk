@@ -11,11 +11,11 @@ import { JsonSchemaTree, ENVELOPE_SCHEMAS } from '@/components/widgets/JsonSchem
 const MODEL_GROUPS: { title: string; models: string[] }[] = [
   {
     title: 'Transaction Headers',
-    models: ['invoice', 'order', 'proposal', 'purchase', 'workorder'],
+    models: ['invoice', 'order', 'quote', 'purchase', 'workorder'],
   },
   {
     title: 'Transaction Lines',
-    models: ['invoice_line', 'order_line', 'proposal_line', 'purchase_line', 'workorder_line'],
+    models: ['invoice_line', 'order_line', 'quote_line', 'purchase_line', 'workorder_line'],
   },
   {
     title: 'Cash & Accounts',

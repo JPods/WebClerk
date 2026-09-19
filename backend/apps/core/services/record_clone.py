@@ -23,7 +23,7 @@ def _now_ms():
 CHILDREN_MAP = {
     'order': ('OrderLine', 'order'),
     'invoice': ('InvoiceLine', 'invoice'),
-    'proposal': ('ProposalLine', 'proposal'),
+    'quote': ('QuoteLine', 'quote'),
     'purchase': ('PurchaseLine', 'purchase'),
     'workorder': ('WorkOrderLine', 'workorder'),
 }
@@ -55,7 +55,7 @@ def clone_record(model_name: str, record_id: int, include_children: bool = True,
     - Lines copied with fresh ids and line numbers
 
     Args:
-        model_name: 'order', 'invoice', 'proposal', 'purchase', 'workorder', or any model
+        model_name: 'order', 'invoice', 'quote', 'purchase', 'workorder', or any model
         record_id: PK of the record to clone
         include_children: if True, also clone child lines
         contact_id: who initiated the clone (for audit)
@@ -66,7 +66,7 @@ def clone_record(model_name: str, record_id: int, include_children: bool = True,
     model_map = {
         'order': ('transactions', 'Order'),
         'invoice': ('transactions', 'Invoice'),
-        'proposal': ('transactions', 'Proposal'),
+        'quote': ('transactions', 'Quote'),
         'purchase': ('transactions', 'Purchase'),
         'workorder': ('transactions', 'WorkOrder'),
         'item': ('products', 'Item'),

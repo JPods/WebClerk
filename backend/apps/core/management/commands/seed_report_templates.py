@@ -29,12 +29,12 @@ REPORTS = [
         },
     },
     {
-        'name': 'Proposal / Quote',
-        'description': 'Customer proposal with line items — no AR impact',
+        'name': 'Quote / Quote',
+        'description': 'Customer quote with line items — no AR impact',
         'category': 'customer_facing',
-        'model_name': 'proposal',
+        'model_name': 'quote',
         'config': {
-            'data_source': 'proposal_detail',
+            'data_source': 'quote_detail',
             'fields': ['ida', 'dt_created', 'customer.company', 'customer.address',
                         'lines[].item_ida', 'lines[].description', 'lines[].qty', 'lines[].unit_price',
                         'lines[].extended', 'totals.subtotal', 'totals.tax', 'totals.total',

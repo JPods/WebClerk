@@ -136,7 +136,7 @@ def analyze_user_patterns(contact_id: int) -> dict:
             )
 
     # Suggest training if user rarely uses certain transaction types
-    tx_models = {'order', 'invoice', 'proposal', 'purchase', 'cash'}
+    tx_models = {'order', 'invoice', 'quote', 'purchase', 'cash'}
     used_tx = tx_models.intersection(model_counts.keys())
     unused_tx = tx_models - used_tx
     if unused_tx and len(nav_log) > 50:

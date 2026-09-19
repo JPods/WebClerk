@@ -5,7 +5,7 @@ Erosion Service
 Detects and records events where value is lost between transaction stages.
 
 Auto-calculated categories:
-  - margin:       Invoice margin < linked proposal/order margin
+  - margin:       Invoice margin < linked quote/order margin
   - discount:     Discount applied at order or invoice stage
   - late_payment: Cash received past due date (carrying cost)
 
@@ -49,9 +49,9 @@ def _process_comment(text: str) -> dict:
 
 def detect_margin_erosion(invoice) -> list:
     """
-    Compare invoice margin against its ancestor proposal/order.
+    Compare invoice margin against its ancestor quote/order.
 
-    Walks the parent chain: invoice → order → proposal.
+    Walks the parent chain: invoice → order → quote.
     Creates an Erosion record for each stage where margin dropped.
 
     Returns list of created Erosion records.
@@ -316,7 +316,7 @@ def _safe_decimal(val) -> Optional[D]:
 def _get_ancestor_chain(transaction) -> list:
     """
     Walk parent_id / parent_model chain upward to find ancestor transactions.
-    Returns list of ancestor instances (order, proposal, etc.) from nearest to farthest.
+    Returns list of ancestor instances (order, quote, etc.) from nearest to farthest.
     """
     from django.apps import apps
 
@@ -337,7 +337,7 @@ def _get_ancestor_chain(transaction) -> list:
 
         # Resolve parent model class
         try:
-            # parent_model is like 'order', 'proposal' — need to map to app label
+            # parent_model is like 'order', 'quote' — need to map to app label
             model_cls = _resolve_transaction_model(parent_model)
             if model_cls is None:
                 break
@@ -446,7 +446,7 @@ def _resolve_transaction_model(model_name: str):
 
     # All transaction models live in apps.transactions
     MODEL_MAP = {
-        'proposal': 'transactions.Proposal',
+        'quote': 'transactions.Quote',
         'order': 'transactions.Order',
         'invoice': 'transactions.Invoice',
         'purchase': 'transactions.Purchase',

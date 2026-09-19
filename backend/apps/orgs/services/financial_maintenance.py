@@ -283,7 +283,7 @@ def recent_transaction_activity(*, hours: int = 24) -> dict[str, Any]:
         ("invoice", "Invoice"),
         ("order", "Order"),
         ("purchase", "Purchase"),
-        ("proposal", "Proposal"),
+        ("quote", "Quote"),
         ("cash", "Cash"),  # model renamed Cash -> Cash
         ("workorder", "WorkOrder"),
         ("requisition", "Requisition"),

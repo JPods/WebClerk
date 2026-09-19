@@ -62,7 +62,7 @@ TEST_TIERS = [
     {
         'name': 'Integration',
         'marker': 'integration',
-        'description': 'Full commerce cycle — proposal to cash to GL',
+        'description': 'Full commerce cycle — quote to cash to GL',
         'time_budget': '< 300s',
     },
 ]

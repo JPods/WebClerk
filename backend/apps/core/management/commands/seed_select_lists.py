@@ -46,9 +46,9 @@ SELECT_LISTS = {
         },
     },
 
-    'proposal': {
+    'quote': {
         'status': {
-            'label': 'Proposal Status',
+            'label': 'Quote Status',
             'choices': [
                 'draft', 'sent', 'reviewed',
                 'accepted', 'declined', 'expired', 'revised',

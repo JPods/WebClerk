@@ -15,7 +15,7 @@ Usage:
     flow = TrainingFlow(customer_id=2, item_id=250)
     results = flow.run_full_cycle()
     # or step by step:
-    flow.step_1_create_proposal(quantity=5)
+    flow.step_1_create_quote(quantity=5)
     flow.step_2_convert_to_order(quantity=4)
     flow.step_3_invoice(quantity=3)
     flow.step_4_record_cash()
@@ -58,7 +58,7 @@ class TrainingFlow:
         self.customer = OrgBase.objects.get(pk=customer_id)
         self.item = Item.objects.get(pk=item_id)
         self.steps: List[Dict[str, Any]] = []
-        self.proposal = None
+        self.quote = None
         self.order = None
         self.invoice = None
         self.cash = None
@@ -80,22 +80,22 @@ class TrainingFlow:
         from apps.products.services.inventory.inventory_available import get_item_availability
         return get_item_availability(self.item.pk)
 
-    def step_1_create_proposal(self, quantity: int = 10) -> Dict[str, Any]:
-        """Create a proposal. No inventory effect expected."""
-        from apps.transactions.models import Proposal, ProposalLine
+    def step_1_create_quote(self, quantity: int = 10) -> Dict[str, Any]:
+        """Create a quote. No inventory effect expected."""
+        from apps.transactions.models import Quote, QuoteLine
 
         inv_before = self._snapshot_inventory()
         unit_price = self._get_item_price()
 
-        self.proposal = Proposal.objects.create(
+        self.quote = Quote.objects.create(
             ida=f'TRAIN-QT-{timezone.now().strftime("%H%M%S")}',
             status='open',
             customer=self.customer,
         )
-        _stamp_training(self.proposal)
+        _stamp_training(self.quote)
 
-        ProposalLine.objects.create(
-            proposal=self.proposal,
+        QuoteLine.objects.create(
+            quote=self.quote,
             item_fk=self.item,
             item={'id': self.item.pk, 'ida': self.item.ida, 'description': getattr(self.item, 'description', '')},
             price={'unit': unit_price, 'quantity': float(quantity), 'extended': unit_price * quantity},
@@ -106,19 +106,19 @@ class TrainingFlow:
         inv_after = self._snapshot_inventory()
         step = {
             'step': 1,
-            'action': f'Created proposal {self.proposal.ida} for {quantity} × {self.item.ida}',
-            'expected': 'No inventory change — proposals are quotes, not commitments',
+            'action': f'Created quote {self.quote.ida} for {quantity} × {self.item.ida}',
+            'expected': 'No inventory change — quotes are quotes, not commitments',
             'inventory_before': inv_before,
             'inventory_after': inv_after,
             'inventory_changed': inv_before != inv_after,
-            'record_id': self.proposal.pk,
-            'record_type': 'proposal',
+            'record_id': self.quote.pk,
+            'record_type': 'quote',
         }
         self.steps.append(step)
         return step
 
     def step_2_convert_to_order(self, quantity: int = 10) -> Dict[str, Any]:
-        """Convert proposal to order (or create order directly). on_so should increase."""
+        """Convert quote to order (or create order directly). on_so should increase."""
         from apps.transactions.models import Order, OrderLine
 
         inv_before = self._snapshot_inventory()
@@ -128,8 +128,8 @@ class TrainingFlow:
             ida=f'TRAIN-SO-{timezone.now().strftime("%H%M%S")}',
             status='confirmed',
             customer=self.customer,
-            parent_id=self.proposal.pk if self.proposal else None,
-            parent_model='proposal' if self.proposal else '',
+            parent_id=self.quote.pk if self.quote else None,
+            parent_model='quote' if self.quote else '',
         )
         _stamp_training(self.order)
 
@@ -329,14 +329,14 @@ class TrainingFlow:
 
     def run_full_cycle(
         self,
-        proposal_qty: int = 10,
+        quote_qty: int = 10,
         order_qty: int = 10,
         invoice_qty: int = 10,
         po_qty: int = 10,
         receive_qty: int = 10,
     ) -> Dict[str, Any]:
         """Run the complete training cycle and return a full report."""
-        self.step_1_create_proposal(proposal_qty)
+        self.step_1_create_quote(quote_qty)
         self.step_2_convert_to_order(order_qty)
         self.step_3_invoice(invoice_qty)
         self.step_4_record_cash()
@@ -353,7 +353,7 @@ class TrainingFlow:
             'steps': self.steps,
             'final_inventory': final_inv,
             'records_created': {
-                'proposal': self.proposal.pk if self.proposal else None,
+                'quote': self.quote.pk if self.quote else None,
                 'order': self.order.pk if self.order else None,
                 'invoice': self.invoice.pk if self.invoice else None,
                 'cash': self.cash.pk if self.cash else None,
@@ -367,7 +367,7 @@ class TrainingFlow:
 def cleanup_training_records():
     """Remove all training-flagged records. Use after training session."""
     from apps.transactions.models import (
-        Proposal, ProposalLine, Order, OrderLine,
+        Quote, QuoteLine, Order, OrderLine,
         Invoice, InvoiceLine, Purchase, PurchaseLine, Cash,
     )
     from apps.core.models import Pending
@@ -375,7 +375,7 @@ def cleanup_training_records():
     count = 0
 
     # Find training record IDs first, then delete by PK (avoids JSON filter + FK cascade issues)
-    for Model in [Invoice, Purchase, Order, Proposal]:
+    for Model in [Invoice, Purchase, Order, Quote]:
         training_ids = list(
             Model.objects.filter(metadata__contains={'training': True}).values_list('pk', flat=True)
         )

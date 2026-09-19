@@ -71,12 +71,12 @@ def test_every_seeded_account_has_a_use_summary(chart_of_accounts):
 
 
 def test_documents_are_numbered_number_first_by_type(db):
-    from apps.transactions.models import Invoice, Proposal
+    from apps.transactions.models import Invoice, Quote
 
-    first = Proposal.objects.create(status="planned")
-    second = Proposal.objects.create(status="planned")
+    first = Quote.objects.create(status="planned")
+    second = Quote.objects.create(status="planned")
     invoice = Invoice.objects.create(status="planned")
-    training = Proposal(status="planned")
+    training = Quote(status="planned")
     training._training_prefix = "qq"
     training.save()
 

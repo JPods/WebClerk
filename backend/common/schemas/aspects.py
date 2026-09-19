@@ -51,7 +51,7 @@ class PhoneEntry(BaseModel):
 # ── Transaction aspects (bill_to / ship_to) ─────────────────────
 
 class TransactionAddresses(BaseModel):
-    """addresses aspect on Proposal, Order, Invoice, Purchase."""
+    """addresses aspect on Quote, Order, Invoice, Purchase."""
     bill_to: AddressEntry = Field(default_factory=AddressEntry)
     ship_to: AddressEntry = Field(default_factory=AddressEntry)
 
@@ -60,7 +60,7 @@ class TransactionAddresses(BaseModel):
 
 
 class TransactionEmails(BaseModel):
-    """emails aspect on Proposal, Order, Invoice, Purchase."""
+    """emails aspect on Quote, Order, Invoice, Purchase."""
     bill_to: EmailEntry = Field(default_factory=EmailEntry)
     ship_to: EmailEntry = Field(default_factory=EmailEntry)
 
@@ -69,7 +69,7 @@ class TransactionEmails(BaseModel):
 
 
 class TransactionPhones(BaseModel):
-    """phones aspect on Proposal, Order, Invoice, Purchase."""
+    """phones aspect on Quote, Order, Invoice, Purchase."""
     bill_to: PhoneEntry = Field(default_factory=PhoneEntry)
     ship_to: PhoneEntry = Field(default_factory=PhoneEntry)
 

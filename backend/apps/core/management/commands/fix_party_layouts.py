@@ -36,7 +36,7 @@ SHIP_TO_FIELDS = [
 MODELS = [
     'wc-model-order',
     'wc-model-invoice',
-    'wc-model-proposal',
+    'wc-model-quote',
     'wc-model-purchase',
     'wc-model-work_order',
 ]

@@ -19,9 +19,9 @@ const SIMULATIONS = [
   // Phase 1: Foundation
   { id: 'first-customer', label: '1. Your First Customer', description: 'Contact → Customer Org → Credit limit' },
   { id: 'first-item', label: '2. Your First Item', description: 'Item → Price/Cost → GL accounts → Opening inventory' },
-  { id: 'first-sale', label: '3. Your First Sale', description: 'Proposal → Convert to Order — watch on_p and on_so change' },
+  { id: 'first-sale', label: '3. Your First Sale', description: 'Quote → Convert to Order — watch on_p and on_so change' },
   // Phase 2+
-  { id: 'inventory', label: '4. Transaction Lifecycle', description: 'Proposal → Order → Invoice → Cash — watch inventory and GL change' },
+  { id: 'inventory', label: '4. Transaction Lifecycle', description: 'Quote → Order → Invoice → Cash — watch inventory and GL change' },
   { id: 'gl-audit', label: 'GL Audit Trail', description: 'How every event creates balanced journal entries' },
   { id: 'cash', label: 'Cash Flow', description: 'Cash vs profit — from cash through bank reconciliation' },
   { id: 'cash-lifecycle', label: 'Cash Lifecycle', description: 'Order → Invoice → Cash → Apply → Journal — watch available, ledger, and GL' },

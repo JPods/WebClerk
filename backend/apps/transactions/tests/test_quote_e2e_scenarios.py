@@ -1,9 +1,9 @@
 """
-End-to-End Test Scenarios for Proposal Creation Workflow
+End-to-End Test Scenarios for Quote Creation Workflow
 
 This file contains comprehensive E2E test scenarios that would be implemented
 using a tool like Playwright, Cypress, or Selenium. These scenarios test the
-complete user journey from proposal creation to completion.
+complete user journey from quote creation to completion.
 
 Note: These are scenario definitions that would be implemented with an
 appropriate E2E testing framework.
@@ -12,28 +12,28 @@ appropriate E2E testing framework.
 from typing import Dict, List, Any
 
 
-class ProposalE2ETestScenarios:
-    """E2E test scenarios for the complete proposal workflow."""
+class QuoteE2ETestScenarios:
+    """E2E test scenarios for the complete quote workflow."""
 
     @staticmethod
     def get_test_scenarios() -> List[Dict[str, Any]]:
         """Return all E2E test scenarios."""
         return [
-            # Basic proposal creation workflow
+            # Basic quote creation workflow
             {
-                'name': 'complete_proposal_creation_workflow',
-                'description': 'Test creating a proposal from start to finish',
+                'name': 'complete_quote_creation_workflow',
+                'description': 'Test creating a quote from start to finish',
                 'steps': [
                     {
                         'action': 'navigate',
-                        'url': '/proposals/new',
-                        'description': 'Navigate to proposal creation page'
+                        'url': '/quotes/new',
+                        'description': 'Navigate to quote creation page'
                     },
                     {
                         'action': 'fill_form',
                         'selector': '[name="ida"]',
                         'value': 'E2E-PROP-001',
-                        'description': 'Enter proposal ID'
+                        'description': 'Enter quote ID'
                     },
                     {
                         'action': 'select_option',
@@ -83,45 +83,45 @@ class ProposalE2ETestScenarios:
                     },
                     {
                         'action': 'click',
-                        'selector': '[data-testid="submit-proposal-button"]',
-                        'description': 'Submit proposal'
+                        'selector': '[data-testid="submit-quote-button"]',
+                        'description': 'Submit quote'
                     },
                     {
                         'action': 'assert_visible',
                         'selector': '[data-testid="success-message"]',
-                        'text': 'Proposal created successfully',
+                        'text': 'Quote created successfully',
                         'description': 'Verify success message'
                     },
                     {
                         'action': 'assert_url',
-                        'url': '/proposals/1',
-                        'description': 'Verify redirected to proposal detail page'
+                        'url': '/quotes/1',
+                        'description': 'Verify redirected to quote detail page'
                     }
                 ],
                 'expected_results': {
-                    'proposal_created': True,
+                    'quote_created': True,
                     'line_items_count': 1,
                     'total': 125.00,
                     'status': 'planned'
                 }
             },
 
-            # Proposal editing workflow
+            # Quote editing workflow
             {
-                'name': 'proposal_editing_workflow',
-                'description': 'Test editing an existing proposal',
-                'prerequisites': ['complete_proposal_creation_workflow'],
+                'name': 'quote_editing_workflow',
+                'description': 'Test editing an existing quote',
+                'prerequisites': ['complete_quote_creation_workflow'],
                 'steps': [
                     {
                         'action': 'navigate',
-                        'url': '/proposals/1/edit',
-                        'description': 'Navigate to proposal edit page'
+                        'url': '/quotes/1/edit',
+                        'description': 'Navigate to quote edit page'
                     },
                     {
                         'action': 'assert_value',
                         'selector': '[name="ida"]',
                         'value': 'E2E-PROP-001',
-                        'description': 'Verify proposal ID is pre-filled'
+                        'description': 'Verify quote ID is pre-filled'
                     },
                     {
                         'action': 'fill_form',
@@ -181,13 +181,13 @@ class ProposalE2ETestScenarios:
                     },
                     {
                         'action': 'click',
-                        'selector': '[data-testid="update-proposal-button"]',
-                        'description': 'Update proposal'
+                        'selector': '[data-testid="update-quote-button"]',
+                        'description': 'Update quote'
                     },
                     {
                         'action': 'assert_visible',
                         'selector': '[data-testid="success-message"]',
-                        'text': 'Proposal updated successfully',
+                        'text': 'Quote updated successfully',
                         'description': 'Verify update success'
                     }
                 ],
@@ -198,20 +198,20 @@ class ProposalE2ETestScenarios:
                 }
             },
 
-            # Proposal status workflow
+            # Quote status workflow
             {
-                'name': 'proposal_status_workflow',
-                'description': 'Test proposal status transitions',
-                'prerequisites': ['complete_proposal_creation_workflow'],
+                'name': 'quote_status_workflow',
+                'description': 'Test quote status transitions',
+                'prerequisites': ['complete_quote_creation_workflow'],
                 'steps': [
                     {
                         'action': 'navigate',
-                        'url': '/proposals/1',
-                        'description': 'Navigate to proposal detail page'
+                        'url': '/quotes/1',
+                        'description': 'Navigate to quote detail page'
                     },
                     {
                         'action': 'assert_text',
-                        'selector': '[data-testid="proposal-status"]',
+                        'selector': '[data-testid="quote-status"]',
                         'text': 'planned',
                         'description': 'Verify initial status'
                     },
@@ -223,7 +223,7 @@ class ProposalE2ETestScenarios:
                     },
                     {
                         'action': 'assert_text',
-                        'selector': '[data-testid="proposal-status"]',
+                        'selector': '[data-testid="quote-status"]',
                         'text': 'sent',
                         'description': 'Verify status changed to sent'
                     },
@@ -246,14 +246,14 @@ class ProposalE2ETestScenarios:
                     {
                         'action': 'assert_visible',
                         'selector': '[data-testid="success-message"]',
-                        'text': 'Proposal converted to sales order',
+                        'text': 'Quote converted to sales order',
                         'description': 'Verify conversion success'
                     }
                 ],
                 'expected_results': {
                     'final_status': 'accepted',
                     'order_created': True,
-                    'proposal_status_after_conversion': 'accepted'
+                    'quote_status_after_conversion': 'accepted'
                 }
             },
 
@@ -261,12 +261,12 @@ class ProposalE2ETestScenarios:
             {
                 'name': 'pdf_generation_workflow',
                 'description': 'Test PDF generation and download',
-                'prerequisites': ['complete_proposal_creation_workflow'],
+                'prerequisites': ['complete_quote_creation_workflow'],
                 'steps': [
                     {
                         'action': 'navigate',
-                        'url': '/proposals/1',
-                        'description': 'Navigate to proposal detail page'
+                        'url': '/quotes/1',
+                        'description': 'Navigate to quote detail page'
                     },
                     {
                         'action': 'assert_visible',
@@ -280,27 +280,27 @@ class ProposalE2ETestScenarios:
                     },
                     {
                         'action': 'wait_for_download',
-                        'filename_pattern': 'Proposal_E2E-PROP-001_*.pdf',
+                        'filename_pattern': 'Quote_E2E-PROP-001_*.pdf',
                         'description': 'Wait for PDF download to complete'
                     },
                     {
                         'action': 'verify_file_exists',
-                        'filename_pattern': 'Proposal_E2E-PROP-001_*.pdf',
+                        'filename_pattern': 'Quote_E2E-PROP-001_*.pdf',
                         'description': 'Verify PDF file was downloaded'
                     }
                 ],
                 'expected_results': {
                     'pdf_downloaded': True,
-                    'filename_format': 'Proposal_{id}_{date}.pdf'
+                    'filename_format': 'Quote_{id}_{date}.pdf'
                 }
             },
 
             # Multi-user collaboration workflow
             {
                 'name': 'multi_user_collaboration_workflow',
-                'description': 'Test proposal workflow with multiple users',
+                'description': 'Test quote workflow with multiple users',
                 'steps': [
-                    # User 1 creates proposal
+                    # User 1 creates quote
                     {
                         'action': 'switch_user',
                         'user': 'sales_rep_1',
@@ -308,14 +308,14 @@ class ProposalE2ETestScenarios:
                     },
                     {
                         'action': 'navigate',
-                        'url': '/proposals/new',
-                        'description': 'Create new proposal'
+                        'url': '/quotes/new',
+                        'description': 'Create new quote'
                     },
                     {
                         'action': 'fill_form',
                         'selector': '[name="ida"]',
                         'value': 'COLLAB-PROP-001',
-                        'description': 'Enter proposal ID'
+                        'description': 'Enter quote ID'
                     },
                     {
                         'action': 'select_option',
@@ -325,10 +325,10 @@ class ProposalE2ETestScenarios:
                     },
                     {
                         'action': 'click',
-                        'selector': '[data-testid="submit-proposal-button"]',
-                        'description': 'Submit proposal'
+                        'selector': '[data-testid="submit-quote-button"]',
+                        'description': 'Submit quote'
                     },
-                    # User 2 edits proposal
+                    # User 2 edits quote
                     {
                         'action': 'switch_user',
                         'user': 'sales_manager',
@@ -336,8 +336,8 @@ class ProposalE2ETestScenarios:
                     },
                     {
                         'action': 'navigate',
-                        'url': '/proposals/2/edit',
-                        'description': 'Edit the created proposal'
+                        'url': '/quotes/2/edit',
+                        'description': 'Edit the created quote'
                     },
                     {
                         'action': 'fill_form',
@@ -347,10 +347,10 @@ class ProposalE2ETestScenarios:
                     },
                     {
                         'action': 'click',
-                        'selector': '[data-testid="update-proposal-button"]',
-                        'description': 'Update proposal'
+                        'selector': '[data-testid="update-quote-button"]',
+                        'description': 'Update quote'
                     },
-                    # User 1 views updated proposal
+                    # User 1 views updated quote
                     {
                         'action': 'switch_user',
                         'user': 'sales_rep_1',
@@ -358,8 +358,8 @@ class ProposalE2ETestScenarios:
                     },
                     {
                         'action': 'navigate',
-                        'url': '/proposals/2',
-                        'description': 'View the updated proposal'
+                        'url': '/quotes/2',
+                        'description': 'View the updated quote'
                     },
                     {
                         'action': 'assert_text',
@@ -382,13 +382,13 @@ class ProposalE2ETestScenarios:
                 'steps': [
                     {
                         'action': 'navigate',
-                        'url': '/proposals/new',
-                        'description': 'Navigate to proposal creation'
+                        'url': '/quotes/new',
+                        'description': 'Navigate to quote creation'
                     },
                     # Test required field validation
                     {
                         'action': 'click',
-                        'selector': '[data-testid="submit-proposal-button"]',
+                        'selector': '[data-testid="submit-quote-button"]',
                         'description': 'Try to submit without required fields'
                     },
                     {
@@ -397,12 +397,12 @@ class ProposalE2ETestScenarios:
                         'text': 'Customer is required',
                         'description': 'Verify customer validation error'
                     },
-                    # Test duplicate proposal ID
+                    # Test duplicate quote ID
                     {
                         'action': 'fill_form',
                         'selector': '[name="ida"]',
                         'value': 'E2E-PROP-001',  # Already exists from previous test
-                        'description': 'Enter duplicate proposal ID'
+                        'description': 'Enter duplicate quote ID'
                     },
                     {
                         'action': 'select_option',
@@ -412,13 +412,13 @@ class ProposalE2ETestScenarios:
                     },
                     {
                         'action': 'click',
-                        'selector': '[data-testid="submit-proposal-button"]',
+                        'selector': '[data-testid="submit-quote-button"]',
                         'description': 'Try to submit duplicate ID'
                     },
                     {
                         'action': 'assert_visible',
                         'selector': '[data-testid="error-ida"]',
-                        'text': 'Proposal ID already exists',
+                        'text': 'Quote ID already exists',
                         'description': 'Verify duplicate ID error'
                     },
                     # Test line item validation
@@ -426,7 +426,7 @@ class ProposalE2ETestScenarios:
                         'action': 'fill_form',
                         'selector': '[name="ida"]',
                         'value': 'VALID-PROP-001',
-                        'description': 'Enter valid proposal ID'
+                        'description': 'Enter valid quote ID'
                     },
                     {
                         'action': 'click',
@@ -461,18 +461,18 @@ class ProposalE2ETestScenarios:
             # Performance and load testing scenario
             {
                 'name': 'performance_workflow',
-                'description': 'Test performance with large proposal',
+                'description': 'Test performance with large quote',
                 'steps': [
                     {
                         'action': 'navigate',
-                        'url': '/proposals/new',
-                        'description': 'Create new proposal'
+                        'url': '/quotes/new',
+                        'description': 'Create new quote'
                     },
                     {
                         'action': 'fill_form',
                         'selector': '[name="ida"]',
                         'value': 'PERF-PROP-001',
-                        'description': 'Enter proposal ID'
+                        'description': 'Enter quote ID'
                     },
                     {
                         'action': 'select_option',
@@ -518,14 +518,14 @@ class ProposalE2ETestScenarios:
                     },
                     {
                         'action': 'measure_performance',
-                        'action_name': 'submit_large_proposal',
+                        'action_name': 'submit_large_quote',
                         'max_duration': 5000,  # 5 seconds max
-                        'description': 'Measure time to submit large proposal'
+                        'description': 'Measure time to submit large quote'
                     },
                     {
                         'action': 'click',
-                        'selector': '[data-testid="submit-proposal-button"]',
-                        'description': 'Submit large proposal'
+                        'selector': '[data-testid="submit-quote-button"]',
+                        'description': 'Submit large quote'
                     },
                     {
                         'action': 'assert_visible',
@@ -534,14 +534,14 @@ class ProposalE2ETestScenarios:
                     },
                     {
                         'action': 'navigate',
-                        'url': '/proposals/3',
-                        'description': 'View the large proposal'
+                        'url': '/quotes/3',
+                        'description': 'View the large quote'
                     },
                     {
                         'action': 'measure_performance',
-                        'action_name': 'load_large_proposal',
+                        'action_name': 'load_large_quote',
                         'max_duration': 3000,  # 3 seconds max
-                        'description': 'Measure time to load large proposal'
+                        'description': 'Measure time to load large quote'
                     },
                     {
                         'action': 'assert_count',
@@ -551,7 +551,7 @@ class ProposalE2ETestScenarios:
                     }
                 ],
                 'expected_results': {
-                    'proposal_created_within_time_limit': True,
+                    'quote_created_within_time_limit': True,
                     'page_loads_within_time_limit': True,
                     'all_line_items_displayed': True,
                     'total_calculation_correct': True  # 50 * 100 = 5000
@@ -562,7 +562,7 @@ class ProposalE2ETestScenarios:
     @staticmethod
     def get_test_scenario_by_name(name: str) -> Dict[str, Any]:
         """Get a specific test scenario by name."""
-        scenarios = ProposalE2ETestScenarios.get_test_scenarios()
+        scenarios = QuoteE2ETestScenarios.get_test_scenarios()
         for scenario in scenarios:
             if scenario['name'] == name:
                 return scenario
@@ -571,13 +571,13 @@ class ProposalE2ETestScenarios:
     @staticmethod
     def get_prerequisites_for_scenario(scenario_name: str) -> List[str]:
         """Get prerequisite scenarios for a given scenario."""
-        scenario = ProposalE2ETestScenarios.get_test_scenario_by_name(scenario_name)
+        scenario = QuoteE2ETestScenarios.get_test_scenario_by_name(scenario_name)
         return scenario.get('prerequisites', [])
 
     @staticmethod
     def validate_scenario_dependencies() -> Dict[str, List[str]]:
         """Validate that all scenario dependencies are satisfied."""
-        scenarios = ProposalE2ETestScenarios.get_test_scenarios()
+        scenarios = QuoteE2ETestScenarios.get_test_scenarios()
         issues = {}
 
         for scenario in scenarios:
@@ -597,7 +597,7 @@ class ProposalE2ETestScenarios:
 # Example usage for test automation
 if __name__ == '__main__':
     # Print all available scenarios
-    scenarios = ProposalE2ETestScenarios.get_test_scenarios()
+    scenarios = QuoteE2ETestScenarios.get_test_scenarios()
     print(f"Available E2E test scenarios ({len(scenarios)}):")
     for scenario in scenarios:
         prereqs = scenario.get('prerequisites', [])
@@ -605,7 +605,7 @@ if __name__ == '__main__':
         print(f"  - {scenario['name']}: {scenario['description']}{prereq_str}")
 
     # Validate dependencies
-    issues = ProposalE2ETestScenarios.validate_scenario_dependencies()
+    issues = QuoteE2ETestScenarios.validate_scenario_dependencies()
     if issues:
         print("\nDependency issues found:")
         for scenario, missing in issues.items():
@@ -615,7 +615,7 @@ if __name__ == '__main__':
 
     # Example: Get a specific scenario
     try:
-        workflow_scenario = ProposalE2ETestScenarios.get_test_scenario_by_name('complete_proposal_creation_workflow')
+        workflow_scenario = QuoteE2ETestScenarios.get_test_scenario_by_name('complete_quote_creation_workflow')
         print(f"\nExample scenario '{workflow_scenario['name']}':")
         print(f"Description: {workflow_scenario['description']}")
         print(f"Steps: {len(workflow_scenario['steps'])}")

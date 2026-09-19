@@ -345,13 +345,13 @@ SELECTLIST_KEY_OPTIONS = {
 LEAF_MAP = {
     'order': ['totals', 'shipping'],
     'invoice': ['totals', 'shipping'],
-    'proposal': ['totals', 'shipping'],
+    'quote': ['totals', 'shipping'],
     'purchase': ['totals', 'shipping'],
     'requisition': ['totals'],
     'workorder': ['totals', 'shipping'],
     'order_line': ['quantity', 'price', 'cost'],
     'invoice_line': ['quantity', 'price', 'cost'],
-    'proposal_line': ['quantity', 'price', 'cost'],
+    'quote_line': ['quantity', 'price', 'cost'],
     'purchase_line': ['quantity', 'cost'],
     'requisition_line': ['quantity', 'cost'],
     'receipt_line': ['quantity', 'cost'],
@@ -503,7 +503,7 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
         if name == 'status' and model_key in ('customer', 'vendor', 'manufacturer', 'employee', 'rep'):
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': STATUS_OPTIONS}
             continue
-        if name == 'status' and model_key in ('invoice', 'order', 'proposal', 'purchase', 'workorder', 'requisition'):
+        if name == 'status' and model_key in ('invoice', 'order', 'quote', 'purchase', 'workorder', 'requisition'):
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': TX_STATUS_OPTIONS}
             continue
         if name == 'price_level':
@@ -632,7 +632,7 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
             continue
         if name == 'status' and model_key not in (
             'customer', 'vendor', 'manufacturer', 'employee', 'rep',
-            'invoice', 'order', 'proposal', 'purchase', 'workorder', 'requisition',
+            'invoice', 'order', 'quote', 'purchase', 'workorder', 'requisition',
             'item', 'serial', 'serial_log',
         ):
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': SUPPORT_STATUS_OPTIONS}

@@ -28,7 +28,7 @@ def _now_ms():
 COACHING = {
     'customer': {
         'tips': [
-            {'id': 'cust-01', 'title': 'Customers are the center', 'body': 'Every order, invoice, proposal, and cash links to a customer. Start here.', 'type': 'concept', 'level': 'beginner'},
+            {'id': 'cust-01', 'title': 'Customers are the center', 'body': 'Every order, invoice, quote, and cash links to a customer. Start here.', 'type': 'concept', 'level': 'beginner'},
             {'id': 'cust-02', 'title': 'A customer can also be a vendor', 'body': 'The same contact can have multiple org relationships. Check the contact record to see all hats.', 'type': 'concept', 'level': 'intermediate'},
             {'id': 'cust-03', 'title': 'Price levels matter', 'body': 'Retail, wholesale, distributor, sample — the price level on the customer flows to orders and invoices automatically.', 'type': 'workflow', 'level': 'beginner'},
         ],
@@ -98,7 +98,7 @@ COACHING = {
             'cost': 'Cost-side data — landed cost, margin analysis. Not shown to customers.',
             'finance': 'GL posting data — account codes, journal references, posting status.',
             'config': 'Custom settings — alternate ship-to, special handling instructions.',
-            'source': 'Origin tracking — which order, proposal, or import created this invoice.',
+            'source': 'Origin tracking — which order, quote, or import created this invoice.',
         },
         'actions': {
             'create': 'Select a customer, set status to planned, add line items with items and quantities.',
@@ -142,7 +142,7 @@ COACHING = {
             'price_level': 'Price tier — flows from customer unless overridden here.',
             'terms': 'Cash terms — flows from customer unless overridden.',
             'conditions_description': 'Special order conditions printed on documents.',
-            'source_name': 'Where this order came from — web, phone, proposal conversion.',
+            'source_name': 'Where this order came from — web, phone, quote conversion.',
             'totals': 'Subtotal, tax, shipping, total. Computed from lines — read-only.',
             'cost': 'Cost-side data — margin analysis. Internal only.',
             'config': 'Custom settings — alternate ship-to, special handling.',
@@ -162,37 +162,37 @@ COACHING = {
         },
     },
 
-    'proposal': {
+    'quote': {
         'tips': [
-            {'id': 'prop-01', 'title': 'Proposals are quotes', 'body': 'A proposal is a price quote sent to a customer. If accepted, it converts to an order.', 'type': 'concept', 'level': 'beginner'},
-            {'id': 'prop-02', 'title': 'MSRP vs Unit Price', 'body': 'Proposal lines show both MSRP and the offered unit price so the customer sees the discount.', 'type': 'concept', 'level': 'beginner'},
+            {'id': 'prop-01', 'title': 'Quotes are quotes', 'body': 'A quote is a price quote sent to a customer. If accepted, it converts to an order.', 'type': 'concept', 'level': 'beginner'},
+            {'id': 'prop-02', 'title': 'MSRP vs Unit Price', 'body': 'Quote lines show both MSRP and the offered unit price so the customer sees the discount.', 'type': 'concept', 'level': 'beginner'},
         ],
         'field_help': {
-            'ida': 'Proposal number — unique identifier.',
+            'ida': 'Quote number — unique identifier.',
             'total': 'Proposed total — what the customer would pay if they accept.',
             'status': 'planned = draft. released = sent to customer. complete = accepted or expired.',
-            'dt_needed': 'Proposal expiration or decision-needed date.',
+            'dt_needed': 'Quote expiration or decision-needed date.',
             'price_level': 'Price tier for this quote — may differ from customer default.',
-            'attention': 'Who at the customer receives this proposal.',
+            'attention': 'Who at the customer receives this quote.',
             'company': 'Customer company name.',
             'email': 'Contact email. Cmd+click label to compose.',
             'phone': 'Contact phone. Cmd+click label to dial.',
             'address_full': 'Customer address. Cmd+click label to open in maps.',
             'totals': 'Subtotal, tax, shipping, total. Computed from lines.',
-            'conditions_description': 'Terms and conditions printed on the proposal.',
+            'conditions_description': 'Terms and conditions printed on the quote.',
         },
         'actions': {
             'create': 'Select customer, add line items with items, quantities, and pricing.',
-            'convert': 'If customer accepts, convert proposal to order.',
-            'print': 'Reports (🖨) → Proposal/Quote for professional printable format.',
+            'convert': 'If customer accepts, convert quote to order.',
+            'print': 'Reports (🖨) → Quote/Quote for professional printable format.',
         },
         'warnings': [],
         'code_examples': [
-            {'title': 'List customer proposals', 'language': 'javascript', 'code': "await getRecords('proposal', { customer_id: X });"},
+            {'title': 'List customer quotes', 'language': 'javascript', 'code': "await getRecords('quote', { customer_id: X });"},
         ],
         'api_reference': {
-            'list': "GET /wcapi/get/?model_name=proposal",
-            'save': "POST /wcapi/save/ {model_name: 'proposal', customer_id: X}",
+            'list': "GET /wcapi/get/?model_name=quote",
+            'save': "POST /wcapi/save/ {model_name: 'quote', customer_id: X}",
         },
     },
 

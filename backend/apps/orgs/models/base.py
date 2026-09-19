@@ -184,7 +184,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	metrics = models.JSONField(default=default_metrics)
 	gl_accounts = models.JSONField(default=default_gl_accounts)
 
-	# Tax — propagates to proposals, orders, invoices
+	# Tax — propagates to quotes, orders, invoices
 	tax_jurisdiction = models.ForeignKey(
 		'accounts.TaxJurisdiction', on_delete=models.SET_NULL,
 		null=True, blank=True, db_column='tax_jurisdiction_id',

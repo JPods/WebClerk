@@ -1,7 +1,7 @@
 import pytest
 from rest_framework.test import APIClient
 from apps.core.models.setting import Setting
-from apps.transactions.models import Proposal, ProposalLine, OrderLine, Order, InvoiceLine, Invoice, PurchaseLine, Purchase
+from apps.transactions.models import Quote, QuoteLine, OrderLine, Order, InvoiceLine, Invoice, PurchaseLine, Purchase
 from tests.conftest import make_setting
 
 
@@ -13,18 +13,18 @@ def _auth(user):
 
 @pytest.mark.django_db
 @pytest.mark.skip(reason="Linkage tracking and /linkages/ endpoint not yet implemented")
-def test_linkage_propagation_proposal_order_invoice_po(django_user_model):
+def test_linkage_propagation_quote_order_invoice_po(django_user_model):
     # Minimal permissions for involved models
-    for model in ('proposal', 'order', 'invoice', 'purchase'):
+    for model in ('quote', 'order', 'invoice', 'purchase'):
         make_setting(purpose='wc:view_edit', parent_model=model, is_active=True, config={'USER': {'view': ['id'], 'edit': ['id']}})
     user = django_user_model.objects.create_user(email='linkage1@example.com', password='pass12345', role='USER')
     client = _auth(user)
 
-    proposal = Proposal.objects.create(name='LNK-PROP')
-    pl = ProposalLine.objects.create(proposal=proposal, status='OPEN', comments={'public':'from proposal'}, price={'extended':1})
+    quote = Quote.objects.create(name='LNK-PROP')
+    pl = QuoteLine.objects.create(quote=quote, status='OPEN', comments={'public':'from quote'}, price={'extended':1})
 
-    # Convert proposal -> sales order
-    resp1 = client.post(f'/wcapi/proposal/{proposal.pk}/convert-to-order/', {}, format='json')
+    # Convert quote -> sales order
+    resp1 = client.post(f'/wcapi/quote/{quote.pk}/convert-to-order/', {}, format='json')
     assert resp1.status_code == 201  # type: ignore[attr-defined]
 
     so_id = resp1.data['data']['order_id']  # type: ignore[attr-defined]
@@ -56,10 +56,10 @@ def test_linkage_propagation_proposal_order_invoice_po(django_user_model):
     po_linkage_ids = (pol.refs or {}).get('links', {}).get('linkage', []) if pol.refs else []
     assert po_linkage_ids and po_linkage_ids[0] == linkage_id
 
-    # Comments aggregation endpoint (should gather at least the original proposal line public comment)
+    # Comments aggregation endpoint (should gather at least the original quote line public comment)
     resp4 = client.get(f'/wcapi/linkages/{linkage_id}/comments/')
     assert resp4.status_code == 200  # type: ignore[attr-defined]
     items = resp4.data['data']['items']  # type: ignore[attr-defined]
-    assert any(it.get('comments', {}).get('public') == 'from proposal' for it in items)
+    assert any(it.get('comments', {}).get('public') == 'from quote' for it in items)
     comments_root = resp4.data['data']['comments']  # type: ignore[attr-defined]
     assert 'general' in comments_root and 'public' in comments_root['general']

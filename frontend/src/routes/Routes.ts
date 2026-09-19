@@ -101,10 +101,10 @@
   static readonly transactionsPurchaseDetail: string =
     "/transactions/purchase/detail/:id?";
 
-  static readonly transactionsProposalList: string =
-    "/transactions/proposal/list";
-  static readonly transactionsProposalDetail: string =
-    "/transactions/proposal/detail/:id?";
+  static readonly transactionsQuoteList: string =
+    "/transactions/quote/list";
+  static readonly transactionsQuoteDetail: string =
+    "/transactions/quote/detail/:id?";
 
   static readonly transactionsWorkOrderList: string =
     "/transactions/work-order/list";

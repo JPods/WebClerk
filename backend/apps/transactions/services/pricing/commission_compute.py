@@ -10,7 +10,7 @@ The price_level factor is the wc2 insight: a 10% commission with a 70% factor
 for wholesale = 7% effective rate. This handles the reality that margins differ
 by price level, so commissions should too.
 
-Commission flows: proposal → order → invoice. Set on proposal, carried forward.
+Commission flows: quote → order → invoice. Set on quote, carried forward.
 Accrued on invoice journalize. Reversed on return/credit.
 
 Users WILL override defaults. Design for it — every field is overridable at
@@ -220,15 +220,15 @@ def populate_transaction_commission(transaction_id: int, model_name: str) -> dic
     Does NOT overwrite lines that already have override=True.
 
     Args:
-        transaction_id: PK of the transaction (order, proposal, invoice, purchase)
-        model_name: 'order', 'proposal', 'invoice', 'purchase'
+        transaction_id: PK of the transaction (order, quote, invoice, purchase)
+        model_name: 'order', 'quote', 'invoice', 'purchase'
 
     Returns: {header_total, lines_updated, reps: [{rep_id, name, total}]}
     """
     # Resolve models
     model_map = {
         'order': ('transactions', 'Order', 'transactions', 'OrderLine', 'order_id'),
-        'proposal': ('transactions', 'Proposal', 'transactions', 'ProposalLine', 'proposal_id'),
+        'quote': ('transactions', 'Quote', 'transactions', 'QuoteLine', 'quote_id'),
         'invoice': ('transactions', 'Invoice', 'transactions', 'InvoiceLine', 'invoice_id'),
         'purchase': ('transactions', 'Purchase', 'transactions', 'PurchaseLine', 'purchase_id'),
     }

@@ -1,42 +1,42 @@
 #!/usr/bin/env python
 """
-Backfill Item.quantity.on_p from existing active proposals.
+Backfill Item.quantity.on_p from existing active quotes.
 
 Run with: python manage.py shell < tools/backfill_on_p.py
 """
 
 from decimal import Decimal
 from django.db import transaction
-from apps.transactions.models import Proposal, ProposalLine
+from apps.transactions.models import Quote, QuoteLine
 from apps.products.models import Item
 
-print("=== Backfilling Item.quantity.on_p from active proposals ===")
+print("=== Backfilling Item.quantity.on_p from active quotes ===")
 print()
 
-# Get all active proposals with their lines
-active_proposals = Proposal.objects.filter(
+# Get all active quotes with their lines
+active_quotes = Quote.objects.filter(
     is_active=True,
     status__in=['planned', 'released', 'in_progress']
 ).prefetch_related('lines')
 
-print(f"Found {active_proposals.count()} active proposals")
+print(f"Found {active_quotes.count()} active quotes")
 
 # Aggregate quantities by item_id
-item_qty_map = {}  # item_id -> total qty on proposals
+item_qty_map = {}  # item_id -> total qty on quotes
 
-for proposal in active_proposals:
-    # Get probability from proposal (default 100% if not set)
+for quote in active_quotes:
+    # Get probability from quote (default 100% if not set)
     probability = 1.0
-    prob_raw = getattr(proposal, 'probability', None)
-    if prob_raw is None and hasattr(proposal, 'metadata') and isinstance(proposal.metadata, dict):
-        prob_raw = proposal.metadata.get('probability')
+    prob_raw = getattr(quote, 'probability', None)
+    if prob_raw is None and hasattr(quote, 'metadata') and isinstance(quote.metadata, dict):
+        prob_raw = quote.metadata.get('probability')
     if prob_raw is not None:
         try:
             probability = float(prob_raw) / 100.0 if float(prob_raw) > 1.0 else float(prob_raw)
         except (TypeError, ValueError):
             probability = 1.0
     
-    for line in proposal.lines.all():
+    for line in quote.lines.all():
         if not isinstance(line.item, dict):
             continue
         item_id = line.item.get('item_id')
@@ -55,7 +55,7 @@ for proposal in active_proposals:
             item_qty_map[item_id] = Decimal('0')
         item_qty_map[item_id] += Decimal(str(on_p_contribution))
         
-        print(f"  Proposal #{proposal.pk}, Line {line.pk}: item_id={item_id}, qty={qty_staged}, prob={probability:.0%} -> on_p +{on_p_contribution}")
+        print(f"  Quote #{quote.pk}, Line {line.pk}: item_id={item_id}, qty={qty_staged}, prob={probability:.0%} -> on_p +{on_p_contribution}")
 
 print()
 print(f"Items to update: {len(item_qty_map)}")

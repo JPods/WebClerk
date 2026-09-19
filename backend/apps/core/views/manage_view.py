@@ -30,10 +30,10 @@ Actions:
     recalculate_totals         — recompute header totals from all lines
     recalculate_line           — recompute single line extended + update parent totals
   Document Conversion Chain:
-    convert_proposal_to_order      — proposal lines to new order (partial supported)
+    convert_quote_to_order      — quote lines to new order (partial supported)
     convert_order_to_invoice       — order lines to new invoice (partial supported)
     convert_order_to_purchase      — order lines to new PO (drop-ship / procurement)
-    convert_proposal_to_invoice    — proposal direct to invoice (over-the-counter)
+    convert_quote_to_invoice    — quote direct to invoice (over-the-counter)
     get_conversion_history         — trace parent/child chain for a transaction
     bulk_convert                   — convert multiple source transactions at once
   Shipping / Packing Workflow:
@@ -572,14 +572,14 @@ def _reverse_gl_entries(params: dict) -> dict:
 def _run_training_flow(params: dict) -> dict:
     """Alice: run a training/health-check transaction cycle.
 
-    Creates proposal → order → invoice → cash → PO → receipt
+    Creates quote → order → invoice → cash → PO → receipt
     for a specific customer and item. All records flagged with
     metadata.training=True so reporting excludes them.
 
     Params:
         customer_id: customer org to use
         item_id: item to transact
-        proposal_qty: (default 5)
+        quote_qty: (default 5)
         order_qty: (default 4)
         invoice_qty: (default 3)
         po_qty: (default 10)
@@ -594,7 +594,7 @@ def _run_training_flow(params: dict) -> dict:
 
     flow = TrainingFlow(customer_id=int(customer_id), item_id=int(item_id))
     return flow.run_full_cycle(
-        proposal_qty=int(params.get('proposal_qty', 5)),
+        quote_qty=int(params.get('quote_qty', 5)),
         order_qty=int(params.get('order_qty', 4)),
         invoice_qty=int(params.get('invoice_qty', 3)),
         po_qty=int(params.get('po_qty', 10)),
@@ -620,7 +620,7 @@ def _get_training_activity(params: dict) -> dict:
     from datetime import datetime, timezone as tz
     from apps.products.models import Item
     from apps.transactions.models import (
-        ProposalLine, OrderLine, InvoiceLine, PurchaseLine,
+        QuoteLine, OrderLine, InvoiceLine, PurchaseLine,
     )
     from apps.core.models import Pending
     from apps.products.models.inventory_layer import InventoryLayer
@@ -637,7 +637,7 @@ def _get_training_activity(params: dict) -> dict:
     # Collect transaction lines for this item
     rows = []
     line_models = [
-        ('proposal', ProposalLine, 'proposal'),
+        ('quote', QuoteLine, 'quote'),
         ('order', OrderLine, 'order'),
         ('invoice', InvoiceLine, 'invoice'),
         ('purchase', PurchaseLine, 'purchase'),
@@ -1162,10 +1162,10 @@ _ACTION_DISPATCH = {
     "scan_changed_files": lambda p: __import__('apps.ai_assistant.services.watch_code', fromlist=['scan_changed_files']).scan_changed_files(p['files']),
     "get_migration_report": lambda p: __import__('apps.ai_assistant.services.watch_code', fromlist=['get_migration_report']).get_migration_report(),
     # ── Document Conversion Chain ──
-    "convert_proposal_to_order": lambda p: __import__('apps.transactions.services.convert.convert', fromlist=['convert_proposal_to_order']).convert_proposal_to_order(p['proposal_id'], p.get('line_ids'), p.get('contact_id')),
+    "convert_quote_to_order": lambda p: __import__('apps.transactions.services.convert.convert', fromlist=['convert_quote_to_order']).convert_quote_to_order(p['quote_id'], p.get('line_ids'), p.get('contact_id')),
     "convert_order_to_invoice": lambda p: __import__('apps.transactions.services.convert.convert', fromlist=['convert_order_to_invoice']).convert_order_to_invoice(p['order_id'], p.get('line_ids'), p.get('contact_id')),
     "convert_order_to_purchase": lambda p: __import__('apps.transactions.services.convert.convert', fromlist=['convert_order_to_purchase']).convert_order_to_purchase(p['order_id'], p.get('line_ids'), p.get('vendor_id'), p.get('contact_id')),
-    "convert_proposal_to_invoice": lambda p: __import__('apps.transactions.services.convert.convert', fromlist=['convert_proposal_to_invoice']).convert_proposal_to_invoice(p['proposal_id'], p.get('line_ids'), p.get('contact_id')),
+    "convert_quote_to_invoice": lambda p: __import__('apps.transactions.services.convert.convert', fromlist=['convert_quote_to_invoice']).convert_quote_to_invoice(p['quote_id'], p.get('line_ids'), p.get('contact_id')),
     "get_conversion_history": lambda p: __import__('apps.transactions.services.convert.convert', fromlist=['get_conversion_history']).get_conversion_history(p['transaction_id'], p['model_name']),
     "bulk_convert": lambda p: __import__('apps.transactions.services.convert.convert', fromlist=['bulk_convert']).bulk_convert(p['source_model'], p['source_ids'], p['target_model'], p.get('contact_id'), p.get('vendor_id')),
     # ── Shipping / Packing Workflow ──

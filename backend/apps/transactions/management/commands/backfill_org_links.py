@@ -14,7 +14,7 @@ from django.core.management.base import BaseCommand
 from apps.transactions.services.denormalize_org_links import denormalize_org_links
 from apps.core.utils import registry
 
-TRANSACTION_MODELS = ("order", "invoice", "proposal", "purchase")
+TRANSACTION_MODELS = ("order", "invoice", "quote", "purchase")
 
 
 class Command(BaseCommand):

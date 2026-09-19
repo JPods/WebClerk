@@ -1,7 +1,7 @@
 """
 Fix legacy quantity keys and null values in transaction line JSONB fields.
 
-Walks every line record across all transaction types (Proposal, Order, Invoice,
+Walks every line record across all transaction types (Quote, Order, Invoice,
 Purchase, WorkOrder, Requisition, Receipt) and:
   1. Normalizes quantity: maps legacy keys (ordered → staged, shipped → transferred, etc.),
      fills missing canonical keys (staged/active/remaining), replaces null numerics with 0.
@@ -14,12 +14,12 @@ All normalization happens via the model's ensure_json_defaults() → save() path
 Usage:
     python manage.py fix_line_nulls
     python manage.py fix_line_nulls --dry-run
-    python manage.py fix_line_nulls --model ProposalLine
+    python manage.py fix_line_nulls --model QuoteLine
     python manage.py fix_line_nulls --line-id 42
 """
 from django.core.management.base import BaseCommand
 from apps.transactions.models import (
-    ProposalLine, OrderLine, InvoiceLine,
+    QuoteLine, OrderLine, InvoiceLine,
     PurchaseLine, WorkOrderLine,
 )
 from apps.transactions.models.base_line_model import (
@@ -28,7 +28,7 @@ from apps.transactions.models.base_line_model import (
 
 # All concrete line models keyed by friendly name
 LINE_MODELS = {
-    "ProposalLine": ProposalLine,
+    "QuoteLine": QuoteLine,
     "OrderLine": OrderLine,
     "InvoiceLine": InvoiceLine,
     "PurchaseLine": PurchaseLine,
@@ -36,7 +36,7 @@ LINE_MODELS = {
 }
 
 # Sell-side models have a price field
-SELL_MODELS = {"ProposalLine", "OrderLine", "InvoiceLine"}
+SELL_MODELS = {"QuoteLine", "OrderLine", "InvoiceLine"}
 
 # Legacy quantity keys that should have been 'staged' or 'active'
 LEGACY_QTY_KEYS = {"ordered", "quantity", "qty", "shipped", "invoiced", "received", "packed", "completed", "placed", "actioned"}

@@ -8,13 +8,13 @@ Tracks item.quantity fields:
   - available:  on_hand - allocated
   - on_so:      On Sales Order (pending orders)
   - on_po:      On Purchase Order (incoming)
-  - on_p:       On Proposal (quotes)
+  - on_p:       On Quote (quotes)
   - on_r:       On Receipt (informational - tracks qty received)
   - on_in:      On Invoice (informational - tracks qty invoiced)
   - on_wo:      On Work Order (manufacturing)
 
 INVENTORY FLOW:
-  1. Create Order/Purchase/Proposal → Creates Pending record
+  1. Create Order/Purchase/Quote → Creates Pending record
   2. Run 'process_pending' → Pending records update item.quantity buckets
   3. Confirm/Invoice → Further updates to quantities
 
@@ -23,7 +23,7 @@ Usage:
     python tools/inventory_tester.py status              # Show current status
     python tools/inventory_tester.py create order 5      # Create order with qty 5
     python tools/inventory_tester.py create purchase 10  # Create purchase with qty 10
-    python tools/inventory_tester.py create proposal 3   # Create proposal with qty 3
+    python tools/inventory_tester.py create quote 3   # Create quote with qty 3
     python tools/inventory_tester.py create invoice 3    # Create invoice with qty 3
     python tools/inventory_tester.py create workorder 3  # Create workorder with qty 3
     python tools/inventory_tester.py create receipt 3    # Create receipt with qty 3 (receives goods)
@@ -195,7 +195,7 @@ def get_unprocessed_pending_summary():
 
 def get_transaction_counts():
     """Get count of transactions containing this item."""
-    from apps.transactions.models import OrderLine, PurchaseLine, InvoiceLine, ProposalLine
+    from apps.transactions.models import OrderLine, PurchaseLine, InvoiceLine, QuoteLine
     
     counts = {}
     
@@ -217,18 +217,18 @@ def get_transaction_counts():
     except Exception:
         counts['invoice_lines'] = 0
     
-    # Check ProposalLine
+    # Check QuoteLine
     try:
-        counts['proposal_lines'] = ProposalLine.objects.filter(item__id_num=ITEM_ID).count()
+        counts['quote_lines'] = QuoteLine.objects.filter(item__id_num=ITEM_ID).count()
     except Exception:
-        counts['proposal_lines'] = 0
+        counts['quote_lines'] = 0
     
     return counts
 
 
 def get_transaction_details():
     """Get detailed transaction lines for this item."""
-    from apps.transactions.models import OrderLine, PurchaseLine, InvoiceLine, ProposalLine
+    from apps.transactions.models import OrderLine, PurchaseLine, InvoiceLine, QuoteLine
     
     details = []
     
@@ -277,20 +277,20 @@ def get_transaction_details():
     except Exception as e:
         details.append({"type": "invoice_line", "error": str(e)})
     
-    # Proposal Lines
+    # Quote Lines
     try:
-        for line in ProposalLine.objects.filter(item__id_num=ITEM_ID).select_related('proposal_id'):
+        for line in QuoteLine.objects.filter(item__id_num=ITEM_ID).select_related('quote_id'):
             qty_data = getattr(line, 'quantity', {}) or {}
             details.append({
-                "type": "proposal_line",
+                "type": "quote_line",
                 "line_id": line.pk,
-                # "header_id": line.proposal_id_id if hasattr(line, 'proposal_id_id') else None,  # Legacy support removed for consistency
+                # "header_id": line.quote_id_id if hasattr(line, 'quote_id_id') else None,  # Legacy support removed for consistency
                 "status": getattr(line, 'status', None),
                 "quantity": qty_data.get('quoted', 0),
                 "quantity_raw": qty_data,
             })
     except Exception as e:
-        details.append({"type": "proposal_line", "error": str(e)})
+        details.append({"type": "quote_line", "error": str(e)})
     
     return details
 
@@ -403,7 +403,7 @@ def print_status():
     print(f"  {'available':<15} {snapshot.get('qty_available', 0):>12.2f}  on_hand - allocated")
     print(f"  {'on_so':<15} {snapshot.get('qty_on_so', 0):>12.2f}  On Sales Orders")
     print(f"  {'on_po':<15} {snapshot.get('qty_on_po', 0):>12.2f}  On Purchase Orders")
-    print(f"  {'on_p':<15} {snapshot.get('qty_on_p', 0):>12.2f}  On Proposals")
+    print(f"  {'on_p':<15} {snapshot.get('qty_on_p', 0):>12.2f}  On Quotes")
     print(f"  {'on_r':<15} {snapshot.get('qty_on_r', 0):>12.2f}  On Receipts (informational)")
     print(f"  {'on_in':<15} {snapshot.get('qty_on_in', 0):>12.2f}  On Invoices (informational)")
     print(f"  {'on_wo':<15} {snapshot.get('qty_on_wo', 0):>12.2f}  On Work Orders")
@@ -621,18 +621,18 @@ def create_purchase(quantity: float, unit_cost: float = 10.0):
     return purchase, line
 
 
-def create_proposal(quantity: float):
-    """Create a Proposal with item 240 using LineItemService."""
-    from apps.transactions.models import Proposal
+def create_quote(quantity: float):
+    """Create a Quote with item 240 using LineItemService."""
+    from apps.transactions.models import Quote
     from apps.transactions.services.line_manage import LineItemService
     
     with transaction.atomic():
-        proposal = Proposal.objects.create(status='draft')
+        quote = Quote.objects.create(status='draft')
         
         # Use LineItemService to properly create pending records for inventory tracking
         service = LineItemService(create_pending=True)
         line = service.add_item_to_transaction(
-            transaction=proposal,
+            transaction=quote,
             item_id=ITEM_ID,
             quantity=quantity,
         )
@@ -641,20 +641,20 @@ def create_proposal(quantity: float):
     pending_info = get_latest_pending_for_item()
     
     entry = add_log_entry(
-        event_type="PROPOSAL_CREATED",
-        description=f"Created Proposal #{proposal.pk} with {quantity} units of item {ITEM_ID}",
-        transaction_info={"type": "proposal", "id": proposal.pk, "line_id": line.pk, "quantity": quantity},
+        event_type="QUOTE_CREATED",
+        description=f"Created Quote #{quote.pk} with {quantity} units of item {ITEM_ID}",
+        transaction_info={"type": "quote", "id": quote.pk, "line_id": line.pk, "quantity": quantity},
         pending_info=pending_info,
     )
     
-    print(f"\n✓ Created Proposal #{proposal.pk} with Line #{line.pk}")
+    print(f"\n✓ Created Quote #{quote.pk} with Line #{line.pk}")
     print(f"  Quantity: {quantity}")
     if pending_info:
         print(f"  Pending Record Created: #{pending_info['id']} purpose={pending_info['purpose']}")
     print(f"  NOTE: Run 'process_pending' to update item.quantity.on_p")
     print_status()
     
-    return proposal, line
+    return quote, line
 
 
 def create_invoice(quantity: float):
@@ -885,7 +885,7 @@ def main():
     
     elif command == 'create':
         if len(sys.argv) < 4:
-            print("Usage: create <order|purchase|proposal|invoice|workorder> <quantity>")
+            print("Usage: create <order|purchase|quote|invoice|workorder> <quantity>")
             return
         
         tx_type = sys.argv[2].lower()
@@ -895,8 +895,8 @@ def main():
             create_order(quantity)
         elif tx_type == 'purchase':
             create_purchase(quantity)
-        elif tx_type == 'proposal':
-            create_proposal(quantity)
+        elif tx_type == 'quote':
+            create_quote(quantity)
         elif tx_type == 'invoice':
             create_invoice(quantity)
         elif tx_type in ('workorder', 'wo'):

@@ -3,7 +3,7 @@ import uuid
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from apps.transactions.models import (
-    Proposal, ProposalLine,
+    Quote, QuoteLine,
     Order, OrderLine,
     Invoice, InvoiceLine,
     WorkOrder, WorkOrderLine,
@@ -38,7 +38,7 @@ class Command(BaseCommand):
 
         # Create transactions
         transaction_types = [
-            (Proposal, ProposalLine),
+            (Quote, QuoteLine),
             (Order, OrderLine),
             (Invoice, InvoiceLine),
             (WorkOrder, WorkOrderLine),
@@ -53,7 +53,7 @@ class Command(BaseCommand):
     def drop_existing_records(self):
         """Drop all existing records from specified models."""
         models_to_drop = [
-            Proposal, ProposalLine,
+            Quote, QuoteLine,
             Order, OrderLine,
             Invoice, InvoiceLine,
             WorkOrder, WorkOrderLine,
@@ -69,7 +69,7 @@ class Command(BaseCommand):
         """Create 9 records for the transaction type."""
         # Map line model to parent field name
         parent_fields = {
-            'ProposalLine': 'proposal_id',
+            'QuoteLine': 'quote_id',
             'OrderLine': 'order_id',
             'InvoiceLine': 'invoice_id',
             'WorkOrderLine': 'workorder_id',

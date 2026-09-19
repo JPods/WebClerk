@@ -405,7 +405,7 @@ apps/products/
 
 Forecast component demand by aggregating:
 
-1. **Proposals** × probability weight → expected demand by expected close date
+1. **Quotes** × probability weight → expected demand by expected close date
 2. **Sales Orders** → firm demand by ship date  
 3. **Purchase Orders** → expected supply by receive date
 
@@ -420,7 +420,7 @@ Explode all through BOM to calculate **net component requirements** over time.
 class ForecastBucket:
     period_start: date
     period_end: date
-    gross_demand: Decimal      # From orders + weighted proposals
+    gross_demand: Decimal      # From orders + weighted quotes
     scheduled_receipts: Decimal # From POs
     projected_on_hand: Decimal
     net_requirement: Decimal
@@ -437,15 +437,15 @@ def forecast_component_demand(
     *,
     horizon_days: int = 90,
     bucket_size: Literal["day", "week", "month"] = "week",
-    include_proposals: bool = True,
-    proposal_min_probability: Decimal = Decimal("0.25"),
+    include_quotes: bool = True,
+    quote_min_probability: Decimal = Decimal("0.25"),
     explode_bom: bool = True,
 ) -> list[ComponentForecast]:
     """
     Calculate time-phased demand forecast for components.
     
     Steps:
-    1. Query proposals with probability >= threshold, group by expected date
+    1. Query quotes with probability >= threshold, group by expected date
     2. Query open sales orders, group by ship date
     3. Query open POs, group by receive date
     4. Explode parent items through BOM to leaf components
@@ -458,7 +458,7 @@ def forecast_component_demand(
 
 | Source | Demand/Supply | Date Field | Weight |
 |--------|---------------|------------|--------|
-| `Proposal` | Demand | `expected_close_date` | `probability` (0-1) |
+| `Quote` | Demand | `expected_close_date` | `probability` (0-1) |
 | `Order` | Demand | `ship_date` | 1.0 (firm) |
 | `OrderLine` | Demand | Line-level ship date | 1.0 |
 | `Purchase` | Supply | `receive_date` | 1.0 |
@@ -511,7 +511,7 @@ def forecast_component_demand(
 
 - ✅ `BillOfMaterial` model
 - ⏳ BOM explosion service (Phase 1)
-- 🔗 `Proposal` model (apps.transactions)
+- 🔗 `Quote` model (apps.transactions)
 - 🔗 `Order` / `OrderLine` models
 - 🔗 `Purchase` / `PurchaseLine` models
 

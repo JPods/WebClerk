@@ -1,7 +1,7 @@
 """Transaction totals recalculation service.
 
 The core totals engine — called after any line change to keep header
-totals consistent. Works with all transaction types (proposal, order,
+totals consistent. Works with all transaction types (quote, order,
 invoice, purchase, workorder).
 
 All calculations are server-side authoritative (Axiom: backend is source of truth).
@@ -63,7 +63,7 @@ def is_sell_side(model_name: str) -> bool:
     """Determine if this is a sell-side transaction (has price envelope on lines).
 
     Single source of truth for sell-side detection by model name.
-    Sell-side = proposal, order, invoice (and their line variants).
+    Sell-side = quote, order, invoice (and their line variants).
     Exec-side = purchase, workorder, receipt (no price envelope).
 
     For line-level detection on a model instance, prefer:
@@ -72,7 +72,7 @@ def is_sell_side(model_name: str) -> bool:
     """
     from apps.transactions.models.base_line_model import _normalize_line_kind
     kind = _normalize_line_kind(model_name)
-    return kind in ('proposal', 'order', 'invoice')
+    return kind in ('quote', 'order', 'invoice')
 
 
 
@@ -95,7 +95,7 @@ def recalculate_totals(
       4. Update header: totals JSON, total and balance (denormalized decimals)
       5. Return the computed totals
 
-    Works for both sell-side (proposal/order/invoice) and exec-side
+    Works for both sell-side (quote/order/invoice) and exec-side
     (purchase/workorder) transactions.
     """
     header, lines = _resolve_header_and_lines(transaction_id, model_name)

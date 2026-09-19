@@ -247,11 +247,11 @@ LAYOUTS = {
         "edit_rules": SELL_EDIT_RULES,
     },
 
-    "proposal": {
-        "model": "proposal",
+    "quote": {
+        "model": "quote",
         "family": "sell",
         "sections": [
-            _sell_header("proposal"),
+            _sell_header("quote"),
             {"type": "line_card", "family": "sell", "toolbar": ["L", "S", "XR", "M"],
              "actions": ["post_to_order", "post_to_po", "clone"]},
             *SELL_PANELS,
@@ -268,7 +268,7 @@ LAYOUTS = {
         "sections": [
             _sell_header("invoice"),
             {"type": "line_card", "family": "sell", "toolbar": ["L", "S", "XR", "M"],
-             "actions": ["apply_cash", "post_to_proposal", "post_to_po", "clone"]},
+             "actions": ["apply_cash", "post_to_quote", "post_to_po", "clone"]},
             *SELL_PANELS,
         ],
         "edit_rules": SELL_EDIT_RULES,

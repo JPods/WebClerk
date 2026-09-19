@@ -89,7 +89,7 @@ EROSION_CATEGORY_CHOICES: Final[ChoiceList] = (
 )
 
 EROSION_SOURCE_MODEL_CHOICES: Final[ChoiceList] = (
-    ("proposal", "Proposal"),
+    ("quote", "Quote"),
     ("order", "Order"),
     ("invoice", "Invoice"),
     ("purchase", "Purchase"),

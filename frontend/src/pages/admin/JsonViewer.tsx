@@ -51,7 +51,7 @@ function inferModel(key: string): string | null {
   const modelMap: Record<string, string> = {
     customer: 'contact', vendor: 'contact', rep: 'contact',
     parent_item: 'item', child_item: 'item', item: 'item',
-    invoice: 'invoice', order: 'order', proposal: 'proposal',
+    invoice: 'invoice', order: 'order', quote: 'quote',
     purchase: 'purchase', workorder: 'workorder',
     cash: 'cash', serial: 'serial',
     po: 'purchase', contact: 'contact',

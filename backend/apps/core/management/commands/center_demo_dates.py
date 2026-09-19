@@ -45,7 +45,7 @@ JSON_FIELDS = [
 TABLE_GROUPS = [
     # (app_label, header_model, [line_models...])
     ('core', 'Action', []),
-    ('transactions', 'Proposal', ['ProposalLine']),
+    ('transactions', 'Quote', ['QuoteLine']),
     ('transactions', 'Order', ['OrderLine']),
     ('transactions', 'Invoice', ['InvoiceLine']),
     ('transactions', 'Purchase', ['PurchaseLine']),

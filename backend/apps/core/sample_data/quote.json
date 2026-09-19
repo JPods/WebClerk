@@ -1,7 +1,7 @@
 {
   "_meta": {
-    "model": "proposal",
-    "description": "Sample proposal/quote for report parade — kitchen renovation estimate",
+    "model": "quote",
+    "description": "Sample quote/quote for report parade — kitchen renovation estimate",
     "version": 1
   },
   "ida": "QTE-2026-0067",

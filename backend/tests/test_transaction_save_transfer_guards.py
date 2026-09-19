@@ -196,18 +196,18 @@ def test_transfer_blocks_when_inventory_insufficient(monkeypatch):
 
 
 @pytest.mark.django_db
-def test_order_from_proposal_may_backorder(monkeypatch):
-    """Stock is checked on invoices only: an order saved from a proposal backorders."""
+def test_order_from_quote_may_backorder(monkeypatch):
+    """Stock is checked on invoices only: an order saved from a quote backorders."""
     monkeypatch.setattr(
         "apps.products.dispatch_pending.dispatch_pending_processing",
         lambda *args, **kwargs: None,
     )
-    from apps.transactions.models import Proposal, ProposalLine
+    from apps.transactions.models import Quote, QuoteLine
 
     item = _make_item(name="Widget S", sku="W-S", on_hand=1, available=1)
-    proposal = Proposal.objects.create(status="planned")
-    source = ProposalLine.objects.create(
-        proposal=proposal,
+    quote = Quote.objects.create(status="planned")
+    source = QuoteLine.objects.create(
+        quote=quote,
         item_fk=item,
         item={"id": item.id, "item_id": item.id, "sku": item.sku},
         quantity={"staged": 5, "active": 5, "precision": 2},
@@ -217,14 +217,14 @@ def test_order_from_proposal_may_backorder(monkeypatch):
 
     result = save_transaction_with_lines(
         model_key="order",
-        header_data={"status": "confirmed", "parent_model": "proposal", "parent_id": proposal.id,
+        header_data={"status": "confirmed", "parent_model": "quote", "parent_id": quote.id,
                      "totals": {}, "finance": {}},
         lines_data=[{
             "quantity": {"staged": 5, "active": 5},
             "item": {"id": item.id, "item_id": item.id, "sku": item.sku},
             "price": {"unit": 10, "extended": 50},
             "cost": {"unit": 5, "extended": 25},
-            "refs": {"source": {"proposal_line_id": source.id, "proposal_id": proposal.id}},
+            "refs": {"source": {"quote_line_id": source.id, "quote_id": quote.id}},
             "_dirty": True,
         }],
         request=None,

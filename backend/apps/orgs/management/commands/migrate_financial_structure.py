@@ -99,7 +99,7 @@ def migrate_old_to_new(old_financial: dict, org_type: str | None) -> dict:
         if 'minimums' in old_financial:
             cust['minimums']['order'] = old_financial['minimums'].get('order', 0)
         if 'stats' in old_financial:
-            for stat_key in ['proposals', 'orders', 'invoices', 'cash_entries']:
+            for stat_key in ['quotes', 'orders', 'invoices', 'cash_entries']:
                 if stat_key in old_financial['stats']:
                     cust['stats'][stat_key] = deep_merge(
                         cust['stats'][stat_key],
@@ -145,7 +145,7 @@ def migrate_old_to_new(old_financial: dict, org_type: str | None) -> dict:
             if 'lifetime' in old_financial:
                 rep['commissions']['lifetime'] = old_financial['lifetime'].get('commissions', 0)
         if 'stats' in old_financial:
-            for stat_key in ['proposals', 'orders']:
+            for stat_key in ['quotes', 'orders']:
                 if stat_key in old_financial['stats']:
                     rep['stats'][stat_key] = {
                         'issued': old_financial['stats'][stat_key].get('issued', {'count': 0, 'value': 0}),

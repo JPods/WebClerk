@@ -183,7 +183,7 @@ class MinimumOrder(BaseModel):
 
 
 class CustStats(BaseModel):
-    proposals: DocStats = Field(default_factory=DocStats)
+    quotes: DocStats = Field(default_factory=DocStats)
     orders: DocStats = Field(default_factory=DocStats)
     invoices: DocStats = Field(default_factory=DocStats)
     cash_entries: DocStats = Field(default_factory=DocStats)
@@ -260,7 +260,7 @@ class RepCommissions(PeriodLifetime):
 
 
 class RepStats(BaseModel):
-    proposals: DocStatsIssuedExecuted = Field(default_factory=DocStatsIssuedExecuted)
+    quotes: DocStatsIssuedExecuted = Field(default_factory=DocStatsIssuedExecuted)
     orders: DocStatsIssuedExecuted = Field(default_factory=DocStatsIssuedExecuted)
 
 

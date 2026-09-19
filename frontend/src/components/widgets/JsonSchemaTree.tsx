@@ -394,14 +394,14 @@ export const ENVELOPE_SCHEMAS: Record<string, ModelSchema> = {
   // Transaction headers
   invoice:    txnSchema('Invoice'),
   order:      txnSchema('Order'),
-  proposal:   txnSchema('Proposal'),
+  quote:   txnSchema('Quote'),
   purchase:   txnSchema('Purchase'),
   workorder:  txnSchema('Work Order'),
 
   // Transaction lines
   invoice_line:   lineSchema('Invoice Line'),
   order_line:     lineSchema('Order Line'),
-  proposal_line:  lineSchema('Proposal Line'),
+  quote_line:  lineSchema('Quote Line'),
   purchase_line:  lineSchema('Purchase Line'),
   workorder_line: lineSchema('Work Order Line'),
 

@@ -9,7 +9,7 @@ Usage:
 import json
 from django.core.management.base import BaseCommand
 from apps.transactions.models import (
-    Order, Invoice, Purchase, Proposal, WorkOrder
+    Order, Invoice, Purchase, Quote, WorkOrder
 )
 
 
@@ -27,7 +27,7 @@ class Command(BaseCommand):
         dry_run = options['dry_run']
         
         # Only models that have the totals field
-        models_to_fix = [Order, Invoice, Purchase, Proposal, WorkOrder]
+        models_to_fix = [Order, Invoice, Purchase, Quote, WorkOrder]
         
         total_fixed = 0
         

@@ -74,7 +74,7 @@ class Erosion(BaseModel):
         blank=True,
         null=True,
         choices=EROSION_SOURCE_MODEL_CHOICES,
-        help_text="Transaction type being compared (e.g., proposal for margin erosion on invoice)",
+        help_text="Transaction type being compared (e.g., quote for margin erosion on invoice)",
     )
     parent_id = models.BigIntegerField(
         blank=True,

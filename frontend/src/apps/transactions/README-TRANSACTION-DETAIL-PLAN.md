@@ -43,7 +43,7 @@
 | Invoice (legacy) | `invoice/pages/qqq_InvoiceDetailLegacy.tsx` | ⚠️ Keep for reference |
 | Order | `order/pages/OrderDetail.tsx` | ✅ Refactored (uses TransactionDetailBase) |
 | Purchase | `purchase/pages/PurchaseDetail.tsx` | ✅ Refactored (uses TransactionDetailBase) |
-| Proposal | `proposal/pages/ProposalDetail.tsx` | ✅ Refactored (uses TransactionDetailBase) |
+| Quote | `quote/pages/QuoteDetail.tsx` | ✅ Refactored (uses TransactionDetailBase) |
 | WorkOrder | `workorder/pages/WorkorderDetail.tsx` | ✅ Refactored (uses TransactionDetailBase) |
 | Receipt | `receipt/pages/ReceiptDetail.tsx` | ✅ Refactored (uses TransactionDetailBase for UI; backend save via flow.py) |
 | Requisition | `requisition/pages/RequisitionDetail.tsx` | ❌ Needs refactor |
@@ -91,7 +91,7 @@ These nested structures need consistent UI components for viewing and editing.
 | Invoice | `invoice/pages/InvoiceDetail.tsx` | ⚠️ Partial implementation |
 | Order | `order/pages/OrderDetail.tsx` | ⚠️ Needs update |
 | Purchase | `purchase/pages/PurchaseDetail.tsx` | ⚠️ Needs update |
-| Proposal | `proposal/pages/ProposalDetail.tsx` | ⚠️ Needs update |
+| Quote | `quote/pages/QuoteDetail.tsx` | ⚠️ Needs update |
 | WorkOrder | `work_order/pages/WorkOrderDetail.tsx` | ⚠️ Needs update |
 | Requisition | `requisition/pages/RequisitionDetail.tsx` | ⚠️ Needs update |
 | Project | `project/pages/ProjectDetail.tsx` | ⚠️ Needs update |
@@ -103,7 +103,7 @@ These nested structures need consistent UI components for viewing and editing.
 | InvoiceLine | `invoice_line/pages/InvoiceLineDetail.tsx` | ❌ Needs creation |
 | OrderLine | `order_line/pages/OrderLineDetail.tsx` | ❌ Needs creation |
 | PurchaseLine | `purchase_line/pages/PurchaseLineDetail.tsx` | ❌ Needs creation |
-| ProposalLine | `proposal_line/pages/ProposalLineDetail.tsx` | ❌ Needs creation |
+| QuoteLine | `quote_line/pages/QuoteLineDetail.tsx` | ❌ Needs creation |
 | WorkOrderLine | `work_order_line/pages/WorkOrderLineDetail.tsx` | ❌ Needs creation |
 | RequisitionLine | `requisition_line/pages/RequisitionLineDetail.tsx` | ❌ Needs creation |
 
@@ -390,7 +390,7 @@ interface LineItem {
 // Varies by transaction type
 interface LineQuantity {
   placed?: number;      // quantity entered
-  ordered?: number;     // original order qty (Proposal/SO)
+  ordered?: number;     // original order qty (Quote/SO)
   invoiced?: number;    // qty invoiced (SO)
   packed?: number;      // qty packed (Invoice)
   received?: number;    // qty received (PO/WO)
@@ -516,7 +516,7 @@ interface LinePhysical {
 - [ ] Add vendor link display
 - [ ] Add receiving status
 
-#### 2.4 ProposalDetail.tsx Update
+#### 2.4 QuoteDetail.tsx Update
 - [ ] Apply same pattern
 - [ ] Add quote-specific fields
 - [ ] Add conversion to order flow
@@ -552,7 +552,7 @@ interface LinePhysical {
 - [ ] InvoiceLineDetail.tsx
 - [ ] OrderLineDetail.tsx
 - [ ] PurchaseLineDetail.tsx
-- [ ] ProposalLineDetail.tsx
+- [ ] QuoteLineDetail.tsx
 - [ ] WorkOrderLineDetail.tsx
 - [ ] RequisitionLineDetail.tsx
 
@@ -732,7 +732,7 @@ interface FinancialsCardProps {
 
 ## Tab Structure per Model
 
-### Invoice/Order/Proposal (Sell-Side)
+### Invoice/Order/Quote (Sell-Side)
 
 | Tab | Content |
 |-----|---------|
@@ -1096,7 +1096,7 @@ it('shows cost section to manager', () => {
 - [x] Refactor `InvoiceDetail.tsx` → `InvoiceDetailNew.tsx`
 - [ ] Refactor `OrderDetail.tsx`
 - [ ] Update `PurchaseDetail.tsx`
-- [ ] Update `ProposalDetail.tsx`
+- [ ] Update `QuoteDetail.tsx`
 - [ ] Update `WorkOrderDetail.tsx`
 - [ ] Update `RequisitionDetail.tsx`
 - [ ] Update `ProjectDetail.tsx`
@@ -1106,7 +1106,7 @@ it('shows cost section to manager', () => {
 - [ ] Create `InvoiceLineDetail.tsx`
 - [ ] Create `OrderLineDetail.tsx`
 - [ ] Create `PurchaseLineDetail.tsx`
-- [ ] Create `ProposalLineDetail.tsx`
+- [ ] Create `QuoteLineDetail.tsx`
 - [ ] Create `WorkOrderLineDetail.tsx`
 - [ ] Create `RequisitionLineDetail.tsx`
 

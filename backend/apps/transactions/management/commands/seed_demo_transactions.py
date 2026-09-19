@@ -5,7 +5,7 @@ Usage:
     python manage.py seed_demo_transactions
     python manage.py seed_demo_transactions --force   # delete and re-seed
 
-Creates 3 complete transaction cycles (proposal → order → invoice → cash → GL)
+Creates 3 complete transaction cycles (quote → order → invoice → cash → GL)
 using the items, customers, and contacts created by seed_demo.
 
 All demo records are tagged refs.source="demo-baseline" for clean removal.
@@ -18,7 +18,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from apps.transactions.models import (
-    Proposal, ProposalLine,
+    Quote, QuoteLine,
     Order, OrderLine,
     Invoice, InvoiceLine,
     Cash,
@@ -33,7 +33,7 @@ DEMO_SOURCE = 'demo-baseline'
 
 # ─── Transaction cycle definitions ──────────────────────────────────────
 # Each cycle: customer ida, contact ida, price_level, terms,
-#             proposal/order/invoice/cash idas, lines spec, cash spec
+#             quote/order/invoice/cash idas, lines spec, cash spec
 
 CYCLES = [
     {
@@ -42,7 +42,7 @@ CYCLES = [
         'contact_ida': 'CON-01',
         'price_level': 'B',
         'terms': 'N30',
-        'proposal_ida': 'PROP-01',
+        'quote_ida': 'PROP-01',
         'order_ida': 'ORD-01',
         'invoice_ida': 'INV-01',
         'gl_batch': 'SJ-DEMO-01',
@@ -63,7 +63,7 @@ CYCLES = [
         'contact_ida': 'CON-02',
         'price_level': 'A',
         'terms': 'N30',
-        'proposal_ida': 'PROP-02',
+        'quote_ida': 'PROP-02',
         'order_ida': 'ORD-02',
         'invoice_ida': 'INV-02',
         'gl_batch': 'SJ-DEMO-02',
@@ -83,7 +83,7 @@ CYCLES = [
         'contact_ida': 'CON-03',
         'price_level': 'C',
         'terms': 'N10',
-        'proposal_ida': 'PROP-03',
+        'quote_ida': 'PROP-03',
         'order_ida': 'ORD-03',
         'invoice_ida': 'INV-03',
         'gl_batch': 'SJ-DEMO-03',
@@ -193,7 +193,7 @@ def _cost_json(unit_cost, qty):
 class Command(BaseCommand):
     help = (
         'Seed 3 complete transaction cycles: '
-        'proposal → order → invoice → cash → GL journal entries'
+        'quote → order → invoice → cash → GL journal entries'
     )
 
     def add_arguments(self, parser):
@@ -207,7 +207,7 @@ class Command(BaseCommand):
             self._delete_demo()
 
         counts = {
-            'proposals': 0, 'orders': 0, 'invoices': 0,
+            'quotes': 0, 'orders': 0, 'invoices': 0,
             'cash_entries': 0, 'gl_entries': 0, 'lines': 0,
         }
 
@@ -217,7 +217,7 @@ class Command(BaseCommand):
                 counts[k] += result.get(k, 0)
 
         self.stdout.write(self.style.SUCCESS(
-            f"\nDemo transactions: {counts['proposals']} proposals, "
+            f"\nDemo transactions: {counts['quotes']} quotes, "
             f"{counts['orders']} orders, {counts['invoices']} invoices, "
             f"{counts['lines']} lines, {counts['cash_entries']} cash_entries, "
             f"{counts['gl_entries']} GL entries"
@@ -227,17 +227,17 @@ class Command(BaseCommand):
     def _delete_demo(self):
         """Delete all demo transaction data by refs.source tag."""
         # Delete in dependency order: GL → cash_entries → invoice lines → invoices →
-        # order lines → orders → proposal lines → proposals
+        # order lines → orders → quote lines → quotes
         del_gl = GlJournal.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
         del_pay = Cash.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
         del_il = InvoiceLine.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
         del_inv = Invoice.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
         del_ol = OrderLine.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
         del_ord = Order.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
-        del_pl = ProposalLine.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
-        del_prop = Proposal.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
+        del_pl = QuoteLine.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
+        del_prop = Quote.objects.filter(refs__source=DEMO_SOURCE).delete()[0]
         self.stdout.write(
-            f'Deleted demo transactions: {del_prop} proposals, {del_ord} orders, '
+            f'Deleted demo transactions: {del_prop} quotes, {del_ord} orders, '
             f'{del_inv} invoices, {del_pay} cash_entries, {del_gl} GL entries, '
             f'{del_pl + del_ol + del_il} lines'
         )
@@ -246,7 +246,7 @@ class Command(BaseCommand):
     def _seed_cycle(self, cycle):
         """Create one complete transaction cycle. Returns count dict."""
         result = {
-            'proposals': 0, 'orders': 0, 'invoices': 0,
+            'quotes': 0, 'orders': 0, 'invoices': 0,
             'cash_entries': 0, 'gl_entries': 0, 'lines': 0,
         }
 
@@ -316,11 +316,11 @@ class Command(BaseCommand):
             is_active=True,
         )
 
-        # ── Proposal ────────────────────────────────────────────────────
-        proposal = Proposal.objects.filter(ida=cycle['proposal_ida']).first()
-        if not proposal:
-            proposal = Proposal.objects.create(
-                ida=cycle['proposal_ida'],
+        # ── Quote ────────────────────────────────────────────────────
+        quote = Quote.objects.filter(ida=cycle['quote_ida']).first()
+        if not quote:
+            quote = Quote.objects.create(
+                ida=cycle['quote_ida'],
                 customer_id=customer.id,
                 contact_id=contact.id,
                 attention=contact.attention or '',
@@ -336,9 +336,9 @@ class Command(BaseCommand):
                                      received=0, balance=float(total)),
                 refs=_demo_refs(),
             )
-            result['proposals'] = 1
+            result['quotes'] = 1
             result['lines'] += self._create_lines(
-                ProposalLine, 'proposal', proposal, line_data, cycle,
+                QuoteLine, 'quote', quote, line_data, cycle,
             )
 
         # ── Order ───────────────────────────────────────────────────────
@@ -357,8 +357,8 @@ class Command(BaseCommand):
                 is_active=True,
                 status='released',
                 balance=total,
-                parent_id=proposal.id,
-                parent_model='proposal',
+                parent_id=quote.id,
+                parent_model='quote',
                 totals=_empty_totals(subtotal, total, total_cost,
                                      received=0, balance=float(total)),
                 refs=_demo_refs(),

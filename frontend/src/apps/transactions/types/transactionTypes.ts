@@ -24,7 +24,7 @@ export type TransactionStatus =
 // Receipt is intentionally excluded: it extends BaseModel (not TransactionBaseModel)
 // and uses a separate save flow (flow.py), so it cannot be a parent_model source.
 export type TransactionParentType =
-  | "proposal"
+  | "quote"
   | "order"
   | "invoice"
   | "purchase"

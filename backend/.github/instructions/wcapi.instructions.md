@@ -63,7 +63,7 @@ the `children_active` tracker on the source (parent) line.
 | Path | File | Entry Point | Trigger |
 |------|------|-------------|---------|
 | Transfer dropdown | `transaction_save.py` L495 | `_update_source_lines_after_transfer()` | R25 `TransactionDetailBase` Transfer menu → `saveTransactionWithLines()` |
-| Convert to Order | `proposal_to_order.py` | `transfer_proposal_to_order()` | R25 `ProposalDetail` Convert button → `POST /tx/proposals/{id}/convert-to-order/` |
+| Convert to Order | `quote_to_order.py` | `transfer_quote_to_order()` | R25 `QuoteDetail` Convert button → `POST /tx/quotes/{id}/convert-to-order/` |
 | Order to Invoice | `order_to_invoice.py` | `transfer_order_to_invoice()` | R25 Order→Invoice flow → `POST /tx/orders/{id}/convert-to-invoice/` |
 | Unified engine | `transfer.py` | `execute_transfer()` | `POST /tx/transfers/execute/` (supports clone, convert, cross-type) |
 

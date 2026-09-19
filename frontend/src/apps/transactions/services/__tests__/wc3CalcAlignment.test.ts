@@ -287,7 +287,7 @@ describe('default envelopes', () => {
 // ============================================================================
 
 describe('isSalesTransaction / isExecTransaction', () => {
-  it.each(['order', 'proposal', 'invoice'])('%s is sales', (type) => {
+  it.each(['order', 'quote', 'invoice'])('%s is sales', (type) => {
     expect(isSalesTransaction(type)).toBe(true);
     expect(isExecTransaction(type)).toBe(false);
   });

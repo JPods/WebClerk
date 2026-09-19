@@ -58,7 +58,7 @@ class UserPermissionsView(APIView):
     # Models to include in permissions response
     INCLUDED_MODELS = [
         # Transactions
-        "order", "invoice", "proposal", "purchase", "workorder",
+        "order", "invoice", "quote", "purchase", "workorder",
         # Orgs
         "customer", "vendor", "manufacturer",
         # Core

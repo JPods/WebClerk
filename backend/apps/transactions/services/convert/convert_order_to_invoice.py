@@ -128,8 +128,8 @@ def _prepare_invoice_refs(order: Order, invoice_type: str) -> Dict[str, Any]:
     src["original_id"] = order.id
     src["invoice_type"] = invoice_type
     refs.setdefault("links", {})
-    if "proposal_id" in src:
-        src["original_proposal_id"] = src["proposal_id"]
+    if "quote_id" in src:
+        src["original_quote_id"] = src["quote_id"]
     return refs
 
 def _prepare_invoice_metadata(order: Order, invoice_type: str) -> Dict[str, Any]:
@@ -139,8 +139,8 @@ def _prepare_invoice_metadata(order: Order, invoice_type: str) -> Dict[str, Any]
     conv["from_order"] = order.id
     conv["transfer_type"] = "order_to_invoice"
     conv["invoice_type"] = invoice_type
-    if "from_proposal" in conv:
-        conv["original_proposal"] = conv["from_proposal"]
+    if "from_quote" in conv:
+        conv["original_quote"] = conv["from_quote"]
     return md
 
 def _prepare_line_refs(ol: OrderLine) -> Dict[str, Any]:
@@ -150,8 +150,8 @@ def _prepare_line_refs(ol: OrderLine) -> Dict[str, Any]:
     src["order_line_id"] = ol.id
     if "order_id" not in src:
         src["order_id"] = getattr(ol, "order_id", None)
-    if "proposal_line_id" in src:
-        src["original_proposal_line_id"] = src["proposal_line_id"]
+    if "quote_line_id" in src:
+        src["original_quote_line_id"] = src["quote_line_id"]
     return refs
 
 def _prepare_line_metadata(ol: OrderLine, order: Order) -> Dict[str, Any]:
@@ -159,8 +159,8 @@ def _prepare_line_metadata(ol: OrderLine, order: Order) -> Dict[str, Any]:
     conv = md.setdefault("conversion", {})
     conv["from_order_line"] = ol.id
     conv["from_order"] = order.id
-    if "from_proposal_line" in conv:
-        conv["original_proposal_line"] = conv["from_proposal_line"]
+    if "from_quote_line" in conv:
+        conv["original_quote_line"] = conv["from_quote_line"]
     return md
 
 def _convert_quantity_for_invoice(order_quantity: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -184,7 +184,7 @@ def _convert_quantity_for_invoice(order_quantity: Optional[Dict[str, Any]]) -> D
         "converted_from_order": {
             "active": q.get("active", 0),
             "original_remaining": remaining,
-            "converted_from_proposal": q.get("converted_from_proposal"),
+            "converted_from_quote": q.get("converted_from_quote"),
         },
     }
 

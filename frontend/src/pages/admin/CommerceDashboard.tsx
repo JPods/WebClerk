@@ -381,8 +381,8 @@ function SalesTab({ data, filters }: { data: any; filters: Filters; themeKey: st
           active={selected === 'order'} onClick={() => toggle('order')} />
         <MetricCard label="Invoices" value={tx.invoices?.count ?? 0} sub={formatCurrency(tx.invoices?.total ?? 0)}
           active={selected === 'invoice'} onClick={() => toggle('invoice')} />
-        <MetricCard label="Proposals" value={tx.proposals?.count ?? 0} sub={formatCurrency(tx.proposals?.total ?? 0)}
-          active={selected === 'proposal'} onClick={() => toggle('proposal')} />
+        <MetricCard label="Quotes" value={tx.quotes?.count ?? 0} sub={formatCurrency(tx.quotes?.total ?? 0)}
+          active={selected === 'quote'} onClick={() => toggle('quote')} />
       </div>
       <div className="cd-metrics-row">
         <MetricCard label="Avg Margin" value={formatPercent(margin.avg_pct ?? 0)} />

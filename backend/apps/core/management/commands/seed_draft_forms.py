@@ -149,8 +149,8 @@ DRAFTS = {
         footer(("ida", "Invoice #")),
     ]),
 
-    # ---- proposal ----
-    "490": ("proposal", "Proposal / Quote", [
+    # ---- quote ----
+    "490": ("quote", "Quote / Quote", [
         company_header(),
         meta_row(("ida", "Quote #"), ("dt_created", "Date", {"format": "date"}),
                  ("config.valid_until", "Valid Until", {"format": "date"}),
@@ -167,7 +167,7 @@ DRAFTS = {
         signature("Accepted by", "Date"),
         footer(("ida", "Quote #")),
     ]),
-    "491": ("proposal", "Estimate", [
+    "491": ("quote", "Estimate", [
         company_header(contact=False),
         meta_row(("ida", "Estimate #"), ("dt_created", "Date", {"format": "date"}),
                  ("config.valid_until", "Valid Until", {"format": "date"})),
@@ -177,7 +177,7 @@ DRAFTS = {
         {"type": "comments", "source": "comments.public", "label": "Assumptions"},
         footer(("ida", "Estimate #")),
     ]),
-    "492": ("proposal", "Bid Document", [
+    "492": ("quote", "Bid Document", [
         company_header(),
         meta_row(("ida", "Bid #"), ("dt_created", "Date", {"format": "date"}),
                  ("config.project_name", "Project"),

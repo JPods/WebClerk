@@ -1,7 +1,7 @@
 """Line processing service for the universal save pipeline.
 
 Extracted from save_view.py — handles line CRUD for header models
-(order, invoice, purchase, workorder, proposal), pending inventory
+(order, invoice, purchase, workorder, quote), pending inventory
 creation, source line adjustment, and refs.links updates.
 
 Part of the save_* service cluster:
@@ -19,14 +19,14 @@ from apps.core.constants.model_registry import get_model
 
 console_logger = logging.getLogger('console')
 
-HEADER_MODELS = frozenset({'order', 'invoice', 'purchase', 'workorder', 'proposal'})
+HEADER_MODELS = frozenset({'order', 'invoice', 'purchase', 'workorder', 'quote'})
 
 LINE_MODEL_MAP = {
     'order': ('OrderLine', 'order'),
     'invoice': ('InvoiceLine', 'invoice'),
     'purchase': ('PurchaseLine', 'purchase'),
     'workorder': ('WorkOrderLine', 'workorder'),
-    'proposal': ('ProposalLine', 'proposal'),
+    'quote': ('QuoteLine', 'quote'),
 }
 
 

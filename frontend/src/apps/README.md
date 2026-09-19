@@ -47,7 +47,7 @@ Setting record — look in the database, not in the code.
 | core | contact, action, setting, report, template, pending, audit, notification | Contact is the richest — has ContactDetailJson.tsx |
 | orgs | customer, vendor, manufacturer, employee, rep, organization | All share OrgDetail.json.tsx |
 | products | item, serial, warehouse, variant, specification, catalog, bom, flow, usage, service, item_xref | Item has ItemDetailJson.tsx |
-| transactions | order, invoice, proposal, purchase, receipt, requisition, work_order, cash, project + all line models | All share TransactionDetail.tsx |
+| transactions | order, invoice, quote, purchase, receipt, requisition, work_order, cash, project + all line models | All share TransactionDetail.tsx |
 | communications | email, phone, address, domain | All rendered via CommCard/CommPanel |
 | docs | document, tag, question_answer, linkage | |
 | sync | connection, bundle | Bundle has BundleDetail.tsx |
