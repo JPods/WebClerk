@@ -2,6 +2,8 @@
 
 1. POST /wcapi/_inquiry/start/  {site, email, topic?, role?, page?, website?}
    Emails a signed link (24 h) to that site's form page (settings.INQUIRY_SITES). Writes nothing.
+   The email is plain text, plus HTML when the site's Report has content (editor_type 'html',
+   placeholders {{link}}, {{topic}}, {{site_name}}).
 2. GET  /wcapi/_inquiry/?t=<token>
    The form page checks its link: {email, topic, role, market_use, questions} or 400
    (expired / tampered / used). market_use and questions come from the site's Report.
@@ -30,7 +32,8 @@ import logging
 from django.conf import settings
 from django.core import signing
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
+from django.utils.html import escape
 from django.core.validators import validate_email
 from corsheaders.signals import check_request_enabled
 from rest_framework.permissions import AllowAny
@@ -54,19 +57,38 @@ LIMITS = {'site': 40, 'name': 120, 'email': 254, 'phone': 40, 'company': 120, 'r
 ANSWER_LIMIT = 2000
 
 
-def _site_form(site_key: str) -> dict:
-    """The site's Report config (InquiryForm): who answers, what to ask. {} when there is no
-    single active Report for the site or it does not validate — logged, never guessed."""
+def _site_report(site_key: str):
+    """The site's one active form Report, or None — logged, never guessed."""
     rows = list(Report.objects.filter(category='form', is_active=True,
                                       config__inquiry__site=site_key)[:2])
     if len(rows) != 1:
         logger.error('[INQUIRY] site %r: expected one active form Report, found %d', site_key, len(rows))
+        return None
+    return rows[0]
+
+
+def _site_form(site_key: str) -> dict:
+    """The site's Report config (InquiryForm): who answers, what to ask. {} when there is no
+    Report or it does not validate — logged."""
+    report = _site_report(site_key)
+    if report is None:
         return {}
     try:
-        return InquiryForm.model_validate(rows[0].config['inquiry']).model_dump()
+        return InquiryForm.model_validate(report.config['inquiry']).model_dump()
     except SchemaError as e:
-        logger.error('[INQUIRY] Report %s config.inquiry is invalid: %s', rows[0].pk, e)
+        logger.error('[INQUIRY] Report %s config.inquiry is invalid: %s', report.pk, e)
         return {}
+
+
+def _link_email_html(site_key: str, values: dict) -> str:
+    """The site's Report content with its placeholders filled (values escaped), or ''."""
+    report = _site_report(site_key)
+    if report is None or report.editor_type != 'html' or not report.content.strip():
+        return ''
+    html = report.content
+    for key, value in values.items():
+        html = html.replace('{{' + key + '}}', escape(value))
+    return html
 
 
 def _contact_for(email: str, fields: dict) -> tuple:
@@ -162,8 +184,12 @@ class InquiryStartView(_Public):
             f"If you did not ask for this, ignore this email — nothing has been recorded.\n\n"
             f"{site['name']}\n"
         )
+        html = _link_email_html(fields['site'], {'link': link, 'topic': topic, 'site_name': site['name']})
         try:
-            send_mail(f'Your {topic} form', body, settings.DEFAULT_FROM_EMAIL, [fields['email']])
+            mail = EmailMultiAlternatives(f'Your {topic} form', body, settings.DEFAULT_FROM_EMAIL, [fields['email']])
+            if html:
+                mail.attach_alternative(html, 'text/html')
+            mail.send()
         except Exception as e:
             logger.error('[INQUIRY] could not send link to %s: %s', fields['email'], e)
             return Response({'ok': False, 'errors': {'email': 'We could not send the email just now — please try again later.'}},
