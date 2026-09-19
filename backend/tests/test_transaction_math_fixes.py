@@ -107,8 +107,8 @@ def test_flat_discount_last_child_takes_the_remainder():
 def test_verifier_uses_the_same_engine():
     """#9: the pre-save verifier agrees with the engine for 5 and 0.05 alike."""
     lines = [
-        {"line_type": "product", "quantity": {"active": 2}, "price": {"unit": 50.0}, "cost": {}},
-        {"line_type": "discount", "quantity": {"active": 1}, "price": {"unit": 10.0}, "cost": {}},
+        {"line_type": "product", "quantity": {"active": 2},
+         "price": {"unit": 50.0, "discount_amount": 10.0}, "cost": {}},
     ]
     for rate in (5, 0.05):
         t = calculate_header_totals(lines, {"finance": {"sales_tax_rate": rate}}, "quote")
@@ -119,15 +119,62 @@ def test_verifier_uses_the_same_engine():
 
 @pytest.mark.django_db
 def test_tax_is_applied_to_the_discounted_price():
-    """Bill 2026-09-19: a document discount comes off the taxable amount, spread over
-    the taxable and non-taxable lines by their nets (calc 06 of Bite 1)."""
+    """Bill 2026-09-19: a document discount is spread into the line discounts by line
+    amount; each line is taxed on its own discounted amount (calc 06 of Bite 1)."""
     q = Quote.objects.create(finance={"sales_tax_rate": 0.05})
-    _line(q, 15, 10.00)                                              # 150.00
-    _line(q, 3, 19.99, discount_percent=12.5)                        # 52.47
-    _line(q, 2, 7.33, discount_amount=1.00, tax_code='NONTAXABLE')   # 13.66
-    _line(q, 1, 10.00, line_type='discount')                         # −10.00
+    a = _line(q, 15, 10.00)                                              # 150.00
+    b = _line(q, 3, 19.99, discount_percent=12.5)                        # 52.47
+    c = _line(q, 2, 7.33, discount_amount=1.00, tax_code='NONTAXABLE')   # 13.66
+    d = _line(q, 1, 10.00, line_type='discount')                         # $10 off the document
+    for l in (a, b, c, d):
+        l.refresh_from_db()
+    # shares by amount: 6.94 / 2.43 / 0.63 (the last takes the remainder)
+    assert [a.price["discount_amount"], b.price["discount_amount"], c.price["discount_amount"]] == \
+        [pytest.approx(6.94), pytest.approx(9.93), pytest.approx(1.63)]
+    assert [a.price["extended"], b.price["extended"], c.price["extended"]] == \
+        [pytest.approx(143.06), pytest.approx(50.04), pytest.approx(13.03)]
+    assert d.price["extended"] == 0 and d.metadata["document_discount"]["applied"] == 10.0
+    # the tax is stored on each line
+    assert a.tax["sales"] == pytest.approx(7.15) and b.tax["sales"] == pytest.approx(2.50)
+    assert c.tax["sales"] == 0 and c.tax["rate_source"] == "item_exempt"
     q.refresh_from_db()
-    # factor = 1 − 10 / 216.13; taxable lines 150.00 → 143.06, 52.47 → 50.04
     assert q.totals["subtotal"] == pytest.approx(206.13)
     assert q.totals["taxable"] == pytest.approx(193.10)
-    assert q.totals["tax"] == pytest.approx(9.65)                    # 7.15 + 2.50, rounded per line
+    assert q.totals["tax"] == pytest.approx(9.65)
+    assert q.totals["total"] == pytest.approx(215.78)
+
+
+@pytest.mark.django_db
+def test_document_total_includes_other_charges():
+    """Total = amount + line taxes + shipping + finance charge + other (landed costs)."""
+    q = Quote.objects.create(finance={"sales_tax_rate": 0.10}, totals={"other": 7.00})
+    _line(q, 2, 10.00)
+    q.refresh_from_db()
+    assert q.totals["tax"] == pytest.approx(2.00)
+    assert q.totals["total"] == pytest.approx(29.00)          # 20 + 2 + 7
+
+
+@pytest.mark.django_db
+def test_a_rate_typed_on_the_line_wins():
+    q = Quote.objects.create(finance={"sales_tax_rate": 0.10})
+    line = QuoteLine.objects.create(
+        quote=q, quantity={"active": 1}, price={"unit": 100.0, "precision": 2},
+        cost={"unit": 0}, tax={"sales_rate": 0.02, "rate_source": "line"})
+    line.refresh_from_db(); q.refresh_from_db()
+    assert line.tax["sales"] == pytest.approx(2.00)
+    assert q.totals["tax"] == pytest.approx(2.00)
+
+
+@pytest.mark.django_db
+def test_a_cash_discount_line_reduces_the_invoice_whatever_its_sign():
+    """Bite 2 #1: cash_pending stores the discount unit negative; it must still reduce."""
+    from apps.transactions.models import Invoice, InvoiceLine
+    inv = Invoice.objects.create(finance={"sales_tax_rate": 0.05})
+    InvoiceLine.objects.create(invoice=inv, quantity={"active": 1},
+                               price={"unit": 20.0, "precision": 2}, cost={"unit": 0})
+    InvoiceLine.objects.create(invoice=inv, line_type='discount', purpose='cash_discount',
+                               quantity={"active": 1}, price={"unit": -2.0}, cost={})
+    inv.refresh_from_db()
+    assert inv.totals["subtotal"] == pytest.approx(18.00)
+    assert inv.totals["tax"] == pytest.approx(1.00)            # tax stays on the sale
+    assert inv.totals["total"] == pytest.approx(19.00)

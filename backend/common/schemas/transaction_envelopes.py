@@ -658,8 +658,13 @@ class LineTax(BaseModel):
     )
     sales: Optional[float] = Field(
         None, title="Sales Tax",
-        description="Per-line sales tax amount",
+        description="Per-line sales tax amount = line amount × sales_rate (computed by the totals engine)",
         json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
+    rate_source: Optional[str] = Field(
+        None, title="Rate Source",
+        description="Where sales_rate came from: line (typed on the line), header, exempt, item_exempt",
+        json_schema_extra={'widget': 'text'},
     )
     cost_rate: Optional[float] = Field(
         None, title="Cost Tax Rate",

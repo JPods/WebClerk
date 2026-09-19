@@ -315,6 +315,26 @@ register_line_parent_signals(InvoiceLine)
 
 
 # =============================================================================
+# DOCUMENT DISCOUNT → LINE DISCOUNTS (Bill, 2026-09-19)
+# A discount line saved on a quote, order or invoice is spread into the
+# product lines' own discounts, then kept at zero as the record of what was
+# applied. Every discount and every tax is then a line's.
+# =============================================================================
+
+def register_discount_line_spread(line_model):
+    @receiver(post_save, sender=line_model)
+    def spread_on_create(sender, instance, created, **kwargs):
+        if not created or (instance.line_type or '') != 'discount':
+            return
+        from apps.transactions.services.pricing.document_discount import spread_discount_line
+        spread_discount_line(instance)
+
+
+for _sell_line_model in (QuoteLine, OrderLine, InvoiceLine):
+    register_discount_line_spread(_sell_line_model)
+
+
+# =============================================================================
 # HEADER TAX CHANGE → RECOMPUTE
 #
 # Totals were recomputed only when a line was saved, so a tax rate set or

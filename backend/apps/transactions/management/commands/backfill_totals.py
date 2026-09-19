@@ -72,7 +72,18 @@ class Command(BaseCommand):
 
             count = 0
             for record in qs:
-                record.update_sell_cost_totals(persist=not dry_run)
+                if dry_run:
+                    # update_sell_cost_totals always persists; a dry run only computes.
+                    from apps.transactions.services.pricing.totals_compute import compute_totals
+                    compute_totals(record, record.lines.all(), record._meta.model_name)
+                else:
+                    from apps.transactions.models.base_transaction_model import JournalizedLockError
+                    try:
+                        record.update_sell_cost_totals(persist=True)
+                    except JournalizedLockError as exc:
+                        # A posted document keeps the totals it was journalized with.
+                        self.stdout.write(self.style.WARNING(f"  Skipped {model_name} #{record.id}: {exc}"))
+                        continue
                 # Re-read totals after recompute (persist=False still updates in memory)
                 total_val = (record.totals or {}).get('total', 0)
                 prefix = "Would backfill" if dry_run else "Backfilled"
