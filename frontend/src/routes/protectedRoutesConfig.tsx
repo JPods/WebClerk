@@ -1,9 +1,10 @@
 /* LastChecked: 2026-08-30 | WhereUsed: WindowManager route resolution | WhoCreated: Unknown */
 /* Routes for WindowManager — /:model catch-all renders databrowser */
-/* IMPORTANT: Keep in sync with Router.tsx — both consume this table */
+/* Record pages (/{model}/:id) come from recordRoutes.tsx — shared with Router.tsx */
 import React from "react";
 import { Navigate } from "react-router";
 import { PageRoutes } from "./Routes";
+import { recordRoutes } from "./recordRoutes";
 import {
   UserProfiles,
   NotionTrackerPage,
@@ -90,7 +91,6 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.products, element: <Navigate to="/products" replace /> },
   { path: PageRoutes.productsItemList, element: <Navigate to="/item" replace /> },
   { path: PageRoutes.productsItemDetail, element: <S><ModelDetailPage modelName="item" /></S> },
-  { path: "/item/:id", element: <S><ModelDetailPage modelName="item" /></S> },
 
   // User-facing: Transactions — app dashboard
   { path: "/transactions", element: <DDCardDashboard dashboardName="transactions" /> },
@@ -146,22 +146,8 @@ export const protectedRoutesConfig = [
   // Legacy /db/ routes
   { path: "/db/:model", element: <DataBrowser /> },
 
-  // /:model/:id = record detail pages
-  { path: "/order/:id", element: <S><UiDetail modelName="order" /></S> },
-  { path: "/invoice/:id", element: <S><UiDetail modelName="invoice" /></S> },
-  { path: "/quote/:id", element: <S><UiDetail modelName="quote" /></S> },
-  { path: "/purchase/:id", element: <S><UiDetail modelName="purchase" /></S> },
-  { path: "/workorder/:id", element: <S><UiDetail modelName="workorder" /></S> },
-  { path: "/receipt/:id", element: <S><UiDetail modelName="receipt" /></S> },
-  { path: "/requisition/:id", element: <S><UiDetail modelName="requisition" /></S> },
-  { path: "/cash/:id", element: <S><UiDetail modelName="cash" /></S> },
-  { path: "/contact/:id", element: <S><ModelDetailPage modelName="contact" /></S> },
-  { path: "/customer/:id", element: <S><ModelDetailPage modelName="customer" /></S> },
-  { path: "/vendor/:id", element: <S><ModelDetailPage modelName="vendor" /></S> },
-  { path: "/manufacturer/:id", element: <S><ModelDetailPage modelName="manufacturer" /></S> },
-  { path: "/employee/:id", element: <S><ModelDetailPage modelName="employee" /></S> },
-  { path: "/rep/:id", element: <S><ModelDetailPage modelName="rep" /></S> },
-  { path: "/pending/:id", element: <S><ModelDetailPage modelName="pending" /></S> },
+  // /:model/:id = record detail pages (one list: recordRoutes.tsx)
+  ...recordRoutes,
   // /td/:model/:id — alternate record route
   { path: "/td/:model/:id", element: <S><UiDetail /></S> },
 

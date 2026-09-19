@@ -7,6 +7,7 @@ import { DevTools } from '../components/DevTools';
 import { AiHelpWidget } from '../components/AiHelpWidget';
 import { IssueReporter } from '../components/IssueReporter';
 import PrivateRoute from "./PrivateRoute";
+import { recordRoutes } from "./recordRoutes";
 import { ScrollToTop, Toster } from "../components/wrapper";
 import { SignIn, SignUp, UserProfiles } from "../pages/wrapperPage";
 import DataBrowser from "../pages/admin/DataBrowser";
@@ -20,7 +21,6 @@ const AliceDashboard = React.lazy(() => import("../pages/admin/AliceDashboard"))
 const AdminTools = React.lazy(() => import("../pages/admin/AdminTools"));
 const HelpDashboard = React.lazy(() => import("../pages/admin/HelpDashboard"));
 const InventoryDashboard = React.lazy(() => import("../pages/admin/InventoryDashboard"));
-const ModelDetailPage = React.lazy(() => import("../components/common/ModelDetailPage"));
 const KanbanBoardPage = React.lazy(() => import("../apps/utils/kanban/KanbanBoardPage"));
 const UnifiedGanttPage = React.lazy(() => import("../apps/utils/gantt/UnifiedGanttPage"));
 const JsonTreeApplet = React.lazy(() => import("../pages/tools/JsonTreeApplet"));
@@ -65,12 +65,6 @@ const HomeRedirect: React.FC = () => {
   } catch { /* ignore */ }
   return <Navigate to="/dashboard" replace />;
 };
-
-// Transaction models — use UiDetail
-const TRANSACTION_MODELS = [
-  'order', 'invoice', 'quote', 'purchase', 'workorder',
-  'receipt', 'requisition', 'cash',
-];
 
 /** Floating widgets — hidden on public tool pages (e.g. /json-tree) */
 const FloatingWidgets: React.FC = () => {
@@ -136,15 +130,8 @@ const Router: React.FC = () => {
           {/* Legacy /db/ routes — keep working for bookmarks */}
           <Route path="db/:model" element={<DataBrowser />} />
 
-          {/* /:model/:id — universal flat record route */}
-          {TRANSACTION_MODELS.map(m => <Route key={`${m}-id`} path={`${m}/:id`} element={<S><UiDetail modelName={m} /></S>} />)}
-          {['contact', 'item', 'customer', 'vendor', 'manufacturer', 'employee', 'rep', 'action', 'touch',
-            'document', 'setting', 'report', 'serial', 'project', 'email', 'phone', 'address', 'domain',
-            'notification', 'warehouse', 'catalog', 'cash_method', 'gl_account', 'ledger', 'audit',
-            'pending',
-          ].map(m =>
-            <Route key={`${m}-id`} path={`${m}/:id`} element={<S><ModelDetailPage modelName={m} /></S>} />
-          )}
+          {/* /:model/:id — universal flat record route (one list: recordRoutes.tsx) */}
+          {recordRoutes.map(r => <Route key={r.path} path={r.path.slice(1)} element={r.element} />)}
           {/* /td/:model/:id — alternate record route */}
           <Route path="td/:model/:id" element={<S><UiDetail /></S>} />
 
