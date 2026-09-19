@@ -89,20 +89,6 @@ SHIPPING_SERVICE_CONFIG = {
         # ── Demo rate (Bill, 2026-09-19): shipping at 4% of goods, so documents
         #    carry shipping into totals, journal entries and values. With tax at
         #    test_8% (2 × 4%), a doubling error shows at a glance. ─────────────
-        {
-            "name": "test_4%",
-            "type": "rate",
-            "fulfillment": "shipped",
-            "account": "Shipping 4% of goods",
-            "rate_method": "percent_of_goods",
-            "rate_percent": 4,
-            "comment": "Shipping charged at 4% of goods. No connection key needed.",
-            "gl_account": "",
-            "is_default": False,
-            "connection_id": None,
-            "connection_purpose": "",
-            "connection_status": "",
-        },
         # ── Local fulfillment: the proximity path (WhatIf C-W38-16) ──────────
         {
             "name": "pickup",
@@ -211,5 +197,6 @@ class Command(BaseCommand):
                 elif key not in config:
                     config[key] = val
             setting.config = config
+            setting._setting_update_authorized = True     # a seed command updates it deliberately
             setting.save(update_fields=['config'])
             self.stdout.write(self.style.SUCCESS(f"Updated shipping_service Setting #{setting.id} (merged new keys)"))
