@@ -186,8 +186,8 @@ def parent_quantities(child: Any) -> Optional[Dict[str, float]]:
 def prorate_flat_discount(child: Any) -> None:
     """A new child line takes its share of the parent line's flat discount.
 
-    A flat discount (discount_amount with no discount_percent) belongs to the
-    parent line's whole quantity. Conversion copies the price envelope as is,
+    A flat discount (discount_amount) belongs to the parent line's whole quantity,
+    whether or not the line also carries a percent (the larger of the two applies). Conversion copies the price envelope as is,
     so a partial child would carry the full amount, and every split would
     carry it again. Here, at creation only, the child gets:
 
@@ -201,14 +201,12 @@ def prorate_flat_discount(child: Any) -> None:
     if spec is None or not child.parent_line_id:
         return
     cprice = child.price if isinstance(getattr(child, 'price', None), dict) else None
-    if not cprice or cprice.get('discount_percent'):
+    if not cprice:
         return
     parent = _model(spec[0]).objects.filter(pk=child.parent_line_id).only('price', 'quantity').first()
     if parent is None:
         return
     pprice = parent.price if isinstance(parent.price, dict) else {}
-    if pprice.get('discount_percent'):
-        return
     precision = int(pprice.get('precision', 2) or 2)
     step = Decimal(1).scaleb(-precision)
     flat = Decimal(str(pprice.get('discount_amount') or 0)).quantize(step)

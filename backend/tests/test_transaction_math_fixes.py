@@ -225,3 +225,21 @@ def test_with_both_a_percent_and_a_dollar_discount_the_larger_applies():
     a.refresh_from_db(); b.refresh_from_db()
     assert a.totals["amount"] == pytest.approx(85.00)
     assert b.totals["amount"] == pytest.approx(80.00)
+
+
+@pytest.mark.django_db
+def test_a_line_with_both_discounts_splits_the_flat_across_partial_conversions():
+    """Recheck 2, finding 1: with a % and a $ on the line, each child kept the whole $,
+    so a partial conversion billed less than the parent. The flat is shared."""
+    q = Quote.objects.create()
+    src = _line(q, 10, 10.00, discount_percent=10, discount_amount=15.00)  # $15 > 10% ($10)
+    src.refresh_from_db()
+    assert src.totals["discounted_unit"] == pytest.approx(8.50)            # 10.00 − 15/10
+    assert src.totals["amount"] == pytest.approx(85.00)
+    first = _order_line_from(Order.objects.create(), src, 5)
+    second = _order_line_from(Order.objects.create(), src, 5)
+    first.refresh_from_db(); second.refresh_from_db()
+    assert first.price["discount_amount"] == pytest.approx(7.50)           # its share, not the whole $15
+    assert second.price["discount_amount"] == pytest.approx(7.50)
+    assert first.totals["discounted_unit"] == pytest.approx(8.50)
+    assert first.totals["amount"] + second.totals["amount"] == pytest.approx(85.00)
