@@ -66,6 +66,7 @@ class Period(BaseModel):
 
 
 class PeriodLifetime(Period):
+    last_year: float = 0      # the previous calendar year
     lifetime: float = 0
 
 
@@ -157,7 +158,8 @@ class CustSales(PeriodLifetime):
 
 
 class CustMargin(Period):
-    pct: float = 0
+    last_year: float = 0
+    pct: float = 0            # year-to-date margin ÷ year-to-date sales × 100
 
 
 class CustReturns(Period):
@@ -315,8 +317,41 @@ class FinFx(BaseModel):
     gain_loss_alltime: float = 0
 
 
+class FinSummary(BaseModel):
+    """What the source records say, next to their ledger echoes (Bill, 2026-09-19:
+    "Ledger records are echos of their primary records"; unapplied cash and its
+    ledger records should match). Computed, never typed."""
+    receivable: float = 0             # Σ open invoice balances (invoice.totals.balance)
+    receivable_ledger: float = 0      # Σ invoice ledger value_available — the echo
+    unapplied_cash: float = 0         # Σ cash.available — money on account
+    unapplied_cash_ledger: float = 0  # Σ cash ledger value_available, sign flipped — the echo
+    net: float = 0                    # receivable − unapplied_cash
+    in_step: bool = True              # every echo equals its source
+    mismatches: List[str] = Field(default_factory=list)   # e.g. "invoice 132: balance 13.00, ledger 0.00"
+    dt_computed: str = ''             # UTC ISO-8601
+
+
+class OrgMetrics(BaseModel):
+    """Keep-in-touch metrics, computed from source records (apps/orgs/services/org_metrics.py).
+    Amend and reduce as experience shows what matters (Bill, 2026-09-19)."""
+    dt_computed: str = ''
+    periods: dict = Field(default_factory=dict)     # mtd, ytd, ytd_last_year, last_year, last_90, prior_90, lifetime
+    years: list = Field(default_factory=list)       # one entry per calendar year: count, amount, margin, size_bands, channel, fulfillment, online_pickup, …
+    largest: dict = Field(default_factory=dict)
+    rhythm: dict = Field(default_factory=dict)      # first/last sale, days_since_last, usual_interval_days, expected_next_dt, quiet
+    trend: dict = Field(default_factory=dict)
+    quotes: dict = Field(default_factory=dict)
+    payments: dict = Field(default_factory=dict)
+    contact: dict = Field(default_factory=dict)
+    proximity: dict = Field(default_factory=dict)
+    size_band_edges: list = Field(default_factory=list)
+    counts: dict = Field(default_factory=dict)       # legacy keys of default_metrics
+    periods_legacy: dict = Field(default_factory=dict)
+
+
 class OrgFinancial(BaseModel):
     """Type-keyed financial profile. An org may be several types at once."""
+    summary: FinSummary = Field(default_factory=FinSummary)
     common: FinCommon = Field(default_factory=FinCommon)
     customer: FinCustomer = Field(default_factory=FinCustomer)
     vendor: FinVendor = Field(default_factory=FinVendor)

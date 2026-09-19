@@ -431,7 +431,8 @@ def allocate_received(invoice) -> None:
     from decimal import Decimal as D
     Ledger = dj_apps.get_model('accounts', 'Ledger')
 
-    remaining = D(str((getattr(invoice, 'totals', None) or {}).get('received') or 0))
+    t = getattr(invoice, 'totals', None) or {}
+    remaining = D(str(t.get('received') or 0)) + D(str(t.get('adjusted') or 0))
     for ledger in Ledger.objects.filter(
         invoice_id=invoice.pk, model_name='invoice',
     ).order_by('dt_due', 'id'):

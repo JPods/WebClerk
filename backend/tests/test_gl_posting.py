@@ -1,37 +1,40 @@
-"""Tests for GL journal posting from staged metadata.
+"""Tests for GL journal posting.
 
-Validates that invoice and cash saves produce actual GlJournal records
-from the staged metadata.gl_accounts postings, with correct debit/credit
-amounts, double-posting guards, and balance verification.
+One GL engine (2026-09-19): "Post to GL" posts an invoice or a cash entry through
+journalize_invoice / journalize_cash, from the record's own lines and totals. The
+staged metadata.gl_accounts is a preview only and is never posted. These tests build
+real invoices with lines, as a user would.
 """
 import pytest
 from decimal import Decimal
 
-from tests.conftest import InvoiceFactory, CustomerFactory, ContactFactory
+from tests.conftest import InvoiceFactory
+
+
+def invoice_with_line(unit=500.0, qty=1, unit_cost=0.0):
+    """An invoice a user could have made: one line, no tax, no shipping."""
+    from apps.transactions.models import InvoiceLine
+    invoice = InvoiceFactory()
+    InvoiceLine.objects.create(
+        invoice=invoice, quantity={'active': qty},
+        price={'unit': unit, 'precision': 2}, cost={'unit': unit_cost},
+    )
+    invoice.refresh_from_db()
+    return invoice
 
 
 @pytest.mark.django_db
 @pytest.mark.usefixtures("chart_of_accounts")
 class TestPostStagedGlEntries:
-    """Test the post_staged_gl_entries() function directly."""
+    """post_staged_gl_entries() — the one engine, posting from the record."""
 
-    def test_creates_entries_from_staged_metadata(self):
-        """Staged postings in metadata.gl_accounts → GlJournal records."""
+    def test_creates_entries_from_the_invoice(self):
+        """An invoice's own lines and totals → GlJournal records."""
+        from apps.accounts.services.chart import role_account
         from apps.accounts.services.ledger_balance import post_staged_gl_entries
         from apps.accounts.models import GlJournal
 
-        invoice = InvoiceFactory()
-        invoice.metadata = invoice.metadata or {}
-        invoice.metadata['gl_accounts'] = {
-            'event': 'invoice_created',
-            'postings': [
-                {'side': 'debit', 'purpose': 'accounts_receivable', 'account': '1100-accounts_receivable', 'amount': 500.0},
-                {'side': 'credit', 'purpose': 'sales_revenue', 'account': '4000-sales_revenue', 'amount': 500.0},
-            ],
-        }
-        invoice.__class__.objects.filter(pk=invoice.pk).update(metadata=invoice.metadata)
-        invoice.refresh_from_db()
-
+        invoice = invoice_with_line(500.0)
         count = post_staged_gl_entries(invoice)
 
         assert count == 2
@@ -41,13 +44,13 @@ class TestPostStagedGlEntries:
         debit_entry = next(e for e in entries if e.debit)
         credit_entry = next(e for e in entries if e.credit)
 
-        assert debit_entry.account == '1100-accounts_receivable'
+        assert debit_entry.account == role_account('accounts_receivable')
         assert debit_entry.debit == 500.0
         assert debit_entry.credit is None
         assert debit_entry.source == 'automation'
         assert debit_entry.type == 'sales'
 
-        assert credit_entry.account == '4000-sales_revenue'
+        assert credit_entry.account == role_account('sales_revenue')
         assert credit_entry.credit == 500.0
         assert credit_entry.debit is None
 
@@ -56,23 +59,12 @@ class TestPostStagedGlEntries:
         from apps.accounts.services.ledger_balance import post_staged_gl_entries
         from apps.accounts.models import GlJournal
 
-        invoice = InvoiceFactory()
-        invoice.metadata = invoice.metadata or {}
-        invoice.metadata['gl_accounts'] = {
-            'event': 'invoice_created',
-            'postings': [
-                {'side': 'debit', 'account': '1100-accounts_receivable', 'amount': 100.0},
-                {'side': 'credit', 'account': '4000-sales_revenue', 'amount': 100.0},
-            ],
-        }
-        invoice.__class__.objects.filter(pk=invoice.pk).update(metadata=invoice.metadata)
-        invoice.refresh_from_db()
-
+        invoice = invoice_with_line(100.0)
         count1 = post_staged_gl_entries(invoice)
         count2 = post_staged_gl_entries(invoice)
 
         assert count1 == 2
-        assert count2 == 0  # blocked by duplicate guard
+        assert count2 == 0  # blocked by the already-journalized guard
         assert GlJournal.objects.filter(source_id=invoice.pk, source_model='invoice').count() == 2
 
     def test_gl_entries_balance(self):
@@ -81,17 +73,7 @@ class TestPostStagedGlEntries:
         from apps.accounts.models import GlJournal
         from django.db.models import Sum
 
-        invoice = InvoiceFactory()
-        invoice.metadata = invoice.metadata or {}
-        invoice.metadata['gl_accounts'] = {
-            'event': 'invoice_created',
-            'postings': [
-                {'side': 'debit', 'account': '1100-accounts_receivable', 'amount': 750.0},
-                {'side': 'credit', 'account': '4000-sales_revenue', 'amount': 750.0},
-            ],
-        }
-        invoice.__class__.objects.filter(pk=invoice.pk).update(metadata=invoice.metadata)
-        invoice.refresh_from_db()
+        invoice = invoice_with_line(750.0, unit_cost=300.0)
         post_staged_gl_entries(invoice)
 
         totals = GlJournal.objects.filter(
@@ -101,28 +83,17 @@ class TestPostStagedGlEntries:
         assert totals['total_debit'] == totals['total_credit']
 
     def test_zero_amount_skipped(self):
-        """Postings with amount=0 are not created as GL entries."""
+        """A line worth nothing posts nothing."""
         from apps.accounts.services.ledger_balance import post_staged_gl_entries
         from apps.accounts.models import GlJournal
 
-        invoice = InvoiceFactory()
-        invoice.metadata = invoice.metadata or {}
-        invoice.metadata['gl_accounts'] = {
-            'event': 'invoice_created',
-            'postings': [
-                {'side': 'debit', 'account': '1100-accounts_receivable', 'amount': 0},
-                {'side': 'credit', 'account': '4000-sales_revenue', 'amount': 0},
-            ],
-        }
-        invoice.__class__.objects.filter(pk=invoice.pk).update(metadata=invoice.metadata)
-        invoice.refresh_from_db()
-
+        invoice = invoice_with_line(0.0)
         count = post_staged_gl_entries(invoice)
         assert count == 0
         assert GlJournal.objects.filter(source_id=invoice.pk).count() == 0
 
-    def test_no_metadata_returns_zero(self):
-        """Instance with no metadata.gl_accounts returns 0."""
+    def test_invoice_without_lines_returns_zero(self):
+        """An invoice with no lines has nothing to post."""
         from apps.accounts.services.ledger_balance import post_staged_gl_entries
 
         invoice = InvoiceFactory()
@@ -141,7 +112,7 @@ class TestPostStagedGlEntries:
             email='payer@test.com',
             name_first='Test', name_last='Payer',
         )
-        invoice = InvoiceFactory()
+        invoice = invoice_with_line(200.0)
         cash = Cash.objects.create(
             amount=200.0,
             status='completed',
@@ -149,16 +120,6 @@ class TestPostStagedGlEntries:
             invoice=invoice,
             dt_cash=timezone.now(),
         )
-        cash.metadata = cash.metadata or {}
-        cash.metadata['gl_accounts'] = {
-            'event': 'cash_received',
-            'postings': [
-                {'side': 'debit', 'purpose': 'cash_receipt', 'account': '1000-cash', 'amount': 200.0},
-                {'side': 'credit', 'purpose': 'accounts_receivable', 'account': '1100-accounts_receivable', 'amount': 200.0},
-            ],
-        }
-        cash.__class__.objects.filter(pk=cash.pk).update(metadata=cash.metadata)
-        cash.refresh_from_db()
 
         count = post_staged_gl_entries(cash)
         assert count == 2

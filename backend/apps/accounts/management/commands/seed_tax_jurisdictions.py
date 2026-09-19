@@ -13,6 +13,18 @@ from django.core.management.base import BaseCommand
 from apps.accounts.models.tax_jurisdiction import TaxJurisdiction
 
 
+def _payable() -> str:
+    """The chart's sales-tax-payable account (company GL role map), never a literal."""
+    from apps.accounts.services.chart import role_account
+    return role_account('sales_tax_payable', used_by='seed_tax_jurisdictions', required=False) or ''
+
+
+def _payable() -> str:
+    """The chart's sales-tax-payable account (company GL role map), never a literal."""
+    from apps.accounts.services.chart import role_account
+    return role_account('sales_tax_payable', used_by='seed_tax_jurisdictions', required=False) or ''
+
+
 # US state sales tax rates (general state-level, 2026)
 # States with 0.0 have no state sales tax.
 # Local jurisdictions (city/county) are NOT included — users add those.
@@ -115,10 +127,19 @@ class Command(BaseCommand):
                     tax_rate_cost=0.0,
                     tax_rate_on_shipping=rate if tax_shipping else 0.0,
                     is_active=rate > 0,
-                    gl_account_payable='2100-SalesTaxPayable',
+                    gl_account_payable=_payable(),
                 )
                 created += 1
 
+        # Demo rate (Bill, 2026-09-19): 8% sales tax, twice the test_4% shipping rate,
+        # so a doubling error shows at a glance. Shipping is not taxed here (easy math).
+        TaxJurisdiction.objects.update_or_create(
+            tax_jurisdiction='test_8%',
+            defaults=dict(tax_name='Sales Tax 8%', tax_rate_sales=0.08, tax_rate_cost=0.0,
+                          tax_rate_on_shipping=0.0, is_active=True,
+                          gl_account_payable=_payable()),
+        )
+
         self.stdout.write(self.style.SUCCESS(
-            f'Tax jurisdictions: {created} created, {updated} updated, {skipped} skipped'
+            f'Tax jurisdictions: {created} created, {updated} updated, {skipped} skipped (+ test_8%)'
         ))

@@ -14,8 +14,10 @@ stage of a transaction lifecycle. The user walks through:
   8. Discount on remaining → GL: Discount/AR
   9. Write-off small balance → GL: Bad Debt/AR
 
-Tax rate: 5% (easy mental math)
-Commission: 5% of revenue
+Tax and shipping come from operational records, never from constants here
+(Bill, 2026-09-19): the tax jurisdiction SIM_TAX_JURISDICTION (test_8%) and the
+carrier SIM_SHIP_VIA (test_4%, 4% of goods). 8% is 2 × 4%, so a doubling error
+shows at a glance. Commission: 5% of revenue (scenario assumption).
 """
 from __future__ import annotations
 
@@ -47,6 +49,7 @@ _SIM_GL_ROLES = {
     'commission_exp': 'commission_expense',
     'commission_pay': 'commission_payable',
     'discount': 'discount_given',
+    'shipping': 'shipping_revenue',
     'bad_debt': 'bad_debt_writeoff',
     'scrap': 'scrap',
 }
@@ -57,8 +60,45 @@ def _gl_defaults() -> Dict[str, str]:
     return {key: role_account(role, used_by='flight simulator') for key, role in _SIM_GL_ROLES.items()}
 
 
-TAX_RATE = Decimal('0.05')       # 5%
-COMMISSION_RATE = Decimal('0.05')  # 5%
+SIM_TAX_JURISDICTION = 'test_8%'     # TaxJurisdiction.tax_jurisdiction (seed_tax_jurisdictions)
+SIM_SHIP_VIA = 'test_4%'             # wc:shipping_service entry (seed_shipping_service)
+COMMISSION_RATE = Decimal('0.05')    # 5% — scenario assumption until the demo rep carries it
+
+CENT = Decimal('0.01')
+
+
+def _r2(x: Decimal) -> Decimal:
+    return x.quantize(CENT)
+
+
+def sim_rates() -> Dict[str, Any]:
+    """The simulator's tax and shipping, read from the records a user would apply."""
+    from apps.transactions.services.fulfillment.fulfillment_freight import shipping_service_for
+    TaxJurisdiction = dj_apps.get_model('accounts', 'TaxJurisdiction')
+    tj = TaxJurisdiction.objects.filter(tax_jurisdiction=SIM_TAX_JURISDICTION).first()
+    svc = shipping_service_for(SIM_SHIP_VIA) or {}
+    if tj is None or svc.get('rate_method') != 'percent_of_goods':
+        raise ValueError(
+            f"Flight simulator needs tax jurisdiction {SIM_TAX_JURISDICTION} and carrier {SIM_SHIP_VIA}: "
+            "run seed_tax_jurisdictions and seed_shipping_service.")
+    return {
+        'tax_jurisdiction': SIM_TAX_JURISDICTION,
+        'tax_name': tj.tax_name,
+        'tax_rate': Decimal(str(tj.tax_rate_sales or 0)),
+        'ship_via': SIM_SHIP_VIA,
+        'shipping_rate': Decimal(str(svc.get('rate_percent') or 0)) / 100,
+    }
+
+
+def _money_breakdown(qty: int, unit_price: Decimal, rates: Dict[str, Any]) -> Dict[str, Decimal]:
+    goods = _r2(unit_price * qty)
+    shipping = _r2(goods * rates['shipping_rate'])
+    tax = _r2(goods * rates['tax_rate'])            # shipping not taxed (company tax_policy default)
+    return {'goods': goods, 'shipping': shipping, 'tax': tax, 'total': goods + shipping + tax}
+
+
+def _pct(rate: Decimal) -> str:
+    return f"{(rate * 100).normalize():f}%"
 
 # Training items carry this ida prefix. reset_flight_simulator deletes
 # transaction lines and headers, so it will only touch items named this way.
@@ -681,10 +721,22 @@ def get_item_flight_state(item_id: int) -> Dict[str, Any]:
         'item': item_dict,
         'lines': lines,
         'pending': pending,
-        'tax_rate': float(TAX_RATE),
+        'sim_rates': {k: (float(v) if isinstance(v, Decimal) else v) for k, v in sim_rates().items()},
         'commission_rate': float(COMMISSION_RATE),
         'gl_accounts': G,
         'dt_generated': _now_ms(),
+    }
+
+
+def sim_header_defaults() -> Dict[str, Any]:
+    """What the simulator puts on every document it creates (Bill, 2026-09-19): the test
+    tax jurisdiction and carrier override the customer's normal defaults, so every run
+    gives the same numbers. A user may change them back; the outcome then changes."""
+    R = sim_rates()
+    return {
+        'ship_via': R['ship_via'],
+        'finance': {'sales_tax_rate': float(R['tax_rate']), 'sales_tax_name': R['tax_name'],
+                    'tax_jurisdiction': R['tax_jurisdiction']},
     }
 
 
@@ -697,6 +749,19 @@ def get_flight_scenario() -> Dict[str, Any]:
     G = _gl_defaults()
     unit_price = Decimal('10.00')
     unit_cost = Decimal('6.00')
+    R = sim_rates()
+    tax_pct, ship_pct = _pct(R['tax_rate']), _pct(R['shipping_rate'])
+    b = _money_breakdown(4, unit_price, R)                  # the invoice for 4 units
+    cogs = _r2(unit_cost * 4)
+    commission = _r2(b['goods'] * COMMISSION_RATE)
+    paid = Decimal('30.00')
+    discount = Decimal('10.00')
+    after_pay = b['total'] - paid
+    write_off = after_pay - discount
+    ret_goods = _r2(unit_price)
+    ret_tax = _r2(ret_goods * R['tax_rate'])
+    ret_credit = ret_goods + ret_tax                        # shipping on the order is not refunded
+    m = lambda x: f"${x:,.2f}"
 
     steps = [
         {
@@ -744,7 +809,8 @@ def get_flight_scenario() -> Dict[str, Any]:
         {
             'step': 4,
             'title': 'Create Invoice for 4 units',
-            'instruction': 'Create an Invoice from the Order for 4 of the 9 units',
+            'instruction': (f'Create an Invoice from the Order for 4 of the 9 units, with tax jurisdiction '
+                            f'{R["tax_jurisdiction"]} ({tax_pct}) and ship via {R["ship_via"]} ({ship_pct} of goods)'),
             'action': 'create_invoice_from_order',
             'qty': 4,
             'expected_quantity': {
@@ -756,30 +822,33 @@ def get_flight_scenario() -> Dict[str, Any]:
                 {'purpose': 'on_so', 'delta': '-4'},
             ],
             'expected_gl': [
-                {'account': G['ar'], 'side': 'debit', 'amount': 42.00,
-                 'purpose': 'Accounts Receivable (4 × $10.00 + 5% tax = $42.00)'},
-                {'account': G['revenue'], 'side': 'credit', 'amount': 40.00,
-                 'purpose': 'Revenue (4 × $10.00)'},
-                {'account': G['tax_payable'], 'side': 'credit', 'amount': 2.00,
-                 'purpose': 'Sales Tax Payable (5% × $40.00)'},
-                {'account': G['cogs'], 'side': 'debit', 'amount': 24.00,
-                 'purpose': 'Cost of Goods Sold (4 × $6.00)'},
-                {'account': G['inventory'], 'side': 'credit', 'amount': 24.00,
+                {'account': G['ar'], 'side': 'debit', 'amount': float(b['total']),
+                 'purpose': f"Accounts Receivable (goods {m(b['goods'])} + shipping {m(b['shipping'])} + tax {m(b['tax'])} = {m(b['total'])})"},
+                {'account': G['revenue'], 'side': 'credit', 'amount': float(b['goods']),
+                 'purpose': f"Revenue (4 × {m(unit_price)})"},
+                {'account': G['shipping'], 'side': 'credit', 'amount': float(b['shipping']),
+                 'purpose': f"Shipping revenue ({ship_pct} × {m(b['goods'])}, {R['ship_via']})"},
+                {'account': G['tax_payable'], 'side': 'credit', 'amount': float(b['tax']),
+                 'purpose': f"Sales Tax Payable ({tax_pct} × {m(b['goods'])}, {R['tax_jurisdiction']})"},
+                {'account': G['cogs'], 'side': 'debit', 'amount': float(cogs),
+                 'purpose': f"Cost of Goods Sold (4 × {m(unit_cost)})"},
+                {'account': G['inventory'], 'side': 'credit', 'amount': float(cogs),
                  'purpose': 'Inventory reduction (4 units leave the shelf)'},
-                {'account': G['commission_exp'], 'side': 'debit', 'amount': 2.00,
-                 'purpose': 'Commission Expense (5% × $40.00 revenue)'},
-                {'account': G['commission_pay'], 'side': 'credit', 'amount': 2.00,
+                {'account': G['commission_exp'], 'side': 'debit', 'amount': float(commission),
+                 'purpose': f"Commission Expense ({_pct(COMMISSION_RATE)} × {m(b['goods'])} revenue)"},
+                {'account': G['commission_pay'], 'side': 'credit', 'amount': float(commission),
                  'purpose': 'Commission Payable (owed to rep)'},
             ],
             'explanation': (
                 'THIS is the financial event. Inventory leaves the shelf (on_hand 100→96). '
                 'Order backlog drops (on_so 9→5). GL records the sale:\n'
-                '• AR debit $42.00 (what customer owes: $40 + $2 tax)\n'
-                '• Revenue credit $40.00 (what we earned)\n'
-                '• Tax payable credit $2.00 (owed to government)\n'
-                '• COGS debit $24.00 (cost of what we sold)\n'
-                '• Inventory credit $24.00 (asset leaves the books)\n'
-                '• Commission expense $2.00 / payable $2.00 (owed to rep)'
+                f"• AR debit {m(b['total'])} (what the customer owes: goods + shipping + tax)\n"
+                f"• Revenue credit {m(b['goods'])} (what we earned on the goods)\n"
+                f"• Shipping revenue credit {m(b['shipping'])} ({ship_pct} of goods, carrier {R['ship_via']})\n"
+                f"• Tax payable credit {m(b['tax'])} ({tax_pct}, owed to the jurisdiction — 2 × shipping)\n"
+                f"• COGS debit {m(cogs)} (cost of what we sold)\n"
+                f"• Inventory credit {m(cogs)} (asset leaves the books)\n"
+                f"• Commission expense {m(commission)} / payable {m(commission)} (owed to rep)"
             ),
         },
         {
@@ -828,65 +897,65 @@ def get_flight_scenario() -> Dict[str, Any]:
         },
         {
             'step': 7,
-            'title': 'Partial Payment — $30.00 of $42.00 invoice',
-            'instruction': 'Record a $30.00 cash against the $42.00 invoice',
+            'title': f"Partial Payment — {m(paid)} of {m(b['total'])} invoice",
+            'instruction': f"Record a {m(paid)} cash against the {m(b['total'])} invoice",
             'action': 'partial_payment',
-            'amount': 30.00,
+            'amount': float(paid),
             'expected_gl': [
-                {'account': G['cash'], 'side': 'debit', 'amount': 30.00,
+                {'account': G['cash'], 'side': 'debit', 'amount': float(paid),
                  'purpose': 'Cash received'},
-                {'account': G['ar'], 'side': 'credit', 'amount': 30.00,
-                 'purpose': 'AR reduced (customer owes $12.00 remaining)'},
+                {'account': G['ar'], 'side': 'credit', 'amount': float(paid),
+                 'purpose': f"AR reduced (customer owes {m(after_pay)} remaining)"},
             ],
             'explanation': (
-                'Customer pays $30 of the $42 owed. No inventory change — this is purely financial.\n'
-                '• Cash debit $30.00 (money in the bank)\n'
-                '• AR credit $30.00 (reduce what they owe)\n'
-                'Remaining balance: $42.00 - $30.00 = $12.00'
+                f"Customer pays {m(paid)} of the {m(b['total'])} owed. No inventory change — this is purely financial.\n"
+                f"• Cash debit {m(paid)} (money in the bank)\n"
+                f"• AR credit {m(paid)} (reduce what they owe)\n"
+                f"Remaining balance: {m(b['total'])} - {m(paid)} = {m(after_pay)}"
             ),
         },
         {
             'step': 8,
-            'title': 'Discount — $10.00 off remaining balance',
-            'instruction': 'Apply a $10.00 discount to the remaining $12.00 balance',
+            'title': f"Discount — {m(discount)} off remaining balance",
+            'instruction': f"Apply a {m(discount)} discount to the remaining {m(after_pay)} balance (a user's decision, recorded as theirs)",
             'action': 'discount',
-            'amount': 10.00,
+            'amount': float(discount),
             'expected_gl': [
-                {'account': G['discount'], 'side': 'debit', 'amount': 10.00,
+                {'account': G['discount'], 'side': 'debit', 'amount': float(discount),
                  'purpose': 'Discount given (expense — reduces margin)'},
-                {'account': G['ar'], 'side': 'credit', 'amount': 10.00,
-                 'purpose': 'AR reduced (customer now owes $2.00)'},
+                {'account': G['ar'], 'side': 'credit', 'amount': float(discount),
+                 'purpose': f"AR reduced (customer now owes {m(write_off)})"},
             ],
             'explanation': (
-                'We give the customer a $10 discount. No inventory change.\n'
-                '• Discount expense debit $10.00 (cost of the discount)\n'
-                '• AR credit $10.00 (reduce what they owe)\n'
-                'Remaining balance: $12.00 - $10.00 = $2.00\n'
+                f"We give the customer a {m(discount)} discount. No inventory change.\n"
+                f"• Discount expense debit {m(discount)} (cost of the discount)\n"
+                f"• AR credit {m(discount)} (reduce what they owe)\n"
+                f"Remaining balance: {m(after_pay)} - {m(discount)} = {m(write_off)}\n"
                 'Note: This hits the Discount Expense account, NOT Revenue. '
-                'Revenue stays at $40 — the discount is tracked separately so you can see margin erosion.'
+                f"Revenue stays at {m(b['goods'])} — the discount is tracked separately so you can see margin erosion."
             ),
         },
         {
             'step': 9,
-            'title': 'Write-off — dismiss $2.00 remaining balance',
-            'instruction': 'Write off the remaining $2.00 as uncollectable',
+            'title': f"Write-off — dismiss {m(write_off)} remaining balance",
+            'instruction': f"Write off the remaining {m(write_off)} as uncollectable (a user's decision, recorded as theirs)",
             'action': 'write_off',
-            'amount': 2.00,
+            'amount': float(write_off),
             'exit_point': {
                 'name': 'Invoice Settled',
-                'summary': 'The invoice is fully settled: $30 cash + $10 discount + $2 write-off = $42. You can stop here or continue to see returns, aging, and orphan cleanup.',
+                'summary': f"The invoice is fully settled: {m(paid)} cash + {m(discount)} discount + {m(write_off)} write-off = {m(b['total'])}. You can stop here or continue to see returns, aging, and orphan cleanup.",
             },
             'expected_gl': [
-                {'account': G['bad_debt'], 'side': 'debit', 'amount': 2.00,
+                {'account': G['bad_debt'], 'side': 'debit', 'amount': float(write_off),
                  'purpose': 'Bad Debt expense (cost of uncollectable)'},
-                {'account': G['ar'], 'side': 'credit', 'amount': 2.00,
+                {'account': G['ar'], 'side': 'credit', 'amount': float(write_off),
                  'purpose': 'AR zeroed out (invoice fully settled)'},
             ],
             'explanation': (
-                'The $2.00 remaining isn\'t worth chasing. Write it off.\n'
-                '• Bad Debt debit $2.00 (expense — money we\'ll never collect)\n'
-                '• AR credit $2.00 (balance now $0)\n'
-                'The invoice is now fully settled: $30 cash + $10 discount + $2 write-off = $42.'
+                f"The {m(write_off)} remaining isn't worth chasing. Write it off.\n"
+                f"• Bad Debt debit {m(write_off)} (expense — money we'll never collect)\n"
+                f"• AR credit {m(write_off)} (balance now $0)\n"
+                f"The invoice is now fully settled: {m(paid)} cash + {m(discount)} discount + {m(write_off)} write-off = {m(b['total'])}."
             ),
         },
         # ── Reverse Flow ─────────────────────────────────────────────
@@ -905,22 +974,22 @@ def get_flight_scenario() -> Dict[str, Any]:
                 {'purpose': 'on_hand', 'delta': '+1'},
             ],
             'expected_gl': [
-                {'account': G['revenue'], 'side': 'debit', 'amount': 10.00,
-                 'purpose': 'Revenue reversal (1 × $10.00)'},
-                {'account': G['tax_payable'], 'side': 'debit', 'amount': 0.50,
-                 'purpose': 'Sales tax reversal (5% × $10.00)'},
-                {'account': G['ar'], 'side': 'credit', 'amount': 10.50,
-                 'purpose': 'Credit memo — customer is owed $10.50'},
+                {'account': G['revenue'], 'side': 'debit', 'amount': float(ret_goods),
+                 'purpose': f"Revenue reversal (1 × {m(unit_price)})"},
+                {'account': G['tax_payable'], 'side': 'debit', 'amount': float(ret_tax),
+                 'purpose': f"Sales tax reversal ({tax_pct} × {m(ret_goods)})"},
+                {'account': G['ar'], 'side': 'credit', 'amount': float(ret_credit),
+                 'purpose': f"Credit memo — customer is owed {m(ret_credit)} (shipping is not refunded)"},
                 {'account': G['inventory'], 'side': 'debit', 'amount': 6.00,
                  'purpose': 'Inventory restored (1 × $6.00 — item back on shelf)'},
                 {'account': G['cogs'], 'side': 'credit', 'amount': 6.00,
                  'purpose': 'COGS reversal (cost of returned unit)'},
             ],
             'explanation': (
-                'Customer sends 1 unit back. Everything reverses:\n'
-                '• Revenue debit $10.00 (we un-earn the sale)\n'
-                '• Tax debit $0.50 (we un-collect the tax)\n'
-                '• AR credit $10.50 (we now owe the customer a credit)\n'
+                'Customer sends 1 unit back. The goods and their tax reverse; shipping already done does not:\n'
+                f"• Revenue debit {m(ret_goods)} (we un-earn the sale)\n"
+                f"• Tax debit {m(ret_tax)} (we un-collect the tax)\n"
+                f"• AR credit {m(ret_credit)} (we now owe the customer a credit)\n"
                 '• Inventory debit $6.00 (unit back on the shelf)\n'
                 '• COGS credit $6.00 (cost reversal)\n'
                 'On_hand goes from 107→108. The unit is physically back.'
@@ -958,24 +1027,24 @@ def get_flight_scenario() -> Dict[str, Any]:
         {
             'step': 12,
             'title': 'Refund customer',
-            'instruction': 'Issue a refund cash of $10.50 against the credit memo.',
+            'instruction': f"Issue a refund cash of {m(ret_credit)} against the credit memo.",
             'action': 'refund_cash',
-            'amount': 10.50,
+            'amount': float(ret_credit),
             'section': 'Reverse Flow',
             'exit_point': {
                 'name': 'Returns Complete',
                 'summary': 'Return processed, item scrapped, customer refunded. You can stop here or continue to see aging and orphan cleanup.',
             },
             'expected_gl': [
-                {'account': G['ar'], 'side': 'debit', 'amount': 10.50,
+                {'account': G['ar'], 'side': 'debit', 'amount': float(ret_credit),
                  'purpose': 'Clear credit memo balance'},
-                {'account': G['cash'], 'side': 'credit', 'amount': 10.50,
+                {'account': G['cash'], 'side': 'credit', 'amount': float(ret_credit),
                  'purpose': 'Cash outflow — refund to customer'},
             ],
             'explanation': (
                 'Pay the customer what we owe from the credit memo.\n'
-                '• AR debit $10.50 (clear the credit balance)\n'
-                '• Cash credit $10.50 (money leaves the bank)\n'
+                f"• AR debit {m(ret_credit)} (clear the credit balance)\n"
+                f"• Cash credit {m(ret_credit)} (money leaves the bank)\n"
                 'The return cycle is now complete: item returned, scrapped, customer refunded.'
             ),
         },
@@ -1053,41 +1122,49 @@ def get_flight_scenario() -> Dict[str, Any]:
         },
     ]
 
-    # Summary: what happened across the full lifecycle
+    # Summary: what happened across the full lifecycle — every number computed
+    revenue = b['goods'] - ret_goods
+    net_cogs = cogs - _r2(unit_cost)
+    gross_margin = revenue - net_cogs
+    scrap = _r2(unit_cost)
+    net_margin = gross_margin + b['shipping'] - commission - discount - write_off - scrap
+    cash_out = _r2(unit_cost * 11) + ret_credit
     invoice_summary = {
-        'invoice_total': 42.00,
+        'invoice_total': float(b['total']),
         'breakdown': [
-            {'source': 'Revenue', 'amount': 40.00},
-            {'source': 'Sales Tax', 'amount': 2.00},
+            {'source': 'Revenue', 'amount': float(b['goods'])},
+            {'source': 'Shipping', 'amount': float(b['shipping'])},
+            {'source': 'Sales Tax', 'amount': float(b['tax'])},
         ],
         'settlement': [
-            {'method': 'Cash received', 'amount': 30.00},
-            {'method': 'Discount given', 'amount': 10.00},
-            {'method': 'Written off', 'amount': 2.00},
+            {'method': 'Cash received', 'amount': float(paid)},
+            {'method': 'Discount given', 'amount': float(discount)},
+            {'method': 'Written off', 'amount': float(write_off)},
         ],
-        'settlement_total': 42.00,
+        'settlement_total': float(paid + discount + write_off),
         'margin_analysis': {
-            'revenue': 30.00,       # $40 original - $10 return reversal
-            'cogs': 18.00,          # $24 original - $6 return reversal
-            'gross_margin': 12.00,
-            'commission': 2.00,
-            'discount': 10.00,
-            'bad_debt': 2.00,
-            'scrap': 6.00,
-            'refund_cash': 10.50,
-            'net_margin': -8.50,
-            'margin_pct': -28.3,    # -$8.50 / $30 net revenue
+            'revenue': float(revenue),
+            'cogs': float(net_cogs),
+            'gross_margin': float(gross_margin),
+            'shipping_revenue': float(b['shipping']),
+            'commission': float(commission),
+            'discount': float(discount),
+            'bad_debt': float(write_off),
+            'scrap': float(scrap),
+            'refund_cash': float(ret_credit),
+            'net_margin': float(net_margin),
+            'margin_pct': float((net_margin / revenue * 100).quantize(Decimal('0.1'))) if revenue else 0.0,
             'note': (
-                'Started at 40% gross margin on 4 units ($16/$40). After return, scrap, '
-                'commission, discount, write-off, and refund: -28.3% net. The return + scrap '
-                'turned a thin profit into a loss. This is why Alice tracks erosion at every stage.'
+                f"Net margin = gross margin {m(gross_margin)} + shipping {m(b['shipping'])} − commission {m(commission)} "
+                f"− discount {m(discount)} − write-off {m(write_off)} − scrap {m(scrap)} = {m(net_margin)}. "
+                'The return + scrap turned a thin profit into a loss. This is why Alice tracks erosion at every stage.'
             ),
         },
         'cash_position': {
-            'cash_in': 30.00,       # customer cash
-            'cash_out': 76.50,      # vendor $66 + refund $10.50
-            'net_cash': -46.50,
-            'note': 'We collected $30 and paid out $76.50. Net cash is negative because we bought 11 units but only kept revenue on 3.',
+            'cash_in': float(paid),
+            'cash_out': float(cash_out),
+            'net_cash': float(paid - cash_out),
+            'note': f"We collected {m(paid)} and paid out {m(cash_out)} (vendor {m(_r2(unit_cost * 11))} + refund {m(ret_credit)}).",
         },
     }
 
@@ -1097,7 +1174,10 @@ def get_flight_scenario() -> Dict[str, Any]:
         'config': {
             'unit_price': 10.00,
             'unit_cost': 6.00,
-            'tax_rate': float(TAX_RATE),
+            'tax_jurisdiction': R['tax_jurisdiction'],
+            'tax_rate': float(R['tax_rate']),
+            'ship_via': R['ship_via'],
+            'shipping_rate': float(R['shipping_rate']),
             'commission_rate': float(COMMISSION_RATE),
             'starting_on_hand': 100,
         },
@@ -1112,13 +1192,14 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
     CashCreate, ApplyCash, and Ledger_PaySave:
 
       1. Create Order for 10 units at $10 = $100
-      2. Invoice 6 of the 10 = $63 (with 5% tax)
+      2. Invoice 6 of the 10 (tax jurisdiction test_8%, ship via test_4%)
       3. Accept cash of $80 (tendered $100 cash, change $20)
-      4. Apply $50 of the $80 to the $63 invoice
+      4. Apply $50 of the $80 to the invoice
       5. Journal the cash (post GL entries)
-      6. Check ledger — available $30, invoice balance $13
-      7. Apply remaining $13 to close the invoice
-      8. Remaining $17 available — unapplied on account
+      6. Check ledger — cash available $30, invoice balance = total − $50
+      7. Apply the rest to close the invoice
+      8. What remains of the $80 is unapplied, on account
+    Every invoice amount is computed from the jurisdiction and carrier records.
 
     Key fields demonstrated: amount, available, tendered, change.
     Key behaviors: available decrements on apply, ledger tracks available not amount.
@@ -1126,6 +1207,15 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
     G = _gl_defaults()
     unit_price = Decimal('10.00')
     unit_cost = Decimal('6.00')
+    R = sim_rates()
+    tax_pct, ship_pct = _pct(R['tax_rate']), _pct(R['shipping_rate'])
+    b = _money_breakdown(6, unit_price, R)
+    cogs = _r2(unit_cost * 6)
+    cash_amt, first = Decimal('80.00'), Decimal('50.00')
+    balance = b['total'] - first
+    left_after_first = cash_amt - first
+    left_after_close = left_after_first - balance
+    m = lambda x: f"${x:,.2f}"
 
     steps = [
         {
@@ -1144,30 +1234,36 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
         {
             'step': 2,
             'title': 'Invoice 6 of 10 — partial shipment',
-            'instruction': 'Create an Invoice from the Order for 6 of the 10 units. Invoice total = $63.00 (6 × $10 + 5% tax).',
+            'instruction': (f"Create an Invoice from the Order for 6 of the 10 units, tax jurisdiction {R['tax_jurisdiction']}, "
+                            f"ship via {R['ship_via']}. Invoice total = {m(b['total'])} "
+                            f"({m(b['goods'])} goods + {m(b['shipping'])} shipping ({ship_pct}) + {m(b['tax'])} tax ({tax_pct}))."),
             'action': 'create_invoice_from_order',
             'qty': 6,
             'expected_invoice': {
-                'amount': 60.00,
-                'tax': 3.00,
-                'total': 63.00,
-                'balance_due': 63.00,
+                'amount': float(b['goods']),
+                'shipping': float(b['shipping']),
+                'tax': float(b['tax']),
+                'total': float(b['total']),
+                'balance_due': float(b['total']),
             },
             'expected_gl': [
-                {'account': G['ar'], 'side': 'debit', 'amount': 63.00,
-                 'purpose': 'AR — customer owes $63'},
-                {'account': G['revenue'], 'side': 'credit', 'amount': 60.00,
-                 'purpose': 'Revenue — 6 × $10'},
-                {'account': G['tax_payable'], 'side': 'credit', 'amount': 3.00,
-                 'purpose': 'Sales Tax — 5% × $60'},
-                {'account': G['cogs'], 'side': 'debit', 'amount': 36.00,
-                 'purpose': 'COGS — 6 × $6'},
-                {'account': G['inventory'], 'side': 'credit', 'amount': 36.00,
+                {'account': G['ar'], 'side': 'debit', 'amount': float(b['total']),
+                 'purpose': f"AR — customer owes {m(b['total'])}"},
+                {'account': G['revenue'], 'side': 'credit', 'amount': float(b['goods']),
+                 'purpose': f"Revenue — 6 × {m(unit_price)}"},
+                {'account': G['shipping'], 'side': 'credit', 'amount': float(b['shipping']),
+                 'purpose': f"Shipping — {ship_pct} × {m(b['goods'])}"},
+                {'account': G['tax_payable'], 'side': 'credit', 'amount': float(b['tax']),
+                 'purpose': f"Sales Tax — {tax_pct} × {m(b['goods'])}"},
+                {'account': G['cogs'], 'side': 'debit', 'amount': float(cogs),
+                 'purpose': f"COGS — 6 × {m(unit_cost)}"},
+                {'account': G['inventory'], 'side': 'credit', 'amount': float(cogs),
                  'purpose': 'Inventory reduction'},
             ],
             'explanation': (
-                'THIS is the financial event. 6 units ship. Invoice created for $63.\n'
-                'GL records the sale. AR = $63. Revenue = $60. Tax = $3.\n'
+                f"THIS is the financial event. 6 units ship. Invoice created for {m(b['total'])}.\n"
+                f"GL records the sale. AR = {m(b['total'])}. Revenue = {m(b['goods'])}. "
+                f"Shipping = {m(b['shipping'])}. Tax = {m(b['tax'])} (2 × shipping).\n"
                 'The remaining 4 units stay on the order (on_so=4).'
             ),
         },
@@ -1215,10 +1311,10 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
             'step': 4,
             'title': 'Apply $50 to Invoice',
             'instruction': (
-                'Apply $50 of the $80 cash to the $63 invoice.\n\n'
+                f"Apply $50 of the $80 cash to the {m(b['total'])} invoice.\n\n"
                 'After this step:\n'
                 '• Cash.available drops from $80 → $30\n'
-                '• Invoice balance drops from $63 → $13\n'
+                f"• Invoice balance drops from {m(b['total'])} → {m(balance)}\n"
                 '• Ledger value_available updates to -$30 (tracks unapplied)\n'
                 '• Pending application record created (purpose cash_application)'
             ),
@@ -1231,18 +1327,18 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
                 'change': 20.00,
             },
             'expected_invoice': {
-                'total': 63.00,
-                'received': 50.00,
-                'balance_due': 13.00,
+                'total': float(b['total']),
+                'received': float(first),
+                'balance_due': float(balance),
                 'status': 'partially_paid',
             },
             'expected_gl': [],
             'explanation': (
-                'Partial application. We take $50 of the $80 and apply it to the $63 invoice.\n\n'
+                f"Partial application. We take $50 of the $80 and apply it to the {m(b['total'])} invoice.\n\n"
                 'What changes:\n'
                 '• Cash.available: $80 → $30 (decremented by apply amount)\n'
                 '• Invoice.totals.received: $0 → $50\n'
-                '• Invoice.totals.balance: $63 → $13\n'
+                f"• Invoice.totals.balance: {m(b['total'])} → {m(balance)}\n"
                 '• Invoice status: "sent" → "partially_paid"\n'
                 '• Ledger value_available: -$80 → -$30 (on next cash save)\n\n'
                 'What does NOT change:\n'
@@ -1284,21 +1380,22 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
             'step': 6,
             'title': 'Check the Ledger',
             'instruction': (
-                'Verify the ledger state for this customer:\n\n'
-                '• Invoice ledger: value_original = +$63, value_available = +$13\n'
-                '• Cash ledger: value_original = -$80, value_available = -$30\n'
-                '• Net ledger = $13 - $30 = -$17 (customer has $17 credit)\n\n'
-                'Org financial should show:\n'
-                '• balance_due = -$17 (net of invoice + cash ledgers)\n'
-                '• available_cash_entries = $30 (unapplied cash on account)'
+                'Verify the ledger state for this customer. Ledger rows echo their primary records:\n\n'
+                f"• Invoice ledger: value_original = +{m(b['total'])}, value_available = +{m(balance)} (echoes the invoice)\n"
+                '• Cash ledger: value_original = -$80, value_available = -$30 (echoes the cash)\n\n'
+                'Org financial.summary should show:\n'
+                f"• receivable = {m(balance)} (open invoice balances) = receivable_ledger\n"
+                '• unapplied_cash = $30 = unapplied_cash_ledger\n'
+                f"• net = {m(balance)} − $30 = {m(balance - left_after_first)}; in_step = true\n"
+                f"• customer balances.due = {m(balance)} (invoices only; unapplied cash is shown apart)"
             ),
             'action': 'check_ledger',
             'expected_ledger': {
-                'invoice_value_original': 63.00,
-                'invoice_value_available': 13.00,
+                'invoice_value_original': float(b['total']),
+                'invoice_value_available': float(balance),
                 'cash_value_original': -80.00,
                 'cash_value_available': -30.00,
-                'net': -17.00,
+                'net': float(balance - left_after_first),
             },
             'explanation': (
                 'The ledger is the single source of truth for AR aging.\n\n'
@@ -1314,29 +1411,29 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
         },
         {
             'step': 7,
-            'title': 'Apply remaining $13 — close the invoice',
+            'title': f"Apply remaining {m(balance)} — close the invoice",
             'instruction': (
-                'Apply $13 more of the cash to the invoice.\n\n'
+                f"Apply {m(balance)} more of the cash to the invoice.\n\n"
                 'After this step:\n'
-                '• Cash.available: $30 → $17\n'
-                '• Invoice balance: $13 → $0\n'
+                f"• Cash.available: $30 → {m(left_after_close)}\n"
+                f"• Invoice balance: {m(balance)} → $0\n"
                 '• Invoice status: "partially_paid" → "paid"\n'
-                '• $17 remains unapplied on account'
+                f"• {m(left_after_close)} remains unapplied on account"
             ),
             'action': 'apply_cash_to_invoice',
-            'amount': 13.00,
+            'amount': float(balance),
             'expected_cash': {
                 'amount': 80.00,
-                'available': 17.00,
+                'available': float(left_after_close),
             },
             'expected_invoice': {
-                'total': 63.00,
-                'received': 63.00,
+                'total': float(b['total']),
+                'received': float(b['total']),
                 'balance_due': 0.00,
                 'status': 'paid',
             },
             'explanation': (
-                'Invoice is fully paid. The $17 remaining on the cash is unapplied.\n\n'
+                f"Invoice is fully paid. The {m(left_after_close)} remaining on the cash is unapplied.\n\n"
                 'This is common in commerce: customer overpays, or pays a round number. '
                 'The excess stays on account as available_cash_entries. It can be:\n'
                 '• Applied to the next invoice\n'
@@ -1354,8 +1451,8 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
             'exit_point': {
                 'name': 'Cash Lifecycle Complete',
                 'summary': (
-                    'Order $100 → Invoice $63 (partial) → Cash $80 (tendered $100, change $20) '
-                    '→ Apply $50 → Journal → Apply $13 → Invoice paid, $17 on account.'
+                    f"Order $100 → Invoice {m(b['total'])} (partial) → Cash $80 (tendered $100, change $20) "
+                    f"→ Apply $50 → Journal → Apply {m(balance)} → Invoice paid, {m(left_after_close)} on account."
                 ),
             },
             'explanation': (
@@ -1363,7 +1460,7 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
                 '| Field     | Created | After apply $50 | After apply $13 |\n'
                 '|-----------|---------|-----------------|------------------|\n'
                 '| amount    | $80     | $80             | $80              |\n'
-                '| available | $80     | $30             | $17              |\n'
+                f"| available | $80     | $30             | {m(left_after_close):<16} |\n"
                 '| tendered  | $100    | $100            | $100             |\n'
                 '| change    | $20     | $20             | $20              |\n\n'
                 'amount and tendered are immutable (what happened). '
@@ -1380,7 +1477,10 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
         'config': {
             'unit_price': 10.00,
             'unit_cost': 6.00,
-            'tax_rate': float(TAX_RATE),
+            'tax_jurisdiction': R['tax_jurisdiction'],
+            'tax_rate': float(R['tax_rate']),
+            'ship_via': R['ship_via'],
+            'shipping_rate': float(R['shipping_rate']),
             'starting_on_hand': 100,
         },
         'gl_accounts': G,
@@ -1479,8 +1579,11 @@ def _get_invoice_lines(item_id: int, item_dict: dict) -> list:
             unit_price = Decimal(str(price.get('unit', price.get('base', 0)) or 0))
             extended = unit_price * active_qty
 
-        tax_amount = (extended * TAX_RATE).quantize(Decimal('0.01'))
-        ar_total = extended + tax_amount
+        line_totals = il.totals or {}
+        tax_amount = Decimal(str(line_totals.get('tax', 0) or 0))          # the line's own tax
+        shipping_amount = Decimal(str(line_totals.get('shipping', 0) or 0))
+        ar_total = Decimal(str(line_totals.get('total', 0) or 0)) or (extended + tax_amount + shipping_amount)
+        rate_pct = _pct(Decimal(str(line_totals.get('tax_rate', 0) or 0)))
         cogs_amount = unit_cost * active_qty
         commission_amount = (extended * COMMISSION_RATE).quantize(Decimal('0.01'))
 
@@ -1488,12 +1591,15 @@ def _get_invoice_lines(item_id: int, item_dict: dict) -> list:
         if extended > 0:
             entries = [
                 {'account': G['ar'], 'side': 'debit',
-                 'amount': float(ar_total), 'purpose': f'AR ({active_qty} × price + {float(TAX_RATE)*100}% tax)'},
+                 'amount': float(ar_total), 'purpose': f'AR ({active_qty} × price + shipping + {rate_pct} tax)'},
                 {'account': gl['revenue'], 'side': 'credit',
                  'amount': float(extended), 'purpose': f'Revenue ({active_qty} × unit price)'},
                 {'account': G['tax_payable'], 'side': 'credit',
-                 'amount': float(tax_amount), 'purpose': f'Sales Tax ({float(TAX_RATE)*100}% × ${float(extended)})'},
+                 'amount': float(tax_amount), 'purpose': f'Sales Tax ({rate_pct} × ${float(extended)})'},
             ]
+            if shipping_amount > 0:
+                entries.append({'account': G['shipping'], 'side': 'credit',
+                                'amount': float(shipping_amount), 'purpose': 'Shipping revenue'})
             if cogs_amount > 0:
                 entries.extend([
                     {'account': gl['cogs'], 'side': 'debit',

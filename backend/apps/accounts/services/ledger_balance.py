@@ -74,7 +74,8 @@ AGING_PERIODS = {
 }
 
 
-def calculate_aging_buckets(org_id: str, as_of_date: Optional[date] = None) -> Dict[str, Decimal]:
+def calculate_aging_buckets(org_id: str, as_of_date: Optional[date] = None,
+                            model_name: Optional[str] = None) -> Dict[str, Decimal]:
     """
     Calculate aging buckets for an org based on ledger records.
     
@@ -125,6 +126,7 @@ def calculate_aging_buckets(org_id: str, as_of_date: Optional[date] = None) -> D
     ledgers = Ledger.objects.filter(
         value_available__isnull=False,
         org_id=org_id,
+        **({'model_name': model_name} if model_name else {}),
     ).exclude(
         value_available=0
     ).values('dt_due', 'value_available')
@@ -183,6 +185,80 @@ def calculate_aging_buckets(org_id: str, as_of_date: Optional[date] = None) -> D
     return buckets
 
 
+def _sale_dt_ms(doc) -> int:
+    """When a sale (or purchase) happened: dt_approved if set, else dt_created (UTC epoch ms)."""
+    return int(getattr(doc, 'dt_approved', 0) or 0) or int(getattr(doc, 'dt_created', 0) or 0)
+
+
+def compute_period_totals(docs, keys=('amount', 'margin')):
+    """Σ totals[key] by period — month-to-date, year-to-date, last calendar year,
+    lifetime — from the source documents. Periods are calendar, in UTC."""
+    from datetime import timezone as _tz
+    now = datetime.now(_tz.utc)
+    month0 = int(datetime(now.year, now.month, 1, tzinfo=_tz.utc).timestamp() * 1000)
+    year0 = int(datetime(now.year, 1, 1, tzinfo=_tz.utc).timestamp() * 1000)
+    last0 = int(datetime(now.year - 1, 1, 1, tzinfo=_tz.utc).timestamp() * 1000)
+    out = {k: {'mtd': Decimal('0'), 'ytd': Decimal('0'), 'last_year': Decimal('0'), 'lifetime': Decimal('0')} for k in keys}
+    last = None
+    for doc in docs:
+        t = doc.totals or {}
+        dt = _sale_dt_ms(doc)
+        for k in keys:
+            v = Decimal(str(t.get(k) or 0))
+            out[k]['lifetime'] += v
+            if dt >= year0:
+                out[k]['ytd'] += v
+                if dt >= month0:
+                    out[k]['mtd'] += v
+            elif dt >= last0:
+                out[k]['last_year'] += v
+        if last is None or dt > last[0]:
+            last = (dt, Decimal(str(t.get('amount') or 0)))
+    return out, last
+
+
+def compute_org_summary(org_id):
+    """Source records beside their ledger echoes, for one customer (FinSummary)."""
+    from common.schemas.org_aspects import FinSummary
+    from datetime import timezone as _tz
+    Ledger = dj_apps.get_model('accounts', 'Ledger')
+    Invoice = dj_apps.get_model('transactions', 'Invoice')
+    Cash = dj_apps.get_model('transactions', 'Cash')
+    cent = Decimal('0.01')
+    mismatches = []
+
+    receivable = Decimal('0')
+    receivable_ledger = Decimal('0')
+    for inv in Invoice.objects.filter(customer_id=org_id, is_deleted=False).only('pk', 'ida', 'totals'):
+        balance = Decimal(str((inv.totals or {}).get('balance') or 0))
+        echo = Decimal(str(Ledger.objects.filter(invoice_id=inv.pk, model_name='invoice')
+                           .aggregate(s=models.Sum('value_available'))['s'] or 0))
+        receivable += balance
+        receivable_ledger += echo
+        if balance.quantize(cent) != echo.quantize(cent):
+            mismatches.append(f"invoice {inv.ida or inv.pk}: balance {balance.quantize(cent)}, ledger {echo.quantize(cent)}")
+
+    unapplied = Decimal('0')
+    unapplied_ledger = Decimal('0')
+    for cash in Cash.objects.filter(customer_id=org_id, is_deleted=False).only('pk', 'ida', 'available', 'amount'):
+        if not cash.amount or cash.amount < 0:
+            continue
+        available = Decimal(str(cash.available or 0))
+        echo = -Decimal(str(Ledger.objects.filter(model_name='cash', parent_id=cash.pk)
+                            .aggregate(s=models.Sum('value_available'))['s'] or 0))
+        unapplied += available
+        unapplied_ledger += echo
+        if available.quantize(cent) != echo.quantize(cent):
+            mismatches.append(f"cash {cash.ida or cash.pk}: available {available.quantize(cent)}, ledger {echo.quantize(cent)}")
+
+    return FinSummary(
+        receivable=float(receivable), receivable_ledger=float(receivable_ledger),
+        unapplied_cash=float(unapplied), unapplied_cash_ledger=float(unapplied_ledger),
+        net=float(receivable - unapplied), in_step=not mismatches, mismatches=mismatches[:50],
+        dt_computed=datetime.now(_tz.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+    )
+
+
 def update_org_balances(org: 'OrgBase', save: bool = True) -> Dict[str, Any]:
     """
     Update an org's financial.balances and financial.aging fields based on ledger records.
@@ -228,7 +304,9 @@ def update_org_balances(org: 'OrgBase', save: bool = True) -> Dict[str, Any]:
     
     # AUDIT: Recalculate from source ledger records (single source of truth)
     # This ensures displayed balances always match actual ledger state
-    buckets = calculate_aging_buckets(org_id)
+    org_type = getattr(org, 'org_type', 'customer')
+    # A customer's AR ages its invoices; unapplied cash is shown apart (deposits.unapplied).
+    buckets = calculate_aging_buckets(org_id, model_name='invoice' if org_type == 'customer' else None)
     
     # The schema is the only shape org.financial may take. Loading through it
     # drops keys it does not declare and fills the ones it does.
@@ -287,13 +365,48 @@ def update_org_balances(org: 'OrgBase', save: bool = True) -> Dict[str, Any]:
         cust.cash.days_avg_paid = round(sum(days) / len(days)) if days else 0
         cust.cash.invoices_settled = len(days)
 
+    if org_type == 'customer':
+        fin.summary = compute_org_summary(org_id)
+        fin.common.net_balance = fin.summary.net
+        from apps.orgs.services.org_metrics import compute_org_metrics
+        org.metrics = compute_org_metrics(org)
+        # The sales slots of financial are views of the metrics (one source).
+        p = org.metrics['periods']
+        cust = fin.customer
+        cust.sales.mtd, cust.sales.ytd, cust.sales.lifetime = p['mtd']['amount'], p['ytd']['amount'], p['lifetime']['amount']
+        cust.margin.mtd, cust.margin.ytd = p['mtd']['margin'], p['ytd']['margin']
+        cust.margin.pct = round(p['ytd']['margin'] / p['ytd']['amount'] * 100, 2) if p['ytd']['amount'] else 0.0
+        last = org.metrics['rhythm'].get('last_sale_dt')
+        cust.sales.dt_last_sale = last
+        # Sales and margin by period, from the invoices (never typed, never imported only).
+        Invoice = dj_apps.get_model('transactions', 'Invoice')
+        periods, last = compute_period_totals(
+            Invoice.objects.filter(customer_id=org_id, is_deleted=False).only('totals', 'dt_approved', 'dt_created'))
+        for key, target in (('amount', fin.customer.sales), ('margin', fin.customer.margin)):
+            for p in ('mtd', 'ytd', 'last_year'):
+                setattr(target, p, float(periods[key][p]))
+        fin.customer.sales.lifetime = float(periods['amount']['lifetime'])
+        ytd_sales = periods['amount']['ytd']
+        fin.customer.margin.pct = float((periods['margin']['ytd'] / ytd_sales * 100).quantize(Decimal('0.01'))) if ytd_sales else 0.0
+        if last:
+            fin.customer.sales.dt_last_sale, fin.customer.sales.last_sale_amount = last[0], float(last[1])
+    elif org_type == 'vendor':
+        Purchase = dj_apps.get_model('transactions', 'Purchase')
+        periods, last = compute_period_totals(
+            Purchase.objects.filter(vendor_id=org_id, is_deleted=False).only('totals', 'dt_approved', 'dt_created'),
+            keys=('amount',))
+        for p in ('mtd', 'ytd', 'last_year', 'lifetime'):
+            setattr(fin.vendor.purchases, p, float(periods['amount'][p]))
+        if last:
+            fin.vendor.purchases.dt_last_purchase, fin.vendor.purchases.last_purchase_amount = last[0], float(last[1])
+
     financial = fin.model_dump()
 
     # Set on org
     org.financial = financial
     
     if save:
-        org.save(update_fields=['financial'])
+        org.save(update_fields=['financial', 'metrics'] if org_type == 'customer' else ['financial'])
     
     return financial
 
@@ -412,11 +525,14 @@ def _stage_cash_gl_accounts(cash) -> None:
         metadata = {}
 
     if is_received:
+        from apps.accounts.services.journalize import ADJUSTMENT_ROLES, _role
+        method = method_name.lower()
+        debit = ({'purpose': method, 'account': _role(ADJUSTMENT_ROLES[method])} if method in ADJUSTMENT_ROLES
+                 else {'purpose': 'cash_receipt', 'account': defaults.get('cash_receipt', '')})
         metadata['gl_accounts'] = {
             'event': 'cash_received',
             'postings': [
-                {'side': 'debit', 'purpose': 'cash_receipt',
-                 'account': defaults.get('cash_receipt', ''), 'amount': float(abs_amount)},
+                {'side': 'debit', **debit, 'amount': float(abs_amount)},
                 {'side': 'credit', 'purpose': 'accounts_receivable',
                  'account': defaults.get('accounts_receivable', ''), 'amount': float(abs_amount)},
             ],
@@ -442,64 +558,25 @@ def _stage_cash_gl_accounts(cash) -> None:
 
 
 def post_staged_gl_entries(instance) -> int:
-    """Convert staged metadata.gl_accounts postings into actual GlJournal records.
+    """Post an invoice or cash to the GL — USER-INITIATED ("Post to GL").
 
-    USER-INITIATED ACTION — not called automatically on save. Invoices,
-    receipts, and cash_entries remain editable until a user explicitly journals
-    them. Call this when the user selects "Post to GL" or equivalent action.
-
-    Reads instance.metadata['gl_accounts']['postings'] and creates one
-    GlJournal per posting. Guards against double-posting by checking
-    source_id + source_model.
+    One GL engine (Bite 2 #8): this delegates to journalize_invoice / journalize_cash,
+    which post line revenue, tax, shipping, COGS and adjustments to their own accounts.
+    The staged metadata.gl_accounts is a preview only and is never posted.
 
     Returns the number of GlJournal records created.
     """
-    GlJournal = dj_apps.get_model('accounts', 'GlJournal')
-
-    metadata = getattr(instance, 'metadata', None)
-    if not isinstance(metadata, dict):
-        return 0
-    gl_data = metadata.get('gl_accounts')
-    if not isinstance(gl_data, dict):
-        return 0
-    postings = gl_data.get('postings')
-    if not isinstance(postings, list) or not postings:
-        return 0
-
-    source_id = instance.pk
-    source_model = instance._meta.model_name
-    event = gl_data.get('event', '')
-
-    # Guard against double-posting
-    if GlJournal.objects.filter(source_id=source_id, source_model=source_model).exists():
-        return 0
-
-    # Determine journal type from event
-    type_map = {
-        'invoice_created': 'sales',
-        'cash_received': 'general',
-    }
-    journal_type = type_map.get(event, 'general')
-
-    created = 0
-    for posting in postings:
-        if not isinstance(posting, dict):
-            continue
-        side = posting.get('side', '')
-        amount = float(posting.get('amount', 0) or 0)
-        if amount == 0:
-            continue
-        GlJournal.objects.create(
-            account=posting.get('account', ''),
-            debit=amount if side == 'debit' else None,
-            credit=amount if side == 'credit' else None,
-            source='automation',
-            type=journal_type,
-            source_id=source_id,
-            source_model=source_model,
-        )
-        created += 1
-    return created
+    from apps.accounts.services.journalize import journalize_cash, journalize_invoice
+    model = instance._meta.model_name
+    if model == 'invoice':
+        result = journalize_invoice(instance.pk)
+    elif model == 'cash':
+        result = journalize_cash(instance.pk)
+    else:
+        raise ValueError(f"post_gl_entries: no GL rules for {model}")
+    if result.get('status') == 'exception':
+        raise ValueError(result.get('error') or 'GL posting out of balance')
+    return int(result.get('created') or 0)
 
 
 def reverse_gl_entries(instance, reason: str = '') -> int:
@@ -523,17 +600,20 @@ def reverse_gl_entries(instance, reason: str = '') -> int:
     originals = GlJournal.objects.filter(
         source_id=source_id,
         source_model=source_model,
-    )
+    ).order_by('id')
     if not originals.exists():
         return 0
 
-    # Check for existing reversals — use a reversal source_model marker
+    # Reverse only what is still standing: a record can be posted, reversed,
+    # posted again and reversed again (Bite 2 #4).
     reversal_model = f'{source_model}_reversal'
-    if GlJournal.objects.filter(source_id=source_id, source_model=reversal_model).exists():
-        return 0  # already reversed
+    already = GlJournal.objects.filter(source_id=source_id, source_model=reversal_model).count()
+    standing = list(originals)[already:]
+    if not standing:
+        return 0  # everything posted is already reversed
 
     created = 0
-    for orig in originals:
+    for orig in standing:
         # Swap debit↔credit
         GlJournal.objects.create(
             account=orig.account,
