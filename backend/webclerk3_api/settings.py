@@ -408,16 +408,14 @@ EMAIL_TIMEOUT = 15  # seconds — a stalled SMTP server must not hang a request
 
 # Public inquiry (apps/core/views/inquiry_view.py). The only places an emailed inquiry link
 # may point, and the only other origins allowed to call /wcapi/_inquiry/*. A relative
-# form_url is on this server (webclerk.com). `assign` is the new Action's roster (first =
-# responsible), resolved to Contacts by exact email — the person who answers.
-INQUIRY_ANSWERER = [{'email': 'bill.james@jpods.com'}]
+# form_url is on this server (webclerk.com). These stay in code: they are the security
+# boundary. Who answers and what the form asks are data — each site's Report
+# (category='form', config.inquiry.site=<key>), edited in WebClerk.
 INQUIRY_SITES = {
-    'market-hub': {'name': 'WebClerk', 'form_url': '/tfm/inquiry.html', 'origins': [],
-                   'assign': INQUIRY_ANSWERER},
+    'market-hub': {'name': 'WebClerk', 'form_url': '/tfm/inquiry.html', 'origins': []},
     # jpods.com serves a fixed file list (.htaccess); the form page lives on the library site.
     'jpods': {'name': 'JPods', 'form_url': 'https://library.jpods.com/register.html',
-              'origins': ['https://jpods.com', 'https://www.jpods.com', 'https://library.jpods.com'],
-              'assign': INQUIRY_ANSWERER},
+              'origins': ['https://jpods.com', 'https://www.jpods.com', 'https://library.jpods.com']},
 }
 
 # Email Notification Settings

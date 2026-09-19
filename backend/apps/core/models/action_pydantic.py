@@ -140,9 +140,40 @@ class ActionLifecycle(BaseModel):
         extra = 'forbid'
 
 
+class InquiryAnswer(BaseModel):
+    """One of the site's questions (settings.INQUIRY_SITES[site].ask.questions), with the
+    wording as asked — the questions will change; the answer keeps its own question."""
+    q: str
+    a: str = ''
+
+    class Config:
+        extra = 'forbid'
+
+
+class InquiryAsk(BaseModel):
+    market_use: list[str] = []                # options for "how often do you use the market?"; set = required
+    questions: list[str] = []                 # free-text questions, answers optional
+
+    class Config:
+        extra = 'forbid'
+
+
+class InquiryForm(BaseModel):
+    """Report.config.inquiry for a public inquiry site (Report category='form',
+    model_name='action'). Who answers and what the form asks — data, edited in WebClerk.
+    Where the link points and who may call stay in settings.INQUIRY_SITES."""
+    site: str                                 # key in settings.INQUIRY_SITES
+    assign: list[dict] = []                   # roster for the new Action, e.g. [{"email": …}]; first responsible
+    ask: InquiryAsk = InquiryAsk()
+
+    class Config:
+        extra = 'forbid'
+
+
 class ActionInquiry(BaseModel):
-    """Who asked, from the public inquiry form (inquiry_view). Not a Contact: the email is
-    proven by the emailed link; nothing else the visitor typed is."""
+    """Who asked, from the public inquiry form (inquiry_view), exactly as typed. The email is
+    proven by the emailed link; nothing else the visitor typed is. contact_id is the Contact
+    with that email — created by the form when none existed."""
     name: str
     email: str
     phone: str = ''
@@ -152,6 +183,10 @@ class ActionInquiry(BaseModel):
     page: str = ''                            # page the visitor started from
     email_verified: bool = False
     token_id: str = ''                        # sha256 of the emailed token: one Action per link
+    contact_id: Optional[int] = None
+    contact_created: bool = False             # False = the email already had a Contact
+    market_use: str = ''                      # how often they use the market (site's options)
+    answers: list[InquiryAnswer] = []
 
     class Config:
         extra = 'forbid'
