@@ -7,6 +7,16 @@ import pytest
 from tests.conftest import InvoiceFactory
 
 
+def invoice_with_line(unit=500.0, qty=1):
+    """An invoice a user could have made: one line, no tax, no shipping."""
+    from apps.transactions.models import InvoiceLine
+    invoice = InvoiceFactory()
+    InvoiceLine.objects.create(invoice=invoice, quantity={'active': qty},
+                               price={'unit': unit, 'precision': 2}, cost={'unit': 0})
+    invoice.refresh_from_db()
+    return invoice
+
+
 @pytest.mark.django_db
 @pytest.mark.usefixtures("chart_of_accounts")
 class TestPostGLManageAction:
@@ -16,19 +26,7 @@ class TestPostGLManageAction:
         from apps.core.views.manage_view import _post_gl_entries
         from apps.accounts.models import GlJournal
 
-        invoice = InvoiceFactory()
-        invoice.metadata = invoice.metadata or {}
-        invoice.metadata['gl_accounts'] = {
-            'event': 'invoice_created',
-            'postings': [
-                {'side': 'debit', 'account': '1100-accounts_receivable', 'amount': 800.0},
-                {'side': 'credit', 'account': '4000-sales_revenue', 'amount': 800.0},
-            ],
-        }
-        invoice.__class__.objects.filter(pk=invoice.pk).update(
-            metadata=invoice.metadata, is_locked=False,
-        )
-        invoice.refresh_from_db()
+        invoice = invoice_with_line(500.0)
 
         result = _post_gl_entries({'model_name': 'invoice', 'id': invoice.pk})
 
@@ -54,18 +52,7 @@ class TestPostGLManageAction:
         """Second post attempt returns 0 entries (already posted)."""
         from apps.core.views.manage_view import _post_gl_entries
 
-        invoice = InvoiceFactory()
-        invoice.metadata = invoice.metadata or {}
-        invoice.metadata['gl_accounts'] = {
-            'event': 'invoice_created',
-            'postings': [
-                {'side': 'debit', 'account': '1100-accounts_receivable', 'amount': 100.0},
-                {'side': 'credit', 'account': '4000-sales_revenue', 'amount': 100.0},
-            ],
-        }
-        invoice.__class__.objects.filter(pk=invoice.pk).update(
-            metadata=invoice.metadata, is_locked=False,
-        )
+        invoice = invoice_with_line(100.0)
 
         result1 = _post_gl_entries({'model_name': 'invoice', 'id': invoice.pk})
         assert result1['posted'] == 2
@@ -95,27 +82,16 @@ class TestReverseGLManageAction:
     """Reverse GL entries — contra entries, unlock record."""
 
     def _journalize(self, invoice):
-        """Helper: stage + post GL entries + lock."""
+        """Post an invoice through the one GL engine (from its own lines)."""
         from apps.core.views.manage_view import _post_gl_entries
-        invoice.metadata = invoice.metadata or {}
-        invoice.metadata['gl_accounts'] = {
-            'event': 'invoice_created',
-            'postings': [
-                {'side': 'debit', 'account': '1100-accounts_receivable', 'amount': 600.0},
-                {'side': 'credit', 'account': '4000-sales_revenue', 'amount': 600.0},
-            ],
-        }
-        invoice.__class__.objects.filter(pk=invoice.pk).update(
-            metadata=invoice.metadata, is_locked=False,
-        )
-        _post_gl_entries({'model_name': 'invoice', 'id': invoice.pk})
+        return _post_gl_entries({'model_name': 'invoice', 'id': invoice.pk})
 
     def test_reversal_creates_contra_entries(self):
         """Reversal swaps debit↔credit, same amounts."""
         from apps.core.views.manage_view import _reverse_gl_entries
         from apps.accounts.models import GlJournal
 
-        invoice = InvoiceFactory()
+        invoice = invoice_with_line(500.0)
         self._journalize(invoice)
 
         result = _reverse_gl_entries({'model_name': 'invoice', 'id': invoice.pk})
@@ -142,7 +118,7 @@ class TestReverseGLManageAction:
         """After reversal, record is unlocked for editing."""
         from apps.core.views.manage_view import _reverse_gl_entries
 
-        invoice = InvoiceFactory()
+        invoice = invoice_with_line(500.0)
         self._journalize(invoice)
 
         invoice.refresh_from_db()
@@ -157,7 +133,7 @@ class TestReverseGLManageAction:
         """Can't reverse the same entries twice."""
         from apps.core.views.manage_view import _reverse_gl_entries
 
-        invoice = InvoiceFactory()
+        invoice = invoice_with_line(500.0)
         self._journalize(invoice)
 
         result1 = _reverse_gl_entries({'model_name': 'invoice', 'id': invoice.pk})
@@ -182,7 +158,7 @@ class TestReverseGLManageAction:
         from apps.core.views.manage_view import _post_gl_entries, _reverse_gl_entries
         from apps.accounts.models import GlJournal
 
-        invoice = InvoiceFactory()
+        invoice = invoice_with_line(500.0)
         self._journalize(invoice)
         assert GlJournal.objects.filter(source_id=invoice.pk).count() == 2
 
@@ -193,23 +169,20 @@ class TestReverseGLManageAction:
         invoice.refresh_from_db()
         assert invoice.is_locked is False
 
-        # "Edit" — update the staged GL data with corrected amount
-        invoice.metadata['gl_accounts']['postings'][0]['amount'] = 700.0
-        invoice.metadata['gl_accounts']['postings'][1]['amount'] = 700.0
-        invoice.__class__.objects.filter(pk=invoice.pk).update(metadata=invoice.metadata)
+        # Edit the invoice as a user would: change the line's price
+        line = invoice.lines.first()
+        line.price = {**line.price, 'unit': 700.0}
+        line.save()
+        invoice.refresh_from_db()
+        assert invoice.totals['total'] == 700.0
 
-        # Re-post with new amounts
-        # Need to clear old originals so double-post guard doesn't block
-        # (originals still exist from first post)
-        GlJournal.objects.filter(source_id=invoice.pk, source_model='invoice').delete()
-
+        # Re-post. The originals stay as permanent record; the guard counts
+        # unreversed rows, so a reversed invoice can be corrected and posted again.
         result = _post_gl_entries({'model_name': 'invoice', 'id': invoice.pk})
         assert result['posted'] == 2
         assert result['locked'] is True
 
-        # Now have: 2 reversals + 2 new originals = 4 total
-        # (old originals were deleted for re-post)
-        new_originals = GlJournal.objects.filter(source_id=invoice.pk, source_model='invoice')
-        assert new_originals.count() == 2
-        debit_entry = new_originals.filter(debit__isnull=False).first()
-        assert debit_entry.debit == 700.0
+        # 2 originals + 2 reversals + 2 new originals
+        originals = GlJournal.objects.filter(source_id=invoice.pk, source_model='invoice')
+        assert originals.count() == 4
+        assert originals.filter(debit=700.0).count() == 1

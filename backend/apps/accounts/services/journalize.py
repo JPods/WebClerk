@@ -262,12 +262,16 @@ ADJUSTMENT_ROLES = {
 }
 
 
-def _cash_posted_and_not_reversed(GlJournal, cash_id: int) -> bool:
-    """A cash is journalized when it has more posted rows than reversal rows,
-    so a reversed cash can be posted again (Bite 2 #4)."""
-    posted = GlJournal.objects.filter(source_id=cash_id, source_model='cash').count()
-    reversed_ = GlJournal.objects.filter(source_id=cash_id, source_model='cash_reversal').count()
+def _posted_and_not_reversed(GlJournal, source_id: int, source_model: str) -> bool:
+    """A record is journalized when it has more posted rows than reversal rows, so a
+    reversed record can be corrected and posted again (Bite 2 #4)."""
+    posted = GlJournal.objects.filter(source_id=source_id, source_model=source_model).count()
+    reversed_ = GlJournal.objects.filter(source_id=source_id, source_model=f'{source_model}_reversal').count()
     return posted > reversed_
+
+
+def _cash_posted_and_not_reversed(GlJournal, cash_id: int) -> bool:
+    return _posted_and_not_reversed(GlJournal, cash_id, 'cash')
 
 
 def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
@@ -320,8 +324,8 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
                     'error': 'Deferred invoice — revenue not recognized until deferred date'}
         # Date has passed — allow journalization to proceed
 
-    # Guard against double-posting
-    if GlJournal.objects.filter(source_id=invoice_id, source_model='invoice').exists():
+    # Guard against double-posting (a reversed invoice may be corrected and posted again)
+    if _posted_and_not_reversed(GlJournal, invoice_id, 'invoice'):
         return {'created': 0, 'error': 'Already journalized'}
 
     lines = InvoiceLine.objects.filter(invoice_id=invoice_id)

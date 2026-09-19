@@ -15,26 +15,24 @@ from tests.conftest import (
 
 
 @pytest.mark.django_db
+def _invoice_with_line(unit):
+    from apps.transactions.models import InvoiceLine
+    invoice = InvoiceFactory()
+    InvoiceLine.objects.create(invoice=invoice, quantity={'active': 1},
+                               price={'unit': unit, 'precision': 2}, cost={'unit': 0})
+    invoice.refresh_from_db()
+    return invoice
+
 @pytest.mark.usefixtures("chart_of_accounts")
 class TestGLPosting:
-    """GL posting from staged metadata."""
+    """GL posting through the one engine, from the invoice's own lines."""
 
     def test_invoice_gl_entries_created(self):
-        """Invoice with staged GL data → GlJournal records on explicit post."""
+        """Invoice with lines → GlJournal records on explicit post."""
         from apps.accounts.services.ledger_balance import post_staged_gl_entries
         from apps.accounts.models import GlJournal
 
-        invoice = InvoiceFactory()
-        invoice.metadata = invoice.metadata or {}
-        invoice.metadata['gl_accounts'] = {
-            'event': 'invoice_created',
-            'postings': [
-                {'side': 'debit', 'purpose': 'accounts_receivable', 'account': '1100-accounts_receivable', 'amount': 1000.0},
-                {'side': 'credit', 'purpose': 'sales_revenue', 'account': '4000-sales_revenue', 'amount': 1000.0},
-            ],
-        }
-        invoice.__class__.objects.filter(pk=invoice.pk).update(metadata=invoice.metadata)
-        invoice.refresh_from_db()
+        invoice = _invoice_with_line(1000.0)
 
         count = post_staged_gl_entries(invoice)
         assert count == 2
@@ -52,17 +50,7 @@ class TestGLPosting:
         from apps.accounts.services.ledger_balance import post_staged_gl_entries
         from apps.accounts.models import GlJournal
 
-        invoice = InvoiceFactory()
-        invoice.metadata = invoice.metadata or {}
-        invoice.metadata['gl_accounts'] = {
-            'event': 'invoice_created',
-            'postings': [
-                {'side': 'debit', 'account': '1100-accounts_receivable', 'amount': 500.0},
-                {'side': 'credit', 'account': '4000-sales_revenue', 'amount': 500.0},
-            ],
-        }
-        invoice.__class__.objects.filter(pk=invoice.pk).update(metadata=invoice.metadata)
-        invoice.refresh_from_db()
+        invoice = _invoice_with_line(500.0)
 
         assert post_staged_gl_entries(invoice) == 2
         assert post_staged_gl_entries(invoice) == 0
