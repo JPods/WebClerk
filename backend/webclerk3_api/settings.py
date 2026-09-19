@@ -991,6 +991,13 @@ CASH_WEBHOOK_URL = config('CASH_WEBHOOK_URL', default='http://localhost:8000/api
 # Celery Configuration  (Redis broker)
 # =============================================================================
 CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')
+
+# Shared cache — counters that must hold across gunicorn workers and restarts (e.g. the
+# public inquiry limits). CACHE_URL=redis://127.0.0.1:6379/2 in .env; unset = per-process memory.
+_CACHE_URL = config('CACHE_URL', default='')
+CACHES = {'default': ({'BACKEND': 'django.core.cache.backends.redis.RedisCache', 'LOCATION': _CACHE_URL}
+                      if _CACHE_URL.startswith('redis') else
+                      {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'})}
 CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='redis://localhost:6379/0')
 
 CELERY_TASK_SERIALIZER = 'json'

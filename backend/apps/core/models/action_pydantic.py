@@ -175,6 +175,28 @@ class InquiryAsk(BaseModel):
         extra = 'forbid'
 
 
+# qq — tester exemption (Bill, 2026-09-18, one month): remove InquiryTester and
+# InquiryLimits.testing once testing is done; grep "qq" finds every piece.
+class InquiryTester(BaseModel):
+    """A mailbox exempt from the inquiry limits until a sunset."""
+    email: str                                # matched by mailbox: name+tag@x counts as name@x
+    until_utc: str                            # ISO-8601 Z; the exemption ends here
+
+    class Config:
+        extra = 'forbid'
+
+
+class InquiryLimits(BaseModel):
+    """Spam limits for a public inquiry form. Per visitor IP is also capped in code
+    (REST_FRAMEWORK throttle rates 'inquiry' / 'inquiry_form')."""
+    links_per_mailbox_per_day: int = 3        # link emails to one mailbox per UTC day
+    one_open_per_contact: bool = True         # a repeat submission is added to the open inquiry
+    testing: list[InquiryTester] = []         # qq — tester exemption, remove after testing
+
+    class Config:
+        extra = 'forbid'
+
+
 class InquiryForm(BaseModel):
     """Report.config.inquiry for a public inquiry site (Report category='form',
     model_name='action'). Who answers and what the form asks — data, edited in WebClerk.
@@ -182,6 +204,7 @@ class InquiryForm(BaseModel):
     site: str                                 # key in settings.INQUIRY_SITES
     assign: list[dict] = []                   # roster for the new Action, e.g. [{"email": …}]; first responsible
     ask: InquiryAsk = InquiryAsk()
+    limits: InquiryLimits = InquiryLimits()
 
     class Config:
         extra = 'forbid'
@@ -200,6 +223,8 @@ class ActionInquiry(BaseModel):
     page: str = ''                            # page the visitor started from
     email_verified: bool = False
     token_id: str = ''                        # sha256 of the emailed token: one Action per link
+    followup_token_ids: list[str] = []        # later links whose submissions were added to this inquiry
+    site: str = ''                            # settings.INQUIRY_SITES key
     contact_id: Optional[int] = None
     contact_created: bool = False             # False = the email already had a Contact
     market_use: str = ''                      # how often they use the market (site's options)

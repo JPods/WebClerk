@@ -16,6 +16,13 @@
    Report's `assign` roster; an unresolved answerer is logged as an error. The email comes
    from the token, so it is proven; each token creates at most one Action.
 
+Limits (Report config.inquiry.limits, InquiryLimits): per visitor IP (Cloudflare's
+CF-Connecting-IP) via the throttle rates; link emails per mailbox per UTC day (name+tag@x
+counts as name@x) — so nobody can flood someone else's inbox through us; one open inquiry
+per Contact per site — a repeat is added to it as a comment. Counters live in the shared
+cache (CACHE_URL). A tester mailbox listed in limits.testing skips every limit until its
+until_utc (qq — temporary; grep "qq" to remove). Every refusal is logged with its reason.
+
 Who answers and what the form asks: the site's Report (category='form',
 config.inquiry = common InquiryForm, apps/core/models/action_pydantic.py). No login.
 An existing Contact is never overwritten — only its blank name, company and phone are
@@ -28,9 +35,11 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from datetime import datetime, timezone
 
 from django.conf import settings
 from django.core import signing
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import escape
@@ -78,6 +87,41 @@ def _site_form(site_key: str) -> dict:
     except SchemaError as e:
         logger.error('[INQUIRY] Report %s config.inquiry is invalid: %s', report.pk, e)
         return {}
+
+
+def _mailbox(email: str) -> str:
+    """name+tag@domain → name@domain, lowercased: one mailbox, one count."""
+    local, _, domain = (email or '').strip().lower().partition('@')
+    return f"{local.split('+', 1)[0]}@{domain}"
+
+
+# qq — tester exemption (Bill, 2026-09-18, one month). Remove _tester and its callers after testing.
+def _tester(form: dict, email: str):
+    """The limits.testing entry for this mailbox while its window is open, else None."""
+    mailbox = _mailbox(email)
+    now = datetime.now(timezone.utc)
+    for entry in (form.get('limits') or {}).get('testing') or []:
+        if _mailbox(entry['email']) != mailbox:
+            continue
+        try:
+            until = datetime.fromisoformat(entry['until_utc'].replace('Z', '+00:00'))
+        except ValueError:
+            logger.error('[INQUIRY] tester %s has an unreadable until_utc %r', entry['email'], entry['until_utc'])
+            return None
+        if now < until:
+            return entry
+        logger.info('[INQUIRY] tester window for %s ended %s — limits apply', mailbox, entry['until_utc'])
+    return None
+
+
+def _client_ip(request) -> str:
+    """The visitor's address: Cloudflare's CF-Connecting-IP (set by Cloudflare on every request
+    through the tunnel), else the socket address. Never X-Forwarded-For — the sender writes that."""
+    return (request.META.get('HTTP_CF_CONNECTING_IP') or request.META.get('REMOTE_ADDR') or '').strip()
+
+
+def _refused(reason: str, request, detail: str = ''):
+    logger.warning('[INQUIRY] refused %s ip=%s %s', reason, _client_ip(request), detail)
 
 
 def _link_email_html(site_key: str, values: dict) -> str:
@@ -128,7 +172,9 @@ def _read_token(token: str) -> dict:
         raise ValueError('This link has expired — ask for a new one.')
     except signing.BadSignature:
         raise ValueError('This link is not valid — ask for a new one.')
-    if Action.objects.filter(config__inquiry__token_id=_token_id(token)).exists():
+    tid = _token_id(token)
+    if (Action.objects.filter(config__inquiry__token_id=tid).exists()
+            or Action.objects.filter(config__inquiry__followup_token_ids__contains=[tid]).exists()):
         raise ValueError('This link has already been used.')
     return payload
 
@@ -147,10 +193,29 @@ def _token_id(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+class InquiryThrottle(ScopedRateThrottle):
+    """Per visitor IP (CF-Connecting-IP), counted in the shared cache. A tester's own start
+    request is not counted."""
+
+    def get_ident(self, request):
+        return _client_ip(request)
+
+    def allow_request(self, request, view):
+        if request.path.endswith('/start/'):          # qq — tester exemption, remove after testing
+            data = getattr(request, 'data', {}) or {}
+            email, site = str(data.get('email') or ''), str(data.get('site') or '')
+            if email and site in settings.INQUIRY_SITES and _tester(_site_form(site), email):
+                return True
+        allowed = super().allow_request(request, view)
+        if not allowed:
+            _refused('ip_rate', request, request.path)
+        return allowed
+
+
 class _Public(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []          # anonymous: no session, so no CSRF coupling
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = [InquiryThrottle]
     throttle_scope = 'inquiry'
 
 
@@ -173,6 +238,19 @@ class InquiryStartView(_Public):
                 errors['email'] = 'That is not a valid email address.'
         if errors:
             return Response({'ok': False, 'errors': errors}, status=400)
+
+        # Link emails per mailbox per UTC day — nobody floods someone else's inbox through us.
+        form = _site_form(fields['site'])
+        limit = ((form.get('limits') or {}).get('links_per_mailbox_per_day')) or 3
+        if not _tester(form, fields['email']):        # qq — tester exemption, remove after testing
+            day = datetime.now(timezone.utc).strftime('%Y%m%d')
+            key = 'inq:links:' + hashlib.sha256(f"{_mailbox(fields['email'])}:{day}".encode()).hexdigest()
+            cache.add(key, 0, timeout=26 * 3600)
+            if cache.incr(key) > limit:
+                _refused('mailbox_daily', request, f"limit={limit}")
+                return Response({'ok': False, 'errors': {'email': (
+                    f'We have already sent {limit} links to this address today — '
+                    'please use one of those, or try again tomorrow.')}}, status=429)
 
         token = signing.dumps(fields, salt=SALT)
         link = request.build_absolute_uri(f"{site['form_url']}?t={token}")
@@ -242,7 +320,7 @@ class InquiryView(_Public):
             'name': fields['name'], 'email': payload['email'], 'phone': fields['phone'],
             'company': fields['company'], 'role': fields['role'] or payload.get('role', ''),
             'topic': payload.get('topic', ''), 'page': payload.get('page', ''),
-            'email_verified': True, 'token_id': _token_id(token),
+            'email_verified': True, 'token_id': _token_id(token), 'site': payload.get('site', ''),
             'market_use': fields['market_use'],
             'answers': [{'q': q, 'a': a} for q, a in zip(questions, answers)],
         }}
@@ -255,6 +333,16 @@ class InquiryView(_Public):
         with transaction.atomic():
             contact, created = _contact_for(payload['email'], fields)
             config['inquiry'].update(contact_id=contact.pk, contact_created=created)
+            # One open inquiry per Contact per site: a repeat is added to it, not a new Action.
+            one_open = (form.get('limits') or {}).get('one_open_per_contact', True)
+            if one_open and not _tester(form, payload['email']):   # qq — tester exemption, remove after testing
+                existing = (Action.objects.select_for_update()
+                            .filter(action_type='inquiry', status='open',
+                                    config__inquiry__contact_id=contact.pk,
+                                    config__inquiry__site=payload.get('site', ''))
+                            .order_by('-pk').first())
+                if existing is not None:
+                    return self._add_followup(request, existing, config['inquiry'], token, fields['message'])
             classes['config'].model_validate(config)
             action = Action.objects.create(
                 status='open',
@@ -267,8 +355,6 @@ class InquiryView(_Public):
                 config=config,
                 metadata=metadata,
             )
-            action.ida = f'INQ-{action.pk}'
-            action.save(update_fields=['ida'])
         logger.info('[INQUIRY] action %s from %s (contact %s%s)', action.ida, payload['email'],
                     contact.pk, ', new' if created else '')
         if not (action.assigned_to and action.assigned_to[0].get('id')):
@@ -276,3 +362,30 @@ class InquiryView(_Public):
             logger.error('[INQUIRY] %s has no responsible contact — the site %r form Report assign %r '
                          'resolved to no Contact', action.ida, payload.get('site'), form.get('assign'))
         return Response({'ok': True, 'reference': action.ida})
+
+    def _add_followup(self, request, action, inquiry: dict, token: str, message: str):
+        """Add a repeat submission to the open inquiry as a comment (foreign channel) and spend
+        the link. Refused when the comment channel is full."""
+        from common.schemas.envelopes import COMMENT_CHANNEL_MAX_COUNT, COMMENT_TEXT_MAX_LEN
+        parts = [f"Again from {inquiry['email']}: {inquiry['name']}, {inquiry['company']} — {message}"]
+        if inquiry.get('market_use'):
+            parts.append(f"uses the market {inquiry['market_use']}")
+        parts += [f"{a['q']} {a['a']}" for a in inquiry.get('answers') or [] if a.get('a')]
+        text = ' | '.join(parts)
+        comments = action.comments or {}
+        general = comments.setdefault('general', {})
+        foreign = general.setdefault('foreign', [])
+        if len(foreign) >= COMMENT_CHANNEL_MAX_COUNT:
+            _refused('followups_full', request, action.ida)
+            return Response({'ok': False, 'errors': {'message': (
+                f'We already have your inquiry ({action.ida}) and several additions — '
+                'a person will answer by email.')}}, status=429)
+        foreign.append({'ts': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        'by': inquiry['email'], 'source': 'web inquiry',
+                        'text': text[:COMMENT_TEXT_MAX_LEN]})
+        cfg = action.config or {}
+        cfg.setdefault('inquiry', {}).setdefault('followup_token_ids', []).append(_token_id(token))
+        action.comments, action.config = comments, cfg
+        action.save(update_fields=['comments', 'config'])
+        logger.info('[INQUIRY] follow-up added to %s from %s', action.ida, inquiry['email'])
+        return Response({'ok': True, 'reference': action.ida, 'followup': True})
