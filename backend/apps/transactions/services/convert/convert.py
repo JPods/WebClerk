@@ -51,6 +51,8 @@ _HEADER_COPY_FIELDS_SELL = (
     "addresses", "emails", "phones",
     "price_level", "terms", "terms_fk_id",
     "is_commission", "conditions_id", "conditions_description",
+    # Tax jurisdiction and rate: the same sale is taxed the same way at every step.
+    "finance",
     "config", "source",
 )
 
@@ -63,7 +65,7 @@ _HEADER_COPY_FIELDS_BUY = (
 
 # Fields copied from source line to target line (sell-side)
 _SELL_LINE_COPY_FIELDS = (
-    "item", "item_fk_id", "price", "cost", "commission",
+    "line_type", "item", "item_fk_id", "price", "cost", "commission",
     "tax", "physical", "price_level", "status",
 )
 
@@ -481,6 +483,8 @@ def _do_convert(
 
         lines_for_review.append({
             "line_number": getattr(src_line, "line_number", 0) or 0,
+            # A discount line stays a discount line; as a product it adds instead of subtracts.
+            "line_type": getattr(src_line, "line_type", None) or "product",
             "item": item_data,
             "quantity": target_qty,
             "price": getattr(src_line, "price", None) or {},

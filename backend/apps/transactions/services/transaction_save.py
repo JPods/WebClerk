@@ -494,77 +494,54 @@ def verify_line_calculations(line_data: Dict[str, Any], line_id: Optional[int] =
             )
 
 
-def calculate_header_totals(lines: List[Dict[str, Any]], header_data: Dict[str, Any]) -> Dict[str, Decimal]:
-    """Calculate header totals from lines — PRE-SAVE VERIFICATION ONLY.
+def calculate_header_totals(
+    lines: List[Dict[str, Any]],
+    header_data: Dict[str, Any],
+    model_key: str = 'quote',
+) -> Dict[str, Decimal]:
+    """Header totals for an unsaved payload — PRE-SAVE VERIFICATION ONLY.
 
-    Used by verify_header_calculations() to compare R25's frontend math
-    against WC3's backend math before committing. Never use for post-save
-    authoritative totals — read from the JSON envelope after the real
-    totals engine (services/totals.py) runs via post_save signal.
-
-    Returns:
-        Dict with calculated header totals
+    Runs the one totals engine (``totals_compute.compute_totals``) on the
+    payload, so the verifier and the saved totals cannot disagree about the
+    arithmetic. Deleted lines are left out, as they will not be saved.
     """
-    subtotal = Decimal("0")
-    cost_total = Decimal("0")
-    
-    for line in lines:
-        item = line.get('item', {}) or {}
-        if item.get('is_deleted'):
-            continue
-        
-        price = line.get('price', {}) or {}
-        cost = line.get('cost', {}) or {}
-        
-        subtotal += _d(price.get('extended', 0))
-        cost_total += _d(cost.get('extended', 0))
-    
-    totals = header_data.get('totals', {}) or {}
-    finance = header_data.get('finance', {}) or {}
-    
-    discount = _d(totals.get('discount', 0))
-    taxable = subtotal - discount
-    
-    tax_rate = _d(finance.get('sales_tax_rate', 0))
-    tax = taxable * (tax_rate / Decimal("100"))
-    
-    shipping = _d(totals.get('shipping', 0))
-    other = _d(totals.get('other', 0))
-    
-    total = taxable + tax + shipping + other
-    
-    margin = subtotal - cost_total
-    margin_pc = (margin / subtotal * Decimal("100")) if subtotal > 0 else Decimal("0")
-    
-    received = _d(totals.get('received', 0))
-    balance = total - received
-    
-    return {
-        'subtotal': subtotal,
-        'discount': discount,
-        'taxable': taxable,
-        'tax': tax,
-        'shipping': shipping,
-        'other': other,
-        'total': total,
-        'cost': cost_total,
-        'margin': margin,
-        'margin_pc': margin_pc,
-        'received': received,
-        'balance': balance,
-    }
+    from types import SimpleNamespace
+    from apps.transactions.services.pricing.totals_compute import compute_totals
+
+    header = SimpleNamespace(
+        finance=header_data.get('finance') or {},
+        tax=header_data.get('tax') or {},
+        cost=header_data.get('cost') or {},
+        ship_via=header_data.get('ship_via') or '',
+        totals=header_data.get('totals') or {},
+    )
+    live_lines = [
+        SimpleNamespace(
+            pk=line.get('id'),
+            line_type=line.get('line_type') or 'product',
+            quantity=line.get('quantity') or {},
+            price=line.get('price') or {},
+            cost=line.get('cost') or {},
+            tax=line.get('tax') or {},
+        )
+        for line in lines
+        if not (line.get('item') or {}).get('is_deleted')
+    ]
+    totals = compute_totals(header, live_lines, model_key)['totals']
+    return {k: _d(v) for k, v in totals.items() if k != 'cash_state'}
 
 
 def verify_header_calculations(
-    header_data: Dict[str, Any], 
-    lines: List[Dict[str, Any]]
+    header_data: Dict[str, Any],
+    lines: List[Dict[str, Any]],
+    model_key: str = 'quote',
 ) -> None:
     """Verify R25's header calculations match WC3 recalculation.
     
     Raises:
         CalculationMismatchError: If calculations don't match within tolerance
     """
-    calculated = calculate_header_totals(lines, header_data)
+    calculated = calculate_header_totals(lines, header_data, model_key)
     
     totals = header_data.get('totals', {}) or {}
     
@@ -654,7 +631,7 @@ def save_transaction_with_lines(
         # _calculate_extended_price(). No pre-computation needed here.
 
         if verify_calculations:
-            verify_header_calculations(header_data, lines_data)
+            verify_header_calculations(header_data, lines_data, model_key)
 
         # Save header
         header_clean = filter_input_fields(HeaderModel, header_data)

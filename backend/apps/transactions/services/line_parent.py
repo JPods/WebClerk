@@ -17,6 +17,7 @@ refs.source only and never touches a source line's quantity or status.
 from __future__ import annotations
 
 import logging
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Dict, Optional, Tuple
 
 from django.apps import apps
@@ -180,3 +181,55 @@ def parent_quantities(child: Any) -> Optional[Dict[str, float]]:
         'parent_active': float(q.get('active', 0) or 0),
         'parent_remaining': float(q.get('remaining', 0) or 0),
     }
+
+
+def prorate_flat_discount(child: Any) -> None:
+    """A new child line takes its share of the parent line's flat discount.
+
+    A flat discount (discount_amount with no discount_percent) belongs to the
+    parent line's whole quantity. Conversion copies the price envelope as is,
+    so a partial child would carry the full amount, and every split would
+    carry it again. Here, at creation only, the child gets:
+
+        share = flat × child.active / parent.active      (rounded)
+        the last child (it takes all that remains) gets flat − Σ earlier shares
+
+    so the children's discounts always add up to the parent's. A child whose
+    discount no longer equals the parent's (the user typed one) is left alone.
+    """
+    spec = PARENT_OF.get(child._meta.model_name)
+    if spec is None or not child.parent_line_id:
+        return
+    cprice = child.price if isinstance(getattr(child, 'price', None), dict) else None
+    if not cprice or cprice.get('discount_percent'):
+        return
+    parent = _model(spec[0]).objects.filter(pk=child.parent_line_id).only('price', 'quantity').first()
+    if parent is None:
+        return
+    pprice = parent.price if isinstance(parent.price, dict) else {}
+    if pprice.get('discount_percent'):
+        return
+    precision = int(pprice.get('precision', 2) or 2)
+    step = Decimal(1).scaleb(-precision)
+    flat = Decimal(str(pprice.get('discount_amount') or 0)).quantize(step)
+    if flat <= 0 or Decimal(str(cprice.get('discount_amount') or 0)).quantize(step) != flat:
+        return
+    parent_active = Decimal(str((parent.quantity or {}).get('active') or 0))
+    child_active = Decimal(str((child.quantity or {}).get('active') or 0))
+    if parent_active <= 0 or child_active >= parent_active:
+        return
+
+    carried = Decimal(0)
+    converted = Decimal(0)
+    Child = _model(CHILD_OF[spec[0].lower()])
+    for sib in Child.objects.filter(parent_line_id=parent.pk).only('price', 'quantity'):
+        carried += Decimal(str((sib.price or {}).get('discount_amount') or 0))
+        converted += Decimal(str((sib.quantity or {}).get('active') or 0))
+    left = max(flat - carried, Decimal(0))
+
+    if child_active >= parent_active - converted:
+        share = left
+    else:
+        share = (flat * child_active / parent_active).quantize(step, rounding=ROUND_HALF_UP)
+    cprice['discount_amount'] = float(min(share, left))
+    child.price = cprice

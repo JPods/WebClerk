@@ -618,6 +618,8 @@ class BaseLineCore(BaseModel):
 
         if self._state.adding and self.parent_line_id is None:
             self.parent_line_id = line_parent.parent_line_id_from_refs(self)
+        if self._state.adding:
+            line_parent.prorate_flat_discount(self)
 
         self._children_sum = line_parent.children_active_sum(self)
         self.ensure_json_defaults()

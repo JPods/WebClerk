@@ -99,12 +99,71 @@ def recalculate_totals(
     (purchase/workorder) transactions.
     """
     header, lines = _resolve_header_and_lines(transaction_id, model_name)
+    computed = compute_totals(header, lines, model_name)
+    totals = computed['totals']
+    tax_decisions = computed['tax_decisions']
+
+    # ── Tax audit trail ─────────────────────────────────────────────
+    if tax_decisions:
+        meta = getattr(header, 'metadata', None) or {}
+        if not isinstance(meta, dict):
+            meta = {}
+        meta['tax_decisions'] = {
+            'dt': datetime.now(timezone.utc).isoformat(),
+            'exempt': computed['is_exempt'],
+            'header_rate': computed['header_rate'],
+            'jurisdiction': computed['jurisdiction'],
+            'lines': tax_decisions,
+        }
+        header.metadata = meta
+
+    # ── Validate against Pydantic schema (PJPV Layer 1) ─────────
+    totals = _validate_totals(totals)
+
+    # ── Persist to header ──────────────────────────────────────────
+    header.totals = totals
+
+    update_fields = ['totals']
+    if tax_decisions:
+        update_fields.append('metadata')
+    header.save(update_fields=update_fields)
+
+    logger.info(
+        "Recalculated totals for %s #%s: subtotal=%.2f tax=%.2f total=%.2f margin=%.1f%%",
+        model_name, transaction_id, totals['subtotal'], totals['tax'],
+        totals['total'], totals['margin_pc'],
+    )
+
+    return {
+        'subtotal': totals['subtotal'],
+        'tax': totals['tax'],
+        'shipping': totals['shipping'],
+        'finance_charge': totals['finance_charge'],
+        'total': totals['total'],
+        'balance': totals['balance'],
+        'margin': totals['margin'],
+        'margin_pc': totals['margin_pc'],
+        'lines_recalculated': computed['lines_recalculated'],
+    }
+
+
+def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
+    """The one totals calculation. Pure: reads header and lines, writes nothing.
+
+    ``header`` and each line may be a model instance or any object with the
+    same attributes (the pre-save verifier passes unsaved payload data), so
+    saved totals and verified totals come from the same arithmetic.
+
+    Returns {'totals', 'tax_decisions', 'is_exempt', 'header_rate',
+    'jurisdiction', 'lines_recalculated'}. ``totals`` is not yet validated.
+    """
     is_sell = is_sell_side(model_name)
 
     # Accumulators
     subtotal = Decimal(0)       # sum of line extended sell prices
     cost_total = Decimal(0)     # sum of line extended costs
     tax_total = Decimal(0)      # sum of line taxes
+    taxable_total = Decimal(0)  # amount subject to tax: the base each tax was computed on
     shipping_total = Decimal(0) # sum of line shipping + handling
     finance_charge_total = Decimal(0)  # finance_charge lines: interest on past-due balances
     discount_total = Decimal(0) # sum of line discounts
@@ -202,6 +261,7 @@ def recalculate_totals(
                 line_taxable = price_extended - discount_amt if is_sell else cost_extended
                 line_tax = _d(line_taxable * line_tax_rate_override)
                 tax_total += line_tax
+                taxable_total += line_taxable
                 tax_decisions.append({
                     'line_id': getattr(line, 'pk', None),
                     'rate': float(line_tax_rate_override),
@@ -213,6 +273,7 @@ def recalculate_totals(
             elif line_tax_sales > 0:
                 # Line has explicit tax amount (user override or prior calc)
                 tax_total += line_tax_sales
+                taxable_total += price_extended - discount_amt if is_sell else cost_extended
                 tax_decisions.append({
                     'line_id': getattr(line, 'pk', None),
                     'rate': None,
@@ -228,6 +289,7 @@ def recalculate_totals(
                     line_taxable = price_extended - discount_amt if is_sell else cost_extended
                     line_tax = _d(line_taxable * header_tax_rate)
                     tax_total += line_tax
+                    taxable_total += line_taxable
                     tax_decisions.append({
                         'line_id': getattr(line, 'pk', None),
                         'rate': float(header_tax_rate),
@@ -271,6 +333,7 @@ def recalculate_totals(
         shipping_tax_rate = shipping_tax_rate / 100
     if not is_exempt and shipping_tax_rate > 0 and shipping_total > 0:
         tax_total += _d(shipping_total * shipping_tax_rate)
+        taxable_total += shipping_total
 
     # ── Grand total ────────────────────────────────────────────────
     total = subtotal + tax_total + shipping_total + finance_charge_total
@@ -290,7 +353,7 @@ def recalculate_totals(
     totals = {
         'subtotal': float(subtotal),
         'discount': float(discount_total),
-        'taxable': float(subtotal - discount_total),
+        'taxable': float(taxable_total),
         'tax': float(tax_total),
         'shipping': float(shipping_total),
         'finance_charge': float(finance_charge_total),
@@ -304,46 +367,12 @@ def recalculate_totals(
         'cash_state': state,
     }
 
-    # ── Tax audit trail ─────────────────────────────────────────────
-    if tax_decisions:
-        meta = getattr(header, 'metadata', None) or {}
-        if not isinstance(meta, dict):
-            meta = {}
-        meta['tax_decisions'] = {
-            'dt': datetime.now(timezone.utc).isoformat(),
-            'exempt': is_exempt,
-            'header_rate': float(header_tax_rate),
-            'jurisdiction': tax_jurisdiction_name,
-            'lines': tax_decisions,
-        }
-        header.metadata = meta
-
-    # ── Validate against Pydantic schema (PJPV Layer 1) ─────────
-    totals = _validate_totals(totals)
-
-    # ── Persist to header ──────────────────────────────────────────
-    header.totals = totals
-
-    update_fields = ['totals']
-    if tax_decisions:
-        update_fields.append('metadata')
-    header.save(update_fields=update_fields)
-
-    logger.info(
-        "Recalculated totals for %s #%s: subtotal=%.2f tax=%.2f total=%.2f margin=%.1f%%",
-        model_name, transaction_id, float(subtotal), float(tax_total),
-        float(total), margin_pc,
-    )
-
     return {
-        'subtotal': float(subtotal),
-        'tax': float(tax_total),
-        'shipping': float(shipping_total),
-        'finance_charge': float(finance_charge_total),
-        'total': float(total),
-        'balance': float(balance),
-        'margin': float(margin),
-        'margin_pc': margin_pc,
+        'totals': totals,
+        'tax_decisions': tax_decisions,
+        'is_exempt': is_exempt,
+        'header_rate': float(header_tax_rate),
+        'jurisdiction': tax_jurisdiction_name,
         'lines_recalculated': lines_recalculated,
     }
 

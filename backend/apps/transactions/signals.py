@@ -315,6 +315,40 @@ register_line_parent_signals(InvoiceLine)
 
 
 # =============================================================================
+# HEADER TAX CHANGE → RECOMPUTE
+#
+# Totals were recomputed only when a line was saved, so a tax rate set or
+# changed on the header had no effect until some line was saved again.
+# A change to finance (jurisdiction, rate) now recomputes the totals itself.
+# recalculate_totals saves with update_fields=['totals', …], which never
+# includes finance, so this cannot loop.
+# =============================================================================
+
+def register_header_finance_recompute(header_model):
+    @receiver(pre_save, sender=header_model)
+    def remember_finance(sender, instance, **kwargs):
+        update_fields = kwargs.get('update_fields')
+        if not instance.pk or (update_fields is not None and 'finance' not in update_fields):
+            instance._finance_before = None
+            return
+        row = sender.objects.filter(pk=instance.pk).values_list('finance', flat=True).first()
+        instance._finance_before = row or {}
+
+    @receiver(post_save, sender=header_model)
+    def recompute_on_finance_change(sender, instance, created, **kwargs):
+        before = getattr(instance, '_finance_before', None)
+        instance._finance_before = None
+        if created or before is None:
+            return
+        if (instance.finance or {}) != before:
+            instance.update_sell_cost_totals(persist=True)
+
+
+for _header_model in (Quote, Order, Invoice):
+    register_header_finance_recompute(_header_model)
+
+
+# =============================================================================
 # HEADER STATUS-CHANGE + NOTIFICATION SIGNALS
 # =============================================================================
 

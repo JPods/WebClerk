@@ -436,7 +436,8 @@ export async function saveTransactionWithLines(
   const headerStripKeys = [
     'uuid', 'customer_config', 'customer_company',
     'totals', 'actions', 'refs', 'metadata',
-    'sell', 'cost', 'finance', 'flow',
+    // finance stays: it carries the tax jurisdiction and rate the user chose.
+    'sell', 'cost', 'flow',
     'prefs', 'commission', 'health_rating',
     'dt_created', 'dt_modified',
     'is_archived', 'is_deleted', 'is_locked',
