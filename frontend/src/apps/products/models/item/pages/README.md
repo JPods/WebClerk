@@ -108,7 +108,7 @@ interface QuantityData {
   on_po?: number;      // On purchase orders
   on_qt?: number;       // On quotes
   on_wo?: number;      // On work orders
-  on_reciept?: number; // In receiving
+  on_rc?: number; // In receiving
   on_in?: number;      // In inspection
 }
 ```

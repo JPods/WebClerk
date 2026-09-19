@@ -83,7 +83,7 @@ class ItemQuantity(BaseModel):
     on_so: Optional[float] = None       # on sales order
     on_po: Optional[float] = None       # on purchase order
     on_qt: Optional[float] = None        # on quote (probability-weighted)
-    on_reciept: Optional[float] = None  # in receiving (spelling preserved for compat)
+    on_rc: Optional[float] = None       # on receipt — received, not yet on hand
     on_in: Optional[float] = None       # on invoice (shipped, pending GL)
     on_wo: Optional[float] = None       # on work order
     min: Optional[float] = None  # reorder point — trigger replenishment below this

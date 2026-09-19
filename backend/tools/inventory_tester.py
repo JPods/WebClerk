@@ -9,7 +9,7 @@ Tracks item.quantity fields:
   - on_so:      On Sales Order (pending orders)
   - on_po:      On Purchase Order (incoming)
   - on_qt:       On Quote (quotes)
-  - on_r:       On Receipt (informational - tracks qty received)
+  - on_rc:       On Receipt (informational - tracks qty received)
   - on_in:      On Invoice (informational - tracks qty invoiced)
   - on_wo:      On Work Order (manufacturing)
 
@@ -61,7 +61,7 @@ ITEM_ID = 240
 LOG_DIR = PROJECT_ROOT / 'logs' / 'inventory_tests'
 
 # All quantity keys we track from item.quantity JSON field
-QUANTITY_KEYS = ['on_hand', 'allocated', 'available', 'on_so', 'on_po', 'on_qt', 'on_r', 'on_in', 'on_wo']
+QUANTITY_KEYS = ['on_hand', 'allocated', 'available', 'on_so', 'on_po', 'on_qt', 'on_rc', 'on_in', 'on_wo']
 
 
 def get_daily_log_paths():
@@ -404,7 +404,7 @@ def print_status():
     print(f"  {'on_so':<15} {snapshot.get('qty_on_so', 0):>12.2f}  On Sales Orders")
     print(f"  {'on_po':<15} {snapshot.get('qty_on_po', 0):>12.2f}  On Purchase Orders")
     print(f"  {'on_qt':<15} {snapshot.get('qty_on_p', 0):>12.2f}  On Quotes")
-    print(f"  {'on_r':<15} {snapshot.get('qty_on_r', 0):>12.2f}  On Receipts (informational)")
+    print(f"  {'on_rc':<15} {snapshot.get('qty_on_r', 0):>12.2f}  On Receipts (informational)")
     print(f"  {'on_in':<15} {snapshot.get('qty_on_in', 0):>12.2f}  On Invoices (informational)")
     print(f"  {'on_wo':<15} {snapshot.get('qty_on_wo', 0):>12.2f}  On Work Orders")
     
@@ -732,9 +732,9 @@ def create_workorder(quantity: float):
 def create_receipt(quantity: float):
     """Create a Receipt with item 240 using LineItemService.
     
-    Note: Receipts increase on_hand and track the informational on_r field.
+    Note: Receipts increase on_hand and track the informational on_rc field.
     Unlike the receive_purchase flow (which receives against a PO),
-    this creates a standalone receipt for testing the on_r pending flow.
+    this creates a standalone receipt for testing the on_rc pending flow.
     """
     from apps.transactions.models.receipt import Receipt
     from apps.transactions.services.line_manage import LineItemService
@@ -757,7 +757,7 @@ def create_receipt(quantity: float):
             data={
                 'item_id': ITEM_ID,
                 'quantity': float(quantity),
-                'on_r': float(quantity),  # Informational - tracks received qty
+                'on_rc': float(quantity),  # Informational - tracks received qty
                 # Note: Receipts INCREASE on_hand (opposite of invoices)
                 'source_type': 'receipt',
                 'source_id': receipt.pk,
@@ -783,7 +783,7 @@ def create_receipt(quantity: float):
     print(f"  Quantity: {quantity}")
     if pending_info:
         print(f"  Pending Record Created: #{pending_info['id']} purpose={pending_info['purpose']}")
-    print(f"  NOTE: Run 'process_pending' to update item.quantity.on_r and on_hand")
+    print(f"  NOTE: Run 'process_pending' to update item.quantity.on_rc and on_hand")
     print_status()
     
     return receipt, pending

@@ -1225,7 +1225,7 @@ class LineItemService:
         # - Invoice from Order: adjust on_so (release/re-commit order inventory)
         # - Receipt from Purchase: adjust on_po
         # - Receipt from WorkOrder: adjust on_wo
-        # Note: on_hand is derived by the processor from on_in/on_r, but we
+        # Note: on_hand is derived by the processor from on_in/on_rc, but we
         # set it here for visibility in the pending data.
         # Each model owns one bucket. Qty change only adjusts own bucket.
         # Source bucket adjustment is handled by _adjust_source_line on save.

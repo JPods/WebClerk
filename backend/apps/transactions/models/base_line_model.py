@@ -354,11 +354,11 @@ PENDING_TYPE_BUCKET: Dict[str, str] = {
     'PO': 'on_po',   # purchase order — incoming
     'WO': 'on_wo',   # work order — reserved for production
     'IN': 'on_in',   # invoice — issued
-    'RC': 'on_r',    # receipt — received
+    'RC': 'on_rc',    # receipt — received
 }
 
 #: every bucket a pending record carries, so callers always emit a full envelope.
-QUANTITY_BUCKETS: tuple = ('on_so', 'on_po', 'on_wo', 'on_in', 'on_r', 'on_qt', 'on_hand')
+QUANTITY_BUCKETS: tuple = ('on_so', 'on_po', 'on_wo', 'on_in', 'on_rc', 'on_qt', 'on_hand')
 
 #: pending types that also move on_hand, and in which direction, on a line ADD.
 #: Quantity changes and deletes do not touch on_hand.

@@ -126,7 +126,7 @@ class Pending(CoreModel):
                 quantity = item.quantity or {}
 
                 # Apply deltas from the pending data
-                for field in ('on_so', 'on_po', 'on_wo', 'on_qt', 'on_in', 'on_r', 'on_hand'):
+                for field in ('on_so', 'on_po', 'on_wo', 'on_qt', 'on_in', 'on_rc', 'on_hand'):
                     delta = data.get(field, 0) or 0
                     if delta:
                         current = Decimal(str(quantity.get(field, 0) or 0))

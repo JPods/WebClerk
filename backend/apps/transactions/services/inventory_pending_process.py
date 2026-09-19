@@ -4,7 +4,7 @@ Pending Inventory Processor for Line Item Changes.
 Processes Pending records created by the transaction save pipeline
 (save_transaction_with_lines, quote_to_order, order_to_invoice,
 execute_transfer) to update Item inventory quantities
-(on_so, on_po, on_wo, on_in, on_r, etc.).
+(on_so, on_po, on_wo, on_in, on_rc, etc.).
 
 This decouples transaction line changes from Item record updates,
 reducing lock contention and improving throughput.
@@ -223,7 +223,7 @@ def _process_pending_for_item(
         on_wo_delta = Decimal('0')
         on_p_delta = Decimal('0')
         on_in_delta = Decimal('0')
-        on_r_delta = Decimal('0')
+        on_rc_delta = Decimal('0')
         on_hand_delta = Decimal('0')
 
         for pending in pending_records:
@@ -233,13 +233,13 @@ def _process_pending_for_item(
             on_wo_delta += Decimal(str(data.get('on_wo', 0) or 0))
             on_p_delta += Decimal(str(data.get('on_qt', 0) or 0))
             on_in_delta += Decimal(str(data.get('on_in', 0) or 0))
-            on_r_delta += Decimal(str(data.get('on_r', 0) or 0))
+            on_rc_delta += Decimal(str(data.get('on_rc', 0) or 0))
             on_hand_delta += Decimal(str(data.get('on_hand', 0) or 0))
         
         logger.debug(
             f"Item {item_pk}: SO={on_so_delta:+}, PO={on_po_delta:+}, "
             f"WO={on_wo_delta:+}, PP={on_p_delta:+}, IN={on_in_delta:+}, "
-            f"RC={on_r_delta:+}, OH={on_hand_delta:+}"
+            f"RC={on_rc_delta:+}, OH={on_hand_delta:+}"
         )
         
         if dry_run:
@@ -256,7 +256,7 @@ def _process_pending_for_item(
         current_wo = Decimal(str(quantity.get('on_wo', 0) or 0))
         current_p = Decimal(str(quantity.get('on_qt', 0) or 0))
         current_on_in = Decimal(str(quantity.get('on_in', 0) or 0))
-        current_on_r = Decimal(str(quantity.get('on_r', 0) or 0))
+        current_on_rc = Decimal(str(quantity.get('on_rc', 0) or 0))
         current_on_hand = Decimal(str(quantity.get('on_hand', 0) or 0))
         
         quantity['on_so'] = float(current_so + on_so_delta)
@@ -264,7 +264,7 @@ def _process_pending_for_item(
         quantity['on_wo'] = float(current_wo + on_wo_delta)
         quantity['on_qt'] = float(current_p + on_p_delta)
         quantity['on_in'] = float(current_on_in + on_in_delta)
-        quantity['on_r'] = float(current_on_r + on_r_delta)
+        quantity['on_rc'] = float(current_on_rc + on_rc_delta)
 
         # on_hand is explicit in the data — no derived calculation
         if on_hand_delta != 0:
@@ -295,7 +295,7 @@ def _process_pending_for_item(
     if on_wo_delta: deltas['on_wo'] = f'{on_wo_delta:+}'
     if on_p_delta: deltas['on_qt'] = f'{on_p_delta:+}'
     if on_in_delta: deltas['on_in'] = f'{on_in_delta:+}'
-    if on_r_delta: deltas['on_r'] = f'{on_r_delta:+}'
+    if on_rc_delta: deltas['on_rc'] = f'{on_rc_delta:+}'
     if on_hand_delta: deltas['on_hand'] = f'{on_hand_delta:+}'
     trace_pending_processing_complete(
         item_id=item_pk,

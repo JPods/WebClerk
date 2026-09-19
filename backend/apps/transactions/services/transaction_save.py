@@ -161,7 +161,7 @@ def _create_pending_from_deltas(
             'line_num': 0,
             # Quantity buckets — zeroed, then set by type
             'on_so': 0, 'on_po': 0, 'on_wo': 0,
-            'on_in': 0, 'on_r': 0, 'on_qt': 0, 'on_hand': 0,
+            'on_in': 0, 'on_rc': 0, 'on_qt': 0, 'on_hand': 0,
             # Pricing snapshot
             'unit_cost': delta.get('unit_cost', 0),
             'unit_price': delta.get('unit_price', 0),

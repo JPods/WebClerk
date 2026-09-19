@@ -644,7 +644,7 @@ def get_item_flight_state(item_id: int) -> Dict[str, Any]:
             'on_wo': _dec(quantity.get('on_wo', 0)),
             'allocated': _dec(quantity.get('allocated', 0)),
             'available': _dec(quantity.get('available', 0)),
-            'on_reciept': _dec(quantity.get('on_reciept', 0)),
+            'on_rc': _dec(quantity.get('on_rc', 0)),
             'on_in': _dec(quantity.get('on_in', 0)),
         },
         'cost': {
@@ -1561,7 +1561,7 @@ def _get_purchase_lines(item_id: int, item_dict: dict) -> list:
                 'has_impact': False,
                 'reason': 'Purchase Order — no GL impact until goods are received',
                 'entries': [],
-                'on_receipt': [
+                'on_rc': [
                     {'account': gl['inventory'], 'side': 'debit',
                      'amount': float(extended), 'purpose': 'Inventory increase (when received)'},
                     {'account': G['ap'], 'side': 'credit',
