@@ -99,6 +99,7 @@ def recalculate_totals(
     (purchase/workorder) transactions.
     """
     header, lines = _resolve_header_and_lines(transaction_id, model_name)
+    old_total = (getattr(header, 'totals', None) or {}).get('total', 0)
     computed = compute_totals(header, lines, model_name)
     totals = computed['totals']
     tax_decisions = computed['tax_decisions']
@@ -137,6 +138,11 @@ def recalculate_totals(
             if new is not None and new != (line.totals or {}):
                 LineModel.objects.filter(pk=line.pk).update(totals=new)
 
+    # The AR ledger follows the invoice: rebuild it whenever the total changes (Bite 2 #5).
+    if model_name == 'invoice' and _d(old_total) != _d(totals['total']):
+        from apps.accounts.services.ledger_balance import on_invoice_save
+        on_invoice_save(header, replace_ledgers=True)
+
     logger.info(
         "Recalculated totals for %s #%s: amount=%.2f tax=%.2f total=%.2f margin=%.1f%%",
         model_name, transaction_id, totals['amount'], totals['tax'],
@@ -154,6 +160,22 @@ def recalculate_totals(
         'margin_pc': totals['margin_pc'],
         'lines_recalculated': computed['lines_recalculated'],
     }
+
+
+def _tax_policy() -> Dict[str, bool]:
+    """Company switches (Bill, 2026-09-19), both off by default:
+    tax_on_shipping — tax a line's shipping share at the shipping rate;
+    tax_on_costs    — tax purchases/costs (VAT-style). Off: no tax on costs at all.
+    Company profile config.tax_policy = {"tax_on_shipping": bool, "tax_on_costs": bool}."""
+    try:
+        from django.apps import apps as _apps
+        company = _apps.get_model('core', 'Setting').objects.filter(
+            purpose='wc:company_profile').only('config').first()
+        policy = ((company.config or {}).get('tax_policy') or {}) if company else {}
+    except Exception:
+        policy = {}
+    return {'tax_on_shipping': bool(policy.get('tax_on_shipping', False)),
+            'tax_on_costs': bool(policy.get('tax_on_costs', False))}
 
 
 LINE_TOTAL_KEYS = ('amount', 'discount', 'taxable', 'tax', 'shipping', 'other',
@@ -219,7 +241,8 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
     shipping_tax_rate = _d(tax_envelope.get('shipping', 0) or finance.get('tax_on_shipping_rate', 0), places=6)
     if shipping_tax_rate > 1:
         shipping_tax_rate = shipping_tax_rate / 100
-    if is_exempt:
+    policy = _tax_policy()
+    if is_exempt or not policy['tax_on_shipping']:
         shipping_tax_rate = Decimal(0)
 
     alloc = getattr(header, 'allocations', None) or {}
@@ -282,6 +305,8 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
         tax_code = (cost_env.get('tax_code', '') or '').upper()
         if source == 'line' or (source is None and typed > 0):
             rate, source = (typed / 100 if typed > 1 else typed), 'line'
+        elif not is_sell and not policy['tax_on_costs']:
+            rate, source = Decimal(0), 'costs_not_taxed'
         elif is_exempt:
             rate, source = Decimal(0), 'exempt'
         elif tax_code in ('EXEMPT', 'NONTAXABLE', 'NON-TAXABLE'):
@@ -359,14 +384,15 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
 
     existing_totals = getattr(header, 'totals', None) or {}
     received = _d(existing_totals.get('received', 0))
-    balance = doc['total'] - received
+    adjusted = _d(existing_totals.get('adjusted', 0))      # write-offs, small balances, FX
+    balance = doc['total'] - received - adjusted
     state = ''
     if model_name == 'invoice':
         from apps.transactions.services.cash.cash_pending import cash_state
-        state = cash_state(doc['total'], received)
+        state = cash_state(doc['total'], received + adjusted)
 
     totals = {k: float(v) for k, v in doc.items()}
-    totals.update({'margin_pc': margin_pc, 'received': float(received),
+    totals.update({'margin_pc': margin_pc, 'received': float(received), 'adjusted': float(adjusted),
                    'balance': float(balance), 'cash_state': state})
 
     by_pk = {}
@@ -394,38 +420,41 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
 def update_received(
     header,
     new_received: Decimal,
+    new_adjusted: Optional[Decimal] = None,
 ) -> Dict[str, Any]:
-    """Update the received amount and recompute balance on a transaction header.
+    """Update what has been received (money) and adjusted (write-offs, small balances,
+    FX) on a transaction header, and recompute balance = total − received − adjusted.
 
-    Called by cash_pending and signals after a cash entry
-    is applied or unapplied. This is the ONLY function that should modify
-    totals.received and totals.balance outside of recalculate_totals().
-
-    Does NOT re-sum lines — only updates the cash side of the envelope.
+    Called by cash_pending and signals after a cash entry is applied or unapplied.
+    This is the ONLY function that should modify totals.received / adjusted /
+    balance outside of recalculate_totals(). Does NOT re-sum lines.
     """
     new_received = _d(new_received)
     totals = getattr(header, 'totals', None) or {}
+    adjusted = _d(totals.get('adjusted', 0)) if new_adjusted is None else _d(new_adjusted)
     total = _d(totals.get('total', 0))
-    new_balance = _d(total - new_received)
+    new_balance = _d(total - new_received - adjusted)
 
     from apps.transactions.services.cash.cash_pending import cash_state
 
     totals['received'] = float(new_received)
+    totals['adjusted'] = float(adjusted)
     totals['balance'] = float(new_balance)
-    totals['cash_state'] = cash_state(total, new_received)
+    totals['cash_state'] = cash_state(total, new_received + adjusted)
     totals = _validate_totals(totals)
     header.totals = totals
 
     header.save(update_fields=['totals'])
 
     logger.info(
-        "Updated received for %s #%s: received=%.2f balance=%.2f",
-        header._meta.model_name, header.pk, float(new_received), float(new_balance),
+        "Updated received for %s #%s: received=%.2f adjusted=%.2f balance=%.2f",
+        header._meta.model_name, header.pk, float(new_received), float(adjusted), float(new_balance),
     )
 
     return {
         'total': float(total),
         'received': float(new_received),
+        'adjusted': float(adjusted),
         'balance': float(new_balance),
         'cash_state': totals['cash_state'],
     }

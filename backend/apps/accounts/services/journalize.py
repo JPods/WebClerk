@@ -253,6 +253,23 @@ def _role(role: str, used_by: str = '') -> str:
     return role_account(role, used_by=used_by)
 
 
+# Adjustment cash settles AR without money; each posts to its own account.
+ADJUSTMENT_ROLES = {
+    'write_off': 'bad_debt_writeoff',
+    'small_balance': 'small_balance_writeoff',
+    'fx_gain': 'fx_gain_loss',
+    'fx_loss': 'fx_gain_loss',
+}
+
+
+def _cash_posted_and_not_reversed(GlJournal, cash_id: int) -> bool:
+    """A cash is journalized when it has more posted rows than reversal rows,
+    so a reversed cash can be posted again (Bite 2 #4)."""
+    posted = GlJournal.objects.filter(source_id=cash_id, source_model='cash').count()
+    reversed_ = GlJournal.objects.filter(source_id=cash_id, source_model='cash_reversal').count()
+    return posted > reversed_
+
+
 def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
     """Journalize a single invoice — line-level GL posting.
 
@@ -501,7 +518,7 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
     except Cash.DoesNotExist:
         return {'created': 0, 'error': f'Cash {cash_id} not found'}
 
-    if GlJournal.objects.filter(source_id=cash_id, source_model='cash').exists():
+    if _cash_posted_and_not_reversed(GlJournal, cash_id):
         return {'created': 0, 'error': 'Already journalized'}
 
     # H11: Cash on Hold skip GL (WC2 GL_JrnlCash rule)
@@ -546,6 +563,11 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
                 pass
         debit_account, debit_purpose = cash_account, 'cash_receipt'
         credit_account, credit_purpose = offset_account, 'accounts_receivable'
+        # An adjustment settles AR without money: it debits its own account, never cash (Bite 2 #2).
+        method = (getattr(cash, 'method', '') or '').lower()
+        if method in ADJUSTMENT_ROLES:
+            debit_account = _role(ADJUSTMENT_ROLES[method], f'cash {cash.ida} {method}')
+            debit_purpose = method
     else:
         # Disbursement: Expense debit (from category bucket), Cash credit
         # Category → GL mapping lives in Setting select_lists
@@ -895,8 +917,19 @@ def journalize_invoice_and_cash_entries(invoice_id: int, ida_prefix: str = '') -
     except Invoice.DoesNotExist:
         return {'error': f'Invoice {invoice_id} not found', 'total_created': 0}
 
-    # Journal the invoice
+    # Journal the invoice. If it cannot post, nothing posts: cash against an
+    # unposted invoice would leave AR wrong in the GL (Bite 2 #6).
     inv_result = journalize_invoice(invoice_id, ida_prefix)
+    already = inv_result.get('error') == 'Already journalized'
+    if not inv_result.get('created') and not already:
+        return {
+            'invoice': inv_result,
+            'cash_entries': [],
+            'total_created': 0,
+            'invoice_ida': invoice.ida,
+            'status': 'exception',
+            'error': f"Invoice not journalized, so its cash was not posted: {inv_result.get('error', 'no postings')}",
+        }
 
     # Find all cash linked to this invoice
     from django.db.models import Q
@@ -1006,7 +1039,7 @@ def batch_journalize(ida_prefix: str = 'zzz-', run_by_id: int = None) -> dict:
     for inv in invoices:
         _classify(journalize_invoice(inv.pk, ida_prefix=ida_prefix), 'invoices', inv.ida)
 
-    cash_entries = Cash.objects.filter(dt_journaled=0, is_active=True)
+    cash_entries = Cash.objects.filter(is_locked=False, is_active=True)
     for pay in cash_entries:
         _classify(journalize_cash(pay.pk, ida_prefix=ida_prefix), 'cash_entries', pay.ida)
 

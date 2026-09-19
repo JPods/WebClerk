@@ -180,6 +180,11 @@ class TransactionTotals(BaseModel):
         description="Σ applied cash (invoices); negative on a settled credit memo. Updated by update_received() only.",
         json_schema_extra={'widget': 'currency', 'precision': 2},
     )
+    adjusted: float = Field(
+        0.0, title="Adjusted",
+        description="Settled without money: write-offs, small balances, FX differences",
+        json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
     balance: float = Field(
         0.0,
         title="Balance",

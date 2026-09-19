@@ -346,6 +346,13 @@ class Cash(BaseModel):
 
     def save(self, *args, **kwargs):
         self._populate_company_snapshot()
+        # Checkbook convention: the sign is the truth. Money in is cash_in, money out
+        # cash_out (Bite 2 #10: receipts saved without a type were stored as cash_out).
+        if self.amount:
+            self.type = 'cash_in' if self.amount > 0 else 'cash_out'
+            update_fields = kwargs.get('update_fields')
+            if update_fields is not None and 'type' not in update_fields:
+                kwargs['update_fields'] = list(update_fields) + ['type']
         if not self.pk:
             # New cash: available starts equal to amount
             if not self.available:

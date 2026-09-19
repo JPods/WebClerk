@@ -990,6 +990,10 @@ _ACTION_DISPATCH = {
     ).get_item_flight_state(
         item_id=int(params['item_id']),
     ),
+    "get_sim_header_defaults": lambda params: __import__(
+        'apps.products.services.inventory.inventory_flight_sim',
+        fromlist=['sim_header_defaults']
+    ).sim_header_defaults(),
     "get_flight_scenario": lambda params: __import__(
         'apps.products.services.inventory.inventory_flight_sim',
         fromlist=['get_flight_scenario']
@@ -1100,7 +1104,7 @@ _ACTION_DISPATCH = {
     "journalize_purchase": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_purchase']).journalize_purchase(p['purchase_id'], p.get('ida_prefix', '')),
     "batch_journalize": lambda p: __import__('apps.accounts.services.journalize', fromlist=['batch_journalize']).batch_journalize(p.get('ida_prefix', 'zzz-')),
     # ── Cash Pending (One Path) ──
-    "apply_cash_to_invoice": lambda p: __import__('apps.transactions.services.cash.cash_pending', fromlist=['apply_cash_to_invoice']).apply_cash_to_invoice(p['cash_id'], p['invoice_id'], p['amount'], p.get('reason', ''), p.get('contact_id'), discount_pct=p.get('discount_pct', 0), discount_amt=p.get('discount_amt', 0), dismiss_balance=p.get('dismiss_balance', False), fx_difference=p.get('fx_difference', 0)),
+    "apply_cash_to_invoice": lambda p: __import__('apps.transactions.services.cash.cash_pending', fromlist=['apply_cash_to_invoice']).apply_cash_to_invoice(p['cash_id'], p['invoice_id'], p['amount'], p.get('reason', ''), p.get('contact_id'), discount_pct=p.get('discount_pct', 0), discount_amt=p.get('discount_amt', 0), dismiss_balance=p.get('dismiss_balance', False), fx_difference=p.get('fx_difference', 0), acted_by=p.get('_acting_user_id')),
     "apply_pending_cash_entries": lambda p: __import__('apps.transactions.services.cash.cash_pending', fromlist=['apply_pending_for_invoice']).apply_pending_for_invoice(p['invoice_id']),
     "apply_cash_to_receipt": lambda p: __import__('apps.transactions.services.cash.cash_pending_receipt', fromlist=['apply_cash_to_receipt']).apply_cash_to_receipt(p['cash_id'], p['receipt_id'], p['amount'], p.get('reason', '')),
     "unapply_cash_application": lambda p: __import__('apps.transactions.services.cash.cash_pending', fromlist=['unapply_cash_application']).unapply_cash_application(p['pending_id'], p.get('reason', '')),
@@ -1337,6 +1341,10 @@ class ManageWcapiView(APIView):
                 message=f"unknown action: {action_name}",
                 error={"code": "unknown_action", "details": {"action": action_name}},
             )
+
+        # Who is acting — set by the server, never taken from the client.
+        params = dict(params or {})
+        params['_acting_user_id'] = request.user.pk if getattr(request, 'user', None) and request.user.is_authenticated else None
 
         try:
             result = handler(params)

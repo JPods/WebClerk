@@ -503,12 +503,19 @@ const FlightSimConsole: React.FC = () => {
 
   useEffect(() => { if (itemId) refreshArray(); }, [itemId, refreshArray]);
 
-  /** Create a blank transaction record with simple qq ida */
+  /** Create a blank transaction record with simple qq ida.
+   *  The simulator's tax jurisdiction (test_8%) and carrier (test_4%) override the
+   *  customer's normal defaults, so every run gives the same numbers. A user may
+   *  change them back; the outcome then changes (Bill, 2026-09-19). */
   const createSimRecord = async (model: string): Promise<number | null> => {
     try {
+      const defaults = await manageAction("get_sim_header_defaults", {}) as any;
+      const simHeader = defaults?.data ?? defaults ?? {};
       const result = await saveRecord(model, {
         is_active: true,
         status: "planned",
+        ...(simHeader.ship_via ? { ship_via: simHeader.ship_via } : {}),
+        ...(simHeader.finance ? { finance: simHeader.finance } : {}),
         metadata: { training: true, flight_sim: true },
       }) as any;
       const newId = result?.data?.id || result?.id || result?.data?.record?.id;

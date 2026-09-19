@@ -39,6 +39,7 @@ SYS_FXDIFF = 'SYS-FXDIFF'
 
 def _create_discount_line(
     invoice, disc_value: Decimal, discount_pct: float, source_cash=None,
+    decision: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Create a negative invoice line for the discount amount.
 
@@ -74,6 +75,7 @@ def _create_discount_line(
             'discount_pct': discount_pct,
             'discount_amt': float(disc_value),
             'source_cash_id': source_cash.pk if source_cash else None,
+            'decision': decision or {},
         },
     )
 
@@ -87,7 +89,7 @@ def _create_discount_line(
 
 def _create_adjustment_cash(
     invoice, method: str, amount: Decimal, reason: str = '',
-    source_cash=None,
+    source_cash=None, decision: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Create an adjustment Cash record and apply it to the invoice.
 
@@ -111,6 +113,7 @@ def _create_adjustment_cash(
             'invoice_id': invoice.pk,
             'source_cash_id': source_cash.pk if source_cash else None,
             'reason': reason,
+            'decision': decision or {},
         },
     )
 
@@ -126,6 +129,8 @@ def _create_adjustment_cash(
             'amount': float(amount),
             'reason': reason,
             'state': 'pending',
+            # An adjustment (write-off, small balance, FX) is not money received.
+            'kind': method,
         },
     )
 
@@ -162,6 +167,42 @@ def _applied(**match) -> Decimal:
     return _d(total)
 
 
+def _utc_now_iso() -> str:
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
+def _check_policy(invoice, kind: str, value: Decimal) -> None:
+    """The company's policy for adjustments, if it has one (company profile
+    config.cash_policy): {discount_limit, discount_limit_pct, write_off_limit,
+    write_off_limit_pct}. No policy = the user decides."""
+    from apps.core.models import Setting
+    company = Setting.objects.filter(purpose='wc:company_profile').only('config').first()
+    policy = ((company.config or {}).get('cash_policy') or {}) if company else {}
+    total = _d((invoice.totals or {}).get('total'))
+    limit = policy.get(f'{kind}_limit')
+    if limit not in (None, '') and value > _d(limit):
+        raise ValueError(f"Company policy: a {kind.replace('_', ' ')} may not exceed {_d(limit)} (asked {value})")
+    pct = policy.get(f'{kind}_limit_pct')
+    if pct not in (None, '') and total and value > (total * _d(pct) / 100).quantize(Decimal('0.01')):
+        raise ValueError(f"Company policy: a {kind.replace('_', ' ')} may not exceed {pct}% of the invoice (asked {value} of {total})")
+
+
+ADJUSTMENT_METHODS = ('write_off', 'small_balance', 'fx_gain', 'fx_loss')
+
+
+def _applied_split(**match):
+    """(money received, adjustments) applied — both settle the balance, only one is cash."""
+    from apps.core.models.pending import Pending
+    total = _applied(**match)
+    filters = {f'changes__{k}': v for k, v in match.items()}
+    adjusted = Decimal('0')
+    for p in Pending.objects.filter(purpose=CASH_PURPOSE, changes__state='applied',
+                                    changes__kind__in=ADJUSTMENT_METHODS, **filters).only('changes'):
+        adjusted += _d((p.changes or {}).get('amount'))
+    return total - adjusted, adjusted
+
+
 def cash_state(total: Decimal, received: Decimal) -> str:
     """open | partial | paid | credit | over — derived, never typed.
 
@@ -183,7 +224,8 @@ def refresh_invoice_cash(invoice) -> Dict[str, Any]:
     from apps.transactions.services.pricing.totals_compute import update_received
     from apps.accounts.services.terms_ledger import allocate_received
 
-    result = update_received(invoice, _applied(invoice_id=invoice.pk))
+    received, adjusted = _applied_split(invoice_id=invoice.pk)
+    result = update_received(invoice, received, adjusted)
     allocate_received(invoice)
     return result
 
@@ -213,6 +255,12 @@ def _check_application(cash, invoice, amount: Decimal) -> None:
     if _sign(amount) != _sign(available) or abs(amount) > abs(available):
         raise ValueError(
             f"cannot apply {amount} from cash {cash.pk}: available is {available}")
+    # One customer's money does not pay another customer's invoice.
+    cash_customer = getattr(cash, 'customer_id', None)
+    if cash_customer and cash_customer != getattr(invoice, 'customer_id', None):
+        raise ValueError(
+            f"cannot apply cash {cash.pk} (customer {cash_customer}) to invoice {invoice.pk} "
+            f"(customer {getattr(invoice, 'customer_id', None)}): the customers differ")
 
 
 @transaction.atomic
@@ -226,6 +274,7 @@ def apply_cash_to_invoice(
     discount_amt: float = 0,
     dismiss_balance: bool = False,
     fx_difference: float = 0,
+    acted_by: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Create a Pending record for cash application.
 
@@ -246,6 +295,15 @@ def apply_cash_to_invoice(
     invoice = Invoice.objects.select_for_update().get(pk=invoice_id)
     amount = _d(amount)
 
+    # Bill (2026-09-19): an adjustment — a discount, a write-off, a dismissed balance,
+    # an FX difference — is never automatic. It is a positive action by a user,
+    # recorded as theirs, within the company's policy.
+    wants_adjustment = discount_amt > 0 or discount_pct > 0 or dismiss_balance or fx_difference != 0
+    if wants_adjustment and not acted_by:
+        raise ValueError("An adjustment (discount, write-off, dismissed balance, FX) is a user's "
+                         "decision: it needs the signed-in user who made it.")
+    decision = {'decided_by_user_id': acted_by, 'dt_decided': _utc_now_iso()} if wants_adjustment else None
+
     adjustments = []
 
     # ── Discount — creates an invoice line that reduces the total ────
@@ -258,7 +316,8 @@ def apply_cash_to_invoice(
         disc_value = (invoice_total * Decimal(str(discount_pct)) / 100).quantize(Decimal('0.01'))
 
     if disc_value > 0:
-        _create_discount_line(invoice, disc_value, discount_pct, cash)
+        _check_policy(invoice, 'discount', disc_value)
+        _create_discount_line(invoice, disc_value, discount_pct, cash, decision)
         adjustments.append({'type': 'discount', 'amount': float(disc_value)})
 
     # ── FX difference (cash-side) ────────────────────────────────
@@ -268,7 +327,7 @@ def apply_cash_to_invoice(
         _create_adjustment_cash(
             invoice, method, fx_amt,
             reason='Currency exchange difference',
-            source_cash=cash,
+            source_cash=cash, decision=decision,
         )
         adjustments.append({'type': method, 'amount': float(fx_amt)})
 
@@ -300,10 +359,11 @@ def apply_cash_to_invoice(
         invoice.refresh_from_db()
         remaining = Decimal(str((invoice.totals or {}).get('balance', 0)))
         if remaining > 0:
+            _check_policy(invoice, 'write_off', remaining)
             _create_adjustment_cash(
-                invoice, 'write_off', remaining,
-                reason='Balance dismissed — too small to chase',
-                source_cash=cash,
+                invoice, 'small_balance', remaining,
+                reason=reason or 'Balance dismissed by user',
+                source_cash=cash, decision=decision,
             )
             adjustments.append({'type': 'write_off', 'amount': float(remaining)})
 

@@ -48,6 +48,7 @@ def shipping_service_for(ship_via: str) -> dict | None:
     setting = apps.get_model('core', 'Setting').objects.filter(purpose='wc:shipping_service', is_active=True).first()
     for svc in ((setting.config or {}).get('service') or []) if setting else []:
         keys = {str(svc.get(k) or '').strip().lower() for k in ('name', 'carrier_code', 'account')}
+        keys |= {str(a).strip().lower() for a in (svc.get('aliases') or [])}
         if wanted in keys:
             return svc
     return None
