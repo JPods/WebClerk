@@ -34,15 +34,19 @@
   },
   "refs": {
     "links": {
-      "contact": {"id": 142, "name": "Ridgeline Hardware & Supply", "ida": "RHS-142"}
+      "contact": {
+        "id": 142,
+        "name": "Ridgeline Hardware & Supply",
+        "ida": "RHS-142"
+      }
     }
   },
   "totals": {
-    "subtotal": 3847.50,
     "tax": 230.85,
-    "shipping": 185.00,
+    "shipping": 185.0,
     "total": 4263.35,
-    "balance": 4263.35
+    "balance": 4263.35,
+    "amount": 3847.5
   },
   "sell": {},
   "cost": {},
@@ -57,11 +61,13 @@
         "description": "DeWalt 13\" Three Knife Two-Speed Planer",
         "uom": "Each"
       },
-      "quantity": {"active": 2},
+      "quantity": {
+        "active": 2
+      },
       "price": {
         "unit": 549.99,
         "discount_percent": 0,
-        "extended": 1099.98
+        "amount": 1099.98
       }
     },
     {
@@ -71,11 +77,13 @@
         "description": "Makita 12\" Dual-Bevel Sliding Compound Miter Saw",
         "uom": "Each"
       },
-      "quantity": {"active": 3},
+      "quantity": {
+        "active": 3
+      },
       "price": {
-        "unit": 429.00,
+        "unit": 429.0,
         "discount_percent": 5,
-        "extended": 1222.65
+        "amount": 1222.65
       }
     },
     {
@@ -85,11 +93,13 @@
         "description": "Bosch 10\" Worksite Table Saw with Gravity-Rise Stand",
         "uom": "Each"
       },
-      "quantity": {"active": 1},
+      "quantity": {
+        "active": 1
+      },
       "price": {
-        "unit": 649.00,
+        "unit": 649.0,
         "discount_percent": 0,
-        "extended": 649.00
+        "amount": 649.0
       }
     },
     {
@@ -99,11 +109,13 @@
         "description": "Stanley 220-Piece Mechanics Tool Set, Chrome Vanadium",
         "uom": "Set"
       },
-      "quantity": {"active": 6},
+      "quantity": {
+        "active": 6
+      },
       "price": {
         "unit": 189.95,
         "discount_percent": 10,
-        "extended": 1025.73
+        "amount": 1025.73
       }
     },
     {
@@ -113,11 +125,13 @@
         "description": "Titebond III Ultimate Wood Glue, 16 oz",
         "uom": "Case/12"
       },
-      "quantity": {"active": 4},
+      "quantity": {
+        "active": 4
+      },
       "price": {
         "unit": 89.88,
         "discount_percent": 15,
-        "extended": 305.59
+        "amount": 305.59
       }
     }
   ]

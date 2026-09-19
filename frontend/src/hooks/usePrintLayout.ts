@@ -64,14 +64,14 @@ function defaultPrintLayout(model: string): PrintLayout {
           { field: 'item.description', label: 'Description', align: 'left', width: '40%' },
           { field: 'quantity.active', label: 'Qty', align: 'right' },
           { field: isSell ? 'price.unit' : 'cost.unit', label: isSell ? 'Unit Price' : 'Unit Cost', align: 'right', format: 'currency' },
-          { field: isSell ? 'price.extended' : 'cost.extended', label: 'Extended', align: 'right', format: 'currency' },
+          { field: isSell ? 'price.amount' : 'cost.extended', label: 'Extended', align: 'right', format: 'currency' },
         ],
         show_footer_totals: true,
       },
       {
         type: 'totals',
         rows: [
-          { field: 'totals.subtotal', label: 'Subtotal', format: 'currency' },
+          { field: 'totals.amount', label: 'Subtotal', format: 'currency' },
           { field: 'totals.tax', label: 'Tax', format: 'currency' },
           { field: 'totals.shipping', label: 'Shipping', format: 'currency' },
           { field: 'totals.total', label: 'Total', format: 'currency', style: 'bold' },

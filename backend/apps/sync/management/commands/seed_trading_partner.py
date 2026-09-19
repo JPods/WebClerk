@@ -67,7 +67,7 @@ class Command(BaseCommand):
                             "unit_base": "unit_base",
                             "discount_percent": "discount_percent",
                             "discount_amount": "discount_amount",
-                            "extended": "extended",
+                            "extended": "amount",
                             "precision": "precision",
                         },
                     },

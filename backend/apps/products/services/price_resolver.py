@@ -453,7 +453,7 @@ def get_price_for_line(
         quantity: Order quantity for break calculation
 
     Returns:
-        Dict with resolved_level, unit_price, extended (unit * qty),
+        Dict with resolved_level, unit_price, amount (unit * qty),
         and the fallback chain for transparency.
     """
     if hasattr(item, 'price'):
@@ -482,7 +482,7 @@ def get_price_for_line(
     return {
         'price_level': effective_level,
         'unit_price': float(unit_price),
-        'extended': float(extended),
+        'amount': float(extended),
         'quantity': quantity,
         'chain': {
             'line': line_price_level or None,
@@ -875,7 +875,7 @@ def apply_line_pricing(
 
     Reads item from line.item_fk_id, qty from line.quantity.active,
     customer from parent transaction. Updates line.price.unit and
-    line.price.extended. Returns the pricing result.
+    line.price.amount. Returns the pricing result.
     """
     from django.apps import apps as dj_apps
     from apps.core.constants.model_registry import get_model_meta
@@ -918,13 +918,13 @@ def apply_line_pricing(
     if not isinstance(line.price, dict):
         line.price = {}
     line.price['unit'] = result['unit_price']
-    line.price['extended'] = float(Decimal(str(result['unit_price'])) * Decimal(str(qty)))
+    line.price['amount'] = float(Decimal(str(result['unit_price'])) * Decimal(str(qty)))
 
     line.save(update_fields=['price'])
 
     result['line_id'] = line_id
     result['quantity'] = qty
-    result['extended'] = line.price['extended']
+    result['amount'] = line.price['amount']
     return result
 
 

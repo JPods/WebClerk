@@ -98,7 +98,7 @@ class QuoteLineSerializerTest(TestCase):
         """Test that serializer includes all expected fields."""
         line = QuoteLine.objects.create(
             quote=self.quote,
-            price={'unit': 10.00, 'extended': 20.00},
+            price={'unit': 10.00, 'amount': 20.00},
             cost={'unit': 8.00, 'extended': 16.00},
             quantity={'staged': 2, 'remaining': 2}
         )
@@ -118,7 +118,7 @@ class QuoteLineSerializerTest(TestCase):
         """Test line serializer returns price and cost envelopes."""
         line = QuoteLine.objects.create(
             quote=self.quote,
-            price={'unit': 10.00, 'extended': 20.00},
+            price={'unit': 10.00, 'amount': 20.00},
             cost={'unit': 8.00, 'extended': 16.00},
             quantity={'staged': 2, 'remaining': 2}
         )
@@ -145,7 +145,7 @@ class QuoteLineSerializerTest(TestCase):
         line = QuoteLine.objects.create(
             quote=self.quote,
             quantity={'staged': 2, 'remaining': 2},
-            price={'unit': 10.00, 'extended': 20.00, 'discount_amount': 2.00}
+            price={'unit': 10.00, 'amount': 20.00, 'discount_amount': 2.00}
         )
 
         serializer = QuoteLineSerializer(line)
@@ -156,7 +156,7 @@ class QuoteLineSerializerTest(TestCase):
         """Test price structure is a JSON dict."""
         line = QuoteLine.objects.create(
             quote=self.quote,
-            price={'unit': 10.00, 'extended': 20.00}
+            price={'unit': 10.00, 'amount': 20.00}
         )
 
         serializer = QuoteLineSerializer(line)
@@ -168,7 +168,7 @@ class QuoteLineSerializerTest(TestCase):
         line = QuoteLine.objects.create(
             quote=self.quote,
             quantity={'staged': 2, 'remaining': 2},
-            price={'unit': 10.00, 'extended': 20.00},
+            price={'unit': 10.00, 'amount': 20.00},
             cost={'unit': 8.00, 'extended': 16.00}
         )
 

@@ -57,7 +57,7 @@ def _compute_line_aggregate_internal(parent_id: int,
         price_sum = Decimal('0')
         cost_sum = Decimal('0')
         for obj in qs.only('price', 'cost'):
-            price_ext = (obj.price or {}).get('extended')
+            price_ext = (obj.price or {}).get('amount')
             cost_ext = (obj.cost or {}).get('extended')
             dec_price = _cast_decimal(price_ext)
             dec_cost = _cast_decimal(cost_ext)

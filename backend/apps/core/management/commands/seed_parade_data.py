@@ -45,11 +45,11 @@ def _customize_for_report(base_data: dict, report_name: str, model_name: str) ->
                 if isinstance(qty, dict) and "active" in qty:
                     qty["active"] = -abs(qty["active"])
                 price = ln.get("price", {})
-                if isinstance(price, dict) and "extended" in price:
-                    price["extended"] = -abs(price["extended"])
+                if isinstance(price, dict) and "amount" in price:
+                    price["amount"] = -abs(price["amount"])
             totals = data.get("totals", {})
             if totals:
-                for k in ("subtotal", "tax", "shipping", "total", "balance"):
+                for k in ("amount", "tax", "shipping", "total", "balance"):
                     if k in totals:
                         totals[k] = -abs(totals[k])
 
@@ -111,7 +111,7 @@ def _customize_for_report(base_data: dict, report_name: str, model_name: str) ->
             data.setdefault("config", {})["rep_name"] = "Tom Hargrove"
             data["config"]["commission_rate"] = 0.05
             for ln in data.get("lines", []):
-                ext = ln.get("price", {}).get("extended", 0)
+                ext = ln.get("price", {}).get("amount", 0)
                 ln.setdefault("commission", {})["rate"] = 0.05
                 ln["commission"]["amount"] = round(ext * 0.05, 2)
 
@@ -121,22 +121,22 @@ def _customize_for_report(base_data: dict, report_name: str, model_name: str) ->
                     "line_number": 1,
                     "item": {"ida_item": "SVC-INSTALL", "description": "On-site installation labor", "uom": "Hour"},
                     "quantity": {"active": 8},
-                    "price": {"unit": 125.00, "extended": 1000.00},
+                    "price": {"unit": 125.00, "amount": 1000.00},
                 },
                 {
                     "line_number": 2,
                     "item": {"ida_item": "SVC-TRAVEL", "description": "Travel — round trip", "uom": "Trip"},
                     "quantity": {"active": 1},
-                    "price": {"unit": 175.00, "extended": 175.00},
+                    "price": {"unit": 175.00, "amount": 175.00},
                 },
                 {
                     "line_number": 3,
                     "item": {"ida_item": "MAT-WIRE-14", "description": "14/2 NM-B Romex, 250ft", "uom": "Roll"},
                     "quantity": {"active": 2},
-                    "price": {"unit": 89.50, "extended": 179.00},
+                    "price": {"unit": 89.50, "amount": 179.00},
                 },
             ]
-            data["totals"] = {"subtotal": 1354.00, "tax": 12.07, "shipping": 0, "total": 1366.07, "balance": 1366.07}
+            data["totals"] = {"amount": 1354.00, "tax": 12.07, "shipping": 0, "total": 1366.07, "balance": 1366.07}
 
     # ── Order variants ──
     elif model_name == "order":
@@ -145,13 +145,13 @@ def _customize_for_report(base_data: dict, report_name: str, model_name: str) ->
             for ln in data.get("lines", []):
                 ln.setdefault("item", {})["bin_location"] = f"A-{ln.get('line_number', 1):02d}-3"
                 ln.get("price", {}).pop("unit", None)
-                ln.get("price", {}).pop("extended", None)
+                ln.get("price", {}).pop("amount", None)
 
         elif "packing" in name_lower:
             # Packing slip — no prices, add weight
             for ln in data.get("lines", []):
                 ln.get("price", {}).pop("unit", None)
-                ln.get("price", {}).pop("extended", None)
+                ln.get("price", {}).pop("amount", None)
                 ln.get("price", {}).pop("discount_percent", None)
                 ln.setdefault("item", {}).setdefault("weight", "12.5 lbs")
 
@@ -185,13 +185,13 @@ def _customize_for_report(base_data: dict, report_name: str, model_name: str) ->
                     "line_number": 1,
                     "item": {"ida_item": "EMB-POLO-BLK-M", "description": "Polo Shirt, Black, Medium — embroidered", "uom": "Each"},
                     "quantity": {"active": 24},
-                    "price": {"unit": 32.00, "extended": 768.00},
+                    "price": {"unit": 32.00, "amount": 768.00},
                 },
                 {
                     "line_number": 2,
                     "item": {"ida_item": "EMB-POLO-BLK-L", "description": "Polo Shirt, Black, Large — embroidered", "uom": "Each"},
                     "quantity": {"active": 36},
-                    "price": {"unit": 32.00, "extended": 1152.00},
+                    "price": {"unit": 32.00, "amount": 1152.00},
                 },
             ]
             data.setdefault("config", {})["embroidery"] = {
@@ -234,7 +234,7 @@ def _customize_for_report(base_data: dict, report_name: str, model_name: str) ->
             # Remove pricing for RFQ
             for ln in data.get("lines", []):
                 ln.get("price", {}).pop("unit", None)
-                ln.get("price", {}).pop("extended", None)
+                ln.get("price", {}).pop("amount", None)
                 ln.get("price", {}).pop("discount_percent", None)
 
         elif "variance" in name_lower:
@@ -400,11 +400,11 @@ def _customize_for_report(base_data: dict, report_name: str, model_name: str) ->
                 "instructions": "Install per drawing rev C. Customer on-site during install.",
             },
             "lines": [
-                {"line_number": 1, "item": {"ida_item": "LABOR-INSTALL", "description": "Installation labor", "uom": "Hour"}, "quantity": {"active": 16, "completed": 8}, "price": {"unit": 95.00, "extended": 1520.00}},
-                {"line_number": 2, "item": {"ida_item": "MAT-BRACKET", "description": "Steel mounting brackets", "uom": "Each"}, "quantity": {"active": 24, "completed": 24}, "price": {"unit": 12.50, "extended": 300.00}},
-                {"line_number": 3, "item": {"ida_item": "MAT-BOLT-SS", "description": "Stainless hex bolts 3/8x2", "uom": "Box/50"}, "quantity": {"active": 4, "completed": 2}, "price": {"unit": 34.00, "extended": 136.00}},
+                {"line_number": 1, "item": {"ida_item": "LABOR-INSTALL", "description": "Installation labor", "uom": "Hour"}, "quantity": {"active": 16, "completed": 8}, "price": {"unit": 95.00, "amount": 1520.00}},
+                {"line_number": 2, "item": {"ida_item": "MAT-BRACKET", "description": "Steel mounting brackets", "uom": "Each"}, "quantity": {"active": 24, "completed": 24}, "price": {"unit": 12.50, "amount": 300.00}},
+                {"line_number": 3, "item": {"ida_item": "MAT-BOLT-SS", "description": "Stainless hex bolts 3/8x2", "uom": "Box/50"}, "quantity": {"active": 4, "completed": 2}, "price": {"unit": 34.00, "amount": 136.00}},
             ],
-            "totals": {"subtotal": 1956.00, "tax": 0, "total": 1956.00},
+            "totals": {"amount": 1956.00, "tax": 0, "total": 1956.00},
             "refs": {"links": {"contact": {"id": 287, "name": "Pacific Coast Building Materials"}}},
         }
         if "job cost" in name_lower:

@@ -10,7 +10,7 @@
  *
  * Formulae:
  *   SELL SIDE (order, quote, invoice):
- *     totals.subtotal       = Σ line.price.extended
+ *     totals.amount       = Σ line.price.amount
  *     totals.discount       = Σ line.price.discount_amount
  *
  *     cost.line_sum_goods   = Σ line.cost.extended
@@ -21,7 +21,7 @@
  *     cost.commissions      = Σ line.cost.commissions
  *     cost.total            = goods + tax + shipping + handling + freight + commissions
  *
- *     totals.total     = totals.subtotal
+ *     totals.total     = totals.amount
  *     totals.cost      = cost.total
  *     totals.margin    = totals.total − cost.total
  *     totals.margin_pc = (margin / totals.total) × 100   if totals.total > 0
@@ -133,7 +133,7 @@ export function computeHeaderTotals(
 
     // Sell aggregation (sales-side only)
     if (isSales) {
-      sellGoods += toNumber(p.extended);
+      sellGoods += toNumber(p.amount);
       sellDiscount += toNumber(p.discount_amount);
     }
 
@@ -170,7 +170,7 @@ export function computeHeaderTotals(
   const balance = round(totalAmt - received);
 
   const totals: TransactionTotals = {
-    subtotal: isSales ? round(sellGoods) : 0,
+    amount: isSales ? round(sellGoods) : 0,
     discount: isSales ? round(sellDiscount) : 0,
     total: totalAmt,
     cost: costTotal,

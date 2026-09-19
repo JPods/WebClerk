@@ -85,13 +85,13 @@ class OrderModelTest(TestCase):
         OrderLine.objects.create(
             order=order,
             quantity={'staged': 2, 'remaining': 2},
-            price={'unit': 10.00, 'extended': 20.00},
+            price={'unit': 10.00, 'amount': 20.00},
             cost={'unit': 8.00, 'extended': 16.00}
         )
         OrderLine.objects.create(
             order=order,
             quantity={'staged': 1, 'remaining': 1},
-            price={'unit': 15.00, 'extended': 15.00},
+            price={'unit': 15.00, 'amount': 15.00},
             cost={'unit': 12.00, 'extended': 12.00}
         )
 
@@ -100,7 +100,7 @@ class OrderModelTest(TestCase):
         order.refresh_from_db()
 
         totals = order.totals
-        self.assertIn('subtotal', totals)
+        self.assertIn('amount', totals)
         self.assertIn('total', totals)
         self.assertIn('cost', totals)
         self.assertIn('margin', totals)
@@ -116,7 +116,7 @@ class OrderModelTest(TestCase):
         OrderLine.objects.create(
             order=order,
             quantity={'staged': 1, 'remaining': 1},
-            price={'unit': 100.00, 'extended': 100.00},
+            price={'unit': 100.00, 'amount': 100.00},
             cost={'unit': 80.00, 'extended': 80.00}
         )
 

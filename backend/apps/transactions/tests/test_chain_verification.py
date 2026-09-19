@@ -106,7 +106,7 @@ class TestQuoteOrderInvoiceChain:
                 '_dirty': True,
                 'item': {'item_id': ITEM_ID, 'ida': item_ida},
                 'quantity': {'staged': 15, 'active': 15},
-                'price': {'unit': 10.0, 'extended': 150.0},
+                'price': {'unit': 10.0, 'amount': 150.0},
                 'cost': {'unit': 5.0, 'extended': 75.0},
             }],
             request=None,
@@ -139,7 +139,7 @@ class TestQuoteOrderInvoiceChain:
                 '_dirty': True,
                 'item': {'item_id': ITEM_ID, 'ida': item_ida},
                 'quantity': {'staged': 15, 'active': 15},
-                'price': {'unit': 10.0, 'extended': 150.0},
+                'price': {'unit': 10.0, 'amount': 150.0},
                 'cost': {'unit': 5.0, 'extended': 75.0},
                 'refs': {
                     'source': {
@@ -188,7 +188,7 @@ class TestQuoteOrderInvoiceChain:
                 '_dirty': True,
                 'item': {'item_id': ITEM_ID, 'ida': item_ida},
                 'quantity': {'staged': 15, 'active': 7},
-                'price': {'unit': 10.0, 'extended': 70.0},
+                'price': {'unit': 10.0, 'amount': 70.0},
                 'cost': {'unit': 5.0, 'extended': 35.0},
             }],
             request=None,
@@ -227,7 +227,7 @@ class TestQuoteOrderInvoiceChain:
                 '_dirty': True,
                 'item': {'item_id': ITEM_ID, 'ida': item_ida},
                 'quantity': {'staged': 7, 'active': 7},
-                'price': {'unit': 10.0, 'extended': 70.0},
+                'price': {'unit': 10.0, 'amount': 70.0},
                 'cost': {'unit': 5.0, 'extended': 35.0},
                 'refs': {
                     'source': {
@@ -275,7 +275,7 @@ class TestQuoteOrderInvoiceChain:
                 '_dirty': True,
                 'item': {'item_id': ITEM_ID, 'ida': item_ida},
                 'quantity': {'staged': 7, 'active': 3},
-                'price': {'unit': 10.0, 'extended': 30.0},
+                'price': {'unit': 10.0, 'amount': 30.0},
                 'cost': {'unit': 5.0, 'extended': 15.0},
             }],
             request=None,
@@ -313,7 +313,7 @@ class TestQuoteOrderInvoiceChain:
                 '_dirty': True,
                 'item': {'item_id': ITEM_ID, 'ida': item_ida},
                 'quantity': {'staged': 4, 'active': 4},
-                'price': {'unit': 10.0, 'extended': 40.0},
+                'price': {'unit': 10.0, 'amount': 40.0},
                 'cost': {'unit': 5.0, 'extended': 20.0},
                 'refs': {
                     'source': {
@@ -359,7 +359,7 @@ class TestQuoteOrderInvoiceChain:
                 '_dirty': True,
                 'item': {'item_id': ITEM_ID, 'ida': item_ida},
                 'quantity': {'staged': 4, 'active': 1},
-                'price': {'unit': 10.0, 'extended': 10.0},
+                'price': {'unit': 10.0, 'amount': 10.0},
                 'cost': {'unit': 5.0, 'extended': 5.0},
             }],
             request=None,

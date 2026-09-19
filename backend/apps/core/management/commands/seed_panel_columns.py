@@ -42,7 +42,7 @@ PANEL_COLUMNS = {
     # ══════════════════════════════════════════════════════════════════════
 
     # ── Transaction lines ───────────────────────────────────────────────
-    # Lines use flattened JSON names (item_code, qty, unit_price, extended)
+    # Lines use flattened JSON names (item_code, qty, unit_price, amount)
     # because the API projects item/quantity/price JSON into scalar keys.
     'order_line': [
         f('ida', width=70),
@@ -51,7 +51,7 @@ PANEL_COLUMNS = {
         f('item_code', width=100),
         f('description', width=180),
         f('qty', width=50, align='right'),
-        f('extended', width=90, align='right', format='currency'),
+        f('amount', width=90, align='right', format='currency'),
     ],
     'invoice_line': [
         f('ida', width=70),
@@ -60,7 +60,7 @@ PANEL_COLUMNS = {
         f('item_code', width=100),
         f('description', width=180),
         f('qty', width=50, align='right'),
-        f('extended', width=90, align='right', format='currency'),
+        f('amount', width=90, align='right', format='currency'),
     ],
     'quote_line': [
         f('ida', width=70),
@@ -69,7 +69,7 @@ PANEL_COLUMNS = {
         f('item_code', width=100),
         f('description', width=180),
         f('qty', width=50, align='right'),
-        f('extended', width=90, align='right', format='currency'),
+        f('amount', width=90, align='right', format='currency'),
     ],
     'purchase_line': [
         f('ida', width=70),
@@ -78,7 +78,7 @@ PANEL_COLUMNS = {
         f('item_code', width=100),
         f('description', width=180),
         f('qty', width=50, align='right'),
-        f('extended', width=90, align='right', format='currency'),
+        f('amount', width=90, align='right', format='currency'),
     ],
     'workorder_line': [
         f('ida', width=70),

@@ -109,7 +109,7 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatBox
             label="Subtotal"
-            value={formatCurrency(totals.subtotal)}
+            value={formatCurrency(totals.amount)}
             sublabel="Σ extended"
             mandatory
           />

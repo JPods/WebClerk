@@ -276,7 +276,7 @@ export interface TransactionActions {
 // --- TransactionBaseModel JSONB Fields ---
 
 export interface TransactionTotals {
-  subtotal?: number | null;
+  amount?: number | null;
   discount?: number | null;
   taxable?: number | null;
   tax?: number | null;
@@ -443,7 +443,7 @@ export interface LinePrice {
   unit_base?: number;
   discount_percent?: number;
   discount_amount?: number;
-  extended?: number;
+  amount?: number;
   is_fixed?: boolean;
   precision?: number;
 }

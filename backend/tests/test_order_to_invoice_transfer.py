@@ -41,8 +41,8 @@ def _save_reviewed_invoice(monkeypatch, result):
 @pytest.mark.django_db
 def test_transfer_all_lines_success(customer_a, monkeypatch):
     order = Order.objects.create(status='confirmed', customer_id=customer_a.id)
-    l1 = OrderLine.objects.create(order=order, item={'description': 'Item 1'}, price={'extended': 100.0, 'unit': 100.0}, quantity={'active': 1})
-    l2 = OrderLine.objects.create(order=order, item={'description': 'Item 2'}, price={'extended': 200.0, 'unit': 100.0}, quantity={'active': 2})
+    l1 = OrderLine.objects.create(order=order, item={'description': 'Item 1'}, price={'amount': 100.0, 'unit': 100.0}, quantity={'active': 1})
+    l2 = OrderLine.objects.create(order=order, item={'description': 'Item 2'}, price={'amount': 200.0, 'unit': 100.0}, quantity={'active': 2})
 
     result = transfer_order_to_invoice(order=order, transfer_all=True, invoice_status='pending', preserve_order=True)
     assert result['success'] is True
@@ -70,8 +70,8 @@ def test_transfer_all_lines_success(customer_a, monkeypatch):
 @pytest.mark.django_db
 def test_transfer_selected_lines_only(customer_b, monkeypatch):
     order = Order.objects.create(status='confirmed', customer_id=customer_b.id)
-    l1 = OrderLine.objects.create(order=order, item={'description': 'Item 1'}, price={'extended': 100.0}, quantity={'active': 1})
-    l2 = OrderLine.objects.create(order=order, item={'description': 'Item 2'}, price={'extended': 200.0}, quantity={'active': 2})
+    l1 = OrderLine.objects.create(order=order, item={'description': 'Item 1'}, price={'amount': 100.0}, quantity={'active': 1})
+    l2 = OrderLine.objects.create(order=order, item={'description': 'Item 2'}, price={'amount': 200.0}, quantity={'active': 2})
     res = transfer_order_to_invoice(order=order, line_ids=[l1.id], transfer_all=False)
     assert res['lines_for_review'] == 1
     assert res['lines'][0]['refs']['source']['order_line_id'] == l1.id

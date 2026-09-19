@@ -61,13 +61,13 @@ class InvoiceModelTest(TestCase):
         line1 = InvoiceLine.objects.create(
             invoice=invoice,
             quantity={"staged": 2},
-            price={"unit": 10.00, "extended": 20.00},
+            price={"unit": 10.00, "amount": 20.00},
             cost={"extended": 16.00}
         )
         line2 = InvoiceLine.objects.create(
             invoice=invoice,
             quantity={"staged": 1},
-            price={"unit": 15.00, "extended": 15.00},
+            price={"unit": 15.00, "amount": 15.00},
             cost={"extended": 12.00}
         )
 
@@ -76,7 +76,7 @@ class InvoiceModelTest(TestCase):
         invoice.refresh_from_db()
 
         totals = invoice.totals
-        self.assertIn('subtotal', totals)
+        self.assertIn('amount', totals)
         self.assertIn('total', totals)
         self.assertIn('cost', totals)
         self.assertIn('margin', totals)

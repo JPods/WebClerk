@@ -114,7 +114,7 @@ def _empty_totals(subtotal=0, total=0, cost=0, received=0, balance=0):
         if total else 0
     )
     return {
-        'subtotal': float(subtotal),
+        'amount': float(subtotal),
         'discount': 0,
         'taxable': float(subtotal),
         'tax': 0,
@@ -161,7 +161,7 @@ def _price_json(unit_price, qty):
         'unit_base': float(unit_price),
         'discount_percent': 0.0,
         'discount_amount': 0.0,
-        'extended': extended,
+        'amount': extended,
         'is_fixed': False,
         'precision': 2,
     }

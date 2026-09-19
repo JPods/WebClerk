@@ -51,7 +51,7 @@ export interface InvoiceRecord {
   po_number?: string;
   totals?: {
     total?: number;
-    subtotal?: number;
+    amount?: number;
     tax?: number;
     received?: number;
     balance?: number;

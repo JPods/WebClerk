@@ -63,7 +63,7 @@ def check_extended_prices(
     """Compare r25-submitted extended values against wc3's recalculation.
 
     Call this AFTER _calculate_extended_price() has written the authoritative
-    values onto `line.price["extended"]` and `line.cost["extended"]`.
+    values onto `line.price["amount"]` and `line.cost["extended"]`.
 
     Returns a list of discrepancy dicts (empty if everything matches).
     """
@@ -71,12 +71,12 @@ def check_extended_prices(
 
     # --- Price extended ---
     if submitted_price_extended is not None and hasattr(line, "price") and line.price:
-        wc3_extended = line.price.get("extended", 0) or 0
+        wc3_extended = line.price.get("amount", 0) or 0
         delta = abs(Decimal(str(submitted_price_extended)) - Decimal(str(wc3_extended)))
         if delta > PRICE_TOLERANCE:
             disc = _build_discrepancy(
                 line=line,
-                field="price.extended",
+                field="price.amount",
                 submitted=submitted_price_extended,
                 calculated=wc3_extended,
                 delta=float(delta),

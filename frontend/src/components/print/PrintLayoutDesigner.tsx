@@ -192,7 +192,7 @@ const PANEL_TEMPLATES: Record<string, () => PrintLayoutSection> = {
       { field: 'item.description', label: 'description', align: 'left' as const, width: '40%' },
       { field: 'quantity.active', label: 'qty', align: 'right' as const },
       { field: 'price.unit', label: 'unit price', align: 'right' as const, format: 'currency' as const },
-      { field: 'price.extended', label: 'extended', align: 'right' as const, format: 'currency' as const },
+      { field: 'price.amount', label: 'amount', align: 'right' as const, format: 'currency' as const },
     ],
     show_footer_totals: true,
   }),
@@ -200,7 +200,7 @@ const PANEL_TEMPLATES: Record<string, () => PrintLayoutSection> = {
   totals: () => ({
     type: 'totals',
     rows: [
-      { field: 'totals.subtotal', label: 'subtotal', format: 'currency' as const },
+      { field: 'totals.amount', label: 'amount', format: 'currency' as const },
       { field: 'totals.tax', label: 'tax', format: 'currency' as const },
       { field: 'totals.shipping', label: 'shipping', format: 'currency' as const },
       { field: 'totals.total', label: 'total', format: 'currency' as const, bold: true },

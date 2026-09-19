@@ -33,7 +33,7 @@ def test_quote_to_order_action(django_user_model):
     quote = Quote.objects.create(name="P-ACT")
     # Optional: include a line to exercise copy path (not strictly required)
     QuoteLine.objects.create(quote=quote, status='OPEN',
-                                item={"id_num": 1}, quantity={"active": 1}, price={"extended": 1})
+                                item={"id_num": 1}, quantity={"active": 1}, price={"amount": 1})
 
     resp = client.post(f'/wcapi/quote/{quote.pk}/convert-to-order/', {}, format='json')
     assert resp.status_code == 201  # type: ignore[attr-defined]
@@ -52,7 +52,7 @@ def test_order_to_invoice_action(django_user_model):
 
     so = Order.objects.create(ida="SO-T1")
     OrderLine.objects.create(order=so, status='OPEN',
-                                  price={"extended": 2}, cost={"extended": 1})
+                                  price={"amount": 2}, cost={"extended": 1})
 
     resp = client.post(f'/wcapi/order/{so.pk}/convert-to-invoice/', {}, format='json')
     assert resp.status_code == 201  # type: ignore[attr-defined]

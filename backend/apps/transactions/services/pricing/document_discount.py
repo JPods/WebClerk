@@ -76,7 +76,7 @@ def apply_document_discount(header, amount: Optional[Any] = None,
         own = gross - line_amt                       # the line's own discount, in dollars
         price['discount_percent'] = 0
         price['discount_amount'] = float(own + share)
-        price['extended'] = float(line_amt - share)   # what the save will compute; keeps the AI audit quiet
+        price['amount'] = float(line_amt - share)   # what the save will compute; keeps the AI audit quiet
         line.price = price
         line.save()
         shares.append({'line_id': line.pk, 'line_amount': float(line_amt), 'share': float(share)})
@@ -99,7 +99,7 @@ def spread_discount_line(line) -> Optional[Dict[str, Any]]:
     if amount <= 0:
         return None
     result = apply_document_discount(header, amount=amount, exclude_pk=line.pk)
-    price.update({'unit': 0, 'discount_amount': 0, 'discount_percent': 0, 'extended': 0})
+    price.update({'unit': 0, 'discount_amount': 0, 'discount_percent': 0, 'amount': 0})
     meta = dict(line.metadata or {}) if isinstance(line.metadata, dict) else {}
     meta['document_discount'] = {'applied': float(amount), 'shares': result.get('shares', [])}
     line.price = price

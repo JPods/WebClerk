@@ -64,7 +64,7 @@ class TestInventoryBucketFlow:
             quote=quote,
             item_fk=item,
             item={'id': item.pk, 'ida': item.ida},
-            price={'unit': 50.0, 'quantity': 5.0, 'extended': 250.0},
+            price={'unit': 50.0, 'quantity': 5.0, 'amount': 250.0},
             cost={'unit': 20.0, 'quantity': 5.0, 'extended': 100.0},
             status='open',
         )

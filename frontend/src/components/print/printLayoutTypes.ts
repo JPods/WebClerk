@@ -12,7 +12,7 @@
 // ---------------------------------------------------------------------------
 
 export interface PrintField {
-  field: string;        // dot-notation: "config.ship_to.company", "totals.subtotal"
+  field: string;        // dot-notation: "config.ship_to.company", "totals.amount"
   label?: string;       // display label; defaults to field name if omitted
   format?: 'text' | 'currency' | 'date' | 'number' | 'percent';
   align?: 'left' | 'right' | 'center';

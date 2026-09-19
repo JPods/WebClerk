@@ -42,7 +42,7 @@ class QuoteTotalsServiceTest(TestCase):
         self.quote.refresh_from_db()
 
         totals = self.quote.totals
-        self.assertEqual(totals['subtotal'], 0.0)
+        self.assertEqual(totals['amount'], 0.0)
         self.assertEqual(totals['total'], 0.0)
         self.assertEqual(totals['cost'], 0.0)
         self.assertEqual(totals['margin'], 0.0)
@@ -53,7 +53,7 @@ class QuoteTotalsServiceTest(TestCase):
             quote=self.quote,
             item={'description': 'Test Item'},
             quantity={'staged': 2, 'active': 2, 'remaining': 2},
-            price={'unit': 10.00, 'extended': 20.00},
+            price={'unit': 10.00, 'amount': 20.00},
             cost={'unit': 8.00, 'extended': 16.00}
         )
 
@@ -61,7 +61,7 @@ class QuoteTotalsServiceTest(TestCase):
         self.quote.refresh_from_db()
 
         totals = self.quote.totals
-        self.assertIn('subtotal', totals)
+        self.assertIn('amount', totals)
         self.assertIn('total', totals)
         self.assertIn('cost', totals)
         self.assertIn('margin', totals)
@@ -74,14 +74,14 @@ class QuoteTotalsServiceTest(TestCase):
             quote=self.quote,
             item={'description': 'Item 1'},
             quantity={'staged': 2, 'active': 2, 'remaining': 2},
-            price={'unit': 10.00, 'extended': 20.00},
+            price={'unit': 10.00, 'amount': 20.00},
             cost={'unit': 8.00, 'extended': 16.00}
         )
         QuoteLine.objects.create(
             quote=self.quote,
             item={'description': 'Item 2'},
             quantity={'staged': 3, 'active': 3, 'remaining': 3},
-            price={'unit': 5.00, 'extended': 15.00},
+            price={'unit': 5.00, 'amount': 15.00},
             cost={'unit': 4.00, 'extended': 12.00}
         )
 
@@ -89,7 +89,7 @@ class QuoteTotalsServiceTest(TestCase):
         self.quote.refresh_from_db()
 
         totals = self.quote.totals
-        self.assertIn('subtotal', totals)
+        self.assertIn('amount', totals)
         self.assertIn('total', totals)
         self.assertIn('cost', totals)
         self.assertGreater(totals['total'], 0)
@@ -100,7 +100,7 @@ class QuoteTotalsServiceTest(TestCase):
             quote=self.quote,
             item={'description': 'Free Item'},
             quantity={'staged': 1, 'active': 1, 'remaining': 1},
-            price={'unit': 0.00, 'extended': 0.00},
+            price={'unit': 0.00, 'amount': 0.00},
             cost={'unit': 5.00, 'extended': 5.00}
         )
 
@@ -128,7 +128,7 @@ class QuoteTotalsServiceTest(TestCase):
 
         totals = self.quote.totals
         # Should handle missing data gracefully (return zeros)
-        self.assertEqual(totals['subtotal'], 0.0)
+        self.assertEqual(totals['amount'], 0.0)
         self.assertEqual(totals['cost'], 0.0)
         self.assertEqual(totals['total'], 0.0)
 
@@ -138,7 +138,7 @@ class QuoteTotalsServiceTest(TestCase):
             quote=self.quote,
             item={'description': 'Complete Item'},
             quantity={'staged': 1, 'active': 1, 'remaining': 1},
-            price={'unit': 100.00, 'extended': 100.00},
+            price={'unit': 100.00, 'amount': 100.00},
             cost={
                 'unit': 80.00,
                 'extended': 80.00,
@@ -151,7 +151,7 @@ class QuoteTotalsServiceTest(TestCase):
         self.quote.refresh_from_db()
 
         totals = self.quote.totals
-        self.assertIn('subtotal', totals)
+        self.assertIn('amount', totals)
         self.assertIn('total', totals)
         self.assertIn('cost', totals)
         self.assertGreater(totals['total'], 0)

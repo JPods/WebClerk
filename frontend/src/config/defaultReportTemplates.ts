@@ -179,7 +179,7 @@ export const invoiceTemplate: Template = {
       },
       // Totals
       {
-        name: 'subtotal',
+        name: 'amount',
         type: 'text',
         position: { x: 140, y: 220 },
         width: 56,
@@ -423,7 +423,7 @@ export const purchaseOrderTemplate: Template = {
       },
       // Totals
       {
-        name: 'subtotal',
+        name: 'amount',
         type: 'text',
         position: { x: 140, y: 220 },
         width: 56,
@@ -538,7 +538,7 @@ export const orderConfirmationTemplate: Template = {
       },
       // Totals
       {
-        name: 'subtotal',
+        name: 'amount',
         type: 'text',
         position: { x: 140, y: 220 },
         width: 56,

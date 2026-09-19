@@ -43,7 +43,7 @@ class InvoiceTotalsServiceTest(TestCase):
         self.invoice.refresh_from_db()
 
         totals = self.invoice.totals
-        self.assertEqual(totals['subtotal'], 0.0)
+        self.assertEqual(totals['amount'], 0.0)
         self.assertEqual(totals['total'], 0.0)
         self.assertEqual(totals['cost'], 0.0)
         self.assertEqual(totals['margin'], 0.0)
@@ -54,7 +54,7 @@ class InvoiceTotalsServiceTest(TestCase):
             invoice=self.invoice,
             item={"description": "Test Item"},
             quantity={"staged": 2, "active": 2, "remaining": 2},
-            price={"unit": 10.00, "extended": 20.00},
+            price={"unit": 10.00, "amount": 20.00},
             cost={"unit": 8.00, "extended": 16.00}
         )
 
@@ -62,7 +62,7 @@ class InvoiceTotalsServiceTest(TestCase):
         self.invoice.refresh_from_db()
 
         totals = self.invoice.totals
-        self.assertIn('subtotal', totals)
+        self.assertIn('amount', totals)
         self.assertIn('total', totals)
         self.assertIn('cost', totals)
         self.assertGreater(totals['total'], 0)
@@ -89,7 +89,7 @@ class OrderToInvoiceServiceTest(TestCase):
             order=self.order,
             item={"description": "Test Item"},
             quantity={"staged": 2, "active": 2},
-            price={"unit": 10.00, "extended": 20.00},
+            price={"unit": 10.00, "amount": 20.00},
             cost={"extended": 16.00}
         )
 
@@ -115,14 +115,14 @@ class OrderToInvoiceServiceTest(TestCase):
             order=self.order,
             item={"description": "Item 1"},
             quantity={"staged": 5, "active": 5},
-            price={"unit": 10.00, "extended": 30.00},
+            price={"unit": 10.00, "amount": 30.00},
             cost={"extended": 24.00}
         )
         ol2 = OrderLine.objects.create(
             order=self.order,
             item={"description": "Item 2"},
             quantity={"staged": 2, "active": 2, "is_complete": True},  # Already invoiced
-            price={"unit": 5.00, "extended": 0.00},
+            price={"unit": 5.00, "amount": 0.00},
             cost={"extended": 0.00}
         )
 

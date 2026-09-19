@@ -128,7 +128,7 @@ def _extract_line_fields(line) -> Dict[str, Any]:
     qty_shipped = qty_data.get("shipped", 0) if isinstance(qty_data, dict) else 0
 
     unit_price = price_data.get("unit", 0) if isinstance(price_data, dict) else 0
-    extended = price_data.get("extended", 0) if isinstance(price_data, dict) else 0
+    extended = price_data.get("amount", 0) if isinstance(price_data, dict) else 0
     discount_pct = price_data.get("discount_pct", 0) if isinstance(price_data, dict) else 0
 
     unit_cost = cost_data.get("unit", 0) if isinstance(cost_data, dict) else 0
@@ -152,7 +152,7 @@ def _extract_line_fields(line) -> Dict[str, Any]:
         "qty_ordered": qty_ordered,
         "qty_shipped": qty_shipped,
         "unit_price": unit_price,
-        "extended": extended,
+        "amount": extended,
         "discount_pct": discount_pct,
         "unit_cost": unit_cost,
         "extended_cost": extended_cost,
@@ -425,7 +425,7 @@ def _template_invoice(data: Dict, company: Dict) -> str:
                             data.get("dt_created", ""))
 
     totals = data.get("totals", {}) or {}
-    subtotal = totals.get("subtotal", data.get("total", 0))
+    subtotal = totals.get("amount", data.get("total", 0))
     tax = totals.get("tax", 0)
     shipping = totals.get("shipping", 0)
     total = totals.get("total", data.get("total", 0))
@@ -440,7 +440,7 @@ def _template_invoice(data: Dict, company: Dict) -> str:
             <td>{_safe(ln['item_name'])}</td>
             <td class="text-right">{_qty(ln['qty_ordered'])}</td>
             <td class="text-right">{_money(ln['unit_price'])}</td>
-            <td class="text-right">{_money(ln['extended'])}</td>
+            <td class="text-right">{_money(ln['amount'])}</td>
         </tr>"""
 
     return f"""<!DOCTYPE html><html><head><style>{_BASE_CSS}</style></head><body>
@@ -478,7 +478,7 @@ def _template_invoice(data: Dict, company: Dict) -> str:
     <div class="clearfix">
         <div class="totals-section">
             <table>
-                <tr><td>Subtotal:</td><td class="text-right">{_money(subtotal)}</td></tr>
+                <tr><td>Amount:</td><td class="text-right">{_money(subtotal)}</td></tr>
                 <tr><td>Tax:</td><td class="text-right">{_money(tax)}</td></tr>
                 <tr><td>Shipping:</td><td class="text-right">{_money(shipping)}</td></tr>
                 <tr class="total-row"><td>Total:</td><td class="text-right">{_money(total)}</td></tr>
@@ -680,7 +680,7 @@ def _template_order_confirmation(data: Dict, company: Dict) -> str:
     addr = data.get("address_full", "").replace("\n", "<br>") if data.get("address_full") else ""
 
     totals = data.get("totals", {}) or {}
-    subtotal = totals.get("subtotal", data.get("total", 0))
+    subtotal = totals.get("amount", data.get("total", 0))
     tax = totals.get("tax", 0)
     shipping = totals.get("shipping", 0)
     total = totals.get("total", data.get("total", 0))
@@ -692,7 +692,7 @@ def _template_order_confirmation(data: Dict, company: Dict) -> str:
             <td>{_safe(ln['item_name'])}</td>
             <td class="text-right">{_qty(ln['qty_ordered'])}</td>
             <td class="text-right">{_money(ln['unit_price'])}</td>
-            <td class="text-right">{_money(ln['extended'])}</td>
+            <td class="text-right">{_money(ln['amount'])}</td>
         </tr>"""
 
     return f"""<!DOCTYPE html><html><head><style>{_BASE_CSS}</style></head><body>
@@ -731,7 +731,7 @@ def _template_order_confirmation(data: Dict, company: Dict) -> str:
     <div class="clearfix">
         <div class="totals-section">
             <table>
-                <tr><td>Subtotal:</td><td class="text-right">{_money(subtotal)}</td></tr>
+                <tr><td>Amount:</td><td class="text-right">{_money(subtotal)}</td></tr>
                 <tr><td>Tax:</td><td class="text-right">{_money(tax)}</td></tr>
                 <tr><td>Shipping:</td><td class="text-right">{_money(shipping)}</td></tr>
                 <tr class="total-row"><td>Total:</td><td class="text-right">{_money(total)}</td></tr>
@@ -974,7 +974,7 @@ def _template_customs_proforma(data: Dict, company: Dict) -> str:
     total_weight = Decimal("0")
 
     for ln in data.get("lines", []):
-        ext = Decimal(str(ln.get("extended", 0) or 0))
+        ext = Decimal(str(ln.get("amount", 0) or 0))
         total_value += ext
         w = ln.get("weight", 0) or 0
         try:
@@ -1076,7 +1076,7 @@ def _template_generic(data: Dict, company: Dict, report_name: str) -> str:
                 <td>{_safe(ln.get('item_name'))}</td>
                 <td class="text-right">{_qty(ln.get('qty_ordered'))}</td>
                 <td class="text-right">{_money(ln.get('unit_price'))}</td>
-                <td class="text-right">{_money(ln.get('extended'))}</td>
+                <td class="text-right">{_money(ln.get('amount'))}</td>
             </tr>"""
 
         return f"""<!DOCTYPE html><html><head><style>{_BASE_CSS}</style></head><body>
@@ -1222,7 +1222,7 @@ def _normalize_sample_data(raw: Dict) -> Dict:
     Sample JSON uses the same structure as config.form field references:
         item.ida_item, item.description, quantity.active, price.unit, etc.
     Templates expect the flat keys from _extract_line_fields():
-        item_number, item_name, qty_ordered, unit_price, extended, etc.
+        item_number, item_name, qty_ordered, unit_price, amount, etc.
     """
     data = dict(raw)
 
@@ -1253,7 +1253,7 @@ def _normalize_sample_data(raw: Dict) -> Dict:
             "qty_ordered": qty.get("active", 0) or qty.get("ordered", 0),
             "qty_shipped": qty.get("shipped", 0),
             "unit_price": price.get("unit", 0),
-            "extended": price.get("extended", 0),
+            "amount": price.get("amount", 0),
             "discount_pct": price.get("discount_percent", 0) or price.get("discount_pct", 0),
             "unit_cost": cost.get("unit", 0),
             "extended_cost": cost.get("extended", 0),

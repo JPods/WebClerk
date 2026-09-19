@@ -68,7 +68,7 @@ def _create_discount_line(
         quantity={'active': 1},
         price={
             'unit': float(-disc_value),
-            'extended': float(-disc_value),
+            'amount': float(-disc_value),
         },
         metadata={
             'discount_pct': discount_pct,

@@ -34,9 +34,9 @@ def test_line_aggregation_simple(django_user_model):
     parent = Quote.objects.create(name="P1")
     # Create two lines under the same parent with mixed numeric/string extended values
     QuoteLine.objects.create(quote=parent, status='OPEN',
-                                price={"extended": "10.50"}, cost={"extended": 5})
+                                price={"amount": "10.50"}, cost={"extended": 5})
     QuoteLine.objects.create(quote=parent, status='OPEN',
-                                price={"extended": 2}, cost={"extended": "1.25"})
+                                price={"amount": 2}, cost={"extended": "1.25"})
     client = _auth(user)
     resp = client.get(f'/tx/lines/aggregate/?parent_ref_id={parent.pk}')
     # Aggregator sums across all line models sharing the same parent_ref_id value (cross-document id collision allowed).
@@ -90,8 +90,8 @@ def test_scoped_aggregation(django_user_model):
     user = django_user_model.objects.create_user(email='scope@example.com', password='pass12345', role='USER')
     parent = Quote.objects.create(name="P3")
     inv_parent = Invoice.objects.create()
-    QuoteLine.objects.create(quote=parent, status='OPEN', price={'extended': '3'}, cost={'extended': '1'})
-    InvoiceLine.objects.create(invoice=inv_parent, status='OPEN', price={'extended': '7'}, cost={'extended': '2'})
+    QuoteLine.objects.create(quote=parent, status='OPEN', price={'amount': '3'}, cost={'extended': '1'})
+    InvoiceLine.objects.create(invoice=inv_parent, status='OPEN', price={'amount': '7'}, cost={'extended': '2'})
     client = _auth(user)
     # Unscoped will sum both if parent_ref_ids collide; ensure different IDs first
     resp_scoped = client.get(f'/tx/lines/aggregate/?parent_ref_id={parent.pk}&model=quote-line')
@@ -177,8 +177,8 @@ def test_unscoped_aggregation_breakdown(django_user_model):
     user = django_user_model.objects.create_user(email='breakdown@example.com', password='pass12345', role='USER')
     quote = Quote.objects.create(name='BD')
     order = Order.objects.create(order_no='BD1')
-    QuoteLine.objects.create(quote=quote, status='OPEN', price={'extended':'2'}, cost={'extended':'1'})
-    OrderLine.objects.create(order=order, status='OPEN', price={'extended':'3'}, cost={'extended':'2'})
+    QuoteLine.objects.create(quote=quote, status='OPEN', price={'amount':'2'}, cost={'extended':'1'})
+    OrderLine.objects.create(order=order, status='OPEN', price={'amount':'3'}, cost={'extended':'2'})
     client = _auth(user)
     # Use quote parent_ref_id so only quote line counts; breakdown should reflect just that model
     resp = client.get(f'/tx/lines/aggregate/?parent_ref_id={quote.pk}')
@@ -195,7 +195,7 @@ def test_scoped_aggregation_with_breakdown_and_ttl_override(django_user_model):
                            config={"USER": {"view": ["id"], "edit": []}})
     user = django_user_model.objects.create_user(email='scopedbd@example.com', password='pass12345', role='USER')
     quote = Quote.objects.create(name='SBD')
-    QuoteLine.objects.create(quote=quote, status='OPEN', price={'extended':'5'}, cost={'extended':'2'})
+    QuoteLine.objects.create(quote=quote, status='OPEN', price={'amount':'5'}, cost={'extended':'2'})
     client = _auth(user)
     resp = client.get(f'/tx/lines/aggregate/?parent_ref_id={quote.pk}&model=quote-line&include_breakdown=1&ttl=15')
     assert resp.status_code == 200  # type: ignore[attr-defined]

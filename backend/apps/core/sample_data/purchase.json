@@ -32,15 +32,19 @@
   },
   "refs": {
     "links": {
-      "contact": {"id": 56, "name": "Milwaukee Tool Distribution", "ida": "MTD-56"}
+      "contact": {
+        "id": 56,
+        "name": "Milwaukee Tool Distribution",
+        "ida": "MTD-56"
+      }
     }
   },
   "totals": {
-    "subtotal": 12460.00,
-    "tax": 0.00,
-    "shipping": 345.00,
-    "total": 12805.00,
-    "balance": 12805.00
+    "tax": 0.0,
+    "shipping": 345.0,
+    "total": 12805.0,
+    "balance": 12805.0,
+    "amount": 12460.0
   },
   "sell": {},
   "cost": {},
@@ -55,11 +59,13 @@
         "description": "M18 FUEL 1/2\" Hammer Drill/Driver Kit",
         "uom": "Each"
       },
-      "quantity": {"active": 12},
+      "quantity": {
+        "active": 12
+      },
       "price": {
-        "unit": 249.00,
+        "unit": 249.0,
         "discount_percent": 20,
-        "extended": 2390.40
+        "amount": 2390.4
       }
     },
     {
@@ -69,11 +75,13 @@
         "description": "M18 FUEL 5\" / 6\" Grinder, Paddle Switch Kit",
         "uom": "Each"
       },
-      "quantity": {"active": 8},
+      "quantity": {
+        "active": 8
+      },
       "price": {
-        "unit": 299.00,
+        "unit": 299.0,
         "discount_percent": 20,
-        "extended": 1913.60
+        "amount": 1913.6
       }
     },
     {
@@ -83,11 +91,13 @@
         "description": "PACKOUT Rolling Tool Box",
         "uom": "Each"
       },
-      "quantity": {"active": 15},
+      "quantity": {
+        "active": 15
+      },
       "price": {
-        "unit": 199.00,
+        "unit": 199.0,
         "discount_percent": 15,
-        "extended": 2537.25
+        "amount": 2537.25
       }
     },
     {
@@ -97,11 +107,13 @@
         "description": "BIG HAWG 9-Piece Hole Saw Kit",
         "uom": "Kit"
       },
-      "quantity": {"active": 20},
+      "quantity": {
+        "active": 20
+      },
       "price": {
         "unit": 89.99,
         "discount_percent": 25,
-        "extended": 1349.85
+        "amount": 1349.85
       }
     },
     {
@@ -111,11 +123,13 @@
         "description": "M18 REDLITHIUM XC5.0 Battery 2-Pack",
         "uom": "Pack"
       },
-      "quantity": {"active": 24},
+      "quantity": {
+        "active": 24
+      },
       "price": {
-        "unit": 199.00,
+        "unit": 199.0,
         "discount_percent": 22,
-        "extended": 3725.28
+        "amount": 3725.28
       }
     },
     {
@@ -125,11 +139,13 @@
         "description": "M18 RADIUS Site Light w/ ONE-KEY",
         "uom": "Each"
       },
-      "quantity": {"active": 4},
+      "quantity": {
+        "active": 4
+      },
       "price": {
-        "unit": 349.00,
+        "unit": 349.0,
         "discount_percent": 15,
-        "extended": 1186.60
+        "amount": 1186.6
       }
     }
   ]

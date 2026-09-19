@@ -326,9 +326,9 @@ def create_commission_invoice(
             # Prorate header commission by line's share of order total
             header_total = order_comm.get('total', 0)
             if header_total:
-                src_price = (src_line.price or {}).get('extended', 0) or 0
-                # Share of goods: Σ line extended is totals.subtotal
-                goods = (order.totals or {}).get('subtotal', 0) or 0
+                src_price = (src_line.price or {}).get('amount', 0) or 0
+                # Share of goods: Σ line extended is totals.amount
+                goods = (order.totals or {}).get('amount', 0) or 0
                 if goods > 0:
                     comm_amount = round(header_total * (src_price / goods), 2)
 
@@ -357,7 +357,7 @@ def create_commission_invoice(
             },
             price={
                 'unit': unit_comm,
-                'extended': comm_amount,
+                'amount': comm_amount,
                 'unit_base': unit_comm,
             },
             cost={'unit': 0, 'extended': 0},

@@ -291,7 +291,7 @@ def populate_transaction_commission(transaction_id: int, model_name: str) -> dic
 
             price_data = line.price or {}
             cost_data = line.cost or {}
-            price_ext = float(price_data.get('extended', 0) or 0)
+            price_ext = float(price_data.get('amount', 0) or 0)
             cost_ext = float(cost_data.get('extended', 0) or 0)
 
             if price_ext == 0:

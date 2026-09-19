@@ -98,7 +98,7 @@ class TrainingFlow:
             quote=self.quote,
             item_fk=self.item,
             item={'id': self.item.pk, 'ida': self.item.ida, 'description': getattr(self.item, 'description', '')},
-            price={'unit': unit_price, 'quantity': float(quantity), 'extended': unit_price * quantity},
+            price={'unit': unit_price, 'quantity': float(quantity), 'amount': unit_price * quantity},
             cost={'unit': self._get_item_cost(), 'quantity': float(quantity), 'extended': self._get_item_cost() * quantity},
             status='open',
         )
@@ -137,7 +137,7 @@ class TrainingFlow:
             order=self.order,
             item_fk=self.item,
             item={'id': self.item.pk, 'ida': self.item.ida},
-            price={'unit': unit_price, 'quantity': float(quantity), 'extended': unit_price * quantity},
+            price={'unit': unit_price, 'quantity': float(quantity), 'amount': unit_price * quantity},
             cost={'unit': self._get_item_cost(), 'quantity': float(quantity), 'extended': self._get_item_cost() * quantity},
             status='open',
         )
@@ -177,7 +177,7 @@ class TrainingFlow:
             invoice=self.invoice,
             item_fk=self.item,
             item={'id': self.item.pk, 'ida': self.item.ida},
-            price={'unit': unit_price, 'quantity': float(quantity), 'extended': unit_price * quantity},
+            price={'unit': unit_price, 'quantity': float(quantity), 'amount': unit_price * quantity},
             cost={'unit': self._get_item_cost(), 'quantity': float(quantity), 'extended': self._get_item_cost() * quantity},
             status='open',
         )
@@ -212,7 +212,7 @@ class TrainingFlow:
                 inv_lines = InvoiceLine.objects.filter(invoice=self.invoice, is_deleted=False)
                 for ln in inv_lines:
                     p = getattr(ln, 'price', {}) or {}
-                    amount = (amount or 0) + float(p.get('extended', 0) or 0)
+                    amount = (amount or 0) + float(p.get('amount', 0) or 0)
 
         # Find or create a contact for the cash
         contact = Contact.objects.filter(customer=self.customer).first()

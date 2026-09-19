@@ -7,7 +7,7 @@ Purchase, WorkOrder, Requisition, Receipt) and:
      fills missing canonical keys (staged/active/remaining), replaces null numerics with 0.
   2. Normalizes cost: ensures all keys exist, replaces nulls with 0.
   3. Normalizes price (sell-side only): ensures all keys, replaces nulls with 0.
-  4. Recalculates extended values (price.extended, cost.extended) from normalized data.
+  4. Recalculates extended values (price.amount, cost.extended) from normalized data.
 
 All normalization happens via the model's ensure_json_defaults() → save() path.
 
@@ -73,7 +73,7 @@ def _needs_price_fix(p: dict | None) -> bool:
     """Return True if price dict has null numeric values or missing keys."""
     if not isinstance(p, dict) or not p:
         return True
-    for k in ("unit", "extended", "discount_amount", "discount_percent"):
+    for k in ("unit", "amount", "discount_amount", "discount_percent"):
         if k not in p or p[k] is None:
             return True
     return False

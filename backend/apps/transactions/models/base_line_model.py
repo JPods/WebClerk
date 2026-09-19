@@ -231,7 +231,7 @@ def default_price() -> Dict[str, Any]:
         "unit_base": 0.0,
         "discount_percent": 0.0,
         "discount_amount": 0.0,
-        "extended": 0.0,
+        "amount": 0.0,          # the line's total before tax; adds into totals.amount
         "is_fixed": False,
         "precision": 2,
     }
@@ -254,7 +254,7 @@ def normalize_price_map(p: Dict[str, Any] | None) -> Dict[str, Any]:
                 pass
         data["precision"] = prec
         # money-like values
-        for key, places in (("unit", prec), ("discount_amount", prec), ("extended", prec)):
+        for key, places in (("unit", prec), ("discount_amount", prec), ("amount", prec)):
             if key in p:
                 try:
                     data[key] = float(_to_decimal(p.get(key), places=int(places)))
@@ -435,7 +435,7 @@ class BaseLineCore(BaseModel):
     # Replaces the old item.line_number JSON key.
     line_number = models.IntegerField(default=0, db_index=True)
 
-    # Line type — controls how this line's extended amount routes in totals.
+    # Line type — controls how this line's amount routes in totals.
     #   product    (default) → adds to subtotal, taxed at header rate
     #   commission → rep line — invoiced to manufacturer for commission, not to customer
     #   tax        → adds to tax total (environmental fee, recycling, bottle deposit)
@@ -550,7 +550,7 @@ class BaseLineCore(BaseModel):
 
         # Step 6: compute cost.extended from qty × unit − discount
         # This is the single authority for cost extended calculation.
-        # BaseSellLineModel overrides ensure_json_defaults to also compute price.extended.
+        # BaseSellLineModel overrides ensure_json_defaults to also compute price.amount.
         self._calculate_extended_cost()
 
     def _calculate_extended_cost(self) -> None:
@@ -737,7 +737,7 @@ class BaseSellLineModel(BaseLineCore):
     on every save via _calculate_extended_price().
 
     Extended calculation (runs in ensure_json_defaults → _calculate_extended_price):
-      price.extended = (quantity.active × price.unit) − discount_amount
+      price.amount = (quantity.active × price.unit) − discount_amount
       cost.extended  = (quantity.active × cost.unit)  − discount_amount
 
     See: readmes/topics/transactions/transactions-totals.md §1
@@ -758,16 +758,16 @@ class BaseSellLineModel(BaseLineCore):
         )
         super().ensure_json_defaults()           # seed + normalize cost + compute cost.extended
         self.price = normalize_price_map(getattr(self, "price", None))  # normalize price
-        self._calculate_extended_price()         # compute price.extended from qty × unit
+        self._calculate_extended_price()         # compute price.amount from qty × unit − discount
 
     def _calculate_extended_price(self) -> None:
-        """Compute price.extended from quantity.active.
+        """Compute price.amount from quantity.active.
 
         Formula:
           gross = quantity.active × price.unit
           discount_amount = gross × (discount_percent / 100) when a percent is set,
                             else the explicit dollar discount_amount
-          price.extended = gross − discount_amount
+          price.amount = gross − discount_amount
 
         Cost extended is computed by BaseLineCore._calculate_extended_cost()
         which runs via super().ensure_json_defaults() — one source of truth.
@@ -783,7 +783,7 @@ class BaseSellLineModel(BaseLineCore):
         """
         # ── Snapshot r25-submitted values BEFORE recalculating ────────
         submitted_price_ext = (
-            self.price.get("extended") if isinstance(self.price, dict) else None
+            self.price.get("amount") if isinstance(self.price, dict) else None
         )
         # cost.extended was already recomputed by super().ensure_json_defaults(),
         # so use the snapshot taken in ensure_json_defaults() before super() ran.
@@ -792,7 +792,7 @@ class BaseSellLineModel(BaseLineCore):
         # quantity.active drives price extended (see _calculate_extended_cost)
         quantity = (self.quantity or {}).get("active", 0) or 0
 
-        # --- SELL EXTENDED: price.extended = qty × price.unit − discount ---
+        # --- SELL EXTENDED: price.amount = qty × price.unit − discount ---
         if self.price:
             unit_price = self.price.get("unit", 0)
             discount_amount = self.price.get("discount_amount", None)
@@ -803,7 +803,7 @@ class BaseSellLineModel(BaseLineCore):
                 discount_amount = float(_to_decimal(gross * (Decimal(discount_percent) / Decimal("100")), places=precision))
             self.price["discount_amount"] = float(_to_decimal(discount_amount, places=precision))
             extended = float(_to_decimal(gross - Decimal(str(self.price["discount_amount"])), places=precision))
-            self.price["extended"] = extended
+            self.price["amount"] = extended
 
         # NOTE: cost.extended is computed by BaseLineCore._calculate_extended_cost()
         # which already ran in super().ensure_json_defaults(). No duplication here.

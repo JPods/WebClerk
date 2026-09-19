@@ -51,7 +51,7 @@ class Command(BaseCommand):
                 
                 # Check if any values need fixing
                 needs_fix = False
-                for key in ['subtotal', 'discount', 'taxable', 'tax', 'shipping', 
+                for key in ['amount', 'discount', 'taxable', 'tax', 'shipping', 
                            'other', 'total', 'cost', 'margin', 'margin_pc', 
                            'received', 'balance']:
                     if key in totals and totals[key] is None:

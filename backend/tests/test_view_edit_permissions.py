@@ -112,7 +112,7 @@ def test_journalized_write_is_refused_not_just_hidden():
 
     invoice = Invoice.objects.create(status='planned', totals={'total': 100})
     line = InvoiceLine.objects.create(invoice=invoice, quantity={'staged': 1, 'active': 1},
-                                      price={'unit': 100, 'extended': 100})
+                                      price={'unit': 100, 'amount': 100})
     invoice.is_locked = True
     invoice.save(update_fields=['is_locked'])
 

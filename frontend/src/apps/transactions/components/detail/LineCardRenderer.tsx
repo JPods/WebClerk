@@ -122,7 +122,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
         is_serialized: isSerialized,
       },
       quantity: { active: effectiveQty, remaining: effectiveQty, staged: effectiveQty },
-      price: { unit: unitPrice, extended: unitPrice * effectiveQty, discount_percent: 0 },
+      price: { unit: unitPrice, amount: unitPrice * effectiveQty, discount_percent: 0 },
       cost: { unit: unitCost, extended: unitCost * effectiveQty },
       commission: commRate > 0 ? { rate: commRate, amount: unitPrice * effectiveQty * commRate / 100 } : {},
       comments: { process: (item as any).li_comment || (item as any).liComment || '' },
@@ -177,7 +177,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
     ? lc.records.filter(r => lc.selectedLineIds.has(r.id))
     : lc.records;
   const footerQty = activeRecords.reduce((s, r) => s + (r.qty ?? 0), 0);
-  const footerExtended = activeRecords.reduce((s, r) => s + (r.extended ?? 0), 0);
+  const footerExtended = activeRecords.reduce((s, r) => s + (r.amount ?? 0), 0);
   const footerBacklog = activeRecords.reduce((s, r) => s + (r._hasBacklog ? r.remaining * (lc.isSellSide ? r.discounted_unit : r.unit_cost) : 0), 0);
   const selectionLabel = lc.selectedLineIds.size > 0 ? ` (${lc.selectedLineIds.size} selected)` : '';
 
@@ -374,7 +374,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
                 <div style={{ fontSize: '0.8em', color: 'var(--wc-text-muted, #6c757d)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.description}</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: '0.85em' }}>
                   <span>qty: {r.qty}</span>
-                  <span style={{ fontWeight: 600 }}>{formatCurrency(r.extended)}</span>
+                  <span style={{ fontWeight: 600 }}>{formatCurrency(r.amount)}</span>
                 </div>
               </div>
             </div>
@@ -437,7 +437,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
             <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '2px 8px', fontSize: '0.85em' }}>
               <span style={{ color: 'var(--wc-text-muted)' }}>qty</span><span>{selectedRec.qty}</span>
               <span style={{ color: 'var(--wc-text-muted)' }}>unit</span><span>{formatCurrency(isSellSide ? selectedRec.unit_price : selectedRec.unit_cost)}</span>
-              <span style={{ color: 'var(--wc-text-muted)' }}>extended</span><span style={{ fontWeight: 600 }}>{formatCurrency(selectedRec.extended)}</span>
+              <span style={{ color: 'var(--wc-text-muted)' }}>amount</span><span style={{ fontWeight: 600 }}>{formatCurrency(selectedRec.amount)}</span>
               {isSellSide && selectedRec.discount_pct > 0 && (
                 <><span style={{ color: 'var(--wc-text-muted)' }}>disc</span><span>{selectedRec.discount_pct}%</span></>
               )}

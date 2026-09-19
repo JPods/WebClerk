@@ -87,7 +87,7 @@ function flattenLine(line: any, idx: number, isSellSide: boolean): any {
   const unitCost = Number(costRecord?.unit ?? line.cost?.unit ?? 0);
 
   const extended = isSellSide
-    ? Number(priceRecord?.extended ?? line.price?.extended ?? qty * discountedUnit)
+    ? Number(priceRecord?.amount ?? line.price?.amount ?? qty * discountedUnit)
     : Number(costRecord?.extended ?? line.cost?.extended ?? qty * unitCost);
 
   const weight = Number(line.physical?.weight ?? 0);
@@ -109,7 +109,7 @@ function flattenLine(line: any, idx: number, isSellSide: boolean): any {
     discount_pct: discountPct,
     discounted_unit: discountedUnit,
     unit_cost: unitCost,
-    extended,
+    amount: extended,
     weight,
     _itemId: Number(line.item_id ?? line.item?.id ?? line.item?.item_id ?? 0),
     _itemIsActive: line.item?.is_active !== false,
@@ -179,7 +179,7 @@ export function useLineCard(options: UseLineCardOptions) {
           const unitP = updated.price?.unit ?? 0;
           const discPct = updated.price?.discount_percent ?? 0;
           const discUnit = discPct > 0 ? unitP * (1 - discPct / 100) : unitP;
-          result.price = { ...updated.price, extended: newQty * discUnit };
+          result.price = { ...updated.price, amount: newQty * discUnit };
         }
         if (isExecSide && updated.cost) {
           result.cost = { ...updated.cost, extended: newQty * (updated.cost?.unit ?? 0) };
@@ -193,14 +193,14 @@ export function useLineCard(options: UseLineCardOptions) {
         const qty = updated.quantity?.active ?? 0;
         const discPct = updated.price?.discount_percent ?? 0;
         const discUnit = discPct > 0 ? newPrice * (1 - discPct / 100) : newPrice;
-        return { ...updated, price: { ...updated.price, unit: newPrice, extended: qty * discUnit } };
+        return { ...updated, price: { ...updated.price, unit: newPrice, amount: qty * discUnit } };
       }
       case "discount_pct": {
         const newDiscPct = Number(value);
         const qty = updated.quantity?.active ?? 0;
         const unitP = updated.price?.unit ?? 0;
         const discUnit = newDiscPct > 0 ? unitP * (1 - newDiscPct / 100) : unitP;
-        return { ...updated, price: { ...updated.price, discount_percent: newDiscPct, extended: qty * discUnit } };
+        return { ...updated, price: { ...updated.price, discount_percent: newDiscPct, amount: qty * discUnit } };
       }
       case "is_complete": {
         const complete = Boolean(value);
@@ -223,7 +223,7 @@ export function useLineCard(options: UseLineCardOptions) {
       }
       case "comm_rate": {
         const newRate = Number(value);
-        const priceExt = updated.price?.extended ?? 0;
+        const priceExt = updated.price?.amount ?? 0;
         const costExt = updated.cost?.extended ?? 0;
         const existingComm = updated.commission || {};
         const existingReps = existingComm.reps || [];
@@ -350,7 +350,7 @@ export function useLineCard(options: UseLineCardOptions) {
       cols.push({ name: 'unit_cost', field: 'unit_cost', width: '100px', sortable: true });
     }
 
-    cols.push({ name: 'extended', field: 'extended', width: '110px', sortable: true });
+    cols.push({ name: 'amount', field: 'amount', width: '110px', sortable: true });
 
     if (isSellSide) {
       cols.push({ name: 'tax%', field: 'tax_rate', width: '55px', sortable: true });
@@ -389,7 +389,7 @@ export function useLineCard(options: UseLineCardOptions) {
     discount_pct: { type: 'readonly', bulkEditable: true },
     discounted_unit: { type: 'currency', precision: currency.unit_price_precision, bulkEditable: true },
     unit_cost: { type: 'currency', precision: currency.unit_cost_precision },
-    extended: { type: 'currency', precision: currency.total_precision, calculated: true },
+    amount: { type: 'currency', precision: currency.total_precision, calculated: true },
     item_code: { type: 'readonly' },
     description: { type: 'readonly' },
     uom: { type: 'readonly' },

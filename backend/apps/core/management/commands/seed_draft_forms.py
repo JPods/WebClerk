@@ -63,12 +63,12 @@ def priced_lines(qty_field="quantity.active", show_totals=True):
         {"field": "item.description", "label": "Description", "align": "left", "width": "42%"},
         {"field": qty_field, "label": "Qty", "align": "right", "format": "number"},
         {"field": "price.unit", "label": "Unit", "align": "right", "format": "currency"},
-        {"field": "price.extended", "label": "Amount", "align": "right", "format": "currency"},
+        {"field": "price.amount", "label": "Amount", "align": "right", "format": "currency"},
     ]}
 
 
 def totals(kind="full"):
-    rows = [{"field": "totals.subtotal", "label": "Subtotal", "format": "currency"}]
+    rows = [{"field": "totals.amount", "label": "Subtotal", "format": "currency"}]
     if kind == "full":
         rows += [
             {"field": "totals.tax", "label": "Tax", "format": "currency"},
@@ -238,7 +238,7 @@ DRAFTS = {
         {"type": "data_table", "grand_totals": True, "columns": [
             {"field": "item.ida_item", "label": "Account", "align": "left", "width": "22%"},
             {"field": "item.description", "label": "Description", "align": "left", "width": "46%"},
-            {"field": "price.extended", "label": "Amount", "align": "right", "format": "currency"},
+            {"field": "price.amount", "label": "Amount", "align": "right", "format": "currency"},
         ]},
         totals(kind="short"),
         footer(("ida", "Entry #")),
@@ -250,7 +250,7 @@ DRAFTS = {
         {"type": "data_table", "grand_totals": True, "columns": [
             {"field": "item.ida_item", "label": "Account", "align": "left", "width": "22%"},
             {"field": "item.description", "label": "Description", "align": "left", "width": "46%"},
-            {"field": "price.extended", "label": "Amount", "align": "right", "format": "currency"},
+            {"field": "price.amount", "label": "Amount", "align": "right", "format": "currency"},
         ]},
         {"type": "comments", "source": "comments.public", "label": "Note"},
         footer(("ida", "Reference")),

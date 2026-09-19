@@ -82,7 +82,7 @@ LINE_ITEMS = [
 TOTALS = [
     {'name': 'subtotal_label', 'type': 'text', 'position': {'x': 130, 'y': 245},
      'width': 30, 'height': 7, 'fontSize': 9, 'alignment': 'right'},
-    {'name': 'subtotal', 'type': 'text', 'position': {'x': 162, 'y': 245},
+    {'name': 'amount', 'type': 'text', 'position': {'x': 162, 'y': 245},
      'width': 34, 'height': 7, 'fontSize': 9, 'alignment': 'right'},
     {'name': 'tax_label', 'type': 'text', 'position': {'x': 130, 'y': 253},
      'width': 30, 'height': 7, 'fontSize': 9, 'alignment': 'right'},

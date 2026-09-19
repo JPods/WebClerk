@@ -153,14 +153,14 @@ def get_template_fields(model_name: str) -> Dict[str, Any]:
             "model": "order",
             "fields": ["ida", "status", "dt", "due_date", ...],
             "json_fields": {
-                "totals": ["total", "subtotal", "tax", "shipping", "received", "balance"],
-                "price": ["unit", "extended", "discount"],
+                "totals": ["total", "amount", "tax", "shipping", "received", "balance"],
+                "price": ["unit", "amount", "discount"],
                 ...
             },
             "related": {
                 "customer": ["ida", "display_name", "company", "email", "phone", "credit_limit"],
                 "contact": ["name_first", "name_last", "email", "phone"],
-                "lines": ["item.ida", "item.description", "quantity.staged", "price.unit", "price.extended"]
+                "lines": ["item.ida", "item.description", "quantity.staged", "price.unit", "price.amount"]
             },
             "examples": [
                 "{{order.ida}}", "{{order.totals.total}}", "{{customer.company}}", "{{contact.name_first}}"
@@ -216,9 +216,9 @@ def get_template_fields(model_name: str) -> Dict[str, Any]:
 def _get_json_subfields(model_name: str, field_name: str) -> List[str]:
     """Return known subfield keys for common JSON fields."""
     KNOWN_JSON = {
-        'totals': ['total', 'subtotal', 'tax', 'shipping', 'other', 'received', 'balance',
+        'totals': ['total', 'amount', 'tax', 'shipping', 'other', 'received', 'balance',
                     'sell_total', 'cost_total', 'margin', 'margin_pct'],
-        'price': ['unit', 'extended', 'discount', 'discount_pct', 'base', 'retail',
+        'price': ['unit', 'amount', 'discount', 'discount_pct', 'base', 'retail',
                   'wholesale', 'distributor', 'sample', 'currency'],
         'cost': ['unit', 'extended', 'standard', 'avg', 'last'],
         'quantity': ['staged', 'active', 'remaining', 'received', 'shipped',

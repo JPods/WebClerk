@@ -266,7 +266,7 @@ class BundleStatusView(APIView):
             "dt_needed": order.dt_needed,
             "ship_via": order.ship_via,
             "totals": {
-                "subtotal": totals.get("subtotal", 0),
+                "amount": totals.get("amount", 0),
                 "tax": totals.get("tax", 0),
                 "shipping": totals.get("shipping", 0),
                 "total": totals.get("total", 0),

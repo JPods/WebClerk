@@ -405,7 +405,7 @@ def _dry_run_invoice_balance(invoice) -> dict:
 
     for line in lines:
         price_data = line.price or {}
-        extended = Decimal(str(price_data.get('extended', 0) or 0))
+        extended = Decimal(str(price_data.get('amount', 0) or 0))
         if extended == 0:
             continue
 

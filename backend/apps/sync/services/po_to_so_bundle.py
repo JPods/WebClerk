@@ -13,7 +13,7 @@ Default mapping (PO cost → SO price):
     line.cost.unit_base    → line.price.unit_base
     line.cost.discount_percent → line.price.discount_percent
     line.cost.discount_amount  → line.price.discount_amount
-    line.cost.extended     → line.price.extended
+    line.cost.extended     → line.price.amount
 
 The bundle UUID becomes the cross-system tracking reference, stored
 in record.refs.links.bundle[] on both sides.
@@ -41,7 +41,7 @@ DEFAULT_COST_TO_PRICE_MAP = {
     "unit_base": "unit_base",
     "discount_percent": "discount_percent",
     "discount_amount": "discount_amount",
-    "extended": "extended",
+    "extended": "amount",   # PO cost.extended → SO price.amount
     "precision": "precision",
 }
 

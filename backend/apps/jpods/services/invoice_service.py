@@ -106,7 +106,7 @@ def create_trip_invoice(data: dict[str, Any]) -> dict[str, Any]:
     }
 
     totals = {
-        "subtotal": float(price),
+        "amount": float(price),
         "discount": 0,
         "taxable": float(price),
         "tax": 0,
@@ -154,7 +154,7 @@ def create_trip_invoice(data: dict[str, Any]) -> dict[str, Any]:
                 "unit_base": float(price),
                 "discount_percent": 0.0,
                 "discount_amount": 0.0,
-                "extended": float(price),
+                "amount": float(price),
             },
         )
         line.save()

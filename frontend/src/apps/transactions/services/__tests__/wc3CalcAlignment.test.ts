@@ -164,7 +164,7 @@ describe('computeHeaderTotals()', () => {
     return {
       item: { is_deleted: overrides.deleted ?? false },
       price: {
-        extended: overrides.priceExt ?? 0,
+        amount: overrides.priceExt ?? 0,
         discount_amount: overrides.priceDis ?? 0,
       },
       cost: {
@@ -185,7 +185,7 @@ describe('computeHeaderTotals()', () => {
     ];
     const result = computeHeaderTotals(lines, { transactionType: 'order' });
 
-    expect(result.totals.subtotal).toBe(1000);
+    expect(result.totals.amount).toBe(1000);
     expect(result.totals.discount).toBe(50);
     expect(result.totals.total).toBe(1000);
 
@@ -206,7 +206,7 @@ describe('computeHeaderTotals()', () => {
     ];
     const result = computeHeaderTotals(lines, { transactionType: 'order' });
 
-    expect(result.totals.subtotal).toBe(500);
+    expect(result.totals.amount).toBe(500);
     expect(result.cost.line_sum_goods).toBe(300);
   });
 
@@ -216,7 +216,7 @@ describe('computeHeaderTotals()', () => {
     ];
     const result = computeHeaderTotals(lines, { transactionType: 'purchase' });
 
-    expect(result.totals.subtotal).toBe(0);
+    expect(result.totals.amount).toBe(0);
         expect(result.cost.total).toBe(240);
     expect(result.totals.total).toBe(240); // exec: total = cost.total
   });

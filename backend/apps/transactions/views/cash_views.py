@@ -348,7 +348,7 @@ def checkout_pricing(request, invoice_id):
     return Response({
         'invoice_id': invoice.id,
         'totals': {
-            'subtotal': totals.get('subtotal', 0),
+            'amount': totals.get('amount', 0),
             'tax': totals.get('tax', 0),
             'shipping': totals.get('shipping', 0),
         },

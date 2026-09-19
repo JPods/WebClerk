@@ -25,7 +25,7 @@ class PurchaseTotalsServiceTest(TestCase):
         self.purchase.refresh_from_db()
 
         totals = self.purchase.totals
-        self.assertEqual(totals['subtotal'], 0.0)
+        self.assertEqual(totals['amount'], 0.0)
         self.assertEqual(totals['total'], 0.0)
         self.assertEqual(totals['cost'], 0.0)
         self.assertEqual(totals['margin'], 0.0)
@@ -50,7 +50,7 @@ class PurchaseTotalsServiceTest(TestCase):
         self.purchase.refresh_from_db()
 
         totals = self.purchase.totals
-        self.assertIn('subtotal', totals)
+        self.assertIn('amount', totals)
         self.assertIn('total', totals)
         self.assertIn('cost', totals)
 
@@ -72,7 +72,7 @@ class PurchaseTotalsServiceTest(TestCase):
         self.purchase.refresh_from_db()
 
         totals = self.purchase.totals
-        self.assertIn('subtotal', totals)
+        self.assertIn('amount', totals)
         self.assertIn('total', totals)
         self.assertIn('cost', totals)
 

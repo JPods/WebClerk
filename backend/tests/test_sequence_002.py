@@ -115,7 +115,7 @@ class TestSequence002(TestCase):
             customer=self.customer,
             status='planned',
             price_level='retail',
-            totals={'total': 0, 'subtotal': 0},
+            totals={'total': 0, 'amount': 0},
         )
 
         # Line 1: qty 5 @ $25
@@ -124,7 +124,7 @@ class TestSequence002(TestCase):
             item_fk=self.item,
             item={'item_id': 308, 'name': self.item.name},
             quantity={'staged': 5, 'active': 5, 'remaining': 5},
-            price={'unit': 25.0, 'extended': 125.0},
+            price={'unit': 25.0, 'amount': 125.0},
             cost={'unit': 12.0, 'extended': 60.0},
             line_number=10,
         )
@@ -135,7 +135,7 @@ class TestSequence002(TestCase):
             item_fk=self.item,
             item={'item_id': 308, 'name': self.item.name},
             quantity={'staged': 3, 'active': 3, 'remaining': 3},
-            price={'unit': 25.0, 'extended': 75.0},
+            price={'unit': 25.0, 'amount': 75.0},
             cost={'unit': 12.0, 'extended': 36.0},
             line_number=20,
         )

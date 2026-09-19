@@ -30,7 +30,7 @@ def test_quote_update_sell_cost_totals():
     computed = pr.update_sell_cost_totals(persist=False)
 
     # subtotal = (200 - 10 discount) + 2 x 25
-    assert computed["subtotal"] == 240.0
+    assert computed["amount"] == 240.0
     assert computed["shipping"] == 5.0
     assert computed["total"] == 245.0
     # margin = subtotal - cost (120 + 2 x 15)
@@ -87,7 +87,7 @@ to sales orders and invoices.
   "unit": 100.0,
   "discount_percent": 5.0,
   "discount_amount": 5.0,
-  "extended": 95.0,
+  "amount": 95.0,
   "is_fixed": false,
   "precision": 2
 }
@@ -162,7 +162,7 @@ POST /wcapi/save/
   "parent_id": 456,
   "price": {
     "unit": 100.0,
-    "extended": 100.0
+    "amount": 100.0
   },
   "cost": {
     "unit": 60.0,
@@ -444,12 +444,12 @@ class TestQuoteTransferValidation:
         quote = Quote.objects.create(status='converted',)
         line1 = QuoteLine.objects.create(
             quote=quote,
-            price={'extended': 100.0, 'unit': 100.0, 'precision': 2}
+            price={'amount': 100.0, 'unit': 100.0, 'precision': 2}
         )
         line2 = QuoteLine.objects.create(
             quote=quote,
             status='transferred',
-            price={'extended': 200.0, 'unit': 200.0, 'precision': 2}
+            price={'amount': 200.0, 'unit': 200.0, 'precision': 2}
         )
         
         result = validate_quote_for_transfer(quote)
@@ -473,7 +473,7 @@ class TestQuoteTransferValidation:
         assert 'No lines to transfer' in result['errors']
         
         # Test invalid line IDs
-        QuoteLine.objects.create(quote=quote, price={'extended': 100.0})
+        QuoteLine.objects.create(quote=quote, price={'amount': 100.0})
         result = validate_quote_for_transfer(quote, line_ids=[999])
         assert result['can_transfer'] is False
         assert 'Line IDs not found' in result['errors'][0]

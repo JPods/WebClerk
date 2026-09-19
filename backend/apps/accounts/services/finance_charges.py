@@ -118,7 +118,7 @@ def assess_finance_charges(as_of: date | None = None, dry_run: bool = False) -> 
                 item={'description': f'Finance charge {rate}% on {base} past due more than {grace} days, as of {as_of.isoformat()} '
                                      f'({", ".join(entry["invoices"])})'},
                 quantity={'active': 1, 'staged': 1, 'remaining': 1},
-                price={'unit': float(amount), 'extended': float(amount)},
+                price={'unit': float(amount), 'amount': float(amount)},
                 cost={'unit': 0, 'extended': 0},
             )
             recalculate_totals(invoice.pk, 'invoice')

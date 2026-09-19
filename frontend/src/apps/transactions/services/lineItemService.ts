@@ -213,7 +213,7 @@ export class LineItemService {
         const discountAmount = gross * (options.discountPercent / 100);
         priceEnvelope.discount_percent = options.discountPercent;
         priceEnvelope.discount_amount = round(discountAmount);
-        priceEnvelope.extended = round(gross - discountAmount);
+        priceEnvelope.amount = round(gross - discountAmount);
       }
     }
 
@@ -411,7 +411,7 @@ export class LineItemService {
     if (typeof updatedLine.price === 'object' && updatedLine.price !== null) {
       updatedLine.price = {
         ...updatedLine.price,
-        extended: calc.extended,
+        amount: calc.extended,
         discount_amount: calc.discountAmount,
       };
     }

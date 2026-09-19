@@ -34,14 +34,18 @@
   },
   "refs": {
     "links": {
-      "contact": {"id": 287, "name": "Pacific Coast Building Materials", "ida": "PCBM-287"}
+      "contact": {
+        "id": 287,
+        "name": "Pacific Coast Building Materials",
+        "ida": "PCBM-287"
+      }
     }
   },
   "totals": {
-    "subtotal": 8642.00,
     "tax": 753.97,
-    "shipping": 0.00,
-    "total": 9395.97
+    "shipping": 0.0,
+    "total": 9395.97,
+    "amount": 8642.0
   },
   "sell": {},
   "cost": {},
@@ -56,11 +60,13 @@
         "description": "3/4\" BC Plywood, 4x8 Sheet",
         "uom": "Sheet"
       },
-      "quantity": {"active": 48},
+      "quantity": {
+        "active": 48
+      },
       "price": {
-        "unit": 52.50,
+        "unit": 52.5,
         "discount_percent": 0,
-        "extended": 2520.00
+        "amount": 2520.0
       }
     },
     {
@@ -70,11 +76,13 @@
         "description": "Douglas Fir 2x6x12 #2 & Better, Kiln Dried",
         "uom": "Each"
       },
-      "quantity": {"active": 120},
+      "quantity": {
+        "active": 120
+      },
       "price": {
         "unit": 14.85,
         "discount_percent": 8,
-        "extended": 1639.44
+        "amount": 1639.44
       }
     },
     {
@@ -84,11 +92,13 @@
         "description": "Simpson Strong-Tie A35 Framing Angle",
         "uom": "Box/50"
       },
-      "quantity": {"active": 6},
+      "quantity": {
+        "active": 6
+      },
       "price": {
-        "unit": 127.50,
+        "unit": 127.5,
         "discount_percent": 0,
-        "extended": 765.00
+        "amount": 765.0
       }
     },
     {
@@ -98,11 +108,13 @@
         "description": "Owens Corning R-30 Unfaced Batts, 24\" OC",
         "uom": "Bag"
       },
-      "quantity": {"active": 30},
+      "quantity": {
+        "active": 30
+      },
       "price": {
-        "unit": 68.90,
+        "unit": 68.9,
         "discount_percent": 5,
-        "extended": 1963.65
+        "amount": 1963.65
       }
     },
     {
@@ -112,11 +124,13 @@
         "description": "GRK R4 Multi-Purpose Screws, #9 x 3\", 700ct",
         "uom": "Box"
       },
-      "quantity": {"active": 8},
+      "quantity": {
+        "active": 8
+      },
       "price": {
-        "unit": 94.50,
+        "unit": 94.5,
         "discount_percent": 0,
-        "extended": 756.00
+        "amount": 756.0
       }
     },
     {
@@ -126,11 +140,13 @@
         "description": "Shurtape Green Painters Tape, 2\" x 60yd",
         "uom": "Case/24"
       },
-      "quantity": {"active": 2},
+      "quantity": {
+        "active": 2
+      },
       "price": {
         "unit": 498.96,
         "discount_percent": 0,
-        "extended": 997.92
+        "amount": 997.92
       }
     }
   ]

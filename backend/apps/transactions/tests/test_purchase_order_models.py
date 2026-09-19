@@ -88,7 +88,7 @@ class PurchaseModelTest(TestCase):
         po.refresh_from_db()
 
         totals = po.totals
-        self.assertIn('subtotal', totals)
+        self.assertIn('amount', totals)
         self.assertIn('total', totals)
         self.assertIn('cost', totals)
 

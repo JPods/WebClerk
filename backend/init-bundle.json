@@ -36765,8 +36765,8 @@
                   "label": "company.name"
                 },
                 {
-                  "field": "totals.subtotal",
-                  "label": "totals.subtotal"
+                  "field": "totals.amount",
+                  "label": "totals.amount"
                 },
                 {
                   "field": "totals.total",
@@ -37755,9 +37755,9 @@
             "precision": 2,
             "description": "Shipping and handling charged to customer"
           },
-          "totals.subtotal": {
+          "totals.amount": {
             "type": "currency",
-            "label": "Subtotal",
+            "label": "Amount",
             "precision": 2,
             "description": "Sum of line extended sell prices before tax/shipping/discount"
           },
@@ -38951,7 +38951,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "price.extended",
+                  "field": "price.amount",
                   "label": ".extended",
                   "width": 90,
                   "format": "currency",
@@ -39023,7 +39023,7 @@
             },
             {
               "align": "right",
-              "field": "extended",
+              "field": "amount",
               "width": 90,
               "format": "currency"
             }
@@ -39064,7 +39064,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "extended",
+                  "field": "amount",
                   "width": 90,
                   "format": "currency"
                 }
@@ -39374,9 +39374,9 @@
             "label": "Base Cost",
             "precision": 2
           },
-          "price.extended": {
+          "price.amount": {
             "type": "currency",
-            "label": "Extended",
+            "label": "Amount",
             "readonly": true,
             "precision": 2,
             "description": "Computed: (qty * unit) - discount_amount"
@@ -40961,9 +40961,9 @@
             "type": "json-tree",
             "label": "Internal Notes"
           },
-          "price.extended": {
+          "price.amount": {
             "type": "currency",
-            "label": "Extended",
+            "label": "Amount",
             "readonly": true,
             "precision": 2,
             "description": "Computed: (qty * unit) - discount_amount"
@@ -49163,8 +49163,8 @@
                   "label": "company.name"
                 },
                 {
-                  "field": "totals.subtotal",
-                  "label": "totals.subtotal"
+                  "field": "totals.amount",
+                  "label": "totals.amount"
                 },
                 {
                   "field": "totals.total",
@@ -50139,9 +50139,9 @@
             "precision": 2,
             "description": "Shipping and handling charged to customer"
           },
-          "totals.subtotal": {
+          "totals.amount": {
             "type": "currency",
-            "label": "Subtotal",
+            "label": "Amount",
             "precision": 2,
             "description": "Sum of line extended sell prices before tax/shipping/discount"
           },
@@ -51334,7 +51334,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "price.extended",
+                  "field": "price.amount",
                   "label": ".extended",
                   "width": 90,
                   "format": "currency",
@@ -51406,7 +51406,7 @@
             },
             {
               "align": "right",
-              "field": "extended",
+              "field": "amount",
               "width": 90,
               "format": "currency"
             }
@@ -51447,7 +51447,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "extended",
+                  "field": "amount",
                   "width": 90,
                   "format": "currency"
                 }
@@ -51757,9 +51757,9 @@
             "label": "Base Cost",
             "precision": 2
           },
-          "price.extended": {
+          "price.amount": {
             "type": "currency",
-            "label": "Extended",
+            "label": "Amount",
             "readonly": true,
             "precision": 2,
             "description": "Computed: (qty * unit) - discount_amount"
@@ -58038,8 +58038,8 @@
                   "label": "company.name"
                 },
                 {
-                  "field": "totals.subtotal",
-                  "label": "totals.subtotal"
+                  "field": "totals.amount",
+                  "label": "totals.amount"
                 },
                 {
                   "field": "totals.total",
@@ -59020,9 +59020,9 @@
             "precision": 2,
             "description": "Shipping and handling charged to customer"
           },
-          "totals.subtotal": {
+          "totals.amount": {
             "type": "currency",
-            "label": "Subtotal",
+            "label": "Amount",
             "precision": 2,
             "description": "Sum of line extended sell prices before tax/shipping/discount"
           },
@@ -60216,7 +60216,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "price.extended",
+                  "field": "price.amount",
                   "label": ".extended",
                   "width": 90,
                   "format": "currency",
@@ -60288,7 +60288,7 @@
             },
             {
               "align": "right",
-              "field": "extended",
+              "field": "amount",
               "width": 90,
               "format": "currency"
             }
@@ -60329,7 +60329,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "extended",
+                  "field": "amount",
                   "width": 90,
                   "format": "currency"
                 }
@@ -60639,9 +60639,9 @@
             "label": "Base Cost",
             "precision": 2
           },
-          "price.extended": {
+          "price.amount": {
             "type": "currency",
-            "label": "Extended",
+            "label": "Amount",
             "readonly": true,
             "precision": 2,
             "description": "Computed: (qty * unit) - discount_amount"
@@ -61594,8 +61594,8 @@
                   "label": "company.name"
                 },
                 {
-                  "field": "totals.subtotal",
-                  "label": "totals.subtotal"
+                  "field": "totals.amount",
+                  "label": "totals.amount"
                 },
                 {
                   "field": "totals.total",
@@ -62557,9 +62557,9 @@
             "precision": 2,
             "description": "Shipping and handling charged to customer"
           },
-          "totals.subtotal": {
+          "totals.amount": {
             "type": "currency",
-            "label": "Subtotal",
+            "label": "Amount",
             "precision": 2,
             "description": "Sum of line extended sell prices before tax/shipping/discount"
           },
@@ -63804,7 +63804,7 @@
             },
             {
               "align": "right",
-              "field": "extended",
+              "field": "amount",
               "width": 90,
               "format": "currency"
             }
@@ -63845,7 +63845,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "extended",
+                  "field": "amount",
                   "width": 90,
                   "format": "currency"
                 }
@@ -86475,8 +86475,8 @@
                   "label": "company.name"
                 },
                 {
-                  "field": "totals.subtotal",
-                  "label": "totals.subtotal"
+                  "field": "totals.amount",
+                  "label": "totals.amount"
                 },
                 {
                   "field": "totals.total",
@@ -87400,9 +87400,9 @@
             "precision": 2,
             "description": "Shipping and handling charged to customer"
           },
-          "totals.subtotal": {
+          "totals.amount": {
             "type": "currency",
-            "label": "Subtotal",
+            "label": "Amount",
             "precision": 2,
             "description": "Sum of line extended sell prices before tax/shipping/discount"
           },
@@ -100857,8 +100857,8 @@
                 },
                 {
                   "align": "right",
-                  "field": "price.extended",
-                  "label": "Extended",
+                  "field": "price.amount",
+                  "label": "Amount",
                   "format": "currency"
                 }
               ],
@@ -100867,8 +100867,8 @@
             {
               "rows": [
                 {
-                  "field": "totals.subtotal",
-                  "label": "Subtotal",
+                  "field": "totals.amount",
+                  "label": "Amount",
                   "format": "currency"
                 },
                 {
@@ -100934,8 +100934,8 @@
               },
               {
                 "align": "right",
-                "field": "extended",
-                "label": "Extended",
+                "field": "amount",
+                "label": "Amount",
                 "width": "14%",
                 "format": "money"
               }
@@ -101394,7 +101394,7 @@
                 "fontColor": "#999999"
               },
               {
-                "name": "subtotal",
+                "name": "amount",
                 "type": "text",
                 "width": 36,
                 "height": 7,
@@ -101764,8 +101764,8 @@
                 },
                 {
                   "align": "right",
-                  "field": "price.extended",
-                  "label": "Extended",
+                  "field": "price.amount",
+                  "label": "Amount",
                   "format": "currency"
                 }
               ],
@@ -101774,8 +101774,8 @@
             {
               "rows": [
                 {
-                  "field": "totals.subtotal",
-                  "label": "Subtotal",
+                  "field": "totals.amount",
+                  "label": "Amount",
                   "format": "currency"
                 },
                 {
@@ -101854,8 +101854,8 @@
               },
               {
                 "align": "right",
-                "field": "extended",
-                "label": "Extended",
+                "field": "amount",
+                "label": "Amount",
                 "width": "14%",
                 "format": "money"
               }
@@ -101876,8 +101876,8 @@
           },
           "totals": [
             {
-              "field": "totals.subtotal",
-              "label": "Subtotal",
+              "field": "totals.amount",
+              "label": "Amount",
               "format": "money"
             },
             {
@@ -102343,7 +102343,7 @@
                 "fontColor": "#999999"
               },
               {
-                "name": "subtotal",
+                "name": "amount",
                 "type": "text",
                 "width": 36,
                 "height": 7,
@@ -106155,8 +106155,8 @@
                 },
                 {
                   "align": "right",
-                  "field": "price.extended",
-                  "label": "Extended",
+                  "field": "price.amount",
+                  "label": "Amount",
                   "format": "currency"
                 }
               ],
@@ -106165,8 +106165,8 @@
             {
               "rows": [
                 {
-                  "field": "totals.subtotal",
-                  "label": "Subtotal",
+                  "field": "totals.amount",
+                  "label": "Amount",
                   "format": "currency"
                 },
                 {
@@ -106239,8 +106239,8 @@
               },
               {
                 "align": "right",
-                "field": "extended",
-                "label": "Extended",
+                "field": "amount",
+                "label": "Amount",
                 "width": "14%",
                 "format": "money"
               }
@@ -106262,8 +106262,8 @@
           },
           "totals": [
             {
-              "field": "totals.subtotal",
-              "label": "Subtotal",
+              "field": "totals.amount",
+              "label": "Amount",
               "format": "money"
             },
             {
@@ -106723,7 +106723,7 @@
                 "fontColor": "#999999"
               },
               {
-                "name": "subtotal",
+                "name": "amount",
                 "type": "text",
                 "width": 36,
                 "height": 7,
@@ -111634,8 +111634,8 @@
                 },
                 {
                   "align": "right",
-                  "field": "price.extended",
-                  "label": "Extended",
+                  "field": "price.amount",
+                  "label": "Amount",
                   "format": "currency"
                 }
               ],
@@ -111644,8 +111644,8 @@
             {
               "rows": [
                 {
-                  "field": "totals.subtotal",
-                  "label": "Subtotal",
+                  "field": "totals.amount",
+                  "label": "Amount",
                   "format": "currency"
                 },
                 {
@@ -111728,8 +111728,8 @@
               },
               {
                 "align": "right",
-                "field": "extended",
-                "label": "Extended",
+                "field": "amount",
+                "label": "Amount",
                 "width": "14%",
                 "format": "money"
               }
@@ -111751,8 +111751,8 @@
           },
           "totals": [
             {
-              "field": "totals.subtotal",
-              "label": "Subtotal",
+              "field": "totals.amount",
+              "label": "Amount",
               "format": "money"
             },
             {
@@ -112199,7 +112199,7 @@
                 "fontColor": "#999999"
               },
               {
-                "name": "subtotal",
+                "name": "amount",
                 "type": "text",
                 "width": 36,
                 "height": 7,
@@ -115217,7 +115217,7 @@
                 {
                   "align": "right",
                   "field": "cost.extended",
-                  "label": "Extended",
+                  "label": "Amount",
                   "format": "currency"
                 }
               ],
@@ -115226,8 +115226,8 @@
             {
               "rows": [
                 {
-                  "field": "totals.subtotal",
-                  "label": "Subtotal",
+                  "field": "totals.amount",
+                  "label": "Amount",
                   "format": "currency"
                 },
                 {
@@ -115286,7 +115286,7 @@
               {
                 "align": "right",
                 "field": "extended_cost",
-                "label": "Extended",
+                "label": "Amount",
                 "width": "14%",
                 "format": "money"
               }
@@ -115753,7 +115753,7 @@
                 "fontColor": "#999999"
               },
               {
-                "name": "subtotal",
+                "name": "amount",
                 "type": "text",
                 "width": 36,
                 "height": 7,
@@ -117308,7 +117308,7 @@
                 {
                   "align": "right",
                   "field": "cost.extended",
-                  "label": "Extended",
+                  "label": "Amount",
                   "format": "currency"
                 }
               ],
@@ -117381,7 +117381,7 @@
               {
                 "align": "right",
                 "field": "extended_cost",
-                "label": "Extended",
+                "label": "Amount",
                 "width": "14%",
                 "format": "money"
               }
@@ -122794,7 +122794,7 @@
                 {
                   "align": "right",
                   "field": "cost.extended",
-                  "label": "Extended",
+                  "label": "Amount",
                   "format": "currency"
                 }
               ],
@@ -122888,8 +122888,8 @@
               },
               {
                 "align": "right",
-                "field": "extended",
-                "label": "Extended",
+                "field": "amount",
+                "label": "Amount",
                 "width": "14%",
                 "format": "money"
               }

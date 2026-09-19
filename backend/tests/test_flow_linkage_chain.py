@@ -21,7 +21,7 @@ def test_linkage_propagation_quote_order_invoice_po(django_user_model):
     client = _auth(user)
 
     quote = Quote.objects.create(name='LNK-PROP')
-    pl = QuoteLine.objects.create(quote=quote, status='OPEN', comments={'public':'from quote'}, price={'extended':1})
+    pl = QuoteLine.objects.create(quote=quote, status='OPEN', comments={'public':'from quote'}, price={'amount':1})
 
     # Convert quote -> sales order
     resp1 = client.post(f'/wcapi/quote/{quote.pk}/convert-to-order/', {}, format='json')

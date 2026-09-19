@@ -791,7 +791,7 @@ class LineItemService:
         # e.g., if UOM is DZ (dozen), unit price is per dozen, qty is in dozens
         # The divisor adjusts unit price from per-each to per-UOM when the item's
         # base price is stored per-each but sold in multiples.
-        envelope['extended'] = float(Decimal(str(quantity)) * Decimal(str(envelope['unit'])))
+        envelope['amount'] = float(Decimal(str(quantity)) * Decimal(str(envelope['unit'])))
 
         return envelope
 
@@ -824,7 +824,7 @@ class LineItemService:
                         break
         
         # Calculate extended
-        envelope['extended'] = float(Decimal(str(quantity)) * Decimal(str(envelope['unit'])))
+        envelope['amount'] = float(Decimal(str(quantity)) * Decimal(str(envelope['unit'])))
         
         return envelope
     

@@ -143,13 +143,13 @@ def recalculate_totals(
 
 
     logger.info(
-        "Recalculated totals for %s #%s: subtotal=%.2f tax=%.2f total=%.2f margin=%.1f%%",
-        model_name, transaction_id, totals['subtotal'], totals['tax'],
+        "Recalculated totals for %s #%s: amount=%.2f tax=%.2f total=%.2f margin=%.1f%%",
+        model_name, transaction_id, totals['amount'], totals['tax'],
         totals['total'], totals['margin_pc'],
     )
 
     return {
-        'subtotal': totals['subtotal'],
+        'amount': totals['amount'],
         'tax': totals['tax'],
         'shipping': totals['shipping'],
         'finance_charge': totals['finance_charge'],
@@ -196,7 +196,7 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
     tax_decisions: List[Dict[str, Any]] = []
 
     # ── The line model (Bill, 2026-09-19) ──────────────────────────────
-    #   line amount   = qty.active × unit − line discount      (price.extended)
+    #   line amount   = qty.active × unit − line discount      (price.amount)
     #   line tax      = r2(line amount × line rate)             (stored on the line: tax.sales)
     #   document amount = Σ line amounts;  total = amount + Σ line tax + shipping + finance charge + other
     # A document discount is not a separate calculation: apply_document_discount
@@ -348,7 +348,7 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
 
     # ── Build the totals dict ──────────────────────────────────────
     totals = {
-        'subtotal': float(subtotal),
+        'amount': float(subtotal),
         'discount': float(discount_total),
         'taxable': float(taxable_total),
         'tax': float(tax_total),
@@ -498,7 +498,7 @@ def recalculate_line(
     line_result = {'line_id': line_id, 'quantity': float(qty)}
 
     if hasattr(line, 'price') and isinstance(line.price, dict):
-        line_result['price_extended'] = line.price.get('extended', 0)
+        line_result['price_extended'] = line.price.get('amount', 0)
     if hasattr(line, 'cost') and isinstance(line.cost, dict):
         line_result['cost_extended'] = line.cost.get('extended', 0)
 

@@ -45,7 +45,7 @@ def quote(org):
         status='planned',
         customer=org,
         totals={
-            'subtotal': 1000, 'discount': 0, 'total': 1000,
+            'amount': 1000, 'discount': 0, 'total': 1000,
             'cost': 600, 'margin': 400, 'margin_pc': 40,
         },
     )
@@ -61,7 +61,7 @@ def order_from_quote(org, quote):
         parent_id=quote.id,
         parent_model='quote',
         totals={
-            'subtotal': 1000, 'discount': 0, 'total': 1000,
+            'amount': 1000, 'discount': 0, 'total': 1000,
             'cost': 650, 'margin': 350, 'margin_pc': 35,
         },
     )
@@ -77,7 +77,7 @@ def invoice_from_order(org, order_from_quote):
         parent_id=order_from_quote.id,
         parent_model='order',
         totals={
-            'subtotal': 1000, 'discount': 0, 'total': 1000,
+            'amount': 1000, 'discount': 0, 'total': 1000,
             'cost': 690, 'margin': 310, 'margin_pc': 31,
         },
     )
@@ -91,7 +91,7 @@ def invoice_with_discount(org):
         status='planned',
         customer=org,
         totals={
-            'subtotal': 1000, 'discount': 50, 'total': 950,
+            'amount': 1000, 'discount': 50, 'total': 950,
             'cost': 600, 'margin': 350, 'margin_pc': 36.84,
         },
     )
@@ -211,7 +211,7 @@ class TestLatePaymentErosion:
 
         invoice = Invoice.objects.create(
             status='planned', customer=org,
-            totals={'total': 1000, 'subtotal': 1000},
+            totals={'total': 1000, 'amount': 1000},
             prefs={'terms': {'id': str(term_net30.id)}},
         )
         apply_terms_for_invoice(invoice, term=term_net30, replace=True)
@@ -246,7 +246,7 @@ class TestLatePaymentErosion:
 
         invoice = Invoice.objects.create(
             status='planned', customer=org,
-            totals={'total': 1000, 'subtotal': 1000},
+            totals={'total': 1000, 'amount': 1000},
             prefs={'terms': {'id': str(term_net30.id)}},
         )
         apply_terms_for_invoice(invoice, term=term_net30, replace=True)

@@ -42,7 +42,7 @@ def _make_quote_line(quote, staged=10, active=0, remaining=None,
     defaults = {
         "quote": quote,
         "item": {"description": "Widget", "sku": "WDG-100"},
-        "price": {"unit": 25.0, "extended": 25.0 * staged},
+        "price": {"unit": 25.0, "amount": 25.0 * staged},
         "cost": {"unit": 12.0, "extended": 12.0 * staged},
         "quantity": {
             "staged": staged,
@@ -79,7 +79,7 @@ def _make_order_line(order, staged=10, active=0, remaining=None, **kw):
     defaults = {
         "order": order,
         "item": {"description": "Widget", "sku": "WDG-100"},
-        "price": {"unit": 25.0, "extended": 25.0 * staged},
+        "price": {"unit": 25.0, "amount": 25.0 * staged},
         "cost": {"unit": 12.0, "extended": 12.0 * staged},
         "quantity": {
             "staged": staged,

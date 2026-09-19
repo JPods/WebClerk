@@ -60,7 +60,7 @@ def test_totals(simple_sale_invoice):
     simple_sale_invoice.refresh_from_db()
     totals = simple_sale_invoice.totals
 
-    assert _d(totals["subtotal"]) == _d("2.00"), "Subtotal (sell) should be $2.00"
+    assert _d(totals["amount"]) == _d("2.00"), "Subtotal (sell) should be $2.00"
     # Total includes handling ($0.03) added by the totals engine
     assert _d(totals["total"]) == _d("2.03"), "Total should be $2.03 (subtotal + handling)"
     assert _d(totals["cost"]) == _d("1.00"), "Cost should be $1.00"
@@ -89,7 +89,7 @@ def test_dollars_by_account_code(simple_sale_invoice):
     price = line.price or {}
     cost = line.cost or {}
 
-    sell_revenue = _d(price.get("extended", 0))
+    sell_revenue = _d(price.get("amount", 0))
     cost_goods = _d(cost.get("extended", 0))
     commissions = _d(cost.get("commissions", 0))
     tax_payable = _d(cost.get("tax", 0))

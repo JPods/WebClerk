@@ -371,7 +371,7 @@ class Command(BaseCommand):
                 })
 
             totals = {
-                'subtotal': float(subtotal), 'discount': 0,
+                'amount': float(subtotal), 'discount': 0,
                 'taxable': float(subtotal), 'tax': 0,
                 'shipping': 0, 'other': 0, 'total': float(subtotal),
                 'cost': 0, 'margin': float(subtotal), 'margin_pc': 100,
@@ -388,7 +388,7 @@ class Command(BaseCommand):
                         'line_number': seq,
                     },
                     'quantity': {'staged': float(ld['qty']), 'active': float(ld['qty'])},
-                    'price': {'unit': float(ld['price']), 'extended': float(ld['extended'])},
+                    'price': {'unit': float(ld['price']), 'amount': float(ld['amount'])},
                     'cost': {'unit': 0, 'extended': 0},
                     'refs': _demo_refs(),
                 }

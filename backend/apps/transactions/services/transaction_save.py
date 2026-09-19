@@ -469,12 +469,12 @@ def verify_line_calculations(line_data: Dict[str, Any], line_id: Optional[int] =
     price = line_data.get('price', {}) or {}
     cost = line_data.get('cost', {}) or {}
     
-    # Verify price.extended
-    r25_extended = price.get('extended')
+    # Verify price.amount
+    r25_extended = price.get('amount')
     if r25_extended is not None:
         if not _compare_values(r25_extended, calculated['extended']):
             raise CalculationMismatchError(
-                'price.extended', r25_extended, float(calculated['extended']), line_id
+                'price.amount', r25_extended, float(calculated['extended']), line_id
             )
     
     # Verify price.discount_amount
@@ -546,7 +546,7 @@ def verify_header_calculations(
     totals = header_data.get('totals', {}) or {}
     
     # Fields to verify
-    fields_to_check = ['subtotal', 'taxable', 'tax', 'total', 'cost', 'margin', 'balance']
+    fields_to_check = ['amount', 'taxable', 'tax', 'total', 'cost', 'margin', 'balance']
     
     for field in fields_to_check:
         r25_value = totals.get(field)

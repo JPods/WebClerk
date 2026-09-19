@@ -123,7 +123,7 @@ class TestGetPriceForLine:
         result = get_price_for_line(item, customer=customer, quantity=5)
         assert result['price_level'] == 'wholesale'
         assert result['unit_price'] == 75.0
-        assert result['extended'] == 375.0
+        assert result['amount'] == 375.0
 
     def test_line_override_wins(self):
         from tests.conftest import CustomerFactory, ItemFactory
@@ -145,7 +145,7 @@ class TestGetPriceForLine:
         )
         assert result['price_level'] == 'sample'
         assert result['unit_price'] == 50.0
-        assert result['extended'] == 100.0
+        assert result['amount'] == 100.0
         assert result['chain']['resolved'] == 'sample'
         assert result['chain']['customer'] == 'retail'
 
@@ -160,7 +160,7 @@ class TestGetPriceForLine:
         result = get_price_for_line(item, quantity=3)
         assert result['price_level'] == 'base'
         assert result['unit_price'] == 42.0
-        assert result['extended'] == 126.0
+        assert result['amount'] == 126.0
 
     def test_chain_transparency(self):
         """Result includes the full resolution chain for debugging."""

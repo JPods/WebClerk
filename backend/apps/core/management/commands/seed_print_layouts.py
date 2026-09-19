@@ -48,7 +48,7 @@ def sell_lines(qty_field="quantity.active", qty_label="Qty"):
         {"field": "item.description", "label": "Description", "align": "left", "width": "35%"},
         {"field": qty_field, "label": qty_label, "align": "right", "format": "number"},
         {"field": "price.unit", "label": "Unit Price", "align": "right", "format": "currency"},
-        {"field": "price.extended", "label": "Extended", "align": "right", "format": "currency"},
+        {"field": "price.amount", "label": "Extended", "align": "right", "format": "currency"},
     ]}
 
 
@@ -63,7 +63,7 @@ def cost_lines(qty_field="quantity.staged", qty_label="Qty"):
 
 
 STANDARD_TOTALS = {"type": "totals", "left_text": "Thank you for your business.", "rows": [
-    {"field": "totals.subtotal", "label": "Subtotal", "format": "currency"},
+    {"field": "totals.amount", "label": "Subtotal", "format": "currency"},
     {"field": "totals.tax", "label": "Tax", "format": "currency"},
     {"field": "totals.shipping", "label": "Shipping", "format": "currency"},
     {"field": "totals.total", "label": "Total", "format": "currency", "bold": True},
@@ -160,7 +160,7 @@ REPORT_LAYOUTS = {
             COMMENTS,
             sell_lines(),
             {"type": "totals", "left_text": "Thank you for your business.", "rows": [
-                {"field": "totals.subtotal", "label": "Subtotal", "format": "currency"},
+                {"field": "totals.amount", "label": "Subtotal", "format": "currency"},
                 {"field": "totals.tax", "label": "Tax", "format": "currency"},
                 {"field": "totals.shipping", "label": "Shipping", "format": "currency"},
                 {"field": "totals.total", "label": "Total", "format": "currency", "bold": True},
@@ -193,7 +193,7 @@ REPORT_LAYOUTS = {
             {"type": "comments", "source": "comments.public", "label": "Reason"},
             sell_lines(),
             {"type": "totals", "rows": [
-                {"field": "totals.subtotal", "label": "Subtotal", "format": "currency"},
+                {"field": "totals.amount", "label": "Subtotal", "format": "currency"},
                 {"field": "totals.tax", "label": "Tax", "format": "currency"},
                 {"field": "totals.total", "label": "Credit Total", "format": "currency", "bold": True},
             ]},
@@ -264,7 +264,7 @@ REPORT_LAYOUTS = {
             COMMENTS,
             cost_lines(),
             {"type": "totals", "rows": [
-                {"field": "totals.subtotal", "label": "Subtotal", "format": "currency"},
+                {"field": "totals.amount", "label": "Subtotal", "format": "currency"},
                 {"field": "totals.total", "label": "Total", "format": "currency", "bold": True},
             ]},
             CONDITIONS,

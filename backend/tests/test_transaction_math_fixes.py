@@ -44,7 +44,7 @@ def test_taxable_is_the_base_tax_was_computed_on():
     _line(q, 3, 19.99, discount_percent=12.5)            # 59.97 − 7.50 = 52.47
     _line(q, 2, 7.33, discount_amount=1.00, tax_code='NONTAXABLE')  # 13.66, untaxed
     q.refresh_from_db()
-    assert q.totals["subtotal"] == pytest.approx(216.13)
+    assert q.totals["amount"] == pytest.approx(216.13)
     assert q.totals["taxable"] == pytest.approx(202.47)
     assert q.totals["tax"] == pytest.approx(10.12)       # 7.50 + 2.62
 
@@ -87,7 +87,7 @@ def test_flat_discount_is_shared_across_partial_conversions():
     first.refresh_from_db(); second.refresh_from_db()
     assert first.price["discount_amount"] == pytest.approx(2.50)
     assert second.price["discount_amount"] == pytest.approx(2.50)
-    assert first.price["extended"] + second.price["extended"] == pytest.approx(45.00)
+    assert first.price["amount"] + second.price["amount"] == pytest.approx(45.00)
 
 
 @pytest.mark.django_db
@@ -112,7 +112,7 @@ def test_verifier_uses_the_same_engine():
     ]
     for rate in (5, 0.05):
         t = calculate_header_totals(lines, {"finance": {"sales_tax_rate": rate}}, "quote")
-        assert float(t["subtotal"]) == pytest.approx(90.00)
+        assert float(t["amount"]) == pytest.approx(90.00)
         assert float(t["tax"]) == pytest.approx(4.50)   # tax on the discounted price
         assert float(t["total"]) == pytest.approx(94.50)
 
@@ -131,14 +131,14 @@ def test_tax_is_applied_to_the_discounted_price():
     # shares by amount: 6.94 / 2.43 / 0.63 (the last takes the remainder)
     assert [a.price["discount_amount"], b.price["discount_amount"], c.price["discount_amount"]] == \
         [pytest.approx(6.94), pytest.approx(9.93), pytest.approx(1.63)]
-    assert [a.price["extended"], b.price["extended"], c.price["extended"]] == \
+    assert [a.price["amount"], b.price["amount"], c.price["amount"]] == \
         [pytest.approx(143.06), pytest.approx(50.04), pytest.approx(13.03)]
-    assert d.price["extended"] == 0 and d.metadata["document_discount"]["applied"] == 10.0
+    assert d.price["amount"] == 0 and d.metadata["document_discount"]["applied"] == 10.0
     # the tax is stored on each line
     assert a.tax["sales"] == pytest.approx(7.15) and b.tax["sales"] == pytest.approx(2.50)
     assert c.tax["sales"] == 0 and c.tax["rate_source"] == "item_exempt"
     q.refresh_from_db()
-    assert q.totals["subtotal"] == pytest.approx(206.13)
+    assert q.totals["amount"] == pytest.approx(206.13)
     assert q.totals["taxable"] == pytest.approx(193.10)
     assert q.totals["tax"] == pytest.approx(9.65)
     assert q.totals["total"] == pytest.approx(215.78)
@@ -175,6 +175,6 @@ def test_a_cash_discount_line_reduces_the_invoice_whatever_its_sign():
     InvoiceLine.objects.create(invoice=inv, line_type='discount', purpose='cash_discount',
                                quantity={"active": 1}, price={"unit": -2.0}, cost={})
     inv.refresh_from_db()
-    assert inv.totals["subtotal"] == pytest.approx(18.00)
+    assert inv.totals["amount"] == pytest.approx(18.00)
     assert inv.totals["tax"] == pytest.approx(1.00)            # tax stays on the sale
     assert inv.totals["total"] == pytest.approx(19.00)

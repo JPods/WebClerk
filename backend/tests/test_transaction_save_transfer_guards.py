@@ -30,7 +30,7 @@ def _make_order_with_line(*, item: Item, active: float, already_invoiced: float 
         item_fk=item,
         item={"id": item.id, "item_id": item.id, "sku": item.sku},
         quantity={"active": active, "precision": 2},
-        price={"unit": 10, "extended": 10 * active},
+        price={"unit": 10, "amount": 10 * active},
         cost={"unit": 5, "extended": 5 * active},
     )
     if already_invoiced:
@@ -73,7 +73,7 @@ def test_transfer_partial_quantity_updates_only_requested_amount(monkeypatch):
             {
                 "quantity": {"active": 3},
                 "item": {"id": item.id, "item_id": item.id, "sku": item.sku},
-                "price": {"unit": 10, "extended": 30},
+                "price": {"unit": 10, "amount": 30},
                 "cost": {"unit": 5, "extended": 15},
                 "refs": {
                     "source": {
@@ -132,7 +132,7 @@ def test_transfer_blocks_when_requested_exceeds_source_remaining(monkeypatch):
                 {
                     "quantity": {"active": 3},
                     "item": {"id": item.id, "item_id": item.id, "sku": item.sku},
-                    "price": {"unit": 10, "extended": 30},
+                    "price": {"unit": 10, "amount": 30},
                     "cost": {"unit": 5, "extended": 15},
                     "refs": {
                         "source": {
@@ -177,7 +177,7 @@ def test_transfer_blocks_when_inventory_insufficient(monkeypatch):
                 {
                     "quantity": {"active": 3},
                     "item": {"id": item.id, "item_id": item.id, "sku": item.sku},
-                    "price": {"unit": 10, "extended": 30},
+                    "price": {"unit": 10, "amount": 30},
                     "cost": {"unit": 5, "extended": 15},
                     "refs": {
                         "source": {
@@ -211,7 +211,7 @@ def test_order_from_quote_may_backorder(monkeypatch):
         item_fk=item,
         item={"id": item.id, "item_id": item.id, "sku": item.sku},
         quantity={"staged": 5, "active": 5, "precision": 2},
-        price={"unit": 10, "extended": 50},
+        price={"unit": 10, "amount": 50},
         cost={"unit": 5, "extended": 25},
     )
 
@@ -222,7 +222,7 @@ def test_order_from_quote_may_backorder(monkeypatch):
         lines_data=[{
             "quantity": {"staged": 5, "active": 5},
             "item": {"id": item.id, "item_id": item.id, "sku": item.sku},
-            "price": {"unit": 10, "extended": 50},
+            "price": {"unit": 10, "amount": 50},
             "cost": {"unit": 5, "extended": 25},
             "refs": {"source": {"quote_line_id": source.id, "quote_id": quote.id}},
             "_dirty": True,

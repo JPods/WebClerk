@@ -340,7 +340,7 @@ STATEMENT_LINE_LIST_COLUMNS = [
 SELL_LINE_LIST_COLUMNS = [
     _lc('ida', width=100), _lc('item_ida', width=100), _lc('description', width=200),
     _lc('quantity.ordered', width=70, align='right'), _lc('price.unit', width=80, align='right', format='currency'),
-    _lc('price.extended', width=90, align='right', format='currency'),
+    _lc('price.amount', width=90, align='right', format='currency'),
     _lc('cost.unit', width=80, align='right', format='currency'),
     _lc('totals.margin', width=80, align='right', format='currency'),
     _lc('status', width=80), _lc('comments.process', width=200),

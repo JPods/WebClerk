@@ -651,7 +651,7 @@ def _convert_transaction_header(wc2_row, model_class, lookup, ida_field='idNum')
     ida = safe_str(wc2_row.get(ida_field))
 
     totals = {
-        'subtotal': safe_float(wc2_row.get('amount')),
+        'amount': safe_float(wc2_row.get('amount')),
         'tax': safe_float(wc2_row.get('salesTax')),
         'shipping': safe_float(wc2_row.get('shipTotal') or wc2_row.get('shipFreightCost')),
         'total': safe_float(wc2_row.get('total')),
@@ -739,7 +739,7 @@ def _convert_line(wc2_row, parent_pk, lookup, line_type='order'):
         'unit_base': unit_price,
         'discount_percent': discount_pct,
         'discount_amount': 0.0,
-        'extended': extended or (qty * unit_price),
+        'amount': extended or (qty * unit_price),
         'is_fixed': False,
         'precision': 2,
     }
@@ -952,7 +952,7 @@ def convert_cash_entries(wc2_rows, lookup, stats, dry_run=False):
             'balance': safe_decimal(row.get('amountAvailable')),
             'status': 'complete' if safe_bool(row.get('complete')) else 'released',
             'totals': {
-                'subtotal': safe_float(row.get('amount')),
+                'amount': safe_float(row.get('amount')),
                 'total': safe_float(row.get('amount')),
                 'balance': safe_float(row.get('amountAvailable')),
                 'received': safe_float(row.get('amount')) - safe_float(row.get('amountAvailable')),
@@ -1487,7 +1487,7 @@ class Command(BaseCommand):
             else:
                 status = 'released'
             totals = {
-                'subtotal': safe_float(r.get('amount')), 'tax': safe_float(r.get('salesTax')),
+                'amount': safe_float(r.get('amount')), 'tax': safe_float(r.get('salesTax')),
                 'shipping': safe_float(r.get('shipTotal') or r.get('shipFreightCost')),
                 'total': safe_float(r.get('total')), 'balance': safe_float(r.get('balanceDue')),
                 'cost': safe_float(r.get('totalCost')), 'discount': 0, 'taxable': 0,
@@ -1549,7 +1549,7 @@ class Command(BaseCommand):
                 'config': build_config(r),
             }
             if is_sell:
-                line_kwargs['price'] = {'unit': unit_price, 'unit_base': unit_price, 'discount_percent': safe_float(r.get('discount')), 'discount_amount': 0.0, 'extended': extended or (qty * unit_price), 'is_fixed': False, 'precision': 2}
+                line_kwargs['price'] = {'unit': unit_price, 'unit_base': unit_price, 'discount_percent': safe_float(r.get('discount')), 'discount_amount': 0.0, 'amount': extended or (qty * unit_price), 'is_fixed': False, 'precision': 2}
             return Model(**line_kwargs)
 
         # ── Quotes + Lines ──

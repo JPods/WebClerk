@@ -108,10 +108,10 @@ class TransactionTotals(BaseModel):
     Shadow fields (header.total, header.balance) are query indexes only.
     A credit memo is an invoice with negative totals.
     """
-    subtotal: float = Field(
+    amount: float = Field(
         0.0,
-        title="Subtotal",
-        description="Sum of line extended sell prices before tax/shipping/discount",
+        title="Amount",
+        description="Sum of the line amounts (price.amount): goods after discounts, before tax, shipping and other charges",
         json_schema_extra={'widget': 'currency', 'precision': 2},
     )
     discount: float = Field(
@@ -550,9 +550,9 @@ class LinePrice(BaseModel):
         description="Discount amount in currency",
         json_schema_extra={'widget': 'currency', 'precision': 2},
     )
-    extended: float = Field(
-        0.0, title="Extended",
-        description="Computed: (qty * unit) - discount_amount",
+    amount: float = Field(
+        0.0, title="Amount",
+        description="The line's total before tax: (qty.active × unit) − discount_amount. Adds into totals.amount",
         json_schema_extra={'widget': 'currency', 'precision': 2, 'readonly': True},
     )
     is_fixed: bool = Field(

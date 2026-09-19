@@ -65,7 +65,7 @@ class TestOrderLineSerializerMerge:
             order=test_order,
             item_fk=test_item,
             quantity={"staged": 10, "active": 10, "remaining": 10},
-            price={"unit": 100, "extended": 1000},
+            price={"unit": 100, "amount": 1000},
         )
 
         # Simulate PATCH request context
@@ -94,7 +94,7 @@ class TestOrderLineSerializerMerge:
             order=test_order,
             item_fk=test_item,
             quantity={"staged": 5, "active": 5, "remaining": 0},
-            price={"unit": 100, "extended": 500, "discount_percent": 10},
+            price={"unit": 100, "amount": 500, "discount_percent": 10},
         )
 
         request = api_factory.patch('/fake/')
@@ -149,7 +149,7 @@ class TestInvoiceLineSerializerMerge:
             invoice=test_invoice,
             item_fk=test_item,
             quantity={"staged": 10, "active": 10, "remaining": 0},
-            price={"unit": 100, "extended": 1000},
+            price={"unit": 100, "amount": 1000},
         )
 
         request = api_factory.patch('/fake/')

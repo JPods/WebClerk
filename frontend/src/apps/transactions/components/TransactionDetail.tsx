@@ -232,7 +232,7 @@ const UiDetail: React.FC<UiDetailProps> = ({
     const lines = (isEditing ? editData : data)?.lines || [];
     const newLine: TransactionLine = {
       line_number: getNextLineNumber(lines),
-      item_code: '', description: '', qty: 1, remain: 1, unit_price: 0, extended: 0,
+      item_code: '', description: '', qty: 1, remain: 1, unit_price: 0, amount: 0,
     } as any;
     handleLinesChange([...lines, newLine]);
   };

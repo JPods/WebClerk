@@ -33,7 +33,7 @@ def _invoice(customer, total, term=None):
     from apps.accounts.services.terms_ledger import apply_terms_for_invoice
     inv = Invoice.objects.create(
         status='released', customer=customer,
-        totals={'subtotal': total, 'total': total, 'received': 0, 'balance': total},
+        totals={'amount': total, 'total': total, 'received': 0, 'balance': total},
     )
     apply_terms_for_invoice(inv, term=term, replace=True)
     return inv

@@ -73,7 +73,7 @@ def compute_dual_pricing(transaction_totals: dict) -> dict:
     apply_before_tax = config.get('apply_before_tax', True)
 
     if apply_before_tax:
-        base_amount = _d(transaction_totals.get('subtotal', 0))
+        base_amount = _d(transaction_totals.get('amount', 0))
     else:
         base_amount = _d(transaction_totals.get('total', 0))
 

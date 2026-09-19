@@ -36802,8 +36802,8 @@
                   "label": "company.name"
                 },
                 {
-                  "field": "totals.subtotal",
-                  "label": "totals.subtotal"
+                  "field": "totals.amount",
+                  "label": "totals.amount"
                 },
                 {
                   "field": "totals.total",
@@ -37792,9 +37792,9 @@
             "precision": 2,
             "description": "Shipping and handling charged to customer"
           },
-          "totals.subtotal": {
+          "totals.amount": {
             "type": "currency",
-            "label": "Subtotal",
+            "label": "Amount",
             "precision": 2,
             "description": "Sum of line extended sell prices before tax/shipping/discount"
           },
@@ -38988,7 +38988,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "price.extended",
+                  "field": "price.amount",
                   "label": ".extended",
                   "width": 90,
                   "format": "currency",
@@ -39060,7 +39060,7 @@
             },
             {
               "align": "right",
-              "field": "extended",
+              "field": "amount",
               "width": 90,
               "format": "currency"
             }
@@ -39101,7 +39101,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "extended",
+                  "field": "amount",
                   "width": 90,
                   "format": "currency"
                 }
@@ -39411,9 +39411,9 @@
             "label": "Base Cost",
             "precision": 2
           },
-          "price.extended": {
+          "price.amount": {
             "type": "currency",
-            "label": "Extended",
+            "label": "Amount",
             "readonly": true,
             "precision": 2,
             "description": "Computed: (qty * unit) - discount_amount"
@@ -40998,9 +40998,9 @@
             "type": "json-tree",
             "label": "Internal Notes"
           },
-          "price.extended": {
+          "price.amount": {
             "type": "currency",
-            "label": "Extended",
+            "label": "Amount",
             "readonly": true,
             "precision": 2,
             "description": "Computed: (qty * unit) - discount_amount"
@@ -49200,8 +49200,8 @@
                   "label": "company.name"
                 },
                 {
-                  "field": "totals.subtotal",
-                  "label": "totals.subtotal"
+                  "field": "totals.amount",
+                  "label": "totals.amount"
                 },
                 {
                   "field": "totals.total",
@@ -50176,9 +50176,9 @@
             "precision": 2,
             "description": "Shipping and handling charged to customer"
           },
-          "totals.subtotal": {
+          "totals.amount": {
             "type": "currency",
-            "label": "Subtotal",
+            "label": "Amount",
             "precision": 2,
             "description": "Sum of line extended sell prices before tax/shipping/discount"
           },
@@ -51371,7 +51371,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "price.extended",
+                  "field": "price.amount",
                   "label": ".extended",
                   "width": 90,
                   "format": "currency",
@@ -51443,7 +51443,7 @@
             },
             {
               "align": "right",
-              "field": "extended",
+              "field": "amount",
               "width": 90,
               "format": "currency"
             }
@@ -51484,7 +51484,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "extended",
+                  "field": "amount",
                   "width": 90,
                   "format": "currency"
                 }
@@ -51794,9 +51794,9 @@
             "label": "Base Cost",
             "precision": 2
           },
-          "price.extended": {
+          "price.amount": {
             "type": "currency",
-            "label": "Extended",
+            "label": "Amount",
             "readonly": true,
             "precision": 2,
             "description": "Computed: (qty * unit) - discount_amount"
@@ -58075,8 +58075,8 @@
                   "label": "company.name"
                 },
                 {
-                  "field": "totals.subtotal",
-                  "label": "totals.subtotal"
+                  "field": "totals.amount",
+                  "label": "totals.amount"
                 },
                 {
                   "field": "totals.total",
@@ -59057,9 +59057,9 @@
             "precision": 2,
             "description": "Shipping and handling charged to customer"
           },
-          "totals.subtotal": {
+          "totals.amount": {
             "type": "currency",
-            "label": "Subtotal",
+            "label": "Amount",
             "precision": 2,
             "description": "Sum of line extended sell prices before tax/shipping/discount"
           },
@@ -60253,7 +60253,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "price.extended",
+                  "field": "price.amount",
                   "label": ".extended",
                   "width": 90,
                   "format": "currency",
@@ -60325,7 +60325,7 @@
             },
             {
               "align": "right",
-              "field": "extended",
+              "field": "amount",
               "width": 90,
               "format": "currency"
             }
@@ -60366,7 +60366,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "extended",
+                  "field": "amount",
                   "width": 90,
                   "format": "currency"
                 }
@@ -60676,9 +60676,9 @@
             "label": "Base Cost",
             "precision": 2
           },
-          "price.extended": {
+          "price.amount": {
             "type": "currency",
-            "label": "Extended",
+            "label": "Amount",
             "readonly": true,
             "precision": 2,
             "description": "Computed: (qty * unit) - discount_amount"
@@ -61631,8 +61631,8 @@
                   "label": "company.name"
                 },
                 {
-                  "field": "totals.subtotal",
-                  "label": "totals.subtotal"
+                  "field": "totals.amount",
+                  "label": "totals.amount"
                 },
                 {
                   "field": "totals.total",
@@ -62594,9 +62594,9 @@
             "precision": 2,
             "description": "Shipping and handling charged to customer"
           },
-          "totals.subtotal": {
+          "totals.amount": {
             "type": "currency",
-            "label": "Subtotal",
+            "label": "Amount",
             "precision": 2,
             "description": "Sum of line extended sell prices before tax/shipping/discount"
           },
@@ -63841,7 +63841,7 @@
             },
             {
               "align": "right",
-              "field": "extended",
+              "field": "amount",
               "width": 90,
               "format": "currency"
             }
@@ -63882,7 +63882,7 @@
                 },
                 {
                   "align": "right",
-                  "field": "extended",
+                  "field": "amount",
                   "width": 90,
                   "format": "currency"
                 }
@@ -86512,8 +86512,8 @@
                   "label": "company.name"
                 },
                 {
-                  "field": "totals.subtotal",
-                  "label": "totals.subtotal"
+                  "field": "totals.amount",
+                  "label": "totals.amount"
                 },
                 {
                   "field": "totals.total",
@@ -87437,9 +87437,9 @@
             "precision": 2,
             "description": "Shipping and handling charged to customer"
           },
-          "totals.subtotal": {
+          "totals.amount": {
             "type": "currency",
-            "label": "Subtotal",
+            "label": "Amount",
             "precision": 2,
             "description": "Sum of line extended sell prices before tax/shipping/discount"
           },

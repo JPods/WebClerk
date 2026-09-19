@@ -65,7 +65,7 @@ _JSON_PATHS = {
     },
     "order": {
         "totals": [
-            "totals.subtotal", "totals.tax", "totals.shipping",
+            "totals.amount", "totals.tax", "totals.shipping",
             "totals.total", "totals.balance",
         ],
         "config": [
@@ -74,7 +74,7 @@ _JSON_PATHS = {
     },
     "invoice": {
         "totals": [
-            "totals.subtotal", "totals.tax", "totals.shipping",
+            "totals.amount", "totals.tax", "totals.shipping",
             "totals.total", "totals.balance",
         ],
         "finance": [
@@ -83,12 +83,12 @@ _JSON_PATHS = {
     },
     "purchase": {
         "totals": [
-            "totals.subtotal", "totals.total",
+            "totals.amount", "totals.total",
         ],
     },
     "quote": {
         "totals": [
-            "totals.subtotal", "totals.tax", "totals.total",
+            "totals.amount", "totals.tax", "totals.total",
         ],
     },
     "customer": {
@@ -145,7 +145,7 @@ _LINE_FIELDS = {
         {"field": "quantity.staged", "label": "Qty Ordered", "type": "qty"},
         {"field": "quantity.active", "label": "Qty Shipped", "type": "qty"},
         {"field": "price.unit", "label": "Unit Price", "type": "money"},
-        {"field": "price.extended", "label": "Extended", "type": "money"},
+        {"field": "price.amount", "label": "Extended", "type": "money"},
         {"field": "price.discount_amount", "label": "Discount", "type": "money"},
         {"field": "cost.unit", "label": "Unit Cost", "type": "money"},
         {"field": "cost.extended", "label": "Extended Cost", "type": "money"},
@@ -162,7 +162,7 @@ _LINE_FIELDS = {
         {"field": "quantity.staged", "label": "Qty Ordered", "type": "qty"},
         {"field": "quantity.active", "label": "Qty Shipped", "type": "qty"},
         {"field": "price.unit", "label": "Unit Price", "type": "money"},
-        {"field": "price.extended", "label": "Extended", "type": "money"},
+        {"field": "price.amount", "label": "Extended", "type": "money"},
         {"field": "cost.unit", "label": "Unit Cost", "type": "money"},
         {"field": "cost.extended", "label": "Extended Cost", "type": "money"},
         {"field": "tax.amount", "label": "Tax", "type": "money"},
@@ -185,7 +185,7 @@ _LINE_FIELDS = {
         {"field": "item.description", "label": "Description", "type": "text"},
         {"field": "quantity.staged", "label": "Qty", "type": "qty"},
         {"field": "price.unit", "label": "Unit Price", "type": "money"},
-        {"field": "price.extended", "label": "Extended", "type": "money"},
+        {"field": "price.amount", "label": "Extended", "type": "money"},
     ],
 }
 

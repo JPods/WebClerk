@@ -162,7 +162,7 @@ const BASE_ENVELOPES: Record<string, SchemaNode> = {
 // ─── Transaction-specific envelopes ──────────────────────────────────
 
 const TOTALS_ENVELOPE: Record<string, SchemaNode> = {
-  subtotal:  NUM('Sum of line extended sell before tax/ship/discount'),
+  amount:    NUM('Sum of the line amounts (goods after discounts, before tax and charges)'),
   discount:  NUM('Header discount amount'),
   taxable:   NUM('Subtotal minus discount, subject to tax'),
   tax:       NUM('Sales tax amount'),
@@ -219,7 +219,7 @@ const FINANCE_ENVELOPE: Record<string, SchemaNode> = {
 
 const LINE_PRICE_ENVELOPE: Record<string, SchemaNode> = {
   unit:            NUM('Unit sell price'),
-  extended:        NUM('Qty × unit price'),
+  amount:          NUM('Line total before tax: qty × discounted unit price; adds into totals.amount'),
   discount_amount: NUM('Per-line discount amount'),
   discount_pc:     NUM('Discount percentage'),
   msrp:            NUM('Manufacturer suggested retail'),

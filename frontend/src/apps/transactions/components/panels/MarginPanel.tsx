@@ -31,7 +31,7 @@ const MarginPanel: React.FC<MarginPanelProps> = ({ lines, selectedIds, isSellSid
       let price = 0;
       let cost = 0;
       if (isSellSide) {
-        price = Number(line.price?.extended ?? 0);
+        price = Number(line.price?.amount ?? 0);
         cost = Number(line.cost?.extended ?? qty * (line.cost?.unit ?? 0));
       } else {
         price = Number(line.cost?.extended ?? 0);

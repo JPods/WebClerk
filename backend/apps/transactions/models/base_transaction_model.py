@@ -19,9 +19,9 @@ def default_totals() -> Dict[str, Any]:
     # Header-level searchable totals (designed for frequent filtering).
     # Keep keys flat for common query patterns and indexability.
     return {
-        "subtotal": 0,      # sum of line extended sell before tax/ship/discount
+        "amount": 0,        # Σ line price.amount: goods after discounts, before tax/ship/other
         "discount": 0,      # header discount amount
-        "taxable": 0,       # subtotal - discount subject to tax
+        "taxable": 0,       # Σ amounts of lines with a tax rate > 0
         "tax": 0,           # sales tax amount
         "shipping": 0,      # shipping/handling charged to customer
         "other": 0,         # misc charges

@@ -81,11 +81,11 @@ FORMAT_MAP = {
     'fee_amount': 'currency', 'margin_pct': 'percent',
     'phone': 'phone',
     'totals.total': 'currency', 'totals.balance': 'currency',
-    'totals.subtotal': 'currency', 'totals.tax': 'currency',
+    'totals.amount': 'currency', 'totals.tax': 'currency',
     'totals.shipping': 'currency', 'totals.margin': 'currency',
     'totals.cost': 'currency', 'totals.discount': 'currency',
     'totals.received': 'currency',
-    'price.unit': 'currency', 'price.extended': 'currency',
+    'price.unit': 'currency', 'price.amount': 'currency',
     'cost.unit': 'currency', 'cost.extended': 'currency',
     'quantity.active': 'number', 'quantity.staged': 'number',
     'quantity.remaining': 'number',
@@ -97,7 +97,7 @@ FORMAT_MAP = {
 #
 # Transaction headers: replace flat total/balance/cost/sell with totals.* envelope
 TRANSACTION_ENVELOPE_FIELDS = [
-    {'field': 'totals.subtotal', 'width': 100, 'align': 'right', 'format': 'currency', 'visible': True},
+    {'field': 'totals.amount', 'width': 100, 'align': 'right', 'format': 'currency', 'visible': True},
     {'field': 'totals.total', 'width': 100, 'align': 'right', 'format': 'currency', 'visible': True},
     {'field': 'totals.balance', 'width': 100, 'align': 'right', 'format': 'currency', 'visible': True},
     {'field': 'totals.margin', 'width': 100, 'align': 'right', 'format': 'currency', 'visible': True},
@@ -109,7 +109,7 @@ SELL_LINE_ENVELOPE_FIELDS = [
     {'field': 'quantity.staged', 'width': 70, 'align': 'right', 'format': 'number', 'visible': True},
     {'field': 'quantity.remaining', 'width': 70, 'align': 'right', 'format': 'number', 'visible': True},
     {'field': 'price.unit', 'width': 90, 'align': 'right', 'format': 'currency', 'visible': True},
-    {'field': 'price.extended', 'width': 100, 'align': 'right', 'format': 'currency', 'visible': True},
+    {'field': 'price.amount', 'width': 100, 'align': 'right', 'format': 'currency', 'visible': True},
     {'field': 'cost.unit', 'width': 90, 'align': 'right', 'format': 'currency', 'visible': True},
 ]
 

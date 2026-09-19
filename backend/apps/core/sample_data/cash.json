@@ -23,13 +23,17 @@
   "source": {},
   "refs": {
     "links": {
-      "contact": {"id": 142, "name": "Ridgeline Hardware & Supply", "ida": "RHS-142"}
+      "contact": {
+        "id": 142,
+        "name": "Ridgeline Hardware & Supply",
+        "ida": "RHS-142"
+      }
     }
   },
   "totals": {
-    "total": 7841.20,
-    "applied": 7841.20,
-    "unapplied": 0.00
+    "total": 7841.2,
+    "applied": 7841.2,
+    "unapplied": 0.0
   },
   "sell": {},
   "cost": {},
@@ -43,10 +47,12 @@
         "ida_item": "INV-2026-0847",
         "description": "Invoice dated 2026-06-30 — Hardware tools order"
       },
-      "quantity": {"active": 1},
+      "quantity": {
+        "active": 1
+      },
       "price": {
         "unit": 4263.35,
-        "extended": 4263.35
+        "amount": 4263.35
       }
     },
     {
@@ -55,10 +61,12 @@
         "ida_item": "INV-2026-0791",
         "description": "Invoice dated 2026-06-15 — Fasteners and adhesives"
       },
-      "quantity": {"active": 1},
+      "quantity": {
+        "active": 1
+      },
       "price": {
         "unit": 3577.85,
-        "extended": 3577.85
+        "amount": 3577.85
       }
     }
   ]

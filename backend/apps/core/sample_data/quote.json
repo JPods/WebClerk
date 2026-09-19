@@ -28,14 +28,18 @@
   },
   "refs": {
     "links": {
-      "contact": {"id": 445, "name": "David Mitchell", "ida": "MITCH-445"}
+      "contact": {
+        "id": 445,
+        "name": "David Mitchell",
+        "ida": "MITCH-445"
+      }
     }
   },
   "totals": {
-    "subtotal": 18475.00,
     "tax": 1294.25,
-    "shipping": 0.00,
-    "total": 19769.25
+    "shipping": 0.0,
+    "total": 19769.25,
+    "amount": 18475.0
   },
   "sell": {},
   "cost": {},
@@ -50,11 +54,13 @@
         "description": "Shaker Style Base Cabinet, 36\" White",
         "uom": "Each"
       },
-      "quantity": {"active": 4},
+      "quantity": {
+        "active": 4
+      },
       "price": {
-        "unit": 685.00,
+        "unit": 685.0,
         "discount_percent": 0,
-        "extended": 2740.00
+        "amount": 2740.0
       }
     },
     {
@@ -64,11 +70,13 @@
         "description": "Shaker Style Wall Cabinet, 30\" White",
         "uom": "Each"
       },
-      "quantity": {"active": 6},
+      "quantity": {
+        "active": 6
+      },
       "price": {
-        "unit": 425.00,
+        "unit": 425.0,
         "discount_percent": 0,
-        "extended": 2550.00
+        "amount": 2550.0
       }
     },
     {
@@ -78,11 +86,13 @@
         "description": "Quartz Countertop, Calacatta Gold — per sq ft installed",
         "uom": "SqFt"
       },
-      "quantity": {"active": 42},
+      "quantity": {
+        "active": 42
+      },
       "price": {
-        "unit": 125.00,
+        "unit": 125.0,
         "discount_percent": 0,
-        "extended": 5250.00
+        "amount": 5250.0
       }
     },
     {
@@ -92,11 +102,13 @@
         "description": "Kohler Whitehaven 33\" Farmhouse Sink, White",
         "uom": "Each"
       },
-      "quantity": {"active": 1},
+      "quantity": {
+        "active": 1
+      },
       "price": {
-        "unit": 1295.00,
+        "unit": 1295.0,
         "discount_percent": 0,
-        "extended": 1295.00
+        "amount": 1295.0
       }
     },
     {
@@ -106,11 +118,13 @@
         "description": "Delta Trinsic Single Handle Pull-Down Kitchen Faucet",
         "uom": "Each"
       },
-      "quantity": {"active": 1},
+      "quantity": {
+        "active": 1
+      },
       "price": {
-        "unit": 389.00,
+        "unit": 389.0,
         "discount_percent": 0,
-        "extended": 389.00
+        "amount": 389.0
       }
     },
     {
@@ -120,11 +134,13 @@
         "description": "Kitchen Installation Labor — includes demo, prep, install, cleanup",
         "uom": "Flat"
       },
-      "quantity": {"active": 1},
+      "quantity": {
+        "active": 1
+      },
       "price": {
-        "unit": 4500.00,
+        "unit": 4500.0,
         "discount_percent": 0,
-        "extended": 4500.00
+        "amount": 4500.0
       }
     },
     {
@@ -134,11 +150,13 @@
         "description": "Subway Tile Backsplash, 3x6 White — per case (100 pcs)",
         "uom": "Case"
       },
-      "quantity": {"active": 3},
+      "quantity": {
+        "active": 3
+      },
       "price": {
-        "unit": 89.00,
+        "unit": 89.0,
         "discount_percent": 0,
-        "extended": 267.00
+        "amount": 267.0
       }
     },
     {
@@ -148,11 +166,13 @@
         "description": "Backsplash Tile Installation Labor",
         "uom": "Flat"
       },
-      "quantity": {"active": 1},
+      "quantity": {
+        "active": 1
+      },
       "price": {
-        "unit": 1484.00,
+        "unit": 1484.0,
         "discount_percent": 0,
-        "extended": 1484.00
+        "amount": 1484.0
       }
     }
   ]

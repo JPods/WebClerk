@@ -253,7 +253,7 @@ def build_card_layout(model_name):
     if model_name in TRANSACTION_MODELS:
         financial_fields = [
             make_field_spec('company.name'),
-            make_field_spec('totals.subtotal'),
+            make_field_spec('totals.amount'),
             make_field_spec('totals.total'),
             make_field_spec('totals.balance'),
             make_field_spec('totals.tax'),
