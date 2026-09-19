@@ -162,6 +162,21 @@ def recalculate_totals(
     }
 
 
+def _customer_is_exempt(customer_id) -> bool:
+    """A customer with a tax exempt code pays no tax on any line.
+
+    Simplification (Bill, 2026-09-19): where exemption is common, the real answer is
+    a tax service (a Connection), not a flag. This keeps the common case honest until then.
+    """
+    if not customer_id:
+        return False
+    from django.apps import apps as _apps
+    fin = (_apps.get_model('orgs', 'OrgBase').objects.filter(pk=customer_id)
+           .values_list('financial', flat=True).first()) or {}
+    settings = ((fin.get('common') or {}).get('settings') or {})
+    return bool(settings.get('tax_exempt') or settings.get('tax_exempt_id'))
+
+
 def _tax_policy() -> Dict[str, bool]:
     """Company switches (Bill, 2026-09-19), both off by default:
     tax_on_shipping — tax a line's shipping share at the shipping rate;
@@ -229,14 +244,19 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
     'header_rate', 'jurisdiction', 'lines_recalculated'}. ``totals`` is not validated.
     """
     is_sell = is_sell_side(model_name)
-    lines = list(lines)
+    # A soft-deleted or inactive line is not part of the document (recheck 2).
+    lines = [l for l in lines
+             if not getattr(l, 'is_deleted', False) and getattr(l, 'is_active', True)
+             and not ((getattr(l, 'item', None) or {}).get('is_deleted'))]
 
     finance = getattr(header, 'finance', None) or {}
     header_tax_rate = _d(finance.get('sales_tax_rate', 0), places=6)
     if header_tax_rate > 1:                      # 8.25 is read as 8.25%
         header_tax_rate = header_tax_rate / 100
     tax_envelope = getattr(header, 'tax', None) or {}
-    is_exempt = bool(tax_envelope.get('exempt_code'))
+    is_exempt = bool(tax_envelope.get('exempt_code') or finance.get('tax_exempt_id') or finance.get('tax_exempt'))
+    if not is_exempt:
+        is_exempt = _customer_is_exempt(getattr(header, 'customer_id', None))
     tax_jurisdiction_name = finance.get('sales_tax_name', '')
     shipping_tax_rate = _d(tax_envelope.get('shipping', 0) or finance.get('tax_on_shipping_rate', 0), places=6)
     if shipping_tax_rate > 1:
@@ -266,6 +286,8 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
         line_unit = _discounted_unit(unit, qty, num(env, 'discount_percent', 6),
                                      num(env, 'discount_amount'), places)
         goods.append((line, qty, unit, line_unit, places))
+    # A fixed order, so the remainder always lands on the same line (recheck 2).
+    goods.sort(key=lambda g: (getattr(g[0], 'line_number', 0) or 0, getattr(g[0], 'pk', 0) or 0))
 
     # ── The document discount, as a per-unit reduction ────────────────────
     doc_share = {}
@@ -303,7 +325,7 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
         typed = num(line_tax_env, 'sales_rate', 6)
         source = line_tax_env.get('rate_source')
         tax_code = (cost_env.get('tax_code', '') or '').upper()
-        if source == 'line' or (source is None and typed > 0):
+        if source == 'line':
             rate, source = (typed / 100 if typed > 1 else typed), 'line'
         elif not is_sell and not policy['tax_on_costs']:
             rate, source = Decimal(0), 'costs_not_taxed'

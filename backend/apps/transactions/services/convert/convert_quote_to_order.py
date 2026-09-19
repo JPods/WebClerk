@@ -126,94 +126,53 @@ def transfer_quote_to_order(
     order_status: str = "confirmed",
     preserve_quote: bool = True,
 ) -> Dict:
-    """Create the Order header from a quote and return its lines for review (atomic).
+    """Create the Order header from a quote and return its lines for review.
 
-      1. Select lines (all or by ID list)
-      2. Create Order header: parent_model='quote', parent_id, refs.source.quote_id
-      3. Return line data (not saved). Saving the order creates OrderLines with
-         parent_line_id; the quote lines' remaining/status follow from their children
-         (readmes/transactions/line-quantity.md).
+    One converter (recheck 2): this delegates to convert.convert_quote_to_order, so the
+    DRF endpoint and the UI get the same rules — line_type and finance carried, a flat
+    discount shared across partial children, a document discount carried as a percent.
+    Its own copy of those rules, which dropped the discount line type and the tax rate,
+    is gone. The result keeps the shape this endpoint's callers expect.
 
     preserve_quote is accepted for caller compatibility and ignored — the quote
     is never modified here.
     """
+    from apps.transactions.services.convert.convert import convert_quote_to_order as convert_one
+
     if not transfer_all and not line_ids:
         raise QuoteToOrderTransferError("Must specify line_ids when transfer_all is False")
 
-    all_lines_qs = QuoteLine.objects.select_for_update().filter(quote=quote)
-    if transfer_all:
-        selected_lines = list(all_lines_qs)
-        if not selected_lines:
-            raise QuoteToOrderTransferError("No lines to transfer")
-    else:
-        selected_lines = list(all_lines_qs.filter(id__in=line_ids))
-        if not selected_lines:
-            raise QuoteToOrderTransferError("Line IDs not found")
+    check = validate_quote_for_transfer(quote, line_ids=None if transfer_all else line_ids)
+    if not check.get('can_transfer', True):
+        raise QuoteToOrderTransferError('; '.join(check.get('errors') or ['quote cannot be transferred']))
+    try:
+        result = convert_one(quote.pk, line_ids=None if transfer_all else line_ids)
+    except Exception as exc:                       # the converter's refusals are this one's
+        raise QuoteToOrderTransferError(str(exc)) from exc
 
-    order_kwargs = {
-        "status": order_status,
-        # parent link: saving the order validates transfers against quote remaining
-        "parent_model": "quote",
-        "parent_id": quote.id,
-        "refs": {"source": {"quote_id": quote.id}},
-    }
-    # Copy party_id only if Order supports it and quote provides it
-    quote_party_id = getattr(quote, "party_id", None)
-    if quote_party_id is not None and hasattr(Order(), "party_id"):
-        order_kwargs["party_id"] = quote_party_id
+    order_id = result.get('order_id')
+    order = Order.objects.get(pk=order_id)
+    if order_status:
+        order.status = order_status
+    # This endpoint's own contract: the order names its quote in refs.source, and a
+    # blanket quote's is_fixed follows onto the review quantities.
+    refs = dict(order.refs or {})
+    refs['source'] = {**(refs.get('source') or {}), 'quote_id': quote.id}
+    order.refs = refs
+    order.save(update_fields=['status', 'refs', 'dt_modified', 'version'])
 
-    order = Order.objects.create(**order_kwargs)
-
-    # Copy customer/contact/party fields from quote to order
-    # address_full, email, phone are properties (read from FK records), not settable
-    for field in ('customer', 'contact', 'attention',
-                  'price_level', 'terms', 'terms_fk'):
-        val = getattr(quote, field, None)
-        if val is not None and hasattr(order, field):
-            setattr(order, field, val)
-    # Copy config (ship_to, etc.)
-    if getattr(quote, 'config', None):
-        order.config = dict(quote.config)
-    order.save()
-
-    # ── Build line data for React — NOT saved server-side ────────────
-    # Conversion creates the header. React receives line data and populates
-    # the form. User reviews, adjusts quantities, clicks Save.
-    # Save creates lines + pending records. Pending is fire-and-forget on save.
-    lines_for_react = []
-    for pl in selected_lines:
-        qty = _convert_quantity_from_quote(getattr(pl, "quantity", None))
-        item_data = getattr(pl, "item", None) or {}
-        item_id = item_data.get('id') or item_data.get('item_id') if isinstance(item_data, dict) else None
-
-        lines_for_react.append({
-            'line_number': getattr(pl, 'line_number', 0) or 0,
-            'item': item_data,
-            'quantity': qty,
-            'price': pl.price or {},
-            'cost': getattr(pl, 'cost', None) or {},
-            'price_level': getattr(pl, 'price_level', '') or '',
-            'status': '',
-            'is_active': True,
-            'comments': getattr(pl, 'comments', None) or {},
-            'config': getattr(pl, 'config', None) or {},
-            'commission': getattr(pl, 'commission', None) or {},
-            'refs': {
-                'source': {'quote_line_id': pl.id},
-                'xfer': build_line_payload(pl, "quote"),
-            },
-            '_dirty': True,
-        })
-
-    # Quote lines are NOT modified here. They are only copied.
-    # When the user saves the order:
-    #   1. OrderLine records are created → each fires on_so pending
-    #   2. OrderLine tells QuoteLine how to adjust → QuoteLine saves → fires on_qt pending
+    by_line = {ql.pk: ql for ql in QuoteLine.objects.filter(quote=quote)}
+    for entry in result.get('lines', []):
+        src_id = ((entry.get('refs') or {}).get('source') or {}).get('quote_line_id')
+        src = by_line.get(src_id)
+        src_qty = (getattr(src, 'quantity', None) or {}) if src else {}
+        if 'is_fixed' in src_qty:
+            entry['quantity']['is_fixed'] = src_qty['is_fixed']
 
     return {
         "success": True,
-        "order_id": order.id,
+        "order_id": order_id,
         "quote_id": quote.id,
-        "lines_for_review": len(lines_for_react),
-        "lines": lines_for_react,
+        "lines_for_review": result.get('lines_for_review', 0),
+        "lines": result.get('lines', []),
     }

@@ -243,3 +243,83 @@ def test_a_line_with_both_discounts_splits_the_flat_across_partial_conversions()
     assert second.price["discount_amount"] == pytest.approx(7.50)
     assert first.totals["discounted_unit"] == pytest.approx(8.50)
     assert first.totals["amount"] + second.totals["amount"] == pytest.approx(85.00)
+
+
+@pytest.mark.django_db
+def test_a_tax_exempt_customer_pays_no_tax():
+    """Bill 2026-09-19: a customer with a tax exempt code gets no tax on any line.
+    Simplification — where exemption is common the answer is a tax service."""
+    from apps.orgs.models import Customer
+    c = Customer.objects.create(company='Exempt Co', financial={
+        'common': {'settings': {'tax_exempt': True, 'tax_exempt_id': 'E-123'}}})
+    q = Quote.objects.create(finance={"sales_tax_rate": 0.08}, customer_id=c.pk)
+    line = _line(q, 2, 50.00)
+    line.refresh_from_db(); q.refresh_from_db()
+    assert line.totals["tax"] == 0 and line.totals["rate_source"] == "exempt"
+    assert q.totals["tax"] == 0 and q.totals["total"] == pytest.approx(100.00)
+
+
+@pytest.mark.django_db
+def test_a_soft_deleted_line_leaves_the_totals():
+    """Recheck 2: soft-deleted lines were still summed."""
+    q = Quote.objects.create(finance={"sales_tax_rate": 0.08})
+    keep = _line(q, 1, 100.00)
+    gone = _line(q, 1, 40.00)
+    q.refresh_from_db()
+    assert q.totals["amount"] == pytest.approx(140.00)
+    gone.is_deleted = True
+    gone.save()
+    q.refresh_from_db()
+    assert q.totals["amount"] == pytest.approx(100.00)
+    assert q.totals["tax"] == pytest.approx(8.00)
+    keep.refresh_from_db()
+    assert keep.totals["amount"] == pytest.approx(100.00)
+
+
+@pytest.mark.django_db
+def test_editing_the_discount_record_line_is_refused_and_deleting_it_removes_the_discount():
+    """Recheck 2: editing $10 → $15 gave $25 off; deleting the record stranded the $10."""
+    q = Quote.objects.create()
+    _line(q, 1, 100.00)
+    record = _line(q, 1, 10.00, line_type='discount')
+    q.refresh_from_db()
+    assert q.allocations["discount_amount"] == 10.0 and q.totals["amount"] == pytest.approx(90.00)
+    record.refresh_from_db()
+    record.price = {**record.price, 'unit': 15.0}
+    with pytest.raises(ValueError, match="already applied"):
+        record.save()
+    q.refresh_from_db()
+    assert q.totals["amount"] == pytest.approx(90.00)      # unchanged, not 75.00
+    record.refresh_from_db()
+    record.delete()
+    q.refresh_from_db()
+    assert q.allocations.get("discount_amount") in (None, 0)
+    assert q.totals["amount"] == pytest.approx(100.00)
+
+
+@pytest.mark.django_db
+def test_a_rate_left_by_the_old_engine_is_not_treated_as_typed():
+    """Recheck 2: 39 legacy lines looked as though a user had typed their rate."""
+    q = Quote.objects.create(finance={"sales_tax_rate": 0.08})
+    line = QuoteLine.objects.create(
+        quote=q, quantity={"active": 1}, price={"unit": 100.0, "precision": 2},
+        cost={"unit": 0}, tax={"sales_rate": 0.05})          # no rate_source: the old engine's
+    line.refresh_from_db(); q.refresh_from_db()
+    assert line.totals["rate_source"] == "header"
+    assert line.totals["tax"] == pytest.approx(8.00)         # the header's 8%, not the stale 5%
+
+
+@pytest.mark.django_db
+def test_a_caller_cannot_write_totals():
+    """Recheck 2: header totals were writable through the transaction endpoint."""
+    from apps.transactions.services.transaction_save import save_transaction_with_lines
+    q = Quote.objects.create()
+    result = save_transaction_with_lines(
+        'quote',
+        {'id': q.pk, 'totals': {'amount': 1.00, 'total': 1.00}},
+        [{'quantity': {'active': 2}, 'price': {'unit': 10.0, 'precision': 2}, 'cost': {'unit': 0},
+          'totals': {'amount': 999.0}, '_dirty': True}],
+        request=None, verify_calculations=False, save_only_dirty=False)
+    q.refresh_from_db()
+    assert q.totals["amount"] == pytest.approx(20.00)        # the engine's, not the caller's
+    assert q.lines.first().totals["amount"] == pytest.approx(20.00)

@@ -215,12 +215,23 @@ def _build_header_kwargs(
         for field in (
             "customer_id", "vendor_id", "manufacturer_id",
             "contact_id", "price_level",
-            "attention",
+            "attention", "ship_via",
+            # Tax jurisdiction and rate travel with the sale (recheck 2: this path dropped them)
+            "finance",
             "terms", "terms_fk_id", "conditions_id", "conditions_description",
         ):
             val = getattr(source, field, None)
             if val is not None:
                 kwargs[field] = val
+        # A document discount carries as a percent, so a partial transfer gets its share.
+        alloc = getattr(source, "allocations", None) or {}
+        pct = alloc.get("discount_percent") or 0
+        amount = alloc.get("discount_amount") or 0
+        if not pct and amount:
+            goods = float((getattr(source, "totals", None) or {}).get("amount") or 0) + float(amount)
+            pct = round(float(amount) / goods * 100, 6) if goods else 0
+        if pct:
+            kwargs["allocations"] = {"discount_percent": pct}
 
     # cross mode: no customer, no vendor — leave defaults (null)
 
@@ -258,6 +269,8 @@ def _build_line_kwargs(
     kwargs: Dict[str, Any] = {
         fk_field:      target_header,
         "status":      "pending",
+        # A discount line stays a discount line: as a product it adds instead of subtracts
+        "line_type":   getattr(src_line, "line_type", None) or "product",
         "price_level": getattr(src_line, "price_level", "") or "",
         "quantity":    target_qty,
         "cost":        dict(getattr(src_line, "cost", None) or {}),

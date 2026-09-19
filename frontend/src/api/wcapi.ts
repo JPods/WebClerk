@@ -444,8 +444,10 @@ export async function saveTransactionWithLines(
     'security_level', 'version',
   ];
   const lineStripKeys = [
+    // 'tax' stays: a rate typed on a line is the user's input (recheck 2).
+    // 'totals' is stripped: line results belong to the server's totals engine.
     'uuid', 'metadata', 'prefs',
-    'physical', 'actions', 'tax',
+    'physical', 'actions', 'totals',
     'dt_created', 'dt_modified', 'health_rating',
     'is_archived', 'is_deleted', 'is_locked',
     'security_level', 'version',

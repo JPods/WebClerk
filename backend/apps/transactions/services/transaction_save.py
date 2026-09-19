@@ -422,6 +422,8 @@ def calculate_header_totals(
 
     header = SimpleNamespace(
         finance=header_data.get('finance') or {},
+        allocations=header_data.get('allocations') or {},
+        customer_id=header_data.get('customer_id'),
         tax=header_data.get('tax') or {},
         cost=header_data.get('cost') or {},
         ship_via=header_data.get('ship_via') or '',
@@ -538,9 +540,8 @@ def save_transaction_with_lines(
     pending_deltas: List[Dict[str, Any]] = []
 
     with db_transaction.atomic():
-        # Extended values are computed authoritatively by the model's save()
-        # method via ensure_json_defaults() → _calculate_extended_cost() and
-        # _calculate_extended_price(). No pre-computation needed here.
+        # Line and header results are computed authoritatively by the totals engine
+        # (totals_compute.compute_totals) and written to line.totals / header.totals.
 
         if verify_calculations:
             verify_header_calculations(header_data, lines_data, model_key)
@@ -548,6 +549,12 @@ def save_transaction_with_lines(
         # Save header
         header_clean = filter_input_fields(HeaderModel, header_data)
         header_clean.pop('_dirty', None)
+        # Results are the engine's, never the client's (recheck 2): a caller may not
+        # write totals on the header or on a line. The totals engine writes both.
+        header_clean.pop('totals', None)
+        for line in lines_data:
+            if isinstance(line, dict):
+                line.pop('totals', None)
         if not header_id:
             header_clean.pop('id', None)
 

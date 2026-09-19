@@ -56,6 +56,50 @@ def apply_document_discount(header, amount: Optional[Any] = None,
     return {'allocations': alloc, 'discount': (header.totals or {}).get('discount')}
 
 
+def on_discount_line_saved(line, created: bool) -> Optional[Dict[str, Any]]:
+    """A discount line is an instruction, not a number the engine reads.
+
+    On create it moves into allocations.discount_amount. On a later edit the line is a
+    record of what was applied: changing its unit would add a second discount (recheck 2,
+    where $10 edited to $15 gave $25 off), so the record is restored and the user is told
+    to change the document discount instead.
+    """
+    if created:
+        return spread_discount_line(line)
+    applied = ((line.metadata or {}).get('document_discount') or {}).get('applied') if isinstance(line.metadata, dict) else None
+    if applied is None:
+        return spread_discount_line(line)
+    price = dict(line.price or {})
+    if _dec(price.get('unit')) or _dec(price.get('discount_amount')):
+        price.update({'unit': 0, 'discount_amount': 0, 'discount_percent': 0, 'amount': 0})
+        line.price = price
+        line.save(update_fields=['price'])
+        raise ValueError(
+            f"This line records a document discount of {applied} that is already applied. "
+            "To change it, change the document discount (allocations), not this line.")
+    return None
+
+
+def remove_discount_line(line) -> Optional[Dict[str, Any]]:
+    """Deleting the record line takes its discount off the document (recheck 2)."""
+    applied = ((line.metadata or {}).get('document_discount') or {}).get('applied') if isinstance(line.metadata, dict) else None
+    if not applied:
+        return None
+    header = line.parent
+    if header is None or header._meta.model_name not in SELL_HEADERS:
+        return None
+    remaining = _dec((header.allocations or {}).get('discount_amount')) - _dec(applied)
+    if remaining > 0:
+        return apply_document_discount(header, amount=remaining)
+    alloc = dict(header.allocations or {})
+    alloc.pop('discount_amount', None)
+    alloc.pop('discount_percent', None)
+    header.allocations = alloc
+    header.save(update_fields=['allocations'])
+    header.refresh_from_db(fields=['totals'])
+    return {'allocations': alloc, 'discount': (header.totals or {}).get('discount')}
+
+
 def spread_discount_line(line) -> Optional[Dict[str, Any]]:
     """Move a document discount line into allocations.discount_amount; keep it at zero."""
     if (line.line_type or '') != 'discount' or getattr(line, 'purpose', '') == 'cash_discount':

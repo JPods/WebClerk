@@ -422,10 +422,13 @@ def apply_terms_for_invoice(invoice, total: Optional[Decimal] = None, term=None,
 
 
 def allocate_received(invoice) -> None:
-    """Spread totals.received over the invoice's ledgers, earliest due first.
+    """Spread what has been settled over the invoice's ledgers, earliest due first.
 
-    Each ledger's value_available = value_original − its share of received,
-    so Σ invoice ledgers = invoice balance due (the aging reads these).
+    Each ledger's value_available = value_original − its share, so
+    Σ invoice ledgers = the invoice's balance, always. When more was settled than
+    the invoice asked (an overpayment, or a return taken against it), the last
+    ledger carries the credit as a negative value: that is money available to the
+    customer, and it must show in the ledger, never nowhere (Bill, 2026-09-19).
     """
     from django.apps import apps as dj_apps
     from decimal import Decimal as D
@@ -433,11 +436,15 @@ def allocate_received(invoice) -> None:
 
     t = getattr(invoice, 'totals', None) or {}
     remaining = D(str(t.get('received') or 0)) + D(str(t.get('adjusted') or 0))
-    for ledger in Ledger.objects.filter(
+    ledgers = list(Ledger.objects.filter(
         invoice_id=invoice.pk, model_name='invoice',
-    ).order_by('dt_due', 'id'):
+    ).order_by('dt_due', 'id'))
+    for i, ledger in enumerate(ledgers):
         original = D(str(ledger.value_original or 0))
-        if original == 0 or remaining == 0 or (original > 0) != (remaining > 0):
+        last = i == len(ledgers) - 1
+        if last:
+            take = remaining                      # the last row carries any credit
+        elif original == 0 or remaining == 0 or (original > 0) != (remaining > 0):
             take = D('0')
         else:
             take = min(abs(original), abs(remaining)) * (1 if original > 0 else -1)

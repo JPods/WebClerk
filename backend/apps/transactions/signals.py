@@ -325,11 +325,18 @@ register_line_parent_signals(InvoiceLine)
 
 def register_discount_line_spread(line_model):
     @receiver(post_save, sender=line_model)
-    def spread_on_create(sender, instance, created, **kwargs):
-        if not created or (instance.line_type or '') != 'discount':
+    def spread_on_save(sender, instance, created, **kwargs):
+        if (instance.line_type or '') != 'discount':
             return
-        from apps.transactions.services.pricing.document_discount import spread_discount_line
-        spread_discount_line(instance)
+        from apps.transactions.services.pricing.document_discount import on_discount_line_saved
+        on_discount_line_saved(instance, created)
+
+    @receiver(post_delete, sender=line_model)
+    def remove_on_delete(sender, instance, **kwargs):
+        if (instance.line_type or '') != 'discount':
+            return
+        from apps.transactions.services.pricing.document_discount import remove_discount_line
+        remove_discount_line(instance)
 
 
 for _sell_line_model in (QuoteLine, OrderLine, InvoiceLine):
