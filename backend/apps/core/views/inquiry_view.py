@@ -183,7 +183,7 @@ class InquiryView(_Public):
         ask = _site_form(payload.get('site', '')).get('ask', {})
         return Response({'ok': True, 'email': payload['email'], 'topic': payload.get('topic', ''),
                          'role': payload.get('role', ''), 'market_use': ask.get('market_use', []),
-                         'questions': ask.get('questions', [])})
+                         'questions': ask.get('questions', []), 'note': ask.get('note')})
 
     def post(self, request):
         if str(request.data.get('website') or '').strip():

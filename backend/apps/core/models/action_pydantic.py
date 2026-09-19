@@ -150,9 +150,26 @@ class InquiryAnswer(BaseModel):
         extra = 'forbid'
 
 
+class InquiryNote(BaseModel):
+    """A statement with a link, shown under the questions — e.g. "See TFM hours:" + url."""
+    text: str
+    url: str
+
+    @field_validator('url')
+    @classmethod
+    def _https(cls, v):
+        if not v.startswith('https://'):
+            raise ValueError('note url must start with https://')
+        return v
+
+    class Config:
+        extra = 'forbid'
+
+
 class InquiryAsk(BaseModel):
     market_use: list[str] = []                # options for "how often do you use the market?"; set = required
     questions: list[str] = []                 # free-text questions, answers optional
+    note: Optional[InquiryNote] = None
 
     class Config:
         extra = 'forbid'
