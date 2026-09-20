@@ -89,3 +89,64 @@ def test_stale_commitments_lists_what_is_still_held():
 
     assert rows and rows[0]['holding'] == 7.0
     assert rows[0]['bucket'] == 'on_so'
+
+
+# ── allocation — entered, never derived (Bill, 2026-09-19) ──────────────
+
+
+def _item(on_hand=100):
+    from apps.products.models import Item
+    return Item.objects.create(name='Widget', quantity={'on_hand': on_hand, 'on_so': 0,
+                                                        'allocated': 0, 'available': on_hand})
+
+
+def test_allocation_is_entered_and_reduces_available():
+    from apps.products.services.inventory.inventory_allocate import allocate, release
+    item = _item()
+
+    out = allocate(item.pk, 9, acted_by='sales1', reason='for ACME')
+    assert out['allocated'] == 9.0
+    assert out['available'] == 91.0          # available = on_hand - allocated
+
+    back = release(item.pk, 4, acted_by='sales1', reason='ACME cut the order')
+    assert back['allocated'] == 5.0
+    assert back['available'] == 95.0
+
+
+def test_an_order_does_not_allocate():
+    from apps.transactions.models import Order, OrderLine
+    from apps.orgs.models import Customer
+    item = _item()
+    order = Order.objects.create(customer_id=Customer.objects.create(company='C').pk)
+    OrderLine.objects.create(order=order, item={'item_id': item.pk}, quantity={'active': 9},
+                             price={'unit': 10.00, 'precision': 2})
+
+    item.refresh_from_db()
+    quantity = item.quantity or {}
+    assert float(quantity.get('on_so')) == 9.0        # the order commits
+    assert float(quantity.get('allocated')) == 0.0    # and allocates nothing
+    assert float(quantity.get('available')) == 100.0  # so available is untouched
+
+
+def test_you_cannot_allocate_more_than_is_on_hand_or_release_what_is_not_allocated():
+    from django.core.exceptions import ValidationError
+    from apps.products.services.inventory.inventory_allocate import allocate, release
+    item = _item(on_hand=10)
+    with pytest.raises(ValidationError):
+        allocate(item.pk, 11, acted_by='sales1')
+    with pytest.raises(ValidationError):
+        release(item.pk, 1, acted_by='sales1')
+    with pytest.raises(ValidationError):
+        allocate(item.pk, 5, acted_by='')             # an allocation records who made it
+
+
+def test_allocation_history_says_who_and_why():
+    from apps.products.services.inventory.inventory_allocate import allocate, allocation_history
+    item = _item()
+    allocate(item.pk, 3, acted_by='sales1', reason='holding for pickup')
+
+    rows = allocation_history(item.pk)
+    assert rows[0]['by'] == 'sales1'
+    assert rows[0]['reason'] == 'holding for pickup'
+    assert rows[0]['verb'] == 'allocate'
+    assert rows[0]['qty'] == 3.0

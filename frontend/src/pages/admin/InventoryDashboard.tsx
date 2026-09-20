@@ -17,6 +17,7 @@
  *   - get_item_inventory_summary (inventory_stacks.py)
  *   - get_items_below_reorder (suggest_purchase.py)
  */
+import { useAuth } from "../../hooks/useAuth";
 import React, { useCallback, useEffect, useState } from "react";
 import apiClient from "../../api/axios";
 import { getRecords, manageAction } from "../../api/wcapi";
@@ -547,6 +548,12 @@ function AdjustTab() {
   const [adjField, setAdjField] = useState("on_hand");
   const [adjDelta, setAdjDelta] = useState<number>(0);
   const [adjReason, setAdjReason] = useState("count_correction");
+  // Allocation is a person's act, not a document's (Bill, 2026-09-19)
+  const [allocQty, setAllocQty] = useState<number>(0);
+  const [allocReason, setAllocReason] = useState("");
+  const [allocHistory, setAllocHistory] = useState<any[]>([]);
+  const { user } = useAuth();
+  const actedBy = [user?.name_first, user?.name_last].filter(Boolean).join(" ") || user?.email || "";
   const [pending, setPending] = useState<AdjustmentRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -592,6 +599,48 @@ function AdjustTab() {
       setPending(Array.isArray(data) ? data : []);
     } catch {
       setPending([]);
+    }
+  };
+
+  // Allocate or release — available = on_hand - allocated, and only a person moves allocated
+  const handleAllocate = async (verb: "allocate" | "release") => {
+    if (!selectedItem || allocQty <= 0) {
+      setError("Select an item and enter a quantity to " + verb + ".");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await manageAction(
+        verb === "allocate" ? "allocate_inventory" : "release_allocation",
+        {
+          item_id: selectedItem.id,
+          qty: allocQty,
+          acted_by: actedBy,
+          reason: allocReason,
+        }
+      );
+      setResult(
+        `${verb === "allocate" ? "Allocated" : "Released"} ${allocQty} — allocated ${res.allocated}, available ${res.available}`
+      );
+      const data = await getRecords("item", { id: selectedItem.id });
+      if (data.results?.[0]) {
+        const updated = data.results[0];
+        setSelectedItem({
+          id: updated.id,
+          ida: updated.ida || "",
+          name: updated.name || "",
+          quantity: updated.quantity || {},
+        });
+      }
+      const hist = await manageAction("allocation_history", { item_id: selectedItem.id, limit: 10 });
+      setAllocHistory(Array.isArray(hist) ? hist : []);
+      setAllocQty(0);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || `${verb} failed`);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -797,6 +846,68 @@ function AdjustTab() {
                 {submitting ? "Adjusting..." : "Adjust"}
               </button>
             </div>
+          </Card>
+
+          {/* Allocation — entered, never derived */}
+          <Card title="Allocation" icon={<FaExchangeAlt />}>
+            <p className="text-xs text-gray-500 mb-2">
+              allocated is a decision, not a by-product: no quote, order or purchase moves it.
+              available = on_hand − allocated.
+            </p>
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="text-sm text-gray-600">
+                quantity
+                <input
+                  data-wc="inv-alloc-qty"
+                  type="number"
+                  min={0}
+                  value={allocQty || ""}
+                  onChange={(e) => setAllocQty(Number(e.target.value))}
+                  className="ml-2 w-24 px-2 py-1.5 text-sm border border-gray-300 rounded"
+                />
+              </label>
+              <label className="flex-1 text-sm text-gray-600">
+                reason
+                <input
+                  data-wc="inv-alloc-reason"
+                  type="text"
+                  placeholder="who or what these are set aside for"
+                  value={allocReason}
+                  onChange={(e) => setAllocReason(e.target.value)}
+                  className="ml-2 w-full max-w-xs px-2 py-1.5 text-sm border border-gray-300 rounded"
+                />
+              </label>
+              <button
+                data-wc="inv-alloc-submit"
+                onClick={() => handleAllocate("allocate")}
+                disabled={submitting || allocQty <= 0}
+                className="px-3 py-2 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                Allocate
+              </button>
+              <button
+                data-wc="inv-alloc-release"
+                onClick={() => handleAllocate("release")}
+                disabled={submitting || allocQty <= 0}
+                className="px-3 py-2 text-sm font-medium bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
+              >
+                Release
+              </button>
+            </div>
+            {allocHistory.length > 0 && (
+              <table className="mt-3 w-full text-xs">
+                <tbody>
+                  {allocHistory.map((row, i) => (
+                    <tr key={i} className="border-t border-gray-100">
+                      <td className="py-1 font-mono">{row.verb}</td>
+                      <td className="py-1 text-right font-mono">{row.qty}</td>
+                      <td className="py-1 pl-3">{row.by}</td>
+                      <td className="py-1 pl-3 text-gray-500">{row.reason}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </Card>
 
           {/* Adjustment History */}

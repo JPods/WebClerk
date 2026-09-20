@@ -17,6 +17,7 @@ INVENTORY_PURPOSES = (
     'inventory_line_delete',
     'inventory_cost_change',
     'receipt_line_add',
+    'allocation',          # a salesperson setting goods aside, or giving them back
 )
 
 
@@ -125,8 +126,11 @@ class Pending(CoreModel):
 
                 quantity = item.quantity or {}
 
-                # Apply deltas from the pending data
-                for field in ('on_so', 'on_po', 'on_wo', 'on_qt', 'on_in', 'on_rc', 'on_hand'):
+                # Apply deltas from the pending data. 'allocated' is here because a
+                # salesperson's allocation is a movement like any other — entered, never
+                # derived (Bill, 2026-09-19) — and it must reach available the same way.
+                for field in ('on_so', 'on_po', 'on_wo', 'on_qt', 'on_in', 'on_rc', 'on_hand',
+                              'allocated'):
                     delta = data.get(field, 0) or 0
                     if delta:
                         current = Decimal(str(quantity.get(field, 0) or 0))

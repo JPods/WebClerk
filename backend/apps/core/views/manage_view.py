@@ -1279,6 +1279,18 @@ _ACTION_DISPATCH = {
         data=p.get('data'),
         dry_run=p.get('dry_run', False),
     ),
+    # Allocation is a person's act, recorded with who and why (Bill, 2026-09-19).
+    "allocate_inventory": lambda p: __import__(
+        'apps.products.services.inventory.inventory_allocate', fromlist=['allocate']
+    ).allocate(int(p['item_id']), p['qty'], acted_by=p.get('acted_by', ''),
+               reason=p.get('reason', ''), order_id=p.get('order_id')),
+    "release_allocation": lambda p: __import__(
+        'apps.products.services.inventory.inventory_allocate', fromlist=['release']
+    ).release(int(p['item_id']), p['qty'], acted_by=p.get('acted_by', ''),
+              reason=p.get('reason', ''), order_id=p.get('order_id')),
+    "allocation_history": lambda p: __import__(
+        'apps.products.services.inventory.inventory_allocate', fromlist=['allocation_history']
+    ).allocation_history(int(p['item_id']), limit=int(p.get('limit', 50))),
     # One door for commitments (Bill, 2026-09-19): cancel, complete and close all
     # release through close_transaction; nothing else writes commitment buckets.
     "close_transaction": lambda p: __import__(
