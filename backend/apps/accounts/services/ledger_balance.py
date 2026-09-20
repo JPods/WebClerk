@@ -217,6 +217,32 @@ def compute_period_totals(docs, keys=('amount', 'margin')):
     return out, last
 
 
+def _cash_outside_its_own_range(cash):
+    """``available`` must lie between zero and ``amount``, inclusive. Message, or None.
+
+    An **invariant**, deliberately not a recomputation. A -60.00 payment cannot have
+    -120.00 still available: that is more unspent than the payment ever held, and it is
+    wrong whatever formula produced it.
+
+    A checker that instead recomputed ``available`` the way the writer computes it would
+    agree with the writer and report clean — which is exactly what happened.
+    ``refresh_cash_available`` subtracted AP applications where it had to add them, every
+    AP payment drove the figure further from zero, and ``in_step`` said *in step* for as
+    long as the bug lived, because it compared receipt balances to ledger echoes and never
+    looked at the cash at all (recheck 3, both assessors, 2026-09-20).
+
+    This fires on the first payment applied, knowing nothing about how available is derived.
+    """
+    amount = Decimal(str(cash.amount or 0))
+    available = Decimal(str(cash.available or 0))
+    if not amount or not available:
+        return None
+    if (available > 0) != (amount > 0) or abs(available) > abs(amount):
+        return (f"cash {cash.ida or cash.pk}: available {available} lies outside 0..{amount} "
+                f"— more unapplied than the payment ever held")
+    return None
+
+
 def compute_vendor_summary(org_id):
     """What we owe this vendor beside its ledger echo (FinSummary, AP side)."""
     from common.schemas.org_aspects import FinSummary
@@ -240,7 +266,13 @@ def compute_vendor_summary(org_id):
             mismatches.append(f"receipt {rec.ida or rec.pk}: balance {balance.quantize(cent)}, ledger {echo.quantize(cent)}")
 
     unapplied = Decimal('0')
-    for cash in Cash.objects.filter(vendor_id=org_id, is_deleted=False).only('available', 'amount'):
+    for cash in Cash.objects.filter(vendor_id=org_id, is_deleted=False).only(
+            'pk', 'ida', 'available', 'amount'):
+        # in_step was blind to the cash side entirely on AP, so the summary could report
+        # itself in step while net was wrong by twice every payment.
+        out_of_range = _cash_outside_its_own_range(cash)
+        if out_of_range:
+            mismatches.append(out_of_range)
         if cash.amount and cash.amount < 0:
             # A seam: cash carries the direction of flow, so a payment out is negative and
             # so is what remains of it. `payable` above is positive — what we owe — so the
@@ -282,6 +314,11 @@ def compute_org_summary(org_id):
     unapplied = Decimal('0')
     unapplied_ledger = Decimal('0')
     for cash in Cash.objects.filter(customer_id=org_id, is_deleted=False).only('pk', 'ida', 'available', 'amount'):
+        # The same invariant on the AR side. This one already compared available to a
+        # ledger echo; the echo can be wrong in the same direction, the invariant cannot.
+        out_of_range = _cash_outside_its_own_range(cash)
+        if out_of_range:
+            mismatches.append(out_of_range)
         if not cash.amount or cash.amount < 0:
             continue
         available = Decimal(str(cash.available or 0))
