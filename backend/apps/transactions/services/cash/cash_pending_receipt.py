@@ -69,14 +69,23 @@ def refresh_receipt_paid(receipt) -> Dict[str, Any]:
 
 
 def refresh_cash_available(cash) -> Decimal:
-    """available = amount − Σ applied, on both sides of the house.
+    """What this cash still has to give, counting both sides of the house.
 
-    Cash pays invoices and receipts, so what is left is the amount less everything it has
-    been applied to, whichever side that was.
+    Cash pays invoices and receipts, and an application carries its *document's* sign, so
+    the two sides do not combine the same way.
     """
     from apps.transactions.services.cash.cash_pending import _applied as _applied_ar
 
-    available = _d(cash.amount) - _applied_ar(cash_id=cash.pk) - _applied(cash_id=cash.pk)
+    # An application carries its *document's* sign. On AR the invoice points the same way
+    # as the cash, so an application is subtracted. On AP they are opposed — a payable is
+    # stored positive and the payment out that settles it is negative — so an AP
+    # application is **added**, and available moves toward zero on both sides.
+    #
+    # This subtracted both: -60.00 paid out of a -60.00 payment reported -120.00 still
+    # available, every AP payment drove the figure further from zero, and the vendor
+    # summary inflated with it. in_step could not see it — it compares receipt balances to
+    # ledger rows and never looks at the cash (recheck 3, both assessors).
+    available = _d(cash.amount) - _applied_ar(cash_id=cash.pk) + _applied(cash_id=cash.pk)
     if _d(cash.available) != available:
         cash.available = available
         cash.save(update_fields=['available', 'dt_modified', 'version'])
@@ -84,6 +93,29 @@ def refresh_cash_available(cash) -> Decimal:
 
 
 @transaction.atomic
+def _check_receipt_application(cash, receipt, amount: Decimal) -> None:
+    """AP's call into the one application check (``cash_pending._check_application``).
+
+    An application carries its document's sign: a +100 payable takes +60 even though the
+    payment out that settles it is -60. That was never the defect — ``refresh_cash_available``
+    subtracted AP applications from a negative amount, so a 60.00 payment reported 120.00
+    spent after paying 60.00 of it.
+
+    What AP genuinely lacked was any check at all beyond "amount must be positive": no bound
+    against the receipt, none against the cash, and no party check. Both sides spend the same
+    cash, so what counts as applied to it is the AR sum plus the AP sum. The party is the
+    vendor: a vendor's payment does not pay another vendor's bill.
+    """
+    from apps.transactions.services.cash.cash_pending import (
+        _applied as _applied_ar, _check_application)
+
+    _check_application(
+        cash, receipt, amount,
+        target_applied=_applied(receipt_id=receipt.pk),
+        cash_applied=_applied_ar(cash_id=cash.pk) + _applied(cash_id=cash.pk),
+        party_attr='vendor_id', party_label='vendor')
+
+
 def apply_cash_to_receipt(
     cash_id: int,
     receipt_id: int,
@@ -93,7 +125,15 @@ def apply_cash_to_receipt(
 ) -> Dict[str, Any]:
     """Create a Pending record for AP cash application to a Receipt.
 
-    Mirrors apply_cash_to_invoice exactly:
+    Mirrors apply_cash_to_invoice, and now actually does: both go through the one
+    application check. This said "exactly" while checking only that the amount was
+    positive — no bound against the receipt, none against the cash, and no party check.
+
+    The amount is in the receipt's convention: a +100.00 payable takes +60.00 even though
+    the cash_out that settles it is -60.00, and ``paid``/``balance`` are derived from those
+    applications. A *negative* amount unwinds part of an earlier one — which the old
+    "amount must be positive" made impossible to record.
+
     - If receipt is not locked, applies immediately via Pending.try_apply().
     - If locked (dt_journaled != 0), queues for celery.
 
@@ -107,8 +147,7 @@ def apply_cash_to_receipt(
     receipt = Receipt.objects.select_for_update().get(pk=receipt_id)
     amount = Decimal(str(amount))
 
-    if amount <= 0:
-        raise ValueError("amount must be positive")
+    _check_receipt_application(cash, receipt, amount)
 
     changes = {
         'cash_id': cash_id,
@@ -173,6 +212,10 @@ def apply_receipt_cash_pending(pending) -> bool:
             # Don't apply to locked receipts (journalized to GL)
             if getattr(receipt, 'dt_journaled', 0) != 0:
                 return False
+
+            # Re-checked here, as AR does: a queued application lands later, and what was
+            # open when it was recorded may have been paid by something else since.
+            _check_receipt_application(cash, receipt, amount)
 
             # ── The application is the record; paid and available are read from it ──
             changes['state'] = 'applied'

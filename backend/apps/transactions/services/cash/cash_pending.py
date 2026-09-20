@@ -274,28 +274,85 @@ def refresh_cash_available(cash) -> Decimal:
     return available
 
 
-def _check_application(cash, invoice, amount: Decimal) -> None:
-    """The numbers must balance; the user chooses how.
+def _check_application(cash, target, amount: Decimal, *,
+                       target_applied: Optional[Decimal] = None,
+                       cash_applied: Optional[Decimal] = None,
+                       party_attr: str = 'customer_id',
+                       party_label: str = 'customer') -> None:
+    """What must be true for an application to be recorded. One check, both sides.
 
-    - amount moves the invoice balance toward zero, never past it
-    - cash available moves toward zero, never past it
+    **Balance, not buckets** — Bill, 2026-09-20: *"We care that things balance, not that
+    they are in the perfect bucket."* The user decides how to apply their money. The only
+    arithmetic limit is that they cannot apply money that does not exist, so the bound is
+    on the **running total**, never on the sign of any single application. A negative
+    application that unwinds part of an earlier one still balances, and is allowed; so is
+    an odd split across documents. Neither is ours to refuse.
+
+    This replaced a per-amount sign mandate, and on the AP side a flat "amount must be
+    positive" that made a legitimate correction impossible to record.
+
+    What is still refused, and why:
+
+    - **zero** — there is nothing to record.
+    - **a total beyond the document, or beyond the cash.** Past that point the books stop
+      balancing: money is being applied that was never received.
+    - **one party's money against another party's document.** Not a balance rule — it
+      balances fine — but the relationship it publishes. WebClerk's promise is that each
+      customer sees the details of *their* relationship; applying across parties puts
+      someone else's paid invoice on their statement. A genuine shift between sister
+      divisions listed as separate customers is documented as a negative application on
+      one and a positive on the other, which balances and leaves both statements honest
+      (Bill, 2026-09-20). That path exists only because the positive-amount mandate is gone.
+
+    ``target`` is an invoice (AR) or a receipt (AP). Callers pass the sums, because what
+    counts as applied to a cash differs by side: an AP payment's cash may also carry AR
+    applications, and both spend it.
+
+    The amount carries the **document's** sign — the convention the AP path has always
+    had: a +100 payable takes a +60 application even though the -60 payment that settles it
+    is negative, and ``paid``/``balance`` are derived from those applications. The document
+    therefore carries the sign check and the cash bounds magnitude only.
     """
     if amount == 0:
-        raise ValueError("amount must not be zero")
-    balance = _d(invoice.totals.get('total')) - _applied(invoice_id=invoice.pk)
-    if _sign(amount) != _sign(balance) or abs(amount) > abs(balance):
+        raise ValueError("amount must not be zero: there is nothing to record")
+
+    if target_applied is None:
+        target_applied = _applied(invoice_id=target.pk)
+    if cash_applied is None:
+        cash_applied = _applied(cash_id=cash.pk)
+
+    kind = target._meta.model_name
+
+    # The document carries the sign. An application is in its document's convention — a
+    # +100 invoice takes +60, a -40 credit memo takes -40 (which is why a *positive* cash
+    # cannot settle a credit memo), and a +100 payable takes +60 even though the payment
+    # out that settles it is negative.
+    total = _d((target.totals or {}).get('total'))
+    after = _d(target_applied) + amount
+    if (_sign(after) not in (0, _sign(total))) or abs(after) > abs(total):
         raise ValueError(
-            f"cannot apply {amount} to invoice {invoice.pk}: balance due is {balance}")
-    available = _d(cash.amount) - _applied(cash_id=cash.pk)
-    if _sign(amount) != _sign(available) or abs(amount) > abs(available):
+            f"cannot apply {amount} to {kind} {target.pk}: that would put {after} against "
+            f"a {kind} of {total}. {total - _d(target_applied)} of it is still open.")
+
+    # The cash bounds magnitude only, because on AP it points the other way: a -60.00
+    # payment can give 60.00 to a payable and no more. Requiring its sign here would
+    # forbid every AP application there is.
+    cash_amount = _d(cash.amount)
+    cash_after = _d(cash_applied) + amount
+    if abs(cash_after) > abs(cash_amount):
         raise ValueError(
-            f"cannot apply {amount} from cash {cash.pk}: available is {available}")
-    # One customer's money does not pay another customer's invoice.
-    cash_customer = getattr(cash, 'customer_id', None)
-    if cash_customer and cash_customer != getattr(invoice, 'customer_id', None):
+            f"cannot apply {amount} from cash {cash.pk}: that would put {abs(cash_after)} "
+            f"against a payment of {abs(cash_amount)}. "
+            f"{abs(cash_amount) - abs(_d(cash_applied))} of it is still unapplied.")
+
+    party = getattr(cash, party_attr, None)
+    target_party = getattr(target, party_attr, None)
+    if party and party != target_party:
         raise ValueError(
-            f"cannot apply cash {cash.pk} (customer {cash_customer}) to invoice {invoice.pk} "
-            f"(customer {getattr(invoice, 'customer_id', None)}): the customers differ")
+            f"cannot apply cash {cash.pk} ({party_label} {party}) to {kind} {target.pk} "
+            f"({party_label} {target_party}): the {party_label}s differ. To move money "
+            f"between them, record a negative application on one and a positive on the "
+            f"other — the books balance and each statement stays its own.")
 
 
 @transaction.atomic

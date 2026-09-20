@@ -95,15 +95,17 @@ class TestApply:
         assert _ledger_sum(customer) == Decimal('0')
 
     def test_cannot_apply_past_balance(self, customer, term_net30):
+        """The bound is on the running total now, and the message says what is left
+        rather than naming a state (2026-09-20). The refusal is unchanged."""
         inv = _invoice(customer, 100, term_net30)
         cash = _cash(customer, 500)
-        with pytest.raises(ValueError, match='balance due'):
+        with pytest.raises(ValueError, match='still open'):
             _apply(cash, inv, 120)
 
     def test_cannot_apply_more_than_available(self, customer, term_net30):
         inv = _invoice(customer, 100, term_net30)
         cash = _cash(customer, 30)
-        with pytest.raises(ValueError, match='available'):
+        with pytest.raises(ValueError, match='still unapplied'):
             _apply(cash, inv, 50)
 
     def test_overpayment_stays_as_customer_credit(self, customer, term_net30):

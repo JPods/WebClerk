@@ -242,6 +242,12 @@ def compute_vendor_summary(org_id):
     unapplied = Decimal('0')
     for cash in Cash.objects.filter(vendor_id=org_id, is_deleted=False).only('available', 'amount'):
         if cash.amount and cash.amount < 0:
+            # A seam: cash carries the direction of flow, so a payment out is negative and
+            # so is what remains of it. `payable` above is positive — what we owe — so the
+            # sign is flipped here to subtract like with like (Bill, 2026-09-20: "we flip
+            # the AP sign where it meets cash"). Marked because an unmarked seam is where
+            # this class of bug lives: refresh_cash_available subtracted where it should
+            # have added, and every AP payment inflated this figure and `net` with it.
             unapplied += abs(Decimal(str(cash.available or 0)))
 
     return FinSummary(
