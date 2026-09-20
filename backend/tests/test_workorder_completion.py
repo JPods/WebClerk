@@ -95,3 +95,97 @@ def test_a_receipt_can_no_longer_claim_to_be_a_workorder():
     assert not hasattr(Receipt, 'SOURCE_WORKORDER')
     assert [code for code, _label in Receipt.SOURCE_CHOICES] == [
         Receipt.SOURCE_PURCHASE, Receipt.SOURCE_ADJUSTMENT]
+
+
+# ── a count is a workorder used as an audit tool (Bill, 2026-09-20) ──────
+
+
+def _item_with_stock(on_hand=10):
+    from apps.products.models import Item, Warehouse
+    item = Item.objects.create(name='Widget', quantity={'on_hand': on_hand, 'on_wo': 0,
+                                                        'allocated': 0, 'available': on_hand})
+    warehouse = Warehouse.objects.create(code='WH1', name='Main')
+    return item, warehouse
+
+
+def test_a_count_moves_stock_to_what_the_counter_saw():
+    from apps.transactions.models import Receipt, WorkOrder, WorkOrderCompletion
+    from apps.transactions.services.transaction_flow import CountLine, count_inventory
+    Ledger = dj_apps.get_model('accounts', 'Ledger')
+    item, warehouse = _item_with_stock(on_hand=10)
+
+    out = count_inventory('count-1', [CountLine(
+        item_id=item.pk, counted=8, warehouse_code=warehouse.code)],
+        counted_by='bill', notes='aisle 3')
+
+    item.refresh_from_db()
+    assert float((item.quantity or {}).get('on_hand')) == 8.0     # what the counter saw
+    assert out['variance_total'] == -2.0
+
+    wo = WorkOrder.objects.get(pk=out['workorder_id'])
+    line = wo.lines.first()
+    assert wo.kind == WorkOrder.KIND_COUNT
+    assert float((line.quantity or {}).get('staged')) == 10.0     # the book
+    assert float((line.quantity or {}).get('active')) == 8.0      # the count
+    count = WorkOrderCompletion.objects.get(pk=out['completions_created'][0]).metadata['count']
+    assert count['variance'] == -2.0 and count['counted_by'] == 'bill'
+    assert count['moved_during_count'] is False
+
+    # a count owes nobody
+    assert Receipt.objects.count() == 0
+    assert Ledger.objects.filter(model_name='receipt').count() == 0
+
+
+def test_a_count_line_commits_nothing():
+    """Counting reserves no stock: on_wo is untouched while the count is open."""
+    from apps.transactions.services.transaction_flow import CountLine, count_inventory
+    item, warehouse = _item_with_stock(on_hand=10)
+
+    count_inventory('count-1', [CountLine(item_id=item.pk, counted=10,
+                                          warehouse_code=warehouse.code)], counted_by='bill')
+
+    item.refresh_from_db()
+    assert float((item.quantity or {}).get('on_wo') or 0) == 0.0
+
+
+def test_a_count_needs_someone_answerable_for_it():
+    from django.core.exceptions import ValidationError
+    from apps.transactions.services.transaction_flow import CountLine, count_inventory
+    item, warehouse = _item_with_stock()
+    with pytest.raises(ValidationError):
+        count_inventory('count-1', [CountLine(item_id=item.pk, counted=5,
+                                              warehouse_code=warehouse.code)], counted_by='')
+
+
+def test_found_stock_gets_a_cost_layer_and_missing_stock_does_not():
+    from apps.products.models import InventoryLayer
+    from apps.transactions.services.transaction_flow import CountLine, count_inventory
+    item, warehouse = _item_with_stock(on_hand=10)
+
+    found = count_inventory('count-up', [CountLine(
+        item_id=item.pk, counted=12, warehouse_code=warehouse.code,
+        reason='found', unit_cost=3.00)], counted_by='bill')
+    assert len(found['stacks_created']) == 1
+    layer = InventoryLayer.objects.get(pk=found['stacks_created'][0])
+    assert float((layer.quantity or {}).get('received')) == 2.0
+
+    short = count_inventory('count-down', [CountLine(
+        item_id=item.pk, counted=9, warehouse_code=warehouse.code,
+        reason='shrinkage')], counted_by='bill')
+    assert short['stacks_created'] == []
+    item.refresh_from_db()
+    assert float((item.quantity or {}).get('on_hand')) == 9.0
+
+
+def test_a_count_holds_no_commitment_to_reconcile_or_close():
+    from apps.products.management.commands.rebuild_commitment_buckets import commitment_gaps
+    from apps.transactions.services.close_transaction import stale_commitments
+    from apps.transactions.services.transaction_flow import CountLine, count_inventory
+    item, warehouse = _item_with_stock(on_hand=10)
+
+    out = count_inventory('count-1', [CountLine(item_id=item.pk, counted=7,
+                                                warehouse_code=warehouse.code)], counted_by='bill')
+
+    assert commitment_gaps(item_id=item.pk) == []        # on_wo owes the count nothing
+    assert not [r for r in stale_commitments(days=0)
+                if r['model'] == 'workorder' and r['id'] == out['workorder_id']]

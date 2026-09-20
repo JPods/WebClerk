@@ -240,7 +240,7 @@ def receive_purchase(po: Purchase,
 
     See also:
         - complete_workorder: For workorder completion (manufacturing)
-        - adjust_inventory: For manual inventory adjustments
+        - count_inventory: For inventory counts and corrections
         - receive_inventory_changes: High-level dispatcher for all receiving actions
     """
     from apps.transactions.models.receipt import Receipt
@@ -379,7 +379,7 @@ def complete_workorder(wo: WorkOrder,
 
     See also:
         - receive_purchase: For receiving goods from vendors (PO)
-        - adjust_inventory: For manual inventory adjustments
+        - count_inventory: For inventory counts and corrections
         - receive_inventory_changes: High-level dispatcher for all receiving actions
     """
     from apps.transactions.models.workorder_completion import WorkOrderCompletion
@@ -480,130 +480,184 @@ def complete_workorder(wo: WorkOrder,
 
 
 # ---------------------------------------------------------------------------
-# Inventory Adjustment - manual corrections, cycle counts, write-offs
+# Inventory Count - a workorder used as an audit tool
 # ---------------------------------------------------------------------------
 @dataclass
-class AdjustmentLine:
-    """Data for an inventory adjustment line."""
+class CountLine:
+    """One item counted, in the counter's own terms.
+
+    ``counted`` is what the person saw on the shelf. Nobody computes a variance to type
+    in (Bill, 2026-09-20): the book figure is captured as the line's ``staged`` and the
+    difference is shown, so an off count is a signal to hunt harder.
+    """
     item_id: int
-    qty_delta: Decimal | float | int  # Positive = add, Negative = remove
+    counted: Decimal | float | int
     warehouse_code: str
-    reason: str  # e.g., 'cycle_count', 'damage', 'shrinkage', 'found'
+    reason: str = 'cycle_count'          # cycle_count, damage, shrinkage, found, opening
     unit_cost: float | int | Decimal | None = None
     lot: str | None = None
     serial_batch: str | None = None
 
 
 @transaction.atomic
-def adjust_inventory(adjustment_id: str,
-                     lines: Sequence[AdjustmentLine],
-                     notes: str = '') -> dict:
-    """Perform manual inventory adjustments.
+def count_inventory(count_id: str,
+                    lines: Sequence[CountLine],
+                    counted_by: str,
+                    notes: str = '',
+                    contact_id: int | None = None) -> dict:
+    """Count inventory through a workorder used as an audit tool.
 
-    Used for:
-    - Cycle count corrections
-    - Damage/shrinkage write-offs
-    - Found inventory additions
-    - Opening balance entries
+    Replaces the old ``adjust_inventory``, which created a receipt — a document that says
+    goods came from outside and owes a vendor. A count owes nobody: it is a workorder of
+    kind 'count', its lines commit nothing, and completing a line moves on_hand to the
+    number the counter wrote down.
+
+    Bill, 2026-09-20: *"In wc2 adjustments were loosely held together by date, but with a
+    workorder controlling multiple lines there is a responsible person directly
+    involved."* So ``counted_by`` is required: a count with nobody's name on it is the
+    thing this replaces, and it is refused here rather than accepted and wondered about
+    later.
+
+    Each completion is the count evidence: warehouse, lot, the book figure at count time,
+    what was counted, who counted it, and whether the book moved while the count was open.
 
     Args:
-        adjustment_id: Client-provided adjustment identifier (stored in receipt.ida)
-        lines: Sequence of AdjustmentLine objects with item, qty_delta, warehouse
-        notes: Optional overall notes for the adjustment
+        count_id: client-provided identifier (stored in workorder.ida)
+        lines: what was counted, per item
+        counted_by: the person answerable for this count — required
+        notes: optional note for the whole count
+        contact_id: that person's contact record, when known
 
-    Returns a summary dict with created receipt id, stack ids, and deltas created.
-
-    See also:
-        - receive_purchase: For receiving goods from vendors (PO)
-        - complete_workorder: For workorder completion (manufacturing)
-        - receive_inventory_changes: High-level dispatcher for all receiving actions
+    Returns a summary with the workorder id, its completions, layers and deltas.
     """
-    from apps.transactions.models.receipt import Receipt
-    from apps.transactions.models.receipt_line import ReceiptLine
+    from apps.transactions.models.workorder import WorkOrder
+    from apps.transactions.models.workorder_line import WorkOrderLine
+    from apps.transactions.models.workorder_completion import WorkOrderCompletion
     from apps.core.models.pending import Pending
-    from django.utils import timezone
-    import uuid
 
-    if not adjustment_id:
-        raise ValidationError({'adjustment_id': 'Required'})
+    if not count_id:
+        raise ValidationError({'count_id': 'Required'})
+    if not (counted_by or '').strip():
+        raise ValidationError({'counted_by': 'A count needs the person answerable for it'})
 
-    receipt = Receipt.objects.create(
-        ida=adjustment_id,
-        source_type=Receipt.SOURCE_ADJUSTMENT,
+    wo = WorkOrder.objects.create(
+        ida=count_id,
+        kind=WorkOrder.KIND_COUNT,
+        source_name='inventory_count',
+        contact_id=contact_id,
+        status='complete',           # a count is finished when it is posted
+        metadata={'count': {'notes': notes, 'counted_by': counted_by,
+                            'lines': len(list(lines))}},
     )
     created_stack_ids: list[int] = []
-    created_receipt_line_ids: list[int] = []
+    created_completion_ids: list[int] = []
     deltas_created = 0
 
-    for al in lines:
+    for cl in lines:
         try:
-            item = Item.objects.get(pk=al.item_id)
+            item = Item.objects.get(pk=cl.item_id)
         except Item.DoesNotExist:
-            raise ValidationError({'lines': f'Item {al.item_id} not found'})
+            raise ValidationError({'lines': f'Item {cl.item_id} not found'})
         try:
-            wh = Warehouse.objects.get(code=al.warehouse_code)
+            wh = Warehouse.objects.get(code=cl.warehouse_code)
         except Warehouse.DoesNotExist:
-            raise ValidationError({'lines': f'Warehouse code {al.warehouse_code} not found'})
+            raise ValidationError({'lines': f'Warehouse code {cl.warehouse_code} not found'})
 
-        qty_delta = Decimal(str(al.qty_delta))
-        unit_cost = float(al.unit_cost) if al.unit_cost is not None else 0.0
+        counted = Decimal(str(cl.counted))
+        book_at_count = Decimal(str((item.quantity or {}).get('on_hand') or 0))
+
+        # The line: staged is the book, active is what the counter saw. A count line
+        # commits no bucket (quantity_bucket_deltas), so opening one reserves nothing.
+        line = WorkOrderLine.objects.create(
+            workorder=wo,
+            item={'item_id': item.pk, 'id_num': item.pk,
+                  'item_number': getattr(item, 'item_number', ''), 'name': item.name},
+            quantity={'staged': float(book_at_count), 'active': float(counted)},
+            cost={'unit': float(cl.unit_cost)} if cl.unit_cost else {},
+        )
+
+        item.refresh_from_db()
+        book_now = Decimal(str((item.quantity or {}).get('on_hand') or 0))
+        delta = counted - book_now
+        unit_cost = float(cl.unit_cost) if cl.unit_cost is not None else 0.0
+
+        # Found stock needs a cost layer; missing stock takes from the layers that exist.
         stack = None
-        
-        # Create inventory layer stack for positive adjustments only
-        if qty_delta > 0:
+        if delta > 0:
             stack = InventoryLayer.objects.create(
                 item=item,
                 warehouse=wh,
-                quantity={'received': float(qty_delta), 'issued': 0, 'scrapped': 0},
-                lot=al.lot or '',
-                serial_batch=al.serial_batch or '',
-                source_doc_type='inventory_adjustment',
-                source_doc_id=receipt.id,  # type: ignore[attr-defined]
+                quantity={'received': float(delta), 'issued': 0, 'scrapped': 0},
+                lot=cl.lot or '',
+                serial_batch=cl.serial_batch or '',
+                source_doc_type='inventory_count',
+                source_doc_id=wo.id,  # type: ignore[attr-defined]
             )
             if unit_cost > 0:
                 stack.update_cost_after_receipt(unit_cost)
             stack.save()
             created_stack_ids.append(stack.id)
 
-        # Create ReceiptLine record to track the adjustment
-        receipt_line = ReceiptLine.objects.create(
-            receipt=receipt,
+        completion = WorkOrderCompletion.objects.create(
+            workorder=wo,
+            parent_line_id=line.pk,
+            refs={'source': {'workorder_line_id': line.pk}, 'run': count_id},
             warehouse=wh,
-            inventory_layer=stack,  # None for negative adjustments
-            lot=al.lot or '',
-            serial_batch=al.serial_batch or '',
-            adjustment_reason=al.reason,
-            item={'item_id': al.item_id, 'item_number': item.item_number, 'name': item.name},
-            quantity={'adjustment': float(qty_delta)},  # Can be negative
+            inventory_layer=stack,
+            lot=cl.lot or '',
+            serial_batch=cl.serial_batch or '',
+            item=line.item,
+            quantity={'staged': float(book_at_count), 'active': float(counted)},
             cost={'unit': unit_cost} if unit_cost else {},
+            metadata={'count': {
+                'reason': cl.reason,
+                'counted_by': counted_by,
+                'book_at_count': float(book_at_count),
+                'counted': float(counted),
+                'book_now': float(book_now),
+                'variance': float(counted - book_at_count),
+                # If the book moved while the count was open, the counter's number still
+                # wins — and the move is on the record rather than swallowed.
+                'moved_during_count': book_now != book_at_count,
+                'applied': float(delta),
+            }},
         )
-        created_receipt_line_ids.append(receipt_line.id)
+        created_completion_ids.append(completion.id)
 
-        # An adjustment moves on_hand directly, through the same live shape.
-        Pending.objects.create(
-            model_name='item',
-            record_id=str(al.item_id),
-            purpose='inventory_qty_change',
-            name=f"Inventory adjustment {receipt.ida} - item {al.item_id}",
-            changes={'on_hand': float(qty_delta)},
-            config={
-                'item_id': al.item_id,
-                'warehouse_id': wh.id,
-                'source_type': 'inventory_adjustment',
-                'source_id': receipt.id,
-                'source_line_id': receipt_line.id,
-                'adjustment_reason': al.reason,
-                'unit_cost': unit_cost if unit_cost else None,
-                'notes': f"Inventory adjustment {receipt.ida} - {al.reason}: {qty_delta:+} units" + (f" - {notes}" if notes else ""),
-            }
-        )
-        deltas_created += 1
+        if delta:
+            Pending.objects.create(
+                model_name='item',
+                record_id=str(item.pk),
+                purpose='inventory_qty_change',
+                name=f"Count {count_id} - item {item.pk}",
+                changes={'on_hand': float(delta)},
+                config={
+                    'item_id': item.pk,
+                    'warehouse_id': wh.id,
+                    'source_type': 'inventory_count',
+                    'source_id': wo.id,
+                    'source_line_id': completion.id,
+                    'reason': cl.reason,
+                    'counted_by': counted_by,
+                    'unit_cost': unit_cost or None,
+                    'notes': f"Count {count_id} - counted {counted}, book {book_now} ({delta:+})"
+                             + (f" - {notes}" if notes else ""),
+                }
+            )
+            deltas_created += 1
 
+    variance_total = sum(
+        float((WorkOrderCompletion.objects.get(pk=pk).metadata or {})
+              .get('count', {}).get('variance') or 0)
+        for pk in created_completion_ids)
     return {
-        'receipt_id': receipt.id,  # type: ignore[attr-defined]
-        'receipt_lines_created': created_receipt_line_ids,
+        'workorder_id': wo.id,  # type: ignore[attr-defined]
+        'ida': wo.ida,
+        'counted_by': counted_by,
+        'completions_created': created_completion_ids,
         'stacks_created': created_stack_ids,
-        'deltas_created': deltas_created
+        'deltas_created': deltas_created,
+        'variance_total': round(variance_total, 4),
     }
 
 
@@ -613,13 +667,13 @@ def adjust_inventory(adjustment_id: str,
 def receive_inventory_changes(source_type: str,
                               source: Purchase | WorkOrder | None,
                               receipt_id: str,
-                              lines: Sequence[ReceiveLine | CompleteWorkOrderLine | AdjustmentLine]) -> dict:
+                              lines: Sequence[ReceiveLine | CompleteWorkOrderLine | CountLine]) -> dict:
     """High-level dispatcher for inventory receiving operations.
 
     Routes to the appropriate handler based on source_type:
     - 'purchase' -> receive_purchase()
     - 'workorder' -> complete_workorder()
-    - 'adjustment' -> adjust_inventory()
+    - 'count' (or 'adjustment') -> count_inventory()
 
     Args:
         source_type: One of 'purchase', 'workorder', 'adjustment'
@@ -645,7 +699,7 @@ def receive_inventory_changes(source_type: str,
     See also:
         - receive_purchase: Direct call for PO receiving
         - complete_workorder: Direct call for workorder completion
-        - adjust_inventory: Direct call for manual adjustments
+        - count_inventory: Direct call for inventory counts
     """
     if source_type == 'purchase':
         if not isinstance(source, Purchase):
@@ -657,18 +711,20 @@ def receive_inventory_changes(source_type: str,
             raise ValidationError({'source': 'Expected WorkOrder instance for source_type=workorder'})
         return complete_workorder(source, receipt_id, lines)  # type: ignore[arg-type]
     
-    elif source_type == 'adjustment':
-        return adjust_inventory(receipt_id, lines)  # type: ignore[arg-type]
-    
+    elif source_type in ('count', 'adjustment'):
+        # 'adjustment' is the old name for what is now a count workorder: a correction
+        # owes nobody, so it is never a receipt (Bill, 2026-09-20).
+        return count_inventory(receipt_id, lines)  # type: ignore[arg-type]
+
     else:
-        raise ValidationError({'source_type': f"Invalid source_type '{source_type}'. Expected: purchase, workorder, adjustment"})
+        raise ValidationError({'source_type': f"Invalid source_type '{source_type}'. Expected: purchase, workorder, count"})
 
 
 __all__ = [
     # Data classes for line input
     'ReceiveLine',
     'CompleteWorkOrderLine',
-    'AdjustmentLine',
+    'CountLine',
     # Transaction flow conversions
     'quote_to_order',
     'order_to_invoice',
@@ -676,6 +732,6 @@ __all__ = [
     # Inventory receiving functions
     'receive_purchase',
     'complete_workorder',
-    'adjust_inventory',
+    'count_inventory',
     'receive_inventory_changes',
 ]

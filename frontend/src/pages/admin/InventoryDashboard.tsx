@@ -661,6 +661,7 @@ function AdjustTab() {
         field: adjField,
         delta: adjDelta,
         reason: adjReason,
+        acted_by: actedBy,
         source_type: "manual_adjustment",
       });
 
@@ -1189,8 +1190,34 @@ function WarehouseTab() {
 // ---------------------------------------------------------------------------
 
 function ReconcileTab() {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [rows, setRows] = useState<ReconcileRow[]>([]);
+  const [countId, setCountId] = useState("");
+  const [countNotes, setCountNotes] = useState("");
+  const [warehouseCode, setWarehouseCode] = useState("");
+  const [countedBy, setCountedBy] = useState(
+    [user?.name_first, user?.name_last].filter(Boolean).join(" ") || user?.email || ""
+  );
+  useEffect(() => {
+    if (!countedBy) {
+      setCountedBy(
+        [user?.name_first, user?.name_last].filter(Boolean).join(" ") || user?.email || ""
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const whData = await getRecords("warehouse", { limit: 100 });
+        const first = (whData.results || [])[0];
+        if (first?.code) setWarehouseCode((current) => current || first.code);
+      } catch {
+        /* the service falls back to the item's own warehouse */
+      }
+    })();
+  }, []);
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -1237,12 +1264,17 @@ function ReconcileTab() {
   };
 
   // Apply all variance adjustments
+  // One count, one person answerable for it (Bill, 2026-09-20): in wc2 adjustments were
+  // held together only by their date. A count workorder carries all the lines and the
+  // name of whoever counted them. The counter sends what they saw; nobody types a variance.
   const applyAdjustments = async () => {
-    const withVariance = rows.filter(
-      (r) => r.variance !== null && r.variance !== 0
-    );
-    if (withVariance.length === 0) {
-      setError("No variances to apply. Enter physical counts that differ from system.");
+    const counted = rows.filter((r) => r.physical_count !== null);
+    if (counted.length === 0) {
+      setError("Enter a physical count for at least one item.");
+      return;
+    }
+    if (!countedBy.trim()) {
+      setError("A count needs the name of the person answerable for it.");
       return;
     }
 
@@ -1250,35 +1282,32 @@ function ReconcileTab() {
     setError(null);
     setResult(null);
 
-    const results: string[] = [];
-    let hasError = false;
-
-    for (const row of withVariance) {
-      try {
-        await manageAction("adjust_item_quantity", {
+    try {
+      const res = await manageAction("count_inventory", {
+        count_id: countId || `count-${new Date().toISOString().slice(0, 19).replace(/[-:T]/g, "")}`,
+        counted_by: countedBy,
+        notes: countNotes,
+        lines: counted.map((row) => ({
           item_id: row.item_id,
-          field: "on_hand",
-          delta: row.variance,
-          reason: "physical_count",
-          source_type: "reconciliation",
-        });
-        results.push(
-          `${row.item_ida}: adjusted ${row.variance! > 0 ? "+" : ""}${row.variance}`
-        );
-      } catch (err: any) {
-        hasError = true;
-        results.push(
-          `${row.item_ida}: FAILED - ${err?.message || "unknown error"}`
-        );
-      }
-    }
-
-    setApplying(false);
-    setResult(results.join("\n"));
-
-    if (!hasError) {
-      // Refresh items to show updated on_hand
+          counted: row.physical_count,
+          warehouse_code: warehouseCode,
+          reason: "cycle_count",
+        })),
+      });
+      const lines = [
+        `Count ${res.ida} by ${res.counted_by}: ${counted.length} item(s), variance ${res.variance_total > 0 ? "+" : ""}${res.variance_total}`,
+        ...counted
+          .filter((r) => r.variance)
+          .map((r) => `  ${r.item_ida}: system ${r.system_on_hand}, counted ${r.physical_count}`),
+      ];
+      setResult(lines.join("\n"));
       searchItems();
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message || err?.message || "Count failed"
+      );
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -1402,17 +1431,39 @@ function ReconcileTab() {
                   {totalVariance}
                 </span>
               </div>
+              <label className="flex items-center gap-2 text-sm text-gray-600">
+                counted by
+                <input
+                  data-wc="inv-reconcile-counted-by"
+                  type="text"
+                  placeholder="who counted"
+                  value={countedBy}
+                  onChange={(e) => setCountedBy(e.target.value)}
+                  className="px-2 py-1.5 text-sm border border-gray-300 rounded"
+                />
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-600">
+                note
+                <input
+                  data-wc="inv-reconcile-note"
+                  type="text"
+                  placeholder="aisle, shift, reason"
+                  value={countNotes}
+                  onChange={(e) => setCountNotes(e.target.value)}
+                  className="px-2 py-1.5 text-sm border border-gray-300 rounded"
+                />
+              </label>
               <button
                 data-wc="inv-reconcile-apply"
                 onClick={applyAdjustments}
-                disabled={applying || varianceRows.length === 0}
+                disabled={applying || countedRows.length === 0}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
               >
                 <FaClipboardCheck size={12} />
                 {applying
-                  ? "Applying..."
-                  : `Apply ${varianceRows.length} Adjustment${
-                      varianceRows.length !== 1 ? "s" : ""
+                  ? "Posting count..."
+                  : `Post count of ${countedRows.length} item${
+                      countedRows.length !== 1 ? "s" : ""
                     }`}
               </button>
             </div>

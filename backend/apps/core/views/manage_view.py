@@ -1291,6 +1291,23 @@ _ACTION_DISPATCH = {
     "allocation_history": lambda p: __import__(
         'apps.products.services.inventory.inventory_allocate', fromlist=['allocation_history']
     ).allocation_history(int(p['item_id']), limit=int(p.get('limit', 50))),
+    # A count is a workorder used as an audit tool, with someone answerable for it
+    # (Bill, 2026-09-20). The counter writes what they see; nobody types a variance.
+    "count_inventory": lambda p: __import__(
+        'apps.transactions.services.transaction_flow', fromlist=['count_inventory', 'CountLine']
+    ).count_inventory(
+        p['count_id'],
+        [__import__('apps.transactions.services.transaction_flow',
+                    fromlist=['CountLine']).CountLine(
+            item_id=int(line['item_id']), counted=line['counted'],
+            warehouse_code=line['warehouse_code'], reason=line.get('reason', 'cycle_count'),
+            unit_cost=line.get('unit_cost'), lot=line.get('lot'),
+            serial_batch=line.get('serial_batch'))
+         for line in (p.get('lines') or [])],
+        counted_by=p.get('counted_by', ''),
+        notes=p.get('notes', ''),
+        contact_id=int(p['contact_id']) if p.get('contact_id') else None,
+    ),
     # Buckets vs documents — the reconciliation, as data (Bite 3).
     "commitment_gaps": lambda p: __import__(
         'apps.products.management.commands.rebuild_commitment_buckets',

@@ -411,6 +411,10 @@ def quantity_bucket_deltas(
     qty = float(quantity or 0)
     if pending_type == 'QT':
         qty = qty * forecast_probability(transaction)
+    if pending_type == 'WO' and getattr(transaction, 'kind', '') == 'count':
+        # A count is an audit, not work: it reserves nothing. What it finds reaches
+        # on_hand when the line is completed (Bill, 2026-09-20).
+        return deltas
     deltas[bucket] = qty
 
     if affect_on_hand and pending_type in ON_HAND_DIRECTION:

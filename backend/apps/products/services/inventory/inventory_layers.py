@@ -813,18 +813,31 @@ def adjust_item_quantity_via_pending(params: dict) -> dict:
     """Manage action wrapper: create a Pending record for an inventory adjustment.
 
     Pending.save() calls try_apply() automatically.
+
+    A correction moves real stock, so it carries the name of whoever made it (Bill,
+    2026-09-20: *"with a workorder controlling multiple lines there is a responsible
+    person directly involved"*). A batch of corrections belongs in a count workorder,
+    which holds the lines together under one person; this is the single-item path, and
+    it is anonymous no longer.
     """
+    from django.core.exceptions import ValidationError
+
     from apps.core.models import Pending
+
+    acted_by = (params.get('acted_by') or '').strip()
+    if not acted_by:
+        raise ValidationError({'acted_by': 'An adjustment records who made it'})
 
     pending = Pending.objects.create(
         model_name='item',
         record_id=str(params['item_id']),
         purpose='inventory_line_add',
-        name=f"Adjust {params['field']}: {params['item_id']}",
+        name=f"Adjust {params['field']}: {params['item_id']} ({acted_by})",
         changes={
             params['field']: float(params['delta']),
             'item_id': params['item_id'],
             'reason': params.get('reason', ''),
+            'acted_by': acted_by,
             'source_type': params.get('source_type', ''),
             'source_id': params.get('source_id'),
             'source_line_id': params.get('source_line_id'),
@@ -836,6 +849,7 @@ def adjust_item_quantity_via_pending(params: dict) -> dict:
         'item_id': params['item_id'],
         'field': params['field'],
         'delta': float(params['delta']),
+        'acted_by': acted_by,
     }
 
 

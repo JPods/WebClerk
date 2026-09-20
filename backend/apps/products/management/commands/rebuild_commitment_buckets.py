@@ -37,6 +37,10 @@ def wanted_by_item(item_id=None):
     for model_name, bucket in SPEC:
         Model = dj_apps.get_model('transactions', model_name)
         headers = Model.objects.filter(is_deleted=False).exclude(status__in=CLOSED)
+        if model_name == 'workorder':
+            # A count is an audit, not work: its lines commit nothing, so they must not
+            # appear in what on_wo is expected to hold (Bill, 2026-09-20).
+            headers = headers.exclude(kind='count')
         for header in headers:
             weight = forecast_probability(header) if model_name == 'quote' else 1.0
             for line in header.lines.filter(is_deleted=False).only('quantity', 'item'):

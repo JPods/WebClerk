@@ -105,6 +105,8 @@ def close_transaction(model_name: str, pk: int, *, reason: str, acted_by: str,
                     'released': meta['closed'].get('released', {}), 'lines': 0}
 
         pending_type = COMMITMENT_TYPE.get(model_name)
+        if getattr(header, 'kind', '') == 'count':
+            pending_type = None          # a count committed nothing to release
         if pending_type and hasattr(header, 'lines'):
             for line in header.lines.filter(is_deleted=False):
                 quantity = line.quantity if isinstance(line.quantity, dict) else {}
@@ -169,6 +171,8 @@ def stale_commitments(days: int = 30, now_ms: Optional[int] = None) -> list[dict
         Model = dj_apps.get_model('transactions', model_name)
         rows = (Model.objects.filter(is_deleted=False, dt_created__lt=cutoff)
                 .exclude(status__in=CLOSED_STATUSES))
+        if model_name == 'workorder':
+            rows = rows.exclude(kind='count')       # a count holds no commitment
         for header in rows:
             holding = 0.0
             for line in header.lines.filter(is_deleted=False):
