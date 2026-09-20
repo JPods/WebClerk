@@ -51,7 +51,7 @@ const CORE_FIELDS: Record<string, SchemaNode> = {
 
 const BASE_EXTRA_FIELDS: Record<string, SchemaNode> = {
   name:           STR('Display name'),
-  display_name:   STR('Display name (legacy column)'),
+  company:        STR('Company name'),
   description:    STR('Description text'),
   health_rating:  NUM('Data health score 0-100'),
 };

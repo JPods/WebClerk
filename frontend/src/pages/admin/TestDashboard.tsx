@@ -296,7 +296,7 @@ export default function TestDashboard() {
       const custRes = await getRecords('customer', { keyword: 'alice-test', limit: 10 }) as any;
       (custRes?.results || []).forEach((r: any) => {
         records.push({ model: 'customer', id: r.id, ida: r.ida || '', label: r.display_name || r.ida, status: r.status });
-        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Customer created', detail: `${r.display_name} (id=${r.id})` });
+        journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Customer created', detail: `${r.company} (id=${r.id})` });
       });
 
       // Also check user-created test records
@@ -304,7 +304,7 @@ export default function TestDashboard() {
       (custRes2?.results || []).forEach((r: any) => {
         if (!records.find(x => x.id === r.id)) {
           records.push({ model: 'customer', id: r.id, ida: r.ida || '', label: r.display_name || r.ida, status: r.status });
-          journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Customer created (UI)', detail: `${r.display_name} (id=${r.id})` });
+          journalEntries.push({ dt: formatDt(r.dt_created, 'datetime', 'dt_created'), action: 'Customer created (UI)', detail: `${r.company} (id=${r.id})` });
         }
       });
 

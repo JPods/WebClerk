@@ -45,7 +45,7 @@ class TestInventoryBucketFlow:
             item=item, warehouse=wh,
             quantity={'on_hand': 20, 'on_so': 0, 'on_po': 0},
         )
-        customer = CustomerFactory(display_name='Test Customer')
+        customer = CustomerFactory(company='Test Customer')
         return item, wh, customer
 
     def test_quote_no_inventory_effect(self):

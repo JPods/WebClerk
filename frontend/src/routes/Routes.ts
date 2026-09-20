@@ -140,12 +140,11 @@
   static readonly glJournalDetail: string = "/accounts/gl-journal/detail/:id?";
   static readonly ledgerList: string = "/accounts/ledger/list";
   static readonly receivableList: string = "/accounts/receivable/list";
-  static readonly tallySummaryList: string = "/accounts/tally-summary/list";
-  static readonly salesDimensionTallyList: string =
-    "/accounts/tally-sales/list";
-  static readonly inventoryUsageTallyList: string =
-    "/accounts/tally-inventory/list";
-  static readonly tallyRegistryList: string = "/accounts/tally-registry/list";
+  static readonly reportSummaryList: string = "/accounts/report-summary/list";
+  static readonly reportSalesList: string = "/accounts/report-sales/list";
+  static readonly reportInventoryList: string =
+    "/accounts/report-inventory/list";
+  static readonly reportRegistryList: string = "/accounts/report-registry/list";
   static readonly taxJurisdictionList: string =
     "/accounts/tax-jurisdiction/list";
   static readonly termList: string = "/accounts/term/list";

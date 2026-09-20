@@ -1,8 +1,9 @@
-"""Pack the init bundle — Settings + Reports for a new database.
+"""Pack the recommended set — what WC_HQ publishes to installations.
 
-Every new WC3 database starts with this file. It contains all wc:model
-Settings (layouts for list, detail, form) and all Report records
-(forms, print templates, search presets, utilities).
+Every new WC3 database starts from this file, and webclerk.com serves it at
+/wcapi/get/bundle_init.json. What goes in it is declared once, in
+apps/core/services/bundle_catalogue.py — the same declaration the named
+bundle endpoints serve from, so the file and the endpoints cannot drift.
 
 Usage:
     python manage.py pack_init_bundle                             # write to init-bundle.json
@@ -15,139 +16,53 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand
 
-from apps.core.models.setting import Setting
-
 
 class Command(BaseCommand):
-    help = 'Export Settings + Reports as init-bundle.json (seed for new databases)'
+    help = 'Export Settings + Reports + chart as init-bundle.json (the recommended set)'
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--output', type=str, default='init-bundle.json',
             help='Output file path (default: init-bundle.json in project root)',
         )
-        parser.add_argument('--dry-run', action='store_true', help='Show counts without writing')
-
-    def _serialize_setting(self, s):
-        rec = {
-            'uuid': str(s.uuid) if s.uuid else '',
-            'ida': s.ida or '',
-            'name': s.name or '',
-            'scope': s.scope or 'system',
-            'purpose': s.purpose or '',
-            'parent_model': s.parent_model or '',
-            'explanation': getattr(s, 'explanation', '') or '',
-            'paths': getattr(s, 'paths', {}) or {},
-            'config': s.config or {},
-            'metadata': {**(s.metadata or {}), 'foundational': True},
-            'prefs': s.prefs or {},
-            'refs': s.refs or {},
-        }
-        if not rec['uuid']:
-            return None
-        # Public artifact: strip company identifiers, cash accounts, real emails/phones
-        from apps.core.services.demo_bundle import sanitize_setting
-        return sanitize_setting(rec)
-
-    def _serialize_report(self, r):
-        from apps.core.services.demo_bundle import scrub_emails
-        if not r.uuid:
-            return None
-        return scrub_emails({
-            'uuid': str(r.uuid),
-            'ida': r.ida or '',
-            'name': r.name or '',
-            'description': r.description or '',
-            'model_name': r.model_name or '',
-            'record_id': r.record_id or '',
-            'output_type': r.output_type or '',
-            'category': r.category or '',
-            'role_required': r.role_required or '',
-            'sort_order': r.sort_order or 0,
-            'explanation': getattr(r, 'explanation', '') or '',
-            'paths': getattr(r, 'paths', {}) or {},
-            'config': r.config or {},
-            'metadata': {**(r.metadata or {}), 'foundational': True},
-            'prefs': r.prefs or {},
-            'refs': r.refs or {},
-            'editor_type': r.editor_type or '',
-            'content': r.content or '',
-        })
+        parser.add_argument('--dry-run', action='store_true',
+                            help='Show counts without writing')
 
     def handle(self, *args, **options):
-        from django.apps import apps
-        Report = None
-        for ac in apps.get_app_configs():
-            for m in ac.get_models():
-                if m.__name__ == 'Report':
-                    Report = m
-                    break
+        from apps.core.services.bundle_catalogue import pack_init
+        from apps.core.services.report_registry import seed_shipped_reports
 
-        # --- Settings ---
-        settings_list = []
-        skipped_s = 0
-        from apps.core.services.demo_bundle import RUNTIME_SETTING_PURPOSES
-        for s in Setting.objects.filter(is_active=True).exclude(purpose__in=RUNTIME_SETTING_PURPOSES).order_by('purpose', 'parent_model'):
-            rec = self._serialize_setting(s)
-            if rec:
-                settings_list.append(rec)
-            else:
-                skipped_s += 1
+        # The executable reports this release ships must exist as records
+        # before they can be packed — otherwise HQ publishes a set without them.
+        seeded = seed_shipped_reports()
+        self.stdout.write(f'Executable reports present: {len(seeded)}')
 
-        # --- Reports ---
-        reports_list = []
-        skipped_r = 0
-        if Report:
-            for r in Report.objects.filter(is_active=True).order_by('model_name', 'category', 'name'):
-                rec = self._serialize_report(r)
-                if rec:
-                    reports_list.append(rec)
-                else:
-                    skipped_r += 1
-
+        packed = pack_init()
         bundle = {
             'version': '1.0',
             'source': 'pack_init_bundle',
             'dt_exported': datetime.now(timezone.utc).isoformat(),
-            'settings_count': len(settings_list),
-            'reports_count': len(reports_list),
-            'settings': settings_list,
-            'reports': reports_list,
+            **packed,
         }
+        for key in ('settings', 'reports', 'gl_accounts'):
+            bundle[f'{key}_count'] = len(bundle.get(key) or [])
 
-        # Summary
-        purposes = {}
-        for r in settings_list:
-            p = r['purpose'] or 'None'
-            purposes[p] = purposes.get(p, 0) + 1
+        self.stdout.write('\n=== Recommended set ===')
+        for key in ('settings', 'reports', 'gl_accounts'):
+            self.stdout.write(f"  {key}: {bundle[f'{key}_count']}")
 
         categories = {}
-        for r in reports_list:
-            c = f"{r['model_name']}/{r['category']}" if r['model_name'] else r['category']
+        for r in bundle.get('reports') or []:
+            c = r.get('category') or '?'
             categories[c] = categories.get(c, 0) + 1
-
-        self.stdout.write(f"\n=== Init Bundle ===")
-        self.stdout.write(f"\nSettings: {len(settings_list)} records")
-        for p, count in sorted(purposes.items()):
-            self.stdout.write(f"  {p}: {count}")
-        if skipped_s:
-            self.stdout.write(self.style.WARNING(f"  ({skipped_s} skipped — no UUID)"))
-
-        self.stdout.write(f"\nReports: {len(reports_list)} records")
-        for c, count in sorted(categories.items()):
-            self.stdout.write(f"  {c}: {count}")
-        if skipped_r:
-            self.stdout.write(self.style.WARNING(f"  ({skipped_r} skipped — no UUID)"))
+        self.stdout.write(f'  report categories: {categories}')
 
         if options['dry_run']:
-            self.stdout.write(self.style.SUCCESS('\n(dry run — nothing written)'))
+            self.stdout.write(self.style.WARNING('\nDry run — nothing written.'))
             return
 
-        output_path = Path(options['output'])
-        with open(output_path, 'w') as f:
-            json.dump(bundle, f, indent=2, ensure_ascii=False)
-
-        size_kb = output_path.stat().st_size / 1024
-        self.stdout.write(self.style.SUCCESS(
-            f"\nWritten to {output_path} ({size_kb:.0f} KB)"
-        ))
+        out = Path(options['output'])
+        with open(out, 'w') as fh:
+            json.dump(bundle, fh, indent=2, ensure_ascii=False)
+        size_kb = out.stat().st_size / 1024
+        self.stdout.write(self.style.SUCCESS(f'\nWrote {out} ({size_kb:.0f} KB)'))

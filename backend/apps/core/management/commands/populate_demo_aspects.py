@@ -77,7 +77,7 @@ class Command(BaseCommand):
 
         for i, org in enumerate(orgs):
             email = org.email or ''
-            company = org.display_name or ''
+            company = org.company or ''
             attention = org.attention or company
             contact_id = org.contact_id
 
@@ -118,7 +118,7 @@ class Command(BaseCommand):
 
             updated += 1
             if dry_run:
-                self.stdout.write(f'  Org #{org.id} {org.display_name}: addresses/emails/phones set')
+                self.stdout.write(f'  Org #{org.id} {org.company}: addresses/emails/phones set')
             else:
                 org.save(update_fields=['addresses', 'emails', 'phones'])
 
@@ -162,7 +162,7 @@ class Command(BaseCommand):
 
             updated += 1
             if dry_run:
-                self.stdout.write(f'  {name} #{h.id}: aspects set from {org.display_name}')
+                self.stdout.write(f'  {name} #{h.id}: aspects set from {org.company}')
             else:
                 h.save(update_fields=['addresses', 'emails', 'phones'])
 

@@ -59,12 +59,7 @@ def _snapshot_org(org: "Model") -> Dict[str, Any]:
     snap: Dict[str, Any] = {}
     for field in ORG_LINK_FIELDS:
         val = getattr(org, field, None)
-        if field == "display_name":
-            # Keep display_name AND expose as "company" for frontend consistency
-            snap["display_name"] = val or ""
-            snap["company"] = val or ""
-        else:
-            snap[field] = val
+        snap[field] = val
     return snap
 
 

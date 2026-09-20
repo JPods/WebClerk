@@ -261,7 +261,7 @@ const extractCompanyInfo = (
 
   return {
     id: org.id,
-    name: toString(primaryData?.display_name, primaryData?.company, org.display_name, org.company),
+    name: toString(primaryData?.company, org.company),
     attention,
     phone: primaryPhone,
     phoneCell: cellPhone,

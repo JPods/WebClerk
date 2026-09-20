@@ -13,7 +13,7 @@ class InvoiceTotalsServiceTest(TestCase):
     def setUp(self):
         """Set up test data."""
         self.customer = OrgBase.objects.create(
-            display_name="John Doe",
+            company="John Doe",
             org_type="customer"
         )
         self.invoice = Invoice.objects.create(
@@ -74,7 +74,7 @@ class OrderToInvoiceServiceTest(TestCase):
     def setUp(self):
         """Set up test data."""
         self.customer = OrgBase.objects.create(
-            display_name="John Doe",
+            company="John Doe",
             org_type="customer"
         )
         self.order = Order.objects.create(

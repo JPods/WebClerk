@@ -90,7 +90,7 @@ def get_preferred_vendor(item_id: int) -> Dict[str, Any]:
             cost_val = item.cost.get('unit') or item.cost.get('last') or item.cost.get('average')
         return {
             'vendor_id': item.vendor.pk,
-            'vendor_name': item.vendor.display_name,
+            'vendor_name': item.vendor.company,
             'vendor_ida': getattr(item.vendor, 'ida', ''),
             'cost': float(cost_val) if cost_val is not None else None,
         }
@@ -112,7 +112,7 @@ def get_preferred_vendor(item_id: int) -> Dict[str, Any]:
                 cost_val = xref.cost.get('unit') or xref.cost.get('last')
             return {
                 'vendor_id': vendor.pk,
-                'vendor_name': vendor.display_name,
+                'vendor_name': vendor.company,
                 'vendor_ida': getattr(vendor, 'ida', ''),
                 'cost': float(cost_val) if cost_val is not None else None,
             }
@@ -396,13 +396,13 @@ def create_draft_purchase(vendor_id: int, items: List[Dict[str, Any]]) -> Dict[s
 
     logger.info(
         "Created draft purchase #%s for vendor %s (%s lines, total=%s)",
-        purchase.pk, vendor.display_name, line_count, total_cost,
+        purchase.pk, vendor.company, line_count, total_cost,
     )
 
     return {
         'purchase_id': purchase.pk,
         'vendor_id': vendor_id,
-        'vendor_name': vendor.display_name,
+        'vendor_name': vendor.company,
         'status': 'planned',
         'line_count': line_count,
         'total': float(total_cost),

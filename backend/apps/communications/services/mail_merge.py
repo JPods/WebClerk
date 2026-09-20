@@ -4,7 +4,7 @@ Letter / Email Template Service (Mail Merge)
 
 Template-based document generation and email sending. Templates are stored
 as Document records (model_name='template' or 'letter'). Placeholders use
-{{field}} syntax with support for nested fields like {{customer.display_name}}.
+{{field}} syntax with support for nested fields like {{customer.company}}.
 
 All datetimes are UTC (Axiom 14).
 """

@@ -25,6 +25,7 @@ console_logger = logging.getLogger('console')  # Console logger for debugging
 #         - Validates field sizes and allowed nested keys.
 #         - Calls pre-save and post-save asynchronous tasks.
 #         - Returns a JSON response indicating success or failure, including error messages for field size violations or integrity errors.
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models, transaction, IntegrityError
 from rest_framework.views import APIView  # type: ignore
 from common.decorators import allow_write
@@ -123,6 +124,59 @@ def _key_root(key):
         return key
     root = key.split('.', 1)[0]
     return root.split('[', 1)[0]
+
+
+def _setting_edit_warning(request, model_key: str, obj):
+    """Coach a superuser editing a Setting. Returns a message, or None.
+
+    Bill, 2026-09-20: *"let's allow setting records to be edited by superusers. If a
+    superuser does harm, there are so many ways possible that we cannot stop."* And:
+    *"Alice should warn superusers that they are messing with their core with modifying
+    settings and that the record and pydantic must be aligned."*
+
+    So the permission is granted and the warning is not optional. Two things are worth
+    saying, and the second is the one that bites later:
+
+    1. Settings are the core. Layouts, access enumerations and model definitions all live
+       here, so a bad edit does not fail where it was made.
+    2. **The record and its Pydantic schema must stay aligned.** A Setting's ``config`` is
+       validated against a schema in code; changing the record without moving the schema
+       (or the reverse) is drift that surfaces somewhere else, as something else's bug.
+       Behaviours belong in the schema, not the record.
+
+    Alice keeps the observation so repeats reach WC_HQ rather than being read once and
+    forgotten — coach, don't drop.
+    """
+    if model_key != 'setting':
+        return None
+    user = getattr(request, 'user', None)
+    if not (user and getattr(user, 'is_authenticated', False) and user.is_superuser):
+        return None
+
+    warning = (
+        "You are editing core configuration. Settings drive layouts, access and model "
+        "definitions, so a mistake here surfaces elsewhere. The record and its Pydantic "
+        "schema must stay aligned — change one without the other and they drift."
+    )
+    try:
+        from apps.ai_assistant.services.notes import create_note
+        create_note(
+            "log",
+            role="user_interaction",
+            name="superuser edited a Setting",
+            parent_model="setting",
+            details={
+                "setting_id": getattr(obj, 'pk', None),
+                "purpose": getattr(obj, 'purpose', None),
+                "parent_model": getattr(obj, 'parent_model', None),
+                "user_id": getattr(user, 'pk', None),
+                "source": "wcapi.save",
+                "warning": warning,
+            },
+        )
+    except Exception:
+        console_logger.exception("[SAVE_VIEW] Failed to write alice_log for Setting edit")
+    return warning
 
 
 def _contact_account_denial(user, obj, data, is_update):
@@ -776,8 +830,17 @@ class SaveWcapiView(APIView):
         if server_set_fields:
             data.update(server_set_fields)
         if denied_fields:
+            # Bill, 2026-09-20: "If it is not enumerated as edit, the back end should never
+            # read it as being there regardless of if it is in the payload or not."
+            #
+            # So this is a filter on input, applied before anything reads the payload —
+            # not a refusal. A form round-trips every field it was served, and /wcapi/get/
+            # serves everything in `view`, which is a superset of `edit`; refusing those
+            # echoes would reject every save from the screen. The screen is what keeps a
+            # user from trying: a field the role cannot edit is locked and its label
+            # italic, so it is never offered.
             console_logger.info(
-                "[SAVE_VIEW] Write-policy stripped fields from %s: %s",
+                "[SAVE_VIEW] Not enumerated as edit for %s, ignored: %s",
                 model_key, ", ".join(denied_fields),
             )
 
@@ -868,7 +931,25 @@ class SaveWcapiView(APIView):
             obj._setting_update_authorized = True
             obj._setting_create_authorized = True
         console_logger.debug(f"[SAVE_VIEW] Executing obj.save() for {model_key} ID: {getattr(obj, 'id', 'new')}")
-        obj.save()
+        try:
+            obj.save()
+        except DjangoValidationError as e:
+            # A model that validates in save() — Setting calls full_clean() there — was
+            # raising straight past this view into a 500, because only IntegrityError was
+            # caught. A record the caller got wrong is a 400 telling them which field, not
+            # a server error: /wcapi/save/ already answers that way for orgs, and
+            # test_setting_crud and test_wcapi_batch_delete have been failing on the
+            # difference (recheck-3 save cluster, 2026-09-20).
+            details = (list(e.message_dict.items()) if hasattr(e, 'message_dict')
+                       else list(getattr(e, 'messages', [str(e)])))
+            flat = [f"{k}: {'; '.join(map(str, v))}" for k, v in details] \
+                if details and isinstance(details[0], tuple) else [str(d) for d in details]
+            console_logger.warning("[SAVE_VIEW] Validation failed on %s: %s", model_key, flat)
+            return api_response(
+                success=False, status_code=400,
+                message='Validation failed',
+                error={'code': 'validation_failed', 'details': flat},
+            )
         console_logger.debug(f"[SAVE_VIEW] Save completed successfully for {model_key} ID: {getattr(obj, 'id', 'new')}")
         # Verify setting save
         if model_key == 'setting' and hasattr(obj, 'purpose') and getattr(obj, 'purpose', '') in ('wc:workbench_fields', 'wc:model'):
@@ -1091,7 +1172,7 @@ class SaveWcapiView(APIView):
                 pass  # never block the response
 
         console_logger.info(f"[SAVE_VIEW] Returning successful response for {model_key} ID: {obj_id}")
-        return api_response(data=payload)
+        return api_response(data=payload, message=_setting_edit_warning(request, model_key, obj))
 
 
 class SaveWcapiViewWithModel(APIView):

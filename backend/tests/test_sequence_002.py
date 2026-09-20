@@ -69,7 +69,7 @@ class TestSequence002(TestCase):
         self.rep, _ = OrgBase.objects.get_or_create(
             ida='zzz-test-rep-002',
             defaults={
-                'display_name': 'zzz Test Rep 002',
+                'company': 'zzz Test Rep 002',
                 'org_type': 'rep',
                 'status': 'active',
                 'financial': {
@@ -89,13 +89,13 @@ class TestSequence002(TestCase):
         self.customer, _ = OrgBase.objects.get_or_create(
             ida='zzz-test-cust-002',
             defaults={
-                'display_name': 'zzz Test Customer 002',
+                'company': 'zzz Test Customer 002',
                 'org_type': 'customer',
                 'status': 'active',
                 'price_level': 'retail',
                 'refs': {
                     'links': {
-                        'reps': [{'id': self.rep.pk, 'rep_id': self.rep.pk, 'ida': self.rep.ida, 'name': self.rep.display_name}],
+                        'reps': [{'id': self.rep.pk, 'rep_id': self.rep.pk, 'ida': self.rep.ida, 'name': self.rep.company}],
                     },
                 },
             },
@@ -322,7 +322,7 @@ class TestSequence002(TestCase):
         vendor, _ = OrgBase.objects.get_or_create(
             ida='zzz-test-vendor-002',
             defaults={
-                'display_name': 'zzz Test Vendor 002',
+                'company': 'zzz Test Vendor 002',
                 'org_type': 'vendor',
                 'status': 'active',
             },

@@ -124,7 +124,7 @@ def split_order_by_vendor(order_id: int) -> Dict[str, Any]:
     OrgBase = apps.get_model('orgs', 'OrgBase')
     vendor_names = {}
     for org in OrgBase.objects.filter(pk__in=vendors_with_lines).only('pk', 'display_name'):
-        vendor_names[org.pk] = org.display_name or f'Vendor #{org.pk}'
+        vendor_names[org.pk] = org.company or f'Vendor #{org.pk}'
 
     # Create one new order per vendor
     vendor_orders = []
@@ -280,7 +280,7 @@ def create_commission_invoice(
     vendor_name = ''
     try:
         vendor = OrgBase.objects.get(pk=vendor_id)
-        vendor_name = vendor.display_name or f'Vendor #{vendor_id}'
+        vendor_name = vendor.company or f'Vendor #{vendor_id}'
     except OrgBase.DoesNotExist:
         vendor_name = f'Vendor #{vendor_id}'
 

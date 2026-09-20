@@ -24,7 +24,7 @@ class Command(BaseCommand):
         customer, created = OrgBase.objects.get_or_create(
             ida='zzCustomer',
             defaults={
-                'display_name': 'Training Customer',
+                'company': 'Training Customer',
                 'org_type': 'customer',
                 'is_active': True,
                 'email': 'training@example.local',

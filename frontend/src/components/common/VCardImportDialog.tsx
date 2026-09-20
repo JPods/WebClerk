@@ -23,7 +23,7 @@ interface PreviewData {
   phone?: { number: string; type: string } | null;
   address?: Record<string, string> | null;
   org_name: string;
-  existing_orgs: Array<{ id: number; display_name: string; status: string; org_type: string }>;
+  existing_orgs: Array<{ id: number; company: string; status: string; org_type: string }>;
   existing_contacts: Array<{ id: number; ida: string; name_first: string; name_last: string; email: string }>;
   source_name: string;
   error?: string;
@@ -99,7 +99,7 @@ const VCardImportDialog: React.FC<VCardImportDialogProps> = ({ isOpen, onClose, 
         if (orgChoice === "existing" && selectedOrgId) {
           params.org_id = selectedOrgId;
         } else {
-          params.create_org = { display_name: preview.org_name, org_type: "customer" };
+          params.create_org = { company: preview.org_name, org_type: "customer" };
         }
       }
       const res = await manageAction("import_vcard", params);
@@ -211,7 +211,7 @@ const VCardImportDialog: React.FC<VCardImportDialogProps> = ({ isOpen, onClose, 
                             checked={orgChoice === "existing" && selectedOrgId === org.id}
                             onChange={() => { setOrgChoice("existing"); setSelectedOrgId(org.id); }}
                           />
-                          Add to existing: {org.display_name} ({org.status})
+                          Add to existing: {org.company} ({org.status})
                         </label>
                       ))}
                       <label className="vcard-match-option">

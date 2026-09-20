@@ -27,7 +27,7 @@ def _contact_party(contact, org):
     return {
         'address': {
             'contact_id': contact.pk,
-            'company': org.display_name,
+            'company': org.company,
             'attention': contact.attention or '',
             'full_address': addr.full if addr else '',
             'instructions': '',
@@ -72,7 +72,7 @@ class Command(BaseCommand):
             )
 
             if not linked:
-                self.stdout.write(f'  {tag}Skip {org.display_name} — no linked contacts')
+                self.stdout.write(f'  {tag}Skip {org.company} — no linked contacts')
                 continue
 
             # Primary contact
@@ -118,7 +118,7 @@ class Command(BaseCommand):
 
             same = '(same)' if bill_to_contact.pk == ship_to_contact.pk else ''
             self.stdout.write(
-                f'  {tag}{org.org_type} {org.display_name}: '
+                f'  {tag}{org.org_type} {org.company}: '
                 f'prime={primary.attention}, '
                 f'bill_to={bill_to_contact.attention}, '
                 f'ship_to={ship_to_contact.attention} {same}'

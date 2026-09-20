@@ -120,15 +120,15 @@ BOM_ENTRIES = [
 
 # ─── Customers ───────────────────────────────────────────────────────────
 CUSTOMERS = [
-    {'ida': 'CUST-01', 'display_name': 'Riverside Sports',
+    {'ida': 'CUST-01', 'company': 'Riverside Sports',
      'org_type': 'customer', 'price_level': 'B', 'terms': 'N30'},
-    {'ida': 'CUST-02', 'display_name': 'Metro Baseball Academy',
+    {'ida': 'CUST-02', 'company': 'Metro Baseball Academy',
      'org_type': 'customer', 'price_level': 'A', 'terms': 'N30'},
-    {'ida': 'CUST-03', 'display_name': 'Eastside Little League',
+    {'ida': 'CUST-03', 'company': 'Eastside Little League',
      'org_type': 'customer', 'price_level': 'C', 'terms': 'N10'},
-    {'ida': 'CUST-04', 'display_name': 'Diamond Pro Equipment',
+    {'ida': 'CUST-04', 'company': 'Diamond Pro Equipment',
      'org_type': 'customer', 'price_level': 'A', 'terms': '2pct10N30'},
-    {'ida': 'CUST-05', 'display_name': 'Lincoln High School Athletics',
+    {'ida': 'CUST-05', 'company': 'Lincoln High School Athletics',
      'org_type': 'customer', 'price_level': 'B', 'terms': 'N30'},
 ]
 
@@ -152,7 +152,7 @@ CONTACTS = [
 
 # ─── Vendor ──────────────────────────────────────────────────────────────
 VENDOR = {
-    'ida': 'VEND-01', 'display_name': 'National Baseball Supply',
+    'ida': 'VEND-01', 'company': 'National Baseball Supply',
     'org_type': 'vendor', 'terms': 'N30',
 }
 

@@ -33,7 +33,6 @@ REPORT_CATEGORY_CHOICES = (
     ("export", "Export"),
     ("function", "Function"),
     ("utility", "Utility"),
-    ("tally", "Tally / Calculation"),
     ("dashboard", "Dashboard widget"),
 )
 

@@ -215,7 +215,7 @@ class Command(BaseCommand):
                 new_financial = migrate_old_to_new(old_financial, org.org_type)
                 
                 if dry_run:
-                    self.stdout.write(f'  Would migrate org {org.id} ({org.display_name})')
+                    self.stdout.write(f'  Would migrate org {org.id} ({org.company})')
                     if options['verbosity'] >= 2:
                         self.stdout.write(f'    Old keys: {list(old_financial.keys())}')
                         self.stdout.write(f'    New keys: {list(new_financial.keys())}')

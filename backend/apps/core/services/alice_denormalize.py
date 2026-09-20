@@ -204,7 +204,7 @@ def _propagate_links(obj, model_name: str, template: dict) -> None:
 
 
 def _resolve_field_path(obj, path: str):
-    """Resolve a dotted field path like 'org.display_name'."""
+    """Resolve a dotted field path like 'org.company'."""
     current = obj
     for part in str(path).split('.'):
         if hasattr(current, part):

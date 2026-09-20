@@ -1,8 +1,8 @@
 """Populate FK relationships between Contacts and OrgBase records.
 
 Matches contacts to orgs by:
-  1. Exact display_name match to contact's company field
-  2. Exact display_name match to contact's "name_first name_last"
+  1. Exact company match to contact's company field
+  2. Exact company match to contact's "name_first name_last"
   3. Existing contacts JSONB aspect entries with contact IDs
 
 For each match, sets:
@@ -53,10 +53,10 @@ class Command(BaseCommand):
         orgs = list(OrgBase.objects.all())
 
         # Build lookup indexes
-        # org display_name → org (case-insensitive, first match per org_type)
+        # org company → org (case-insensitive, first match per org_type)
         org_by_name: dict[str, list[OrgBase]] = {}
         for org in orgs:
-            key = org.display_name.strip().lower()
+            key = org.company.strip().lower()
             org_by_name.setdefault(key, []).append(org)
 
         contact_updates = []  # (contact, field_name, org)
@@ -114,13 +114,13 @@ class Command(BaseCommand):
         for contact, field_name, org in contact_updates:
             self.stdout.write(
                 f"  Contact {contact.id} ({contact.name_first} {contact.name_last}) "
-                f".{field_name} → Org {org.id} ({org.display_name} [{org.org_type}])"
+                f".{field_name} → Org {org.id} ({org.company} [{org.org_type}])"
             )
 
         self.stdout.write(f"\nOrg contact_id updates ({len(org_updates)}):")
         for org, contact in org_updates:
             self.stdout.write(
-                f"  Org {org.id} ({org.display_name} [{org.org_type}]) "
+                f"  Org {org.id} ({org.company} [{org.org_type}]) "
                 f".contact_id → Contact {contact.id} ({contact.name_first} {contact.name_last})"
             )
 

@@ -10,6 +10,11 @@ Covers:
 - PASSTHROUGH_KEYS never stripped
 - Integration with SaveWcapiView (end-to-end POST)
 """
+import secrets
+
+# Generated per run — no password literal in the repository.
+TEST_PASSWORD = secrets.token_urlsafe(16)
+
 import pytest
 from unittest.mock import MagicMock
 from django.test import override_settings
@@ -272,38 +277,45 @@ class TestWcapiSaveWritePolicy:
     """Test that write policy is enforced through the actual WCAPI save endpoint."""
 
     @override_settings(WCAPI_POLICIES_ENABLED=True, WCAPI_MODEL_POLICIES=_TEST_POLICIES)
-    def test_employee_save_strips_disallowed_contact_fields(self, django_user_model):
-        """Employee saving a contact should not be able to set is_superuser."""
+    def test_employee_may_not_set_authority_fields_on_a_contact(self, django_user_model):
+        """is_superuser is authority, not a field: the contact guard refuses it outright.
+
+        Rewritten 2026-09-20. This asserted a 200 with is_superuser silently dropped — the
+        filter behaviour. The requirement it protects (an employee must not make anyone a
+        superuser) is real and is now enforced more strongly: the save is refused and the
+        caller is told which field did it.
+        """
         employee = django_user_model.objects.create_user(
-            email="emp@example.com", password="pass12345", role="employee",
+            email="emp@example.com", password=TEST_PASSWORD, role="employee",
         )
-        # Create a target contact to update
         target = django_user_model.objects.create_user(
-            email="target@example.com", password="pass12345", role="user",
+            email="target@example.com", password=TEST_PASSWORD, role="user",
         )
         client = _auth_client(employee)
-        payload = {
+        resp = client.post("/wcapi/save/", {
             "model_name": "contact",
             "id": target.pk,
             "email": "updated@example.com",
-            "name_first": "Updated",
-            "is_superuser": True,  # should be stripped
-        }
-        resp = client.post("/wcapi/save/", payload, format="json")
-        assert resp.status_code == 200, resp.data  # type: ignore[attr-defined]
+            "is_superuser": True,
+        }, format="json")
+
+        assert resp.status_code == 403, resp.data  # type: ignore[attr-defined]
+        assert resp.data["error"]["code"] == "contact_account_guard"  # type: ignore[index]
+        assert resp.data["error"]["details"] == "is_superuser"        # type: ignore[index]
 
         target.refresh_from_db()
-        assert target.email == "updated@example.com"
-        assert target.is_superuser is False  # was not applied
+        assert target.is_superuser is False
+        # and the refusal is whole: the permitted field did not land either
+        assert target.email == "target@example.com"
 
     @override_settings(WCAPI_POLICIES_ENABLED=True, WCAPI_MODEL_POLICIES=_TEST_POLICIES)
     def test_admin_save_can_set_any_field(self, django_user_model):
         """Admin should bypass write policy entirely."""
         admin = django_user_model.objects.create_superuser(
-            email="admin@example.com", password="pass12345",
+            email="admin@example.com", password=TEST_PASSWORD,
         )
         target = django_user_model.objects.create_user(
-            email="target2@example.com", password="pass12345", role="user",
+            email="target2@example.com", password=TEST_PASSWORD, role="user",
         )
         client = _auth_client(admin)
         payload = {
@@ -320,27 +332,53 @@ class TestWcapiSaveWritePolicy:
         assert target.role == "employee"
 
     @override_settings(WCAPI_POLICIES_ENABLED=True, WCAPI_MODEL_POLICIES=_TEST_POLICIES)
-    def test_user_save_limited_to_default_fields(self, django_user_model):
-        """Default user can only write fields listed in 'default'."""
+    def test_a_user_may_not_set_role_on_a_contact(self, django_user_model):
+        """role is authority too, and the guard refuses rather than ignores."""
         user = django_user_model.objects.create_user(
-            email="user@example.com", password="pass12345", role="user",
+            email="user@example.com", password=TEST_PASSWORD, role="user",
         )
         target = django_user_model.objects.create_user(
-            email="target3@example.com", password="pass12345", role="user",
+            email="target3@example.com", password=TEST_PASSWORD, role="user",
         )
         client = _auth_client(user)
-        payload = {
+        resp = client.post("/wcapi/save/", {
+            "model_name": "contact", "id": target.pk, "role": "admin",
+        }, format="json")
+
+        assert resp.status_code == 403, resp.data  # type: ignore[attr-defined]
+        target.refresh_from_db()
+        assert target.role == "user"
+
+    @override_settings(WCAPI_POLICIES_ENABLED=True, WCAPI_MODEL_POLICIES=_TEST_POLICIES)
+    def test_a_field_the_role_cannot_edit_is_ignored_not_refused(self, django_user_model):
+        """Bill, 2026-09-20: *"If it is not enumerated as edit, the back end should never
+        read it as being there regardless of if it is in the payload or not."*
+
+        name_last is outside this role's write list and is not authority, so it is simply
+        not there as far as the save is concerned — the permitted fields still land. A form
+        round-trips every field it was served and GET serves everything in `view`, which is
+        a superset of `edit`; refusing those echoes would reject every save from the screen.
+        What stops a user trying is the screen: a field the role cannot edit is locked and
+        its label italic.
+        """
+        # On their own contact: the account guard allows a self email change, so this
+        # exercises the edit enumeration rather than the guard in front of it.
+        user = django_user_model.objects.create_user(
+            email="user2@example.com", password=TEST_PASSWORD, role="user",
+            name_last="Unchanged",
+        )
+        target = user
+        client = _auth_client(user)
+        resp = client.post("/wcapi/save/", {
             "model_name": "contact",
             "id": target.pk,
-            "email": "user-updated@example.com",
-            "name_first": "NewFirst",
-            "name_last": "ShouldNotApply",  # not in default
-            "role": "admin",                # not in default — must not apply
-        }
-        resp = client.post("/wcapi/save/", payload, format="json")
-        assert resp.status_code == 200, resp.data  # type: ignore[attr-defined]
+            "email": "user-updated@example.com",   # in default
+            "name_first": "NewFirst",              # in default
+            "name_last": "ShouldNotApply",         # not in default, not authority
+        }, format="json")
 
+        assert resp.status_code == 200, resp.data  # type: ignore[attr-defined]
         target.refresh_from_db()
         assert target.email == "user-updated@example.com"
-        # name_last and role should NOT have been updated
-        assert target.role == "user"
+        assert target.name_first == "NewFirst"
+        assert target.name_last == "Unchanged"

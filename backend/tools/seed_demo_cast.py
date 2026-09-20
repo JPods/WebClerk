@@ -277,9 +277,9 @@ def seed_contact(spec):
         c_links['document'] = existing_docs[:4]
 
     # ── Company org link ──
-    org = OrgBase.objects.filter(display_name=spec['company'], org_type='customer').first()
+    org = OrgBase.objects.filter(company=spec['company'], org_type='customer').first()
     if not org:
-        org = OrgBase.objects.create(display_name=spec['company'], org_type='customer', is_active=True)
+        org = OrgBase.objects.create(company=spec['company'], org_type='customer', is_active=True)
     c_links['customer'] = {'id': org.id, 'company': spec['company'], 'model': 'customer'}
 
     c.refs = c_refs

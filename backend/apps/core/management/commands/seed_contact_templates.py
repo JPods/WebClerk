@@ -21,10 +21,10 @@ TEMPLATES = [
         "sort_order": 10,
         "description": "Onboarding email sent to new contacts after account creation",
         "config": {
-            "subject": "Welcome to {{customer.display_name}}",
+            "subject": "Welcome to {{customer.company}}",
             "body": """# Welcome, {{contact.name_first}}!
 
-Thank you for joining **{{customer.display_name}}**. We're glad to have you.
+Thank you for joining **{{customer.company}}**. We're glad to have you.
 
 Here are your account details:
 
@@ -33,7 +33,7 @@ Here are your account details:
 | **Name** | {{contact.name_first}} {{contact.name_last}} |
 | **Email** | {{contact.email}} |
 | **Account** | {{customer.ida}} |
-| **Your Rep** | {{rep.display_name}} |
+| **Your Rep** | {{rep.company}} |
 
 ## What's Next?
 
@@ -44,7 +44,7 @@ Here are your account details:
 We look forward to working with you.
 
 Best regards,
-**{{customer.display_name}}**
+**{{customer.company}}**
 """,
         },
     },
@@ -78,7 +78,7 @@ If everything looks correct, no action is needed.
 If anything needs updating, simply reply to this email with your corrections.
 
 Thank you,
-**{{customer.display_name}}**
+**{{customer.company}}**
 """,
         },
     },
@@ -91,7 +91,7 @@ Thank you,
         "description": "Formal thank-you letter for printing or PDF",
         "config": {
             "subject": "Thank You",
-            "body": """{{customer.display_name}}
+            "body": """{{customer.company}}
 {{customer.address_full}}
 
 ---
@@ -102,17 +102,17 @@ Thank you,
 
 Dear {{contact.name_first}},
 
-Thank you for your continued partnership with **{{customer.display_name}}**. Your business is important to us, and we value the relationship we've built together.
+Thank you for your continued partnership with **{{customer.company}}**. Your business is important to us, and we value the relationship we've built together.
 
 We are committed to providing you with excellent products and responsive service. If there is anything we can do to improve your experience, please don't hesitate to reach out.
 
-Your dedicated representative is **{{rep.display_name}}**, who can be reached at {{rep.email}} or {{rep.phone}}.
+Your dedicated representative is **{{rep.company}}**, who can be reached at {{rep.email}} or {{rep.phone}}.
 
 Sincerely,
 
 _________________________
-{{rep.display_name}}
-{{customer.display_name}}
+{{rep.company}}
+{{customer.company}}
 """,
         },
     },
@@ -129,18 +129,18 @@ _________________________
 
 It's been a while since we last heard from you, and we wanted to check in.
 
-At **{{customer.display_name}}**, we're always working to improve our products and service. Here's what's new since your last visit:
+At **{{customer.company}}**, we're always working to improve our products and service. Here's what's new since your last visit:
 
 - Updated product catalog with new arrivals
 - Improved order tracking and delivery notifications
 - New self-service tools for account management
 
-We'd love to reconnect. Your account (**{{customer.ida}}**) is still active, and your rep **{{rep.display_name}}** is ready to help with anything you need.
+We'd love to reconnect. Your account (**{{customer.ida}}**) is still active, and your rep **{{rep.company}}** is ready to help with anything you need.
 
 **Reply to this email** or call {{rep.phone}} to get started.
 
 Looking forward to hearing from you,
-**{{customer.display_name}}**
+**{{customer.company}}**
 """,
         },
     },
@@ -152,16 +152,16 @@ Looking forward to hearing from you,
         "sort_order": 50,
         "description": "Introduce a new sales rep to an existing contact",
         "config": {
-            "subject": "Your new rep: {{rep.display_name}}",
+            "subject": "Your new rep: {{rep.company}}",
             "body": """Dear {{contact.name_first}},
 
-I'm writing to introduce myself as your new representative at **{{customer.display_name}}**.
+I'm writing to introduce myself as your new representative at **{{customer.company}}**.
 
 **My contact information:**
 
 | | |
 |---|---|
-| **Name** | {{rep.display_name}} |
+| **Name** | {{rep.company}} |
 | **Email** | {{rep.email}} |
 | **Phone** | {{rep.phone}} |
 
@@ -170,8 +170,8 @@ I've reviewed your account history and I'm familiar with your needs. I'm here to
 Please don't hesitate to reach out with any questions, orders, or concerns. I look forward to working with you.
 
 Best regards,
-**{{rep.display_name}}**
-{{customer.display_name}}
+**{{rep.company}}**
+{{customer.company}}
 """,
         },
     },

@@ -90,7 +90,7 @@ class TestQuoteOrderInvoiceChain:
         except OrgBase.DoesNotExist:
             OrgBase.objects.create(
                 pk=CUSTOMER_ID,
-                display_name="Test Customer 82",
+                company="Test Customer 82",
                 org_type="customer",
             )
 

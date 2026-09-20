@@ -3,9 +3,11 @@ from __future__ import annotations
 from django.core.management.base import BaseCommand
 
 from apps.core.models.report import Report
+from apps.core.services.report_registry import REPORT_PURPOSE_SEARCH
 
 
-# Saved searches live as Report records (category='search', output_type='search').
+# Saved searches live as Report records with purpose 'search_stored' — that
+# is what marks a report as a search rather than a form or a print template.
 # Date-range presets are handled by the built-in date_between function.
 
 SEARCH_PRESETS = [
@@ -127,6 +129,7 @@ class Command(BaseCommand):
                     'name': preset['name'],
                     'description': preset['description'],
                     'category': 'search',
+                    'purpose': REPORT_PURPOSE_SEARCH,
                     'output_type': 'search',
                     'model_name': preset['model_name'],
                     'config': preset['config'],

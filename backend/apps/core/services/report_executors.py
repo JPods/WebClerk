@@ -1,3 +1,13 @@
+"""Report executors — the functions behind reports that compute.
+
+Most reports are templates: the Report record carries the layout and the
+content. These compute instead, so the Report record names one of these
+functions in config.action and apps/core/services/report_registry.py maps
+the name to the function.
+
+("Tally" was WC2's word for these. There is no Tally model here — an
+executable report is a report.)
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -73,7 +83,7 @@ def _iter_totals(rows: Iterable[tuple[Optional[dict], Any]]) -> Decimal:
     return total
 
 
-def get_tally_summary_by_period(params: Dict[str, Any]) -> Dict[str, Any]:
+def get_summary_by_period(params: Dict[str, Any]) -> Dict[str, Any]:
     """Return a period summary across core transaction families.
 
     Parameters:
@@ -248,17 +258,17 @@ def _sales_by_dimension_month(params: Dict[str, Any], *, dimension_field: str) -
     }
 
 
-def get_tally_sales_by_customer_month(params: Dict[str, Any]) -> Dict[str, Any]:
+def get_sales_by_customer_month(params: Dict[str, Any]) -> Dict[str, Any]:
     """Return invoice sales grouped by customer and month."""
     return _sales_by_dimension_month(params, dimension_field="customer_id")
 
 
-def get_tally_sales_by_manufacturer_month(params: Dict[str, Any]) -> Dict[str, Any]:
+def get_sales_by_manufacturer_month(params: Dict[str, Any]) -> Dict[str, Any]:
     """Return invoice sales grouped by manufacturer and month."""
     return _sales_by_dimension_month(params, dimension_field="manufacturer_id")
 
 
-def get_tally_sales_by_customer_year(params: Dict[str, Any]) -> Dict[str, Any]:
+def get_sales_by_customer_year(params: Dict[str, Any]) -> Dict[str, Any]:
     """Return invoice sales grouped by customer and year with year-over-year deltas."""
     start_date, end_date = _resolve_period(params)
 
@@ -377,7 +387,7 @@ def _inventory_period_bounds(params: Dict[str, Any]) -> tuple[date, date, int, i
     return start_date, end_date, start_ms, end_ms
 
 
-def get_tally_inventory_usage_by_month(params: Dict[str, Any]) -> Dict[str, Any]:
+def get_inventory_usage_by_month(params: Dict[str, Any]) -> Dict[str, Any]:
     """Return inventory movement usage grouped by item and month."""
     start_date, end_date, start_ms, end_ms = _inventory_period_bounds(params)
 
@@ -490,7 +500,7 @@ def get_tally_inventory_usage_by_month(params: Dict[str, Any]) -> Dict[str, Any]
     }
 
 
-def get_tally_inventory_yearly_summary(params: Dict[str, Any]) -> Dict[str, Any]:
+def get_inventory_yearly_summary(params: Dict[str, Any]) -> Dict[str, Any]:
     """Return yearly inventory usage and valuation summary grouped by item/year."""
     start_date, end_date, start_ms, end_ms = _inventory_period_bounds(params)
 

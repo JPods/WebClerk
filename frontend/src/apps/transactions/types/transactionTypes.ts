@@ -61,8 +61,7 @@ export interface ContactDenorm {
 export interface OrgDenorm {
   id: number;
   ida?: string;
-  display_name?: string;
-  company?: string;         // alias for display_name (set by backend snapshot)
+  company?: string;
   email?: string;
   phone?: string;
   address_full?: string;

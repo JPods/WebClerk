@@ -166,7 +166,7 @@ class ModelLinkConfig(BaseModel):
         link_template={
             "id": "id",
             "attention": "display_name",
-            "company": "org.display_name",
+            "company": "org.company",
             "role": null,
             "commission_pc": null
         }

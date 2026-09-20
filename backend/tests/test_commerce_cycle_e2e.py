@@ -96,7 +96,7 @@ class TestContactOrgLinking:
 
     def test_contact_links_to_customer_refs(self):
         """Contact with customer FK → customer.refs.links.contact includes contact."""
-        customer = CustomerFactory(display_name="Test Corp")
+        customer = CustomerFactory(company="Test Corp")
         contact = ContactFactory(email="linked@test.com", customer=customer)
         contact.save_after({})
 

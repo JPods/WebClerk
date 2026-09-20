@@ -22,7 +22,7 @@ from apps.transactions.services.convert.convert_engine import execute_transfer, 
 @pytest.fixture
 def customer():
     """Create a real OrgBase so FK constraints are satisfied."""
-    return OrgBase.objects.create(display_name="Test Customer", org_type="customer")
+    return OrgBase.objects.create(company="Test Customer", org_type="customer")
 
 
 # ---------------------------------------------------------------------------

@@ -152,7 +152,7 @@ class Command(BaseCommand):
             for company, org_type_str in ORGS:
                 ot = OrgType.VENDOR if org_type_str == "vendor" else OrgType.CUSTOMER
                 org, created = OrgBase.objects.get_or_create(
-                    display_name=company,
+                    company=company,
                     defaults={"org_type": ot},
                 )
                 if created:

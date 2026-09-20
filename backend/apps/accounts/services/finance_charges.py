@@ -93,7 +93,7 @@ def assess_finance_charges(as_of: date | None = None, dry_run: bool = False) -> 
 
     for org_id, ledgers in sorted(past_due_balances(as_of, grace).items()):
         org = OrgBase.objects.filter(pk=org_id).first()
-        name = (org.display_name or org.company) if org else f'org {org_id}'
+        name = (org.company or org.company) if org else f'org {org_id}'
         already = Invoice.objects.filter(customer_id=org_id, refs__finance_charge__period=period).first()
         if already:
             result['skipped'].append({'customer': name, 'reason': f'already assessed for {period} ({already.ida})'})

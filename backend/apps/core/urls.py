@@ -42,7 +42,7 @@ from apps.core.views.testing_parade import TestParadeManifestView, TestParadeRun
 from apps.core.views.layout_parade import LayoutParadeView
 from apps.core.views.component_parade import ComponentParadeView, ComponentParadePreviewView
 from apps.core.views.system_dispatch import SystemDispatchView
-from apps.core.views.init_bundle_view import InitBundleView
+from apps.core.views.init_bundle_view import InitBundleView, NamedBundleView
 from apps.core.views.register_installation_view import RegisterInstallationView, SubscriptionView
 from apps.core.views.instance_submit_view import InstanceSubmitView
 from apps.core.views.hook_clearance_view import HookClearanceView
@@ -134,6 +134,8 @@ urlpatterns = [
     path("wcapi/_image/<str:model_name>/<str:ida>/<str:size>", ImageView.as_view(), name="wcapi-image"),
     # WCHQ services — no auth required (system config only, no business data)
     path("wcapi/init-bundle/", InitBundleView.as_view(), name="wcapi-init-bundle"),
+    # Named recommended sets — an installation asks for the one it is missing
+    path("wcapi/get/bundle_<str:name>.json", NamedBundleView.as_view(), name="wcapi-named-bundle"),
     path("wcapi/register-installation/", RegisterInstallationView.as_view(), name="wcapi-register-installation"),
     path("wcapi/register-installation/subscribe/", SubscriptionView.as_view(), name="wcapi-subscribe"),
     path("wcapi/instance/submit/", InstanceSubmitView.as_view(), name="wcapi-instance-submit"),

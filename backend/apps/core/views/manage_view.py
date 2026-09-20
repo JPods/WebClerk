@@ -8,15 +8,15 @@ Actions:
   post_gl_entries            — post staged GL journal entries for invoice/cash; locks record
   generate_kanban_projects  — bulk-create Project records with sequential kanban dates
   get_receivable_aging      — return per-customer aging summary for open AR ledgers
-    get_tally_summary_by_period — return period totals across core transaction models
-    get_tally_sales_by_customer_month — sales grouped by customer and month
-    get_tally_sales_by_manufacturer_month — sales grouped by manufacturer and month
-    get_tally_sales_by_customer_year — year-over-year sales grouped by customer and year
-    get_tally_inventory_usage_by_month — inventory movement grouped by item and month
-    get_tally_inventory_yearly_summary — yearly inventory usage and valuation summary
-    get_tally_report_registry — list named tally report registry entries
-    execute_tally_report — execute a report by report_key and params
-    export_tally_report — export report output as csv/json content
+    get_summary_by_period — return period totals across core transaction models
+    get_sales_by_customer_month — sales grouped by customer and month
+    get_sales_by_manufacturer_month — sales grouped by manufacturer and month
+    get_sales_by_customer_year — year-over-year sales grouped by customer and year
+    get_inventory_usage_by_month — inventory movement grouped by item and month
+    get_inventory_yearly_summary — yearly inventory usage and valuation summary
+    get_report_registry — list the reports this installation can run
+    execute_report — execute a report by report_key and params
+    export_report — export report output as csv/json content
   Pricing Engine:
     resolve_price              — resolve effective unit price for item (contract→level→base→floor)
     get_price_matrix           — return all price levels and qty breaks for UI grid
@@ -181,8 +181,8 @@ def _carrier_action(method_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
     raise ValueError(f'Unknown carrier method: {method_name}')
 
 
-def _log_tally_observation(request, action_name: str, params: Dict[str, Any], result: Dict[str, Any]) -> None:
-    """Persist a lightweight alice_log observation for tally usage."""
+def _log_report_observation(request, action_name: str, params: Dict[str, Any], result: Dict[str, Any]) -> None:
+    """Persist a lightweight alice_log observation for report usage."""
     try:
         from apps.ai_assistant.services.notes import create_note
 
@@ -209,7 +209,7 @@ def _log_tally_observation(request, action_name: str, params: Dict[str, Any], re
             details=details,
         )
     except Exception:
-        logger.exception("Failed to write alice_log for tally action %s", action_name)
+        logger.exception("Failed to write alice_log for report action %s", action_name)
 
 
 # ---------------------------------------------------------------------------
@@ -406,67 +406,67 @@ def _get_receivable_aging(params: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _get_tally_summary_by_period(params: Dict[str, Any]) -> Dict[str, Any]:
+def _get_summary_by_period(params: Dict[str, Any]) -> Dict[str, Any]:
     """Return period totals across core transaction families."""
-    from apps.core.services.tally_reports import get_tally_summary_by_period
+    from apps.core.services.report_executors import get_summary_by_period
 
-    return get_tally_summary_by_period(params)
+    return get_summary_by_period(params)
 
 
-def _get_tally_sales_by_customer_month(params: Dict[str, Any]) -> Dict[str, Any]:
+def _get_sales_by_customer_month(params: Dict[str, Any]) -> Dict[str, Any]:
     """Return sales grouped by customer and month."""
-    from apps.core.services.tally_reports import get_tally_sales_by_customer_month
+    from apps.core.services.report_executors import get_sales_by_customer_month
 
-    return get_tally_sales_by_customer_month(params)
+    return get_sales_by_customer_month(params)
 
 
-def _get_tally_sales_by_manufacturer_month(params: Dict[str, Any]) -> Dict[str, Any]:
+def _get_sales_by_manufacturer_month(params: Dict[str, Any]) -> Dict[str, Any]:
     """Return sales grouped by manufacturer and month."""
-    from apps.core.services.tally_reports import get_tally_sales_by_manufacturer_month
+    from apps.core.services.report_executors import get_sales_by_manufacturer_month
 
-    return get_tally_sales_by_manufacturer_month(params)
+    return get_sales_by_manufacturer_month(params)
 
 
-def _get_tally_sales_by_customer_year(params: Dict[str, Any]) -> Dict[str, Any]:
+def _get_sales_by_customer_year(params: Dict[str, Any]) -> Dict[str, Any]:
     """Return year-over-year sales grouped by customer and year."""
-    from apps.core.services.tally_reports import get_tally_sales_by_customer_year
+    from apps.core.services.report_executors import get_sales_by_customer_year
 
-    return get_tally_sales_by_customer_year(params)
+    return get_sales_by_customer_year(params)
 
 
-def _get_tally_inventory_usage_by_month(params: Dict[str, Any]) -> Dict[str, Any]:
+def _get_inventory_usage_by_month(params: Dict[str, Any]) -> Dict[str, Any]:
     """Return inventory usage grouped by item and month."""
-    from apps.core.services.tally_reports import get_tally_inventory_usage_by_month
+    from apps.core.services.report_executors import get_inventory_usage_by_month
 
-    return get_tally_inventory_usage_by_month(params)
+    return get_inventory_usage_by_month(params)
 
 
-def _get_tally_inventory_yearly_summary(params: Dict[str, Any]) -> Dict[str, Any]:
+def _get_inventory_yearly_summary(params: Dict[str, Any]) -> Dict[str, Any]:
     """Return yearly inventory usage summary and valuation metrics."""
-    from apps.core.services.tally_reports import get_tally_inventory_yearly_summary
+    from apps.core.services.report_executors import get_inventory_yearly_summary
 
-    return get_tally_inventory_yearly_summary(params)
-
-
-def _get_tally_report_registry(params: Dict[str, Any]) -> Dict[str, Any]:
-    """List registered tally report keys and metadata."""
-    from apps.core.services.tally_registry import list_tally_reports
-
-    return list_tally_reports()
+    return get_inventory_yearly_summary(params)
 
 
-def _execute_tally_report(params: Dict[str, Any]) -> Dict[str, Any]:
-    """Execute a tally report by key via registry."""
-    from apps.core.services.tally_registry import execute_tally_report
+def _get_report_registry(params: Dict[str, Any]) -> Dict[str, Any]:
+    """List the report keys this installation can run."""
+    from apps.core.services.report_registry import list_executable_reports
 
-    return execute_tally_report(params)
+    return list_executable_reports()
 
 
-def _export_tally_report(params: Dict[str, Any]) -> Dict[str, Any]:
-    """Export tally report output as csv/json string content."""
-    from apps.core.services.tally_registry import export_tally_report
+def _execute_report(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute a report by key via the registry."""
+    from apps.core.services.report_registry import execute_report
 
-    return export_tally_report(params)
+    return execute_report(params)
+
+
+def _export_report(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Export report output as csv/json string content."""
+    from apps.core.services.report_registry import export_report
+
+    return export_report(params)
 
 
 def _post_gl_entries(params: dict) -> dict:
@@ -1063,15 +1063,15 @@ _ACTION_DISPATCH = {
     ).import_bundle(params),
     "generate_kanban_projects": _generate_kanban_projects,
     "get_receivable_aging": _get_receivable_aging,
-    "get_tally_summary_by_period": _get_tally_summary_by_period,
-    "get_tally_sales_by_customer_month": _get_tally_sales_by_customer_month,
-    "get_tally_sales_by_manufacturer_month": _get_tally_sales_by_manufacturer_month,
-    "get_tally_sales_by_customer_year": _get_tally_sales_by_customer_year,
-    "get_tally_inventory_usage_by_month": _get_tally_inventory_usage_by_month,
-    "get_tally_inventory_yearly_summary": _get_tally_inventory_yearly_summary,
-    "get_tally_report_registry": _get_tally_report_registry,
-    "execute_tally_report": _execute_tally_report,
-    "export_tally_report": _export_tally_report,
+    "get_summary_by_period": _get_summary_by_period,
+    "get_sales_by_customer_month": _get_sales_by_customer_month,
+    "get_sales_by_manufacturer_month": _get_sales_by_manufacturer_month,
+    "get_sales_by_customer_year": _get_sales_by_customer_year,
+    "get_inventory_usage_by_month": _get_inventory_usage_by_month,
+    "get_inventory_yearly_summary": _get_inventory_yearly_summary,
+    "get_report_registry": _get_report_registry,
+    "execute_report": _execute_report,
+    "export_report": _export_report,
     # ── Order Production (GAP-01) ──
     "spawn_workorder": lambda p: __import__('apps.transactions.services.production_fulfill', fromlist=['spawn_workorder']).spawn_workorder(p['order_id']),
     "record_production_action": lambda p: __import__('apps.transactions.services.production_fulfill', fromlist=['record_production_action']).record_production_action(p['order_id'], p['action_text'], p.get('assigned_to')),
@@ -1416,8 +1416,8 @@ class ManageWcapiView(APIView):
                 error={"code": "action_failed", "details": {"action": action_name}},
             )
 
-        if action_name.startswith("get_tally_"):
-            _log_tally_observation(request, action_name, params, result)
+        if action_name.startswith("get_"):
+            _log_report_observation(request, action_name, params, result)
 
         return api_response(
             data=result,

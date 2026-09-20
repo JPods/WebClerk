@@ -10,17 +10,17 @@ from apps.transactions.services.transaction_save import save_transaction_with_li
 
 @pytest.fixture
 def customer_a():
-    return OrgBase.objects.create(display_name="Customer A", org_type="customer")
+    return OrgBase.objects.create(company="Customer A", org_type="customer")
 
 
 @pytest.fixture
 def customer_b():
-    return OrgBase.objects.create(display_name="Customer B", org_type="customer")
+    return OrgBase.objects.create(company="Customer B", org_type="customer")
 
 
 @pytest.fixture
 def customer_c():
-    return OrgBase.objects.create(display_name="Customer C", org_type="customer")
+    return OrgBase.objects.create(company="Customer C", org_type="customer")
 
 
 def _save_reviewed_invoice(monkeypatch, result):

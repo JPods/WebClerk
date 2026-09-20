@@ -82,7 +82,7 @@ const CustomerSearchCard: React.FC<CardComponentProps> = ({ isEditing, onChange,
                   onClick={() => handleSelect(c)}
                 >
                   <div className="flex items-baseline gap-2">
-                    <span className="font-medium text-slate-900 dark:text-white">{c.company || c.display_name || `#${c.id}`}</span>
+                    <span className="font-medium text-slate-900 dark:text-white">{c.company || `#${c.id}`}</span>
                     <span className="text-slate-400 font-mono text-[10px]">#{c.id}</span>
                   </div>
                   <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">

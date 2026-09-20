@@ -20,7 +20,7 @@ def _build_primary_org_payload(org: OrgBase) -> dict[str, Any]:
         "org_id": org.pk,
         "org_type": org.org_type,
         "company": org.company,
-        "display_name": org.display_name,
+        "company": org.company,
         "is_active": org.is_active,
     }
 

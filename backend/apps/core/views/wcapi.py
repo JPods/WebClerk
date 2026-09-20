@@ -739,69 +739,56 @@ class WCAPIGetView(APIView):
         return normalized
 
     def _resolve_saved_search(self, request, model_key: str) -> Optional[Dict[str, Any]]:
+        """A stored search is a Report record with purpose 'search_stored'.
+
+        Without that filter this matched any report on the model, so asking for
+        a saved search could return a print form.
+
+        A search carrying config.owner_user_id is personal to that user. One
+        without is shared, and role_required says to whom.
+        """
         search_id = request.query_params.get("saved_search_id") or request.query_params.get("search_id")
         search_name = request.query_params.get("saved_search") or request.query_params.get("saved_search_name")
 
         if not search_id and not search_name:
             return None
 
-        # Primary source: Report records (category='list', output_type='screen')
         from apps.core.models.report import Report
+        from apps.core.services.report_registry import REPORT_PURPOSE_SEARCH
 
-        rpt_qs = Report.objects.filter(
+        qs = Report.objects.filter(
             is_active=True,
             model_name=model_key,
+            purpose=REPORT_PURPOSE_SEARCH,
         )
 
         if search_id:
             if not str(search_id).isdigit():
                 raise ValueError("saved_search_id must be numeric")
-            rpt_qs = rpt_qs.filter(pk=int(search_id))
+            qs = qs.filter(pk=int(search_id))
         elif search_name:
-            rpt_qs = rpt_qs.filter(name=search_name)
+            qs = qs.filter(name=search_name)
 
-        report = rpt_qs.order_by("-dt_modified").first()
-
-        # Fallback: legacy Setting records (purpose='wc:search')
+        report = qs.order_by("-dt_modified").first()
         if not report:
-            from apps.core.models.setting import Setting
-            setting_qs = Setting.objects.filter(
-                is_active=True,
-                purpose="wc:search",
-                parent_model=model_key,
-            )
-            if search_id:
-                setting_qs = setting_qs.filter(pk=int(search_id))
-            elif search_name:
-                setting_qs = setting_qs.filter(name=search_name)
+            raise LookupError("saved search not found")
 
-            setting = setting_qs.order_by("-dt_modified").first()
-            if not setting:
-                raise LookupError("saved search not found")
+        data = report.config if isinstance(report.config, dict) else {}
+        owner_id = data.get("owner_user_id")
+        user = getattr(request, "user", None)
 
-            required_role = str(setting.role or "").strip().lower()
-            user_role = str(getattr(getattr(request, "user", None), "role", "") or "").strip().lower()
+        if owner_id is not None:
+            # Personal: the owner, and no one else. Not even an admin — an
+            # admin who needs it can be given a shared copy.
+            if not user or getattr(user, "pk", None) != owner_id:
+                raise PermissionError("saved search belongs to another user")
+        else:
+            required_role = str(report.role_required or "").strip().lower()
+            user_role = str(getattr(user, "role", "") or "").strip().lower()
             role_open = required_role in {"", "all", "*"}
             if not role_open and not self._is_admin_user(request) and user_role != required_role:
                 raise PermissionError("saved search is not shared with your role")
 
-            data = setting.config if isinstance(setting.config, dict) else {}
-            return {
-                "id": setting.id,
-                "name": setting.name,
-                "role": setting.role,
-                "data": data,
-                "source": "setting",
-            }
-
-        # Report found — check role access
-        required_role = str(report.role_required or "").strip().lower()
-        user_role = str(getattr(getattr(request, "user", None), "role", "") or "").strip().lower()
-        role_open = required_role in {"", "all", "*"}
-        if not role_open and not self._is_admin_user(request) and user_role != required_role:
-            raise PermissionError("saved search is not shared with your role")
-
-        data = report.config if isinstance(report.config, dict) else {}
         return {
             "id": report.id,
             "name": report.name,

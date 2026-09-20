@@ -257,7 +257,7 @@ function ReceiveTab() {
         (data.results || []).map((p: any) => ({
           id: p.id,
           ida: p.ida || `PO-${p.id}`,
-          vendor_name: p.vendor?.display_name || p.refs?.vendor_name || `Vendor #${p.vendor_id || "?"}`,
+          vendor_name: p.vendor?.company || p.refs?.vendor_name || `Vendor #${p.vendor_id || "?"}`,
           status: p.status || "planned",
         }))
       );
@@ -308,7 +308,7 @@ function ReceiveTab() {
       setSelectedPO({
         id: record.id,
         ida: record.ida || `PO-${record.id}`,
-        vendor_name: record.vendor?.display_name || "",
+        vendor_name: record.vendor?.company || "",
         status: record.status || "",
         lines: poLines,
       });

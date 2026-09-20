@@ -333,10 +333,9 @@ export interface Organization {
   id: number;
   uuid?: string;
   org_type: OrgType;
-  display_name: string;
+  company: string;
   ida?: string; // Alternate identifier (from API)
   display_id?: string; // Optional secondary identifier
-  company?: string; // alias for display_name
   contact_id?: number | null; // optional pointer to primary contact
   attention?: string | null; // optional attention line for mailing
   email?: string | null; // optional primary email (denormalized from emails aspect)
@@ -405,9 +404,8 @@ export interface OrgListResponse {
 
 export interface OrgCreateRequest {
   org_type: OrgType;
-  display_name: string;
+  company: string;
   display_id?: string;
-  company?: string;
   contact_id?: number | null;
   attention?: string | null;
   email?: string | null;
@@ -459,7 +457,7 @@ export const DEFAULT_METRICS: OrgMetrics = {
 
 export const createEmptyOrg = (orgType: OrgType): Partial<Organization> => ({
   org_type: orgType,
-  display_name: '',
+  company: '',
   status: 'active',
   is_active: true,
   contacts: [],
@@ -484,6 +482,6 @@ export const isOrganization = (obj: unknown): obj is Organization => {
     obj !== null &&
     'id' in obj &&
     'org_type' in obj &&
-    'display_name' in obj
+    'company' in obj
   );
 };

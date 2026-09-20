@@ -210,7 +210,7 @@ def import_vcard(params: dict) -> dict[str, Any]:
         for org in OrgBase.objects.filter(
             display_name__in=all_companies, is_active=True, is_deleted=False
         ):
-            org_cache[org.display_name.lower()] = org
+            org_cache[org.company.lower()] = org
 
     created = 0
     skipped = 0
@@ -284,7 +284,7 @@ def import_vcard(params: dict) -> dict[str, Any]:
             org = org_cache.get(company.lower())
             if not org and create_orgs:
                 org = OrgBase(
-                    display_name=company,
+                    company=company,
                     org_type='customer',
                     status='active',
                     contact_id=contact.pk,
@@ -310,7 +310,7 @@ def import_vcard(params: dict) -> dict[str, Any]:
             'contact_id': contact.pk,
             'contact_ida': contact.ida,
             'name': str(contact),
-            'org': org.display_name if org else None,
+            'org': org.company if org else None,
         })
 
     return {
@@ -520,7 +520,7 @@ def import_bundle(params: dict) -> dict[str, Any]:
     all_companies = list({c.get('company', '') for c in contact_list if c.get('company')})
     if all_companies:
         for org in OrgBase.objects.filter(display_name__in=all_companies, is_active=True, is_deleted=False):
-            org_cache[org.display_name.lower()] = org
+            org_cache[org.company.lower()] = org
 
     created = 0
     merged = 0
@@ -594,7 +594,7 @@ def import_bundle(params: dict) -> dict[str, Any]:
             org = org_cache.get(company.lower())
             if not org:
                 org = OrgBase(
-                    display_name=company, org_type='customer',
+                    company=company, org_type='customer',
                     status='active', contact_id=contact.pk,
                 )
                 if contact.email:

@@ -31,7 +31,7 @@ def org():
     """Create a test customer org."""
     from apps.orgs.models import OrgBase
     return OrgBase.objects.create(
-        display_name="Test Customer Ledger",
+        company="Test Customer Ledger",
         org_type="customer",
     )
 

@@ -30,7 +30,7 @@ class TestExportImportRoundtrip:
         from apps.core.models import Contact
 
         # Create test data
-        customer = CustomerFactory(display_name="Roundtrip Corp")
+        customer = CustomerFactory(company="Roundtrip Corp")
         contact = ContactFactory(email="roundtrip@test.com", customer=customer)
         item = ItemFactory(ida="RT-001", description="Roundtrip Widget")
 
@@ -83,7 +83,7 @@ class TestExportImportRoundtrip:
         from apps.orgs.models import OrgBase
         from apps.core.models import Contact
 
-        customer = CustomerFactory(display_name="FK Test Corp")
+        customer = CustomerFactory(company="FK Test Corp")
         contact = ContactFactory(email="fk@test.com", customer=customer)
         original_customer_id = contact.customer_id
 

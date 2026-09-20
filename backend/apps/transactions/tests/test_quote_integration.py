@@ -37,12 +37,12 @@ def api_client(staff_user):
 
 @pytest.fixture
 def customer(db):
-    return OrgBase.objects.create(display_name="John Doe", org_type="customer")
+    return OrgBase.objects.create(company="John Doe", org_type="customer")
 
 
 @pytest.fixture
 def vendor(db):
-    return OrgBase.objects.create(display_name="Jane Smith", org_type="vendor")
+    return OrgBase.objects.create(company="Jane Smith", org_type="vendor")
 
 
 def test_quote_list_endpoint(api_client):

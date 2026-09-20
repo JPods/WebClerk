@@ -32,7 +32,7 @@ def org():
     """Create a test customer org."""
     from apps.orgs.models import OrgBase
     return OrgBase.objects.create(
-        display_name="Erosion Test Customer",
+        company="Erosion Test Customer",
         org_type="customer",
     )
 

@@ -23,7 +23,7 @@ class OrgBaseFactory(DjangoModelFactory):
     class Meta:
         model = "orgs.OrgBase"
 
-    display_name = factory.Sequence(lambda n: f"Org {n}")
+    company = factory.Sequence(lambda n: f"Org {n}")
     org_type = "customer"
     is_active = True
     is_deleted = False
@@ -31,12 +31,12 @@ class OrgBaseFactory(DjangoModelFactory):
 
 class CustomerFactory(OrgBaseFactory):
     org_type = "customer"
-    display_name = factory.Sequence(lambda n: f"Customer {n}")
+    company = factory.Sequence(lambda n: f"Customer {n}")
 
 
 class VendorFactory(OrgBaseFactory):
     org_type = "vendor"
-    display_name = factory.Sequence(lambda n: f"Vendor {n}")
+    company = factory.Sequence(lambda n: f"Vendor {n}")
 
 
 # ---------------------------------------------------------------------------

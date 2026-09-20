@@ -39,7 +39,7 @@ def test_wcapi_org_model_crud(model_name, org_type):
 
     payload = {
         "model_name": model_name,
-        "display_name": f"{model_name} co",
+        "company": f"{model_name} co",
         "status": "active",
     }
     if model_name == "orgbase":
@@ -66,7 +66,7 @@ def test_wcapi_org_model_crud(model_name, org_type):
     update_payload = {
         "model_name": model_name,
         "id": record_id,
-        "display_name": f"{model_name} co updated",
+        "company": f"{model_name} co updated",
     }
     resp = client.post("/wcapi/save/", data=json.dumps(update_payload), content_type="application/json")
     assert resp.status_code == 200
@@ -425,7 +425,7 @@ def test_wcapi_get_saved_search_uses_request_keyword_and_period_params(client):
         role="all",
         config={
             "request_keyword": "company_token",
-            "search_fields": ["display_name"],
+            "search_fields": ["company"],
             "request_filters": {
                 "begin": {"field": "dt_created", "lookup": "gte"},
                 "end": {"field": "dt_created", "lookup": "lte"},
@@ -489,7 +489,7 @@ def test_wcapi_get_saved_search_uses_relative_period_defaults(client):
         role="all",
         config={
             "relative_period": {"field": "dt_created", "preset": "current_month"},
-            "search_fields": ["display_name"],
+            "search_fields": ["company"],
             "keyword": "zz",
         },
         is_active=True,

@@ -33,7 +33,7 @@ def _portal_user(django_user_model, email, role, org_kind):
     """A login is a Contact; its role is contact.role (access.py)."""
     from apps.orgs.models import OrgBase
 
-    org = OrgBase.objects.create(display_name=f'{org_kind} co', org_type=org_kind,
+    org = OrgBase.objects.create(company=f'{org_kind} co', org_type=org_kind,
                                  price_level='wholesale')
     return django_user_model.objects.create_user(
         email=email, password=get_random_string(20), role=role,

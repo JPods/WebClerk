@@ -35,4 +35,4 @@ for t in tables:
 # Check OrgBase __str__
 from apps.orgs.models import OrgBase
 org = OrgBase.objects.get(id=82)
-print(f'OrgBase #82: display_name={org.display_name}, __str__={str(org)}')
+print(f'OrgBase #82: company={org.company}, __str__={str(org)}')

@@ -18,7 +18,8 @@ BY_NAME = {
     'id': 60,
     'ida': 100,
     'uuid': 220,
-    'display_name': 200,
+    'company': 200,
+    'display_name': 200,   # Contact and UserProfile still have one
     'name': 180,
     'description': 250,
     'email': 180,

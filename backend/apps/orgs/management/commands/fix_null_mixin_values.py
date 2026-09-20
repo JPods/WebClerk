@@ -193,7 +193,7 @@ class Command(BaseCommand):
                 if org_fixes:
                     if dry_run:
                         self.stdout.write(
-                            f"  Org {org.id} ({org.display_name}): "
+                            f"  Org {org.id} ({org.company}): "
                             f"{org_fixes} null(s) → 0 in {', '.join(dirty_fields)}"
                         )
                     else:

@@ -114,7 +114,7 @@ interface MemberGroup {
 
 interface OrgSummary {
   id: number;
-  display_name?: string;
+  company?: string;
   org_type?: string;
   status?: string;
   is_active?: boolean;
@@ -471,7 +471,7 @@ function ContactCard({
                       {org ? (
                         <div className="mt-1 space-y-0.5 text-xs text-gray-600 dark:text-gray-400">
                           <div className="font-medium text-gray-800 dark:text-gray-200">
-                            {org.display_name ?? `Org #${orgId}`}
+                            {org.company ?? `Org #${orgId}`}
                           </div>
                           {org.status && (
                             <div>

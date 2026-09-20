@@ -8,25 +8,15 @@ from apps.core.serializers.behaviors import (
 
 
 class OrgBaseSerializer(serializers.ModelSerializer):
-    """Serializer for OrgBase with company/display_name aliasing.
+    """Serializer for OrgBase.
 
     PJPV: financial JSON envelope travels intact. No flattening.
     React reads financial.common.*, financial.customer.*, etc. by path.
     Validation delegates to core.serializers.behaviors.
     """
 
-    company = serializers.CharField(source="display_name", required=False, allow_blank=True)
-    display_name = serializers.SerializerMethodField()
     # FK-first: terms_fk is the model field; expose as terms_id in API.
     terms_id = serializers.IntegerField(source="terms_fk_id", required=False, allow_null=True)
-
-    def get_display_name(self, obj):
-        return getattr(obj, "display_name", "")
-
-    def to_internal_value(self, data):
-        if isinstance(data, dict) and "display_name" in data and "company" not in data:
-            data = {**data, "company": data.get("display_name")}
-        return super().to_internal_value(data)
 
     def validate_contact_id(self, value):
         """Validate primary contact FK — shared behavior."""
@@ -44,7 +34,6 @@ class OrgBaseSerializer(serializers.ModelSerializer):
             "id",
             "org_type",
             "company",
-            "display_name",
             "status",
             "is_active",
             "contact_id",

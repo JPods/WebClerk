@@ -7,7 +7,7 @@ from apps.orgs.services.contact_linking import resolve_contact_ids_for_customer_
 
 
 class Command(BaseCommand):
-    help = "Sync Contact.company to customer OrgBase.display_name for linked customer contacts."
+    help = "Sync Contact.company to customer OrgBase.company for linked customer contacts."
 
     def add_arguments(self, parser):
         parser.add_argument("--customer-id", type=int, help="Limit sync to one customer org id.")
@@ -25,26 +25,26 @@ class Command(BaseCommand):
         now_ms = int(timezone.now().timestamp() * 1000)
 
         for org in orgs.iterator():
-            if not org.display_name:
+            if not org.company:
                 continue
             linked_contact_ids = resolve_contact_ids_for_customer_org(org)
             if not linked_contact_ids:
                 continue
 
-            qs = Contact.objects.filter(id__in=linked_contact_ids).exclude(company=org.display_name)
+            qs = Contact.objects.filter(id__in=linked_contact_ids).exclude(company=org.company)
             count = qs.count()
             if not count:
                 continue
 
             if dry_run:
                 self.stdout.write(
-                    f"Would sync {count} contact(s) for customer {org.pk} to company={org.display_name!r}"
+                    f"Would sync {count} contact(s) for customer {org.pk} to company={org.company!r}"
                 )
             else:
-                qs.update(company=org.display_name, dt_modified=now_ms)
+                qs.update(company=org.company, dt_modified=now_ms)
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"Synced {count} contact(s) for customer {org.pk} to company={org.display_name!r}"
+                        f"Synced {count} contact(s) for customer {org.pk} to company={org.company!r}"
                     )
                 )
             total_updates += count

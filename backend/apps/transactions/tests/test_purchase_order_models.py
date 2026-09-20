@@ -12,11 +12,11 @@ class PurchaseModelTest(TestCase):
     def setUp(self):
         """Set up test data."""
         self.customer = OrgBase.objects.create(
-            display_name="John Doe",
+            company="John Doe",
             org_type="customer"
         )
         self.vendor = OrgBase.objects.create(
-            display_name="Jane Smith",
+            company="Jane Smith",
             org_type="vendor"
         )
 
@@ -123,7 +123,7 @@ class PurchaseLineModelTest(TestCase):
     def setUp(self):
         """Set up test data."""
         self.customer = OrgBase.objects.create(
-            display_name="John Doe",
+            company="John Doe",
             org_type="customer"
         )
         self.po = Purchase.objects.create(

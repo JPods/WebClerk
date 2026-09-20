@@ -113,7 +113,7 @@ export const OrgLookup: React.FC<OrgLookupProps> = ({
                 >
                   <div className="flex items-baseline gap-2">
                     <span className="font-medium" style={{ color: 'var(--db-text)' }}>
-                      {c.company || c.display_name || `#${c.id}`}
+                      {c.company || `#${c.id}`}
                     </span>
                     <span className="font-mono db-font-xs" style={{ color: 'var(--db-text-dim)' }}>#{c.id}</span>
                   </div>

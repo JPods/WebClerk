@@ -11,8 +11,8 @@ define:
 
 Link template values are field paths on the source model:
 - "id" → source.id
-- "display_name" → source.display_name
-- "org.display_name" → source.org.display_name (resolved via dotted path)
+- "company" → source.company  (on an org; a contact's is still display_name)
+- "org.company" → source.org.company (resolved via dotted path)
 - null → Set at link time by the linking code
 
 See readmes/topics/architecture/role-based-access-plan.md for full documentation.
@@ -30,10 +30,10 @@ MODEL_LINK_TEMPLATES: dict[str, dict[str, Any]] = {
     # -------------------------------------------------------------------------
     
     "customer": {
-        "keyword_fields": ["company", "display_name", "ida", "email", "phone"],
+        "keyword_fields": ["company", "ida", "email", "phone"],
         "link_template": {
             "id": "id",
-            "company": "display_name",
+            "company": "company",
             "ida": "ida",
             "email": "email",
             "phone": "phone",
@@ -43,10 +43,10 @@ MODEL_LINK_TEMPLATES: dict[str, dict[str, Any]] = {
     },
     
     "vendor": {
-        "keyword_fields": ["company", "display_name", "ida", "email"],
+        "keyword_fields": ["company", "ida", "email"],
         "link_template": {
             "id": "id",
-            "company": "display_name",
+            "company": "company",
             "ida": "ida",
             "email": "email",
             "phone": "phone",
@@ -56,20 +56,20 @@ MODEL_LINK_TEMPLATES: dict[str, dict[str, Any]] = {
     },
     
     "manufacturer": {
-        "keyword_fields": ["company", "display_name", "ida"],
+        "keyword_fields": ["company", "ida"],
         "link_template": {
             "id": "id",
-            "company": "display_name",
+            "company": "company",
             "ida": "ida",
             "commission_based": None,  # Set at link time: True for commission orders
         },
     },
     
     "employee": {
-        "keyword_fields": ["display_name", "ida", "email"],
+        "keyword_fields": ["company", "ida", "email"],
         "link_template": {
             "id": "id",
-            "attention": "display_name",
+            "attention": "company",
             "ida": "ida",
             "email": "email",
             "role": None,  # Set at link time: "salesperson", "production", "admin"
@@ -144,11 +144,11 @@ MODEL_LINK_TEMPLATES: dict[str, dict[str, Any]] = {
     },
     
     "rep": {
-        "keyword_fields": ["display_name", "ida", "company", "email"],
+        "keyword_fields": ["company", "ida", "email"],
         "link_template": {
             "id": "id",
-            "attention": "display_name",
-            "company": "org.display_name",  # Dotted path to rep's org
+            "attention": "company",
+            "company": "org.company",  # Dotted path to rep's org
             "ida": "ida",
             "email": "email",
             "role": None,  # "salesperson", "support"
@@ -314,11 +314,11 @@ def resolve_dotted_path(obj: Any, path: str) -> Any:
     
     Example:
         resolve_dotted_path(order, "totals.total") → order.totals["total"]
-        resolve_dotted_path(rep, "org.display_name") → rep.org.display_name
+        resolve_dotted_path(rep, "org.company") → rep.org.company
     
     Args:
         obj: The source object
-        path: Dotted path like "org.display_name" or "totals.total"
+        path: Dotted path like "org.company" or "totals.total"
     
     Returns:
         Resolved value or None if path doesn't exist

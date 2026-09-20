@@ -19,7 +19,7 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def customer():
     from apps.orgs.models import OrgBase
-    return OrgBase.objects.create(display_name="Cash Test Customer", org_type="customer")
+    return OrgBase.objects.create(company="Cash Test Customer", org_type="customer")
 
 
 @pytest.fixture

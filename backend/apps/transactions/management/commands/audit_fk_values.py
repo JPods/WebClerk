@@ -46,7 +46,7 @@ class Command(BaseCommand):
         self.stdout.write("\n--- OrgBase #82 ---")
         try:
             org = OrgBase.objects.get(id=82)
-            self.stdout.write(f"display_name: {org.display_name}")
+            self.stdout.write(f"display_name: {org.company}")
             self.stdout.write(f"__str__: {str(org)}")
             self.stdout.write(f"name attr: {getattr(org, 'name', 'N/A')}")
             self.stdout.write(f"email: {org.email}")

@@ -11,7 +11,7 @@ class PurchaseTotalsServiceTest(TestCase):
     def setUp(self):
         """Set up test data."""
         self.customer = OrgBase.objects.create(
-            display_name="John Doe",
+            company="John Doe",
             org_type="customer"
         )
         self.purchase = Purchase.objects.create(
@@ -83,11 +83,11 @@ class OrderToPurchaseServiceTest(TestCase):
     def setUp(self):
         """Set up test data."""
         self.customer = OrgBase.objects.create(
-            display_name="John Doe",
+            company="John Doe",
             org_type="customer"
         )
         self.vendor = OrgBase.objects.create(
-            display_name="Jane Smith",
+            company="Jane Smith",
             org_type="vendor"
         )
         self.order = Order.objects.create(
@@ -132,7 +132,7 @@ class OrderToPurchaseServiceTest(TestCase):
     def test_transfer_order_to_purchase_with_vendor_grouping(self):
         """Test transfer with vendor grouping."""
         vendor2 = OrgBase.objects.create(
-            display_name="Bob Vendor",
+            company="Bob Vendor",
             org_type="vendor"
         )
 

@@ -63,7 +63,7 @@ def get_first_customer_scenario() -> Dict[str, Any]:
             'action': 'create_customer',
             'model': 'customer',
             'expected_fields': {
-                'display_name': 'Training Corp',
+                'company': 'Training Corp',
                 'org_type': 'customer',
                 'type': 'end_user',
             },

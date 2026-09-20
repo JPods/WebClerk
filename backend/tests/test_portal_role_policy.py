@@ -61,7 +61,7 @@ def _login(django_user_model, email, role, org_kind=None, price_level=''):
     """A login is a Contact (AUTH_USER_MODEL); its role is contact.role."""
     kwargs = {}
     if org_kind:
-        kwargs[org_kind] = OrgBase.objects.create(display_name=f'{org_kind} co',
+        kwargs[org_kind] = OrgBase.objects.create(company=f'{org_kind} co',
                                                    org_type=org_kind, price_level=price_level)
     return django_user_model.objects.create_user(
         email=email, password=get_random_string(20), role=role,

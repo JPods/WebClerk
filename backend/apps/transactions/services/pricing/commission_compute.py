@@ -263,7 +263,7 @@ def populate_transaction_commission(transaction_id: int, model_name: str) -> dic
             rep = OrgBase.objects.get(pk=rep_id)
             config['rep_id'] = rep_id
             config['rep_ida'] = rep.ida
-            config['name'] = rep.display_name
+            config['name'] = rep.company
         except OrgBase.DoesNotExist:
             continue
         # If multiple reps, default split evenly

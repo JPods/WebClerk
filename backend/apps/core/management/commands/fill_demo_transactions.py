@@ -70,9 +70,9 @@ class Command(BaseCommand):
                 h.ida = new_ida
 
             if org:
-                if h.company != org.display_name:
-                    changes.append(f'  company: {h.company!r} -> {org.display_name!r}')
-                    h.company = org.display_name
+                if h.company != org.company:
+                    changes.append(f'  company: {h.company!r} -> {org.company!r}')
+                    h.company = org.company
                 if org.email and h.email != org.email:
                     changes.append(f'  email: {h.email!r} -> {org.email!r}')
                     h.email = org.email

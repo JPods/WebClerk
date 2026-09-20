@@ -44,7 +44,7 @@ class Command(BaseCommand):
                     orgs_changed += 1
                     removed_total += len(removed)
                     changed_total += len(changed)
-                    self.stdout.write(f'org {org.id} {org.display_name!r}:')
+                    self.stdout.write(f'org {org.id} {org.company!r}:')
                     for p in removed:
                         self.stdout.write(f'  - {p} = {before[p]!r}')
                     for p in changed:

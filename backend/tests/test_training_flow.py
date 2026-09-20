@@ -14,7 +14,7 @@ class TestTrainingFlow:
     def _setup(self):
         from apps.products.models import InventoryLayer
 
-        customer = CustomerFactory(display_name='Training Corp')
+        customer = CustomerFactory(company='Training Corp')
         item = ItemFactory(ida='TRAIN-WIDGET')
         item.__class__.objects.filter(pk=item.pk).update(
             price={'base': 25.0, 'retail': 25.0},

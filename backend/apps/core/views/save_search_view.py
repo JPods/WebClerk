@@ -1,8 +1,14 @@
-"""
-Save Search endpoint — saves the current query as a personal or shared search.
+"""Save Search — a stored search is a Report record.
 
-Personal:  Saved to UserProfile.prefs.search[] (user's favorites)
-Shared:    Saved as a Report record (admin only, role-visible)
+    purpose = 'search_stored'      what makes it a search and not a print form
+    config                          the search spec (keyword, filters, ordering...)
+    model_name                      what it searches
+    config.owner_user_id            set = personal to that user; absent = shared
+    role_required                   which role a shared search is visible to
+
+Personal and shared differ only in who can see them. Both are records, so both
+can be listed, edited, exported and carried in a bundle — a search kept in a
+user's prefs blob could do none of that.
 
 POST /wcapi/save-search/
 {
@@ -16,7 +22,8 @@ POST /wcapi/save-search/
 """
 from rest_framework.views import APIView
 from rest_framework import status
-from django.utils import timezone
+
+from apps.core.services.report_registry import REPORT_PURPOSE_SEARCH
 from common.api_responses import api_response
 
 
@@ -43,7 +50,6 @@ class SaveSearchView(APIView):
                 message="name and model_name are required",
             )
 
-        # Build the search spec (same shape everywhere)
         search_spec = {
             "keyword": data.get("keyword"),
             "search_fields": data.get("search_fields", []),
@@ -55,56 +61,7 @@ class SaveSearchView(APIView):
             "request_keyword": data.get("request_keyword"),
         }
 
-        if scope == "shared":
-            return self._save_as_report(request, name, model_name, search_spec, data)
-        else:
-            return self._save_to_prefs(request, name, model_name, search_spec)
-
-    def _save_to_prefs(self, request, name, model_name, search_spec):
-        """Save to UserProfile.prefs.search[] — personal bookmark."""
-        try:
-            profile = request.user.profile
-        except Exception:
-            return api_response(
-                success=False,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                message="No user profile found",
-            )
-
-        prefs = profile.prefs if isinstance(profile.prefs, dict) else {}
-        searches = prefs.get("search", [])
-        if not isinstance(searches, list):
-            searches = []
-
-        # Replace if same name+model exists, otherwise append
-        entry = {
-            "name": name,
-            "model_name": model_name,
-            "dt_saved": int(timezone.now().timestamp() * 1000),
-            **search_spec,
-        }
-
-        replaced = False
-        for i, existing in enumerate(searches):
-            if isinstance(existing, dict) and existing.get("name") == name and existing.get("model_name") == model_name:
-                searches[i] = entry
-                replaced = True
-                break
-
-        if not replaced:
-            searches.append(entry)
-
-        prefs["search"] = searches
-        type(profile).objects.filter(pk=profile.pk).update(prefs=prefs)
-
-        return api_response(
-            data={"saved": entry, "scope": "personal", "count": len(searches)},
-            status_code=status.HTTP_200_OK,
-        )
-
-    def _save_as_report(self, request, name, model_name, search_spec, data):
-        """Save as a Report record — shared, admin only."""
-        if not (request.user.is_superuser or request.user.is_staff):
+        if scope == "shared" and not (request.user.is_superuser or request.user.is_staff):
             return api_response(
                 success=False,
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -114,26 +71,46 @@ class SaveSearchView(APIView):
 
         from apps.core.models.report import Report
 
-        # Update existing or create new
-        report, created = Report.objects.update_or_create(
-            name=name,
-            model_name=model_name,
-            defaults={
-                "config": search_spec,
-                "output_type": data.get("output_type", "screen"),
-                "category": data.get("category", "list"),
-                "role_required": data.get("role", ""),
-                "description": data.get("description", ""),
-                "is_active": True,
-            },
-        )
+        owner_id = None if scope == "shared" else request.user.pk
+        if owner_id is not None:
+            search_spec["owner_user_id"] = owner_id
+
+        # A user's own search and a shared one of the same name are different
+        # records; ownership is part of the identity.
+        lookup = {
+            "name": name,
+            "model_name": model_name,
+            "purpose": REPORT_PURPOSE_SEARCH,
+        }
+        existing = Report.objects.filter(**lookup)
+        existing = (existing.filter(config__owner_user_id=owner_id) if owner_id is not None
+                    else existing.exclude(config__has_key="owner_user_id"))
+        report = existing.order_by("-dt_modified").first()
+
+        defaults = {
+            "config": search_spec,
+            "output_type": data.get("output_type", "screen"),
+            "category": data.get("category", "list"),
+            "role_required": data.get("role", ""),
+            "description": data.get("description", ""),
+            "is_active": True,
+        }
+
+        if report is None:
+            report = Report.objects.create(**lookup, **defaults)
+            created = True
+        else:
+            for field, value in defaults.items():
+                setattr(report, field, value)
+            report.save()
+            created = False
 
         return api_response(
             data={
                 "id": report.id,
                 "name": report.name,
                 "model_name": report.model_name,
-                "scope": "shared",
+                "scope": "personal" if owner_id is not None else "shared",
                 "created": created,
             },
             status_code=status.HTTP_200_OK,

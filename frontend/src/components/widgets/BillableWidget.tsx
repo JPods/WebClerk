@@ -150,8 +150,8 @@ const BillToSection: React.FC<BillToSectionProps> = ({ billable, patch, disabled
     patch({
       customer_id: c.id,
       contact_id: c.contact_id ?? c.id,
-      company: c.company || c.display_name || '',
-      attention: c.attention || c.display_name || '',
+      company: c.company || '',
+      attention: c.attention || c.company || '',
     });
   }, [patch]);
 

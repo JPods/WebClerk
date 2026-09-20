@@ -34,7 +34,7 @@ COACHING = {
         ],
         'field_help': {
             'ida': 'Short identifier — unique across all customers. Auto-generated or manually set.',
-            'display_name': 'The primary name shown in lists and on printed documents.',
+            'company': 'The primary name shown in lists and on printed documents.',
             'status': 'active = doing business. prospect = potential. inactive = paused. retired = closed.',
             'price_level': 'Determines which price tier is used on orders/invoices for this customer.',
             'terms': 'Cash terms (N30, COD, 2/10 Net 30). Sets when cash is due.',
@@ -64,9 +64,9 @@ COACHING = {
             {'title': 'Search by name', 'language': 'javascript', 'code': "const res = await getRecords('customer', { keyword: 'acme' });"},
         ],
         'api_reference': {
-            'list': "GET /wcapi/get/?model_name=customer&status=active&ordering=display_name",
+            'list': "GET /wcapi/get/?model_name=customer&status=active&ordering=company",
             'get': "GET /wcapi/get/?model_name=customer&id={id}",
-            'save': "POST /wcapi/save/ {model_name: 'customer', display_name: '...', status: 'active'}",
+            'save': "POST /wcapi/save/ {model_name: 'customer', company: '...', status: 'active'}",
         },
     },
 
@@ -382,7 +382,7 @@ COACHING = {
             'phone': 'Primary phone. Cmd+click label to dial.',
             'address_full': 'Primary address. Cmd+click label to open in maps.',
             'role': 'admin, manager, sales, warehouse, accounting, customer, vendor, rep.',
-            'company': 'Company affiliation — may differ from org.display_name.',
+            'company': 'Company affiliation — may differ from org.company.',
             'attention': 'Full name as it appears on correspondence.',
             'name_first': 'First name. Used in greetings and informal references.',
             'name_last': 'Last name. Used in formal references and sorting.',
@@ -678,7 +678,7 @@ Create or update a record.
 {
   "model_name": "customer",
   "id": 42,
-  "display_name": "Acme Corp",
+  "company": "Acme Corp",
   "status": "active"
 }
 ```
@@ -691,7 +691,7 @@ Soft-delete a record.
 ```
 
 ### POST /wcapi/manage/
-Administrative actions (GL posting, tally reports, etc.).
+Administrative actions (GL posting, executable reports, etc.).
 ```json
 {"action": "post_gl", "model_name": "invoice", "id": 42}
 ```

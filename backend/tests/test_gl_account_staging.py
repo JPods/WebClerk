@@ -12,7 +12,7 @@ pytestmark = pytest.mark.django_db
 
 
 def test_invoice_gl_accounts_are_staged_as_ar_to_revenue(chart_of_accounts):
-    customer_org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, display_name="Customer Org")
+    customer_org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company="Customer Org")
 
     invoice = Invoice.objects.create(
         status="released",
@@ -38,7 +38,7 @@ def test_invoice_gl_accounts_are_staged_as_ar_to_revenue(chart_of_accounts):
 
 
 def test_cash_gl_accounts_are_staged_as_cash_to_ar(chart_of_accounts):
-    customer_org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, display_name="Customer Org 2")
+    customer_org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company="Customer Org 2")
     payer = Contact.objects.create(name_first="Jane", name_last="Payer")
 
     invoice = Invoice.objects.create(

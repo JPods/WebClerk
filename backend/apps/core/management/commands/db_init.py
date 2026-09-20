@@ -43,24 +43,10 @@ GIT_BUNDLE_PATH = Path(__file__).resolve().parent.parent.parent.parent.parent / 
 
 
 def _wchq_url_from_connection():
-    """WCHQ init-bundle URL: WCHQ_URL (.env) + the downstream Connection's init_bundle path.
-
-    Returns the URL, else None.
-    """
-    try:
-        from apps.sync.models.connection import Connection
-        from apps.sync.services.connections import wchq_link
-        conn = Connection.objects.filter(
-            ida='wchq-conn-downstream', is_active=True,
-        ).first()
-        if conn and conn.config:
-            base = wchq_link()[0]
-            endpoint = (conn.config.get('endpoints') or {}).get('init_bundle', '')
-            if base and endpoint:
-                return base.rstrip('/') + endpoint
-    except Exception:
-        pass
-    return None
+    """WCHQ init-bundle URL from the Connection Alice keeps. None when absent."""
+    from apps.core.services.alice_connections import bundle_url
+    url, _err = bundle_url('init')
+    return url or None
 
 
 class Command(BaseCommand):
@@ -81,41 +67,15 @@ class Command(BaseCommand):
                             help='Path to local init-bundle.json (default: project root)')
 
     def _fetch_from_wchq(self, url, timeout=30):
-        """Fetch init-bundle JSON from WCHQ API. Returns (bundle_dict, error_msg)."""
+        """Fetch init-bundle JSON from WCHQ. Returns (bundle_dict, error_msg)."""
+        from apps.core.services.installation_init import fetch_from_hq
         self.stdout.write(f'  Fetching init-bundle from WCHQ: {url}')
-        try:
-            req = urllib.request.Request(
-                url,
-                headers={
-                    'Accept': 'application/json',
-                    'User-Agent': 'WebClerk3-db_init/1.0',
-                },
-            )
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                if resp.status != 200:
-                    return None, f'WCHQ returned HTTP {resp.status}'
-                data = json.loads(resp.read().decode('utf-8'))
-                if 'settings' not in data:
-                    return None, 'WCHQ response missing settings array'
-                return data, None
-        except urllib.error.URLError as e:
-            return None, f'WCHQ unreachable: {e.reason}'
-        except json.JSONDecodeError as e:
-            return None, f'WCHQ returned invalid JSON: {e}'
-        except Exception as e:
-            return None, f'WCHQ fetch failed: {e}'
+        return fetch_from_hq('init', url=url, timeout=timeout)
 
     def _load_git_bundle(self, path):
         """Load init-bundle from local git copy. Returns (bundle_dict, error_msg)."""
-        bundle_path = Path(path)
-        if not bundle_path.exists():
-            return None, f'Git bundle not found: {bundle_path}'
-        try:
-            with open(bundle_path) as f:
-                data = json.load(f)
-            return data, None
-        except Exception as e:
-            return None, f'Failed to read git bundle: {e}'
+        from apps.core.services.installation_init import load_from_disk
+        return load_from_disk(path)
 
     def _save_bundle(self, bundle, path):
         """Save bundle to git path (keeps git init-bundle current)."""

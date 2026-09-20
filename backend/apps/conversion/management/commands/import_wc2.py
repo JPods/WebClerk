@@ -1320,7 +1320,7 @@ class Command(BaseCommand):
                 }
                 obj = OrgBase(
                     ida=cid,
-                    display_name=safe_str(r.get('company'), 255) or cid,
+                    company=safe_str(r.get('company'), 255) or cid,
                     org_type='customer',
                     status='retired' if r.get('dateRetired') else 'active',
                     phone=safe_str(r.get('phone'), 50),
@@ -1349,7 +1349,7 @@ class Command(BaseCommand):
                 }
                 obj = OrgBase(
                     ida=vid,
-                    display_name=safe_str(r.get('company'), 255) or vid,
+                    company=safe_str(r.get('company'), 255) or vid,
                     org_type='vendor',
                     status='retired' if r.get('dateRetired') else 'active',
                     phone=safe_str(r.get('phone'), 50),
@@ -1373,7 +1373,7 @@ class Command(BaseCommand):
                 name = safe_str(r.get('company') or (safe_str(r.get('nameFirst', '')) + ' ' + safe_str(r.get('nameLast', ''))), 255).strip()
                 obj = OrgBase(
                     ida=rid,
-                    display_name=name or rid,
+                    company=name or rid,
                     org_type='rep',
                     phone=safe_str(r.get('phone'), 50),
                     email=safe_str(r.get('email'), 254) or None,

@@ -32,7 +32,7 @@ def test_a_rep_is_staff_not_a_person_outside_the_company():
 def test_the_rep_org_reaches_the_user_context(django_user_model):
     """Without this token there is nothing for a rep's scope to be written against."""
     from apps.core.services.role_filter import build_user_context
-    rep_org = OrgBase.objects.create(display_name='Rep Co', org_type='rep')
+    rep_org = OrgBase.objects.create(company='Rep Co', org_type='rep')
     user = _login(django_user_model, 'rep@example.fake', 'rep', rep=rep_org)
 
     context = build_user_context(user)
@@ -46,10 +46,10 @@ def test_the_scope_resolves_and_narrows_to_assigned_rows(django_user_model):
     """The filters are real ORM paths, and they exclude what is not assigned."""
     from apps.transactions.models import Order
 
-    rep_org = OrgBase.objects.create(display_name='Rep Co', org_type='rep')
-    other_rep = OrgBase.objects.create(display_name='Other Rep', org_type='rep')
-    mine = OrgBase.objects.create(display_name='My Customer', org_type='customer')
-    theirs = OrgBase.objects.create(display_name='Their Customer', org_type='customer')
+    rep_org = OrgBase.objects.create(company='Rep Co', org_type='rep')
+    other_rep = OrgBase.objects.create(company='Other Rep', org_type='rep')
+    mine = OrgBase.objects.create(company='My Customer', org_type='customer')
+    theirs = OrgBase.objects.create(company='Their Customer', org_type='customer')
 
     my_contact = _login(django_user_model, 'mine@example.fake', 'customer',
                         customer=mine, rep=rep_org)

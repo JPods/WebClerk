@@ -29,7 +29,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	# record's denormalized links.  Authoritative — denorm_registry falls
 	# back to this when present.  All org-role keys (customer, vendor,
 	# manufacturer, rep, employee) resolve here.
-	DENORM_FIELDS = ["ida", "display_name", "email", "phone", "address_full", "attention", "status"]
+	DENORM_FIELDS = ["ida", "company", "email", "phone", "address_full", "attention", "status"]
 
 	feature_flags = BaseModel.feature_flags | {"org", "stats", "relationship_stats"}
 
@@ -54,7 +54,10 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		max_length=50, blank=True, db_index=True,
 		help_text="Org classification: distributor, end_user, regulator, government, utility, association"
 	)
-	display_name = models.CharField(max_length=255, db_index=True)
+	# What everyone calls it. An individual customer's company is their own name, and
+	# people are content with that — a neutral word for the rare case made the common one
+	# worse, and labels are the field names users read (Bill, 2026-09-20).
+	company = models.CharField(max_length=255, db_index=True)
 	# Primary contact — value, not FK. Independent lifecycle.
 	# refs.links.contact carries denormalized display data.
 	contact_id = models.BigIntegerField(null=True, blank=True, db_index=True,
@@ -81,15 +84,6 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		db_column='terms_id', related_name='orgs_with_terms',
 	)
 	# status — inherited from CoreModel
-
-	@property
-	def company(self) -> str:
-		"""Alias for `display_name`. Prefer using `company` in code; `display_name` retained on DB."""
-		return getattr(self, 'display_name', '')
-
-	@company.setter
-	def company(self, value: str) -> None:
-		setattr(self, 'display_name', value)
 
 	def build_company_snapshot(self, contact=None) -> dict:
 		"""Build the canonical company snapshot dict for transaction headers.
@@ -127,7 +121,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		return {
 			'id': self.id,
 			'ida': self.ida or '',
-			'name': self.display_name or '',
+			'name': self.company or '',
 			'contact_id': contact_id,
 			'is_individual': getattr(self, 'is_individual', False),
 			'attention': attention,
@@ -168,7 +162,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		"""Dev-friendly repr showing key value pairs for data cleanup."""
 		pairs = [
 			f"id={self.pk}",
-			f"display_name={self.display_name!r}",
+			f"company={self.company!r}",
 			f"attention={self.attention!r}",
 			f"email={self.email!r}",
 		]
@@ -209,7 +203,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 			GinIndex(fields=["domains"], name="org_domains_gin"),
 		]
 		constraints = [
-			models.CheckConstraint(condition=~models.Q(display_name=""), name="org_display_name_not_empty"),
+			models.CheckConstraint(condition=~models.Q(company=""), name="org_company_not_empty"),
 		]
 		verbose_name = "Organization"
 		verbose_name_plural = "Organizations"
@@ -267,7 +261,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 			except Exception:
 				base_payload = {
 					"org_type": getattr(self, 'org_type', None),
-					"display_name": getattr(self, 'display_name', ''),
+					"company": getattr(self, 'company', ''),
 					"status": getattr(self, 'status', None),
 					"is_active": getattr(self, 'is_active', True),
 					"contacts": [],
@@ -307,20 +301,19 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		Returns (ok, errors). Delegates to validate_aspects with partial flag for updates.
 		Filters patch payload to aspect + core fields so unrelated metadata fields do not cause noise.
 		"""
-		aspect_keys = set(self.ASPECT_LIMITS.keys()) | {"org_type","company","display_name","status","is_active"}
+		aspect_keys = set(self.ASPECT_LIMITS.keys()) | {"org_type","company","status","is_active"}
 		if is_update:
 			patch_subset = {k: v for k, v in data.items() if k in aspect_keys}
 			return self.validate_aspects(partial=True, data=patch_subset)
 		# full create/update (no id): validate full snapshot
 		return self.validate_aspects(partial=False)
 
-	# Example: customize universal dict to expose org_type & display_name directly
+	# Example: customize universal dict to expose org_type & company directly
 	def to_universal_dict(self):  # type: ignore[override]
 		base = super().to_universal_dict()
 		base.update({
 			"org_type": self.org_type,
 			"company": self.company,
-			"display_name": self.display_name,  # deprecated; kept for compatibility
 			"status": self.status,
 			"is_active": self.is_active,
 		})
@@ -341,8 +334,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 				dm = d.get('domain')
 				if dm:
 					domain_list.append(dm)
-		# Prefer `company` for external use; keep display_name as fallback
-		return " ".join(filter(None, [self.company or self.display_name, self.status] + contact_names + domain_list))
+		return " ".join(filter(None, [self.company, self.status] + contact_names + domain_list))
 	# -------- Aspect governance helpers ---------------------------------
 	def _prune_aspect(self, aspect: str):
 		"""Prune list-like aspect to its ASPECT_LIMITS count (in-place, keep earliest items).
@@ -395,11 +387,11 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	
 	def save(self, *args, **kwargs):
 		"""Override save to ensure org_type is set correctly for proxy models."""
-		previous_display_name = None
+		previous_company = None
 		if self.pk:
-			previous_display_name = (
+			previous_company = (
 				OrgBase.objects.filter(pk=self.pk)
-				.values_list("display_name", flat=True)
+				.values_list("company", flat=True)
 				.first()
 			)
 
@@ -436,12 +428,12 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 
 		super().save(*args, **kwargs)
 
-		# Keep contact.company aligned with the customer org display_name.
+		# Keep contact.company aligned with the customer org company.
 		if (
 			(self.org_type or "").lower() == "customer"
 			and self.pk
-			and self.display_name
-			and previous_display_name != self.display_name
+			and self.company
+			and previous_company != self.company
 		):
 			try:
 				from apps.core.models import Contact
@@ -449,8 +441,8 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 				now_ms = int(timezone.now().timestamp() * 1000)
 				linked_contact_ids = resolve_contact_ids_for_customer_org(self)
 				if linked_contact_ids:
-					Contact.objects.filter(id__in=linked_contact_ids).exclude(company=self.display_name).update(
-						company=self.display_name,
+					Contact.objects.filter(id__in=linked_contact_ids).exclude(company=self.company).update(
+						company=self.company,
 						dt_modified=now_ms,
 					)
 			except Exception as e:

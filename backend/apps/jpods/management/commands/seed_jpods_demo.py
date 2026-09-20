@@ -164,7 +164,7 @@ class Command(BaseCommand):
             if not contact.customer_id:
                 customer = OrgBase.objects.create(
                     org_type="customer",
-                    display_name=contact.get_full_name(),
+                    company=contact.get_full_name(),
                     email=spec["email"],
                     phone=spec["phone"],
                     price_level=spec.get("price_level", "retail"),

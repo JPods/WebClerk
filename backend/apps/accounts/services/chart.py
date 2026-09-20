@@ -81,20 +81,36 @@ def require_accounts(codes: Iterable[tuple[str, Optional[str]]]) -> None:
         raise UndefinedAccountError(errors)
 
 
+def _mapped_code(role: str) -> str:
+    """The code the company profile maps to this role, or ''."""
+    Setting = dj_apps.get_model('core', 'Setting')
+    company = Setting.objects.filter(purpose='wc:company_profile', is_active=True).first()
+    config = company.config if company and isinstance(company.config, dict) else {}
+    defaults = config.get('gl_defaults') if isinstance(config.get('gl_defaults'), dict) else {}
+    return defaults.get(role) or ''
+
+
 def role_account(role: str, *, used_by: str = '', required: bool = True) -> str:
     """The account code the company assigns to a posting role.
 
     Reads company profile config.gl_defaults.{role}; the code must be in the chart.
     required=False returns '' when the role is not mapped (for filling blank
     defaults on a new record); a mapped code that is not in the chart still raises.
+
+    An installation with no role map at all has not done anything wrong — it has
+    not been given one yet. Before reporting an unmapped role, ask WC_HQ for the
+    current recommended set and look again. The recommendation only ever fills
+    roles the company left blank; a role the company mapped is never touched.
     """
     if role not in ROLES:
         raise UndefinedAccountError(f'Unknown GL role "{role}". Known roles: {", ".join(ROLES)}.')
-    Setting = dj_apps.get_model('core', 'Setting')
-    company = Setting.objects.filter(purpose='wc:company_profile', is_active=True).first()
-    config = company.config if company and isinstance(company.config, dict) else {}
-    defaults = config.get('gl_defaults') if isinstance(config.get('gl_defaults'), dict) else {}
-    code = defaults.get(role)
+
+    code = _mapped_code(role)
+    if not code:
+        from apps.core.services.installation_init import ensure_defined
+        if ensure_defined('gl_defaults'):
+            code = _mapped_code(role)
+
     if not code:
         if not required:
             return ''
