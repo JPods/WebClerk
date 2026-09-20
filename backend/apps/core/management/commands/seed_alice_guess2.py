@@ -128,7 +128,7 @@ LIST_PRIORITIES = {
     # Accounting
     'gl_account':   ['ida', 'name', 'type', 'category', 'is_active'],
     'gl_journal':   ['ida', 'source', 'debit', 'credit', 'model_name', 'dt_journaled', 'is_active'],
-    'ledger':       ['ida', 'value_original', 'value_available', 'source', 'model_name', 'dt_due', 'dt_applied'],
+    'ledger':       ['ida', 'value_original', 'value_available', 'source', 'model_name', 'dt_due'],
     'cash':      ['ida', 'type', 'total', 'status', 'contact', 'dt_created'],
 
     # Communications

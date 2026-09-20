@@ -164,7 +164,11 @@ def detect_late_payment(cash, daily_rate: D = D('0.0005')) -> Optional['Erosion'
     # Find the earliest unpaid ledger due date for this invoice
     earliest_ledger = (
         Ledger.objects
-        .filter(invoice_id=invoice.id, model_name='invoice', dt_applied__isnull=True)
+        # Unpaid means value_available, not dt_applied — which nothing ever set, so the
+        # old filter also matched instalments that were fully paid (fixed 2026-09-20).
+        .filter(invoice_id=invoice.id, model_name='invoice')
+        .exclude(value_available=0)
+        .exclude(value_available__isnull=True)
         .order_by('dt_due')
         .first()
     )

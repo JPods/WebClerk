@@ -56,7 +56,9 @@ def past_due_balances(as_of: date, grace_days: int) -> dict[int, list]:
     excluding balances that are themselves finance charges."""
     Ledger = dj_apps.get_model('accounts', 'Ledger')
     by_org: dict[int, list] = {}
-    rows = (Ledger.objects.filter(is_void=False, value_available__gt=0, org_id__isnull=False,
+    # No is_void filter: nothing could void a ledger row, so it excluded nothing and
+    # implied a void concept that does not exist. Voiding belongs to the document.
+    rows = (Ledger.objects.filter(value_available__gt=0, org_id__isnull=False,
                                   invoice_id__isnull=False, dt_due__isnull=False)
             .select_related('invoice'))
     for ledger in rows:

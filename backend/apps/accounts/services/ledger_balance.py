@@ -388,16 +388,10 @@ def update_org_balances(org: 'OrgBase', save: bool = True) -> Dict[str, Any]:
         ).annotate(_total=totals_total()).aggregate(total=models.Sum('_total'))['total'] or Decimal('0'))
         cust.balances.total_exposure = total + cust.balances.open_orders - cust.deposits.unapplied
 
-        # Days average paid: mean days from due date to cash applied, settled invoices.
-        Ledger = dj_apps.get_model('accounts', 'Ledger')
-        days = []
-        for dt_due, dt_applied in Ledger.objects.filter(
-            org_id=org_id, model_name='invoice',
-            dt_due__isnull=False, dt_applied__isnull=False,
-        ).values_list('dt_due', 'dt_applied'):
-            due_d = dt_due.date() if isinstance(dt_due, datetime) else dt_due
-            applied_d = dt_applied.date() if isinstance(dt_applied, datetime) else dt_applied
-            days.append((applied_d - due_d).days)
+        # Days average paid — one helper, shared with org_metrics, which held a second
+        # copy of this broken the same way (both read Ledger.dt_applied, which nothing set).
+        from apps.accounts.services.terms_ledger import settlement_days
+        days = settlement_days(org_id, 'invoice')
         cust.cash.days_avg_paid = round(sum(days) / len(days)) if days else 0
         cust.cash.invoices_settled = len(days)
 

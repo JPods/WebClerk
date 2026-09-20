@@ -308,7 +308,9 @@ def _get_receivable_aging(params: Dict[str, Any]) -> Dict[str, Any]:
     # ── Fetch all open AR ledgers with org FK ──────────────────────────
     ledgers = (
         Ledger.objects
-        .filter(source='AR', dt_applied__isnull=True)
+        # No dt_applied filter: nothing ever set it, so this matched every row. What
+        # makes a ledger open is value_available, which the excludes below already say.
+        .filter(source='AR')
         .exclude(value_available=0)
         .exclude(value_available__isnull=True)
         .values('org_id', 'dt_due', 'value_available', 'parent_id', 'model_name')

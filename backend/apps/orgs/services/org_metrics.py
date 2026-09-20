@@ -164,9 +164,12 @@ def compute_org_metrics(org, now: Optional[datetime] = None) -> Dict[str, Any]:
                 to_order_days.append((converted[qid] - qdt) / DAY_MS)
 
     # ── Payments ─────────────────────────────────────────────────────
-    paid = list(Ledger.objects.filter(org_id=org.pk, model_name='invoice', dt_due__isnull=False,
-                                      dt_applied__isnull=False).values_list('dt_due', 'dt_applied'))
-    on_time = sum(1 for due, applied in paid if applied <= due)
+    # Settled on time = settled on or before the last instalment's due date. The shared
+    # helper reads the schedule from the ledger and the settlement from the document's
+    # events; this used Ledger.dt_applied, which nothing ever set (fixed 2026-09-20).
+    from apps.accounts.services.terms_ledger import settlement_days
+    paid = settlement_days(org.pk, 'invoice')
+    on_time = sum(1 for days_late in paid if days_late <= 0)
 
     # ── Touches and visits ───────────────────────────────────────────
     last_touch = None

@@ -241,11 +241,11 @@ def check_aging_anomalies() -> dict:
     observations = 0
     now = timezone.now()
 
-    # Ledger entries past due by more than 90 days, not cleared, not void
+    # Ledger entries past due by more than 90 days and still owed. is_cleared/is_void
+    # were filtered here too; nothing ever set either, and what is still owed is
+    # value_available (fixed 2026-09-20).
     past_due = Ledger.objects.filter(
         dt_due__lt=now - timezone.timedelta(days=90),
-        is_cleared=False,
-        is_void=False,
         value_available__gt=0,
     ).select_related('org')
 

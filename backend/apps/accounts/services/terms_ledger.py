@@ -288,10 +288,9 @@ def create_ledger_records(invoice_id, total: Decimal, term_id, strategy: str = '
     # ==========================================================================
     # AUDIT: Each schedule entry becomes one Ledger record
     # The refs JSON provides additional audit linkage
-    for e in schedule:
-        # AUDIT: Calculate this installment's value
-        # value = total × share (e.g., $1000 × 0.3333 = $333.30)
-        value = (total * e.share)
+    instalments = allocate_instalments(total, schedule)
+    for e, value in zip(schedule, instalments):
+        # value is this instalment's exact cents; the parts add up to the document total.
         
         # AUDIT: refs JSON captures relationship metadata for queries
         inv_id = getattr(invoice_id, 'id')
@@ -334,24 +333,100 @@ def company_default_term_ida() -> str:
 
 
 def resolve_term(document):
-    """The Term a document's money is due under.
+    """The Term a document's money is due under — one resolver for AR and AP.
 
-    document.terms holds a Term ida (N30, 2pct10N30, ...). A document with no
-    terms uses the company default term. A name that is not a Term, or no
-    default, raises: an invoice never silently gets no due date.
+    A document names its term by **name** — ``terms`` holds a Term ida (N30,
+    2pct10N30, ...), as WC2 did (Bill, 2026-09-20). The name is what is populated (31
+    invoices to 2 in wc_demo) and the only key that survives moving between databases:
+    an id is local to one, while N30 means N30 on the desktop and in the cloud alike.
+    ``terms_fk`` is read only as a fallback for records that carry it and no name. No
+    name and no default raises: a document never silently gets no due date.
+
+    Both sides must read the same fields or the same document ages differently depending
+    on which one you ask. AP was reading only the FK and AR only the ida (mine, 4f538b6,
+    2026-09-20), and in wc_demo the ida is the populated one — 31 invoices to 2 — so
+    every AP schedule was quietly falling back to a default.
     """
     from django.apps import apps as dj_apps
     Term = dj_apps.get_model('accounts', 'Term')
-    ida = (getattr(document, 'terms', None) or '').strip() or company_default_term_ida()
+
+    ida = (getattr(document, 'terms', None) or '').strip()
+    if not ida:
+        fk = getattr(document, 'terms_fk', None)      # fallback: a record with only an id
+        if fk is not None and getattr(fk, 'is_active', True):
+            return fk
+        ida = company_default_term_ida()
     label = getattr(document, 'ida', None) or getattr(document, 'pk', '?')
     if not ida:
         raise ValueError(
             f'{label} has no terms and the company profile has no config.receivables.default_term.')
-    term = Term.objects.filter(ida__iexact=ida, is_active=True).first()
-    if term is None:
+    resolved = Term.objects.filter(ida__iexact=ida, is_active=True).first()
+    if resolved is None:
         raise ValueError(f'{label} terms "{ida}" is not an active Term record.')
-    return term
+    return resolved
 
+
+
+def allocate_instalments(total: Decimal, schedule) -> List[Decimal]:
+    """Split a total into instalment amounts that add up to it exactly.
+
+    compute_schedule returns shares (0.3333 / 0.3333 / 0.3334). Multiplying each by the
+    total and rounding independently does not add back: 118.20 became 39.40 + 39.40 +
+    39.41 = 118.21, a cent more than the invoice (found 2026-09-20, the first time a
+    multi-part term was ever exercised). Allocate the cents instead and let the last part
+    carry the remainder — the same rule the totals engine uses to spread a document
+    discount across lines (Bill, 2026-09-19).
+    """
+    from apps.transactions.services.pricing.totals_compute import _allocate
+
+    # Allocate on the term's own shares. 300.00 over three parts comes out
+    # 99.99 / 99.99 / 100.02 — Bill, 2026-09-20: "the rounding variance of a few cents is
+    # understandable by most people." The defect was the parts not adding up to the
+    # document, not their being uneven, and allocating on the real shares also keeps a
+    # genuinely unequal term (30/70) saying what it means.
+    return _allocate(Decimal(str(total)), [Decimal(str(e.share)) for e in schedule])
+
+
+def settlement_days(org_id, model_name: str = 'invoice') -> List[int]:
+    """Days from an instalment's due date to the day the document was settled.
+
+    The schedule comes from the ledger (each part has its own due date, which is what
+    ledgers are for) and the settlement date from the document's application events. It
+    read Ledger.dt_applied until 2026-09-20 — a field nothing ever set, so it measured
+    nothing and every customer scored 0, which reads as "pays exactly on the due date".
+
+    Lived in two places (ledger_balance and org_metrics), broken identically in both.
+    """
+    from django.apps import apps as dj_apps
+
+    Ledger = dj_apps.get_model('accounts', 'Ledger')
+    Document = dj_apps.get_model('transactions', 'Invoice' if model_name == 'invoice' else 'Receipt')
+    org_field = 'customer_id' if model_name == 'invoice' else 'vendor_id'
+
+    due_by_doc = {}
+    for parent_id, dt_due in Ledger.objects.filter(
+        org_id=org_id, model_name=model_name, dt_due__isnull=False,
+    ).values_list('parent_id', 'dt_due'):
+        if parent_id is None:
+            continue
+        due_d = dt_due.date() if hasattr(dt_due, 'date') else dt_due
+        if parent_id not in due_by_doc or due_d > due_by_doc[parent_id]:
+            due_by_doc[parent_id] = due_d        # settled means the last instalment
+
+    from datetime import datetime as _dt, timezone as _tz
+    days = []
+    for doc in Document.objects.filter(
+        is_deleted=False, pk__in=list(due_by_doc), **{org_field: org_id},
+    ).only('id', 'events', 'totals'):
+        events = [e for e in (getattr(doc, 'events', None) or [])
+                  if isinstance(e, dict) and e.get('kind') == 'cash_application' and e.get('dt')]
+        if not events:
+            continue
+        if Decimal(str((doc.totals or {}).get('balance') or 0)) > Decimal('0.005'):
+            continue                              # not settled; it says nothing about speed
+        settled = _dt.fromtimestamp(max(int(e['dt']) for e in events) / 1000, tz=_tz.utc).date()
+        days.append((settled - due_by_doc[doc.pk]).days)
+    return days
 
 def apply_terms_for_invoice(invoice, total: Optional[Decimal] = None, term=None, strategy: str = 'records', replace: bool = False):
     """
@@ -455,16 +530,14 @@ def apply_terms_for_payable(receipt, total=None, replace: bool = True):
         logger.info("[terms_ledger] receipt %s has no vendor — no payable",
                     getattr(receipt, 'ida', None) or getattr(receipt, 'pk', None))
         return []
-    term = getattr(receipt, 'terms_fk_id', None)
     dt = getattr(receipt, 'dt_received', None) or getattr(receipt, 'dt_created', None)
     from datetime import datetime, timezone as _tz
     if isinstance(dt, int):
         dt = datetime.fromtimestamp(dt / 1000, _tz.utc)
-    schedule = compute_schedule(dt or datetime.now(_tz.utc), total, _resolve_term(term))
+    schedule = compute_schedule(dt or datetime.now(_tz.utc), total, resolve_term(receipt))
 
     created = []
-    for e in schedule:
-        value = total * e.share
+    for e, value in zip(schedule, allocate_instalments(total, schedule)):
         obj = Ledger(
             dt_due=e.due,
             dt_discount_due=e.discount_due,
@@ -618,8 +691,6 @@ def record_cash(invoice, amount: Decimal, dt_paid, cash=None, gl_account_id=None
     # -abs(val) ensures negative regardless of input sign
     obj = Ledger(
         dt_recorded=dt_paid,                       # When cash was recorded
-        dt_journaled=0,                            # 0=editable, set to epoch ms when journalized
-        dt_applied=None,                           # Not yet allocated to invoice ledgers
         model_name='cash',                      # Source document type
         source=source,                             # Usually 'AR'
         parent_id=pid,                             # Cash record ID

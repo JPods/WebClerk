@@ -8,18 +8,35 @@ from apps.accounts.choices import LEDGER_MODEL_CHOICES, LEDGER_SOURCE_CHOICES
 # move tables into .refs values and changes into metadata
 
 class Ledger(BaseModel):
+    """An instalment: what is owed on a document, and when it comes due.
+
+    Bill, 2026-09-20: *"What is important about ledgers is they support complex terms by
+    breaking due dates into parts."* That is the whole job. A document carries one
+    balance, and one balance cannot say "half on delivery, half in sixty days, two
+    percent if paid in ten". The schedule needs a row per part, each with its own due
+    date, so aging can be asked by date instead of inferred.
+
+    A row is therefore the materialized view of the term schedule crossed with the
+    applications recorded in the document's ``events[]`` — not a record of its own. It is
+    rebuilt when the document's total changes, which is how a projection stays true, and
+    giving it its own event log would only duplicate what the document already holds
+    (Bill: *"It would be a redundant audit trail"*).
+
+    is_void / is_cleared / dt_applied / dt_journaled were removed on 2026-09-20. Only one
+    place assigned them, and only their defaults (dt_journaled=0, dt_applied=None), so no
+    row in 125 ever carried a meaningful value — while two were *read*: is_void filtered
+    finance charges that could never be excluded, and dt_applied fed a days-average-paid
+    metric that therefore scored every customer 0, which reads as "pays exactly on the
+    due date" — the best score, given to the customer who never pays.
+    Fields that imply a permanence the code does not keep are worse than missing ones
+    (Bill: "If ledgers remain temporary, then we should delete the fields").
+    """
     
     discount_potential = models.DecimalField(max_digits=10, decimal_places=4, blank=True, null=True, help_text="Discount rate, e.g. 0.02 for 2%")
     dt_discount_due = models.DateTimeField(blank=True, null=True)
     dt_due = models.DateTimeField(blank=True, null=True)
     # Journalizing lock — 0 means editable, non-zero epoch ms means locked
-    dt_journaled = models.BigIntegerField(default=0, db_index=True,
-        help_text="UTC epoch ms when journalized. 0=editable, non-zero=locked.")
     dt_recorded = models.DateTimeField(blank=True, null=True)
-    dt_applied = models.DateTimeField(blank=True, null=True,
-        help_text="When cash was applied (settled). Record remains editable. Non-null = settled.")
-    is_cleared = models.BooleanField(default=False)
-    is_void = models.BooleanField(default=False)
     source = models.CharField(
         max_length=255,
         blank=True,
