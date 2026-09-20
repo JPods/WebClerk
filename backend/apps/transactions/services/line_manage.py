@@ -421,13 +421,29 @@ class LineItemService:
         Returns:
             The updated line
         """
-        # Get old quantity for delta calculation
+        # What the bucket holds is what this line still commits — its remaining, not its
+        # active (Bill, 2026-09-19). With children unchanged the two deltas are equal;
+        # the difference is that measuring remaining shows when an edit takes a line
+        # below what has already moved downstream, instead of silently pushing the
+        # bucket negative.
+        from apps.transactions.services import line_parent as _line_parent
+
         old_quantity = 0
         if isinstance(line.quantity, dict):
             old_quantity = float(line.quantity.get('active', 0) or 0)
-        
+
         new_quantity = float(quantity)
-        quantity_delta = new_quantity - old_quantity
+        consumed = float(_line_parent.children_active_sum(line) or 0)
+        old_remaining = old_quantity - consumed
+        new_remaining = new_quantity - consumed
+        quantity_delta = new_remaining - old_remaining
+        if new_remaining < 0:
+            logger.warning(
+                "[line_manage] %s line %s set to %s while %s has already moved downstream — "
+                "remaining goes to %s. The commitment bucket follows the document; fix the "
+                "document (convert less, or close it) rather than the bucket.",
+                line._meta.model_name, line.pk, new_quantity, consumed, new_remaining,
+            )
         
         if not isinstance(line.quantity, dict):
             line.quantity = {}

@@ -150,3 +150,42 @@ def test_allocation_history_says_who_and_why():
     assert rows[0]['reason'] == 'holding for pickup'
     assert rows[0]['verb'] == 'allocate'
     assert rows[0]['qty'] == 3.0
+
+
+def test_editing_a_line_releases_what_it_still_commits():
+    """An edit moves the bucket by the change in remaining, and says so when the new
+    quantity is below what has already moved downstream (Bill, 2026-09-19)."""
+    from apps.orgs.models import Customer
+    from apps.products.models import Item
+    from apps.transactions.models import Invoice, InvoiceLine, Order, OrderLine
+    from apps.transactions.services.line_manage import LineItemService
+
+    customer = Customer.objects.create(company='C')
+    item = Item.objects.create(name='Widget', quantity={'on_hand': 100, 'on_so': 0,
+                                                        'allocated': 0, 'available': 100})
+    order = Order.objects.create(customer_id=customer.pk)
+    order_line = OrderLine.objects.create(
+        order=order, item={'item_id': item.pk}, quantity={'active': 9},
+        price={'unit': 10.00, 'precision': 2})
+    item.refresh_from_db()
+    assert float((item.quantity or {}).get('on_so')) == 9.0
+
+    # four of the nine are invoiced — the order line still commits five
+    invoice = Invoice.objects.create(customer_id=customer.pk)
+    InvoiceLine.objects.create(
+        invoice=invoice, item={'item_id': item.pk}, quantity={'active': 4},
+        price={'unit': 10.00, 'precision': 2},
+        refs={'source': {'order_line_id': order_line.pk}})
+    order_line.refresh_from_db()
+    assert float((order_line.quantity or {}).get('remaining')) == 5.0
+
+    # the salesperson cuts the order line to 6: one unit of commitment comes back
+    item.refresh_from_db()
+    before = float((item.quantity or {}).get('on_so') or 0)
+    LineItemService().update_quantity(order_line, 6)
+    item.refresh_from_db()
+    after = float((item.quantity or {}).get('on_so') or 0)
+
+    order_line.refresh_from_db()
+    assert float((order_line.quantity or {}).get('remaining')) == 2.0
+    assert after - before == -3.0        # 9 -> 6, all of it still committed
