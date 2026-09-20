@@ -24,9 +24,14 @@ def _login(django_user_model, email, role):
 
 @pytest.fixture
 def order_policy(db):
-    s = Setting.objects.create(
-        purpose='wc:model', parent_model='order', name='wc:order',
-        config={'access': {
+    """Update the order model's own Setting — purpose + parent_model is not unique, so a
+    second one is read or ignored depending on which .first() returns."""
+    s = Setting.objects.filter(purpose='wc:model', parent_model='order',
+                               is_deleted=False).first()
+    assert s is not None, "the order model has no wc:model Setting"
+    before = dict(s.config or {})
+    s.config = ({
+        'access': {
             'sets': {'all': ['id', 'status', 'attention', 'dt_needed', 'totals.total',
                              'lines.quantity.active', 'lines.price.unit']},
             'roles': {
@@ -36,8 +41,13 @@ def order_policy(db):
                                                         'lines.quantity.active'],
                              'scope': {}, 'create': True},
             }}})
+    s._setting_update_authorized = True
+    s.save(update_fields=['config'])
     access.clear_cache()
     yield s
+    s.config = before
+    s._setting_update_authorized = True
+    s.save(update_fields=['config'])
     access.clear_cache()
 
 

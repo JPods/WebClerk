@@ -30,6 +30,14 @@ REP_SCOPE = {
     # through the order until that is decided — invoice is deliberately not scoped here.
 }
 
+#: Models a rep reads as sales does and never writes. A rep cannot put a line on a
+#: proposal without seeing what the item is and what it sells for (Bill, 2026-09-20: "they
+#: can access items in proposals and orders. If they cannot do that without accessing the
+#: item model, then we give them access to items as well") — and "They cannot write to
+#: items". Held here rather than inherited from sales, so a later grant to sales cannot
+#: quietly hand a rep the catalogue. An item belongs to no rep, so there is no row scope.
+REP_READ_ONLY = ('item',)
+
 
 class Command(BaseCommand):
     help = "Give rep the sales field lists, scoped to their assigned customers and documents."
@@ -43,7 +51,9 @@ class Command(BaseCommand):
         apply_changes = options['apply']
         changed = 0
 
-        for key, scope in REP_SCOPE.items():
+        targets = [(key, scope) for key, scope in REP_SCOPE.items()]
+        targets += [(key, None) for key in REP_READ_ONLY]
+        for key, scope in targets:
             setting = (Setting.objects.filter(purpose='wc:model', parent_model=key,
                                               is_deleted=False).first())
             if setting is None:
@@ -63,12 +73,17 @@ class Command(BaseCommand):
             before_edit = len(access.expand_sets(rep.get('edit') or [], acc.get('sets') or {}))
 
             # The same lists, by reference where sales uses a set — no second list to drift.
+            read_only = key in REP_READ_ONLY
             rep['view'] = list(sales.get('view') or [])
-            rep['edit'] = list(sales.get('edit') or [])
-            rep['create'] = sales.get('create', True)
+            rep['edit'] = [] if read_only else list(sales.get('edit') or [])
+            rep['create'] = False if read_only else sales.get('create', True)
             rep['delete'] = False                    # a rep does not delete the company's records
-            rep['scope'] = dict(scope)               # rows: only what is assigned to them
-            rep['edit_scope'] = dict(scope)
+            if scope is None:
+                rep['scope'] = dict(sales.get('scope') or {})
+                rep['edit_scope'] = dict(sales.get('edit_scope') or sales.get('scope') or {})
+            else:
+                rep['scope'] = dict(scope)           # rows: only what is assigned to them
+                rep['edit_scope'] = dict(scope)
             roles['rep'] = rep
 
             after_view = len(access.expand_sets(rep['view'], acc.get('sets') or {}))
@@ -76,7 +91,8 @@ class Command(BaseCommand):
             changed += 1
             self.stdout.write(
                 f"  {key}/rep: view {before_view} -> {after_view}, "
-                f"edit {before_edit} -> {after_edit}, scope {list(scope)[0]}")
+                f"edit {before_edit} -> {after_edit}, "
+                f"scope {list(scope)[0] if scope else 'as sales'}")
 
             if apply_changes:
                 acc['roles'] = roles

@@ -103,3 +103,57 @@ def test_a_rep_holds_the_sales_field_lists_not_a_narrower_copy():
     assert block['edit_scope'] == REP_SCOPE['order']
     assert block['delete'] is False                # a rep does not delete company records
     access.clear_cache()
+
+
+@pytest.mark.django_db
+def test_a_rep_can_price_what_they_quote_and_writes_nothing_to_items():
+    """Bill, 2026-09-20: "they can access items in proposals and orders. If they cannot do
+    that without accessing the item model, then we give them access to items as well",
+    "They cannot write to items", and "sales does not need to edit items either".
+
+    A rep held id/ida/name/sku/description — enough to name an item, not to price it; a
+    customer could see more of an item than a rep could. The read side now matches sales.
+    The write side is refused in REP_READ_ONLY rather than inherited, so a later grant to
+    sales could not quietly hand a rep the catalogue.
+    """
+    from django.core.management import call_command
+
+    from apps.core.models.setting import Setting
+    from apps.core.management.commands.seed_rep_access import REP_READ_ONLY
+
+    assert 'item' in REP_READ_ONLY
+    setting = Setting.objects.filter(purpose='wc:model', parent_model='item',
+                                     is_deleted=False).first()
+    assert setting is not None
+    config = dict(setting.config or {})
+    acc = dict(config.get('access') or {})
+    roles = dict(acc.get('roles') or {})
+    roles['sales'] = {'view': ['id', 'name', 'price.base', 'quantity.on_hand'],
+                      'edit': [], 'scope': {}, 'create': False, 'delete': False}
+    roles['rep'] = {'view': ['id', 'name'], 'edit': [], 'scope': {}, 'create': False}
+    acc['roles'] = roles
+    config['access'] = acc
+    setting.config = config
+    setting._setting_update_authorized = True
+    setting.save(update_fields=['config'])
+    access.clear_cache()
+
+    call_command('seed_rep_access', '--apply')
+
+    rep = access.model_access('item')['rep']
+    assert 'price.base' in rep['view']          # can price what they quote
+    assert 'quantity.on_hand' in rep['view']    # and see whether there is any
+    assert rep['edit'] == []                    # and writes nothing
+    assert rep['create'] is False and rep['delete'] is False
+    access.clear_cache()
+
+
+@pytest.mark.django_db
+def test_selling_roles_do_not_write_the_catalogue():
+    """Who may change an item: not sales, not rep (Bill, 2026-09-20)."""
+    acc = access.model_access('item')
+    for role in ('sales', 'rep'):
+        block = acc.get(role) or {}
+        assert not block.get('edit'), f"{role} should not edit items"
+        assert not block.get('create'), f"{role} should not create items"
+        assert not block.get('delete'), f"{role} should not delete items"
