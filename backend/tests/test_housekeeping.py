@@ -69,3 +69,52 @@ def test_a_credit_balance_is_proposed_as_unapplied_cash_not_posted():
     assert row['proposal']['create'] == 'cash'        # proposed
     invoice.refresh_from_db()
     assert invoice.totals['balance'] == -40.0         # and nothing was posted
+
+
+# ── buckets are echoes of the documents (Bite 3) ────────────────────────
+
+
+def test_commitment_gaps_reports_a_bucket_that_disagrees_with_its_documents():
+    from apps.products.models import Item
+    from apps.products.management.commands.rebuild_commitment_buckets import commitment_gaps
+    from apps.transactions.models import Order, OrderLine
+
+    item = Item.objects.create(name='Widget', quantity={'on_hand': 50, 'on_so': 0,
+                                                        'allocated': 0, 'available': 50})
+    order = Order.objects.create(customer_id=_customer().pk)
+    OrderLine.objects.create(order=order, item={'item_id': item.pk}, quantity={'active': 6},
+                             price={'unit': 2.00, 'precision': 2})
+
+    # the line committed on_so through the pending path, so nothing disagrees
+    assert not [g for g in commitment_gaps(item_id=item.pk)]
+
+    # now break it the way imported data is broken: the bucket never got the commitment
+    Item.objects.filter(pk=item.pk).update(
+        quantity={'on_hand': 50, 'on_so': 0, 'allocated': 0, 'available': 50})
+
+    gaps = commitment_gaps(item_id=item.pk)
+    assert gaps and gaps[0]['bucket'] == 'on_so'
+    assert gaps[0]['have'] == 0.0 and gaps[0]['expect'] == 6.0
+
+
+def test_rebuilding_buckets_never_touches_on_hand_or_allocated():
+    from django.core.management import call_command
+    from apps.products.models import Item
+    from apps.transactions.models import Order, OrderLine
+
+    item = Item.objects.create(name='Widget', quantity={'on_hand': 50, 'on_so': 0,
+                                                        'allocated': 9, 'available': 41})
+    order = Order.objects.create(customer_id=_customer().pk)
+    OrderLine.objects.create(order=order, item={'item_id': item.pk}, quantity={'active': 6},
+                             price={'unit': 2.00, 'precision': 2})
+    Item.objects.filter(pk=item.pk).update(
+        quantity={'on_hand': 50, 'on_so': 0, 'allocated': 9, 'available': 41})
+
+    call_command('rebuild_commitment_buckets', '--apply', '--item', str(item.pk))
+
+    item.refresh_from_db()
+    quantity = item.quantity or {}
+    assert float(quantity['on_so']) == 6.0          # rebuilt from the document
+    assert float(quantity['on_hand']) == 50.0       # untouched
+    assert float(quantity['allocated']) == 9.0      # a person's decision, untouched
+    assert float(quantity['available']) == 41.0     # on_hand - allocated

@@ -1291,6 +1291,11 @@ _ACTION_DISPATCH = {
     "allocation_history": lambda p: __import__(
         'apps.products.services.inventory.inventory_allocate', fromlist=['allocation_history']
     ).allocation_history(int(p['item_id']), limit=int(p.get('limit', 50))),
+    # Buckets vs documents — the reconciliation, as data (Bite 3).
+    "commitment_gaps": lambda p: __import__(
+        'apps.products.management.commands.rebuild_commitment_buckets',
+        fromlist=['commitment_gaps']
+    ).commitment_gaps(item_id=int(p['item_id']) if p.get('item_id') else None),
     # Alice's weekly housekeeping — she raises these and asks; she never acts alone.
     "housekeeping_weekly": lambda p: __import__(
         'apps.transactions.services.housekeeping', fromlist=['weekly_list']
