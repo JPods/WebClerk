@@ -156,8 +156,8 @@ class Pending(CoreModel):
             return False
 
     def _record_line_event(self):
-        """Append this pending's event to the line it belongs to, in the same
-        transaction that moved the buckets.
+        """Append this pending's event to the record it belongs to, in the same
+        transaction that moved the money or the stock.
 
         Bill, 2026-09-20: *"all changes in cash and inventory should be posted via
         pending records... They generate a pending record each for 3 and 7. They get
@@ -171,8 +171,10 @@ class Pending(CoreModel):
 
         config = self.config if isinstance(self.config, dict) else {}
         event = config.get('event')
-        line_model = config.get('line_model')
-        line_id = config.get('line_id')
+        # A line for an inventory movement, a document for a cash application — the same
+        # array, the same append, whichever record the event belongs to.
+        line_model = config.get('event_model') or config.get('line_model')
+        line_id = config.get('event_record_id') or config.get('line_id')
         if not (isinstance(event, dict) and line_model and line_id):
             return
 
@@ -196,8 +198,12 @@ class Pending(CoreModel):
 
         events.append(event)
         line.events = events
-        # save(), not update(): the line recomputes its own remaining from its events.
-        line.save(update_fields=['events', 'quantity', 'status', 'dt_modified', 'version'])
+        # A line recomputes its remaining from its events on save; a document has no
+        # quantity to recompute, so it saves the array alone.
+        fields = ['events', 'dt_modified', 'version']
+        if hasattr(line, 'quantity'):
+            fields = ['events', 'quantity', 'status', 'dt_modified', 'version']
+        line.save(update_fields=fields)
 
     def _apply_cash(self):
         """Apply cash to invoice (AR). Delegates to cash_pending service."""

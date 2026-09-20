@@ -354,3 +354,71 @@ def test_a_payable_creates_a_ledger_with_a_due_date(chart_of_accounts):
     assert s['payable_ledger'] == pytest.approx(180.00)
     assert s['in_step'] is True
     assert vendor.financial['vendor']['balances']['due'] == pytest.approx(180.00)
+
+
+@pytest.mark.django_db
+def test_a_cash_application_records_itself_on_the_invoice():
+    """The ledger says how deep the water is; the event says how it got there."""
+    from apps.orgs.models import Customer
+    from apps.transactions.models import Cash, Invoice, InvoiceLine
+    from apps.transactions.services.cash.cash_pending import apply_cash_to_invoice
+
+    customer = Customer.objects.create(company='C')
+    invoice = Invoice.objects.create(customer_id=customer.pk)
+    InvoiceLine.objects.create(invoice=invoice, item={'item_id': 1}, quantity={'active': 1},
+                               price={'unit': 100.00, 'precision': 2})
+    invoice.refresh_from_db()
+    cash = Cash.objects.create(customer_id=customer.pk, amount=Decimal('40.00'),
+                               available=Decimal('40.00'), status='completed')
+
+    out = apply_cash_to_invoice(cash.pk, invoice.pk, Decimal('40.00'), reason='check 1021')
+
+    invoice.refresh_from_db()
+    cash.refresh_from_db()
+    assert float(invoice.totals['received']) == 40.0
+    event = invoice.events[0]
+    assert event['kind'] == 'cash_application'
+    assert event['amount'] == 40.0
+    assert event['cash_id'] == cash.pk
+    assert event['reason'] == 'check 1021'
+    assert float(cash.available) == 0.0
+
+    # a retry is a quiet no-op: applied once, recorded once, and no exception
+    from apps.core.models.pending import Pending
+    from apps.transactions.services.cash.cash_pending import apply_cash_pending
+    pending = Pending.objects.get(pk=out['pending_id'])
+    assert apply_cash_pending(pending) is True
+    invoice.refresh_from_db()
+    cash.refresh_from_db()
+    assert len(invoice.events) == 1
+    assert float(invoice.totals['received']) == 40.0
+    assert float(cash.available) == 0.0
+
+
+@pytest.mark.django_db
+def test_ap_paid_is_derived_so_a_double_apply_cannot_double_count():
+    from apps.orgs.models import Vendor
+    from apps.transactions.models import Cash, Receipt, ReceiptLine
+    from apps.core.models.pending import Pending
+    from apps.transactions.services.cash.cash_pending_receipt import (
+        apply_cash_to_receipt, apply_receipt_cash_pending)
+
+    vendor = Vendor.objects.create(company='V')
+    receipt = Receipt.objects.create(vendor_id=vendor.pk)
+    ReceiptLine.objects.create(receipt=receipt, quantity={'active': 1},
+                               cost={'unit': 100.00, 'precision': 2})
+    receipt.refresh_from_db()
+    cash = Cash.objects.create(vendor_id=vendor.pk, amount=Decimal('-60.00'),
+                               available=Decimal('-60.00'), status='completed')
+
+    out = apply_cash_to_receipt(cash.pk, receipt.pk, Decimal('60.00'))
+
+    receipt.refresh_from_db()
+    assert float(receipt.totals['paid']) == 60.0
+    assert float(receipt.totals['balance']) == 40.0
+
+    pending = Pending.objects.get(pk=out['pending_id'])
+    apply_receipt_cash_pending(pending)          # apply it a second time
+    receipt.refresh_from_db()
+    assert float(receipt.totals['paid']) == 60.0   # derived, so it cannot double-count
+    assert len(receipt.events) == 1

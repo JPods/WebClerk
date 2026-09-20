@@ -158,6 +158,9 @@ def apply_receipt_cash_pending(pending) -> bool:
 
     amount = Decimal(str(amount_val))
 
+    if pending.is_processed() or (changes or {}).get('state') == 'applied':
+        return True                     # already applied — a retry records nothing twice
+
     try:
         with transaction.atomic():
             try:
@@ -177,6 +180,9 @@ def apply_receipt_cash_pending(pending) -> bool:
             pending.changes = changes
             pending.dt_processed = int(timezone.now().timestamp() * 1000)
             pending.save(update_fields=['changes', 'dt_processed', 'dt_modified', 'version'])
+
+            from apps.transactions.services.cash.cash_pending import record_application_event
+            record_application_event(receipt, pending, changes, cash)
 
             result = refresh_receipt_paid(receipt)
             new_paid = _d(result['paid']) if 'paid' in result else _applied(receipt_id=receipt.pk)

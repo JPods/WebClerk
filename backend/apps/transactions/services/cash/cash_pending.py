@@ -203,6 +203,41 @@ def _applied_split(**match):
     return total - adjusted, adjusted
 
 
+
+def record_application_event(document, pending, changes, cash=None) -> None:
+    """Append the application to the document it settled.
+
+    The ledger says how deep the water is; this says how it got there (Bill, 2026-09-20).
+    The pending's uuid is the event id, so an apply that runs twice records once.
+
+    Called inside the apply's atomic block, with the document already locked, so the
+    money and the record of it land together.
+    """
+    from datetime import datetime, timezone as _tz
+
+    if document is None or not hasattr(document, 'events'):
+        return
+    event_id = str(getattr(pending, 'uuid', '') or pending.pk)
+    events = list(document.events or [])
+    if any(isinstance(e, dict) and e.get('id') == event_id for e in events):
+        return
+
+    kind = (changes or {}).get('kind') or 'cash_application'
+    events.append({
+        'id': event_id,
+        'kind': 'adjustment' if kind in ADJUSTMENT_METHODS else 'cash_application',
+        'method': kind,
+        'dt': int(datetime.now(_tz.utc).timestamp() * 1000),
+        'by': (changes or {}).get('acted_by') or '',
+        'amount': float(_d((changes or {}).get('amount'))),
+        'cash_id': (changes or {}).get('cash_id'),
+        'cash_ida': getattr(cash, 'ida', None) if cash is not None else None,
+        'reason': (changes or {}).get('reason') or '',
+        'pending_id': pending.pk,
+    })
+    document.events = events
+    document.save(update_fields=['events', 'dt_modified', 'version'])
+
 def cash_state(total: Decimal, received: Decimal) -> str:
     """open | partial | paid | credit | over — derived, never typed.
 
@@ -395,6 +430,9 @@ def apply_cash_pending(pending) -> bool:
         logger.warning("Pending %s: missing cash_id/invoice_id/amount", pending.pk)
         return False
 
+    if pending.is_processed() or (changes or {}).get('state') == 'applied':
+        return True                     # already applied — a retry records nothing twice
+
     try:
         with transaction.atomic():
             try:
@@ -415,6 +453,7 @@ def apply_cash_pending(pending) -> bool:
             pending.dt_processed = int(timezone.now().timestamp() * 1000)
             pending.save(update_fields=['changes', 'dt_processed', 'dt_modified', 'version'])
 
+            record_application_event(invoice, pending, changes, cash)
             refresh_invoice_cash(invoice)
             available = refresh_cash_available(cash)
 

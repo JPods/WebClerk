@@ -301,6 +301,12 @@ class TransactionBaseModel(BaseModel):
         help_text="How this transaction originated: Facebook, Referral, Walk-in, Trade Show, etc.")
     # pulled from .refs to track related entities without FK constraints; updated by Celery tasks on save
     actions = models.JSONField(default=dict, blank=True, null=True)
+    # What happened to this record: cash applications, adjustments, and anything else a
+    # person did to it. Appended by the pending applier in the same apply that moves the
+    # money, never rewritten — the ledger is the water level, these are what moved it
+    # (Bill, 2026-09-20: "We can have .events... the current event form is ledger records").
+    events = models.JSONField(default=list, blank=True,
+        help_text="Append-only record of what happened to this document")
     shipping = models.JSONField(default=default_shipping, blank=True, null=True)
 
     # FK columns that must be NULL (not 0) when empty.  Zero would violate
