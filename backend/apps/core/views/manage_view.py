@@ -1291,6 +1291,10 @@ _ACTION_DISPATCH = {
     "allocation_history": lambda p: __import__(
         'apps.products.services.inventory.inventory_allocate', fromlist=['allocation_history']
     ).allocation_history(int(p['item_id']), limit=int(p.get('limit', 50))),
+    # Alice's weekly housekeeping — she raises these and asks; she never acts alone.
+    "housekeeping_weekly": lambda p: __import__(
+        'apps.transactions.services.housekeeping', fromlist=['weekly_list']
+    ).weekly_list(),
     # One door for commitments (Bill, 2026-09-19): cancel, complete and close all
     # release through close_transaction; nothing else writes commitment buckets.
     "close_transaction": lambda p: __import__(
