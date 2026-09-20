@@ -523,27 +523,20 @@ def update_order_received(sender, instance: Cash, created, **kwargs):
         if not order_ids:
             return
 
-        from decimal import Decimal
+        from apps.transactions.services.cash.cash_pending import _applied
         from apps.transactions.services.pricing.totals_compute import update_received
         for oid in order_ids:
             try:
                 order = Order.objects.get(pk=oid)
             except Order.DoesNotExist:
                 continue
-            # Sum all completed cash linked to this order
-            all_cash_entries = Cash.objects.filter(
-                status='completed', is_active=True,
-            )
-            total_received = Decimal('0')
-            for p in all_cash_entries:
-                p_refs = p.refs if isinstance(p.refs, dict) else {}
-                p_order_ids = p_refs.get('order_ids', [])
-                p_source = p_refs.get('source', {})
-                if oid in p_order_ids or (p_source.get('type') == 'order' and p_source.get('id') == oid):
-                    total_received += Decimal(str(p.amount or 0))
-
-            # PJPV: use totals engine for received/balance update
-            update_received(order, total_received)
+            # What an order has received is what has been APPLIED to it, not the face
+            # value of every cash record that mentions it. This used to sum p.amount, so
+            # a payment split across documents counted in full against each of them, and
+            # it read refs.order_ids — a denormalized cache, not a source of truth.
+            # convert.py already states the rule: "someone applies it, which creates the
+            # application record received is computed from" (fixed 2026-09-20).
+            update_received(order, _applied(order_id=oid))
     except Exception:
         import logging
         logging.getLogger('transactions.signals').warning(

@@ -518,7 +518,11 @@ def update_paid(
     new_paid = _d(new_paid)
     totals = getattr(header, 'totals', None) or {}
     total = _d(totals.get('total', 0))
-    new_balance = _d(total - new_paid)
+    # balance = total − paid − adjusted, the same formula compute_totals and the Receipt
+    # model use. This one had dropped 'adjusted', so a written-off payable read as still
+    # owing (found 2026-09-20).
+    adjusted = _d(totals.get('adjusted', 0))
+    new_balance = _d(total - new_paid - adjusted)
 
     totals['paid'] = float(new_paid)
     totals['balance'] = float(new_balance)
@@ -534,6 +538,7 @@ def update_paid(
     return {
         'total': float(total),
         'paid': float(new_paid),
+        'adjusted': float(adjusted),
         'balance': float(new_balance),
     }
 

@@ -31,6 +31,58 @@ logger = logging.getLogger(__name__)
 RECEIPT_CASH_PURPOSE = 'cash_application_receipt'
 
 
+def _d(value) -> Decimal:
+    return Decimal(str(value or 0))
+
+
+def _applied(**match) -> Decimal:
+    """Σ of the applications that match — the AP mirror of cash_pending._applied.
+
+    AP used to increment the stored total (``paid + amount``) and decrement
+    ``cash.available``. Two ways to compute one number, and a retry double-counted. The
+    applications are the record; paid and available are read from them (Bill, 2026-09-20).
+    """
+    from django.db.models import DecimalField, Sum
+    from django.db.models.fields.json import KeyTextTransform
+    from django.db.models.functions import Cast
+
+    from apps.core.models.pending import Pending
+
+    filters = {f'changes__{k}': v for k, v in match.items()}
+    total = (
+        Pending.objects.filter(purpose=RECEIPT_CASH_PURPOSE, changes__state='applied', **filters)
+        .annotate(amt=Cast(KeyTextTransform('amount', 'changes'),
+                           DecimalField(max_digits=14, decimal_places=2)))
+        .aggregate(s=Sum('amt'))['s']
+    )
+    return _d(total)
+
+
+def refresh_receipt_paid(receipt) -> Dict[str, Any]:
+    """Recompute the payable's paid and balance from its applications."""
+    from apps.accounts.services.terms_ledger import allocate_paid
+    from apps.transactions.services.pricing.totals_compute import update_paid
+
+    result = update_paid(receipt, _applied(receipt_id=receipt.pk))
+    allocate_paid(receipt)
+    return result
+
+
+def refresh_cash_available(cash) -> Decimal:
+    """available = amount − Σ applied, on both sides of the house.
+
+    Cash pays invoices and receipts, so what is left is the amount less everything it has
+    been applied to, whichever side that was.
+    """
+    from apps.transactions.services.cash.cash_pending import _applied as _applied_ar
+
+    available = _d(cash.amount) - _applied_ar(cash_id=cash.pk) - _applied(cash_id=cash.pk)
+    if _d(cash.available) != available:
+        cash.available = available
+        cash.save(update_fields=['available', 'dt_modified', 'version'])
+    return available
+
+
 @transaction.atomic
 def apply_cash_to_receipt(
     cash_id: int,
@@ -119,31 +171,26 @@ def apply_receipt_cash_pending(pending) -> bool:
             if getattr(receipt, 'dt_journaled', 0) != 0:
                 return False
 
-            # ── Update receipt totals via update_paid ──────────────
-            from apps.transactions.services.pricing.totals_compute import update_paid
-            totals = receipt.totals or {}
-            paid = Decimal(str(totals.get('paid') or 0))
-            new_paid = paid + amount
-            result = update_paid(receipt, new_paid)
-            new_balance = Decimal(str(result['balance']))
-
-            if new_balance <= 0:
-                receipt.status = 'paid'
-            elif new_paid > 0:
-                receipt.status = 'partially_paid'
-
-            receipt.save(update_fields=['status', 'dt_modified', 'version'])
-
-            # ── Decrement cash.available ────────────────────────
-            cash.available = max(Decimal('0'), cash.available - amount)
-            cash.save(update_fields=['available', 'dt_modified', 'version'])
-
-            # ── Mark pending as processed ──────────────────────────
+            # ── The application is the record; paid and available are read from it ──
             changes['state'] = 'applied'
             changes['dt_applied'] = timezone.now().isoformat()
             pending.changes = changes
             pending.dt_processed = int(timezone.now().timestamp() * 1000)
             pending.save(update_fields=['changes', 'dt_processed', 'dt_modified', 'version'])
+
+            result = refresh_receipt_paid(receipt)
+            new_paid = _d(result['paid']) if 'paid' in result else _applied(receipt_id=receipt.pk)
+            new_balance = _d(result['balance'])
+
+            if new_balance <= 0:
+                receipt.status = 'paid'
+            elif new_paid > 0:
+                receipt.status = 'partially_paid'
+            receipt.save(update_fields=['status', 'dt_modified', 'version'])
+
+            # No clamp: paying more than is owed shows as a negative balance for a person
+            # to resolve, rather than being quietly absorbed (Axiom 6).
+            refresh_cash_available(cash)
 
             logger.info(
                 "Applied receipt cash pending %s: cash %s → receipt %s, $%s (available now $%s)",
