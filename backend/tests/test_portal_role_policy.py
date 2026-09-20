@@ -85,10 +85,37 @@ class TestCustomerPortal:
         user = _login(django_user_model, 'cust3@example.fake', 'customer', 'customer', '')
         assert 'price' not in filter_response_data(user, 'item', ITEM_RECORD)
 
-    def test_edits_nothing(self, django_user_model, item_policy):
+    def test_edits_nothing_it_does_not_raise_itself(self, django_user_model, item_policy):
+        """A customer changes nothing of the company's.
+
+        order and quote are not in this list any more (2026-09-20). A portal customer has
+        always been able to raise their own order — `_PORTAL_ORDER_MODELS` in
+        apps/transactions/views/wcapi.py rewrites the payload, sets the customer and the
+        contact, and re-prices every line server-side. What they could fill was a tuple in
+        that view, so this test passed while the capability sat outside the enumeration
+        the test reads. Moving the list into the model's Setting made it visible here.
+
+        Nothing was granted. What is open is older: Bill, 2026-09-17, said portal users
+        are view-only "for now", and that order-creation path contradicts it. Whichever
+        wins, it should be one place — see the handoff.
+        """
         user = _login(django_user_model, 'cust4@example.fake', 'customer', 'customer', 'retail')
-        for model in ('order', 'invoice', 'quote', 'item', 'contact'):
+        for model in ('invoice', 'item', 'contact'):
             assert get_allowed_fields(user, model, mode='edit') == [], model
+
+    def test_fills_only_its_own_order_and_nothing_of_the_companys(self, django_user_model,
+                                                                  item_policy):
+        """The enumeration now says exactly what the view's tuple used to."""
+        from apps.core.services.access import PORTAL_ORDER_FIELDS
+
+        user = _login(django_user_model, 'cust5@example.fake', 'customer', 'customer', 'retail')
+        for model in ('order', 'quote'):
+            allowed = get_allowed_fields(user, model, mode='edit')
+            assert set(allowed) <= set(PORTAL_ORDER_FIELDS), model
+            # never the money, the status or anything the company owns
+            assert not [p for p in allowed
+                        if p.startswith(('totals.', 'cost.', 'finance.', 'commission.'))], model
+            assert 'status' not in allowed, model
 
 
 @pytest.mark.django_db
