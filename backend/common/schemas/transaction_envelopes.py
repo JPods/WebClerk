@@ -199,6 +199,29 @@ class TransactionTotals(BaseModel):
     )
     custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
+    # ── AP leaves — a receipt is a transaction too (Bill, 2026-09-19) ──
+    # Landed costs spread over the lines; 'paid' is AP's 'received'.
+    freight: float = Field(
+        0.0, title="Freight", description="Receipt landed cost: freight, spread over the lines",
+        json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
+    duty: float = Field(
+        0.0, title="Duty", description="Receipt landed cost: duties and tariffs, spread over the lines",
+        json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
+    handling: float = Field(
+        0.0, title="Handling", description="Receipt landed cost: handling and insurance, spread over the lines",
+        json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
+    vat: float = Field(
+        0.0, title="VAT", description="Receipt landed cost: VAT, spread over the lines",
+        json_schema_extra={'widget': 'currency', 'precision': 2},
+    )
+    paid: float = Field(
+        0.0, title="Paid", description="Cash applied against this payable — AP's 'received'",
+        json_schema_extra={'widget': 'currency', 'precision': 2, 'readonly': True},
+    )
+
     class Config:
         extra = "forbid"  # PJPV: unknown keys fail — use custom{} for extensions
 
@@ -727,6 +750,23 @@ class TransactionAllocations(BaseModel):
     other: float = Field(0.0, title="Other",
         description="Landed costs and other charges, spread over the lines by amount (exact cents)",
         json_schema_extra={'widget': 'currency', 'precision': 2})
+
+    # ── Buy side: a receipt's landed costs, spread the same way (Bill, 2026-09-19) ──
+    freight: float = Field(0.0, title="Freight",
+        description="Receipt freight, spread over the lines — lands in line totals.shipping",
+        json_schema_extra={'widget': 'currency', 'precision': 2})
+    duty: float = Field(0.0, title="Duty",
+        description="Receipt duties and tariffs, spread over the lines — lands in line totals.other",
+        json_schema_extra={'widget': 'currency', 'precision': 2})
+    handling: float = Field(0.0, title="Handling",
+        description="Receipt handling and insurance, spread over the lines — lands in line totals.other",
+        json_schema_extra={'widget': 'currency', 'precision': 2})
+    vat: float = Field(0.0, title="VAT",
+        description="Receipt VAT, spread over the lines — lands in line totals.other",
+        json_schema_extra={'widget': 'currency', 'precision': 2})
+    method: str = Field('value', title="Allocation Method",
+        description="How landed costs spread over the lines: value | weight | quantity",
+        json_schema_extra={'widget': 'text'})
 
     class Config:
         extra = "forbid"

@@ -1333,19 +1333,20 @@ class LineItemService:
                 pending_data['links']['order'] = {'parent_id': parent_id}
                 pending_data['reason'] = 'in line delete (restores so, on_hand)'
         elif pending_type == 'RC':
-            purchase_id = getattr(transaction, 'purchase_id', None)
-            if purchase_id:
+            # A receipt carries one parent pointer (parent_id + parent_model), like every
+            # other transaction — the purchase/workorder FKs are gone (2026-09-19).
+            parent_model = getattr(transaction, 'parent_model', None)
+            parent_pk = getattr(transaction, 'parent_id', None)
+            if parent_pk and parent_model == 'purchase':
                 pending_data['on_po'] = quantity_released  # Positive: restore PO commitment
                 pending_data['on_hand'] = -quantity_released  # Negative: remove from on_hand
-                pending_data['links']['purchase'] = {'parent_id': purchase_id}
+                pending_data['links']['purchase'] = {'parent_id': parent_pk}
                 pending_data['reason'] = 'rc line delete (restores po, removes on_hand)'
-            else:
-                workorder_id = getattr(transaction, 'workorder_id', None)
-                if workorder_id:
-                    pending_data['on_wo'] = quantity_released  # Positive: restore WO commitment
-                    pending_data['on_hand'] = -quantity_released  # Negative: remove from on_hand
-                    pending_data['links']['workorder'] = {'parent_id': workorder_id}
-                    pending_data['reason'] = 'rc line delete (restores wo, removes on_hand)'
+            elif parent_pk and parent_model == 'workorder':
+                pending_data['on_wo'] = quantity_released  # Positive: restore WO commitment
+                pending_data['on_hand'] = -quantity_released  # Negative: remove from on_hand
+                pending_data['links']['workorder'] = {'parent_id': parent_pk}
+                pending_data['reason'] = 'rc line delete (restores wo, removes on_hand)'
         
         pending = Pending.objects.create(
             model_name='item',

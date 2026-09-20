@@ -32,12 +32,16 @@ logger = logging.getLogger(__name__)
 PARENT_OF: Dict[str, Tuple[str, str]] = {
     'orderline': ('QuoteLine', 'quote_line_id'),
     'invoiceline': ('OrderLine', 'order_line_id'),
+    # The buy chain works like the sell chain (Bill, 2026-09-19): receiving a purchase
+    # line reduces its remaining through the one writer, never through a 'received' hint.
+    'receiptline': ('PurchaseLine', 'purchase_line_id'),
 }
 
 #: parent line model -> child line model
 CHILD_OF: Dict[str, str] = {
     'quoteline': 'OrderLine',
     'orderline': 'InvoiceLine',
+    'purchaseline': 'ReceiptLine',
 }
 
 TRANSFERRED = 'transferred'
@@ -63,7 +67,9 @@ def parent_line_id_from_refs(line: Any) -> Optional[int]:
 
 def _aggregate_children(parent_model_name: str, parent_pk: int) -> Tuple[float, int]:
     Child = _model(CHILD_OF[parent_model_name])
-    agg = Child.objects.filter(parent_line_id=parent_pk).aggregate(
+    # A deleted child consumes nothing: deleting an invoice or receipt line gives the
+    # parent line its remaining back (found 2026-09-19, latent — no such rows in wc_demo yet).
+    agg = Child.objects.filter(parent_line_id=parent_pk, is_deleted=False).aggregate(
         total=Sum(Cast(KeyTextTransform('active', 'quantity'),
                        DecimalField(max_digits=20, decimal_places=6))),
         count=Count('pk'),

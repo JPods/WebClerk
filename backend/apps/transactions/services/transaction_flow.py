@@ -255,8 +255,9 @@ def receive_purchase(po: Purchase,
     receipt = Receipt.objects.create(
         ida=receipt_id,
         source_type=Receipt.SOURCE_PURCHASE,
-        purchase=po,
-    )
+        parent_id=po.pk,
+        parent_model='purchase',
+    )   # vendor, contact and terms are inherited from the purchase on save
     created_stack_ids: list[int] = []
     created_receipt_line_ids: list[int] = []
     deltas_created = 0
@@ -293,10 +294,13 @@ def receive_purchase(po: Purchase,
         stack.save()
         created_stack_ids.append(stack.id)
 
-        # Create ReceiptLine record to track what was received
+        # Create ReceiptLine record to track what was received. parent_line_id makes it
+        # a child of the purchase line, so that line's remaining is recomputed by the one
+        # writer — the document moves when the goods do.
         receipt_line = ReceiptLine.objects.create(
             receipt=receipt,
-            purchase_line=pol,
+            parent_line_id=pol.pk,
+            refs={'source': {'purchase_line_id': pol.pk}},
             warehouse=wh,
             inventory_layer=stack,
             lot=rl.lot or '',
@@ -307,39 +311,31 @@ def receive_purchase(po: Purchase,
         )
         created_receipt_line_ids.append(receipt_line.id)
 
-        # Create inventory delta for item-level quantity tracking
+        # Move the buckets through the shape that applies itself: model_name 'item'
+        # with a purpose in INVENTORY_PURPOSES. 'inventory_delta' was dispatched by
+        # nothing, so every receipt through this path used to leave the buckets behind.
         qty_received = Decimal(str(rl.qty))
-        record_id = f"{item_id}_{int(timezone.now().timestamp() * 1000000)}_{uuid.uuid4().hex[:8]}"
-
         Pending.objects.create(
-            model_name='inventory_delta',
-            record_id=record_id,
-            purpose='inventory_delta',
-            name=f"Inventory delta for item {item_id}",
+            model_name='item',
+            record_id=str(item_id),
+            purpose='receipt_line_add',
+            name=f"Receipt {receipt.ida} - item {item_id}",
+            changes={
+                'on_po': -float(qty_received),   # goods arrived: no longer on order
+                'on_hand': float(qty_received),
+                'on_rc': float(qty_received),    # received this period
+            },
             config={
                 'item_id': item_id,
                 'warehouse_id': wh.id,
-                'quantity_on_hand_delta': float(qty_received),  # Increase on-hand
-                'quantity_on_order_delta': 0,
-                'quantity_on_po_delta': -float(qty_received),  # Decrease on-PO
                 'source_type': 'purchase_receipt',
                 'source_id': receipt.id,
-                'source_line_id': receipt_line.id,  # Reference ReceiptLine instead of PurchaseLine
+                'source_line_id': receipt_line.id,
                 'unit_cost': unit_cost,
                 'notes': f"Purchase receipt {receipt.ida} - received {qty_received} units",
-                'created_at': timezone.now().isoformat()
             }
         )
         deltas_created += 1
-
-        # Optional: update PO line received quantity hint
-        if isinstance(pol.quantity, dict):
-            prev = pol.quantity.get('received') or 0
-            try:
-                pol.quantity['received'] = float(prev) + float(rl.qty)
-            except Exception:
-                pol.quantity['received'] = float(rl.qty)
-            pol.save(update_fields=['quantity', 'dt_modified', 'version'])
 
     return {
         'receipt_id': receipt.id,  # type: ignore[attr-defined]
@@ -398,7 +394,8 @@ def complete_workorder(wo: WorkOrder,
     receipt = Receipt.objects.create(
         ida=receipt_id,
         source_type=Receipt.SOURCE_WORKORDER,
-        workorder=wo,
+        parent_id=wo.pk,
+        parent_model='workorder',
     )
     created_stack_ids: list[int] = []
     created_receipt_line_ids: list[int] = []
@@ -441,7 +438,8 @@ def complete_workorder(wo: WorkOrder,
         # Create ReceiptLine record to track what was completed
         receipt_line = ReceiptLine.objects.create(
             receipt=receipt,
-            workorder_line=wol,
+            parent_line_id=wol.pk,
+            refs={'source': {'workorder_line_id': wol.pk}},
             warehouse=wh,
             inventory_layer=stack,
             lot=cl.lot or '',
@@ -452,38 +450,29 @@ def complete_workorder(wo: WorkOrder,
         )
         created_receipt_line_ids.append(receipt_line.id)
 
-        # Create inventory delta for item-level quantity tracking
+        # The buckets move through the shape that applies itself (see receive_purchase).
         qty_completed = Decimal(str(cl.qty_completed))
-        record_id = f"{item_id}_{int(timezone.now().timestamp() * 1000000)}_{uuid.uuid4().hex[:8]}"
-
         Pending.objects.create(
-            model_name='inventory_delta',
-            record_id=record_id,
-            purpose='inventory_delta',
-            name=f"Inventory delta for item {item_id}",
+            model_name='item',
+            record_id=str(item_id),
+            purpose='receipt_line_add',
+            name=f"WorkOrder completion {receipt.ida} - item {item_id}",
+            changes={
+                'on_wo': -float(qty_completed),   # no longer work in progress
+                'on_hand': float(qty_completed),  # produced
+                'on_rc': float(qty_completed),
+            },
             config={
                 'item_id': item_id,
                 'warehouse_id': wh.id,
-                'quantity_on_hand_delta': float(qty_completed),  # Increase on-hand (produced)
-                'quantity_on_wo_delta': -float(qty_completed),   # Decrease on-WO (no longer WIP)
                 'source_type': 'workorder_completion',
                 'source_id': receipt.id,
-                'source_line_id': receipt_line.id,  # Reference ReceiptLine
+                'source_line_id': receipt_line.id,
                 'unit_cost': unit_cost,
                 'notes': f"WorkOrder completion {receipt.ida} - produced {qty_completed} units",
-                'created_at': timezone.now().isoformat()
             }
         )
         deltas_created += 1
-
-        # Optional: update WO line completed quantity hint
-        if isinstance(wol.quantity, dict):
-            prev = wol.quantity.get('completed') or 0
-            try:
-                wol.quantity['completed'] = float(prev) + float(cl.qty_completed)
-            except Exception:
-                wol.quantity['completed'] = float(cl.qty_completed)
-            wol.save(update_fields=['quantity', 'dt_modified', 'version'])
 
     return {
         'receipt_id': receipt.id,  # type: ignore[attr-defined]
@@ -593,25 +582,22 @@ def adjust_inventory(adjustment_id: str,
         )
         created_receipt_line_ids.append(receipt_line.id)
 
-        # Create inventory delta for item-level quantity tracking
-        record_id = f"{al.item_id}_{int(timezone.now().timestamp() * 1000000)}_{uuid.uuid4().hex[:8]}"
-
+        # An adjustment moves on_hand directly, through the same live shape.
         Pending.objects.create(
-            model_name='inventory_delta',
-            record_id=record_id,
-            purpose='inventory_delta',
-            name=f"Inventory adjustment for item {al.item_id}",
+            model_name='item',
+            record_id=str(al.item_id),
+            purpose='inventory_qty_change',
+            name=f"Inventory adjustment {receipt.ida} - item {al.item_id}",
+            changes={'on_hand': float(qty_delta)},
             config={
                 'item_id': al.item_id,
                 'warehouse_id': wh.id,
-                'quantity_on_hand_delta': float(qty_delta),  # Direct on-hand change
                 'source_type': 'inventory_adjustment',
                 'source_id': receipt.id,
-                'source_line_id': receipt_line.id,  # Reference ReceiptLine
+                'source_line_id': receipt_line.id,
                 'adjustment_reason': al.reason,
                 'unit_cost': unit_cost if unit_cost else None,
                 'notes': f"Inventory adjustment {receipt.ida} - {al.reason}: {qty_delta:+} units" + (f" - {notes}" if notes else ""),
-                'created_at': timezone.now().isoformat()
             }
         )
         deltas_created += 1

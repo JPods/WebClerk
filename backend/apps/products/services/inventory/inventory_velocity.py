@@ -186,15 +186,14 @@ def _receipt_performance(
     total_count = 0
 
     for receipt in receipt_qs:
-        purchase = receipt.purchase
+        purchase = receipt.parent if receipt.parent_model == 'purchase' else None
         if not purchase:
             continue
 
         po_created_ms = purchase.dt_created or 0
-        # dt_received is a DateTimeField — convert to epoch ms for diff
+        # dt_received is UTC epoch ms (Axiom 14)
         if receipt.dt_received and po_created_ms:
-            import datetime
-            recv_ms = int(receipt.dt_received.timestamp() * 1000)
+            recv_ms = int(receipt.dt_received)
             diff_days = (recv_ms - po_created_ms) / _MS_PER_DAY
             if diff_days >= 0:
                 all_days.append(diff_days)

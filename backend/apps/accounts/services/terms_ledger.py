@@ -421,6 +421,97 @@ def apply_terms_for_invoice(invoice, total: Optional[Decimal] = None, term=None,
     return records
 
 
+def apply_terms_for_payable(receipt, total=None, replace: bool = True):
+    """Payables work like receivables (Bill, 2026-09-19): each payable creates ledger
+    rows with a due date, so AP has a water level the same way AR does.
+
+    A receipt is the vendor's bill. Its vendor and terms come from the purchase it
+    belongs to. Rows carry model_name 'receipt', source 'AP', and a positive value:
+    what we owe. Payments (cash_out) reduce value_available through allocate_paid.
+
+    A receipt with no lines is a draft: no payable, no ledger row. The money always
+    comes from the lines, so every payable dollar is traceable.
+    """
+    from decimal import Decimal as D
+    from django.apps import apps as dj_apps
+    Ledger = dj_apps.get_model('accounts', 'Ledger')
+
+    if total is None:
+        # The payable's money always comes from its own lines (Bill, 2026-09-19).
+        # vendor_invoice_amount is the vendor's claim, reconciled against this — never a total.
+        total = D(str((getattr(receipt, 'totals', None) or {}).get('total') or 0))
+    if replace:
+        Ledger.objects.filter(parent_id=receipt.pk, model_name='receipt').delete()
+    if not total:
+        return []
+
+    # A receipt is a transaction: it carries its own vendor and terms (inherited from
+    # the purchase it receives against when it is created).
+    vendor_id = getattr(receipt, 'vendor_id', None)
+    term = getattr(receipt, 'terms_fk_id', None)
+    dt = getattr(receipt, 'dt_received', None) or getattr(receipt, 'dt_created', None)
+    from datetime import datetime, timezone as _tz
+    if isinstance(dt, int):
+        dt = datetime.fromtimestamp(dt / 1000, _tz.utc)
+    schedule = compute_schedule(dt or datetime.now(_tz.utc), total, _resolve_term(term))
+
+    created = []
+    for e in schedule:
+        value = total * e.share
+        obj = Ledger(
+            dt_due=e.due,
+            dt_discount_due=e.discount_due,
+            discount_potential=float(e.discount_rate) if e.discount_rate is not None else None,
+            model_name='receipt',
+            source='AP',
+            parent_id=receipt.pk,
+            org_id=vendor_id,
+            value_original=float(value),
+            value_available=float(value),
+            refs={'links': {'parent': {'model': 'receipt', 'id': receipt.pk},
+                            'org': {'id': vendor_id},
+                            getattr(receipt, 'parent_model', None) or 'source':
+                                {'id': getattr(receipt, 'parent_id', None)}}},
+        )
+        obj.save()
+        created.append(obj)
+    allocate_paid(receipt)
+    return created
+
+
+def allocate_paid(receipt) -> None:
+    """Spread what has been paid over the payable's ledgers, earliest due first,
+    so Σ receipt ledgers = the receipt's balance. The AP mirror of allocate_received."""
+    from decimal import Decimal as D
+    from django.apps import apps as dj_apps
+    Ledger = dj_apps.get_model('accounts', 'Ledger')
+    t = getattr(receipt, 'totals', None) or {}
+    remaining = D(str(t.get('paid') or 0)) + D(str(t.get('adjusted') or 0))
+    ledgers = list(Ledger.objects.filter(parent_id=receipt.pk, model_name='receipt').order_by('dt_due', 'id'))
+    for i, ledger in enumerate(ledgers):
+        original = D(str(ledger.value_original or 0))
+        last = i == len(ledgers) - 1
+        if last:
+            take = remaining
+        elif original == 0 or remaining == 0 or (original > 0) != (remaining > 0):
+            take = D('0')
+        else:
+            take = min(abs(original), abs(remaining)) * (1 if original > 0 else -1)
+        remaining -= take
+        available = float(original - take)
+        if ledger.value_available != available:
+            ledger.value_available = available
+            ledger.save(update_fields=['value_available'])
+
+
+def _resolve_term(term_id):
+    """A Term instance from its id, or None (compute_schedule then uses the default)."""
+    if term_id is None:
+        return None
+    from django.apps import apps as dj_apps
+    return dj_apps.get_model('accounts', 'Term').objects.filter(pk=term_id).first()
+
+
 def allocate_received(invoice) -> None:
     """Spread what has been settled over the invoice's ledgers, earliest due first.
 

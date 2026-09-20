@@ -308,3 +308,49 @@ def test_flight_simulator_reads_its_rates_from_the_records(chart_of_accounts):
     # the defaults the console puts on each record it creates
     d = sim_header_defaults()
     assert d["ship_via"] == 'test_4%' and d["finance"]["sales_tax_rate"] == 0.08
+
+
+@pytest.mark.django_db
+def test_a_payable_creates_a_ledger_with_a_due_date(chart_of_accounts):
+    """Bill 2026-09-19: "We should work AP just as we work AR. Each payable creates a
+    ledger with a due date." """
+    from django.apps import apps
+    from apps.orgs.models import Vendor
+    from apps.transactions.models import Purchase, Receipt
+    from apps.accounts.services.ledger_balance import update_org_balances
+    Ledger = apps.get_model('accounts', 'Ledger')
+
+    vendor = Vendor.objects.create(company='V')
+    po = Purchase.objects.create(vendor_id=vendor.pk)
+    from apps.transactions.models import ReceiptLine
+    receipt = Receipt.objects.create(parent_id=po.pk, parent_model='purchase',
+                                     vendor_invoice_amount=Decimal('300.00'))
+    assert receipt.vendor_id == vendor.pk          # inherited from the purchase it receives against
+    assert not Ledger.objects.filter(parent_id=receipt.pk, model_name='receipt').exists()   # no lines: a draft, no payable
+    ReceiptLine.objects.create(receipt=receipt, quantity={'active': 3}, cost={'unit': 100.00, 'precision': 2})
+    receipt.refresh_from_db()
+    assert receipt.totals['total'] == pytest.approx(300.00)              # the money comes from the lines
+    assert receipt.metadata['vendor_claim']['in_step'] is True           # and matches the vendor's claim
+
+    rows = Ledger.objects.filter(parent_id=receipt.pk, model_name='receipt')
+    assert rows.count() >= 1
+    assert sum(Decimal(str(r.value_available)) for r in rows) == Decimal('300.00')
+    assert all(r.dt_due is not None for r in rows)          # every payable row has a due date
+    assert all(r.source == 'AP' and r.org_id == vendor.pk for r in rows)
+
+    # Paying it moves the water level, exactly as on the AR side
+    from apps.transactions.services.pricing.totals_compute import update_paid
+    update_paid(receipt, Decimal('120.00'))
+    from apps.accounts.services.terms_ledger import allocate_paid
+    receipt.refresh_from_db()
+    allocate_paid(receipt)
+    rows = Ledger.objects.filter(parent_id=receipt.pk, model_name='receipt')
+    assert sum(Decimal(str(r.value_available)) for r in rows) == Decimal('180.00')
+
+    update_org_balances(vendor)
+    vendor.refresh_from_db()
+    s = vendor.financial['summary']
+    assert s['payable'] == pytest.approx(180.00)
+    assert s['payable_ledger'] == pytest.approx(180.00)
+    assert s['in_step'] is True
+    assert vendor.financial['vendor']['balances']['due'] == pytest.approx(180.00)

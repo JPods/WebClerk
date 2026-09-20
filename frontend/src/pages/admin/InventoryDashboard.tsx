@@ -220,6 +220,27 @@ function ReceiveTab() {
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [warehouses, setWarehouses] = useState<{ id: number; code: string; name: string }[]>([]);
+  const [warehouseCode, setWarehouseCode] = useState<string>("");
+
+  // Warehouses to receive into — the receiving path needs a code, not a guess
+  useEffect(() => {
+    (async () => {
+      try {
+        const whData = await getRecords("warehouse", { limit: 100 });
+        const whs = (whData.results || []).map((w: any) => ({
+          id: w.id,
+          code: w.code || "",
+          name: w.name || w.code || `Warehouse ${w.id}`,
+        }));
+        setWarehouses(whs);
+        if (whs.length && !warehouseCode) setWarehouseCode(whs[0].code);
+      } catch {
+        /* the endpoint falls back to the default warehouse */
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Fetch open purchase orders
   const fetchPurchases = useCallback(async () => {
@@ -266,8 +287,10 @@ function ReceiveTab() {
       const poLines: POLine[] = lines.map((line: any) => {
         const qty = line.quantity || {};
         const ordered = qty.active || qty.staged || 0;
-        const received = qty.received || 0;
-        const remaining = ordered - received;
+        // remaining is written by one writer (normalize_quantity_map) from the
+        // receipt lines that are children of this purchase line.
+        const remaining = qty.remaining ?? ordered;
+        const received = ordered - remaining;
         const itemInfo = line.item || {};
         return {
           id: line.id,
@@ -313,50 +336,34 @@ function ReceiveTab() {
     const results: string[] = [];
     let hasError = false;
 
-    for (const line of linesToReceive) {
-      const qty = receiveQtys[line.id] || 0;
-      if (qty <= 0) continue;
-
-      try {
-        // Create inventory layer via receive_inventory
-        await manageAction("receive_inventory", {
-          item_id: line.item_fk_id,
-          warehouse_id: 1, // default warehouse
-          qty_received: qty,
-          unit_cost: line.unit_cost,
-          source_type: "purchase",
-          source_id: selectedPO.id,
-        });
-
-        // Adjust on_hand up
-        await manageAction("adjust_item_quantity", {
-          item_id: line.item_fk_id,
-          field: "on_hand",
-          delta: qty,
-          reason: "po_receive",
-          source_type: "purchase",
-          source_id: selectedPO.id,
-          source_line_id: line.id,
-        });
-
-        // Adjust on_po down
-        await manageAction("adjust_item_quantity", {
-          item_id: line.item_fk_id,
-          field: "on_po",
-          delta: -qty,
-          reason: "po_receive",
-          source_type: "purchase",
-          source_id: selectedPO.id,
-          source_line_id: line.id,
-        });
-
-        results.push(`${line.item_ida || line.item_name}: received ${qty}`);
-      } catch (err: any) {
-        hasError = true;
-        results.push(
-          `${line.item_ida || line.item_name}: FAILED - ${err?.message || "unknown error"}`
-        );
-      }
+    // One receiving path (Bill, 2026-09-19): the endpoint writes the receipt, moves
+    // on_po -> on_hand, writes on_rc, and recomputes the PO line's remaining. The
+    // buckets and the document can no longer move apart.
+    try {
+      const res = await apiClient.post(
+        `/transactions/purchase/${selectedPO.id}/receive-goods/`,
+        {
+          warehouse_code: warehouseCode || undefined,
+          lines: linesToReceive.map((line) => ({
+            po_line_id: line.id,
+            qty: receiveQtys[line.id] || 0,
+            warehouse_code: warehouseCode || undefined,
+            unit_cost: line.unit_cost,
+          })),
+        }
+      );
+      const data = res.data || {};
+      results.push(
+        `Receipt ${data.receipt_ida || data.receipt_id}: ${linesToReceive.length} line(s) received`
+      );
+      linesToReceive.forEach((line) =>
+        results.push(`  ${line.item_ida || line.item_name}: received ${receiveQtys[line.id]}`)
+      );
+    } catch (err: any) {
+      hasError = true;
+      results.push(
+        `Receive failed - ${err?.response?.data?.error || err?.message || "unknown error"}`
+      );
     }
 
     setReceiving(false);
@@ -498,6 +505,21 @@ function ReceiveTab() {
                 </pre>
               )}
             </div>
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              warehouse
+              <select
+                data-wc="inv-receive-warehouse"
+                value={warehouseCode}
+                onChange={(e) => setWarehouseCode(e.target.value)}
+                className="px-2 py-1.5 text-sm border border-gray-300 rounded"
+              >
+                {warehouses.map((wh) => (
+                  <option key={wh.id} value={wh.code}>
+                    {wh.code} — {wh.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
               data-wc="inv-receive-submit"
               onClick={handleReceive}

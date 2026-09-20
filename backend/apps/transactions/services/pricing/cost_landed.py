@@ -29,15 +29,16 @@ logger = logging.getLogger(__name__)
 def allocate_landed_costs(receipt) -> dict:
     """Allocate receipt-header landed costs across all receipt lines.
 
-    Reads receipt.vendor_invoice_freight, .duty, .handling, .vat and
-    spreads them across lines using receipt.allocation_method.
+    Reads the landed costs from receipt.allocations (freight, duty, handling, vat)
+    and spreads them across lines using allocations.method.
 
     Returns dict with lines_updated count and per-line allocations.
     """
-    total_freight = Decimal(str(receipt.vendor_invoice_freight or 0))
-    total_duty = Decimal(str(receipt.duty or 0))
-    total_handling = Decimal(str(receipt.handling or 0))
-    total_vat = Decimal(str(receipt.vat or 0))
+    alloc = receipt.allocations if isinstance(receipt.allocations, dict) else {}
+    total_freight = Decimal(str(alloc.get('freight') or 0))
+    total_duty = Decimal(str(alloc.get('duty') or 0))
+    total_handling = Decimal(str(alloc.get('handling') or 0))
+    total_vat = Decimal(str(alloc.get('vat') or 0))
 
     total_landed = total_freight + total_duty + total_handling + total_vat
     if total_landed == 0:
@@ -47,7 +48,7 @@ def allocate_landed_costs(receipt) -> dict:
     if not lines:
         return {'lines_updated': 0, 'message': 'No receipt lines'}
 
-    method = receipt.allocation_method or 'value'
+    method = alloc.get('method') or 'value'
 
     # ── Compute allocation weights ──
     weights = []

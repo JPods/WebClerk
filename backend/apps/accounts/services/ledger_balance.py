@@ -217,6 +217,41 @@ def compute_period_totals(docs, keys=('amount', 'margin')):
     return out, last
 
 
+def compute_vendor_summary(org_id):
+    """What we owe this vendor beside its ledger echo (FinSummary, AP side)."""
+    from common.schemas.org_aspects import FinSummary
+    from datetime import timezone as _tz
+    Ledger = dj_apps.get_model('accounts', 'Ledger')
+    Receipt = dj_apps.get_model('transactions', 'Receipt')
+    Cash = dj_apps.get_model('transactions', 'Cash')
+    cent = Decimal('0.01')
+    mismatches = []
+
+    payable = Decimal('0')
+    payable_ledger = Decimal('0')
+    # A receipt is a transaction: it carries its vendor, as an invoice carries its customer.
+    for rec in Receipt.objects.filter(vendor_id=org_id, is_deleted=False).only('pk', 'ida', 'totals'):
+        balance = Decimal(str((rec.totals or {}).get('balance') or 0))
+        echo = Decimal(str(Ledger.objects.filter(parent_id=rec.pk, model_name='receipt')
+                           .aggregate(s=models.Sum('value_available'))['s'] or 0))
+        payable += balance
+        payable_ledger += echo
+        if balance.quantize(cent) != echo.quantize(cent):
+            mismatches.append(f"receipt {rec.ida or rec.pk}: balance {balance.quantize(cent)}, ledger {echo.quantize(cent)}")
+
+    unapplied = Decimal('0')
+    for cash in Cash.objects.filter(vendor_id=org_id, is_deleted=False).only('available', 'amount'):
+        if cash.amount and cash.amount < 0:
+            unapplied += abs(Decimal(str(cash.available or 0)))
+
+    return FinSummary(
+        payable=float(payable), payable_ledger=float(payable_ledger),
+        unapplied_payments=float(unapplied),
+        net=float(payable - unapplied), in_step=not mismatches, mismatches=mismatches[:50],
+        dt_computed=datetime.now(_tz.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+    )
+
+
 def compute_org_summary(org_id):
     """Source records beside their ledger echoes, for one customer (FinSummary)."""
     from common.schemas.org_aspects import FinSummary
@@ -306,7 +341,8 @@ def update_org_balances(org: 'OrgBase', save: bool = True) -> Dict[str, Any]:
     # This ensures displayed balances always match actual ledger state
     org_type = getattr(org, 'org_type', 'customer')
     # A customer's AR ages its invoices; unapplied cash is shown apart (deposits.unapplied).
-    buckets = calculate_aging_buckets(org_id, model_name='invoice' if org_type == 'customer' else None)
+    buckets = calculate_aging_buckets(
+        org_id, model_name={'customer': 'invoice', 'vendor': 'receipt'}.get(org_type))
     
     # The schema is the only shape org.financial may take. Loading through it
     # drops keys it does not declare and fills the ones it does.
@@ -391,6 +427,8 @@ def update_org_balances(org: 'OrgBase', save: bool = True) -> Dict[str, Any]:
         if last:
             fin.customer.sales.dt_last_sale, fin.customer.sales.last_sale_amount = last[0], float(last[1])
     elif org_type == 'vendor':
+        fin.summary = compute_vendor_summary(org_id)
+        fin.common.net_balance = -fin.summary.net          # we owe: negative to us
         Purchase = dj_apps.get_model('transactions', 'Purchase')
         periods, last = compute_period_totals(
             Purchase.objects.filter(vendor_id=org_id, is_deleted=False).only('totals', 'dt_approved', 'dt_created'),
@@ -815,6 +853,44 @@ def on_cash_save(cash) -> None:
     org = OrgBase.objects.filter(id=org_id).first() if org_id else None
     if org:
         update_org_balances(org)
+
+
+def on_receipt_save(receipt) -> None:
+    """A payable's ledger echoes the payable (Bill: AP works just as AR does).
+
+    The vendor's claim (vendor_invoice_amount) is reconciled against what we recorded,
+    never used as the total: a difference is flagged on the receipt, the way the ledger
+    echo is flagged on the org. It catches overbilling, freight added later and short
+    shipments — the check a payables clerk does by hand.
+    """
+    from .terms_ledger import apply_terms_for_payable
+    apply_terms_for_payable(receipt, replace=True)
+    _flag_vendor_claim(receipt)
+
+    OrgBase = dj_apps.get_model('orgs', 'OrgBase')
+    vendor_id = getattr(receipt, 'vendor_id', None)
+    org = OrgBase.objects.filter(pk=vendor_id).first() if vendor_id else None
+    if org:
+        update_org_balances(org)
+
+
+def _flag_vendor_claim(receipt) -> None:
+    """metadata.vendor_claim: what the vendor billed, what we recorded, and whether they agree."""
+    claimed = Decimal(str(getattr(receipt, 'vendor_invoice_amount', 0) or 0))
+    recorded = Decimal(str((getattr(receipt, 'totals', None) or {}).get('total') or 0))
+    if not claimed and not recorded:
+        return
+    cent = Decimal('0.01')
+    flag = {
+        'claimed': float(claimed), 'recorded': float(recorded),
+        'difference': float((claimed - recorded).quantize(cent)),
+        'in_step': claimed.quantize(cent) == recorded.quantize(cent),
+    }
+    meta = receipt.metadata if isinstance(getattr(receipt, 'metadata', None), dict) else {}
+    if meta.get('vendor_claim') == flag:
+        return
+    meta = {**meta, 'vendor_claim': flag}
+    receipt.__class__.objects.filter(pk=receipt.pk).update(metadata=meta)
 
 
 def reconcile_org(org: 'OrgBase') -> Dict[str, Any]:

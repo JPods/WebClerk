@@ -1,32 +1,46 @@
 from django.db import models
-from common.models import BaseModel
+
+from apps.transactions.models.base_transaction_model import (
+    TransactionBaseModel, default_totals,
+)
+
+# How header landed costs are spread over the receipt's lines.
+ALLOCATION_CHOICES = [
+    ('value', 'By Value (cost-proportional)'),
+    ('weight', 'By Weight'),
+    ('quantity', 'By Quantity'),
+]
 
 
 def default_receipt_totals() -> dict:
-    """Default totals for Receipt — AP mirror of Invoice totals.
+    """Default totals for a Receipt — the transaction totals plus the AP leaves.
 
-    total = vendor_invoice_amount (what we owe).
-    paid  = sum of cash_out cash applied (mirrors Invoice totals.received).
-    balance = total - paid.
+    total = Σ line totals (what we owe); vendor_invoice_amount is the vendor's claim.
+    paid  = cash_out applied (the AP mirror of AR 'received').
+    balance = total − paid − adjusted.
     """
-    return {
-        "total": 0,       # vendor invoice amount — what we owe
-        "freight": 0,     # vendor invoice freight
-        "duty": 0,        # duties/tariffs
-        "handling": 0,    # handling/insurance/non-product
-        "vat": 0,         # VAT
-        "paid": 0,        # cash_entries applied (AP mirror of AR 'received')
-        "balance": 0,     # total - paid
-    }
+    return {**default_totals(), "freight": 0, "duty": 0, "handling": 0, "vat": 0, "paid": 0}
 
 
-class Receipt(BaseModel):
+def default_receipt_allocations() -> dict:
+    """Landed costs are document-level inputs, spread over the lines by the totals
+    engine — the AP mirror of a sell document's shipping and other allocations."""
+    return {"freight": 0, "duty": 0, "handling": 0, "vat": 0, "method": "value"}
+
+
+class Receipt(TransactionBaseModel):
     """Receipt header representing a receiving transaction.
 
     A receipt is created when:
     - Purchase order lines are received (from vendor)
     - Work order lines are completed (manufacturing)
     - Inventory adjustments are made (cycle count, shrinkage, etc.)
+
+    A receipt is a transaction like any other (Bill, 2026-09-19: "more records but
+    one uniform behavior"): the base carries the vendor, contact, terms, company
+    snapshot, parent pointer, totals, allocations, flow and the journalized lock.
+    What is left here is what only a receipt has — where it came from, its landed
+    costs and the vendor's claim.
 
     AP cash flow: Cash (cash_out) applies to Receipt the same way
     Cash (cash_in) applies to Invoice. totals.paid / totals.balance
@@ -41,7 +55,14 @@ class Receipt(BaseModel):
         (SOURCE_WORKORDER, 'WorkOrder Completion'),
         (SOURCE_ADJUSTMENT, 'Inventory Adjustment'),
     ]
-    
+    # The parent model each source receives against. An adjustment has no parent.
+    SOURCE_PARENT = {
+        SOURCE_PURCHASE: 'purchase',
+        SOURCE_WORKORDER: 'workorder',
+        SOURCE_ADJUSTMENT: None,
+    }
+    ALLOCATION_CHOICES = ALLOCATION_CHOICES
+
     source_type = models.CharField(
         max_length=30,
         choices=SOURCE_CHOICES,
@@ -49,125 +70,83 @@ class Receipt(BaseModel):
         db_index=True,
         help_text="Type of receiving transaction"
     )
-    dt_received = models.DateTimeField(auto_now_add=True)
-
-    # ── Landed cost fields (receipt-header-level, allocated to lines) ──
-    # These are the total costs for the entire inshipment. The allocation
-    # service spreads them across ReceiptLines → InventoryLayers.
-    vendor_invoice_freight = models.DecimalField(
-        max_digits=12, decimal_places=2, default=0,
-        help_text="Total freight on vendor invoice for this inshipment"
-    )
-    duty = models.DecimalField(
-        max_digits=12, decimal_places=2, default=0,
-        help_text="Total duties/tariffs for this inshipment"
-    )
-    handling = models.DecimalField(
-        max_digits=12, decimal_places=2, default=0,
-        help_text="Total handling/insurance/non-product costs"
-    )
-    vat = models.DecimalField(
-        max_digits=12, decimal_places=2, default=0,
-        help_text="Total VAT for this inshipment"
+    dt_received = models.BigIntegerField(
+        blank=True, null=True, db_index=True,
+        help_text="When the goods arrived (UTC epoch ms — Axiom 14)"
     )
     vendor_invoice_amount = models.DecimalField(
         max_digits=12, decimal_places=2, default=0,
-        help_text="Total vendor invoice amount"
-    )
-    ALLOCATION_CHOICES = [
-        ('value', 'By Value (cost-proportional)'),
-        ('weight', 'By Weight'),
-        ('quantity', 'By Quantity'),
-    ]
-    allocation_method = models.CharField(
-        max_length=20, choices=ALLOCATION_CHOICES, default='value',
-        help_text="How to spread header costs across receipt lines"
-    )
-    
-    # Optional FK to source transaction header
-    purchase = models.ForeignKey(
-        "transactions.Purchase",
-        related_name="receipts",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        help_text="Source purchase order (if source_type=purchase_receipt)"
-    )
-    workorder = models.ForeignKey(
-        "transactions.WorkOrder",
-        related_name="receipts",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        help_text="Source work order (if source_type=workorder_completion)"
+        help_text="The vendor's claim, as billed. Reconciled against totals.total "
+                  "(metadata.vendor_claim) — never the total itself."
     )
 
-    # Counterparty snapshot
-    company = models.JSONField(default=dict, blank=True,
-        help_text="Counterparty snapshot: {id, ida, name, is_individual, attention, email, phone, domain, notes}")
-
-    # Header-level totals — AP mirror of Invoice totals (PJPV source of truth)
+    # The transaction base carries company, finance, allocations, flow, refs, status,
+    # the journalized lock and the rest. A receipt keeps its own totals default, which
+    # adds the AP leaves (freight, duty, handling, vat, paid) to the transaction ones,
+    # and its own allocations default, which holds the landed costs.
     totals = models.JSONField(default=default_receipt_totals, blank=True, null=True,
-        help_text="AP totals: total, freight, duty, handling, vat, paid, balance")
+        help_text="Σ line totals plus the AP leaves: total, freight, duty, handling, vat, paid, balance")
+    allocations = models.JSONField(default=default_receipt_allocations, blank=True, null=True,
+        help_text="Landed costs spread over the lines: freight, duty, handling, vat, method")
 
-    # Journalizing lock — 0 means editable, non-zero epoch ms means locked (GL has this data)
-    dt_journaled = models.BigIntegerField(default=0, db_index=True,
-        help_text="UTC epoch ms when journalized to GL. 0=editable, non-zero=locked.")
-
-    class Meta:
+    class Meta(TransactionBaseModel.Meta):
         db_table = "receipt"
         indexes = [
             models.Index(fields=['source_type', 'dt_received']),
         ]
 
-    def _populate_company_snapshot(self):
-        """Copy company snapshot from the linked purchase's vendor + contact."""
-        org = None
-        if self.purchase_id:
-            try:
-                org = self.purchase.vendor
-            except Exception:
-                pass
-        if not org:
-            return
-        # Use purchase's contact if available
-        contact = None
-        if self.purchase_id:
-            try:
-                contact = self.purchase.contact
-            except Exception:
-                pass
-        current = self.company if isinstance(self.company, dict) else {}
-        current_contact_id = current.get('contact_id')
-        if (current.get('id') == org.id
-                and current.get('name')
-                and current_contact_id == (contact.pk if contact else None)):
-            return
-        self.company = org.build_company_snapshot(contact=contact)
+    # ── Parent — one pointer, the base's (parent_id + parent_model) ──────
+    @property
+    def parent(self):
+        """The purchase or workorder this receipt received against, or None."""
+        if not self.parent_id or not self.parent_model:
+            return None
+        from django.apps import apps as dj_apps
+        try:
+            model = dj_apps.get_model('transactions', self.parent_model)
+        except LookupError:
+            return None
+        return model.objects.filter(pk=self.parent_id).first()
 
-    def _sync_totals_from_scalars(self):
-        """Keep totals envelope in sync with scalar landed-cost fields.
+    def _inherit_from_parent(self):
+        """A receipt carries its own vendor, contact and terms — taken from the
+        purchase it receives against when they are not set. Without them there is
+        no payable ledger, so this runs before every save."""
+        if self.SOURCE_PARENT.get(self.source_type) != 'purchase' or not self.parent_id:
+            return
+        if self.vendor_id and self.terms_fk_id:
+            return
+        parent = self.parent
+        if parent is None:
+            return
+        for field in ('vendor_id', 'contact_id', 'terms', 'terms_fk_id'):
+            if not getattr(self, field, None):
+                setattr(self, field, getattr(parent, field, None))
 
-        vendor_invoice_amount is the source of truth for totals.total.
-        Scalar fields remain for backward compat and direct queries;
-        totals envelope is the PJPV source of truth for cash tracking.
-        """
+    def _sync_totals_from_allocations(self):
+        """Echo the landed-cost inputs into the totals envelope and keep the AP
+        balance true. The engine owns total (Σ lines, which include the spread
+        landed costs); these leaves are the breakdown behind it."""
+        alloc = self.allocations if isinstance(self.allocations, dict) else default_receipt_allocations()
         t = self.totals if isinstance(self.totals, dict) else default_receipt_totals()
-        t['total'] = float(self.vendor_invoice_amount)
-        t['freight'] = float(self.vendor_invoice_freight)
-        t['duty'] = float(self.duty)
-        t['handling'] = float(self.handling)
-        t['vat'] = float(self.vat)
-        t['balance'] = float(self.vendor_invoice_amount) - float(t.get('paid', 0))
+        for leaf in ('freight', 'duty', 'handling', 'vat'):
+            t[leaf] = float(alloc.get(leaf, 0) or 0)
+        t.setdefault('total', 0)
+        t.setdefault('paid', 0)
+        t['balance'] = float(t.get('total', 0)) - float(t.get('paid', 0)) - float(t.get('adjusted', 0) or 0)
+        self.allocations = alloc
         self.totals = t
 
     def save(self, *args, **kwargs):
-        self._populate_company_snapshot()
-        self._sync_totals_from_scalars()
+        if not self.dt_received:
+            from datetime import datetime, timezone as _tz
+            self.dt_received = int(datetime.now(_tz.utc).timestamp() * 1000)
+        self._inherit_from_parent()      # base save populates the company snapshot
+        self._sync_totals_from_allocations()
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:  # pragma: no cover
         return f"R:{self.ida}" if self.ida else f"R:{self.pk}"
 
 
-__all__ = ["Receipt"]
+__all__ = ["Receipt", "default_receipt_totals", "default_receipt_allocations", "ALLOCATION_CHOICES"]

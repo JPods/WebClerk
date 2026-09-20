@@ -20,7 +20,7 @@ from common.allie_capture import allie_capture as _allie
 from django.dispatch import receiver
 from apps.transactions.models import (
     QuoteLine, OrderLine, InvoiceLine, PurchaseLine, WorkOrderLine,
-    Quote, Order, Invoice, Cash, Purchase, WorkOrder,
+    Quote, Order, Invoice, Cash, Purchase, WorkOrder, Receipt, ReceiptLine,
 )
 from apps.transactions.services.notify_email import TransactionEmailService
 
@@ -228,11 +228,21 @@ def register_line_totals_signals(line_model, parent_attr: str):
     See: readmes/topics/transactions/transactions-totals.md §3 (signal table)
     """
 
+    def _recalc(parent):
+        """The one totals engine. Receipts are not transaction-base models, so they
+        have no update_sell_cost_totals; the engine is called directly."""
+        if hasattr(parent, 'update_sell_cost_totals'):
+            parent.update_sell_cost_totals(persist=True)
+        else:
+            from apps.transactions.services.pricing.totals_compute import recalculate_totals
+            recalculate_totals(parent.pk, parent._meta.model_name)
+            parent.refresh_from_db(fields=['totals'])
+
     @receiver(post_save, sender=line_model)
     def update_totals_on_save(sender, instance, **kwargs):
         parent = getattr(instance, parent_attr, None)
         if parent:
-            parent.update_sell_cost_totals(persist=True)
+            _recalc(parent)
             # The engine wrote this line's totals to the database; the caller holds this instance.
             instance.refresh_from_db(fields=['totals'])
 
@@ -240,7 +250,7 @@ def register_line_totals_signals(line_model, parent_attr: str):
     def update_totals_on_delete(sender, instance, **kwargs):
         parent = getattr(instance, parent_attr, None)
         if parent:
-            parent.update_sell_cost_totals(persist=True)
+            _recalc(parent)
 
 
 # =============================================================================
@@ -271,6 +281,9 @@ register_line_totals_signals(OrderLine, 'order')
 register_line_totals_signals(InvoiceLine, 'invoice')
 register_line_totals_signals(PurchaseLine, 'purchase')
 register_line_totals_signals(WorkOrderLine, 'workorder')
+# A payable's money comes from its own lines (Bill, 2026-09-19), so a receipt line
+# recalculates its receipt. Inventory movement for receiving is a separate path.
+register_line_totals_signals(ReceiptLine, 'receipt')
 
 
 # =============================================================================
@@ -314,6 +327,9 @@ def register_line_parent_signals(line_model):
 
 register_line_parent_signals(OrderLine)
 register_line_parent_signals(InvoiceLine)
+# The buy chain works the same way: a receipt line reduces the purchase (or workorder)
+# line it received against (Bill, 2026-09-19 — one receiving path).
+register_line_parent_signals(ReceiptLine)
 
 
 # =============================================================================
@@ -453,6 +469,18 @@ def send_cash_received_notification(sender, instance: Cash, created, **kwargs):
         return
     if getattr(instance, '_original_status', None) != 'completed':
         TransactionEmailService.send_cash_received_notification(instance)
+
+
+@receiver(post_save, sender=Receipt)
+def create_receipt_ledger(sender, instance, created, **kwargs):
+    """A payable's ledger echoes the payable, as an invoice's does (Bill, 2026-09-19)."""
+    try:
+        from apps.accounts.services.ledger_balance import on_receipt_save
+        on_receipt_save(instance)
+    except Exception:
+        import logging
+        logging.getLogger('transactions.signals').warning(
+            "Failed to create ledger for receipt #%s", instance.pk, exc_info=True)
 
 
 @receiver(post_save, sender=Cash)

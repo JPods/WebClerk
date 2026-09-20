@@ -325,7 +325,10 @@ class FinSummary(BaseModel):
     receivable_ledger: float = 0      # Σ invoice ledger value_available — the echo
     unapplied_cash: float = 0         # Σ cash.available — money on account
     unapplied_cash_ledger: float = 0  # Σ cash ledger value_available, sign flipped — the echo
-    net: float = 0                    # receivable − unapplied_cash
+    payable: float = 0                # Σ open payable balances (receipt.totals.balance) — AP
+    payable_ledger: float = 0         # Σ receipt ledger value_available — the echo
+    unapplied_payments: float = 0     # Σ available on cash_out not yet applied
+    net: float = 0                    # AR: receivable − unapplied_cash; AP: payable − unapplied_payments
     in_step: bool = True              # every echo equals its source
     mismatches: List[str] = Field(default_factory=list)   # e.g. "invoice 132: balance 13.00, ledger 0.00"
     dt_computed: str = ''             # UTC ISO-8601

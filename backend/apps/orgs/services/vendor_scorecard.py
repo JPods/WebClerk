@@ -236,13 +236,14 @@ def compute_vendor_scorecard(vendor_id: int, period_days: int = 90) -> dict:
     # -- Fetch receipts linked to those POs --
     receipts = list(
         Receipt.objects.filter(
-            purchase_id__in=po_ids,
+            parent_model='purchase',
+            parent_id__in=po_ids,
             is_deleted=False,
         )
     ) if po_ids else []
     receipts_by_po: dict[int, list] = {}
     for r in receipts:
-        receipts_by_po.setdefault(r.purchase_id, []).append(r)
+        receipts_by_po.setdefault(r.parent_id, []).append(r)
 
     # -- Fetch PO lines --
     po_lines = list(
@@ -262,8 +263,8 @@ def compute_vendor_scorecard(vendor_id: int, period_days: int = 90) -> dict:
     ) if receipt_ids else []
     receipt_lines_by_pol: dict[int, list] = {}
     for rl in receipt_lines:
-        if rl.purchase_line_id:
-            receipt_lines_by_pol.setdefault(rl.purchase_line_id, []).append(rl)
+        if rl.parent_line_id:
+            receipt_lines_by_pol.setdefault(rl.parent_line_id, []).append(rl)
 
     # -- Lead time from vendor financial JSON --
     fin = vendor.financial or {}

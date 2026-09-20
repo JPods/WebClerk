@@ -138,10 +138,14 @@ def recalculate_totals(
             if new is not None and new != (line.totals or {}):
                 LineModel.objects.filter(pk=line.pk).update(totals=new)
 
-    # The AR ledger follows the invoice: rebuild it whenever the total changes (Bite 2 #5).
-    if model_name == 'invoice' and _d(old_total) != _d(totals['total']):
-        from apps.accounts.services.ledger_balance import on_invoice_save
-        on_invoice_save(header, replace_ledgers=True)
+    # A ledger echoes its primary record: rebuild whenever the total changes.
+    if _d(old_total) != _d(totals['total']):
+        if model_name == 'invoice':
+            from apps.accounts.services.ledger_balance import on_invoice_save
+            on_invoice_save(header, replace_ledgers=True)
+        elif model_name == 'receipt':                       # AP works as AR does
+            from apps.accounts.services.ledger_balance import on_receipt_save
+            on_receipt_save(header)
 
     logger.info(
         "Recalculated totals for %s #%s: amount=%.2f tax=%.2f total=%.2f margin=%.1f%%",
@@ -270,6 +274,14 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
     doc_amt = _d(alloc.get('discount_amount', 0))
     doc_shipping = _d(alloc.get('shipping', 0))
     doc_other = _d(alloc.get('other', 0))
+    # A receipt's landed costs are its document allocations — the AP mirror of
+    # shipping and other on a sell document. They spread over the lines, so what we
+    # owe the vendor is still Σ line totals (Bill, 2026-09-19).
+    landed = {}
+    if model_name == 'receipt':
+        landed = {k: _d(alloc.get(k, 0) or 0) for k in ('freight', 'duty', 'handling', 'vat')}
+        doc_shipping += landed['freight']
+        doc_other += landed['duty'] + landed['handling'] + landed['vat']
 
     def num(env, key, places=2):
         return _d((env or {}).get(key, 0) or 0, places=places)
@@ -407,7 +419,9 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
     existing_totals = getattr(header, 'totals', None) or {}
     received = _d(existing_totals.get('received', 0))
     adjusted = _d(existing_totals.get('adjusted', 0))      # write-offs, small balances, FX
-    balance = doc['total'] - received - adjusted
+    # AP settles with 'paid' where AR settles with 'received'.
+    settled = _d(existing_totals.get('paid', 0)) if model_name == 'receipt' else received
+    balance = doc['total'] - settled - adjusted
     state = ''
     if model_name == 'invoice':
         from apps.transactions.services.cash.cash_pending import cash_state
@@ -416,6 +430,9 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
     totals = {k: float(v) for k, v in doc.items()}
     totals.update({'margin_pc': margin_pc, 'received': float(received), 'adjusted': float(adjusted),
                    'balance': float(balance), 'cash_state': state})
+    if model_name == 'receipt':
+        totals.update({k: float(v) for k, v in landed.items()})
+        totals['paid'] = float(settled)
 
     by_pk = {}
     for line in lines:

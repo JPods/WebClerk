@@ -256,137 +256,6 @@ def _get_order_line_ids_from_invoice_line(line: InvoiceLine) -> List[int]:
     return [order_line_id] if order_line_id else []
 
 
-@transaction.atomic
-def cancel_order_inventory_reservations(order: Order) -> Dict[str, int]:
-    """
-    Release all inventory reservations for a canceled order.
-
-    Returns:
-        {
-            'reservations_canceled': int,
-            'quantity_restored': float
-        }
-    """
-    reservations = InventoryReservation.objects.filter(
-        source_type='order',
-        source_id=order.id
-    )
-
-    canceled_count = 0
-    quantity_restored = Decimal(0)
-
-    for reservation in reservations:
-        qty_reserved = Decimal(str(reservation.quantity_reserved))
-
-        # Restore to inventory layer
-        try:
-            layer = InventoryLayer.objects.get(
-                item=reservation.item,
-                warehouse=reservation.warehouse
-            )
-            available = Decimal(str(layer.quantity.get('available', 0)))
-            layer.quantity['available'] = float(available + qty_reserved)
-            layer.save(update_fields=['quantity'])
-        except InventoryLayer.DoesNotExist:
-            # Layer not found - this could indicate:
-            # 1. Layer was manually deleted
-            # 2. Layer was merged into another layer
-            # 3. Data inconsistency
-            
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(
-                f"Inventory layer not found when canceling reservation "
-                f"for item {reservation.item_id} warehouse {reservation.warehouse_id}. "
-                f"Reservation quantity {qty_reserved} will not be restored to inventory."
-            )
-            
-            # Create a pending task to investigate this discrepancy
-            _create_inventory_discrepancy_pending(
-                item_id=reservation.item_id,
-                warehouse_id=reservation.warehouse_id,
-                missing_quantity=float(qty_reserved),
-                source_reservation_id=reservation.id,
-                discrepancy_type='missing_layer_on_cancel'
-            )
-
-        quantity_restored += qty_reserved
-        reservation.delete()
-        canceled_count += 1
-
-    return {
-        'reservations_canceled': canceled_count,
-        'quantity_restored': float(quantity_restored)
-    }
-
-
-def create_inventory_deltas_for_order(order: Order) -> int:
-    """
-    Create inventory deltas when an order is created.
-
-    Increases quantity_on_order for all order lines (or decreases for returns).
-
-    Returns:
-        Number of deltas created
-    """
-    deltas_created = 0
-
-    for line in OrderLine.objects.filter(parent=order):
-        qty_ordered = _get_order_quantity_needed(line)
-        if qty_ordered == 0:
-            continue
-
-        item_id = _resolve_item_id_from_line(line)
-        if not item_id:
-            continue
-
-        _create_inventory_delta(
-            item_id=item_id,
-            source_type='order_line',
-            source_id=order.id,
-            source_line_id=line.id,
-            quantity_on_order_delta=qty_ordered,  # Increase on-order (or decrease for returns)
-            notes=f"Order {order.id} - ordered {qty_ordered} units"
-        )
-        deltas_created += 1
-
-    return deltas_created
-
-
-def create_inventory_deltas_for_purchase(po: Purchase) -> int:
-    """
-    Create inventory deltas when a purchase order is created.
-
-    Increases quantity_on_po for all PO lines (or decreases for returns).
-
-    Returns:
-        Number of deltas created
-    """
-    deltas_created = 0
-
-    from apps.transactions.models import PurchaseLine
-    for line in PurchaseLine.objects.filter(purchase=po):
-        qty_ordered = getattr(line, 'quantity', {}).get('ordered', 0) or 0
-        if qty_ordered == 0:
-            continue
-
-        item_id = _resolve_item_id_from_line(line)
-        if not item_id:
-            continue
-
-        _create_inventory_delta(
-            item_id=item_id,
-            source_type='purchase_line',
-            source_id=po.id,
-            source_line_id=line.id,
-            quantity_on_po_delta=Decimal(str(qty_ordered)),  # Increase on-PO (or decrease for returns)
-            notes=f"Purchase {po.id} - ordered {qty_ordered} units"
-        )
-        deltas_created += 1
-
-    return deltas_created
-
-
 def _create_inventory_delta(
     item_id: int,
     source_type: str,
@@ -400,10 +269,15 @@ def _create_inventory_delta(
     notes: str = "",
     process_immediately: bool = False
 ) -> Pending:
-    """
-    Create a pending inventory delta record for later processing.
+    """Create a pending inventory delta record for later processing.
 
-    This follows the WebClerk2 dInventory approach using the Pending model.
+    NOTE (2026-09-19): ``model_name='inventory_delta'`` is dispatched by nothing —
+    Pending.try_apply handles ``model_name='item'`` with a purpose in INVENTORY_PURPOSES,
+    and there is no beat schedule. These rows therefore sit unprocessed unless
+    ``manage.py process_inventory_deltas`` is typed by hand. Receiving was moved to the
+    live shape (transaction_flow.py). The one remaining caller is
+    release_inventory_on_invoice, whose movement line_manage already writes live; making
+    these rows apply would double-count it. See readmes/system/ouch-list.md.
 
     Args:
         process_immediately: If True, process the delta immediately instead of queuing
@@ -700,9 +574,6 @@ def audit_inventory_consistency() -> Dict[str, Any]:
 __all__ = [
     'reserve_inventory_for_order',
     'release_inventory_on_invoice',
-    'cancel_order_inventory_reservations',
-    'create_inventory_deltas_for_order',
-    'create_inventory_deltas_for_purchase',
     '_create_inventory_delta',
     'process_inventory_deltas_immediately',
     'validate_inventory_delta',

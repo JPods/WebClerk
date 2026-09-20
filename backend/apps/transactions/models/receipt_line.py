@@ -4,42 +4,21 @@ from .base_line_model import BaseExecLineModel
 
 class ReceiptLine(BaseExecLineModel):
     """Receipt line representing a single item received.
-    
-    Inherits from BaseExecLineModel to get:
-    - item (JSONField): Item details including item_id, description, etc.
-    - quantity (JSONField): Quantities including placed/received
-    - cost (JSONField): Cost information including unit cost
-    - tax, physical, metadata, refs, prefs (JSONFields)
-    
-    Additional fields track:
-    - Source line (purchase_line or workorder_line)
-    - Warehouse where inventory was received
-    - Lot/serial tracking
+
+    Inherits from BaseExecLineModel to get item / quantity / cost / tax / physical /
+    metadata / refs / prefs, and — like every other child line — ``parent_line_id``,
+    which names the purchase or workorder line this receipt line received against.
+    The parent line's ``remaining`` is recomputed from its children by the one writer
+    (services/line_parent.py), so the document moves when the goods do.
+
+    What only a receipt line has: where it landed and what it landed as.
     """
     receipt = models.ForeignKey(
         "transactions.Receipt",
         related_name="lines",
         on_delete=models.CASCADE,
     )
-    
-    # Source line references (one will be set based on receipt.source_type)
-    purchase_line = models.ForeignKey(
-        "transactions.PurchaseLine",
-        related_name="receipt_lines",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        help_text="Source purchase line (if receipt from PO)"
-    )
-    workorder_line = models.ForeignKey(
-        "transactions.WorkOrderLine",
-        related_name="receipt_lines",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        help_text="Source workorder line (if receipt from WO)"
-    )
-    
+
     # Warehouse where inventory was received
     warehouse = models.ForeignKey(
         "products.Warehouse",
@@ -49,7 +28,7 @@ class ReceiptLine(BaseExecLineModel):
         blank=True,
         help_text="Warehouse where inventory was received"
     )
-    
+
     # Inventory layer created for this receipt (FIFO/LIFO tracking)
     inventory_layer = models.ForeignKey(
         "products.InventoryLayer",
@@ -59,11 +38,11 @@ class ReceiptLine(BaseExecLineModel):
         blank=True,
         help_text="Inventory layer/stack created for this receipt"
     )
-    
+
     # Lot/serial tracking
     lot = models.CharField(max_length=100, blank=True, help_text="Lot number")
     serial_batch = models.CharField(max_length=100, blank=True, help_text="Serial or batch number")
-    
+
     # Adjustment-specific field
     adjustment_reason = models.CharField(
         max_length=50,
