@@ -64,7 +64,7 @@ def test_an_installation_with_no_role_map_asks_hq(monkeypatch):
     company.config = config
     company._setting_update_authorized = True
     company.save()
-    init_bundle.reset_asked()
+    installation_init.reset_asked()
 
     asked = {}
 
@@ -79,7 +79,7 @@ def test_an_installation_with_no_role_map_asks_hq(monkeypatch):
             "metadata": {"foundational": True},
         }]}, "")
 
-    monkeypatch.setattr(init_bundle, "fetch_from_hq", _bundle_for)
+    monkeypatch.setattr(installation_init, "fetch_from_hq", _bundle_for)
 
     code = chart.role_account("sales_revenue", used_by="test")
 

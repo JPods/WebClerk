@@ -61,25 +61,16 @@ def import_settings_bundle(
 ) -> dict[str, Any]:
     """Import a settings bundle — create or update Setting records.
 
-    bundle_data: list of Setting dicts, each with at least:
-        uuid, ida, purpose, parent_model, config, metadata, prefs, refs,
-        explanation, paths, scope, name
+    The loop lives in apps/core/services/record_import.py, which every importer
+    now shares. This keeps the Setting-specific entry point and its argument
+    names, because callers and commands use them.
 
-    UUID controls merge: if a Setting with matching UUID exists, update it.
-    If not, create it.
-
-    force_replace: if True, REPLACE existing config/metadata/refs instead of
-        baseline merge. Used when Settings are corrupted and must be restored
-        to a known-good state. Requires double confirmation at the command level.
-        Prefs are NEVER replaced (user's sovereign space).
-
-    Foundational protection: records with metadata.foundational=true in the
-    database are NEVER modified by external bundles. Only unpack_init_bundle
-    (which passes force_foundational=True) can update them.
-
-    Returns: {created: int, updated: int, replaced: int, protected: int, errors: [str]}
+    force_replace: REPLACE existing config/metadata/refs instead of baseline
+        merging. For restoring corrupted Settings from a known-good copy.
+        Requires double confirmation at the command level. `prefs` is NEVER
+        replaced — the user's sovereign space — in any mode.
     """
-    from apps.core.models.setting import Setting
+    from apps.core.services.record_import import import_records
 
     if isinstance(bundle_data, dict):
         records = bundle_data.get('settings', bundle_data.get('records', []))
@@ -87,103 +78,15 @@ def import_settings_bundle(
         records = bundle_data
 
     if not isinstance(records, list):
-        return {'created': 0, 'updated': 0, 'protected': 0,
+        return {'created': 0, 'updated': 0, 'replaced': 0, 'protected': 0,
                 'errors': ['bundle_data must contain a list of records']}
 
-    created = 0
-    updated = 0
-    replaced = 0
-    protected = 0
-    errors = []
-
-    for rec in records:
-        try:
-            uuid_val = rec.get('uuid')
-            if not uuid_val:
-                errors.append(f"Record missing uuid: ida={rec.get('ida', '?')}")
-                continue
-
-            existing = Setting.objects.filter(uuid=uuid_val).first()
-
-            if existing:
-                # Foundational protection — skip unless this is the init bundle
-                if _is_foundational(existing) and not force_foundational:
-                    protected += 1
-                    continue
-
-                if force_replace:
-                    # REPLACE mode — overwrite config/metadata/refs entirely.
-                    # Used when Settings are corrupted and must be restored.
-                    # Prefs are NEVER replaced (user's sovereign space).
-                    for field in ('name', 'scope', 'purpose', 'parent_model'):
-                        if field in rec:
-                            setattr(existing, field, rec[field])
-                    existing.explanation = rec.get('explanation', '')
-                    existing.paths = rec.get('paths', {})
-                    for field in ('config', 'metadata', 'refs'):
-                        if field in rec:
-                            setattr(existing, field, rec[field] or {})
-                    # prefs — NEVER replaced, even in replace mode
-                    existing._setting_update_authorized = True
-                    existing.save()
-                    replaced += 1
-                else:
-                    # BASELINE MERGE — add missing keys, never replace existing.
-                    # WC_HQ settings are the baseline. User customizations win.
-
-                    # Scalar fields — only update if currently empty
-                    for field in ('name', 'scope', 'purpose', 'parent_model'):
-                        if field in rec and not getattr(existing, field, None):
-                            setattr(existing, field, rec[field])
-
-                    # explanation/paths — update if empty
-                    if not getattr(existing, 'explanation', ''):
-                        existing.explanation = rec.get('explanation', '')
-                    if not getattr(existing, 'paths', None):
-                        existing.paths = rec.get('paths', {})
-
-                    # JSON fields — deep merge: add missing keys, preserve existing
-                    for field in ('config', 'metadata', 'refs'):
-                        if field in rec:
-                            current = getattr(existing, field, None) or {}
-                            incoming = rec[field] or {}
-                            merged = _deep_merge_baseline(current, incoming)
-                            setattr(existing, field, merged)
-
-                    # prefs — never touch (user's space)
-                    existing._setting_update_authorized = True
-                    existing.save()
-                    updated += 1
-            else:
-                # Create — new records bypass the wall (no existing config to protect)
-                s = Setting(
-                    uuid=uuid_val,
-                    ida=rec.get('ida', ''),
-                    name=rec.get('name', ''),
-                    scope=rec.get('scope', 'system'),
-                    purpose=rec.get('purpose', ''),
-                    parent_model=rec.get('parent_model'),
-                    explanation=rec.get('explanation', ''),
-                    paths=rec.get('paths', {}),
-                    config=rec.get('config', {}),
-                    metadata=rec.get('metadata', {}),
-                    prefs=rec.get('prefs', {}),
-                    refs=rec.get('refs', {}),
-                )
-                s._setting_update_authorized = True  # approved bootstrap path
-                s._setting_create_authorized = True
-                s.save()
-                created += 1
-
-        except Exception as e:
-            errors.append(f"Error on ida={rec.get('ida', '?')}: {e}")
-            logger.exception('settings_bootstrap: import error')
-
-    if protected:
-        logger.info('settings_bootstrap: %d foundational records protected from external bundle', protected)
-    logger.info('settings_bootstrap: created=%d updated=%d replaced=%d protected=%d errors=%d',
-                created, updated, replaced, protected, len(errors))
-    return {'created': created, 'updated': updated, 'replaced': replaced, 'protected': protected, 'errors': errors}
+    return import_records(
+        'core.Setting', records,
+        match_on=('uuid',),
+        authoritative=force_foundational,
+        replace=force_replace,
+    )
 
 
 def fetch_from_wchq(athena_token: str) -> dict[str, Any]:

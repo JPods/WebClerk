@@ -34,7 +34,7 @@ BINARY_ALLOWED_MODELS = frozenset({'document'})
 BINARY_ALLOWED_FIELDS = frozenset({'path'})
 
 SKIP_FIELDS = frozenset({
-    'model_name', 'id', 'version', 'expected_version',
+    'model_name', 'id', 'version',
     'bulk', 'lines', 'uuid', 'record', 'options',
 })
 

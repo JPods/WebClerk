@@ -81,12 +81,12 @@ def test_every_registered_report_executes(client):
 def test_an_installation_with_no_executable_reports_gets_them(monkeypatch):
     """No definitions is not a failure. Ask HQ; fall back to what we ship."""
     Report.objects.filter(purpose=REPORT_PURPOSE_EXECUTABLE).delete()
-    init_bundle.reset_asked()
+    installation_init.reset_asked()
 
     # WC_HQ unreachable and no shipped bundle on disk — the hardest case.
-    monkeypatch.setattr(init_bundle, "fetch_from_hq",
+    monkeypatch.setattr(installation_init, "fetch_from_hq",
                         lambda *a, **k: (None, "WC_HQ unreachable: test"))
-    monkeypatch.setattr(init_bundle, "load_from_disk",
+    monkeypatch.setattr(installation_init, "load_from_disk",
                         lambda *a, **k: (None, "no shipped bundle"))
 
     result = list_executable_reports()

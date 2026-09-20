@@ -31,7 +31,7 @@ import logging
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -139,160 +139,38 @@ def get_bundle(name: str = 'init', *, offline: bool = False,
 # ----------------------------------------------------------------- loading
 
 
-def deep_merge_baseline(existing: dict, incoming: dict) -> dict:
-    """Add the keys the owner does not have. Never replace one they do."""
-    merged = dict(existing)
-    for key, value in incoming.items():
-        if key not in merged:
-            merged[key] = value
-        elif isinstance(merged[key], dict) and isinstance(value, dict):
-            merged[key] = deep_merge_baseline(merged[key], value)
-    return merged
-
-
-def _model(app_label: str, model_name: str):
-    from django.apps import apps as dj_apps
-
-    try:
-        return dj_apps.get_model(app_label, model_name)
-    except LookupError:
-        return None
-
-
-REPORT_SCALARS = (
-    'name', 'description', 'model_name', 'purpose', 'record_id', 'output_type',
-    'category', 'role_required', 'sort_order', 'explanation',
+# These bundles are authored once at WC_HQ and distributed, so every installation
+# derives or receives the same uuid for the same record — uuid is the identity.
+# (For data two systems created independently, a natural key is required instead;
+# apps/core/services/record_import.py carries the scar that says why.)
+BUNDLE_PARTS = (
+    # bundle key      model label           the recommended set is the authority
+    ('settings',      'core.Setting'),
+    ('gl_accounts',   'accounts.GlAccount'),
+    ('reports',       'core.Report'),
 )
-REPORT_JSON = ('config', 'metadata', 'refs', 'paths')
-
-
-def load_reports(records: Iterable[dict], *, dry_run: bool = False) -> dict[str, Any]:
-    """Merge Report records from a bundle. uuid controls the merge."""
-    Report = _model('core', 'Report')
-    if Report is None:
-        return {'created': 0, 'updated': 0, 'errors': ['Report model not found']}
-
-    created = updated = 0
-    errors: list[str] = []
-
-    for rec in records:
-        uuid_val = rec.get('uuid')
-        if not uuid_val:
-            errors.append(f"Report missing uuid: name={rec.get('name', '?')}")
-            continue
-        existing = Report.objects.filter(uuid=uuid_val).first()
-        if dry_run:
-            updated += 1 if existing else 0
-            created += 0 if existing else 1
-            continue
-
-        if existing:
-            for field in REPORT_SCALARS:
-                if field in rec:
-                    setattr(existing, field, rec[field])
-            for field in REPORT_JSON:
-                if field not in rec:
-                    continue
-                current = getattr(existing, field, None) or {}
-                incoming = rec[field] or {}
-                if isinstance(current, dict) and isinstance(incoming, dict):
-                    setattr(existing, field, deep_merge_baseline(current, incoming))
-                elif not current:
-                    setattr(existing, field, incoming)
-            meta = existing.metadata or {}
-            meta['foundational'] = True
-            existing.metadata = meta
-            existing.save()
-            updated += 1
-        else:
-            kwargs: dict[str, Any] = {'uuid': uuid_val, 'ida': rec.get('ida', '')}
-            for field in REPORT_SCALARS:
-                if field in rec:
-                    kwargs[field] = rec[field]
-            for field in REPORT_JSON:
-                kwargs[field] = rec.get(field, {})
-            meta = kwargs.get('metadata') or {}
-            meta['foundational'] = True
-            kwargs['metadata'] = meta
-            kwargs['prefs'] = rec.get('prefs', {})
-            for field in ('editor_type', 'content'):
-                if field in rec:
-                    kwargs[field] = rec[field]
-            Report.objects.create(**kwargs)
-            created += 1
-
-    return {'created': created, 'updated': updated, 'errors': errors}
-
-
-def load_gl_accounts(records: Iterable[dict], *, dry_run: bool = False) -> dict[str, Any]:
-    """Merge chart-of-accounts records. An account the owner already has is left alone."""
-    from apps.core.services.bundle_catalogue import GL_ACCOUNT_FIELDS
-
-    GlAccount = _model('accounts', 'GlAccount')
-    if GlAccount is None:
-        return {'created': 0, 'updated': 0, 'errors': []}
-
-    created = updated = 0
-    errors: list[str] = []
-
-    for rec in records:
-        ida = (rec.get('ida') or '').strip()
-        if not ida:
-            errors.append(f"GL account missing ida: name={rec.get('name', '?')}")
-            continue
-        # ida is the sole account identifier (apps/accounts/services/chart.py).
-        if GlAccount.objects.filter(ida=ida).exists():
-            updated += 1
-            continue
-        if dry_run:
-            created += 1
-            continue
-        kwargs: dict[str, Any] = {'ida': ida}
-        if rec.get('uuid'):
-            kwargs['uuid'] = rec['uuid']
-        for field in GL_ACCOUNT_FIELDS:
-            if field in rec and rec[field] is not None:
-                kwargs[field] = rec[field]
-        kwargs['config'] = rec.get('config') or {}
-        kwargs['metadata'] = {**(rec.get('metadata') or {}), 'foundational': True}
-        try:
-            GlAccount.objects.create(**kwargs)
-            created += 1
-        except Exception as exc:
-            errors.append(f'GL account {ida}: {exc}')
-
-    return {'created': created, 'updated': updated, 'errors': errors}
 
 
 def load_bundle(bundle: dict, *, dry_run: bool = False) -> dict[str, Any]:
-    """Load a recommended set. Baseline merge — the owner's values stand."""
-    from apps.core.services.setting_bootstrap import import_settings_bundle
+    """Load a recommended set. Baseline merge — the owner's values stand.
 
-    settings_recs = bundle.get('settings') or []
-    reports_recs = bundle.get('reports') or []
-    gl_recs = bundle.get('gl_accounts') or []
+    The chart goes in before the reports and the role map that point into it,
+    which is why BUNDLE_PARTS is ordered.
+    """
+    from apps.core.services.record_import import import_records
 
-    if dry_run:
-        from apps.core.models.setting import Setting
-        keyed = [r for r in settings_recs if r.get('uuid')]
-        s_created = sum(1 for r in keyed if not Setting.objects.filter(uuid=r['uuid']).exists())
-        s_result = {'created': s_created, 'updated': len(keyed) - s_created, 'errors': []}
-    else:
-        # The recommended set is the authority on foundational records.
-        s_result = import_settings_bundle(settings_recs, force_foundational=True)
-
-    # The chart goes in before the reports and the role map that point into it.
-    g_result = load_gl_accounts(gl_recs, dry_run=dry_run)
-    r_result = load_reports(reports_recs, dry_run=dry_run)
-
-    return {
-        'settings': {'created': s_result.get('created', 0),
-                     'updated': s_result.get('updated', 0)},
-        'reports': {'created': r_result['created'], 'updated': r_result['updated']},
-        'gl_accounts': {'created': g_result['created'], 'updated': g_result['updated']},
-        'errors': (list(s_result.get('errors') or [])
-                   + g_result['errors'] + r_result['errors']),
-    }
+    result: dict[str, Any] = {'errors': []}
+    for key, model_label in BUNDLE_PARTS:
+        records = bundle.get(key) or []
+        part = import_records(
+            model_label, records,
+            match_on=('uuid',),
+            authoritative=True,      # the recommended set owns foundational records
+            dry_run=dry_run,
+        )
+        result[key] = {'created': part['created'], 'updated': part['updated']}
+        result['errors'].extend(part['errors'])
+    return result
 
 
 # ------------------------------------------------------------- self-healing

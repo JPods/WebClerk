@@ -16,7 +16,7 @@ Actions:
     get_inventory_yearly_summary — yearly inventory usage and valuation summary
     get_report_registry — list the reports this installation can run
     execute_report — execute a report by report_key and params
-    export_report — export report output as csv/json content
+    export_report — export report output as JSON
   Pricing Engine:
     resolve_price              — resolve effective unit price for item (contract→level→base→floor)
     get_price_matrix           — return all price levels and qty breaks for UI grid
@@ -463,7 +463,7 @@ def _execute_report(params: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _export_report(params: Dict[str, Any]) -> Dict[str, Any]:
-    """Export report output as csv/json string content."""
+    """Export report output as JSON."""
     from apps.core.services.report_registry import export_report
 
     return export_report(params)

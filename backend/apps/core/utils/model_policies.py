@@ -102,7 +102,7 @@ SYSTEM_ONLY_FIELDS = frozenset({
 PASSTHROUGH_CONTROL_KEYS = frozenset({"_dirty", "_delete", "_new", "_index"})
 
 PASSTHROUGH_KEYS = frozenset({
-    "model_name", "id", "version", "expected_version", "bulk", "lines", "password",
+    "model_name", "id", "version", "bulk", "lines", "password",
 })
 
 

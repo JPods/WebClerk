@@ -235,7 +235,6 @@ class SaveWcapiView(APIView):
                 'model_name': serializers.CharField(),
                 'id': serializers.IntegerField(required=False),
                 'version': serializers.IntegerField(required=False),
-                'expected_version': serializers.IntegerField(required=False),
                 # arbitrary model fields accepted; unknown fields may be captured into prefs.userdefined
             }
         ),
@@ -503,26 +502,11 @@ class SaveWcapiView(APIView):
                         error={'code': 'saved_search_admin_required'},
                     )
 
-        # Concurrency: If-Match header > body.version > expected_version (deprecated)
-        header_if_match = request.META.get('HTTP_IF_MATCH')
-        body_version = coerce_int(data.get('version'))
-        legacy_expected = coerce_int(data.get('expected_version'))
-        deprecation_flag = False
-        expected_version = None
-        if header_if_match:
-            header_raw = header_if_match.strip()
-            if header_raw == '*':
-                expected_version = None
-            elif header_raw.isdigit():
-                expected_version = int(header_raw)
-            else:
-                console_logger.error(f"[SAVE_VIEW] Malformed If-Match header: {header_raw}")
-                return api_response(success=False, status_code=400, message='Malformed If-Match header', error={'code':'if_match_malformed','details': header_raw})
-        elif body_version is not None:
-            expected_version = body_version
-        elif legacy_expected is not None:
-            expected_version = legacy_expected
-            deprecation_flag = True
+        # Concurrency: the version on the record the caller is editing.
+        # The If-Match header and the `expected_version` body field were WC2's
+        # mechanism and are gone (Bill, 2026-09-20). uuid/dt/pending is the model;
+        # version is the one input, so there is no precedence order to get wrong.
+        expected_version = coerce_int(data.get('version'))
 
         record_id = data.get('id')
         # If id not found in data, check query params
@@ -549,7 +533,7 @@ class SaveWcapiView(APIView):
         # Create or update — wrapped in transaction.atomic for data integrity.
         # All saves (parent + lines) succeed or fail together.
         try:
-            return self._save_record(request, model_cls, model_key, norm_key, data, record_id, expected_version, deprecation_flag)
+            return self._save_record(request, model_cls, model_key, norm_key, data, record_id, expected_version)
         except IntegrityError as e:
             console_logger.error(f"[SAVE_VIEW] Integrity error during save: {e}")
             return api_response(success=False, status_code=400, message='Integrity error', error={'code':'integrity_error','details': str(e)})
@@ -624,7 +608,7 @@ class SaveWcapiView(APIView):
             )
 
     @transaction.atomic
-    def _save_record(self, request, model_cls, model_key, norm_key, data, record_id, expected_version, deprecation_flag):
+    def _save_record(self, request, model_cls, model_key, norm_key, data, record_id, expected_version):
         is_update = bool(record_id)
         if is_update:
             console_logger.debug(f"[SAVE_VIEW] Loading existing record with ID: {record_id}")
@@ -1152,10 +1136,6 @@ class SaveWcapiView(APIView):
         if post_hook_note:
             console_logger.debug(f"[SAVE_VIEW] Adding post hook note to messages: {post_hook_note}")
             messages.append(post_hook_note)
-        if deprecation_flag:
-            console_logger.debug(f"[SAVE_VIEW] Adding deprecation warning to messages")
-            messages.append("'expected_version' is deprecated; use 'version' or If-Match header")
-            logging.getLogger(__name__).warning("Deprecated expected_version field used in save payload for %s", model_key)
         if messages:
             payload['messages'] = messages
             console_logger.debug(f"[SAVE_VIEW] Response will include {len(messages)} messages")

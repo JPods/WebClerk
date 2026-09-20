@@ -14,8 +14,6 @@ yet. See apps/core/services/installation_init.py.
 """
 from __future__ import annotations
 
-import csv
-import io
 import json
 import uuid
 from datetime import datetime, timezone
@@ -237,45 +235,19 @@ def execute_report(params: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _rows_to_csv(rows: list[dict[str, Any]], columns: list[str] | None = None) -> str:
-    if not rows:
-        selected_columns = columns or []
-    else:
-        if columns:
-            selected_columns = columns
-        else:
-            ordered_keys: list[str] = []
-            seen: set[str] = set()
-            for row in rows:
-                for key in row.keys():
-                    if key not in seen:
-                        seen.add(key)
-                        ordered_keys.append(key)
-            selected_columns = ordered_keys
-
-    out = io.StringIO()
-    writer = csv.DictWriter(out, fieldnames=selected_columns, extrasaction="ignore")
-    writer.writeheader()
-    for row in rows:
-        flat_row = {}
-        for key in selected_columns:
-            value = row.get(key)
-            if isinstance(value, (dict, list)):
-                flat_row[key] = json.dumps(value, separators=(",", ":"))
-            else:
-                flat_row[key] = value
-        writer.writerow(flat_row)
-    return out.getvalue()
-
-
 def export_report(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Export a report's output as JSON.
+
+    JSON, and only JSON (Bill, 2026-09-20). A report's result is a nested thing —
+    rows, totals, the period it covers, which models were missing — and CSV could
+    carry none of that: it flattened the nesting to a JSON string inside a cell and
+    dropped everything that was not a row. The export is the report, whole.
+
+    `columns`, when given, narrows each row. It does not flatten anything.
+    """
     report_key = str(params.get("report_key") or "").strip()
     if not report_key:
         raise ValueError("report_key is required")
-
-    export_format = str(params.get("format") or "csv").strip().lower()
-    if export_format not in {"csv", "json"}:
-        raise ValueError("format must be 'csv' or 'json'")
 
     report_params = params.get("report_params")
     if report_params is None:
@@ -292,20 +264,21 @@ def export_report(params: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(rows, list):
         rows = []
 
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    if export_format == "json":
-        content = json.dumps(result, indent=2, sort_keys=False)
-        filename = f"{report_key}_{stamp}.json"
+    if columns:
+        wanted = [str(c) for c in columns]
+        payload = dict(result) if isinstance(result, dict) else {"result": result}
+        payload["rows"] = [{k: r.get(k) for k in wanted}
+                           for r in rows if isinstance(r, dict)]
     else:
-        csv_rows = [r for r in rows if isinstance(r, dict)]
-        safe_columns = [str(c) for c in columns] if isinstance(columns, list) else None
-        content = _rows_to_csv(csv_rows, columns=safe_columns)
-        filename = f"{report_key}_{stamp}.csv"
+        payload = result
+
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    content = json.dumps(payload, indent=2, sort_keys=False, default=str)
 
     return {
         "report_key": report_key,
-        "format": export_format,
-        "filename": filename,
+        "format": "json",
+        "filename": f"{report_key}_{stamp}.json",
         "row_count": len(rows),
         "content": content,
     }
