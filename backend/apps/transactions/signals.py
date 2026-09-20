@@ -229,8 +229,12 @@ def register_line_totals_signals(line_model, parent_attr: str):
     """
 
     def _recalc(parent):
-        """The one totals engine. Receipts are not transaction-base models, so they
-        have no update_sell_cost_totals; the engine is called directly."""
+        """The one totals engine.
+
+        Receipt inherits the transaction base as of migration 0032, so it has
+        update_sell_cost_totals like every other header and takes the first branch. The
+        fallback stays for any parent that does not.
+        """
         if hasattr(parent, 'update_sell_cost_totals'):
             parent.update_sell_cost_totals(persist=True)
         else:
@@ -398,7 +402,11 @@ def register_header_finance_recompute(header_model):
             instance.update_sell_cost_totals(persist=True)
 
 
-for _header_model in (Quote, Order, Invoice, Purchase, WorkOrder):
+# Receipt included since 2026-09-20: its landed cost (allocations.freight / duty /
+# handling / vat) is a header input, and without this signal entering it changed nothing.
+# The line signal below was already wired, so touching any line corrected the total — which
+# is how the defect hid: the money was right whenever anything else happened to be saved.
+for _header_model in (Quote, Order, Invoice, Purchase, WorkOrder, Receipt):
     register_header_finance_recompute(_header_model)
 
 

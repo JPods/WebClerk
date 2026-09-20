@@ -149,6 +149,12 @@ TRANSACTION_HEADERS = ('order', 'invoice', 'quote', 'purchase', 'receipt',
                        'requisition', 'workorder')
 TRANSACTION_LINES = tuple(f'{m}_line' for m in TRANSACTION_HEADERS)
 
+#: The most rows one payload may carry in a single collection. A caller with more than
+#: this is refused before any of it is walked or saved: a positive list cannot bound a
+#: payload's size, only its shape. Matches refs/policy.max_items_per_kind.
+#: Depth is bounded separately by schemas.envelopes.JSON_MAX_DEPTH.
+COLLECTION_MAX_ROWS = 500
+
 # Known keys of open maps. path → keys. An unnamed key is not a leaf.
 OPEN_MAP_KEYS: dict[str, list[str]] = {}
 
@@ -305,19 +311,57 @@ def _model_leaves(model_key: str) -> dict:
             continue
         walk_schema(cls, f.name, leaves, open_maps, opaque=opaque)
 
-    # A transaction's lines are rows of the line model, served under "lines".
-    if model_key in TRANSACTION_HEADERS:
-        line = model_leaves(f'{model_key}_line')
-        leaves.update(f'lines.{p}' for p in line['leaves'])
-        opaque.update(f'lines.{p}' for p in line['opaque'])
-        open_maps.update(f'lines.{p}' for p in line['open_maps'])
-        missing.extend(f'lines.{p}' for p in line['missing_schemas'])
+    # A collection carries the child model's leaves under its own key: a transaction's
+    # lines are rows of the line model, served under "lines". Declared in collections(),
+    # which the save walker reads too, so neither can drift from the other.
+    for _key, (_child, _max_rows) in collections(model_key).items():
+        child = model_leaves(_child)
+        leaves.update(f'{_key}.{p}' for p in child['leaves'])
+        opaque.update(f'{_key}.{p}' for p in child['opaque'])
+        open_maps.update(f'{_key}.{p}' for p in child['open_maps'])
+        missing.extend(f'{_key}.{p}' for p in child['missing_schemas'])
     return {
         'leaves': frozenset(leaves),
         'opaque': frozenset(opaque),
         'missing_schemas': tuple(missing),
         'open_maps': tuple(sorted(open_maps)),
     }
+
+
+def collections(model_key: str) -> dict[str, tuple[str, int]]:
+    """The collections this model accepts as objects: payload key → (child model, max rows).
+
+    Bill, 2026-09-20: *"We will constantly use lines as objects in parents. So our solution
+    should be generic... We can narrowly define what objects can be accepted as objects. To
+    address malicious behavior we can limit their size."*
+
+    One declaration, two readers. ``model_leaves`` builds the child's leaves under the key
+    (``lines.quantity.ordered``), and the save walker knows which lists to walk into. They
+    cannot drift, because there is nothing to keep in sync.
+
+    **Narrow.** A list under any key not named here is a value, not a collection: it stays a
+    leaf, and a leaf no role enumerates is refused. An undeclared collection fails closed.
+
+    **Bounded.** Each entry carries its own row cap. Shape is what an enumeration can
+    govern; size is not, so size is declared beside it.
+
+    To accept a new collection, add it here. Nothing else changes.
+
+    **``data`` is reserved and may never be a collection key** (Bill, 2026-09-20). It
+    already means four things: DRF's request body, the response envelope, a legacy nested
+    payload, and a model column that became ``config``. A collection named ``data`` would
+    reach save_view's legacy unwrapping (``save_view.py:335``) and be merged into the
+    record as fields — the rows silently flattened. Name the thing, not the container.
+    """
+    key = canonical_key(model_key)
+    if key in TRANSACTION_HEADERS:
+        return {'lines': (f'{key}_line', COLLECTION_MAX_ROWS)}
+    return {}
+
+
+#: Payload keys a collection may never be called, because something else already
+#: unwraps or claims them before the walker ever sees the payload.
+RESERVED_COLLECTION_KEYS = frozenset({'data', 'record', 'options'})
 
 
 def is_leaf(model_key: str, path: str) -> bool:

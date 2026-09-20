@@ -126,25 +126,73 @@ TRANSACTION_MODELS_WITH_LINES = {
 _PORTAL_ORDER_MODELS = {"order", "quote"}
 
 
-def _leaf_paths(payload, prefix: str = "") -> set:
+def _leaf_paths(payload, prefix: str = "", collections: frozenset = frozenset()) -> set:
     """Every leaf path in a payload, dotted — the shape the enumeration speaks.
 
     ``{"totals": {"total": 10}}`` → ``{"totals.total"}``. A nested envelope is walked to
     its leaves because that is how access lists are written: "every path is a leaf"
     (access.py, Bill 2026-09-18).
+
+    **A declared collection is walked too, with no index.** ``lines`` is not a leaf; it is
+    a collection, and the enumeration already names what is inside it —
+    ``lines.item.item_id``, ``lines.quantity.active`` (access.PORTAL_ORDER_FIELDS). Every
+    element contributes its leaves under the one prefix, so a role is granted a line field
+    once rather than per row. Walking only dicts left the bare key ``lines`` offered, which
+    no list names and none should: the screen's save was refused for every role.
+
+    ``collections`` is the set of keys this model accepts as objects, from
+    ``field_leaves.collections`` — the same declaration the leaf map builds those paths
+    from. **A list under any other key stays a leaf**, so an undeclared collection is
+    offered as a bare key, named by no role, and refused. Fails closed.
     """
     out = set()
     for key, value in (payload or {}).items():
         path = f"{prefix}{key}"
         if isinstance(value, dict) and value:
             out |= _leaf_paths(value, f"{path}.")
+        elif not prefix and key in collections and isinstance(value, list):
+            for element in value:
+                if isinstance(element, dict):
+                    out |= _leaf_paths(element, f"{path}.")
         else:
             out.add(path)
     return out
 
 
+def _collection_too_large(model_name: str, payload: dict):
+    """The one refusal an enumeration cannot make.
+
+    A positive list governs a payload's *shape* — which fields it may carry. It says
+    nothing about its *size*, so a caller may name only permitted fields and still send
+    a hundred thousand rows. Each collection declares its own cap beside it
+    (``field_leaves.collections``), and this is checked before anything is walked or saved.
+
+    Returns a message, or None. Kept separate from ``_not_enumerated`` deliberately: a
+    caller sending too many rows has a different problem from one naming a field it may
+    not write, and telling them the same thing wastes both their time.
+    """
+    from apps.core.services import field_leaves
+
+    for key, (_child, max_rows) in field_leaves.collections(model_name).items():
+        value = (payload or {}).get(key)
+        if isinstance(value, list) and len(value) > max_rows:
+            return (f"{key}: {len(value)} rows exceeds the {max_rows} this model accepts "
+                    f"in one save")
+    return None
+
+
 #: Keys a client always sends that name the record rather than change it.
 _IDENTITY_KEYS = frozenset({"id", "pk", "uuid", "ida", "model_name", "parent_model", "version"})
+
+#: Keys that belong to the request envelope or the client's own bookkeeping, not to any
+#: record. They are not fields, so the enumeration has nothing to say about them and a
+#: positive list may not name them. ``options`` carries verify_calculations and
+#: save_only_dirty; ``_dirty`` is the screen's marker for which lines it touched
+#: (``saveTransactionWithLines``, frontend/src/api/wcapi.ts).
+_ENVELOPE_KEYS = frozenset({"options", "_dirty"})
+
+#: Everything that is not a field of the record being saved.
+_NOT_A_FIELD = _IDENTITY_KEYS | _ENVELOPE_KEYS
 
 
 def _not_enumerated(user, model_name: str, payload: dict, prefix: str = "") -> list:
@@ -154,7 +202,7 @@ def _not_enumerated(user, model_name: str, payload: dict, prefix: str = "") -> l
     edit this thing", an enumeration answers "which parts of it". The block's ``edit``
     list is already set-expanded by access.resolve_roles, so it is the list itself.
     """
-    from apps.core.services import access
+    from apps.core.services import access, field_leaves
 
     block = access.block_for(user, model_name)
     if block is None:
@@ -162,11 +210,13 @@ def _not_enumerated(user, model_name: str, payload: dict, prefix: str = "") -> l
     allowed = set(block.get("edit") or [])
     if not allowed:
         return []                       # nothing editable is also the caller's business
-    offered = {f"{prefix}{p}" for p in _leaf_paths(payload) - _IDENTITY_KEYS}
+    accepted = frozenset(field_leaves.collections(model_name))
+    offered = {f"{prefix}{p}"
+               for p in _leaf_paths(payload, collections=accepted) - _NOT_A_FIELD}
     return sorted(p for p in offered
                   if p not in allowed
-                  and p.rsplit(".", 1)[-1] not in _IDENTITY_KEYS
-                  and p.split(".")[0] not in _IDENTITY_KEYS)
+                  and p.rsplit(".", 1)[-1] not in _NOT_A_FIELD
+                  and p.split(".")[0] not in _NOT_A_FIELD)
 
 
 def _transaction_save_denial(request, model_key: str, record_data: dict, lines_data: list):
@@ -200,6 +250,17 @@ def _transaction_save_denial(request, model_key: str, record_data: dict, lines_d
         ).filter(pk=record_id).exists()
         if not visible or not config.get("edit"):
             return status.HTTP_403_FORBIDDEN, f"Not permitted to edit this {model_key}"
+
+    # Size before shape. An enumeration governs which fields a payload may carry and can
+    # say nothing about how many rows it carries, so the cap is checked first — before
+    # anything is walked, re-priced or saved (Bill, 2026-09-20: "To address malicious
+    # behavior we can limit their size").
+    # Both shapes: /wcapi/save/ carries the collection inside the record, and
+    # /wcapi/transaction/save/ passes it beside the record as its own argument.
+    oversize = (_collection_too_large(model_key, record_data)
+                or _collection_too_large(model_key, {'lines': lines_data or []}))
+    if oversize:
+        return status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, oversize
 
     # Field-level enforcement. The checks above answer "may this role edit this model"
     # and "may they see this row" — both filters. Neither says which fields, so this

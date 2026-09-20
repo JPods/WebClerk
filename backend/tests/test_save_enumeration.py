@@ -100,6 +100,147 @@ def test_a_payload_is_flattened_to_the_leaves_the_list_speaks():
         'totals.total', 'totals.tax', 'status'}
 
 
+def test_a_collection_of_child_records_is_walked_not_offered_as_one_leaf():
+    """``lines`` is a collection, not a leaf.
+
+    The walker recursed into dicts only, so a list fell through and the bare key ``lines``
+    was offered — a path no role names and none should. The screen's save was refused for
+    every role. The enumeration has always spoken ``lines.item.item_id``; nothing produced
+    that path from a real payload.
+    """
+    paths = _leaf_paths({'status': 'open',
+                         'lines': [{'item': {'item_id': 5}, 'quantity': {'active': 2}}]},
+                        collections=frozenset({'lines'}))
+
+    assert paths == {'status', 'lines.item.item_id', 'lines.quantity.active'}
+    assert 'lines' not in paths
+
+
+def test_a_line_field_is_named_once_not_once_per_row():
+    """No index: a role is granted ``lines.price.unit``, not ``lines.0.price.unit``."""
+    paths = _leaf_paths({'lines': [{'price': {'unit': 1}},
+                                   {'price': {'unit': 2}},
+                                   {'quantity': {'active': 9}}]},
+                        collections=frozenset({'lines'}))
+
+    assert paths == {'lines.price.unit', 'lines.quantity.active'}
+
+
+def test_only_a_declared_collection_is_walked():
+    """Bill, 2026-09-20: *"We can narrowly define what objects can be accepted as objects."*
+
+    ``lines`` is declared on transaction headers. Anything else a caller sends as a list of
+    objects stays a leaf — named by no role, therefore refused. Undeclared fails closed.
+    """
+    payload = {'lines': [{'price': {'unit': 1}}],
+               'widgets': [{'price': {'unit': 2}}]}
+
+    walked = _leaf_paths(payload, collections=frozenset({'lines'}))
+
+    assert 'lines.price.unit' in walked
+    assert 'widgets' in walked              # offered whole, so no role names it
+    assert 'widgets.price.unit' not in walked
+
+
+def test_the_collection_declaration_is_what_the_leaf_map_builds_from():
+    """One declaration, two readers — they cannot drift, because there is nothing to sync."""
+    from apps.core.services import field_leaves
+
+    declared = field_leaves.collections('order')
+
+    assert 'lines' in declared
+    child, max_rows = declared['lines']
+    assert child == 'order_line'
+    assert max_rows == field_leaves.COLLECTION_MAX_ROWS
+    # and the leaf map carries that child's leaves under that key
+    assert any(p.startswith('lines.') for p in field_leaves.model_leaves('order')['leaves'])
+    # a model with no collection declares none
+    assert field_leaves.collections('contact') == {}
+
+
+def test_no_collection_is_named_data_or_any_other_claimed_key():
+    """Bill, 2026-09-20: *"I think our collections should be named something other
+    than .data."*
+
+    ``data`` already means DRF's request body, the response envelope, a legacy nested
+    payload, and a model column that became ``config``. A collection called ``data`` would
+    reach save_view's legacy unwrapping and be merged into the record as fields — the rows
+    silently flattened into the header. Same for ``record`` and ``options``, which the
+    envelope claims first. This asserts it for every model that declares a collection, so
+    the next one cannot reintroduce it.
+    """
+    from apps.core.services import field_leaves
+
+    for model_key in field_leaves.TRANSACTION_HEADERS:
+        for payload_key in field_leaves.collections(model_key):
+            assert payload_key not in field_leaves.RESERVED_COLLECTION_KEYS, (
+                f"{model_key} declares a collection named '{payload_key}', which the "
+                f"request envelope claims before the walker sees it")
+
+
+def test_a_collection_has_a_size_the_enumeration_cannot_give_it():
+    """A positive list governs shape, never volume: a caller may name only permitted
+    fields and still send a hundred thousand rows."""
+    from apps.core.services import field_leaves
+    from apps.transactions.views.wcapi import _collection_too_large
+
+    cap = field_leaves.COLLECTION_MAX_ROWS
+
+    assert _collection_too_large('order', {'lines': [{} for _ in range(cap)]}) is None
+    too_many = _collection_too_large('order', {'lines': [{} for _ in range(cap + 1)]})
+    assert too_many and str(cap) in too_many
+    # a model that declares no collection has nothing to cap
+    assert _collection_too_large('contact', {'lines': [{} for _ in range(cap + 1)]}) is None
+
+
+def test_a_list_of_scalars_is_a_value_not_a_collection():
+    """Only a list of records is walked. A scalar list stays a leaf, so it stays governed —
+    and an empty list stays a leaf too, deliberately: nothing in it says which collection it
+    meant to be, and a refusal is visible where a silent pass is not."""
+    assert _leaf_paths({'tags': ['a', 'b']}) == {'tags'}
+    assert _leaf_paths({'lines': []}) == {'lines'}
+
+
+@pytest.mark.django_db
+def test_the_screens_own_save_payload_is_enumerated_line_by_line(django_user_model, order_policy):
+    """The shape ``saveTransactionWithLines`` sends, after save_view merges ``record`` up.
+
+    This is the payload that was refused 403 for every role. The test above it passed the
+    whole time because it handed a *single line dict* to ``prefix='lines.'`` — the caller
+    convention, not the path production takes.
+    """
+    customer = _login(django_user_model, 'cust2@example.fake', 'customer')
+
+    assert _not_enumerated(customer, 'order', {
+        'id': 7, 'model_name': 'order', 'attention': 'ring the bell',
+        'lines': [{'id': 1, 'quantity': {'active': 3}, '_dirty': True}],
+        'options': {'verify_calculations': False, 'save_only_dirty': False},
+    }) == []
+
+
+@pytest.mark.django_db
+def test_a_line_field_outside_the_list_is_still_refused(django_user_model, order_policy):
+    """Walking the collection must not become a grant of the whole collection."""
+    customer = _login(django_user_model, 'cust3@example.fake', 'customer')
+
+    assert _not_enumerated(customer, 'order', {
+        'lines': [{'quantity': {'active': 3}}, {'price': {'unit': 1.00}}],
+    }) == ['lines.price.unit']
+
+
+@pytest.mark.django_db
+def test_the_request_envelope_is_not_a_field(django_user_model, order_policy):
+    """``options`` names the request and ``_dirty`` is the screen's own bookkeeping.
+    Neither is a field of any record, so a positive list may not name them."""
+    warehouse = _login(django_user_model, 'wh4@example.fake', 'warehouse')
+
+    assert _not_enumerated(warehouse, 'order', {
+        'status': 'released',
+        'options': {'verify_calculations': True, 'save_only_dirty': True},
+        'lines': [{'_dirty': True}],
+    }) == []
+
+
 def test_the_portal_fields_are_named_in_the_setting_not_in_a_view():
     """They were a tuple in apps/transactions/views/wcapi.py — so the one place that says
     what a role may write did not say it."""
