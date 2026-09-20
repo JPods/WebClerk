@@ -123,8 +123,50 @@ TRANSACTION_MODELS_WITH_LINES = {
 }
 
 # Header fields a portal customer may supply; everything else is set by the server.
-_PORTAL_HEADER_FIELDS = ("attention", "notes", "comments", "dt_needed", "ship_via", "purpose")
 _PORTAL_ORDER_MODELS = {"order", "quote"}
+
+
+def _leaf_paths(payload, prefix: str = "") -> set:
+    """Every leaf path in a payload, dotted — the shape the enumeration speaks.
+
+    ``{"totals": {"total": 10}}`` → ``{"totals.total"}``. A nested envelope is walked to
+    its leaves because that is how access lists are written: "every path is a leaf"
+    (access.py, Bill 2026-09-18).
+    """
+    out = set()
+    for key, value in (payload or {}).items():
+        path = f"{prefix}{key}"
+        if isinstance(value, dict) and value:
+            out |= _leaf_paths(value, f"{path}.")
+        else:
+            out.add(path)
+    return out
+
+
+#: Keys a client always sends that name the record rather than change it.
+_IDENTITY_KEYS = frozenset({"id", "pk", "uuid", "ida", "model_name", "parent_model", "version"})
+
+
+def _not_enumerated(user, model_name: str, payload: dict, prefix: str = "") -> list:
+    """Paths in this payload that the role's edit enumeration does not name.
+
+    Access is an enumeration, not a filter (Bill, 2026-09-20): a filter answers "may you
+    edit this thing", an enumeration answers "which parts of it". The block's ``edit``
+    list is already set-expanded by access.resolve_roles, so it is the list itself.
+    """
+    from apps.core.services import access
+
+    block = access.block_for(user, model_name)
+    if block is None:
+        return []                       # no block at all is handled by the caller
+    allowed = set(block.get("edit") or [])
+    if not allowed:
+        return []                       # nothing editable is also the caller's business
+    offered = {f"{prefix}{p}" for p in _leaf_paths(payload) - _IDENTITY_KEYS}
+    return sorted(p for p in offered
+                  if p not in allowed
+                  and p.rsplit(".", 1)[-1] not in _IDENTITY_KEYS
+                  and p.split(".")[0] not in _IDENTITY_KEYS)
 
 
 def _transaction_save_denial(request, model_key: str, record_data: dict, lines_data: list):
@@ -159,6 +201,24 @@ def _transaction_save_denial(request, model_key: str, record_data: dict, lines_d
         if not visible or not config.get("edit"):
             return status.HTTP_403_FORBIDDEN, f"Not permitted to edit this {model_key}"
 
+    # Field-level enforcement. The checks above answer "may this role edit this model"
+    # and "may they see this row" — both filters. Neither says which fields, so this
+    # endpoint used to accept any header field once edit was true, while /wcapi/save/
+    # allowed only what the enumeration named (Bite 1 finding, fixed 2026-09-20).
+    denied = _not_enumerated(user, model_key, record_data)
+    if denied:
+        return (status.HTTP_403_FORBIDDEN,
+                f"Not permitted to write on {model_key}: {', '.join(denied[:8])}"
+                + (f" (+{len(denied) - 8} more)" if len(denied) > 8 else ""))
+    # A line's permissions live on the header's block, prefixed "lines." — that is how
+    # the Settings are written (sales holds 189 lines.* paths of its 469 on order).
+    for line in (lines_data or []):
+        denied = _not_enumerated(user, model_key, line, prefix="lines.")
+        if denied:
+            return (status.HTTP_403_FORBIDDEN,
+                    f"Not permitted to write on {model_key} lines: {', '.join(denied[:8])}"
+                    + (f" (+{len(denied) - 8} more)" if len(denied) > 8 else ""))
+
     context = build_user_context(user)
     if not access.is_portal(user) or record_id or model_key not in _PORTAL_ORDER_MODELS:
         return None
@@ -168,7 +228,11 @@ def _transaction_save_denial(request, model_key: str, record_data: dict, lines_d
         return status.HTTP_403_FORBIDDEN, "No customer account is linked to this login"
     customer_id = customer_ids[0]
 
-    safe_header = {k: record_data[k] for k in _PORTAL_HEADER_FIELDS if k in record_data}
+    # The portal role's own enumeration decides what survives — not a tuple in a view.
+    from apps.core.services import access as _access
+    portal_block = _access.block_for(user, model_key) or {}
+    portal_allowed = {p.split(".")[0] for p in (portal_block.get("edit") or [])}
+    safe_header = {k: v for k, v in record_data.items() if k in portal_allowed}
     record_data.clear()
     record_data.update(safe_header, customer_id=customer_id, contact_id=user.pk, status="planned")
 

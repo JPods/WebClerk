@@ -61,6 +61,12 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		help_text="Primary contact id (value, not FK — no cascade)")
 
 	attention = models.CharField(max_length=255, blank=True, null=True)  # optional attention line for mailing
+	# Rep assignment (Bill, 2026-09-20). A value, not a ForeignKey: a rep org is a
+	# reference, and deleting one must never cascade into the customers it served.
+	rep_id = models.BigIntegerField(null=True, blank=True, db_index=True,
+		help_text="Rep org assigned to this customer")
+	attention_rep = models.CharField(max_length=255, blank=True, null=True,
+		help_text="The person at the rep, as attention names the person at the org")
 	address_id = models.IntegerField(blank=True, null=True)  # optional FK to an Address record for the primary address
 	email = models.EmailField(blank=True, null=True)  # optional primary email (could be denormalized from emails aspect)
 	email_id = models.IntegerField(blank=True, null=True)  # optional FK to an Email record for the primary email

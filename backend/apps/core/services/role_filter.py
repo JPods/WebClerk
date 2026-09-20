@@ -109,6 +109,7 @@ def build_user_context(user: AbstractUser) -> dict:
             "vendor": [],
             "manufacturer": [],
             "employee": [],
+            "rep": [],
         },
         "roles": [],
         "is_superuser": user.is_superuser,
@@ -119,7 +120,10 @@ def build_user_context(user: AbstractUser) -> dict:
     role = access.user_role(user)
     context["roles"] = [role] if role else []
     links = ((getattr(user, 'refs', None) or {}).get('links') or {})
-    for org_type in ("customer", "vendor", "manufacturer", "employee"):
+    # 'rep' joined these on 2026-09-20: a rep is staff, and their rows are the customers
+    # and documents assigned to their rep org (contacts.rep_id). Without it there was no
+    # token a rep's scope could be written against.
+    for org_type in ("customer", "vendor", "manufacturer", "employee", "rep"):
         ids = []
         fk_id = getattr(user, f"{org_type}_id", None)
         if fk_id:

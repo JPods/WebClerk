@@ -42,8 +42,12 @@ logger = logging.getLogger(__name__)
 # The role vocabulary (Bill, 2026-09-18). Portal roles are people outside the
 # company; their writes are rewritten server-side where the model requires it.
 STAFF_ROLES = ('superuser', 'admin', 'accounting', 'sales', 'production',
-               'warehouse', 'employee', 'agent')
-PORTAL_ROLES = ('rep', 'customer', 'buyer', 'vendor', 'manufacturer')
+               'warehouse', 'employee', 'agent', 'rep')
+#: People outside the company. A rep is not one of them (Bill, 2026-09-20: "Reps need to
+#: behave like staff"): a rep sells on the company's behalf, and being counted as portal
+#: meant the order-creation path rewrote their payload against org_ids.customer — which a
+#: rep's org does not have, so a rep could not raise an order at all.
+PORTAL_ROLES = ('customer', 'buyer', 'vendor', 'manufacturer')
 ROLES = STAFF_ROLES + PORTAL_ROLES
 # Values contact.role may hold. 'user' means a contact with no login access.
 LOGIN_ROLES = tuple(r for r in ROLES if r != 'superuser') + ('user',)
@@ -184,6 +188,18 @@ def clear_cache(name: Optional[str] = None) -> None:
 ACCOUNTING_MODELS = frozenset({'cash', 'ledger', 'gl_account', 'gl_journal', 'journal_batch',
                                'currency', 'term', 'tax_jurisdiction'})
 
+#: Documents a portal customer may raise for themselves, and the fields they may fill.
+#: Not every portal role: 'rep' carries a broader grant of its own, and vendor and
+#: manufacturer do not raise customer orders.
+PORTAL_ORDER_ROLES = ('customer', 'buyer')
+PORTAL_ORDER_MODELS = frozenset({'order', 'quote'})
+#: 'notes' and 'comments' were in the tuple this replaced. Neither belongs: notes is not
+#: a field of any model (Bill, 2026-09-20: "There should be no notes field or object.
+#: Only comments"), and comments is a parent path whose leaves are comments.general.*,
+#: which a positive list may not name.
+PORTAL_ORDER_FIELDS = ('attention', 'dt_needed', 'ship_via', 'purpose',
+                       'lines.item.item_id', 'lines.quantity.active')
+
 
 def default_access(key: str) -> dict:
     """The access a new install starts with for one model.
@@ -199,8 +215,23 @@ def default_access(key: str) -> dict:
     agent = dict(full, delete=False)
     if key in ACCOUNTING_MODELS:
         agent.update(edit=[], create=False)
-    return {'sets': {'all': leaves},
-            'roles': {'superuser': full, 'admin': dict(full), 'agent': agent}}
+    roles = {'superuser': full, 'admin': dict(full), 'agent': agent}
+    if key in PORTAL_ORDER_MODELS:
+        # What a portal customer may put on their own order. This lived as a tuple in
+        # apps/transactions/views/wcapi.py, which meant the one place that says what a
+        # role may write did not say it (Bill, 2026-09-20: the list is an enumeration in
+        # a Setting record). Everything else on the document is set by the server.
+        # Not '@all': that expands to every leaf including the opaque (untyped) ones,
+        # which never go outside the company — validate_access refuses it, so a new
+        # install would not seed. A portal role starts able to see exactly what it may
+        # fill; anything more is an admin's deliberate grant.
+        portal_fields = [p for p in PORTAL_ORDER_FIELDS if p in leaves]
+        portal = {'view': list(portal_fields), 'edit': list(portal_fields),
+                  'scope': {'customer_id__in': '$user.org_ids.customer'},
+                  'create': True, 'delete': False}
+        for role in PORTAL_ORDER_ROLES:
+            roles[role] = dict(portal)
+    return {'sets': {'all': leaves}, 'roles': roles}
 
 
 # ── Validation ──────────────────────────────────────────────────────────
