@@ -21,7 +21,6 @@ from django.dispatch import receiver
 from apps.transactions.models import (
     QuoteLine, OrderLine, InvoiceLine, PurchaseLine, WorkOrderLine,
     Quote, Order, Invoice, Cash, Purchase, WorkOrder, Receipt, ReceiptLine,
-    WorkOrderCompletion,
 )
 from apps.transactions.services.notify_email import TransactionEmailService
 
@@ -331,9 +330,8 @@ register_line_parent_signals(InvoiceLine)
 # The buy chain works the same way: a receipt line reduces the purchase line it received
 # against (Bill, 2026-09-19 — one receiving path).
 register_line_parent_signals(ReceiptLine)
-# Production is its own chain: a completion reduces the workorder line it completes, and
-# is not a receipt, so it never reaches AP (Bill, 2026-09-20).
-register_line_parent_signals(WorkOrderCompletion)
+# A workorder line has no child lines: what happens to it is recorded in its own
+# events[], appended by the pending applier (Bill, 2026-09-20).
 
 
 # =============================================================================

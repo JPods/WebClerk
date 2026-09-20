@@ -1,8 +1,8 @@
-"""Production is not receiving (Bill, 2026-09-20).
+"""Production is not receiving, and what happens to a line lives on the line.
 
 A receipt says goods came from outside: it carries a vendor, terms and an AP ledger. A
-workorder owes nobody, so its output is a WorkOrderCompletion on the workorder itself,
-and can never become a payable.
+workorder owes nobody, so its output is an event in ``workorder_line.events[]``, appended
+by the pending applier in the same apply that moves the buckets (Bill, 2026-09-20).
 """
 from decimal import Decimal
 
@@ -28,7 +28,7 @@ def _workorder_with_a_line(qty=10):
 
 
 def test_completing_a_workorder_makes_stock_and_no_payable():
-    from apps.transactions.models import Receipt, WorkOrderCompletion
+    from apps.transactions.models import Receipt
     from apps.transactions.services.transaction_flow import (
         CompleteWorkOrderLine, complete_workorder)
     Ledger = dj_apps.get_model('accounts', 'Ledger')
@@ -36,7 +36,8 @@ def test_completing_a_workorder_makes_stock_and_no_payable():
     assert float((item.quantity or {}).get('on_wo')) == 10.0     # the line committed it
 
     out = complete_workorder(wo, 'run-1', [CompleteWorkOrderLine(
-        wo_line_id=line.pk, qty_completed=Decimal('3'), warehouse_code=warehouse.code)])
+        wo_line_id=line.pk, qty_completed=Decimal('3'), warehouse_code=warehouse.code)],
+        completed_by='shift a')
 
     item.refresh_from_db()
     line.refresh_from_db()
@@ -49,14 +50,15 @@ def test_completing_a_workorder_makes_stock_and_no_payable():
     # and nothing that could become money owed
     assert Receipt.objects.count() == 0
     assert Ledger.objects.filter(model_name='receipt').count() == 0
-    completion = WorkOrderCompletion.objects.get(pk=out['completions_created'][0])
-    assert completion.parent_line_id == line.pk
-    assert completion.warehouse_id == warehouse.pk
-    assert completion.inventory_layer_id is not None
+    event = line.events[0]
+    assert event['id'] == out['events_created'][0]
+    assert event['kind'] == 'completion' and event['qty'] == 3.0
+    assert event['by'] == 'shift a'
+    assert event['warehouse_id'] == warehouse.pk
+    assert event['layer_id'] is not None
 
 
 def test_partial_completions_each_keep_their_own_lot_and_the_line_tracks_the_rest():
-    from apps.transactions.models import WorkOrderCompletion
     from apps.transactions.services.transaction_flow import (
         CompleteWorkOrderLine, complete_workorder)
     wo, line, item, warehouse = _workorder_with_a_line(qty=10)
@@ -68,7 +70,7 @@ def test_partial_completions_each_keep_their_own_lot_and_the_line_tracks_the_res
 
     line.refresh_from_db()
     item.refresh_from_db()
-    lots = sorted(c.lot for c in WorkOrderCompletion.objects.filter(parent_line_id=line.pk))
+    lots = sorted(e['lot'] for e in line.events)
     assert lots == ['A', 'B']                                   # two runs, two lots
     assert float((line.quantity or {}).get('remaining')) == 0.0  # all of it produced
     assert float((item.quantity or {}).get('on_wo')) == 0.0
@@ -109,7 +111,7 @@ def _item_with_stock(on_hand=10):
 
 
 def test_a_count_moves_stock_to_what_the_counter_saw():
-    from apps.transactions.models import Receipt, WorkOrder, WorkOrderCompletion
+    from apps.transactions.models import Receipt, WorkOrder
     from apps.transactions.services.transaction_flow import CountLine, count_inventory
     Ledger = dj_apps.get_model('accounts', 'Ledger')
     item, warehouse = _item_with_stock(on_hand=10)
@@ -127,9 +129,11 @@ def test_a_count_moves_stock_to_what_the_counter_saw():
     assert wo.kind == WorkOrder.KIND_COUNT
     assert float((line.quantity or {}).get('staged')) == 10.0     # the book
     assert float((line.quantity or {}).get('active')) == 8.0      # the count
-    count = WorkOrderCompletion.objects.get(pk=out['completions_created'][0]).metadata['count']
-    assert count['variance'] == -2.0 and count['counted_by'] == 'bill'
-    assert count['moved_during_count'] is False
+    event = line.events[0]
+    assert event['kind'] == 'count'
+    assert event['variance'] == -2.0 and event['by'] == 'bill'
+    assert event['moved_during_count'] is False
+    assert event['book_at_count'] == 10.0 and event['counted'] == 8.0
 
     # a count owes nobody
     assert Receipt.objects.count() == 0
@@ -189,3 +193,45 @@ def test_a_count_holds_no_commitment_to_reconcile_or_close():
     assert commitment_gaps(item_id=item.pk) == []        # on_wo owes the count nothing
     assert not [r for r in stale_commitments(days=0)
                 if r['model'] == 'workorder' and r['id'] == out['workorder_id']]
+
+
+def test_an_event_is_recorded_once_however_often_the_pending_applies():
+    """The event id makes an apply idempotent — the guard behind posting through pendings."""
+    from apps.core.models import Pending
+    from apps.transactions.services.transaction_flow import (
+        CompleteWorkOrderLine, complete_workorder)
+    wo, line, item, warehouse = _workorder_with_a_line(qty=10)
+
+    complete_workorder(wo, 'run-1', [CompleteWorkOrderLine(
+        wo_line_id=line.pk, qty_completed=Decimal('3'), warehouse_code=warehouse.code)])
+
+    line.refresh_from_db()
+    assert len(line.events) == 1
+    pending = Pending.objects.filter(purpose='line_event').latest('id')
+    pending.dt_processed = 0                 # make it apply again
+    pending.try_apply()
+
+    line.refresh_from_db()
+    assert len(line.events) == 1             # recorded once
+
+
+def test_two_completions_at_once_both_land():
+    """Bill's case: 3 and 7 at the same instant, two pendings, both applied."""
+    from apps.transactions.services.transaction_flow import (
+        CompleteWorkOrderLine, complete_workorder)
+    wo, line, item, warehouse = _workorder_with_a_line(qty=10)
+
+    complete_workorder(wo, 'run-a', [CompleteWorkOrderLine(
+        wo_line_id=line.pk, qty_completed=Decimal('3'), warehouse_code=warehouse.code)],
+        completed_by='ann')
+    complete_workorder(wo, 'run-b', [CompleteWorkOrderLine(
+        wo_line_id=line.pk, qty_completed=Decimal('7'), warehouse_code=warehouse.code)],
+        completed_by='bob')
+
+    line.refresh_from_db()
+    item.refresh_from_db()
+    assert sorted(e['qty'] for e in line.events) == [3.0, 7.0]
+    assert sorted(e['by'] for e in line.events) == ['ann', 'bob']
+    assert float((line.quantity or {}).get('remaining')) == 0.0
+    assert float((item.quantity or {}).get('on_hand')) == 10.0
+    assert float((item.quantity or {}).get('on_wo')) == 0.0

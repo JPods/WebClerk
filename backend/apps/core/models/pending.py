@@ -18,6 +18,7 @@ INVENTORY_PURPOSES = (
     'inventory_cost_change',
     'receipt_line_add',
     'allocation',          # a salesperson setting goods aside, or giving them back
+    'line_event',          # a change to a line: moves the buckets and records itself
 )
 
 
@@ -143,6 +144,7 @@ class Pending(CoreModel):
                 )
 
                 Item.objects.filter(pk=item_id).update(quantity=quantity)
+                self._record_line_event()
                 self.mark_processed(save=True)
 
             logger.debug(f"Pending {self.pk} applied to item {item_id}")
@@ -152,6 +154,50 @@ class Pending(CoreModel):
             # Row locked — celery will pick this up
             logger.debug(f"Pending {self.pk}: Item {item_id} locked, queued for celery")
             return False
+
+    def _record_line_event(self):
+        """Append this pending's event to the line it belongs to, in the same
+        transaction that moved the buckets.
+
+        Bill, 2026-09-20: *"all changes in cash and inventory should be posted via
+        pending records... They generate a pending record each for 3 and 7. They get
+        applied by the standard behavior."* So the movement and the record of it are one
+        apply under one lock — two people completing at the same instant serialize, and
+        neither can clobber the other's event.
+
+        The event's ``id`` makes it idempotent: a re-apply finds it already there.
+        """
+        from django.apps import apps as dj_apps
+
+        config = self.config if isinstance(self.config, dict) else {}
+        event = config.get('event')
+        line_model = config.get('line_model')
+        line_id = config.get('line_id')
+        if not (isinstance(event, dict) and line_model and line_id):
+            return
+
+        try:
+            LineModel = dj_apps.get_model('transactions', line_model)
+        except LookupError:
+            logger.warning("Pending %s: unknown line model %s", self.pk, line_model)
+            return
+
+        line = LineModel.objects.select_for_update().filter(pk=line_id).first()
+        if line is None:
+            logger.warning("Pending %s: %s #%s not found for its event", self.pk, line_model, line_id)
+            return
+
+        events = list(line.events or []) if hasattr(line, 'events') else None
+        if events is None:
+            logger.warning("Pending %s: %s has no events field", self.pk, line_model)
+            return
+        if any(isinstance(e, dict) and e.get('id') == event.get('id') for e in events):
+            return                      # already recorded — an apply can run twice safely
+
+        events.append(event)
+        line.events = events
+        # save(), not update(): the line recomputes its own remaining from its events.
+        line.save(update_fields=['events', 'quantity', 'status', 'dt_modified', 'version'])
 
     def _apply_cash(self):
         """Apply cash to invoice (AR). Delegates to cash_pending service."""

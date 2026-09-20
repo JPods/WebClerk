@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone as _tz
 from decimal import Decimal
 from typing import Optional, Sequence
+
+
+def _now_ms() -> int:
+    """UTC epoch ms — every stored datetime in WC3 (Axiom 14)."""
+    return int(datetime.now(_tz.utc).timestamp() * 1000)
 
 from django.db import transaction
 from django.core.exceptions import ValidationError
@@ -362,7 +369,8 @@ class CompleteWorkOrderLine:
 @transaction.atomic
 def complete_workorder(wo: WorkOrder,
                        receipt_id: str,
-                       lines: Sequence[CompleteWorkOrderLine]) -> dict:
+                       lines: Sequence[CompleteWorkOrderLine],
+                       completed_by: str = '') -> dict:
     """Complete a WorkOrder, producing finished goods into inventory.
 
     When a workorder is completed:
@@ -382,7 +390,6 @@ def complete_workorder(wo: WorkOrder,
         - count_inventory: For inventory counts and corrections
         - receive_inventory_changes: High-level dispatcher for all receiving actions
     """
-    from apps.transactions.models.workorder_completion import WorkOrderCompletion
     from apps.core.models.pending import Pending
 
     if not receipt_id:
@@ -390,9 +397,9 @@ def complete_workorder(wo: WorkOrder,
 
     # Production is not receiving (Bill, 2026-09-20). A receipt says goods came from
     # outside and carries a vendor, terms and an AP ledger; a workorder owes nobody, so
-    # its output is a completion on the workorder itself and can never become a payable.
+    # its output is an event on the workorder line and can never become a payable.
     created_stack_ids: list[int] = []
-    created_completion_ids: list[int] = []
+    created_event_ids: list[str] = []
     deltas_created = 0
 
     for cl in lines:
@@ -421,7 +428,7 @@ def complete_workorder(wo: WorkOrder,
             lot=cl.lot or '',
             serial_batch=cl.serial_batch or '',
             source_doc_type='workorder_completion',
-            source_doc_id=wo.id,  # type: ignore[attr-defined]
+            source_doc_id=wol.pk,       # the line; the event's id is on the layer's refs
         )
         # Use provided unit_cost or estimate from workorder line cost
         unit_cost = float(cl.unit_cost) if cl.unit_cost is not None else float((wol.cost or {}).get('unit') or 0)
@@ -429,30 +436,15 @@ def complete_workorder(wo: WorkOrder,
         stack.save()
         created_stack_ids.append(stack.id)
 
-        # The completion is a child of the workorder line, so that line's remaining is
-        # recomputed by the one writer — the document moves when the goods do.
-        completion = WorkOrderCompletion.objects.create(
-            workorder=wo,
-            parent_line_id=wol.pk,
-            refs={'source': {'workorder_line_id': wol.pk}, 'run': receipt_id},
-            warehouse=wh,
-            inventory_layer=stack,
-            lot=cl.lot or '',
-            serial_batch=cl.serial_batch or '',
-            item=wol.item or {'item_id': item_id},   # copy item JSON from the WO line
-            quantity={'staged': float(cl.qty_completed), 'active': float(cl.qty_completed)},
-            cost={'unit': unit_cost},
-        )
-        created_completion_ids.append(completion.id)
-
-        # The buckets move through the shape that applies itself (see receive_purchase).
-        # No on_rc: that bucket counts goods received from outside, and nothing arrived
-        # from outside here — the work in progress became stock.
+        # One pending: it moves the buckets and records the event on the line, in the
+        # same apply. No on_rc — that bucket counts goods received from outside, and
+        # nothing arrived from outside here; work in progress became stock.
         qty_completed = Decimal(str(cl.qty_completed))
+        event_id = uuid.uuid4().hex
         Pending.objects.create(
             model_name='item',
             record_id=str(item_id),
-            purpose='inventory_qty_change',
+            purpose='line_event',
             name=f"WorkOrder completion {receipt_id} - item {item_id}",
             changes={
                 'on_wo': -float(qty_completed),   # no longer work in progress
@@ -460,20 +452,34 @@ def complete_workorder(wo: WorkOrder,
             },
             config={
                 'item_id': item_id,
-                'warehouse_id': wh.id,
+                'line_model': 'WorkOrderLine',
+                'line_id': wol.pk,
+                'event': {
+                    'id': event_id,
+                    'kind': 'completion',
+                    'dt': _now_ms(),
+                    'by': completed_by,
+                    'qty': float(qty_completed),
+                    'warehouse_id': wh.id,
+                    'warehouse_code': wh.code,
+                    'lot': cl.lot or '',
+                    'serial_batch': cl.serial_batch or '',
+                    'layer_id': stack.id,
+                    'unit_cost': unit_cost,
+                    'run': receipt_id,
+                },
                 'source_type': 'workorder_completion',
                 'source_id': wo.id,
-                'source_line_id': completion.id,
-                'run': receipt_id,
                 'unit_cost': unit_cost,
                 'notes': f"WorkOrder completion {receipt_id} - produced {qty_completed} units",
             }
         )
+        created_event_ids.append(event_id)
         deltas_created += 1
 
     return {
         'workorder_id': wo.id,  # type: ignore[attr-defined]
-        'completions_created': created_completion_ids,
+        'events_created': created_event_ids,
         'stacks_created': created_stack_ids,
         'deltas_created': deltas_created
     }
@@ -532,7 +538,6 @@ def count_inventory(count_id: str,
     """
     from apps.transactions.models.workorder import WorkOrder
     from apps.transactions.models.workorder_line import WorkOrderLine
-    from apps.transactions.models.workorder_completion import WorkOrderCompletion
     from apps.core.models.pending import Pending
 
     if not count_id:
@@ -550,7 +555,8 @@ def count_inventory(count_id: str,
                             'lines': len(list(lines))}},
     )
     created_stack_ids: list[int] = []
-    created_completion_ids: list[int] = []
+    created_event_ids: list[str] = []
+    variance_total = 0.0
     deltas_created = 0
 
     for cl in lines:
@@ -591,70 +597,69 @@ def count_inventory(count_id: str,
                 lot=cl.lot or '',
                 serial_batch=cl.serial_batch or '',
                 source_doc_type='inventory_count',
-                source_doc_id=wo.id,  # type: ignore[attr-defined]
+                source_doc_id=line.pk,      # the line that carries the count event
             )
             if unit_cost > 0:
                 stack.update_cost_after_receipt(unit_cost)
             stack.save()
             created_stack_ids.append(stack.id)
 
-        completion = WorkOrderCompletion.objects.create(
-            workorder=wo,
-            parent_line_id=line.pk,
-            refs={'source': {'workorder_line_id': line.pk}, 'run': count_id},
-            warehouse=wh,
-            inventory_layer=stack,
-            lot=cl.lot or '',
-            serial_batch=cl.serial_batch or '',
-            item=line.item,
-            quantity={'staged': float(book_at_count), 'active': float(counted)},
-            cost={'unit': unit_cost} if unit_cost else {},
-            metadata={'count': {
+        event_id = uuid.uuid4().hex
+        event = {
+            'id': event_id,
+            'kind': 'count',
+            'dt': _now_ms(),
+            'by': counted_by,
+            'qty': float(counted),           # what this line has had done to it
+            'warehouse_id': wh.id,
+            'warehouse_code': wh.code,
+            'lot': cl.lot or '',
+            'serial_batch': cl.serial_batch or '',
+            'layer_id': stack.id if stack else None,
+            'unit_cost': unit_cost or None,
+            'reason': cl.reason,
+            'run': count_id,
+            'book_at_count': float(book_at_count),
+            'counted': float(counted),
+            'book_now': float(book_now),
+            'variance': float(counted - book_at_count),
+            # If the book moved while the count was open, the counter's number still
+            # wins — and the move is on the record rather than swallowed.
+            'moved_during_count': book_now != book_at_count,
+            'applied': float(delta),
+        }
+        variance_total += float(counted - book_at_count)
+        created_event_ids.append(event_id)
+
+        Pending.objects.create(
+            model_name='item',
+            record_id=str(item.pk),
+            purpose='line_event',
+            name=f"Count {count_id} - item {item.pk}",
+            changes={'on_hand': float(delta)} if delta else {},
+            config={
+                'item_id': item.pk,
+                'line_model': 'WorkOrderLine',
+                'line_id': line.pk,
+                'event': event,
+                'warehouse_id': wh.id,
+                'source_type': 'inventory_count',
+                'source_id': wo.id,
                 'reason': cl.reason,
                 'counted_by': counted_by,
-                'book_at_count': float(book_at_count),
-                'counted': float(counted),
-                'book_now': float(book_now),
-                'variance': float(counted - book_at_count),
-                # If the book moved while the count was open, the counter's number still
-                # wins — and the move is on the record rather than swallowed.
-                'moved_during_count': book_now != book_at_count,
-                'applied': float(delta),
-            }},
+                'unit_cost': unit_cost or None,
+                'notes': f"Count {count_id} - counted {counted}, book {book_now} ({delta:+})"
+                         + (f" - {notes}" if notes else ""),
+            }
         )
-        created_completion_ids.append(completion.id)
-
         if delta:
-            Pending.objects.create(
-                model_name='item',
-                record_id=str(item.pk),
-                purpose='inventory_qty_change',
-                name=f"Count {count_id} - item {item.pk}",
-                changes={'on_hand': float(delta)},
-                config={
-                    'item_id': item.pk,
-                    'warehouse_id': wh.id,
-                    'source_type': 'inventory_count',
-                    'source_id': wo.id,
-                    'source_line_id': completion.id,
-                    'reason': cl.reason,
-                    'counted_by': counted_by,
-                    'unit_cost': unit_cost or None,
-                    'notes': f"Count {count_id} - counted {counted}, book {book_now} ({delta:+})"
-                             + (f" - {notes}" if notes else ""),
-                }
-            )
             deltas_created += 1
 
-    variance_total = sum(
-        float((WorkOrderCompletion.objects.get(pk=pk).metadata or {})
-              .get('count', {}).get('variance') or 0)
-        for pk in created_completion_ids)
     return {
         'workorder_id': wo.id,  # type: ignore[attr-defined]
         'ida': wo.ida,
         'counted_by': counted_by,
-        'completions_created': created_completion_ids,
+        'events_created': created_event_ids,
         'stacks_created': created_stack_ids,
         'deltas_created': deltas_created,
         'variance_total': round(variance_total, 4),

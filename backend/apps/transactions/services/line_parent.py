@@ -35,9 +35,6 @@ PARENT_OF: Dict[str, Tuple[str, str]] = {
     # The buy chain works like the sell chain (Bill, 2026-09-19): receiving a purchase
     # line reduces its remaining through the one writer, never through a 'received' hint.
     'receiptline': ('PurchaseLine', 'purchase_line_id'),
-    # Production is not receiving: a completion is a child of the workorder line it
-    # completes, and never a receipt (Bill, 2026-09-20).
-    'workordercompletion': ('WorkOrderLine', 'workorder_line_id'),
 }
 
 #: parent line model -> child line model
@@ -45,7 +42,6 @@ CHILD_OF: Dict[str, str] = {
     'quoteline': 'OrderLine',
     'orderline': 'InvoiceLine',
     'purchaseline': 'ReceiptLine',
-    'workorderline': 'WorkOrderCompletion',
 }
 
 TRANSFERRED = 'transferred'
@@ -82,11 +78,20 @@ def _aggregate_children(parent_model_name: str, parent_pk: int) -> Tuple[float, 
 
 
 def children_active_sum(line: Any) -> Optional[float]:
-    """Σ child.active for a parent-type line; None for a line model that has no children.
+    """How much of this line has been consumed downstream; None when nothing can.
+
+    One rule — active minus what has been done — with two sources. A document line is
+    consumed by child document lines (a quote line by order lines, a purchase line by
+    receipt lines). A workorder line is consumed by its own change events, which live in
+    its ``events[]`` because nobody sends them anywhere (Bill, 2026-09-20).
 
     Also records line._child_count for apply_transferred_status().
     """
     name = line._meta.model_name
+    if name == 'workorderline':
+        events = [e for e in (getattr(line, 'events', None) or []) if isinstance(e, dict)]
+        line._child_count = len(events)
+        return round(sum(float(e.get('qty') or 0) for e in events), 6)
     if name not in CHILD_OF:
         return None
     if line.pk is None:
