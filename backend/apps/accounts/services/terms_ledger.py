@@ -448,6 +448,13 @@ def apply_terms_for_payable(receipt, total=None, replace: bool = True):
     # A receipt is a transaction: it carries its own vendor and terms (inherited from
     # the purchase it receives against when it is created).
     vendor_id = getattr(receipt, 'vendor_id', None)
+    if not vendor_id:
+        # Nothing is owed to nobody. A receipt with no vendor is an internal movement
+        # (or an unfinished draft), and an AP row with no org hides in every report
+        # that groups by vendor (Bill, 2026-09-20).
+        logger.info("[terms_ledger] receipt %s has no vendor — no payable",
+                    getattr(receipt, 'ida', None) or getattr(receipt, 'pk', None))
+        return []
     term = getattr(receipt, 'terms_fk_id', None)
     dt = getattr(receipt, 'dt_received', None) or getattr(receipt, 'dt_created', None)
     from datetime import datetime, timezone as _tz

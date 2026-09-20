@@ -382,23 +382,17 @@ def complete_workorder(wo: WorkOrder,
         - adjust_inventory: For manual inventory adjustments
         - receive_inventory_changes: High-level dispatcher for all receiving actions
     """
-    from apps.transactions.models.receipt import Receipt
-    from apps.transactions.models.receipt_line import ReceiptLine
+    from apps.transactions.models.workorder_completion import WorkOrderCompletion
     from apps.core.models.pending import Pending
-    from django.utils import timezone
-    import uuid
 
     if not receipt_id:
         raise ValidationError({'receipt_id': 'Required'})
 
-    receipt = Receipt.objects.create(
-        ida=receipt_id,
-        source_type=Receipt.SOURCE_WORKORDER,
-        parent_id=wo.pk,
-        parent_model='workorder',
-    )
+    # Production is not receiving (Bill, 2026-09-20). A receipt says goods came from
+    # outside and carries a vendor, terms and an AP ledger; a workorder owes nobody, so
+    # its output is a completion on the workorder itself and can never become a payable.
     created_stack_ids: list[int] = []
-    created_receipt_line_ids: list[int] = []
+    created_completion_ids: list[int] = []
     deltas_created = 0
 
     for cl in lines:
@@ -427,7 +421,7 @@ def complete_workorder(wo: WorkOrder,
             lot=cl.lot or '',
             serial_batch=cl.serial_batch or '',
             source_doc_type='workorder_completion',
-            source_doc_id=receipt.id,  # type: ignore[attr-defined]
+            source_doc_id=wo.id,  # type: ignore[attr-defined]
         )
         # Use provided unit_cost or estimate from workorder line cost
         unit_cost = float(cl.unit_cost) if cl.unit_cost is not None else float((wol.cost or {}).get('unit') or 0)
@@ -435,48 +429,51 @@ def complete_workorder(wo: WorkOrder,
         stack.save()
         created_stack_ids.append(stack.id)
 
-        # Create ReceiptLine record to track what was completed
-        receipt_line = ReceiptLine.objects.create(
-            receipt=receipt,
+        # The completion is a child of the workorder line, so that line's remaining is
+        # recomputed by the one writer — the document moves when the goods do.
+        completion = WorkOrderCompletion.objects.create(
+            workorder=wo,
             parent_line_id=wol.pk,
-            refs={'source': {'workorder_line_id': wol.pk}},
+            refs={'source': {'workorder_line_id': wol.pk}, 'run': receipt_id},
             warehouse=wh,
             inventory_layer=stack,
             lot=cl.lot or '',
             serial_batch=cl.serial_batch or '',
-            item=wol.item or {'item_id': item_id},  # Copy item JSON from WO line
-            quantity={'staged': float(cl.qty_completed), 'active': float(cl.qty_completed), 'remaining': 0, 'received': float(cl.qty_completed)},
+            item=wol.item or {'item_id': item_id},   # copy item JSON from the WO line
+            quantity={'staged': float(cl.qty_completed), 'active': float(cl.qty_completed)},
             cost={'unit': unit_cost},
         )
-        created_receipt_line_ids.append(receipt_line.id)
+        created_completion_ids.append(completion.id)
 
         # The buckets move through the shape that applies itself (see receive_purchase).
+        # No on_rc: that bucket counts goods received from outside, and nothing arrived
+        # from outside here — the work in progress became stock.
         qty_completed = Decimal(str(cl.qty_completed))
         Pending.objects.create(
             model_name='item',
             record_id=str(item_id),
-            purpose='receipt_line_add',
-            name=f"WorkOrder completion {receipt.ida} - item {item_id}",
+            purpose='inventory_qty_change',
+            name=f"WorkOrder completion {receipt_id} - item {item_id}",
             changes={
                 'on_wo': -float(qty_completed),   # no longer work in progress
                 'on_hand': float(qty_completed),  # produced
-                'on_rc': float(qty_completed),
             },
             config={
                 'item_id': item_id,
                 'warehouse_id': wh.id,
                 'source_type': 'workorder_completion',
-                'source_id': receipt.id,
-                'source_line_id': receipt_line.id,
+                'source_id': wo.id,
+                'source_line_id': completion.id,
+                'run': receipt_id,
                 'unit_cost': unit_cost,
-                'notes': f"WorkOrder completion {receipt.ida} - produced {qty_completed} units",
+                'notes': f"WorkOrder completion {receipt_id} - produced {qty_completed} units",
             }
         )
         deltas_created += 1
 
     return {
-        'receipt_id': receipt.id,  # type: ignore[attr-defined]
-        'receipt_lines_created': created_receipt_line_ids,
+        'workorder_id': wo.id,  # type: ignore[attr-defined]
+        'completions_created': created_completion_ids,
         'stacks_created': created_stack_ids,
         'deltas_created': deltas_created
     }

@@ -48,17 +48,16 @@ class Receipt(TransactionBaseModel):
     """
     # Source type for this receipt
     SOURCE_PURCHASE = 'purchase_receipt'
-    SOURCE_WORKORDER = 'workorder_completion'
     SOURCE_ADJUSTMENT = 'inventory_adjustment'
     SOURCE_CHOICES = [
         (SOURCE_PURCHASE, 'Purchase Receipt'),
-        (SOURCE_WORKORDER, 'WorkOrder Completion'),
         (SOURCE_ADJUSTMENT, 'Inventory Adjustment'),
     ]
+    # Workorder output is not received from anyone — it is a WorkOrderCompletion on the
+    # workorder itself, and can never become a payable (Bill, 2026-09-20).
     # The parent model each source receives against. An adjustment has no parent.
     SOURCE_PARENT = {
         SOURCE_PURCHASE: 'purchase',
-        SOURCE_WORKORDER: 'workorder',
         SOURCE_ADJUSTMENT: None,
     }
     ALLOCATION_CHOICES = ALLOCATION_CHOICES

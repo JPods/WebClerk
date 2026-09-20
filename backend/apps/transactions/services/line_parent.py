@@ -35,6 +35,9 @@ PARENT_OF: Dict[str, Tuple[str, str]] = {
     # The buy chain works like the sell chain (Bill, 2026-09-19): receiving a purchase
     # line reduces its remaining through the one writer, never through a 'received' hint.
     'receiptline': ('PurchaseLine', 'purchase_line_id'),
+    # Production is not receiving: a completion is a child of the workorder line it
+    # completes, and never a receipt (Bill, 2026-09-20).
+    'workordercompletion': ('WorkOrderLine', 'workorder_line_id'),
 }
 
 #: parent line model -> child line model
@@ -42,6 +45,7 @@ CHILD_OF: Dict[str, str] = {
     'quoteline': 'OrderLine',
     'orderline': 'InvoiceLine',
     'purchaseline': 'ReceiptLine',
+    'workorderline': 'WorkOrderCompletion',
 }
 
 TRANSFERRED = 'transferred'

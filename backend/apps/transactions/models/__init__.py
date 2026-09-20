@@ -20,6 +20,7 @@ _MAPPING = {
 
     'WorkOrder': ('workorder', 'WorkOrder'),
     'WorkOrderLine': ('workorder_line', 'WorkOrderLine'),
+    'WorkOrderCompletion': ('workorder_completion', 'WorkOrderCompletion'),
 
     'Requisition': ('requisition', 'Requisition'),
     #'RequisitionStd': ('requisition', 'Requisition'),  # back-compat
