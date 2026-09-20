@@ -1279,6 +1279,18 @@ _ACTION_DISPATCH = {
         data=p.get('data'),
         dry_run=p.get('dry_run', False),
     ),
+    # One door for commitments (Bill, 2026-09-19): cancel, complete and close all
+    # release through close_transaction; nothing else writes commitment buckets.
+    "close_transaction": lambda p: __import__(
+        'apps.transactions.services.close_transaction', fromlist=['close_transaction']
+    ).close_transaction(
+        p['model_name'], int(p['id']),
+        reason=p.get('reason', ''), acted_by=p.get('acted_by', ''),
+        status=p.get('status', 'complete'),
+    ),
+    "stale_commitments": lambda p: __import__(
+        'apps.transactions.services.close_transaction', fromlist=['stale_commitments']
+    ).stale_commitments(days=int(p.get('days', 30))),
     "get_budget_vs_actual": lambda p: __import__(
         'apps.accounts.services.forecast', fromlist=['budget_vs_actual']
     ).budget_vs_actual(

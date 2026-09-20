@@ -797,14 +797,21 @@ def get_flight_scenario() -> Dict[str, Any]:
             'qty': 9,
             'expected_quantity': {
                 'on_hand': 100, 'on_so': 9, 'on_po': 0, 'on_qt': 6,
-                'allocated': 9, 'available': 91,
+                'allocated': 0, 'available': 100,
             },
             'expected_pending': [
                 {'purpose': 'on_so', 'delta': '+9'},
                 {'purpose': 'on_qt', 'delta': '-9'},
             ],
             'expected_gl': [],
-            'explanation': 'Order commits 9 units (on_so=9). Quote drops to 6 remaining. Available drops to 91 (100 - 9 allocated). Pending records track the movement. Still NO GL impact — an order is a commitment, not a financial event.',
+            'explanation': (
+                'Order commits 9 units (on_so=9). Quote drops to 6 remaining. Pending records track '
+                'the movement. Still NO GL impact — an order is a commitment, not a financial event.\n\n'
+                'Available stays 100. An order does NOT allocate: allocation is a salesperson\'s '
+                'deliberate act, made by reading on_hand, available and on_so and deciding which '
+                'goods are set aside for whom. available = on_hand − allocated, and nothing but a '
+                'person moves allocated.'
+            ),
         },
         {
             'step': 4,
@@ -815,7 +822,7 @@ def get_flight_scenario() -> Dict[str, Any]:
             'qty': 4,
             'expected_quantity': {
                 'on_hand': 96, 'on_so': 5, 'on_po': 0, 'on_qt': 6,
-                'allocated': 5, 'available': 91,
+                'allocated': 0, 'available': 96,
             },
             'expected_pending': [
                 {'purpose': 'on_hand', 'delta': '-4'},
@@ -859,7 +866,7 @@ def get_flight_scenario() -> Dict[str, Any]:
             'qty': 14,
             'expected_quantity': {
                 'on_hand': 96, 'on_so': 5, 'on_po': 14, 'on_qt': 6,
-                'allocated': 5, 'available': 91,
+                'allocated': 0, 'available': 96,
             },
             'expected_pending': [
                 {'purpose': 'on_po', 'delta': '+14'},
@@ -875,7 +882,7 @@ def get_flight_scenario() -> Dict[str, Any]:
             'qty': 11,
             'expected_quantity': {
                 'on_hand': 107, 'on_so': 5, 'on_po': 3, 'on_qt': 6,
-                'allocated': 5, 'available': 102,
+                'allocated': 0, 'available': 107,
             },
             'expected_pending': [
                 {'purpose': 'on_hand', 'delta': '+11'},
@@ -968,7 +975,7 @@ def get_flight_scenario() -> Dict[str, Any]:
             'section': 'Reverse Flow',
             'expected_quantity': {
                 'on_hand': 108, 'on_so': 5, 'on_po': 3, 'on_qt': 6,
-                'allocated': 5, 'available': 103,
+                'allocated': 0, 'available': 108,
             },
             'expected_pending': [
                 {'purpose': 'on_hand', 'delta': '+1'},
@@ -1004,7 +1011,7 @@ def get_flight_scenario() -> Dict[str, Any]:
             'section': 'Reverse Flow',
             'expected_quantity': {
                 'on_hand': 107, 'on_so': 5, 'on_po': 3, 'on_qt': 6,
-                'allocated': 5, 'available': 102,
+                'allocated': 0, 'available': 107,
             },
             'expected_pending': [
                 {'purpose': 'on_hand', 'delta': '-1'},
@@ -1079,7 +1086,7 @@ def get_flight_scenario() -> Dict[str, Any]:
             'section': 'Cleanup',
             'expected_quantity': {
                 'on_hand': 107, 'on_so': 5, 'on_po': 3, 'on_qt': 0,
-                'allocated': 5, 'available': 102,
+                'allocated': 0, 'available': 107,
             },
             'expected_pending': [
                 {'purpose': 'on_qt', 'delta': '-6'},
@@ -1099,7 +1106,8 @@ def get_flight_scenario() -> Dict[str, Any]:
             'section': 'Cleanup',
             'exit_point': {
                 'name': 'Clean Books',
-                'summary': 'All orphans cleared. Books are clean: on_hand=107, available=107, no open commitments.',
+                'summary': 'All orphans cleared through close_transaction. Books are clean: '
+                           'on_hand=107, available=107, no open commitments.',
             },
             'expected_quantity': {
                 'on_hand': 107, 'on_so': 0, 'on_po': 0, 'on_qt': 0,
@@ -1115,7 +1123,8 @@ def get_flight_scenario() -> Dict[str, Any]:
                 '• SO: 5 units cancelled (on_so 5→0)\n'
                 '• PO: 3 units cancelled (on_po 3→0)\n'
                 'No GL — these were commitments, not financial events.\n'
-                'Available goes from 102→107. All inventory is free.\n\n'
+                'Available stays 107 — commitments never touched it. Allocation is the only\n'
+                'thing that reduces available, and only a person allocates.\n\n'
                 'The books are clean. Every transaction from quote to cleanup '
                 'is accounted for. No orphans, no dangling commitments.'
             ),
