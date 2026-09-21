@@ -16,10 +16,14 @@ INVENTORY_PURPOSES = (
     'inventory_qty_change',
     'inventory_line_delete',
     'inventory_cost_change',
-    'receipt_line_add',
-    'allocation',          # a salesperson setting goods aside, or giving them back
+    'opening_balance',     # stock a rebalance puts on the shelf, in a new layer
+    'allocation',        # a salesperson setting goods aside, or giving them back
     'line_event',          # a change to a line: moves the buckets and records itself
 )
+
+
+class LayerLocked(Exception):
+    """The layer a pending must move is locked; the pending waits, item and all."""
 
 
 class Pending(CoreModel):
@@ -143,6 +147,10 @@ class Pending(CoreModel):
                     Decimal(str(quantity.get('on_hand', 0) or 0)) - alloc
                 )
 
+                # The layer moves with on_hand, in this transaction: both saved, or
+                # neither and this record stays unprocessed (Bill, 2026-09-21).
+                self._apply_layer(item_id, data)
+
                 Item.objects.filter(pk=item_id).update(quantity=quantity)
                 self._record_line_event()
                 self.mark_processed(save=True)
@@ -150,10 +158,88 @@ class Pending(CoreModel):
             logger.debug(f"Pending {self.pk} applied to item {item_id}")
             return True
 
-        except OperationalError:
+        except (OperationalError, LayerLocked):
             # Row locked — celery will pick this up
-            logger.debug(f"Pending {self.pk}: Item {item_id} locked, queued for celery")
+            logger.debug(f"Pending {self.pk}: Item {item_id} or its layer locked, queued for celery")
             return False
+
+    def _apply_layer(self, item_id, data):
+        """Move the layer this pending names by the pending's on_hand.
+
+        Bill, 2026-09-21: *"Layers must change with items."* A pending that moves on_hand
+        carries its layer in ``changes['layer']``: ``{'layer_id': n}`` to change the one a
+        line already has, or ``{'create': {...}, 'line_id': n}`` to land new goods in a new
+        layer and point the receipt line at it (no ``line_id`` for an opening balance). Anything that cannot be done raises, so
+        the item's change rolls back with it.
+
+        Receipts carry a layer today. Invoices issuing from layers, workorder
+        completions and adjustments join next; until then a pending without a layer
+        moves the item alone.
+        """
+        from decimal import Decimal
+        from django.core.exceptions import ValidationError
+
+        spec = data.get('layer')
+        on_hand = Decimal(str(data.get('on_hand', 0) or 0))
+        if data.get('type_id') == 'RC' and on_hand and not spec:
+            raise ValidationError({'layer': f'Pending {self.pk} moves on_hand by {on_hand} '
+                                            'for a receipt and names no layer'})
+        if not spec or not on_hand:
+            return
+
+        from apps.products.models.inventory_layer import InventoryLayer, InventoryMovement
+        from apps.products.services.inventory.inventory_layers import create_layer, recalc_average_cost
+
+        if spec.get('layer_id'):
+            layer = InventoryLayer.objects.select_for_update(nowait=True).select_related(
+                'warehouse').get(pk=spec['layer_id'])
+            if layer.is_locked:
+                raise LayerLocked(layer.pk)
+            q = dict(layer.quantity or {})
+            received = Decimal(str(q.get('received', 0) or 0)) + on_hand
+            used = Decimal(str(q.get('issued', 0) or 0)) + Decimal(str(q.get('scrapped', 0) or 0))
+            if received < used:
+                raise ValidationError({'layer': f'layer {layer.pk} would hold {received} received '
+                                                f'against {used} already issued or scrapped'})
+            q['received'] = float(received)
+            layer.quantity = q
+            layer.save(update_fields=['quantity', 'dt_modified', 'version'])
+            InventoryMovement.objects.create(
+                item_id=item_id,
+                warehouse=layer.warehouse,
+                inventory_layer=layer,
+                site_code=layer.warehouse.site_code,
+                movement_type=InventoryMovement.MOVEMENT_ADJUST,
+                quantity=on_hand,
+                reason=str(data.get('reason') or self.purpose)[:120],
+                source_doc_type=layer.source_doc_type,
+                source_doc_id=layer.source_doc_id,
+            )
+            recalc_average_cost(item_id)
+            return
+
+        create = spec.get('create') or {}
+        if on_hand <= 0:
+            raise ValidationError({'layer': f'Pending {self.pk} would create a layer '
+                                            f'holding {on_hand}'})
+        layer = create_layer(
+            item_id,
+            create['warehouse_id'],
+            on_hand,
+            Decimal(str(create.get('unit_cost') or 0)),
+            source_doc_type=create.get('source_doc_type', ''),
+            source_doc_id=create.get('source_doc_id'),
+            lot=create.get('lot', ''),
+            serial_batch=create.get('serial_batch', ''),
+            reason=str(data.get('reason') or 'Receipt')[:120],
+        )
+        if not spec.get('line_id'):
+            return                      # an opening balance: no line to point at the layer
+        from apps.transactions.models import ReceiptLine
+        # .update(): the line's own save would run its signals again inside this apply.
+        if not ReceiptLine.objects.filter(pk=spec.get('line_id')).update(inventory_layer=layer):
+            raise ValidationError({'layer': f"receipt line {spec.get('line_id')} not found "
+                                            f"for layer {layer.pk}"})
 
     def _record_line_event(self):
         """Append this pending's event to the record it belongs to, in the same

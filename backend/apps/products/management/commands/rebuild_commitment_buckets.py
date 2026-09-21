@@ -82,6 +82,25 @@ def commitment_gaps(item_id=None) -> list[dict]:
     return sorted(out, key=lambda r: -abs(r['gap']))
 
 
+def post_repair(item, deltas: dict) -> None:
+    """Move an item's buckets from what they hold to what the documents say.
+
+    ``deltas`` is {bucket: (have, target)}. A repair is a change like any other, so it
+    is a Pending the applier applies (Bill, 2026-09-21: "every change in inventory and
+    cash should generate a pending record"). This used to write item.quantity directly.
+    """
+    from apps.core.models import Pending
+    Pending.objects.create(
+        model_name='item',
+        record_id=str(item.pk),
+        purpose='inventory_qty_change',
+        name=f"rebuild commitments: {item.ida or item.name}"[:120],
+        changes={b: round(t - h, 4) for b, (h, t) in deltas.items()},
+        config={'source_type': 'rebuild_commitment_buckets',
+                'reason': 'buckets forced to the open documents'},
+    )
+
+
 class Command(BaseCommand):
     help = "Rebuild on_qt / on_so / on_po / on_wo from open documents."
 
@@ -115,9 +134,7 @@ class Command(BaseCommand):
             changed += 1
             gaps.append((item.pk, item.ida or item.name, deltas))
             if apply_changes:
-                allocated = float(quantity.get('allocated') or 0)
-                quantity['available'] = float(quantity.get('on_hand') or 0) - allocated
-                Item.objects.filter(pk=item.pk).update(quantity=quantity)
+                post_repair(item, deltas)
 
         for pk, label, deltas in sorted(gaps, key=lambda g: -max(abs(h - t) for h, t in g[2].values()))[:20]:
             detail = ', '.join(f"{b} {h:g} -> {t:g}" for b, (h, t) in deltas.items())

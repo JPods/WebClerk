@@ -1,135 +1,208 @@
-"""
-Management command to reset Item.quantity for testing transaction flows.
+"""Reset items to a balanced opening position: the training data set's repair.
 
-Sets all items to:
-- on_hand: 100 (default, configurable)
-- available: 100 (computed)  
-- allocated: 0
-- sell_default: 1
-- purchase_default: 1
-- on_po: 0
-- on_wo: 0
-- on_so: 0
-- on_in: 0
-- on_qt: 0
+Bill, 2026-09-21: *"we need a balanced data set for training. So when we find defects, we
+can force the data to be what we had intended."* Balanced means:
 
-Usage:
-    python manage.py reset_item_quantities
-    python manage.py reset_item_quantities --on-hand 50
-    python manage.py reset_item_quantities --dry-run
-    python manage.py reset_item_quantities --show  # Display items with ordered quantity
+1. every change to on_hand has a Pending,
+2. on_hand equals Σ(received − issued − scrapped) over the item's layers,
+3. the layers carry FIFO/LIFO, and cost.avg is a moving average,
+4. on_qt / on_so / on_po / on_wo equal the open documents (rebuild_commitment_buckets),
+5. allocated equals the allocations that were made, each a Pending.
+
+This command used to set on_hand to 100 directly, with no Pending and no layer. That is
+how wc_demo came to hold 5004 units against 13 in layers. Bill: "We have done it
+regularly. From now on even in demo data we should make inventory changes that comply."
+
+For each item (not deleted; qq/zz scratch items included — the assessors read them):
+
+- its item Pendings become history: processed ones are marked
+  ``config.epoch = 'before-reset-<date>'``; unprocessed ones are voided
+  (``changes.state = 'void'``). Unprocessed Pendings with no record_id (the item-id
+  resolver bug) are voided too: they could never apply.
+- its layers and movements are deleted, and its buckets and allocated are zeroed once,
+  directly: the one write this rule allows, because it closes the history the Pendings
+  above no longer sum to.
+- then everything it holds comes back through Pendings, each applied by the one applier:
+  every live receipt line is replayed (on_hand, on_rc and a new layer the line points
+  at); a physical item's remaining stock opens in one ``opening_balance`` layer at
+  cost.avg; its allocation is re-made; its commitments are rebuilt from the documents.
+  A service holds no stock.
+
+DEMO DATA ONLY. Bill: *"The key in demo data is establishing a balance. That is not true of
+real data where defects must be accounted for."* Real data keeps its defects on the record
+and is corrected by accounted entries, never by a reset. The command refuses any database
+whose name does not say demo (or a pytest test_ database), and write-through mode.
+
+    manage.py reset_item_quantities                       # dry run
+    manage.py reset_item_quantities --apply
+    manage.py reset_item_quantities --apply --on-hand 50  # open physical items at 50
+    manage.py reset_item_quantities --apply --item-id 612
 """
-import json
-from django.core.management.base import BaseCommand
+from collections import defaultdict
+from decimal import Decimal
+
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.db.models import Q
+from django.utils import timezone
 
-from apps.products.models import Item
+BUCKETS = ('on_hand', 'on_so', 'on_po', 'on_wo', 'on_qt', 'on_in', 'on_rc', 'allocated', 'available')
+
+
+def _d(value) -> Decimal:
+    return Decimal(str(value or 0))
 
 
 class Command(BaseCommand):
-    help = "Reset Item.quantity buckets for testing transaction flows"
+    help = "Reset items to a balanced opening position (Pendings, layers, commitments agree)"
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            "--dry-run",
-            action="store_true",
-            help="Report what would be updated without making changes",
-        )
-        parser.add_argument(
-            "--on-hand",
-            type=int,
-            default=100,
-            help="Initial on_hand quantity (default: 100)",
-        )
-        parser.add_argument(
-            "--item-id",
-            type=int,
-            default=None,
-            help="Reset only a specific item by ID",
-        )
-        parser.add_argument(
-            "--show",
-            action="store_true",
-            help="Display items with quantity in logical key order (no changes)",
-        )
+        parser.add_argument('--apply', action='store_true', help='write the reset')
+        parser.add_argument('--on-hand', type=int, default=None,
+                            help='open every physical item at this quantity (default: what it holds now)')
+        parser.add_argument('--item-id', type=int, default=None, help='one item only')
+        parser.add_argument('--warehouse-id', type=int, default=1,
+                            help='warehouse opening layers land in (default: 1)')
 
     def handle(self, *args, **options):
-        dry_run = options["dry_run"]
-        on_hand = options["on_hand"]
-        item_id = options["item_id"]
-        show_only = options["show"]
+        from django.conf import settings
+        from apps.core.models import Pending
+        from apps.products.models import Item, Warehouse
+        from apps.products.models.inventory_layer import InventoryLayer, InventoryMovement
+        from apps.transactions.models import ReceiptLine
+        from apps.transactions.services.line_manage import _line_item_id
+        from apps.products.management.commands.rebuild_commitment_buckets import (
+            BUCKETS as COMMITMENTS, post_repair, wanted_by_item)
 
-        # Build queryset
-        qs = Item.objects.all()
-        if item_id:
-            qs = qs.filter(pk=item_id)
+        db_name = str(settings.DATABASES['default'].get('NAME') or '')
+        if getattr(settings, 'WRITE_THROUGH_ENABLED', False) or not (
+                'demo' in db_name.lower() or db_name.startswith('test_')):
+            raise CommandError(f"refusing to reset '{db_name}': demo data only — real data "
+                               "keeps its defects on the record (Bill, 2026-09-21)")
 
-        total = qs.count()
-        
-        if total == 0:
-            self.stdout.write(self.style.WARNING("No items found."))
-            return
+        items = Item.objects.filter(is_deleted=False)
+        if options['item_id']:
+            items = items.filter(pk=options['item_id'])
+        items = {i.pk: i for i in items}
+        if not items:
+            raise CommandError('no items in scope')
+        ids = list(items)
+        warehouse = Warehouse.objects.get(pk=options['warehouse_id'])
 
-        # Show mode: display items with ordered quantity and exit
-        if show_only:
-            self.stdout.write(f"Showing {total} items with quantity in logical order:\n")
-            for item in qs[:20]:  # Limit to 20 for readability
-                self.stdout.write(f"  Item #{item.pk} ({item.sku or item.name}):")
-                self.stdout.write(f"    {json.dumps(item.quantity, indent=None)}")
-            if total > 20:
-                self.stdout.write(f"  ... and {total - 20} more")
-            return
+        # What each item's receipts put on the shelf — replayed, not re-opened.
+        receipts = defaultdict(list)
+        for rl in (ReceiptLine.objects.filter(is_deleted=False, receipt__is_deleted=False)
+                   .select_related('receipt')):
+            item_id = _line_item_id(rl)
+            qty = _d((rl.quantity or {}).get('active'))
+            if item_id and int(item_id) in items and qty > 0:
+                receipts[int(item_id)].append((rl, qty))
 
-        self.stdout.write(f"Found {total} items to reset")
-        self.stdout.write(f"Setting on_hand={on_hand}, all transaction buckets=0")
+        def plan_for(item):
+            received = sum((q for _rl, q in receipts[item.pk]), Decimal('0'))
+            if item.kind == Item.KIND_SERVICE:
+                target = Decimal('0')
+            elif options['on_hand'] is not None:
+                target = Decimal(options['on_hand'])
+            else:
+                target = max(_d((item.quantity or {}).get('on_hand')), Decimal('0'))
+            return {'receipts': receipts[item.pk], 'opening': max(target - received, Decimal('0')),
+                    'allocated': max(_d((item.quantity or {}).get('allocated')), Decimal('0'))}
 
-        if dry_run:
-            self.stdout.write(self.style.WARNING("DRY RUN - no changes made"))
-            # Show sample
-            sample = qs[:5]
-            for item in sample:
-                old_qty = item.quantity or {}
-                self.stdout.write(
-                    f"  Item #{item.pk} ({item.sku or item.name}): "
-                    f"on_hand={old_qty.get('on_hand', 'N/A')} -> {on_hand}"
-                )
-            if total > 5:
-                self.stdout.write(f"  ... and {total - 5} more")
-            return
-
-        # Reset quantities - keys in logical order for human readers
-        # Physical inventory → Defaults → Transaction buckets (procurement → production → sales → fulfillment)
-        new_quantity = dict([
-            ("on_hand", on_hand),
-            ("available", on_hand),
-            ("allocated", 0),
-            ("sell_default", 1),
-            ("purchase_default", 1),
-            ("on_po", 0),
-            ("on_wo", 0),
-            ("on_so", 0),
-            ("on_in", 0),
-            ("on_qt", 0),
-        ])
-
-        updated = 0
-        errors = 0
-
-        with transaction.atomic():
-            for item in qs.iterator():
-                try:
-                    # Use update() to avoid triggering full save() with history etc
-                    Item.objects.filter(pk=item.pk).update(quantity=new_quantity)
-                    updated += 1
-                except Exception as e:
-                    errors += 1
-                    self.stderr.write(f"Error updating Item #{item.pk}: {e}")
+        plan = {pk: plan_for(item) for pk, item in items.items()}
+        str_ids = [str(i) for i in ids]
+        history = Pending.objects.filter(model_name='item', record_id__in=str_ids)
+        orphans = Pending.objects.filter(model_name='item', dt_processed=0).filter(
+            Q(record_id='') | Q(record_id__isnull=True))
+        layers = InventoryLayer.objects.filter(item_id__in=ids)
+        epoch = f"before-reset-{timezone.now():%Y-%m-%d}"
 
         self.stdout.write(
-            self.style.SUCCESS(
-                f"Reset {updated} items: on_hand={on_hand}, "
-                f"on_so=0, on_po=0, on_wo=0, on_in=0, on_qt=0"
-            )
-        )
-        if errors:
-            self.stdout.write(self.style.ERROR(f"{errors} errors"))
+            f"{len(ids)} items; {history.filter(dt_processed__gt=0).count()} pendings become "
+            f"'{epoch}'; {history.filter(dt_processed=0).count() + orphans.count()} voided; "
+            f"{layers.count()} layers deleted; replay {sum(len(p['receipts']) for p in plan.values())} "
+            f"receipt lines; {sum(1 for p in plan.values() if p['opening'])} opening balances "
+            f"({sum(p['opening'] for p in plan.values())} units, warehouse {warehouse.code}); "
+            f"{sum(1 for p in plan.values() if p['allocated'])} allocations re-made")
+        if not options['apply']:
+            self.stdout.write(self.style.WARNING('Dry run — pass --apply to write.'))
+            return
+
+        now_ms = int(timezone.now().timestamp() * 1000)
+        with transaction.atomic():
+            for p in history.filter(dt_processed__gt=0):
+                p.config = {**(p.config if isinstance(p.config, dict) else {}), 'epoch': epoch}
+                p.save(update_fields=['config', 'dt_modified', 'version'])
+            for p in list(history.filter(dt_processed=0)) + list(orphans):
+                changes = p.changes if isinstance(p.changes, dict) else {}
+                p.changes = {**changes, 'state': 'void',
+                             'void_reason': f'{epoch}: history closed by reset_item_quantities'}
+                p.dt_processed = now_ms
+                p.save(update_fields=['changes', 'dt_processed', 'dt_modified', 'version'])
+
+            InventoryMovement.objects.filter(item_id__in=ids).delete()
+            layers.delete()                      # receipt lines' FK is SET_NULL
+            for item in items.values():
+                q = dict(item.quantity or {})
+                q.update({b: 0 for b in BUCKETS})
+                Item.objects.filter(pk=item.pk).update(quantity=q)
+
+            for pk, item in items.items():
+                p = plan[pk]
+                for rl, qty in p['receipts']:
+                    cost = rl.cost if isinstance(rl.cost, dict) else {}
+                    Pending.objects.create(
+                        model_name='item', record_id=str(pk), purpose='inventory_line_add',
+                        name=f"reset replay: receipt {rl.receipt.ida} line {rl.pk}"[:120],
+                        changes={
+                            'type_id': 'RC', 'item_id': pk, 'line_id': rl.pk,
+                            'on_hand': float(qty), 'on_rc': float(qty),
+                            'reason': f'{epoch}: receipt replayed',
+                            'layer': {'line_id': rl.pk, 'create': {
+                                'warehouse_id': rl.warehouse_id or warehouse.pk,
+                                'lot': rl.lot or '', 'serial_batch': rl.serial_batch or '',
+                                'unit_cost': float(cost.get('unit') or 0),
+                                'source_doc_type': rl.receipt.source_type or 'purchase_receipt',
+                                'source_doc_id': rl.receipt_id,
+                            }},
+                        },
+                    )
+                if p['opening']:
+                    cost = item.cost if isinstance(item.cost, dict) else {}
+                    Pending.objects.create(
+                        model_name='item', record_id=str(pk), purpose='opening_balance',
+                        name=f"opening balance: {item.ida or item.name}"[:120],
+                        changes={
+                            'type_id': 'OB', 'item_id': pk, 'on_hand': float(p['opening']),
+                            'reason': f'{epoch}: opening balance',
+                            'layer': {'create': {
+                                'warehouse_id': warehouse.pk,
+                                'unit_cost': float(cost.get('avg') or cost.get('last') or 0),
+                                'source_doc_type': 'opening_balance', 'source_doc_id': None,
+                                'lot': 'OPENING',
+                            }},
+                        },
+                    )
+                if p['allocated']:
+                    Pending.objects.create(
+                        model_name='item', record_id=str(pk), purpose='allocation',
+                        name=f"reset replay: allocate {p['allocated']} of item {pk}",
+                        changes={'allocated': float(p['allocated'])},
+                        config={'item_id': pk, 'source_type': 'allocation', 'by': 'reset',
+                                'reason': f'{epoch}: allocation re-made', 'verb': 'allocate'},
+                    )
+
+            want = wanted_by_item()
+            for pk, item in items.items():
+                target = want.get(pk) or {}
+                deltas = {b: (0.0, round(target.get(b, 0.0), 4)) for b in COMMITMENTS
+                          if round(target.get(b, 0.0), 4)}
+                if deltas:
+                    post_repair(item, deltas)
+
+            stuck = Pending.objects.filter(model_name='item', record_id__in=str_ids, dt_processed=0)
+            if stuck.exists():
+                raise CommandError(f'{stuck.count()} reset pendings did not apply (locked?) — '
+                                   'rolled back, nothing changed')
+
+        self.stdout.write(self.style.SUCCESS(f"Reset {len(ids)} items to a balanced opening position."))

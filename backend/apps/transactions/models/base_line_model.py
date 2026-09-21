@@ -358,8 +358,9 @@ PENDING_TYPE_BUCKET: Dict[str, str] = {
 QUANTITY_BUCKETS: tuple = ('on_so', 'on_po', 'on_wo', 'on_in', 'on_rc', 'on_qt', 'on_hand')
 
 #: pending types that also move on_hand, and in which direction, on a line ADD.
-#: Quantity changes and deletes do not touch on_hand.
-ON_HAND_DIRECTION: Dict[str, int] = {'IN': -1, 'RC': 1}
+#: Quantity changes and deletes do not touch on_hand. A receipt is not here: its
+#: goods are stock on every change, so it has its own rule in quantity_bucket_deltas.
+ON_HAND_DIRECTION: Dict[str, int] = {'IN': -1}
 
 
 def forecast_probability(transaction: Any) -> float:
@@ -400,8 +401,8 @@ def quantity_bucket_deltas(
     `quantity` is signed by the caller: positive to commit, negative to release.
 
     affect_on_hand is True only for a line ADD, where an invoice also decrements
-    on_hand and a receipt increments it. Quantity changes and deletes leave
-    on_hand alone, which is why this is a parameter rather than a lookup.
+    on_hand. Quantity changes and deletes leave an invoice's on_hand alone, which
+    is why this is a parameter rather than a lookup. A receipt ignores it: see below.
     """
     deltas: Dict[str, float] = {bucket: 0 for bucket in QUANTITY_BUCKETS}
     bucket = PENDING_TYPE_BUCKET.get(pending_type)
@@ -416,6 +417,16 @@ def quantity_bucket_deltas(
         # on_hand when the line is completed (Bill, 2026-09-20).
         return deltas
     deltas[bucket] = qty
+
+    if pending_type == 'RC':
+        # Received goods are stock on every change: add, change and delete all move
+        # on_hand with on_rc. Goods received against a purchase are no longer on order.
+        # The three pending builders each carried a piece of this; an edit never moved
+        # on_po, so receiving 7 then correcting to 6 left one unit on order (D10).
+        deltas['on_hand'] = qty
+        if getattr(transaction, 'parent_model', None) == 'purchase' and getattr(transaction, 'parent_id', None):
+            deltas['on_po'] = -qty
+        return deltas
 
     if affect_on_hand and pending_type in ON_HAND_DIRECTION:
         deltas['on_hand'] = abs(float(quantity or 0)) * ON_HAND_DIRECTION[pending_type]

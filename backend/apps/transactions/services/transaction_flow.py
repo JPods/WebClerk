@@ -252,9 +252,6 @@ def receive_purchase(po: Purchase,
     """
     from apps.transactions.models.receipt import Receipt
     from apps.transactions.models.receipt_line import ReceiptLine
-    from apps.core.models.pending import Pending
-    from django.utils import timezone
-    import uuid
 
     if not receipt_id:
         raise ValidationError({'receipt_id': 'Required'})
@@ -286,30 +283,18 @@ def receive_purchase(po: Purchase,
         except Warehouse.DoesNotExist:
             raise ValidationError({'lines': f'Warehouse code {rl.warehouse_code} not found'})
 
-        # Create inventory layer stack for warehouse tracking
-        stack = InventoryLayer.objects.create(
-            item=item,
-            warehouse=wh,
-            quantity={'received': float(rl.qty), 'issued': 0, 'scrapped': 0},
-            lot=rl.lot or '',
-            serial_batch=rl.serial_batch or '',
-            source_doc_type='purchase_receipt',
-            source_doc_id=receipt.id,  # type: ignore[attr-defined]
-        )
         unit_cost = float(rl.unit_cost) if rl.unit_cost is not None else float((pol.cost or {}).get('unit') or 0)
-        stack.update_cost_after_receipt(unit_cost)
-        stack.save()
-        created_stack_ids.append(stack.id)
 
-        # Create ReceiptLine record to track what was received. parent_line_id makes it
-        # a child of the purchase line, so that line's remaining is recomputed by the one
-        # writer — the document moves when the goods do.
+        # The receipt line is the whole act of receiving. Its save writes the Pending the
+        # way every line does (signals._LINE_CONFIG), and that Pending moves on_hand,
+        # on_rc and on_po and creates the layer in one apply (D10, Bill 2026-09-21).
+        # parent_line_id makes it a child of the purchase line, so that line's remaining
+        # is recomputed by the one writer — the document moves when the goods do.
         receipt_line = ReceiptLine.objects.create(
             receipt=receipt,
             parent_line_id=pol.pk,
             refs={'source': {'purchase_line_id': pol.pk}},
             warehouse=wh,
-            inventory_layer=stack,
             lot=rl.lot or '',
             serial_batch=rl.serial_batch or '',
             item=pol.item or {'item_id': item_id},  # Copy item JSON from PO line
@@ -317,32 +302,13 @@ def receive_purchase(po: Purchase,
             cost={'unit': unit_cost},
         )
         created_receipt_line_ids.append(receipt_line.id)
-
-        # Move the buckets through the shape that applies itself: model_name 'item'
-        # with a purpose in INVENTORY_PURPOSES. 'inventory_delta' was dispatched by
-        # nothing, so every receipt through this path used to leave the buckets behind.
-        qty_received = Decimal(str(rl.qty))
-        Pending.objects.create(
-            model_name='item',
-            record_id=str(item_id),
-            purpose='receipt_line_add',
-            name=f"Receipt {receipt.ida} - item {item_id}",
-            changes={
-                'on_po': -float(qty_received),   # goods arrived: no longer on order
-                'on_hand': float(qty_received),
-                'on_rc': float(qty_received),    # received this period
-            },
-            config={
-                'item_id': item_id,
-                'warehouse_id': wh.id,
-                'source_type': 'purchase_receipt',
-                'source_id': receipt.id,
-                'source_line_id': receipt_line.id,
-                'unit_cost': unit_cost,
-                'notes': f"Purchase receipt {receipt.ida} - received {qty_received} units",
-            }
-        )
         deltas_created += 1
+
+        # The layer exists once the Pending has applied. A locked item leaves it queued,
+        # and the layer arrives with the item when the queue drains.
+        receipt_line.refresh_from_db(fields=['inventory_layer'])
+        if receipt_line.inventory_layer_id:
+            created_stack_ids.append(receipt_line.inventory_layer_id)
 
     return {
         'receipt_id': receipt.id,  # type: ignore[attr-defined]

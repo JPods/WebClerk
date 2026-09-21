@@ -258,11 +258,15 @@ def register_line_totals_signals(line_model, parent_attr: str):
 
 
 # =============================================================================
-# REGISTER ALL 5 LINE TYPES
+# REGISTER ALL 6 LINE TYPES
 #
-# All 5 line types get inventory tracking, header-link maintenance,
+# All 6 line types get inventory tracking, header-link maintenance,
 # AND totals auto-recalc signals.
 # See: readmes/topics/transactions/transactions-totals.md §3 (signal table)
+#
+# ReceiptLine joined 2026-09-21 (D10). Receiving used to hand-write its own Pending on
+# create only, so a receipt-line edit or delete moved the money and not the stock.
+# Bill: "every change in inventory and cash should generate a pending record."
 # =============================================================================
 
 _LINE_CONFIG = [
@@ -272,6 +276,7 @@ _LINE_CONFIG = [
     (InvoiceLine,    'invoice',    'invoice',    'invoice',        'invoice_line'),
     (PurchaseLine,   'purchase',   'purchase',   'purchase',       'purchase_line'),
     (WorkOrderLine,  'workorder',  'workorder',  'workorder',      'workorder_line'),
+    (ReceiptLine,    'receipt',    'receipt',    'receipt',        'receipt_line'),
 ]
 
 for _model, _parent, _key, _txn, _link in _LINE_CONFIG:
@@ -286,7 +291,7 @@ register_line_totals_signals(InvoiceLine, 'invoice')
 register_line_totals_signals(PurchaseLine, 'purchase')
 register_line_totals_signals(WorkOrderLine, 'workorder')
 # A payable's money comes from its own lines (Bill, 2026-09-19), so a receipt line
-# recalculates its receipt. Inventory movement for receiving is a separate path.
+# recalculates its receipt.
 register_line_totals_signals(ReceiptLine, 'receipt')
 
 

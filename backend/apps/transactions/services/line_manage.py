@@ -146,6 +146,49 @@ def _get_pending_type(transaction_type: str) -> str:
     return PENDING_TYPE_MAP.get(key, 'XX')
 
 
+def _line_item_id(line) -> int | None:
+    """The item a line moves: the FK first, then the item JSON's id_num / id / item_id.
+
+    The quantity-change and delete builders read only item.item_id, so a line whose
+    JSON carried id_num wrote a Pending with no record_id — it could never apply, and
+    the bucket it should have released stayed committed (11 such deletes in wc_demo).
+    """
+    fk_id = getattr(line, 'item_fk_id', None)
+    if fk_id:
+        return fk_id
+    item = line.item if isinstance(getattr(line, 'item', None), dict) else {}
+    return item.get('id_num') or item.get('id') or item.get('item_id') or getattr(line, 'item_id', None)
+
+
+def _receipt_layer(line, receipt, *, create: bool) -> dict:
+    """What a receipt pending does to the layer, carried in the pending itself.
+
+    Bill, 2026-09-21: "Layers must change with items." The applier moves the layer by
+    the pending's on_hand in the same transaction that moves the item, and the pending
+    is processed only when both are saved. A new line creates its layer; a change or a
+    delete moves the layer the line already has.
+    """
+    layer_id = getattr(line, 'inventory_layer_id', None)
+    if layer_id and not create:
+        return {'layer_id': layer_id}
+    warehouse_id = getattr(line, 'warehouse_id', None)
+    if not warehouse_id:
+        raise ValidationError({'warehouse': f'receipt line {line.pk} has no warehouse — '
+                                            'received goods must land in a layer'})
+    cost = line.cost if isinstance(line.cost, dict) else {}
+    return {
+        'line_id': line.pk,
+        'create': {
+            'warehouse_id': warehouse_id,
+            'lot': getattr(line, 'lot', '') or '',
+            'serial_batch': getattr(line, 'serial_batch', '') or '',
+            'unit_cost': float(cost.get('unit') or 0),
+            'source_doc_type': getattr(receipt, 'source_type', '') or 'purchase_receipt',
+            'source_doc_id': receipt.pk,
+        },
+    }
+
+
 def _should_track_inventory(transaction_type: str) -> bool:
     """
     Determine if a transaction type should create pending inventory records.
@@ -994,7 +1037,9 @@ class LineItemService:
             # Parent links (populated for child transactions)
             'links': {},
         }
-        
+        if pending_type == 'RC':
+            pending_data['layer'] = _receipt_layer(line, transaction, create=True)
+
         # ── Duplicate-pair guard ──────────────────────────────────────
         # Forbid creating a second pending for the same order_line↔invoice_line pair.
         _il_id = pending_data.get('invoice_line_id')
@@ -1067,10 +1112,10 @@ class LineItemService:
         tx_type_map = {
             'order': 'order',
             'quote': 'quote',
-            'quote': 'quote',
             'invoice': 'invoice',
             'purchase': 'purchase',
             'workorder': 'workorder',
+            'receipt': 'receipt',
         }
         transaction_type = tx_type_map.get(parent_model_key.lower())
         
@@ -1085,13 +1130,9 @@ class LineItemService:
         item_id = None
         item_data = line_data.get('item', {}) or {}
         if isinstance(item_data, dict):
-            item_id = item_data.get('id') or item_data.get('item_id')
-        if not item_id and hasattr(line, 'item') and isinstance(line.item, dict):
-            item_id = line.item.get('id') or line.item.get('item_id')
-        if not item_id and hasattr(line, 'item_id'):
-            item_id = line.item_id
-        if not item_id and hasattr(line, 'item_fk_id'):
-            item_id = line.item_fk_id
+            item_id = item_data.get('id_num') or item_data.get('id') or item_data.get('item_id')
+        if not item_id:
+            item_id = _line_item_id(line)
 
         if not item_id:
             logger.debug(f"_create_pending_for_new_line: No item_id found for line {line.pk}")
@@ -1192,11 +1233,8 @@ class LineItemService:
         pending_type = _get_pending_type(transaction_type)
         
         # Get item info from line
-        item_id = None
-        item_ida = ''
-        if isinstance(line.item, dict):
-            item_id = line.item.get('item_id')
-            item_ida = line.item.get('ida_item', '')
+        item_id = _line_item_id(line)
+        item_ida = line.item.get('ida_item', '') if isinstance(line.item, dict) else ''
         
         # Get current costs from line
         unit_cost = 0
@@ -1236,19 +1274,12 @@ class LineItemService:
             'links': {},
         }
         
-        # Cross-document effects for invoice/receipt qty changes.
-        # Mirrors the logic in _create_pending_for_line_add():
-        # - Invoice from Order: adjust on_so (release/re-commit order inventory)
-        # - Receipt from Purchase: adjust on_po
-        # - Receipt from WorkOrder: adjust on_wo
-        # Note: on_hand is derived by the processor from on_in/on_rc, but we
-        # set it here for visibility in the pending data.
-        # Each model owns one bucket. Qty change only adjusts own bucket.
-        # Source bucket adjustment is handled by _adjust_source_line on save.
+        # An invoice's goods leave on_hand as its quantity changes. A receipt's on_hand
+        # and on_po come from the bucket rule above, and its layer moves with them.
         if pending_type == 'IN':
             pending_data['on_hand'] = -quantity_delta
         elif pending_type == 'RC':
-            pending_data['on_hand'] = quantity_delta
+            pending_data['layer'] = _receipt_layer(line, transaction, create=False)
 
         pending = Pending.objects.create(
             model_name='item',
@@ -1289,11 +1320,8 @@ class LineItemService:
         pending_type = _get_pending_type(transaction_type)
         
         # Get item info from line
-        item_id = None
-        item_ida = ''
-        if isinstance(line.item, dict):
-            item_id = line.item.get('item_id')
-            item_ida = line.item.get('ida_item', '')
+        item_id = _line_item_id(line)
+        item_ida = line.item.get('ida_item', '') if isinstance(line.item, dict) else ''
         
         # Get current costs from line
         unit_cost = 0
@@ -1336,11 +1364,9 @@ class LineItemService:
             'links': {},
         }
         
-        # Cross-document effects for invoice/receipt line deletions.
-        # Mirrors the logic in _create_pending_for_line_add():
-        # - Invoice from Order: restore on_so (re-commit order inventory)
-        # - Receipt from Purchase: restore on_po
-        # - Receipt from WorkOrder: restore on_wo
+        # Invoice from Order: restore on_so and on_hand. A receipt's on_hand and on_po come
+        # from the bucket rule above, and its layer gives the goods back with them.
+        # (A workorder never has receipts — its output is a completion event, Bill 2026-09-20.)
         if pending_type == 'IN':
             parent_id = getattr(transaction, 'parent_id', None)
             if parent_id:
@@ -1349,21 +1375,8 @@ class LineItemService:
                 pending_data['links']['order'] = {'parent_id': parent_id}
                 pending_data['reason'] = 'in line delete (restores so, on_hand)'
         elif pending_type == 'RC':
-            # A receipt carries one parent pointer (parent_id + parent_model), like every
-            # other transaction — the purchase/workorder FKs are gone (2026-09-19).
-            parent_model = getattr(transaction, 'parent_model', None)
-            parent_pk = getattr(transaction, 'parent_id', None)
-            if parent_pk and parent_model == 'purchase':
-                pending_data['on_po'] = quantity_released  # Positive: restore PO commitment
-                pending_data['on_hand'] = -quantity_released  # Negative: remove from on_hand
-                pending_data['links']['purchase'] = {'parent_id': parent_pk}
-                pending_data['reason'] = 'rc line delete (restores po, removes on_hand)'
-            elif parent_pk and parent_model == 'workorder':
-                pending_data['on_wo'] = quantity_released  # Positive: restore WO commitment
-                pending_data['on_hand'] = -quantity_released  # Negative: remove from on_hand
-                pending_data['links']['workorder'] = {'parent_id': parent_pk}
-                pending_data['reason'] = 'rc line delete (restores wo, removes on_hand)'
-        
+            pending_data['layer'] = _receipt_layer(line, transaction, create=False)
+
         pending = Pending.objects.create(
             model_name='item',
             record_id=str(item_id) if item_id else '',
