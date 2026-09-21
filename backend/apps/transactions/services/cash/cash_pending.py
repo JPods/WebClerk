@@ -545,6 +545,8 @@ def unapply_cash_application(pending_id: int, reason: str = '') -> Dict[str, Any
 
     invoice = Invoice.objects.filter(pk=changes.get('invoice_id')).first()
     cash = Cash.objects.filter(pk=changes.get('cash_id')).first()
+    from apps.core.services.balance_checker import log_balance_event
+    log_balance_event(pending, True, event='unapply')
     result = {'pending_id': pending.pk, 'state': 'canceled'}
     if invoice:
         result['invoice'] = refresh_invoice_cash(invoice)

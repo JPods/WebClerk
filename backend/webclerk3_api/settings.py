@@ -530,6 +530,11 @@ HTML_EXEMPT_PATH_PREFIXES = (
 # Read-only demo mode — blocks ALL writes, disables admin
 READ_ONLY_MODE = config('READ_ONLY_MODE', default=False, cast=bool)
 
+# Check balance after every cash and inventory Pending and append the result to
+# logs/balance-events.jsonl (apps/core/services/balance_checker.py). On while testing.
+BALANCE_EVENT_LOG = config('BALANCE_EVENT_LOG', default=DEBUG, cast=bool)
+BALANCE_EVENT_LOG_PATH = BASE_DIR / 'logs' / 'balance-events.jsonl'
+
 WRITE_GATE_ENABLED = True
 WRITE_GATE_EXACT_PATHS = (
     '/wcapi/save', '/wcapi/save/',

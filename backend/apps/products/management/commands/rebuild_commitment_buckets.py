@@ -16,6 +16,7 @@ a person's decision. Neither can be derived from documents.
 from collections import defaultdict
 
 from django.apps import apps as dj_apps
+from django.db.models import Prefetch
 from django.core.management.base import BaseCommand
 
 #: document type -> the bucket it commits
@@ -41,9 +42,14 @@ def wanted_by_item(item_id=None):
             # A count is an audit, not work: its lines commit nothing, so they must not
             # appear in what on_wo is expected to hold (Bill, 2026-09-20).
             headers = headers.exclude(kind='count')
+        # Whole rows, never .only(): a line loaded with deferred fields reloads each one
+        # with its own query (~130 per line), which made this take minutes on wc_demo.
+        headers = headers.prefetch_related(Prefetch(
+            'lines', queryset=Model.lines.rel.related_model.objects.filter(is_deleted=False),
+            to_attr='live_lines'))
         for header in headers:
             weight = forecast_probability(header) if model_name == 'quote' else 1.0
-            for line in header.lines.filter(is_deleted=False).only('quantity', 'item'):
+            for line in header.live_lines:
                 item = line.item if isinstance(line.item, dict) else {}
                 raw = item.get('item_id') or item.get('id_num')
                 if not raw:

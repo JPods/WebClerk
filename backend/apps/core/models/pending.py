@@ -79,17 +79,24 @@ class Pending(CoreModel):
         if self.is_processed():
             return True
 
+        applied = None
         # ── Inventory ────────────────────────────────────────────
         if self.model_name == 'item' and self.purpose in INVENTORY_PURPOSES:
-            return self._apply_inventory()
+            applied = self._apply_inventory()
 
         # ── Cash application (AR — Invoice) ───────────────────
-        if self.purpose == 'cash_application':
-            return self._apply_cash()
+        elif self.purpose == 'cash_application':
+            applied = self._apply_cash()
 
         # ── Cash application (AP — Receipt) ───────────────────
-        if self.purpose == 'cash_application_receipt':
-            return self._apply_receipt_cash()
+        elif self.purpose == 'cash_application_receipt':
+            applied = self._apply_receipt_cash()
+
+        if applied is not None:
+            # Every cash and inventory event, checked once it commits (BALANCE_EVENT_LOG).
+            from apps.core.services.balance_checker import log_balance_event
+            log_balance_event(self, applied)
+            return applied
 
         # ── Future handlers ──────────────────────────────────────
         # if self.purpose == 'ledger_sync':
