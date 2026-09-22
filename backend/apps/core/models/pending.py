@@ -21,6 +21,11 @@ INVENTORY_PURPOSES = (
     'line_event',          # a change to a line: moves the buckets and records itself
 )
 
+# A shortage recorded when an issue took on_hand below 0 (Bill, 2026-09-21). NOT an
+# inventory purpose: it stays open (dt_processed=0) as the note of the defect until
+# receipts fill it — partly, in metadata.incremental_apply — and never drains to celery.
+DEFICIT_PURPOSE = 'inventory_deficit'
+
 
 class LayerLocked(Exception):
     """The layer a pending must move is locked; the pending waits, item and all."""
@@ -29,7 +34,8 @@ class LayerLocked(Exception):
 class Pending(CoreModel):
     """Ephemeral queue / staging record (CoreModel only).
 
-    Lightweight by design: no metadata/refs/prefs/comments overhead.
+    Lightweight by design: no refs/prefs/comments overhead. ``metadata`` holds only
+    what happened to the record after it was made (incremental_apply).
 
     EVERY Pending record tries to apply itself on save. This is the
     universal behavior — not specific to inventory. On save, new records
@@ -51,6 +57,11 @@ class Pending(CoreModel):
     sequence = models.PositiveIntegerField(default=0, help_text="Order within a connection. 0 = unordered.")
     attempts = models.PositiveIntegerField(default=0)
     changes = models.JSONField(default=list, blank=True)
+    # What has happened to this Pending since it was made — never its inputs (config) nor
+    # its change (changes). incremental_apply: [{dt, qty, unit_cost, layer_id,
+    # source_pending_id, gl_journal_ids, variance}] when only part could apply
+    # (Bill, 2026-09-21); remaining = the change's qty − Σ incremental_apply.qty.
+    metadata = models.JSONField(default=dict, blank=True)
 
     class Meta:
         db_table = 'pending'
@@ -142,7 +153,7 @@ class Pending(CoreModel):
                 # salesperson's allocation is a movement like any other — entered, never
                 # derived (Bill, 2026-09-19) — and it must reach available the same way.
                 for field in ('on_so', 'on_po', 'on_wo', 'on_qt', 'on_in', 'on_rc', 'on_hand',
-                              'allocated'):
+                              'in_process', 'allocated'):
                     delta = data.get(field, 0) or 0
                     if delta:
                         current = Decimal(str(quantity.get(field, 0) or 0))
@@ -169,6 +180,18 @@ class Pending(CoreModel):
             # Row locked — celery will pick this up
             logger.debug(f"Pending {self.pk}: Item {item_id} or its layer locked, queued for celery")
             return False
+
+    def incremental_remaining(self, key):
+        """What is still to apply: ``changes[key]`` − Σ ``metadata.incremental_apply[].qty``.
+
+        The Pending's own quantity never changes; partial applies are recorded beside it.
+        """
+        from decimal import Decimal
+        changes = self.changes if isinstance(self.changes, dict) else {}
+        meta = self.metadata if isinstance(self.metadata, dict) else {}
+        done = sum((Decimal(str(e.get('qty', 0) or 0)) for e in meta.get('incremental_apply') or []
+                    if isinstance(e, dict)), Decimal('0'))
+        return Decimal(str(changes.get(key, 0) or 0)) - done
 
     def _apply_layer(self, item_id, data):
         """Move the layer this pending names by the pending's on_hand.

@@ -167,7 +167,8 @@ FLAGS_SCHEMA_DESC = {
 
 # One stocking pair beside the counts: min = reorder point, max = order up to
 # (Bill, 2026-09-17 — inventory_min/max renamed, vendor_min/max deleted: no writer, no data).
-QUANTITY_CANONICAL_KEYS = {"on_hand", "allocated", "available", "on_so", "on_po", "on_qt", "on_rc", "on_in", "on_wo", "min", "max", "rate_expected", "rate_actual"}
+# in_process: parts released to a workorder, off the shelf and not yet built (Bill, 2026-09-21).
+QUANTITY_CANONICAL_KEYS = {"on_hand", "allocated", "available", "on_so", "on_po", "on_qt", "on_rc", "on_in", "on_wo", "in_process", "min", "max", "rate_expected", "rate_actual"}
 
 
 def default_service_config():

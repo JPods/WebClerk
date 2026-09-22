@@ -13,8 +13,13 @@ shares the writer's bug and reports clean: that is how the AP sign error survive
   must equal Σ its applied Pendings since the item's last epoch (a reset marks earlier
   Pendings ``config.epoch``). A writer that moves a bucket without a Pending, or a Pending
   that applied twice, shows here and nowhere else.
-- **Inventory — the layers.** on_hand must equal Σ (received − issued − scrapped) over the
-  item's layers, and each layer must lie in its own range.
+- **Inventory — the layers.** on_hand + Σ open deficit must equal Σ (received − issued −
+  scrapped) over the item's layers, and each layer must lie in its own range. A deficit
+  still open once on_hand is back to ≥ 0 is a fault (the receipt did not fill it).
+- **Inventory — in process.** quantity.in_process must equal Σ metadata.on_assembly, the
+  pointers to the workorder lines holding the parts.
+- **Inventory — not tracked.** An item with flags.not_tracked (labor, freight estimates)
+  holds no layer and no bucket (Bill, 2026-09-22).
 - **Inventory — commitments.** on_qt / on_so / on_po / on_wo against the open documents
   (``commitment_gaps``: the same function the repair uses).
 - **Cash — invariants and echoes, not a Pending sum.** ``refresh_cash_available`` already
@@ -34,7 +39,7 @@ from decimal import Decimal
 from django.apps import apps as dj_apps
 from django.db.models import Q
 
-BUCKETS = ('on_hand', 'allocated', 'on_so', 'on_po', 'on_wo', 'on_qt', 'on_in', 'on_rc')
+BUCKETS = ('on_hand', 'allocated', 'on_so', 'on_po', 'on_wo', 'on_qt', 'on_in', 'on_rc', 'in_process')
 CASH_PURPOSES = ('cash_application', 'cash_application_receipt')
 TOLERANCE = Decimal('0.0001')
 STUCK_MINUTES = 10
@@ -70,7 +75,7 @@ def check_inventory(item_id=None) -> tuple[list, dict]:
     Item = dj_apps.get_model('products', 'Item')
     Pending = dj_apps.get_model('core', 'Pending')
     InventoryLayer = dj_apps.get_model('products', 'InventoryLayer')
-    from apps.core.models.pending import INVENTORY_PURPOSES
+    from apps.core.models.pending import DEFICIT_PURPOSE, INVENTORY_PURPOSES
     from apps.products.management.commands.rebuild_commitment_buckets import commitment_gaps
 
     items = Item.objects.filter(is_deleted=False)
@@ -94,6 +99,18 @@ def check_inventory(item_id=None) -> tuple[list, dict]:
         data = _pending_data(p)
         for bucket in BUCKETS:
             journal[pk][bucket] += _d(data.get(bucket))
+
+    # Open shortages: an issue that took on_hand below 0 left a deficit Pending open until
+    # receipts fill it. The shelf is short by exactly that much (Bill, 2026-09-21).
+    deficit = defaultdict(Decimal)
+    deficits = Pending.objects.filter(purpose=DEFICIT_PURPOSE, dt_processed=0)
+    if item_id:
+        deficits = deficits.filter(record_id=str(item_id))
+    for p in deficits.iterator():
+        try:
+            deficit[int(p.record_id)] += p.incremental_remaining('deficit_qty')
+        except (TypeError, ValueError):
+            continue
 
     # The shelf: Σ remaining over each item's layers, and each layer in its own range.
     shelf = defaultdict(Decimal)
@@ -128,11 +145,34 @@ def check_inventory(item_id=None) -> tuple[list, dict]:
                 'inventory.available', 'item', pk,
                 f"item {label}: available {available} ≠ on_hand {on_hand} − allocated {allocated}",
                 ida=label, field='available', have=available, expect=on_hand - allocated))
-        if abs(on_hand - shelf[pk]) > TOLERANCE:
+        if abs(on_hand + deficit[pk] - shelf[pk]) > TOLERANCE:
             findings.append(_finding(
                 'inventory.layers', 'item', pk,
-                f"item {label}: on_hand {on_hand} but its layers hold {shelf[pk]}",
-                ida=label, field='on_hand', have=on_hand, expect=shelf[pk]))
+                f"item {label}: on_hand {on_hand} + open deficit {deficit[pk]} but its layers "
+                f"hold {shelf[pk]}",
+                ida=label, field='on_hand', have=on_hand + deficit[pk], expect=shelf[pk]))
+        if deficit[pk] > TOLERANCE and on_hand >= 0:
+            findings.append(_finding(
+                'inventory.deficit_stale', 'item', pk,
+                f"item {label}: on_hand {on_hand} is back, but {deficit[pk]} of deficit is still "
+                f"open — the receipt that restored it did not fill the deficit",
+                ida=label, field='on_hand', have=deficit[pk], expect=0))
+        on_assembly = sum((_d(e.get('quantity')) for e in ((item.metadata or {}).get('on_assembly')
+                           or []) if isinstance(e, dict)), Decimal('0'))
+        in_process = _d(quantity.get('in_process'))
+        if abs(in_process - on_assembly) > TOLERANCE:
+            findings.append(_finding(
+                'inventory.in_process', 'item', pk,
+                f"item {label}: in_process {in_process} but metadata.on_assembly points at "
+                f"{on_assembly}", ida=label, field='in_process', have=in_process, expect=on_assembly))
+        if item.is_not_tracked:
+            held = {b: float(_d(quantity.get(b))) for b in BUCKETS
+                    if abs(_d(quantity.get(b))) > TOLERANCE}
+            if held or abs(shelf[pk]) > TOLERANCE:
+                findings.append(_finding(
+                    'inventory.not_tracked_stock', 'item', pk,
+                    f"item {label} is not tracked (flags.not_tracked) but holds buckets {held} "
+                    f"and layers {shelf[pk]}", ida=label))
 
     for gap in commitment_gaps(item_id):
         findings.append(_finding(

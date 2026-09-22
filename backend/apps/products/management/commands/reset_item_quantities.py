@@ -46,7 +46,8 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-BUCKETS = ('on_hand', 'on_so', 'on_po', 'on_wo', 'on_qt', 'on_in', 'on_rc', 'allocated', 'available')
+BUCKETS = ('on_hand', 'on_so', 'on_po', 'on_wo', 'on_qt', 'on_in', 'on_rc', 'in_process', 'allocated',
+           'available')
 
 
 def _d(value) -> Decimal:
