@@ -117,7 +117,7 @@ def filter_input_fields(ModelCls: type[Model], payload: Dict[str, Any]) -> Dict[
             result[canonical] = v
     return result
 
-def get_queryset(model_key: str, *, request) -> Tuple[type[Model], QuerySet]:
+def get_queryset(model_key: str, *, user) -> Tuple[type[Model], QuerySet]:
     ModelCls = registry.resolve(model_key or "")
     if not ModelCls:
         raise ValueError("invalid model")
@@ -135,11 +135,11 @@ def get_queryset(model_key: str, *, request) -> Tuple[type[Model], QuerySet]:
     if normalized_key in {'quote', 'order', 'invoice', 'purchase', 'workorder'}:
         qs = qs.prefetch_related('lines')
 
-    qs = policy.inject_constraints(qs, request=request, model_key=model_key)
+    qs = policy.inject_constraints(qs, user=user, model_key=model_key)
     return ModelCls, qs
 
 def get_item(model_key: str, *, request, id: Any) -> Optional[Model]:
-    ModelCls, qs = get_queryset(model_key, request=request)
+    ModelCls, qs = get_queryset(model_key, user=getattr(request, 'user', None))
     try:
         obj = qs.get(pk=id)
         # Force refresh from database to get latest data
@@ -149,7 +149,7 @@ def get_item(model_key: str, *, request, id: Any) -> Optional[Model]:
         return None
 
 def list_items(model_key: str, *, request, filters: Optional[Dict[str, Any]] = None, limit: int = 500, ordering: Optional[str] = None) -> List[Model]:
-    ModelCls, qs = get_queryset(model_key, request=request)
+    ModelCls, qs = get_queryset(model_key, user=getattr(request, 'user', None))
     if filters:
         qs = qs.filter(**filters)
     if ordering:
@@ -157,7 +157,7 @@ def list_items(model_key: str, *, request, filters: Optional[Dict[str, Any]] = N
     return list(qs[:limit])
 
 def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) -> Tuple[Any, str, bool]:
-    ModelCls, qs = get_queryset(model_key, request=request)
+    ModelCls, qs = get_queryset(model_key, user=getattr(request, 'user', None))
     clean = filter_input_fields(ModelCls, data)
     if isinstance(clean.get("refs"), dict):
         try:
@@ -342,7 +342,7 @@ def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) 
     return obj.pk, "created", linked
 
 def delete_item(model_key: str, *, request, id: Any) -> bool:
-    ModelCls, qs = get_queryset(model_key, request=request)
+    ModelCls, qs = get_queryset(model_key, user=getattr(request, 'user', None))
     obj = qs.filter(pk=id).first()
     if not obj:
         return False

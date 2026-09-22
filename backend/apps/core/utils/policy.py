@@ -49,13 +49,16 @@ def _org_scope_q(model_fields: set[str], user) -> Optional["Q"]:
     return scope
 
 
-def inject_constraints(qs: QuerySet, *, request, model_key: str) -> QuerySet:
-    """Enforce tenant isolation and strict role-based visibility."""
+def inject_constraints(qs: QuerySet, *, user, model_key: str) -> QuerySet:
+    """Enforce tenant isolation and strict role-based visibility.
+
+    Takes the user, not the request: the get and delete doors are called by writers and
+    readers that have no request (Bill, 2026-09-22 — one channel per verb).
+    """
     try:
         from django.conf import settings
         from django.db.models import Q
 
-        user = getattr(request, 'user', None)
         if not user or not user.is_authenticated:
             return qs.none()
 

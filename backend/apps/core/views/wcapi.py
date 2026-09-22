@@ -128,46 +128,33 @@ class WCAPIDeleteView(APIView):
         return self._do_delete(request, model_key, record_id)
 
     def _do_delete(self, request, model_key, record_id):
-        """Shared delete logic for GET and POST."""
+        """Shared by GET and POST. The delete itself is the door's."""
         from django.conf import settings as _settings
+        from apps.core.services.delete import delete_record
+        from apps.core.services.door import Actor, Refused
+
         if getattr(_settings, 'READ_ONLY_MODE', False):
             return api_response(
                 success=False, status_code=405,
                 message='This is a read-only demo. Download WebClerk at webclerk.com to modify data.',
                 error={'code': 'demo_read_only', 'details': 'Deletes are disabled on the demo instance.'})
 
-        if not model_key or record_id is None:
-            return api_response(
-                success=False,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                message="invalid payload",
-                error={"code": "invalid_payload", "details": {"model_name": model_key, "id": record_id}},
-            )
-
-        # The role's `delete` flag (wc:model Setting config.access), or superuser for Settings.
-        from apps.core.services.role_filter import can_delete
-        if not can_delete(request.user, model_key):
-            return api_response(
-                success=False,
-                status_code=status.HTTP_403_FORBIDDEN,
-                message=f"Your role may not delete {model_key} records.",
-                error={"code": "delete_not_permitted", "details": {"model_name": model_key, "id": record_id}},
-            )
-
         try:
-            deleted = services.delete_item(model_key, request=request, id=record_id)
+            result = delete_record(Actor.from_request(request), model_key, record_id)
+        except Refused as refused:
+            return api_response(success=False, status_code=refused.status,
+                                message=refused.message, error=refused.as_error())
         except Exception:
+            logger.exception("delete failed for %s #%s", model_key, record_id)
             return api_response(
                 success=False,
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 message="delete failed",
-                error={"code": "delete_failed", "details": {"model_name": model_key, "id": record_id}},
+                error={"code": "delete_failed",
+                       "details": {"model_name": model_key, "id": record_id}},
             )
 
-        return api_response(
-            data={"deleted": bool(deleted), "id": record_id, "model_name": model_key},
-            status_code=status.HTTP_200_OK,
-        )
+        return api_response(data=result.payload(), status_code=status.HTTP_200_OK)
 
 
 class WCAPIGetView(APIView):
@@ -350,7 +337,7 @@ class WCAPIGetView(APIView):
         fetched_map: Dict[int, Dict[str, Any]] = {}
         if fetch_ids and line_model_key:
             try:
-                ModelCls, qs = services.get_queryset(line_model_key, request=request)
+                ModelCls, qs = services.get_queryset(line_model_key, user=request.user)
                 objs = list(qs.filter(pk__in=fetch_ids))
                 for line in objs:
                     allow_line = policy.field_allowlist(type(line), request=request)
@@ -1107,7 +1094,7 @@ class WCAPIGetView(APIView):
             return api_response(data={"record": payload}, status_code=status.HTTP_200_OK)
 
         # List retrieval with filters, search, and pagination
-        ModelCls, qs = services.get_queryset(model_key, request=request)
+        ModelCls, qs = services.get_queryset(model_key, user=request.user)
 
         saved_search = None
         try:
@@ -1307,7 +1294,7 @@ class WCAPIGetView(APIView):
     def _dashboard_snapshot(self, request) -> Response:
         def safe_count(model_key: str, filters: Optional[Dict[str, Any]] = None) -> Optional[int]:
             try:
-                ModelCls, qs = services.get_queryset(model_key, request=request)
+                ModelCls, qs = services.get_queryset(model_key, user=request.user)
                 if filters:
                     qs = qs.filter(**filters)
                 return qs.count()
@@ -1316,7 +1303,7 @@ class WCAPIGetView(APIView):
 
         def safe_recent(model_key: str, limit: int = 5) -> List[Dict[str, Any]]:
             try:
-                ModelCls, qs = services.get_queryset(model_key, request=request)
+                ModelCls, qs = services.get_queryset(model_key, user=request.user)
             except Exception:
                 return []
 

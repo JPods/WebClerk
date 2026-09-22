@@ -6,6 +6,21 @@ class CoreConfig(AppConfig):
     label = "core"
 
     def ready(self):
+        # Django admin goes through the save and delete doors like every other writer
+        # (Bill, 2026-09-22: "everything should flow through this one door including
+        # Django admin. No staff backdoor."). Applied to every registered ModelAdmin, so
+        # one written later cannot opt out by not knowing about it.
+        try:
+            from apps.core import admin_door
+            admin_door.install()
+        except Exception:  # noqa: BLE001 — never block startup
+            import logging
+            logging.getLogger(__name__).exception('admin door not installed')
+        else:
+            # Whatever autodiscover registers after this point comes through the wrapped
+            # register(), so late registrations are covered too.
+            pass
+
         # Initialize WCAPI registry (safe, no database calls)
         try:
             from apps.core.utils import registry
