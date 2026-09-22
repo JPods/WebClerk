@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('transactions', '0040_landed_method_per_component'),
+        ('transactions', '0041_remove_cash_is_deleted_remove_invoice_is_deleted_and_more'),
     ]
 
     operations = [

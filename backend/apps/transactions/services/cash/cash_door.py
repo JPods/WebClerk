@@ -242,17 +242,17 @@ def _on_record_deleted(sender, instance, **kwargs):
     They go with the record, and the party's balances are recomputed."""
     from apps.accounts.models import Ledger
     from apps.accounts.services.ledger_balance import update_org_balances
+    from apps.orgs.models import OrgBase
 
     model_name = sender._meta.model_name
     Ledger.objects.filter(model_name=model_name, parent_id=instance.pk).delete()
     for attr in ('customer_id', 'vendor_id'):
         org_id = getattr(instance, attr, None)
-        if org_id:
-            try:
-                update_org_balances(org_id)
-            except Exception:  # noqa: BLE001 — the record is gone either way
-                logger.warning("org %s balances not updated after %s %s was deleted",
-                               org_id, model_name, instance.pk, exc_info=True)
+        org = OrgBase.objects.filter(pk=org_id).first() if org_id else None
+        if org is not None:
+            # Fail hard (Bill, 2026-09-22): balances that silently failed to recompute are
+            # balances nobody can trust. The delete fails with them.
+            update_org_balances(org)
 
 
 # ── a cash Pending is permanent, and frozen once processed ────────────
