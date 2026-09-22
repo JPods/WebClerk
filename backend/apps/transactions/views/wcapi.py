@@ -219,7 +219,7 @@ def _not_enumerated(user, model_name: str, payload: dict, prefix: str = "") -> l
                   and p.split(".")[0] not in _NOT_A_FIELD)
 
 
-def _transaction_save_denial(request, model_key: str, record_data: dict, lines_data: list):
+def _transaction_save_denial(user, model_key: str, record_data: dict, lines_data: list):
     """Enforce role create/edit permission on /wcapi/transaction/save/.
 
     Returns (http_status, message) when denied, else None.
@@ -231,7 +231,6 @@ def _transaction_save_denial(request, model_key: str, record_data: dict, lines_d
     from apps.core.services.role_filter import build_user_context, get_user_filter_config
     from apps.products.services.price_resolver import resolve_price_legacy
 
-    user = request.user
     if not (user and user.is_authenticated):
         return status.HTTP_401_UNAUTHORIZED, "Authentication required"
 

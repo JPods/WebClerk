@@ -21,10 +21,15 @@ def _enabled() -> bool:
     return bool(getattr(settings, "WCAPI_POLICIES_ENABLED", False))
 
 
-def _roles_for(request) -> List[str]:
+def _roles_for(user) -> List[str]:
+    """Roles for the user the write is being made as.
+
+    Takes the user, not the request: every writer goes through one save door now, and
+    most of them (a management command, a sync bundle, Django admin) have no request
+    (Bill, 2026-09-22 — "everything should flow through this one door").
+    """
     # Role resolution: superuser/staff → admin, then Contact.role, then groups, then fallback "user"
     roles: List[str] = []
-    user = getattr(request, "user", None)
     if not user or not getattr(user, "is_authenticated", False):
         roles.append("anonymous")
         return roles
@@ -59,24 +64,25 @@ def _resolve_fields(rule: dict, roles: Iterable[str]) -> Optional[List[str]]:
 
 
 def read_allowlist(model: Type[Model], request=None) -> Optional[List[str]]:
+    # The read path is still request-shaped; it converts when the read door is built.
     if not _enabled():
         # fall back to existing policy behavior
         return base_policy(model, request=request)
     cfg = _get_policies().get(_get_model_key(model)) or {}
     fields_cfg = (cfg.get("fields") or {}).get("read") or {}
-    roles = _roles_for(request)
+    roles = _roles_for(getattr(request, "user", None))
     resolved = _resolve_fields(fields_cfg, roles)
     if resolved == ["*"]:
         return None  # None => all fields
     return resolved
 
 
-def write_allowlist(model: Type[Model], request=None) -> Optional[List[str]]:
+def write_allowlist(model: Type[Model], user=None) -> Optional[List[str]]:
     if not _enabled():
         return None  # defer to existing logic; wcapi will validate writes
     cfg = _get_policies().get(_get_model_key(model)) or {}
     fields_cfg = (cfg.get("fields") or {}).get("write") or {}
-    roles = _roles_for(request)
+    roles = _roles_for(user)
     resolved = _resolve_fields(fields_cfg, roles)
     if resolved == ["*"]:
         return None
@@ -117,7 +123,7 @@ _logger = logging.getLogger("wcapi.policy")
 def enforce_write_policy(
     model: Type[Model],
     data: dict,
-    request=None,
+    user=None,
 ) -> tuple:
     """Apply write-field policy to an incoming WCAPI save payload.
 
@@ -148,7 +154,7 @@ def enforce_write_policy(
         return dict(data or {}), denied
 
     # ---- resolve allowlist ----
-    allow = write_allowlist(model, request=request)
+    allow = write_allowlist(model, user=user)
 
     # None => unrestricted (admin / wildcard)
     if allow is None:

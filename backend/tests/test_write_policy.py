@@ -33,17 +33,19 @@ from apps.core.utils.model_policies import (
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _mock_request(role="user", is_superuser=False, is_staff=False, is_authenticated=True):
-    """Build a fake request with a user carrying the given role."""
+def _mock_user(role="user", is_superuser=False, is_staff=False, is_authenticated=True):
+    """A fake user carrying the given role.
+
+    The write path takes the user, not the request: every writer goes through one save
+    door now, and most of them have no request (Bill, 2026-09-22).
+    """
     user = MagicMock()
     user.is_authenticated = is_authenticated
     user.is_superuser = is_superuser
     user.is_staff = is_staff
     user.role = role
     user.groups.values_list.return_value = []
-    request = MagicMock()
-    request.user = user
-    return request
+    return user
 
 
 def _auth_client(user):
@@ -88,33 +90,33 @@ _TEST_POLICIES = {
 
 class TestRolesFor:
     def test_unauthenticated_returns_anonymous(self):
-        req = _mock_request(is_authenticated=False)
-        assert _roles_for(req) == ["anonymous"]
+        user = _mock_user(is_authenticated=False)
+        assert _roles_for(user) == ["anonymous"]
 
     def test_superuser_gets_admin(self):
-        req = _mock_request(role="admin", is_superuser=True)
-        roles = _roles_for(req)
+        user = _mock_user(role="admin", is_superuser=True)
+        roles = _roles_for(user)
         assert "admin" in roles
 
     def test_staff_gets_admin(self):
-        req = _mock_request(role="employee", is_staff=True)
-        roles = _roles_for(req)
+        user = _mock_user(role="employee", is_staff=True)
+        roles = _roles_for(user)
         assert "admin" in roles
 
     def test_employee_role_included(self):
-        req = _mock_request(role="employee")
-        roles = _roles_for(req)
+        user = _mock_user(role="employee")
+        roles = _roles_for(user)
         assert "employee" in roles
         assert "user" in roles  # fallback always present
 
     def test_default_user_role(self):
-        req = _mock_request(role="user")
-        roles = _roles_for(req)
+        user = _mock_user(role="user")
+        roles = _roles_for(user)
         assert roles == ["user"]
 
     def test_empty_role_gets_fallback_user(self):
-        req = _mock_request(role="")
-        roles = _roles_for(req)
+        user = _mock_user(role="")
+        roles = _roles_for(user)
         assert "user" in roles
 
 
@@ -126,37 +128,37 @@ class TestWriteAllowlist:
     @override_settings(WCAPI_POLICIES_ENABLED=True, WCAPI_MODEL_POLICIES=_TEST_POLICIES)
     def test_admin_gets_none_unrestricted(self):
         from apps.core.models import Contact
-        req = _mock_request(is_superuser=True)
-        result = write_allowlist(Contact, request=req)
+        user = _mock_user(is_superuser=True)
+        result = write_allowlist(Contact, user=user)
         assert result is None  # None means all fields allowed
 
     @override_settings(WCAPI_POLICIES_ENABLED=True, WCAPI_MODEL_POLICIES=_TEST_POLICIES)
     def test_employee_gets_employee_fields(self):
         from apps.core.models import Contact
-        req = _mock_request(role="employee")
-        result = write_allowlist(Contact, request=req)
+        user = _mock_user(role="employee")
+        result = write_allowlist(Contact, user=user)
         assert set(result) == {"email", "name_first", "name_last", "role"}
 
     @override_settings(WCAPI_POLICIES_ENABLED=True, WCAPI_MODEL_POLICIES=_TEST_POLICIES)
     def test_default_user_gets_default_fields(self):
         from apps.core.models import Contact
-        req = _mock_request(role="user")
-        result = write_allowlist(Contact, request=req)
+        user = _mock_user(role="user")
+        result = write_allowlist(Contact, user=user)
         assert set(result) == {"email", "name_first"}
 
     @override_settings(WCAPI_POLICIES_ENABLED=False)
     def test_disabled_returns_none(self):
         from apps.core.models import Contact
-        req = _mock_request(role="user")
-        result = write_allowlist(Contact, request=req)
+        user = _mock_user(role="user")
+        result = write_allowlist(Contact, user=user)
         assert result is None
 
     @override_settings(WCAPI_POLICIES_ENABLED=True, WCAPI_MODEL_POLICIES=_TEST_POLICIES)
     def test_unconfigured_model_returns_none(self):
         """Models not in WCAPI_MODEL_POLICIES get None (unrestricted)."""
         from apps.products.models import Item
-        req = _mock_request(role="user")
-        result = write_allowlist(Item, request=req)
+        user = _mock_user(role="user")
+        result = write_allowlist(Item, user=user)
         assert result is None
 
 
@@ -168,16 +170,16 @@ class TestEnforceWritePolicy:
     @override_settings(WCAPI_POLICIES_ENABLED=True, WCAPI_MODEL_POLICIES=_TEST_POLICIES)
     def test_admin_passes_all_fields(self):
         from apps.core.models import Contact
-        req = _mock_request(is_superuser=True)
+        user = _mock_user(is_superuser=True)
         data = {"email": "a@b.com", "role": "admin", "is_superuser": True}
-        filtered, denied = enforce_write_policy(Contact, data, request=req)
+        filtered, denied = enforce_write_policy(Contact, data, user=user)
         assert filtered == data
         assert denied == []
 
     @override_settings(WCAPI_POLICIES_ENABLED=True, WCAPI_MODEL_POLICIES=_TEST_POLICIES)
     def test_employee_strips_disallowed_fields(self):
         from apps.core.models import Contact
-        req = _mock_request(role="employee")
+        user = _mock_user(role="employee")
         data = {
             "email": "a@b.com",
             "name_first": "Alice",
@@ -186,7 +188,7 @@ class TestEnforceWritePolicy:
             "is_superuser": True,        # NOT in employee allow list
             "security_level": 99,         # NOT in employee allow list
         }
-        filtered, denied = enforce_write_policy(Contact, data, request=req)
+        filtered, denied = enforce_write_policy(Contact, data, user=user)
         assert "email" in filtered
         assert "name_first" in filtered
         assert "name_last" in filtered
@@ -198,21 +200,21 @@ class TestEnforceWritePolicy:
     @override_settings(WCAPI_POLICIES_ENABLED=True, WCAPI_MODEL_POLICIES=_TEST_POLICIES)
     def test_user_gets_default_fields_only(self):
         from apps.core.models import Contact
-        req = _mock_request(role="user")
+        user = _mock_user(role="user")
         data = {
             "email": "a@b.com",
             "name_first": "Alice",
             "name_last": "Smith",  # NOT in default
             "role": "admin",      # NOT in default
         }
-        filtered, denied = enforce_write_policy(Contact, data, request=req)
+        filtered, denied = enforce_write_policy(Contact, data, user=user)
         assert set(filtered.keys()) == {"email", "name_first"}
         assert set(denied) == {"name_last", "role"}
 
     @override_settings(WCAPI_POLICIES_ENABLED=True, WCAPI_MODEL_POLICIES=_TEST_POLICIES)
     def test_system_fields_always_stripped_for_non_admin(self):
         from apps.core.models import Contact
-        req = _mock_request(role="employee")
+        user = _mock_user(role="employee")
         data = {
             "email": "a@b.com",
             "dt_created": 999,
@@ -220,7 +222,7 @@ class TestEnforceWritePolicy:
             "version": 5,
             "uuid": "fake-uuid",
         }
-        filtered, denied = enforce_write_policy(Contact, data, request=req)
+        filtered, denied = enforce_write_policy(Contact, data, user=user)
         assert "email" in filtered
         # System fields should be stripped
         for sf in ("dt_created", "dt_modified", "uuid"):
@@ -232,7 +234,7 @@ class TestEnforceWritePolicy:
     @override_settings(WCAPI_POLICIES_ENABLED=True, WCAPI_MODEL_POLICIES=_TEST_POLICIES)
     def test_passthrough_keys_always_kept(self):
         from apps.core.models import Contact
-        req = _mock_request(role="user")
+        user = _mock_user(role="user")
         data = {
             "model_name": "contact",
             "id": 42,
@@ -240,7 +242,7 @@ class TestEnforceWritePolicy:
             "email": "a@b.com",
             "lines": [{"item": "X"}],
         }
-        filtered, denied = enforce_write_policy(Contact, data, request=req)
+        filtered, denied = enforce_write_policy(Contact, data, user=user)
         # Passthrough keys must survive
         assert filtered["model_name"] == "contact"
         assert filtered["id"] == 42
@@ -251,9 +253,9 @@ class TestEnforceWritePolicy:
     @override_settings(WCAPI_POLICIES_ENABLED=False)
     def test_disabled_policies_pass_everything(self):
         from apps.core.models import Contact
-        req = _mock_request(role="user")
+        user = _mock_user(role="user")
         data = {"email": "a@b.com", "is_superuser": True, "role": "admin"}
-        filtered, denied = enforce_write_policy(Contact, data, request=req)
+        filtered, denied = enforce_write_policy(Contact, data, user=user)
         assert filtered == data
         assert denied == []
 
@@ -261,9 +263,9 @@ class TestEnforceWritePolicy:
     def test_unconfigured_model_unrestricted(self):
         """No policy for model → no filtering."""
         from apps.products.models import Item
-        req = _mock_request(role="user")
+        user = _mock_user(role="user")
         data = {"name": "Widget", "sku": "W-001", "price": {"base": 10}}
-        filtered, denied = enforce_write_policy(Item, data, request=req)
+        filtered, denied = enforce_write_policy(Item, data, user=user)
         assert filtered == data
         assert denied == []
 

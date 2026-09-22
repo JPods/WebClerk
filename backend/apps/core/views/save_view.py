@@ -3,6 +3,10 @@ from common.api_responses import api_response
 from common.write_through import is_write_through, forward_and_store
 from django.conf import settings
 import logging
+from apps.core.services.save import (Actor, Refused, STAFF_ONLY_MODELS,
+                                     TRANSACTION_LINE_MODELS, resolve_model,
+                                     save_record)
+
 console_logger = logging.getLogger('console')  # Console logger for debugging
 # This module provides a Django view for saving (creating or updating) records in a database table via a POST request with JSON payload.
 # Classes:
@@ -99,12 +103,9 @@ def coerce_int(value):
     return value
 
 
-# Authority-bearing models with no write policy of their own.
-_STAFF_ONLY_MODELS = ('connection', 'bundle', 'setting', 'report', 'rolebase', 'roleconfig',
-                      'modelroleconfig', 'group', 'permission', 'session')
-# Header models whose lines must go through the transaction endpoint.
-_TRANSACTION_LINE_MODELS = ('order', 'invoice', 'quote', 'purchase', 'requisition',
-                            'workorder', 'receipt', 'delivery')
+# These live with the door that enforces them (core/services/save.py).
+_STAFF_ONLY_MODELS = STAFF_ONLY_MODELS
+_TRANSACTION_LINE_MODELS = TRANSACTION_LINE_MODELS
 
 _CONTACT_AUTHORITY_FIELDS = ('is_superuser', 'is_staff', 'is_active', 'role', 'groups',
                              'user_permissions', 'refs', 'metadata')
@@ -126,7 +127,7 @@ def _key_root(key):
     return root.split('[', 1)[0]
 
 
-def _setting_edit_warning(request, model_key: str, obj):
+def _setting_edit_warning(user, model_key: str, obj):
     """Coach a superuser editing a Setting. Returns a message, or None.
 
     Bill, 2026-09-20: *"let's allow setting records to be edited by superusers. If a
@@ -149,7 +150,6 @@ def _setting_edit_warning(request, model_key: str, obj):
     """
     if model_key != 'setting':
         return None
-    user = getattr(request, 'user', None)
     if not (user and getattr(user, 'is_authenticated', False) and user.is_superuser):
         return None
 
@@ -440,87 +440,23 @@ class SaveWcapiView(APIView):
         except Exception:
             pass
 
-        # Required: model_name (singular)
-        raw_model_name = data.get('model_name')
-        # If model_name not found in data, check query params
-        if not raw_model_name:
-            raw_model_name = request.query_params.get('model_name')
-            if raw_model_name:
-                data['model_name'] = raw_model_name
-        if not raw_model_name:
-            console_logger.error(f"[SAVE_VIEW] Missing model_name")
-            return api_response(success=False, status_code=400, message='Missing required field: model_name', error={'code':'missing_model_name','details':'Provide model_name (singular)'})
-
-        console_logger.debug(f"[SAVE_VIEW] Processing model_name: {raw_model_name}")
-
-        # Normalize and resolve model
-        norm_key = normalize_table_key(raw_model_name) # to make is singular form
-        if not norm_key:
-            console_logger.error(f"[SAVE_VIEW] Unknown model after normalization: {raw_model_name}")
-            return api_response(success=False, status_code=400, message=f'Unknown model: {raw_model_name}', error={'code':'unknown_model','details':f'Unknown model: {raw_model_name}'})
-        # this will get the real data object from our models folder
-        model = get_model(norm_key)
-        if not model:
-            console_logger.error(f"[SAVE_VIEW] Model not found for key: {norm_key}")
-            return api_response(success=False, status_code=400, message=f'Unknown model: {raw_model_name}', error={'code':'unknown_model','details':f'Unknown model: {raw_model_name}'})
-        model_cls = cast(Type[models.Model], model)
-        model_key = to_model_name(model_cls) or raw_model_name
-        console_logger.debug(f"[SAVE_VIEW] Model resolved: {model_key} (class: {model_cls.__name__})")
-
-        # Log setting saves for debugging layout persistence
-        if model_key == 'setting' and data.get('purpose') in ('wc:workbench_fields', 'wc:model'):
-            _data = data.get('data', {})
-            _list_preview = [f.get('field') if isinstance(f, dict) else f for f in (_data.get('list') or [])[:4]] if isinstance(_data, dict) else '?'
-            console_logger.warning(f"[SAVE_VIEW] SETTING SAVE id={data.get('id')} parent_model={data.get('parent_model')} list_preview={_list_preview}")
-
-        # Saved searches are global admin-managed settings.
-        if model_key == 'setting':
-            purpose_value = data.get('purpose')
-            tentative_record_id = coerce_int(data.get('id') or request.query_params.get('id'))
-            if purpose_value is None and tentative_record_id:
-                try:
-                    purpose_value = model_cls.objects.filter(id=tentative_record_id).values_list('purpose', flat=True).first()
-                except Exception:
-                    purpose_value = None
-
-            if str(purpose_value or '').strip().lower() == 'search':
-                user = getattr(request, 'user', None)
-                is_admin_writer = bool(
-                    user
-                    and getattr(user, 'is_authenticated', False)
-                    and (
-                        getattr(user, 'is_superuser', False)
-                        or getattr(user, 'is_staff', False)
-                        or str(getattr(user, 'role', '')).lower() == 'admin'
-                    )
-                )
-                if not is_admin_writer:
-                    return api_response(
-                        success=False,
-                        status_code=403,
-                        message='Only admin users can create or update saved searches',
-                        error={'code': 'saved_search_admin_required'},
-                    )
-
-        # Concurrency: the version on the record the caller is editing.
-        # The If-Match header and the `expected_version` body field were WC2's
-        # mechanism and are gone (Bill, 2026-09-20). uuid/dt/pending is the model;
-        # version is the one input, so there is no precedence order to get wrong.
-        expected_version = coerce_int(data.get('version'))
-
-        record_id = data.get('id')
-        # If id not found in data, check query params
-        if record_id is None:
-            record_id = request.query_params.get('id')
-            if record_id is not None:
-                data['id'] = record_id
-        record_id = coerce_int(record_id)
-        data['id'] = record_id
-        console_logger.debug(f"[SAVE_VIEW] Record ID: {record_id}, Expected version: {expected_version}")
+        # Query parameters are the HTTP layer's business: fold them into the payload
+        # before the door sees it.
+        if not data.get('model_name') and request.query_params.get('model_name'):
+            data['model_name'] = request.query_params.get('model_name')
+        if data.get('id') is None and request.query_params.get('id') is not None:
+            data['id'] = request.query_params.get('id')
+        data['id'] = coerce_int(data.get('id'))
 
         # ── Write-through: forward to remote, store bundle locally ──
         if is_write_through():
-            console_logger.info(f"[SAVE_VIEW] Write-through mode — forwarding {model_key} save to remote DB")
+            model_cls = None
+            try:
+                model_cls, _key, _norm = resolve_model(data.get('model_name') or '')
+            except Refused as refused:
+                return api_response(success=False, status_code=refused.status,
+                                    message=refused.message, error=refused.as_error())
+            console_logger.info("[SAVE_VIEW] Write-through mode — forwarding save to remote DB")
             wt_payload, wt_status = forward_and_store(request, model_cls, data)
             if wt_status >= 400:
                 return api_response(
@@ -530,10 +466,21 @@ class SaveWcapiView(APIView):
                 )
             return api_response(data=wt_payload, status_code=wt_status)
 
-        # Create or update — wrapped in transaction.atomic for data integrity.
-        # All saves (parent + lines) succeed or fail together.
+        # ── The door ──
+        # Everything a save does lives in core/services/save.py, so a command, a sync
+        # bundle or the admin reaches the same authorization, validation, hooks and
+        # version check as this endpoint (Bill, 2026-09-22: one door, no backdoor).
         try:
-            return self._save_record(request, model_cls, model_key, norm_key, data, record_id, expected_version)
+            result = save_record(
+                Actor.from_request(request),
+                data,
+                record_id=coerce_int(data.get('id')),
+                expected_version=coerce_int(data.get('version')),
+            )
+        except Refused as refused:
+            console_logger.info("[SAVE_VIEW] Refused (%s): %s", refused.code, refused.message)
+            return api_response(success=False, status_code=refused.status,
+                                message=refused.message, error=refused.as_error())
         except IntegrityError as e:
             console_logger.error(f"[SAVE_VIEW] Integrity error during save: {e}")
             return api_response(success=False, status_code=400, message='Integrity error', error={'code':'integrity_error','details': str(e)})
@@ -544,552 +491,7 @@ class SaveWcapiView(APIView):
             console_logger.error(f"[SAVE_VIEW] Exception during save: {e}")
             return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
 
-    @transaction.atomic
-    def _save_record(self, request, model_cls, model_key, norm_key, data, record_id, expected_version):
-        is_update = bool(record_id)
-        if is_update:
-            console_logger.debug(f"[SAVE_VIEW] Loading existing record with ID: {record_id}")
-            try:
-                # Use select_for_update() to prevent concurrent modifications.
-                # When expected_version is set, include it in the filter so the
-                # version check is atomic — no race window between fetch and check.
-                if expected_version is not None:
-                    try:
-                        obj = model_cls.objects.select_for_update().get(id=record_id)
-                    except model_cls.DoesNotExist:  # type: ignore[attr-defined]
-                        console_logger.error(f"[SAVE_VIEW] Record not found: {record_id}")
-                        return api_response(success=False, status_code=404, message='Record not found', error={'code':'not_found','details':'Record not found'})
-                    current_version = getattr(obj, 'version', None)
-                    if current_version is not None and current_version != expected_version:
-                        console_logger.warning(f"[SAVE_VIEW] Version conflict - Current: {current_version}, Expected: {expected_version}")
-                        return api_response(success=False, status_code=412, message='Record was modified by another user. Reload and try again.', error={'code':'version_conflict','details': {'expected': expected_version, 'current': current_version}})
-                else:
-                    obj = model_cls.objects.select_for_update().get(id=record_id)
-                console_logger.debug(f"[SAVE_VIEW] Record loaded successfully: {obj}")
-            except model_cls.DoesNotExist:  # type: ignore[attr-defined]
-                console_logger.error(f"[SAVE_VIEW] Record not found: {record_id}")
-                return api_response(success=False, status_code=404, message='Record not found', error={'code':'not_found','details':'Record not found'})
-        else:
-            console_logger.debug(f"[SAVE_VIEW] Creating new record")
-            obj = model_cls()
-
-            # Training mode — force qq prefix on all new record idas
-            try:
-                user_prefs = getattr(request.user, 'prefs', None) or {}
-                if isinstance(user_prefs, dict) and user_prefs.get('training'):
-                    # Set a marker so post-save ida generation also uses qq prefix
-                    obj._training_prefix = 'qq'
-            except Exception:
-                pass
-
-        try:
-            console_logger.debug(f"[SAVE_VIEW] Getting JSON field names...")
-            #QQQ explain why we have this
-            # list all flatten fields of the model
-            json_field_names = {
-                f.name for f in obj._meta.get_fields()
-                if hasattr(f, 'attname') and isinstance(f, models.JSONField)
-            }
-            console_logger.debug(f"[SAVE_VIEW] JSON fields found: {json_field_names}")
-            # M2M fields cannot be set via setattr — must use .set() after save
-            m2m_field_names = {
-                f.name for f in obj._meta.get_fields()
-                if f.many_to_many or f.one_to_many
-            }
-        except Exception as e:
-            console_logger.warning(f"[SAVE_VIEW] Error getting JSON field names: {e}")
-            json_field_names = set()
-            m2m_field_names = set()
-        
-        console_logger.info(f"[SAVE_VIEW] Starting pre-save hooks...")
-
-        # Pre-save hook or task (run synchronously for validation)
-        pre_hook = getattr(obj, 'pre_save_hook', None)
-        if callable(pre_hook):
-            context = {
-                'model_name': model_key,
-                'is_update': is_update,
-                'user_id': getattr(request.user, 'id', None),
-            }
-            ### QQQ why three time nested?
-            try:
-                try:
-                    result = pre_hook(data, is_update, context)
-                except TypeError:
-                    try:
-                        result = pre_hook(data, is_update)
-                    except TypeError:
-                        result = pre_hook(data)
-            except Exception as e:
-                return api_response(success=False, status_code=400, message='Pre-save validation failed', error={'code':'validation_exception','details': str(e)})
-            if result is not None:
-                if isinstance(result, tuple):
-                    ok = bool(result[0])
-                    msg = result[1] if len(result) > 1 else 'Validation failed'
-                    msg_str = str(msg)
-                    if not ok:
-                        return api_response(success=False, status_code=400, message=msg_str, error={'code':'validation','details': msg_str})
-                else:
-                    return api_response(success=False, status_code=400, message=str(result), error={'code':'validation','details': str(result)})
-        else:
-            # Report hooks attached to <model>.save_pre. A blocking rule stops the
-            # save with its own message; anything else is recorded, not raised.
-            from apps.core.services.report_hooks import HookBlocked, run_save_hooks
-            try:
-                pre_result = run_save_hooks(model_key, 'save_pre', obj, changed=set(data or {}), user=request.user)
-                if pre_result.errors:
-                    console_logger.warning(f"[SAVE_VIEW] save_pre hook problems: {pre_result.errors}")
-            except HookBlocked as blocked:
-                return api_response(
-                    success=False, status_code=400, message=blocked.message,
-                    error={'code': 'hook_blocked', 'details': blocked.message,
-                           'report': blocked.report_ida},
-                )
-
-        # ── Row-level edit check (edit_filters) ──
-        # Wide visibility, narrow edit: portal users can see all project actions
-        # but only edit actions assigned to them. edit_filters enforces this.
-        if is_update and request.user and request.user.is_authenticated:
-            from apps.core.services.role_filter import get_edit_filters
-            edit_filters = get_edit_filters(request.user, model_key)
-            if edit_filters:
-                from django.db.models import Q
-                edit_q = Q(**edit_filters)
-                if not type(obj).objects.filter(pk=obj.pk).filter(edit_q).exists():
-                    console_logger.info(
-                        "[SAVE_VIEW] Edit denied by edit_filters for %s #%s user=%s",
-                        model_key, getattr(obj, 'id', '?'), getattr(request.user, 'id', '?'),
-                    )
-                    return api_response(
-                        success=False, status_code=403,
-                        message='You can only edit records assigned to you.',
-                        error={'code': 'edit_filter_denied', 'details': 'Record does not match your edit permissions.'},
-                    )
-
-        # Fields the server itself sets below; they must survive the write-policy filter.
-        server_set_fields: dict = {}
-
-        # ── Sensitive-model gate ──
-        # These models hold authority, not business data: a Connection carries the
-        # bearer token that satisfies JpodTokenPermission, a Setting defines layouts
-        # and policy, a Report can dispatch management commands. None of them has a
-        # WCAPI_MODEL_POLICIES entry, and an absent policy means "unrestricted", so
-        # any authenticated user could mint a live Natalie token through /wcapi/save/.
-        # Reproduced 2026-09-15; staff only until each has a real policy.
-        if model_key in _STAFF_ONLY_MODELS:
-            u = request.user
-            if not (u and u.is_authenticated and (u.is_superuser or u.is_staff)):
-                console_logger.warning(
-                    "[SAVE_VIEW] Non-staff write refused on %s by user=%s",
-                    model_key, getattr(u, 'id', None))
-                return api_response(
-                    success=False, status_code=403,
-                    message=f'Not permitted to write {model_key}.',
-                    error={'code': 'staff_only_model', 'details': model_key},
-                )
-
-        # ── Open-read models (Settings): superuser writes only ──
-        from apps.core.services import access
-        if access.is_open_read(model_key) and not access.open_read_can_write(request.user):
-            console_logger.warning("[SAVE_VIEW] Non-superuser write refused on %s by user=%s",
-                                   model_key, getattr(request.user, 'id', None))
-            return api_response(
-                success=False, status_code=403,
-                message=f'Only a superuser may change {model_key} records.',
-                error={'code': 'superuser_only_model', 'details': model_key},
-            )
-
-        # ── Transaction lines belong to the transaction endpoint ──
-        # /wcapi/transaction/save/ enforces create/edit rights and re-prices portal
-        # lines server-side. This endpoint does neither, and `lines` is a passthrough
-        # key, so posting a header with lines here skipped every one of those checks.
-        # This is a legitimate path — the app's own transaction forms save headers with
-        # lines here. So apply the SAME authorization the transaction endpoint applies
-        # rather than refusing the payload: role create/edit rights, and for portal
-        # customers a server-set customer/status and server-side re-pricing.
-        # (An earlier version of this guard refused outright and broke every quote
-        # save in the UI — the hole was missing enforcement, not the endpoint.)
-        if model_key in _TRANSACTION_LINE_MODELS and data.get('lines'):
-            from apps.transactions.views.wcapi import _transaction_save_denial
-            lines_payload = data.get('lines') or []
-            tx_denial = _transaction_save_denial(request, model_key, data, lines_payload)
-            if tx_denial:
-                console_logger.warning(
-                    "[SAVE_VIEW] Transaction save denied for %s user=%s: %s",
-                    model_key, getattr(request.user, 'id', None), tx_denial[1])
-                return api_response(
-                    success=False, status_code=tx_denial[0],
-                    message=tx_denial[1],
-                    error={'code': 'transaction_denied', 'details': model_key},
-                )
-            data['lines'] = lines_payload
-            # Fields the server just set on the payload are authoritative. The write
-            # policy strips customer_id for portal roles, which would otherwise leave
-            # an order with no customer at all — so carry them past the filter below.
-            server_set_fields = {k: data[k] for k in ('customer_id', 'contact_id', 'status') if k in data}
-
-        # ── Contact account guard ──
-        # password/email are identity; privilege fields are authority; org links
-        # define visibility scope. Non-admins may only change their own identity,
-        # never authority, and never re-home themselves into another org.
-        if model_key == 'contact':
-            contact_denial = _contact_account_denial(request.user, obj, data, is_update)
-            if contact_denial:
-                console_logger.warning(
-                    "[SAVE_VIEW] Contact account guard denied %s on contact #%s by user=%s",
-                    contact_denial, getattr(obj, 'id', 'new'), getattr(request.user, 'id', '?'),
-                )
-                return api_response(
-                    success=False, status_code=403,
-                    message=f'Not permitted to change {contact_denial} on this contact.',
-                    error={'code': 'contact_account_guard', 'details': contact_denial},
-                )
-
-        # ── Role-based write-field filtering ──
-        from apps.core.utils.model_policies import enforce_write_policy
-        data, denied_fields = enforce_write_policy(model_cls, data, request=request)
-        if server_set_fields:
-            data.update(server_set_fields)
-        if denied_fields:
-            # Bill, 2026-09-20: "If it is not enumerated as edit, the back end should never
-            # read it as being there regardless of if it is in the payload or not."
-            #
-            # So this is a filter on input, applied before anything reads the payload —
-            # not a refusal. A form round-trips every field it was served, and /wcapi/get/
-            # serves everything in `view`, which is a superset of `edit`; refusing those
-            # echoes would reject every save from the screen. The screen is what keeps a
-            # user from trying: a field the role cannot edit is locked and its label
-            # italic, so it is never offered.
-            console_logger.info(
-                "[SAVE_VIEW] Not enumerated as edit for %s, ignored: %s",
-                model_key, ", ".join(denied_fields),
-            )
-
-        # ── Field assignment (delegated to save_field_assignment service) ──
-        from apps.core.services.save_field_assignment import assign_fields
-        _assignment = assign_fields(obj, data, model_cls, json_field_names, m2m_field_names, model_name=model_key)
-        raw_password = _assignment['raw_password']
-        field_size_errors = _assignment['field_size_errors']
-        field_value_errors = _assignment['field_value_errors']
-
-        if raw_password is not None and hasattr(obj, 'set_password'):
-            try:
-                obj.set_password(raw_password)  # type: ignore[attr-defined]
-            except Exception as e:
-                return api_response(success=False, status_code=400, message='Failed to hash password', error={'code':'hash_password','details':str(e)})
-
-        if field_value_errors:
-            # Ensure errors are serializable and log request preview for debugging
-            err_details = [str(e) for e in field_value_errors]
-            console_logger.error(f"[SAVE_VIEW] Field coercion errors for {model_key} ID {record_id}: {err_details}")
-            return api_response(success=False, status_code=400, message='Invalid field values', error={'code': 'invalid_field', 'details': err_details})
-
-        # ── Envelope validation (Pydantic schema check on metadata/config/refs/prefs) ──
-        from apps.core.services.save_envelope import validate_and_reject
-        _envelope_fields = set(data.keys()) & {'metadata', 'config', 'refs', 'prefs'}
-        if _envelope_fields:
-            envelope_error = validate_and_reject(obj, model_key, _envelope_fields)
-            if envelope_error:
-                return api_response(
-                    success=False, status_code=400,
-                    message=f'Envelope validation failed: {envelope_error}',
-                    error={'code': 'envelope_invalid', 'details': envelope_error},
-                )
-
-        # Optional model-level payload validation
-        try:
-            universal_flag = getattr(settings, 'UNIVERSAL_API_VALIDATE', False)
-        except Exception:
-            universal_flag = False
-        apply_validation = universal_flag or (norm_key == 'orgs' and getattr(settings, 'ORGS_VALIDATE_API', False))
-        if apply_validation and hasattr(obj, 'api_validate_payload'):
-            try:
-                ok, errors = obj.api_validate_payload(data, is_update)  # type: ignore[attr-defined]
-            except Exception as e:
-                logging.getLogger(__name__).warning(
-                    "validation_exception model=%s class=%s error=%s", model_key, model_cls.__name__, e
-                )
-                return api_response(success=False, status_code=400, message='Validation failed', error={'code':'validation_exception','details': [str(e)]})
-            if not ok:
-                logging.getLogger(__name__).info(
-                    "validation_failed model=%s class=%s errors=%s", model_key, model_cls.__name__, errors
-                )
-                return api_response(success=False, status_code=400, message='Validation failed', error={'code':'validation_failed','details': errors})
-
-        console_logger.debug(f"[SAVE_VIEW] Starting database save...")
-
-        # Normalize contact_id: ensure numeric or clear so model can auto-resolve
-        try:
-            if hasattr(obj, 'contact_id'):
-                cid = getattr(obj, 'contact_id')
-                if isinstance(cid, str):
-                    s = cid.strip()
-                    if s.isdigit():
-                        setattr(obj, 'contact_id', int(s))
-                    else:
-                        resolved = None
-                        try:
-                            assigned = data.get('assigned_to') or data.get('assignedTo')
-                            if isinstance(assigned, list) and assigned:
-                                first = assigned[0]
-                                if isinstance(first, dict):
-                                    aid = first.get('id')
-                                    name = first.get('name')
-                                    if isinstance(aid, str) and aid.isdigit():
-                                        resolved = int(aid)
-                                    elif isinstance(name, str) and name.strip().isdigit():
-                                        resolved = int(name.strip())
-                        except Exception:
-                            resolved = None
-                        if resolved:
-                            setattr(obj, 'contact_id', resolved)
-                        else:
-                            setattr(obj, 'contact_id', 0)
-        except Exception:
-            pass
-        # Authorize Setting saves from authenticated API requests
-        if model_key == 'setting':
-            obj._setting_update_authorized = True
-            obj._setting_create_authorized = True
-        console_logger.debug(f"[SAVE_VIEW] Executing obj.save() for {model_key} ID: {getattr(obj, 'id', 'new')}")
-        try:
-            obj.save()
-        except DjangoValidationError as e:
-            # A model that validates in save() — Setting calls full_clean() there — was
-            # raising straight past this view into a 500, because only IntegrityError was
-            # caught. A record the caller got wrong is a 400 telling them which field, not
-            # a server error: /wcapi/save/ already answers that way for orgs, and
-            # test_setting_crud and test_wcapi_batch_delete have been failing on the
-            # difference (recheck-3 save cluster, 2026-09-20).
-            details = (list(e.message_dict.items()) if hasattr(e, 'message_dict')
-                       else list(getattr(e, 'messages', [str(e)])))
-            flat = [f"{k}: {'; '.join(map(str, v))}" for k, v in details] \
-                if details and isinstance(details[0], tuple) else [str(d) for d in details]
-            console_logger.warning("[SAVE_VIEW] Validation failed on %s: %s", model_key, flat)
-            return api_response(
-                success=False, status_code=400,
-                message='Validation failed',
-                error={'code': 'validation_failed', 'details': flat},
-            )
-        console_logger.debug(f"[SAVE_VIEW] Save completed successfully for {model_key} ID: {getattr(obj, 'id', 'new')}")
-        # Verify setting save
-        if model_key == 'setting' and hasattr(obj, 'purpose') and getattr(obj, 'purpose', '') in ('wc:workbench_fields', 'wc:model'):
-            _saved = getattr(obj, 'data', {})
-            _list_saved = [f.get('field') if isinstance(f, dict) else f for f in (_saved.get('list') or [])[:4]] if isinstance(_saved, dict) else '?'
-            console_logger.warning(f"[SAVE_VIEW] SETTING SAVED id={obj.id} parent_model={getattr(obj, 'parent_model', '?')} list={_list_saved}")
-
-        # ── Denormalize org (customer/vendor/manufacturer) into refs.links ──
-        try:
-            from apps.transactions.services.denormalize_org_links import denormalize_org_links
-            if denormalize_org_links(obj, model_key):
-                obj.save(update_fields=['refs', 'version', 'dt_modified'])
-                console_logger.debug(f"[SAVE_VIEW] Denormalized org links for {model_key} #{getattr(obj, 'id', '?')}")
-        except Exception:
-            pass  # non-transaction models will simply return False
-
-        # ── Line processing (delegated to save_line_processing service) ──
-        from apps.core.services.save_line_processing import process_lines
-        _adjust_fn = None      # a source line's own door writes its release (line_door)
-        process_lines(obj, data, model_key, adjust_source_fn=_adjust_fn)
-
-        # ── Auto-link communication records to Contact (delegated to save_contact_linking) ──
-        linked = False
-        contact = None
-        bucket = None
-        try:
-            comm_models = {"email", "phone", "address", "domain"}
-            if model_key.lower() in comm_models:
-                bucket = model_key.lower()
-                if request.user and getattr(request.user, "is_authenticated", False):
-                    contact = Contact.objects.filter(pk=getattr(request.user, "pk", None)).first()
-                if contact:
-                    from apps.core.services.save_contact_linking import link_comm_to_contact
-                    fields = LINK_DENORMALIZE_FIELDS.get(bucket, ["id"]) or ["id"]
-                    linked = link_comm_to_contact(obj, contact, bucket, fields)
-        except Exception:
-            pass
-
-        # Append contact link for action saves
-        if model_key == 'action':
-            try:
-                from apps.core.services.action_links import append_contact_link
-                user_id = getattr(request.user, 'id', None)
-                if user_id:
-                    append_contact_link(obj, user_id)
-                    console_logger.debug(f"[SAVE_VIEW] Appended contact link for action ID: {obj.id}")
-            except Exception as e:
-                console_logger.error(f"[SAVE_VIEW] Failed to append contact link: {e}")
-            
-            # Auto-schedule action based on parent dependencies (Finish-to-Start)
-            # When refs.parents is set, update dt_start to latest parent's dt_end
-            try:
-                from apps.core.services.action_links import auto_schedule_from_parents
-                refs_data = data.get('refs.parents') or data.get('refs', {})
-                if isinstance(refs_data, dict) and refs_data.get('value'):
-                    refs_data = refs_data.get('value')
-                refs_obj = getattr(obj, 'refs', {}) or {}
-                if isinstance(refs_obj, dict) and refs_obj.get('parents'):
-                    schedule_result = auto_schedule_from_parents(obj, save=True)
-                    if schedule_result.get('updated'):
-                        console_logger.info(
-                            f"[SAVE_VIEW] Auto-scheduled action {obj.id}: dt_start set to {schedule_result.get('dt_start')} "
-                            f"(from parent {schedule_result.get('latest_parent_id')})"
-                        )
-            except Exception as e:
-                console_logger.error(f"[SAVE_VIEW] Failed to auto-schedule action: {e}")
-            
-            # Cascading reschedule: if this action's dates changed, push children forward
-            try:
-                from apps.core.services.action_links import check_and_reschedule_children
-                # Check if dt_start or duration was updated
-                dt_start_changed = 'dt_start' in data
-                duration_changed = 'duration' in data
-                if dt_start_changed or duration_changed:
-                    rescheduled = check_and_reschedule_children(obj, save=True)
-                    if rescheduled:
-                        console_logger.info(
-                            f"[SAVE_VIEW] Cascading reschedule: {len(rescheduled)} children rescheduled for action {obj.id}"
-                        )
-            except Exception as e:
-                console_logger.error(f"[SAVE_VIEW] Failed to cascade reschedule children: {e}")
-
-        obj_id = getattr(obj, 'id', None)
-        console_logger.debug(f"[SAVE_VIEW] Save completed, object ID: {obj_id}")
-
-        console_logger.debug(f"[SAVE_VIEW] Starting post-save hooks...")
-
-        # Post-save hook or task
-        post_hook_note = None
-        post_hook = getattr(obj, 'post_save_hook', None)
-        if callable(post_hook):
-            console_logger.debug(f"[SAVE_VIEW] Executing custom post_save_hook...")
-            try:
-                context = {
-                    'model_name': model_key,
-                    'is_update': is_update,
-                    'user_id': getattr(request.user, 'id', None),
-                }
-                try:
-                    post_hook_note = post_hook(data, is_update, context)  # type: ignore[misc]
-                except TypeError:
-                    try:
-                        post_hook_note = post_hook(data, is_update)  # type: ignore[misc]
-                    except TypeError:
-                        post_hook_note = post_hook(data)  # type: ignore[misc]
-                console_logger.debug(f"[SAVE_VIEW] Custom post_save_hook completed")
-            except Exception as e:
-                console_logger.error(f"[SAVE_VIEW] Error in custom post_save_hook: {e}")
-                post_hook_note = f'post_save_hook error: {e}'
-        else:
-            # Report hooks attached to <model>.save_post. Post-save never blocks:
-            # problems are reported back with the record, not raised at the user.
-            console_logger.debug(f"[SAVE_VIEW] Running save_post report hooks...")
-            try:
-                from apps.core.services.report_hooks import run_save_hooks
-                post_result = run_save_hooks(model_key, 'save_post', obj, changed=set(data or {}), user=request.user)
-                if post_result.set_fields:
-                    obj.save()
-                if post_result.errors:
-                    post_hook_note = '; '.join(post_result.errors)
-                    console_logger.warning(f"[SAVE_VIEW] save_post hook problems: {post_hook_note}")
-            except Exception as e:
-                console_logger.error(f"[SAVE_VIEW] Error running save_post report hooks: {e}")
-                post_hook_note = f'Post-save hook error: {e}'
-
-        console_logger.debug(f"[SAVE_VIEW] Starting keyword updates...")
-        # Update keywords synchronously so the response contains latest keywords
-        try:
-            update_keywords_method = getattr(obj, 'update_keywords', None)
-            if update_keywords_method is not None and callable(update_keywords_method):
-                console_logger.debug(f"[SAVE_VIEW] Executing update_keywords...")
-                update_keywords_method()
-                console_logger.debug(f"[SAVE_VIEW] update_keywords completed, doing keyword save...")
-                obj.save(update_fields=['refs', 'metadata', 'version', 'dt_modified'])
-                console_logger.debug(f"[SAVE_VIEW] Keyword save completed")
-        except Exception as e:
-            console_logger.error(f"[SAVE_VIEW] Error persisting deferred contact refs: {e}")
-            logging.getLogger(__name__).exception('Error persisting deferred contact refs for %s id=%s', model_key, obj_id)
-
-        # Persist deferred contact.refs (if earlier code marked them for deferred save)
-        try:
-            if contact and getattr(contact, '_refs_pending_save', False):
-                links_bucket = bucket or ''
-                current_links = contact.refs.get('links', {}) if isinstance(getattr(contact, 'refs', {}), dict) else {}
-                bucket_links = current_links.get(links_bucket, []) if isinstance(current_links, dict) else []
-                console_logger.debug(f"[SAVE_VIEW] Persisting deferred contact.refs for contact id={contact.pk} (links size={len(bucket_links)})")
-                try:
-                    contact.save(update_fields=['refs', 'version', 'dt_modified'])
-                    contact.refresh_from_db()
-                    try:
-                        import json as _json
-                        db_refs = contact.__class__.objects.filter(pk=contact.pk).values_list('refs', flat=True).first()
-                        refreshed_links = contact.refs.get('links', {}) if isinstance(contact.refs, dict) else {}
-                        refreshed_bucket = refreshed_links.get(links_bucket, []) if isinstance(refreshed_links, dict) else []
-                        console_logger.debug(f"[SAVE_VIEW] Deferred contact saved; new version={getattr(contact,'version',None)} links_count={len(refreshed_bucket)} db_refs_preview={_json.dumps(db_refs)[:200] if db_refs else ''}")
-                    except Exception:
-                        refreshed_links = contact.refs.get('links', {}) if isinstance(contact.refs, dict) else {}
-                        refreshed_bucket = refreshed_links.get(links_bucket, []) if isinstance(refreshed_links, dict) else []
-                        console_logger.debug(f"[SAVE_VIEW] Deferred contact saved; new version={getattr(contact,'version',None)} links_count={len(refreshed_bucket)}")
-                except Exception as e:
-                    console_logger.error(f"[SAVE_VIEW] Error saving deferred contact refs: {e}")
-
-                # Update obj.refs with contact link
-                try:
-                    from apps.core.services.save_contact_linking import link_obj_to_contact
-                    if link_obj_to_contact(obj, contact):
-                        obj.save(update_fields=['refs', 'version', 'dt_modified'])
-                    from common.refs.links import ensure_bidirectional
-                    ensure_bidirectional(contact, obj, kind='contact')
-                except Exception:
-                    pass
-                try:
-                    delattr(contact, '_refs_pending_save')
-                except Exception:
-                    pass
-        except Exception as e:
-            console_logger.error(f"[SAVE_VIEW] Failed to update keywords: {e}")
-            logging.getLogger(__name__).exception('Failed to update keywords for %s id=%s', model_key, obj_id)
-
-        console_logger.debug(f"[SAVE_VIEW] Generating response payload...")
-        # this is needed to pass out to id of a new record
-        try:
-            safe_fields = [f.name for f in obj._meta.concrete_fields]
-            record = model_to_dict(obj, fields=safe_fields)
-            console_logger.debug(f"[SAVE_VIEW] Record dict generated with {len(record)} fields")
-        except Exception as e:
-            console_logger.warning(f"[SAVE_VIEW] Error generating record dict: {e}")
-            record = {'id': getattr(obj, 'id', None)}
-        payload = {
-            'id': obj_id,
-            'record': record,
-            'model_name': model_key,
-            'version': getattr(obj, 'version', None),
-            'linked': linked
-        }
-        messages = []
-        if field_size_errors:
-            console_logger.debug(f"[SAVE_VIEW] Adding {len(field_size_errors)} field size errors to messages")
-            messages.extend(field_size_errors)
-        if post_hook_note:
-            console_logger.debug(f"[SAVE_VIEW] Adding post hook note to messages: {post_hook_note}")
-            messages.append(post_hook_note)
-        if messages:
-            payload['messages'] = messages
-            console_logger.debug(f"[SAVE_VIEW] Response will include {len(messages)} messages")
-        
-        # ── Local-sync: queue async push to remote DB ────────────
-        if obj_id is not None:
-            try:
-                from common.sync_tasks import dispatch_sync_to_remote
-                sync_task_id = dispatch_sync_to_remote(model_key.lower(), obj_id)
-                if sync_task_id:
-                    payload['sync_task_id'] = sync_task_id
-                    payload['sync_status'] = 'queued'
-            except Exception:
-                pass  # never block the response
-
-        console_logger.info(f"[SAVE_VIEW] Returning successful response for {model_key} ID: {obj_id}")
-        return api_response(data=payload, message=_setting_edit_warning(request, model_key, obj))
+        return api_response(data=result.payload(), message=result.warning)
 
 
 class SaveWcapiViewWithModel(APIView):

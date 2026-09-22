@@ -50,11 +50,11 @@ def test_the_write_policy_passes_signals_and_refuses_a_strange_one():
     from apps.products.models import Item
 
     data = {'name': 'CARRIER-1', '_dirty': True, '_delete': False}
-    filtered, _denied = enforce_write_policy(Item, data, request=None)
+    filtered, _denied = enforce_write_policy(Item, data, user=None)
     assert filtered['_dirty'] is True                               # signals reach the save pipeline
 
     with pytest.raises(CarrierError):
-        enforce_write_policy(Item, {'name': 'x', '__dict__': {'is_superuser': True}}, request=None)
+        enforce_write_policy(Item, {'name': 'x', '__dict__': {'is_superuser': True}}, user=None)
 
 
 @pytest.mark.django_db
