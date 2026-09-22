@@ -66,30 +66,33 @@ class Cash(HardDeleteOnly, BaseModel):
     # Parent transaction references
     invoice = models.ForeignKey(
         'transactions.Invoice',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='cash_entries',
         db_column='invoice_id',
-        help_text="Invoice this cash applies to (AR — received)"
+        help_text="Invoice this cash applies to (AR — received). SET_NULL: deleting an "
+                  "invoice reverses its applications and the money returns to available; "
+                  "CASCADE deleted the customer's cash with the document."
     )
     purchase = models.ForeignKey(
         'transactions.Purchase',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='cash_entries',
         db_column='purchase_id',
-        help_text="Purchase order this cash relates to"
+        help_text="Purchase order this cash relates to. SET_NULL, as invoice: a cash "
+                  "record is money, and a document delete never deletes money."
     )
     receipt = models.ForeignKey(
         'transactions.Receipt',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='cash_entries',
         db_column='receipt_id',
-        help_text="Receipt this cash applies to (AP — cash_out)"
+        help_text="Receipt this cash applies to (AP — cash_out). SET_NULL, as invoice."
     )
     contact_id = models.BigIntegerField(
         null=True, blank=True, db_index=True,

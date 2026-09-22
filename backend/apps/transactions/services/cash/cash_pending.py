@@ -37,56 +37,6 @@ SYS_WRITEOFF = 'SYS-WRITEOFF'
 SYS_FXDIFF = 'SYS-FXDIFF'
 
 
-def _create_discount_line(
-    invoice, disc_value: Decimal, discount_pct: float, source_cash=None,
-    decision: Optional[Dict[str, Any]] = None,
-) -> None:
-    """Create a negative invoice line for the discount amount.
-
-    Discount reduces the invoice total (not a separate cash).
-    The line has line_type='discount' and purpose='cash_discount'.
-    After creating the line, recalculate invoice totals.
-    """
-    from apps.transactions.models import InvoiceLine
-
-    # Find next line number
-    last_line = (
-        InvoiceLine.objects.filter(invoice_id=invoice.pk)
-        .order_by('-line_number')
-        .values_list('line_number', flat=True)
-        .first()
-    ) or 0
-    next_line = (last_line // 10 + 1) * 10
-
-    reason = f'{discount_pct}% cash discount' if discount_pct > 0 else 'Cash discount'
-
-    InvoiceLine.objects.create(
-        invoice_id=invoice.pk,
-        line_number=next_line,
-        line_type='discount',
-        purpose='cash_discount',
-        item={'name': reason, 'ida': SYS_DISCOUNT},
-        quantity={'active': 1},
-        price={
-            'unit': float(-disc_value),
-            'amount': float(-disc_value),
-        },
-        metadata={
-            'discount_pct': discount_pct,
-            'discount_amt': float(disc_value),
-            'source_cash_id': source_cash.pk if source_cash else None,
-            'decision': decision or {},
-        },
-    )
-
-    # Recalculate invoice totals so balance reflects the discount
-    invoice.update_sell_cost_totals(persist=True)
-    invoice.refresh_from_db()
-
-    logger.info("Created discount line on invoice %s: -$%s (%s)",
-                invoice.pk, disc_value, reason)
-
-
 def _create_adjustment_cash(
     invoice, method: str, amount: Decimal, reason: str = '',
     source_cash=None, decision: Optional[Dict[str, Any]] = None,
@@ -167,6 +117,24 @@ def _applied(**match) -> Decimal:
     return _d(total)
 
 
+def _committed(**match) -> Decimal:
+    """Applied **plus queued** — what the cash is already spoken for at creation time.
+
+    ``_applied`` answers what has moved. A check at creation has to count what is about to
+    move as well: two queued applications of the same cash each passed alone, and together
+    they spent it twice (Fable, 2026-09-21). The appliers no longer check at all (Rule 10),
+    so this is the only place it is asked.
+    """
+    from apps.core.models.pending import Pending
+
+    filters = {f'changes__{k}': v for k, v in match.items()}
+    queued = Decimal('0')
+    for p in Pending.objects.filter(purpose=CASH_PURPOSE, dt_processed=0,
+                                    changes__state='pending', **filters).only('changes'):
+        queued += _d((p.changes or {}).get('amount'))
+    return _applied(**match) + queued
+
+
 def _utc_now_iso() -> str:
     from datetime import datetime, timezone
     return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -188,7 +156,11 @@ def _check_policy(invoice, kind: str, value: Decimal) -> None:
         raise ValueError(f"Company policy: a {kind.replace('_', ' ')} may not exceed {pct}% of the invoice (asked {value} of {total})")
 
 
-ADJUSTMENT_METHODS = ('write_off', 'small_balance', 'fx_gain', 'fx_loss')
+# A settlement adjustment settles the balance without money: it is a cash-side event,
+# and the invoice total keeps meaning what was sold. 'discount' joined them 2026-09-22
+# (Bill): it used to write a negative invoice line, which changed the total — impossible
+# on a journalized invoice, which is exactly when a settlement discount is taken.
+ADJUSTMENT_METHODS = ('write_off', 'small_balance', 'fx_gain', 'fx_loss', 'discount')
 
 
 def _applied_split(**match):
@@ -266,9 +238,21 @@ def refresh_invoice_cash(invoice) -> Dict[str, Any]:
 
 
 def refresh_cash_available(cash) -> Decimal:
-    """available = amount − Σ applied. Saving re-runs the cash ledger (signal)."""
-    available = _d(cash.amount) - _applied(cash_id=cash.pk)
-    if cash.available != available:
+    """What this cash still has to give, counting both sides of the house.
+
+    **One function** (2026-09-22). There were two, with different formulas: this one
+    ignored AP applications entirely, so a cash that had paid a vendor still reported the
+    money as available. Both reviewers found it independently in the recheck-3 audit.
+
+    An application carries its *document's* sign. On AR the invoice points the same way as
+    the cash, so an application is subtracted. On AP they are opposed — a payable is stored
+    positive and the payment out that settles it is negative — so an AP application is
+    **added**, and available moves toward zero on both sides.
+    """
+    from apps.transactions.services.cash.cash_pending_receipt import _applied as _applied_ap
+
+    available = _d(cash.amount) - _applied(cash_id=cash.pk) + _applied_ap(cash_id=cash.pk)
+    if _d(cash.available) != available:
         cash.available = available
         cash.save(update_fields=['available', 'dt_modified', 'version'])
     return available
@@ -277,6 +261,7 @@ def refresh_cash_available(cash) -> Decimal:
 def _check_application(cash, target, amount: Decimal, *,
                        target_applied: Optional[Decimal] = None,
                        cash_applied: Optional[Decimal] = None,
+                       bound_cash: bool = True,
                        party_attr: str = 'customer_id',
                        party_label: str = 'customer') -> None:
     """What must be true for an application to be recorded. One check, both sides.
@@ -316,10 +301,12 @@ def _check_application(cash, target, amount: Decimal, *,
     if amount == 0:
         raise ValueError("amount must not be zero: there is nothing to record")
 
+    # Applied **and queued**: this check runs at creation, and a queued application is
+    # money already spoken for. The appliers do not re-check (Rule 10).
     if target_applied is None:
-        target_applied = _applied(invoice_id=target.pk)
+        target_applied = _committed(invoice_id=target.pk)
     if cash_applied is None:
-        cash_applied = _applied(cash_id=cash.pk)
+        cash_applied = _committed(cash_id=cash.pk)
 
     kind = target._meta.model_name
 
@@ -339,7 +326,9 @@ def _check_application(cash, target, amount: Decimal, *,
     # forbid every AP application there is.
     cash_amount = _d(cash.amount)
     cash_after = _d(cash_applied) + amount
-    if abs(cash_after) > abs(cash_amount):
+    # A credit transfer carries no money of its own (amount 0) and its two legs net to
+    # zero, so there is no cash to bound — only the two documents.
+    if bound_cash and abs(cash_after) > abs(cash_amount):
         raise ValueError(
             f"cannot apply {amount} from cash {cash.pk}: that would put {abs(cash_after)} "
             f"against a payment of {abs(cash_amount)}. "
@@ -374,8 +363,9 @@ def apply_cash_to_invoice(
     settles a credit memo (refund cash is negative). If the invoice is not
     locked, applies immediately; if locked, queues for celery.
 
-    Discount creates an invoice line (reduces invoice total).
-    Dismiss creates a separate write-off cash with its own GL.
+    A discount, a write-off, a dismissed balance and an FX difference are all cash-side
+    adjustments: each is its own Cash record applied through this same Pending path, and
+    the invoice total stays what was sold.
 
     Returns:
         {pending_id, state, amount, applied, adjustments}
@@ -398,7 +388,7 @@ def apply_cash_to_invoice(
 
     adjustments = []
 
-    # ── Discount — creates an invoice line that reduces the total ────
+    # ── Discount — an adjustment cash that settles part of the balance ──
     disc_value = Decimal('0')
     if discount_amt > 0:
         disc_value = Decimal(str(discount_amt))
@@ -409,7 +399,11 @@ def apply_cash_to_invoice(
 
     if disc_value > 0:
         _check_policy(invoice, 'discount', disc_value)
-        _create_discount_line(invoice, disc_value, discount_pct, cash, decision)
+        _create_adjustment_cash(
+            invoice, 'discount', disc_value,
+            reason=(f'{discount_pct}% cash discount' if discount_pct > 0 else 'Cash discount'),
+            source_cash=cash, decision=decision,
+        )
         adjustments.append({'type': 'discount', 'amount': float(disc_value)})
 
     # ── FX difference (cash-side) ────────────────────────────────
@@ -501,8 +495,11 @@ def apply_cash_pending(pending) -> bool:
 
             # A journalized invoice is locked against content edits, not against cash:
             # received/balance/cash_state are derived from applications.
-
-            _check_application(cash, invoice, amount)
+            #
+            # **Rule 10 (Bill, 2026-09-21): a Pending's sole purpose is to apply**, "regardless
+            # of common sense". The check belongs at creation, where a person can still be
+            # coached; here it only stranded records that the books had already counted on.
+            # A value that ends up strange surfaces as cash_state 'over' for Alice and the user.
 
             changes['state'] = 'applied'
             changes['dt_applied'] = timezone.now().isoformat()
@@ -526,32 +523,61 @@ def apply_cash_pending(pending) -> bool:
 
 
 @transaction.atomic
-def unapply_cash_application(pending_id: int, reason: str = '') -> Dict[str, Any]:
-    """Reverse an application. The record stays, marked canceled."""
+def unapply_cash_application(pending_id: int, reason: str = '', acted_by=None) -> Dict[str, Any]:
+    """Undo an application by **writing a reversing application**, never by editing it.
+
+    Bill, 2026-09-22: every apply, change, unapply and delete writes a new signed Pending.
+    This used to set ``state='canceled'`` on the original, which made the record say
+    something other than what happened: the money had moved, and the row denied it.
+
+    An application that never applied is a different thing: nothing moved, so it is closed
+    with its reason instead (``cash_door.close_queued``).
+
+    Works for both sides — AP had no unapply at all.
+    """
     from apps.core.models.pending import Pending
-    from apps.transactions.models import Invoice, Cash
+    from apps.transactions.models import Cash, Invoice, Receipt
+    from apps.transactions.services.cash import cash_door
 
-    pending = Pending.objects.select_for_update().get(pk=pending_id, purpose=CASH_PURPOSE)
-    changes = dict(pending.changes or {})
-    if changes.get('state') == 'canceled':
-        raise ValueError(f"application {pending_id} is already canceled")
-    changes['state'] = 'canceled'
-    changes['dt_canceled'] = timezone.now().isoformat()
-    changes['cancel_reason'] = reason
-    pending.changes = changes
-    if not pending.dt_processed:
-        pending.dt_processed = int(timezone.now().timestamp() * 1000)
-    pending.save(update_fields=['changes', 'dt_processed', 'dt_modified', 'version'])
+    pending = (Pending.objects.select_for_update()
+               .get(pk=pending_id, purpose__in=cash_door.CASH_PURPOSES))
+    changes = pending.changes if isinstance(pending.changes, dict) else {}
 
-    invoice = Invoice.objects.filter(pk=changes.get('invoice_id')).first()
-    cash = Cash.objects.filter(pk=changes.get('cash_id')).first()
+    if (changes.get('kind') or '') in ADJUSTMENT_METHODS:
+        raise ValueError(
+            f"application {pending_id} is a {changes['kind']} adjustment, not money received. "
+            f"To undo it, delete the adjustment cash record — that reverses it through the "
+            f"same door and leaves the trail.")
+
+    if changes.get('state') != 'applied':
+        cash_door.close_queued(pending, reason or 'canceled', acted_by=acted_by)
+        return {'pending_id': pending.pk, 'state': 'canceled', 'reversal_id': None}
+
+    reversal = cash_door.reverse_application(pending, reason or 'unapplied', acted_by=acted_by)
+    if reversal is None:
+        raise ValueError(
+            f"application {pending_id} has already been fully reversed; there is nothing "
+            f"left to unapply.")
+
     from apps.core.services.balance_checker import log_balance_event
-    log_balance_event(pending, True, event='unapply')
-    result = {'pending_id': pending.pk, 'state': 'canceled'}
-    if invoice:
-        result['invoice'] = refresh_invoice_cash(invoice)
+    log_balance_event(reversal, True, event='unapply')
+
+    target_key = cash_door._target_key(pending.purpose)
+    result = {'pending_id': pending.pk, 'state': 'reversed',
+              'reversal_id': reversal.pk,
+              'amount': reversal.changes['amount']}
+    cash = Cash.objects.filter(pk=changes.get('cash_id')).first()
     if cash:
         result['cash_available'] = float(refresh_cash_available(cash))
+    if target_key == 'invoice_id':
+        invoice = Invoice.objects.filter(pk=changes.get('invoice_id')).first()
+        if invoice:
+            result['invoice'] = refresh_invoice_cash(invoice)
+    else:
+        receipt = Receipt.objects.filter(pk=changes.get('receipt_id')).first()
+        if receipt:
+            from apps.transactions.services.cash.cash_pending_receipt import refresh_receipt_paid
+            result['receipt'] = refresh_receipt_paid(receipt)
     return result
 
 
@@ -583,23 +609,32 @@ def transfer_credit(credit_invoice_id: int, invoice_id: int, amount, reason: str
 
 
 def _apply_now(cash, invoice, amount: Decimal, reason: str) -> int:
-    """Record an applied application inside a transfer (both sides or neither)."""
+    """One leg of a transfer, applied through the same door as everything else.
+
+    This used to write a Pending already marked ``applied``, which is the one thing no
+    caller may do: it is the applier's word that the money moved. Now it creates the
+    application and lets ``try_apply`` do it, inside the transfer's transaction — the rows
+    are already locked by this transaction, so the applier's ``nowait`` lock is free. If a
+    leg does not apply, this raises and both legs roll back.
+    """
     from apps.core.models.pending import Pending
 
-    balance = _d(invoice.totals.get('total')) - _applied(invoice_id=invoice.pk)
-    if _sign(amount) != _sign(balance) or abs(amount) > abs(balance):
-        raise ValueError(f"cannot apply {amount} to invoice {invoice.pk}: balance due is {balance}")
-    now = timezone.now()
-    pending = Pending(
+    # The document bound, as everywhere else. The cash bound is skipped: a credit transfer
+    # carries amount 0 and its two legs net to zero by construction.
+    _check_application(cash, invoice, amount, bound_cash=False)
+
+    pending = Pending.objects.create(
         model_name='cash', record_id=str(cash.pk), purpose=CASH_PURPOSE,
         name=f'Cash #{cash.pk} → Invoice #{invoice.pk} ${amount}',
-        dt_processed=int(now.timestamp() * 1000),
         changes={'cash_id': cash.pk, 'invoice_id': invoice.pk, 'amount': float(amount),
-                 'reason': reason, 'state': 'applied', 'dt_applied': now.isoformat()},
+                 'reason': reason, 'kind': 'credit_transfer',
+                 'state': 'pending', 'dt_applied': None},
     )
-    pending.save()
-    refresh_invoice_cash(invoice)
-    refresh_cash_available(cash)
+    pending.refresh_from_db()
+    if not pending.is_processed():
+        raise ValueError(
+            f"the credit transfer to invoice {invoice.pk} could not be applied, so none of "
+            f"it was. The invoice or the credit memo is locked by another write; try again.")
     return pending.pk
 
 

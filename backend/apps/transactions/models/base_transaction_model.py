@@ -318,7 +318,11 @@ class TransactionBaseModel(HardDeleteOnly, BaseModel):
     # A journalized document's total and the values that make it up are locked.
     # Cash and operational work are not: applying a payment, adding a comment or
     # moving an operational field stays open (Bill, 2026-09-17).
-    CASH_TOTALS_KEYS = ('received', 'balance', 'cash_state')
+    # 'paid' and 'adjusted' belong here too: a payable's paid and an invoice's
+    # write-off are cash, not content. Without them a write-off on a journalized
+    # invoice raised JournalizedLockError, which the applier swallowed into the
+    # queue — money that looked applied and never was (Fable, 2026-09-22).
+    CASH_TOTALS_KEYS = ('received', 'balance', 'cash_state', 'paid', 'adjusted')
 
     def _assert_not_journalized(self) -> None:
         if self._state.adding or self.pk is None or not getattr(self, 'is_locked', False):

@@ -58,6 +58,18 @@ def _applied(**match) -> Decimal:
     return _d(total)
 
 
+def _committed(**match) -> Decimal:
+    """Applied plus queued — the AP mirror of ``cash_pending._committed``."""
+    from apps.core.models.pending import Pending
+
+    filters = {f'changes__{k}': v for k, v in match.items()}
+    queued = Decimal('0')
+    for p in Pending.objects.filter(purpose=RECEIPT_CASH_PURPOSE, dt_processed=0,
+                                    changes__state='pending', **filters).only('changes'):
+        queued += _d((p.changes or {}).get('amount'))
+    return _applied(**match) + queued
+
+
 def refresh_receipt_paid(receipt) -> Dict[str, Any]:
     """Recompute the payable's paid and balance from its applications."""
     from apps.accounts.services.terms_ledger import allocate_paid
@@ -69,27 +81,11 @@ def refresh_receipt_paid(receipt) -> Dict[str, Any]:
 
 
 def refresh_cash_available(cash) -> Decimal:
-    """What this cash still has to give, counting both sides of the house.
-
-    Cash pays invoices and receipts, and an application carries its *document's* sign, so
-    the two sides do not combine the same way.
-    """
-    from apps.transactions.services.cash.cash_pending import _applied as _applied_ar
-
-    # An application carries its *document's* sign. On AR the invoice points the same way
-    # as the cash, so an application is subtracted. On AP they are opposed — a payable is
-    # stored positive and the payment out that settles it is negative — so an AP
-    # application is **added**, and available moves toward zero on both sides.
-    #
-    # This subtracted both: -60.00 paid out of a -60.00 payment reported -120.00 still
-    # available, every AP payment drove the figure further from zero, and the vendor
-    # summary inflated with it. in_step could not see it — it compares receipt balances to
-    # ledger rows and never looks at the cash (recheck 3, both assessors).
-    available = _d(cash.amount) - _applied_ar(cash_id=cash.pk) + _applied(cash_id=cash.pk)
-    if _d(cash.available) != available:
-        cash.available = available
-        cash.save(update_fields=['available', 'dt_modified', 'version'])
-    return available
+    """One function, in ``cash_pending``. This was the second copy: its formula was the
+    right one (it counts both sides), and the AR copy ignored AP applications entirely.
+    Kept as a name AP callers already import (2026-09-22)."""
+    from apps.transactions.services.cash.cash_pending import refresh_cash_available as _one
+    return _one(cash)
 
 
 @transaction.atomic
@@ -106,13 +102,15 @@ def _check_receipt_application(cash, receipt, amount: Decimal) -> None:
     cash, so what counts as applied to it is the AR sum plus the AP sum. The party is the
     vendor: a vendor's payment does not pay another vendor's bill.
     """
-    from apps.transactions.services.cash.cash_pending import (
-        _applied as _applied_ar, _check_application)
+    from apps.transactions.services.cash.cash_pending import _check_application
+
+    from apps.transactions.services.cash.cash_pending import _committed as _committed_ar
 
     _check_application(
         cash, receipt, amount,
-        target_applied=_applied(receipt_id=receipt.pk),
-        cash_applied=_applied_ar(cash_id=cash.pk) + _applied(cash_id=cash.pk),
+        # Applied and queued, both sides: the same cash pays vendors and settles invoices.
+        target_applied=_committed(receipt_id=receipt.pk),
+        cash_applied=_committed_ar(cash_id=cash.pk) + _committed(cash_id=cash.pk),
         party_attr='vendor_id', party_label='vendor')
 
 
@@ -209,13 +207,12 @@ def apply_receipt_cash_pending(pending) -> bool:
                 logger.warning("Pending %s: record not found: %s", pending.pk, e)
                 return False
 
-            # Don't apply to locked receipts (journalized to GL)
-            if getattr(receipt, 'dt_journaled', 0) != 0:
-                return False
-
-            # Re-checked here, as AR does: a queued application lands later, and what was
-            # open when it was recorded may have been paid by something else since.
-            _check_receipt_application(cash, receipt, amount)
+            # A journalized receipt is locked against content edits, not against cash —
+            # the same rule AR has always had. paid/balance are derived from applications,
+            # so an application changes nothing the GL posted.
+            #
+            # Rule 10 (Bill, 2026-09-21): a Pending's sole purpose is to apply. The check
+            # runs at creation, where a person can still be coached.
 
             # ── The application is the record; paid and available are read from it ──
             changes['state'] = 'applied'
@@ -227,15 +224,11 @@ def apply_receipt_cash_pending(pending) -> bool:
             from apps.transactions.services.cash.cash_pending import record_application_event
             record_application_event(receipt, pending, changes, cash)
 
-            result = refresh_receipt_paid(receipt)
-            new_paid = _d(result['paid']) if 'paid' in result else _applied(receipt_id=receipt.pk)
-            new_balance = _d(result['balance'])
-
-            if new_balance <= 0:
-                receipt.status = 'paid'
-            elif new_paid > 0:
-                receipt.status = 'partially_paid'
-            receipt.save(update_fields=['status', 'dt_modified', 'version'])
+            refresh_receipt_paid(receipt)
+            # Derived both ways: this only ever moved toward paid, so a payable whose
+            # payment was reversed stayed 'paid' with nothing paid on it (Fable).
+            from apps.transactions.services.cash.cash_door import _refresh_receipt_status
+            _refresh_receipt_status(receipt)
 
             # No clamp: paying more than is owed shows as a negative balance for a person
             # to resolve, rather than being quietly absorbed (Axiom 6).
@@ -265,9 +258,6 @@ def apply_pending_for_receipt(receipt_id: int) -> Dict[str, Any]:
     from apps.transactions.models import Receipt
 
     receipt = Receipt.objects.select_for_update().get(pk=receipt_id)
-
-    if getattr(receipt, 'dt_journaled', 0) != 0:
-        return {'applied_count': 0, 'still_pending': 0, 'message': 'Receipt still locked (journalized)'}
 
     pendings = (
         Pending.objects

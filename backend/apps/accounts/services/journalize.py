@@ -259,6 +259,7 @@ ADJUSTMENT_ROLES = {
     'small_balance': 'small_balance_writeoff',
     'fx_gain': 'fx_gain_loss',
     'fx_loss': 'fx_gain_loss',
+    'discount': 'discount_given',      # settlement discount, taken at payment time
 }
 
 
