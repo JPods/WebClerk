@@ -16,6 +16,7 @@ from typing import Any
 from django.db import models
 
 from apps.core.constants.model_registry import get_model
+from common.schemas.carrier import read_carrier
 
 console_logger = logging.getLogger('console')
 
@@ -181,7 +182,7 @@ def process_lines(
 
             # A removed line arrives marked (Bill, 2026-09-22); the backend deletes it, and the
             # line's post_delete writes the Pending that releases what it held.
-            if line_data.get('_delete'):
+            if read_carrier(line_data).delete:
                 if not _is_new_line(line_id):
                     LineModel.objects.get(id=line_id).delete()   # missing line: raise, do not skip
                 continue

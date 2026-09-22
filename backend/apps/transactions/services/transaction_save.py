@@ -232,6 +232,7 @@ def _create_pending_from_deltas(
     return created_count
 
 from common.decimals import safe_decimal as _d  # noqa: E302
+from common.schemas.carrier import read_carrier  # noqa: E402
 
 
 def _compare_values(expected: Any, actual: Any, tolerance: Decimal = CALC_TOLERANCE) -> bool:
@@ -601,12 +602,13 @@ def save_transaction_with_lines(
 
         for line_data in lines_data:
             line_id = line_data.get('id')
-            is_dirty = line_data.get('_dirty', True)
+            carrier = read_carrier(line_data)      # typed; an unknown signal raises
+            is_dirty = carrier.dirty
 
             # A line the user removed arrives marked, not missing (Bill, 2026-09-22): the
             # backend does the delete, inside this save, so the line's Pending for the stock
             # or cash it held is written in the same transaction as the header.
-            if line_data.get('_delete'):
+            if carrier.delete:
                 existing_line = existing_lines.get(line_id)
                 if existing_line is None:
                     # Fail hard (Bill, 2026-09-22): a delete for a line this document does not
@@ -629,9 +631,7 @@ def save_transaction_with_lines(
                 continue
 
             # Clean line data
-            line_clean = filter_input_fields(LineModel, line_data)
-            line_clean.pop('_dirty', None)
-            line_clean.pop('_delete', None)
+            line_clean = filter_input_fields(LineModel, line_data)   # drops every signal: not fields
             line_clean[parent_fk_attname] = header_id
 
             if line_id:

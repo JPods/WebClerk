@@ -89,6 +89,8 @@ def sanitize_payload(data: dict, allow: Optional[List[str]]) -> dict:
     return {k: v for k, v in (data or {}).items() if k in allow}
 
 
+from common.schemas.carrier import CARRIER_KEYS, read_carrier
+
 # Fields that are never writable via WCAPI save, regardless of role.
 # These are managed exclusively by the backend (save_view, signals, model.save).
 SYSTEM_ONLY_FIELDS = frozenset({
@@ -98,8 +100,10 @@ SYSTEM_ONLY_FIELDS = frozenset({
 
 # Fields that pass through always because they are structural envelope keys,
 # not actual model columns.
-# Control flags the save pipeline sets itself — the only underscore keys allowed in.
-PASSTHROUGH_CONTROL_KEYS = frozenset({"_dirty", "_delete", "_new", "_index"})
+# Carrier signals — the only underscore keys allowed in. The registry is the schema
+# (common/schemas/carrier.py), so there is one definition of what a signal is, typed,
+# and an unknown one raises instead of being quietly dropped (Bill, 2026-09-22).
+PASSTHROUGH_CONTROL_KEYS = CARRIER_KEYS
 
 PASSTHROUGH_KEYS = frozenset({
     "model_name", "id", "version", "bulk", "lines", "password",
@@ -134,6 +138,11 @@ def enforce_write_policy(
     """
     denied: List[str] = []
 
+    # A carrier signal is not a field: it is typed by the carrier schema and refused if it is
+    # not one of ours, whatever the policy settings say. Checked before the fast path so a
+    # misspelled signal cannot ride through on a disabled policy.
+    read_carrier(data or {})
+
     # ---- fast path: policies disabled ----
     if not _enabled():
         return dict(data or {}), denied
@@ -155,10 +164,7 @@ def enforce_write_policy(
             # "_dirty" and friends are control flags, not fields. A blanket
             # passthrough here is what let "__dict__.is_superuser" reach the
             # assignment layer untouched (adversarial review 2026-09-15).
-            if k in PASSTHROUGH_CONTROL_KEYS:
-                filtered[k] = v
-            else:
-                denied.append(k)
+            filtered[k] = v          # read_carrier already refused anything not ours
             continue
         if k in PASSTHROUGH_KEYS:
             filtered[k] = v
