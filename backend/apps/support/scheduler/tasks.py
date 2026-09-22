@@ -313,8 +313,6 @@ def task_cleanup_metadata_temp(self, limit_per_model: int = 1000):
                     continue
 
                 qs = model.objects.all()
-                if 'is_deleted' in field_names:
-                    qs = qs.filter(is_deleted=False)
                 # Prefer recently touched rows when sampling is limited.
                 if 'dt_modified' in field_names:
                     qs = qs.order_by('-dt_modified')
@@ -734,9 +732,9 @@ def task_audit_refs_fk(self, batch_size=200):
 
     # Define FK↔refs pairs to audit: (parent_model, parent_qs, related_model, fk_field, refs_link_key)
     audit_pairs = [
-        ('customer', OrgBase.objects.filter(org_type='customer', is_active=True, is_deleted=False),
+        ('customer', OrgBase.objects.filter(org_type='customer', is_active=True),
          'contact', 'customer_id', 'contact'),
-        ('vendor', OrgBase.objects.filter(org_type='vendor', is_active=True, is_deleted=False),
+        ('vendor', OrgBase.objects.filter(org_type='vendor', is_active=True),
          'contact', 'vendor_id', 'contact'),
     ]
 
@@ -797,7 +795,7 @@ def task_reconcile_aging(self, batch_size=200):
     while True:
         batch = list(
             OrgBase.objects.filter(
-                is_active=True, is_deleted=False, pk__gt=last_pk
+                is_active=True, pk__gt=last_pk
             ).order_by('pk')[:batch_size]
         )
         if not batch:
@@ -843,7 +841,7 @@ def task_athena_verify(self):
     try:
         from apps.docs.models import Document
         manifest_doc = Document.objects.filter(
-            ida='athena-manifest', is_active=True, is_deleted=False
+            ida='athena-manifest', is_active=True
         ).first()
 
         if not manifest_doc:

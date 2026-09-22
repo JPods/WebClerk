@@ -16,6 +16,7 @@ import { useDetailLayout } from '@/hooks/useDetailLayout';
 import { applyCustomerDefaults } from '@/apps/transactions/utils/applyCustomerDefaults';
 import { populateCommission } from '@/api/wcapi';
 import { getNextLineNumber } from '../utils/lineHelpers';
+import { getActiveLines, getRemovedLines, isPersistedLine } from '../services/lineItemService';
 import type { TransactionLine } from '../types/transactionTypes';
 import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
 
@@ -223,13 +224,24 @@ const UiDetail: React.FC<UiDetailProps> = ({
     }
   }, [dispatch]);
 
+  // The line card gets every line, removed ones included — they stay on screen
+  // marked deleted until the save. Guard anyway: if a child ever hands back a
+  // filtered array, merge the removed lines back in, or the `_delete`
+  // identification is lost and the rows would silently survive the save.
   const handleLinesChange = useCallback((lines: TransactionLine[]) => {
-    setEditData((prev: any) => prev ? { ...prev, lines } : prev);
+    setEditData((prev: any) => {
+      if (!prev) return prev;
+      const key = (l: TransactionLine) => `${l.id ?? ''}|${l.line_number ?? ''}`;
+      const incoming = new Set(lines.map(key));
+      const stillRemoved = getRemovedLines(prev.lines || [])
+        .filter((r: TransactionLine) => !incoming.has(key(r)));
+      return { ...prev, lines: [...lines, ...stillRemoved] };
+    });
   }, []);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleAddLine = () => {
-    const lines = (isEditing ? editData : data)?.lines || [];
+    const lines = getActiveLines((isEditing ? editData : data)?.lines || []);
     const newLine: TransactionLine = {
       line_number: getNextLineNumber(lines),
       item_code: '', description: '', qty: 1, remain: 1, unit_price: 0, amount: 0,
@@ -241,11 +253,25 @@ const UiDetail: React.FC<UiDetailProps> = ({
     if (!editData) return;
     setSaving(true);
     try {
-      const dirtyLines = (editData.lines || []).filter((l: any) => l._dirty || l._new);
-      const hasLinesToSave = dirtyLines.length > 0;
-      console.log('[TransactionDetail] Saving:', { modelName, id: editData.id, hasLinesToSave, totalLines: editData.lines?.length, dirtyLines: dirtyLines.length });
-      if (hasLinesToSave) { await saveTransactionWithLines(modelName, editData); }
-      else { await saveRecord(modelName, editData); }
+      // ── Removals ────────────────────────────────────────────────
+      // A removed line that was never saved simply disappears. A removed
+      // line that exists in the database STAYS in the payload, identified
+      // with `_delete: true`, so the backend deletes that row inside the
+      // same save as the header — identified, never merely omitted.
+      const allLines: TransactionLine[] = editData.lines || [];
+      const deletions = getRemovedLines(allLines)
+        .filter(isPersistedLine)
+        .map((l: TransactionLine) => ({ ...l, _delete: true }));
+      const keptLines = getActiveLines(allLines);
+      const payload = { ...editData, lines: [...keptLines, ...deletions] };
+
+      const dirtyLines = keptLines.filter((l: any) => l._dirty || l._new);
+      // A removal on its own still takes the lines path — saveRecord would
+      // not carry the `_delete` markers to the lines loop.
+      const hasLinesToSave = dirtyLines.length > 0 || deletions.length > 0;
+      console.log('[TransactionDetail] Saving:', { modelName, id: editData.id, hasLinesToSave, totalLines: keptLines.length, dirtyLines: dirtyLines.length, deleteLines: deletions.length });
+      if (hasLinesToSave) { await saveTransactionWithLines(modelName, payload); }
+      else { await saveRecord(modelName, payload); }
       dispatch(showToast({ message: `${modelName} saved`, type: 'success' }));
       // Auto-populate commission if customer has reps — staff only
       const txId = editData.id;

@@ -24,7 +24,6 @@ const rawKanbanData: ApiKanbanItem[] = [
     version: 1,
     is_active: true,
     security_level: 0,
-    is_deleted: false,
     is_archived: false,
     metadata: {
       flow: {},
@@ -134,7 +133,6 @@ const rawKanbanData: ApiKanbanItem[] = [
     version: 1,
     is_active: true,
     security_level: 0,
-    is_deleted: false,
     is_archived: false,
     metadata: {
       flow: {},

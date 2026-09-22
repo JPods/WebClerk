@@ -291,9 +291,6 @@ class WCAPIGetView(APIView):
                 payload = {}
             if not isinstance(payload, dict):
                 continue
-            if payload.get("is_deleted") is True:
-                logger.debug("_serialize_lines: skipping deleted line id=%s", payload.get('id'))
-                continue
             results.append(payload)
         logger.debug("_serialize_lines: returning %d lines", len(results))
         return results
@@ -1062,10 +1059,10 @@ class WCAPIGetView(APIView):
                     from apps.communications.models import Email, Phone, Address, Domain
                     
                     # Fetch communications linked via FK
-                    emails_qs = Email.objects.filter(contact_id=obj.pk, is_deleted=False)
-                    phones_qs = Phone.objects.filter(contact_id=obj.pk, is_deleted=False)
-                    addresses_qs = Address.objects.filter(contact_id=obj.pk, is_deleted=False)
-                    domains_qs = Domain.objects.filter(contact_id=obj.pk, is_deleted=False)
+                    emails_qs = Email.objects.filter(contact_id=obj.pk)
+                    phones_qs = Phone.objects.filter(contact_id=obj.pk)
+                    addresses_qs = Address.objects.filter(contact_id=obj.pk)
+                    domains_qs = Domain.objects.filter(contact_id=obj.pk)
                     
                     # Serialize each to dict
                     communications = {

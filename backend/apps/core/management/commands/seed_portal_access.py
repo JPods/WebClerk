@@ -30,8 +30,7 @@ class Command(BaseCommand):
         changed = 0
 
         for key in sorted(access.PORTAL_ORDER_MODELS):
-            setting = (Setting.objects.filter(purpose='wc:model', parent_model=key,
-                                              is_deleted=False).first())
+            setting = (Setting.objects.filter(purpose='wc:model', parent_model=key).first())
             if setting is None:
                 self.stdout.write(self.style.WARNING(f"{key}: no wc:model Setting"))
                 continue

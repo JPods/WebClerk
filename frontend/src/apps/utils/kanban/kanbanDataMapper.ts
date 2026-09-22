@@ -15,7 +15,6 @@ export interface ApiKanbanAssignment {
 
 export interface ApiKanbanItem {
   id: string;
-  is_deleted?: boolean | string | number;
   is_archived?: boolean | string | number;
   is_active?: boolean | string | number;
   project_name?: string | null;
@@ -450,7 +449,7 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
 
     sortedItems.forEach(({ item }) => {
     if (!item?.id) return;
-    if (isTrue(item.is_deleted) || isTrue(item.is_archived) || isFalse(item.is_active)) return;
+    if (isTrue(item.is_archived) || isFalse(item.is_active)) return;
 
     const rawColumnTitle = (item.kanban_column && String(item.kanban_column).trim()) || "Uncategorized";
     const columnId = slugifyColumn(rawColumnTitle);

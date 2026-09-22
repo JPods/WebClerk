@@ -5,7 +5,7 @@ Alice scans records for potential duplicates across any model. When duplicates
 are found, the duplicate records are:
   1. Serialized to JSON files under sync/dedup/pending/
   2. Referenced by a Bundle record pointing to the retained (surviving) record
-  3. Deactivated in the database (is_active=False, is_deleted=True)
+  3. Deactivated in the database (is_active=False)
   4. Available for operator review: compare pending files against retained record
 
 After review, files move to sync/dedup/processed/.
@@ -217,7 +217,7 @@ class DedupService:
             return []
 
         Model = apps.get_model(*app_model)
-        qs = Model.objects.filter(is_active=True, is_deleted=False).order_by('pk')[:limit]
+        qs = Model.objects.filter(is_active=True).order_by('pk')[:limit]
         records = list(qs)
 
         all_groups = []

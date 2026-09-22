@@ -59,6 +59,21 @@ export interface UseLineCardOptions {
 // Theme
 // ---------------------------------------------------------------------------
 
+/**
+ * Row colouring for a line the user removed — greyed out and inert until the
+ * save deletes the row. Matches the flattened record's own `_removed` flag, so
+ * nothing is added to the grid and the user keeps control of their columns.
+ */
+const DELETED_ROW_RULES = [
+  {
+    field: '_removed',
+    operator: 'eq' as const,
+    value: true,
+    bg: 'rgba(148, 163, 184, 0.16)',
+    text: 'var(--wc-text-muted, #94a3b8)',
+  },
+];
+
 const linesTheme = {
   surface: 'var(--wc-surface, #ffffff)',
   surfaceAlt: 'var(--wc-surface-alt, #e8edf3)',
@@ -107,16 +122,24 @@ function flattenLine(line: any, idx: number, isSellSide: boolean): any {
 
   const weight = Number(line.physical?.weight ?? 0);
 
+  // A line the user removed stays visible — greyed out, struck through and
+  // inert — with its active quantity zeroed. These are DISPLAY values only:
+  // the record keeps its real quantity and goes over the wire with its id
+  // and `_delete: true`.
+  const isRemoved = line._removed === true;
+  const lineType = String(line.line_type || 'product');
+
   return {
     id: lineKey(line, idx),
     _idx: idx,
     _line: line,
+    _removed: isRemoved,
     tn_url: tnUrl,
     item_code: itemCode,
     description,
-    qty,
-    remaining,
-    remain: remaining,
+    qty: isRemoved ? 0 : qty,
+    remaining: isRemoved ? 0 : remaining,
+    remain: isRemoved ? 0 : remaining,
     is_complete: isComplete,
     uom,
     price_level: priceLevel,
@@ -124,12 +147,12 @@ function flattenLine(line: any, idx: number, isSellSide: boolean): any {
     discount_pct: discountPct,
     discounted_unit: discountedUnit,
     unit_cost: unitCost,
-    amount: extended,
+    amount: isRemoved ? 0 : extended,
     weight,
     _itemId: Number(line.item_id ?? line.item?.id ?? line.item?.item_id ?? 0),
     _itemIsActive: line.item?.is_active !== false,
-    _hasBacklog: remaining > 0 && !isComplete,
-    line_type: String(line.line_type || 'product'),
+    _hasBacklog: !isRemoved && remaining > 0 && !isComplete,
+    line_type: lineType,
     tax_rate: Number(line.totals?.tax_rate ?? line.tax?.sales_rate ?? 0),
     // Commission — from commission.reps[] envelope
     comm_total: Number(line.commission?.total ?? 0),
@@ -263,13 +286,21 @@ export function useLineCard(options: UseLineCardOptions) {
   const handleCellEdit = useCallback((recordId: number, field: string, value: unknown) => {
     if (!canEdit || !onLinesChange) return;
 
+    // A line marked deleted is inert — it is on screen only so the user can
+    // see what the save will delete. To escape the delete, close the window.
+    const target = lines.find((l: any, i: number) => lineKey(l, i) === recordId);
+    if (target?._removed) return;
+
     // Zero-quantity check — ask user to remove or keep the line
     if (field === 'qty' && Number(value) === 0) {
       const line = lines.find((l: any, i: number) => lineKey(l, i) === recordId);
       const itemCode = line?.item?.ida_item || line?.item?.sku || `line #${recordId}`;
       const remove = confirm(`Quantity set to zero for ${itemCode}.\n\nOK = Remove line from transaction\nCancel = Keep line at zero quantity`);
       if (remove) {
-        onLinesChange(lines.filter((l: any, i: number) => lineKey(l, i) !== recordId));
+        // Mark removed — at save a never-saved line disappears, while a
+        // persisted line goes to the backend marked `_delete` to be deleted.
+        onLinesChange(lines.map((l: any, i: number) =>
+          (lineKey(l, i) === recordId ? { ...l, _removed: true } : l)));
         return;
       }
       // Keep at zero — fall through to normal update
@@ -318,9 +349,15 @@ export function useLineCard(options: UseLineCardOptions) {
       width: '120px',
       sortable: true,
       cell: (row: any) => React.createElement('span', {
-        style: { cursor: row.item_code && row.item_code !== '--' ? 'pointer' : 'default', color: row.item_code && row.item_code !== '--' ? 'var(--wc-accent, #2563eb)' : 'inherit' },
+        style: {
+          cursor: row.item_code && row.item_code !== '--' && !row._removed ? 'pointer' : 'default',
+          color: row._removed ? 'inherit' : (row.item_code && row.item_code !== '--' ? 'var(--wc-accent, #2563eb)' : 'inherit'),
+          // Struck through when the line is marked for deletion — the grey
+          // row alone reads as "inactive"; the strike reads as "going away".
+          textDecoration: row._removed ? 'line-through' : undefined,
+        },
         onClick: (e: React.MouseEvent) => {
-          if (!row.item_code || row.item_code === '--') return;
+          if (!row.item_code || row.item_code === '--' || row._removed) return;
           e.stopPropagation();
           if (e.metaKey || e.ctrlKey) {
             showImagePopup(row.item_code, (e.target as HTMLElement).getBoundingClientRect());
@@ -337,7 +374,15 @@ export function useLineCard(options: UseLineCardOptions) {
       cols.push({ name: 'c', field: 'is_complete', width: '28px', sortable: false });
     }
 
-    cols.push({ name: 'description', field: 'description', width: '300px', sortable: true });
+    cols.push({
+      name: 'description',
+      field: 'description',
+      width: '300px',
+      sortable: true,
+      cell: (row: any) => row._removed
+        ? React.createElement('span', { style: { textDecoration: 'line-through' } }, row.description)
+        : row.description,
+    });
 
     if (isSellSide) {
       cols.push({ name: 'pl', field: 'price_level', width: '30px', sortable: true });
@@ -494,6 +539,8 @@ export function useLineCard(options: UseLineCardOptions) {
     canEdit,
     isSellSide,
     theme: linesTheme,
+    // Inert-row convention: a deleted line is dimmed until the save removes it.
+    colorRules: DELETED_ROW_RULES,
     lineCount: lines.length,
     totalQty: records.reduce((s, r) => s + (r.qty ?? 0), 0),
     bulkEditField,

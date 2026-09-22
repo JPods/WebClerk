@@ -579,7 +579,7 @@ def compute_margin_velocity(
 
     Returns {item_id: {margin_pct, annual_turns, margin_velocity, category, cost_avg, sale_price}}
     """
-    qs = Item.objects.filter(is_active=True, is_deleted=False)
+    qs = Item.objects.filter(is_active=True)
     if item_ids:
         qs = qs.filter(id__in=item_ids)
 

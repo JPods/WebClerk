@@ -485,7 +485,7 @@ class Command(BaseCommand):
 
         for report_id, layout in REPORT_LAYOUTS.items():
             try:
-                report = Report.objects.get(id=report_id, is_deleted=False)
+                report = Report.objects.get(id=report_id)
                 config = report.config or {}
 
                 if 'form' in config and not force:

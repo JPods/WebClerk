@@ -379,7 +379,6 @@ export interface Transaction {
 
   // Lifecycle fields
   is_active?: boolean;
-  is_deleted?: boolean;
   is_archived?: boolean;
   is_locked?: boolean;
 
@@ -404,7 +403,6 @@ export interface LineItem {
   unit_measure?: string;
   sequence?: number;
   line_number?: number;
-  is_deleted?: boolean;
   is_active?: boolean;
   is_archived?: boolean;
 }
@@ -540,6 +538,27 @@ export interface TransactionLine {
   dt_created?: string;
   dt_modified?: string;
   version?: number;
+
+  // ── Client-only line state ──────────────────────────────────────
+  // Underscore-prefixed fields live in local React state only and are
+  // stripped in src/api/wcapi.ts — with one deliberate exception, `_delete`.
+  /** Line has unsaved edits — drives the save path selection. */
+  _dirty?: boolean;
+  /** Line was created in this editing session, not yet in the database. */
+  _new?: boolean;
+  /**
+   * User removed this line. Local display flag only — it keeps the line out
+   * of the grid, out of getActiveLines() and out of the totals. Never sent.
+   */
+  _removed?: boolean;
+  /**
+   * Sent to the backend. A line carrying `_delete: true` and an existing id
+   * stays in the payload so the save loop deletes that row through the
+   * model's delete (which writes the inventory/cash Pendings), inside the
+   * same transaction as the header. A deleted line is identified, never
+   * merely omitted from the array (Bill, 2026-09-22).
+   */
+  _delete?: boolean;
 }
 
 // --- Field Configuration Types ---

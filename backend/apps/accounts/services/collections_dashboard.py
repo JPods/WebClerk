@@ -81,8 +81,7 @@ def _get_top_past_due() -> list:
     Cash = dj_apps.get_model('transactions', 'Cash')
 
     customers = OrgBase.objects.filter(
-        org_type='customer', is_active=True, is_deleted=False,
-    )
+        org_type='customer', is_active=True, )
 
     past_due_list = []
     for cust in customers:
@@ -116,7 +115,7 @@ def _get_top_past_due() -> list:
         last_pmt = (
             Cash.objects.filter(
                 customer_id=cust.pk, type='cash_in',
-                is_deleted=False, is_active=True,
+                is_active=True,
             )
             .order_by('-dt_cash')
             .values('dt_cash', 'amount')
@@ -146,8 +145,7 @@ def _get_dso_current() -> Dict[str, Any]:
 
     # Total AR from aging summary
     customers = OrgBase.objects.filter(
-        org_type='customer', is_active=True, is_deleted=False,
-    )
+        org_type='customer', is_active=True, )
     total_ar = Decimal('0')
     for cust in customers:
         financial = getattr(cust, 'financial', None)
@@ -169,7 +167,7 @@ def _get_dso_current() -> Dict[str, Any]:
     from common.json_lookups import totals_total
     credit_sales = Invoice.objects.filter(
         invoice_type='invoice',
-        is_deleted=False, is_active=True,
+        is_active=True,
         status__in=['released', 'complete'],
         dt_created__gte=ninety_days_ago_ms,
     ).annotate(_total=totals_total()).aggregate(total=Sum('_total'))
@@ -197,7 +195,7 @@ def _get_cash_this_week() -> Dict[str, Any]:
 
     received = Cash.objects.filter(
         type='cash_in',
-        is_deleted=False, is_active=True,
+        is_active=True,
         dt_cash__gte=week_ago,
     )
 
@@ -238,7 +236,7 @@ def _get_collection_actions() -> Dict[str, Any]:
 
     open_collection = Action.objects.filter(
         project_name='collection',
-        is_deleted=False, is_active=True,
+        is_active=True,
     ).exclude(
         kanban_column='Complete',
     )
@@ -263,7 +261,7 @@ def _get_promises_broken() -> int:
 
     return Action.objects.filter(
         project_name='collection',
-        is_deleted=False, is_active=True,
+        is_active=True,
         dt_deadline__gt=0,
         dt_deadline__lt=now_ms,
     ).exclude(
@@ -306,7 +304,7 @@ def _get_cash_velocity(customer_id: int) -> Dict[str, Any]:
         Cash.objects.filter(
             customer_id=customer_id,
             type='cash_in',
-            is_deleted=False, is_active=True,
+            is_active=True,
             invoice__isnull=False,
         )
         .select_related('invoice')
@@ -357,7 +355,7 @@ def _get_last_cash(customer_id: int) -> Optional[Dict[str, Any]]:
         Cash.objects.filter(
             customer_id=customer_id,
             type='cash_in',
-            is_deleted=False, is_active=True,
+            is_active=True,
         )
         .order_by('-dt_cash')
         .values('dt_cash', 'amount')
@@ -379,7 +377,7 @@ def _get_open_invoices(customer_id: int) -> Dict[str, Any]:
     open_inv = Invoice.objects.filter(
         customer_id=customer_id,
         invoice_type='invoice',
-        is_deleted=False, is_active=True,
+        is_active=True,
     ).annotate(_bal=totals_balance()).filter(_bal__gt=0).aggregate(
         count=Count('id'),
         total=Sum('_bal'),

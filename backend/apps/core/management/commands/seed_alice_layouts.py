@@ -51,7 +51,7 @@ LOW_PRIORITY_DETAIL = [
     'metadata', 'refs', 'prefs', 'actions', 'comments',
     'stats', 'relationship_stats',
     'uuid', 'version', 'security_level',
-    'is_deleted', 'is_archived', 'is_locked',
+    'is_archived', 'is_locked',
     'health_rating', 'search_vector',
     'dt_created', 'dt_modified',
 ]
@@ -80,7 +80,7 @@ JSON_FIELD_TYPES = (
 # Internal fields to always exclude from lists
 EXCLUDE_FROM_LIST = {
     'id', 'uuid', 'version', 'security_level', 'health_rating',
-    'is_deleted', 'is_archived', 'is_locked',
+    'is_archived', 'is_locked',
     'metadata', 'refs', 'prefs', 'actions', 'comments',
     'stats', 'relationship_stats', 'search_vector',
     'password', 'last_login',

@@ -41,7 +41,7 @@ def wanted_by_item(item_id=None):
     want = defaultdict(lambda: dict.fromkeys(BUCKETS, 0.0))
     for model_name, bucket in SPEC:
         Model = dj_apps.get_model('transactions', model_name)
-        headers = Model.objects.filter(is_deleted=False).exclude(status__in=CLOSED)
+        headers = Model.objects.exclude(status__in=CLOSED)
         if model_name == 'workorder':
             # A count is an audit, not work: its lines commit nothing, so they must not
             # appear in what on_wo is expected to hold (Bill, 2026-09-20).
@@ -49,7 +49,7 @@ def wanted_by_item(item_id=None):
         # Whole rows, never .only(): a line loaded with deferred fields reloads each one
         # with its own query (~130 per line), which made this take minutes on wc_demo.
         headers = headers.prefetch_related(Prefetch(
-            'lines', queryset=Model.lines.rel.related_model.objects.filter(is_deleted=False),
+            'lines', queryset=Model.lines.rel.related_model.objects.all(),
             to_attr='live_lines'))
         for header in headers:
             weight = forecast_probability(header) if model_name == 'quote' else 1.0
@@ -74,7 +74,7 @@ def commitment_gaps(item_id=None) -> list[dict]:
     """
     Item = dj_apps.get_model('products', 'Item')
     want = wanted_by_item(item_id)
-    items = Item.objects.filter(is_deleted=False)
+    items = Item.objects.all()
     if item_id:
         items = items.filter(pk=item_id)
 
@@ -123,7 +123,7 @@ class Command(BaseCommand):
         apply_changes = options['apply']
         want = wanted_by_item(options.get('item'))
 
-        items = Item.objects.filter(is_deleted=False)
+        items = Item.objects.all()
         if options.get('item'):
             items = items.filter(pk=options['item'])
 

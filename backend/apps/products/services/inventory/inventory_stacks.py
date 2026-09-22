@@ -101,8 +101,7 @@ def consume_inventory(
     qs = InventoryLayer.objects.filter(
         item_id=item_id,
         is_locked=False,
-        is_deleted=False,
-    )
+        )
     if warehouse_id:
         qs = qs.filter(warehouse_id=warehouse_id)
 
@@ -163,8 +162,7 @@ def get_item_inventory_summary(item_id: int, warehouse_id: int = None) -> Dict:
     """
     qs = InventoryLayer.objects.filter(
         item_id=item_id,
-        is_deleted=False,
-    )
+        )
     if warehouse_id:
         qs = qs.filter(warehouse_id=warehouse_id)
 

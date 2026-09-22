@@ -9,7 +9,7 @@ django.setup()
 from apps.orgs.models import Customer
 from apps.orgs.serializers import CustomerSerializer
 
-qs = Customer.objects.filter(is_active=True, is_deleted=False)
+qs = Customer.objects.filter(is_active=True)
 count = qs.count()
 print(f"Customer count: {count}")
 

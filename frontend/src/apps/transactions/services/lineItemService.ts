@@ -157,7 +157,6 @@ function getDefaultItem(): Record<string, unknown> {
     unit_measure: 'EA',
     sequence: 0,
     line_number: 0,
-    is_deleted: false,
     is_active: true,
     is_archived: false,
   };
@@ -328,18 +327,16 @@ export class LineItemService {
   }
 
   /**
-   * Mark a line as deleted (soft delete)
+   * Mark a line removed.
+   *
+   * `_removed` is a client-only display marker held between "user clicked
+   * remove" and save; it is never serialized. At save time an unsaved line
+   * just disappears, while a persisted line stays in the payload carrying
+   * `_delete: true` so the backend deletes the row in the same save.
+   * There is no soft delete (Bill, 2026-09-22).
    */
   deleteLine(line: TransactionLine): TransactionLine {
-    const updatedLine = { ...line, _dirty: true };
-    
-    if (typeof updatedLine.item === 'object' && updatedLine.item !== null) {
-      updatedLine.item = { ...updatedLine.item, is_deleted: true };
-    } else {
-      updatedLine.item = { ...getDefaultItem(), is_deleted: true };
-    }
-
-    return updatedLine;
+    return { ...line, _removed: true };
   }
 
   /**
@@ -570,7 +567,9 @@ export function updateLineInArray(
 }
 
 /**
- * Remove a line from an array (soft delete)
+ * Mark a line in an array as removed (client-only `_removed` marker).
+ * The line stays in the array so the save flow can hand it to the backend
+ * marked `_delete`; it is hidden from display by getActiveLines.
  */
 export function removeLineFromArray(
   lines: TransactionLine[],
@@ -581,16 +580,25 @@ export function removeLineFromArray(
 }
 
 /**
- * Filter out deleted lines
+ * Filter out lines the user has removed. Display and totals use this;
+ * only the save flow looks at the removed ones.
  */
 export function getActiveLines(lines: TransactionLine[]): TransactionLine[] {
-  return lines.filter(line => {
-    if (typeof line.item === 'object' && line.item !== null) {
-      const item = line.item as Record<string, unknown>;
-      return !item.is_deleted;
-    }
-    return true;
-  });
+  return lines.filter(line => !line._removed);
+}
+
+/**
+ * The lines the user removed since the last save.
+ * Those with a database id ride along in the payload marked `_delete: true`
+ * for the backend to delete; the rest (new, never saved) simply disappear.
+ */
+export function getRemovedLines(lines: TransactionLine[]): TransactionLine[] {
+  return lines.filter(line => line._removed === true);
+}
+
+/** True when this line exists as a row in the database. */
+export function isPersistedLine(line: TransactionLine): boolean {
+  return typeof line.id === 'number' && line.id > 0;
 }
 
 // Default export

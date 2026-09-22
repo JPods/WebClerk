@@ -225,7 +225,7 @@ class Command(BaseCommand):
             "  ├── PrefsMixin          (prefs JSONField — user-defined settings)",
             "  ├── CommentsMixin       (comments JSONField — public, process, partner, notes[])",
             "  ├── HealthMixin         (health_rating IntegerField)",
-            "  ├── LifecycleMixin      (is_deleted, is_archived + soft_delete/restore/archive)",
+            "  ├── LifecycleMixin      (is_archived + archive/unarchive; no soft delete)",
             "  ├── UniversalDictMixin  (to_universal_dict() serialization contract)",
             "  └── AtomicJSONMixin     (atomic_json_set, atomic_list_append for partial JSONB updates)",
             "```",

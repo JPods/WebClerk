@@ -78,8 +78,7 @@ class ReportCoach:
             Report.objects.filter(
                 model_name=model_name,
                 is_active=True,
-                is_deleted=False,
-            ).order_by('sort_order', 'name')
+                ).order_by('sort_order', 'name')
         )
 
         if not reports:

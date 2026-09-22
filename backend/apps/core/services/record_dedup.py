@@ -104,7 +104,6 @@ def find_duplicates(model_name, match_fields, limit=500, exclude_deleted=True):
             "name_first+name_last" — composite match
             "phone:normalized" — match with normalizer
         limit: max groups to return
-        exclude_deleted: skip is_deleted=True records
 
     Returns:
         {
@@ -138,8 +137,8 @@ def find_duplicates(model_name, match_fields, limit=500, exclude_deleted=True):
             return {"error": f"Model '{model_name}' not found"}
 
     qs = Model.objects.all()
-    if exclude_deleted and hasattr(Model, 'is_deleted'):
-        qs = qs.filter(is_deleted=False)
+    if exclude_deleted and hasattr(Model):
+        qs = qs.all()
     if hasattr(Model, 'is_active'):
         qs = qs.filter(is_active=True)
 
@@ -330,7 +329,7 @@ def merge_records(model_name, winner_id, loser_ids, merge_strategy='fill_empty')
     # Skip these fields during merge
     skip_fields = {
         'id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'dt_joined',
-        'version', 'is_active', 'is_deleted', 'is_archived', 'is_locked',
+        'version', 'is_active', 'is_archived', 'is_locked',
         'password', 'is_superuser', 'is_staff', 'last_login',
         'metadata', 'refs', 'prefs', 'actions', 'comments', 'config',
     }
@@ -363,10 +362,9 @@ def merge_records(model_name, winner_id, loser_ids, merge_strategy='fill_empty')
             'data': loser_snapshot,
         })
 
-        # Soft-delete the loser
-        loser.is_deleted = True
-        loser.is_active = False
-        loser.save()
+        # The loser is gone: there is no soft delete (Bill, 2026-09-22). Its content is in
+        # loser_snapshot above, and the winner's config carries the merge history.
+        loser.delete()
 
     # Update winner's config with merge history
     config = winner.config if isinstance(winner.config, dict) else {}

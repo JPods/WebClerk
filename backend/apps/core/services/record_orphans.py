@@ -57,14 +57,11 @@ def get_orphan_counts() -> List[Dict[str, Any]]:
 
         child_table = ChildModel._meta.db_table
         parent_table = ParentModel._meta.db_table
-        has_is_deleted = any(f.name == 'is_deleted' for f in ChildModel._meta.get_fields())
 
         # Count null FKs
         null_count = 0
         try:
             null_filter = {fk_field: None}
-            if has_is_deleted:
-                null_filter['is_deleted'] = False
             null_count = ChildModel.objects.filter(**null_filter).count()
         except Exception as e:
             logger.warning("Null FK check failed for %s.%s: %s", child_model_name, fk_field, e)
@@ -75,8 +72,6 @@ def get_orphan_counts() -> List[Dict[str, Any]]:
         try:
             parent_ids = set(ParentModel.objects.values_list('id', flat=True))
             dangling_filter = {f'{fk_field}__isnull': False}
-            if has_is_deleted:
-                dangling_filter['is_deleted'] = False
             all_with_fk = ChildModel.objects.filter(**dangling_filter)
             for child in all_with_fk.only('id', fk_field).iterator(chunk_size=1000):
                 fk_val = getattr(child, fk_field, None)
@@ -124,8 +119,7 @@ def get_orphan_detail(
     except LookupError:
         return {'error': f'Model {child_app}.{child_model_name} not found'}
 
-    has_is_deleted = any(f.name == 'is_deleted' for f in ChildModel._meta.get_fields())
-    qs = ChildModel.objects.filter(is_deleted=False) if has_is_deleted else ChildModel.objects.all()
+    qs = ChildModel.objects.all()
 
     if orphan_type == 'null':
         qs = qs.filter(**{fk_field: None})

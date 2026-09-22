@@ -86,7 +86,7 @@ const WIDTH_BY_NAME: Record<string, string> = {
 
 // Fields to skip in auto-detection
 const SKIP_FIELDS = new Set([
-  'id', 'uuid', 'version', 'is_deleted', 'is_archived', 'is_locked',
+  'id', 'uuid', 'version', 'is_archived', 'is_locked',
   'search_vector', 'security_level', 'health_rating',
   'metadata', 'prefs', 'refs', 'config',
 ]);

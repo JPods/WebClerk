@@ -724,7 +724,6 @@ def _convert_line(wc2_row, parent_pk, lookup, line_type='order'):
         'description': safe_str(wc2_row.get('description'), 500),
         'unit_measure': safe_str(wc2_row.get('unitOfMeasure'), 20),
         'line_number': safe_int(wc2_row.get('lineNum')),
-        'is_deleted': False,
         'is_active': True,
     }
     quantity_json = {
@@ -1539,7 +1538,7 @@ class Command(BaseCommand):
                 **kwargs,
                 'item_fk_id': i_pk,
                 'line_number': safe_int(r.get('lineNum')),
-                'item': {'item_id': i_pk, 'ida_item': item_num, 'description': safe_str(r.get('description'), 500), 'unit_measure': safe_str(r.get('unitOfMeasure'), 20), 'line_number': safe_int(r.get('lineNum')), 'is_deleted': False, 'is_active': True},
+                'item': {'item_id': i_pk, 'ida_item': item_num, 'description': safe_str(r.get('description'), 500), 'unit_measure': safe_str(r.get('unitOfMeasure'), 20), 'line_number': safe_int(r.get('lineNum')), 'is_active': True},
                 'quantity': {'active': qty, 'staged': qty, 'remaining': safe_float(r.get('qtyBackLogged') or r.get('qtyRemain')), 'is_fixed': False, 'precision': 2},
                 'cost': {'unit': unit_cost, 'unit_base': unit_cost, 'extended': safe_float(r.get('extendedCost')) or (qty * unit_cost), 'discount_percent': 0.0, 'discount_amount': 0.0, 'shipping': 0.0, 'handling': 0.0, 'freight': 0.0, 'commissions': 0.0, 'tax_rate': 0.0, 'tax': 0.0, 'is_fixed': False, 'precision': 2},
                 'ida': safe_str(r.get('idNum')),

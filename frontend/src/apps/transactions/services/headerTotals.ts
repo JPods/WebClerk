@@ -99,7 +99,7 @@ export function defaultTotals(): TransactionTotals {
  * `compute_order_sell_cost_totals()` (and the quote/invoice/purchase
  * variants which share the same logic).
  *
- * Lines whose `item.is_deleted` flag is true are excluded.
+ * Lines the user removed (client-only `_removed` marker) are excluded.
  *
  * @param lines - Array of TransactionLine records from the API or local state.
  * @param options - Transaction type and any preserved values (received, etc.).
@@ -124,9 +124,8 @@ export function computeHeaderTotals(
 
   // --- Iterate active lines ---
   for (const ln of lines) {
-    // Skip soft-deleted lines (mirrors Django queryset filter)
-    const item = ln.item as Record<string, unknown> | undefined;
-    if (item?.is_deleted) continue;
+    // Skip lines the user removed — they are deleted, not totalled
+    if (ln._removed) continue;
 
     const t = ((ln as any).totals ?? {}) as Record<string, unknown>;
     const c = (ln.cost ?? {}) as Record<string, unknown>;

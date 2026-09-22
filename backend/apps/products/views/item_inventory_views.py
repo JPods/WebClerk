@@ -29,7 +29,7 @@ class BulkItemInventoryView(APIView):
             return api_response(success=False, status_code=400, message='Max 200 items per request')
 
         items = Item.objects.filter(
-            id__in=item_ids, is_deleted=False
+            id__in=item_ids
         ).only('id', 'ida', 'name', 'quantity', 'price', 'config')
 
         results = []

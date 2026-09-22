@@ -54,7 +54,7 @@ def get_item_availability(
     from apps.products.models import InventoryLayer
     from apps.products.models.inventory_reservation import InventoryReservation
 
-    filters = Q(item_id=item_id, is_active=True, is_deleted=False)
+    filters = Q(item_id=item_id, is_active=True)
     if warehouse_id:
         filters &= Q(warehouse_id=warehouse_id)
 
@@ -72,7 +72,7 @@ def get_item_availability(
 
     # Active reservations reduce available
     reserved = Decimal('0')
-    res_filters = Q(item_id=item_id, is_active=True, is_deleted=False)
+    res_filters = Q(item_id=item_id, is_active=True)
     if warehouse_id:
         res_filters &= Q(warehouse_id=warehouse_id)
     try:
@@ -103,7 +103,7 @@ def get_item_availability_by_warehouse(item_id: int) -> List[Dict[str, Any]]:
 
     warehouse_ids = (
         InventoryLayer.objects
-        .filter(item_id=item_id, is_active=True, is_deleted=False)
+        .filter(item_id=item_id, is_active=True)
         .values_list('warehouse_id', flat=True)
         .distinct()
     )

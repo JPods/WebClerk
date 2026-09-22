@@ -132,7 +132,7 @@ class Command(BaseCommand):
     def handle(self, *args, **opts):
         report = defaultdict(list)
         proposed = {}
-        settings = {s.parent_model: s for s in Setting.objects.filter(purpose='wc:model', is_deleted=False)}
+        settings = {s.parent_model: s for s in Setting.objects.filter(purpose='wc:model')}
         for key in sorted(settings):
             if key not in MODEL_REGISTRY:
                 report['orphan_settings'].append(key)

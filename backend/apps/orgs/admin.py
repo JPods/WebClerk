@@ -49,7 +49,7 @@ class OrgBaseAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     form = OrgBaseAdminForm
     # Scalar fields: address_full, address_id, attention, company, domain, domain_id, dt_created, dt_modified, email, email_id, health_rating, ida, is_active, is_archived, is_deleted, is_locked, org_type, phone, phone_id, price_level, security_level, status, terms, uuid, version
     list_display = ("ida", "company", "status", "email", "phone", "address_full", "is_active", "dt_created")
-    list_filter = ("org_type", "status", "is_active", "is_deleted", "is_archived")
+    list_filter = ("org_type", "status", "is_active", "is_archived")
     search_fields = ("company", "domains", "contacts", "email", "phone")
     readonly_fields = ("id", "uuid", "dt_created", "dt_modified", "version")
     raw_id_fields = ("terms_fk",)
@@ -61,8 +61,7 @@ class OrgBaseAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
             "address_full", "address_id", "attention",
             "contact_id", "company", "domain", "domain_id",
             "email", "email_id", "health_rating",
-            "is_active", "is_archived", "is_deleted",
-            "org_type", "phone", "phone_id", "price_level",
+            "is_active", "is_archived", "org_type", "phone", "phone_id", "price_level",
             "security_level", "status", "terms", "terms_fk",
         )}),
         ("JSONB fields", {

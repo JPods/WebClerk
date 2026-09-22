@@ -426,7 +426,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
   // Raw field specs (may be strings or FieldSpec objects)
   const listFieldSpecs = useMemo((): FieldSpec[] => {
     if (workbenchSetting?.list?.length) return toFieldSpecs(workbenchSetting.list, schemaFormats);
-    const fallback = allFields.filter((f) => f !== 'id' && f !== 'uuid' && f !== 'version' && f !== 'is_deleted' && f !== 'is_archived' && f !== 'is_locked' && f !== 'security_level' && f !== 'search_vector').slice(0, 6);
+    const fallback = allFields.filter((f) => f !== 'id' && f !== 'uuid' && f !== 'version' && f !== 'is_archived' && f !== 'is_locked' && f !== 'security_level' && f !== 'search_vector').slice(0, 6);
     return toFieldSpecs(fallback.length ? fallback : ['ida'], schemaFormats);
   }, [workbenchSetting?.list, allFields, schemaFormats]);
 

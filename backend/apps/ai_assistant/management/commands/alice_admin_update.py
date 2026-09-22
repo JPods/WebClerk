@@ -41,7 +41,7 @@ PREFERRED = [
 APPEND_LAST = ["is_active", "dt_created"]
 
 # Never appear in list_display (system / audit fields)
-SYSTEM = {"id", "uuid", "version", "is_deleted", "is_archived", "dt_modified"}
+SYSTEM = {"id", "uuid", "version", "is_archived", "dt_modified"}
 
 # A fieldsets-style mixin already present in the codebase; don't double-add.
 FIELDSET_MIXIN_NAMES = {"ScalarFirstFieldsetMixin", "JSONBFieldsetMixin"}

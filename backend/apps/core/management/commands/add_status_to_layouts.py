@@ -50,8 +50,7 @@ class Command(BaseCommand):
         settings = Setting.objects.filter(
             purpose='wc:model',
             is_active=True,
-            is_deleted=False,
-        ).order_by('parent_model')
+            ).order_by('parent_model')
 
         total = settings.count()
         self.stdout.write(f"\n  {total} wc:model Settings to check\n")

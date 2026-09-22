@@ -131,7 +131,7 @@ def preview_vcard(params: dict) -> dict[str, Any]:
     all_emails = [c['email'].lower() for c in contacts if c.get('email')]
     existing_emails = set(
         Contact.objects.filter(
-            email__in=all_emails, is_active=True, is_deleted=False
+            email__in=all_emails, is_active=True
         ).values_list('email', flat=True)
     ) if all_emails else set()
 
@@ -139,7 +139,7 @@ def preview_vcard(params: dict) -> dict[str, Any]:
     existing_orgs = {}
     if all_orgs:
         for org in OrgBase.objects.filter(
-            display_name__in=all_orgs, is_active=True, is_deleted=False
+            display_name__in=all_orgs, is_active=True
         ).values('id', 'display_name', 'status', 'org_type'):
             existing_orgs[org['display_name'].lower()] = org
 
@@ -198,7 +198,7 @@ def import_vcard(params: dict) -> dict[str, Any]:
     all_emails = [c.get('email', '').lower() for c in contact_list if c.get('email')]
     existing_emails = set(
         Contact.objects.filter(
-            email__in=all_emails, is_active=True, is_deleted=False
+            email__in=all_emails, is_active=True
         ).values_list('email', flat=True)
     ) if all_emails else set()
 
@@ -208,7 +208,7 @@ def import_vcard(params: dict) -> dict[str, Any]:
     all_companies = list({c.get('company', '') for c in contact_list if c.get('company')})
     if all_companies:
         for org in OrgBase.objects.filter(
-            display_name__in=all_companies, is_active=True, is_deleted=False
+            display_name__in=all_companies, is_active=True
         ):
             org_cache[org.company.lower()] = org
 
@@ -412,7 +412,7 @@ def export_vcards(params: dict) -> dict[str, Any]:
     if contact_ids:
         contacts = Contact.objects.filter(pk__in=contact_ids, is_active=True)
     elif params.get('filter'):
-        contacts = Contact.objects.filter(is_active=True, is_deleted=False, **params['filter'])[:500]
+        contacts = Contact.objects.filter(is_active=True, **params['filter'])[:500]
     else:
         return {'error': 'contact_ids or filter required'}
 
@@ -447,7 +447,7 @@ def check_collisions(params: dict) -> dict[str, Any]:
     email_matches = {}
     if all_emails:
         for c in Contact.objects.filter(
-            email__in=all_emails, is_active=True, is_deleted=False
+            email__in=all_emails, is_active=True
         ).values('id', 'ida', 'email', 'name_first', 'name_last', 'company'):
             email_matches[c['email'].lower()] = c
 
@@ -456,7 +456,7 @@ def check_collisions(params: dict) -> dict[str, Any]:
     org_matches = {}
     if all_companies:
         for org in OrgBase.objects.filter(
-            display_name__iexact__in=all_companies, is_active=True, is_deleted=False
+            display_name__iexact__in=all_companies, is_active=True
         ).values('id', 'display_name', 'status', 'org_type', 'ida'):
             org_matches[org['display_name'].lower()] = org
 
@@ -467,7 +467,7 @@ def check_collisions(params: dict) -> dict[str, Any]:
         for comp in all_companies:
             q |= Q(display_name__iexact=comp)
         for org in OrgBase.objects.filter(
-            q, is_active=True, is_deleted=False
+            q, is_active=True
         ).values('id', 'display_name', 'status', 'org_type', 'ida'):
             org_matches[org['display_name'].lower()] = org
 
@@ -519,7 +519,7 @@ def import_bundle(params: dict) -> dict[str, Any]:
     org_cache: dict[str, OrgBase] = {}
     all_companies = list({c.get('company', '') for c in contact_list if c.get('company')})
     if all_companies:
-        for org in OrgBase.objects.filter(display_name__in=all_companies, is_active=True, is_deleted=False):
+        for org in OrgBase.objects.filter(display_name__in=all_companies, is_active=True):
             org_cache[org.company.lower()] = org
 
     created = 0

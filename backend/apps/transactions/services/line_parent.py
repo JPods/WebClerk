@@ -69,7 +69,7 @@ def _aggregate_children(parent_model_name: str, parent_pk: int) -> Tuple[float, 
     Child = _model(CHILD_OF[parent_model_name])
     # A deleted child consumes nothing: deleting an invoice or receipt line gives the
     # parent line its remaining back (found 2026-09-19, latent — no such rows in wc_demo yet).
-    agg = Child.objects.filter(parent_line_id=parent_pk, is_deleted=False).aggregate(
+    agg = Child.objects.filter(parent_line_id=parent_pk).aggregate(
         total=Sum(Cast(KeyTextTransform('active', 'quantity'),
                        DecimalField(max_digits=20, decimal_places=6))),
         count=Count('pk'),

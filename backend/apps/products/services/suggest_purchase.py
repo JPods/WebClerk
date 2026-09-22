@@ -213,7 +213,7 @@ def get_items_below_reorder(warehouse_id: Optional[int] = None) -> List[Dict[str
 
     items = (
         Item.objects
-        .filter(is_active=True, is_deleted=False, quantity__min__gt=0)
+        .filter(is_active=True, quantity__min__gt=0)
         .select_related('vendor')
     )
     if warehouse_id:

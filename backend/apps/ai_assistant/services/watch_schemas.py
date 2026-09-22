@@ -238,7 +238,7 @@ class SchemaDriftDetector:
         issues = []
 
         # 1. Fields in Django but not in TS
-        skip_fields = {"id", "is_active", "is_deleted", "created_by_id", "modified_by_id",
+        skip_fields = {"id", "is_active", "created_by_id", "modified_by_id",
                        "metadata", "refs", "prefs", "comments", "actions", "health_rating",
                        "keywords_pending", "row_version"}
         for dj_name, dj_info in django_fields.items():

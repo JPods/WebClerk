@@ -940,8 +940,7 @@ def journalize_invoice_and_cash_entries(invoice_id: int, ida_prefix: str = '') -
     cash_entries = Cash.objects.filter(
         Q(invoice_id=invoice_id) |
         Q(parent_model='invoice', parent_id=invoice_id),
-        is_active=True, is_deleted=False,
-    ).distinct()
+        is_active=True, ).distinct()
 
     # Also find cash linked via the parent order
     parent_id = getattr(invoice, 'parent_id', None)
@@ -951,8 +950,7 @@ def journalize_invoice_and_cash_entries(invoice_id: int, ida_prefix: str = '') -
             Q(invoice_id=invoice_id) |
             Q(parent_model='invoice', parent_id=invoice_id) |
             Q(parent_model='order', parent_id=parent_id),
-            is_active=True, is_deleted=False,
-        ).distinct()
+            is_active=True, ).distinct()
 
     pay_results = []
     for pay in cash_entries:

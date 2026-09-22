@@ -96,7 +96,7 @@ def _po_exposure(
         Purchase.STATUS_HOLD,
     ]
 
-    po_qs = Purchase.objects.filter(status__in=open_statuses, is_deleted=False)
+    po_qs = Purchase.objects.filter(status__in=open_statuses)
     if start_ms:
         po_qs = po_qs.filter(dt_created__gte=start_ms)
     if end_ms:
@@ -106,8 +106,7 @@ def _po_exposure(
 
     line_qs = PurchaseLine.objects.filter(
         purchase_id__in=open_po_ids,
-        is_deleted=False,
-    )
+        )
 
     # Aggregate per vendor via header join
     vendor_rows: Dict[int, Dict] = {}
@@ -235,7 +234,7 @@ def _on_hand_analysis(category: Optional[str]) -> Dict[str, Any]:
     """ABC classification + dead capital vs star identification."""
     Item = dj_apps.get_model("products", "Item")
 
-    item_qs = Item.objects.filter(is_active=True, is_deleted=False)
+    item_qs = Item.objects.filter(is_active=True)
     if category:
         # category filter — try refs.categories or velocity_category
         item_qs = item_qs.filter(
@@ -324,7 +323,7 @@ def _sales_velocity(
         velocity_map = {}
 
     Item = dj_apps.get_model("products", "Item")
-    item_qs = Item.objects.filter(is_active=True, is_deleted=False).only(
+    item_qs = Item.objects.filter(is_active=True).only(
         "id", "velocity_category", "refs"
     )
     if category:
@@ -366,7 +365,7 @@ def _reorder_alerts(category: Optional[str]) -> List[Dict[str, Any]]:
     """Items below their velocity-based reorder point."""
     Item = dj_apps.get_model("products", "Item")
 
-    item_qs = Item.objects.filter(is_active=True, is_deleted=False)
+    item_qs = Item.objects.filter(is_active=True)
     if category:
         item_qs = item_qs.filter(
             Q(velocity_category__iexact=category)

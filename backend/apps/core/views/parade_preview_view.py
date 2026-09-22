@@ -480,8 +480,7 @@ class ParadePreviewView(APIView):
             )
 
         report = Report.objects.filter(
-            id=report_id, is_active=True, is_deleted=False,
-        ).first()
+            id=report_id, is_active=True, ).first()
         if not report:
             from common.api_responses import api_response
             return api_response(

@@ -423,7 +423,7 @@ class Command(BaseCommand):
         create_actions = options["actions"]
 
         reports = Report.objects.filter(
-            is_active=True, is_deleted=False
+            is_active=True
         ).order_by("model_name", "sort_order", "name")
 
         stats = {"generated": 0, "skipped_has_template": 0,

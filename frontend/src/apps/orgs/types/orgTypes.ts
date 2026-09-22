@@ -367,7 +367,6 @@ export interface Organization {
   actions?: Record<string, unknown>;
   
   // Lifecycle
-  is_deleted?: boolean;
   is_archived?: boolean;
   security_level?: number;
   health_rating?: number;

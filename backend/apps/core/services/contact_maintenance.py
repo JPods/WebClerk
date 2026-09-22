@@ -479,7 +479,7 @@ def repair_dangling_communications(
             summary.dangling_unlinked += 1
             continue
         contacts = list(
-            Contact.objects.filter(email__iexact=norm, is_deleted=False)
+            Contact.objects.filter(email__iexact=norm)
             .order_by("id")[:2]
         )
         if len(contacts) == 1:
@@ -492,7 +492,7 @@ def repair_dangling_communications(
     # ─ Phone ─
     # Build normalized phone → contact lookup once (avoids N+1 full-table scan)
     _phone_lookup: dict[str, Contact | None] = {}
-    for contact in Contact.objects.filter(is_deleted=False).only("id", "phone_id").iterator(chunk_size=500):
+    for contact in Contact.objects.only("id", "phone_id").iterator(chunk_size=500):
         norm_p = _norm_phone(contact.phone)
         if not norm_p:
             continue
@@ -526,7 +526,7 @@ def repair_dangling_communications(
             continue
         # No FK reverse relation — find contacts that own a domain with this path
         owner_ids = Domain.objects.filter(path__iexact=norm, contact_id__isnull=False).values_list('contact_id', flat=True).distinct()[:2]
-        contacts = list(Contact.objects.filter(pk__in=owner_ids, is_deleted=False).order_by("id")[:2])
+        contacts = list(Contact.objects.filter(pk__in=owner_ids).order_by("id")[:2])
         if len(contacts) == 1:
             _link_dangling_to_contact(row, contacts[0], dry_run)
             summary.dangling_claimed += 1
@@ -547,7 +547,7 @@ def repair_dangling_communications(
             Q(full__iexact=norm) | Q(address1__iexact=norm),
             contact_id__isnull=False,
         ).values_list('contact_id', flat=True).distinct()[:2]
-        contacts = list(Contact.objects.filter(pk__in=owner_ids, is_deleted=False).order_by("id")[:2])
+        contacts = list(Contact.objects.filter(pk__in=owner_ids).order_by("id")[:2])
         if len(contacts) == 1:
             _link_dangling_to_contact(row, contacts[0], dry_run)
             summary.dangling_claimed += 1
@@ -573,7 +573,7 @@ def maintain_contact_communications(
     """Repair/create contact communication links across FK and refs in both directions."""
     summary = ContactCommMaintenanceSummary()
 
-    qs = Contact.objects.filter(is_deleted=False).order_by("id")
+    qs = Contact.objects.order_by("id")
     if contact_id:
         qs = qs.filter(pk=contact_id)
 

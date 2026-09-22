@@ -241,7 +241,7 @@ def _load_list_data(model_name: str, filters: Optional[Dict] = None) -> List[Dic
     if not model_cls:
         raise ValueError(f"Unknown model: {model_name}")
 
-    qs = model_cls.objects.filter(is_active=True, is_deleted=False)
+    qs = model_cls.objects.filter(is_active=True)
 
     if filters:
         for key, val in filters.items():
@@ -1103,7 +1103,7 @@ def _template_generic(data: Dict, company: Dict, report_name: str) -> str:
             field_names = ["ida"]
             for f in sample._meta.get_fields():
                 if f.name in ("ida", "id", "uuid", "metadata", "refs", "prefs",
-                              "actions", "comments", "is_deleted", "is_archived",
+                              "actions", "comments", "is_archived",
                               "dt_modified", "version", "security_level",
                               "health_rating"):
                     continue
@@ -1346,8 +1346,7 @@ def render_report(
     report_qs = Report.objects.filter(
         name=report_name,
         is_active=True,
-        is_deleted=False,
-    )
+        )
     if model_name:
         report_qs = report_qs.filter(
             Q(model_name=model_name) | Q(model_name="system") | Q(model_name="")
@@ -1431,8 +1430,7 @@ def _load_statement_data(model_name: str, record_id: int) -> Dict[str, Any]:
             Invoice.objects.filter(
                 contact_id=record_id,
                 is_active=True,
-                is_deleted=False,
-            ).exclude(balance=0).exclude(balance=None).order_by("dt_created")[:500]
+                ).exclude(balance=0).exclude(balance=None).order_by("dt_created")[:500]
         )
 
     # Load recent cash
@@ -1444,8 +1442,7 @@ def _load_statement_data(model_name: str, record_id: int) -> Dict[str, Any]:
                 Cash.objects.filter(
                     contact_id=record_id,
                     is_active=True,
-                    is_deleted=False,
-                ).order_by("-dt_created")[:20]
+                    ).order_by("-dt_created")[:20]
             )
         except Exception:
             pass
@@ -1466,7 +1463,7 @@ def _load_commission_data(model_name: str, record_id: Optional[int],
     if not Invoice:
         raise ValueError("Invoice model not found")
 
-    qs = Invoice.objects.filter(is_active=True, is_deleted=False)
+    qs = Invoice.objects.filter(is_active=True)
     filters = filters or {}
 
     if record_id:
@@ -1505,7 +1502,7 @@ def _make_filename(report_name: str, record_id: Optional[int], ext: str) -> str:
 def get_available_reports(model_name: Optional[str] = None) -> List[Dict[str, Any]]:
     """List available reports, optionally filtered by model."""
     Report = django_apps.get_model("core", "Report")
-    qs = Report.objects.filter(is_active=True, is_deleted=False)
+    qs = Report.objects.filter(is_active=True)
     if model_name:
         qs = qs.filter(Q(model_name=model_name) | Q(model_name="system") | Q(model_name=""))
     qs = qs.order_by("model_name", "sort_order", "name")

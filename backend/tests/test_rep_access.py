@@ -78,8 +78,7 @@ def test_a_rep_holds_the_sales_field_lists_not_a_narrower_copy():
 
     # Update the model's own Setting rather than adding a second one: purpose +
     # parent_model is not unique, and the command reads whichever .first() returns.
-    setting = Setting.objects.filter(purpose='wc:model', parent_model='order',
-                                     is_deleted=False).first()
+    setting = Setting.objects.filter(purpose='wc:model', parent_model='order').first()
     assert setting is not None, "the order model has no wc:model Setting"
     config = dict(setting.config or {})
     acc = dict(config.get('access') or {})
@@ -122,8 +121,7 @@ def test_a_rep_can_price_what_they_quote_and_writes_nothing_to_items():
     from apps.core.management.commands.seed_rep_access import REP_READ_ONLY
 
     assert 'item' in REP_READ_ONLY
-    setting = Setting.objects.filter(purpose='wc:model', parent_model='item',
-                                     is_deleted=False).first()
+    setting = Setting.objects.filter(purpose='wc:model', parent_model='item').first()
     assert setting is not None
     config = dict(setting.config or {})
     acc = dict(config.get('access') or {})

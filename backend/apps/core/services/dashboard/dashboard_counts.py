@@ -64,8 +64,8 @@ def get_dashboard_counts(params: dict) -> dict:
                     dt_created__lte=dt_to,
                 )
                 # Exclude soft-deleted if the model has the field
-                if hasattr(Model, 'is_deleted'):
-                    qs = qs.filter(is_deleted=False)
+                if hasattr(Model):
+                    qs = qs.all()
                 model_counts[key] = qs.count()
             except Exception as e:
                 logger.warning(f"dashboard_counts: {name}/{key} failed: {e}")

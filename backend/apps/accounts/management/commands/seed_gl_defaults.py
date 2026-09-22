@@ -53,7 +53,7 @@ class Command(BaseCommand):
 
     def _seed_items(self, *, defaults: dict[str, str], dry_run: bool) -> int:
         changed = 0
-        qs = Item.objects.filter(is_active=True, is_deleted=False, is_archived=False)
+        qs = Item.objects.filter(is_active=True, is_archived=False)
         for item in qs.iterator():
             gls = dict(item.gls or {})
             before = dict(gls)
@@ -79,7 +79,6 @@ class Command(BaseCommand):
         qs = OrgBase.objects.filter(
             org_type=OrgType.REP,
             is_active=True,
-            is_deleted=False,
             is_archived=False,
         )
         for rep in qs.iterator():

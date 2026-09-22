@@ -9,7 +9,7 @@ from django.utils import timezone
 from apps.orgs.models import OrgBase, OrgType
 from apps.core.models import Setting
 from tests.utils import assert_envelope
-from tests.conftest import make_setting
+from tests.conftest import make_saved_search, make_setting
 
 User = get_user_model()
 
@@ -170,17 +170,15 @@ def test_wcapi_get_applies_saved_search_for_matching_role(client):
     target = OrgBase.objects.create(company="zzsaved-role-001", org_type=OrgType.CUSTOMER, status="active")
     OrgBase.objects.create(company="zzsaved-role-002", org_type=OrgType.CUSTOMER, status="inactive")
 
-    make_setting(
+    make_saved_search(
         name="sales_active_customers",
-        purpose="wc:search",
-        parent_model="customer",
+        model_name="customer",
         role="sales",
         config={
             "keyword": "zzsaved-role",
             "filters": {"status": "active"},
             "ordering": "company",
         },
-        is_active=True,
     )
 
     resp = client.get(
@@ -215,13 +213,11 @@ def test_wcapi_get_saved_search_rejects_other_roles(client):
     )
     client.force_login(user)
 
-    make_setting(
+    make_saved_search(
         name="sales_only_search",
-        purpose="wc:search",
-        parent_model="customer",
+        model_name="customer",
         role="sales",
         config={"keyword": "zzsaved-role"},
-        is_active=True,
     )
 
     resp = client.get(
@@ -323,29 +319,23 @@ def test_wcapi_search_presets_lists_role_visible_and_global(client):
     )
     client.force_login(user)
 
-    visible_sales = make_setting(
+    visible_sales = make_saved_search(
         name="sales_pipeline",
-        purpose="wc:search",
-        parent_model="customer",
+        model_name="customer",
         role="sales",
         config={"keyword": "pipeline"},
-        is_active=True,
     )
-    visible_global = make_setting(
+    visible_global = make_saved_search(
         name="global_customers",
-        purpose="wc:search",
-        parent_model="customer",
+        model_name="customer",
         role="all",
         config={"keyword": "customer"},
-        is_active=True,
     )
-    hidden_support = make_setting(
+    hidden_support = make_saved_search(
         name="support_only",
-        purpose="wc:search",
-        parent_model="customer",
+        model_name="customer",
         role="support",
         config={"keyword": "ticket"},
-        is_active=True,
     )
 
     resp = client.get("/wcapi/search-presets/", {"model_name": "customer"})
@@ -372,13 +362,11 @@ def test_wcapi_search_presets_admin_sees_all_roles(client):
     )
     client.force_login(admin)
 
-    support_setting = make_setting(
+    support_setting = make_saved_search(
         name="support_only_admin_visible",
-        purpose="wc:search",
-        parent_model="customer",
+        model_name="customer",
         role="support",
         config={"keyword": "support"},
-        is_active=True,
     )
 
     resp = client.get("/wcapi/search-presets/", {"model_name": "customer"})
@@ -418,10 +406,9 @@ def test_wcapi_get_saved_search_uses_request_keyword_and_period_params(client):
     wrong_keyword.dt_created = start_ms + 2000
     wrong_keyword.save(update_fields=["dt_created"])
 
-    make_setting(
+    make_saved_search(
         name="runtime_customer_search",
-        purpose="wc:search",
-        parent_model="customer",
+        model_name="customer",
         role="all",
         config={
             "request_keyword": "company_token",
@@ -431,7 +418,6 @@ def test_wcapi_get_saved_search_uses_request_keyword_and_period_params(client):
                 "end": {"field": "dt_created", "lookup": "lte"},
             },
         },
-        is_active=True,
     )
 
     resp = client.get(
@@ -482,17 +468,15 @@ def test_wcapi_get_saved_search_uses_relative_period_defaults(client):
     previous.dt_created = int(previous_month.timestamp() * 1000)
     previous.save(update_fields=["dt_created"])
 
-    make_setting(
+    make_saved_search(
         name="current_month_customers",
-        purpose="wc:search",
-        parent_model="customer",
+        model_name="customer",
         role="all",
         config={
             "relative_period": {"field": "dt_created", "preset": "current_month"},
             "search_fields": ["company"],
             "keyword": "zz",
         },
-        is_active=True,
     )
 
     resp = client.get(
@@ -518,16 +502,23 @@ def test_seed_search_presets_command_is_idempotent():
     call_command("seed_search_presets", stdout=output)
     first_run = output.getvalue()
 
-    assert "created=" in first_run
-    assert Setting.objects.filter(purpose="wc:search", parent_model="invoice", name="current_month").exists()
-    assert Setting.objects.filter(purpose="wc:search", parent_model="action", name="assigned_to_is_active_priority").exists()
+    # seed_search_presets writes Report records, and always has. This test
+    # asserted against Setting, so it could never have passed.
+    from apps.core.models.report import Report
+    from apps.core.services.report_registry import REPORT_PURPOSE_SEARCH
 
-    count_after_first = Setting.objects.filter(purpose="wc:search", role="all").count()
+    stored = Report.objects.filter(purpose=REPORT_PURPOSE_SEARCH)
+
+    assert "created=" in first_run
+    assert stored.filter(model_name="invoice", name="current_month").exists()
+    assert stored.filter(model_name="action", name="assigned_to_is_active_priority").exists()
+
+    count_after_first = stored.count()
 
     output = StringIO()
     call_command("seed_search_presets", stdout=output)
     second_run = output.getvalue()
-    count_after_second = Setting.objects.filter(purpose="wc:search", role="all").count()
+    count_after_second = stored.count()
 
     assert "updated=" in second_run
     assert count_after_second == count_after_first

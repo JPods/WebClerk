@@ -58,10 +58,10 @@ def line_less_documents(now_ms: Optional[int] = None) -> Dict[str, List[dict]]:
 
     for model_name in LINE_MODELS:
         Model = dj_apps.get_model('transactions', model_name)
-        rows = Model.objects.filter(is_deleted=False).exclude(
+        rows = Model.objects.exclude(
             status__in=('complete', 'canceled')).only('id', 'ida', 'status', 'dt_created')
         for header in rows:
-            if header.lines.filter(is_deleted=False).exists():
+            if header.lines.all().exists():
                 continue
             age = _age_days(header.dt_created, now_ms)
             if age < limits['draft_days']:
@@ -92,7 +92,7 @@ def negative_invoices_to_convert(now_ms: Optional[int] = None) -> List[dict]:
     cutoff = now_ms - days * 86_400_000
 
     out = []
-    for invoice in Invoice.objects.filter(is_deleted=False, dt_created__lt=cutoff).only(
+    for invoice in Invoice.objects.filter(dt_created__lt=cutoff).only(
             'id', 'ida', 'customer_id', 'totals', 'dt_created', 'is_locked'):
         balance = Decimal(str((invoice.totals or {}).get('balance') or 0))
         if balance >= 0:

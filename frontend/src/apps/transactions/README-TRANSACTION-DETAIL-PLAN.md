@@ -379,11 +379,51 @@ interface LineItem {
   unit_measure?: string;
   sequence?: number;
   line_number?: number;
-  is_deleted?: boolean;
   is_active?: boolean;
   is_archived?: boolean;
 }
 ```
+
+> **No soft delete** (Bill, 2026-09-22). There is no `is_deleted` field —
+> the column is gone from the backend. A deleted line is *identified* as
+> deleted in the payload, never merely left out of the array:
+>
+> | Field | Meaning | Sent to backend |
+> |-------|---------|-----------------|
+> | `_dirty` | line has unsaved edits | no |
+> | `_new` | line created this session | no |
+> | `_removed` | local display flag: user clicked remove | no — stripped |
+> | `_delete` | delete this row | **yes**, with the line's `id` |
+>
+> On save (`TransactionDetail.handleSave`):
+>
+> - a `_removed` line with no database id is dropped client-side — it never
+>   existed on the server;
+> - a `_removed` line with an id **stays in `record.lines`**, carrying
+>   `_delete: true` and its `id`. The backend's lines loop deletes that row
+>   through the model's delete (writing the inventory/cash Pendings), in the
+>   same transaction as the header save.
+>
+> A removal alone still routes through `saveTransactionWithLines` — a plain
+> `saveRecord` would not carry the markers to the lines loop.
+>
+> **Display.** A removed line stays visible in the line card until the save,
+> so the user can see exactly what the save will remove. It is greyed out
+> (`colorRules` matching the record's `_removed` flag — the grid's existing
+> inert-row convention), its item code and description are struck through,
+> and its active quantity, remaining and amount display `0`. **No column is
+> added for this** — the marker is never written into `purpose` or any other
+> model field, and the user keeps control of their columns (Bill, 2026-09-22).
+> These are display values built in `flattenLine()`; the stored record keeps
+> its real quantity and goes over the wire unchanged apart from `_delete`.
+> The row is inert: cell edits, the item-card click and the line-type toggle
+> are all refused. There is no undo control — to escape a delete, close the
+> window without saving.
+>
+> Totals never see it: `computeHeaderTotals()` skips `_removed`, and
+> `getActiveLines()` remains the "still live" list for totals and dirty
+> checks. Print excludes deleted lines — a printed document must not carry a
+> line that is about to be deleted.
 
 #### 13. `quantity` (Transaction-Type Specific)
 ```typescript

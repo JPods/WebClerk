@@ -96,7 +96,7 @@ LIST_PATTERNS: list[tuple[re.Pattern, int, str]] = [
 # Fields rendered by BaseModelCards (always present — skip checking these)
 BASE_MODEL_CARD_FIELDS = frozenset({
     "id", "uuid", "ida", "dt_created", "dt_modified", "version",
-    "is_active", "security_level", "is_deleted", "is_archived",
+    "is_active", "security_level", "is_archived",
     "health_rating", "metadata", "refs", "prefs", "comments",
 })
 

@@ -27,7 +27,7 @@ from apps.core.constants.model_registry import MODEL_REGISTRY, get_model_meta
 # Fields to never show in cards — plumbing
 SKIP_FIELDS = {
     'id', 'uuid', 'version', 'security_level', 'times_used',
-    'is_deleted', 'is_archived', 'is_locked',
+    'is_archived', 'is_locked',
     'is_staff', 'is_superuser',
     'config', 'metadata', 'refs', 'prefs', 'actions',
     'password', 'groups', 'user_permissions', 'last_login',

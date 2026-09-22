@@ -754,8 +754,7 @@ class Command(BaseCommand):
             model_setting = Setting.objects.filter(
                 purpose='wc:model',
                 parent_model=model_name,
-                is_deleted=False,
-            ).first()
+                ).first()
 
             if not model_setting:
                 self.stderr.write(f'  {model_name}: no wc:model Setting found — skip')

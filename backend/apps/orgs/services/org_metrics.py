@@ -96,7 +96,7 @@ def compute_org_metrics(org, now: Optional[datetime] = None) -> Dict[str, Any]:
     sale_days: List[int] = []
     largest = (Decimal('0'), 0)
 
-    for inv in Invoice.objects.filter(customer_id=org.pk, is_deleted=False).only(
+    for inv in Invoice.objects.filter(customer_id=org.pk).only(
             'totals', 'dt_approved', 'dt_created', 'source_name', 'ship_via'):
         t = inv.totals or {}
         amount = Decimal(str(t.get('amount') or 0))
@@ -149,7 +149,7 @@ def compute_org_metrics(org, now: Optional[datetime] = None) -> Dict[str, Any]:
     }
 
     # ── Quotes → orders ──────────────────────────────────────────────
-    quote_rows = list(Quote.objects.filter(customer_id=org.pk, is_deleted=False).values_list('pk', 'dt_created'))
+    quote_rows = list(Quote.objects.filter(customer_id=org.pk).values_list('pk', 'dt_created'))
     converted = {}
     for parent_id, dt_created in Order.objects.filter(
             parent_model='quote', parent_id__in=[q for q, _ in quote_rows]).values_list('parent_id', 'dt_created'):
@@ -173,7 +173,7 @@ def compute_org_metrics(org, now: Optional[datetime] = None) -> Dict[str, Any]:
 
     # ── Touches and visits ───────────────────────────────────────────
     last_touch = None
-    for channel, direction, dt in Touch.objects.filter(org_id=org.pk, is_deleted=False).values_list(
+    for channel, direction, dt in Touch.objects.filter(org_id=org.pk).values_list(
             'channel', 'direction', 'dt_created'):
         y = years[datetime.fromtimestamp((dt or 0) / 1000, timezone.utc).year] if dt else years[0]
         y['touches'][channel or 'other'] += 1

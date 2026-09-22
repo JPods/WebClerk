@@ -228,8 +228,7 @@ def compute_vendor_scorecard(vendor_id: int, period_days: int = 90) -> dict:
         Purchase.objects.filter(
             vendor_id=vendor_id,
             dt_created__gte=cutoff_ms,
-            is_deleted=False,
-        ).order_by("dt_created")
+            ).order_by("dt_created")
     )
     po_ids = [po.id for po in purchases]
 
@@ -238,8 +237,7 @@ def compute_vendor_scorecard(vendor_id: int, period_days: int = 90) -> dict:
         Receipt.objects.filter(
             parent_model='purchase',
             parent_id__in=po_ids,
-            is_deleted=False,
-        )
+            )
     ) if po_ids else []
     receipts_by_po: dict[int, list] = {}
     for r in receipts:
@@ -249,8 +247,7 @@ def compute_vendor_scorecard(vendor_id: int, period_days: int = 90) -> dict:
     po_lines = list(
         PurchaseLine.objects.filter(
             purchase_id__in=po_ids,
-            is_deleted=False,
-        )
+            )
     ) if po_ids else []
 
     # -- Fetch receipt lines matched to PO lines --
@@ -258,8 +255,7 @@ def compute_vendor_scorecard(vendor_id: int, period_days: int = 90) -> dict:
     receipt_lines = list(
         ReceiptLine.objects.filter(
             receipt_id__in=receipt_ids,
-            is_deleted=False,
-        )
+            )
     ) if receipt_ids else []
     receipt_lines_by_pol: dict[int, list] = {}
     for rl in receipt_lines:
@@ -347,7 +343,7 @@ def get_all_vendor_scores() -> list[dict]:
     """Return all vendors with their scorecard, sorted by overall_score desc."""
     from apps.orgs.models.vendor import Vendor
 
-    vendors = Vendor.objects.filter(is_deleted=False, is_active=True)
+    vendors = Vendor.objects.filter(is_active=True)
     results = []
 
     for v in vendors:

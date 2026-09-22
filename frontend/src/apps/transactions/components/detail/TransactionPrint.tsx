@@ -3,6 +3,7 @@ import { getRecord } from '@/api/wcapi';
 import type { DetailLayout } from '@/hooks/useDetailLayout';
 import { formatDt } from '@/utils/fieldFormatters';
 import { formatCurrency } from '@/utils/stringUtils';
+import { getActiveLines } from '../../services/lineItemService';
 
 /**
  * Open a print-ready window rendering any transaction as clean HTML.
@@ -23,7 +24,9 @@ export async function openPrintWindow(
 
   const d = data;
   const co = companyInfo;
-  const lines = d?.lines || [];
+  // Deleted lines are excluded from print: a printed document must not carry
+  // a line that is about to be deleted. They remain visible on screen only.
+  const lines = getActiveLines(d?.lines || []);
   const totals = d?.totals || {};
 
   // Determine sell vs exec from layout

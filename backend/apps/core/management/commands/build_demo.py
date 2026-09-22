@@ -80,12 +80,12 @@ def _insert_address(cursor, ida, address1, city, state, zip_code):
         INSERT INTO locations (uuid, ida, address1, city, state, zip, country, "full",
                                address_type, dt_created, dt_modified, version,
                                is_active, security_level, dt_approved, times_used,
-                               dt_last_used, is_deleted, is_archived, is_locked,
+                               dt_last_used, is_archived, is_locked,
                                health_rating, config, metadata, refs, prefs,
                                actions, comments, address2, address3, district,
                                postal_name, instructions, latitude, longitude)
         VALUES (%s, %s, %s, %s, %s, %s, 'US', %s, 'work', %s, %s, 1,
-                true, 0, 0, 0, 0, false, false, false, 50,
+                true, 0, 0, 0, 0, false, false, 50,
                 '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb,
                 '{}'::jsonb, '{}'::jsonb, '', '', '', '', '', 0, 0)
         RETURNING id
@@ -101,12 +101,12 @@ def _insert_phone(cursor, ida, number):
                             attention, opt_out,
                             dt_created, dt_modified, version,
                             is_active, security_level, dt_approved, times_used,
-                            dt_last_used, is_deleted, is_archived, is_locked,
+                            dt_last_used, is_archived, is_locked,
                             health_rating, config, metadata, refs, prefs,
                             actions, comments)
         VALUES (%s, %s, %s, 'Office', '', '', '', false,
                 %s, %s, 1,
-                true, 0, 0, 0, 0, false, false, false, 50,
+                true, 0, 0, 0, 0, false, false, 50,
                 '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb,
                 '{}'::jsonb, '{}'::jsonb)
         RETURNING id
@@ -121,7 +121,7 @@ def _insert_contact(cursor, ida, attention, email, company):
         INSERT INTO contacts (uuid, ida, attention, email, company,
                               dt_created, dt_modified, version,
                               is_active, security_level, dt_approved, times_used,
-                              dt_last_used, is_deleted, is_archived, is_locked,
+                              dt_last_used, is_archived, is_locked,
                               health_rating, config, metadata, refs, prefs,
                               actions, comments,
                               is_superuser, is_staff, password,
@@ -131,7 +131,7 @@ def _insert_contact(cursor, ida, attention, email, company):
                               source_name, dt_joined)
         VALUES (%s, %s, %s, %s, %s,
                 %s, %s, 1,
-                true, 0, 0, 0, 0, false, false, false, 50,
+                true, 0, 0, 0, 0, false, false, 50,
                 '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb,
                 '{}'::jsonb, '{}'::jsonb,
                 false, false, '',
@@ -451,7 +451,7 @@ class Command(BaseCommand):
                                               dt_created, dt_modified, version,
                                               is_active, security_level, dt_approved,
                                               times_used, dt_last_used,
-                                              is_deleted, is_archived, is_locked,
+                                              is_archived, is_locked,
                                               health_rating, type, price_level, terms,
                                               tax_exempt_code,
                                               config, metadata, refs, prefs,
@@ -464,7 +464,7 @@ class Command(BaseCommand):
                             'bill.james@jpods.com', %s, %s,
                             %s, %s, 1,
                             true, 0, 0, 0, 0,
-                            false, false, false,
+                            false, false,
                             50, '', '', '',
                             '',
                             '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb,
@@ -496,7 +496,7 @@ class Command(BaseCommand):
                     INSERT INTO settings (uuid, ida, purpose, name,
                                           is_active, dt_created, dt_modified, version,
                                           security_level, dt_approved, times_used,
-                                          dt_last_used, is_deleted, is_archived,
+                                          dt_last_used, is_archived,
                                           is_locked, health_rating,
                                           config, metadata, refs, prefs,
                                           actions, comments,
@@ -504,7 +504,7 @@ class Command(BaseCommand):
                                           explanation, paths)
                     VALUES (%s, '', 'db_defaults', 'primary_organization',
                             true, %s, %s, 1,
-                            0, 0, 0, 0, false, false, false, 50,
+                            0, 0, 0, 0, false, false, 50,
                             %s::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb,
                             '{}'::jsonb, '{}'::jsonb,
                             0, 0, '',

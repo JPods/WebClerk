@@ -48,7 +48,7 @@ class Command(BaseCommand):
         do_actions = options['actions']
         model_filter = options.get('model')
 
-        reports = Report.objects.filter(is_active=True, is_deleted=False)
+        reports = Report.objects.filter(is_active=True)
         if model_filter:
             reports = reports.filter(model_name=model_filter)
         reports = reports.order_by('model_name', 'name')
@@ -269,8 +269,7 @@ class Command(BaseCommand):
                     ida__startswith=f'ALICE-REPORT-AUDIT-{model}',
                     status__in=['planned', 'in_progress'],
                     is_active=True,
-                    is_deleted=False,
-                ).first()
+                    ).first()
 
                 if existing:
                     self.stdout.write(f"  Action already exists for {model}: #{existing.id}")

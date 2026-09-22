@@ -27,7 +27,7 @@ def lookup_by_external_sku(
     """
     from apps.products.models import ItemXRef
 
-    filters = Q(external_sku=sku, is_active=True, is_deleted=False)
+    filters = Q(external_sku=sku, is_active=True)
     if source:
         filters &= Q(source=source)
 
@@ -68,7 +68,7 @@ def lookup_by_code(
     """
     from apps.products.models import ItemXRef
 
-    base_q = Q(is_active=True, is_deleted=False)
+    base_q = Q(is_active=True)
 
     if code_type:
         # Search specific code type in refs.codes JSON
@@ -131,7 +131,7 @@ def find_item_by_any_identifier(identifier: str) -> Optional[Dict[str, Any]]:
     from apps.products.models import Item
 
     # 1. Try Item.ida directly
-    item = Item.objects.filter(ida=identifier, is_active=True, is_deleted=False).first()
+    item = Item.objects.filter(ida=identifier, is_active=True).first()
     if item:
         return {
             'item_id': item.pk,

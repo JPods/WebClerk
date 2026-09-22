@@ -264,7 +264,7 @@ def get_flight_transactions(item_id: int, since: Optional[int] = None) -> Dict[s
         except LookupError:
             continue
         line_qs = LineModel.objects.filter(
-            item_fk_id=item_id, is_active=True, is_deleted=False
+            item_fk_id=item_id, is_active=True
         )
         if since is not None:
             line_qs = line_qs.filter(dt_created__gte=since)
@@ -452,7 +452,7 @@ def get_flight_by_invoice(invoice_ida: str) -> Dict[str, Any]:
         return {'error': f'Invoice "{invoice_ida}" not found'}
 
     # Get item IDs from invoice lines — check FK first, then JSON envelope
-    lines = InvoiceLine.objects.filter(invoice=invoice, is_active=True, is_deleted=False)
+    lines = InvoiceLine.objects.filter(invoice=invoice, is_active=True)
     item_ids = set()
     for line in lines:
         if line.item_fk_id:
@@ -519,7 +519,7 @@ def _get_cash_rows(tx_lines: list) -> List[Dict[str, Any]]:
     if order_ids:
         q |= Q(parent_model='order', parent_id__in=order_ids)
 
-    cash_entries = Cash.objects.filter(q, is_active=True, is_deleted=False).order_by('dt_created')
+    cash_entries = Cash.objects.filter(q, is_active=True).order_by('dt_created')
 
     rows = []
     for pay in cash_entries:
@@ -603,7 +603,7 @@ def _get_gl_rows(tx_lines: list) -> List[Dict[str, Any]]:
     if invoice_ids:
         Cash = dj_apps.get_model('transactions', 'Cash')
         pay_ids = list(Cash.objects.filter(
-            invoice_id__in=invoice_ids, is_active=True, is_deleted=False
+            invoice_id__in=invoice_ids, is_active=True
         ).values_list('pk', flat=True))
         for pid in pay_ids:
             q |= Q(source_model='cash', source_id=pid)
@@ -1516,7 +1516,7 @@ def _get_quote_lines(item_id: int, item_dict: dict) -> list:
         return []
 
     lines = []
-    for pl in QuoteLine.objects.filter(item_fk_id=item_id, is_active=True, is_deleted=False):
+    for pl in QuoteLine.objects.filter(item_fk_id=item_id, is_active=True):
         qty = _line_qty(pl)
         price = _line_price(pl)
         lines.append({
@@ -1545,7 +1545,7 @@ def _get_order_lines(item_id: int, item_dict: dict) -> list:
         return []
 
     lines = []
-    for ol in OrderLine.objects.filter(item_fk_id=item_id, is_active=True, is_deleted=False):
+    for ol in OrderLine.objects.filter(item_fk_id=item_id, is_active=True):
         qty = _line_qty(ol)
         price = _line_price(ol)
         lines.append({
@@ -1578,7 +1578,7 @@ def _get_invoice_lines(item_id: int, item_dict: dict) -> list:
     gl = item_dict['gls']
 
     lines = []
-    for il in InvoiceLine.objects.filter(item_fk_id=item_id, is_active=True, is_deleted=False):
+    for il in InvoiceLine.objects.filter(item_fk_id=item_id, is_active=True):
         qty = _line_qty(il)
         price = _line_price(il)
         active_qty = Decimal(str(qty.get('active', qty.get('staged', 0)) or 0))
@@ -1652,7 +1652,7 @@ def _get_purchase_lines(item_id: int, item_dict: dict) -> list:
 
     gl = item_dict['gls']
     lines = []
-    for pl in PurchaseLine.objects.filter(item_fk_id=item_id, is_active=True, is_deleted=False):
+    for pl in PurchaseLine.objects.filter(item_fk_id=item_id, is_active=True):
         qty = _line_qty(pl)
         cost = getattr(pl, 'cost', None) or getattr(pl, 'price', None) or {}
         if isinstance(cost, dict):
@@ -1694,7 +1694,7 @@ def _get_workorder_lines(item_id: int, item_dict: dict) -> list:
         return []
 
     lines = []
-    for wl in WorkOrderLine.objects.filter(item_fk_id=item_id, is_active=True, is_deleted=False):
+    for wl in WorkOrderLine.objects.filter(item_fk_id=item_id, is_active=True):
         qty = _line_qty(wl)
         lines.append({
             'type': 'workorder_line',

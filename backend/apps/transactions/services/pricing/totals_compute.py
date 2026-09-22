@@ -383,10 +383,9 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
     'header_rate', 'jurisdiction', 'lines_recalculated'}. ``totals`` is not validated.
     """
     is_sell = is_sell_side(model_name)
-    # A soft-deleted or inactive line is not part of the document (recheck 2).
-    lines = [l for l in lines
-             if not getattr(l, 'is_deleted', False) and getattr(l, 'is_active', True)
-             and not ((getattr(l, 'item', None) or {}).get('is_deleted'))]
+    # An inactive line is not part of the document (recheck 2). There is no deleted
+    # line: a deleted line is gone (Bill, 2026-09-22).
+    lines = [l for l in lines if getattr(l, 'is_active', True)]
 
     finance = getattr(header, 'finance', None) or {}
     header_tax_rate = _d(finance.get('sales_tax_rate', 0), places=6)

@@ -19,7 +19,7 @@ class PurchaseLineRichSerializer(RoleAwareModelSerializer):
         model = PurchaseLine
         fields = [
             'id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'version',
-            'is_active', 'security_level', 'is_deleted', 'is_archived',
+            'is_active', 'security_level', 'is_archived',
             'metadata', 'refs', 'prefs', 'actions', 'comments', 'health_rating',
             'price_level', 'status', 'item_fk', 'item',
             'quantity', 'cost', 'tax', 'physical', 'purchase',

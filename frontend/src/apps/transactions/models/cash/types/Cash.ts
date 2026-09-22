@@ -101,7 +101,6 @@ export interface Cash {
   dt_modified?: string;
   version?: number;
   is_active?: boolean;
-  is_deleted?: boolean;
 }
 
 /** Shape for creating a new cash */

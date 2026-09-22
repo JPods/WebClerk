@@ -96,7 +96,7 @@ SKIP_FIELDS = frozenset({
 # and internal flags that should only be set by backend logic)
 SYSTEM_ONLY_FIELDS = frozenset({
     "refs", "metadata", "prefs", "comments", "actions",
-    "is_deleted", "is_archived",
+    "is_archived",
     "dt_created", "dt_modified", "dt_joined",
     "version", "last_login", "date_joined",
     "health_rating", "security_level",

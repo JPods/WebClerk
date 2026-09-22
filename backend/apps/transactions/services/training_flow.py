@@ -209,7 +209,7 @@ class TrainingFlow:
             if not amount:
                 # Estimate from lines
                 from apps.transactions.models import InvoiceLine
-                inv_lines = InvoiceLine.objects.filter(invoice=self.invoice, is_deleted=False)
+                inv_lines = InvoiceLine.objects.filter(invoice=self.invoice)
                 for ln in inv_lines:
                     p = getattr(ln, 'price', {}) or {}
                     amount = (amount or 0) + float(p.get('amount', 0) or 0)
@@ -306,8 +306,7 @@ class TrainingFlow:
         # Direct inventory adjustment for training (receipt processing)
         # In production this would go through a Receipt record + Pending
         layers = InventoryLayer.objects.filter(
-            item=self.item, is_active=True, is_deleted=False,
-        )
+            item=self.item, is_active=True, )
         if layers.exists():
             layer = layers.first()
             qty = layer.quantity if isinstance(layer.quantity, dict) else {}

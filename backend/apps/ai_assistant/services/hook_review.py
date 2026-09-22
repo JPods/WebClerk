@@ -116,8 +116,7 @@ def outstanding_reviews():
     """Every hook Alice is waiting on an answer for."""
     from apps.core.models import Report
     waiting = []
-    for report in Report.objects.filter(is_active=True, is_deleted=False,
-                                        config__hooks__isnull=False):
+    for report in Report.objects.filter(is_active=True, config__hooks__isnull=False):
         if review_state(report) in (STATE_SUBMITTED, STATE_UNDER_REVIEW):
             waiting.append(report)
     return waiting
@@ -217,7 +216,7 @@ def receive(payload: Dict[str, Any]) -> Dict[str, Any]:
     if not ida:
         return {'ok': False, 'error': 'report_ida is required'}
 
-    report = Report.objects.filter(ida=ida, is_active=True, is_deleted=False).first()
+    report = Report.objects.filter(ida=ida, is_active=True).first()
     if not report:
         return {'ok': False, 'error': f"report '{ida}' not found"}
 

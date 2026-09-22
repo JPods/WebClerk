@@ -159,10 +159,11 @@ describe('computeHeaderTotals()', () => {
     costHandl?: number;
     costFreight?: number;
     costComm?: number;
-    deleted?: boolean;
+    removed?: boolean;
   }): TransactionLine {
     return {
-      item: { is_deleted: overrides.deleted ?? false },
+      _removed: overrides.removed ?? false,
+      item: {},
       totals: {
         amount: overrides.priceExt ?? 0,
         discount: overrides.priceDis ?? 0,
@@ -199,10 +200,10 @@ describe('computeHeaderTotals()', () => {
     expect(result.totals.margin_pc).toBe(37.5);
   });
 
-  it('skips soft-deleted lines', () => {
+  it('skips lines the user removed', () => {
     const lines = [
       makeLine({ priceExt: 500, costExt: 300 }),
-      makeLine({ priceExt: 500, costExt: 300, deleted: true }),
+      makeLine({ priceExt: 500, costExt: 300, removed: true }),
     ];
     const result = computeHeaderTotals(lines, { transactionType: 'order' });
 

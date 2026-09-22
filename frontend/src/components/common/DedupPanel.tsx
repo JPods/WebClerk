@@ -48,7 +48,7 @@ interface DedupPanelProps {
 const SKIP_FIELDS = new Set([
   'metadata', 'refs', 'prefs', 'actions', 'comments', 'config', 'password',
   'is_superuser', 'is_staff', 'dt_joined', 'last_login', 'search_vector',
-  'is_active', 'is_deleted', 'is_archived', 'is_locked', 'security_level',
+  'is_active', 'is_archived', 'is_locked', 'security_level',
   'version', 'dt_created', 'dt_modified',
 ]);
 

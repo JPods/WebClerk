@@ -125,8 +125,7 @@ def get_map_violations_report(period_days: int = 30) -> List[Dict]:
 
     invoices = Invoice.objects.filter(
         dt_created__gte=cutoff_ms,
-        is_deleted=False,
-    ).select_related('customer')
+        ).select_related('customer')
 
     violations = []
 

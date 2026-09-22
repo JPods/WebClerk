@@ -81,7 +81,7 @@ class Command(BaseCommand):
             raise CommandError(f"refusing to reset '{db_name}': demo data only — real data "
                                "keeps its defects on the record (Bill, 2026-09-21)")
 
-        items = Item.objects.filter(is_deleted=False)
+        items = Item.objects.all()
         if options['item_id']:
             items = items.filter(pk=options['item_id'])
         items = {i.pk: i for i in items}
@@ -92,7 +92,7 @@ class Command(BaseCommand):
 
         # What each item's receipts put on the shelf — replayed, not re-opened.
         receipts = defaultdict(list)
-        for rl in (ReceiptLine.objects.filter(is_deleted=False, receipt__is_deleted=False)
+        for rl in (ReceiptLine.objects.all()
                    .select_related('receipt')):
             item_id = _line_item_id(rl)
             qty = _d((rl.quantity or {}).get('active'))

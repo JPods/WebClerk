@@ -256,7 +256,7 @@ def compute_vendor_summary(org_id):
     payable = Decimal('0')
     payable_ledger = Decimal('0')
     # A receipt is a transaction: it carries its vendor, as an invoice carries its customer.
-    for rec in Receipt.objects.filter(vendor_id=org_id, is_deleted=False).only('pk', 'ida', 'totals'):
+    for rec in Receipt.objects.filter(vendor_id=org_id).only('pk', 'ida', 'totals'):
         balance = Decimal(str((rec.totals or {}).get('balance') or 0))
         echo = Decimal(str(Ledger.objects.filter(parent_id=rec.pk, model_name='receipt')
                            .aggregate(s=models.Sum('value_available'))['s'] or 0))
@@ -266,7 +266,7 @@ def compute_vendor_summary(org_id):
             mismatches.append(f"receipt {rec.ida or rec.pk}: balance {balance.quantize(cent)}, ledger {echo.quantize(cent)}")
 
     unapplied = Decimal('0')
-    for cash in Cash.objects.filter(vendor_id=org_id, is_deleted=False).only(
+    for cash in Cash.objects.filter(vendor_id=org_id).only(
             'pk', 'ida', 'available', 'amount'):
         # in_step was blind to the cash side entirely on AP, so the summary could report
         # itself in step while net was wrong by twice every payment.
@@ -302,7 +302,7 @@ def compute_org_summary(org_id):
 
     receivable = Decimal('0')
     receivable_ledger = Decimal('0')
-    for inv in Invoice.objects.filter(customer_id=org_id, is_deleted=False).only('pk', 'ida', 'totals'):
+    for inv in Invoice.objects.filter(customer_id=org_id).only('pk', 'ida', 'totals'):
         balance = Decimal(str((inv.totals or {}).get('balance') or 0))
         echo = Decimal(str(Ledger.objects.filter(invoice_id=inv.pk, model_name='invoice')
                            .aggregate(s=models.Sum('value_available'))['s'] or 0))
@@ -313,7 +313,7 @@ def compute_org_summary(org_id):
 
     unapplied = Decimal('0')
     unapplied_ledger = Decimal('0')
-    for cash in Cash.objects.filter(customer_id=org_id, is_deleted=False).only('pk', 'ida', 'available', 'amount'):
+    for cash in Cash.objects.filter(customer_id=org_id).only('pk', 'ida', 'available', 'amount'):
         # The same invariant on the AR side. This one already compared available to a
         # ledger echo; the echo can be wrong in the same direction, the invariant cannot.
         out_of_range = _cash_outside_its_own_range(cash)
@@ -454,7 +454,7 @@ def update_org_balances(org: 'OrgBase', save: bool = True) -> Dict[str, Any]:
         # Sales and margin by period, from the invoices (never typed, never imported only).
         Invoice = dj_apps.get_model('transactions', 'Invoice')
         periods, last = compute_period_totals(
-            Invoice.objects.filter(customer_id=org_id, is_deleted=False).only('totals', 'dt_approved', 'dt_created'))
+            Invoice.objects.filter(customer_id=org_id).only('totals', 'dt_approved', 'dt_created'))
         for key, target in (('amount', fin.customer.sales), ('margin', fin.customer.margin)):
             for p in ('mtd', 'ytd', 'last_year'):
                 setattr(target, p, float(periods[key][p]))
@@ -468,7 +468,7 @@ def update_org_balances(org: 'OrgBase', save: bool = True) -> Dict[str, Any]:
         fin.common.net_balance = -fin.summary.net          # we owe: negative to us
         Purchase = dj_apps.get_model('transactions', 'Purchase')
         periods, last = compute_period_totals(
-            Purchase.objects.filter(vendor_id=org_id, is_deleted=False).only('totals', 'dt_approved', 'dt_created'),
+            Purchase.objects.filter(vendor_id=org_id).only('totals', 'dt_approved', 'dt_created'),
             keys=('amount',))
         for p in ('mtd', 'ytd', 'last_year', 'lifetime'):
             setattr(fin.vendor.purchases, p, float(periods['amount'][p]))

@@ -23,7 +23,7 @@ class RequisitionSerializer(RoleAwareModelSerializer):
         model = Requisition
         fields = [
             'id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'version',
-            'is_active', 'security_level', 'is_deleted', 'is_archived',
+            'is_active', 'security_level', 'is_archived',
             'metadata', 'refs', 'prefs', 'actions', 'comments', 'health_rating',
             'name', 'purpose', 'status',
         ]

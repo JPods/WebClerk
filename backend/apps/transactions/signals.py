@@ -303,9 +303,6 @@ register_line_totals_signals(ReceiptLine, 'receipt')
 # parent the same way. Not suppressed by _pending_created: that flag is about
 # inventory pending, not about the parent's backlog.
 
-_UNLOADED = object()
-
-
 def register_line_parent_signals(line_model):
     from apps.transactions.services.line_parent import refresh_parent_line
 
@@ -315,19 +312,15 @@ def register_line_parent_signals(line_model):
     def refresh_parent_on_save(sender, instance, created, **kwargs):
         current_pid = instance.parent_line_id
         current_active = float((instance.quantity or {}).get('active', 0) or 0)
-        loaded_pid = getattr(instance, '_loaded_parent_line_id', _UNLOADED)
-        loaded_active = getattr(instance, '_loaded_active', _UNLOADED)
+        loaded = getattr(instance, '_loaded', None)   # re-taken by save() after this runs
 
-        if created or loaded_pid is _UNLOADED or loaded_active is _UNLOADED:
+        if created or loaded is None:
             refresh_parent_line(model_name, current_pid)
-        elif loaded_pid != current_pid:
-            refresh_parent_line(model_name, loaded_pid)
+        elif loaded['parent_line_id'] != current_pid:
+            refresh_parent_line(model_name, loaded['parent_line_id'])
             refresh_parent_line(model_name, current_pid)
-        elif float(loaded_active or 0) != current_active:
+        elif loaded['active'] != current_active:
             refresh_parent_line(model_name, current_pid)
-
-        instance._loaded_parent_line_id = current_pid
-        instance._loaded_active = current_active
 
     @receiver(post_delete, sender=line_model)
     def refresh_parent_on_delete(sender, instance, **kwargs):

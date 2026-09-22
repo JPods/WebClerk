@@ -66,8 +66,7 @@ def _get_budget_for_range(start_ms: int, end_ms: int) -> dict[str, dict]:
         dt_period_start__lt=end_ms,
         dt_period_end__gt=start_ms,
         is_active=True,
-        is_deleted=False,
-    ).values('period', 'account', 'debit', 'credit', 'description')
+        ).values('period', 'account', 'debit', 'credit', 'description')
 
     result: dict[str, dict] = {}
     for e in entries:
@@ -281,8 +280,7 @@ def budget_vs_actual(
 
     # Budget entries for this period
     budget_qs = Budget.objects.filter(
-        period=period, is_active=True, is_deleted=False,
-    )
+        period=period, is_active=True, )
     budget_entries = budget_qs.values('account_debit', 'account_credit', 'debit', 'credit', 'description')
 
     budget_map: dict[str, dict] = {}

@@ -303,7 +303,7 @@ class Command(BaseCommand):
 
         drafted = skipped = missing = 0
         for ida, (model, title, sections) in DRAFTS.items():
-            report = Report.objects.filter(ida=ida, is_deleted=False).first()
+            report = Report.objects.filter(ida=ida).first()
             if not report:
                 self.stdout.write(self.style.WARNING(f"  {ida}: no such report"))
                 missing += 1

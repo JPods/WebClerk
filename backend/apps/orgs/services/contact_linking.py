@@ -52,7 +52,7 @@ def resolve_contact_ids_for_customer_org(org) -> set[int]:
         if isinstance(links, dict):
             contact_ids.update(_ids_from_link_bucket(links.get("contact")))
 
-    for contact in Contact.objects.filter(is_deleted=False).only("id", "refs"):
+    for contact in Contact.objects.only("id", "refs"):
         cref = contact.refs if isinstance(contact.refs, dict) else {}
         links = cref.get("links") if isinstance(cref, dict) else None
         if not isinstance(links, dict):

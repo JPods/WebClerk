@@ -194,7 +194,7 @@ def normalize_all_phones(default_country: str = "US", dry_run: bool = False):
     cur = connection.connection.cursor()
 
     cur.execute("""SELECT id, phone FROM contacts
-        WHERE is_active = true AND is_deleted = false
+        WHERE is_active = true
         AND phone IS NOT NULL AND phone != ''""")
 
     total, changed, unchanged, invalid = 0, 0, 0, 0

@@ -230,7 +230,7 @@ def get_purchasing_dashboard(params):
 def get_inventory_summary(params):
     from apps.products.models import Item
 
-    items = Item.objects.filter(is_active=True, is_deleted=False)
+    items = Item.objects.filter(is_active=True)
     total_items = items.count()
 
     # Count items with on_hand > 0
@@ -269,7 +269,7 @@ def get_inventory_summary(params):
 def get_velocity_report(params):
     from apps.products.models import Item
 
-    items = Item.objects.filter(is_active=True, is_deleted=False)
+    items = Item.objects.filter(is_active=True)
     categories = {'star': 0, 'volume_driver': 0, 'normal': 0, 'dead_capital': 0, '': 0}
     for cat, count in items.values_list('velocity_category').annotate(c=Count('id')):
         categories[cat or ''] = count

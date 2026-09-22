@@ -79,7 +79,7 @@ def make_spec(field, visible=True):
 
 # System fields — always at bottom of detail, never in list
 SYSTEM_FIELDS = {
-    'uuid', 'version', 'security_level', 'is_deleted', 'is_archived', 'is_locked',
+    'uuid', 'version', 'security_level', 'is_archived', 'is_locked',
     'health_rating', 'metadata', 'refs', 'prefs', 'actions', 'config', 'comments',
     'search_vector', 'password', 'user_permissions', 'groups',
 }
@@ -88,7 +88,7 @@ SYSTEM_FIELDS = {
 LIST_EXCLUDE = SYSTEM_FIELDS | {
     'search_vector', 'password', 'user_permissions', 'groups',
     'is_superuser', 'is_staff', 'name_prefix', 'name_suffix', 'name_middle',
-    'is_deleted', 'is_archived', 'is_locked',
+    'is_archived', 'is_locked',
 }
 
 # Per-model list field priorities (ordered)

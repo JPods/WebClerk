@@ -87,8 +87,7 @@ def get_sales_pipeline(
 
     # ---- Stage 1: Actions (selling actions) ----
     action_qs = Action.objects.filter(
-        is_active=True, is_deleted=False,
-        **pf, **acf,
+        is_active=True, **pf, **acf,
     ).exclude(action_type='')
 
     action_count = action_qs.count()
@@ -102,8 +101,7 @@ def get_sales_pipeline(
 
     # ---- Stage 2: Quotes ----
     quote_qs = Quote.objects.filter(
-        is_active=True, is_deleted=False,
-        **pf, **cf,
+        is_active=True, **pf, **cf,
     )
     from common.json_lookups import totals_total
     quote_count = quote_qs.count()
@@ -113,8 +111,7 @@ def get_sales_pipeline(
 
     # ---- Stage 3: Orders (from quotes) ----
     order_qs = Order.objects.filter(
-        is_active=True, is_deleted=False,
-        **pf, **cf,
+        is_active=True, **pf, **cf,
     )
     order_count = order_qs.count()
     order_value = float(
@@ -132,8 +129,7 @@ def get_sales_pipeline(
 
     # ---- Stage 4: Revenue (invoiced) ----
     invoice_qs = Invoice.objects.filter(
-        is_active=True, is_deleted=False,
-        **pf, **cf,
+        is_active=True, **pf, **cf,
     )
     invoice_count = invoice_qs.count()
     invoice_value = float(
@@ -290,15 +286,13 @@ def _analyze_impact(action_qs, Quote, Order, pf, cf):
         quote_customers = set(
             Quote.objects.filter(
                 customer_id__in=contact_ids,
-                is_active=True, is_deleted=False,
-                **pf,
+                is_active=True, **pf,
             ).values_list('customer_id', flat=True).distinct()
         )
         order_customers = set(
             Order.objects.filter(
                 customer_id__in=contact_ids,
-                is_active=True, is_deleted=False,
-                **pf,
+                is_active=True, **pf,
             ).values_list('customer_id', flat=True).distinct()
         )
 

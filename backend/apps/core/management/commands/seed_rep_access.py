@@ -54,8 +54,7 @@ class Command(BaseCommand):
         targets = [(key, scope) for key, scope in REP_SCOPE.items()]
         targets += [(key, None) for key in REP_READ_ONLY]
         for key, scope in targets:
-            setting = (Setting.objects.filter(purpose='wc:model', parent_model=key,
-                                              is_deleted=False).first())
+            setting = (Setting.objects.filter(purpose='wc:model', parent_model=key).first())
             if setting is None:
                 self.stdout.write(self.style.WARNING(f"{key}: no wc:model Setting"))
                 continue

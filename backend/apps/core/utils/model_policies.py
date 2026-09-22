@@ -93,7 +93,7 @@ def sanitize_payload(data: dict, allow: Optional[List[str]]) -> dict:
 # These are managed exclusively by the backend (save_view, signals, model.save).
 SYSTEM_ONLY_FIELDS = frozenset({
     "id", "uuid", "ida", "dt_created", "dt_modified", "version",
-    "is_deleted", "is_archived", "health_rating",
+    "is_archived", "health_rating",
 })
 
 # Fields that pass through always because they are structural envelope keys,

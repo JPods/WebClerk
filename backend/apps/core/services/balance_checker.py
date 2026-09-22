@@ -78,7 +78,7 @@ def check_inventory(item_id=None) -> tuple[list, dict]:
     from apps.core.models.pending import DEFICIT_PURPOSE, INVENTORY_PURPOSES
     from apps.products.management.commands.rebuild_commitment_buckets import commitment_gaps
 
-    items = Item.objects.filter(is_deleted=False)
+    items = Item.objects.all()
     if item_id:
         items = items.filter(pk=item_id)
     items = {i.pk: i for i in items}
@@ -182,8 +182,7 @@ def check_inventory(item_id=None) -> tuple[list, dict]:
 
     # A receipt line that put stock on the shelf must point at the layer it made.
     ReceiptLine = dj_apps.get_model('transactions', 'ReceiptLine')
-    orphans = ReceiptLine.objects.filter(is_deleted=False, receipt__is_deleted=False,
-                                         inventory_layer__isnull=True)
+    orphans = ReceiptLine.objects.filter(inventory_layer__isnull=True)
     if item_id:
         orphans = orphans.filter(Q(item_fk_id=item_id) | Q(item__item_id=item_id) | Q(item__id_num=item_id))
     for line in orphans:
@@ -230,7 +229,7 @@ def check_cash(org_id=None) -> tuple[list, dict]:
     Cash = dj_apps.get_model('transactions', 'Cash')
 
     def ids(qs, field):
-        qs = qs.filter(is_deleted=False).exclude(**{f'{field}__isnull': True})
+        qs = qs.exclude(**{f'{field}__isnull': True})
         if org_id:
             qs = qs.filter(**{field: org_id})
         return set(qs.values_list(field, flat=True).distinct())

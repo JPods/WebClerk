@@ -98,7 +98,7 @@ def _stage_order_to_invoice(start_ms, end_ms) -> Dict[str, Any]:
     now_ms = _now_ms()
 
     # Period filter applies to order creation time
-    order_qs = Order.objects.filter(is_active=True, is_deleted=False)
+    order_qs = Order.objects.filter(is_active=True)
     if start_ms and end_ms:
         order_qs = order_qs.filter(dt_created__gte=start_ms, dt_created__lt=end_ms)
 
@@ -106,8 +106,7 @@ def _stage_order_to_invoice(start_ms, end_ms) -> Dict[str, Any]:
     inv_qs = Invoice.objects.filter(
         parent_model='order',
         is_active=True,
-        is_deleted=False,
-    )
+        )
     if start_ms and end_ms:
         inv_qs = inv_qs.filter(dt_created__gte=start_ms, dt_created__lt=end_ms)
 
@@ -171,7 +170,7 @@ def _stage_invoice_to_cash(start_ms, end_ms) -> Dict[str, Any]:
 
     now_ms = _now_ms()
 
-    inv_qs = Invoice.objects.filter(is_active=True, is_deleted=False)
+    inv_qs = Invoice.objects.filter(is_active=True)
     if start_ms and end_ms:
         inv_qs = inv_qs.filter(dt_created__gte=start_ms, dt_created__lt=end_ms)
 
@@ -179,7 +178,6 @@ def _stage_invoice_to_cash(start_ms, end_ms) -> Dict[str, Any]:
     pay_map: Dict[int, int] = {}
     pay_qs = Cash.objects.filter(
         is_active=True,
-        is_deleted=False,
         invoice_id__isnull=False,
         type='cash_in',
     ).values('invoice_id', 'dt_created').order_by('invoice_id', 'dt_created')
@@ -245,7 +243,6 @@ def _stage_cash_to_gl(start_ms, end_ms) -> Dict[str, Any]:
 
     pay_qs = Cash.objects.filter(
         is_active=True,
-        is_deleted=False,
         type='cash_in',
     ).exclude(amount=0)
     if start_ms and end_ms:

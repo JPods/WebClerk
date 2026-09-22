@@ -440,23 +440,26 @@ export async function saveTransactionWithLines(
     'sell', 'cost', 'flow',
     'prefs', 'commission', 'health_rating',
     'dt_created', 'dt_modified',
-    'is_archived', 'is_deleted', 'is_locked',
+    'is_archived', 'is_locked',
     'security_level', 'version',
   ];
   const lineStripKeys = [
     // 'tax' stays: a rate typed on a line is the user's input (recheck 2).
     // 'totals' is stripped: line results belong to the server's totals engine.
+    // '_removed' is the local display flag and never goes over the wire;
+    // '_delete' DOES — it is how the backend is told to delete that row.
+    '_removed',
     'uuid', 'metadata', 'prefs',
     'physical', 'actions', 'totals',
     'dt_created', 'dt_modified', 'health_rating',
-    'is_archived', 'is_deleted', 'is_locked',
+    'is_archived', 'is_locked',
     'security_level', 'version',
   ];
   const cleanPayload = Object.fromEntries(
     Object.entries(payload).filter(([k]) => !headerStripKeys.includes(k)),
   );
   // Strip read-only/calculated fields from lines too
-  if (cleanPayload.lines) {
+  if (Array.isArray(cleanPayload.lines)) {
     cleanPayload.lines = cleanPayload.lines.map((line: any) => {
       return Object.fromEntries(
         Object.entries(line).filter(([k]) => !lineStripKeys.includes(k)),

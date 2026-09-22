@@ -26,7 +26,6 @@ class OrgBaseFactory(DjangoModelFactory):
     company = factory.Sequence(lambda n: f"Org {n}")
     org_type = "customer"
     is_active = True
-    is_deleted = False
 
 
 class CustomerFactory(OrgBaseFactory):
@@ -73,7 +72,6 @@ class ItemFactory(DjangoModelFactory):
     ida = factory.Sequence(lambda n: f"ITEM-{n:04d}")
     description = factory.Faker("sentence", nb_words=4)
     is_active = True
-    is_deleted = False
 
 
 class WarehouseFactory(DjangoModelFactory):
@@ -96,7 +94,6 @@ class OrderFactory(DjangoModelFactory):
     ida = factory.Sequence(lambda n: f"SO-{n:05d}")
     status = "open"
     is_active = True
-    is_deleted = False
 
 
 class OrderLineFactory(DjangoModelFactory):
@@ -107,7 +104,6 @@ class OrderLineFactory(DjangoModelFactory):
     ida = factory.Sequence(lambda n: f"SOL-{n:05d}")
     status = "open"
     is_active = True
-    is_deleted = False
 
 
 class InvoiceFactory(DjangoModelFactory):
@@ -117,7 +113,6 @@ class InvoiceFactory(DjangoModelFactory):
     ida = factory.Sequence(lambda n: f"INV-{n:05d}")
     status = "open"
     is_active = True
-    is_deleted = False
 
 
 class QuoteFactory(DjangoModelFactory):
@@ -127,7 +122,6 @@ class QuoteFactory(DjangoModelFactory):
     ida = factory.Sequence(lambda n: f"QT-{n:05d}")
     status = "open"
     is_active = True
-    is_deleted = False
 
 
 class PurchaseFactory(DjangoModelFactory):
@@ -137,7 +131,6 @@ class PurchaseFactory(DjangoModelFactory):
     ida = factory.Sequence(lambda n: f"PO-{n:05d}")
     status = "open"
     is_active = True
-    is_deleted = False
 
 
 # ---------------------------------------------------------------------------
@@ -300,3 +293,35 @@ def make_setting(**kwargs):
     setting._setting_update_authorized = True
     setting.save()
     return setting
+
+
+def make_saved_search(*, name, model_name, role="", config=None, owner_user_id=None,
+                      is_active=True, **kwargs):
+    """Create a stored search in a test.
+
+    A stored search is a Report record marked `purpose='search_stored'`
+    (Bill, 2026-09-20). It used to be a Setting with `purpose='wc:search'`, or an
+    entry in UserProfile.prefs.search[]; migration core.0011 brought both into
+    Report and the read path now filters on the marker, so a fixture that creates
+    a Setting is creating something the system no longer recognises.
+
+    owner_user_id set = personal to that user, visible to nobody else.
+    role set, no owner = shared with that role.
+    """
+    from apps.core.models.report import Report
+    from apps.core.services.report_registry import REPORT_PURPOSE_SEARCH
+
+    spec = dict(config or {})
+    if owner_user_id is not None:
+        spec["owner_user_id"] = owner_user_id
+    return Report.objects.create(
+        name=name,
+        model_name=model_name,
+        purpose=REPORT_PURPOSE_SEARCH,
+        category=kwargs.pop("category", "search"),
+        output_type=kwargs.pop("output_type", "search"),
+        role_required=role,
+        config=spec,
+        is_active=is_active,
+        **kwargs,
+    )

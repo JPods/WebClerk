@@ -13,6 +13,7 @@ from decimal import Decimal
 from typing import Any, Callable, Dict
 from django.db import models
 from common.models import BaseModel, default_prefs, default_metadata, default_refs
+from apps.transactions.models.hard_delete import HardDeleteOnly
 from apps.transactions.models.base_transaction_model import default_tax
 
 BASE_DECIMAL_DEFAULT = Decimal("0.00")
@@ -38,7 +39,6 @@ def default_item() -> Dict[str, Any]:
         # sequence of display in frontend. User changeable
         "sequence": 0,
         "line_number": 0,
-        "is_deleted": False,
         "is_active": True,
         "is_archived": False
     }
@@ -448,7 +448,22 @@ def quantity_bucket_deltas(
     return deltas
 
 
-class BaseLineCore(BaseModel):
+def line_item_id(line) -> int | None:
+    """The item a line moves: the FK when set, else the id in the item envelope."""
+    if getattr(line, 'item_fk_id', None):
+        return line.item_fk_id
+    item = line.item if isinstance(getattr(line, 'item', None), dict) else {}
+    for key in ('item_id', 'id_num', 'id'):
+        raw = item.get(key)
+        if raw:
+            try:
+                return int(raw)
+            except (TypeError, ValueError):
+                continue
+    return None
+
+
+class BaseLineCore(HardDeleteOnly, BaseModel):
     """Abstract core for all transaction line models.
     Shared envelopes only; no price field here.
     Concrete models must define `parent = models.ForeignKey(...)`.
@@ -579,18 +594,37 @@ class BaseLineCore(BaseModel):
         # Results (amount, discount, tax, cost, margin, total) are not computed here:
         # the totals engine writes them to line.totals (totals_compute.compute_totals).
 
+    # ── the loaded snapshot ─────────────────────────────────────────────────
+    # Bill (WC2): "make a collection of the initial line values, then compare any changes
+    # before applying to the records." _loaded holds plain values as the line was read
+    # (never a reference into a JSON envelope, which callers edit in place), or None when
+    # the query deferred one of them. Re-taken after every save and refresh.
+    SNAPSHOT_FIELDS = ('item', 'item_fk_id', 'quantity', 'parent_line_id', 'version')
+
+    def _take_snapshot(self) -> None:
+        loaded = self.__dict__
+        if not all(f in loaded for f in self.SNAPSHOT_FIELDS):
+            self._loaded = None      # touching a deferred field here would load it
+            return
+        quantity = loaded['quantity'] if isinstance(loaded['quantity'], dict) else {}
+        remaining = quantity.get('remaining')
+        self._loaded = {
+            'item_id': line_item_id(self),
+            'active': float(quantity.get('active') or 0),
+            'remaining': None if remaining is None else float(remaining),
+            'parent_line_id': loaded['parent_line_id'],
+            'version': loaded['version'],
+        }
+
     @classmethod
     def from_db(cls, db, field_names, values):
         instance = super().from_db(db, field_names, values)
-        # Loaded state, so a save can tell whether this line's parent must recompute.
-        # Read only fields this query loaded: touching a deferred field here loads it,
-        # which calls from_db again.
-        loaded = instance.__dict__
-        if 'parent_line_id' in loaded and 'quantity' in loaded:
-            instance._loaded_parent_line_id = loaded['parent_line_id']
-            quantity = loaded['quantity']
-            instance._loaded_active = quantity.get('active') if isinstance(quantity, dict) else None
+        instance._take_snapshot()
         return instance
+
+    def refresh_from_db(self, *args, **kwargs):
+        super().refresh_from_db(*args, **kwargs)
+        self._take_snapshot()
 
     def save(self, *args, **kwargs):
         """Save with JSON normalization and auto line_number assignment.
@@ -630,7 +664,9 @@ class BaseLineCore(BaseModel):
             except Exception:
                 pass  # graceful fallback — line_number stays 0
 
-        return super().save(*args, **kwargs)
+        result = super().save(*args, **kwargs)
+        self._take_snapshot()        # after every post_save receiver has read the old one
+        return result
 
     def _assert_parent_not_journalized(self) -> None:
         """A journalized document's contributing values are locked: its lines' quantity,

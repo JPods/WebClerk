@@ -642,7 +642,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         from apps.core.models import Report
 
-        qs = Report.objects.filter(is_active=True, is_deleted=False, output_type="print")
+        qs = Report.objects.filter(is_active=True, output_type="print")
         if options["model"]:
             qs = qs.filter(model_name=options["model"])
         qs = qs.order_by("model_name", "sort_order", "name")

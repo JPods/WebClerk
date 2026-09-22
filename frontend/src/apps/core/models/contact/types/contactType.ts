@@ -139,7 +139,6 @@ export interface UpdateContactRequest extends CreateContactRequest {
   id: number | string;
   version?: number;
   is_active?: boolean;
-  is_deleted?: boolean;
   is_archived?: boolean;
 }
 
@@ -179,7 +178,6 @@ export interface ContactApiTask {
   dt_modified?: number;
   version?: number;
   is_active?: boolean;
-  is_deleted?: boolean;
   is_archived?: boolean;
   security_level?: number;
   health_rating?: number;

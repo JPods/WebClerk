@@ -106,7 +106,7 @@ def compute_dashboard(
 
     # --- Transaction counts ---
     try:
-        orders = Order.objects.filter(date_filter & contact_filter & Q(is_active=True, is_deleted=False))
+        orders = Order.objects.filter(date_filter & contact_filter & Q(is_active=True))
         dashboard.order_count = orders.count()
         dashboard.order_total = float(orders.aggregate(
             total=Sum('cost__total'))['total'] or 0) if hasattr(Order, 'cost') else 0
@@ -114,7 +114,7 @@ def compute_dashboard(
         pass
 
     try:
-        invoices = Invoice.objects.filter(date_filter & contact_filter & Q(is_active=True, is_deleted=False))
+        invoices = Invoice.objects.filter(date_filter & contact_filter & Q(is_active=True))
         dashboard.invoice_count = invoices.count()
         dashboard.invoice_total = float(invoices.aggregate(
             total=Sum('cost__total'))['total'] or 0) if hasattr(Invoice, 'cost') else 0
@@ -122,14 +122,14 @@ def compute_dashboard(
         pass
 
     try:
-        quotes = Quote.objects.filter(date_filter & contact_filter & Q(is_active=True, is_deleted=False))
+        quotes = Quote.objects.filter(date_filter & contact_filter & Q(is_active=True))
         dashboard.quote_count = quotes.count()
     except Exception:
         pass
 
     # --- Margin velocity by item ---
     try:
-        items_qs = Item.objects.filter(is_active=True, is_deleted=False, margin_velocity__gt=0)
+        items_qs = Item.objects.filter(is_active=True, margin_velocity__gt=0)
         if items_qs.exists():
             dashboard.avg_margin_velocity = float(
                 items_qs.aggregate(avg=Avg('margin_velocity'))['avg'] or 0

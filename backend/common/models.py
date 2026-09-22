@@ -441,6 +441,11 @@ class CoreModel(models.Model):
                 except type(self).DoesNotExist:
                     pass
             self.version = (self.version or 0) + 1
+            # A save naming its fields still writes the bump: otherwise the row keeps the
+            # old version while this instance holds the new one, and a version check is porous.
+            update_fields = kwargs.get('update_fields')
+            if update_fields is not None:
+                kwargs['update_fields'] = list(dict.fromkeys([*update_fields, 'version', 'dt_modified']))
         self.dt_modified = now_ms
         # Sort top-level keys of all JSON fields alphabetically at save time
         for field in self._meta.get_fields():
@@ -488,24 +493,19 @@ class CoreModel(models.Model):
 
 
 class LifecycleMixin(models.Model):
-    """Soft-delete / archive / lock flags + status (reversible lifecycle state)."""
+    """Archive / lock flags + status (reversible lifecycle state).
+
+    There is no soft delete (Bill, 2026-09-22): a record is deleted outright, and the delete
+    issues the Pendings that account for the inventory and cash it held.
+    """
 
     feature_flags = {"lifecycle"}
     # status removed — now on CoreModel (canonical, max_length=50)
-    is_deleted = models.BooleanField(default=False, db_index=True)
     is_archived = models.BooleanField(default=False, db_index=True)
     is_locked = models.BooleanField(default=False, db_index=True, help_text="Record is locked and cannot be edited (admin override required)")
 
     class Meta:
         abstract = True
-
-    def soft_delete(self):
-        self.is_deleted = True
-        self.save()
-
-    def restore(self):
-        self.is_deleted = False
-        self.save()
 
     def archive(self):
         self.is_archived = True
@@ -1409,13 +1409,10 @@ class BaseModel(
     # QuerySet / Manager providing convenience filters for lifecycle + keyword flag
     class FullQuerySet(models.QuerySet):
         def active(self):
-            return self.filter(is_active=True, is_deleted=False, is_archived=False)
+            return self.filter(is_active=True, is_archived=False)
 
         def inactive(self):
-            return self.filter(models.Q(is_active=False) | models.Q(is_deleted=True) | models.Q(is_archived=True))
-
-        def deleted(self):
-            return self.filter(is_deleted=True)
+            return self.filter(models.Q(is_active=False) | models.Q(is_archived=True))
 
         def archived(self):
             return self.filter(is_archived=True)
@@ -1433,9 +1430,6 @@ class BaseModel(
         def inactive(self):
             return self.get_queryset().inactive()
 
-        def deleted(self):
-            return self.get_queryset().deleted()
-
         def archived(self):
             return self.get_queryset().archived()
 
@@ -1445,7 +1439,7 @@ class BaseModel(
     objects = FullManager()
 
     def is_effectively_active(self) -> bool:
-        return getattr(self, "is_active", True) and not getattr(self, "is_deleted", False) and not getattr(self, "is_archived", False)
+        return getattr(self, "is_active", True) and not getattr(self, "is_archived", False)
 
     # --- change tracking --------------------------------------------------
     def __init__(self, *args, **kwargs):

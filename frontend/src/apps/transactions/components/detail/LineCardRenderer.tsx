@@ -37,6 +37,8 @@ export interface LineCardRendererProps {
 
 /** Render the line card -- DataGrid with line card config, no LinesCard component */
 const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEditing, isLocked, onLinesChange, onEnterCash }) => {
+  // Removed lines stay in the list — greyed out, struck through, zero qty —
+  // until the save deletes the row. Escape a delete by closing the window.
   const lines = data?.lines || [];
   const windowManager = useWindowManager();
   const dispatch = useDispatch();
@@ -166,6 +168,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
     if (!lc.canEdit || lc.selectedId == null) return;
     const newLines = lines.map((l: any, i: number) => {
       if (lc.records[i]?.id !== lc.selectedId) return l;
+      if (l._removed) return l;  // a deleted line is inert
       // Toggle: click same type reverts to product
       const newType = (l.line_type || 'product') === type ? 'product' : type;
       return { ...l, line_type: newType, _dirty: true };
@@ -224,7 +227,15 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
             <button type="button" onClick={() => { const line = lc.records.find(r => r.id === lc.selectedId); if (line?._line) lc.setSelectedId(line.id); }}
               className="px-1.5 py-0.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded" title="Edit line details">edit</button>
             {lc.canEdit && (
-              <button type="button" onClick={() => { lc.selectedLineIds.forEach(id => onLinesChange?.(lines.filter((_: any, i: number) => lc.records[i]?.id !== id))); lc.setSelectedLineIds(new Set()); }}
+              <button type="button" onClick={() => {
+                // Mark every selected line removed in one pass. At save,
+                // unsaved lines vanish; persisted lines go over the wire
+                // marked `_delete` for the backend to delete.
+                const ids = lc.selectedLineIds;
+                onLinesChange?.(lines.map((l: any, i: number) =>
+                  ids.has(lc.records[i]?.id) ? { ...l, _removed: true } : l));
+                lc.setSelectedLineIds(new Set());
+              }}
                 className="px-1.5 py-0.5 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded" title="Delete selected (Del)">del</button>
             )}
           </span>
@@ -399,6 +410,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
           columns={lc.richColumns.map(c => c.name)}
           richColumns={lc.richColumns}
           colWidths={lc.colWidths}
+          colorRules={lc.colorRules}
           fieldBehaviors={lc.fieldBehaviors}
           selectedId={lc.selectedId}
           selectedRowIds={lc.selectedLineIds}
@@ -458,6 +470,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
       columns={lc.richColumns.map(c => c.name)}
       richColumns={lc.richColumns}
       colWidths={lc.colWidths}
+      colorRules={lc.colorRules}
       fieldBehaviors={lc.fieldBehaviors}
       selectedId={lc.selectedId}
       selectedRowIds={lc.selectedLineIds}

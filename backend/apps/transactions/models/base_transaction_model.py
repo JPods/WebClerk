@@ -2,6 +2,7 @@ from decimal import Decimal
 from django.db import models
 from typing import Callable, Dict, Any
 from common.models import BaseModel
+from apps.transactions.models.hard_delete import HardDeleteOnly
 from apps.transactions.choices import (
     TRANSACTION_PARENT_MODEL_CHOICES,
     TRANSACTION_STATUS_CHOICES,
@@ -185,7 +186,7 @@ def default_shipping() -> Dict[str, Any]:
     }
 
 
-class TransactionBaseModel(BaseModel):
+class TransactionBaseModel(HardDeleteOnly, BaseModel):
     """Abstract Django base for transaction headers.
 
     Minimal fields only; JSON envelopes and lifecycle come from common.BaseModel.

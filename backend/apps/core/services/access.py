@@ -162,7 +162,7 @@ def model_access(name: str) -> dict:
         return {}
     if key not in _cache:
         from apps.core.models.setting import Setting
-        s = (Setting.objects.filter(purpose='wc:model', parent_model=key, is_deleted=False)
+        s = (Setting.objects.filter(purpose='wc:model', parent_model=key)
              .only('config').first())
         _cache[key] = resolve_roles((s.config or {}).get('access') or {}) if s else {}
     return _cache[key]

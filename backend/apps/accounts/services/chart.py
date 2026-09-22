@@ -63,7 +63,7 @@ def require_account(code: Optional[str], *, used_by: str = ''):
     if not code or not isinstance(code, str):
         raise UndefinedAccountError(f'No GL account given{where}.')
     GlAccount = dj_apps.get_model('accounts', 'GlAccount')
-    account = GlAccount.objects.filter(ida=code, is_deleted=False).first()
+    account = GlAccount.objects.filter(ida=code).first()
     if account is None:
         raise UndefinedAccountError(
             f'GL account "{code}" is not in the chart of accounts{where}. '

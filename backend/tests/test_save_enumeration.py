@@ -26,8 +26,7 @@ def _login(django_user_model, email, role):
 def order_policy(db):
     """Update the order model's own Setting — purpose + parent_model is not unique, so a
     second one is read or ignored depending on which .first() returns."""
-    s = Setting.objects.filter(purpose='wc:model', parent_model='order',
-                               is_deleted=False).first()
+    s = Setting.objects.filter(purpose='wc:model', parent_model='order').first()
     assert s is not None, "the order model has no wc:model Setting"
     before = dict(s.config or {})
     s.config = ({

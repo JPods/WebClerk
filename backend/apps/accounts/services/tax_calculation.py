@@ -25,8 +25,7 @@ def _get_tax_config() -> Dict[str, Any]:
     try:
         from apps.core.models.setting import Setting
         setting = Setting.objects.filter(
-            name='tax_config', is_active=True, is_deleted=False,
-        ).first()
+            name='tax_config', is_active=True, ).first()
         if setting and isinstance(setting.config, dict):
             merged = dict(defaults)
             merged.update(setting.config)

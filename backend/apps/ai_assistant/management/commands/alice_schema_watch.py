@@ -272,7 +272,7 @@ def _pick_useful_scalar(scalars: list[str]) -> str:
 
     # Avoid purely technical/system columns if possible.
     less_useful_prefixes = ("dt_",)
-    less_useful_exact = {"id", "uuid", "ida", "version", "row_version", "is_active", "is_deleted", "is_archived"}
+    less_useful_exact = {"id", "uuid", "ida", "version", "row_version", "is_active", "is_archived"}
     candidates = [
         f for f in scalars
         if f not in less_useful_exact and not any(f.startswith(prefix) for prefix in less_useful_prefixes)

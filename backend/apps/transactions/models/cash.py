@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.timezone import now as django_now
 
 from common.models import BaseModel
+from apps.transactions.models.hard_delete import HardDeleteOnly
 from apps.transactions.choices import CASH_GATEWAY_CHOICES, CASH_STATUS_CHOICES
 
 
@@ -31,7 +32,7 @@ def default_metadata() -> dict:
 
 
 
-class Cash(BaseModel):
+class Cash(HardDeleteOnly, BaseModel):
     """Cash — cash in (AR) and cash out (AP).
 
     cash_in: customer pays us → applied to Invoice via a Pending application record.

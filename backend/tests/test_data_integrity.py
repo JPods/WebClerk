@@ -164,34 +164,15 @@ class TestRefsFKConsistency:
 class TestSoftDeleteConsistency:
     """Soft-deleted records excluded from default queries."""
 
-    def test_soft_delete_excludes_from_active(self):
-        """Soft-deleted items don't appear in default queryset."""
+    def test_a_deleted_record_is_gone(self):
+        """There is no soft delete (Bill, 2026-09-22): a delete removes the row."""
         from apps.products.models import Item
 
         item = ItemFactory(ida="SOFT-001")
         assert Item.objects.filter(pk=item.pk).exists()
-
-        # Soft delete
-        Item.objects.filter(pk=item.pk).update(is_deleted=True)
-
-        # Default manager (FullManager.active) should exclude it
-        active = Item.objects.active()
-        assert not active.filter(pk=item.pk).exists()
-
-        # But .deleted() should find it
-        deleted = Item.objects.deleted()
-        assert deleted.filter(pk=item.pk).exists()
-
-    def test_restore_returns_to_active(self):
-        """Restoring a soft-deleted record makes it active again."""
-        from apps.products.models import Item
-
-        item = ItemFactory(ida="RESTORE-001")
-        Item.objects.filter(pk=item.pk).update(is_deleted=True)
-        assert not Item.objects.active().filter(pk=item.pk).exists()
-
-        Item.objects.filter(pk=item.pk).update(is_deleted=False)
-        assert Item.objects.active().filter(pk=item.pk).exists()
+        item.delete()
+        assert not Item.objects.filter(pk=item.pk).exists()
+        assert not hasattr(Item.objects, 'deleted')
 
 
 @pytest.mark.django_db

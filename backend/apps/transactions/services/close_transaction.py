@@ -108,7 +108,7 @@ def close_transaction(model_name: str, pk: int, *, reason: str, acted_by: str,
         if getattr(header, 'kind', '') == 'count':
             pending_type = None          # a count committed nothing to release
         if pending_type and hasattr(header, 'lines'):
-            for line in header.lines.filter(is_deleted=False):
+            for line in header.lines.all():
                 quantity = line.quantity if isinstance(line.quantity, dict) else {}
                 remaining = float(quantity.get('remaining') or 0)
                 if not remaining:
@@ -173,13 +173,13 @@ def stale_commitments(days: int = 30, now_ms: Optional[int] = None) -> list[dict
     out = []
     for model_name, pending_type in COMMITMENT_TYPE.items():
         Model = dj_apps.get_model('transactions', model_name)
-        rows = (Model.objects.filter(is_deleted=False, dt_created__lt=cutoff)
+        rows = (Model.objects.filter(dt_created__lt=cutoff)
                 .exclude(status__in=CLOSED_STATUSES))
         if model_name == 'workorder':
             rows = rows.exclude(kind='count')       # a count holds no commitment
         for header in rows:
             holding = 0.0
-            for line in header.lines.filter(is_deleted=False):
+            for line in header.lines.all():
                 quantity = line.quantity if isinstance(line.quantity, dict) else {}
                 holding += float(quantity.get('remaining') or 0)
             if holding:

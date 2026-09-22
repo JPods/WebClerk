@@ -8,8 +8,8 @@ from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 
-terms = list(Term.objects.all().order_by("id"))
-invoices = list(Invoice.objects.filter(is_deleted=False).order_by("id"))
+terms = list(Term.objects.order_by("id"))
+invoices = list(Invoice.objects.order_by("id"))
 print(f"Terms: {[t.name for t in terms]}")
 print(f"Invoices: {len(invoices)}")
 
@@ -64,6 +64,6 @@ for i, inv in enumerate(invoices):
 print(f"\nDone: {len(invoices)} invoices updated, {ledgers_created} ledger entries created")
 
 for t in terms:
-    c = Invoice.objects.filter(is_deleted=False, terms=t.name).count()
+    c = Invoice.objects.filter(terms=t.name).count()
     lc = Ledger.objects.filter(term=t).count()
     print(f"  {t.name}: {c} invoices, {lc} ledgers")

@@ -22,7 +22,6 @@ function baseRecord(overrides?: Record<string, unknown>) {
     id,
     ida: '',
     is_active: true,
-    is_deleted: false,
     status: 'open',
     dt: now,
     dt_created: now,

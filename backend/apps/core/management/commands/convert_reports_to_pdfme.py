@@ -227,7 +227,7 @@ class Command(BaseCommand):
         target_id = options.get('report')
         dry_run = options.get('dry_run', False)
 
-        qs = Report.objects.filter(output_type='print', is_active=True, is_deleted=False)
+        qs = Report.objects.filter(output_type='print', is_active=True)
         if target_id:
             qs = qs.filter(id=target_id)
 
@@ -248,8 +248,7 @@ class Command(BaseCommand):
             existing = Report.objects.filter(
                 model_name=report.model_name,
                 name=f'{report.name} (pdfme)',
-                is_deleted=False,
-            ).exists()
+                ).exists()
             if existing:
                 self.stdout.write(self.style.NOTICE(
                     f'  EXISTS #{report.id} {report.name} — pdfme copy already exists'

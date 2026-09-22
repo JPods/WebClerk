@@ -258,8 +258,7 @@ class Command(BaseCommand):
                 purpose='wc:field_access',
                 parent_model=model_name,
                 is_active=True,
-                is_deleted=False,
-            ).first()
+                ).first()
 
             if not setting:
                 self.stdout.write(self.style.WARNING(

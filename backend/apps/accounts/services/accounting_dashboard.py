@@ -54,13 +54,13 @@ def _get_journal_status() -> Dict[str, Any]:
     # Count invoices with staged GL but not posted (metadata has gl_accounts but no GlJournal records)
     # Approximation: invoices not locked that have totals > 0
     pending_invoices = Invoice.objects.filter(
-        is_locked=False, is_deleted=False, is_active=True,
+        is_locked=False, is_active=True,
     ).exclude(
         totals={},
     ).count()
 
     pending_cash_entries = Cash.objects.filter(
-        is_locked=False, is_deleted=False, is_active=True,
+        is_locked=False, is_active=True,
     ).exclude(
         amount=0,
     ).count()
@@ -120,9 +120,9 @@ def _get_transaction_volume() -> Dict[str, Any]:
     for model_name in ['Order', 'Invoice', 'Quote', 'Purchase', 'WorkOrder']:
         try:
             Model = dj_apps.get_model('transactions', model_name)
-            total = Model.objects.filter(is_deleted=False).count()
+            total = Model.objects.count()
             by_status = dict(
-                Model.objects.filter(is_deleted=False)
+                Model.objects.all()
                 .values_list('status')
                 .annotate(count=Count('id'))
             )
@@ -143,8 +143,8 @@ def _get_locked_records() -> Dict[str, Any]:
     for key, model_name in [('invoice', 'Invoice'), ('cash', 'Cash')]:
         try:
             Model = dj_apps.get_model('transactions', model_name)
-            locked = Model.objects.filter(is_locked=True, is_deleted=False).count()
-            unlocked = Model.objects.filter(is_locked=False, is_deleted=False).count()
+            locked = Model.objects.filter(is_locked=True).count()
+            unlocked = Model.objects.filter(is_locked=False).count()
             result[key] = {
                 'locked': locked,
                 'unlocked': unlocked,
@@ -159,8 +159,7 @@ def _get_aging_summary() -> Dict[str, Any]:
     OrgBase = dj_apps.get_model('orgs', 'OrgBase')
 
     customers = OrgBase.objects.filter(
-        org_type='customer', is_active=True, is_deleted=False,
-    )
+        org_type='customer', is_active=True, )
 
     total_current = Decimal('0')
     total_30 = Decimal('0')
@@ -298,7 +297,7 @@ def get_journal_exceptions(year: int = None, month: int = None) -> Dict[str, Any
 
     # --- Invoices ---
     inv_qs = Invoice.objects.filter(
-        is_active=True, is_deleted=False, **period_filter,
+        is_active=True, **period_filter,
     ).exclude(pk__in=posted_inv_ids)
 
     for inv in inv_qs:
@@ -324,7 +323,7 @@ def get_journal_exceptions(year: int = None, month: int = None) -> Dict[str, Any
 
     # --- Cash ---
     pay_qs = Cash.objects.filter(
-        is_active=True, is_deleted=False, **period_filter,
+        is_active=True, **period_filter,
     ).exclude(pk__in=posted_pay_ids)
 
     for pay in pay_qs:
@@ -348,7 +347,7 @@ def get_journal_exceptions(year: int = None, month: int = None) -> Dict[str, Any
 
     # --- Purchases ---
     po_qs = Purchase.objects.filter(
-        is_active=True, is_deleted=False, **period_filter,
+        is_active=True, **period_filter,
     ).exclude(pk__in=posted_po_ids)
 
     for po in po_qs:

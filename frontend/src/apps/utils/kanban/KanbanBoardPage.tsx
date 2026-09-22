@@ -1651,9 +1651,6 @@ const KanbanBoardPage: React.FC = () => {
         } else if (url.startsWith("/static/")) {
           score += 1;
         }
-        if (doc.is_deleted === true) {
-          score -= 4;
-        }
         if (doc.is_active === false) {
           score -= 2;
         }
@@ -1866,7 +1863,6 @@ const KanbanBoardPage: React.FC = () => {
     try {
       await saveRecord("action", {
         id: payloadId,
-        is_deleted: { mode: "update", value: true },
         is_active: { mode: "update", value: false },
         status: { mode: "update", value: "Removed" },
         kanban_column: { mode: "update", value: "Removed" },

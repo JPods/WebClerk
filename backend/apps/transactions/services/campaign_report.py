@@ -101,16 +101,13 @@ def calculate_campaign_roi(campaign_id: int) -> Dict:
     # Transactions store campaign_id in source JSON
     quotes = Quote.objects.filter(
         source__campaign_id=campaign_id,
-        is_deleted=False,
-    )
+        )
     orders = Order.objects.filter(
         source__campaign_id=campaign_id,
-        is_deleted=False,
-    )
+        )
     invoices = Invoice.objects.filter(
         source__campaign_id=campaign_id,
-        is_deleted=False,
-    )
+        )
 
     quote_count = quotes.count()
     order_count = orders.count()
@@ -255,7 +252,6 @@ def get_campaign_cac(campaign_id: int) -> Dict:
     # PostgreSQL jsonb containment: refs -> links -> campaigns @> [{"campaign_id": N}]
     customers = OrgBase.objects.filter(
         org_type='customer',
-        is_deleted=False,
         refs__links__campaigns__contains=[{'campaign_id': campaign_id}],
     )
     customer_count = customers.count()
@@ -287,15 +283,13 @@ def get_campaign_margin_velocity(campaign_id: int) -> Dict:
     # Get orders linked to campaign
     orders = Order.objects.filter(
         source__campaign_id=campaign_id,
-        is_deleted=False,
-    )
+        )
     order_count = orders.count()
 
     # Get invoices linked to campaign for realized revenue/cost
     invoices = Invoice.objects.filter(
         source__campaign_id=campaign_id,
-        is_deleted=False,
-    )
+        )
 
     total_revenue = Decimal('0')
     total_cost = Decimal('0')

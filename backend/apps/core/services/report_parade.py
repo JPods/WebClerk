@@ -145,7 +145,6 @@ def build_parade_manifest(
 
     qs = Report.objects.filter(
         is_active=True,
-        is_deleted=False,
         output_type="print",
     ).exclude(
         # A hook is a Report, but it is not a form — it has no layout to parade.

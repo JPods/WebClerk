@@ -108,8 +108,6 @@ def get_summary_by_period(params: Dict[str, Any]) -> Dict[str, Any]:
         qs = Model.objects.all()
 
         field_names = {f.name for f in Model._meta.get_fields()}
-        if "is_deleted" in field_names:
-            qs = qs.filter(is_deleted=False)
         if "is_archived" in field_names:
             qs = qs.filter(is_archived=False)
 
@@ -191,8 +189,6 @@ def _sales_by_dimension_month(params: Dict[str, Any], *, dimension_field: str) -
 
     qs = Invoice.objects.filter(dt_created__gte=start_ms, dt_created__lte=end_ms)
     field_names = {f.name for f in Invoice._meta.get_fields()}
-    if "is_deleted" in field_names:
-        qs = qs.filter(is_deleted=False)
     if "is_archived" in field_names:
         qs = qs.filter(is_archived=False)
 
@@ -280,8 +276,6 @@ def get_sales_by_customer_year(params: Dict[str, Any]) -> Dict[str, Any]:
 
     qs = Invoice.objects.filter(dt_created__gte=start_ms, dt_created__lte=end_ms)
     field_names = {f.name for f in Invoice._meta.get_fields()}
-    if "is_deleted" in field_names:
-        qs = qs.filter(is_deleted=False)
     if "is_archived" in field_names:
         qs = qs.filter(is_archived=False)
 

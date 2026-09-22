@@ -152,7 +152,7 @@ class InventoryLayersView(APIView):
             return api_response(success=False, status_code=400, message='item_id required')
 
         layers = (InventoryLayer.objects
-                  .filter(item_id=item_id, is_deleted=False)
+                  .filter(item_id=item_id)
                   .select_related('warehouse')
                   .order_by('warehouse__name', 'dt_created'))
 
@@ -212,7 +212,7 @@ class InventoryBOMAdjustView(APIView):
 
         # Get BOM children
         bom_lines = BillOfMaterial.objects.filter(
-            parent_item_id=item_id, is_deleted=False
+            parent_item_id=item_id
         ).select_related('child_item')
 
         if not bom_lines.exists():

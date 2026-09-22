@@ -11,7 +11,7 @@ def _model(name: str):
 # -- system fields inherited from BaseModel (read-only for all serializers) --
 _BASE_RO = [
     "id", "uuid", "dt_created", "dt_modified", "version",
-    "is_deleted", "is_archived", "metadata", "refs", "prefs",
+    "is_archived", "metadata", "refs", "prefs",
     "actions", "comments", "health_rating",
 ]
 
@@ -21,7 +21,7 @@ class ItemSerializer(serializers.ModelSerializer):
         model = _model("Item")
         fields = [
             "id", "uuid", "dt_created", "dt_modified", "version",
-            "is_active", "security_level", "is_deleted", "is_archived",
+            "is_active", "security_level", "is_archived",
             "metadata", "refs", "prefs", "actions", "comments", "health_rating",
             "stats", "name", "sku", "qr_code", "kind", "uom", "base_uom",
             "description", "gls", "flags", "price", "cost", "tax_code",
@@ -35,7 +35,7 @@ class VariantSerializer(serializers.ModelSerializer):
         model = _model("Variant")
         fields = [
             "id", "uuid", "dt_created", "dt_modified", "version",
-            "is_active", "security_level", "is_deleted", "is_archived",
+            "is_active", "security_level", "is_archived",
             "metadata", "refs", "prefs", "actions", "comments", "health_rating",
             "item_ida", "description", "item", "parent_item",
             "canonical_key", "attrs", "set_uuid", "variant_uuid",
@@ -48,7 +48,7 @@ class ItemXrefSerializer(serializers.ModelSerializer):
         model = _model("ItemXref")
         fields = [
             "id", "uuid", "dt_created", "dt_modified", "version",
-            "is_active", "security_level", "is_deleted", "is_archived",
+            "is_active", "security_level", "is_archived",
             "metadata", "refs", "prefs", "actions", "comments", "health_rating",
             "item_id", "status", "source", "source_id", "source_model_name",
             "source_name", "external_sku", "external_uuid", "cost", "is_preferred",
@@ -61,7 +61,7 @@ class SerialSerializer(serializers.ModelSerializer):
         model = _model("Serial")
         fields = [
             "id", "uuid", "dt_created", "dt_modified", "version",
-            "is_active", "security_level", "is_deleted", "is_archived",
+            "is_active", "security_level", "is_archived",
             "metadata", "refs", "prefs", "actions", "comments", "health_rating",
             "item_id", "item_ida", "description", "serial_ida", "model_ida",
             "warranty", "status", "site", "inventory_layer_id", "config", "qr_code",
@@ -78,7 +78,7 @@ class BillOfMaterialSerializer(serializers.ModelSerializer):
         model = _model("BillOfMaterial")
         fields = [
             "id", "uuid", "dt_created", "dt_modified", "version",
-            "is_active", "security_level", "is_deleted", "is_archived",
+            "is_active", "security_level", "is_archived",
             "metadata", "refs", "prefs", "actions", "comments", "health_rating",
             "parent_ida", "parent_description",
             "parent_item_id", "child_item_id", "child_ida", "child_description",
@@ -95,7 +95,7 @@ class CatalogSerializer(serializers.ModelSerializer):
         model = _model("Catalog")
         fields = [
             "id", "uuid", "dt_created", "dt_modified", "version",
-            "security_level", "is_deleted", "is_archived",
+            "security_level", "is_archived",
             "metadata", "refs", "prefs", "actions", "comments", "health_rating",
             "name", "code", "currency", "dt_effective_start", "dt_effective_end",
             "is_active", "orgbase_id", "customer_orgbase_id",
@@ -110,7 +110,7 @@ class WarehouseSerializer(serializers.ModelSerializer):
         model = _model("Warehouse")
         fields = [
             "id", "uuid", "dt_created", "dt_modified", "version",
-            "security_level", "is_deleted", "is_archived",
+            "security_level", "is_archived",
             "metadata", "refs", "prefs", "actions", "comments", "health_rating",
             "name", "location", "count", "priority", "code", "site_code",
             "is_active",
@@ -124,7 +124,7 @@ class ItemUsageSerializer(serializers.ModelSerializer):
         model = _model("ItemUsage")
         fields = [
             "id", "uuid", "dt_created", "dt_modified", "version",
-            "is_active", "security_level", "is_deleted", "is_archived",
+            "is_active", "security_level", "is_archived",
             "metadata", "refs", "prefs", "actions", "comments", "health_rating",
             "item_id", "status", "item_ida", "description",
             "year", "month", "metrics",

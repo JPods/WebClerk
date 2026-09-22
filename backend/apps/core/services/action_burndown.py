@@ -40,8 +40,7 @@ def calculate_burndown(project_id: int) -> dict:
     actions = Action.objects.filter(
         project_id=project_id,
         is_active=True,
-        is_deleted=False,
-    ).values(
+        ).values(
         "id", "ida", "action", "difficulty", "percent_complete",
         "status", "dt_start", "dt_deadline", "duration", "assigned_to",
     )

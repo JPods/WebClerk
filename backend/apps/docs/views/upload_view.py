@@ -304,8 +304,8 @@ class DocumentDeleteView(APIView):
         except Exception:
             pass
 
-        if hasattr(doc, "is_deleted"):
-            setattr(doc, "is_deleted", True)
+        if hasattr(doc):
+            setattr(doc, True)
         if hasattr(doc, "is_active"):
             setattr(doc, "is_active", False)
         doc.save()

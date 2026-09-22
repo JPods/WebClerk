@@ -81,7 +81,6 @@ def accrue_manufacturer_rebate(
     # Sum purchases for this manufacturer in period
     purchases = Purchase.objects.filter(
         manufacturer_id=manufacturer_id,
-        is_deleted=False,
         dt_created__gte=period_start_ms,
         dt_created__lte=period_end_ms,
     )
@@ -174,8 +173,7 @@ def get_rebate_summary() -> List[Dict]:
 
     manufacturers = OrgBase.objects.filter(
         org_type='manufacturer',
-        is_deleted=False,
-    )
+        )
 
     results = []
     for mfr in manufacturers:

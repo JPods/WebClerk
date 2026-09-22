@@ -26,13 +26,13 @@ from apps.core.constants.model_registry import get_model_meta
 
 SYSTEM_VIEW_ONLY = [
     'id', 'ida', 'uuid', 'dt_created', 'dt_modified', 'version',
-    'is_deleted', 'is_archived', 'is_locked', 'security_level',
+    'is_archived', 'is_locked', 'security_level',
     'times_used', 'health_rating',
 ]
 
 NEVER_EDIT = [
     'id', 'ida', 'uuid', 'dt_created', 'dt_modified', 'version',
-    'is_deleted', 'is_archived', 'is_locked', 'security_level', 'search_vector',
+    'is_archived', 'is_locked', 'security_level', 'search_vector',
     'health_rating',
     'groups', 'user_permissions',
 ]

@@ -29,7 +29,7 @@ BASEMODEL_RESERVED = frozenset({
     'id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'version',
     'is_active', 'security_level', 'dt_approved', 'times_used',
     'dt_last_used', 'purpose', 'config',
-    'is_deleted', 'is_archived', 'is_locked',
+    'is_archived', 'is_locked',
     'metadata', 'refs', 'prefs', 'actions', 'comments',
     'health_rating',
 })
@@ -213,8 +213,7 @@ def audit_all_schema_settings(fix: bool = False) -> dict:
     settings = Setting.objects.filter(
         purpose__in=['wc:model', 'wc:schema_map', 'wc:enrichment_panels', 'wc:detail_layout', 'wc:field_access'],
         is_active=True,
-        is_deleted=False,
-    ).order_by('purpose', 'parent_model')
+        ).order_by('purpose', 'parent_model')
 
     all_violations = []
     settings_with_violations = 0

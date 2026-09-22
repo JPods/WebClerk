@@ -21,7 +21,7 @@ class Command(BaseCommand):
     def handle(self, *args, **opts):
         from apps.accounts.services.ledger_balance import on_receipt_save, update_org_balances
         from apps.orgs.models import OrgBase
-        receipts = Receipt.objects.filter(is_deleted=False).order_by('pk')
+        receipts = Receipt.objects.order_by('pk')
         vendors = set()
         n = 0
         for rec in receipts:

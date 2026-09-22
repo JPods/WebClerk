@@ -19,7 +19,7 @@ console_logger = logging.getLogger('console')
 # system fields inherited from BaseModel (read-only)
 _BASE_RO = [
     'id', 'uuid', 'dt_created', 'dt_modified', 'version',
-    'is_deleted', 'is_archived', 'metadata', 'refs', 'prefs',
+    'is_archived', 'metadata', 'refs', 'prefs',
     'actions', 'comments', 'health_rating',
 ]
 
@@ -37,7 +37,7 @@ class ActionSerializer(serializers.ModelSerializer):
         model = Action
         fields = [
             'id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'version',
-            'is_active', 'security_level', 'is_deleted', 'is_archived',
+            'is_active', 'security_level', 'is_archived',
             'metadata', 'refs', 'prefs', 'actions', 'comments', 'health_rating',
             'parent_action', 'action', 'description', 'assigned_to',
             'contact_id', 'languages', 'project_name', 'project_id',

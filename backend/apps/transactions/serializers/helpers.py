@@ -28,6 +28,6 @@ def _name_from_refs(obj, role):
 # system fields inherited from BaseModel (read-only)
 BASE_RO = [
     'id', 'uuid', 'dt_created', 'dt_modified', 'version',
-    'is_deleted', 'is_archived', 'metadata', 'refs', 'prefs',
+    'is_archived', 'metadata', 'refs', 'prefs',
     'actions', 'comments', 'health_rating',
 ]

@@ -698,7 +698,7 @@ def _get_training_activity(params: dict) -> dict:
         inv.update({k: qty_field.get(k, 0) for k in inv})
 
     # Also check inventory layers
-    layers = InventoryLayer.objects.filter(item=item, is_active=True, is_deleted=False)
+    layers = InventoryLayer.objects.filter(item=item, is_active=True)
     if layers.exists():
         layer = layers.first()
         lq = layer.quantity if isinstance(layer.quantity, dict) else {}

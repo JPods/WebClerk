@@ -416,7 +416,7 @@ def settlement_days(org_id, model_name: str = 'invoice') -> List[int]:
     from datetime import datetime as _dt, timezone as _tz
     days = []
     for doc in Document.objects.filter(
-        is_deleted=False, pk__in=list(due_by_doc), **{org_field: org_id},
+        pk__in=list(due_by_doc), **{org_field: org_id},
     ).only('id', 'events', 'totals'):
         events = [e for e in (getattr(doc, 'events', None) or [])
                   if isinstance(e, dict) and e.get('kind') == 'cash_application' and e.get('dt')]

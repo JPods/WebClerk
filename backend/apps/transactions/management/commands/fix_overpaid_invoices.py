@@ -39,7 +39,7 @@ class Command(BaseCommand):
     def handle(self, *args, **opts):
         dry = opts['dry_run']
         moved = 0
-        for inv in Invoice.objects.filter(is_deleted=False).order_by('pk'):
+        for inv in Invoice.objects.order_by('pk'):
             totals = inv.totals or {}
             balance, total = _d(totals.get('balance')), _d(totals.get('total'))
             # A credit memo (negative total) is meant to have a negative balance: it is

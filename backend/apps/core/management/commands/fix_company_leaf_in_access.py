@@ -68,7 +68,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         apply_changes = options['apply']
-        settings_qs = Setting.objects.filter(purpose='wc:model', is_deleted=False)
+        settings_qs = Setting.objects.filter(purpose='wc:model')
 
         planned, total_leaves = [], 0
         for s in settings_qs:

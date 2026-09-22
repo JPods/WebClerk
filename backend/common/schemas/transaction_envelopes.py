@@ -931,10 +931,6 @@ class LineItem(BaseModel):
         0, ge=0, title="Line Number",
         json_schema_extra={'widget': 'number'},
     )
-    is_deleted: bool = Field(
-        False, title="Deleted",
-        json_schema_extra={'widget': 'boolean'},
-    )
     is_active: bool = Field(
         True, title="Active",
         json_schema_extra={'widget': 'boolean'},

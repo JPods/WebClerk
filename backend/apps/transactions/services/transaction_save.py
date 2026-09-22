@@ -442,7 +442,6 @@ def calculate_header_totals(
             line_number=line.get('line_number'),
         )
         for line in lines
-        if not (line.get('item') or {}).get('is_deleted')
     ]
     totals = compute_totals(header, live_lines, model_key)['totals']
     return {k: _d(v) for k, v in totals.items() if k != 'cash_state'}
@@ -604,6 +603,21 @@ def save_transaction_with_lines(
             line_id = line_data.get('id')
             is_dirty = line_data.get('_dirty', True)
 
+            # A line the user removed arrives marked, not missing (Bill, 2026-09-22): the
+            # backend does the delete, inside this save, so the line's Pending for the stock
+            # or cash it held is written in the same transaction as the header.
+            if line_data.get('_delete'):
+                existing_line = existing_lines.get(line_id)
+                if existing_line is None:
+                    # Fail hard (Bill, 2026-09-22): a delete for a line this document does not
+                    # have means the client is out of step, and reporting it as "skipped" would
+                    # hide that. The update branch below raises for the same reason.
+                    raise LookupError(f"Line {line_id} not found for transaction {header_id}")
+                existing_line.delete()
+                result['lines_deleted'] = result.get('lines_deleted', 0) + 1
+                result['lines'].append({'id': line_id, 'action': 'deleted'})
+                continue
+
             # Skip non-dirty existing lines
             if line_id is not None and save_only_dirty and not is_dirty:
                 result['lines_skipped'] += 1
@@ -617,6 +631,7 @@ def save_transaction_with_lines(
             # Clean line data
             line_clean = filter_input_fields(LineModel, line_data)
             line_clean.pop('_dirty', None)
+            line_clean.pop('_delete', None)
             line_clean[parent_fk_attname] = header_id
 
             if line_id:

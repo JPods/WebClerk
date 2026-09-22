@@ -178,7 +178,7 @@ def refresh_aggregates(model_name: str) -> dict:
     from apps.core.models import Setting
 
     Model = _get_model(model_name)
-    qs = Model.objects.filter(is_active=True, is_deleted=False)
+    qs = Model.objects.filter(is_active=True)
 
     # Global aggregates from JSON paths
     global_aggs = qs.annotate(

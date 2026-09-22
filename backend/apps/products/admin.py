@@ -16,7 +16,7 @@ from .models.specification import Specification
 class ItemAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     # Scalar fields: base_uom, description, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, kind, name, qr_code, row_version, security_level, sku, specification_id, uom, uuid, version
     list_display = ("ida", "name", "sku", "description", "kind", "base_uom", "is_active", "dt_created")
-    list_filter = ("kind", "is_active", "is_deleted")
+    list_filter = ("kind", "is_active")
     search_fields = ("ida", "name", "sku", "description")
     readonly_fields = ("uuid", "dt_created", "dt_modified")
 

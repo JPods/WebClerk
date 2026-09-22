@@ -499,8 +499,7 @@ def get_commission_report(
     invoices = Model.objects.filter(
         dt_created__gte=start_ms,
         dt_created__lte=end_ms,
-        is_deleted=False,
-    ).exclude(commission__isnull=True)
+        ).exclude(commission__isnull=True)
 
     # Aggregate by rep
     rep_summary = {}   # rep_id → {name, ida, rate_pct, basis, sales, commission, invoices, accrued, paid, pending, detail[]}

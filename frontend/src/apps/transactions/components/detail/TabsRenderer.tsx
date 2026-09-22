@@ -7,6 +7,7 @@ import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
 import FinancialsPanel from '@/apps/common/components/panels/FinancialsPanel';
 import { LinkedRecordsPanel } from '@/apps/common/components/panels/LinkedRecordsPanel';
 import type { TabsSection } from '@/hooks/useDetailLayout';
+import { getActiveLines } from '../../services/lineItemService';
 import { formatCurrency, formatPercent } from '@/utils/stringUtils';
 
 /** Tabs that should render as LinkedRecordsPanel with db.columns header */
@@ -234,7 +235,10 @@ export const TabContent: React.FC<{
 export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ data, modelName }) => {
   const authUser = useAppSelector((s) => s.auth.user);
   const isStaff = authUser?.is_staff || authUser?.is_superuser || false;
-  const lines = data?.lines || [];
+  // Live lines only — the summary tab uses this for the `lines` COUNT in the
+  // totals column, not for a line list. A line marked deleted contributes
+  // nothing to totals, so it must not be counted here either.
+  const lines = getActiveLines(data?.lines || []);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const isSellSide = ['order', 'invoice', 'quote'].includes(modelName);
   const totals = data?.totals || {};

@@ -106,7 +106,7 @@ def compute_purchasing_dashboard(
         filter_id = warehouse_id
 
     date_filter = Q(dt_created__gte=period_start_ms, dt_created__lte=period_end_ms)
-    active_filter = Q(is_active=True, is_deleted=False)
+    active_filter = Q(is_active=True)
 
     dashboard = PurchasingDashboard(
         period_start_ms=period_start_ms,

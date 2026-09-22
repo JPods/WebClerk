@@ -790,7 +790,7 @@ export default function DataGrid(props: DataGridProps) {
     const fl = field.toLowerCase();
     if (fl.startsWith('dt_') || fl.includes('date') || fl.includes('_dt')) return 'center';
     if (fl === 'total' || fl === 'balance' || fl === 'amount' || fl === 'debit' || fl === 'credit' || fl === 'price' || fl === 'cost' || fl === 'qty' || fl === 'quantity' || fl === 'version' || fl === 'priority' || fl === 'sequence' || fl === 'difficulty' || fl === 'health_rating' || fl === 'security_level' || fl === 'line_number' || fl === 'count_accessed' || fl === 'percent_complete' || fl === 'burndown' || fl === 'linkage') return 'right';
-    if (fl === 'is_active' || fl === 'is_locked' || fl === 'is_deleted' || fl === 'is_archived' || fl === 'is_commission' || fl === 'is_superuser' || fl === 'is_staff' || fl === 'is_preferred') return 'center';
+    if (fl === 'is_active' || fl === 'is_locked' || fl === 'is_archived' || fl === 'is_commission' || fl === 'is_superuser' || fl === 'is_staff' || fl === 'is_preferred') return 'center';
 
     // Infer from first non-null value in records
     if (records.length > 0) {

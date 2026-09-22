@@ -2293,7 +2293,6 @@ export interface components {
             is_active?: boolean;
             /** @description Security level or classification */
             security_level?: number;
-            is_deleted?: boolean;
             is_archived?: boolean;
             /** @description Universal metadata envelope */
             metadata?: unknown;
@@ -3117,7 +3116,6 @@ export interface components {
             is_active?: boolean;
             /** @description Security level or classification */
             security_level?: number;
-            is_deleted?: boolean;
             is_archived?: boolean;
             /** @description Universal metadata envelope */
             metadata?: unknown;

@@ -151,7 +151,7 @@ class Command(BaseCommand):
         data = {}
 
         for field in model._meta.get_fields():
-            if field.name in ['id', 'uuid', 'dt_created', 'dt_modified', 'version', 'is_active', 'is_deleted', 'is_archived']:
+            if field.name in ['id', 'uuid', 'dt_created', 'dt_modified', 'version', 'is_active', 'is_archived']:
                 continue  # Skip auto fields
 
             # Skip reverse relations

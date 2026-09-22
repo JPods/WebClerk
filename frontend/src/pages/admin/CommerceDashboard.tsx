@@ -338,7 +338,7 @@ function MetricList({ modelName, filters, period_days, themeKey }: {
           const cols = priority.filter(k => available.includes(k));
           // Add a few more if space
           const extra = available.filter(k =>
-            !cols.includes(k) && !['id','uuid','version','is_deleted','is_archived','is_locked',
+            !cols.includes(k) && !['id','uuid','version','is_archived','is_locked',
             'security_level','health_rating','metadata','refs','prefs','actions','comments',
             'config','commission','dt_modified','dt_approved','dt_last_used','times_used',
             'line_increment','is_commission','source_name'].includes(k)

@@ -48,7 +48,6 @@ export interface UserDailyLog {
   dt_modified?: number;
   version?: number;
   is_active?: boolean;
-  is_deleted?: boolean;
   is_archived?: boolean;
 
   user_id: number;

@@ -22,7 +22,7 @@ from apps.transactions.models import Project
 from common.admin_schema_labels import SchemaLabelsAdminMixin
 from common.admin_mixins import ScalarFirstFieldsetMixin
 from .models import (
-    Contact, Action, Setting, Pending, SoftDeleteLedger, Notification, Report,
+    Contact, Action, Setting, Pending, Notification, Report,
     RoleConfig, ModelRoleConfig, ModelLinkConfig, UserProfile,
 )
 
@@ -129,7 +129,7 @@ class ContactAdmin(SchemaLabelsAdminMixin, BaseUserAdmin):
             'address_full', 'address_id', 'attention', 'company',
             'customer', 'department', 'domain', 'domain_id',
             'email_id', 'is_employee', 'health_rating',
-            'is_active', 'is_archived', 'is_deleted', 'is_staff', 'is_superuser',
+            'is_active', 'is_archived', 'is_staff', 'is_superuser',
             'manufacturer', 'name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix',
             'other_id', 'phone', 'phone_id',
             'rep', 'role', 'security_level', 'title', 'vendor',
@@ -187,7 +187,6 @@ class ActionAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelA
         'ida',
         'is_active',
         'is_archived',
-        'is_deleted',
         'kanban_column',
         'linkage',
         'percent_complete',
@@ -341,16 +340,6 @@ class PendingAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.Model
     @admin.display(description='.on_po')
     def on_po(self, obj):
         return self._data_field(obj, 'on_po')
-
-
-@admin.register(SoftDeleteLedger)
-class SoftDeleteLedgerAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
-    """Admin interface for SoftDeleteLedger model."""
-    # Scalar fields: dt_purge, object_id, target
-    list_display = ("dt_purge", "object_id", "target")
-    list_filter = ('content_type', 'dt_purge')
-    search_fields = ('content_type__model', 'object_id')
-    readonly_fields = ('dt_created',)
 
 
 @admin.register(Notification)

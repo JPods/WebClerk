@@ -474,7 +474,7 @@ def _run_report(target_ida, report, ida, declared, ctx, result, depth, stack, us
         return
 
     from apps.core.models import Report
-    target = Report.objects.filter(ida=target_ida, is_active=True, is_deleted=False).first()
+    target = Report.objects.filter(ida=target_ida, is_active=True).first()
     if not target:
         result.errors.append(f"{ida}: report '{target_ida}' not found")
         return
@@ -575,7 +575,7 @@ def hooks_for_point(point: str):
     """
     from apps.core.models import Report
     candidates = Report.objects.filter(
-        is_active=True, is_deleted=False, config__hooks__point=point
+        is_active=True, config__hooks__point=point
     )
     ready = []
     for report in candidates:

@@ -31,7 +31,7 @@ from apps.core.models import Setting
 # Fields to always skip — plumbing, not human
 SKIP_FIELDS = {
     'id', 'uuid', 'version', 'security_level', 'times_used',
-    'is_deleted', 'is_archived', 'is_locked', 'is_active',
+    'is_archived', 'is_locked', 'is_active',
     'is_staff', 'is_superuser',
     'config', 'metadata', 'refs', 'prefs', 'actions',
     'password', 'groups', 'user_permissions', 'last_login',

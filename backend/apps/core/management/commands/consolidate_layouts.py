@@ -72,7 +72,7 @@ class Command(BaseCommand):
         apply = options['apply']
         model_filter = options.get('model')
 
-        qs = Setting.objects.filter(purpose='wc:model', is_active=True, is_deleted=False)
+        qs = Setting.objects.filter(purpose='wc:model', is_active=True)
 
         if model_filter:
             # Try exact name match first, then partial

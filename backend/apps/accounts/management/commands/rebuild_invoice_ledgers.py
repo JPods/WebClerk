@@ -23,7 +23,7 @@ class Command(BaseCommand):
     def handle(self, *args, **opts):
         from apps.accounts.services.ledger_balance import on_invoice_save, update_org_balances
         from apps.orgs.models import OrgBase
-        invoices = Invoice.objects.filter(is_deleted=False).order_by('pk')
+        invoices = Invoice.objects.order_by('pk')
         customers = set()
         n = 0
         for inv in invoices:

@@ -27,7 +27,7 @@ class CustomerViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Customer.objects.select_related(
         'contact', 'terms_fk'
-    ).filter(is_active=True, is_deleted=False)
+    ).filter(is_active=True)
     serializer_class = CustomerSerializer
     permission_classes = [IsAuthenticated]
 
@@ -37,7 +37,7 @@ class VendorViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Vendor.objects.select_related(
         'contact', 'terms_fk'
-    ).filter(is_active=True, is_deleted=False)
+    ).filter(is_active=True)
     serializer_class = VendorSerializer
     permission_classes = [IsAuthenticated]
 
@@ -47,7 +47,7 @@ class RepViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Rep.objects.select_related(
         'contact', 'terms_fk'
-    ).filter(is_active=True, is_deleted=False)
+    ).filter(is_active=True)
     serializer_class = RepSerializer
     permission_classes = [IsAuthenticated]
 
@@ -57,7 +57,7 @@ class EmployeeViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Employee.objects.select_related(
         'contact', 'terms_fk'
-    ).filter(is_active=True, is_deleted=False)
+    ).filter(is_active=True)
     serializer_class = EmployeeSerializer
     permission_classes = [IsAuthenticated]
 
@@ -67,6 +67,6 @@ class ManufacturerViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Manufacturer.objects.select_related(
         'contact', 'terms_fk'
-    ).filter(is_active=True, is_deleted=False)
+    ).filter(is_active=True)
     serializer_class = ManufacturerSerializer
     permission_classes = [IsAuthenticated]

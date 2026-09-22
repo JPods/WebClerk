@@ -114,8 +114,7 @@ def find_serials_by_customer(customer_id: int) -> List[Dict]:
     serials = Serial.objects.filter(
         config__customer_id=customer_id,
         status='issued',
-        is_deleted=False,
-    )
+        )
     return [{
         'serial_id': s.pk,
         'serial_number': s.serial_ida,

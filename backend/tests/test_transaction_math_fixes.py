@@ -260,15 +260,14 @@ def test_a_tax_exempt_customer_pays_no_tax():
 
 
 @pytest.mark.django_db
-def test_a_soft_deleted_line_leaves_the_totals():
-    """Recheck 2: soft-deleted lines were still summed."""
+def test_a_deleted_line_leaves_the_totals():
+    """Recheck 2: a line that is gone must leave the document's totals."""
     q = Quote.objects.create(finance={"sales_tax_rate": 0.08})
     keep = _line(q, 1, 100.00)
     gone = _line(q, 1, 40.00)
     q.refresh_from_db()
     assert q.totals["amount"] == pytest.approx(140.00)
-    gone.is_deleted = True
-    gone.save()
+    gone.delete()
     q.refresh_from_db()
     assert q.totals["amount"] == pytest.approx(100.00)
     assert q.totals["tax"] == pytest.approx(8.00)

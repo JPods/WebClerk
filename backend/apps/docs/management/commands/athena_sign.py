@@ -37,7 +37,7 @@ class Command(BaseCommand):
                             help='Re-hash all existing checkpoints (default)')
 
     def get_or_create_manifest(self):
-        doc = Document.objects.filter(ida='athena-manifest', is_deleted=False).first()
+        doc = Document.objects.filter(ida='athena-manifest').first()
         if not doc:
             doc = Document.objects.create(
                 ida='athena-manifest',

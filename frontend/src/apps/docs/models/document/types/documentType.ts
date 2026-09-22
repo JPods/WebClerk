@@ -37,7 +37,6 @@ export interface DocumentApiTask {
   version?: number;
   is_active?: boolean;
   security_level?: number;
-  is_deleted?: boolean;
   is_archived?: boolean;
   comments?: unknown;
   health_rating?: number;

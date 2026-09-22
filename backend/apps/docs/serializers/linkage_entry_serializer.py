@@ -29,7 +29,6 @@ class LinkageEntrySerializer(serializers.ModelSerializer):
             'actions',
             'comments',
             'is_active',
-            'is_deleted',
             'is_archived',
             'security_level',
             'dt_created',

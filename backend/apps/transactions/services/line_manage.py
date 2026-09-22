@@ -597,48 +597,14 @@ class LineItemService:
         line.save()
         return line
     
-    def delete_line(
-        self,
-        line,
-        soft: bool = True
-    ) -> None:
+    def delete_line(self, line) -> None:
+        """Delete a transaction line outright. Lines have no soft delete (Bill, 2026-09-22).
+
+        The line's post_delete signal writes the Pending that releases what it held,
+        the same door an add or a change goes through; this method writes none of its own.
         """
-        Delete a transaction line.
-        
-        Creates a Pending record to release reserved inventory.
-        
-        Args:
-            line: The line to delete
-            soft: If True, marks as deleted. If False, hard deletes.
-        """
-        # Get current quantity to release
-        current_quantity = 0
-        if isinstance(line.quantity, dict):
-            current_quantity = float(line.quantity.get('active', 0) or 0)
-        
-        # Create pending record to release inventory before modifying line
-        if self.create_pending and current_quantity > 0:
-            transaction = line.parent
-            transaction_type = getattr(transaction, 'model_name', None) or transaction._meta.model_name
-            
-            if _should_track_inventory(transaction_type):
-                self._create_pending_for_line_delete(
-                    transaction=transaction,
-                    transaction_type=transaction_type,
-                    line=line,
-                    quantity_released=current_quantity,
-                )
-        
-        if soft:
-            if isinstance(line.item, dict):
-                line.item['is_deleted'] = True
-                line.save()
-            else:
-                line.item = {'is_deleted': True}
-                line.save()
-        else:
-            line.delete()
-    
+        line.delete()
+
     def duplicate_line(
         self,
         line,
@@ -714,31 +680,9 @@ class LineItemService:
                 "Please delete this line and add a new line with the correct item."
             )
     
-    def get_lines_for_transaction(
-        self,
-        transaction,
-        include_deleted: bool = False
-    ) -> List[Any]:
-        """
-        Get all lines for a transaction.
-        
-        Args:
-            transaction: The parent transaction
-            include_deleted: If True, includes soft-deleted lines
-            
-        Returns:
-            List of line instances
-        """
-        lines = transaction.lines.all()
-        
-        if not include_deleted:
-            # Filter out soft-deleted lines
-            lines = [
-                line for line in lines
-                if not (isinstance(line.item, dict) and line.item.get('is_deleted'))
-            ]
-        
-        return list(lines)
+    def get_lines_for_transaction(self, transaction) -> List[Any]:
+        """Every line on a transaction. A deleted line is gone, so there is nothing to filter."""
+        return list(transaction.lines.all())
     
     def calculate_line(
         self,
