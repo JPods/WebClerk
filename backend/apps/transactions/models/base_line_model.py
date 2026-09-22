@@ -602,6 +602,12 @@ class BaseLineCore(HardDeleteOnly, BaseModel):
     SNAPSHOT_FIELDS = ('item', 'item_fk_id', 'quantity', 'parent_line_id', 'version')
 
     def _take_snapshot(self) -> None:
+        # Not while this line is being saved. Post_save receivers run inside save(), and one of
+        # them applies a Pending that refreshes the line — re-snapshotting there would replace
+        # "before" with "after", and the receivers that follow would see no change at all.
+        # (Found 2026-09-22: the parent's remaining stopped following its children.)
+        if getattr(self, '_snapshot_held', False):
+            return
         loaded = self.__dict__
         if not all(f in loaded for f in self.SNAPSHOT_FIELDS):
             self._loaded = None      # touching a deferred field here would load it
@@ -664,8 +670,12 @@ class BaseLineCore(HardDeleteOnly, BaseModel):
             except Exception:
                 pass  # graceful fallback — line_number stays 0
 
-        result = super().save(*args, **kwargs)
-        self._take_snapshot()        # after every post_save receiver has read the old one
+        self._snapshot_held = True   # every post_save receiver reads the same "before"
+        try:
+            result = super().save(*args, **kwargs)
+        finally:
+            self._snapshot_held = False
+        self._take_snapshot()        # after every receiver has read the old one
         return result
 
     def _assert_parent_not_journalized(self) -> None:
