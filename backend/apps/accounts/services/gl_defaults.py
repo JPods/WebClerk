@@ -17,7 +17,7 @@ ITEM_GL_ROLES = {
     'inventory': 'inventory',
     'cogs': 'cost_of_goods_sold',
     'purchase': 'accounts_payable',
-    'variance': 'cost_of_goods_sold',
+    'variance': 'inventory_cost_variance',
 }
 
 # Org type -> {org gl_accounts key: posting role}

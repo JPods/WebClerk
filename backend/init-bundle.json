@@ -4287,7 +4287,11 @@
           "commission_payable": "2210-commissions_payable",
           "cost_of_goods_sold": "5000-cost_of_goods_sold",
           "accounts_receivable": "1100-accounts_receivable",
-          "small_balance_writeoff": "4930-small_balance_writeoff"
+          "small_balance_writeoff": "4930-small_balance_writeoff",
+          "work_in_process": "1210-work_in_process",
+          "labor_applied": "2160-labor_applied",
+          "inventory_cost_variance": "5310-inventory_cost_variance",
+          "labor_variance": "5320-labor_variance"
         },
         "primary_org": {
           "id": 2,
