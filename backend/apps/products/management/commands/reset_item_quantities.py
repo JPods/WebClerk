@@ -100,10 +100,10 @@ class Command(BaseCommand):
                 receipts[int(item_id)].append((rl, qty))
 
         def plan_for(item):
+            if item.is_not_tracked:           # no stock: no layers, buckets stay zero
+                return {'receipts': [], 'opening': Decimal('0'), 'allocated': Decimal('0')}
             received = sum((q for _rl, q in receipts[item.pk]), Decimal('0'))
-            if item.kind == Item.KIND_SERVICE:
-                target = Decimal('0')
-            elif options['on_hand'] is not None:
+            if options['on_hand'] is not None:
                 target = Decimal(options['on_hand'])
             else:
                 target = max(_d((item.quantity or {}).get('on_hand')), Decimal('0'))

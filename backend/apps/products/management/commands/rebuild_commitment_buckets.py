@@ -31,9 +31,13 @@ def wanted_by_item(item_id=None):
     on_qt is a weighted forecast, not a raw sum: the increment path multiplies a quote
     line by its header's close probability (base_line_model.forecast_probability), so a
     rebuild that summed raw remaining would fight it. Same function, same weight.
+
+    A not-tracked item (labor, freight) commits nothing: its lines are cost, not stock.
     """
     from apps.transactions.models.base_line_model import forecast_probability
 
+    Item = dj_apps.get_model('products', 'Item')
+    not_tracked = set(Item.objects.filter(flags__not_tracked=True).values_list('pk', flat=True))
     want = defaultdict(lambda: dict.fromkeys(BUCKETS, 0.0))
     for model_name, bucket in SPEC:
         Model = dj_apps.get_model('transactions', model_name)
@@ -55,7 +59,7 @@ def wanted_by_item(item_id=None):
                 if not raw:
                     continue
                 pk = int(raw)
-                if item_id and pk != int(item_id):
+                if (item_id and pk != int(item_id)) or pk in not_tracked:
                     continue
                 quantity = line.quantity if isinstance(line.quantity, dict) else {}
                 want[pk][bucket] += float(quantity.get('remaining') or 0) * weight

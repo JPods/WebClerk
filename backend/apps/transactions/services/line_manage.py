@@ -1002,7 +1002,11 @@ class LineItemService:
             The created Pending record
         """
         pending_type = _get_pending_type(transaction_type)
-        
+        deltas = quantity_bucket_deltas(pending_type, quantity, transaction,
+                                        item=item, affect_on_hand=True)
+        if not any(deltas.values()):
+            return None  # type: ignore[return-value]  # nothing moves: not tracked, or a count
+
         # Build pending data similar to WebClerk2 DInventory structure
         pending_data = {
             'type_id': pending_type,
@@ -1014,7 +1018,7 @@ class LineItemService:
             'line_num': line.item.get('line_number', 0) if isinstance(line.item, dict) else 0,
             
             # Quantity buckets — one rule, in base_line_model.
-            **quantity_bucket_deltas(pending_type, quantity, transaction, affect_on_hand=True),
+            **deltas,
             
             # Pricing snapshot
             'unit_cost': unit_cost,
@@ -1244,6 +1248,11 @@ class LineItemService:
         if hasattr(line, 'price') and isinstance(line.price, dict):
             unit_price = line.price.get('unit', 0)
         
+        deltas = quantity_bucket_deltas(pending_type, quantity_delta, transaction,
+                                        item=Item.objects.filter(pk=item_id).first())
+        if not any(deltas.values()):
+            return None  # type: ignore[return-value]  # nothing moves: not tracked, or a count
+        
         pending_data = {
             'type_id': pending_type,
             'item_num': item_ida or str(item_id),
@@ -1254,7 +1263,7 @@ class LineItemService:
             'line_num': line.item.get('line_number', 0) if isinstance(line.item, dict) else 0,
             
             # Quantity buckets — one rule, in base_line_model.
-            **quantity_bucket_deltas(pending_type, quantity_delta, transaction),
+            **deltas,
             
             # Pricing snapshot
             'unit_cost': unit_cost,
@@ -1334,6 +1343,11 @@ class LineItemService:
         # When a line is deleted, we release the reservation (negative delta)
         release_qty = -quantity_released
         
+        deltas = quantity_bucket_deltas(pending_type, release_qty, transaction,
+                                        item=Item.objects.filter(pk=item_id).first())
+        if not any(deltas.values()):
+            return None  # type: ignore[return-value]  # nothing moves: not tracked, or a count
+        
         pending_data = {
             'type_id': pending_type,
             'item_num': item_ida or str(item_id),
@@ -1344,7 +1358,7 @@ class LineItemService:
             'line_num': line.item.get('line_number', 0) if isinstance(line.item, dict) else 0,
             
             # Negative quantity releases the reservation — same rule, one place.
-            **quantity_bucket_deltas(pending_type, release_qty, transaction),
+            **deltas,
             
             # Pricing snapshot
             'unit_cost': unit_cost,

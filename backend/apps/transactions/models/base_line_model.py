@@ -403,11 +403,15 @@ def quantity_bucket_deltas(
     quantity: Any,
     transaction: Any = None,
     *,
+    item: Any = None,
     affect_on_hand: bool = False,
 ) -> Dict[str, float]:
     """Build the full bucket envelope for one pending record.
 
     `quantity` is signed by the caller: positive to commit, negative to release.
+
+    A not-tracked item (flags.not_tracked: labor, freight) holds no stock, so every
+    bucket stays zero and the caller writes no Pending. Its cost rides on the line.
 
     affect_on_hand is True only for a line ADD, where an invoice also decrements
     on_hand. Quantity changes and deletes leave an invoice's on_hand alone, which
@@ -415,7 +419,7 @@ def quantity_bucket_deltas(
     """
     deltas: Dict[str, float] = {bucket: 0 for bucket in QUANTITY_BUCKETS}
     bucket = PENDING_TYPE_BUCKET.get(pending_type)
-    if bucket is None:
+    if bucket is None or (item is not None and item.is_not_tracked):
         return deltas
 
     qty = float(quantity or 0)

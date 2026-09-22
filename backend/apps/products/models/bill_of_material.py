@@ -8,6 +8,29 @@ from common.models import BaseModel
 from .item import Item
 
 
+def component_unit_cost(item) -> Decimal | None:
+    """The unit cost a BOM line carries for one component.
+
+    A not-tracked component (labor, freight) has no layers and no average; its
+    cost is the rate the user set in cost.standard. A stocked component takes
+    the first populated of avg → standard → last → landed: avg reflects rolling
+    actuals, standard is policy, last is the latest receipt, landed may be noisy
+    with freight allocations.
+    """
+    cost = getattr(item, 'cost', None)
+    if not isinstance(cost, dict):
+        return None
+    keys = ("standard",) if item.is_not_tracked else ("avg", "standard", "last", "landed")
+    for key in keys:
+        raw = cost.get(key)
+        if raw is not None:
+            try:
+                return Decimal(str(raw))
+            except Exception:
+                continue
+    return None
+
+
 class BillOfMaterial(BaseModel):
 
     parent_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this BOM line")
@@ -110,25 +133,7 @@ class BillOfMaterial(BaseModel):
         # Capture cost snapshot on create
         component_pk = self.child_item.pk if self.child_item else None
         if creating and self.cost_snapshot is None and component_pk:
-            val = getattr(self.child_item, 'cost', None)
-            if isinstance(val, dict):
-                # Cost precedence order:
-                # We intentionally probe keys in this fixed sequence so the first
-                # populated value becomes the snapshot. Treat the first non-null as
-                # the "authoritative" unit cost for BOM purposes.
-                # Default order (highest priority first): avg → standard → last → landed.
-                # Rationale: avg typically reflects rolling actuals; if absent fall back
-                # to standard cost policy; if neither present try last receipt; finally
-                # landed (may be noisy with freight allocations). Reordering this tuple
-                # lets an implementation shift precedence without schema changes.
-                for key in ("avg", "standard", "last", "landed"):
-                    raw = val.get(key)
-                    if raw is not None:
-                        try:
-                            self.cost_snapshot = Decimal(str(raw))
-                            break
-                        except Exception:
-                            continue
+            self.cost_snapshot = component_unit_cost(self.child_item)
             self.dt_last_recalc = timezone.now()
         super().save(*args, **kwargs)
         # Denormalize BOM into parent item.refs.bom[]
@@ -299,18 +304,11 @@ class BillOfMaterial(BaseModel):
                     )
                 else:
                     # Leaf or depth limit: use component's own cost
+                    # A not-tracked component (labor, freight) re-reads its rate:
+                    # its snapshot may predate the rate the user set.
                     unit_cost = line.cost_snapshot
-                    if unit_cost is None:
-                        comp_cost = getattr(line.child_item, 'cost', None)
-                        if isinstance(comp_cost, dict):
-                            for key in ("avg", "standard", "last", "landed"):
-                                raw = comp_cost.get(key)
-                                if raw is not None:
-                                    try:
-                                        unit_cost = _D(str(raw))
-                                        break
-                                    except Exception:
-                                        continue
+                    if unit_cost is None or line.child_item.is_not_tracked:
+                        unit_cost = component_unit_cost(line.child_item)
                     if unit_cost is None:
                         continue
 

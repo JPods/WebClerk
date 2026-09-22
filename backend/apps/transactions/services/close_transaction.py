@@ -119,7 +119,11 @@ def close_transaction(model_name: str, pk: int, *, reason: str, acted_by: str,
                                    model_name, pk, line.pk)
                     continue
 
-                deltas = quantity_bucket_deltas(pending_type, -remaining, header)
+                Item = dj_apps.get_model('products', 'Item')
+                deltas = quantity_bucket_deltas(pending_type, -remaining, header,
+                                                item=Item.objects.filter(pk=item_id).first())
+                if not any(deltas.values()):
+                    continue                # not tracked: nothing was committed
                 Pending.objects.create(
                     model_name='item',
                     record_id=str(item_id),
