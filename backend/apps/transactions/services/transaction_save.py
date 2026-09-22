@@ -32,6 +32,7 @@ import logging
 from django.db import transaction as db_transaction
 
 from common.schemas.carrier import read_carrier
+from common.decimals import safe_decimal as _d
 
 if TYPE_CHECKING:
     from django.db.models import Model

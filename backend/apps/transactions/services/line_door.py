@@ -9,8 +9,7 @@ A line's **footprint** is what it holds of an item, as a pure function of the li
 
     commitment (on_qt / on_so / on_po / on_wo)  = quantity.remaining   (a quote's weighted)
     invoice                                     = on_in +active, on_hand −active
-    receipt                                     = on_rc +active, on_hand +active,
-                                                  and on_po −active against a purchase
+    receipt                                     = on_rc +active, on_hand +active
     a not-tracked item, or a count workorder     = nothing at all
 
 The door writes `after − before`. An add is `before = {}`, a delete is `after = {}`, and a change
@@ -86,9 +85,8 @@ def footprint(item_id: Optional[int], quantity: Dict[str, Any], header, line=Non
     elif bucket == 'on_rc':                     # a receipt puts them on the shelf
         held['on_rc'] = active
         held['on_hand'] = active
-        if (getattr(header, 'parent_model', None) == 'purchase'
-                and getattr(header, 'parent_id', None)):
-            held['on_po'] = -active
+        # on_po is NOT released here: receiving drops the purchase line's remaining, and that
+        # line's own door releases its commitment. Claiming it here released it twice.
     else:                                       # a commitment follows what is left to fill
         weight = forecast_probability(header) if bucket == 'on_qt' else 1.0
         held[bucket] = remaining * weight
