@@ -41,8 +41,7 @@ from django.forms.models import model_to_dict
 
 from apps.core.constants.model_registry import (get_model, normalize_table_key,
                                                 to_model_name)
-from apps.core.models import Contact
-from common.models import LINK_DENORMALIZE_FIELDS
+from apps.core.services.behaviours import SaveContext, behaviour_for
 
 console_logger = logging.getLogger('console')
 logger = logging.getLogger(__name__)
@@ -440,12 +439,15 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
 
     data = _authorize(actor, obj, model_cls, model_key, data, is_update)
     size_warnings = _assign(obj, data, model_cls, model_key, norm_key, is_update)
+
+    # The branch — WC2's `Case of` on the table, dispatched by name. What a particular
+    # model does; everything after it is what every model gets.
+    ctx = SaveContext(actor=actor, obj=obj, data=data, model_key=model_key,
+                      is_update=is_update)
+    behaviour = behaviour_for(model_key)
+    behaviour.before(ctx)
     _before(actor, obj, model_key, data, is_update)
 
-    # Settings validate in save(); the door is what authorizes them.
-    if model_key == 'setting':
-        obj._setting_update_authorized = True
-        obj._setting_create_authorized = True
     try:
         obj.save()
     except DjangoValidationError as e:
@@ -456,7 +458,8 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
         console_logger.warning("[SAVE] Validation failed on %s: %s", model_key, flat)
         raise Refused(400, 'validation_failed', 'Validation failed', flat)
 
-    linked = _post_persist(actor, obj, data, model_key)
+    _post_persist(obj, data, model_key)
+    behaviour.after(ctx)
     note = _after(actor, obj, model_key, data, is_update)
 
     # Keywords are updated synchronously so the response carries the current ones.
@@ -480,7 +483,7 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
 
     result = SaveResult(
         obj=obj, obj_id=getattr(obj, 'id', None), model_key=model_key, created=created,
-        record=record, version=getattr(obj, 'version', None), linked=linked,
+        record=record, version=getattr(obj, 'version', None), linked=ctx.linked,
         messages=messages,
         warning=_setting_warning(actor, model_key, obj),
         sync=_queue_remote_sync(model_key, getattr(obj, 'id', None)),
@@ -508,8 +511,9 @@ def _saved_search_guard(actor: Actor, model_cls, model_key: str, data: dict, rec
                       'Only admin users can create or update saved searches', None)
 
 
-def _post_persist(actor: Actor, obj, data: dict, model_key: str) -> bool:
-    """What the record's own save leaves for the door: org links, lines, contact links."""
+def _post_persist(obj, data: dict, model_key: str) -> None:
+    """The tail every record gets, whatever it is: its org links denormalized, and its
+    lines processed. WC2 ran this unconditionally after the case; so does this."""
     try:
         from apps.transactions.services.denormalize_org_links import denormalize_org_links
         if denormalize_org_links(obj, model_key):
@@ -520,72 +524,6 @@ def _post_persist(actor: Actor, obj, data: dict, model_key: str) -> bool:
     # A source line's own door writes its release, so nothing is passed here.
     from apps.core.services.save_line_processing import process_lines
     process_lines(obj, data, model_key, adjust_source_fn=None)
-
-    linked = False
-    if model_key.lower() in {'email', 'phone', 'address', 'domain'} and actor.user is not None:
-        bucket = model_key.lower()
-        contact = Contact.objects.filter(pk=getattr(actor.user, 'pk', None)).first() \
-            if getattr(actor.user, 'is_authenticated', False) else None
-        if contact:
-            from apps.core.services.save_contact_linking import link_comm_to_contact
-            fields = LINK_DENORMALIZE_FIELDS.get(bucket, ['id']) or ['id']
-            linked = link_comm_to_contact(obj, contact, bucket, fields)
-            _persist_deferred_contact_refs(obj, contact, bucket)
-
-    if model_key == 'action' and actor.user_id:
-        _action_links(obj, data, actor.user_id)
-    return linked
-
-
-def _persist_deferred_contact_refs(obj, contact, bucket: str) -> None:
-    if not getattr(contact, '_refs_pending_save', False):
-        return
-    try:
-        contact.save(update_fields=['refs', 'version', 'dt_modified'])
-        contact.refresh_from_db()
-        from apps.core.services.save_contact_linking import link_obj_to_contact
-        if link_obj_to_contact(obj, contact):
-            obj.save(update_fields=['refs', 'version', 'dt_modified'])
-        from common.refs.links import ensure_bidirectional
-        ensure_bidirectional(contact, obj, kind='contact')
-    except Exception as e:  # noqa: BLE001
-        console_logger.error("[SAVE] Error saving deferred contact refs: %s", e)
-    finally:
-        try:
-            delattr(contact, '_refs_pending_save')
-        except Exception:  # noqa: BLE001
-            pass
-
-
-def _action_links(obj, data: dict, user_id) -> None:
-    """An action links to who filed it, schedules from its parents, and pushes its
-    children when its own dates move."""
-    from apps.core.services.action_links import (append_contact_link,
-                                                 auto_schedule_from_parents,
-                                                 check_and_reschedule_children)
-    try:
-        append_contact_link(obj, user_id)
-    except Exception as e:  # noqa: BLE001
-        console_logger.error("[SAVE] Failed to append contact link: %s", e)
-
-    try:
-        refs_obj = getattr(obj, 'refs', {}) or {}
-        if isinstance(refs_obj, dict) and refs_obj.get('parents'):
-            scheduled = auto_schedule_from_parents(obj, save=True)
-            if scheduled.get('updated'):
-                console_logger.info("[SAVE] Auto-scheduled action %s to %s",
-                                    obj.id, scheduled.get('dt_start'))
-    except Exception as e:  # noqa: BLE001
-        console_logger.error("[SAVE] Failed to auto-schedule action: %s", e)
-
-    try:
-        if 'dt_start' in data or 'duration' in data:
-            rescheduled = check_and_reschedule_children(obj, save=True)
-            if rescheduled:
-                console_logger.info("[SAVE] Rescheduled %s children of action %s",
-                                    len(rescheduled), obj.id)
-    except Exception as e:  # noqa: BLE001
-        console_logger.error("[SAVE] Failed to cascade reschedule children: %s", e)
 
 
 def _setting_warning(actor: Actor, model_key: str, obj) -> Optional[str]:

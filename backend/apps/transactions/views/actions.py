@@ -20,7 +20,15 @@ from apps.transactions.services.transaction_flow import (
     receive_purchase,
     ReceiveLine,
 )
-from apps.transactions.views.line_views import BasePermission
+from apps.core.permissions import ViewEditPermission
+
+
+class BasePermission(ViewEditPermission):
+    """Auth plus the view_edit rule (ViewEditPermission already checks auth).
+
+    Moved here 2026-09-22 from line_views, which was a second CRUD door for lines and
+    was deleted with it.
+    """
 from django.utils import timezone
 from django.db import transaction
 
