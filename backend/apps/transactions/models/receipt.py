@@ -4,7 +4,7 @@ from apps.transactions.models.base_transaction_model import (
     TransactionBaseModel, default_totals,
 )
 
-# How header landed costs are spread over the receipt's lines.
+# How each header landed cost is spread over the receipt's lines (allocations.method.<component>).
 ALLOCATION_CHOICES = [
     ('value', 'By Value (cost-proportional)'),
     ('weight', 'By Weight'),
@@ -24,8 +24,10 @@ def default_receipt_totals() -> dict:
 
 def default_receipt_allocations() -> dict:
     """Landed costs are document-level inputs, spread over the lines by the totals
-    engine — the AP mirror of a sell document's shipping and other allocations."""
-    return {"freight": 0, "duty": 0, "handling": 0, "vat": 0, "method": "value"}
+    engine — the AP mirror of a sell document's shipping and other allocations.
+    Each component names its own basis (Bill, 2026-09-21); value is the default."""
+    return {"freight": 0, "duty": 0, "handling": 0, "vat": 0,
+            "method": {"freight": "value", "duty": "value", "handling": "value", "vat": "value"}}
 
 
 class Receipt(TransactionBaseModel):

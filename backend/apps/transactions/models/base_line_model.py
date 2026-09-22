@@ -320,6 +320,15 @@ def normalize_cost_map(c: Dict[str, Any] | None) -> Dict[str, Any]:
         except Exception:
             out["tax_code_id"] = 0
 
+    # A receipt line's pinned landed-cost shares (D02). Validated, never coerced:
+    # a bad pin is refused, because it decides where money lands.
+    pins = c.get("landed_override")
+    if pins:
+        from common.schemas.transaction_envelopes import LandedOverride
+        pins = LandedOverride(**pins).model_dump(exclude_none=True)
+        if pins:
+            out["landed_override"] = pins
+
     return out
 
 

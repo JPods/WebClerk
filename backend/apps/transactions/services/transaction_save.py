@@ -437,6 +437,9 @@ def calculate_header_totals(
             price=line.get('price') or {},
             cost=line.get('cost') or {},
             tax=line.get('tax') or {},
+            physical=line.get('physical') or {},
+            item=line.get('item') or {},
+            line_number=line.get('line_number'),
         )
         for line in lines
         if not (line.get('item') or {}).get('is_deleted')

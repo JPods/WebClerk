@@ -14,6 +14,8 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
+from django.core.exceptions import ValidationError
+
 logger = logging.getLogger(__name__)
 
 
@@ -118,6 +120,17 @@ def recalculate_totals(
         }
         header.metadata = meta
 
+    # ── Landed-cost audit trail: which basis each component used, and why ──
+    if computed['landed_decisions']:
+        meta = getattr(header, 'metadata', None) or {}
+        if not isinstance(meta, dict):
+            meta = {}
+        meta['landed_decisions'] = {
+            'dt': datetime.now(timezone.utc).isoformat(),
+            'components': computed['landed_decisions'],
+        }
+        header.metadata = meta
+
     # ── Validate against Pydantic schema (PJPV Layer 1) ─────────
     totals = _validate_totals(totals)
 
@@ -125,7 +138,7 @@ def recalculate_totals(
     header.totals = totals
 
     update_fields = ['totals']
-    if tax_decisions:
+    if tax_decisions or computed['landed_decisions']:
         update_fields.append('metadata')
     header.save(update_fields=update_fields)
 
@@ -137,6 +150,9 @@ def recalculate_totals(
             new = computed['line_totals'].get(line.pk)
             if new is not None and new != (line.totals or {}):
                 LineModel.objects.filter(pk=line.pk).update(totals=new)
+
+    if model_name == 'receipt':
+        _land_on_layers(lines, computed['line_totals'])
 
     # A ledger echoes its primary record: rebuild whenever the total changes.
     if _d(old_total) != _d(totals['total']):
@@ -164,6 +180,51 @@ def recalculate_totals(
         'margin_pc': totals['margin_pc'],
         'lines_recalculated': computed['lines_recalculated'],
     }
+
+
+def landed_layer_cost(totals, qty) -> Optional[Dict[str, float]]:
+    """A receipt line's per-unit layer cost from its computed totals — the one formula.
+
+    The discounted unit plus each landed share ÷ qty, so what inventory is carried at
+    equals what we owe the vendor. None when the line has no totals or no quantity yet.
+    """
+    qty = _d(qty or 0, places=6)
+    if not isinstance(totals, dict) or not totals or not qty:
+        return None
+    shares = totals.get('landed') or {}
+    cost = {k: float(_d(_d(shares.get(k, 0) or 0) / qty, places=4)) for k in LANDED_COMPONENTS}
+    cost['unit_po'] = float(totals.get('discounted_unit', 0) or 0)
+    return cost
+
+
+def _land_on_layers(lines, line_totals) -> None:
+    """Each receipt line's landed shares reach the layer it created — through a Pending.
+
+    A layer's cost moves the way its quantity does: one ``inventory_cost_change`` Pending
+    per changed line, applied under the item's lock by ``Pending._apply_layer`` (Fable,
+    D02). A locked item or layer leaves the Pending open for celery; nothing is lost.
+    Units already issued took the old cost; that gap is D13 (late landed cost), logged here.
+    """
+    from apps.core.models.pending import Pending
+    for line in lines:
+        layer = getattr(line, 'inventory_layer', None)
+        qty = (getattr(line, 'quantity', None) or {}).get('active', 0)
+        cost = landed_layer_cost(line_totals.get(line.pk), qty)
+        if layer is None or cost is None:
+            continue
+        have = layer.cost or {}
+        if all(float(have.get(k, 0) or 0) == v for k, v in cost.items()):
+            continue
+        issued = float((layer.quantity or {}).get('issued', 0) or 0)
+        if issued:
+            logger.warning("[D13] layer %s: landed cost changed after %s of its units were issued; "
+                           "their share did not reach COGS", layer.pk, issued)
+        Pending.objects.create(
+            model_name='item', record_id=str(layer.item_id), purpose='inventory_cost_change',
+            name=f"landed cost: receipt line {line.pk}"[:120],
+            changes={'item_id': layer.item_id, 'line_id': line.pk, 'reason': 'landed cost',
+                     'layer': {'layer_id': layer.pk, 'cost': cost}},
+        )
 
 
 def _customer_is_exempt(customer_id) -> bool:
@@ -215,6 +276,80 @@ def _allocate(total: Decimal, weights: List[Decimal]) -> List[Decimal]:
         shares.append(share)
         given += share
     return shares
+
+
+LANDED_COMPONENTS = ('freight', 'duty', 'handling', 'vat')
+LANDED_BASES = ('value', 'weight', 'quantity')
+_TO_KG = {'kg': Decimal(1), 'g': Decimal('0.001'), 'lb': Decimal('0.45359237'),
+          'lbs': Decimal('0.45359237'), 'oz': Decimal('0.028349523125')}
+
+
+def _unit_weight_kg(line) -> Optional[Decimal]:
+    """One unit's weight in kg from line.physical.weight = {value, unit}. None when absent."""
+    weight = (getattr(line, 'physical', None) or {}).get('weight')
+    if not isinstance(weight, dict):
+        return None
+    value = _d(weight.get('value', 0) or 0, places=6)
+    if value <= 0:
+        return None
+    unit = (weight.get('unit') or '').strip().lower()
+    if unit not in _TO_KG:
+        raise ValidationError(
+            f"{_line_label(line)}: weight unit '{unit}' is not one of {', '.join(sorted(_TO_KG))} — "
+            "set it before spreading by weight.")
+    return value * _TO_KG[unit]
+
+
+def _line_label(line) -> str:
+    return f"line {getattr(line, 'line_number', None) or getattr(line, 'pk', None) or '?'}"
+
+
+def _spread_landed(comp: str, total: Decimal, basis: str, goods, amounts):
+    """Spread one landed cost over a receipt's product lines — the only landed-cost spreader.
+
+    The user's pins (cost.landed_override.<comp>) are taken as typed; the remainder
+    spreads over the unpinned lines by ``basis`` in exact cents. Refuses, rather than
+    guesses, when the pins cannot add up to the header amount. Returns (shares in
+    goods order, decision) — the decision is the audit record of what was done and why.
+    """
+    if basis not in LANDED_BASES:
+        raise ValidationError(f"allocations.method.{comp} is '{basis}'; use one of {', '.join(LANDED_BASES)}.")
+    pins = {}
+    for line, *_ in goods:
+        pin = ((getattr(line, 'cost', None) or {}).get('landed_override') or {}).get(comp)
+        if pin is not None:
+            pins[id(line)] = _d(pin)
+    pinned = sum(pins.values(), Decimal(0))
+    if pinned > total:
+        raise ValidationError(
+            f"The lines pin {pinned} of {comp}, but the receipt's {comp} is {total}. "
+            f"Lower a pinned share or raise the receipt's {comp}.")
+    free = [g for g in goods if id(g[0]) not in pins]
+    if goods and not free and pinned != total:
+        raise ValidationError(
+            f"Every line pins its {comp} and they add to {pinned}, not the receipt's {total}. "
+            f"Clear one pin so that line takes the remainder, or make the pins add up.")
+
+    used, reason = basis, ''
+    if basis == 'weight':
+        kgs = [(g, _unit_weight_kg(g[0])) for g in free]
+        missing = [_line_label(g[0]) for g, kg in kgs if kg is None]
+        if missing:
+            used, reason = 'value', f"no weight on {', '.join(missing)}"
+    if used == 'weight':
+        weights = [g[1] * kg for g, kg in kgs]
+    elif used == 'quantity':
+        weights = [g[1] for g in free]
+    else:
+        weights = [amounts[id(g[0])] for g in free]
+
+    spread = dict(zip((id(g[0]) for g in free), _allocate(total - pinned, weights)))
+    shares = [pins.get(id(line), spread.get(id(line), Decimal(0))) for line, *_ in goods]
+    if total and not goods:
+        reason = 'no product lines yet — nothing to carry it'
+    decision = {'component': comp, 'amount': float(total), 'basis': basis, 'basis_used': used,
+                'pinned': float(pinned), 'pinned_lines': len(pins), 'reason': reason}
+    return shares, decision
 
 
 def _discounted_unit(unit: Decimal, qty: Decimal, pct: Decimal, flat: Decimal, places: int) -> Decimal:
@@ -276,12 +411,11 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
     doc_other = _d(alloc.get('other', 0))
     # A receipt's landed costs are its document allocations — the AP mirror of
     # shipping and other on a sell document. They spread over the lines, so what we
-    # owe the vendor is still Σ line totals (Bill, 2026-09-19).
+    # owe the vendor is still Σ line totals (Bill, 2026-09-19). Each spreads by its own
+    # basis after the user's pins (Bill, 2026-09-21) — see _spread_landed below.
     landed = {}
     if model_name == 'receipt':
-        landed = {k: _d(alloc.get(k, 0) or 0) for k in ('freight', 'duty', 'handling', 'vat')}
-        doc_shipping += landed['freight']
-        doc_other += landed['duty'] + landed['handling'] + landed['vat']
+        landed = {k: _d(alloc.get(k, 0) or 0) for k in LANDED_COMPONENTS}
 
     def num(env, key, places=2):
         return _d((env or {}).get(key, 0) or 0, places=places)
@@ -380,6 +514,25 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
         lt['shipping'] += s_share
         lt['other'] += o_share
 
+    # ── A receipt's landed costs: freight into shipping, the rest into other ──
+    landed_decisions: List[Dict[str, Any]] = []
+    if model_name == 'receipt':
+        methods = alloc.get('method')
+        if methods is None:
+            methods = {}
+        if not isinstance(methods, dict):
+            raise ValidationError(
+                "allocations.method names a basis for each landed cost, e.g. "
+                "{'freight': 'weight', 'duty': 'value'} — not a single word.")
+        for comp in LANDED_COMPONENTS:
+            shares, decision = _spread_landed(comp, landed[comp], methods.get(comp) or 'value',
+                                              goods, amounts)
+            landed_decisions.append(decision)
+            for (line, *_), share in zip(goods, shares):
+                lt = line_totals[id(line)]
+                lt.setdefault('landed', {})[comp] = float(share)
+                lt['shipping' if comp == 'freight' else 'other'] += share
+
     # ── Non-product lines ─────────────────────────────────────────────
     for line in lines:
         lt_type = getattr(line, 'line_type', 'product') or 'product'
@@ -448,6 +601,7 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
         'is_exempt': is_exempt,
         'header_rate': float(header_tax_rate),
         'jurisdiction': tax_jurisdiction_name,
+        'landed_decisions': landed_decisions,
         'lines_recalculated': len(line_totals),
     }
 

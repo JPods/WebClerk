@@ -191,11 +191,23 @@ class Pending(CoreModel):
         if data.get('type_id') == 'RC' and on_hand and not spec:
             raise ValidationError({'layer': f'Pending {self.pk} moves on_hand by {on_hand} '
                                             'for a receipt and names no layer'})
-        if not spec or not on_hand:
-            return
-
         from apps.products.models.inventory_layer import InventoryLayer, InventoryMovement
         from apps.products.services.inventory.inventory_layers import create_layer, recalc_average_cost
+
+        if spec and spec.get('cost'):
+            # A layer's cost moves like its quantity: under the item's lock, or not at all.
+            layer = InventoryLayer.objects.select_for_update(nowait=True).get(pk=spec['layer_id'])
+            if layer.is_locked:
+                raise LayerLocked(layer.pk)
+            c = spec['cost']
+            layer.update_cost_after_receipt(
+                c['unit_po'], freight=c.get('freight', 0), duty=c.get('duty', 0),
+                handling=c.get('handling', 0), vat=c.get('vat', 0))
+            layer.save(update_fields=['cost', 'dt_modified', 'version'])
+            recalc_average_cost(item_id)
+
+        if not spec or not on_hand:
+            return
 
         if spec.get('layer_id'):
             layer = InventoryLayer.objects.select_for_update(nowait=True).select_related(
@@ -229,11 +241,24 @@ class Pending(CoreModel):
         if on_hand <= 0:
             raise ValidationError({'layer': f'Pending {self.pk} would create a layer '
                                             f'holding {on_hand}'})
+        # A receipt line's layer is born at the line's landed cost when its totals exist
+        # by the time this applies (a queued apply) — else the next recalc's
+        # inventory_cost_change lands it.
+        landed = {}
+        if spec.get('line_id'):
+            from apps.transactions.models import ReceiptLine
+            from apps.transactions.services.pricing.totals_compute import landed_layer_cost
+            line = ReceiptLine.objects.filter(pk=spec['line_id']).first()
+            landed = (line and landed_layer_cost(line.totals, (line.quantity or {}).get('active'))) or {}
         layer = create_layer(
             item_id,
             create['warehouse_id'],
             on_hand,
-            Decimal(str(create.get('unit_cost') or 0)),
+            Decimal(str(landed.get('unit_po', create.get('unit_cost')) or 0)),
+            freight=Decimal(str(landed.get('freight', 0))),
+            duty=Decimal(str(landed.get('duty', 0))),
+            handling=Decimal(str(landed.get('handling', 0))),
+            vat=Decimal(str(landed.get('vat', 0))),
             source_doc_type=create.get('source_doc_type', ''),
             source_doc_id=create.get('source_doc_id'),
             lot=create.get('lot', ''),

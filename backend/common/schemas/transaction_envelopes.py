@@ -21,7 +21,7 @@ Architecture (established 2026-08-23):
 
 See: readmes/topics/architecture/pjpv-architecture.md
 """
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 
@@ -594,6 +594,45 @@ class LinePrice(BaseModel):
         extra = "forbid"
 
 
+LANDED_COMPONENTS = ('freight', 'duty', 'handling', 'vat')
+LandedBasis = Literal['value', 'weight', 'quantity']
+
+
+class LandedMethod(BaseModel):
+    """How each of a receipt's landed costs spreads over its lines (Bill, 2026-09-21).
+
+    value    — by the line's amount (qty × discounted unit cost); the default
+    weight   — by qty × the line's unit weight; a line with no weight sends the whole
+               component back to value, and the decision says so
+    quantity — by qty received
+    """
+    freight: LandedBasis = Field('value', title="Freight By", json_schema_extra={'widget': 'text'})
+    duty: LandedBasis = Field('value', title="Duty By", json_schema_extra={'widget': 'text'})
+    handling: LandedBasis = Field('value', title="Handling By", json_schema_extra={'widget': 'text'})
+    vat: LandedBasis = Field('value', title="VAT By", json_schema_extra={'widget': 'text'})
+
+    class Config:
+        extra = "forbid"
+
+
+class LandedOverride(BaseModel):
+    """A line's landed-cost share typed by the user. A component left empty is spread
+    by the header's method over the lines that have not pinned it. The pins on a
+    component may not exceed the header amount, and when every line pins it they must
+    add to it exactly — otherwise the save is refused."""
+    freight: Optional[float] = Field(None, ge=0, title="Freight (pinned)",
+        json_schema_extra={'widget': 'currency', 'precision': 2})
+    duty: Optional[float] = Field(None, ge=0, title="Duty (pinned)",
+        json_schema_extra={'widget': 'currency', 'precision': 2})
+    handling: Optional[float] = Field(None, ge=0, title="Handling (pinned)",
+        json_schema_extra={'widget': 'currency', 'precision': 2})
+    vat: Optional[float] = Field(None, ge=0, title="VAT (pinned)",
+        json_schema_extra={'widget': 'currency', 'precision': 2})
+
+    class Config:
+        extra = "forbid"
+
+
 class LineCost(BaseModel):
     """Line cost envelope — all lines (sell-side and exec-side).
 
@@ -661,6 +700,11 @@ class LineCost(BaseModel):
         0, title="Tax Lookup ID",
         json_schema_extra={'widget': 'number'},
     )
+    landed_override: Optional[LandedOverride] = Field(
+        None, title="Landed Override",
+        description="Receipt lines: landed-cost shares the user pinned; the rest spread by the header's method",
+        json_schema_extra={'widget': 'json-tree'},
+    )
     custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
     class Config:
@@ -708,6 +752,17 @@ def _money(title, description):
                  json_schema_extra={'widget': 'currency', 'precision': 2, 'readonly': True})
 
 
+class LandedShares(BaseModel):
+    """The line's share of each landed cost — written only by the totals engine."""
+    freight: float = _money("Freight", "Its share of the receipt's freight; adds into shipping")
+    duty: float = _money("Duty", "Its share of the receipt's duty; adds into other")
+    handling: float = _money("Handling", "Its share of the receipt's handling; adds into other")
+    vat: float = _money("VAT", "Its share of the receipt's VAT; adds into other")
+
+    class Config:
+        extra = "forbid"
+
+
 class LineTotals(BaseModel):
     """The results of a line's math, written only by the totals engine.
 
@@ -731,13 +786,17 @@ class LineTotals(BaseModel):
     cost: float = _money("Cost", "qty × discounted unit cost")
     margin: float = _money("Margin", "amount − cost")
     total: float = _money("Total", "amount + tax + shipping + other + finance_charge")
+    landed: Optional[LandedShares] = Field(None, title="Landed",
+        description="Receipt lines only: the share of each landed cost inside shipping and other",
+        json_schema_extra={'widget': 'json-tree', 'readonly': True})
 
     class Config:
         extra = "allow"
 
 
 class TransactionAllocations(BaseModel):
-    """Document-level inputs the totals engine spreads over the lines by amount."""
+    """Document-level inputs the totals engine spreads over the lines — by amount, except
+    a receipt's landed costs, which spread by allocations.method per component."""
     discount_percent: float = Field(0.0, title="Discount %",
         description="A discount on the whole document, as a percent of each line's discounted unit",
         json_schema_extra={'widget': 'number', 'precision': 4})
@@ -764,9 +823,9 @@ class TransactionAllocations(BaseModel):
     vat: float = Field(0.0, title="VAT",
         description="Receipt VAT, spread over the lines — lands in line totals.other",
         json_schema_extra={'widget': 'currency', 'precision': 2})
-    method: str = Field('value', title="Allocation Method",
-        description="How landed costs spread over the lines: value | weight | quantity",
-        json_schema_extra={'widget': 'text'})
+    method: LandedMethod = Field(default_factory=LandedMethod, title="Allocation Method",
+        description="How each landed cost spreads over the lines the user has not pinned",
+        json_schema_extra={'widget': 'json-tree'})
 
     class Config:
         extra = "forbid"
