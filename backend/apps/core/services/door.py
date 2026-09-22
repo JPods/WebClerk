@@ -32,8 +32,18 @@ class Actor:
     down rather than assumed from an absence.
     """
     user: Any = None
-    kind: str = 'user'          # user | system | sync
+    kind: str = 'user'          # user | staff | system | sync
     source: str = 'wcapi'       # wcapi | admin | command | task | sync
+
+    #: A person is writing, so every guard written for a person applies: edit filters,
+    #: the staff-only models, the write policy, the contact account guard. 'staff' is a
+    #: person at the admin, not an exemption — the bug it fixes (2026-09-22) was admin
+    #: saves skipping all of it because the kind was not 'user'.
+    PERSON_KINDS = ('user', 'staff')
+
+    @property
+    def is_person(self) -> bool:
+        return self.kind in self.PERSON_KINDS
 
     @classmethod
     def from_request(cls, request, source: str = 'wcapi') -> 'Actor':

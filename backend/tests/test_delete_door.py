@@ -118,3 +118,17 @@ def test_admin_save_goes_through_the_door(rf):
     assert seen['actor'].kind == 'staff' and seen['actor'].source == 'admin'
     assert seen['data']['model_name'] == 'item'
     assert Item.objects.filter(ida='zz-del-admin').exists()
+
+
+def test_a_staff_actor_is_a_person_and_meets_the_guards():
+    """The bug this catches: admin_door built Actor(kind='staff'), and _authorize
+    returned early for any kind that was not 'user'. So an admin save skipped the edit
+    filters, the write policy and the contact guard — a staff backdoor, by accident,
+    inside the change that was meant to close them (found by allie-36's audit,
+    2026-09-22)."""
+    from apps.core.services.door import Actor
+
+    assert Actor(kind='staff').is_person is True
+    assert Actor(kind='user').is_person is True
+    assert Actor.system().is_person is False
+    assert Actor(kind='sync').is_person is False

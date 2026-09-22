@@ -30,6 +30,7 @@ Plan and review: Allie ``readmes/assessments/2026-09-22-save-door-steps-1-2.md``
 """
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Type, cast
@@ -41,6 +42,7 @@ from django.forms.models import model_to_dict
 
 from apps.core.services.behaviours import SaveContext, behaviour_for
 from apps.core.services.door import Actor, Refused, SaveResult, resolve_model
+from apps.core.services.unit_of_work import unit_of_work
 
 console_logger = logging.getLogger('console')
 logger = logging.getLogger(__name__)
@@ -93,7 +95,10 @@ def _authorize(actor: Actor, obj, model_cls, model_key: str, data: dict,
     """
     from apps.core.services import access
 
-    if actor.kind != 'user':
+    # A system or sync actor has no role, no edit filters and no portal to re-price for.
+    # A staff actor is a person at the admin, and every guard written for a person
+    # applies to them (Bill: no staff backdoor).
+    if not actor.is_person:
         return dict(data or {})
 
     user = actor.user
@@ -343,6 +348,37 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
     obj, created = _load_or_new(actor, model_cls, model_key, record_id, expected_version)
     is_update = not created
 
+    with unit_of_work():
+        size_warnings, ctx, note = _write(actor, obj, model_cls, model_key, norm_key,
+                                          data, is_update)
+    # Derived work — a document's totals — happened once, on the way out of the unit, so
+    # what is read back here is what the caller will be told.
+    obj.refresh_from_db()
+
+    messages = list(size_warnings)
+    if note:
+        messages.append(note)
+
+    try:
+        record = model_to_dict(obj, fields=[f.name for f in obj._meta.concrete_fields])
+    except Exception as e:  # noqa: BLE001
+        console_logger.warning("[SAVE] Error generating record dict: %s", e)
+        record = {'id': getattr(obj, 'id', None)}
+
+    result = SaveResult(
+        obj=obj, obj_id=getattr(obj, 'id', None), model_key=model_key, created=created,
+        record=record, version=getattr(obj, 'version', None), linked=ctx.linked,
+        messages=messages,
+        warning=_setting_warning(actor, model_key, obj),
+        sync=_queue_remote_sync(model_key, getattr(obj, 'id', None)),
+    )
+    console_logger.info("[SAVE] %s #%s saved by %s actor", model_key, result.obj_id, actor.kind)
+    return result
+
+
+def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: dict,
+           is_update: bool):
+    """Authorize, assign, branch, persist, branch again — inside one unit of work."""
     data = _authorize(actor, obj, model_cls, model_key, data, is_update)
     size_warnings = _assign(obj, data, model_cls, model_key, norm_key, is_update)
 
@@ -368,39 +404,29 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
     behaviour.after(ctx)
     note = _after(actor, obj, model_key, data, is_update)
 
-    # Keywords are updated synchronously so the response carries the current ones.
+    # Keywords are updated synchronously so the response carries the current ones — but
+    # written only if they changed. WC2's tail was `If (Modified record) SAVE RECORD`,
+    # a conditional save; ours was unconditional, which is why a plain create came out
+    # at version 2 (allie-36's WC2 audit, 2026-09-22).
     try:
         update_keywords = getattr(obj, 'update_keywords', None)
         if callable(update_keywords):
+            before = (json.dumps(obj.refs or {}, sort_keys=True, default=str),
+                      json.dumps(obj.metadata or {}, sort_keys=True, default=str))
             update_keywords()
-            obj.save(update_fields=['refs', 'metadata', 'version', 'dt_modified'])
+            after = (json.dumps(obj.refs or {}, sort_keys=True, default=str),
+                     json.dumps(obj.metadata or {}, sort_keys=True, default=str))
+            if after != before:
+                obj.save(update_fields=['refs', 'metadata', 'version', 'dt_modified'])
     except Exception as e:  # noqa: BLE001
         console_logger.error("[SAVE] Error updating keywords: %s", e)
 
-    messages = list(size_warnings)
-    if note:
-        messages.append(note)
-
-    try:
-        record = model_to_dict(obj, fields=[f.name for f in obj._meta.concrete_fields])
-    except Exception as e:  # noqa: BLE001
-        console_logger.warning("[SAVE] Error generating record dict: %s", e)
-        record = {'id': getattr(obj, 'id', None)}
-
-    result = SaveResult(
-        obj=obj, obj_id=getattr(obj, 'id', None), model_key=model_key, created=created,
-        record=record, version=getattr(obj, 'version', None), linked=ctx.linked,
-        messages=messages,
-        warning=_setting_warning(actor, model_key, obj),
-        sync=_queue_remote_sync(model_key, getattr(obj, 'id', None)),
-    )
-    console_logger.info("[SAVE] %s #%s saved by %s actor", model_key, result.obj_id, actor.kind)
-    return result
+    return size_warnings, ctx, note
 
 
 def _saved_search_guard(actor: Actor, model_cls, model_key: str, data: dict, record_id) -> None:
     """A saved search is a global, admin-managed Setting."""
-    if model_key != 'setting' or actor.kind != 'user':
+    if model_key != 'setting' or not actor.is_person:
         return
     purpose = data.get('purpose')
     if purpose is None and record_id:

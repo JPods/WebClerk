@@ -50,7 +50,7 @@ def delete_record(actor: Actor, model_key: str, record_id, *,
 
     model_cls, model_key, _norm = resolve_model(model_key)
 
-    if actor.kind == 'user':
+    if actor.is_person:
         # The role's `delete` flag (wc:model Setting config.access), or superuser for
         # the open-read models.
         from apps.core.services.role_filter import can_delete
@@ -81,7 +81,7 @@ def delete_record(actor: Actor, model_key: str, record_id, *,
 
 
 def _find(actor: Actor, model_cls, model_key: str, record_id, visible_only: bool):
-    if actor.kind != 'user' or not visible_only:
+    if not actor.is_person or not visible_only:
         return model_cls.objects.filter(pk=record_id).first()
     from apps.core.services.record_serialize import get_queryset
     _cls, qs = get_queryset(model_key, user=actor.user)

@@ -395,7 +395,7 @@ class WCAPITransactionSaveView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        denial = _transaction_save_denial(request, model_key.lower(), record_data, lines_data)
+        denial = _transaction_save_denial(request.user, model_key.lower(), record_data, lines_data)
         if denial:
             logging.getLogger(__name__).warning(
                 "Transaction save denied for %s user=%s: %s",

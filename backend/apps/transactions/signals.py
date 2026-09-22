@@ -120,6 +120,31 @@ def register_line_inventory_signals(
 def register_line_header_links(line_model, parent_attr: str, link_key: str):
     """Register post_save signal that maintains ``refs.links.<link_key>`` on the parent header."""
 
+    def _link(header, line_id):
+        refs = _ensure_refs_dict(header.refs)
+        links = refs.setdefault("links", {})
+        lst = links.setdefault(link_key, [])
+        if line_id in lst:
+            return
+        lst.append(line_id)
+        header.refs = refs
+        header.save(update_fields=["refs", "dt_modified", "version"])
+
+    def _link_all(header):
+        """Every line of this header, in one save, at the end of the unit."""
+        header.refresh_from_db(fields=['refs', 'version'])
+        refs = _ensure_refs_dict(header.refs)
+        links = refs.setdefault("links", {})
+        ids = list(line_model.objects.filter(**{parent_attr: header})
+                   .order_by('id').values_list('id', flat=True))
+        current = links.get(link_key) or []
+        merged = current + [i for i in ids if i not in current]
+        if merged == current:
+            return
+        links[link_key] = merged
+        header.refs = refs
+        header.save(update_fields=["refs", "dt_modified", "version"])
+
     @receiver(post_save, sender=line_model)
     def maintain_header_links(sender, instance, created, **kwargs):
         if not created:
@@ -127,13 +152,14 @@ def register_line_header_links(line_model, parent_attr: str, link_key: str):
         header = getattr(instance, parent_attr, None)
         if not header:
             return
-        refs = _ensure_refs_dict(header.refs)
-        links = refs.setdefault("links", {})
-        lst = links.setdefault(link_key, [])
-        if instance.id not in lst:
-            lst.append(instance.id)
-            header.refs = refs
-            header.save(update_fields=["refs", "dt_modified", "version"])
+        # A header's link list is the header's, not each line's: inside a unit of work
+        # the whole list is written once, on the way out (save-path review, 2026-09-22).
+        from apps.core.services import unit_of_work as uow
+
+        key = ('links', header._meta.model_name, header.pk, link_key)
+        if uow.defer(key, lambda: _link_all(header)):
+            return
+        _link(header, instance.id)
 
 
 def register_line_totals_signals(line_model, parent_attr: str):
@@ -162,19 +188,35 @@ def register_line_totals_signals(line_model, parent_attr: str):
             recalculate_totals(parent.pk, parent._meta.model_name)
             parent.refresh_from_db(fields=['totals'])
 
+    def _recalc_once(parent, instance=None):
+        """A document's totals belong to the document, not to each line of it.
+
+        Inside a unit of work this is marked and done once when the unit closes, so
+        saving five lines recomputes the invoice once and bumps its version once instead
+        of five times (save-path review, 2026-09-22). Outside one — a bare line.save()
+        anywhere in the codebase — it happens immediately, exactly as before.
+        """
+        from apps.core.services import unit_of_work as uow
+
+        key = (parent._meta.model_name, parent.pk)
+        if uow.defer(key, lambda: _recalc(parent)):
+            return
+        _recalc(parent)
+        if instance is not None:
+            # The engine wrote this line's totals; the caller holds this instance.
+            instance.refresh_from_db(fields=['totals'])
+
     @receiver(post_save, sender=line_model)
     def update_totals_on_save(sender, instance, **kwargs):
         parent = getattr(instance, parent_attr, None)
         if parent:
-            _recalc(parent)
-            # The engine wrote this line's totals to the database; the caller holds this instance.
-            instance.refresh_from_db(fields=['totals'])
+            _recalc_once(parent, instance)
 
     @receiver(post_delete, sender=line_model)
     def update_totals_on_delete(sender, instance, **kwargs):
         parent = getattr(instance, parent_attr, None)
         if parent:
-            _recalc(parent)
+            _recalc_once(parent)
 
 
 # =============================================================================
