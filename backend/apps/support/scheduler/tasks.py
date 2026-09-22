@@ -950,31 +950,7 @@ def _athena_fault(failures):
     path.write_text(fault_text)
 
 
-# ── Alice: Pending Record Archive & Analysis ─────────────────────────
-
-@shared_task(bind=True, max_retries=2, default_retry_delay=120)
-def task_archive_pending(self, batch_size=1000):
-    """Archive processed pending records to external dated storage.
-
-    Nightly task. Extracts applied/canceled/processed pending records
-    from Pending (inventory + generic; cash applications retained). Writes to .local/dated_outside/ as JSONL.gz files
-    organized by type/category/month. Deletes from operational DB.
-    """
-    task_name = 'archive_pending'
-    run = _create_task_run(task_name, self.request.id or '', {'batch_size': batch_size})
-    try:
-        from apps.support.services.pending_archive import archive_processed_pending
-        result = archive_processed_pending(batch_size=batch_size)
-        logger.info("Archive pending complete: %s total records", result.get('total_archived', 0))
-        if run:
-            run.complete(result)
-        return result
-    except Exception as exc:
-        logger.error("Archive pending failed: %s", exc)
-        if run:
-            run.fail(str(exc), traceback.format_exc())
-        self.retry(exc=exc)
-
+# ── Alice: Pending Record Analysis ─────────────────────────
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=120)
 def task_pending_patterns(self):

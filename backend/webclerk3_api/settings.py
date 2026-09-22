@@ -1165,13 +1165,6 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=6, minute=0, day_of_week='monday'),
     },
 
-    # ── Alice: Pending record archive (nightly 1:00 AM) ───────────
-    'alice-archive-pending-nightly': {
-        'task': 'apps.support.scheduler.tasks.task_archive_pending',
-        'schedule': crontab(hour=1, minute=0),
-        'kwargs': {'batch_size': 1000},
-    },
-
     # ── Alice: Inventory pending patterns (weekly Monday 3:00 AM) ─
     'alice-pending-patterns-weekly': {
         'task': 'apps.support.scheduler.tasks.task_pending_patterns',
