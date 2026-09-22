@@ -272,7 +272,7 @@ class UserDailyLog(BaseModel):
 
     user = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,      # a person's log outlives their contact record (Bill, 2026-09-22)
         related_name='daily_logs',
         db_column='user_id',
         help_text="User this daily summary belongs to",

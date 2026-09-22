@@ -144,7 +144,7 @@ class Conversation(models.Model):
     """A conversation session between a user and the AI assistant."""
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,      # conversation history outlives the account (Bill, 2026-09-22)
         related_name="ai_conversations",
         null=True, blank=True,
     )
@@ -511,7 +511,7 @@ class SchemaDrift(models.Model):
     # Source
     git_event = models.ForeignKey(
         GitEvent,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,       # an observation about an event is not part of it (Bill, 2026-09-22)
         related_name='drift_records',
         null=True,
         blank=True,

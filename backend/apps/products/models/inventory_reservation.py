@@ -35,7 +35,10 @@ class InventoryReservation(ItemLinkedBase):
     STATES = INVENTORY_RESERVATION_STATE_CHOICES
 
     # Override item FK to set related_name specific to reservations
-    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='reservations', db_column='item_id')
+    # PROTECT, not CASCADE (Bill, 2026-09-22): a reservation is not part of an item, and this was
+    # the one cascade the database itself performed — a raw delete took the reservations with it.
+    # Release the reservations on purpose, then delete the item.
+    item = models.ForeignKey(Item, on_delete=models.PROTECT, related_name='reservations', db_column='item_id')
 
     warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name='reservations', db_column='warehouse_id')
     inventory_layer = models.ForeignKey(InventoryLayer, on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations', db_column='inventorylayer_id')
