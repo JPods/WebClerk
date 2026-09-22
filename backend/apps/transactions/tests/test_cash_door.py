@@ -141,32 +141,78 @@ def test_deleting_a_cash_reverses_every_application_it_made(buyer, seller):
     assert not Cash.objects.filter(pk=cash.pk).exists()
 
 
-def test_deleting_an_invoice_returns_the_money_to_the_cash(buyer, seller):
+def test_deleting_an_invoice_with_a_payment_is_refused(buyer, seller):
+    """Bill, 2026-09-22: the user deals with dependents on purpose. Unapply, then delete."""
     invoice, cash = _invoice(buyer.pk), _cash(customer_id=buyer.pk)
     apply_cash_to_invoice(cash.pk, invoice.pk, Decimal('75.00'))
+
+    with pytest.raises(cash_door.CashDoorError, match='(?i)unapply the payment first'):
+        with transaction.atomic():
+            invoice.delete()
+
+    assert Invoice.objects.filter(pk=invoice.pk).exists()
     cash.refresh_from_db()
-    assert cash.available == Decimal('25.00')
+    assert cash.available == Decimal('25.00'), "nothing moved: the delete never happened"
+
+
+def test_unapply_then_delete_the_invoice(buyer, seller):
+    """The coached path: the money goes back to the cash, then the invoice goes."""
+    invoice, cash = _invoice(buyer.pk), _cash(customer_id=buyer.pk)
+    application = apply_cash_to_invoice(cash.pk, invoice.pk, Decimal('75.00'))
+    unapply_cash_application(application['pending_id'], reason='invoice raised in error')
 
     invoice.delete()
 
+    assert not Invoice.objects.filter(pk=invoice.pk).exists()
     cash.refresh_from_db()
-    assert cash.available == Decimal('100.00'), "a deleted invoice gives the money back"
-    assert _applications(changes__reverses__isnull=False).count() == 1
+    assert cash.available == Decimal('100.00')
 
 
-def test_deleting_an_invoice_does_not_delete_the_cash_that_paid_it(buyer, seller):
-    """The FK was CASCADE: deleting an invoice deleted the customer's money (Fable)."""
+def test_deleting_a_receipt_with_a_payment_is_refused(buyer, seller):
+    """AP is symmetric with AR (Bill: "same with purchases")."""
+    receipt = _receipt(seller.pk)
+    cash = _cash(amount='-80.00', vendor_id=seller.pk)
+    apply_cash_to_receipt(cash.pk, receipt.pk, Decimal('80.00'))
+
+    with pytest.raises(cash_door.CashDoorError, match='(?i)unapply the payment first'):
+        with transaction.atomic():
+            receipt.delete()
+
+    assert Receipt.objects.filter(pk=receipt.pk).exists()
+
+
+def test_deleting_a_purchase_a_cash_points_at_is_refused(buyer, seller):
+    """A purchase carries no applications of its own; the cash record names it."""
+    from apps.transactions.models import Purchase
+    purchase = Purchase.objects.create(vendor_id=seller.pk, status='open',
+                                       totals={'total': 40.0})
+    cash = _cash(amount='-40.00', vendor_id=seller.pk)
+    cash.purchase = purchase
+    cash.save(update_fields=['purchase'])
+
+    with pytest.raises(cash_door.CashDoorError, match='(?i)deal with the cash first'):
+        with transaction.atomic():
+            purchase.delete()
+
+    assert Purchase.objects.filter(pk=purchase.pk).exists()
+    cash.refresh_from_db()
+    assert cash.purchase_id == purchase.pk
+
+
+def test_deleting_an_invoice_a_cash_points_at_is_refused(buyer, seller):
+    """The FK was CASCADE: this delete used to take the customer's money with it (Fable).
+    Now it is refused, and the SET_NULL column is only the safety net behind that."""
     invoice = _invoice(buyer.pk)
     cash = _cash(customer_id=buyer.pk)
     cash.invoice = invoice
     cash.save(update_fields=['invoice'])
-    apply_cash_to_invoice(cash.pk, invoice.pk, Decimal('100.00'))
 
-    invoice.delete()
+    with pytest.raises(cash_door.CashDoorError, match='(?i)deal with the cash first'):
+        with transaction.atomic():
+            invoice.delete()
 
     cash.refresh_from_db()
-    assert cash.pk and cash.invoice_id is None
-    assert cash.available == Decimal('100.00')
+    assert cash.pk and cash.invoice_id == invoice.pk
 
 
 def test_queued_application_is_closed_not_reversed_when_its_invoice_goes(buyer, seller):

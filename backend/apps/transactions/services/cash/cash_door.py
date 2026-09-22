@@ -229,11 +229,56 @@ def _on_cash_delete(sender, instance, **kwargs):
                 instance.pk, result['reversed'], result['closed'])
 
 
+def _refuse_if_paid(instance, kind: str) -> None:
+    """A document with money against it is not deleted out from under it.
+
+    Bill, 2026-09-22: *"I would much prefer users have to purposefully delete dependent
+    records than to risk deleting a parent whose children should remain."* The money is
+    the user's to deal with: unapply it, then delete. Detaching silently would leave the
+    payment pointing at nothing, which is the same quiet loss in a different shape.
+    """
+    live_applications = [(p, live(p)) for p in _applications(target_id=instance.pk,
+                                                             state='applied')]
+    owed = [f"application #{p.pk} ({amount} from cash {(p.changes or {}).get('cash_id')})"
+            for p, amount in live_applications if amount != 0]
+    if owed:
+        raise CashDoorError(
+            f"{kind} {instance.pk} still has money applied to it: {'; '.join(owed)}. "
+            f"Unapply the payment first, then delete the {kind}. Unapplying writes a "
+            f"reversing record, so the money returns to the cash and the trail stays.")
+
+
+def _refuse_if_cash_points_here(instance, kind: str) -> None:
+    """A cash record naming this document keeps it alive too. The column is SET_NULL so
+    the money survives a delete that gets this far, but the user is told first."""
+    from apps.transactions.models import Cash
+
+    field = {'invoice': 'invoice_id', 'receipt': 'receipt_id', 'purchase': 'purchase_id'}[kind]
+    rows = list(Cash.objects.filter(**{field: instance.pk}).values_list('pk', flat=True)[:10])
+    if rows:
+        listed = ', '.join(f'#{pk}' for pk in rows)
+        raise CashDoorError(
+            f"cash {listed} {'points' if len(rows) == 1 else 'point'} at {kind} "
+            f"{instance.pk}. Deal with the cash first — unapply and delete it, or point it "
+            f"elsewhere — then delete the {kind}.")
+
+
 def _on_document_delete(sender, instance, **kwargs):
-    """Deleting an invoice or receipt returns the money to the cash that paid it."""
-    result = _unwind(target=instance, reason=f'{sender._meta.model_name} {instance.pk} deleted')
+    """An invoice or receipt with money against it refuses to be deleted (Bill, 2026-09-22).
+    With nothing applied, its queued applications are closed and it goes."""
+    kind = sender._meta.model_name
+    _refuse_if_paid(instance, kind)
+    _refuse_if_cash_points_here(instance, kind)
+    result = _unwind(target=instance, reason=f'{kind} {instance.pk} deleted')
     logger.info("%s %s deleted: %s applications reversed, %s queued closed",
-                sender._meta.model_name, instance.pk, result['reversed'], result['closed'])
+                kind, instance.pk, result['reversed'], result['closed'])
+
+
+def _on_purchase_delete(sender, instance, **kwargs):
+    """A purchase with a payment against it refuses too — AR and AP are symmetric
+    (Bill: "same with purchases"). A purchase carries no applications of its own; the
+    cash record names it."""
+    _refuse_if_cash_points_here(instance, 'purchase')
 
 
 def _on_record_deleted(sender, instance, **kwargs):
@@ -286,11 +331,12 @@ def _on_pending_save(sender, instance, **kwargs):
 def connect() -> None:
     """Wire the door. Called from the transactions app config."""
     from apps.core.models.pending import Pending
-    from apps.transactions.models import Cash, Invoice, Receipt
+    from apps.transactions.models import Cash, Invoice, Purchase, Receipt
 
     pre_delete.connect(_on_cash_delete, sender=Cash, dispatch_uid='cash_door.cash')
     pre_delete.connect(_on_document_delete, sender=Invoice, dispatch_uid='cash_door.invoice')
     pre_delete.connect(_on_document_delete, sender=Receipt, dispatch_uid='cash_door.receipt')
+    pre_delete.connect(_on_purchase_delete, sender=Purchase, dispatch_uid='cash_door.purchase')
     for model in (Cash, Invoice, Receipt):
         post_delete.connect(_on_record_deleted, sender=model,
                             dispatch_uid=f'cash_door.ledgers.{model._meta.model_name}')
