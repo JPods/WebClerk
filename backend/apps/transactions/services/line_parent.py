@@ -170,7 +170,7 @@ def refresh_parent_line(child_model_name: str, parent_line_id: Optional[int]) ->
         if not (remaining_changed or status_changed):
             return False
 
-        parent._pending_created = True  # quantity.active did not change; no inventory event
+        # The parent's remaining changed, so its own door writes the commitment move.
         parent.save(update_fields=['quantity', 'status', 'dt_modified', 'version'])
         return True
 

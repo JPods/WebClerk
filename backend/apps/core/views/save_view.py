@@ -544,69 +544,6 @@ class SaveWcapiView(APIView):
             console_logger.error(f"[SAVE_VIEW] Exception during save: {e}")
             return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
 
-    @staticmethod
-    def _adjust_source_line(source: dict, target_model: str, line_qty: float, line_obj):
-        """After creating a new line from conversion, adjust the source line.
-
-        Each model owns one bucket. This releases the source line's bucket.
-        remaining/status are not written here — see services/line_parent.py.
-
-        Only sell-side conversions adjust source lines:
-          order    → quote_line_id  → QuoteLine (on_qt)
-          invoice  → order_line_id     → OrderLine    (on_so)
-          invoice  → quote_line_id  → QuoteLine (on_qt)  [direct quote→invoice]
-
-        Purchase does NOT adjust the source order — it's a buy-side action.
-        The order's on_so stays committed until an invoice consumes it.
-        """
-        from apps.core.models import Pending
-
-        # Purchase lines don't adjust source — buy-side doesn't consume sell-side
-        if target_model == 'purchase':
-            return
-
-        # Determine which source line to adjust.
-        source_lookups = [
-            ('quote_line_id', 'apps.transactions.models.quote_line', 'QuoteLine', 'quote', 'on_qt'),
-            ('order_line_id',    'apps.transactions.models.order_line',    'OrderLine',    'order',    'on_so'),
-        ]
-        source_key = source_id = module_path = class_name = parent_attr = bucket_field = None
-        for _key, _mod, _cls, _parent, _bucket in source_lookups:
-            _id = source.get(_key)
-            if _id:
-                source_key, source_id, module_path, class_name, parent_attr, bucket_field = _key, _id, _mod, _cls, _parent, _bucket
-                break
-        if not source_id:
-            return
-
-        import importlib
-        mod = importlib.import_module(module_path)
-        SourceLine = getattr(mod, class_name)
-
-        # The source line's remaining and status are recomputed from its children
-        # when this line saves (services/line_parent.py). Only the bucket release is here.
-        src_line = SourceLine.objects.get(pk=source_id)
-
-        # Fire source bucket pending
-        item_data = src_line.item or {}
-        item_id = item_data.get('item_id') or item_data.get('id') if isinstance(item_data, dict) else None
-        if item_id:
-            parent_obj = getattr(src_line, parent_attr, None)
-            doc_ida = getattr(parent_obj, 'ida', '') if parent_obj else ''
-            Pending.objects.create(
-                model_name='item',
-                record_id=str(item_id),
-                purpose='inventory_line_add',
-                name=f'{bucket_field} release: {item_data.get("ida_item", item_id)}',
-                changes={
-                    bucket_field: -line_qty,
-                    'reason': f'{parent_attr} line transferred to {target_model}',
-                    'doc_id': doc_ida,
-                    'line_id': src_line.id,
-                    'item_id': item_id,
-                },
-            )
-
     @transaction.atomic
     def _save_record(self, request, model_cls, model_key, norm_key, data, record_id, expected_version):
         is_update = bool(record_id)
@@ -952,7 +889,7 @@ class SaveWcapiView(APIView):
 
         # ── Line processing (delegated to save_line_processing service) ──
         from apps.core.services.save_line_processing import process_lines
-        _adjust_fn = getattr(self, '_adjust_source_line', None)
+        _adjust_fn = None      # a source line's own door writes its release (line_door)
         process_lines(obj, data, model_key, adjust_source_fn=_adjust_fn)
 
         # ── Auto-link communication records to Contact (delegated to save_contact_linking) ──

@@ -369,22 +369,7 @@ def create_commission_invoice(
                 },
             },
         )
-        inv_line._pending_created = True
         inv_line.save()
-
-        # Create Pending record — on_so tracking like real inventory
-        if _should_track_inventory('invoice'):
-            item_fk = src_line.item_fk
-            if item_fk:
-                lis._create_pending_for_line_add(
-                    transaction=invoice,
-                    transaction_type='invoice',
-                    line=inv_line,
-                    item=item_fk,
-                    quantity=float(qty_staged),
-                    unit_cost=0,
-                    unit_price=float(unit_comm),
-                )
 
         commission_total += comm_amount
         line_count += 1

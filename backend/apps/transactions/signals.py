@@ -16,6 +16,7 @@ from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 from django.db.models.signals import post_save, pre_save, post_delete
+from apps.transactions.services.line_door import post_line_change
 from common.allie_capture import allie_capture as _allie
 from django.dispatch import receiver
 from apps.transactions.models import (
@@ -102,99 +103,18 @@ def register_line_inventory_signals(
         Inventory bucket key, e.g. ``"order"``
     """
 
-    @receiver(pre_save, sender=line_model)
-    def track_quantity_change(sender, instance, **kwargs):
-        if instance.pk:
-            try:
-                original = sender.objects.get(pk=instance.pk)
-                instance._original_quantity = _get_quantity(original)
-                instance._original_item_id = _resolve_item_id(original)
-            except sender.DoesNotExist:
-                instance._original_quantity = Decimal('0')
-                instance._original_item_id = None
-        else:
-            instance._original_quantity = Decimal('0')
-            instance._original_item_id = None
-
     @receiver(post_save, sender=line_model)
-    def update_inventory_on_save(sender, instance, created, **kwargs):
-        if getattr(instance, '_pending_created', False):
-            return
-
-        from apps.transactions.services.line_manage import LineItemService
-
-        item_id = _resolve_item_id(instance)
-        if not item_id:
-            return
-
-        parent = getattr(instance, parent_attr, None)
-        new_qty = _get_quantity(instance)
-        original_qty = getattr(instance, '_original_quantity', Decimal('0'))
-        service = LineItemService(create_pending=True)
-
-        if created:
-            if new_qty > 0:
-                service._create_pending_for_new_line(
-                    parent=parent,
-                    parent_model_key=parent_model_key,
-                    line=instance,
-                    line_data={'quantity': {'staged': float(new_qty), 'active': float(new_qty)}, 'item': instance.item or {}},
-                )
-                # Emit inventory event for LLM learning
-                _emit_line_event(f'{transaction_type}_line_add', instance, parent, None)
-        else:
-            original_item_id = getattr(instance, '_original_item_id', None)
-
-            if original_item_id and original_item_id != item_id:
-                # Item changed — reverse old, add new
-                if original_qty > 0:
-                    service._create_pending_for_line_delete(
-                        transaction=parent,
-                        transaction_type=transaction_type,
-                        line=instance,
-                        quantity_released=float(original_qty),
-                    )
-                if new_qty > 0:
-                    service._create_pending_for_new_line(
-                        parent=parent,
-                        parent_model_key=parent_model_key,
-                        line=instance,
-                        line_data={'quantity': {'staged': float(new_qty), 'active': float(new_qty)}, 'item': instance.item or {}},
-                    )
-                # Emit inventory event for item change
-                _emit_line_event(f'{transaction_type}_line_item_change', instance, parent, original_qty)
-            else:
-                delta = float(new_qty - original_qty)
-                if delta != 0:
-                    service._create_pending_for_qty_change(
-                        transaction=parent,
-                        transaction_type=transaction_type,
-                        line=instance,
-                        quantity_delta=delta,
-                    )
-                    # Emit inventory event for quantity change
-                    _emit_line_event(f'{transaction_type}_line_update', instance, parent, original_qty)
+    def line_saved(sender, instance, created, **kwargs):
+        post_line_change(instance)
+        _emit_line_event(f'{transaction_type}_line_{"add" if created else "update"}',
+                         instance, getattr(instance, parent_attr, None),
+                         (getattr(instance, '_loaded', None) or {}).get('active'))
 
     @receiver(post_delete, sender=line_model)
-    def update_inventory_on_delete(sender, instance, **kwargs):
-        from apps.transactions.services.line_manage import LineItemService
-
-        item_id = _resolve_item_id(instance)
-        if not item_id:
-            return
-
-        qty = _get_quantity(instance)
-        if qty > 0:
-            parent = getattr(instance, parent_attr, None)
-            service = LineItemService(create_pending=True)
-            service._create_pending_for_line_delete(
-                transaction=parent,
-                transaction_type=transaction_type,
-                line=instance,
-                quantity_released=float(qty),
-            )
-            # Emit inventory event for LLM learning
-            _emit_line_event(f'{transaction_type}_line_delete', instance, parent, qty)
+    def line_deleted(sender, instance, **kwargs):
+        post_line_change(instance, deleted=True)
+        _emit_line_event(f'{transaction_type}_line_delete', instance,
+                         getattr(instance, parent_attr, None), _get_quantity(instance))
 
 
 def register_line_header_links(line_model, parent_attr: str, link_key: str):

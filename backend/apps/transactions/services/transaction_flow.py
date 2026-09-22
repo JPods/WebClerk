@@ -413,7 +413,9 @@ def complete_workorder(wo: WorkOrder,
             purpose='line_event',
             name=f"WorkOrder completion {receipt_id} - item {item_id}",
             changes={
-                'on_wo': -float(qty_completed),   # no longer work in progress
+                # on_wo is NOT here: recording the event drops the line's remaining, and the
+                # line's own door releases the commitment. Writing it here too moved it twice
+                # (Fable, 2026-09-22 — one door).
                 'on_hand': float(qty_completed),  # produced
             },
             config={

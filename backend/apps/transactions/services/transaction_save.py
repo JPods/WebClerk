@@ -31,6 +31,8 @@ import logging
 
 from django.db import transaction as db_transaction
 
+from common.schemas.carrier import read_carrier
+
 if TYPE_CHECKING:
     from django.db.models import Model
 
@@ -57,182 +59,6 @@ _PENDING_TYPE_MAP = {
     'purchase': 'PO',
     'workorder': 'WO',
 }
-
-
-def _create_pending_from_deltas(
-    header_obj: 'Model',
-    model_key: str,
-    pending_deltas: List[Dict[str, Any]],
-) -> int:
-    """Convert the collected pending_deltas array into Pending records.
-
-    Backend-authoritative:
-      • ``pending_type`` is derived from ``model_key``.
-      • ``parent_id`` / ``parent_model`` on the header determine whether this
-        is a transfer.  For transfers (e.g. order → invoice) a single Pending
-        captures on_in, on_so release, and on_hand deduction.
-      • ``invoice_line_id`` + ``order_line_id`` are stored in every record.
-        The pair must be unique — if a duplicate already exists the record is
-        skipped.
-
-    Returns the number of Pending records created.
-    """
-    from apps.core.models import Pending
-    from apps.products.models import Item
-
-    pending_type = _PENDING_TYPE_MAP.get(model_key.lower(), 'XX')
-    parent_id = getattr(header_obj, 'parent_id', None)
-    parent_model = getattr(header_obj, 'parent_model', None) or ''
-    is_transfer = bool(parent_id and parent_model)
-    doc_ida = getattr(header_obj, 'ida', '') or str(header_obj.pk)
-
-    created_count = 0
-    seen_pairs: set = set()
-
-    def _bucket_key_for_type_code(type_code: str) -> str | None:
-        return {
-            'SO': 'on_so',
-            'PO': 'on_po',
-            'WO': 'on_wo',
-            'QT': 'on_qt',
-            'IN': 'on_in',
-        }.get(type_code)
-
-    for delta in pending_deltas:
-        item_id = delta['item_id']
-        line_id = delta['line_id']           # the saved new-line PK
-        source_line_id = delta.get('source_line_id')  # FK to source line (transfer)
-        quantity = delta['quantity']
-        is_qty_change = delta.get('is_qty_change', False)  # True for qty change on existing line
-
-        # ── Build the pair key ───────────────────────────────────────
-        # For invoice-from-order: invoice_line_id = line_id, order_line_id = source_line_id
-        if model_key.lower() == 'invoice':
-            invoice_line_id = line_id
-            order_line_id = source_line_id
-        elif model_key.lower() == 'order':
-            order_line_id = line_id
-            invoice_line_id = source_line_id
-        else:
-            invoice_line_id = None
-            order_line_id = None
-
-        pair = (invoice_line_id, order_line_id)
-        if pair in seen_pairs:
-            logger.warning(
-                'Duplicate pair skipped in same batch: IL=%s OL=%s item=%s',
-                invoice_line_id, order_line_id, item_id,
-            )
-            continue
-        seen_pairs.add(pair)
-
-        # ── DB-level duplicate guard ─────────────────────────────────
-        if invoice_line_id and order_line_id:
-            dup = Pending.objects.filter(
-                model_name='item',
-                record_id=str(item_id),
-                purpose='inventory_line_add',
-                dt_processed=0,
-                config__invoice_line_id=invoice_line_id,
-                config__order_line_id=order_line_id,
-            ).exists()
-            if dup:
-                logger.warning(
-                    'Duplicate pending blocked: IL=%s OL=%s item=%s',
-                    invoice_line_id, order_line_id, item_id,
-                )
-                continue
-
-        # ── Build quantity buckets ───────────────────────────────────
-        # Determine reason based on whether this is a qty change or new line
-        qty_direction = 'increase' if quantity > 0 else 'decrease'
-        default_reason = (
-            f'{pending_type.lower()} qty {qty_direction}'
-            if is_qty_change
-            else f'{pending_type.lower()} line add'
-        )
-        pending_data: Dict[str, Any] = {
-            'type_id': pending_type,
-            'item_id': item_id,
-            'item_num': delta.get('item_ida', str(item_id)),
-            'doc_id': doc_ida,
-            'doc_pk': header_obj.pk,
-            'line_id': line_id,
-            'line_num': 0,
-            # Quantity buckets — zeroed, then set by type
-            'on_so': 0, 'on_po': 0, 'on_wo': 0,
-            'on_in': 0, 'on_rc': 0, 'on_qt': 0, 'on_hand': 0,
-            # Pricing snapshot
-            'unit_cost': delta.get('unit_cost', 0),
-            'unit_price': delta.get('unit_price', 0),
-            # Audit
-            'reason': default_reason,
-            'take_action': 1,
-            'changed_by': '',
-            'quantity_delta': quantity if is_qty_change else 0,  # For qty changes, store the delta
-            'transaction_type': model_key.lower(),
-            'transaction_model': header_obj._meta.model_name,
-            # Line-pair IDs (one pending per pair; forbids duplicates)
-            'invoice_line_id': invoice_line_id,
-            'order_line_id': order_line_id,
-            'links': {},
-        }
-
-        target_bucket = _bucket_key_for_type_code(pending_type)
-        if target_bucket:
-            pending_data[target_bucket] = quantity
-
-        if is_transfer and parent_model:
-            source_type_code = _PENDING_TYPE_MAP.get(str(parent_model).lower())
-            source_bucket = _bucket_key_for_type_code(source_type_code or '')
-            if source_bucket:
-                pending_data[source_bucket] = pending_data.get(source_bucket, 0) - quantity
-                pending_data['links'][str(parent_model).lower()] = {'parent_id': parent_id}
-                pending_data['reason'] = (
-                    f"{pending_type.lower()} line add (releases {source_bucket})"
-                )
-
-        if pending_type == 'IN':
-            pending_data['on_hand'] = pending_data.get('on_hand', 0) - quantity
-            if is_transfer and parent_model:
-                pending_data['reason'] = (
-                    f"in line add (releases source, deducts on_hand)"
-                )
-
-        # Look up item.ida for the name field
-        item_ida = delta.get('item_ida', str(item_id))
-        try:
-            item_obj = Item.objects.only('ida').get(pk=item_id)
-            item_ida = item_obj.ida or str(item_id)
-        except Item.DoesNotExist:
-            pass
-
-        # Use different purpose and name for qty changes vs line adds
-        if is_qty_change:
-            pending_purpose = 'inventory_qty_change'
-            pending_name = f'{pending_type} Qty Change: {item_ida}'
-        else:
-            pending_purpose = 'inventory_line_add'
-            pending_name = f'{pending_type} Line Add: {item_ida}'
-
-        Pending.objects.create(
-            model_name='item',
-            record_id=str(item_id),
-            purpose=pending_purpose,
-            name=pending_name,
-            config=pending_data,
-        )
-        created_count += 1
-        logger.debug(
-            "Pending created: type=%s item=%s line=%s src=%s",
-            pending_type, item_id, line_id, source_line_id,
-        )
-
-    logger.info("Created %d pending records for %s #%s", created_count, model_key, header_obj.pk)
-    return created_count
-
-from common.decimals import safe_decimal as _d  # noqa: E302
-from common.schemas.carrier import read_carrier  # noqa: E402
 
 
 def _compare_values(expected: Any, actual: Any, tolerance: Decimal = CALC_TOLERANCE) -> bool:
@@ -540,7 +366,6 @@ def save_transaction_with_lines(
     # ── Collection for deferred pending creation ──────────────────────
     # Each element holds the data needed to create ONE Pending record.
     # Built during the save loop, converted to Pending records afterwards.
-    pending_deltas: List[Dict[str, Any]] = []
 
     with db_transaction.atomic():
         # Line and header results are computed authoritatively by the totals engine
@@ -663,29 +488,7 @@ def save_transaction_with_lines(
                         if existing_val and isinstance(existing_val, dict):
                             v = {**existing_val, **v}
                     setattr(existing_line, k, v)
-                existing_line._pending_created = True  # Suppress signal
                 existing_line.save()
-
-                # ── Check for quantity change and create pending delta ──
-                new_qty_data = getattr(existing_line, 'quantity', {}) or {}
-                new_qty_effective = float(new_qty_data.get('active', 0) or 0)
-                quantity_delta = new_qty_effective - old_qty_effective
-
-                if quantity_delta != 0 and current_item_id:
-                    # Collect pending delta for quantity change on existing line
-                    cost_data = line_data.get('cost', {}) or {}
-                    price_data = line_data.get('price', {}) or {}
-                    pending_deltas.append({
-                        'item_id': current_item_id,
-                        'item_ida': current_item.get('ida', str(current_item_id)),
-                        'quantity': quantity_delta,  # Delta, not absolute
-                        'line_id': existing_line.pk,
-                        'source_line_id': None,  # Not a transfer
-                        'unit_cost': float(cost_data.get('unit', 0) or (getattr(existing_line, 'cost', {}) or {}).get('unit', 0) or 0),
-                        'unit_price': float(price_data.get('unit', 0) or (getattr(existing_line, 'price', {}) or {}).get('unit', 0) or 0),
-                        'line_data': line_data,
-                        'is_qty_change': True,  # Flag to indicate this is a qty change, not new line
-                    })
 
                 result['lines_saved'] += 1
                 result['lines'].append({
@@ -694,15 +497,13 @@ def save_transaction_with_lines(
                     'action': 'updated'
                 })
             else:
-                # Create new line — suppress signal so no pending is created
-                # by the post_save handler.  We build pending_deltas below.
+                # Create the line; its own door writes the Pending as it saves.
                 # Auto-assign line_number if not provided or zero
                 incoming_ln = line_clean.get('line_number', 0) or 0
                 if incoming_ln == 0:
                     line_clean['line_number'] = current_line_increment
                     current_line_increment += 10
                 new_line = LineModel(**line_clean)
-                new_line._pending_created = True
                 new_line.save()
                 result['lines_saved'] += 1
                 result['lines'].append({
@@ -734,54 +535,17 @@ def save_transaction_with_lines(
                 # The source order_line_id comes from refs.source on the
                 # line_data (stamped by R25) — but we also look it up from
                 # the persisted new_line.refs as a fallback.
-                source_line_id = None
-                parent_model = getattr(header_obj, 'parent_model', None)
-                if parent_model:
-                    refs = line_data.get('refs') or {}
-                    source_info = refs.get('source') or {}
-                    source_line_id = source_info.get(f'{parent_model}_line_id')
-                    if not source_line_id and isinstance(getattr(new_line, 'refs', None), dict):
-                        source_line_id = ((new_line.refs or {}).get('source') or {}).get(f'{parent_model}_line_id')
-
-                if item_id and qty_staged:
-                    pending_deltas.append({
-                        'item_id': item_id,
-                        'item_ida': item_data.get('ida', str(item_id)),
-                        'quantity': qty_staged,
-                        'line_id': new_line.pk,
-                        'source_line_id': source_line_id,
-                        'unit_cost': float(cost_data.get('unit', 0) or 0),
-                        'unit_price': float(price_data.get('unit', 0) or 0),
-                        'line_data': line_data,
-                    })
-
     # ── Persist bumped line_increment back to the header ──────────
     if hasattr(header_obj, 'line_increment') and header_obj.line_increment != current_line_increment:
         header_obj.line_increment = current_line_increment
         header_obj.save(update_fields=['line_increment'])
 
-    # ── Phase 2: Create Pending records from collected deltas ────────
-    # Runs OUTSIDE the atomic block — lines are already committed with IDs.
-    # One Pending per delta; the (invoice_line_id, order_line_id) pair is
-    # stored in every record to forbid duplicates.
-    if pending_deltas:
-        try:
-            _create_pending_from_deltas(
-                header_obj=header_obj,
-                model_key=model_key,
-                pending_deltas=pending_deltas,
-            )
-        except Exception as pend_err:
-            logger.warning("Failed to create pending records: %s", pend_err)
-
-    # ── Phase 3: Source lines ───────────────────────────────────────
-    # Parent lines recompute from their children when each child line saves
-    # (services/line_parent.py). Nothing to do here.
-
-    # ── Phase 4: Single dispatch signal after all pending created ────
-    if pending_deltas:
-        from apps.products.dispatch_pending import dispatch_pending_processing
-        dispatch_pending_processing(limit=200, caller='transaction_save')
+    # ── Phase 2: the lines wrote their own Pendings ─────────────────
+    # Each line's door (line_door.post_line_change) wrote one Pending as it saved: the
+    # difference between what the line held before and what it holds now. Nothing is
+    # collected here any more (Bill, 2026-09-22: one door for every save and delete).
+    from apps.products.dispatch_pending import dispatch_pending_processing
+    dispatch_pending_processing(limit=200, caller='transaction_save')
 
     # ── Phase 4b: Tax & shipping ──────────────────────────────────────
     # Currently fixed values entered by user on the invoice. Tax lookup
@@ -846,8 +610,9 @@ def save_transaction_with_lines(
             logger.warning("Erosion detection failed for %s #%s: %s", model_key, header_id, erosion_err)
 
     logger.info(
-        "Transaction saved: model=%s header_id=%s lines_saved=%s lines_skipped=%s pending_created=%s",
-        model_key, header_id, result['lines_saved'], result['lines_skipped'], len(pending_deltas),
+        "Transaction saved: model=%s header_id=%s lines_saved=%s lines_skipped=%s lines_deleted=%s",
+        model_key, header_id, result['lines_saved'], result['lines_skipped'],
+        result.get('lines_deleted', 0),
     )
 
     return result

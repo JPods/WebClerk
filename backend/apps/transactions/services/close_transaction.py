@@ -24,11 +24,13 @@ from django.apps import apps as dj_apps
 from django.core.exceptions import ValidationError
 from django.db import transaction as db_transaction
 
-from apps.transactions.models.base_line_model import quantity_bucket_deltas
 
 logger = logging.getLogger(__name__)
 
 #: the documents that hold a commitment, and the pending type that named it
+COMMITMENT_BUCKET = {'quote': 'on_qt', 'order': 'on_so',
+                     'purchase': 'on_po', 'workorder': 'on_wo'}
+
 COMMITMENT_TYPE: Dict[str, str] = {
     'quote': 'QT',
     'order': 'SO',
@@ -119,31 +121,18 @@ def close_transaction(model_name: str, pk: int, *, reason: str, acted_by: str,
                                    model_name, pk, line.pk)
                     continue
 
-                Item = dj_apps.get_model('products', 'Item')
-                deltas = quantity_bucket_deltas(pending_type, -remaining, header,
-                                                item=Item.objects.filter(pk=item_id).first())
-                if not any(deltas.values()):
-                    continue                # not tracked: nothing was committed
-                Pending.objects.create(
-                    model_name='item',
-                    record_id=str(item_id),
-                    purpose='inventory_qty_change',
-                    name=f"close {model_name} {header.ida or pk} - line {line.line_number or line.pk}",
-                    changes={k: v for k, v in deltas.items() if v},
-                    config={'item_id': item_id, 'source_type': f'{model_name}_close',
-                            'source_id': pk, 'source_line_id': line.pk,
-                            'reason': reason, 'closed_by': acted_by},
-                )
-                for bucket, value in deltas.items():
-                    if value:
-                        released[bucket] = round(released.get(bucket, 0) + value, 6)
-                        _warn_if_negative(item_id, bucket, value, model_name, header)
-
-                # is_complete makes remaining 0 through the one writer, so a line can
-                # never release twice.
+                # The line's own door releases what it held: setting is_complete makes
+                # remaining 0 through the one writer, and the save writes the Pending
+                # (Bill, 2026-09-22 — one door; writing one here too released it twice).
+                before = dict(quantity)
                 quantity['is_complete'] = True
                 line.quantity = quantity
                 line.save(update_fields=['quantity', 'dt_modified', 'version'])
+
+                bucket = COMMITMENT_BUCKET.get(model_name)
+                if bucket:
+                    released[bucket] = round(released.get(bucket, 0) - remaining, 6)
+                    _warn_if_negative(item_id, bucket, -remaining, model_name, header)
                 line_count += 1
 
         header.status = status

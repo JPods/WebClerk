@@ -79,24 +79,6 @@ def _derive_item_fk(line_obj, line_data: dict):
             line_obj.item_fk_id = _item_id
 
 
-def _create_pending(parent, model_key: str, line_obj, line_data: dict):
-    """Create pending inventory record for a new line."""
-    try:
-        from apps.transactions.services.line_manage import LineItemService
-        service = LineItemService(create_pending=True)
-        service._create_pending_for_new_line(
-            parent=parent,
-            parent_model_key=model_key,
-            line=line_obj,
-            line_data=line_data,
-        )
-    except Exception as e:
-        console_logger.error(
-            f"[SAVE_LINES] Failed to create pending for line {line_obj.id}: {e}",
-            exc_info=True,
-        )
-
-
 def _adjust_source(line_data: dict, norm_model: str, line_obj, adjust_fn):
     """Adjust source line quantity remaining after conversion."""
     try:
@@ -192,11 +174,9 @@ def process_lines(
                 setattr(line_obj, f'{fk_field_name}_id', obj.id)
                 _copy_line_fields(line_obj, line_data, skip_fields, fk_descriptors)
                 _derive_item_fk(line_obj, line_data)
-                line_obj._pending_created = True
                 line_obj.save()
                 new_line_ids.append(line_obj.id)
 
-                _create_pending(obj, model_key, line_obj, line_data)
 
                 if adjust_source_fn:
                     _adjust_source(line_data, norm_model, line_obj, adjust_source_fn)

@@ -126,7 +126,6 @@ def unpack_po_to_so_bundle(bundle: Bundle) -> Dict[str, Any]:
         ol.tax = copy.deepcopy(line_data.get("tax", {}))
         ol.physical = copy.deepcopy(line_data.get("physical", {}))
 
-        ol._pending_created = True  # suppress signal
         ol.save()
         lines_created += 1
 
