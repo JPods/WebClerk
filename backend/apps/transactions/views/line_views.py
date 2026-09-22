@@ -65,84 +65,12 @@ class QuoteLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, gene
     ordering_fields = ['id', 'quote', 'status']
     pagination_class = DefaultPagination
 
-    def perform_create(self, serializer):
-        """Create line via LineItemService for inventory tracking (on_qt forecast)."""
-        from apps.transactions.services.line_manage import LineItemService
-        
-        instance = serializer.save()
-        instance._pending_created = True
-        
-        service = LineItemService(create_pending=True)
-        service._create_pending_for_new_line(
-            parent=instance.quote,
-            parent_model_key='quote',
-            line=instance,
-            line_data=serializer.validated_data,
-        )
-
 
 class QuoteLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = QuoteLine.objects.active()
     serializer_class = QuoteLineSerializer
     permission_classes = [BasePermission]
 
-    def perform_update(self, serializer):
-        """Update line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_manage import LineItemService
-        
-        old_instance = self.get_object()
-        old_qty = float((old_instance.quantity or {}).get('active', 0) or 0)
-        old_item_id = (old_instance.item or {}).get('item_id') or (old_instance.item or {}).get('id')
-        
-        instance = serializer.save()
-        
-        new_qty = float((instance.quantity or {}).get('active', 0) or 0)
-        new_item_id = (instance.item or {}).get('item_id') or (instance.item or {}).get('id')
-        
-        service = LineItemService(create_pending=True)
-        
-        if old_item_id and new_item_id and old_item_id != new_item_id:
-            if old_qty > 0:
-                service._create_pending_for_line_delete(
-                    transaction=instance.quote,
-                    transaction_type='quote',
-                    line=instance,
-                    quantity_released=old_qty,
-                )
-            if new_qty > 0:
-                instance._pending_created = True
-                service._create_pending_for_new_line(
-                    parent=instance.quote,
-                    parent_model_key='quote',
-                    line=instance,
-                    line_data=serializer.validated_data,
-                )
-        else:
-            qty_delta = new_qty - old_qty
-            if qty_delta != 0:
-                service._create_pending_for_qty_change(
-                    transaction=instance.quote,
-                    transaction_type='quote',
-                    line=instance,
-                    quantity_delta=qty_delta,
-                )
-
-    def perform_destroy(self, instance):
-        """Delete line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_manage import LineItemService
-        
-        qty_to_release = float((instance.quantity or {}).get('active', 0) or 0)
-        
-        if qty_to_release > 0:
-            service = LineItemService(create_pending=True)
-            service._create_pending_for_line_delete(
-                transaction=instance.quote,
-                transaction_type='quote',
-                line=instance,
-                quantity_released=qty_to_release,
-            )
-        
-        instance.delete()
 
 # Order
 class OrderListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
@@ -167,84 +95,12 @@ class OrderLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, gene
     ordering_fields = ['id', 'order', 'status']
     pagination_class = DefaultPagination
 
-    def perform_create(self, serializer):
-        """Create line via LineItemService for inventory tracking (on_so reservation)."""
-        from apps.transactions.services.line_manage import LineItemService
-        
-        instance = serializer.save()
-        instance._pending_created = True
-        
-        service = LineItemService(create_pending=True)
-        service._create_pending_for_new_line(
-            parent=instance.order,
-            parent_model_key='order',
-            line=instance,
-            line_data=serializer.validated_data,
-        )
-
 
 class OrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = OrderLine.objects.active()
     serializer_class = OrderLineSerializer
     permission_classes = [BasePermission]
 
-    def perform_update(self, serializer):
-        """Update line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_manage import LineItemService
-        
-        old_instance = self.get_object()
-        old_qty = float((old_instance.quantity or {}).get('active', 0) or 0)
-        old_item_id = (old_instance.item or {}).get('item_id') or (old_instance.item or {}).get('id')
-        
-        instance = serializer.save()
-        
-        new_qty = float((instance.quantity or {}).get('active', 0) or 0)
-        new_item_id = (instance.item or {}).get('item_id') or (instance.item or {}).get('id')
-        
-        service = LineItemService(create_pending=True)
-        
-        if old_item_id and new_item_id and old_item_id != new_item_id:
-            if old_qty > 0:
-                service._create_pending_for_line_delete(
-                    transaction=instance.order,
-                    transaction_type='order',
-                    line=instance,
-                    quantity_released=old_qty,
-                )
-            if new_qty > 0:
-                instance._pending_created = True
-                service._create_pending_for_new_line(
-                    parent=instance.order,
-                    parent_model_key='order',
-                    line=instance,
-                    line_data=serializer.validated_data,
-                )
-        else:
-            qty_delta = new_qty - old_qty
-            if qty_delta != 0:
-                service._create_pending_for_qty_change(
-                    transaction=instance.order,
-                    transaction_type='order',
-                    line=instance,
-                    quantity_delta=qty_delta,
-                )
-
-    def perform_destroy(self, instance):
-        """Delete line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_manage import LineItemService
-        
-        qty_to_release = float((instance.quantity or {}).get('active', 0) or 0)
-        
-        if qty_to_release > 0:
-            service = LineItemService(create_pending=True)
-            service._create_pending_for_line_delete(
-                transaction=instance.order,
-                transaction_type='order',
-                line=instance,
-                quantity_released=qty_to_release,
-            )
-        
-        instance.delete()
 
 # Invoice
 class InvoiceListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
@@ -269,84 +125,12 @@ class InvoiceLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, ge
     ordering_fields = ['id', 'invoice', 'status']
     pagination_class = DefaultPagination
 
-    def perform_create(self, serializer):
-        """Create line via LineItemService for inventory tracking (on_in issuance)."""
-        from apps.transactions.services.line_manage import LineItemService
-        
-        instance = serializer.save()
-        instance._pending_created = True
-        
-        service = LineItemService(create_pending=True)
-        service._create_pending_for_new_line(
-            parent=instance.invoice,
-            parent_model_key='invoice',
-            line=instance,
-            line_data=serializer.validated_data,
-        )
-
 
 class InvoiceLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = InvoiceLine.objects.active()
     serializer_class = InvoiceLineSerializer
     permission_classes = [BasePermission]
 
-    def perform_update(self, serializer):
-        """Update line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_manage import LineItemService
-        
-        old_instance = self.get_object()
-        old_qty = float((old_instance.quantity or {}).get('active', 0) or 0)
-        old_item_id = (old_instance.item or {}).get('item_id') or (old_instance.item or {}).get('id')
-        
-        instance = serializer.save()
-        
-        new_qty = float((instance.quantity or {}).get('active', 0) or 0)
-        new_item_id = (instance.item or {}).get('item_id') or (instance.item or {}).get('id')
-        
-        service = LineItemService(create_pending=True)
-        
-        if old_item_id and new_item_id and old_item_id != new_item_id:
-            if old_qty > 0:
-                service._create_pending_for_line_delete(
-                    transaction=instance.invoice,
-                    transaction_type='invoice',
-                    line=instance,
-                    quantity_released=old_qty,
-                )
-            if new_qty > 0:
-                instance._pending_created = True
-                service._create_pending_for_new_line(
-                    parent=instance.invoice,
-                    parent_model_key='invoice',
-                    line=instance,
-                    line_data=serializer.validated_data,
-                )
-        else:
-            qty_delta = new_qty - old_qty
-            if qty_delta != 0:
-                service._create_pending_for_qty_change(
-                    transaction=instance.invoice,
-                    transaction_type='invoice',
-                    line=instance,
-                    quantity_delta=qty_delta,
-                )
-
-    def perform_destroy(self, instance):
-        """Delete line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_manage import LineItemService
-        
-        qty_to_release = float((instance.quantity or {}).get('active', 0) or 0)
-        
-        if qty_to_release > 0:
-            service = LineItemService(create_pending=True)
-            service._create_pending_for_line_delete(
-                transaction=instance.invoice,
-                transaction_type='invoice',
-                line=instance,
-                quantity_released=qty_to_release,
-            )
-        
-        instance.delete()
 
 # Purchase
 class PurchaseListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
@@ -371,105 +155,12 @@ class PurchaseLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, g
     ordering_fields = ['id', 'purchase', 'status']
     pagination_class = DefaultPagination
 
-    def perform_create(self, serializer):
-        """Create line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_manage import LineItemService
-        
-        instance = serializer.save()
-        # Mark as pending handled to prevent signal duplicates
-        instance._pending_created = True
-        
-        # Create pending inventory via LineItemService
-        service = LineItemService(create_pending=True)
-        service._create_pending_for_new_line(
-            parent=instance.purchase,
-            parent_model_key='purchase',
-            line=instance,
-            line_data=serializer.validated_data,
-        )
-
 
 class PurchaseLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = PurchaseLine.objects.active()
     serializer_class = PurchaseLineSerializer
     permission_classes = [BasePermission]
 
-    def perform_update(self, serializer):
-        """Update line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_manage import LineItemService
-        
-        # Get old quantity before update for delta calculation
-        old_instance = self.get_object()
-        old_qty = 0
-        if isinstance(old_instance.quantity, dict):
-            old_qty = float(old_instance.quantity.get('active', 0) or 0)
-        old_item_id = None
-        if isinstance(old_instance.item, dict):
-            old_item_id = old_instance.item.get('item_id') or old_instance.item.get('id')
-        
-        instance = serializer.save()
-        
-        # Get new quantity after update
-        new_qty = 0
-        if isinstance(instance.quantity, dict):
-            new_qty = float(instance.quantity.get('active', 0) or 0)
-        new_item_id = None
-        if isinstance(instance.item, dict):
-            new_item_id = instance.item.get('item_id') or instance.item.get('id')
-        
-        # Create pending for quantity change via LineItemService
-        service = LineItemService(create_pending=True)
-        
-        # If item changed, handle as delete of old + add of new
-        if old_item_id and new_item_id and old_item_id != new_item_id:
-            # Reverse old item
-            if old_qty > 0 and old_item_id:
-                service._create_pending_for_line_delete(
-                    transaction=instance.purchase,
-                    transaction_type='purchase',
-                    line=instance,
-                    quantity_released=old_qty,
-                )
-            # Add new item
-            if new_qty > 0 and new_item_id:
-                instance._pending_created = True
-                service._create_pending_for_new_line(
-                    parent=instance.purchase,
-                    parent_model_key='purchase',
-                    line=instance,
-                    line_data=serializer.validated_data,
-                )
-        else:
-            # Same item - handle quantity delta
-            qty_delta = new_qty - old_qty
-            if qty_delta != 0:
-                service._create_pending_for_qty_change(
-                    transaction=instance.purchase,
-                    transaction_type='purchase',
-                    line=instance,
-                    quantity_delta=qty_delta,
-                )
-
-    def perform_destroy(self, instance):
-        """Delete line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_manage import LineItemService
-        
-        # Get quantity to release
-        qty_to_release = 0
-        if isinstance(instance.quantity, dict):
-            qty_to_release = float(instance.quantity.get('active', 0) or 0)
-        
-        # Create pending for delete before destroying
-        if qty_to_release > 0:
-            service = LineItemService(create_pending=True)
-            service._create_pending_for_line_delete(
-                transaction=instance.purchase,
-                transaction_type='purchase',
-                line=instance,
-                quantity_released=qty_to_release,
-            )
-        
-        instance.delete()
 
 # WorkOrder
 class WorkOrderListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
@@ -494,105 +185,12 @@ class WorkOrderLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, 
     ordering_fields = ['id', 'workorder', 'status']
     pagination_class = DefaultPagination
 
-    def perform_create(self, serializer):
-        """Create line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_manage import LineItemService
-        
-        instance = serializer.save()
-        # Mark as pending handled to prevent signal duplicates
-        instance._pending_created = True
-        
-        # Create pending inventory via LineItemService
-        service = LineItemService(create_pending=True)
-        service._create_pending_for_new_line(
-            parent=instance.workorder,
-            parent_model_key='workorder',
-            line=instance,
-            line_data=serializer.validated_data,
-        )
-
 
 class WorkOrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = WorkOrderLine.objects.active()
     serializer_class = WorkOrderLineSerializer
     permission_classes = [BasePermission]
 
-    def perform_update(self, serializer):
-        """Update line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_manage import LineItemService
-        
-        # Get old quantity before update for delta calculation
-        old_instance = self.get_object()
-        old_qty = 0
-        if isinstance(old_instance.quantity, dict):
-            old_qty = float(old_instance.quantity.get('active', 0) or 0)
-        old_item_id = None
-        if isinstance(old_instance.item, dict):
-            old_item_id = old_instance.item.get('item_id') or old_instance.item.get('id')
-        
-        instance = serializer.save()
-        
-        # Get new quantity after update
-        new_qty = 0
-        if isinstance(instance.quantity, dict):
-            new_qty = float(instance.quantity.get('active', 0) or 0)
-        new_item_id = None
-        if isinstance(instance.item, dict):
-            new_item_id = instance.item.get('item_id') or instance.item.get('id')
-        
-        # Create pending for quantity change via LineItemService
-        service = LineItemService(create_pending=True)
-        
-        # If item changed, handle as delete of old + add of new
-        if old_item_id and new_item_id and old_item_id != new_item_id:
-            # Reverse old item
-            if old_qty > 0 and old_item_id:
-                service._create_pending_for_line_delete(
-                    transaction=instance.workorder,
-                    transaction_type='workorder',
-                    line=instance,
-                    quantity_released=old_qty,
-                )
-            # Add new item
-            if new_qty > 0 and new_item_id:
-                instance._pending_created = True
-                service._create_pending_for_new_line(
-                    parent=instance.workorder,
-                    parent_model_key='workorder',
-                    line=instance,
-                    line_data=serializer.validated_data,
-                )
-        else:
-            # Same item - handle quantity delta
-            qty_delta = new_qty - old_qty
-            if qty_delta != 0:
-                service._create_pending_for_qty_change(
-                    transaction=instance.workorder,
-                    transaction_type='workorder',
-                    line=instance,
-                    quantity_delta=qty_delta,
-                )
-
-    def perform_destroy(self, instance):
-        """Delete line via LineItemService for inventory tracking."""
-        from apps.transactions.services.line_manage import LineItemService
-        
-        # Get quantity to release
-        qty_to_release = 0
-        if isinstance(instance.quantity, dict):
-            qty_to_release = float(instance.quantity.get('active', 0) or 0)
-        
-        # Create pending for delete before destroying
-        if qty_to_release > 0:
-            service = LineItemService(create_pending=True)
-            service._create_pending_for_line_delete(
-                transaction=instance.workorder,
-                transaction_type='workorder',
-                line=instance,
-                quantity_released=qty_to_release,
-            )
-        
-        instance.delete()
 
 # Requisition
 class RequisitionListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
