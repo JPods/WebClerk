@@ -215,12 +215,9 @@ class Pending(CoreModel):
             if layer.is_locked:
                 raise LayerLocked(layer.pk)
             q = dict(layer.quantity or {})
-            received = Decimal(str(q.get('received', 0) or 0)) + on_hand
-            used = Decimal(str(q.get('issued', 0) or 0)) + Decimal(str(q.get('scrapped', 0) or 0))
-            if received < used:
-                raise ValidationError({'layer': f'layer {layer.pk} would hold {received} received '
-                                                f'against {used} already issued or scrapped'})
-            q['received'] = float(received)
+            # Rule 10: a Pending applies. A layer left holding less than it issued is a
+            # finding for check_balances (inventory.layer_range), corrected by a new record.
+            q['received'] = float(Decimal(str(q.get('received', 0) or 0)) + on_hand)
             layer.quantity = q
             layer.save(update_fields=['quantity', 'dt_modified', 'version'])
             InventoryMovement.objects.create(

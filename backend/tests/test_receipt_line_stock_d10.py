@@ -108,11 +108,17 @@ def test_a_locked_layer_holds_the_item_back_until_both_can_move():
     assert process_pending_for_item(item.pk)['total_found'] == 0
 
 
-def test_a_layer_cannot_give_back_goods_already_issued():
+def test_giving_back_goods_already_issued_applies_and_is_a_finding():
+    """Rule 10 (Bill, 2026-09-21): a Pending applies. The applier does not refuse a layer
+    that ends up holding less than it issued; check_balances reports it, and the user
+    corrects it with a new record."""
+    from apps.core.services.balance_checker import check_inventory
     item, line, _ = _received(qty=7, ordered=10)
     layer = line.inventory_layer
     layer.quantity = {**layer.quantity, 'issued': 7}
     layer.save(update_fields=['quantity'])
-    with pytest.raises(ValidationError):
-        _set_qty(line, 6)
-    assert _stock(item) == (7, 7, 3)
+    _set_qty(line, 6)
+    assert _stock(item) == (6, 6, 4)
+    assert _layer_received(line) == 6
+    findings, _ = check_inventory(item_id=item.pk)
+    assert any(f['check'] == 'inventory.layer_range' for f in findings)
