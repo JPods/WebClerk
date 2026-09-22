@@ -105,8 +105,10 @@ class Pending(CoreModel):
 
         if applied is not None:
             # Every cash and inventory event, checked once it commits (BALANCE_EVENT_LOG).
-            from apps.core.services.balance_checker import log_balance_event
-            log_balance_event(self, applied)
+            # One line per event: a record another trigger applied was logged there.
+            if not getattr(self, '_applied_elsewhere', False):
+                from apps.core.services.balance_checker import log_balance_event
+                log_balance_event(self, applied)
             return applied
 
         # ── Future handlers ──────────────────────────────────────
@@ -141,6 +143,16 @@ class Pending(CoreModel):
 
         try:
             with db_transaction.atomic():
+                # Buckets and layers are running totals: apply once. This copy may have been
+                # loaded before another trigger applied the record (G9), so read the row
+                # under a lock; a holder is mid-apply and the next drain sees it done.
+                applied_at = type(self).objects.select_for_update(nowait=True).filter(
+                    pk=self.pk).values_list('dt_processed', flat=True).first()
+                if applied_at:
+                    self.dt_processed = applied_at
+                    self._applied_elsewhere = True
+                    return True
+
                 try:
                     item = Item.objects.select_for_update(nowait=True).get(pk=item_id)
                 except Item.DoesNotExist:

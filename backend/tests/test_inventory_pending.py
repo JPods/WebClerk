@@ -72,3 +72,22 @@ class PendingInventoryTests(TestCase):
         self.assertIsInstance(pending, Pending)
         self.assertTrue(ok)
         self.assertTrue(pending.is_processed())
+
+    def test_stale_copy_does_not_apply_twice(self):
+        """G9: a trigger holding a copy loaded before another trigger applied the record
+        must not apply it again — buckets and layers are running totals."""
+        p = Pending.objects.create(
+            model_name='item', record_id=str(self.item.pk),
+            purpose='inventory_line_add', name='Test',
+            changes={'on_qt': 15, 'item_id': self.item.pk},
+        )
+        applied_at = p.dt_processed
+        stale = Pending.objects.get(pk=p.pk)
+        stale.dt_processed = 0  # as the worker loaded it, before the save-path apply
+
+        self.assertTrue(stale.try_apply())
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.quantity.get('on_qt'), 15)
+        self.assertEqual(stale.dt_processed, applied_at)
+        p.refresh_from_db()
+        self.assertEqual(p.dt_processed, applied_at)
