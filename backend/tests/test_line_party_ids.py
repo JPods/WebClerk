@@ -97,3 +97,17 @@ def test_customers_by_item_is_one_query():
         QuoteLine.objects.create(quote=quote, **LINE)
     assert set(QuoteLine.objects.filter(item__id_num=1)
                .values_list('customer_id', flat=True)) == {acme.pk, globex.pk}
+
+
+def test_a_line_names_the_person_assigned_person_and_it_stays_editable():
+    """assigned_to_id is an assignment (Bill, 2026-09-23): chosen, kept, and not overwritten
+    by the header the way the party ids are."""
+    from apps.core.models import Contact
+    rep, acme, _globex, _vendor = _orgs()
+    jane = Contact.objects.create(email='picker@example.com')
+    order = Order.objects.create(customer_id=acme.pk, rep_id=rep.pk)
+    line = OrderLine.objects.create(order=order, assigned_to_id=jane.pk, **LINE)
+    order.save()                                   # a header save cascades parties only
+    line.refresh_from_db()
+    assert line.assigned_to_id == jane.pk
+    assert list(OrderLine.objects.filter(assigned_to_id=jane.pk)) == [line]

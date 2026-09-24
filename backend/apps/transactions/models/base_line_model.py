@@ -632,6 +632,14 @@ class BaseLineCore(HardDeleteOnly, BaseModel):
         super().refresh_from_db(*args, **kwargs)
         self._take_snapshot()
 
+    # The person on our side assigned to this line — the picker, the technician, the buyer (Bill,
+    # 2026-09-23). Named as Actions name theirs (assigned_to) — not contact_id, which on a
+    # transaction is the customer's person. A contact id, a value not a foreign key, on every
+    # line type. Unlike the
+    # party ids it is an assignment: chosen and editable within the role's edit list.
+    assigned_to_id = models.BigIntegerField(null=True, blank=True, db_index=True,
+                                            help_text="Contact responsible for this line")
+
     #: Party ids copied from the header onto the line; set by the sell and purchase bases.
     HEADER_PARTY_FIELDS: tuple = ()
 
