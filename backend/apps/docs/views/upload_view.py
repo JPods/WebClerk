@@ -322,12 +322,22 @@ class DocumentDeleteView(APIView):
 
 
 def _remove_file(full_path: str) -> None:
-    """After the record is committed as deleted. A file that will not go is logged, not
-    raised: the record is already gone, and an orphan file is recoverable clutter."""
+    """After the record is committed as deleted, remove the file — only if WebClerk stored it.
+
+    A document can point at a file WebClerk never owned (in wc_demo, 59 of 60 point into
+    a SketchUp plugin folder). Deleting the record must not delete the user's own file,
+    so anything outside the uploads root is left where it is. A file that will not go
+    is logged, not raised: the record is already gone.
+    """
+    import logging
+    log = logging.getLogger('console')
+    root = os.path.realpath(_uploads_root())
+    target = os.path.realpath(full_path)
+    if os.path.commonpath([root, target]) != root:
+        log.info("[DOCS] Deleted document pointed outside uploads; file left: %s", full_path)
+        return
     try:
-        if os.path.exists(full_path):
-            os.remove(full_path)
+        if os.path.exists(target):
+            os.remove(target)
     except OSError as e:
-        import logging
-        logging.getLogger('console').warning("[DOCS] Deleted document's file not removed %s: %s",
-                                              full_path, e)
+        log.warning("[DOCS] Deleted document's file not removed %s: %s", full_path, e)
