@@ -332,7 +332,7 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
     const newMsg: CommentMessage = {
       user: displayName,
       mgs: '',
-      time: formatDt(now, 'datetime'),
+      time: formatDt(now, 'datetime_tz'),
       user_id: currentUserId || authUser?.id,
     };
     persistComments({ ...comments, [key]: [...current, newMsg] });

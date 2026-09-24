@@ -337,7 +337,7 @@ export function normalizeEpochMs(value: number): number {
  * @param mode    'date' = date only (M/D/YYYY), 'datetime' = date + time, 'iso' = YYYY-MM-DD
  * @param field   optional field name for heuristics (dt_ prefix, date_ prefix)
  */
-export function formatDt(value: unknown, mode?: 'date' | 'datetime' | 'iso', field?: string): string {
+export function formatDt(value: unknown, mode?: 'date' | 'datetime' | 'datetime_tz' | 'iso', field?: string): string {
   if (value == null || value === 0 || value === '') return '—';
 
   let d: Date;
@@ -366,6 +366,13 @@ export function formatDt(value: unknown, mode?: 'date' | 'datetime' | 'iso', fie
       return d.toLocaleString(undefined, {
         year: 'numeric', month: 'short', day: 'numeric',
         hour: '2-digit', minute: '2-digit',
+      });
+    case 'datetime_tz':
+      // A displayed dt that is stored as text (a comment's stamp): local, with its zone,
+      // so it reads unambiguously anywhere — "Sep 24, 2026, 05:05 PM EDT".
+      return d.toLocaleString(undefined, {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
       });
     case 'date':
     default:
