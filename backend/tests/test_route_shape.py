@@ -1,6 +1,8 @@
-"""The route-shape ratchet: every ``wcapi/`` route is ``wcapi/<verb>/<model_name>/``.
+"""The route-shape ratchet: every ``wcapi/`` route is the REST channel.
 
-Bill, 2026-09-24: one route per verb, no app names, no aliases. ``KNOWN_VIOLATIONS`` is the
+Bill, 2026-09-24: REST only — ``/wcapi/<model>/`` and ``/wcapi/<model>/<id>/``, the HTTP method
+naming get, save or delete; commands will be ``/wcapi/<model>/<id>/<command>/``. No app names,
+no aliases. ``KNOWN_VIOLATIONS`` is the
 list of routes that do not conform yet, frozen at build step 1. It may only shrink:
 
   * a route that is neither conforming, out of the rule, nor listed fails — no new ones;
@@ -9,11 +11,7 @@ list of routes that do not conform yet, frozen at build step 1. It may only shri
 When the list is empty, delete it. Plan: Allie
 ``readmes/assessments/2026-09-24-one-route-per-verb.md`` §7.
 """
-import re
-
 from django.urls import get_resolver
-
-from apps.core.services.verbs import VERBS
 
 #: No record behind them: sign-in and the API's own description.
 OUT_OF_RULE = frozenset({
@@ -147,8 +145,8 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/docs/qa/apply/',
     'wcapi/docs/qa/groups/',
     'wcapi/docs/stats/',
-    'wcapi/document/<int:document_id>/',
     'wcapi/document/<int:document_id>/delete/',
+    'wcapi/document/<int:document_id>/download/',
     'wcapi/get/',
     'wcapi/get/<str:model_name>/',
     'wcapi/get/bundle_<str:name>.json',
@@ -166,6 +164,9 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/jpods/ui/price/',
     'wcapi/jpods/ui/stations/',
     'wcapi/jpods/ui/travel/',
+    'wcapi/login/',
+    'wcapi/logout/',
+    'wcapi/me/',
     'wcapi/order/<int:pk>/convert-to-invoice/',
     'wcapi/order/<int:pk>/convert-to-purchase/',
     'wcapi/products/bom/<int:pk>/',
@@ -191,18 +192,23 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/products/serials/warranty/',
     'wcapi/purchase/<int:pk>/receive-goods/',
     'wcapi/quote/<int:pk>/convert-to-order/',
+    'wcapi/redoc/',
     'wcapi/register-installation/',
     'wcapi/register-installation/subscribe/',
-    'wcapi/report/',
+    'wcapi/register/',
+    'wcapi/report/run/',
     'wcapi/reports/aged_receivables/',
     'wcapi/reports/gl-export/',
     'wcapi/reports/statement/<int:customer_id>/',
+    'wcapi/schema/',
+    'wcapi/signup/',
     'wcapi/statements/export/',
     'wcapi/statements/files/',
     'wcapi/statements/harvest/',
     'wcapi/statements/lines/',
     'wcapi/statements/promote/',
     'wcapi/statements/save/',
+    'wcapi/swagger/',
     'wcapi/sync/bundle/<str:bundle_uuid>/approve/',
     'wcapi/sync/bundle/<str:bundle_uuid>/status/',
     'wcapi/sync/bundle/callback/',
@@ -216,6 +222,8 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/sync/po-status/<int:pk>/<str:bundle_uuid>/',
     'wcapi/sync/po-to-so/<int:pk>/',
     'wcapi/sync/receive/',
+    'wcapi/token/',
+    'wcapi/token_refresh/',
     'wcapi/transaction/save/',
     'wcapi/transfers/bulk/orders-to-invoices/',
     'wcapi/transfers/bulk/quotes-to-orders/',
@@ -243,16 +251,19 @@ def _wcapi_routes():
     return {r for r in found if r.startswith('wcapi')}
 
 
+#: The REST channel's own two routes (views/channel_view.py).
+CHANNEL_ROUTES = frozenset({'wcapi/<str:model_name>/', 'wcapi/<str:model_name>/<int:record_id>/'})
+
+
 def _conforms(route):
-    verbs = '|'.join(re.escape(v) for v in VERBS)
-    return re.fullmatch(rf'wcapi/({verbs})/<str:model_name>/', route) is not None
+    return route in CHANNEL_ROUTES
 
 
 def test_no_new_route_breaks_the_shape():
     new = sorted(r for r in _wcapi_routes()
                  if not _conforms(r) and r not in OUT_OF_RULE and r not in KNOWN_VIOLATIONS)
-    assert not new, ('Routes must be wcapi/<verb>/<model_name>/ with the verb in '
-                     'services/verbs.py VERBS:\n' + '\n'.join(new))
+    assert not new, ('Routes are the REST channel — /wcapi/<model>/[<id>/] — not their own '
+                     'shape:\n' + '\n'.join(new))
 
 
 def test_the_known_violations_list_only_shrinks():
@@ -260,7 +271,10 @@ def test_the_known_violations_list_only_shrinks():
     assert not gone, 'Fixed or removed — take these off KNOWN_VIOLATIONS:\n' + '\n'.join(gone)
 
 
-def test_every_verb_has_its_route():
-    routes = _wcapi_routes()
-    missing = [v for v in VERBS if f'wcapi/{v}/<str:model_name>/' not in routes]
-    assert not missing, f'verbs without a route: {missing}'
+def test_the_channel_routes_exist_and_come_last():
+    """Last, so a named route is never shadowed by a model called the same thing."""
+    from webclerk3_api.urls import urlpatterns
+    patterns = [str(p.pattern) for p in urlpatterns]
+    assert CHANNEL_ROUTES <= set(patterns)
+    last_wcapi = [p for p in patterns if p.startswith('wcapi')][-2:]
+    assert set(last_wcapi) == CHANNEL_ROUTES

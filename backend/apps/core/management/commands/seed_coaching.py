@@ -66,7 +66,7 @@ COACHING = {
         'api_reference': {
             'list': "GET /wcapi/get/?model_name=customer&status=active&ordering=company",
             'get': "GET /wcapi/get/?model_name=customer&id={id}",
-            'save': "POST /wcapi/save/ {model_name: 'customer', company: '...', status: 'active'}",
+            'save': "POST /wcapi/customer/ {company: '...', status: 'active'}",
         },
     },
 
@@ -117,7 +117,7 @@ COACHING = {
         'api_reference': {
             'list': "GET /wcapi/get/?model_name=invoice&status=released",
             'get': "GET /wcapi/get/?model_name=invoice&id={id}",
-            'save': "POST /wcapi/save/ {model_name: 'invoice', customer_id: X, status: 'planned'}",
+            'save': "POST /wcapi/invoice/ {customer_id: X, status: 'planned'}",
         },
     },
 
@@ -158,7 +158,7 @@ COACHING = {
         ],
         'api_reference': {
             'list': "GET /wcapi/get/?model_name=order&ordering=-dt_created",
-            'save': "POST /wcapi/save/ {model_name: 'order', customer_id: X}",
+            'save': "POST /wcapi/order/ {customer_id: X}",
         },
     },
 
@@ -192,7 +192,7 @@ COACHING = {
         ],
         'api_reference': {
             'list': "GET /wcapi/get/?model_name=quote",
-            'save': "POST /wcapi/save/ {model_name: 'quote', customer_id: X}",
+            'save': "POST /wcapi/quote/ {customer_id: X}",
         },
     },
 
@@ -230,7 +230,7 @@ COACHING = {
         ],
         'api_reference': {
             'list': "GET /wcapi/get/?model_name=purchase&vendor_id={id}",
-            'save': "POST /wcapi/save/ {model_name: 'purchase', vendor_id: X}",
+            'save': "POST /wcapi/purchase/ {vendor_id: X}",
         },
     },
 
@@ -257,7 +257,7 @@ COACHING = {
         ],
         'api_reference': {
             'list': "GET /wcapi/get/?model_name=cash&type=cash_in&ordering=-dt_cash",
-            'save': "POST /wcapi/save/ {model_name: 'cash', type: 'cash_in', amount: 500}",
+            'save': "POST /wcapi/cash/ {type: 'cash_in', amount: 500}",
         },
     },
 
@@ -663,31 +663,26 @@ All data operations flow through wcapi. No exceptions.
 
 ## Endpoints
 
-### GET /wcapi/get/
+### GET /wcapi/<model>/ · GET /wcapi/<model>/<id>/
 List or retrieve records.
-- `?model_name=customer` — list all customers
-- `?model_name=customer&id=42` — get single record with related data
+- `GET /wcapi/customer/` — list customers
+- `GET /wcapi/customer/42/` — one record with related data
 - `?keyword=acme` — search
 - `?status=active` — filter
 - `?ordering=-dt_created` — sort (prefix - for desc)
 - `?limit=50&offset=0` — pagination
 
-### POST /wcapi/save/
-Create or update a record.
-```json
-{
-  "model_name": "customer",
-  "id": 42,
-  "company": "Acme Corp",
-  "status": "active"
-}
+### POST /wcapi/<model>/ (create) · PUT /wcapi/<model>/<id>/ (update)
+The path names the model and the record; the body carries the fields.
 ```
-Omit `id` to create new. Include `id` to update.
+POST /wcapi/customer/        {"company": "Acme Corp", "status": "active"}
+PUT  /wcapi/customer/42/     {"status": "inactive"}
+```
 
-### POST /wcapi/delete/
-Soft-delete a record.
-```json
-{"model_name": "customer", "id": 42}
+### DELETE /wcapi/<model>/<id>/
+Delete a record (no body).
+```
+DELETE /wcapi/customer/42/
 ```
 
 ### POST /wcapi/manage/

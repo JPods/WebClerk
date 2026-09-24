@@ -4,7 +4,7 @@ Bill, 2026-09-22: *"I think everything should flow through this one door includi
 admin. No staff backdoor."*
 
 Django's ``ModelAdmin.save_model`` calls ``obj.save()`` directly, so an admin edit has
-always skipped what ``/wcapi/save/`` applies: the field policy, envelope validation, the
+always skipped what the REST save (``POST /wcapi/<model>/``) applies: the field policy, envelope validation, the
 model's own behaviour, the report hooks, the version check and the sync push. It got the
 base model's identity work and nothing else.
 

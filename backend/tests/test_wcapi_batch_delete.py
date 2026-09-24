@@ -7,7 +7,7 @@ import pytest
 from django.test import Client
 from django.contrib.auth import get_user_model
 from apps.core.models import Setting
-from tests.utils import assert_envelope
+from tests.utils import assert_envelope, wcapi_save
 
 User = get_user_model()
 
@@ -33,9 +33,7 @@ def test_batch_delete_by_ids(admin_client):
     """Create settings and delete them one at a time via /wcapi/delete/."""
     ids = []
     for i in range(3):
-        resp = admin_client.post(
-            "/wcapi/save/setting/",
-            data=json.dumps({
+        resp = wcapi_save(admin_client, data=json.dumps({
                 "model_name": "setting",
                 "name": f"batch_del_test_{i}",
                 "purpose": "test",
@@ -50,11 +48,7 @@ def test_batch_delete_by_ids(admin_client):
 
     # Delete first two
     for rid in ids[:2]:
-        del_resp = admin_client.post(
-            "/wcapi/delete/setting/",
-            data=json.dumps({"model_name": "setting", "id": rid}),
-            content_type="application/json",
-        )
+        del_resp = admin_client.delete(f"/wcapi/setting/{rid}/")
         assert del_resp.status_code == 200
         del_data = assert_envelope(del_resp.json(), expect_status="success")
         assert del_data.get("deleted") is True
@@ -70,9 +64,7 @@ def test_batch_delete_via_model_objects(admin_client):
     """Create settings via API, then verify DB-level deletion works."""
     ids = []
     for i in range(4):
-        resp = admin_client.post(
-            "/wcapi/save/setting/",
-            data=json.dumps({
+        resp = wcapi_save(admin_client, data=json.dumps({
                 "model_name": "setting",
                 "name": f"batch_filter_test_{i}",
                 "purpose": "batch_test",
@@ -89,11 +81,7 @@ def test_batch_delete_via_model_objects(admin_client):
 
     # Delete all via API
     for rid in ids:
-        del_resp = admin_client.post(
-            "/wcapi/delete/setting/",
-            data=json.dumps({"model_name": "setting", "id": rid}),
-            content_type="application/json",
-        )
+        del_resp = admin_client.delete(f"/wcapi/setting/{rid}/")
         assert del_resp.status_code == 200
 
     # Confirm none remain

@@ -169,7 +169,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             '\nSupport Q&A system ready.\n'
             '\nTo create a Q&A Document:\n'
-            '  POST /wcapi/save/ model_name=document\n'
+            '  POST /wcapi/document/\n'
             '  { name: "How do I...?",\n'
             '    status: "draft",\n'
             '    config: { purpose: "support_qa", source: "user",\n'

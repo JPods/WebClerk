@@ -7,7 +7,7 @@ way wcapi creates one door."*
 This is that function, lifted out of ``SaveWcapiView`` so that callers without a request —
 a management command, a Celery task, a sync bundle, Django admin — reach the same
 authorization, the same validation, the same hooks and the same version check that
-``/wcapi/save/`` has always had and nothing else did.
+the REST save (``POST /wcapi/<model>/``) has always had and nothing else did.
 
 What the caller supplies is an **actor**, not a request: who is writing, and in what
 capacity. HTTP builds one from its request; a command builds one directly. The policy

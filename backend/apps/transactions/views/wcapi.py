@@ -256,7 +256,7 @@ def _transaction_save_denial(actor, model_key: str, record_data: dict, lines_dat
     # say nothing about how many rows it carries, so the cap is checked first — before
     # anything is walked, re-priced or saved (Bill, 2026-09-20: "To address malicious
     # behavior we can limit their size").
-    # Both shapes: /wcapi/save/ carries the collection inside the record, and
+    # Both shapes: the REST save carries the collection inside the record, and
     # /wcapi/transaction/save/ passes it beside the record as its own argument.
     oversize = (_collection_too_large(model_key, record_data)
                 or _collection_too_large(model_key, {'lines': lines_data or []}))

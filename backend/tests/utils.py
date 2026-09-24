@@ -18,3 +18,14 @@ def assert_envelope(body, *, expect_status=None):
     if data is None:
         data = {}
     return data
+
+
+def wcapi_save(client, data=None, **kwargs):
+    """A REST save, as the frontend makes it: POST /wcapi/<model>/ creates, PUT
+    /wcapi/<model>/<id>/ updates. The body (a dict, or JSON text) names both."""
+    import json
+    body = json.loads(data) if isinstance(data, (str, bytes)) else (data or {})
+    model, rid = body['model_name'], body.get('id')
+    if rid:
+        return client.put(f'/wcapi/{model}/{rid}/', data, **kwargs)
+    return client.post(f'/wcapi/{model}/', data, **kwargs)

@@ -18,7 +18,7 @@ export const BOMPanel: React.FC<{ itemId: number; theme: any; fontSize: number }
   const fetchBom = useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await apiClient.get(`/products/items/${itemId}/bom/expand/`, {
+      const resp = await apiClient.get(`/wcapi/products/items/${itemId}/bom/expand/`, {
         params: { qty: buildQty, cost_basis: costBasis },
       });
       setBomData(resp.data?.data || resp.data);

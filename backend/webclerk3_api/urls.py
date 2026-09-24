@@ -11,6 +11,7 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView
 )
+from apps.core.views.channel_view import ModelChannelView
 from apps.docs.urls import upload_urlpatterns
 # SystemDispatchView registered in apps.core.urls (after specific _ routes)
 
@@ -45,6 +46,12 @@ urlpatterns = [
     path('wcapi/products/', include('apps.products.urls')),
     path('wcapi/sync/', include('apps.sync.urls')),
     path('wcapi/webserving/', include('apps.webserving.urls')),
+
+    # The REST channel — last, so every named route above is matched first (Bill,
+    # 2026-09-24: REST only). GET/POST /wcapi/<model>/; GET/PUT/PATCH/DELETE /wcapi/<model>/<id>/.
+    path('wcapi/<str:model_name>/', ModelChannelView.as_view(), name='wcapi-model'),
+    path('wcapi/<str:model_name>/<int:record_id>/', ModelChannelView.as_view(),
+         name='wcapi-record'),
 
     # Admin swagger
     path('admin/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='admin-swagger'),

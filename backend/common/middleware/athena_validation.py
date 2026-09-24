@@ -26,8 +26,20 @@ import logging
 logger = logging.getLogger('console')
 
 # Paths that require Athena validation (write endpoints)
-# Write endpoints that require Athena validation: /wcapi/save/<model_name>/
-ATHENA_PREFIX = '/wcapi/save/'
+# Saves that require Athena validation: POST /wcapi/<model>/, PUT|PATCH /wcapi/<model>/<id>/
+SAVE_METHODS = ('POST', 'PUT', 'PATCH')
+SAVE_ROUTES = ('wcapi-model', 'wcapi-record')
+
+
+def is_save(request) -> bool:
+    """A save through the REST channel — named by its route, not guessed from the path."""
+    if request.method not in SAVE_METHODS:
+        return False
+    from django.urls import Resolver404, resolve
+    try:
+        return resolve(request.path).url_name in SAVE_ROUTES
+    except Resolver404:
+        return False
 
 
 class AthenaValidationMiddleware:
@@ -37,7 +49,7 @@ class AthenaValidationMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.method != 'POST' or not request.path.startswith(ATHENA_PREFIX):
+        if not is_save(request):
             return self.get_response(request)
 
         athena_header = request.META.get('HTTP_X_ATHENA_VALIDATED', '')

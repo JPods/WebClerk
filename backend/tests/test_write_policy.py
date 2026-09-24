@@ -14,6 +14,7 @@ from rest_framework.test import APIClient
 from apps.core.models import Contact
 from apps.core.services.door import Actor
 from apps.core.services.save import SYSTEM_ONLY_FIELDS, _enumerated_edit
+from tests.utils import wcapi_save
 
 # Generated per run — no password literal in the repository.
 TEST_PASSWORD = secrets.token_urlsafe(16)
@@ -113,7 +114,7 @@ class TestWcapiSave:
         target = django_user_model.objects.create_user(
             email="target@example.com", password=TEST_PASSWORD, role="user",
             security_level=1)   # as the save door stamps a new contact; 0 is staff-only
-        resp = _auth_client(employee).post("/wcapi/save/contact/", {
+        resp = wcapi_save(_auth_client(employee), {
             "model_name": "contact", "id": target.pk,
             "email": "updated@example.com", "is_superuser": True,
         }, format="json")
@@ -130,7 +131,7 @@ class TestWcapiSave:
             email="admin@example.com", password=TEST_PASSWORD)
         target = django_user_model.objects.create_user(
             email="target2@example.com", password=TEST_PASSWORD, role="user")
-        resp = _auth_client(admin).post("/wcapi/save/contact/", {
+        resp = wcapi_save(_auth_client(admin), {
             "model_name": "contact", "id": target.pk,
             "email": "admin-updated@example.com", "role": "employee",
         }, format="json")
@@ -144,7 +145,7 @@ class TestWcapiSave:
         authority over it."""
         user = django_user_model.objects.create_user(
             email="user@example.com", password=TEST_PASSWORD, role="user")
-        resp = _auth_client(user).post("/wcapi/save/contact/", {
+        resp = wcapi_save(_auth_client(user), {
             "model_name": "contact", "id": user.pk, "role": "admin",
         }, format="json")
         assert resp.status_code == 403, resp.data
@@ -162,7 +163,7 @@ class TestWcapiSave:
         target = django_user_model.objects.create_user(
             email="t4@example.com", password=TEST_PASSWORD, role="user",
             name_last="Unchanged", security_level=1)
-        resp = _auth_client(employee).post("/wcapi/save/contact/", {
+        resp = wcapi_save(_auth_client(employee), {
             "model_name": "contact", "id": target.pk,
             "name_first": "NewFirst",          # enumerated
             "name_last": "ShouldNotApply",     # not enumerated, not authority

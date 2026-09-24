@@ -281,7 +281,7 @@ const FileUploadPanel: React.FC<Props> = ({
                 <span>{roleIcon(doc.purpose)}</span>
                 {isImage && (
                   <img
-                    src={`/wcapi/document/${doc.id}/`}
+                    src={`/wcapi/document/${doc.id}/download/`}
                     alt={doc.name}
                     className="h-6 w-6 rounded object-cover"
                     loading="lazy"
@@ -296,7 +296,7 @@ const FileUploadPanel: React.FC<Props> = ({
                   </span>
                 )}
                 <a
-                  href={`/wcapi/document/${doc.id}/`}
+                  href={`/wcapi/document/${doc.id}/download/`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[9px] text-indigo-500 hover:underline"

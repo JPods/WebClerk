@@ -3,7 +3,7 @@ import pytest
 from django.test import Client, override_settings
 from django.contrib.auth import get_user_model
 from apps.communications.models import Phone
-from tests.utils import assert_envelope
+from tests.utils import assert_envelope, wcapi_save
 import secrets
 
 # Generated per run — no password literal in the repository.
@@ -24,7 +24,7 @@ def test_phone_pre_and_post_hooks_success(monkeypatch):
     }
     # enable universal validation so api_validate_payload runs
     with override_settings(UNIVERSAL_API_VALIDATE=True):
-        resp = c.post(f"/wcapi/save/{payload['model_name']}/", data=json.dumps(payload), content_type='application/json')
+        resp = wcapi_save(c, data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 200, resp.content
     data = assert_envelope(resp.json(), expect_status='success')
     assert Phone.objects.filter(number='5551234').exists()
@@ -40,7 +40,7 @@ def test_phone_pre_save_rejects_short_number():
         'country_code': '+1'
     }
     with override_settings(UNIVERSAL_API_VALIDATE=True):
-        resp = c.post(f"/wcapi/save/{payload['model_name']}/", data=json.dumps(payload), content_type='application/json')
+        resp = wcapi_save(c, data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 400
     body = resp.json(); assert_envelope(body, expect_status='fail')
     assert 'number: too short' in body.get('message','')
@@ -56,7 +56,7 @@ def test_phone_api_validate_country_code_error():
         'country_code': '1'  # missing leading + triggers api_validate_payload error
     }
     with override_settings(UNIVERSAL_API_VALIDATE=True):
-        resp = c.post(f"/wcapi/save/{payload['model_name']}/", data=json.dumps(payload), content_type='application/json')
+        resp = wcapi_save(c, data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 400
     body = resp.json(); assert_envelope(body, expect_status='fail')
     details = (body.get('error') or {}).get('details', [])

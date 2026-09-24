@@ -112,7 +112,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "apps.core.utils.middleware.JSONOnlyMiddleware",
     'corsheaders.middleware.CorsMiddleware',
-    'common.middleware.RestToWcapiMiddleware',      # redirect /api/ → /wcapi/
     'common.middleware.EnsureRenderedMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

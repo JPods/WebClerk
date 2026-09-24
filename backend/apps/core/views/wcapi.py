@@ -107,44 +107,34 @@ class UnknownFilterError(ValueError):
         return hints
 
 
-class WCAPIDeleteView(APIView):
-    """POST /wcapi/delete/<model_name>/ — record removal through the delete door."""
+def delete_response(request, model_key, record_id):
+    """DELETE /wcapi/<model>/<id>/ — the delete itself is the door's."""
+    from django.conf import settings as _settings
+    from apps.core.services.delete import delete_record
+    from apps.core.services.door import Actor, Refused
 
-    http_method_names = ["post", "options", "head"]
+    if getattr(_settings, 'READ_ONLY_MODE', False):
+        return api_response(
+            success=False, status_code=405,
+            message='This is a read-only demo. Download WebClerk at webclerk.com to modify data.',
+            error={'code': 'demo_read_only', 'details': 'Deletes are disabled on the demo instance.'})
 
-    def post(self, request, model_name: str):
-        """POST /wcapi/delete/<model_name>/ with body { id }. A delete is never a GET."""
-        body: Dict[str, Any] = request.data or {}
-        return self._do_delete(request, model_name, body.get("id"))
+    try:
+        result = delete_record(Actor.from_request(request), model_key, record_id)
+    except Refused as refused:
+        return api_response(success=False, status_code=refused.status,
+                            message=refused.message, error=refused.as_error())
+    except Exception:
+        logger.exception("delete failed for %s #%s", model_key, record_id)
+        return api_response(
+            success=False,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            message="delete failed",
+            error={"code": "delete_failed",
+                   "details": {"model_name": model_key, "id": record_id}},
+        )
 
-    def _do_delete(self, request, model_key, record_id):
-        """The delete itself is the door's."""
-        from django.conf import settings as _settings
-        from apps.core.services.delete import delete_record
-        from apps.core.services.door import Actor, Refused
-
-        if getattr(_settings, 'READ_ONLY_MODE', False):
-            return api_response(
-                success=False, status_code=405,
-                message='This is a read-only demo. Download WebClerk at webclerk.com to modify data.',
-                error={'code': 'demo_read_only', 'details': 'Deletes are disabled on the demo instance.'})
-
-        try:
-            result = delete_record(Actor.from_request(request), model_key, record_id)
-        except Refused as refused:
-            return api_response(success=False, status_code=refused.status,
-                                message=refused.message, error=refused.as_error())
-        except Exception:
-            logger.exception("delete failed for %s #%s", model_key, record_id)
-            return api_response(
-                success=False,
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                message="delete failed",
-                error={"code": "delete_failed",
-                       "details": {"model_name": model_key, "id": record_id}},
-            )
-
-        return api_response(data=result.payload(), status_code=status.HTTP_200_OK)
+    return api_response(data=result.payload(), status_code=status.HTTP_200_OK)
 
 
 class WCAPIGetView(APIView):

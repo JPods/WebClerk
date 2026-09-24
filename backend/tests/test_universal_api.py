@@ -3,6 +3,7 @@ from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from apps.core.models import Contact
 from .utils import assert_envelope
+from tests.utils import wcapi_save
 
 User = get_user_model()
 
@@ -41,9 +42,7 @@ class UniversalAPITestCase(TestCase):
     def universal_save(self, model_key, record):
         payload = {'model_name': model_key.rstrip('s') if model_key.endswith('s') else model_key}
         payload.update(record)
-        return self.client.post(
-            f"/wcapi/save/{payload['model_name']}/",
-            data=json.dumps(payload),
+        return wcapi_save(self.client, data=json.dumps(payload),
             content_type='application/json'
         )
 

@@ -9,6 +9,7 @@ from django.test import Client
 from django.contrib.auth import get_user_model
 from apps.orgs.models import OrgBase, OrgType
 from tests.utils import assert_envelope
+from tests.utils import wcapi_save
 
 User = get_user_model()
 
@@ -26,7 +27,7 @@ def test_wcapi_save_create_org():
         'company': 'Save Created Co',
         'status': 'active'
     }
-    resp = c.post(f"/wcapi/save/{payload['model_name']}/", data=json.dumps(payload), content_type='application/json')
+    resp = wcapi_save(c, data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status='success')
     org = OrgBase.objects.get(id=data['id'])
@@ -47,7 +48,7 @@ def test_wcapi_save_update_org_with_version():
         'version': v,
         'company': 'Update Co Renamed'
     }
-    resp = c.post(f"/wcapi/save/{payload['model_name']}/", data=json.dumps(payload), content_type='application/json')
+    resp = wcapi_save(c, data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 200
     assert_envelope(resp.json(), expect_status='success')
     org.refresh_from_db()

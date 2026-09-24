@@ -7,7 +7,7 @@ import json
 import pytest
 from django.test import Client
 from django.contrib.auth import get_user_model
-from tests.utils import assert_envelope
+from tests.utils import assert_envelope, wcapi_save
 
 User = get_user_model()
 
@@ -31,9 +31,7 @@ def admin_client():
 @pytest.mark.django_db
 def test_contact_crud(admin_client):
     # Create
-    resp = admin_client.post(
-        "/wcapi/save/contact/",
-        data=json.dumps({
+    resp = wcapi_save(admin_client, data=json.dumps({
             "model_name": "contact",
             "name_first": "Ada",
             "name_last": "Lovelace",
@@ -55,11 +53,7 @@ def test_contact_crud(admin_client):
     assert record.get("id") == cid
 
     # Delete
-    resp = admin_client.post(
-        "/wcapi/delete/contact/",
-        data=json.dumps({"model_name": "contact", "id": cid}),
-        content_type="application/json",
-    )
+    resp = admin_client.delete(f"/wcapi/contact/{cid}/")
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status="success")
     assert data.get("deleted") is True
@@ -68,9 +62,7 @@ def test_contact_crud(admin_client):
 @pytest.mark.django_db
 def test_customer_crud(admin_client):
     # Create
-    resp = admin_client.post(
-        "/wcapi/save/customer/",
-        data=json.dumps({
+    resp = wcapi_save(admin_client, data=json.dumps({
             "model_name": "customer",
             "company": "Pilot Customer Co",
             "status": "active",
@@ -90,11 +82,7 @@ def test_customer_crud(admin_client):
     assert record.get("id") == oid
 
     # Delete
-    resp = admin_client.post(
-        "/wcapi/delete/customer/",
-        data=json.dumps({"model_name": "customer", "id": oid}),
-        content_type="application/json",
-    )
+    resp = admin_client.delete(f"/wcapi/customer/{oid}/")
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status="success")
     assert data.get("deleted") is True
@@ -103,9 +91,7 @@ def test_customer_crud(admin_client):
 @pytest.mark.django_db
 def test_setting_crud(admin_client):
     # Create
-    resp = admin_client.post(
-        "/wcapi/save/setting/",
-        data=json.dumps({
+    resp = wcapi_save(admin_client, data=json.dumps({
             "model_name": "setting",
             "name": "pilot_test_setting",
             "purpose": "test",
@@ -126,11 +112,7 @@ def test_setting_crud(admin_client):
     assert record.get("id") == sid
 
     # Delete
-    resp = admin_client.post(
-        "/wcapi/delete/setting/",
-        data=json.dumps({"model_name": "setting", "id": sid}),
-        content_type="application/json",
-    )
+    resp = admin_client.delete(f"/wcapi/setting/{sid}/")
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status="success")
     assert data.get("deleted") is True

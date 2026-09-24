@@ -1,6 +1,6 @@
 import json
 import pytest
-from tests.utils import assert_envelope
+from tests.utils import assert_envelope, wcapi_save
 
 
 @pytest.fixture
@@ -44,16 +44,25 @@ def test_wcapi_get_rejects_post(client, user1):
 
 
 @pytest.mark.django_db
-def test_save_without_a_model_in_the_path_is_no_route(client, user2):
+def test_an_update_needs_the_record_in_the_path(client, user2):
     client.force_login(user2)
-    resp = client.post('/wcapi/save/', data=json.dumps({'name_first': 'A'}), content_type='application/json')
-    assert resp.status_code == 404
+    resp = client.put('/wcapi/contact/', data=json.dumps({'name_first': 'A'}), content_type='application/json')
+    assert resp.status_code == 405
+    assert resp.json()['error']['code'] == 'method_not_allowed'
+
+
+@pytest.mark.django_db
+def test_an_id_in_a_create_body_is_refused(client, user2):
+    client.force_login(user2)
+    resp = client.post('/wcapi/contact/', data=json.dumps({'id': 5}), content_type='application/json')
+    assert resp.status_code == 400
+    assert resp.json()['error']['code'] == 'id_in_body'
 
 
 @pytest.mark.django_db
 def test_save_unknown_table(client, user2):
     client.force_login(user2)
-    resp = client.post('/wcapi/save/nope/', data=json.dumps({'model_name': 'nope'}), content_type='application/json')
+    resp = wcapi_save(client, data=json.dumps({'model_name': 'nope'}), content_type='application/json')
     assert resp.status_code == 400
     body = resp.json()
     assert_envelope(body, expect_status='fail')
@@ -63,7 +72,7 @@ def test_save_unknown_table(client, user2):
 @pytest.mark.django_db
 def test_save_invalid_json(client, user2):
     client.force_login(user2)
-    resp = client.post('/wcapi/save/contact/', data='{"oops"', content_type='application/json')
+    resp = client.post('/wcapi/contact/', data='{"oops"', content_type='application/json')
     assert resp.status_code == 400
     body = resp.json()
     assert_envelope(body, expect_status='fail')

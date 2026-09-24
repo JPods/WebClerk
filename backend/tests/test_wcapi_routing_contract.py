@@ -1,6 +1,6 @@
 """Tests for the canonical wcapi routing contract.
 
-All data operations route through /wcapi/get/, /wcapi/save/, /wcapi/delete/.
+All data operations route through the REST channel: /wcapi/<model>/[<id>/].
 There are no /<model>/ URL patterns — those are legacy patterns that no longer exist.
 """
 import pytest
@@ -48,20 +48,20 @@ def test_wcapi_get_with_model_path(admin_user):
 
 @pytest.mark.django_db
 def test_wcapi_save_refuses_a_payload_naming_another_model(admin_user):
-    """POST /wcapi/save/<model>/ — the path names the model; a payload naming another is refused."""
+    """POST /wcapi/<model>/ — the path names the model; a payload naming another is refused."""
     client = APIClient()
     client.force_authenticate(user=admin_user)
 
-    resp = client.post('/wcapi/save/contact/', {'model_name': 'item'}, format='json')
+    resp = client.post('/wcapi/contact/', {'model_name': 'item'}, format='json')
     assert resp.status_code == 400
     assert resp.json()['error']['code'] == 'model_mismatch'
 
 
 @pytest.mark.django_db
 def test_wcapi_delete_requires_model_and_id(admin_user):
-    """POST /wcapi/delete/<model>/ without an id returns 400."""
+    """DELETE /wcapi/<model>/ (no id) is not a verb."""
     client = APIClient()
     client.force_authenticate(user=admin_user)
 
-    resp = client.post('/wcapi/delete/contact/', {}, format='json')
-    assert resp.status_code == 400
+    resp = client.delete('/wcapi/contact/')
+    assert resp.status_code == 405

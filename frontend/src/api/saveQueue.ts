@@ -95,8 +95,11 @@ const startNext = () => {
     console.debug("[saveQueue] Posting payload", { id: next.id, label: next.label });
   }
 
-  apiClient
-    .post(PostLoginURL.save(next.payload.model_name), { ...next.payload }, { signal: next.controller.signal })
+  const { model_name: model, id } = next.payload;
+  const request = id
+    ? apiClient.put(PostLoginURL.record(model, id), { ...next.payload }, { signal: next.controller.signal })
+    : apiClient.post(PostLoginURL.record(model), { ...next.payload }, { signal: next.controller.signal });
+  request
     .then((response) => {
       if (!active) return;
       active.status = "success";

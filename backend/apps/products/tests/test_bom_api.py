@@ -3,6 +3,7 @@ from apps.products.models.item import Item
 from apps.products.models.bill_of_material import BillOfMaterial
 from apps.core.models.contact import Contact
 from rest_framework.test import APIClient
+from tests.utils import wcapi_save
 
 
 @pytest.mark.django_db
@@ -44,7 +45,7 @@ def test_bom_create_via_wcapi():
             'sequence': 10,
         }
     }
-    resp = client.post(f"/wcapi/save/{payload['model_name']}/", payload, format='json')
+    resp = wcapi_save(client, payload, format='json')
     assert resp.status_code in (200, 201), f"Unexpected: {resp.status_code} {resp.content}"
     body = resp.json()
     assert body.get('status') == 'success'

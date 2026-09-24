@@ -114,7 +114,7 @@ const Onboarding: React.FC = () => {
 
       // Store the Athena token locally
       const token = resp.data.token;
-      await axios.post("/wcapi/save/setting/", {
+      await axios.post("/wcapi/setting/", {
         model_name: "setting",
         data: {
           name: "WCHQ Connection",
@@ -130,7 +130,7 @@ const Onboarding: React.FC = () => {
       });
 
       // Store subscription in WCHQ connection record
-      await axios.post("/wcapi/save/setting/", {
+      await axios.post("/wcapi/setting/", {
         model_name: "setting",
         ida: "wchq-connection",
         "config.subscription.subscribed": { mode: "update", value: form.subscribed },

@@ -9,6 +9,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from apps.core.models.setting import Setting
 from apps.transactions.services.validate_status import validate_transition
 from tests.conftest import make_setting
+from tests.utils import wcapi_save
 
 User = get_user_model()
 
@@ -225,9 +226,7 @@ class WorkOrderPhase1Tests(TestCase):
     def test_status_save_via_wcapi(self):
         """Status changes through /wcapi/save/ with model_name and status field."""
         # Transition planned -> released via save endpoint
-        resp = self.client.post(
-            '/wcapi/save/workorder/',
-            data=json.dumps({
+        resp = wcapi_save(self.client, data=json.dumps({
                 'model_name': 'workorder',
                 'id': self.wo.pk,
                 'status': 'released',

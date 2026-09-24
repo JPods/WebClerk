@@ -15,7 +15,7 @@ def _post(path, body):
 
 
 def test_note_with_password_is_refused():
-    r = _post("/wcapi/save/action/", {"model": "action", "fields": {"comments": {"notes": "router wifi password is Summer2026!"}}})
+    r = _post("/wcapi/action/", {"model": "action", "fields": {"comments": {"notes": "router wifi password is Summer2026!"}}})
     assert r.status_code == 422
     body = json.loads(r.content)
     assert body["error"]["code"] == "secret_detected"
@@ -24,12 +24,12 @@ def test_note_with_password_is_refused():
 
 
 def test_clean_note_passes():
-    assert _post("/wcapi/save/action/", {"model": "action", "fields": {"name": "Change the WiFi password"}}).content == b"stored"
+    assert _post("/wcapi/action/", {"model": "action", "fields": {"name": "Change the WiFi password"}}).content == b"stored"
 
 
 def test_password_forms_and_login_are_exempt():
     assert _post("/wcapi/token/", {"email": "a@b.test", "password": "Summer2026!"}).content == b"stored"
-    assert _post("/wcapi/save/contact/", {"model": "contact", "fields": {"password": "Summer2026!"}}).content == b"stored"
+    assert _post("/wcapi/contact/", {"model": "contact", "fields": {"password": "Summer2026!"}}).content == b"stored"
 
 
 def test_alice_chat_is_scanned():

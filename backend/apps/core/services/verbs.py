@@ -1,7 +1,8 @@
-"""The channel verbs — one route per verb, one structure per verb.
+"""The channel verbs — one door per verb, one structure per verb.
 
-Bill, 2026-09-24 (Channel_Inheritance.png): every channel path is
-``/wcapi/<verb>/<model_name>/``, and every verb runs the same structure:
+Bill, 2026-09-24 (Channel_Inheritance.png, then "REST only"): every channel reaches a verb
+through ``/wcapi/<model>/[<id>/][<command>/]`` — the HTTP method names get, save and
+delete (views/channel_view.py) — and every verb runs the same structure:
 
     code before → user before → base service → code after → user after
 
@@ -13,7 +14,7 @@ behave a particular way says so in the payload, as underscore signals the hook r
 An after hook runs only when the base succeeded.
 
 A verb is added here, never by writing a URL. The route-shape test holds every
-``wcapi/`` route to this list. Plan: Allie ``readmes/assessments/2026-09-24-one-route-per-verb.md``.
+``wcapi/`` route to the REST shape. Plan: Allie ``readmes/assessments/2026-09-24-one-route-per-verb.md``.
 """
 from __future__ import annotations
 
@@ -45,6 +46,11 @@ VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
     'save': _save,
     'delete': _delete,
 }
+
+#: REST names the verb with the HTTP method (Bill, 2026-09-24: REST only). A command is
+#: the last segment of POST /wcapi/<model>/<id>/<command>/.
+METHOD_VERBS = {'GET': 'get', 'POST': 'save', 'PUT': 'save', 'PATCH': 'save',
+                'DELETE': 'delete'}
 
 
 def run(actor: Actor, verb: str, model_key: str, payload: dict):

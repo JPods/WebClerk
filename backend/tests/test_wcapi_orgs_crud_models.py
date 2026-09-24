@@ -10,6 +10,7 @@ from apps.orgs.models import OrgBase, OrgType
 from apps.core.models import Setting
 from tests.utils import assert_envelope
 from tests.conftest import make_saved_search, make_setting
+from tests.utils import wcapi_save
 
 User = get_user_model()
 
@@ -45,7 +46,7 @@ def test_wcapi_org_model_crud(model_name, org_type):
     if model_name == "orgbase":
         payload["org_type"] = org_type
 
-    resp = client.post(f"/wcapi/save/{payload['model_name']}/", data=json.dumps(payload), content_type="application/json")
+    resp = wcapi_save(client, data=json.dumps(payload), content_type="application/json")
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status="success")
     record_id = data["id"]
@@ -68,7 +69,7 @@ def test_wcapi_org_model_crud(model_name, org_type):
         "id": record_id,
         "company": f"{model_name} co updated",
     }
-    resp = client.post(f"/wcapi/save/{update_payload['model_name']}/", data=json.dumps(update_payload), content_type="application/json")
+    resp = wcapi_save(client, data=json.dumps(update_payload), content_type="application/json")
     assert resp.status_code == 200
     assert_envelope(resp.json(), expect_status="success")
 
@@ -81,7 +82,7 @@ def test_wcapi_org_model_crud(model_name, org_type):
         "id": record_id,
         "status": {"mode": "delete"},
     }
-    resp = client.post(f"/wcapi/save/{delete_field_payload['model_name']}/", data=json.dumps(delete_field_payload), content_type="application/json")
+    resp = wcapi_save(client, data=json.dumps(delete_field_payload), content_type="application/json")
     assert resp.status_code == 200
     assert_envelope(resp.json(), expect_status="success")
 
@@ -89,11 +90,7 @@ def test_wcapi_org_model_crud(model_name, org_type):
     assert org.status in (None, "")
 
     # Delete record
-    resp = client.post(
-        f"/wcapi/delete/{model_name}/",
-        data=json.dumps({"id": record_id}),
-        content_type="application/json",
-    )
+    resp = client.delete(f"/wcapi/{model_name}/{record_id}/")
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status="success")
     assert data.get("deleted") is True
@@ -246,9 +243,7 @@ def test_wcapi_save_saved_search_requires_admin(client):
     )
     client.force_login(user)
 
-    resp = client.post(
-        "/wcapi/save/setting/",
-        data=json.dumps(
+    resp = wcapi_save(client, data=json.dumps(
             {
                 "model_name": "setting",
                 "name": "non_admin_saved_search",
@@ -281,9 +276,7 @@ def test_wcapi_save_saved_search_allows_admin(client):
     )
     client.force_login(user)
 
-    resp = client.post(
-        "/wcapi/save/setting/",
-        data=json.dumps(
+    resp = wcapi_save(client, data=json.dumps(
             {
                 "model_name": "setting",
                 "name": "admin_saved_search",

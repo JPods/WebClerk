@@ -58,7 +58,7 @@ interface Props {
   fontSize: number;
   onClose: () => void;
   /** Called when user double-clicks a report row — executes the report.
-   *  If not provided, default: opens /wcapi/report/ in new tab. */
+   *  If not provided, default: opens /wcapi/report/run/ in new tab. */
   onExecuteReport?: (report: ReportRecord) => void;
   /** Company info for print headers/footers */
   companyInfo?: any;
@@ -349,7 +349,7 @@ const ReportsDialog: React.FC<Props> = ({
     // Fallback — open report endpoint in new tab
     const reportName = encodeURIComponent(report.name);
     const modelName = encodeURIComponent(model);
-    let url = `/wcapi/report/?report=${reportName}&model=${modelName}`;
+    let url = `/wcapi/report/run/?report=${reportName}&model=${modelName}`;
     if (context === 'detail' && selectedId) {
       url += `&id=${selectedId}`;
     }

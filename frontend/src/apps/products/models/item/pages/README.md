@@ -193,7 +193,7 @@ const { isAdmin, isFieldVisible, isFieldReadOnly } = useDetailFieldAccess("item"
 | Function | Endpoint | Purpose |
 |----------|----------|---------|
 | `getRecord("item", id)` | `/wcapi/get/` | Fetch single item |
-| `saveRecord("item", payload)` | `/wcapi/save/item/` | Create/update item |
+| `saveRecord("item", payload)` | `POST /wcapi/item/` · `PUT /wcapi/item/<id>/` | Create/update item |
 | `createItem(data)` | Model-specific | Create new item |
 | `updateItem(data)` | Model-specific | Update existing item |
 

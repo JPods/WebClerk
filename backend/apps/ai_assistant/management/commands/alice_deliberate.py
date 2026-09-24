@@ -165,7 +165,7 @@ def get_alice_token() -> str | None:
 
 def save_to_wc3(title: str, path: str, summary: str, token: str,
                 project_id: int = PROJECT_ALLIE) -> int | None:
-    result = wc_write("/wcapi/save/document/", {
+    result = wc_write("/wcapi/document/", {
         "model_name": "document",
         "name":        title,
         "body":        summary,
@@ -183,7 +183,7 @@ def save_to_wc3(title: str, path: str, summary: str, token: str,
 
 def create_followup_action(title: str, description: str, token: str,
                            project_id: int = PROJECT_ALLIE) -> int | None:
-    result = wc_write("/wcapi/save/action/", {
+    result = wc_write("/wcapi/action/", {
         "model_name": "action",
         "action": {"en": title},
         "description": {"en": description},

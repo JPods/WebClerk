@@ -9,7 +9,6 @@
  *   wc3  common/middleware/rest_redirect.py      — server-side REST→wcapi redirect middleware
  *   wc3  tests/test_rest_redirect.py              — 46 middleware tests
  *   wc3  readmes/03-wcapi-gateway.md              — gateway overview & mapping table
- *   r25  src/api/restToWcapi.ts                   — client-side REST→wcapi converter
  *   r25  src/api/modelNameResolver.ts              — canonical model-name resolution
  *   r25  readmes/api-migration-rest-to-wcapi.md   — migration tracker
  */
@@ -183,10 +182,10 @@ const PRESETS: Preset[] = [
 
   // ── WCAPI: Save ────────────────────────────────────────────────────────
   {
-    label: 'wcapi › Save (POST)',
-    method: 'POST',
-    url: '/wcapi/save/contact/',
-    body: { id: 1 },
+    label: 'wcapi › Save (PUT /wcapi/<model>/<id>/)',
+    method: 'PUT',
+    url: '/wcapi/contact/1/',
+    body: { name_first: 'Alice' },
     info: {
       description: 'Create or update a record depending on presence of id.',
       requires: { body: ['fields…'] },

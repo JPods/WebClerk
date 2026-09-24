@@ -189,10 +189,8 @@ class SecurityAlertMiddleware:
 
     def _check_unsigned_save(self, request):
         """Track save requests without Athena validation token."""
-        if request.method != 'POST':
-            return
-        path = request.path or ''
-        if not path.startswith('/wcapi/save/'):
+        from common.middleware.athena_validation import is_save
+        if not is_save(request):
             return
 
         validated = getattr(request, '_athena_validated', None)

@@ -329,8 +329,10 @@ class SaveWcapiView(APIView):
         description="Create or update a record by model_name using universal field operations. Each field must specify a mode ('update', 'insert', 'delete') with optional value. If id is provided, updates that record; otherwise creates a new record. Returns JSON envelope with saved record and messages."
     )
 
-    def post(self, request, model_name: str):
-        """POST /wcapi/save/<model_name>/ — the model is the path's, never the body's."""
+    def save(self, request, model_name: str, record_id=None):
+        """POST /wcapi/<model>/ creates; PUT or PATCH /wcapi/<model>/<id>/ updates.
+
+        The model and the id are the path's, never the body's (REST, Bill 2026-09-24)."""
         # Demo mode — block all saves at the application layer
         if getattr(settings, 'READ_ONLY_MODE', False):
             return api_response(
@@ -454,9 +456,18 @@ class SaveWcapiView(APIView):
                 error={'code': 'model_mismatch',
                        'details': {'path': model_name, 'payload': named}})
         data['model_name'] = model_name
-        if data.get('id') is None and request.query_params.get('id') is not None:
-            data['id'] = request.query_params.get('id')
-        data['id'] = coerce_int(data.get('id'))
+        body_id = coerce_int(data.get('id'))
+        if record_id is None and body_id is not None:
+            return api_response(
+                success=False, status_code=400,
+                message=f'To change {model_name} {body_id}, PUT /wcapi/{model_name}/{body_id}/.',
+                error={'code': 'id_in_body', 'details': {'id': body_id}})
+        if record_id is not None and body_id is not None and body_id != record_id:
+            return api_response(
+                success=False, status_code=400,
+                message=f'The path names {model_name} {record_id}; the payload names {body_id}.',
+                error={'code': 'id_mismatch', 'details': {'path': record_id, 'payload': body_id}})
+        data['id'] = record_id
 
         # ── Write-through: forward to remote, store bundle locally ──
         if is_write_through():

@@ -22,7 +22,6 @@ from common.middleware.rendering import EnsureRenderedMiddleware
 from common.middleware.security import WriteGateMiddleware
 from common.middleware.secret_guard import SecretGuardMiddleware
 from common.middleware.athena_validation import AthenaValidationMiddleware
-from common.middleware.rest_redirect import RestToWcapiMiddleware
 from common.middleware.cloudflare_auth import CloudflareAccessMiddleware
 from common.middleware.security_checks import HttpsEnforcementMiddleware, SecurityAlertMiddleware
 from common.middleware.helpers import ENVELOPE_SKIPS  # noqa: F401 – used by tests
@@ -38,7 +37,6 @@ __all__ = [
     "AthenaValidationMiddleware",
     "HttpsEnforcementMiddleware",
     "SecurityAlertMiddleware",
-    "RestToWcapiMiddleware",
     "CloudflareAccessMiddleware",
     "ENVELOPE_SKIPS",
 ]

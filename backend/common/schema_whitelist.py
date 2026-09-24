@@ -41,7 +41,8 @@ WHITELIST: List[str] = [
     r'^/wcapi/token_refresh/$',      # POST – Refresh JWT token
     # WCAPI endpoints
     r'^/wcapi/get/$',                # GET  – registry-backed list/detail
-    r'^/wcapi/save/$',               # POST – registry-backed create/update
+    r'^/wcapi/[a-z_]+/$',            # GET list / POST create (REST channel)
+    r'^/wcapi/[a-z_]+/\d+/$',        # GET / PUT / PATCH / DELETE one record
     r'^/wcapi/transaction/save/$',   # POST – transaction save endpoint
     r'^/wcapi/models/$',             # GET  – model name -> field names
     r'^/api/model-fields/$',         # GET  – detailed field metadata

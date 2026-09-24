@@ -352,7 +352,7 @@ export async function getDocumentUrl(documentId: number): Promise<string | null>
       mime_type: string;
     }
     const res = await apiClient.get<DocResponse | { data: DocResponse }>(
-      `/wcapi/document/${documentId}/`
+      `/wcapi/document/${documentId}/download/`
     );
     // Handle both envelope and direct response
     const data = 'url' in res.data ? res.data : (res.data as { data: DocResponse }).data;

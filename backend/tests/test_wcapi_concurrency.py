@@ -2,7 +2,7 @@ import json
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from apps.core.models import Contact
-from tests.utils import assert_envelope
+from tests.utils import assert_envelope, wcapi_save
 
 User = get_user_model()
 
@@ -28,9 +28,7 @@ class WcapiConcurrencyTests(TestCase):
     def save(self, payload, *, headers=None):
         """POST helper for /wcapi/save/ with JSON body."""
         headers = headers or {}
-        return self.client.post(
-            f"/wcapi/save/{payload['model_name']}/",
-            data=json.dumps(payload),
+        return wcapi_save(self.client, data=json.dumps(payload),
             content_type='application/json',
             **headers,
         )

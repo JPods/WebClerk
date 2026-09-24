@@ -210,9 +210,9 @@ import { getRecord, saveRecord, saveTransactionWithLines, deleteRecord } from '@
 
 // Unified wcapi endpoints (all transactions route through these)
 GET    /wcapi/get/?model_name={type}&id={id}     // Fetch
-POST   /wcapi/save/                               // Create/update (no lines)
+POST   /wcapi/<model>/  ·  PUT /wcapi/<model>/<id>/   // Create / update
 POST   /wcapi/transaction/save/                   // Create/update with lines (atomic)
-POST   /wcapi/delete/                              // Soft-delete
+DELETE /wcapi/<model>/<id>/                        // Delete
 ```
 
 > **Receipt is different**: Receipt saves go through dedicated backend functions

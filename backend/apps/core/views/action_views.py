@@ -107,7 +107,7 @@ class ActionSerializer(serializers.ModelSerializer):
 
 
 class ActionViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only ViewSet for Action. Writes go through /wcapi/save/."""
+    """Read-only ViewSet for Action. Writes go through the REST channel (POST/PUT /wcapi/action/)."""
 
     queryset = Action.objects.active()
     serializer_class = ActionSerializer

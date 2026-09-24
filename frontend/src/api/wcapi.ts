@@ -127,6 +127,24 @@ async function wcapiPost<T>(path: string, body: any, extraHeaders?: Record<strin
   }
 }
 
+/**
+ * The REST channel (Bill, 2026-09-24: REST only). The path names the model and the record;
+ * the HTTP method names the verb:
+ *   POST /wcapi/<model>/ creates · PUT /wcapi/<model>/<id>/ updates · DELETE /wcapi/<model>/<id>/
+ */
+export function recordPath(model: string, id?: number | string | null): string {
+  return id !== undefined && id !== null && id !== '' ? `/wcapi/${model}/${id}/` : `/wcapi/${model}/`;
+}
+
+export async function wcapiSave<T>(model: string, body: any, extraHeaders?: Record<string, string>): Promise<T> {
+  const config = extraHeaders ? { headers: extraHeaders } : undefined;
+  const id = body?.id;
+  const res = id
+    ? await apiClient.put<ApiEnvelope<T>>(recordPath(model, id), body, config)
+    : await apiClient.post<ApiEnvelope<T>>(recordPath(model), body, config);
+  return res.data.data;
+}
+
 // ---------------------------------------------------------------------------
 // PJPV schema field metadata — cached in memory for the session
 // ---------------------------------------------------------------------------
@@ -416,7 +434,7 @@ export async function saveRecord(model_name: string, payload: any) {
     if (athenaToken) {
       headers['X-Athena-Validated'] = athenaToken;
     }
-    return await wcapiPost<any>(`save/${body.model_name}/`, body, headers);
+    return await wcapiSave<any>(body.model_name, body, headers);
   } catch (err: any) {
     throw new Error(getBackendErrorMessage(err, "Save failed"));
   }
@@ -479,7 +497,7 @@ export async function saveTransactionWithLines(
 
   // save/<model>/ takes a header with its lines (order, invoice, quote, purchase).
   try {
-    return await wcapiPost<any>(`save/${resolved}/`, body);
+    return await wcapiSave<any>(resolved, body);
   } catch (err: any) {
     throw new Error(getBackendErrorMessage(err, "Failed to save transaction"));
   }
@@ -507,7 +525,8 @@ export async function populateCommission(
 
 export async function deleteRecord(model_name: string, id: number) {
   const resolved = resolveModelName(model_name);
-  return wcapiPost<any>(`delete/${resolved}/`, { id });
+  const res = await apiClient.delete<ApiEnvelope<any>>(recordPath(resolved, id));
+  return res.data.data;
 }
 
 /**
@@ -800,7 +819,7 @@ export function clearDetailFieldSettingCache(model_name?: string): void {
 export async function saveDetailFieldSetting(
   setting: DetailFieldSettingRecord,
 ) {
-  const result = await wcapiPost<any>("save/setting/", {
+  const result = await wcapiSave<any>("setting", {
     ...setting,
     model_name: "setting",
   });
@@ -818,7 +837,7 @@ export async function getAllWorkbenchFieldsSettings(): Promise<
 }
 
 export async function saveWorkbenchFieldsSetting(setting: SettingRecord) {
-  return wcapiPost<any>("save/setting/", { ...setting, model_name: "setting" });
+  return wcapiSave<any>("setting", { ...setting, model_name: "setting" });
 }
 
 /**
@@ -941,7 +960,7 @@ export async function uploadDocument(
     path: payload?.path ?? "",
     checksum: payload?.checksum ?? "",
     is_duplicate: Boolean(payload?.is_duplicate),
-    url: payload?.url ?? `/wcapi/document/${documentId}/`,
+    url: payload?.url ?? `/wcapi/document/${documentId}/download/`,
     name: payload?.name ?? file.name,
     size_bytes: Number(payload?.size_bytes ?? file.size),
     mime_type: payload?.mime_type ?? file.type,

@@ -68,9 +68,9 @@ class PostLoginURL {
   static readonly kanbanOrder: string = "/kanban/order/";
 
   static readonly allTypes: string = "/wcapi/get/?";
-  /** One route per verb: /wcapi/save/<model_name>/ (Bill, 2026-09-24). */
-  static save(modelName: string): string {
-    return `/wcapi/save/${modelName}/`;
+  /** The REST channel: /wcapi/<model>/ (POST creates) or /wcapi/<model>/<id>/ (PUT updates). */
+  static record(modelName: string, id?: number | string | null): string {
+    return id ? `/wcapi/${modelName}/${id}/` : `/wcapi/${modelName}/`;
   }
 }
 

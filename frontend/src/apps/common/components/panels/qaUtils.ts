@@ -311,10 +311,10 @@ export async function getQAAnswers(
  */
 export async function saveQAAnswer(answer: QAAnswerRecord): Promise<QAAnswerRecord | null> {
   try {
-    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/question_answer/', {
-      model_name: 'question_answer',
-      ...answer,
-    });
+    const body = { model_name: 'question_answer', ...answer };
+    const res = answer.id
+      ? await apiClient.put<ApiEnvelope<any>>(`/wcapi/question_answer/${answer.id}/`, body)
+      : await apiClient.post<ApiEnvelope<any>>('/wcapi/question_answer/', body);
     return res.data.data;
   } catch (err: any) {
     console.error('Failed to save Q&A answer:', err);
@@ -327,10 +327,7 @@ export async function saveQAAnswer(answer: QAAnswerRecord): Promise<QAAnswerReco
  */
 export async function deleteQAAnswer(id: number): Promise<boolean> {
   try {
-    await apiClient.post('/wcapi/delete/question_answer/', {
-      model_name: 'question_answer',
-      id,
-    });
+    await apiClient.delete(`/wcapi/question_answer/${id}/`);
     return true;
   } catch (err: any) {
     console.error('Failed to delete Q&A answer:', err);
