@@ -17,9 +17,10 @@ from apps.transactions.views.wcapi import _leaf_paths, _not_enumerated
 
 
 def _login(django_user_model, email, role):
-    return django_user_model.objects.create_user(
+    from apps.core.services.door import Actor
+    return Actor(user=django_user_model.objects.create_user(
         email=email, password=get_random_string(20), role=role,
-        name_first='P', name_last='User')
+        name_first='P', name_last='User'))           # access checks take an Actor
 
 
 @pytest.fixture
