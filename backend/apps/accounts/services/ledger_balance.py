@@ -889,7 +889,8 @@ def on_cash_save(cash) -> None:
     # WC2: aLdgValue{1} := -ent.amountAvailable; aLdgOrig{1} := -ent.amount
     # Kept at 0 when fully applied — the invoice ledgers carry what was paid.
     invoice = getattr(cash, 'invoice', None)
-    if getattr(cash, 'amount', None) is not None:
+    # A Cash that holds no money — empty, declined, a card not yet charged — credits no one.
+    if getattr(cash, 'amount', None) is not None and getattr(cash, 'holds_money', True):
         record_cash(
             invoice=invoice,
             amount=Decimal(str(getattr(cash, 'available', None) or 0)),

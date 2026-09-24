@@ -348,6 +348,20 @@ class Cash(HardDeleteOnly, BaseModel):
             return
         self.company = org.build_company_snapshot(contact=contact)
 
+    #: Statuses in which a card Cash has not (yet) received money.
+    UNSETTLED_GATEWAY_STATUSES = (None, '', 'pending', 'processing')
+
+    @property
+    def holds_money(self) -> bool:
+        """Money actually moved. An empty Cash (saved for its id), a failed or cancelled
+        one, and a card Cash not yet charged hold none: they credit no one's balance and
+        cannot be applied. Manual cash (a check, cash in hand) holds what it says."""
+        if self.purpose == 'empty' or self.status in ('failed', 'cancelled'):
+            return False
+        if self.gateway and self.gateway != 'manual':
+            return self.status not in self.UNSETTLED_GATEWAY_STATUSES
+        return True
+
     def save(self, *args, **kwargs):
         self._populate_company_snapshot()
         # Checkbook convention: the sign is the truth. Money in is cash_in, money out
@@ -358,8 +372,8 @@ class Cash(HardDeleteOnly, BaseModel):
             if update_fields is not None and 'type' not in update_fields:
                 kwargs['update_fields'] = list(update_fields) + ['type']
         if not self.pk:
-            # New cash: available starts equal to amount
-            if not self.available:
+            # New cash: available starts equal to amount — if money moved
+            if not self.available and self.holds_money:
                 self.available = self.amount
             # New cash: tendered defaults to amount if not set
             if not self.tendered:

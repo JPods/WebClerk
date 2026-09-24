@@ -272,7 +272,7 @@ def refresh_cash_available(cash) -> Decimal:
     from apps.transactions.services.cash.cash_pending_receipt import _applied as _applied_ap
 
     available = (_d(cash.amount) - _applied(cash_id=cash.pk) + _applied_ap(cash_id=cash.pk)
-                 - refunded(cash))
+                 - refunded(cash)) if cash.holds_money else Decimal('0')
     if _d(cash.available) != available:
         cash.available = available
         cash.save(update_fields=['available', 'dt_modified', 'version'])
@@ -324,6 +324,10 @@ def _check_application(cash, target, amount: Decimal, *,
     """
     if amount == 0:
         raise ValueError("amount must not be zero: there is nothing to record")
+    if bound_cash and not cash.holds_money:
+        raise ValueError(
+            f"cash {cash.pk} holds no money yet ({cash.status or cash.purpose or 'new'}): a card "
+            f"payment is applied when its charge completes")
 
     # Applied **and queued**: this check runs at creation, and a queued application is
     # money already spoken for. The appliers do not re-check (Rule 10).

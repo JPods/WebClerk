@@ -418,3 +418,23 @@ def test_a_rep_cannot_charge_another_reps_invoice(db):
                            'amount': '50.00', 'method': 'card', 'purpose': 'empty'})
     assert refused.value.status == 404
     assert not Cash.objects.filter(invoice_id=their_invoice.pk).exists()
+
+
+def test_a_cash_that_holds_no_money_credits_no_one(invoice, monkeypatch,
+                                                  django_capture_on_commit_callbacks):
+    """An empty Cash and a declined card charge used to start with available = amount, so
+    the cash ledger credited the customer before (or without) any money arriving."""
+    from apps.accounts.models import Ledger
+    empty = _empty_cash(invoice)
+    assert empty.available == Decimal('0') and not empty.holds_money
+    assert not Ledger.objects.filter(model_name='cash', parent_id=empty.pk).exists()
+
+    declined = FakeGateway(succeeds=False)
+    monkeypatch.setattr(cash_commands, '_gateway', lambda: declined)
+    _pay(empty, django_capture_on_commit_callbacks)
+    empty.refresh_from_db()
+    assert empty.status == 'failed' and empty.available == Decimal('0')
+    assert not Ledger.objects.filter(model_name='cash', parent_id=empty.pk).exists()
+    with pytest.raises(ValueError, match='holds no money'):
+        from apps.transactions.services.cash.cash_pending import apply_cash_to_invoice
+        apply_cash_to_invoice(empty.pk, invoice.pk, Decimal('10.00'))
