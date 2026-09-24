@@ -152,8 +152,11 @@ class InventoryEventEmitter:
                 payload=payload or {},
             )
             
-            # Process with LLM immediately (Phase 2+)
-            cls._process_with_llm(event)
+            # The summary waits for the commit: a rolled-back save is never summarized, and
+            # no row lock is held while a model writes (plan 2026-09-24 §4 — an observer
+            # never slows a save). Inside a test transaction that never commits, it never runs.
+            from django.db import transaction
+            transaction.on_commit(lambda: cls._process_with_llm(event))
             
             # Check for alerts (Phase 3)
             cls._check_alerts(event, qty_buckets)
@@ -251,8 +254,7 @@ class InventoryEventEmitter:
     @classmethod
     def _process_with_llm(cls, event) -> None:
         """
-        Generate LLM summary for the event (Phase 2).
-        Runs synchronously for small volume - can be made async later.
+        Generate LLM summary for the event (Phase 2). Called after the commit.
         """
         try:
             from apps.ai_assistant.services.llm_observer import LLMInventoryObserver
