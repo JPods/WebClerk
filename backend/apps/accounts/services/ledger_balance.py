@@ -748,6 +748,16 @@ def _create_ledger_sync_pending(invoice, ledger_records, reason: str = '') -> 'P
     return pending
 
 
+def rebuild_invoice_ledger(invoice) -> None:
+    """An invoice's ledger echoes what it reads — total, terms, customer (Bill, 2026-09-24:
+    rebuild when any of them changes, not the total alone). Inside a save it is marked and
+    done once at the flush, however many of them changed; outside one, now."""
+    from apps.core.services import unit_of_work as uow
+    key = ('ledger', 'invoice', invoice.pk)
+    if not uow.defer(key, lambda: on_invoice_save(invoice, replace_ledgers=True)):
+        on_invoice_save(invoice, replace_ledgers=True)
+
+
 def on_invoice_save(invoice, replace_ledgers: bool = True) -> None:
     """
     Handle invoice save: create ledger records, update org balances, and

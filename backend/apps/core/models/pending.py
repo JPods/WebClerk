@@ -1,6 +1,7 @@
 import logging
 
 from django.db import models
+from django.db.models.fields.json import KT
 from django.utils import timezone
 from common.models import CoreModel
 
@@ -82,6 +83,16 @@ class Pending(CoreModel):
             models.Index(fields=['model_name']),
             models.Index(fields=['record_id']),
             models.Index(fields=['dt_processed']),
+        ]
+        constraints = [
+            # A gateway event moves money once: a retried webhook, or the charge's own
+            # answer arriving beside its webhook, cannot write a second effect (plan §11.6b).
+            # A multi-application event carries one id per effect (<event>:<n>).
+            models.UniqueConstraint(
+                KT('changes__gateway_event_id'),
+                condition=models.Q(changes__has_key='gateway_event_id'),
+                name='uniq_pending_gateway_event',
+            ),
         ]
 
     def save(self, *args, **kwargs):

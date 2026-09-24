@@ -137,8 +137,33 @@ class InvoiceBehaviour(DocumentBehaviour):
         detect_discount_erosion(ctx.obj)
 
 
+class CashBehaviour(ModelBehaviour):
+    """A Cash names only a document its writer can see — the old cash/process/ loaded any
+    invoice by id, so anyone signed in could charge anyone's. An empty Cash (saved for its
+    id, plan §13.5) stays empty until a command claims it: a save cannot mark it paid."""
+
+    DOCUMENTS = (('invoice_id', 'invoice'), ('receipt_id', 'receipt'), ('purchase_id', 'purchase'))
+
+    def before_save(self, ctx: HookContext) -> None:
+        if ctx.actor.is_guarded:
+            from apps.core.services.record_serialize import visible_queryset
+            for field, model_key in self.DOCUMENTS:
+                target = getattr(ctx.obj, field, None)
+                if field in ctx.changed or f'{field[:-3]}' in ctx.changed:
+                    if target and not visible_queryset(model_key, actor=ctx.actor)[1] \
+                            .filter(pk=target).exists():
+                        raise Refused(404, 'not_found', f'{model_key} {target} not found',
+                                      {'field': field, 'id': target})
+        if getattr(ctx.obj, 'purpose', None) == 'empty':
+            if ctx.obj.status not in ('', None, 'pending') or ctx.obj.gateway_transaction_id:
+                raise Refused(400, 'empty_cash',
+                              'An empty Cash moves nothing; charge it with '
+                              'POST /wcapi/cash/<id>/pay/.', {'status': ctx.obj.status})
+
+
 def register_documents() -> None:
     for key in ('quote', 'purchase', 'workorder'):
         register(key, DocumentBehaviour())
     register('order', OrderBehaviour())
     register('invoice', InvoiceBehaviour())
+    register('cash', CashBehaviour())

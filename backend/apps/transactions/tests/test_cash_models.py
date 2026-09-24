@@ -141,6 +141,7 @@ class CashModelTest(TestCase):
         )
 
         cash.add_audit_entry('test_action', {'key': 'value'})
+        cash.save()                 # the caller saves (add_audit_entry does not)
         cash.refresh_from_db()
 
         audit_trail = cash.metadata['audit_trail']

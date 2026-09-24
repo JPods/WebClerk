@@ -91,7 +91,8 @@ def _applications(*, cash_id: Optional[int] = None, target_id: Optional[int] = N
 # ── the two ways an application stops counting ────────────────────────
 
 def reverse_application(pending, reason: str, *, acted_by: Optional[int] = None,
-                        amount: Optional[Decimal] = None, skip_refresh: tuple = ()) -> Optional[Any]:
+                        amount: Optional[Decimal] = None, skip_refresh: tuple = (),
+                        gateway_event_id: Optional[str] = None) -> Optional[Any]:
     """Write one reversing Pending and apply it. Returns the reversal, or None if there
     was nothing left to reverse.
 
@@ -139,6 +140,7 @@ def reverse_application(pending, reason: str, *, acted_by: Optional[int] = None,
             'reverses': pending.pk,
             'state': 'pending',
             'dt_applied': None,
+            **({'gateway_event_id': gateway_event_id} if gateway_event_id else {}),
         },
     )
     reversal.refresh_from_db()

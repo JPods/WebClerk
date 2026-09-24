@@ -370,8 +370,12 @@ def apply_cash_to_invoice(
     dismiss_balance: bool = False,
     fx_difference: float = 0,
     acted_by: Optional[int] = None,
+    gateway_event_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Create a Pending record for cash application.
+
+    ``gateway_event_id`` names the gateway event this application answers (a card charge
+    settling). Pending holds it unique, so a retried event cannot apply twice.
 
     Amounts are signed: a positive amount pays an invoice, a negative amount
     settles a credit memo (refund cash is negative). If the invoice is not
@@ -442,6 +446,8 @@ def apply_cash_to_invoice(
         'state': 'pending',
         'dt_applied': None,
     }
+    if gateway_event_id:
+        changes['gateway_event_id'] = gateway_event_id
 
     # Creating the Pending record triggers try_apply() on save
     pending = Pending.objects.create(

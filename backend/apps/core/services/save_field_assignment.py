@@ -163,6 +163,25 @@ def _set_fk_field(obj, field: str, model_field, value) -> bool:
     return False
 
 
+def _coerce_number_field(value, model_cls, field):
+    """A decimal or float sent as text ("100.00", as JSON clients often send money) becomes
+    the number the field holds; text that is not a number is a field error, not a crash in
+    the model's save."""
+    if not isinstance(value, str):
+        return value
+    try:
+        model_field = model_cls._meta.get_field(field)
+    except Exception:  # noqa: BLE001 — not a column; left as it came
+        return value
+    if not isinstance(model_field, (models.DecimalField, models.FloatField)):
+        return value
+    from django.core.exceptions import ValidationError
+    try:
+        return model_field.to_python(value.strip() or None)
+    except ValidationError as e:
+        raise ValueError(f'{value!r} is not a number') from e
+
+
 def _coerce_int_field(value, model_field):
     """Coerce string values to int for integer model fields."""
     if not isinstance(model_field, INT_FIELD_TYPES):
@@ -410,6 +429,7 @@ def assign_fields(
                             value = _coerce_int_field(value, model_field)
                         except Exception:
                             pass
+                        value = _coerce_number_field(value, model_cls, field)
                         # If a property shadows the DB column, write to __dict__
                         # directly so obj.save() persists the value.
                         if isinstance(getattr(type(obj), field, None), property):

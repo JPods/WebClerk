@@ -2,11 +2,6 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from apps.transactions.views.cash_views import (
-    process_cash,
-    refund_cash_view,
-    spreedly_webhook,
-    stripe_webhook,
-    paypal_webhook,
     cash_status,
     cash_history,
     gateway_config,
@@ -57,11 +52,6 @@ urlpatterns = [
     path('transfers/bulk/orders-to-invoices/', bulk_transfer_orders, name='bulk_transfer_orders'),
 
     # Cash operations
-    path('cash/process/', process_cash, name='process_cash'),
-    path('cash/refund/', refund_cash_view, name='refund_cash'),
-    path('cash/webhooks/spreedly/', spreedly_webhook, name='spreedly_webhook'),
-    path('cash/webhooks/stripe/', stripe_webhook, name='stripe_webhook'),
-    path('cash/webhooks/paypal/', paypal_webhook, name='paypal_webhook'),
     path('cash/<int:cash_id>/status/', cash_status, name='cash_status'),
     path('cash/history/', cash_history, name='cash_history'),
     path('cash/gateway-config/', gateway_config, name='gateway_config'),

@@ -175,7 +175,7 @@ export default function SpreedlyCardForm({
         onSuccess?.(result.cash_id);
       }
     } catch (e: any) {
-      const msg = e?.response?.data?.error || e?.message || 'Payment processing failed';
+      const msg = e?.response?.data?.message || e?.message || 'Payment processing failed';
       setError(msg);
     } finally {
       setProcessing(false);

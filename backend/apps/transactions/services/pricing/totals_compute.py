@@ -157,8 +157,8 @@ def recalculate_totals(
     # A ledger echoes its primary record: rebuild whenever the total changes.
     if _d(old_total) != _d(totals['total']):
         if model_name == 'invoice':
-            from apps.accounts.services.ledger_balance import on_invoice_save
-            on_invoice_save(header, replace_ledgers=True)
+            from apps.accounts.services.ledger_balance import rebuild_invoice_ledger
+            rebuild_invoice_ledger(header)
         elif model_name == 'receipt':                       # AP works as AR does
             from apps.accounts.services.ledger_balance import on_receipt_save
             on_receipt_save(header)

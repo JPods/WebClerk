@@ -6,7 +6,7 @@
  * Direct REST calls are used only for cash-specific actions
  * not covered by the generic wcapi SDK.
  */
-import { getRecords, getRecord, saveRecord, deleteRecord } from '@/api/wcapi';
+import { getRecords, getRecord, saveRecord, deleteRecord, wcapiSave } from '@/api/wcapi';
 import apiClient from '@/api/axios';
 import type { Cash, CreateCashRequest, UpdateCashRequest } from '../types/Cash';
 
@@ -42,22 +42,34 @@ export const fetchGatewayConfig = async () => {
   };
 };
 
-/** Process a card cash through Spreedly */
+/**
+ * Pay an invoice by card: save an empty Cash for its id, then charge it (Bill, 2026-09-24).
+ *   POST /wcapi/cash/              {invoice_id, amount, method, purpose: 'empty'}
+ *   POST /wcapi/cash/<id>/pay/     {payment_method_token}
+ * The gateway is called after the Cash is committed; a second pay of the same Cash is
+ * refused, so a double-click cannot charge twice. A completed charge applies itself to
+ * the invoice. `status` is the Cash's after the charge: completed, failed or processing.
+ */
 export const processGatewayCash = async (
   invoiceId: number,
   amount: number,
   paymentMethodToken: string,
+  method = 'card',
 ) => {
-  const res = await apiClient.post('/wcapi/cash/process/', {
-    invoice_id: invoiceId,
-    amount,
-    payment_method_token: paymentMethodToken,
+  const saved: any = await wcapiSave<any>(MODEL, {
+    model_name: MODEL, invoice_id: invoiceId, amount, method, purpose: 'empty',
   });
-  return res.data as {
-    cash_id: number;
-    status: string;
-    gateway_transaction_id: string;
-    message: string;
+  const cashId: number = saved?.id ?? saved?.record?.id;
+  const res = await apiClient.post(`/wcapi/cash/${cashId}/pay/`, {
+    payment_method_token: paymentMethodToken,
+    amount,
+  });
+  const record = res.data?.data?.record ?? {};
+  return {
+    cash_id: cashId,
+    status: record.status as string,
+    gateway_transaction_id: (record.gateway_transaction_id ?? '') as string,
+    message: (record.gateway_response?.message ?? '') as string,
   };
 };
 

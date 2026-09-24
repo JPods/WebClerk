@@ -46,13 +46,87 @@ def _delete(actor: Actor, model_key: str, payload: dict):
     return delete_record(actor, model_key, payload.get('id'))
 
 
-#: The closed list. The commands (convert, receive, pay, refund, reserve, release, adjust,
-#: recalc, run, export, import) join as their base services are built.
+def _command(verb: str):
+    def base(actor: Actor, model_key: str, payload: dict):
+        return run_command(actor, verb, model_key, payload.pop('id', None), payload)
+    return base
+
+
+#: The closed list. The commands join as their base services are built: pay, refund and
+#: receive (cash) are; convert, reserve, release, adjust, recalc, run, export and import
+#: are to come.
 VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
     'get': _get,
     'save': _save,
     'delete': _delete,
+    'pay': _command('pay'),
+    'refund': _command('refund'),
+    'receive': _command('receive'),
 }
+
+#: Which model answers which command, and the base service that does it. A command is
+#: registered by the app that owns its model (apps.py ready), so core names no app.
+#: ``needs_record``: POST /wcapi/<model>/<id>/<command>/; otherwise the command names no
+#: record (receive: /wcapi/<model>/_receive/<provider>/ — the record is in the body).
+COMMANDS: Dict[tuple, dict] = {}
+
+
+def register_command(model_key: str, verb: str, base: Callable, *,
+                     needs_record: bool = True, public: bool = False) -> None:
+    if verb not in VERBS:
+        raise ValueError(f'{verb} is not in VERBS; add it there first.')
+    COMMANDS[(model_key, verb)] = {'base': base, 'needs_record': needs_record,
+                                   'public': public}
+
+
+def run_command(actor: Actor, verb: str, model_key: str, record_id, payload: dict):
+    """A command on a record: code before → user before → base → flush → code after → user
+    after, in one transaction, on the record locked. The base may register work for after
+    the commit (a gateway call) with ``transaction.on_commit``; nothing it registers runs if
+    the command is refused.
+
+    Who may: the record must be one the actor can see, and their role must edit the model
+    — a command changes the record as a save does. A public command (receive) is admitted
+    for the anonymous actor on exactly that model and verb (plan §11.7d).
+    """
+    from apps.core.services.unit_of_work import flush, unit_of_work
+    spec = COMMANDS.get((model_key, verb))
+    if spec is None:
+        raise Refused(404, 'unknown_command', f'{model_key} has no command {verb!r}.',
+                      {'commands': sorted(v for m, v in COMMANDS if m == model_key)})
+    if actor.kind == 'public' and not spec['public']:
+        raise Refused(401, 'authentication_required', 'Sign in to do that.', verb)
+
+    with transaction.atomic(), unit_of_work():
+        obj = _command_record(actor, model_key, record_id) if spec['needs_record'] else None
+        ctx = HookContext(actor=actor, verb=verb, model_key=model_key, obj=obj,
+                          data=dict(payload or {}), is_update=obj is not None)
+        before(ctx)
+        result = spec['base'](ctx)
+        flush()
+        if ctx.obj is not None and ctx.obj.pk is not None:
+            ctx.obj.refresh_from_db()
+        after(ctx)
+    return result
+
+
+def _command_record(actor: Actor, model_key: str, record_id):
+    from apps.core.services.door import resolve_model
+    model_cls, model_key, _norm = resolve_model(model_key)
+    if record_id is None:
+        raise Refused(400, 'record_required', f'Name the {model_key}: /wcapi/{model_key}/<id>/.')
+    if actor.is_guarded:
+        from apps.core.services.record_serialize import visible_queryset
+        from apps.core.services.role_filter import get_user_filter_config
+        if not visible_queryset(model_key, actor=actor)[1].filter(pk=record_id).exists():
+            raise Refused(404, 'not_found', 'Record not found', 'Record not found')
+        if not (get_user_filter_config(actor, model_key) or {}).get('edit'):
+            raise Refused(403, 'edit_not_permitted',
+                          f'Your role may not change {model_key} records.', model_key)
+    obj = model_cls.objects.select_for_update().filter(pk=record_id).first()
+    if obj is None:
+        raise Refused(404, 'not_found', 'Record not found', 'Record not found')
+    return obj
 
 #: REST names the verb with the HTTP method (Bill, 2026-09-24: REST only). A command is
 #: the last segment of POST /wcapi/<model>/<id>/<command>/.

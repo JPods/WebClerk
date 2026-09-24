@@ -135,11 +135,6 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/cash/checkout-pricing/<int:invoice_id>/',
     'wcapi/cash/gateway-config/',
     'wcapi/cash/history/',
-    'wcapi/cash/process/',
-    'wcapi/cash/refund/',
-    'wcapi/cash/webhooks/paypal/',
-    'wcapi/cash/webhooks/spreedly/',
-    'wcapi/cash/webhooks/stripe/',
     'wcapi/docs/qa/<str:parent_model>/<int:parent_id>/',
     'wcapi/docs/qa/apply/',
     'wcapi/docs/qa/groups/',
@@ -238,7 +233,9 @@ def _wcapi_routes():
 
 
 #: The REST channel's own two routes (views/channel_view.py).
-CHANNEL_ROUTES = frozenset({'wcapi/<str:model_name>/', 'wcapi/<str:model_name>/<int:record_id>/'})
+CHANNEL_ROUTES = frozenset({'wcapi/<str:model_name>/', 'wcapi/<str:model_name>/<int:record_id>/',
+                            'wcapi/<str:model_name>/<int:record_id>/<str:command>/',
+                            'wcapi/<str:model_name>/_receive/<str:provider>/'})
 
 
 def _conforms(route):
@@ -267,5 +264,5 @@ def test_the_channel_routes_exist_and_come_last():
     from webclerk3_api.urls import urlpatterns
     patterns = [str(p.pattern) for p in urlpatterns]
     assert CHANNEL_ROUTES <= set(patterns)
-    last_wcapi = [p for p in patterns if p.startswith('wcapi')][-2:]
+    last_wcapi = [p for p in patterns if p.startswith('wcapi')][-len(CHANNEL_ROUTES):]
     assert set(last_wcapi) == CHANNEL_ROUTES

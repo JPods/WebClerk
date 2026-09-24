@@ -12,6 +12,10 @@ class TransactionsConfig(AppConfig):
         from .behaviours import register_documents
         register_documents()
 
+        # The cash commands: pay, refund, receive (services/cash/cash_commands.py).
+        from .services.cash import cash_commands
+        cash_commands.register()
+
         # Hard delete only: a journalized or reconciled record refuses deletion.
         # Connected first, so it refuses before the cash door reverses anything.
         from .models import hard_delete

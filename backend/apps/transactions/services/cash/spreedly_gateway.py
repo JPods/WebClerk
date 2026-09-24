@@ -159,12 +159,20 @@ class SpreedlyService:
             body["transaction"]["amount"] = amount_cents
         return self._request("POST", f"/transactions/{transaction_token}/credit.json", body)
 
-    def refund(self, transaction_token: str, amount_cents: int | None = None) -> dict:
-        """Try void first, fall back to credit."""
-        try:
-            return self.void(transaction_token)
-        except SpreedlyError:
-            return self.credit(transaction_token, amount_cents)
+    def refund(self, transaction_token: str, amount_cents: int | None = None, *,
+               full: bool = True) -> dict:
+        """A full refund tries void first (before settlement) and falls back to credit. A
+        partial refund is always a credit of that amount: a void cancels the whole charge."""
+        if full:
+            try:
+                return self.void(transaction_token)
+            except SpreedlyError:
+                pass
+        return self.credit(transaction_token, amount_cents)
+
+    def show_transaction(self, transaction_token: str) -> dict:
+        """The transaction as the gateway holds it — how a webhook is confirmed."""
+        return self._request("GET", f"/transactions/{transaction_token}.json")
 
     # ── Gateway management ───────────────────────────────────────────
 
@@ -199,110 +207,5 @@ class SpreedlyError(Exception):
         self.response = response or {}
 
 
-# ── Helper: process a WC3 Cash record ─────────────────────────────
-
-def process_cash(cash_id: int, payment_method_token: str) -> dict:
-    """Process a Cash record through Spreedly.
-
-    Called from the cash UI after the client-side SDK returns a token.
-    The token is a reference to a card vaulted in Spreedly — WC3 never saw
-    the card number.
-
-    Returns the Spreedly transaction result.
-    """
-    from apps.transactions.models import Cash
-
-    cash = Cash.objects.get(pk=cash_id)
-    svc = SpreedlyService.from_settings()
-
-    amount_cents = int(cash.amount * 100)
-    order_id = f"wc3-{cash.id}"
-
-    cash.gateway = 'spreedly'
-    cash.status = 'processing'
-    cash.save(update_fields=['gateway', 'status'])
-
-    try:
-        result = svc.purchase(payment_method_token, amount_cents, order_id=order_id)
-        txn = result.get('transaction', {})
-        pm = txn.get('payment_method', {})
-
-        cash.gateway_transaction_id = txn.get('token', '')
-        cash.gateway_payment_intent_id = txn.get('gateway_transaction_id', '')
-        cash.dt_processed = timezone.now()
-
-        # Token-in-a-token: store only the reference, last4, brand
-        cash.refs = cash.refs or {}
-        cash.refs['card'] = {
-            'pm_token': pm.get('token', ''),
-            'last4': pm.get('last_four_digits', ''),
-            'brand': pm.get('card_type', ''),
-            'exp_month': pm.get('month', ''),
-            'exp_year': pm.get('year', ''),
-            'fingerprint': pm.get('fingerprint', ''),
-        }
-
-        if txn.get('succeeded'):
-            cash.status = 'completed'
-            cash.gateway_response = {
-                'spreedly_token': txn.get('token', ''),
-                'gateway_transaction_id': txn.get('gateway_transaction_id', ''),
-                'message': txn.get('message', ''),
-                'succeeded': True,
-            }
-            cash.add_audit_entry('gateway_cash_completed', {
-                'gateway': 'spreedly',
-                'transaction_token': txn.get('token', ''),
-                'amount_cents': amount_cents,
-            })
-        else:
-            cash.status = 'failed'
-            cash.gateway_response = {
-                'succeeded': False,
-                'message': txn.get('message', 'Transaction failed'),
-            }
-
-        cash.save()
-        logger.info(f"Cash {cash.id} processed via Spreedly: {cash.status}")
-        return result
-
-    except SpreedlyError as e:
-        cash.status = 'failed'
-        cash.gateway_response = {'succeeded': False, 'message': str(e)}
-        cash.save(update_fields=['status', 'gateway_response'])
-        logger.error(f"Cash {cash.id} failed via Spreedly: {e}")
-        raise
-
-
-def refund_cash(cash_id: int, amount_cents: int | None = None) -> dict:
-    """Refund a completed Cash through Spreedly.
-
-    Tries void first (pre-settlement), falls back to credit (post-settlement).
-    """
-    from apps.transactions.models import Cash
-
-    cash = Cash.objects.get(pk=cash_id)
-    if not cash.gateway_transaction_id:
-        raise ValueError("Cash has no gateway transaction to refund")
-
-    svc = SpreedlyService.from_settings()
-    result = svc.refund(cash.gateway_transaction_id, amount_cents)
-
-    txn = result.get('transaction', {})
-    if txn.get('succeeded'):
-        if amount_cents and amount_cents < int(cash.amount * 100):
-            cash.status = 'partially_refunded'
-        else:
-            cash.status = 'refunded'
-        cash.add_audit_entry('gateway_refund', {
-            'refund_token': txn.get('token', ''),
-            'amount_cents': amount_cents or int(cash.amount * 100),
-        })
-    else:
-        cash.add_audit_entry('gateway_refund_failed', {
-            'message': txn.get('message', ''),
-        })
-
-    cash.save()
-    logger.info(f"Cash {cash.id} refund: {cash.status}")
-    return result
+# Charging and refunding a Cash: services/cash/cash_commands.py (the pay and refund
+# commands). This module is the gateway client only.

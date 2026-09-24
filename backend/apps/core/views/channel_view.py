@@ -9,8 +9,9 @@
 
 The HTTP method names the verb; the path names the model and the record. Every method ends
 in the same door as every other channel — ``save_record``, ``delete_record`` — with its
-hooks (services/verbs.py). Commands (convert, receive, pay, …) will be
-``POST /wcapi/<model>/<id>/<command>/``. Plan: Allie
+hooks (services/verbs.py). A command is ``POST /wcapi/<model>/<id>/<command>/`` and runs
+``verbs.run_command``; a gateway's webhook is ``POST /wcapi/<model>/_receive/<provider>/``,
+the one route the public reaches. Plan: Allie
 ``readmes/assessments/2026-09-24-one-route-per-verb.md``.
 """
 from __future__ import annotations
@@ -71,3 +72,62 @@ def _wrong_method(method: str, model_name: str, record_id):
                         error={'code': 'method_not_allowed',
                                'details': {'method': method, 'path': where,
                                            'verbs': METHOD_VERBS}})
+
+
+class CommandChannelView(SaveWcapiView):
+    """POST /wcapi/<model>/<id>/<command>/ — a command on one record (pay, refund, …)."""
+
+    http_method_names = ['post', 'options']
+    permission_classes = [AllowAny]          # the command decides who may (verbs.run_command)
+
+    def post(self, request, model_name: str, record_id: int, command: str):
+        from apps.core.services.door import Actor
+        payload = {k: v for k, v in (request.data or {}).items()
+                   if k not in ('id', 'model_name')} if isinstance(request.data, dict) else {}
+        return _command_response(Actor.from_request(request), command, model_name, record_id,
+                                 payload)
+
+
+class ReceiveChannelView(SaveWcapiView):
+    """POST /wcapi/<model>/_receive/<provider>/ — a payment provider's event. Public: the
+    provider has no login; the receive command confirms the event with the provider before
+    it records anything (plan §11.7d)."""
+
+    http_method_names = ['post']
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request, model_name: str, provider: str):
+        import json
+        from apps.core.services.door import Actor
+        try:
+            body = json.loads(request.body.decode('utf-8') or '{}')
+        except (ValueError, UnicodeDecodeError):
+            return api_response(success=False, status_code=400, message='The event is not JSON.',
+                                error={'code': 'invalid_json'})
+        return _command_response(Actor.anonymous(source=f'receive:{provider}'), 'receive',
+                                 model_name, None, {'_provider': provider, '_body': body})
+
+
+def _command_response(actor, command, model_name, record_id, payload):
+    from apps.core.services.door import Refused
+    from apps.core.services.verbs import VERBS, run_command
+    if command not in VERBS:
+        return api_response(success=False, status_code=404,
+                            message=f'{command} is not a command.',
+                            error={'code': 'unknown_command', 'details': sorted(VERBS)})
+    try:
+        result = run_command(actor, command, model_name, record_id, payload)
+    except Refused as refused:
+        return api_response(success=False, status_code=refused.status,
+                            message=refused.message, error=refused.as_error())
+    data = {'result': result}
+    if record_id is not None:
+        # After the commit, and after anything the command did then (a gateway's answer).
+        from django.forms.models import model_to_dict
+        from apps.core.services.door import resolve_model
+        model_cls = resolve_model(model_name)[0]
+        obj = model_cls.objects.filter(pk=record_id).first()
+        if obj is not None:
+            data['record'] = model_to_dict(obj, fields=[f.name for f in obj._meta.concrete_fields])
+    return api_response(data=data)

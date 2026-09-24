@@ -70,12 +70,15 @@ def unit_of_work():
     finally:
         _DEPTH.set(_DEPTH.get() - 1)
         if outermost:
-            pending = _PENDING.get() or {}
-            _PENDING.set({})
             # A refused or failed edit is rolled back; recomputing for it is wasted work
             # that can itself fail and hide the refusal.
             if completed:
-                _flush(pending)
+                _DEPTH.set(1)           # still inside: work marked while draining is kept
+                try:
+                    _drain()
+                finally:
+                    _DEPTH.set(0)
+            _PENDING.set({})
 
 
 def flush() -> None:
@@ -87,9 +90,23 @@ def flush() -> None:
     """
     if not active():
         return
-    pending = _PENDING.get() or {}
-    _PENDING.set({})
-    _flush(pending)
+    _drain()
+
+
+#: Derived work may mark more derived work (a recompute marks the ledger it changed).
+#: Rounds are bounded: a chain this deep is a loop, and a loop fails hard.
+MAX_ROUNDS = 5
+
+
+def _drain() -> None:
+    for _ in range(MAX_ROUNDS):
+        pending = _PENDING.get() or {}
+        if not pending:
+            return
+        _PENDING.set({})
+        _flush(pending)
+    raise RuntimeError(f'derived work still marking more after {MAX_ROUNDS} rounds: '
+                       f'{sorted(map(str, (_PENDING.get() or {}).keys()))}')
 
 
 def _flush(pending: Dict[Tuple[str, Any], Callable[[], None]]) -> None:

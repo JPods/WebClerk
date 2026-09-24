@@ -370,6 +370,35 @@ for _header_model in (Quote, Order, Invoice, Purchase, WorkOrder, Receipt):
     register_header_finance_recompute(_header_model)
 
 
+# An invoice's ledger reads its total, terms and customer. The total's change reaches it
+# through the recompute; a change of terms or customer with the same total rebuilt nothing
+# once /wcapi/transaction/save/ (which rebuilt on every save) was deleted. Bill, 2026-09-24:
+# rebuild when any of them changes. The rebuild is marked, so it happens once per save.
+_LEDGER_INPUTS = ('terms', 'terms_fk_id', 'customer_id')
+
+
+@receiver(pre_save, sender=Invoice)
+def remember_ledger_inputs(sender, instance, **kwargs):
+    update_fields = kwargs.get('update_fields')
+    if not instance.pk or (update_fields is not None and not
+                           {'terms', 'terms_fk', 'customer'} & set(update_fields)):
+        instance._ledger_inputs_before = None
+        return
+    instance._ledger_inputs_before = sender.objects.filter(pk=instance.pk) \
+        .values(*_LEDGER_INPUTS).first()
+
+
+@receiver(post_save, sender=Invoice)
+def rebuild_ledger_on_input_change(sender, instance, created, **kwargs):
+    before = getattr(instance, '_ledger_inputs_before', None)
+    instance._ledger_inputs_before = None
+    if created or not before:
+        return
+    if any(getattr(instance, f, None) != before.get(f) for f in _LEDGER_INPUTS):
+        from apps.accounts.services.ledger_balance import rebuild_invoice_ledger
+        rebuild_invoice_ledger(instance)
+
+
 # =============================================================================
 # HEADER STATUS-CHANGE + NOTIFICATION SIGNALS
 # =============================================================================
@@ -437,6 +466,9 @@ def track_cash_status_change(sender, instance: Cash, **kwargs):
 def send_cash_received_notification(sender, instance: Cash, created, **kwargs):
     if created or instance.status != 'completed':
         return
+    update_fields = kwargs.get('update_fields')
+    if update_fields is not None and 'status' not in update_fields:
+        return                      # this save did not write the status
     if getattr(instance, '_original_status', None) != 'completed':
         TransactionEmailService.send_cash_received_notification(instance)
 

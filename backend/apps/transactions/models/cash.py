@@ -372,7 +372,9 @@ class Cash(HardDeleteOnly, BaseModel):
         super().save(*args, **kwargs)
 
     def add_audit_entry(self, action: str, details: dict = None):
-        """Add an entry to the audit trail"""
+        """Add an entry to the audit trail. The caller saves: saving metadata alone here made
+        a status change in memory look, to the post_save signals, like one on disk — the
+        received email went twice."""
         if not self.metadata:
             self.metadata = default_metadata()
         audit_trail = self.metadata.get('audit_trail', [])
@@ -383,7 +385,6 @@ class Cash(HardDeleteOnly, BaseModel):
         }
         audit_trail.append(entry)
         self.metadata['audit_trail'] = audit_trail
-        self.save(update_fields=['metadata'])
 
 
 __all__ = ["Cash"]
