@@ -296,18 +296,38 @@ class DocumentDeleteView(APIView):
             if str(owner_id) != str(request.user.pk):
                 return Response({'error': 'Permission denied'}, status=403)
 
+        # The record goes through the delete door; the file goes only once the record is
+        # gone for good. Removing the file first (as this did) left a record pointing at
+        # nothing whenever the delete then failed — and it always failed, on a
+        # hasattr() with one argument (defect B-1, 2026-09-23).
+        from django.db import transaction
+        from apps.core.services.delete import delete_record
+        from apps.core.services.door import Actor, Refused
+
         path = (doc.path or {}) if isinstance(doc.path, dict) else {}
         full_path = path.get("full")
         try:
-            if full_path and os.path.exists(full_path):
-                os.remove(full_path)
-        except Exception:
-            pass
+            with transaction.atomic():
+                result = delete_record(Actor.from_request(request), 'document', doc.pk)
+                if result.deleted and full_path:
+                    transaction.on_commit(lambda: _remove_file(full_path))
+        except Refused as refused:
+            from common.api_responses import api_response
+            return api_response(success=False, status_code=refused.status,
+                                message=refused.message, error=refused.as_error())
+        if not result.deleted:
+            raise Http404("document not found")
 
-        if hasattr(doc):
-            setattr(doc, True)
-        if hasattr(doc, "is_active"):
-            setattr(doc, "is_active", False)
-        doc.save()
+        return Response({"ok": True, "id": result.obj_id}, status=status.HTTP_200_OK)
 
-        return Response({"ok": True, "id": doc.id}, status=status.HTTP_200_OK)
+
+def _remove_file(full_path: str) -> None:
+    """After the record is committed as deleted. A file that will not go is logged, not
+    raised: the record is already gone, and an orphan file is recoverable clutter."""
+    try:
+        if os.path.exists(full_path):
+            os.remove(full_path)
+    except OSError as e:
+        import logging
+        logging.getLogger('console').warning("[DOCS] Deleted document's file not removed %s: %s",
+                                              full_path, e)
