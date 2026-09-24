@@ -219,6 +219,12 @@ def _get_item_gls(item_id: int) -> dict:
         return {}
 
 
+def _item_ida(item_id) -> str:
+    """The item's own reference, for a journal ida that names what was adjusted or built."""
+    Item = dj_apps.get_model('products', 'Item')
+    return Item.objects.filter(pk=item_id).values_list('ida', flat=True).first() or str(item_id)
+
+
 def _get_org_gl_override(org_id: int, key: str) -> Optional[str]:
     """Check if org has a GL account override for a given key (ar, revenue, cash)."""
     try:
@@ -1179,6 +1185,11 @@ def journalize_bom_build(batch_id: str, parent_item_id: int, qty: Decimal, compo
     if not postings:
         return {'created': 0, 'error': 'No amounts to post'}
 
+    try:
+        ida = journal_ida(ida_prefix, 'BM', _item_ida(parent_item_id))
+    except ValueError as e:
+        return {'created': 0, 'status': 'exception', 'error': str(e), 'batch_id': batch_id}
+
     created = 0
     posting_list = []
     with transaction.atomic():
@@ -1186,7 +1197,7 @@ def journalize_bom_build(batch_id: str, parent_item_id: int, qty: Decimal, compo
             for side in ('debit', 'credit'):
                 if data[side] > 0:
                     GlJournal.objects.create(
-                        ida=f'{ida_prefix}BM-{batch_id[:8]}-{account}',
+                        ida=ida,
                         account=account,
                         debit=float(data['debit']) if side == 'debit' else None,
                         credit=float(data['credit']) if side == 'credit' else None,
@@ -1222,18 +1233,22 @@ def journalize_adjustment(item_id: int, qty: Decimal, cost: Decimal, reason: str
     created = 0
     posting_list = []
     batch_id = f'ADJ-{item_id}-{int(time.time())}'
+    try:
+        ida = journal_ida(ida_prefix, 'ADJ', _item_ida(item_id))
+    except ValueError as e:
+        return {'created': 0, 'status': 'exception', 'error': str(e)}
 
     with transaction.atomic():
         if qty > 0:
             # Found extra inventory
             GlJournal.objects.create(
-                ida=f'{ida_prefix}ADJ-{inv_account}', account=inv_account,
+                ida=ida, account=inv_account,
                 debit=float(amount), credit=None, source='automation', type='adjustment',
                 source_id=item_id, source_model='adjustment', batch_id=batch_id,
                 note=reason,
             )
             GlJournal.objects.create(
-                ida=f'{ida_prefix}ADJ-{adj_account}', account=adj_account,
+                ida=ida, account=adj_account,
                 debit=None, credit=float(amount), source='automation', type='adjustment',
                 source_id=item_id, source_model='adjustment', batch_id=batch_id,
                 note=reason,
@@ -1241,13 +1256,13 @@ def journalize_adjustment(item_id: int, qty: Decimal, cost: Decimal, reason: str
         else:
             # Lost/scrapped inventory
             GlJournal.objects.create(
-                ida=f'{ida_prefix}ADJ-{adj_account}', account=adj_account,
+                ida=ida, account=adj_account,
                 debit=float(amount), credit=None, source='automation', type='adjustment',
                 source_id=item_id, source_model='adjustment', batch_id=batch_id,
                 note=reason,
             )
             GlJournal.objects.create(
-                ida=f'{ida_prefix}ADJ-{inv_account}', account=inv_account,
+                ida=ida, account=inv_account,
                 debit=None, credit=float(amount), source='automation', type='adjustment',
                 source_id=item_id, source_model='adjustment', batch_id=batch_id,
                 note=reason,

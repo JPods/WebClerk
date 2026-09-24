@@ -691,6 +691,9 @@ def reverse_gl_entries(instance, reason: str = '') -> int:
     for orig in standing:
         # Swap debit↔credit
         GlJournal.objects.create(
+            # The same document reference as the line it reverses: the pair reads together,
+            # told apart by side and source_model. Unset, the ida fell back to the row id.
+            ida=orig.ida,
             account=orig.account,
             debit=orig.credit,    # original credit becomes reversal debit
             credit=orig.debit,    # original debit becomes reversal credit

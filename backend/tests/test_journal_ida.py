@@ -57,3 +57,35 @@ def test_a_document_too_long_to_journal_is_an_exception_result_not_a_crash():
     assert result['created'] == 0 and result['status'] == 'exception'
     assert invoice.ida in result['error']
     assert not GlJournal.objects.filter(source_id=invoice.pk, source_model='invoice').exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.usefixtures("chart_of_accounts")
+def test_a_reversal_carries_the_reference_of_the_line_it_reverses():
+    """A reversal was created with no ida, so it fell back to its row id ("470")."""
+    from apps.accounts.models import GlJournal
+    from apps.accounts.services.ledger_balance import post_staged_gl_entries, reverse_gl_entries
+
+    invoice = invoice_with_line(120.0)
+    post_staged_gl_entries(invoice)
+    reverse_gl_entries(invoice)
+
+    reversals = GlJournal.objects.filter(source_id=invoice.pk, source_model='invoice_reversal')
+    assert reversals.exists()
+    assert set(reversals.values_list('ida', flat=True)) == {f'SJ-{invoice.ida}'}
+
+
+@pytest.mark.django_db
+@pytest.mark.usefixtures("chart_of_accounts")
+def test_an_adjustment_is_named_for_the_item_not_the_account():
+    from decimal import Decimal
+    from apps.accounts.models import GlJournal
+    from apps.accounts.services.journalize import journalize_adjustment
+    from tests.conftest import ItemFactory
+
+    item = ItemFactory(ida='AF-2011')
+    journalize_adjustment(item.pk, Decimal('-2'), Decimal('3.50'), reason='count')
+
+    idas = set(GlJournal.objects.filter(source_id=item.pk, source_model='adjustment')
+               .values_list('ida', flat=True))
+    assert idas == {'ADJ-AF-2011'}
