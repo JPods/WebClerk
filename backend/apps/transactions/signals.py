@@ -401,7 +401,25 @@ def rebuild_ledger_on_input_change(sender, instance, created, **kwargs):
 
 # =============================================================================
 # HEADER STATUS-CHANGE + NOTIFICATION SIGNALS
+#
+# An effect of a status change — an email, an Allie event, an agent-bus note — is keyed
+# on the transition, not on "a save happened" (plan §11.6c: shipping saves the invoice
+# three times), and runs after the commit, so a save that rolls back tells no one.
 # =============================================================================
+
+def _moved_to(instance, kwargs, statuses) -> bool:
+    """This save wrote the status, and it moved into one of ``statuses``."""
+    update_fields = kwargs.get('update_fields')
+    if update_fields is not None and 'status' not in update_fields:
+        return False
+    status = getattr(instance, 'status', None)
+    return status in statuses and getattr(instance, '_original_status', None) != status
+
+
+def _after_commit(work) -> None:
+    from django.db import transaction as db_transaction
+    db_transaction.on_commit(work)
+
 
 @receiver(pre_save, sender=Quote)
 def track_quote_status_change(sender, instance: Quote, **kwargs):
@@ -416,20 +434,21 @@ def track_quote_status_change(sender, instance: Quote, **kwargs):
 
 @receiver(post_save, sender=Quote)
 def send_quote_submitted_notification(sender, instance: Quote, created, **kwargs):
-    if created or instance.status != instance.STATUS_RELEASED:
-        return
-    if getattr(instance, '_original_status', None) != instance.STATUS_RELEASED:
-        TransactionEmailService.send_quote_submitted_notification(instance)
+    if not created and _moved_to(instance, kwargs, {instance.STATUS_RELEASED}):
+        _after_commit(lambda: TransactionEmailService.send_quote_submitted_notification(instance))
 
 
 @receiver(post_save, sender=Order)
 def send_order_created_notification(sender, instance: Order, created, **kwargs):
     if not created:
         return
-    try:
-        TransactionEmailService.send_order_created_notification(instance)
-    except Exception as e:
-        logger.warning(f"Order notification failed for order {instance.ida}: {e}")
+
+    def send():
+        try:
+            TransactionEmailService.send_order_created_notification(instance)
+        except Exception as e:
+            logger.warning(f"Order notification failed for order {instance.ida}: {e}")
+    _after_commit(send)
 
 
 @receiver(pre_save, sender=Invoice)
@@ -445,10 +464,8 @@ def track_invoice_status_change(sender, instance: Invoice, **kwargs):
 
 @receiver(post_save, sender=Invoice)
 def send_invoice_sent_notification(sender, instance: Invoice, created, **kwargs):
-    if created or instance.status != instance.STATUS_RELEASED:
-        return
-    if getattr(instance, '_original_status', None) != instance.STATUS_RELEASED:
-        TransactionEmailService.send_invoice_sent_notification(instance)
+    if not created and _moved_to(instance, kwargs, {instance.STATUS_RELEASED}):
+        _after_commit(lambda: TransactionEmailService.send_invoice_sent_notification(instance))
 
 
 @receiver(pre_save, sender=Cash)
@@ -464,13 +481,8 @@ def track_cash_status_change(sender, instance: Cash, **kwargs):
 
 @receiver(post_save, sender=Cash)
 def send_cash_received_notification(sender, instance: Cash, created, **kwargs):
-    if created or instance.status != 'completed':
-        return
-    update_fields = kwargs.get('update_fields')
-    if update_fields is not None and 'status' not in update_fields:
-        return                      # this save did not write the status
-    if getattr(instance, '_original_status', None) != 'completed':
-        TransactionEmailService.send_cash_received_notification(instance)
+    if not created and _moved_to(instance, kwargs, {'completed'}):
+        _after_commit(lambda: TransactionEmailService.send_cash_received_notification(instance))
 
 
 @receiver(post_save, sender=Receipt)
@@ -552,9 +564,9 @@ def update_order_received(sender, instance: Cash, created, **kwargs):
 @receiver(post_save, sender=Order)
 def allie_order_event(sender, instance: Order, created, **kwargs):
     event = "order_created" if created else "order_updated"
-    _allie(event,
-           f"Order #{instance.pk}",
-           {"id": instance.pk, "status": getattr(instance, "status", "")})
+    message, data = (f"Order #{instance.pk}",
+                     {"id": instance.pk, "status": getattr(instance, "status", "")})
+    _after_commit(lambda: _allie(event, message, data))
 
 
 @receiver(post_save, sender=Invoice)
@@ -566,26 +578,26 @@ def allie_invoice_event(sender, instance: Invoice, created, **kwargs):
     # order_fulfilled fires on STATUS_RELEASED (standard) or STATUS_COMPLETE
     # (JPods trip invoices — created directly at complete, no released step).
     fulfillment_statuses = {released, complete}
-    prev = getattr(instance, "_original_status", None)
-    if status in fulfillment_statuses and (created or prev != status):
+    if status in fulfillment_statuses and (created or _moved_to(instance, kwargs,
+                                                                fulfillment_statuses)):
         event = "order_fulfilled"
     elif created:
         event = "invoice_created"
     else:
         event = "invoice_updated"
-    _allie(event,
-           f"Invoice #{instance.pk} status={status}",
-           {"id": instance.pk, "status": status,
-            "order": getattr(instance, "order_id", None)})
+    message, data = (f"Invoice #{instance.pk} status={status}",
+                     {"id": instance.pk, "status": status,
+                      "order": getattr(instance, "order_id", None)})
+    _after_commit(lambda: _allie(event, message, data))
 
 
 @receiver(post_save, sender=Cash)
 def allie_cash_event(sender, instance: Cash, created, **kwargs):
     status = getattr(instance, "status", "")
     event = "cash_created" if created else f"cash_{status}"
-    _allie(event,
-           f"Cash #{instance.pk} status={status}",
-           {"id": instance.pk, "status": status})
+    message, data = (f"Cash #{instance.pk} status={status}",
+                     {"id": instance.pk, "status": status})
+    _after_commit(lambda: _allie(event, message, data))
 
 
 # =============================================================================
@@ -594,7 +606,8 @@ def allie_cash_event(sender, instance: Cash, created, **kwargs):
 # =============================================================================
 
 def _bus_notify(model_name, instance, created):
-    """Send transaction event to Alice via the agent message bus."""
+    """Send transaction event to Alice via the agent message bus — after the commit, with
+    the values as saved (the bus writes on its own connection; a rollback cannot undo it)."""
     try:
         from apps.core.services.agent_bus import send_to_bus
         event = 'created' if created else 'updated'
@@ -602,11 +615,11 @@ def _bus_notify(model_name, instance, created):
         status = getattr(instance, 'status', '')
         total = float(getattr(instance, 'total', 0) or 0)
         balance = float(getattr(instance, 'balance', 0) or 0)
-        send_to_bus('wc3', 'alice', f'{model_name} {ida} {event}',
-                    category='transaction',
-                    context={'model': model_name.lower(), 'id': instance.pk,
-                             'ida': ida, 'event': event, 'status': status,
-                             'total': total, 'balance': balance})
+        subject = f'{model_name} {ida} {event}'
+        context = {'model': model_name.lower(), 'id': instance.pk, 'ida': ida, 'event': event,
+                   'status': status, 'total': total, 'balance': balance}
+        _after_commit(lambda: send_to_bus('wc3', 'alice', subject, category='transaction',
+                                          context=context))
     except Exception:
         pass
 
@@ -637,10 +650,10 @@ def bus_cash_saved(sender, instance, created, **kwargs):
         from apps.core.services.agent_bus import send_to_bus
         event = 'created' if created else 'updated'
         status = getattr(instance, 'status', '')
-        send_to_bus('wc3', 'alice', f'Cash #{instance.pk} {event}',
-                    category='transaction',
-                    context={'model': 'cash', 'id': instance.pk,
-                             'event': event, 'status': status})
+        subject = f'Cash #{instance.pk} {event}'
+        context = {'model': 'cash', 'id': instance.pk, 'event': event, 'status': status}
+        _after_commit(lambda: send_to_bus('wc3', 'alice', subject, category='transaction',
+                                          context=context))
     except Exception:
         pass
 
