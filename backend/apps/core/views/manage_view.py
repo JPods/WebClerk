@@ -824,6 +824,18 @@ def _file_small_sting(params: dict) -> dict:
     }
 
 
+def _acting_actor(params):
+    """The person running a command, as the door's Actor. A command that writes through
+    the door needs someone to write as; none is a refusal, not a system write."""
+    from apps.core.models import Contact
+    from apps.core.services.door import Actor, Refused
+    user_id = params.get('_acting_user_id')
+    user = Contact.objects.filter(pk=user_id).first() if user_id else None
+    if user is None:
+        raise Refused(403, 'no_acting_user', 'This command writes records; sign in to run it.')
+    return Actor(user=user, kind='user', source='command')
+
+
 def _reassign_project(params):
     """Batch reassign actions to a different project.
     params: { action_ids: [int], project_id: int, project_name: str }
@@ -1177,7 +1189,7 @@ _ACTION_DISPATCH = {
     # ── Shipping / Packing Workflow ──
     "generate_pick_list": lambda p: __import__('apps.transactions.services.fulfillment.fulfillment_ship', fromlist=['generate_pick_list']).generate_pick_list(p['order_id']),
     "confirm_pack": lambda p: __import__('apps.transactions.services.fulfillment.fulfillment_ship', fromlist=['confirm_pack']).confirm_pack(p['order_id'], p['packed_lines']),
-    "ship_order": lambda p: __import__('apps.transactions.services.fulfillment.fulfillment_ship', fromlist=['ship_order']).ship_order(p['order_id'], p.get('shipping_data', {}), p.get('contact_id')),
+    "ship_order": lambda p: __import__('apps.transactions.services.fulfillment.fulfillment_ship', fromlist=['ship_order']).ship_order(p['order_id'], p.get('shipping_data', {}), p.get('contact_id'), actor=_acting_actor(p)),
     "get_shipment_status": lambda p: __import__('apps.transactions.services.fulfillment.fulfillment_ship', fromlist=['get_shipment_status']).get_shipment_status(p['order_id']),
     # ── Carrier API (rates, labels, tracking) ──
     "get_shipping_rates": lambda p: _carrier_action('get_rates', p),
@@ -1398,8 +1410,13 @@ class ManageWcapiView(APIView):
         params = dict(params or {})
         params['_acting_user_id'] = request.user.pk if getattr(request, 'user', None) and request.user.is_authenticated else None
 
+        from apps.core.services.door import Refused
         try:
             result = handler(params)
+        except Refused as refused:
+            # A door's refusal is the answer, with its own status and code — not a 500.
+            return api_response(success=False, status_code=refused.status,
+                                message=refused.message, error=refused.as_error())
         except (ValueError, TypeError) as exc:
             return api_response(
                 success=False,

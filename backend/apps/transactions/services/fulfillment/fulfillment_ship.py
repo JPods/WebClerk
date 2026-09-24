@@ -223,42 +223,78 @@ def ship_order(
     order_id: int,
     shipping_data: Dict[str, Any],
     contact_id: Optional[int] = None,
+    *,
+    actor,
 ) -> Dict[str, Any]:
-    """Complete shipment — create invoice via conversion chain.
+    """Ship what was packed: invoice exactly those lines and quantities.
+
+    Bill, 2026-09-23 (gap 4): a shipment invoices exactly the lines and quantities
+    shipped, through the one conversion engine, carrying terms, price level and rep like
+    any order→invoice. No line-less invoices.
+
+    What was shipped is what ``confirm_pack`` recorded and no shipment has invoiced yet
+    (order.metadata.shipping.packed_lines without an invoice_id). The engine
+    (``convert_order_to_invoice``) makes the invoice header and returns the order's
+    lines for review; the shipped quantity replaces each line's remaining, and the lines
+    are saved through the save door as ``actor`` — so the invoice lines name their order
+    lines and each order line's remaining is recomputed from its children.
+
+    This used to convert every remaining line whatever was packed, never saved the lines
+    the engine returns for review (an invoice with no lines), and read result keys the
+    engine does not return.
 
     Args:
         order_id: PK of the source Order
         shipping_data: {carrier, tracking_number, ship_date, freight_cost}
         contact_id: optional contact override on the invoice
-
-    Uses convert_order_to_invoice from the conversion chain so inventory
-    impacts (on_so -= qty, on_hand -= qty) are handled by the ONE PATH.
-
-    Stores shipping details in invoice.metadata.shipping.
-    Updates order status to 'complete' or 'in_progress' (partial ship).
+        actor: who is shipping (apps.core.services.door.Actor)
 
     Returns:
-        {invoice_id, invoice_ida, lines_shipped}
+        {invoice_id, invoice_ida, lines_shipped, lines_remaining, order_status}
     """
+    from collections import defaultdict
+
+    from apps.core.services.save import save_record
     from apps.transactions.services.convert.convert import convert_order_to_invoice
 
-    # Run conversion chain — handles inventory, commission, line copy, status
-    result = convert_order_to_invoice(
-        order_id=order_id,
-        contact_id=contact_id,
-    )
+    order = _get_order(order_id)
+    order_meta = copy.deepcopy(getattr(order, "metadata", None) or {})
+    order_shipping = order_meta.setdefault("shipping", {})
+    packed = order_shipping.get("packed_lines") or []
+    to_ship = [pl for pl in packed if isinstance(pl, dict) and not pl.get("invoice_id")]
+    if not to_ship:
+        raise ValueError(f"Order #{order_id} has nothing packed that is not already "
+                         f"invoiced. Confirm the pack first; a shipment invoices what was packed.")
 
-    invoice_id = result.get("invoice_id")
-    if not invoice_id:
-        raise ValueError("Conversion chain did not return invoice_id")
+    shipped_qty: Dict[int, float] = defaultdict(float)
+    for pl in to_ship:
+        shipped_qty[int(pl["line_id"])] += float(pl.get("qty_packed", 0) or 0)
 
-    # Store shipping details on the invoice
+    result = convert_order_to_invoice(order_id=order_id, line_ids=list(shipped_qty),
+                                      contact_id=contact_id)
+    invoice_id = result["invoice_id"]
+
+    lines = []
+    for review in result["lines"]:
+        source_line_id = ((review.get("refs") or {}).get("source") or {}).get("order_line_id")
+        qty = shipped_qty.pop(source_line_id, 0)
+        if not qty:
+            continue
+        remaining = float((review.get("quantity") or {}).get("remaining", 0) or 0)
+        if qty > remaining:
+            raise ValueError(f"Order line {source_line_id}: {qty} packed, but only {remaining} "
+                             f"is left to invoice. Correct the pack before shipping.")
+        review["quantity"] = {**review["quantity"], "active": qty, "staged": qty, "remaining": qty}
+        lines.append(review)
+    if shipped_qty:
+        raise ValueError(f"Order #{order_id}: packed line(s) {sorted(shipped_qty)} have nothing "
+                         f"left to invoice. Correct the pack before shipping.")
+
+    saved = save_record(actor, {"model_name": "invoice", "id": invoice_id, "lines": lines})
+
+    # Shipping details on the invoice, and the shipment on the order.
     Invoice = dj_apps.get_model("transactions", "Invoice")
-    try:
-        invoice = Invoice.objects.get(pk=invoice_id)
-    except Invoice.DoesNotExist:
-        raise ValueError(f"Invoice #{invoice_id} created but not found")
-
+    invoice = Invoice.objects.get(pk=invoice_id)
     meta = copy.deepcopy(getattr(invoice, "metadata", None) or {})
     meta["shipping"] = {
         "carrier": shipping_data.get("carrier", ""),
@@ -270,10 +306,12 @@ def ship_order(
     invoice.metadata = meta
     invoice.save(update_fields=["metadata", "dt_modified", "version"])
 
-    # Also record on the order for cross-reference
-    order = _get_order(order_id)
+    order = _get_order(order_id)            # its lines' remaining moved with the invoice
     order_meta = copy.deepcopy(getattr(order, "metadata", None) or {})
     order_shipping = order_meta.setdefault("shipping", {})
+    for pl in order_shipping.get("packed_lines") or []:
+        if isinstance(pl, dict) and not pl.get("invoice_id"):
+            pl["invoice_id"] = invoice_id
     shipments = order_shipping.get("shipments", [])
     if not isinstance(shipments, list):
         shipments = []
@@ -286,16 +324,18 @@ def ship_order(
         "dt_shipped": _now_ms(),
     })
     order_shipping["shipments"] = shipments
-    order_meta["shipping"] = order_shipping
     order.metadata = order_meta
     order.save(update_fields=["metadata", "dt_modified", "version"])
 
+    remaining_lines = sum(
+        1 for line in _get_order_lines(order)
+        if float(((getattr(line, "quantity", None) or {}).get("remaining", 0)) or 0) > 0)
     return {
         "invoice_id": invoice_id,
-        "invoice_ida": result.get("invoice_ida", ""),
-        "lines_shipped": result.get("lines_converted", 0),
-        "lines_remaining": result.get("lines_remaining", 0),
-        "order_status": result.get("source_status", ""),
+        "invoice_ida": saved.record.get("ida", result.get("invoice_ida", "")),
+        "lines_shipped": len(lines),
+        "lines_remaining": remaining_lines,
+        "order_status": getattr(order, "status", ""),
     }
 
 
