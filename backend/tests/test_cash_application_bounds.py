@@ -47,10 +47,13 @@ def _payable(pk=9, total='100.00', vendor_id=None):
 _AP = dict(party_attr='vendor_id', party_label='vendor')
 
 
-def _check(cash, doc, amount, target_applied='0', cash_applied='0', **kw):
+def _check(cash, doc, amount, target_applied='0', cash_spent='0', **kw):
+    """``cash_spent`` is in the cash's own direction: AR applications point its way, AP
+    applications (payable-signed) the other, so 40 paid to a bill from a -100 payment is
+    a spend of -40."""
     return _check_application(cash, doc, Decimal(amount),
                               target_applied=Decimal(target_applied),
-                              cash_applied=Decimal(cash_applied), **kw)
+                              cash_spent=Decimal(cash_spent), **kw)
 
 
 # ── what is allowed ──────────────────────────────────────────────────────────────
@@ -65,12 +68,12 @@ def test_a_negative_application_may_unwind_an_earlier_one():
     """The case `amount must be positive` made impossible to record: 40 of a 100 payment
     is applied, and the user takes 20 of it back."""
     _check(_cash(amount='-100.00'), _payable(total='100.00'), '-20.00',
-           target_applied='40.00', cash_applied='40.00', **_AP)
+           target_applied='40.00', cash_spent='-40.00', **_AP)
 
 
 def test_applying_the_whole_remainder_is_allowed():
     _check(_cash(amount='100.00'), _doc(total='100.00'), '60.00',
-           target_applied='40.00', cash_applied='40.00')
+           target_applied='40.00', cash_spent='40.00')
 
 
 def test_a_refund_settles_a_credit_memo():
@@ -85,7 +88,7 @@ def test_a_sister_division_shift_is_two_applications_that_balance():
     # take 30 back off division A's invoice
     _check(_cash(pk=1, amount='100.00', customer_id=7),
            _doc(pk=9, total='100.00', customer_id=7),
-           '-30.00', target_applied='100.00', cash_applied='100.00')
+           '-30.00', target_applied='100.00', cash_spent='100.00')
     # and put 30 onto division B's, from B's own cash
     _check(_cash(pk=2, amount='30.00', customer_id=8),
            _doc(pk=10, total='30.00', customer_id=8), '30.00')
@@ -101,7 +104,7 @@ def test_zero_has_nothing_to_record():
 def test_the_total_may_not_exceed_the_document():
     with pytest.raises(ValueError, match="still open"):
         _check(_cash(amount='500.00'), _doc(total='100.00'), '80.00',
-               target_applied='40.00', cash_applied='40.00')
+               target_applied='40.00', cash_spent='40.00')
 
 
 def test_a_positive_cash_cannot_settle_a_credit_memo():
@@ -147,3 +150,26 @@ def test_one_vendors_money_does_not_pay_anothers_bill():
     with pytest.raises(ValueError, match="vendors differ"):
         _check(_cash(amount='-100.00', vendor_id=3),
                _payable(total='100.00', vendor_id=4), '100.00', **_AP)
+
+
+# ── one cash, both sides (defect B-5) ────────────────────────────────────────────
+
+def test_an_ar_application_counts_what_the_cash_already_paid_vendors():
+    """A -100 payment out has paid 60 of a vendor's bill (spend -60). A refund of 50 to a
+    customer's credit memo from the same cash would put 110 out of a 100 payment. The AR
+    check counted AR only and let it through."""
+    with pytest.raises(ValueError, match="still unapplied"):
+        _check(_cash(amount='-100.00'), _doc(total='-50.00'), '-50.00', cash_spent='-60.00')
+
+
+def test_an_ap_application_counts_what_the_cash_already_refunded_customers():
+    """The mirror: the -100 payment refunded a customer 30 (spend -30), and 80 more to a
+    vendor makes 110. The AP check added AR + AP (-30 + 0) and let it through."""
+    with pytest.raises(ValueError, match="still unapplied"):
+        _check(_cash(amount='-100.00'), _payable(total='500.00'), '80.00',
+               cash_spent='-30.00', **_AP)
+
+
+def test_both_sides_within_the_payment_are_allowed():
+    _check(_cash(amount='-100.00'), _payable(total='500.00'), '70.00',
+           cash_spent='-30.00', **_AP)

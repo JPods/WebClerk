@@ -99,18 +99,15 @@ def _check_receipt_application(cash, receipt, amount: Decimal) -> None:
 
     What AP genuinely lacked was any check at all beyond "amount must be positive": no bound
     against the receipt, none against the cash, and no party check. Both sides spend the same
-    cash, so what counts as applied to it is the AR sum plus the AP sum. The party is the
+    cash; the one check counts both, in the cash's direction (AR − AP). The party is the
     vendor: a vendor's payment does not pay another vendor's bill.
     """
     from apps.transactions.services.cash.cash_pending import _check_application
 
-    from apps.transactions.services.cash.cash_pending import _committed as _committed_ar
-
+    # The cash's spend, both sides, is counted inside the one check (B-5).
     _check_application(
         cash, receipt, amount,
-        # Applied and queued, both sides: the same cash pays vendors and settles invoices.
         target_applied=_committed(receipt_id=receipt.pk),
-        cash_applied=_committed_ar(cash_id=cash.pk) + _committed(cash_id=cash.pk),
         party_attr='vendor_id', party_label='vendor')
 
 

@@ -135,6 +135,17 @@ def _committed(**match) -> Decimal:
     return _applied(**match) + queued
 
 
+def _cash_committed(cash) -> Decimal:
+    """What this cash has spent or promised, both sides, in the cash's own direction.
+
+    AR applications point the cash's way; AP applications carry the payable's sign, the
+    opposite way — so AR − AP, applied and queued. ``refresh_cash_available`` is the same
+    rule over what has been applied.
+    """
+    from apps.transactions.services.cash.cash_pending_receipt import _committed as _committed_ap
+    return _committed(cash_id=cash.pk) - _committed_ap(cash_id=cash.pk)
+
+
 def _utc_now_iso() -> str:
     from datetime import datetime, timezone
     return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -260,7 +271,7 @@ def refresh_cash_available(cash) -> Decimal:
 
 def _check_application(cash, target, amount: Decimal, *,
                        target_applied: Optional[Decimal] = None,
-                       cash_applied: Optional[Decimal] = None,
+                       cash_spent: Optional[Decimal] = None,
                        bound_cash: bool = True,
                        party_attr: str = 'customer_id',
                        party_label: str = 'customer') -> None:
@@ -289,9 +300,12 @@ def _check_application(cash, target, amount: Decimal, *,
       one and a positive on the other, which balances and leaves both statements honest
       (Bill, 2026-09-20). That path exists only because the positive-amount mandate is gone.
 
-    ``target`` is an invoice (AR) or a receipt (AP). Callers pass the sums, because what
-    counts as applied to a cash differs by side: an AP payment's cash may also carry AR
-    applications, and both spend it.
+    ``target`` is an invoice (AR) or a receipt (AP). The same cash can carry applications
+    on both sides, and both spend it, so the cash's spend is counted here from both — in
+    the cash's own direction, AR − AP, the rule ``refresh_cash_available`` uses
+    (``cash_spent`` overrides it, in that direction, for pure tests). Before, the AR path
+    counted AR only and so ignored AP spend, and the AP path added AR + AP, which is wrong
+    whenever one cash carries both (defect B-5).
 
     The amount carries the **document's** sign — the convention the AP path has always
     had: a +100 payable takes a +60 application even though the -60 payment that settles it
@@ -303,12 +317,10 @@ def _check_application(cash, target, amount: Decimal, *,
 
     # Applied **and queued**: this check runs at creation, and a queued application is
     # money already spoken for. The appliers do not re-check (Rule 10).
+    kind = target._meta.model_name
+    is_ap = kind == 'receipt'
     if target_applied is None:
         target_applied = _committed(invoice_id=target.pk)
-    if cash_applied is None:
-        cash_applied = _committed(cash_id=cash.pk)
-
-    kind = target._meta.model_name
 
     # The document carries the sign. An application is in its document's convention — a
     # +100 invoice takes +60, a -40 credit memo takes -40 (which is why a *positive* cash
@@ -325,14 +337,16 @@ def _check_application(cash, target, amount: Decimal, *,
     # payment can give 60.00 to a payable and no more. Requiring its sign here would
     # forbid every AP application there is.
     cash_amount = _d(cash.amount)
-    cash_after = _d(cash_applied) + amount
+    spent = _cash_committed(cash) if cash_spent is None else _d(cash_spent)
+    # An AP application carries the payable's sign, opposed to the cash that settles it.
+    cash_after = spent - amount if is_ap else spent + amount
     # A credit transfer carries no money of its own (amount 0) and its two legs net to
     # zero, so there is no cash to bound — only the two documents.
     if bound_cash and abs(cash_after) > abs(cash_amount):
         raise ValueError(
             f"cannot apply {amount} from cash {cash.pk}: that would put {abs(cash_after)} "
             f"against a payment of {abs(cash_amount)}. "
-            f"{abs(cash_amount) - abs(_d(cash_applied))} of it is still unapplied.")
+            f"{abs(cash_amount) - abs(spent)} of it is still unapplied.")
 
     party = getattr(cash, party_attr, None)
     target_party = getattr(target, party_attr, None)
