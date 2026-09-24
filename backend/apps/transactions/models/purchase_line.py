@@ -4,6 +4,11 @@ from .base_line_model import BaseExecLineModel
 
 
 class PurchaseLine(BaseExecLineModel):
+    # The header's vendor on every line, so vendors-by-item is a one-table question (Bill,
+    # 2026-09-23). A value stamped from the purchase on save and cascaded — never entered.
+    vendor_id = models.BigIntegerField(null=True, blank=True, db_index=True,
+                                       help_text="The purchase's vendor (derived)")
+    HEADER_PARTY_FIELDS = ('vendor_id',)
     purchase = models.ForeignKey(
         "transactions.Purchase",
         related_name="lines",

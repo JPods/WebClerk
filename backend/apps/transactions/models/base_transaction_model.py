@@ -352,6 +352,20 @@ class TransactionBaseModel(HardDeleteOnly, BaseModel):
         self._populate_company_snapshot()
 
         super().save(*args, **kwargs)
+        self._cascade_parties_to_lines()
+
+    def _cascade_parties_to_lines(self) -> None:
+        """A header's customer, rep or vendor is its lines' too: when it changes, one update
+        brings every line into agreement (Bill, 2026-09-23). Lines that already agree are
+        not touched."""
+        lines = getattr(self, 'lines', None)
+        if lines is None or not hasattr(lines, 'model'):
+            return
+        fields = getattr(lines.model, 'HEADER_PARTY_FIELDS', ())
+        if not fields or self.pk is None:
+            return
+        values = {field: getattr(self, field, None) for field in fields}
+        lines.exclude(**values).update(**values)
 
     def _populate_company_snapshot(self):
         """Populate company snapshot from OrgBase + Contact.
