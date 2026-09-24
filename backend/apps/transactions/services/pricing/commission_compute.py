@@ -401,6 +401,7 @@ def accrue_commission(transaction_id: int, model_name: str, ida_prefix: str = ''
                     pass
 
             from apps.accounts.services.chart import role_account
+            from apps.accounts.services.journalize import journal_ida
             # Resolution: invoice.commission.gl → rep.gl_accounts → commission_config → gl_account_defaults → hardcoded
             comm_expense = (
                 comm_gl.get('expense')
@@ -418,11 +419,14 @@ def accrue_commission(transaction_id: int, model_name: str, ida_prefix: str = ''
             )
 
             rep_name = rep.get('name', f"Rep #{rep.get('rep_id', '?')}")
-            ida_base = f'{ida_prefix}CM-{header.ida}-{rep.get("rep_ida", "")}'
+            # The ida names the document; which rep is carried in metadata, not appended —
+            # appending it (and -EXP/-PAY) overflowed ida's 40 characters (B-2).
+            ida = journal_ida(ida_prefix, 'CM', header.ida)
+            rep_meta = {'rep_id': rep_id, 'rep_ida': rep.get('rep_ida', ''), 'rep_name': rep_name}
 
             # Commission Expense debit
             GlJournal.objects.create(
-                ida=f'{ida_base}-EXP',
+                ida=ida,
                 account=comm_expense,
                 debit=amount,
                 credit=None,
@@ -430,12 +434,13 @@ def accrue_commission(transaction_id: int, model_name: str, ida_prefix: str = ''
                 type='general',
                 source_id=transaction_id,
                 source_model=f'{model_name}_commission',
+                metadata=rep_meta,
             )
             entries.append({'rep': rep_name, 'account': comm_expense, 'debit': amount, 'credit': 0})
 
             # Commission Payable credit
             GlJournal.objects.create(
-                ida=f'{ida_base}-PAY',
+                ida=ida,
                 account=comm_payable,
                 debit=None,
                 credit=amount,
@@ -443,6 +448,7 @@ def accrue_commission(transaction_id: int, model_name: str, ida_prefix: str = ''
                 type='general',
                 source_id=transaction_id,
                 source_model=f'{model_name}_commission',
+                metadata=rep_meta,
             )
             entries.append({'rep': rep_name, 'account': comm_payable, 'debit': 0, 'credit': amount})
             created += 2

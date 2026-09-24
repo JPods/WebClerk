@@ -24,6 +24,27 @@ from django.apps import apps as dj_apps
 from django.db import models, transaction
 
 
+IDA_MAX = 40   # common.models BaseModel.ida
+
+
+def journal_ida(ida_prefix: str, kind: str, source_ida) -> str:
+    """The ida every journal line of one document shares: ``{prefix}{kind}-{source ida}``.
+
+    It names the document posted, not the account — the account has its own column, and
+    appending it overflowed ida's 40 characters (defect B-2, 2026-09-23). The prefix
+    stays first so zz/qq training rows are still recognised by their start.
+
+    Fails fast rather than truncating: a clipped ida would silently point at a different
+    document, or at none.
+    """
+    ida = f'{ida_prefix or ""}{kind}-{source_ida or ""}'
+    if len(ida) > IDA_MAX:
+        raise ValueError(
+            f'Cannot journal {kind} {source_ida!r}: its journal reference {ida!r} is '
+            f'{len(ida)} characters and the limit is {IDA_MAX}. Shorten the document\'s ida.')
+    return ida
+
+
 def _now_ms():
     return int(time.time() * 1000)
 
@@ -132,7 +153,7 @@ def force_to_balance(
     # Derive batch_id and ida from existing entries
     first = existing.first()
     batch_id = first.batch_id or ''
-    ida_base = first.ida.rsplit('-', 1)[0] if first.ida else f'FTB-{source_model}'
+    ida = first.ida or journal_ida('', 'FTB', f'{source_model}-{source_id}')
 
     audit_record = {
         'event': 'force_to_balance',
@@ -147,7 +168,7 @@ def force_to_balance(
 
     with transaction.atomic():
         GlJournal.objects.create(
-            ida=f'{ida_base}-FTB-{adj_account}',
+            ida=ida,
             account=adj_account,
             debit=float(amount) if side == 'debit' else None,
             credit=float(amount) if side == 'credit' else None,
@@ -442,12 +463,17 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
             'postings': [],
         }
 
+    try:
+        ida = journal_ida(ida_prefix, 'SJ', invoice.ida)
+    except ValueError as e:
+        return {'created': 0, 'status': 'exception', 'error': str(e),
+                'source_id': invoice_id, 'source_model': 'invoice', 'postings': []}
+
     # Write GlJournal records
     created = 0
     posting_list = []
     with transaction.atomic():
         for account, data in postings.items():
-            ida = f'{ida_prefix}SJ-{invoice.ida}-{account}' if ida_prefix else f'SJ-{invoice.ida}-{account}'
             if data['debit'] > 0:
                 GlJournal.objects.create(
                     ida=ida,
@@ -591,13 +617,18 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
         debit_account, debit_purpose = offset_account, 'expense'
         credit_account, credit_purpose = cash_account, 'cash_disbursement'
 
+    try:
+        ida = journal_ida(ida_prefix, 'CJ', cash.ida)
+    except ValueError as e:
+        return {'created': 0, 'status': 'exception', 'error': str(e),
+                'source_id': cash_id, 'source_model': 'cash', 'postings': []}
+
     created = 0
     posting_list = []
     with transaction.atomic():
-        ida_base = f'{ida_prefix}CJ-{cash.ida}' if ida_prefix else f'CJ-{cash.ida}'
 
         GlJournal.objects.create(
-            ida=f'{ida_base}-{debit_account}',
+            ida=ida,
             account=debit_account,
             debit=float(abs_amount),
             credit=None,
@@ -610,7 +641,7 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
         posting_list.append({'account': debit_account, 'debit': float(abs_amount), 'credit': 0, 'purpose': debit_purpose})
 
         GlJournal.objects.create(
-            ida=f'{ida_base}-{credit_account}',
+            ida=ida,
             account=credit_account,
             debit=None,
             credit=float(abs_amount),
@@ -633,7 +664,7 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
                 dp_config = get_dual_pricing_config()
                 surcharge_gl = dp_config.get('gl_account') or _role('other_income', 'dual pricing surcharge')
                 GlJournal.objects.create(
-                    ida=f'{ida_base}-{surcharge_gl}',
+                    ida=ida,
                     account=surcharge_gl,
                     debit=None,
                     credit=float(fee_amount),
@@ -692,12 +723,12 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
                             fx_account = _role('fx_gain_loss')
 
                             # Post FX gain/loss GL entry
-                            fx_ida = f'{ida_prefix}FX-{cash.ida}' if ida_prefix else f'FX-{cash.ida}'
+                            fx_ida = journal_ida(ida_prefix, 'FX', cash.ida)
 
                             if fx_amount > 0:
                                 # FX gain: debit AR (we received more value), credit FX gain/loss
                                 GlJournal.objects.create(
-                                    ida=f'{fx_ida}-{fx_account}',
+                                    ida=fx_ida,
                                     account=fx_account,
                                     debit=None,
                                     credit=float(abs(fx_amount)),
@@ -710,7 +741,7 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
                             else:
                                 # FX loss: debit FX gain/loss, credit AR (we received less value)
                                 GlJournal.objects.create(
-                                    ida=f'{fx_ida}-{fx_account}',
+                                    ida=fx_ida,
                                     account=fx_account,
                                     debit=float(abs(fx_amount)),
                                     credit=None,
@@ -862,11 +893,16 @@ def journalize_purchase(purchase_id: int, ida_prefix: str = '') -> dict:
             'source_model': 'purchase',
         }
 
+    try:
+        ida = journal_ida(ida_prefix, 'PJ', purchase.ida)
+    except ValueError as e:
+        return {'created': 0, 'status': 'exception', 'error': str(e),
+                'source_id': purchase_id, 'source_model': 'purchase', 'postings': []}
+
     created = 0
     posting_list = []
     with transaction.atomic():
         for account, data in postings.items():
-            ida = f'{ida_prefix}PJ-{purchase.ida}-{account}' if ida_prefix else f'PJ-{purchase.ida}-{account}'
             if data['debit'] > 0:
                 GlJournal.objects.create(
                     ida=ida,
