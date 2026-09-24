@@ -140,9 +140,8 @@ export function getEffectiveOptions(
  */
 export async function getQACounters(): Promise<QACountersData | null> {
   try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', {
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/setting/', {
       params: {
-        model_name: 'setting',
         purpose: 'wc:qa_counters',
       },
     });
@@ -159,9 +158,8 @@ export async function getQACounters(): Promise<QACountersData | null> {
  */
 export async function getQAQuestions(groupName: string): Promise<QAQuestionsSetting | null> {
   try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', {
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/setting/', {
       params: {
-        model_name: 'setting',
         purpose: 'wc:qa_questions',
         name: groupName,
       },
@@ -180,13 +178,12 @@ export async function getQAQuestions(groupName: string): Promise<QAQuestionsSett
 export async function getAllQAQuestionGroups(modelTarget?: string): Promise<QAQuestionsSetting[]> {
   try {
     const params: Record<string, string> = {
-      model_name: 'setting',
       purpose: 'wc:qa_questions',
     };
     if (modelTarget) {
       params.parent_model = modelTarget;
     }
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', { params });
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/setting/', { params });
     return res.data.data.results || [];
   } catch (err: any) {
     console.error('Failed to fetch Q&A question groups:', err);
@@ -290,9 +287,8 @@ export async function getQAAnswers(
   parentId: number
 ): Promise<QAAnswerRecord[]> {
   try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', {
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/question_answer/', {
       params: {
-        model_name: 'question_answer',
         parent_model: parent_model,
         parent_id: parentId,
       },

@@ -77,6 +77,10 @@ class Actor:
     @classmethod
     def from_request(cls, request, source: str = 'wcapi') -> 'Actor':
         from apps.core.services.access import ACT_AS_REQUEST_ATTR
+        # A read made by a service (services/get.py) carries its actor with it.
+        carried = getattr(request, 'wc_actor', None)
+        if carried is not None:
+            return carried
         user = getattr(request, 'user', None)
         if user is None or not getattr(user, 'is_authenticated', False):
             return cls.anonymous(source)

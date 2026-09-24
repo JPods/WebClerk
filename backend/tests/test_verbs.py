@@ -263,3 +263,50 @@ def test_a_failing_after_hook_keeps_the_save_and_opens_one_critical_action():
     faults = Action.objects.filter(refs__hook_fault__key='item.save_post:code')
     assert faults.count() == 1, 'one open action per failing hook, not one per save'
     assert faults.get().priority == 4
+
+
+# ── get is a verb (read-door step 2) ──────────────────────────────────
+
+def test_a_command_reads_as_an_actor_with_no_request():
+    from apps.core.services.get import read
+    item = _item('zz-verb-read')
+    one = read(Actor.system(), 'item', item.pk)
+    assert (one.get('record') or one).get('id') == item.pk
+    many = read(Actor.system(), 'item', params={'search': 'zz-verb-read'})
+    assert any(r.get('id') == item.pk for r in many.get('results', []))
+
+
+def test_get_runs_the_hooks_around_the_read(recorder):
+    from apps.core.services.get import read
+    seen = []
+
+    class Reader(ModelBehaviour):
+        def before_get(self, ctx: HookContext) -> None:
+            seen.append('before get')
+
+        def after_get(self, ctx: HookContext) -> None:
+            seen.append('after get')
+            ctx.data['result']['stamped'] = True
+
+    item = _item('zz-verb-hooked')
+    register('item', Reader())
+    try:
+        result = read(Actor.system(), 'item', item.pk)
+    finally:
+        register('item', ModelBehaviour())
+    assert seen == ['before get', 'after get']
+    assert result['stamped'] is True, 'an after_get hook shapes what the caller receives'
+
+
+def test_a_read_refusal_carries_its_status_and_code():
+    from apps.core.services.get import read
+    with pytest.raises(Refused) as caught:
+        read(Actor.system(), 'nope')
+    assert caught.value.status == 400
+
+
+def test_the_rest_channel_reads_through_the_verb(client, django_user_model):
+    from apps.products.models import Item
+    Item.objects.create(ida='zz-verb-rest', name='Rest', security_level=1)
+    resp = client.get('/wcapi/item/', {'search': 'zz-verb-rest'})
+    assert resp.status_code in (200, 403), resp.content

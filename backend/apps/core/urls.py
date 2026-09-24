@@ -8,8 +8,6 @@ from apps.core.token_views import RoleTokenObtainPairView
 
 from apps.core.views.auth_views import AuthLoginView, AuthLogoutView, AuthMeView, AuthRegisterView
 from apps.core.views.wcapi import (
-    WCAPIGetView,
-    WCAPIGetViewWithModel,
     ModelNameListView,
     ModelDetailView,
     SearchPresetListView,
@@ -64,9 +62,6 @@ urlpatterns = [
          __import__('apps.core.views.field_rules_view', fromlist=['FieldRulesView']).FieldRulesView.as_view(),
          name="wcapi-field-rules"),
 
-    path("wcapi/get/", WCAPIGetView.as_view(), name="wcapi-get"),
-    path("wcapi/get/<str:model_name>/", WCAPIGetViewWithModel.as_view(), name="wcapi-get-with-model"),
-    path("wcapi/<str:model_name>/get/", WCAPIGetViewWithModel.as_view(), name="wcapi-model-get"),
     path("wcapi/<str:model_name>/<str:field>/<str:from_val>/<str:to_val>/", RangeQueryView.as_view(), name="wcapi-range-query"),
     path("wcapi/transaction/save/", WCAPITransactionSaveView.as_view(), name="wcapi-transaction-save"),
     path("wcapi/report/run/", ReportDownloadView.as_view(), name="wcapi-report-run"),

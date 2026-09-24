@@ -9,7 +9,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from apps.core.models.setting import Setting
 from apps.transactions.services.validate_status import validate_transition
 from tests.conftest import make_setting
-from tests.utils import wcapi_save
+from tests.utils import wcapi_save, wcapi_get
 
 User = get_user_model()
 
@@ -34,7 +34,7 @@ class WorkOrderPhase1Tests(TestCase):
 
     def test_query_workorders_list(self):
         """GET /wcapi/get/?model_name=workorder returns workorders with ida field."""
-        resp = self.client.get('/wcapi/get/', {'model_name': 'workorder'})
+        resp = wcapi_get(self.client, {'model_name': 'workorder'})
         data = assert_envelope(resp.json(), expect_status='success')
         results = data.get('results', [])
         self.assertGreaterEqual(len(results), 1)
@@ -43,7 +43,7 @@ class WorkOrderPhase1Tests(TestCase):
 
     def test_filter_workorder_lines_by_workorder_id(self):
         """GET /wcapi/get/?model_name=workorderline&workorder_id=N returns lines for that workorder."""
-        resp = self.client.get('/wcapi/get/', {
+        resp = wcapi_get(self.client, {
             'model_name': 'workorderline',
             'workorder_id': self.wo.id,
         })
@@ -59,7 +59,7 @@ class WorkOrderPhase1Tests(TestCase):
         The message coaches, and Alice records the rejection."""
         from apps.ai_assistant.models.alice import AliceObservation
 
-        resp = self.client.get('/wcapi/get/', {
+        resp = wcapi_get(self.client, {
             'model_name': 'workorderline',
             'unknown_field': 'x',
         })
@@ -74,7 +74,7 @@ class WorkOrderPhase1Tests(TestCase):
 
     def test_json_envelope_path_is_coached(self):
         """A dotted JSON path is coached toward the __ form that works."""
-        resp = self.client.get('/wcapi/get/', {
+        resp = wcapi_get(self.client, {
             'model_name': 'workorderline',
             'quantity.active': '3',
         })
@@ -88,7 +88,7 @@ class WorkOrderPhase1Tests(TestCase):
         other = WorkOrderLine.objects.create(workorder=self.wo, status='planned',
                                              quantity={'staged': 9, 'active': 9})
 
-        resp = self.client.get('/wcapi/get/', {
+        resp = wcapi_get(self.client, {
             'model_name': 'workorderline',
             'quantity__active': 3,
         })
@@ -99,7 +99,7 @@ class WorkOrderPhase1Tests(TestCase):
 
     def test_projection_on_workorder_header(self):
         """GET /wcapi/get/?model_name=workorder&fields=id,ida returns projected fields."""
-        resp = self.client.get('/wcapi/get/', {
+        resp = wcapi_get(self.client, {
             'model_name': 'workorder',
             'fields': 'id,ida',
         })
@@ -112,7 +112,7 @@ class WorkOrderPhase1Tests(TestCase):
 
     def test_filter_workorders_by_status(self):
         """GET /wcapi/get/?model_name=workorder&status=planned returns matching records."""
-        resp = self.client.get('/wcapi/get/', {
+        resp = wcapi_get(self.client, {
             'model_name': 'workorder',
             'status': 'planned',
         })

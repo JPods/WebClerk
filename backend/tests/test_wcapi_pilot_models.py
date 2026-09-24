@@ -7,7 +7,7 @@ import json
 import pytest
 from django.test import Client
 from django.contrib.auth import get_user_model
-from tests.utils import assert_envelope, wcapi_save
+from tests.utils import assert_envelope, wcapi_save, wcapi_get
 
 User = get_user_model()
 
@@ -46,7 +46,7 @@ def test_contact_crud(admin_client):
     assert cid is not None
 
     # Read
-    resp = admin_client.get("/wcapi/get/", {"model_name": "contact", "id": cid})
+    resp = wcapi_get(admin_client, {"model_name": "contact", "id": cid})
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status="success")
     record = data.get("record") or {}
@@ -75,7 +75,7 @@ def test_customer_crud(admin_client):
     assert oid is not None
 
     # Read
-    resp = admin_client.get("/wcapi/get/", {"model_name": "customer", "id": oid})
+    resp = wcapi_get(admin_client, {"model_name": "customer", "id": oid})
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status="success")
     record = data.get("record") or {}
@@ -105,7 +105,7 @@ def test_setting_crud(admin_client):
     assert sid is not None
 
     # Read
-    resp = admin_client.get("/wcapi/get/", {"model_name": "setting", "id": sid})
+    resp = wcapi_get(admin_client, {"model_name": "setting", "id": sid})
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status="success")
     record = data.get("record") or {}

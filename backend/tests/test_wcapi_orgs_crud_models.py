@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from apps.orgs.models import OrgBase, OrgType
 from apps.core.models import Setting
-from tests.utils import assert_envelope
+from tests.utils import assert_envelope, wcapi_get
 from tests.conftest import make_saved_search, make_setting
 from tests.utils import wcapi_save
 
@@ -57,7 +57,7 @@ def test_wcapi_org_model_crud(model_name, org_type):
         assert org.org_type == org_type
 
     # GET detail
-    resp = client.get("/wcapi/get/", {"model_name": model_name, "id": record_id})
+    resp = wcapi_get(client, {"model_name": model_name, "id": record_id})
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status="success")
     record = data.get("record") or {}
@@ -121,9 +121,7 @@ def test_wcapi_get_supports_keyword_param(client):
         status="active",
     )
 
-    baseline = client.get(
-        "/wcapi/get/",
-        {
+    baseline = wcapi_get(client, {
             "model_name": "customer",
             "limit": 50,
         },
@@ -132,9 +130,7 @@ def test_wcapi_get_supports_keyword_param(client):
     baseline_data = assert_envelope(baseline.json(), expect_status="success")
     assert len(baseline_data.get("results") or []) >= 2
 
-    resp = client.get(
-        "/wcapi/get/",
-        {
+    resp = wcapi_get(client, {
             "model_name": "customer",
             "keyword": "zzkwtest",
             "limit": 50,
@@ -178,9 +174,7 @@ def test_wcapi_get_applies_saved_search_for_matching_role(client):
         },
     )
 
-    resp = client.get(
-        "/wcapi/get/",
-        {
+    resp = wcapi_get(client, {
             "model_name": "customer",
             "saved_search": "sales_active_customers",
             "limit": 50,
@@ -217,9 +211,7 @@ def test_wcapi_get_saved_search_rejects_other_roles(client):
         config={"keyword": "zzsaved-role"},
     )
 
-    resp = client.get(
-        "/wcapi/get/",
-        {
+    resp = wcapi_get(client, {
             "model_name": "customer",
             "saved_search": "sales_only_search",
         },
@@ -413,9 +405,7 @@ def test_wcapi_get_saved_search_uses_request_keyword_and_period_params(client):
         },
     )
 
-    resp = client.get(
-        "/wcapi/get/",
-        {
+    resp = wcapi_get(client, {
             "model_name": "customer",
             "saved_search": "runtime_customer_search",
             "company_token": "zzruntime",
@@ -472,9 +462,7 @@ def test_wcapi_get_saved_search_uses_relative_period_defaults(client):
         },
     )
 
-    resp = client.get(
-        "/wcapi/get/",
-        {
+    resp = wcapi_get(client, {
             "model_name": "customer",
             "saved_search": "current_month_customers",
             "limit": 50,

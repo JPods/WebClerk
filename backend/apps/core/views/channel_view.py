@@ -32,15 +32,16 @@ class ModelChannelView(SaveWcapiView):
     permission_classes = [AllowAny]
 
     def get(self, request, model_name: str, record_id=None):
-        # Read-door step 2 makes get a verb like the others; until then the read channel
-        # answers, told the model and the record by the path.
-        from apps.core.views.wcapi import WCAPIGetView
-        request.query_params._mutable = True
-        request.query_params['model_name'] = model_name
-        if record_id is not None:
-            request.query_params['id'] = str(record_id)
-        request.query_params._mutable = False
-        return WCAPIGetView().get(request)
+        from apps.core.services.door import Actor, Refused
+        from apps.core.services.get import read
+        params = {k: (v if len(v) > 1 else v[0]) for k, v in request.query_params.lists()
+                  if k not in ('model_name', 'id')}
+        try:
+            data = read(Actor.from_request(request), model_name, record_id, params)
+        except Refused as refused:
+            return api_response(success=False, status_code=refused.status,
+                                message=refused.message, error=refused.as_error())
+        return api_response(data=data)
 
     def post(self, request, model_name: str, record_id=None):
         if record_id is not None:

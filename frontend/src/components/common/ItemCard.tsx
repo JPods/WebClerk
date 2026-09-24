@@ -66,14 +66,14 @@ const ItemCard: React.FC<ItemCardProps> = ({ ida, anchorRect, onClose }) => {
     // Try IDA first, then fall back to SKU search
     const tryFetch = async () => {
       // 1. Try by IDA
-      const r1 = await fetch(`/wcapi/get/?model_name=item&ida=${encodeURIComponent(ida)}`);
+      const r1 = await fetch(`/wcapi/item/?ida=${encodeURIComponent(ida)}`);
       if (r1.ok) {
         const d1 = await r1.json();
         const rec = d1?.data?.results?.[0] || d1?.record || (d1?.id ? d1 : null);
         if (rec) return rec;
       }
       // 2. Fall back to SKU search
-      const r2 = await fetch(`/wcapi/get/?model_name=item&search=${encodeURIComponent(ida)}`);
+      const r2 = await fetch(`/wcapi/item/?search=${encodeURIComponent(ida)}`);
       if (r2.ok) {
         const d2 = await r2.json();
         const rec = d2?.data?.results?.[0];

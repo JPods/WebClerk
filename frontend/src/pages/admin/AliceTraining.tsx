@@ -148,12 +148,12 @@ export default function AliceTraining() {
   useEffect(() => {
     const findFixtures = async () => {
       try {
-        const itemRes = await apiClient.get("/wcapi/get/", { params: { model_name: "item", search: "zzitem" } });
+        const itemRes = await apiClient.get("/wcapi/item/", { params: { search: "zzitem" } });
         const items = itemRes.data?.data?.results || itemRes.data?.data?.items || [];
         const zz = items.find((i: any) => i.ida === "zzitem");
         if (zz) setTrainingItem({ id: zz.id, ida: zz.ida });
 
-        const custRes = await apiClient.get("/wcapi/get/", { params: { model_name: "customer", search: "zzCustomer" } });
+        const custRes = await apiClient.get("/wcapi/customer/", { params: { search: "zzCustomer" } });
         const custs = custRes.data?.data?.results || custRes.data?.data?.items || [];
         const zzc = custs.find((c: any) => c.ida === "zzCustomer");
         if (zzc) setTrainingCustomer({ id: zzc.id });
@@ -169,8 +169,8 @@ export default function AliceTraining() {
     if (!trainingItem) return;
     try {
       // Use the availability service via a simple GET
-      const res = await apiClient.get("/wcapi/get/", {
-        params: { model_name: "inventory_layer", search: "TRAINING" },
+      const res = await apiClient.get("/wcapi/inventory_layer/", {
+        params: { search: "TRAINING" },
       });
       const layers = res.data?.data?.results || res.data?.data?.items || [];
       if (layers.length > 0) {

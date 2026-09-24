@@ -44,8 +44,8 @@ export default function CycleCountMobile() {
     try {
       // Search by ida/sku
       const resp = await apiClient.get(
-        `/wcapi/get/`,
-        { params: { model_name: "item", keyword: code.trim(), limit: 1 } }
+        `/wcapi/item/`,
+        { params: { keyword: code.trim(), limit: 1 } }
       );
       const result = resp.data;
       const items = result.data || result.results || [];

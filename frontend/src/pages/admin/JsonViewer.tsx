@@ -185,7 +185,7 @@ const JsonViewer: React.FC = () => {
   const fetchData = useCallback((model: string, id: string, field: string) => {
     if (!model || !id) return;
     setTitle(`${model} #${id}${field ? ` · ${field}` : ''}`);
-    fetch(`/wcapi/get/?model_name=${model}&id=${id}`)
+    fetch(`/wcapi/${model}/${id}/`)
       .then(r => r.json())
       .then(resp => {
         const record = resp?.data?.record || resp?.record || resp?.data || resp;

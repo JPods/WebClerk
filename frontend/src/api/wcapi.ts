@@ -97,34 +97,17 @@ function getBackendErrorMessage(err: any, fallback: string): string {
 }
 
 /**
- * Wrapper: try /wcapi/ first, fall back to /api/wcapi/ on 404.
- * Some deployments mount the API under /api — this handles both.
+ * The REST channel lives at /wcapi/ — one mount, no fallback.
  */
 async function wcapiGet<T>(path: string, config?: any): Promise<T> {
-  try {
-    const res = await apiClient.get<ApiEnvelope<T>>(`/wcapi/${path}`, config);
-    return res.data.data;
-  } catch (err: any) {
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<T>>(`/api/wcapi/${path}`, config);
-      return res2.data.data;
-    }
-    throw err;
-  }
+  const res = await apiClient.get<ApiEnvelope<T>>(`/wcapi/${path}`, config);
+  return res.data.data;
 }
 
 async function wcapiPost<T>(path: string, body: any, extraHeaders?: Record<string, string>): Promise<T> {
   const config = extraHeaders ? { headers: extraHeaders } : undefined;
-  try {
-    const res = await apiClient.post<ApiEnvelope<T>>(`/wcapi/${path}`, body, config);
-    return res.data.data;
-  } catch (err: any) {
-    if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<T>>(`/api/wcapi/${path}`, body, config);
-      return res2.data.data;
-    }
-    throw err;
-  }
+  const res = await apiClient.post<ApiEnvelope<T>>(`/wcapi/${path}`, body, config);
+  return res.data.data;
 }
 
 /**
@@ -188,17 +171,9 @@ export async function getPjpvFieldsCatalog(): Promise<PjpvCatalog> {
       _pjpvCache = data?.envelopes || {};
       return _pjpvCache!;
     } catch {
-      // Fallback: try /api/ prefix
-      try {
-        const res2 = await apiClient.get('/api/wcapi/_pjpv_fields/');
-        const data2 = res2.data;
-        _pjpvCache = data2?.envelopes || {};
-        return _pjpvCache!;
-      } catch {
-        console.warn('[PJPV] Schema endpoint unavailable — name-guessing only');
-        _pjpvCache = {};
-        return _pjpvCache;
-      }
+      console.warn('[PJPV] Schema endpoint unavailable — name-guessing only');
+      _pjpvCache = {};
+      return _pjpvCache;
     } finally {
       _pjpvPromise = null;
     }
@@ -264,8 +239,8 @@ export async function getRecords(
   const headers = allowDefaultCompanyCache
     ? { "x-wcapi-cache-exempt": "default-company" }
     : undefined;
-  return wcapiGet<GetListPayload>("get/", {
-    params: { model_name: resolved, ...normalizedParams },
+  return wcapiGet<GetListPayload>(`${resolved}/`, {
+    params: { ...normalizedParams },
     cache: allowDefaultCompanyCache,
     headers,
   } as any);
@@ -384,8 +359,7 @@ export function clearOptionCache(modelName?: string): void {
 
 export async function getRecord(model_name: string, id: number) {
   const resolved = resolveModelName(model_name);
-  return wcapiGet<GetDetailPayload>("get/", {
-    params: { model_name: resolved, id },
+  return wcapiGet<GetDetailPayload>(`${resolved}/${id}/`, {
     cache: false,
   } as any);
 }
@@ -537,13 +511,12 @@ export async function searchItems(
   options?: { limit?: number },
 ): Promise<GetListPayload> {
   const params: any = {
-    model_name: "item",
     keyword: query,
   };
   if (options?.limit) {
     params.limit = options.limit;
   }
-  return wcapiGet<GetListPayload>("get/", { params });
+  return wcapiGet<GetListPayload>("item/", { params });
 }
 
 // Local persistence for field selections per model
@@ -578,9 +551,8 @@ export interface SettingRecord {
 export async function getWorkbenchFieldsSetting(
   model_name: string,
 ): Promise<SettingRecord | null> {
-  const data = await wcapiGet<GetListPayload>("get/", {
+  const data = await wcapiGet<GetListPayload>("setting/", {
     params: {
-      model_name: "setting",
       parent_model: model_name,
       purpose: "wc:workbench_fields",
     },
@@ -786,10 +758,9 @@ export async function getDetailFieldSetting(
   // Create in-flight promise
   const fetchPromise = (async () => {
     try {
-      const data = await wcapiGet<GetListPayload>("get/", {
-        params: {
-          model_name: "setting",
-          parent_model: model_name,
+      const data = await wcapiGet<GetListPayload>("setting/", {
+    params: {
+      parent_model: model_name,
           purpose: "detail_field_access",
         },
       });
@@ -830,8 +801,8 @@ export async function saveDetailFieldSetting(
 export async function getAllWorkbenchFieldsSettings(): Promise<
   SettingRecord[]
 > {
-  const data = await wcapiGet<GetListPayload>("get/", {
-    params: { model_name: "setting", purpose: "wc:workbench_fields" },
+  const data = await wcapiGet<GetListPayload>("setting/", {
+    params: { purpose: "wc:workbench_fields" },
   });
   return data.results || [];
 }

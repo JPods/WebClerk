@@ -3,7 +3,7 @@ from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from apps.core.models import Contact
 from .utils import assert_envelope
-from tests.utils import wcapi_save
+from tests.utils import wcapi_save, wcapi_get
 
 User = get_user_model()
 
@@ -33,11 +33,7 @@ class UniversalAPITestCase(TestCase):
     def universal_query(self, model_key, **extra):
         payload = {'model_name': model_key.rstrip('s') if model_key.endswith('s') else model_key}
         payload.update(extra)
-        return self.client.post(
-            '/wcapi/get/',
-            data=json.dumps(payload),
-            content_type='application/json'
-        )
+        return wcapi_get(self.client, payload)
 
     def universal_save(self, model_key, record):
         payload = {'model_name': model_key.rstrip('s') if model_key.endswith('s') else model_key}
@@ -47,11 +43,7 @@ class UniversalAPITestCase(TestCase):
         )
 
     def universal_get(self, model_key, pk):
-        return self.client.post(
-            '/wcapi/get/',
-            data=json.dumps({'model_name': model_key.rstrip('s') if model_key.endswith('s') else model_key, 'id': pk}),
-            content_type='application/json'
-        )
+        return wcapi_get(self.client, {'model_name': model_key.rstrip('s') if model_key.endswith('s') else model_key, 'id': pk})
 
 
 class ContactAPITests(UniversalAPITestCase):

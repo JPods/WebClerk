@@ -3,7 +3,7 @@ import pytest
 from django.test import Client
 from apps.orgs.models import OrgBase, OrgType
 from django.contrib.auth import get_user_model
-from tests.utils import assert_envelope
+from tests.utils import assert_envelope, wcapi_get
 User = get_user_model()
 
 @pytest.mark.django_db
@@ -14,7 +14,7 @@ def test_wcapi_query_orgs_basic():
     User.objects.create_user(email='wcorg@example.com', password='pw12345', name_first='Org', name_last='User', username='')
     c = Client(); assert c.login(email='wcorg@example.com', password='pw12345')
 
-    resp = c.get('/wcapi/get/', {'model_name': 'orgbase'})
+    resp = wcapi_get(c, {'model_name': 'orgbase'})
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status='success')
     names = {r['company'] for r in data['results']}
@@ -28,7 +28,7 @@ def test_wcapi_query_customers_proxy_filters():
     User.objects.create_user(email='wcorg2@example.com', password='pw12345', name_first='Org', name_last='User', username='')
     c = Client(); assert c.login(email='wcorg2@example.com', password='pw12345')
 
-    resp = c.get('/wcapi/get/', {'model_name': 'customer'})
+    resp = wcapi_get(c, {'model_name': 'customer'})
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status='success')
     names = {r['company'] for r in data['results']}

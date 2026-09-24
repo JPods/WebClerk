@@ -6,6 +6,7 @@ There are no /<model>/ URL patterns — those are legacy patterns that no longer
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
+from tests.utils import wcapi_get
 
 User = get_user_model()
 
@@ -27,7 +28,7 @@ def test_wcapi_get_returns_success_envelope(admin_user):
     client = APIClient()
     client.force_authenticate(user=admin_user)
 
-    resp = client.get('/wcapi/get/', {'model_name': 'contact'})
+    resp = wcapi_get(client, {'model_name': 'contact'})
     assert resp.status_code == 200
     data = resp.json()
     assert data.get('status') == 'success'
@@ -36,11 +37,11 @@ def test_wcapi_get_returns_success_envelope(admin_user):
 
 @pytest.mark.django_db
 def test_wcapi_get_with_model_path(admin_user):
-    """GET /wcapi/get/<model_name>/ returns a success envelope."""
+    """GET /wcapi/<model>/ returns a success envelope."""
     client = APIClient()
     client.force_authenticate(user=admin_user)
 
-    resp = client.get('/wcapi/get/contact/')
+    resp = client.get('/wcapi/contact/')
     assert resp.status_code == 200
     data = resp.json()
     assert data.get('status') == 'success'

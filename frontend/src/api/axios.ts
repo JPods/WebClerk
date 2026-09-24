@@ -105,7 +105,6 @@ const writeCache = (key: string, res: AxiosResponse) => {
 
 const NEVER_CACHE_PATTERNS = [
   "/wcapi/", // ALL wcapi calls are database actions - never cache
-  "/api/wcapi/", // Alternate mount point - also never cache
 ];
 
 const shouldNeverCache = (url: string): boolean => {

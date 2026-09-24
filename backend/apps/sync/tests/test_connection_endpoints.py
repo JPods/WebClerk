@@ -2,7 +2,7 @@ import pytest
 from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
 from apps.sync.models.connection import Connection
-from tests.utils import wcapi_save
+from tests.utils import wcapi_save, wcapi_get
 
 pytestmark = pytest.mark.django_db
 
@@ -29,7 +29,7 @@ def test_connection_list_via_wcapi(api_client, staff_user):
     api_client.defaults['HTTP_ACCEPT'] = 'application/json'
     api_client.defaults['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest'
 
-    resp = api_client.get('/wcapi/get/', {'model_name': 'connection'})
+    resp = wcapi_get(api_client, {'model_name': 'connection'})
     assert resp.status_code == 200
     body = resp.json()
     assert body.get('status') == 'success'

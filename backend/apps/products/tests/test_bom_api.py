@@ -3,7 +3,7 @@ from apps.products.models.item import Item
 from apps.products.models.bill_of_material import BillOfMaterial
 from apps.core.models.contact import Contact
 from rest_framework.test import APIClient
-from tests.utils import wcapi_save
+from tests.utils import wcapi_save, wcapi_get
 
 
 @pytest.mark.django_db
@@ -16,7 +16,7 @@ def test_bom_list_via_wcapi():
     client.defaults['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest'
 
     # List via wcapi/get/ with correct model key (GET only, no POST)
-    resp = client.get('/wcapi/get/', {'model_name': 'bill_of_material'})
+    resp = wcapi_get(client, {'model_name': 'bill_of_material'})
     assert resp.status_code == 200, f"Unexpected: {resp.status_code} {resp.content}"
     body = resp.json()
     assert body.get('status') == 'success'

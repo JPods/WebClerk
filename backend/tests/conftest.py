@@ -13,6 +13,7 @@ Usage in tests::
 import pytest
 import factory
 from factory.django import DjangoModelFactory
+from tests.utils import wcapi_get
 
 
 # ---------------------------------------------------------------------------
@@ -253,7 +254,7 @@ class _WcapiNamespace:
 
     def get(self, model, **params):
         params['model_name'] = model
-        return self._client.get('/wcapi/get/', params)
+        return wcapi_get(self._client, params)
 
     def query(self, model, filters=None):
         return self._client.post(

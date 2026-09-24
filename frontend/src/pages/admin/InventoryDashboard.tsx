@@ -279,9 +279,7 @@ function ReceiveTab() {
     setResult(null);
     setReceiveQtys({});
     try {
-      const res = await apiClient.get(`/wcapi/get/`, {
-        params: { model_name: "purchase", id: poId },
-      });
+      const res = await apiClient.get(`/wcapi/purchase/${poId}/`);
       const record = res.data?.data?.record || res.data?.record;
       const lines = record?.lines || [];
 

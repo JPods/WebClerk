@@ -35,14 +35,21 @@ def _save(actor: Actor, model_key: str, payload: dict):
     return save_record(actor, payload, model_key=model_key)
 
 
+def _get(actor: Actor, model_key: str, payload: dict):
+    from apps.core.services.get import read
+    record_id = payload.pop('id', None)
+    return read(actor, model_key, record_id, payload)
+
+
 def _delete(actor: Actor, model_key: str, payload: dict):
     from apps.core.services.delete import delete_record
     return delete_record(actor, model_key, payload.get('id'))
 
 
-#: The closed list. get joins in step 2; the commands (convert, receive, pay, refund,
-#: reserve, release, adjust, recalc, run, export, import) as their base services are built.
+#: The closed list. The commands (convert, receive, pay, refund, reserve, release, adjust,
+#: recalc, run, export, import) join as their base services are built.
 VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
+    'get': _get,
     'save': _save,
     'delete': _delete,
 }
@@ -119,7 +126,7 @@ def _user_hook(ctx: HookContext, moment: str) -> None:
     finally:
         _USER_HOOK_DEPTH.reset(token)
 
-    if moment == 'post' and result.set_fields and ctx.verb != 'delete':
+    if moment == 'post' and result.set_fields and ctx.verb == 'save':
         _save_hook_fields(ctx.obj, result.set_fields)
     if result.errors:
         note = '; '.join(result.errors)

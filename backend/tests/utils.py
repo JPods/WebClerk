@@ -29,3 +29,12 @@ def wcapi_save(client, data=None, **kwargs):
     if rid:
         return client.put(f'/wcapi/{model}/{rid}/', data, **kwargs)
     return client.post(f'/wcapi/{model}/', data, **kwargs)
+
+
+def wcapi_get(client, params=None, **kwargs):
+    """A REST read: GET /wcapi/<model>/ with criteria, or GET /wcapi/<model>/<id>/. The
+    params name the model (model_name) and, for one record, its id."""
+    params = dict(params or {})
+    model, rid = params.pop('model_name'), params.pop('id', None)
+    path = f'/wcapi/{model}/{rid}/' if rid else f'/wcapi/{model}/'
+    return client.get(path, params, **kwargs)

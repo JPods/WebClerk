@@ -4,7 +4,7 @@ from django.template.response import ContentNotRenderedError
 from rest_framework.test import APIClient
 from apps.communications.models import Domain
 from apps.core.models import Contact
-from tests.utils import wcapi_save
+from tests.utils import wcapi_save, wcapi_get
 
 @pytest.fixture
 def staff_user(db):
@@ -49,7 +49,7 @@ def test_domain_list_and_create(api_client, staff_user):
     client.force_authenticate(user=staff_user)
 
     # List via wcapi/get/
-    resp = client.get('/wcapi/get/', {'model_name': 'domain'})
+    resp = wcapi_get(client, {'model_name': 'domain'})
     assert resp.status_code == 200
     body = resp.json()
     assert body.get('status') == 'success'
@@ -64,7 +64,7 @@ def test_domain_list_and_create(api_client, staff_user):
     assert did
 
     # Re-list to confirm item is present
-    resp2 = client.get('/wcapi/get/', {'model_name': 'domain'})
+    resp2 = wcapi_get(client, {'model_name': 'domain'})
     assert resp2.status_code == 200
     body2 = resp2.json()
     assert body2.get('status') == 'success'

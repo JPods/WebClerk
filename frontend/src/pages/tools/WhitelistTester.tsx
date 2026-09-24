@@ -2,15 +2,13 @@
 /**
  * Whitelist Tester — interactive API endpoint tester.
  *
- * Presets cover both the wcapi gateway and legacy REST paths that
- * are 301-redirected by RestToWcapiMiddleware on the backend.
+ * Presets cover the REST channel: /wcapi/<model>/ and /wcapi/<model>/<id>/, the HTTP
+ * method naming get, save or delete (Bill, 2026-09-24: REST only).
  *
  * Related files:
- *   wc3  common/middleware/rest_redirect.py      — server-side REST→wcapi redirect middleware
- *   wc3  tests/test_rest_redirect.py              — 46 middleware tests
- *   wc3  readmes/03-wcapi-gateway.md              — gateway overview & mapping table
+ *   wc3  apps/core/views/channel_view.py          — the REST channel
+ *   wc3  tests/test_route_shape.py                — holds every route to the REST shape
  *   r25  src/api/modelNameResolver.ts              — canonical model-name resolution
- *   r25  readmes/api-migration-rest-to-wcapi.md   — migration tracker
  */
 import React, { useMemo, useState } from 'react';
 import apiClient, { authClient } from '../../api/axios';
@@ -90,7 +88,7 @@ const PRESETS: Preset[] = [
   {
     label: 'wcapi › Contact List',
     method: 'GET',
-    url: '/wcapi/get/?model_name=contact&limit=10',
+    url: '/wcapi/contact/?limit=10',
     body: {},
     info: {
       description: 'List contacts via wcapi gateway.',
@@ -101,7 +99,7 @@ const PRESETS: Preset[] = [
   {
     label: 'wcapi › Contact Detail',
     method: 'GET',
-    url: '/wcapi/get/?model_name=contact&id=1',
+    url: '/wcapi/contact/1/',
     body: {},
     info: {
       description: 'Single contact by ID via wcapi.',
@@ -111,7 +109,7 @@ const PRESETS: Preset[] = [
   {
     label: 'wcapi › Customer List',
     method: 'GET',
-    url: '/wcapi/get/?model_name=customer&limit=10',
+    url: '/wcapi/customer/?limit=10',
     body: {},
     info: {
       description: 'List customers via wcapi gateway.',
@@ -121,7 +119,7 @@ const PRESETS: Preset[] = [
   {
     label: 'wcapi › Vendor List',
     method: 'GET',
-    url: '/wcapi/get/?model_name=vendor&limit=10',
+    url: '/wcapi/vendor/?limit=10',
     body: {},
     info: {
       description: 'List vendors via wcapi gateway.',
@@ -131,7 +129,7 @@ const PRESETS: Preset[] = [
   {
     label: 'wcapi › Item List',
     method: 'GET',
-    url: '/wcapi/get/?model_name=item&limit=10',
+    url: '/wcapi/item/?limit=10',
     body: {},
     info: {
       description: 'List items (canonical product model).',
@@ -141,7 +139,7 @@ const PRESETS: Preset[] = [
   {
     label: 'wcapi › Order Detail + Lines',
     method: 'GET',
-    url: '/wcapi/get/?model_name=order&id=1',
+    url: '/wcapi/order/1/',
     body: {},
     info: {
       description: 'Order detail with embedded line items under data.related.*_lines.',
@@ -152,7 +150,7 @@ const PRESETS: Preset[] = [
   {
     label: 'wcapi › Invoice Detail + Lines',
     method: 'GET',
-    url: '/wcapi/get/?model_name=invoice&id=21',
+    url: '/wcapi/invoice/21/',
     body: {},
     info: {
       description: 'Invoice detail with embedded line items.',
@@ -162,7 +160,7 @@ const PRESETS: Preset[] = [
   {
     label: 'wcapi › Quote Detail + Lines',
     method: 'GET',
-    url: '/wcapi/get/?model_name=quote&id=1',
+    url: '/wcapi/quote/1/',
     body: {},
     info: {
       description: 'Quote detail with embedded line items.',
@@ -172,7 +170,7 @@ const PRESETS: Preset[] = [
   {
     label: 'wcapi › Purchase Detail + Lines',
     method: 'GET',
-    url: '/wcapi/get/?model_name=purchase&id=1',
+    url: '/wcapi/purchase/1/',
     body: {},
     info: {
       description: 'Purchase detail with embedded line items.',
@@ -194,197 +192,6 @@ const PRESETS: Preset[] = [
     },
   },
 
-  // ── REST → wcapi redirect tests ───────────────────────────────────────
-  // These legacy REST paths are intercepted by RestToWcapiMiddleware
-  // and 301-redirected to the equivalent wcapi endpoint.
-  {
-    label: 'REST › /api/contacts/',
-    method: 'GET',
-    url: '/api/contacts/',
-    body: {},
-    info: {
-      description: 'Legacy REST list → redirects to /wcapi/get/?model_name=contact',
-      notes: [
-        'RestToWcapiMiddleware strips /api/, singularises "contacts" → "contact".',
-        'Expect 301 redirect (axios follows automatically).',
-      ],
-    },
-  },
-  {
-    label: 'REST › /api/contacts/1/',
-    method: 'GET',
-    url: '/api/contacts/1/',
-    body: {},
-    info: {
-      description: 'Legacy REST detail → redirects to /wcapi/get/?model_name=contact&id=1',
-      notes: ['Extracts numeric ID from path.'],
-    },
-  },
-  {
-    label: 'REST › /api/customers/',
-    method: 'GET',
-    url: '/api/customers/',
-    body: {},
-    info: {
-      description: 'Legacy REST list → redirects to /wcapi/get/?model_name=customer',
-    },
-  },
-  {
-    label: 'REST › /api/orgs/customers/',
-    method: 'GET',
-    url: '/api/orgs/customers/',
-    body: {},
-    info: {
-      description: 'App-namespaced REST → strips "orgs/" prefix, redirects to /wcapi/get/?model_name=customer',
-      notes: ['Middleware strips known app prefixes (orgs, transactions, core, etc.)'],
-    },
-  },
-  {
-    label: 'REST › /api/orgs/customers/2/',
-    method: 'GET',
-    url: '/api/orgs/customers/2/',
-    body: {},
-    info: {
-      description: 'App-namespaced REST detail → /wcapi/get/?model_name=customer&id=2',
-    },
-  },
-  {
-    label: 'REST › /api/invoices/',
-    method: 'GET',
-    url: '/api/invoices/',
-    body: {},
-    info: {
-      description: 'REST list → redirects to /wcapi/get/?model_name=invoice',
-    },
-  },
-  {
-    label: 'REST › /api/invoices/21/',
-    method: 'GET',
-    url: '/api/invoices/21/',
-    body: {},
-    info: {
-      description: 'REST detail → redirects to /wcapi/get/?model_name=invoice&id=21',
-    },
-  },
-  {
-    label: 'REST › /api/transactions/invoices/21/',
-    method: 'GET',
-    url: '/api/transactions/invoices/21/',
-    body: {},
-    info: {
-      description: 'Full app-namespaced REST → /wcapi/get/?model_name=invoice&id=21',
-      notes: ['Both /api/invoices/21/ and /api/transactions/invoices/21/ resolve to the same wcapi call.'],
-    },
-  },
-  {
-    label: 'REST › /api/core/contacts/list',
-    method: 'GET',
-    url: '/api/core/contacts/list',
-    body: {},
-    info: {
-      description: 'REST with "core" prefix + trailing "list" action → /wcapi/get/?model_name=contact',
-      notes: ['Trailing action verbs (list, detail) are stripped by the middleware.'],
-    },
-  },
-  {
-    label: 'REST › /api/transactions/orders/',
-    method: 'GET',
-    url: '/api/transactions/orders/',
-    body: {},
-    info: {
-      description: 'REST orders list → redirects to /wcapi/get/?model_name=order',
-    },
-  },
-  {
-    label: 'REST › /api/transactions/orders/1/',
-    method: 'GET',
-    url: '/api/transactions/orders/1/',
-    body: {},
-    info: {
-      description: 'REST order detail → redirects to /wcapi/get/?model_name=order&id=1',
-    },
-  },
-  {
-    label: 'REST › /api/vendors/',
-    method: 'GET',
-    url: '/api/vendors/',
-    body: {},
-    info: {
-      description: 'REST vendor list → redirects to /wcapi/get/?model_name=vendor',
-    },
-  },
-  {
-    label: 'REST › /api/orgs/vendors/16/',
-    method: 'GET',
-    url: '/api/orgs/vendors/16/',
-    body: {},
-    info: {
-      description: 'REST vendor detail → redirects to /wcapi/get/?model_name=vendor&id=16',
-    },
-  },
-  {
-    label: 'REST › /api/products/items/',
-    method: 'GET',
-    url: '/api/products/items/',
-    body: {},
-    info: {
-      description: 'REST items list → redirects to /wcapi/get/?model_name=item',
-    },
-  },
-  {
-    label: 'REST › /api/products/items/1/',
-    method: 'GET',
-    url: '/api/products/items/1/',
-    body: {},
-    info: {
-      description: 'REST item detail → redirects to /wcapi/get/?model_name=item&id=1',
-    },
-  },
-  {
-    label: 'REST › /api/orgs/employees/',
-    method: 'GET',
-    url: '/api/orgs/employees/',
-    body: {},
-    info: {
-      description: 'REST employee list → redirects to /wcapi/get/?model_name=employee',
-    },
-  },
-  {
-    label: 'REST › /api/orgs/manufacturers/',
-    method: 'GET',
-    url: '/api/orgs/manufacturers/',
-    body: {},
-    info: {
-      description: 'REST manufacturer list → redirects to /wcapi/get/?model_name=manufacturer',
-    },
-  },
-  {
-    label: 'REST › /api/transactions/quotes/',
-    method: 'GET',
-    url: '/api/transactions/quotes/',
-    body: {},
-    info: {
-      description: 'REST quote list → redirects to /wcapi/get/?model_name=quote',
-    },
-  },
-  {
-    label: 'REST › /api/transactions/quotes/1/',
-    method: 'GET',
-    url: '/api/transactions/quotes/1/',
-    body: {},
-    info: {
-      description: 'REST quote detail → redirects to /wcapi/get/?model_name=quote&id=1',
-    },
-  },
-  {
-    label: 'REST › /api/transactions/purchases/',
-    method: 'GET',
-    url: '/api/transactions/purchases/',
-    body: {},
-    info: {
-      description: 'REST purchase list → redirects to /wcapi/get/?model_name=purchase',
-    },
-  },
 ];
 
 const colBase = 'h-[calc(100vh-140px)] overflow-auto border border-gray-200 rounded-md bg-white';

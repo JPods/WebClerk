@@ -21,7 +21,7 @@ export const patchUserProfile = async (data:any) => {
 
 export const postPhone = async (data:any) => {
   try {
-  const res = await apiClient.post(PostLoginURL.addPhone,{...data});
+  const res = await apiClient.post(PostLoginURL.record('phone'),{...data});
     return res;
   }
   catch (error: any) { 
@@ -30,7 +30,7 @@ export const postPhone = async (data:any) => {
 };
 
 export const getPhone = async (id:any = '') => {
-  const url = (id === '') ? PostLoginURL.addPhone : PostLoginURL.addPhone + id;
+  const url = PostLoginURL.record('phone', id);
   try {
   const res = await apiClient.get(url);
     return res.data;
@@ -42,7 +42,7 @@ export const getPhone = async (id:any = '') => {
 
 export const postEmail = async (data:any) => {
   try {
-  const res = await apiClient.post(PostLoginURL.addEmail,{...data});
+  const res = await apiClient.post(PostLoginURL.record('email'),{...data});
     return res;
   }
   catch (error: any) { 
@@ -51,7 +51,7 @@ export const postEmail = async (data:any) => {
 };
 
 export const getEmail = async (id:any = '') => {
-  const url = (id === '') ? PostLoginURL.addEmail : PostLoginURL.addEmail + id;
+  const url = PostLoginURL.record('email', id);
   try {
   const res = await apiClient.get(url);
     return res.data;
@@ -63,7 +63,7 @@ export const getEmail = async (id:any = '') => {
 
 export const postAddress = async (data:any) => {
   try {
-  const res = await apiClient.post(PostLoginURL.addAddress,{...data});
+  const res = await apiClient.post(PostLoginURL.record('address'),{...data});
     return res;
   }
   catch (error: any) { 
@@ -72,7 +72,7 @@ export const postAddress = async (data:any) => {
 };
 
 export const getAddress = async (id:any='') => {
-   const url = (id === '') ? PostLoginURL.addAddress : PostLoginURL.addAddress + id;
+   const url = PostLoginURL.record('address', id);
   try {
   const res = await apiClient.get(url);
     return res.data;
@@ -84,7 +84,7 @@ export const getAddress = async (id:any='') => {
 
 export const postDomain = async (data:any) => {
   try {
-  const res = await apiClient.post(PostLoginURL.addDomains,{...data});
+  const res = await apiClient.post(PostLoginURL.record('domain'),{...data});
     return res;
   }
   catch (error: any) { 
@@ -93,7 +93,7 @@ export const postDomain = async (data:any) => {
 };
 
 export const getDomain = async (id:any='') => {
-   const url = (id === '') ? PostLoginURL.addDomains : PostLoginURL.addDomains + id;
+   const url = PostLoginURL.record('domain', id);
   try {
   const res = await apiClient.get(url);
     return res.data;
@@ -105,7 +105,7 @@ export const getDomain = async (id:any='') => {
 
 export const postAction = async (data:any) => {
   try {
-  const res = await apiClient.post(PostLoginURL.addActions,{...data});
+  const res = await apiClient.post(PostLoginURL.record('action'),{...data});
     return res;
   }
   catch (error: any) { 
@@ -114,7 +114,7 @@ export const postAction = async (data:any) => {
 };
 
 export const getAction = async (id:any = '') => {
-  const url = (id === '') ? PostLoginURL.addActions : PostLoginURL.addActions + id;
+  const url = PostLoginURL.record('action', id);
   try {
   const res = await apiClient.get(url);
     return res;
@@ -128,7 +128,7 @@ export const getAction = async (id:any = '') => {
 
 export const deleteAction = async (id:any) => {
   try {
-  const res = await apiClient.delete(PostLoginURL.addActions + id +'/');
+  const res = await apiClient.delete(PostLoginURL.record('action', id));
     return res;
   }
   catch (error: any) { 
@@ -140,7 +140,6 @@ type WcapiQueryValue = string | number | boolean | null | undefined;
 
 const buildWcapiQuery = (modelName: string, params?: Record<string, WcapiQueryValue | WcapiQueryValue[]>): string => {
   const searchParams = new URLSearchParams();
-  searchParams.set("model_name", modelName);
 
   if (params) {
     Object.entries(params).forEach(([key, rawValue]) => {
@@ -164,7 +163,7 @@ const buildWcapiQuery = (modelName: string, params?: Record<string, WcapiQueryVa
   }
 
   const queryString = searchParams.toString();
-  return `${PostLoginURL.allTypes}${queryString}`;
+  return `${PostLoginURL.record(modelName)}?${queryString}`;
 };
 
 export const Actions = async (params?: Record<string, WcapiQueryValue | WcapiQueryValue[]>) => {

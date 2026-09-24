@@ -14,6 +14,7 @@ from apps.core.services.door import Actor
 from apps.core.services.record_serialize import visible_queryset
 from apps.products.models import Item
 from apps.transactions.models import Quote
+from tests.utils import wcapi_get
 
 pytestmark = pytest.mark.django_db
 
@@ -44,7 +45,7 @@ def test_anonymous_sees_no_other_model(items):
 
 def test_anonymous_get_projects_to_public_leaves(items):
     published, _ = items
-    response = APIClient().get('/wcapi/get/', {'model_name': 'item'})
+    response = wcapi_get(APIClient(), {'model_name': 'item'})
     assert response.status_code == 200
     rows = response.json()['data']['results']
     assert [r['ida'] for r in rows] == ['PUB-1']
@@ -56,18 +57,18 @@ def test_anonymous_get_projects_to_public_leaves(items):
 
 def test_anonymous_get_unpublished_item_by_id_is_empty(items):
     _, unpublished = items
-    response = APIClient().get('/wcapi/get/', {'model_name': 'item', 'id': unpublished.pk})
+    response = wcapi_get(APIClient(), {'model_name': 'item', 'id': unpublished.pk})
     assert response.status_code == 200
     assert response.json()['data']['record'] is None
 
 
 def test_anonymous_get_of_a_non_public_model_is_refused(items):
-    response = APIClient().get('/wcapi/get/', {'model_name': 'contact'})
+    response = wcapi_get(APIClient(), {'model_name': 'contact'})
     assert response.status_code == 401
 
 
 def test_anonymous_search_matches_public_text_leaves_only(items):
-    response = APIClient().get('/wcapi/get/', {'model_name': 'item', 'search': 'widget'})
+    response = wcapi_get(APIClient(), {'model_name': 'item', 'search': 'widget'})
     assert [r['ida'] for r in response.json()['data']['results']] == ['PUB-1']
 
 
