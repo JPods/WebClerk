@@ -12,6 +12,8 @@ Setting (config.access); nothing leaves the server unless a role's list names
 the leaf. No list → nothing. Agents may act as another role to test it.
 """
 import pytest
+
+from apps.core.services.door import Actor
 from django.utils.crypto import get_random_string
 
 from apps.core.models.setting import Setting
@@ -73,17 +75,17 @@ class TestCustomerPortal:
     def test_sees_their_price_and_no_other_prices(self, django_user_model, item_policy):
         user = _login(django_user_model, 'cust@example.fake', 'customer', 'customer', 'wholesale')
         assert user_price_level(user) == 'wholesale'
-        visible = filter_response_data(user, 'item', ITEM_RECORD)
+        visible = filter_response_data(Actor(user=user), 'item', ITEM_RECORD)
         assert visible.get('price') == {'wholesale': 12.0}
 
     def test_sees_no_costs(self, django_user_model, item_policy):
         user = _login(django_user_model, 'cust2@example.fake', 'customer', 'customer', 'retail')
-        assert 'cost' not in filter_response_data(user, 'item', ITEM_RECORD)
+        assert 'cost' not in filter_response_data(Actor(user=user), 'item', ITEM_RECORD)
 
     def test_no_price_at_all_when_org_has_no_price_level(self, django_user_model, item_policy):
         """An unresolved price level drops the field — it never widens to every tier."""
         user = _login(django_user_model, 'cust3@example.fake', 'customer', 'customer', '')
-        assert 'price' not in filter_response_data(user, 'item', ITEM_RECORD)
+        assert 'price' not in filter_response_data(Actor(user=user), 'item', ITEM_RECORD)
 
     def test_edits_nothing_it_does_not_raise_itself(self, django_user_model, item_policy):
         """A customer changes nothing of the company's.
@@ -101,7 +103,7 @@ class TestCustomerPortal:
         """
         user = _login(django_user_model, 'cust4@example.fake', 'customer', 'customer', 'retail')
         for model in ('invoice', 'item', 'contact'):
-            assert get_allowed_fields(user, model, mode='edit') == [], model
+            assert get_allowed_fields(Actor(user=user), model, mode='edit') == [], model
 
     def test_fills_only_its_own_order_and_nothing_of_the_companys(self, django_user_model,
                                                                   item_policy):
@@ -110,7 +112,7 @@ class TestCustomerPortal:
 
         user = _login(django_user_model, 'cust5@example.fake', 'customer', 'customer', 'retail')
         for model in ('order', 'quote'):
-            allowed = get_allowed_fields(user, model, mode='edit')
+            allowed = get_allowed_fields(Actor(user=user), model, mode='edit')
             assert set(allowed) <= set(PORTAL_ORDER_FIELDS), model
             # never the money, the status or anything the company owns
             assert not [p for p in allowed
@@ -122,21 +124,21 @@ class TestCustomerPortal:
 class TestVendorPortal:
     def test_sees_last_cost_only_and_no_prices(self, django_user_model, item_policy):
         user = _login(django_user_model, 'vend@example.fake', 'vendor', 'vendor')
-        visible = filter_response_data(user, 'item', ITEM_RECORD)
+        visible = filter_response_data(Actor(user=user), 'item', ITEM_RECORD)
         assert visible.get('cost') == {'last': 7.5}
         assert 'price' not in visible
 
     def test_sees_the_inventory_numbers(self, django_user_model, item_policy):
         """So the vendor can keep the customer never over and never short."""
         user = _login(django_user_model, 'vend2@example.fake', 'vendor', 'vendor')
-        quantity = filter_response_data(user, 'item', ITEM_RECORD).get('quantity', {})
+        quantity = filter_response_data(Actor(user=user), 'item', ITEM_RECORD).get('quantity', {})
         for key in ('on_hand', 'available', 'on_po', 'min', 'max'):
             assert key in quantity, key
 
     def test_edits_nothing(self, django_user_model, item_policy):
         user = _login(django_user_model, 'vend4@example.fake', 'vendor', 'vendor')
         for model in ('purchase', 'item', 'action', 'project'):
-            assert get_allowed_fields(user, model, mode='edit') == [], model
+            assert get_allowed_fields(Actor(user=user), model, mode='edit') == [], model
 
 
 @pytest.mark.django_db
@@ -145,19 +147,19 @@ class TestPositiveList:
         user = django_user_model.objects.create_superuser(
             email='staff@example.fake', password=get_random_string(20),
             name_first='S', name_last='T', username='')
-        assert get_allowed_fields(user, 'item', mode='edit') == STAFF_EDIT
-        visible = filter_response_data(user, 'item', ITEM_RECORD)
+        assert get_allowed_fields(Actor(user=user), 'item', mode='edit') == STAFF_EDIT
+        visible = filter_response_data(Actor(user=user), 'item', ITEM_RECORD)
         assert 'price' in visible and set(visible['price']) == {'retail'}
 
     def test_no_list_means_nothing(self, django_user_model, item_policy):
         """A role with no block on the model sees nothing — fail closed."""
         user = _login(django_user_model, 'rep@example.fake', 'rep')
-        assert filter_response_data(user, 'item', ITEM_RECORD) == {}
+        assert filter_response_data(Actor(user=user), 'item', ITEM_RECORD) == {}
 
     def test_user_role_is_no_access(self, django_user_model, item_policy):
         user = _login(django_user_model, 'plain@example.fake', 'user')
-        assert access.user_role(user) is None
-        assert filter_response_data(user, 'item', ITEM_RECORD) == {}
+        assert Actor(user=user).role is None
+        assert filter_response_data(Actor(user=user), 'item', ITEM_RECORD) == {}
 
     def test_parent_path_is_refused(self, item_policy):
         """A container is not a leaf: the guard refuses 'price', accepts 'price.retail'."""
@@ -179,15 +181,17 @@ class TestPositiveList:
 
     def test_agent_acting_as_customer_sees_what_a_customer_sees(self, django_user_model, item_policy):
         agent = _login(django_user_model, 'agent@example.fake', 'agent', 'customer', 'wholesale')
-        access.apply_act_as_user(agent, {access.ACT_AS_HEADER: 'customer'})
-        assert access.user_role(agent) == 'customer'
-        assert filter_response_data(agent, 'item', ITEM_RECORD).get('price') == {'wholesale': 12.0}
+        role = access.act_as_role(agent, {access.ACT_AS_HEADER: 'customer'})
+        actor = Actor(user=agent, acting_as=role)
+        assert actor.role == 'customer'
+        assert access.own_role(agent) == 'agent'        # the login itself is untouched
+        assert filter_response_data(actor, 'item', ITEM_RECORD).get('price') == {'wholesale': 12.0}
 
     def test_only_agents_may_act_as(self, django_user_model, item_policy):
         from rest_framework.exceptions import PermissionDenied
         vendor = _login(django_user_model, 'v9@example.fake', 'vendor', 'vendor')
         with pytest.raises(PermissionDenied):
-            access.apply_act_as_user(vendor, {access.ACT_AS_HEADER: 'customer'})
+            access.act_as_role(vendor, {access.ACT_AS_HEADER: 'customer'})
         agent = _login(django_user_model, 'a9@example.fake', 'agent')
         with pytest.raises(PermissionDenied):
-            access.apply_act_as_user(agent, {access.ACT_AS_HEADER: 'superuser'})
+            access.act_as_role(agent, {access.ACT_AS_HEADER: 'superuser'})

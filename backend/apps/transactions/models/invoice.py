@@ -21,6 +21,12 @@ class Invoice(TransactionBaseModel):
         db_index=True, help_text="Invoice / Pro Forma / Credit Note / Deposit")
 
     refs = models.JSONField(default=dict, blank=True, null=True, help_text="References like order_id")
+    # The rep who made the sale, carried from the order (Bill, 2026-09-23) — a value, not a
+    # ForeignKey, as on quote and order: deleting a rep org must never cascade into invoices.
+    rep_id = models.BigIntegerField(null=True, blank=True, db_index=True,
+        help_text="Rep org credited with this sale")
+    attention_rep = models.CharField(max_length=255, blank=True, null=True,
+        help_text="The person at the rep")
     metadata = models.JSONField(default=dict, blank=True, null=True, help_text="Cash history and balances")
 
     def __str__(self) -> str:

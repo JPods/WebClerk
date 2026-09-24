@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 
 from common.base_views import BaseOptimisticDetailView
+from apps.core.services.door import Actor
 from apps.core.services.record_serialize import visible_queryset
 from apps.transactions.models import (
     Quote, Order, Purchase, Invoice
@@ -40,7 +41,7 @@ class _VisibleActions(viewsets.GenericViewSet):
     model_key = ''
 
     def get_queryset(self):
-        return visible_queryset(self.model_key, user=self.request.user)[1]
+        return visible_queryset(self.model_key, actor=Actor.from_request(self.request))[1]
 
 
 class QuoteViewSet(_VisibleActions):

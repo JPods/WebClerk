@@ -4,6 +4,7 @@ RBAC Permissions API Views.
 Endpoints for retrieving user permissions and role information.
 """
 from __future__ import annotations
+from apps.core.services.door import Actor
 
 from typing import Any, Dict
 
@@ -69,19 +70,20 @@ class UserPermissionsView(APIView):
     
     def get(self, request, *args, **kwargs):
         user = request.user
+        actor = Actor.from_request(request)
         
         # Build user context
-        context = build_user_context(user)
+        context = actor.context()
         
         # Build per-model permissions
         models_perms: Dict[str, Dict[str, Any]] = {}
         
         for model_name in self.INCLUDED_MODELS:
-            config = get_user_filter_config(user, model_name)
+            config = get_user_filter_config(actor, model_name)
             
             if config:
-                view_fields = get_allowed_fields(user, model_name, mode="view")
-                edit_fields = get_allowed_fields(user, model_name, mode="edit")
+                view_fields = get_allowed_fields(actor, model_name, mode="view")
+                edit_fields = get_allowed_fields(actor, model_name, mode="edit")
 
                 models_perms[model_name] = {
                     "view": bool(view_fields),
@@ -142,7 +144,8 @@ class ModelPermissionsView(APIView):
             )
         
         user = request.user
-        config = get_user_filter_config(user, model_name)
+        actor = Actor.from_request(request)
+        config = get_user_filter_config(actor, model_name)
         
         if not config:
             return Response({
@@ -156,8 +159,8 @@ class ModelPermissionsView(APIView):
                 "query_filters": {},
             }, status=status.HTTP_200_OK)
         
-        view_fields = get_allowed_fields(user, model_name, mode="view")
-        edit_fields = get_allowed_fields(user, model_name, mode="edit")
+        view_fields = get_allowed_fields(actor, model_name, mode="view")
+        edit_fields = get_allowed_fields(actor, model_name, mode="edit")
         return Response({
             "model": model_name,
             "view": bool(view_fields),

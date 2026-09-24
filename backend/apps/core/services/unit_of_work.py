@@ -63,14 +63,19 @@ def unit_of_work():
     outermost = _DEPTH.get() == 1
     if outermost:
         _PENDING.set({})
+    completed = False
     try:
         yield
+        completed = True
     finally:
         _DEPTH.set(_DEPTH.get() - 1)
         if outermost:
             pending = _PENDING.get() or {}
             _PENDING.set({})
-            _flush(pending)
+            # A refused or failed edit is rolled back; recomputing for it is wasted work
+            # that can itself fail and hide the refusal.
+            if completed:
+                _flush(pending)
 
 
 def _flush(pending: Dict[Tuple[str, Any], Callable[[], None]]) -> None:

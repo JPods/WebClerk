@@ -19,6 +19,8 @@ import socket
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
+
+from apps.core.services.door import Actor
 from django.db.models import Q
 
 
@@ -207,7 +209,7 @@ class Command(BaseCommand):
             # Verify inject_role_filters returns impossible Q for key models
             test_models = ['order', 'invoice', 'contact']
             for model_name in test_models:
-                q = inject_role_filters(guest, model_name)
+                q = inject_role_filters(Actor(user=guest), model_name)
                 if q == Q(pk__isnull=True):
                     self._pass(f"Guest query for {model_name} → Q(pk__isnull=True) (no results)")
                     passed += 1
@@ -244,7 +246,7 @@ class Command(BaseCommand):
                 return 0, 0, 1
 
             # Test that inject_role_filters produces a valid Q
-            q = inject_role_filters(user, 'order')
+            q = inject_role_filters(Actor(user=user), 'order')
             self._pass(f"inject_role_filters returned Q for user {user.id} (role={user.role})")
             passed += 1
 

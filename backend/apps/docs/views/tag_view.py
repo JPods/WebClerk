@@ -1,4 +1,5 @@
 from __future__ import annotations
+from apps.core.services.door import Actor
 from typing import Any, Optional, List
 from apps.docs.models import Tag
 from django.forms.models import model_to_dict
@@ -20,10 +21,10 @@ class TagHierarchyView(APIView):
     http_method_names = ["get", "post", "options", "head"]
 
     def _visible(self, request):
-        return self.model.objects.filter(inject_role_filters(request.user, self.model_key))
+        return self.model.objects.filter(inject_role_filters(Actor.from_request(request), self.model_key))
 
     def _project(self, request, obj) -> dict:
-        return filter_response_data(request.user, self.model_key, model_to_dict(obj))
+        return filter_response_data(Actor.from_request(request), self.model_key, model_to_dict(obj))
 
     def get(self, request, pk: int):
         obj = self._visible(request).filter(pk=pk).first()
@@ -54,7 +55,7 @@ class TagHierarchyView(APIView):
         # The parent link is an edit of the child's parent field: it must be on
         # this role's edit list for tag (positive list, access.py).
         parent_leaf = self.model._meta.get_field(pf).attname
-        if parent_leaf not in get_allowed_fields(request.user, self.model_key, mode="edit"):
+        if parent_leaf not in get_allowed_fields(Actor.from_request(request), self.model_key, mode="edit"):
             return Response({"detail": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
 
         parent = self._visible(request).filter(pk=pk).first()

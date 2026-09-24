@@ -90,7 +90,6 @@ def refresh_from_settings():
     
     This method populates the registry with ModelConfig objects based on:
     - WCAPI_BLESSED_MODELS: maps model keys to Django model paths
-    - WCAPI_MODEL_POLICIES: per-model field access policies
     - WCAPI_WHITELIST_APPS: whitelist of apps for WCAPI access
     
     The registry will be cleared and repopulated with fresh configurations.
@@ -102,7 +101,6 @@ def refresh_from_settings():
     
     # Get blessed models from settings
     blessed_models = getattr(settings, 'WCAPI_BLESSED_MODELS', {})
-    model_policies = getattr(settings, 'WCAPI_MODEL_POLICIES', {})
     whitelist_apps = getattr(settings, 'WCAPI_WHITELIST_APPS', None)
     
     # Process each blessed model
@@ -124,16 +122,7 @@ def refresh_from_settings():
             except Exception:
                 continue
             
-            # Get policies for this model
-            policies = model_policies.get(key, {})
-            
-            # Create ModelConfig with settings-based configuration
-            cfg = ModelConfig(
-                key=key,
-                model=model_class,
-                search_fields=policies.get('search_fields', []),
-                permission_classes=policies.get('permission_classes', []),
-            )
+            cfg = ModelConfig(key=key, model=model_class)
             
             # Register the configuration
             register(cfg)

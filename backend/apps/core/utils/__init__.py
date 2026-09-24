@@ -29,8 +29,4 @@ try:
 except Exception:
     _MISC_EXPORTS = []
 
-from .policy import get_accessible_fields
-
-__all__ = _MISC_EXPORTS + [
-    'get_accessible_fields',
-]
+__all__ = _MISC_EXPORTS

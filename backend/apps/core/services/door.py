@@ -22,40 +22,135 @@ console_logger = logging.getLogger('console')
 
 # ── what the caller is ────────────────────────────────────────────────
 
+#: Every kind an actor may be. Anything else is a construction error, not a quietly
+#: guarded or quietly privileged actor (Axiom 6).
+KINDS = ('user', 'staff', 'public', 'system', 'sync')
+#: The kinds that skip the guards written for callers. Named, so the default is guarded:
+#: a kind added later is checked until someone decides otherwise. Only our own code —
+#: commands and tasks — is privileged; a sync bundle is guarded by its Connection's role
+#: (Bill, 2026-09-23).
+PRIVILEGED_KINDS = ('system',)
+
+
 @dataclass
 class Actor:
-    """Who is writing, and in what capacity.
+    """Who is asking, and in what capacity — the one principal every door and every
+    access check takes.
 
     ``kind`` decides policy, not the door: a ``system`` actor is still audited, still
     validated, still versioned — it is simply permitted more. "No backdoor" and "a
     command may write what a user may not" are only compatible if the second is written
     down rather than assumed from an absence.
+
+    user    a signed-in person (Contact login) at the API or the admin
+    staff   a person at the Django admin — guarded exactly like user
+    public  an anonymous visitor: no login, the public role only
+    sync    another system over a Connection — the Connection's role and scope
+    system  our own commands and tasks — the only privileged kind
     """
     user: Any = None
-    kind: str = 'user'          # user | staff | system | sync
+    kind: str = 'user'
     source: str = 'wcapi'       # wcapi | admin | command | task | sync
+    connection: Any = None
+    acting_as: Optional[str] = None   # an agent's validated X-WC-Act-As role, this call only
 
-    #: A person is writing, so every guard written for a person applies: edit filters,
-    #: the staff-only models, the write policy, the contact account guard. 'staff' is a
-    #: person at the admin, not an exemption — the bug it fixes (2026-09-22) was admin
-    #: saves skipping all of it because the kind was not 'user'.
-    PERSON_KINDS = ('user', 'staff')
+    def __post_init__(self):
+        if self.kind not in KINDS:
+            raise ValueError(f'unknown actor kind {self.kind!r}; one of {KINDS}')
+        if self.kind in ('user', 'staff') and self.user is None:
+            raise ValueError(f'a {self.kind} actor is a signed-in person; use Actor.anonymous() '
+                             'for a visitor or Actor.system() for our own code')
+        if self.kind in ('public', 'system', 'sync') and self.user is not None:
+            raise ValueError(f'a {self.kind} actor carries no user')
+        if self.kind == 'sync' and self.connection is None:
+            raise ValueError('a sync actor needs the Connection it arrived on')
+        if self.acting_as and self.kind != 'user':
+            raise ValueError('only a signed-in agent may act as another role')
 
     @property
-    def is_person(self) -> bool:
-        return self.kind in self.PERSON_KINDS
+    def is_guarded(self) -> bool:
+        """Every guard written for callers applies: create/edit/delete rights, edit
+        filters, the staff-only models, the write policy, the contact account guard."""
+        return self.kind not in PRIVILEGED_KINDS
 
+    # ── constructors ──
     @classmethod
     def from_request(cls, request, source: str = 'wcapi') -> 'Actor':
-        return cls(user=getattr(request, 'user', None), kind='user', source=source)
+        from apps.core.services.access import ACT_AS_REQUEST_ATTR
+        user = getattr(request, 'user', None)
+        if user is None or not getattr(user, 'is_authenticated', False):
+            return cls.anonymous(source)
+        django_request = getattr(request, '_request', request)
+        return cls(user=user, kind='user', source=source,
+                   acting_as=getattr(django_request, ACT_AS_REQUEST_ATTR, None))
+
+    @classmethod
+    def anonymous(cls, source: str = 'wcapi') -> 'Actor':
+        return cls(kind='public', source=source)
 
     @classmethod
     def system(cls, source: str = 'command') -> 'Actor':
-        return cls(user=None, kind='system', source=source)
+        return cls(kind='system', source=source)
 
+    @classmethod
+    def for_connection(cls, connection, source: str = 'sync') -> 'Actor':
+        """The Connection comes from the authenticated credential, never from a payload."""
+        return cls(kind='sync', source=source, connection=connection)
+
+    # ── what the access checks read ──
     @property
     def user_id(self):
-        return getattr(self.user, 'id', None)
+        """The login behind this actor; None for sync, public and system — a sync write
+        must never be linked to whichever contact shares a connection's id."""
+        return getattr(self.user, 'id', None) if self.kind in ('user', 'staff') else None
+
+    @property
+    def role(self) -> Optional[str]:
+        """The role the three gates read. None = no role: sees and writes nothing."""
+        from apps.core.services import access
+        if self.kind in ('user', 'staff'):
+            return self.acting_as or access.own_role(self.user)
+        if self.kind == 'sync':
+            return access.connection_role(self.connection)
+        return None
+
+    def context(self) -> Dict[str, Any]:
+        """The ids a role's scope resolves against ($user.org_ids.customer, …)."""
+        from apps.core.services import role_filter
+        if self.kind in ('user', 'staff'):
+            context = role_filter.build_user_context(self.user)
+            context["roles"] = [self.role] if self.role else []
+            return context
+        if self.kind == 'sync':
+            return role_filter.build_connection_context(self.connection, self.role)
+        return role_filter.empty_context()
+
+    @property
+    def price_level(self) -> str:
+        from apps.core.services import role_filter
+        return role_filter.user_price_level(self.user) if self.user_id else ''
+
+    @property
+    def may_write_open_read(self) -> bool:
+        """Writes to an open-read model (Settings): a login's own superuser role, never an
+        act-as and never a Connection."""
+        from apps.core.services import access
+        return (self.kind in ('user', 'staff') and not self.acting_as
+                and access.open_read_can_write(self.user))
+
+    def describe(self) -> str:
+        """For log lines and history: the institution behind a sync write is traceable."""
+        if self.kind == 'sync':
+            return f"sync connection #{getattr(self.connection, 'pk', '?')}"
+        return f"{self.kind} actor" + (f" #{self.user_id}" if self.user_id else '')
+
+
+def as_actor(actor) -> 'Actor':
+    """Access checks take an Actor. A bare user is a caller not yet converted: fail
+    loudly rather than guess what kind of principal it is."""
+    if not isinstance(actor, Actor):
+        raise TypeError(f'access checks take an Actor, not {type(actor).__name__}')
+    return actor
 
 
 # ── what the door refuses with ────────────────────────────────────────

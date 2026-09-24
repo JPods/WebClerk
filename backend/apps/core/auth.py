@@ -35,12 +35,16 @@ class RoleValidatingJWTAuthentication(JWTAuthentication):
                 code='role_mismatch'
             )
 
-        # An agent may act as another role for this request (X-WC-Act-As).
-        # DRF authenticates lazily, so this runs before any view reads the role.
-        from apps.core.services.access import apply_act_as_user
-        apply_act_as_user(user, self._request_meta)
+        # An agent may act as another role for this request (X-WC-Act-As). Validated
+        # here, carried on the request — never written onto the user object — and read by
+        # Actor.from_request, which runs after DRF has authenticated.
+        from apps.core.services.access import ACT_AS_REQUEST_ATTR, act_as_role
+        wanted = act_as_role(user, self._request_meta)
+        django_request = getattr(self._request, '_request', self._request)
+        setattr(django_request, ACT_AS_REQUEST_ATTR, wanted)
         return user
 
     def authenticate(self, request):
+        self._request = request
         self._request_meta = getattr(request, 'META', {})
         return super().authenticate(request)

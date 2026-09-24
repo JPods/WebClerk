@@ -50,11 +50,11 @@ def delete_record(actor: Actor, model_key: str, record_id, *,
 
     model_cls, model_key, _norm = resolve_model(model_key)
 
-    if actor.is_person:
+    if actor.is_guarded:
         # The role's `delete` flag (wc:model Setting config.access), or superuser for
         # the open-read models.
         from apps.core.services.role_filter import can_delete
-        if not can_delete(actor.user, model_key):
+        if not can_delete(actor, model_key):
             raise Refused(403, 'delete_not_permitted',
                           f'Your role may not delete {model_key} records.',
                           {'model_name': model_key, 'id': record_id})
@@ -76,13 +76,13 @@ def delete_record(actor: Actor, model_key: str, record_id, *,
         raise Refused(409, 'delete_refused', message,
                       {'model_name': model_key, 'id': record_id}) from e
 
-    console_logger.info("[DELETE] %s #%s deleted by %s actor", model_key, record_id, actor.kind)
+    console_logger.info("[DELETE] %s #%s deleted by %s", model_key, record_id, actor.describe())
     return DeleteResult(deleted=True, obj_id=record_id, model_key=model_key)
 
 
 def _find(actor: Actor, model_cls, model_key: str, record_id, visible_only: bool):
-    if not actor.is_person or not visible_only:
+    if not actor.is_guarded or not visible_only:
         return model_cls.objects.filter(pk=record_id).first()
     from apps.core.services.record_serialize import visible_queryset
-    _cls, qs = visible_queryset(model_key, user=actor.user)
+    _cls, qs = visible_queryset(model_key, actor=actor)
     return qs.filter(pk=record_id).first()

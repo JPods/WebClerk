@@ -14,6 +14,7 @@ Active middleware (listed in settings.MIDDLEWARE):
 Shared helpers are in ``common.middleware.helpers``.
 """
 
+from common.middleware.actor import ActorMiddleware
 from common.middleware.logging import RequestLogMiddleware
 from common.middleware.envelope import AutoEnvelopeMiddleware
 from common.middleware.exceptions import ExceptionAsJsonMiddleware
@@ -27,6 +28,7 @@ from common.middleware.security_checks import HttpsEnforcementMiddleware, Securi
 from common.middleware.helpers import ENVELOPE_SKIPS  # noqa: F401 – used by tests
 
 __all__ = [
+    "ActorMiddleware",
     "RequestLogMiddleware",
     "AutoEnvelopeMiddleware",
     "ExceptionAsJsonMiddleware",

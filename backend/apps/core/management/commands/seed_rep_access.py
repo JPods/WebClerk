@@ -22,12 +22,17 @@ from apps.core.services import access
 #: on the record (Bill, 2026-09-20: "We need a rep_id (not FK) and attention_rep in
 #: customer, proposal, order"), not something inferred by joining through contacts — so
 #: the scope is one indexed column on the row itself.
+#: Bill, 2026-09-23: a rep reaches the customers whose rep_id is theirs, and a transaction
+#: only when BOTH its own rep_id and its customer's rep_id are theirs.
 REP_SCOPE = {
-    'order':    {'rep_id__in': '$user.org_ids.rep'},
-    'quote':    {'rep_id__in': '$user.org_ids.rep'},
+    'order':    {'rep_id__in': '$user.org_ids.rep', 'customer__rep_id__in': '$user.org_ids.rep'},
+    'quote':    {'rep_id__in': '$user.org_ids.rep', 'customer__rep_id__in': '$user.org_ids.rep'},
     'customer': {'rep_id__in': '$user.org_ids.rep'},
-    # An invoice has no rep_id of its own; it inherits the order's. A rep sees theirs
-    # through the order until that is decided — invoice is deliberately not scoped here.
+    # A rep does not see a customer that is not theirs — by any route (Bill, 2026-09-23).
+    # Contacts follow their customer's rep_id, not links or the contact's own; an invoice,
+    # like an order, needs both its own rep_id (carried from the order) and its customer's.
+    'contact':  {'customer__rep_id__in': '$user.org_ids.rep'},
+    'invoice':  {'rep_id__in': '$user.org_ids.rep', 'customer__rep_id__in': '$user.org_ids.rep'},
 }
 
 #: Models a rep reads as sales does and never writes. A rep cannot put a line on a
