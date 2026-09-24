@@ -143,6 +143,24 @@ class CashBehaviour(ModelBehaviour):
     id, plan §13.5) stays empty until a command claims it: a save cannot mark it paid."""
 
     DOCUMENTS = (('invoice_id', 'invoice'), ('receipt_id', 'receipt'), ('purchase_id', 'purchase'))
+    #: What a save may not change once money has moved on this Cash (Fable review): a
+    #: charged Cash reset to empty could be charged again; a re-pointed one names one
+    #: document while its money sits on another.
+    SETTLED_FIELDS = frozenset({'purpose', 'status', 'gateway_transaction_id',
+                                'gateway_payment_intent_id', 'amount', 'fee_amount',
+                                'invoice', 'receipt', 'purchase'})
+
+    @staticmethod
+    def _settled(obj) -> bool:
+        """A pay has claimed it (processing, token or not), the gateway knows it, or the
+        cash door has applied it."""
+        from apps.transactions.services.cash import cash_door
+        stored = type(obj).objects.filter(pk=obj.pk).values(
+            'gateway_transaction_id', 'status', 'purpose').first() or {}
+        return (bool(stored.get('gateway_transaction_id'))
+                or stored.get('status') == 'processing'
+                or stored.get('purpose') == 'payment'
+                or bool(cash_door._applications(cash_id=obj.pk)))
 
     def before_save(self, ctx: HookContext) -> None:
         if ctx.actor.is_guarded:
@@ -154,6 +172,12 @@ class CashBehaviour(ModelBehaviour):
                             .filter(pk=target).exists():
                         raise Refused(404, 'not_found', f'{model_key} {target} not found',
                                       {'field': field, 'id': target})
+        if ctx.is_update and ctx.changed & self.SETTLED_FIELDS and self._settled(ctx.obj):
+            raise Refused(409, 'cash_settled',
+                          f'Cash {ctx.obj.pk} has been charged or applied; '
+                          f'{", ".join(sorted(ctx.changed & self.SETTLED_FIELDS))} move only '
+                          f'through its commands (pay, refund) and the cash door.',
+                          {'fields': sorted(ctx.changed & self.SETTLED_FIELDS)})
         if getattr(ctx.obj, 'purpose', None) == 'empty':
             if ctx.obj.status not in ('', None, 'pending') or ctx.obj.gateway_transaction_id:
                 raise Refused(400, 'empty_cash',

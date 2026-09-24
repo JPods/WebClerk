@@ -381,7 +381,8 @@ _LEDGER_INPUTS = ('terms', 'terms_fk_id', 'customer_id')
 def remember_ledger_inputs(sender, instance, **kwargs):
     update_fields = kwargs.get('update_fields')
     if not instance.pk or (update_fields is not None and not
-                           {'terms', 'terms_fk', 'customer'} & set(update_fields)):
+                           {'terms', 'terms_fk', 'terms_fk_id', 'customer', 'customer_id'}
+                           & set(update_fields)):
         instance._ledger_inputs_before = None
         return
     instance._ledger_inputs_before = sender.objects.filter(pk=instance.pk) \

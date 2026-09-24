@@ -135,6 +135,15 @@ def _committed(**match) -> Decimal:
     return _applied(**match) + queued
 
 
+def refunded(cash) -> Decimal:
+    """What left this cash as a refund (recorded as the gateway made it). A refund reverses
+    the cash's applications — and the money is gone, so it is spent: it never becomes
+    available to apply again (Fable review of the money commands, 2026-09-24)."""
+    meta = cash.metadata if isinstance(cash.metadata, dict) else {}
+    cents = sum(int(r.get('amount_cents') or 0) for r in meta.get('refunds') or [])
+    return Decimal(cents) / 100
+
+
 def _cash_committed(cash) -> Decimal:
     """What this cash has spent or promised, both sides, in the cash's own direction.
 
@@ -143,7 +152,7 @@ def _cash_committed(cash) -> Decimal:
     rule over what has been applied.
     """
     from apps.transactions.services.cash.cash_pending_receipt import _committed as _committed_ap
-    return _committed(cash_id=cash.pk) - _committed_ap(cash_id=cash.pk)
+    return _committed(cash_id=cash.pk) - _committed_ap(cash_id=cash.pk) + refunded(cash)
 
 
 def _utc_now_iso() -> str:
@@ -262,7 +271,8 @@ def refresh_cash_available(cash) -> Decimal:
     """
     from apps.transactions.services.cash.cash_pending_receipt import _applied as _applied_ap
 
-    available = _d(cash.amount) - _applied(cash_id=cash.pk) + _applied_ap(cash_id=cash.pk)
+    available = (_d(cash.amount) - _applied(cash_id=cash.pk) + _applied_ap(cash_id=cash.pk)
+                 - refunded(cash))
     if _d(cash.available) != available:
         cash.available = available
         cash.save(update_fields=['available', 'dt_modified', 'version'])

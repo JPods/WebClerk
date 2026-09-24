@@ -72,13 +72,13 @@ def unit_of_work():
         if outermost:
             # A refused or failed edit is rolled back; recomputing for it is wasted work
             # that can itself fail and hide the refusal.
-            if completed:
-                _DEPTH.set(1)           # still inside: work marked while draining is kept
-                try:
+            try:
+                if completed:
+                    _DEPTH.set(1)       # still inside: work marked while draining is kept
                     _drain()
-                finally:
-                    _DEPTH.set(0)
-            _PENDING.set({})
+            finally:
+                _DEPTH.set(0)
+                _PENDING.set({})        # never left for the next unit on this thread
 
 
 def flush() -> None:

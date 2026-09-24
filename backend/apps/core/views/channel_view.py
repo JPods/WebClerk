@@ -17,6 +17,7 @@ the one route the public reaches. Plan: Allie
 from __future__ import annotations
 
 from rest_framework.permissions import AllowAny
+from rest_framework.throttling import AnonRateThrottle, ScopedRateThrottle, UserRateThrottle
 
 from apps.core.services.verbs import METHOD_VERBS
 from common.decorators import allow_write
@@ -79,6 +80,12 @@ class CommandChannelView(SaveWcapiView):
 
     http_method_names = ['post', 'options']
     permission_classes = [AllowAny]          # the command decides who may (verbs.run_command)
+    throttle_classes = [UserRateThrottle, AnonRateThrottle, ScopedRateThrottle]
+
+    def initial(self, request, *args, **kwargs):
+        # A command that moves money keeps the pay route's own limit (settings: 'cash').
+        self.throttle_scope = 'cash' if kwargs.get('model_name') == 'cash' else 'tx_line'
+        super().initial(request, *args, **kwargs)
 
     def post(self, request, model_name: str, record_id: int, command: str):
         from apps.core.services.door import Actor
@@ -96,6 +103,8 @@ class ReceiveChannelView(SaveWcapiView):
     http_method_names = ['post']
     permission_classes = [AllowAny]
     authentication_classes = []
+    throttle_classes = [AnonRateThrottle, ScopedRateThrottle]
+    throttle_scope = 'webhook'
 
     def post(self, request, model_name: str, provider: str):
         import json
