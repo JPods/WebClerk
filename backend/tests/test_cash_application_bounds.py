@@ -29,7 +29,7 @@ from apps.transactions.services.cash.cash_pending import _check_application
 
 
 def _cash(pk=1, amount='100.00', customer_id=None, vendor_id=None):
-    return SimpleNamespace(pk=pk, amount=Decimal(amount),
+    return SimpleNamespace(pk=pk, amount=Decimal(amount), holds_money=True, metadata={},
                            customer_id=customer_id, vendor_id=vendor_id)
 
 
