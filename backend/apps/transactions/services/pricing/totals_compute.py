@@ -434,6 +434,22 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
     # A fixed order, so the remainder always lands on the same line (recheck 2).
     goods.sort(key=lambda g: (getattr(g[0], 'line_number', 0) or 0, getattr(g[0], 'pk', 0) or 0))
 
+    # Document allocations spread over the product lines; with none, they had nowhere to
+    # go and silently vanished from the totals (defect B1). Bill, 2026-09-23: refuse the
+    # save, and say which allocation needs a product line to carry it.
+    if not goods:
+        stranded = [name for name, value in (
+            ('discount_percent', doc_pct), ('discount_amount', doc_amt),
+            ('shipping', doc_shipping), ('other', doc_other), *landed.items()) if value]
+        if stranded:
+            from apps.core.services.door import Refused
+            raise Refused(
+                400, 'allocations_without_product_line',
+                f"This {model_name} has {', '.join(stranded)} but no product line to carry "
+                f"{'it' if len(stranded) == 1 else 'them'}. Add a product line, or clear "
+                f"{'that allocation' if len(stranded) == 1 else 'those allocations'}.",
+                {'model_name': model_name, 'allocations': stranded})
+
     # ── The document discount, as a per-unit reduction ────────────────────
     doc_share = {}
     if is_sell and goods and (doc_pct or doc_amt):
