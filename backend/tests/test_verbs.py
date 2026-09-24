@@ -123,17 +123,20 @@ def test_a_second_report_in_a_taken_slot_is_refused_with_coaching(registry):
     assert 'RPT-FIRST' in message and 'run_report' in message
 
 
-def test_two_reports_in_one_slot_refuse_the_verb_loudly(registry):
-    """If a slot ever holds two (written around the gate), the verb says so — WC2 ran
-    neither and said nothing."""
+def test_the_database_holds_one_active_report_per_slot_even_around_the_gate(registry):
+    """Two concurrent saves can both pass the gate's check; the index refuses the second."""
+    from django.db import IntegrityError, transaction
     user_hook('RPT-ONE', {'point': 'item.save_post', 'after': []})
-    Report.objects.filter(ida='RPT-ONE').update(config={'hooks': {'point': 'item.delete_post'}})
-    user_hook('RPT-TWO', {'point': 'item.save_post', 'after': []})
-    Report.objects.filter(ida='RPT-ONE').update(
-        config={'hooks': {'point': 'item.save_post', 'after': [], 'athena': {'required': False}}})
-    with pytest.raises(Refused) as caught:
-        _item('zz-verb-two')
-    assert caught.value.code == 'hook_slot_conflict'
+    user_hook('RPT-TWO', {'point': 'item.delete_post', 'after': []})
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Report.objects.filter(ida='RPT-TWO').update(
+            config={'hooks': {'point': 'item.save_post', 'after': []}})
+
+
+def test_the_old_report_made_inactive_frees_the_slot(registry):
+    user_hook('RPT-OLD', {'point': 'item.save_post', 'after': []})
+    Report.objects.filter(ida='RPT-OLD').update(is_active=False)
+    user_hook('RPT-NEW', {'point': 'item.save_post', 'after': []})
 
 
 # ── what "changed" means ──────────────────────────────────────────────
@@ -231,3 +234,32 @@ def test_after_delete_hooks_know_which_record_went():
     finally:
         register('item', ModelBehaviour())
     assert seen['id'] == item.pk
+
+
+# ── an after hook that fails (Bill, 2026-09-24) ───────────────────────
+
+def test_a_failing_after_hook_keeps_the_save_and_opens_one_critical_action():
+    from apps.core.models import Action
+    from apps.products.models import Item
+
+    class Broken(ModelBehaviour):
+        def after_save(self, ctx: HookContext) -> None:
+            ctx.obj.name = 'half-written'
+            ctx.obj.save(update_fields=['name'])
+            raise RuntimeError('the hook is broken')
+
+    register('item', Broken())
+    try:
+        first = save_record(Actor.system(), {'model_name': 'item', 'name': 'Kept',
+                                             'ida': 'zz-verb-broken'})
+        save_record(Actor.system(), {'model_name': 'item', 'name': 'Kept again',
+                                     'ida': 'zz-verb-broken-2'})
+    finally:
+        register('item', ModelBehaviour())
+
+    item = Item.objects.get(ida='zz-verb-broken')
+    assert item.name == 'Kept', "the save stands; what the failing hook wrote is rolled back"
+    assert any('the hook is broken' in m for m in first.messages)
+    faults = Action.objects.filter(refs__hook_fault__key='item.save_post:code')
+    assert faults.count() == 1, 'one open action per failing hook, not one per save'
+    assert faults.get().priority == 4

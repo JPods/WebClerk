@@ -139,8 +139,9 @@ def test_a_behaviour_can_refuse_the_save():
     assert not Item.objects.filter(ida='zz-door-r').exists(), "a refusal writes nothing"
 
 
-def test_a_failure_after_the_write_rolls_the_whole_save_back():
-    """The door owns the transaction, so a late failure cannot leave a half-save."""
+def test_a_failure_after_the_write_keeps_the_save():
+    """Bill, 2026-09-24: an after hook that fails does not undo the save — the admins get
+    a critical action until it is fixed (tests/test_verbs.py covers the action)."""
     from apps.products.models import Item
 
     class Exploder(ModelBehaviour):
@@ -149,10 +150,10 @@ def test_a_failure_after_the_write_rolls_the_whole_save_back():
 
     register('item', Exploder())
     try:
-        with pytest.raises(RuntimeError):
-            save_record(Actor.system(), {'model_name': 'item', 'name': 'Rollback',
-                                         'ida': 'zz-door-x'})
+        result = save_record(Actor.system(), {'model_name': 'item', 'name': 'Kept',
+                                              'ida': 'zz-door-x'})
     finally:
         register('item', ModelBehaviour())
 
-    assert not Item.objects.filter(ida='zz-door-x').exists()
+    assert Item.objects.filter(ida='zz-door-x').exists()
+    assert any('after blew up' in m for m in result.messages)

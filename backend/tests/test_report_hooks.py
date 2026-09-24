@@ -12,7 +12,7 @@ from apps.core.services import report_hooks as rh
 
 POINTS = {
     'invoice.save_pre': {'may_set': ['terms_id'], 'may_block': True},
-    'invoice.save_post': {'may_set': ['metadata.review.*'], 'may_create': ['note', 'action'],
+    'invoice.save_post': {'may_set': ['metadata.review.*', 'comments.*'], 'may_create': ['action'],
                           'may_run': ['RPT-B']},
     'invoice.report_after': {'may_set': ['metadata.review.*'], 'may_run': ['*']},
 }
@@ -177,20 +177,23 @@ def test_token_rendering(db, registry, invoice):
     assert invoice.metadata['review']['by'] == 'RPT-TOK'
 
 
-def test_note_needs_may_create(db, registry, invoice):
-    """A point without may_create=['note'] refuses the hook at save time, so the
-    rule never reaches the engine."""
+def test_comment_needs_its_channel_settable(db, registry, invoice):
+    """add_comment writes comments.<channel>; a point that may not set it refuses the hook at
+    save time, so the rule never reaches the engine."""
     with pytest.raises(ValidationError):
         make_report('RPT-NOTE', {'point': 'invoice.report_after',
-                                 'after': [{'add_note': 'flagged'}]})
+                                 'after': [{'add_comment': 'flagged'}]})
 
 
-def test_note_written_when_allowed(db, registry, invoice):
+def test_comment_written_when_allowed(db, registry, invoice):
     report = make_report('RPT-NOTE-OK', {'point': 'invoice.save_post',
-                                         'after': [{'add_note': 'flagged by {{report.ida}}'}]})
+                                         'after': [{'add_comment': 'flagged by {{report.ida}}'}]})
     result = rh.run_phase(report, 'after', record=invoice)
     assert result.ok
-    assert invoice.comments['notes'][-1]['text'] == 'flagged by RPT-NOTE-OK'
+    assert 'comments.process' in result.set_fields, 'so the verb persists it'
+    entry = invoice.comments['process'][-1]
+    assert entry['mgs'] == 'flagged by RPT-NOTE-OK'
+    assert {'user', 'user_id', 'time'} <= set(entry), 'the same stamp a person gets'
 
 
 # ── chaining ─────────────────────────────────────────────────────────────────
@@ -419,11 +422,10 @@ def test_dry_run_writes_nothing(db, log_registry, tmp_path, settings):
     outcome = rh.dry_run({'point': 'invoice.save_post',
                           'after': [{'set': {'metadata.review.flag': True}},
                                     {'append_log': {'log': 'record_saves'}},
-                                    {'add_note': 'x'}]}, model_key='invoice')
+                                    {'add_comment': 'x'}]}, model_key='invoice')
     assert outcome['ok']
-    assert outcome['would_set'] == ['metadata.review.flag']
+    assert outcome['would_set'] == ['comments.process', 'metadata.review.flag']
     assert outcome['would_log'] == ['record_saves']
-    assert 'note' in outcome['would_create']
     assert not (tmp_path / 'logs').exists()
 
 

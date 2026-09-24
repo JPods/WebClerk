@@ -1165,10 +1165,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
           mode: "update",
           value: column?.title ?? "Uncategorized",
         },
-        kanban_column_id: {
-          mode: "update",
-          value: column?.id ?? FALLBACK_COLUMN_ID,
-        },
         priority: {
           mode: "update",
           value: PRIORITY_TO_VALUE[state.priority],
@@ -1193,7 +1189,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
           mode: "update",
           value: assignedTo,
         },
-        progress: {
+        percent_complete: {
           mode: "update",
           value: resolvedProgress,
         },

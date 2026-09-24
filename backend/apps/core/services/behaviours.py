@@ -103,15 +103,13 @@ class SettingBehaviour(ModelBehaviour):
 
 
 class ActionBehaviour(ModelBehaviour):
-    """An action takes client aliases into its columns, links to whoever filed it and to
-    its attachments, schedules from its parents, and pushes its children when its own
-    dates move."""
-
-    def before_save(self, ctx: HookContext) -> None:
-        _normalize_action_payload(ctx.obj, ctx.data)
+    """An action links to whoever filed it and to the documents named in its
+    ``_attachments`` signal, schedules from its parents, and pushes its children when its
+    own dates move. Its text is written as branch.leaf (``action.en``), never as an
+    alternate name (Bill, 2026-09-24)."""
 
     def after_save(self, ctx: HookContext) -> None:
-        pending = ctx.data.get('_pending_attachments')
+        pending = ctx.data.get('_attachments')
         if isinstance(pending, list) and pending:
             note = _link_action_attachments(ctx.obj, pending)
             if note:
@@ -213,107 +211,6 @@ class TouchBehaviour(ModelBehaviour):
 
 
 # ── helpers moved off the models ──────────────────────────────────────
-
-def _normalize_action_payload(obj, data) -> None:
-    """Client alias fields into canonical columns (moved from Action.pre_save_hook).
-
-    - action_<lang> / description_<lang> -> action / description JSON
-    - progress -> percent_complete
-    - kanban_column_id -> kanban_column (title-cased)
-    - merges derived languages into languages list
-    - attachments -> _pending_attachments, linked in after_save
-    """
-    if not isinstance(data, dict):
-        return
-
-    def _extract_value(raw):
-        if isinstance(raw, dict) and 'value' in raw:
-            return raw.get('value')
-        return raw
-
-    title_by_lang = {}
-    desc_by_lang = {}
-    derived_langs: set[str] = set()
-
-    for key in list(data.keys()):
-        if not isinstance(key, str):
-            continue
-        if key.startswith('action_'):
-            lang = key.split('_', 1)[1] or 'en'
-            val = _extract_value(data.pop(key))
-            if val not in (None, ''):
-                title_by_lang[lang] = val
-                derived_langs.add(lang)
-        elif key.startswith('description_'):
-            lang = key.split('_', 1)[1] or 'en'
-            val = _extract_value(data.pop(key))
-            if val not in (None, ''):
-                desc_by_lang[lang] = val
-                derived_langs.add(lang)
-
-    if title_by_lang:
-        current_action: dict = {}
-        # Accept both 'action' and legacy 'task' key from clients
-        raw_action = data.get('action') or data.get('task')
-        if isinstance(raw_action, dict) and 'value' in raw_action and isinstance(raw_action.get('value'), dict):
-            current_action = raw_action.get('value') or {}
-        elif isinstance(obj.action, dict):
-            current_action = obj.action or {}
-        merged_action = {**current_action, **title_by_lang}
-        data['action'] = {'mode': 'update', 'value': merged_action}
-        data.pop('task', None)  # remove legacy key
-
-    if desc_by_lang:
-        current_desc: dict = {}
-        raw_desc = data.get('description')
-        if isinstance(raw_desc, dict) and 'value' in raw_desc and isinstance(raw_desc.get('value'), dict):
-            current_desc = raw_desc.get('value') or {}
-        elif isinstance(obj.description, dict):
-            current_desc = obj.description or {}
-        merged_desc = {**current_desc, **desc_by_lang}
-        data['description'] = {'mode': 'update', 'value': merged_desc}
-
-    progress_raw = data.pop('progress', None)
-    progress_val = _extract_value(progress_raw)
-    try:
-        progress_int = int(progress_val) if progress_val not in (None, '') else None
-    except (TypeError, ValueError):
-        progress_int = None
-    if progress_int is not None and 'percent_complete' not in data:
-        data['percent_complete'] = {'mode': 'update', 'value': progress_int}
-
-    column_raw = data.pop('kanban_column_id', None)
-    column_val = _extract_value(column_raw)
-    if column_val and 'kanban_column' not in data:
-        col_str = str(column_val)
-        if col_str.startswith('column-'):
-            col_str = col_str[len('column-'):]
-        normalized = col_str.replace('-', ' ').strip().title()
-        if normalized:
-            data['kanban_column'] = {'mode': 'update', 'value': normalized}
-
-    languages_field = data.get('languages')
-    existing_langs: set[str] = set()
-    if isinstance(languages_field, dict) and isinstance(languages_field.get('value'), list):
-        existing_langs = {str(l).strip() for l in languages_field.get('value') if str(l).strip()}
-    elif isinstance(languages_field, list):
-        existing_langs = {str(l).strip() for l in languages_field if str(l).strip()}
-    elif isinstance(obj.languages, list):
-        existing_langs = {str(l).strip() for l in obj.languages if str(l).strip()}
-
-    merged_langs = sorted((existing_langs | derived_langs) - {''})
-    if derived_langs:
-        data['languages'] = {'mode': 'update', 'value': merged_langs or ['en']}
-
-    # Handle attachments - create LinkageEntry records
-    attachments_raw = data.pop('attachments', None)
-    attachments_val = _extract_value(attachments_raw)
-    if attachments_val and isinstance(attachments_val, list):
-        # Store attachment document IDs for post-save processing
-        data['_pending_attachments'] = attachments_val
-
-    return None
-
 
 def _link_action_attachments(obj, pending) -> Optional[str]:
     """Attachments named on the payload become LinkageEntry rows (moved from

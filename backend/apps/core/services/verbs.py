@@ -21,6 +21,8 @@ import contextvars
 import logging
 from typing import Any, Callable, Dict
 
+from django.db import transaction
+
 from apps.core.services.behaviours import HookContext, behaviour_for
 from apps.core.services.door import Actor, Refused
 
@@ -69,9 +71,20 @@ def before(ctx: HookContext) -> None:
 
 
 def after(ctx: HookContext) -> None:
-    """Code, then user — only ever called after the base succeeded."""
-    behaviour_for(ctx.model_key).hook('after', ctx)
-    _user_hook(ctx, 'post')
+    """Code, then user — only ever called after the base succeeded.
+
+    An after hook that fails does not undo the base (Bill, 2026-09-24): the save stands,
+    what the failing hook wrote is rolled back to its own savepoint, and the admins get a
+    critical action that stays open until the hook is fixed.
+    """
+    layers = (('code', lambda: behaviour_for(ctx.model_key).hook('after', ctx)),
+              ('user', lambda: _user_hook(ctx, 'post')))
+    for layer, run in layers:
+        try:
+            with transaction.atomic():
+                run()
+        except Exception as exc:  # noqa: BLE001 — reported loudly below, never swallowed
+            _after_hook_failed(ctx, layer, f'{type(exc).__name__}: {exc}')
 
 
 def _user_hook(ctx: HookContext, moment: str) -> None:
@@ -107,7 +120,7 @@ def _user_hook(ctx: HookContext, moment: str) -> None:
         console_logger.warning('[HOOK] %s.%s_%s problems: %s', ctx.model_key, ctx.verb,
                                moment, note)
         if moment == 'post':
-            ctx.messages.append(note)
+            _after_hook_failed(ctx, 'user', note)
 
 
 def _save_hook_fields(obj, paths) -> None:
@@ -120,3 +133,52 @@ def _save_hook_fields(obj, paths) -> None:
         return
     update += [f for f in ('version', 'dt_modified') if f in names and f not in update]
     obj.save(update_fields=update)
+
+
+# ── an after hook that failed ─────────────────────────────────────────
+
+#: Set while the fault action is being written, so a failure in the action's own hooks
+#: is logged rather than opening another fault action about itself.
+_REPORTING_FAULT = contextvars.ContextVar('wc_reporting_hook_fault', default=False)
+
+
+def _after_hook_failed(ctx: HookContext, layer: str, error: str) -> None:
+    from apps.core.services.report_hooks import slot_point
+    point = slot_point(ctx.model_key, ctx.verb, 'post')
+    message = f'{layer} after hook at {point} failed: {error}'
+    console_logger.error('[HOOK] %s (record %s — the %s stands)', message,
+                         getattr(ctx.obj, 'pk', None), ctx.verb)
+    ctx.messages.append(message)
+    if _REPORTING_FAULT.get():
+        return
+    token = _REPORTING_FAULT.set(True)
+    try:
+        with transaction.atomic():
+            _open_fault_action(ctx, point, layer, message)
+    except Exception:  # noqa: BLE001 — the log line above is the record of last resort
+        console_logger.exception('[HOOK] could not open the fault action for %s', point)
+    finally:
+        _REPORTING_FAULT.reset(token)
+
+
+def _open_fault_action(ctx: HookContext, point: str, layer: str, message: str) -> None:
+    """One open critical action per failing hook, assigned to the admins, until it is fixed.
+    A repeat failure while it is open adds nothing — the action already says so."""
+    from apps.core.models import Action, Contact
+    from apps.core.services.save import save_record
+    key = f'{point}:{layer}'
+    if Action.objects.filter(refs__hook_fault__key=key).exclude(kanban_column='Done').exists():
+        return
+    admins = [{'id': c.pk} for c in
+              Contact.objects.filter(is_superuser=True, is_active=True).order_by('pk')[:5]]
+    save_record(Actor.system(source='hook'), {
+        'action': {'en': f'Fix the {layer} after hook at {point}'},
+        'description': {'en': f'{message}\n\nThe {ctx.verb} of {ctx.model_key} '
+                              f'#{getattr(ctx.obj, "pk", None)} was kept. This action stays '
+                              f'open until the hook is fixed.'},
+        'priority': 4,                      # critical
+        'kanban_column': 'Backlog',
+        'assigned_to': admins,
+        'refs': {'hook_fault': {'key': key, 'point': point, 'layer': layer,
+                                'record_id': getattr(ctx.obj, 'pk', None)}},
+    }, model_key='action')

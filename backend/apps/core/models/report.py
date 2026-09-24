@@ -167,5 +167,5 @@ class Report(BaseModel):
             holder.ida)
         raise ValidationError({'config.hooks.point': (
             f"The hook slot {point} is already filled by report {holder.ida}. A slot takes "
-            f"one report: add these rules to {holder.ida}, or have it call this report "
-            f"with run_report.")})
+            f"one active report: make {holder.ida} inactive before saving this one, or add "
+            f"these rules to {holder.ida}, or have it call this report with run_report.")})

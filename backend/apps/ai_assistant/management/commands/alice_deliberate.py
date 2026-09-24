@@ -185,8 +185,8 @@ def create_followup_action(title: str, description: str, token: str,
                            project_id: int = PROJECT_ALLIE) -> int | None:
     result = wc_write("/wcapi/save/action/", {
         "model_name": "action",
-        "action_en": title,
-        "description_en": description,
+        "action": {"en": title},
+        "description": {"en": description},
         "project_id": project_id,
         "kanban_column": "Backlog",
         "priority": 2,

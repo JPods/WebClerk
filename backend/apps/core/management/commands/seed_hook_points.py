@@ -15,20 +15,20 @@ from apps.core.models import Report, Setting
 POINTS = {
     # Watching: a hook that only records what happened.
     'invoice.save_post': {
-        'may_set': ['metadata.review.*'],
-        'may_create': ['note', 'action'],
+        'may_set': ['metadata.review.*', 'comments.*'],
+        'may_create': ['action'],
         'may_log': ['record_saves'],
         'may_run': [],
     },
     'order.save_post': {
-        'may_set': ['metadata.review.*'],
-        'may_create': ['note'],
+        'may_set': ['metadata.review.*', 'comments.*'],
+        'may_create': [],
         'may_log': ['record_saves'],
         'may_run': [],
     },
     'contact.save_post': {
-        'may_set': ['metadata.review.*'],
-        'may_create': ['note'],
+        'may_set': ['metadata.review.*', 'comments.*'],
+        'may_create': [],
         'may_log': ['record_saves'],
         'may_run': [],
     },
@@ -42,8 +42,8 @@ POINTS = {
     },
     # Reporting: a hook that marks the records a report selected.
     'invoice.report_after': {
-        'may_set': ['metadata.review.*'],
-        'may_create': ['note', 'action'],
+        'may_set': ['metadata.review.*', 'comments.*'],
+        'may_create': ['action'],
         'may_log': ['report_marks'],
         'may_run': ['*'],
     },

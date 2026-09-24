@@ -2682,16 +2682,6 @@ const KanbanBoardPage: React.FC = () => {
       return { error: "Add at least one language with a title." };
     }
 
-    const translationFields: Record<string, string> = {};
-    effectiveTranslations.forEach((value, language) => {
-      if (value.title) {
-        translationFields[`action_${language}`] = value.title;
-      }
-      if (value.description) {
-        translationFields[`description_${language}`] = value.description;
-      }
-    });
-
     const languages = Array.from(effectiveTranslations.keys());
     const actionPayload: Record<string, string> = {};
     const descriptionPayload: Record<string, string> = {};
@@ -2757,13 +2747,11 @@ const KanbanBoardPage: React.FC = () => {
 
     const payloadItem: Record<string, unknown> = {
       model_name: "action",
-      ...translationFields,
       languages,
       needtoremove: removalTokens.join(","),
       ...(Object.keys(actionPayload).length ? { action: actionPayload } : {}),
       ...(Object.keys(descriptionPayload).length ? { description: descriptionPayload } : {}),
       kanban_column: columnTitle,
-      kanban_column_id: column?.id ?? FALLBACK_COLUMN_ID,
       priority: PRIORITY_TO_VALUE[state.priority],
       difficulty: resolvedDifficulty,
       status: baseTask?.status ?? "In progress",
@@ -2833,7 +2821,7 @@ const KanbanBoardPage: React.FC = () => {
         .map(att => att.documentId)
         .filter(id => id !== undefined);
       if (documentIds.length > 0) {
-        payloadItem.attachments = documentIds;
+        payloadItem._attachments = documentIds;   // a signal to the action hook, not a field
       }
     }
 

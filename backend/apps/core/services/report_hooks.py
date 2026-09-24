@@ -20,7 +20,8 @@ Rule shape (every key optional except the verb):
      "range": {"margin_pct": [0, 100]},     # validate — inclusive bounds
      "block": "Released invoices need terms",   # stop the save (pre only)
      "set": {"metadata.review.flag": true},     # write a value or {{token}}
-     "add_note": "Flagged by {{report.ida}}",
+     "add_comment": "Flagged by {{report.ida}}",   # a process comment, stamped like a person's
+     "add_comment": {"channel": "public", "text": "..."},
      "create_action": {"title": "...", "assigned_to": "{{rep_id}}"},
      "run_report": "RPT-OTHER"}             # chain — depth-limited, cycle-refused
 
@@ -62,7 +63,7 @@ BUDGETS = {
 
 MAX_CHAIN_DEPTH = 5
 
-RULE_ACTIONS = ('require', 'match', 'range', 'block', 'set', 'add_note', 'create_action',
+RULE_ACTIONS = ('require', 'match', 'range', 'block', 'set', 'add_comment', 'create_action',
          'append_log', 'run_report')
 CONDITIONS = ('when', 'when_changed')
 MODIFIERS = ('message',)  # the text a failed validate shows the user
@@ -207,8 +208,11 @@ def _validate_rule(rule: Any, phase: str, index: int, declared: dict) -> List[st
         problems.append(f'{where}: this hook point may not block')
     if 'create_action' in rule and 'action' not in (declared.get('may_create') or []):
         problems.append(f'{where}: this hook point may not create actions')
-    if 'add_note' in rule and 'note' not in (declared.get('may_create') or []):
-        problems.append(f'{where}: this hook point may not add notes')
+    if 'add_comment' in rule:
+        channel = _comment_channel(rule['add_comment'])
+        if not _path_allowed(f'comments.{channel}', declared.get('may_set', [])):
+            problems.append(f"{where}: add_comment writes comments.{channel}, which this hook "
+                            f"point may not set")
     if 'append_log' in rule:
         spec = rule['append_log']
         name = spec.get('log') if isinstance(spec, dict) else spec
@@ -388,13 +392,17 @@ def _apply_rule(rule, index, report, ida, record, declared, ctx, result, depth, 
         result.set_fields.append(path)
 
     # ── create ──
-    if 'add_note' in rule:
-        if 'note' in (declared.get('may_create') or []):
+    # A note is not a record: it is a line in the record's comments (Bill, 2026-09-24).
+    if 'add_comment' in rule:
+        spec = rule['add_comment']
+        channel = _comment_channel(spec)
+        if _path_allowed(f'comments.{channel}', declared.get('may_set', [])):
             if not simulate:
-                _add_note(record, _render(rule['add_note'], ctx), ida)
-            result.created.append('note')
+                text = spec.get('text', '') if isinstance(spec, dict) else spec
+                _add_comment(record, channel, _render(text, ctx), ida, user)
+            result.set_fields.append(f'comments.{channel}')
         else:
-            result.errors.append(f'{ida}: notes not allowed at this hook point')
+            result.errors.append(f"{ida}: add_comment — comments.{channel} is not settable here")
     if 'create_action' in rule:
         if 'action' in (declared.get('may_create') or []):
             if not simulate:
@@ -440,15 +448,21 @@ def _refuse(rule, message, index, ida, declared, result, explicit=False):
     result.errors.append(f'{ida}: {text}')
 
 
-def _add_note(record, text, ida):
-    comments = getattr(record, 'comments', None)
-    if not isinstance(comments, dict):
-        comments = {}
-    notes = comments.get('notes')
-    if not isinstance(notes, list):
-        notes = []
-    notes.append({'text': text, 'source': f'hook:{ida}'})
-    comments['notes'] = notes
+def _comment_channel(spec) -> str:
+    return (spec.get('channel') if isinstance(spec, dict) else None) or 'process'
+
+
+def _add_comment(record, channel, text, ida, user):
+    """A hook's comment carries the same stamp as one a person types (CommentsPanel):
+    ``{user, mgs, time, user_id}`` in ``comments.<channel>``. The person is whoever's
+    verb ran the hook; ``source`` names the hook."""
+    from apps.core.services.comment_stamp import stamp
+    comments = record.comments if isinstance(getattr(record, 'comments', None), dict) else {}
+    entries = comments.get(channel)
+    if not isinstance(entries, list):
+        entries = []
+    entries.append({**stamp(user), 'mgs': text, 'source': f'hook:{ida}'})
+    comments[channel] = entries
     record.comments = comments
 
 

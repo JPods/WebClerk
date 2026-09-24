@@ -284,7 +284,8 @@ def assign_fields(
                 raw_password = field_data
             continue
 
-        if field in SKIP_FIELDS or field in m2m_field_names:
+        # An underscore key is a signal to the hooks, never a field (the underscore rule).
+        if field in SKIP_FIELDS or field in m2m_field_names or field.startswith('_'):
             continue
 
         # Normalize to operation envelope
