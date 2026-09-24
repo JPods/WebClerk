@@ -14,15 +14,20 @@ User = get_user_model()
 _TEST_PASSWORD = secrets.token_urlsafe(16)
 
 
-def make_superuser(username='testadmin', email='testadmin@example.com'):
-    """Create or get a superuser for testing."""
+def make_superuser(email='testadmin@example.com'):
+    """Create or get a superuser for testing.
+
+    Contact logs in by email (USERNAME_FIELD); it has no username column, so the old
+    get_or_create(username=…) raised FieldError and every test on the
+    authenticated_client / wcapi fixtures errored before it ran (found 2026-09-23).
+    """
     user, _ = User.objects.get_or_create(
-        username=username,
+        email=email,
         defaults={
-            'email': email,
             'is_staff': True,
             'is_superuser': True,
             'is_active': True,
+            'role': 'superuser',
         },
     )
     user.set_password(_TEST_PASSWORD)
