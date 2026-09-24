@@ -16,61 +16,36 @@ User = get_user_model()
 
 @pytest.mark.django_db
 def test_wcapi_save_deep_merge_prefs_and_unknown_capture():
+    """A save deep-merges the envelope leaves the role may write, and ignores the rest.
+
+    Before the one field authority (Bill, 2026-09-20/23: "if it is not enumerated as edit,
+    the back end should never read it"), this test expected an untyped prefs.ui and an
+    unknown top-level field to be stored — the second captured into prefs.userdefined.
+    Neither is a leaf any role can be given, so both are ignored now.
     """
-    Posts two saves to /wcapi/save/ for a Domain record:
-    - first creates with nested prefs dict
-    - second posts a nested prefs.ui update and an unknown top-level field
-    Expects deep-merge on dicts (existing keys preserved) and unknown field capture
-    into prefs.userdefined.
-    """
-    # Auth
     user = User.objects.create_user(
-        email='deepmerge@example.com', password=TEST_PASSWORD, name_first='Deep', name_last='Merge', username='', role='admin'  # tests merging/validation, not access
+        email='deepmerge@example.com', password=TEST_PASSWORD, name_first='Deep', name_last='Merge', username='', role='admin'  # tests merging, not access
     )
     c = Client(); assert c.login(email='deepmerge@example.com', password=TEST_PASSWORD)
 
-    # 1) Create with nested prefs
-    payload1 = {
-        'model_name': 'domain',
-        'path': 'https://example.com',
-        'type': 'website',
-        'prefs': {
-            'ui': {'sidebar': 'open'},
-            'flags': {'beta': True}
-        },
-    }
-    resp1 = wcapi_save(c, data=json.dumps(payload1), content_type='application/json')
-    assert resp1.status_code == 200
+    resp1 = wcapi_save(c, data=json.dumps({
+        'model_name': 'domain', 'path': 'https://example.com', 'type': 'website',
+        'prefs': {'pinned': True, 'tags': ['ops']},
+    }), content_type='application/json')
+    assert resp1.status_code == 200, resp1.content
     data1 = assert_envelope(resp1.json(), expect_status='success')
-    domain_id = data1['id']
-    v1 = data1.get('version')
+    obj = Domain.objects.get(id=data1['id'])
+    assert obj.prefs['pinned'] is True and obj.prefs['tags'] == ['ops']
 
-    obj = Domain.objects.get(id=domain_id)
-    assert obj.prefs.get('ui', {}).get('sidebar') == 'open'
-    assert obj.prefs.get('flags', {}).get('beta') is True
-
-    # 2) Update with nested prefs.ui change and an unknown top-level field
-    payload2 = {
-        'model_name': 'domain',
-        'id': domain_id,
-        'version': v1,
-        'prefs': {
-            'ui': {'theme': 'dark'}  # should merge into existing ui dict, preserving 'sidebar'
-        },
-        'unknownFieldX': 'keep-me',  # should be captured into prefs.userdefined.unknownFieldX
-    }
-    resp2 = wcapi_save(c, data=json.dumps(payload2), content_type='application/json')
-    assert resp2.status_code == 200
-    data2 = assert_envelope(resp2.json(), expect_status='success')
-    v2 = data2.get('version')
+    resp2 = wcapi_save(c, data=json.dumps({
+        'model_name': 'domain', 'id': obj.id, 'version': data1.get('version'),
+        'prefs': {'pinned': False, 'ui': {'theme': 'dark'}},
+        'unknownFieldX': 'ignored',
+    }), content_type='application/json')
+    assert resp2.status_code == 200, resp2.content
 
     obj.refresh_from_db()
-    # Deep-merge expectations
-    assert obj.prefs.get('ui', {}).get('sidebar') == 'open'
-    assert obj.prefs.get('ui', {}).get('theme') == 'dark'
-    assert obj.prefs.get('flags', {}).get('beta') is True
-    # Unknown field capture expectations
-    assert obj.prefs.get('userdefined', {}).get('unknownFieldX') == 'keep-me'
-    # Version should bump on update if model tracks it
-    if v1 is not None and v2 is not None:
-        assert v2 >= v1
+    assert obj.prefs['pinned'] is False, 'the written leaf changed'
+    assert obj.prefs['tags'] == ['ops'], 'the leaf not sent was kept (deep merge)'
+    assert 'ui' not in obj.prefs, 'an untyped branch is not a leaf any role may write'
+    assert 'unknownFieldX' not in (obj.prefs.get('userdefined') or {})

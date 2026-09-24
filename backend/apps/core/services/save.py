@@ -243,6 +243,15 @@ def _enumerated_edit(actor: Actor, obj, model_key: str, data: dict):
                 kept[key] = leaves
             if leaves != value:
                 denied.append(key)
+        elif (isinstance(value, list) and key not in allowed
+              and any(a.startswith(f'{key}.') for a in allowed)):
+            # A list of objects (domains) enumerates as its element's leaves
+            # (domains.domain): each element keeps what the list names, as a line does.
+            rows = [filter_data_by_fields({key: row}, allowed).get(key) or {}
+                    if isinstance(row, dict) else row for row in value]
+            kept[key] = rows
+            if rows != value:
+                denied.append(key)
         elif key in allowed or f'{key}_id' in allowed:
             kept[key] = value
         else:
