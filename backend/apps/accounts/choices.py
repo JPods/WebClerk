@@ -11,31 +11,38 @@ Choice = Tuple[str, str]
 ChoiceList = Tuple[Choice, ...]
 
 GL_ACCOUNT_TYPE_CHOICES: Final[ChoiceList] = (
+    # The type says which statement an account is on and which side increases it (its
+    # normal balance) — chart.NORMAL_BALANCE. A contra account sits with the accounts it
+    # reduces and carries the opposite balance.
     ("", "Unspecified"),
     ("asset", "Asset"),
+    ("contra_asset", "Contra Asset"),
     ("liability", "Liability"),
     ("equity", "Equity"),
+    ("contra_equity", "Contra Equity"),
     ("revenue", "Revenue"),
+    ("contra_revenue", "Contra Revenue"),
+    ("cost_of_sales", "Cost of Sales"),
     ("expense", "Expense"),
-    ("contra", "Contra"),
+    ("other_income", "Other Income"),
+    ("other_expense", "Other Expense"),
 )
 
+# The category is the statement section an account is reported under, in statement
+# order — chart.SECTIONS.
 GL_ACCOUNT_CATEGORY_CHOICES: Final[ChoiceList] = (
-    ("cash", "Cash"),
-    ("receivables", "Accounts Receivable"),
-    ("prepaid", "Prepaid"),
-    ("payables", "Accounts Payable"),
-    ("tax", "Tax"),
+    ("cash", "Cash & Bank"),
+    ("receivables", "Receivables"),
     ("inventory", "Inventory"),
-    ("fixed_assets", "Fixed Assets"),
-    ("depreciation", "Depreciation"),
+    ("other_current_assets", "Prepaid & Other Current Assets"),
+    ("fixed_assets", "Property & Equipment"),
+    ("current_liabilities", "Current Liabilities"),
+    ("long_term_liabilities", "Long-Term Liabilities"),
     ("equity", "Equity"),
-    ("sales", "Sales"),
-    ("contra", "Contra Revenue"),
-    ("cogs", "Cost of Goods Sold"),
-    ("expense", "Expense"),
-    ("payroll", "Payroll"),
-    ("other", "Other"),
+    ("revenue", "Revenue"),
+    ("cost_of_sales", "Cost of Sales"),
+    ("operating_expenses", "Operating Expenses"),
+    ("other", "Other Income & Expense"),
 )
 
 # used_for: how the account is used. The role words (cash, receivables, ...)

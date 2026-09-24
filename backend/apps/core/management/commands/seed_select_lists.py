@@ -15,6 +15,8 @@ Each select list defines:
   - allow_custom: true = user can type a value not on the list (WC2 "Alternates")
 """
 from django.core.management.base import BaseCommand
+
+from apps.accounts.choices import GL_ACCOUNT_CATEGORY_CHOICES, GL_ACCOUNT_TYPE_CHOICES
 from apps.core.models.setting import Setting
 
 
@@ -201,34 +203,36 @@ SELECT_LISTS = {
             'allow_custom': True,
             'default_gl': '6950-general_admin',
             'gl_map': {
-                'Office Supplies': '6950-general_admin',
-                'Travel': '6700-travel',
+                'Office Supplies': '6350-office_software',
+                'Travel': '6700-travel_meals',
                 'Utilities': '6300-utilities',
                 'Rent': '6200-rent',
                 'Insurance': '6800-insurance',
-                'Professional Services': '6950-general_admin',
+                'Professional Services': '6150-professional_fees',
                 'Shipping': '5100-freight_in',
                 'Equipment': '1500-equipment',
                 'Materials': '5000-cost_of_goods_sold',
                 'Payroll': '6000-wages',
-                'Taxes': '6950-general_admin',
+                'Taxes': '6450-taxes_licenses',
                 'Advertising': '6600-marketing',
-                'Repairs & Maintenance': '6950-general_admin',
+                'Repairs & Maintenance': '6250-repairs_maintenance',
                 'Miscellaneous': '6950-general_admin',
             },
         },
     },
 
     'gl_account': {
+        # One source: the model's own choices (apps/accounts/choices.py). A category is a
+        # statement section, so it is not free text.
         'type': {
             'label': 'Account Type',
-            'choices': ['asset', 'liability', 'equity', 'revenue', 'expense', 'contra'],
+            'choices': [v for v, _ in GL_ACCOUNT_TYPE_CHOICES if v],
             'allow_custom': False,
         },
         'category': {
-            'label': 'Account Category',
-            'choices': ['cash', 'receivables', 'payables', 'inventory', 'sales', 'cogs', 'expense'],
-            'allow_custom': True,
+            'label': 'Statement Section',
+            'choices': [v for v, _ in GL_ACCOUNT_CATEGORY_CHOICES],
+            'allow_custom': False,
         },
     },
 

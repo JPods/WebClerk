@@ -4276,8 +4276,8 @@
           "discount_given": "4920-sales_discounts",
           "default_expense": "6950-general_admin",
           "accounts_payable": "2000-accounts_payable",
-          "shipping_revenue": "4100-freight_revenue",
-          "bad_debt_writeoff": "6960-writeoff",
+          "shipping_revenue": "4100-shipping_revenue",
+          "bad_debt_writeoff": "6500-bad_debt",
           "other_receivables": "1110-other_receivables",
           "retained_earnings": "3000-retained_earnings",
           "sales_tax_payable": "2100-sales_tax_payable",
@@ -148681,9 +148681,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Money in the bank. Increases (debit) when a customer pays; decreases (credit) when we pay a vendor or an expense. Reconcile to the bank statement every month. Role: undeposited_funds.",
               "kind": "account_use",
-              "text": "Money in bank and deposit accounts. Debited when a customer payment is received, credited when a vendor bill or expense is paid. Reconcile to the bank statement monthly. Role: undeposited_funds.",
               "capacity": "ops",
               "replaces": null
             }
@@ -148822,9 +148822,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Cash kept on hand for small purchases. Refill it from 1000-cash; each refill debits the expenses the receipts show.",
               "kind": "account_use",
-              "text": "Cash kept on hand for small purchases. Replenish from 1000-cash; each replenishment debits the expenses the receipts show.",
               "capacity": "ops",
               "replaces": null
             }
@@ -148964,9 +148964,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "What customers owe us. An invoice debits it for its full total (goods + tax + shipping + other); a customer payment, a credit memo, or a small-balance write-off credits it. Role: accounts_receivable.",
               "kind": "account_use",
-              "text": "What customers owe us. Debited by an invoice for its full total (goods + tax + shipping + other); credited when a payment is applied, a credit memo issues, or a small balance is written off. Role: accounts_receivable.",
               "capacity": "ops",
               "replaces": null
             }
@@ -149105,9 +149105,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Money owed to us that is not a customer invoice: manufacturer rebates, employee advances, vendor refunds, insurance claims. Kept out of the customer aging. Role: other_receivables.",
               "kind": "account_use",
-              "text": "Amounts owed to us that are not customer invoices: manufacturer rebates earned, employee advances, vendor refunds due, insurance claims. Kept out of the customer aging. Role: other_receivables.",
               "capacity": "ops",
               "replaces": null
             }
@@ -149245,9 +149245,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Goods on hand, at cost. Receiving a purchase debits it; shipping on an invoice credits it (the cost moves to 5000-cost_of_goods_sold), as do scrap and builds that use components. Role: inventory.",
               "kind": "account_use",
-              "text": "Goods on hand at cost. Debited when a purchase is received; credited by the cost of goods an invoice ships (with 5000-cost_of_goods_sold), by scrap (5300-scrap_shrinkage), and by builds that consume components. Role: inventory.",
               "capacity": "ops",
               "replaces": null
             }
@@ -149396,9 +149396,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Expenses paid before the months they cover: insurance, rent, annual subscriptions. Each month, credit it and debit the expense for the part used.",
               "kind": "account_use",
-              "text": "Expenses paid before the period they cover: insurance, rent, annual subscriptions. Credit it and debit the expense as each period is used.",
               "capacity": "ops",
               "replaces": null
             }
@@ -149408,7 +149408,7 @@
         "health_rating": 50,
         "name": "Prepaid Expenses",
         "type": "asset",
-        "category": "prepaid",
+        "category": "other_current_assets",
         "type_id": null,
         "account_credit": "1000-cash",
         "account_debit": "1300-prepaid_expenses",
@@ -149538,9 +149538,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:49Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Running costs with no more specific account. Role: default_expense. If it grows, open a specific account for what is in it.",
               "kind": "account_use",
-              "text": "General and administrative costs with no more specific account. Role: default_expense. If it grows, open a specific account.",
               "capacity": "ops",
               "replaces": null
             }
@@ -149549,7 +149549,7 @@
         "health_rating": 40,
         "name": "General & Administrative",
         "type": "expense",
-        "category": "expense",
+        "category": "operating_expenses",
         "type_id": null,
         "account_credit": "1000-cash",
         "account_debit": "6950-general_admin",
@@ -149690,9 +149690,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Equipment, vehicles and furniture that last more than a year, at what they cost. A capital purchase posts here instead of to an expense.",
               "kind": "account_use",
-              "text": "Long-lived equipment and vehicles at purchase cost. Capital purchases (is_capital) post here instead of to an expense account.",
               "capacity": "ops",
               "replaces": null
             }
@@ -149842,9 +149842,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Wear on equipment, taken a little each period. Reduces 1500-equipment on the balance sheet (a contra asset: credit balance). Credited with each debit to 6400-depreciation.",
               "kind": "account_use",
-              "text": "Depreciation taken against 1500-equipment (contra asset, credit balance). Credited each period by the entry that debits 6400-depreciation.",
               "capacity": "ops",
               "replaces": null
             }
@@ -149853,8 +149853,8 @@
         },
         "health_rating": 50,
         "name": "Accumulated Depreciation",
-        "type": "asset",
-        "category": "depreciation",
+        "type": "contra_asset",
+        "category": "fixed_assets",
         "type_id": null,
         "account_credit": "1510-accumulated_depreciation",
         "account_debit": "6400-depreciation",
@@ -149985,9 +149985,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "What we owe vendors. A vendor bill credits it; paying the vendor debits it. Role: accounts_payable.",
               "kind": "account_use",
-              "text": "What we owe vendors. Credited when a purchase is received or a vendor bill is entered; debited when the vendor is paid. Role: accounts_payable.",
               "capacity": "ops",
               "replaces": null
             }
@@ -149996,7 +149996,7 @@
         "health_rating": 40,
         "name": "Accounts Payable",
         "type": "liability",
-        "category": "payables",
+        "category": "current_liabilities",
         "type_id": null,
         "account_credit": "2000-accounts_payable",
         "account_debit": "1200-inventory",
@@ -150135,9 +150135,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Sales tax collected from customers — it belongs to the taxing authority, not to us. Each invoice credits it; paying the tax debits it. Report by jurisdiction. Role: sales_tax_payable.",
               "kind": "account_use",
-              "text": "Sales tax collected from customers and owed to the taxing jurisdiction. Credited by the tax on each invoice; debited when the tax is remitted. Report by jurisdiction (tax_summary_by_period). Role: sales_tax_payable.",
               "capacity": "ops",
               "replaces": null
             }
@@ -150147,7 +150147,7 @@
         "health_rating": 50,
         "name": "Sales Tax Payable",
         "type": "liability",
-        "category": "tax",
+        "category": "current_liabilities",
         "type_id": null,
         "account_credit": "2100-sales_tax_payable",
         "account_debit": "1000-cash",
@@ -150287,9 +150287,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Costs already incurred but not yet billed: wages earned since the last payday, utilities used. Credited at period end; cleared when the bill is paid.",
               "kind": "account_use",
-              "text": "Expenses incurred but not yet billed or paid: wages earned, utilities used. Credited by the accrual at period end; cleared when the bill is paid.",
               "capacity": "ops",
               "replaces": null
             }
@@ -150299,7 +150299,7 @@
         "health_rating": 50,
         "name": "Accrued Liabilities",
         "type": "liability",
-        "category": "payables",
+        "category": "current_liabilities",
         "type_id": null,
         "account_credit": "2200-accrued_liabilities",
         "account_debit": "6950-general_admin",
@@ -150438,9 +150438,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Commissions reps have earned and we have not yet paid. Credited when an invoice posts its commission (with 6100-commission_expense); debited when the rep is paid. Role: commission_payable.",
               "kind": "account_use",
-              "text": "Commissions earned by reps and not yet paid. Credited when an invoice journalizes and its commission accrues (with 6100-commission_expense); debited when the rep is paid. Role: commission_payable.",
               "capacity": "ops",
               "replaces": null
             }
@@ -150450,7 +150450,7 @@
         "health_rating": 50,
         "name": "Commissions Payable",
         "type": "liability",
-        "category": "payables",
+        "category": "current_liabilities",
         "type_id": null,
         "account_credit": "2210-commissions_payable",
         "account_debit": "6100-commission_expense",
@@ -150589,9 +150589,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "What we owe carriers for shipments already made. A carrier bill credits it; paying the carrier debits it.",
               "kind": "account_use",
-              "text": "Freight owed to carriers for shipments already made. Credited when a carrier bill is recorded; debited when the carrier is paid.",
               "capacity": "ops",
               "replaces": null
             }
@@ -150601,7 +150601,7 @@
         "health_rating": 50,
         "name": "Freight Payable",
         "type": "liability",
-        "category": "payables",
+        "category": "current_liabilities",
         "type_id": null,
         "account_credit": "2220-freight_payable",
         "account_debit": "1000-cash",
@@ -150741,9 +150741,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Money received for goods or services not yet delivered: deposits and prepayments. It is owed to the customer until earned, then moves to revenue.",
               "kind": "account_use",
-              "text": "Money received for goods or services not yet delivered: deposits, prepayments, deferred invoices. Moves to revenue when earned.",
               "capacity": "ops",
               "replaces": null
             }
@@ -150753,7 +150753,7 @@
         "health_rating": 50,
         "name": "Deferred Revenue",
         "type": "liability",
-        "category": "payables",
+        "category": "current_liabilities",
         "type_id": null,
         "account_credit": "2300-deferred_revenue",
         "account_debit": "1000-cash",
@@ -150895,9 +150895,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Loans due after more than a year. Borrowing credits it; the principal part of each loan payment debits it (the interest part goes to 7200-interest_expense).",
               "kind": "account_use",
-              "text": "Long-term loans and notes. Credited when funds are borrowed; debited by the principal portion of each payment (interest goes to expense).",
               "capacity": "ops",
               "replaces": null
             }
@@ -150905,9 +150905,9 @@
           "records": {}
         },
         "health_rating": 50,
-        "name": "Notes Payable - Long Term",
+        "name": "Notes Payable",
         "type": "liability",
-        "category": "payables",
+        "category": "long_term_liabilities",
         "type_id": null,
         "account_credit": "2500-notes_payable",
         "account_debit": "1000-cash",
@@ -151044,9 +151044,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Profits kept in the business over the years. At year end the year's net income closes into it. Role: retained_earnings.",
               "kind": "account_use",
-              "text": "Accumulated profits kept in the business. Closed into once a year from 3900-net_profit; debited by owner distributions. Role: retained_earnings.",
               "capacity": "ops",
               "replaces": null
             }
@@ -151066,7 +151066,7 @@
       {
         "id": 24,
         "uuid": "4ac1d437-4591-4259-a629-5230efa49887",
-        "ida": "3900-net_profit",
+        "ida": "3900-current_year_earnings",
         "dt_created": 0,
         "dt_modified": 1789579248707,
         "version": 4,
@@ -151163,7 +151163,7 @@
           "source": null,
           "parents": [],
           "keywords": [
-            "3900-net_profit",
+            "3900-current_year_earnings",
             "4ac1d437-4591-4259-a629-5230efa49887",
             "equity",
             "loss",
@@ -151194,9 +151194,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "This year's net income so far — revenue minus every cost and expense — shown on the balance sheet. Computed, never posted; closed into 3000-retained_earnings at year end.",
               "kind": "account_use",
-              "text": "Current-year profit or loss (revenue minus expenses), computed for the balance sheet. Never posted directly; closed into 3000-retained_earnings at year end.",
               "capacity": "ops",
               "replaces": null
             }
@@ -151204,7 +151204,7 @@
           "records": {}
         },
         "health_rating": 50,
-        "name": "Net Profit / Loss",
+        "name": "Current Year Earnings",
         "type": "equity",
         "category": "equity",
         "type_id": null,
@@ -151216,7 +151216,7 @@
       {
         "id": 25,
         "uuid": "af9c093c-aa88-4a00-bdfc-37dff3ed28f4",
-        "ida": "3100-paid_in_capital",
+        "ida": "3100-owner_investment",
         "dt_created": 0,
         "dt_modified": 1789579248674,
         "version": 4,
@@ -151313,7 +151313,7 @@
           "source": null,
           "parents": [],
           "keywords": [
-            "3100-paid_in_capital",
+            "3100-owner_investment",
             "af9c093c-aa88-4a00-bdfc-37dff3ed28f4",
             "capital",
             "equity",
@@ -151344,9 +151344,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Money the owners put into the business. Credited when an owner invests.",
               "kind": "account_use",
-              "text": "Capital the owners put into the business. Credited when owners contribute funds.",
               "capacity": "ops",
               "replaces": null
             }
@@ -151354,7 +151354,7 @@
           "records": {}
         },
         "health_rating": 50,
-        "name": "Paid-In Capital",
+        "name": "Owner Investment",
         "type": "equity",
         "category": "equity",
         "type_id": null,
@@ -151485,18 +151485,18 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Revenue from goods sold. Each invoice line credits it for its amount after line discounts. An item or customer can name a more specific revenue account. Role: sales_revenue.",
               "kind": "account_use",
-              "text": "Revenue from goods sold. Credited by each invoice line's extended amount (net of line discounts). An item or customer can name a more specific revenue account. Role: sales_revenue.",
               "capacity": "ops",
               "replaces": null
             }
           ]
         },
         "health_rating": 40,
-        "name": "Sales Revenue",
+        "name": "Sales",
         "type": "revenue",
-        "category": "sales",
+        "category": "revenue",
         "type_id": null,
         "account_credit": "4000-sales_revenue",
         "account_debit": "1100-accounts_receivable",
@@ -151506,7 +151506,7 @@
       {
         "id": 27,
         "uuid": "47952ebb-7ab6-4f96-bc19-4aa13b2b469e",
-        "ida": "4100-freight_revenue",
+        "ida": "4100-shipping_revenue",
         "dt_created": 0,
         "dt_modified": 1789579248813,
         "version": 4,
@@ -151601,7 +151601,7 @@
           "keywords": [
             "1100-accounts_receivable",
             "1100accountsreceivable",
-            "4100-freight_revenue",
+            "4100-shipping_revenue",
             "4100freightrevenue",
             "47952ebb-7ab6-4f96-bc19-4aa13b2b469e",
             "freight",
@@ -151626,20 +151626,20 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Shipping and handling charged to customers. An invoice's shipping total credits it. What carriers charge us is 5100-freight_in. Role: shipping_revenue.",
               "kind": "account_use",
-              "text": "Shipping and handling charged to customers. Credited by an invoice's shipping total. What carriers charge us is 5100-freight_in or 2220-freight_payable. Role: shipping_revenue.",
               "capacity": "ops",
               "replaces": null
             }
           ]
         },
         "health_rating": 40,
-        "name": "Freight Revenue",
+        "name": "Shipping & Handling Income",
         "type": "revenue",
-        "category": "sales",
+        "category": "revenue",
         "type_id": null,
-        "account_credit": "4100-freight_revenue",
+        "account_credit": "4100-shipping_revenue",
         "account_debit": "1100-accounts_receivable",
         "used_for": "sales",
         "division": 0
@@ -151776,9 +151776,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Income from operations that is not a sale: manufacturer rebates, card surcharges under dual pricing, an invoice's other charges. Role: other_income.",
               "kind": "account_use",
-              "text": "Income that is not a sale: interest earned, manufacturer rebates, card surcharges under dual pricing, an invoice's other charges. Role: other_income.",
               "capacity": "ops",
               "replaces": null
             }
@@ -151788,7 +151788,7 @@
         "health_rating": 50,
         "name": "Miscellaneous Income",
         "type": "revenue",
-        "category": "sales",
+        "category": "revenue",
         "type_id": null,
         "account_credit": "4900-miscellaneous_income",
         "account_debit": "1000-cash",
@@ -151928,9 +151928,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Finance charges on past-due customer balances, credited when the monthly assessment posts. Role: finance_charge_income.",
               "kind": "account_use",
-              "text": "Finance charges billed on overdue customer balances (company receivables settings). Credited when the finance charge invoices.",
               "capacity": "ops",
               "replaces": null
             }
@@ -151940,7 +151940,7 @@
         "health_rating": 50,
         "name": "Finance Charge Income",
         "type": "revenue",
-        "category": "sales",
+        "category": "revenue",
         "type_id": null,
         "account_credit": "4200-finance_charge_income",
         "account_debit": "1100-accounts_receivable",
@@ -152081,9 +152081,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Goods customers return and price allowances we give. Credit memos debit it, so 4000-sales_revenue keeps the gross figure (a contra revenue account: debit balance).",
               "kind": "account_use",
-              "text": "Returned goods and allowances (contra revenue, debit balance). Debited by credit memos so 4000-sales_revenue keeps the gross figure.",
               "capacity": "ops",
               "replaces": null
             }
@@ -152092,8 +152092,8 @@
         },
         "health_rating": 50,
         "name": "Sales Returns & Allowances",
-        "type": "contra",
-        "category": "contra",
+        "type": "contra_revenue",
+        "category": "revenue",
         "type_id": null,
         "account_credit": "1100-accounts_receivable",
         "account_debit": "4910-sales_returns",
@@ -152227,18 +152227,18 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Early-payment discounts customers take. Debited when a payment is applied with a discount so the invoice closes. Line discounts are not here; lines post net. Role: discount_given.",
               "kind": "account_use",
-              "text": "Early-payment discounts customers take (contra revenue). Debited when a payment is applied with a discount so the invoice closes. Line discounts are not posted here; lines post net. Role: discount_given.",
               "capacity": "ops",
               "replaces": null
             }
           ]
         },
         "health_rating": 40,
-        "name": "Sales Discounts Taken",
-        "type": "contra",
-        "category": "contra",
+        "name": "Sales Discounts",
+        "type": "contra_revenue",
+        "category": "revenue",
         "type_id": null,
         "account_credit": "1100-accounts_receivable",
         "account_debit": "4920-sales_discounts",
@@ -152370,9 +152370,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "What the goods on an invoice cost us, at the company costing method. Debited when the invoice posts, with a credit to 1200-inventory. Sales minus this is gross profit. Role: cost_of_goods_sold.",
               "kind": "account_use",
-              "text": "Cost of the goods an invoice ships, at the company costing_method. Debited when the invoice journalizes, with a credit to 1200-inventory. Role: cost_of_goods_sold.",
               "capacity": "ops",
               "replaces": null
             }
@@ -152380,8 +152380,8 @@
         },
         "health_rating": 40,
         "name": "Cost of Goods Sold",
-        "type": "expense",
-        "category": "cogs",
+        "type": "cost_of_sales",
+        "category": "cost_of_sales",
         "type_id": null,
         "account_credit": "1200-inventory",
         "account_debit": "5000-cost_of_goods_sold",
@@ -152513,18 +152513,18 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Freight and landed costs to bring goods in. Carrier bills on purchases debit it, unless landed costing adds them to inventory cost.",
               "kind": "account_use",
-              "text": "Freight and landed costs to bring goods in. Debited by carrier bills on purchases, or capitalized into inventory cost when landed costing is on.",
               "capacity": "ops",
               "replaces": null
             }
           ]
         },
         "health_rating": 40,
-        "name": "Freight In / Landed Cost",
-        "type": "expense",
-        "category": "cogs",
+        "name": "Freight In",
+        "type": "cost_of_sales",
+        "category": "cost_of_sales",
         "type_id": null,
         "account_credit": "2000-accounts_payable",
         "account_debit": "5100-freight_in",
@@ -152534,7 +152534,7 @@
       {
         "id": 34,
         "uuid": "86041e9e-dcc8-4a75-90ff-433d64aeaadd",
-        "ida": "5200-inventory_clearing",
+        "ida": "2050-received_not_billed",
         "dt_created": 0,
         "dt_modified": 1789579249027,
         "version": 4,
@@ -152629,7 +152629,7 @@
           "keywords": [
             "1200-inventory",
             "1200inventory",
-            "5200-inventory_clearing",
+            "2050-received_not_billed",
             "5200inventoryclearing",
             "86041e9e-dcc8-4a75-90ff-433d64aeaadd",
             "clearing",
@@ -152655,22 +152655,22 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:49Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Goods received before the vendor has billed us. Credited at receipt (with the debit to 1200-inventory); debited when the bill arrives and moves the amount to 2000-accounts_payable. A balance left over is a receipt and a bill that do not match — investigate it.",
               "kind": "account_use",
-              "text": "Holding account between a purchase receipt and the vendor bill. Debited at receipt, credited when the bill arrives; a balance left over is a receipt/bill mismatch to investigate.",
               "capacity": "ops",
               "replaces": null
             }
           ]
         },
         "health_rating": 40,
-        "name": "Inventory Clearing",
-        "type": "expense",
-        "category": "cogs",
+        "name": "Received Not Billed",
+        "type": "liability",
+        "category": "current_liabilities",
         "type_id": null,
-        "account_credit": "5200-inventory_clearing",
+        "account_credit": "2050-received_not_billed",
         "account_debit": "1200-inventory",
-        "used_for": "cogs",
+        "used_for": "posting",
         "division": 0
       },
       {
@@ -152795,18 +152795,18 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:49Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Commissions reps earn on invoiced sales, debited when an invoice posts its commission, with 2210-commissions_payable. Role: commission_expense.",
               "kind": "account_use",
-              "text": "Commissions earned by reps on invoiced sales. Debited when an invoice journalizes and its commission accrues, with 2210-commissions_payable. Role: commission_expense.",
               "capacity": "ops",
               "replaces": null
             }
           ]
         },
         "health_rating": 40,
-        "name": "Commission Expense",
+        "name": "Commissions",
         "type": "expense",
-        "category": "expense",
+        "category": "operating_expenses",
         "type_id": null,
         "account_credit": "2210-commissions_payable",
         "account_debit": "6100-commission_expense",
@@ -152940,9 +152940,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:49Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Gross pay before withholding. Payroll debits it; the net pay credits 1000-cash and the withholding credits 2150-payroll_liabilities.",
               "kind": "account_use",
-              "text": "Gross wages and salaries. Debited by payroll; credits go to cash and the payroll liabilities.",
               "capacity": "ops",
               "replaces": null
             }
@@ -152951,7 +152951,7 @@
         "health_rating": 40,
         "name": "Wages & Salaries",
         "type": "expense",
-        "category": "payroll",
+        "category": "operating_expenses",
         "type_id": null,
         "account_credit": "1000-cash",
         "account_debit": "6000-wages",
@@ -153084,18 +153084,18 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:49Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "The employer's share of payroll taxes: Social Security and Medicare match, unemployment. Debited by payroll, credited to 2150-payroll_liabilities.",
               "kind": "account_use",
-              "text": "Employer payroll taxes: FICA match, unemployment. Debited by payroll.",
               "capacity": "ops",
               "replaces": null
             }
           ]
         },
         "health_rating": 40,
-        "name": "Payroll Tax Expense",
+        "name": "Payroll Taxes",
         "type": "expense",
-        "category": "payroll",
+        "category": "operating_expenses",
         "type_id": null,
         "account_credit": "1000-cash",
         "account_debit": "6010-payroll_tax",
@@ -153224,18 +153224,18 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:49Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Rent for offices, warehouses and stations.",
               "kind": "account_use",
-              "text": "Rent for offices, warehouses, and stations.",
               "capacity": "ops",
               "replaces": null
             }
           ]
         },
         "health_rating": 40,
-        "name": "Rent Expense",
+        "name": "Rent",
         "type": "expense",
-        "category": "expense",
+        "category": "operating_expenses",
         "type_id": null,
         "account_credit": "1000-cash",
         "account_debit": "6200-rent",
@@ -153364,18 +153364,18 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:49Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Electricity, water, internet and phone.",
               "kind": "account_use",
-              "text": "Electricity, water, internet, phone.",
               "capacity": "ops",
               "replaces": null
             }
           ]
         },
         "health_rating": 40,
-        "name": "Utilities Expense",
+        "name": "Utilities",
         "type": "expense",
-        "category": "expense",
+        "category": "operating_expenses",
         "type_id": null,
         "account_credit": "1000-cash",
         "account_debit": "6300-utilities",
@@ -153504,18 +153504,18 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:49Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "This period's share of the cost of equipment. Debited here, credited to 1510-accumulated_depreciation.",
               "kind": "account_use",
-              "text": "Periodic depreciation of equipment. Debited here, credited to 1510-accumulated_depreciation.",
               "capacity": "ops",
               "replaces": null
             }
           ]
         },
         "health_rating": 40,
-        "name": "Depreciation Expense",
+        "name": "Depreciation",
         "type": "expense",
-        "category": "expense",
+        "category": "operating_expenses",
         "type_id": null,
         "account_credit": "1510-accumulated_depreciation",
         "account_debit": "6400-depreciation",
@@ -153621,7 +153621,7 @@
             "1100-accounts_receivable",
             "1100accountsreceivable",
             "6500-bad_debt",
-            "6960-writeoff",
+            "6500-bad_debt",
             "6960writeoff",
             "bad",
             "debt",
@@ -153646,21 +153646,21 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:49Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Customer balances we will not collect. Writing one off debits it and credits 1100-accounts_receivable (the direct write-off method small businesses use). Role: bad_debt_writeoff.",
               "kind": "account_use",
-              "text": "Customer balances judged uncollectible under the allowance method. Direct write-offs use 6960-writeoff.",
               "capacity": "ops",
               "replaces": null
             }
           ]
         },
         "health_rating": 40,
-        "name": "Bad Debt Expense",
+        "name": "Bad Debt",
         "type": "expense",
-        "category": "expense",
+        "category": "operating_expenses",
         "type_id": null,
         "account_credit": "1100-accounts_receivable",
-        "account_debit": "6960-writeoff",
+        "account_debit": "6500-bad_debt",
         "used_for": "expense",
         "division": 0
       },
@@ -153787,9 +153787,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:49Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Advertising, promotion, trade shows and marketing services.",
               "kind": "account_use",
-              "text": "Advertising, promotion, trade shows, marketing services.",
               "capacity": "ops",
               "replaces": null
             }
@@ -153798,7 +153798,7 @@
         "health_rating": 40,
         "name": "Marketing & Advertising",
         "type": "expense",
-        "category": "expense",
+        "category": "operating_expenses",
         "type_id": null,
         "account_credit": "1000-cash",
         "account_debit": "6600-marketing",
@@ -153808,7 +153808,7 @@
       {
         "id": 43,
         "uuid": "cee4de15-6b76-4ac4-9eba-f77d73a7a31f",
-        "ida": "6700-travel",
+        "ida": "6700-travel_meals",
         "dt_created": 0,
         "dt_modified": 1789579249336,
         "version": 4,
@@ -153903,7 +153903,7 @@
           "keywords": [
             "1000-cash",
             "1000cash",
-            "6700-travel",
+            "6700-travel_meals",
             "6700travel",
             "cee4de15-6b76-4ac4-9eba-f77d73a7a31f",
             "entertainment",
@@ -153928,21 +153928,21 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:49Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Business travel, lodging and meals. Entertainment is kept apart from meals because the tax rules treat them differently.",
               "kind": "account_use",
-              "text": "Business travel, lodging, meals, entertainment.",
               "capacity": "ops",
               "replaces": null
             }
           ]
         },
         "health_rating": 40,
-        "name": "Travel & Entertainment",
+        "name": "Travel & Meals",
         "type": "expense",
-        "category": "expense",
+        "category": "operating_expenses",
         "type_id": null,
         "account_credit": "1000-cash",
-        "account_debit": "6700-travel",
+        "account_debit": "6700-travel_meals",
         "used_for": "expense",
         "division": 0
       },
@@ -154068,18 +154068,18 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:49Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Insurance for the current period. Premiums paid ahead sit in 1300-prepaid_expenses until used.",
               "kind": "account_use",
-              "text": "Insurance for the current period. Prepaid premiums sit in 1300-prepaid_expenses until used.",
               "capacity": "ops",
               "replaces": null
             }
           ]
         },
         "health_rating": 40,
-        "name": "Insurance Expense",
+        "name": "Insurance",
         "type": "expense",
-        "category": "expense",
+        "category": "operating_expenses",
         "type_id": null,
         "account_credit": "1000-cash",
         "account_debit": "6800-insurance",
@@ -154210,18 +154210,18 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:49Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Bank charges and card processing fees, debited when a payment settles net of fees.",
               "kind": "account_use",
-              "text": "Bank charges and card processing fees. Debited when a payment settles net of fees.",
               "capacity": "ops",
               "replaces": null
             }
           ]
         },
         "health_rating": 40,
-        "name": "Bank & Processing Fees",
+        "name": "Bank & Card Fees",
         "type": "expense",
-        "category": "expense",
+        "category": "operating_expenses",
         "type_id": null,
         "account_credit": "1000-cash",
         "account_debit": "6900-bank_fees",
@@ -154231,7 +154231,7 @@
       {
         "id": 54,
         "uuid": "9619766b-f14b-401b-a0d2-fbf2be33bb75",
-        "ida": "6960-writeoff",
+        "ida": "6500-bad_debt",
         "dt_created": 1787366238926,
         "dt_modified": 1789579249456,
         "version": 5,
@@ -154325,7 +154325,7 @@
           "source": null,
           "parents": [],
           "keywords": [
-            "6960-writeoff",
+            "6500-bad_debt",
             "9619766b-f14b-401b-a0d2-fbf2be33bb75",
             "bad",
             "debt",
@@ -154353,9 +154353,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:49Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Customer balances we will not collect. Writing one off debits it and credits 1100-accounts_receivable (the direct write-off method small businesses use). Role: bad_debt_writeoff.",
               "kind": "account_use",
-              "text": "Customer balances written off directly as uncollectible. Debited here, credited to 1100-accounts_receivable. Role: bad_debt_writeoff.",
               "capacity": "ops",
               "replaces": null
             }
@@ -154363,9 +154363,9 @@
           "records": {}
         },
         "health_rating": 50,
-        "name": "Bad Debt / Write-Off Expense",
+        "name": "Bad Debt",
         "type": "expense",
-        "category": "expense",
+        "category": "operating_expenses",
         "type_id": null,
         "account_credit": null,
         "account_debit": null,
@@ -154499,9 +154499,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:49Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Gains and losses when a foreign-currency invoice is paid at a different exchange rate. A debit is a loss, a credit is a gain; a credit balance is a net gain. Role: fx_gain_loss.",
               "kind": "account_use",
-              "text": "Gains and losses when a foreign-currency invoice is paid at a different exchange rate. Debit is a loss, credit is a gain. Role: fx_gain_loss.",
               "capacity": "ops",
               "replaces": null
             }
@@ -154510,7 +154510,7 @@
         },
         "health_rating": 50,
         "name": "Foreign Exchange Gain/Loss",
-        "type": "expense",
+        "type": "other_expense",
         "category": "other",
         "type_id": null,
         "account_credit": null,
@@ -154651,9 +154651,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:49Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Inventory lost to damage, theft or count differences. Debited by scrap and negative adjustments, credited to 1200-inventory — its own account so loss is visible, not buried in cost of goods. Role: scrap.",
               "kind": "account_use",
-              "text": "Inventory lost to damage, shrinkage, or count adjustments. Debited by scrap and negative adjustments, credited to 1200-inventory. Role: scrap.",
               "capacity": "ops",
               "replaces": null
             }
@@ -154662,8 +154662,8 @@
         },
         "health_rating": 50,
         "name": "Scrap & Shrinkage",
-        "type": "expense",
-        "category": "cogs",
+        "type": "cost_of_sales",
+        "category": "cost_of_sales",
         "type_id": null,
         "account_credit": null,
         "account_debit": null,
@@ -154808,9 +154808,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Leftover balances too small to chase, dismissed when a payment is applied. Debited here, credited to 1100-accounts_receivable. A rounding decision, not a credit loss (that is 6500-bad_debt). Role: small_balance_writeoff.",
               "kind": "account_use",
-              "text": "Leftover balances not worth collecting, written off when a payment is applied with dismiss_balance. Debited here, credited to 1100-accounts_receivable. Role: small_balance_writeoff.",
               "capacity": "ops",
               "replaces": null
             }
@@ -154819,8 +154819,8 @@
         },
         "health_rating": 50,
         "name": "Small Balance Write-Off",
-        "type": "contra",
-        "category": "contra",
+        "type": "contra_revenue",
+        "category": "revenue",
         "type_id": null,
         "account_credit": null,
         "account_debit": null,
@@ -154948,9 +154948,9 @@
           "process": [
             {
               "by": "seed_gl_accounts",
-              "dt": "2026-09-16T17:20:48Z",
+              "dt": "2026-09-24T03:35:34Z",
+              "text": "Revenue from services and labor billed: consulting, trades, installation, travel, call-outs. Service items name it as their revenue account.",
               "kind": "account_use",
-              "text": "Revenue from services and labor billed: consulting, trades, labor, travel, call-outs. Service items name it in gls.revenue; credited by their invoice lines.",
               "capacity": "ops",
               "replaces": null
             }
@@ -154960,7 +154960,7 @@
         "health_rating": 0,
         "name": "Service Revenue",
         "type": "revenue",
-        "category": "sales",
+        "category": "revenue",
         "type_id": null,
         "account_credit": null,
         "account_debit": null,
@@ -320188,7 +320188,7 @@
       {
         "id": 260,
         "uuid": "fbec8846-c146-4f20-a8a0-3de87d55488c",
-        "ida": "zzaudit-ADJ-5000-COGS",
+        "ida": "zzaudit-ADJ-QQBB200-O",
         "dt_created": 1789520267085,
         "dt_modified": 1789520267085,
         "version": 1,
@@ -320328,7 +320328,7 @@
       {
         "id": 261,
         "uuid": "e4df48e7-7bd2-480d-ab45-bdc35e9d0cc9",
-        "ida": "zzaudit-ADJ-1200-Inventory",
+        "ida": "zzaudit-ADJ-QQBB200-O",
         "dt_created": 1789520267180,
         "dt_modified": 1789520267180,
         "version": 1,
@@ -320468,7 +320468,7 @@
       {
         "id": 262,
         "uuid": "3664d1e6-088a-4796-9d44-d0a0aab97047",
-        "ida": "audit-fable-ADJ-5000-COGS",
+        "ida": "audit-fable-ADJ-QQBB200-F",
         "dt_created": 1789520350506,
         "dt_modified": 1789520350506,
         "version": 1,
@@ -320607,7 +320607,7 @@
       {
         "id": 263,
         "uuid": "4db932f0-b557-4337-b62f-b28611954c9e",
-        "ida": "audit-fable-ADJ-1200-Inventory",
+        "ida": "audit-fable-ADJ-QQBB200-F",
         "dt_created": 1789520350575,
         "dt_modified": 1789520350575,
         "version": 1,
@@ -320746,7 +320746,7 @@
       {
         "id": 293,
         "uuid": "9674a856-0bc9-4a6f-b6bd-f6688e711316",
-        "ida": "SJ-1001-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1001-inv-qq",
         "dt_created": 1789594434202,
         "dt_modified": 1789594434202,
         "version": 1,
@@ -320881,7 +320881,7 @@
       {
         "id": 294,
         "uuid": "461e726b-bf59-4024-bc65-3dbe4c49db8f",
-        "ida": "SJ-1001-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1001-inv-qq",
         "dt_created": 1789594434295,
         "dt_modified": 1789594434295,
         "version": 1,
@@ -321016,7 +321016,7 @@
       {
         "id": 295,
         "uuid": "7b0bc831-8f39-4a45-ba27-4855f2e1d84c",
-        "ida": "SJ-1001-inv-qq-1200-inventory",
+        "ida": "SJ-1001-inv-qq",
         "dt_created": 1789594434367,
         "dt_modified": 1789594434367,
         "version": 1,
@@ -321151,7 +321151,7 @@
       {
         "id": 296,
         "uuid": "9885d90f-6ad9-4ff8-b90b-e24c2e472b63",
-        "ida": "SJ-1001-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1001-inv-qq",
         "dt_created": 1789594434435,
         "dt_modified": 1789594434435,
         "version": 1,
@@ -321286,7 +321286,7 @@
       {
         "id": 297,
         "uuid": "2abb86f4-34df-4a05-b29b-66a4ee2a5ed9",
-        "ida": "SJ-1003-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1003-inv-qq",
         "dt_created": 1789594434524,
         "dt_modified": 1789594434524,
         "version": 1,
@@ -321421,7 +321421,7 @@
       {
         "id": 298,
         "uuid": "bbcf1d55-62d6-4bd4-ba47-579fc3678cf5",
-        "ida": "SJ-1003-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1003-inv-qq",
         "dt_created": 1789594434590,
         "dt_modified": 1789594434590,
         "version": 1,
@@ -321556,7 +321556,7 @@
       {
         "id": 299,
         "uuid": "d5bbcca9-6a51-40f3-a282-113065b18526",
-        "ida": "SJ-1003-inv-qq-1200-inventory",
+        "ida": "SJ-1003-inv-qq",
         "dt_created": 1789594434655,
         "dt_modified": 1789594434655,
         "version": 1,
@@ -321691,7 +321691,7 @@
       {
         "id": 300,
         "uuid": "f45d6d68-7931-479c-af0e-3634a97456d9",
-        "ida": "SJ-1003-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1003-inv-qq",
         "dt_created": 1789594434720,
         "dt_modified": 1789594434720,
         "version": 1,
@@ -321826,7 +321826,7 @@
       {
         "id": 301,
         "uuid": "3f3f3d21-4f0d-4769-a78e-364ec2e6ddfb",
-        "ida": "SJ-1004-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1004-inv-qq",
         "dt_created": 1789594434811,
         "dt_modified": 1789594434811,
         "version": 1,
@@ -321961,7 +321961,7 @@
       {
         "id": 302,
         "uuid": "bfd18fda-df51-4122-afba-9f43641c5228",
-        "ida": "SJ-1004-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1004-inv-qq",
         "dt_created": 1789594434876,
         "dt_modified": 1789594434876,
         "version": 1,
@@ -322096,7 +322096,7 @@
       {
         "id": 303,
         "uuid": "eb057f5e-ce24-4d44-9dc7-f415c21c0e06",
-        "ida": "SJ-1004-inv-qq-1200-inventory",
+        "ida": "SJ-1004-inv-qq",
         "dt_created": 1789594434967,
         "dt_modified": 1789594434967,
         "version": 1,
@@ -322231,7 +322231,7 @@
       {
         "id": 304,
         "uuid": "8287cee3-7a2b-4d2b-820e-bf01ef437943",
-        "ida": "SJ-1004-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1004-inv-qq",
         "dt_created": 1789594435032,
         "dt_modified": 1789594435032,
         "version": 1,
@@ -322366,7 +322366,7 @@
       {
         "id": 305,
         "uuid": "1a0646a9-87e7-461d-b4db-58427504167d",
-        "ida": "SJ-1006-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1006-inv-qq",
         "dt_created": 1789594435152,
         "dt_modified": 1789594435152,
         "version": 1,
@@ -322501,7 +322501,7 @@
       {
         "id": 306,
         "uuid": "6e2f42f6-dfd8-475f-ad90-b57ad4eef380",
-        "ida": "SJ-1006-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1006-inv-qq",
         "dt_created": 1789594435217,
         "dt_modified": 1789594435217,
         "version": 1,
@@ -322636,7 +322636,7 @@
       {
         "id": 307,
         "uuid": "f6bd1256-cf26-4e95-9a49-db28071d2ac9",
-        "ida": "SJ-1006-inv-qq-1200-inventory",
+        "ida": "SJ-1006-inv-qq",
         "dt_created": 1789594435281,
         "dt_modified": 1789594435281,
         "version": 1,
@@ -322771,7 +322771,7 @@
       {
         "id": 308,
         "uuid": "9d3e6e62-4aeb-465a-9ee3-0baa5154db9c",
-        "ida": "SJ-1006-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1006-inv-qq",
         "dt_created": 1789594435379,
         "dt_modified": 1789594435379,
         "version": 1,
@@ -322906,7 +322906,7 @@
       {
         "id": 309,
         "uuid": "d6b023d9-93c3-412e-aab4-6bb57e5dafee",
-        "ida": "SJ-1005-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1005-inv-qq",
         "dt_created": 1789594435464,
         "dt_modified": 1789594435464,
         "version": 1,
@@ -323041,7 +323041,7 @@
       {
         "id": 310,
         "uuid": "208e7a23-4dc3-4325-974d-c1d068e00d29",
-        "ida": "SJ-1005-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1005-inv-qq",
         "dt_created": 1789594435530,
         "dt_modified": 1789594435530,
         "version": 1,
@@ -323176,7 +323176,7 @@
       {
         "id": 311,
         "uuid": "5c08700d-dc07-41cc-8f7e-424895f7c1a7",
-        "ida": "SJ-1005-inv-qq-1200-inventory",
+        "ida": "SJ-1005-inv-qq",
         "dt_created": 1789594435595,
         "dt_modified": 1789594435595,
         "version": 1,
@@ -323311,7 +323311,7 @@
       {
         "id": 312,
         "uuid": "c20b4ae5-38d7-4076-86b0-3987343f0bea",
-        "ida": "SJ-1005-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1005-inv-qq",
         "dt_created": 1789594435662,
         "dt_modified": 1789594435662,
         "version": 1,
@@ -323446,7 +323446,7 @@
       {
         "id": 313,
         "uuid": "b41d6043-4231-4933-a5a6-dd38153d459a",
-        "ida": "SJ-1002-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1002-inv-qq",
         "dt_created": 1789594435759,
         "dt_modified": 1789594435759,
         "version": 1,
@@ -323581,7 +323581,7 @@
       {
         "id": 314,
         "uuid": "a4065bec-2141-49a9-aec7-4d11038b2d3b",
-        "ida": "SJ-1002-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1002-inv-qq",
         "dt_created": 1789594435825,
         "dt_modified": 1789594435825,
         "version": 1,
@@ -323716,7 +323716,7 @@
       {
         "id": 315,
         "uuid": "de84fbc1-d837-424d-af07-3934ff507522",
-        "ida": "SJ-1002-inv-qq-1200-inventory",
+        "ida": "SJ-1002-inv-qq",
         "dt_created": 1789594435891,
         "dt_modified": 1789594435891,
         "version": 1,
@@ -323851,7 +323851,7 @@
       {
         "id": 316,
         "uuid": "a1b95495-9ecc-40d5-94bd-e5e8411d9625",
-        "ida": "SJ-1002-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1002-inv-qq",
         "dt_created": 1789594435955,
         "dt_modified": 1789594435955,
         "version": 1,
@@ -323986,7 +323986,7 @@
       {
         "id": 317,
         "uuid": "1d864d85-8a12-4bbd-a12e-921f0531d4e1",
-        "ida": "SJ-1007-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1007-inv-qq",
         "dt_created": 1789594436041,
         "dt_modified": 1789594436041,
         "version": 1,
@@ -324121,7 +324121,7 @@
       {
         "id": 318,
         "uuid": "243262c2-2f79-4306-bb02-f723957c1225",
-        "ida": "SJ-1007-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1007-inv-qq",
         "dt_created": 1789594436106,
         "dt_modified": 1789594436106,
         "version": 1,
@@ -324256,7 +324256,7 @@
       {
         "id": 319,
         "uuid": "0185ed01-6fc4-4e23-bf32-0fcf2c4fad83",
-        "ida": "SJ-1007-inv-qq-1200-inventory",
+        "ida": "SJ-1007-inv-qq",
         "dt_created": 1789594436171,
         "dt_modified": 1789594436171,
         "version": 1,
@@ -324391,7 +324391,7 @@
       {
         "id": 320,
         "uuid": "e0c08a81-83b9-4c6f-83c5-9ef91028198b",
-        "ida": "SJ-1007-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1007-inv-qq",
         "dt_created": 1789594436237,
         "dt_modified": 1789594436237,
         "version": 1,
@@ -324526,7 +324526,7 @@
       {
         "id": 321,
         "uuid": "95abe4a0-6371-44a8-8ae3-1a954dde44f9",
-        "ida": "SJ-1008-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1008-inv-qq",
         "dt_created": 1789594436333,
         "dt_modified": 1789594436333,
         "version": 1,
@@ -324661,7 +324661,7 @@
       {
         "id": 322,
         "uuid": "468aaf5d-c908-486c-8c73-827d5dd6a7ea",
-        "ida": "SJ-1008-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1008-inv-qq",
         "dt_created": 1789594436399,
         "dt_modified": 1789594436399,
         "version": 1,
@@ -324796,7 +324796,7 @@
       {
         "id": 323,
         "uuid": "534f2029-623f-4bd5-8c45-f0559559abdd",
-        "ida": "SJ-1008-inv-qq-1200-inventory",
+        "ida": "SJ-1008-inv-qq",
         "dt_created": 1789594436462,
         "dt_modified": 1789594436462,
         "version": 1,
@@ -324931,7 +324931,7 @@
       {
         "id": 324,
         "uuid": "825db82b-0957-4a3f-be49-4062472c42a8",
-        "ida": "SJ-1008-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1008-inv-qq",
         "dt_created": 1789594436528,
         "dt_modified": 1789594436528,
         "version": 1,
@@ -325066,7 +325066,7 @@
       {
         "id": 325,
         "uuid": "f7a6fab6-ea63-4105-89df-38eacf526b02",
-        "ida": "SJ-1009-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1009-inv-qq",
         "dt_created": 1789594436620,
         "dt_modified": 1789594436620,
         "version": 1,
@@ -325201,7 +325201,7 @@
       {
         "id": 326,
         "uuid": "4dc22bc9-0913-42b6-ba00-5e1a222660d7",
-        "ida": "SJ-1009-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1009-inv-qq",
         "dt_created": 1789594436684,
         "dt_modified": 1789594436684,
         "version": 1,
@@ -325336,7 +325336,7 @@
       {
         "id": 327,
         "uuid": "a0722820-5b15-43ce-8db4-6fb09025e38b",
-        "ida": "SJ-1009-inv-qq-1200-inventory",
+        "ida": "SJ-1009-inv-qq",
         "dt_created": 1789594436750,
         "dt_modified": 1789594436750,
         "version": 1,
@@ -325471,7 +325471,7 @@
       {
         "id": 328,
         "uuid": "7b9cdf0c-3e7b-4760-88a4-7febb95d2b31",
-        "ida": "SJ-1009-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1009-inv-qq",
         "dt_created": 1789594436816,
         "dt_modified": 1789594436816,
         "version": 1,
@@ -325606,7 +325606,7 @@
       {
         "id": 329,
         "uuid": "109410d2-b05f-43b4-bb10-509c0dd2890a",
-        "ida": "SJ-1010-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1010-inv-qq",
         "dt_created": 1789594436902,
         "dt_modified": 1789594436902,
         "version": 1,
@@ -325741,7 +325741,7 @@
       {
         "id": 330,
         "uuid": "b671e7d4-e63c-40c8-b136-1ec3d36b2ebc",
-        "ida": "SJ-1010-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1010-inv-qq",
         "dt_created": 1789594436969,
         "dt_modified": 1789594436969,
         "version": 1,
@@ -325876,7 +325876,7 @@
       {
         "id": 331,
         "uuid": "5bac3a45-181f-4bf4-93ae-1389cceda521",
-        "ida": "SJ-1010-inv-qq-1200-inventory",
+        "ida": "SJ-1010-inv-qq",
         "dt_created": 1789594437037,
         "dt_modified": 1789594437037,
         "version": 1,
@@ -326011,7 +326011,7 @@
       {
         "id": 332,
         "uuid": "2f04e36f-03ef-4f5b-97ed-db94463622be",
-        "ida": "SJ-1010-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1010-inv-qq",
         "dt_created": 1789594437112,
         "dt_modified": 1789594437112,
         "version": 1,
@@ -326146,7 +326146,7 @@
       {
         "id": 333,
         "uuid": "e302769d-bcef-434c-bbe4-61b5dd03df8f",
-        "ida": "SJ-1011-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1011-inv-qq",
         "dt_created": 1789594437207,
         "dt_modified": 1789594437207,
         "version": 1,
@@ -326281,7 +326281,7 @@
       {
         "id": 334,
         "uuid": "d8d8e6d4-f262-4fd8-bdd6-85cf6c52420d",
-        "ida": "SJ-1011-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1011-inv-qq",
         "dt_created": 1789594437273,
         "dt_modified": 1789594437273,
         "version": 1,
@@ -326416,7 +326416,7 @@
       {
         "id": 335,
         "uuid": "3b148afb-62e9-4ca7-98cb-432f42083ae8",
-        "ida": "SJ-1011-inv-qq-1200-inventory",
+        "ida": "SJ-1011-inv-qq",
         "dt_created": 1789594437340,
         "dt_modified": 1789594437340,
         "version": 1,
@@ -326551,7 +326551,7 @@
       {
         "id": 336,
         "uuid": "5fc0c2f9-aee1-43ea-8774-0a0527140722",
-        "ida": "SJ-1011-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1011-inv-qq",
         "dt_created": 1789594437407,
         "dt_modified": 1789594437407,
         "version": 1,
@@ -326686,7 +326686,7 @@
       {
         "id": 337,
         "uuid": "7a611a19-e357-416c-9e6b-45d2fc2bbc0f",
-        "ida": "SJ-1012-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1012-inv-qq",
         "dt_created": 1789594437500,
         "dt_modified": 1789594437500,
         "version": 1,
@@ -326821,7 +326821,7 @@
       {
         "id": 338,
         "uuid": "213f8c9a-37e2-471c-84d6-8ae2f59af851",
-        "ida": "SJ-1012-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1012-inv-qq",
         "dt_created": 1789594437567,
         "dt_modified": 1789594437567,
         "version": 1,
@@ -326956,7 +326956,7 @@
       {
         "id": 339,
         "uuid": "d2c48471-e81a-4d00-954c-bb7b65bc60dd",
-        "ida": "SJ-1012-inv-qq-1200-inventory",
+        "ida": "SJ-1012-inv-qq",
         "dt_created": 1789594437631,
         "dt_modified": 1789594437631,
         "version": 1,
@@ -327091,7 +327091,7 @@
       {
         "id": 340,
         "uuid": "7089b630-a025-4355-b57d-fd4303944f94",
-        "ida": "SJ-1012-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1012-inv-qq",
         "dt_created": 1789594437696,
         "dt_modified": 1789594437696,
         "version": 1,
@@ -327226,7 +327226,7 @@
       {
         "id": 341,
         "uuid": "0ccb48fa-ca74-4649-8f3d-b12b31b13cf7",
-        "ida": "SJ-1013-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1013-inv-qq",
         "dt_created": 1789594437792,
         "dt_modified": 1789594437792,
         "version": 1,
@@ -327361,7 +327361,7 @@
       {
         "id": 342,
         "uuid": "6f74baef-9e4c-4347-afc9-21aa0cd50c16",
-        "ida": "SJ-1013-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1013-inv-qq",
         "dt_created": 1789594437858,
         "dt_modified": 1789594437858,
         "version": 1,
@@ -327496,7 +327496,7 @@
       {
         "id": 343,
         "uuid": "c80cdd34-8797-4314-803e-f103b9cda31d",
-        "ida": "SJ-1013-inv-qq-1200-inventory",
+        "ida": "SJ-1013-inv-qq",
         "dt_created": 1789594437922,
         "dt_modified": 1789594437922,
         "version": 1,
@@ -327631,7 +327631,7 @@
       {
         "id": 344,
         "uuid": "fc121581-c045-404e-9b11-33e3aa318d29",
-        "ida": "SJ-1013-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1013-inv-qq",
         "dt_created": 1789594437987,
         "dt_modified": 1789594437987,
         "version": 1,
@@ -327766,7 +327766,7 @@
       {
         "id": 345,
         "uuid": "6f3df9e6-4ef8-4490-baf1-c62dd2806234",
-        "ida": "SJ-1014-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1014-inv-qq",
         "dt_created": 1789594438071,
         "dt_modified": 1789594438071,
         "version": 1,
@@ -327901,7 +327901,7 @@
       {
         "id": 346,
         "uuid": "7f07ad6b-a702-460e-927a-6a5281fcf392",
-        "ida": "SJ-1014-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1014-inv-qq",
         "dt_created": 1789594438138,
         "dt_modified": 1789594438138,
         "version": 1,
@@ -328036,7 +328036,7 @@
       {
         "id": 347,
         "uuid": "5ec5d009-3f46-41bd-a565-50d6d4ce2940",
-        "ida": "SJ-1014-inv-qq-1200-inventory",
+        "ida": "SJ-1014-inv-qq",
         "dt_created": 1789594438206,
         "dt_modified": 1789594438206,
         "version": 1,
@@ -328171,7 +328171,7 @@
       {
         "id": 348,
         "uuid": "feb0cfda-8531-4501-96f5-323c963cf9c5",
-        "ida": "SJ-1014-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1014-inv-qq",
         "dt_created": 1789594438273,
         "dt_modified": 1789594438273,
         "version": 1,
@@ -328306,7 +328306,7 @@
       {
         "id": 349,
         "uuid": "cdaaac4e-8197-4e62-a7d3-380d766272f4",
-        "ida": "SJ-1015-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1015-inv-qq",
         "dt_created": 1789594438369,
         "dt_modified": 1789594438369,
         "version": 1,
@@ -328441,7 +328441,7 @@
       {
         "id": 350,
         "uuid": "1f04ced8-2fe8-43fe-82ea-693f78c20d0f",
-        "ida": "SJ-1015-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1015-inv-qq",
         "dt_created": 1789594438435,
         "dt_modified": 1789594438435,
         "version": 1,
@@ -328576,7 +328576,7 @@
       {
         "id": 351,
         "uuid": "6f9b49b8-84c6-43a8-a0aa-0009d739ae02",
-        "ida": "SJ-1015-inv-qq-1200-inventory",
+        "ida": "SJ-1015-inv-qq",
         "dt_created": 1789594438499,
         "dt_modified": 1789594438499,
         "version": 1,
@@ -328711,7 +328711,7 @@
       {
         "id": 352,
         "uuid": "21e2559d-4a15-41ef-b755-dc433418cfe1",
-        "ida": "SJ-1015-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1015-inv-qq",
         "dt_created": 1789594438563,
         "dt_modified": 1789594438563,
         "version": 1,
@@ -328846,7 +328846,7 @@
       {
         "id": 353,
         "uuid": "a5fea62a-ea2c-4f94-93a0-b695aa9fe1c7",
-        "ida": "SJ-1016-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1016-inv-qq",
         "dt_created": 1789594438656,
         "dt_modified": 1789594438656,
         "version": 1,
@@ -328981,7 +328981,7 @@
       {
         "id": 354,
         "uuid": "0d71dcf6-c946-4836-92d9-5d628c07b655",
-        "ida": "SJ-1016-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1016-inv-qq",
         "dt_created": 1789594438722,
         "dt_modified": 1789594438722,
         "version": 1,
@@ -329116,7 +329116,7 @@
       {
         "id": 355,
         "uuid": "9a0d95fe-393f-4700-b486-0d03353d381f",
-        "ida": "SJ-1016-inv-qq-1200-inventory",
+        "ida": "SJ-1016-inv-qq",
         "dt_created": 1789594438790,
         "dt_modified": 1789594438790,
         "version": 1,
@@ -329251,7 +329251,7 @@
       {
         "id": 356,
         "uuid": "2340b644-65c4-489e-ba94-234b8c8e4567",
-        "ida": "SJ-1016-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1016-inv-qq",
         "dt_created": 1789594438856,
         "dt_modified": 1789594438856,
         "version": 1,
@@ -329386,7 +329386,7 @@
       {
         "id": 357,
         "uuid": "8a28adee-8154-4acd-b6ce-7efb5cf9fa02",
-        "ida": "SJ-1017-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1017-inv-qq",
         "dt_created": 1789594438944,
         "dt_modified": 1789594438944,
         "version": 1,
@@ -329521,7 +329521,7 @@
       {
         "id": 358,
         "uuid": "e75fa557-bf6b-4d22-bdec-bf559cc7b8af",
-        "ida": "SJ-1017-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1017-inv-qq",
         "dt_created": 1789594439009,
         "dt_modified": 1789594439009,
         "version": 1,
@@ -329656,7 +329656,7 @@
       {
         "id": 359,
         "uuid": "dbe84519-3cfb-4063-92bb-1bc866c43c8c",
-        "ida": "SJ-1017-inv-qq-1200-inventory",
+        "ida": "SJ-1017-inv-qq",
         "dt_created": 1789594439074,
         "dt_modified": 1789594439074,
         "version": 1,
@@ -329791,7 +329791,7 @@
       {
         "id": 360,
         "uuid": "ccc5cd46-096c-488c-8e88-24cac0d2c053",
-        "ida": "SJ-1017-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1017-inv-qq",
         "dt_created": 1789594439139,
         "dt_modified": 1789594439139,
         "version": 1,
@@ -329926,7 +329926,7 @@
       {
         "id": 361,
         "uuid": "5fd5ece4-7656-4359-9ad6-d783cf01bf94",
-        "ida": "SJ-1024-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1024-inv-qq",
         "dt_created": 1789594439220,
         "dt_modified": 1789594439220,
         "version": 1,
@@ -330061,7 +330061,7 @@
       {
         "id": 362,
         "uuid": "5938fed2-7792-4166-9665-1c9b3845c8f9",
-        "ida": "SJ-1024-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1024-inv-qq",
         "dt_created": 1789594439287,
         "dt_modified": 1789594439287,
         "version": 1,
@@ -330196,7 +330196,7 @@
       {
         "id": 363,
         "uuid": "7e6c21aa-0cd8-470f-ac0b-6f545009fea0",
-        "ida": "SJ-1024-inv-qq-1200-inventory",
+        "ida": "SJ-1024-inv-qq",
         "dt_created": 1789594439354,
         "dt_modified": 1789594439354,
         "version": 1,
@@ -330331,7 +330331,7 @@
       {
         "id": 364,
         "uuid": "d8f4a38e-1f25-4c15-915d-e60704ab47c3",
-        "ida": "SJ-1024-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1024-inv-qq",
         "dt_created": 1789594439422,
         "dt_modified": 1789594439422,
         "version": 1,
@@ -330466,7 +330466,7 @@
       {
         "id": 365,
         "uuid": "99d172a2-d568-4383-bbd3-6df18e0ac6f7",
-        "ida": "SJ-1025-inv-qq-4000-sales_revenue",
+        "ida": "SJ-1025-inv-qq",
         "dt_created": 1789594439510,
         "dt_modified": 1789594439510,
         "version": 1,
@@ -330601,7 +330601,7 @@
       {
         "id": 366,
         "uuid": "459cb6c5-7db0-4ed8-86b7-e5b70dad6370",
-        "ida": "SJ-1025-inv-qq-5000-cost_of_goods_sold",
+        "ida": "SJ-1025-inv-qq",
         "dt_created": 1789594439575,
         "dt_modified": 1789594439575,
         "version": 1,
@@ -330736,7 +330736,7 @@
       {
         "id": 367,
         "uuid": "c04c1301-120e-496e-aae0-e51cdd518ca1",
-        "ida": "SJ-1025-inv-qq-1200-inventory",
+        "ida": "SJ-1025-inv-qq",
         "dt_created": 1789594439642,
         "dt_modified": 1789594439642,
         "version": 1,
@@ -330871,7 +330871,7 @@
       {
         "id": 368,
         "uuid": "8769fbe0-ba57-4b9e-9800-4fb258357b66",
-        "ida": "SJ-1025-inv-qq-1100-accounts_receivable",
+        "ida": "SJ-1025-inv-qq",
         "dt_created": 1789594439708,
         "dt_modified": 1789594439708,
         "version": 1,
@@ -331006,7 +331006,7 @@
       {
         "id": 369,
         "uuid": "33c99a31-34e3-4de9-824c-01386ffdcfbb",
-        "ida": "SJ-1026-inv-4000-sales_revenue",
+        "ida": "SJ-1026-inv",
         "dt_created": 1789594439791,
         "dt_modified": 1789594439791,
         "version": 1,
@@ -331141,7 +331141,7 @@
       {
         "id": 370,
         "uuid": "f512d4f4-2643-4897-8aec-8390b056150b",
-        "ida": "SJ-1026-inv-5000-cost_of_goods_sold",
+        "ida": "SJ-1026-inv",
         "dt_created": 1789594439857,
         "dt_modified": 1789594439857,
         "version": 1,
@@ -331276,7 +331276,7 @@
       {
         "id": 371,
         "uuid": "42fff7e7-9699-4e26-b4bb-3986a2676918",
-        "ida": "SJ-1026-inv-1200-inventory",
+        "ida": "SJ-1026-inv",
         "dt_created": 1789594439922,
         "dt_modified": 1789594439922,
         "version": 1,
@@ -331411,7 +331411,7 @@
       {
         "id": 372,
         "uuid": "46ab70ef-d4c7-4124-9d7f-429fed46b659",
-        "ida": "SJ-1026-inv-1100-accounts_receivable",
+        "ida": "SJ-1026-inv",
         "dt_created": 1789594439987,
         "dt_modified": 1789594439987,
         "version": 1,
@@ -331546,7 +331546,7 @@
       {
         "id": 373,
         "uuid": "0320990e-78ff-49d1-9451-995b638c6046",
-        "ida": "SJ-1027-inv-4000-sales_revenue",
+        "ida": "SJ-1027-inv",
         "dt_created": 1789594440073,
         "dt_modified": 1789594440073,
         "version": 1,
@@ -331681,7 +331681,7 @@
       {
         "id": 374,
         "uuid": "d9cb844d-6662-4a16-b744-89ee2994774c",
-        "ida": "SJ-1027-inv-5000-cost_of_goods_sold",
+        "ida": "SJ-1027-inv",
         "dt_created": 1789594440141,
         "dt_modified": 1789594440141,
         "version": 1,
@@ -331816,7 +331816,7 @@
       {
         "id": 375,
         "uuid": "3eb9cfa3-5bf3-4d57-b3ae-5fe5dc31b9ad",
-        "ida": "SJ-1027-inv-1200-inventory",
+        "ida": "SJ-1027-inv",
         "dt_created": 1789594440211,
         "dt_modified": 1789594440211,
         "version": 1,
@@ -331951,7 +331951,7 @@
       {
         "id": 376,
         "uuid": "738e5011-2731-4900-9cea-3343f0326411",
-        "ida": "SJ-1027-inv-1100-accounts_receivable",
+        "ida": "SJ-1027-inv",
         "dt_created": 1789594440278,
         "dt_modified": 1789594440278,
         "version": 1,
@@ -332086,7 +332086,7 @@
       {
         "id": 377,
         "uuid": "4fe5cb53-deb9-417a-bbe8-17a51bc23bcf",
-        "ida": "SJ-1028-inv-4000-sales_revenue",
+        "ida": "SJ-1028-inv",
         "dt_created": 1789594440370,
         "dt_modified": 1789594440370,
         "version": 1,
@@ -332221,7 +332221,7 @@
       {
         "id": 378,
         "uuid": "c2ad5a09-a81b-41c8-b274-caabe8cc99cf",
-        "ida": "SJ-1028-inv-5000-cost_of_goods_sold",
+        "ida": "SJ-1028-inv",
         "dt_created": 1789594440437,
         "dt_modified": 1789594440437,
         "version": 1,
@@ -332356,7 +332356,7 @@
       {
         "id": 379,
         "uuid": "1b2e085e-81ff-4b17-a283-f372eed1a349",
-        "ida": "SJ-1028-inv-1200-inventory",
+        "ida": "SJ-1028-inv",
         "dt_created": 1789594440502,
         "dt_modified": 1789594440502,
         "version": 1,
@@ -332491,7 +332491,7 @@
       {
         "id": 380,
         "uuid": "1a16739e-650b-43c3-8a66-cdf04fae9175",
-        "ida": "SJ-1028-inv-1100-accounts_receivable",
+        "ida": "SJ-1028-inv",
         "dt_created": 1789594440569,
         "dt_modified": 1789594440569,
         "version": 1,
@@ -332626,7 +332626,7 @@
       {
         "id": 381,
         "uuid": "7a147fef-1dd7-4445-88ea-58e7eafd8cb5",
-        "ida": "SJ-1029-inv-4000-sales_revenue",
+        "ida": "SJ-1029-inv",
         "dt_created": 1789594440664,
         "dt_modified": 1789594440664,
         "version": 1,
@@ -332761,7 +332761,7 @@
       {
         "id": 382,
         "uuid": "7a4c9a6b-819f-44f2-b485-8dad1ffde671",
-        "ida": "SJ-1029-inv-5000-cost_of_goods_sold",
+        "ida": "SJ-1029-inv",
         "dt_created": 1789594440732,
         "dt_modified": 1789594440732,
         "version": 1,
@@ -332896,7 +332896,7 @@
       {
         "id": 383,
         "uuid": "b233587f-5ddd-488d-b73c-1a4fa0cf18c2",
-        "ida": "SJ-1029-inv-1200-inventory",
+        "ida": "SJ-1029-inv",
         "dt_created": 1789594440797,
         "dt_modified": 1789594440797,
         "version": 1,
@@ -333031,7 +333031,7 @@
       {
         "id": 384,
         "uuid": "fd149ddf-291a-4d1f-80ba-457460a6583b",
-        "ida": "SJ-1029-inv-1100-accounts_receivable",
+        "ida": "SJ-1029-inv",
         "dt_created": 1789594440864,
         "dt_modified": 1789594440864,
         "version": 1,
@@ -333166,7 +333166,7 @@
       {
         "id": 385,
         "uuid": "90308451-a578-4549-b3f8-7ae26d6b59f1",
-        "ida": "SJ-1018-inv-4000-sales_revenue",
+        "ida": "SJ-1018-inv",
         "dt_created": 1789594440944,
         "dt_modified": 1789594440944,
         "version": 1,
@@ -333301,7 +333301,7 @@
       {
         "id": 386,
         "uuid": "8cd7ae3c-a1fa-434d-9195-65f80805eb43",
-        "ida": "SJ-1018-inv-5000-cost_of_goods_sold",
+        "ida": "SJ-1018-inv",
         "dt_created": 1789594441037,
         "dt_modified": 1789594441037,
         "version": 1,
@@ -333436,7 +333436,7 @@
       {
         "id": 387,
         "uuid": "3d7e1426-84b0-41ee-91f1-7f9806df20e4",
-        "ida": "SJ-1018-inv-1200-inventory",
+        "ida": "SJ-1018-inv",
         "dt_created": 1789594441105,
         "dt_modified": 1789594441105,
         "version": 1,
@@ -333571,7 +333571,7 @@
       {
         "id": 388,
         "uuid": "a6396894-1df2-4b86-a15a-fdc6266846cd",
-        "ida": "SJ-1018-inv-1100-accounts_receivable",
+        "ida": "SJ-1018-inv",
         "dt_created": 1789594441174,
         "dt_modified": 1789594441174,
         "version": 1,
@@ -333706,7 +333706,7 @@
       {
         "id": 389,
         "uuid": "49ee3130-04fa-4611-af2f-eb834d47b13f",
-        "ida": "SJ-1019-inv-4000-sales_revenue",
+        "ida": "SJ-1019-inv",
         "dt_created": 1789594441253,
         "dt_modified": 1789594441253,
         "version": 1,
@@ -333841,7 +333841,7 @@
       {
         "id": 390,
         "uuid": "fa534eec-0b13-4646-9c47-17e754c5f514",
-        "ida": "SJ-1019-inv-5000-cost_of_goods_sold",
+        "ida": "SJ-1019-inv",
         "dt_created": 1789594441320,
         "dt_modified": 1789594441320,
         "version": 1,
@@ -333976,7 +333976,7 @@
       {
         "id": 391,
         "uuid": "bf3f3be3-5093-4119-96e9-74657b11c64f",
-        "ida": "SJ-1019-inv-1200-inventory",
+        "ida": "SJ-1019-inv",
         "dt_created": 1789594441387,
         "dt_modified": 1789594441387,
         "version": 1,
@@ -334111,7 +334111,7 @@
       {
         "id": 392,
         "uuid": "4099db76-7797-4e48-9835-63438ec426df",
-        "ida": "SJ-1019-inv-1100-accounts_receivable",
+        "ida": "SJ-1019-inv",
         "dt_created": 1789594441453,
         "dt_modified": 1789594441453,
         "version": 1,
@@ -334246,7 +334246,7 @@
       {
         "id": 393,
         "uuid": "c12bb477-d24f-44b1-9c5f-1f255c894a65",
-        "ida": "SJ-1019-inv-2100-sales_tax_payable",
+        "ida": "SJ-1019-inv",
         "dt_created": 1789594441551,
         "dt_modified": 1789594441551,
         "version": 1,
@@ -334381,7 +334381,7 @@
       {
         "id": 394,
         "uuid": "a362d28a-b2e1-41c1-b5a7-40d2ce89f026",
-        "ida": "SJ-1022-inv-4000-sales_revenue",
+        "ida": "SJ-1022-inv",
         "dt_created": 1789594441629,
         "dt_modified": 1789594441629,
         "version": 1,
@@ -334516,7 +334516,7 @@
       {
         "id": 395,
         "uuid": "5a902c3c-7f6a-4d44-9366-4f3ecac1445a",
-        "ida": "SJ-1022-inv-5000-cost_of_goods_sold",
+        "ida": "SJ-1022-inv",
         "dt_created": 1789594441695,
         "dt_modified": 1789594441695,
         "version": 1,
@@ -334651,7 +334651,7 @@
       {
         "id": 396,
         "uuid": "1ec351a5-a323-4b98-a7b6-a86a3b84797e",
-        "ida": "SJ-1022-inv-1200-inventory",
+        "ida": "SJ-1022-inv",
         "dt_created": 1789594441762,
         "dt_modified": 1789594441762,
         "version": 1,
@@ -334786,7 +334786,7 @@
       {
         "id": 397,
         "uuid": "6ed5561a-71bd-4734-8de8-232cabc2627c",
-        "ida": "SJ-1022-inv-1100-accounts_receivable",
+        "ida": "SJ-1022-inv",
         "dt_created": 1789594441830,
         "dt_modified": 1789594441830,
         "version": 1,
@@ -334921,7 +334921,7 @@
       {
         "id": 398,
         "uuid": "b92fb8d1-fa6a-4819-a522-c52a92cd93d6",
-        "ida": "SJ-1022-inv-2100-sales_tax_payable",
+        "ida": "SJ-1022-inv",
         "dt_created": 1789594441895,
         "dt_modified": 1789594441895,
         "version": 1,
@@ -335056,7 +335056,7 @@
       {
         "id": 399,
         "uuid": "cb9661e2-a177-40d2-835b-10f25a02c2b7",
-        "ida": "PJ-1010-po-1200-inventory",
+        "ida": "PJ-1010-po",
         "dt_created": 1789594441978,
         "dt_modified": 1789594441978,
         "version": 1,
@@ -335190,7 +335190,7 @@
       {
         "id": 400,
         "uuid": "2c1e47cf-6e4a-4e60-b102-02708e93e607",
-        "ida": "PJ-1010-po-2000-accounts_payable",
+        "ida": "PJ-1010-po",
         "dt_created": 1789594442045,
         "dt_modified": 1789594442045,
         "version": 1,
@@ -335324,7 +335324,7 @@
       {
         "id": 401,
         "uuid": "adeb52ab-1db9-4787-b993-f977b9645e68",
-        "ida": "PJ-1011-po-1200-inventory",
+        "ida": "PJ-1011-po",
         "dt_created": 1789594442132,
         "dt_modified": 1789594442132,
         "version": 1,
@@ -335458,7 +335458,7 @@
       {
         "id": 402,
         "uuid": "f4746f0b-206e-4b4c-80a3-2e3346b1a74c",
-        "ida": "PJ-1011-po-2000-accounts_payable",
+        "ida": "PJ-1011-po",
         "dt_created": 1789594442199,
         "dt_modified": 1789594442199,
         "version": 1,
@@ -335592,7 +335592,7 @@
       {
         "id": 403,
         "uuid": "5a54de5d-5145-4d6f-8f2b-4b07f37224e7",
-        "ida": "CJ-1003-c-1000-cash",
+        "ida": "CJ-1003-c",
         "dt_created": 1789594452912,
         "dt_modified": 1789594452912,
         "version": 1,
@@ -335727,7 +335727,7 @@
       {
         "id": 404,
         "uuid": "fe53b2ad-5b44-4e98-b32f-ecf68ba2dd59",
-        "ida": "CJ-1003-c-1100-accounts_receivable",
+        "ida": "CJ-1003-c",
         "dt_created": 1789594452992,
         "dt_modified": 1789594452992,
         "version": 1,
@@ -335862,7 +335862,7 @@
       {
         "id": 405,
         "uuid": "8b421111-0416-4bae-971d-f866a38b2137",
-        "ida": "CJ-1004-c-1000-cash",
+        "ida": "CJ-1004-c",
         "dt_created": 1789594453074,
         "dt_modified": 1789594453074,
         "version": 1,
@@ -335997,7 +335997,7 @@
       {
         "id": 406,
         "uuid": "08a515ad-0847-446a-8ee9-1bba2237115b",
-        "ida": "CJ-1004-c-1100-accounts_receivable",
+        "ida": "CJ-1004-c",
         "dt_created": 1789594453143,
         "dt_modified": 1789594453143,
         "version": 1,
@@ -336132,7 +336132,7 @@
       {
         "id": 407,
         "uuid": "66801244-e5c1-4915-be19-a9ef765fb05d",
-        "ida": "CJ-1005-c-1000-cash",
+        "ida": "CJ-1005-c",
         "dt_created": 1789594453220,
         "dt_modified": 1789594453220,
         "version": 1,
@@ -336267,7 +336267,7 @@
       {
         "id": 408,
         "uuid": "e7219ab1-bd1e-440e-a039-b475c5cfaa95",
-        "ida": "CJ-1005-c-1100-accounts_receivable",
+        "ida": "CJ-1005-c",
         "dt_created": 1789594453288,
         "dt_modified": 1789594453288,
         "version": 1,
@@ -336402,7 +336402,7 @@
       {
         "id": 409,
         "uuid": "aabfeb1d-12a1-4507-b504-18b37cb3c754",
-        "ida": "CJ-1006-c-1000-cash",
+        "ida": "CJ-1006-c",
         "dt_created": 1789594453364,
         "dt_modified": 1789594453364,
         "version": 1,
@@ -336537,7 +336537,7 @@
       {
         "id": 410,
         "uuid": "5de06700-fcac-4fbb-86a2-980621bac887",
-        "ida": "CJ-1006-c-1100-accounts_receivable",
+        "ida": "CJ-1006-c",
         "dt_created": 1789594453438,
         "dt_modified": 1789594453438,
         "version": 1,
@@ -336672,7 +336672,7 @@
       {
         "id": 411,
         "uuid": "cc5f2b8c-a3df-4068-bf40-848af06b1b46",
-        "ida": "CJ-1007-c-1000-cash",
+        "ida": "CJ-1007-c",
         "dt_created": 1789594453513,
         "dt_modified": 1789594453513,
         "version": 1,
@@ -336807,7 +336807,7 @@
       {
         "id": 412,
         "uuid": "5cadc915-7278-444e-9e43-114701e0eaa0",
-        "ida": "CJ-1007-c-1100-accounts_receivable",
+        "ida": "CJ-1007-c",
         "dt_created": 1789594453579,
         "dt_modified": 1789594453579,
         "version": 1,
@@ -336942,7 +336942,7 @@
       {
         "id": 413,
         "uuid": "a1334e4f-b32b-4596-b2ec-56acf40ad1fb",
-        "ida": "CJ-1008-c-1000-cash",
+        "ida": "CJ-1008-c",
         "dt_created": 1789594453654,
         "dt_modified": 1789594453654,
         "version": 1,
@@ -337077,7 +337077,7 @@
       {
         "id": 414,
         "uuid": "9cd94588-2602-45e5-9e9e-64351ca24f1d",
-        "ida": "CJ-1008-c-1100-accounts_receivable",
+        "ida": "CJ-1008-c",
         "dt_created": 1789594453720,
         "dt_modified": 1789594453720,
         "version": 1,
@@ -337212,7 +337212,7 @@
       {
         "id": 415,
         "uuid": "fb5546ae-4b11-477d-a929-efd0f9c93ee3",
-        "ida": "CJ-1009-c-1000-cash",
+        "ida": "CJ-1009-c",
         "dt_created": 1789594453797,
         "dt_modified": 1789594453797,
         "version": 1,
@@ -337347,7 +337347,7 @@
       {
         "id": 416,
         "uuid": "8ff0dd31-cc56-4f4a-a7d8-b0ac971345ff",
-        "ida": "CJ-1009-c-1100-accounts_receivable",
+        "ida": "CJ-1009-c",
         "dt_created": 1789594453865,
         "dt_modified": 1789594453865,
         "version": 1,
@@ -337482,7 +337482,7 @@
       {
         "id": 417,
         "uuid": "4e2f4ffb-9d5d-4d59-9327-ead61747a416",
-        "ida": "CJ-1010-c-1000-cash",
+        "ida": "CJ-1010-c",
         "dt_created": 1789594453940,
         "dt_modified": 1789594453940,
         "version": 1,
@@ -337617,7 +337617,7 @@
       {
         "id": 418,
         "uuid": "49466e9b-00f6-4938-97c7-ed29cabdab0a",
-        "ida": "CJ-1010-c-1100-accounts_receivable",
+        "ida": "CJ-1010-c",
         "dt_created": 1789594454004,
         "dt_modified": 1789594454004,
         "version": 1,
@@ -337752,7 +337752,7 @@
       {
         "id": 419,
         "uuid": "89b7bda0-37dd-4c2f-afb4-3822d08a31dc",
-        "ida": "CJ-1011-c-1000-cash",
+        "ida": "CJ-1011-c",
         "dt_created": 1789594454116,
         "dt_modified": 1789594454116,
         "version": 1,
@@ -337887,7 +337887,7 @@
       {
         "id": 420,
         "uuid": "61aa4656-7807-4c2f-8422-870181937342",
-        "ida": "CJ-1011-c-1100-accounts_receivable",
+        "ida": "CJ-1011-c",
         "dt_created": 1789594454183,
         "dt_modified": 1789594454183,
         "version": 1,
@@ -338022,7 +338022,7 @@
       {
         "id": 421,
         "uuid": "7c5fc977-4244-4dd3-b688-c6d62e3f46af",
-        "ida": "CJ-1012-c-1000-cash",
+        "ida": "CJ-1012-c",
         "dt_created": 1789594454258,
         "dt_modified": 1789594454258,
         "version": 1,
@@ -338157,7 +338157,7 @@
       {
         "id": 422,
         "uuid": "b9b64eea-a322-4459-8115-dc570fcb5090",
-        "ida": "CJ-1012-c-1100-accounts_receivable",
+        "ida": "CJ-1012-c",
         "dt_created": 1789594454323,
         "dt_modified": 1789594454323,
         "version": 1,
@@ -338292,7 +338292,7 @@
       {
         "id": 423,
         "uuid": "637decd3-1235-4004-9e19-2f34fbc52efd",
-        "ida": "CJ-1013-c-1000-cash",
+        "ida": "CJ-1013-c",
         "dt_created": 1789594454401,
         "dt_modified": 1789594454401,
         "version": 1,
@@ -338427,7 +338427,7 @@
       {
         "id": 424,
         "uuid": "4a442812-474d-4495-9e01-4815d64bfd5c",
-        "ida": "CJ-1013-c-1100-accounts_receivable",
+        "ida": "CJ-1013-c",
         "dt_created": 1789594454467,
         "dt_modified": 1789594454467,
         "version": 1,
@@ -338562,7 +338562,7 @@
       {
         "id": 425,
         "uuid": "55b24afd-c6de-4f8d-aed4-8f378ea34c9e",
-        "ida": "CJ-1014-c-1000-cash",
+        "ida": "CJ-1014-c",
         "dt_created": 1789594454541,
         "dt_modified": 1789594454541,
         "version": 1,
@@ -338697,7 +338697,7 @@
       {
         "id": 426,
         "uuid": "9045d1eb-aece-493d-a974-ab082b880587",
-        "ida": "CJ-1014-c-1100-accounts_receivable",
+        "ida": "CJ-1014-c",
         "dt_created": 1789594454606,
         "dt_modified": 1789594454606,
         "version": 1,
@@ -338832,7 +338832,7 @@
       {
         "id": 427,
         "uuid": "512ae809-db9a-41f9-ab5a-beaeaae7ac85",
-        "ida": "CJ-1015-c-1000-cash",
+        "ida": "CJ-1015-c",
         "dt_created": 1789594454680,
         "dt_modified": 1789594454680,
         "version": 1,
@@ -338967,7 +338967,7 @@
       {
         "id": 428,
         "uuid": "34e50707-230f-420a-b7e8-a6761ca5acd1",
-        "ida": "CJ-1015-c-1100-accounts_receivable",
+        "ida": "CJ-1015-c",
         "dt_created": 1789594454746,
         "dt_modified": 1789594454746,
         "version": 1,
@@ -339102,7 +339102,7 @@
       {
         "id": 429,
         "uuid": "8372dd04-04d4-4f23-b18d-4222f87ddc90",
-        "ida": "CJ-1016-c-1000-cash",
+        "ida": "CJ-1016-c",
         "dt_created": 1789594454824,
         "dt_modified": 1789594454824,
         "version": 1,
@@ -339237,7 +339237,7 @@
       {
         "id": 430,
         "uuid": "dee485c4-39b4-4cac-8edc-c2dba88a82b4",
-        "ida": "CJ-1016-c-1100-accounts_receivable",
+        "ida": "CJ-1016-c",
         "dt_created": 1789594454899,
         "dt_modified": 1789594454899,
         "version": 1,
@@ -339372,7 +339372,7 @@
       {
         "id": 431,
         "uuid": "ef08353c-3c76-4913-a176-96f6aaf46e82",
-        "ida": "CJ-1017-c-1000-cash",
+        "ida": "CJ-1017-c",
         "dt_created": 1789594454975,
         "dt_modified": 1789594454975,
         "version": 1,
@@ -339507,7 +339507,7 @@
       {
         "id": 432,
         "uuid": "175c3eca-be8a-49fb-a3f2-f3f7b3b1c25f",
-        "ida": "CJ-1017-c-1100-accounts_receivable",
+        "ida": "CJ-1017-c",
         "dt_created": 1789594455039,
         "dt_modified": 1789594455039,
         "version": 1,
@@ -339642,7 +339642,7 @@
       {
         "id": 433,
         "uuid": "d0b82c6c-806c-48bf-9117-c33f6f1649b5",
-        "ida": "CJ-1018-c-1000-cash",
+        "ida": "CJ-1018-c",
         "dt_created": 1789594455114,
         "dt_modified": 1789594455114,
         "version": 1,
@@ -339777,7 +339777,7 @@
       {
         "id": 434,
         "uuid": "842c98ec-0ee3-4626-a42e-10ff3c8f7349",
-        "ida": "CJ-1018-c-1100-accounts_receivable",
+        "ida": "CJ-1018-c",
         "dt_created": 1789594455181,
         "dt_modified": 1789594455181,
         "version": 1,
@@ -339912,7 +339912,7 @@
       {
         "id": 435,
         "uuid": "97b86ed1-84af-4b37-8233-b0a908c29e00",
-        "ida": "CJ-1019-c-1000-cash",
+        "ida": "CJ-1019-c",
         "dt_created": 1789594455261,
         "dt_modified": 1789594455261,
         "version": 1,
@@ -340047,7 +340047,7 @@
       {
         "id": 436,
         "uuid": "4e9a50f6-e214-410f-855e-a0be2bf5bb02",
-        "ida": "CJ-1019-c-1100-accounts_receivable",
+        "ida": "CJ-1019-c",
         "dt_created": 1789594455328,
         "dt_modified": 1789594455328,
         "version": 1,
@@ -340182,7 +340182,7 @@
       {
         "id": 437,
         "uuid": "ffa35f5b-6ddd-4528-9dde-e090d458fca9",
-        "ida": "CJ-1020-c-1000-cash",
+        "ida": "CJ-1020-c",
         "dt_created": 1789594455405,
         "dt_modified": 1789594455405,
         "version": 1,
@@ -340317,7 +340317,7 @@
       {
         "id": 438,
         "uuid": "771a5f32-e60f-42c3-ad8f-027c5eceeafb",
-        "ida": "CJ-1020-c-1100-accounts_receivable",
+        "ida": "CJ-1020-c",
         "dt_created": 1789594455470,
         "dt_modified": 1789594455470,
         "version": 1,
@@ -340452,7 +340452,7 @@
       {
         "id": 439,
         "uuid": "7fa23fbf-f49d-4808-9bd6-c2af3d4f3626",
-        "ida": "CJ-1021-c-1000-cash",
+        "ida": "CJ-1021-c",
         "dt_created": 1789594455549,
         "dt_modified": 1789594455549,
         "version": 1,
@@ -340587,7 +340587,7 @@
       {
         "id": 440,
         "uuid": "25817d20-24e8-4c37-b3f9-f2ed4a4835e6",
-        "ida": "CJ-1021-c-1100-accounts_receivable",
+        "ida": "CJ-1021-c",
         "dt_created": 1789594455615,
         "dt_modified": 1789594455615,
         "version": 1,
@@ -340722,7 +340722,7 @@
       {
         "id": 441,
         "uuid": "a193075d-8730-4ef9-abfd-14a4907fc174",
-        "ida": "CJ-1022-c-1000-cash",
+        "ida": "CJ-1022-c",
         "dt_created": 1789594455694,
         "dt_modified": 1789594455694,
         "version": 1,
@@ -340857,7 +340857,7 @@
       {
         "id": 442,
         "uuid": "f47b895f-68f7-4a5a-bcc0-47e7a93a4c28",
-        "ida": "CJ-1022-c-1100-accounts_receivable",
+        "ida": "CJ-1022-c",
         "dt_created": 1789594455761,
         "dt_modified": 1789594455761,
         "version": 1,
@@ -340992,7 +340992,7 @@
       {
         "id": 443,
         "uuid": "d5a197e1-71a8-439d-8894-d788fc1000d3",
-        "ida": "CJ-1023-c-1000-cash",
+        "ida": "CJ-1023-c",
         "dt_created": 1789594455837,
         "dt_modified": 1789594455837,
         "version": 1,
@@ -341127,7 +341127,7 @@
       {
         "id": 444,
         "uuid": "369acd05-8462-43dc-a04e-99e7a78e2766",
-        "ida": "CJ-1023-c-1100-accounts_receivable",
+        "ida": "CJ-1023-c",
         "dt_created": 1789594455902,
         "dt_modified": 1789594455902,
         "version": 1,
@@ -341262,7 +341262,7 @@
       {
         "id": 445,
         "uuid": "d76af755-a1c2-40c4-bdab-7054f66dd25e",
-        "ida": "CJ-1024-c-1000-cash",
+        "ida": "CJ-1024-c",
         "dt_created": 1789594455982,
         "dt_modified": 1789594455982,
         "version": 1,
@@ -341397,7 +341397,7 @@
       {
         "id": 446,
         "uuid": "b66d86e3-2268-468a-b201-6ea43be66414",
-        "ida": "CJ-1024-c-1100-accounts_receivable",
+        "ida": "CJ-1024-c",
         "dt_created": 1789594456053,
         "dt_modified": 1789594456053,
         "version": 1,
@@ -341532,7 +341532,7 @@
       {
         "id": 447,
         "uuid": "463ab4f6-03aa-4a4c-9280-0a8dad1c226b",
-        "ida": "CJ-1025-c-1000-cash",
+        "ida": "CJ-1025-c",
         "dt_created": 1789594456142,
         "dt_modified": 1789594456142,
         "version": 1,
@@ -341667,7 +341667,7 @@
       {
         "id": 448,
         "uuid": "d640e0f7-2094-468a-91f0-f4eac77ca532",
-        "ida": "CJ-1025-c-1100-accounts_receivable",
+        "ida": "CJ-1025-c",
         "dt_created": 1789594456210,
         "dt_modified": 1789594456210,
         "version": 1,
@@ -341802,7 +341802,7 @@
       {
         "id": 449,
         "uuid": "86439508-889d-4376-a7dd-d07d8c94406d",
-        "ida": "CJ-1026-c-1000-cash",
+        "ida": "CJ-1026-c",
         "dt_created": 1789594456290,
         "dt_modified": 1789594456290,
         "version": 1,
@@ -341937,7 +341937,7 @@
       {
         "id": 450,
         "uuid": "d30a36b0-6c6f-4970-9004-082ab0a46541",
-        "ida": "CJ-1026-c-1100-accounts_receivable",
+        "ida": "CJ-1026-c",
         "dt_created": 1789594456357,
         "dt_modified": 1789594456357,
         "version": 1,
@@ -342072,7 +342072,7 @@
       {
         "id": 451,
         "uuid": "8eacbd4b-b3a9-4ab1-a678-b31c1a18ccc3",
-        "ida": "CJ-1027-c-1000-cash",
+        "ida": "CJ-1027-c",
         "dt_created": 1789594456434,
         "dt_modified": 1789594456434,
         "version": 1,
@@ -342207,7 +342207,7 @@
       {
         "id": 452,
         "uuid": "c98361d7-1b03-4a96-8e2b-bddb68742144",
-        "ida": "CJ-1027-c-1100-accounts_receivable",
+        "ida": "CJ-1027-c",
         "dt_created": 1789594456500,
         "dt_modified": 1789594456500,
         "version": 1,
@@ -342342,7 +342342,7 @@
       {
         "id": 453,
         "uuid": "f3a8ee6b-47e5-48ee-829e-156721e9802c",
-        "ida": "CJ-1028-c-1000-cash",
+        "ida": "CJ-1028-c",
         "dt_created": 1789594456579,
         "dt_modified": 1789594456579,
         "version": 1,
@@ -342477,7 +342477,7 @@
       {
         "id": 454,
         "uuid": "d21996df-a4e9-48ba-b2c5-66d0153ec206",
-        "ida": "CJ-1028-c-1100-accounts_receivable",
+        "ida": "CJ-1028-c",
         "dt_created": 1789594456645,
         "dt_modified": 1789594456645,
         "version": 1,

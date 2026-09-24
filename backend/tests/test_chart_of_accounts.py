@@ -42,15 +42,15 @@ def test_journal_to_undefined_account_is_refused(chart_of_accounts):
 
 
 def test_inactive_account_is_refused(chart_of_accounts):
-    GlAccount.objects.filter(ida="6700-travel").update(is_active=False)
+    GlAccount.objects.filter(ida="6700-travel_meals").update(is_active=False)
     with pytest.raises(UndefinedAccountError, match="inactive"):
-        GlJournal.objects.create(account="6700-travel", debit=1.0)
+        GlJournal.objects.create(account="6700-travel_meals", debit=1.0)
 
 
 def test_account_codes_are_uniform(chart_of_accounts):
     with pytest.raises(UndefinedAccountError, match="lowercase_words"):
-        GlAccount.objects.create(ida="4500-Consulting", name="Consulting", type="revenue", category="sales", used_for="sales")
-    GlAccount.objects.create(ida="4500-consulting_revenue", name="Consulting", type="revenue", category="sales", used_for="sales")
+        GlAccount.objects.create(ida="4500-Consulting", name="Consulting", type="revenue", category="revenue", used_for="sales")
+    GlAccount.objects.create(ida="4500-consulting_revenue", name="Consulting", type="revenue", category="revenue", used_for="sales")
 
 
 def test_every_role_maps_to_a_chart_account(chart_of_accounts):
