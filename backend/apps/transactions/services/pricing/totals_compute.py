@@ -470,12 +470,14 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
         typed = num(line_tax_env, 'sales_rate', 6)
         source = line_tax_env.get('rate_source')
         tax_code = (cost_env.get('tax_code', '') or '').upper()
-        if source == 'line':
+        # An exempt customer is exempt on every line — a rate typed on a line does not
+        # override the exemption (defect B-4: the typed rate was checked first).
+        if is_exempt:
+            rate, source = Decimal(0), 'exempt'
+        elif source == 'line':
             rate, source = (typed / 100 if typed > 1 else typed), 'line'
         elif not is_sell and not policy['tax_on_costs']:
             rate, source = Decimal(0), 'costs_not_taxed'
-        elif is_exempt:
-            rate, source = Decimal(0), 'exempt'
         elif tax_code in ('EXEMPT', 'NONTAXABLE', 'NON-TAXABLE'):
             rate, source = Decimal(0), 'item_exempt'
         else:
