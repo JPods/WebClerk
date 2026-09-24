@@ -1,8 +1,10 @@
 """Field assignment service for the universal save pipeline.
 
 Extracted from save_view.py — handles field coercion, JSON deep merge,
-FK normalization, mode dispatch (update/insert/delete), and unknown field
-routing to prefs.userdefined.
+FK normalization and mode dispatch (update/insert/delete). A field the model does not
+have is never stored: the one field authority ignores anything not enumerated (Bill,
+2026-09-20), so the old capture into prefs.userdefined was deleted (Bill, 2026-09-24:
+"Delete junk").
 
 Part of the save_* service cluster:
   save_field_assignment.py  — this file
@@ -123,7 +125,7 @@ def _sanitize_empty_numeric(value, model_cls, field_name):
 
 
 def _delete_field(obj, field: str):
-    """Handle delete mode for a field — model attribute or prefs.userdefined."""
+    """Handle delete mode for a field — a model attribute or a dotted leaf."""
     if '.' in field:
         delete_nested_value(obj, field)
         return
@@ -132,20 +134,6 @@ def _delete_field(obj, field: str):
         setattr(obj, field, None)
         return
 
-    # Check prefs.userdefined
-    try:
-        prefs = getattr(obj, 'prefs', {}) or {}
-        if isinstance(prefs, str):
-            try:
-                prefs = json.loads(prefs)
-            except json.JSONDecodeError:
-                prefs = {}
-        userdefined = prefs.get('userdefined', {})
-        if field in userdefined:
-            del userdefined[field]
-            setattr(obj, 'prefs', prefs)
-    except Exception:
-        pass
 
 
 def _set_fk_field(obj, field: str, model_field, value) -> bool:
@@ -197,66 +185,6 @@ def _coerce_int_field(value, model_field):
     if value is None:
         return 0
     return value
-
-
-def _store_unknown_field(obj, field: str, value, field_size_errors: list):
-    """Route unknown fields to prefs.userdefined.
-
-    Enforces five constraints BEFORE writing:
-      1. Key name max 64 chars
-      2. Value must be flat scalar (no dicts, no lists)
-      3. String values max 255 chars
-      4. Max 20 keys total in userdefined
-      5. Overall prefs envelope size check
-    """
-    # 1. Key name length
-    if len(field) > UNKNOWN_FIELD_MAX_KEY_LEN:
-        field_size_errors.append(
-            f"userdefined key '{field[:20]}...' exceeds "
-            f"{UNKNOWN_FIELD_MAX_KEY_LEN} chars"
-        )
-        return
-
-    # 2. Reject nested values — flat scalars only
-    if isinstance(value, (dict, list)):
-        field_size_errors.append(
-            f"userdefined['{field}'] must be a flat scalar "
-            f"(str/int/float/bool/None), got {type(value).__name__}"
-        )
-        return
-
-    # 3. String value length
-    if isinstance(value, str) and len(value) > UNKNOWN_FIELD_MAX_CHARS:
-        field_size_errors.append(
-            f"userdefined['{field}'] string exceeds "
-            f"{UNKNOWN_FIELD_MAX_CHARS} chars"
-        )
-        return
-
-    try:
-        prefs = getattr(obj, 'prefs', {}) or {}
-        if isinstance(prefs, str):
-            try:
-                prefs = json.loads(prefs)
-            except json.JSONDecodeError:
-                prefs = {}
-        userdefined = prefs.setdefault('userdefined', {})
-
-        # 4. Max key count (only block if this is a NEW key)
-        if field not in userdefined and len(userdefined) >= UNKNOWN_FIELD_MAX_KEYS:
-            field_size_errors.append(
-                f"userdefined already has {UNKNOWN_FIELD_MAX_KEYS} keys; "
-                f"cannot add '{field}'"
-            )
-            return
-
-        userdefined[field] = value
-
-        # 5. Overall prefs envelope size
-        check_field_size(prefs, MAX_FIELD_SIZE, 'prefs')
-        setattr(obj, 'prefs', prefs)
-    except ValueError as e:
-        field_size_errors.append(str(e))
 
 
 def _check_binary_content(value, field: str, model_name: str) -> str | None:
@@ -437,7 +365,7 @@ def assign_fields(
                         else:
                             setattr(obj, field, value)
                 else:
-                    _store_unknown_field(obj, field, value, field_size_errors)
+                    continue                        # not a field: ignored, never stored
 
         except (ValueError, TypeError) as e:
             field_value_errors.append(f"{field}: {e}")
