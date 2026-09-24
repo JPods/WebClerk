@@ -29,7 +29,8 @@ def test_the_old_get_route_is_gone(client, user1):
     """GET /wcapi/get/ was the verb in the path; REST reads are GET /wcapi/<model>/."""
     client.force_login(user1)
     resp = client.get('/wcapi/get/', {'model_name': 'contact'})
-    assert resp.status_code in (400, 404)
+    assert resp.status_code == 400, resp.content      # 'get' is read as a model, and is none
+    assert resp.json()['error']['code'] == 'unknown_model'
 
 
 @pytest.mark.django_db

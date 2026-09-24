@@ -96,8 +96,30 @@ def after(ctx: HookContext) -> None:
         try:
             with transaction.atomic():
                 run()
+        except UserHookFailed as failed:
+            _rolled_back(ctx)
+            _after_hook_failed(ctx, layer, failed.note)
         except Exception as exc:  # noqa: BLE001 — reported loudly below, never swallowed
+            _rolled_back(ctx)
             _after_hook_failed(ctx, layer, f'{type(exc).__name__}: {exc}')
+
+
+def _rolled_back(ctx: HookContext) -> None:
+    """The savepoint undid the hook's writes; the instance forgets them too, so nothing
+    after it (the keyword save, the next layer) writes them back."""
+    pk = getattr(ctx.obj, 'pk', None)
+    if pk is not None and type(ctx.obj).objects.filter(pk=pk).exists():
+        ctx.obj.refresh_from_db()
+
+
+class UserHookFailed(Exception):
+    """A user after hook recorded problems instead of raising. Raised inside the hook's
+    savepoint so what the hook did write — a set, a created action, a log line — is rolled
+    back with it, as a code hook's writes are (Fable review of step 1, 2026-09-24)."""
+
+    def __init__(self, note: str):
+        super().__init__(note)
+        self.note = note
 
 
 def _user_hook(ctx: HookContext, moment: str) -> None:
@@ -126,14 +148,14 @@ def _user_hook(ctx: HookContext, moment: str) -> None:
     finally:
         _USER_HOOK_DEPTH.reset(token)
 
-    if moment == 'post' and result.set_fields and ctx.verb == 'save':
-        _save_hook_fields(ctx.obj, result.set_fields)
     if result.errors:
         note = '; '.join(result.errors)
         console_logger.warning('[HOOK] %s.%s_%s problems: %s', ctx.model_key, ctx.verb,
                                moment, note)
         if moment == 'post':
-            _after_hook_failed(ctx, 'user', note)
+            raise UserHookFailed(note)
+    if moment == 'post' and result.set_fields and ctx.verb == 'save':
+        _save_hook_fields(ctx.obj, result.set_fields)
 
 
 def _save_hook_fields(obj, paths) -> None:

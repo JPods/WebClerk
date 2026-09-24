@@ -151,9 +151,13 @@ class SecurityAlertMiddleware:
         if getattr(user, 'is_superuser', False):
             return
 
-        # Check if this is a list/get endpoint returning empty data
-        path = request.path or ''
-        if '/wcapi/get/' not in path and '/wcapi/list/' not in path:
+        # A list read through the REST channel: GET /wcapi/<model>/ (named by its route —
+        # the old /wcapi/get/ path is gone, and matching it left this alarm dead).
+        from django.urls import Resolver404, resolve
+        try:
+            if resolve(request.path).url_name != 'wcapi-model':
+                return
+        except Resolver404:
             return
 
         # Try to detect empty results from response
@@ -164,6 +168,8 @@ class SecurityAlertMiddleware:
 
             # Check various response shapes
             results = data.get('data', data.get('results', data.get('items', None)))
+            if isinstance(results, dict):
+                results = results.get('results')
             if results is not None and (isinstance(results, list) and len(results) == 0):
                 _empty_results[user.id] += 1
                 count = _empty_results[user.id]

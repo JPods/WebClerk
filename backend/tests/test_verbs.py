@@ -20,10 +20,12 @@ from apps.core.services.save import save_record
 pytestmark = pytest.mark.django_db
 
 POINTS = {
-    'item.save_pre': {'may_set': [], 'may_block': True},
+    'item.save_pre': {'may_set': ['metadata.review.*'], 'may_block': True},
     'item.save_post': {'may_set': ['metadata.review.*'], 'may_create': ['action']},
     'item.delete_pre': {'may_set': [], 'may_block': True},
-    'item.delete_post': {'may_set': []},
+    'item.delete_post': {'may_set': ['metadata.review.*']},
+    'action.save_post': {'may_set': [], 'may_create': ['action']},
+    'invoice.report_after': {'may_set': []},
 }
 
 
@@ -82,6 +84,38 @@ def test_user_hooks_run_when_the_model_has_code_hooks(registry, recorder):
     item.refresh_from_db()
     assert recorder == ['code before', 'code after']
     assert item.metadata['review']['flag'] == 'seen', 'the user after hook ran too'
+
+
+def test_the_five_steps_run_in_order(registry):
+    """code before → user before → base → code after → user after, on one save."""
+    seen = []
+
+    def review(ctx):
+        return dict((ctx.obj.metadata or {}).get('review') or {})
+
+    class Order(ModelBehaviour):
+        def before_save(self, ctx: HookContext) -> None:
+            seen.append(('code before', review(ctx), ctx.obj.pk))
+
+        def after_save(self, ctx: HookContext) -> None:
+            seen.append(('code after', review(ctx), ctx.obj.pk))
+
+    user_hook('RPT-ORDER-PRE', {'point': 'item.save_pre',
+                                'before': [{'set': {'metadata.review.pre': 'user before'}}]})
+    user_hook('RPT-ORDER-POST', {'point': 'item.save_post',
+                                 'after': [{'set': {'metadata.review.post': 'user after'}}]})
+    register('item', Order())
+    try:
+        item = _item('zz-verb-order')
+    finally:
+        register('item', ModelBehaviour())
+
+    (code_before, before_review, before_pk), (code_after, after_review, after_pk) = seen
+    assert before_review == {} and before_pk is None, 'code before: nothing ran, nothing saved'
+    assert after_review == {'pre': 'user before'} and after_pk == item.pk, \
+        'code after: the user before hook and the base ran; the user after hook has not'
+    item.refresh_from_db()
+    assert item.metadata['review'] == {'pre': 'user before', 'post': 'user after'}
 
 
 def test_a_user_before_hook_refuses_after_the_code_hook_ran(registry, recorder):
@@ -265,6 +299,81 @@ def test_a_failing_after_hook_keeps_the_save_and_opens_one_critical_action():
     assert faults.get().priority == 4
 
 
+def test_a_failing_user_after_hook_keeps_the_save_and_rolls_back_what_it_wrote(registry):
+    """A user hook records its problems rather than raising; what it did write before the
+    problem is rolled back all the same, and the admins get one action."""
+    from apps.core.models import Action
+    report = user_hook('RPT-BAD', {'point': 'item.save_post',
+                                   'after': [{'set': {'metadata.review.ok': True}}]})
+    # The registry narrowed after clearance: the second rule's path is no longer settable.
+    Report.objects.filter(pk=report.pk).update(config={'hooks': {
+        'point': 'item.save_post', 'athena': {'required': False},
+        'after': [{'set': {'metadata.review.ok': True}}, {'set': {'name': 'not allowed'}}]}})
+
+    result = save_record(Actor.system(), {'model_name': 'item', 'name': 'Kept',
+                                          'ida': 'zz-verb-user-broken'})
+    save_record(Actor.system(), {'model_name': 'item', 'name': 'Kept too',
+                                 'ida': 'zz-verb-user-broken-2'})
+
+    item = result.obj
+    item.refresh_from_db()
+    assert item.name == 'Kept', 'the save stands'
+    assert not (item.metadata or {}).get('review'), 'the allowed set was rolled back with it'
+    assert any("set 'name' not allowed" in m for m in result.messages)
+    faults = Action.objects.filter(refs__hook_fault__key='item.save_post:user')
+    assert faults.count() == 1 and faults.get().priority == 4
+
+
+def test_a_hook_made_record_runs_its_own_hook_once_and_no_deeper(registry):
+    """Hook depth (plan §11.4: refuse > 1). The item's hook (depth 0) makes an action; that
+    action's hook (depth 1) makes another; the second action's hook (depth 2) is refused.
+    The refusal is an after-hook failure: the action stands and the admins are told."""
+    from apps.core.models import Action
+    user_hook('RPT-ITEM-ACT', {'point': 'item.save_post',
+                               'after': [{'create_action': {'name': 'from item'}}]})
+    user_hook('RPT-ACT-ACT', {'point': 'action.save_post',
+                              'after': [{'create_action': {'name': 'from action'}}]})
+    item = _item('zz-verb-depth')
+
+    made = Action.objects.filter(refs__source__isnull=False)
+    from_item = made.filter(refs__source__model='item', refs__source__id=item.pk)
+    assert from_item.count() == 1
+    from_action = made.filter(refs__source__model='action',
+                              refs__source__id=from_item.get().pk)
+    assert from_action.count() == 1, 'the hook-made action ran its own hook once'
+    assert not made.filter(refs__source__model='action',
+                           refs__source__id=from_action.get().pk).exists(), 'and no deeper'
+    fault = Action.objects.get(refs__hook_fault__key='action.save_post:user')
+    assert 'hook_depth' in str(fault.description) or 'nest' in str(fault.description)
+
+
+def test_a_non_slot_point_may_hold_more_than_one_report(registry):
+    """The one-report index covers <model>.<verb>_pre|post only — other points are not slots."""
+    user_hook('RPT-NOSLOT-1', {'point': 'invoice.report_after', 'after': []})
+    user_hook('RPT-NOSLOT-2', {'point': 'invoice.report_after', 'after': []})
+    assert Report.objects.filter(ida__startswith='RPT-NOSLOT', is_active=True).count() == 2
+
+
+def test_user_hooks_run_on_delete_after_the_record_is_gone(registry):
+    item = _item('zz-verb-del-post')
+    user_hook('RPT-DEL-POST', {'point': 'item.delete_post',
+                               'after': [{'set': {'metadata.review.gone': True}}]})
+    seen = {}
+
+    class Watcher(ModelBehaviour):
+        def after_delete(self, ctx: HookContext) -> None:
+            seen['id'] = ctx.obj.pk
+
+    register('item', Watcher())
+    try:
+        result = delete_record(Actor.system(), 'item', item.pk)
+    finally:
+        register('item', ModelBehaviour())
+    assert result.deleted and seen['id'] == item.pk
+    from apps.products.models import Item
+    assert not Item.objects.filter(pk=item.pk).exists(), 'a post-delete set writes nothing back'
+
+
 # ── get is a verb (read-door step 2) ──────────────────────────────────
 
 def test_a_command_reads_as_an_actor_with_no_request():
@@ -307,6 +416,19 @@ def test_a_read_refusal_carries_its_status_and_code():
 
 def test_the_rest_channel_reads_through_the_verb(client, django_user_model):
     from apps.products.models import Item
-    Item.objects.create(ida='zz-verb-rest', name='Rest', security_level=1)
-    resp = client.get('/wcapi/item/', {'search': 'zz-verb-rest'})
-    assert resp.status_code in (200, 403), resp.content
+
+    class Stamper(ModelBehaviour):
+        def after_get(self, ctx: HookContext) -> None:
+            ctx.data['result']['stamped'] = True
+
+    item = Item.objects.create(ida='zz-verb-rest', name='Rest', security_level=1)
+    admin = django_user_model.objects.create_user(email='rest-admin@test.com', password='x',
+                                                  username='', role='admin')
+    client.force_login(admin)
+    register('item', Stamper())
+    try:
+        resp = client.get(f'/wcapi/item/{item.pk}/')
+    finally:
+        register('item', ModelBehaviour())
+    assert resp.status_code == 200, resp.content
+    assert resp.json()['data']['stamped'] is True, 'the route reached the verb and its hooks'

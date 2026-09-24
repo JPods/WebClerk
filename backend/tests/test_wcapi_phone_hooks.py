@@ -27,7 +27,11 @@ def test_phone_pre_and_post_hooks_success(monkeypatch):
         resp = wcapi_save(c, data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 200, resp.content
     data = assert_envelope(resp.json(), expect_status='success')
-    assert Phone.objects.filter(number='5551234').exists()
+    phone = Phone.objects.get(number='5551234')
+    # The after hook (CommunicationBehaviour) links the phone to the person who saved it.
+    user.refresh_from_db()
+    linked = ((user.refs or {}).get('links') or {}).get('phone') or []
+    assert any(isinstance(l, dict) and l.get('id') == phone.pk for l in linked), user.refs
 
 @pytest.mark.django_db
 @pytest.mark.hooks
