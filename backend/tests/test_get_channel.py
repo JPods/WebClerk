@@ -78,13 +78,13 @@ def test_contact_search_requires_login():
 
 
 def test_action_cannot_reach_a_record_its_caller_cannot_read(db):
-    """A viewset action looks its record up through visible_queryset: a signed-in user
-    whose role shows them no quotes gets 404, not the quote."""
+    """A command looks its record up through visible_queryset: a signed-in user whose role
+    shows them no quotes gets 404, not the quote."""
     quote = Quote.objects.create(status='planned')
     portal = Contact.objects.create(email='portal@example.com', role='customer')
     client = APIClient()
     client.force_authenticate(user=portal)
-    response = client.post(f'/wcapi/quote/{quote.pk}/convert-to-order/', {}, format='json')
+    response = client.post(f'/wcapi/quote/{quote.pk}/convert/', {'to': 'order'}, format='json')
     assert response.status_code == 404
 
 

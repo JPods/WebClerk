@@ -352,12 +352,18 @@ def _changed(obj, snapshot: Dict[str, Any]) -> frozenset:
 
 @transaction.atomic
 def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
-                record_id=None, expected_version=None) -> SaveResult:
+                record_id=None, expected_version=None,
+                server_set: Optional[Dict[str, Any]] = None) -> SaveResult:
     """Write one record. The only path that does.
 
     ``data`` is the payload as the caller holds it (already parsed; dot-paths and the
     ``record``/``data`` envelopes are the HTTP layer's business). ``model_key`` defaults
     to ``data['model_name']``.
+
+    ``server_set`` is what the server authored, not the caller — a converted document's
+    header built from its source (lineage, tax setup, commission, discount). It is merged
+    after the role's field filter, so a role that may not type those fields still carries
+    them forward; everything else (create rights, scope, hooks) is still the actor's.
 
     Raises ``Refused`` with the status and code the caller should answer with.
     """
@@ -374,9 +380,11 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
     obj, created = _load_or_new(actor, model_cls, model_key, record_id, expected_version)
     is_update = not created
 
+    if server_set:
+        data = {k: v for k, v in data.items() if k not in server_set}
     with unit_of_work():
         size_warnings, ctx = _write(actor, obj, model_cls, model_key, norm_key,
-                                    data, is_update)
+                                    data, is_update, server_set=server_set)
     # Derived work — a document's totals — happened once, on the way out of the unit, so
     # what is read back here is what the caller will be told.
     obj.refresh_from_db()
@@ -401,9 +409,11 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
 
 
 def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: dict,
-           is_update: bool):
+           is_update: bool, server_set: Optional[Dict[str, Any]] = None):
     """Authorize, assign, before, persist, flush, after — inside one unit of work."""
     data = _authorize(actor, obj, model_cls, model_key, data, is_update)
+    if server_set:
+        data.update(copy.deepcopy(server_set))
     _results_are_computed(model_key, data)
     snapshot = _snapshot(obj)
     size_warnings = _assign(obj, data, model_cls, model_key, norm_key, is_update)

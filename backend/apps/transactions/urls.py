@@ -7,14 +7,7 @@ from apps.transactions.views.cash_views import (
     gateway_config,
     checkout_pricing,
 )
-from apps.transactions.views.transfer_views import (
-    validate_transfer,
-    execute_transfer,
-    reserve_inventory,
-    release_inventory,
-    bulk_transfer_quotes,
-    bulk_transfer_orders,
-)
+from apps.transactions.views.transfer_views import validate_transfer
 
 app_name = 'transactions'
 
@@ -25,7 +18,6 @@ from apps.transactions.views.transaction_views import (
     PurchaseViewSet,
     InvoiceViewSet,
 )
-from apps.transactions.views.actions import OrderToPurchaseView
 
 router = DefaultRouter()
 # wcapi paths are wcapi/<model_name>/... — the app name never appears in the path,
@@ -39,27 +31,17 @@ urlpatterns = [
     # DRF router URLs for CRUD operations
     path('', include(router.urls)),
 
-    # Conversion endpoints
-    path('quote/<int:pk>/convert-to-order/', QuoteViewSet.as_view({'post': 'convert_to_order'}), name='quote-convert-to-order'),
-    path('order/<int:pk>/convert-to-invoice/', OrderViewSet.as_view({'post': 'convert_to_invoice'}), name='order-convert-to-invoice'),
-    path('order/<int:pk>/convert-to-purchase/', OrderToPurchaseView.as_view(), name='order-convert-to-purchase'),
+    # Conversion is a command: POST /wcapi/<source>/<id>/convert/ {to} (services/convert).
     path('purchase/<int:pk>/receive-goods/', PurchaseViewSet.as_view({'post': 'receive_goods'}), name='purchase-receive-goods'),
 
     # Transfer operations
     path('transfers/validate/', validate_transfer, name='validate_transfer'),
-    path('transfers/execute/', execute_transfer, name='execute_transfer'),
-    path('transfers/bulk/quotes-to-orders/', bulk_transfer_quotes, name='bulk_transfer_quotes'),
-    path('transfers/bulk/orders-to-invoices/', bulk_transfer_orders, name='bulk_transfer_orders'),
 
     # Cash operations
     path('cash/<int:cash_id>/status/', cash_status, name='cash_status'),
     path('cash/history/', cash_history, name='cash_history'),
     path('cash/gateway-config/', gateway_config, name='gateway_config'),
     path('cash/checkout-pricing/<int:invoice_id>/', checkout_pricing, name='checkout_pricing'),
-
-    # Inventory operations
-    path('inventory/reserve/', reserve_inventory, name='reserve_inventory'),
-    path('inventory/release/<int:invoice_id>/', release_inventory, name='release_inventory'),
 
     # Statement harvester — JSON-based
     path('statements/harvest/',

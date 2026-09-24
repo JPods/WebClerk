@@ -4,14 +4,16 @@ Order Production Service — GAP-01
 Manages the fulfillment workflow: Order → Work Orders, Material Draws,
 Requisitions → Action Decision (partial/complete) → Invoice.
 
+A partial shipment is fulfillment_ship.ship_order: it invoices what was packed through the
+one conversion engine (partial_ship, a second engine with its own stock Pending, is gone).
+
 All functions are single-purpose. Called from wcapi/manage.
 
 Flow:
   1. spawn_workorder(order_id) → creates WO from order lines
   2. spawn_requisition(order_id, lines) → creates requisition for items to purchase
   3. record_production_action(order_id, action, lines) → partial ship or complete
-  4. partial_ship(order_id, shipped_lines) → creates invoice for shipped, backorder for remainder
-  5. complete_order(order_id) → closes order, creates final invoice
+  4. complete_order(order_id) → closes order, creates final invoice
 """
 from __future__ import annotations
 from typing import List, Dict, Optional
@@ -106,125 +108,6 @@ def record_production_action(order_id: int, action_text: str, assigned_to: int =
     )
 
     return {'action_id': action.pk}
-
-
-def partial_ship(order_id: int, shipped_lines: List[Dict]) -> Dict:
-    """Ship some lines from an order, creating an invoice for shipped items.
-
-    shipped_lines: [{'order_line_id': X, 'qty_shipped': N}, ...]
-
-    For each shipped line:
-      - Creates invoice line with qty_shipped
-      - Order line remaining recomputes from its invoice lines
-      - If remaining > 0, creates backorder entry
-
-    Returns: {invoice_id, lines_shipped, lines_backordered}
-    """
-    from apps.transactions.services.fulfillment.fulfillment_backorder import create_backorder_entries
-
-    order = Order.objects.get(pk=order_id)
-    now = _now_ms()
-
-    with transaction.atomic():
-        # Create invoice
-        invoice = Invoice.objects.create(
-            status='planned',
-            parent_id=order.pk,
-            parent_model='order',
-            customer=order.customer,
-            vendor=order.vendor,
-            contact=order.contact,
-            attention=order.attention,
-            terms=order.terms,
-            price_level=order.price_level,
-            source=order.source or {},
-            dt_created=now,
-            dt_modified=now,
-        )
-
-        lines_shipped = 0
-        backorder_lines = []
-
-        for sl in shipped_lines:
-            ol = OrderLine.objects.get(pk=sl['order_line_id'])
-            qty_shipped = sl['qty_shipped']
-
-            # Invoice line for the shipped qty. parent_line_id makes it a child of
-            # the order line, which recomputes its own remaining when this saves.
-            InvoiceLine.objects.create(
-                invoice=invoice,
-                parent_line_id=ol.pk,
-                line_number=ol.line_number,
-                item_fk=ol.item_fk,
-                quantity={'active': qty_shipped},
-                price=ol.price or {},
-                cost=ol.cost or {},
-                status='shipped',
-                refs={'source': {'order_id': order.pk, 'order_line_id': ol.pk}},
-                dt_created=now,
-                dt_modified=now,
-            )
-            lines_shipped += 1
-
-            ol.refresh_from_db(fields=['quantity'])
-            qty_remaining = (ol.quantity or {}).get('remaining', 0)
-
-            # ONE PATH: decrement item on_hand via Pending
-            if ol.item_fk_id and qty_shipped > 0:
-                Pending.objects.create(
-                    model_name='item',
-                    record_id=str(ol.item_fk_id),
-                    purpose='inventory_line_add',
-                    name=f'Production ship: {ol.item_fk_id}',
-                    changes={
-                        'on_hand': -qty_shipped,
-                        'item_id': ol.item_fk_id,
-                        'reason': 'production_ship',
-                        'source_type': 'order',
-                        'source_id': order.pk,
-                        'source_line_id': ol.pk,
-                    },
-                )
-
-            # Track backorder if remaining > 0
-            if qty_remaining > 0:
-                backorder_lines.append({
-                    'order_id': order.pk,
-                    'order_line_id': ol.pk,
-                    'item_fk_id': ol.item_fk_id,
-                    'qty_backordered': qty_remaining,
-                })
-
-        # Create backorder entries
-        if backorder_lines:
-            create_backorder_entries(backorder_lines)
-
-        # Link invoice to order flow
-        flow = order.flow or {}
-        children = flow.get('children', [])
-        children.append({'type': 'invoice', 'id': invoice.pk})
-        flow['children'] = children
-        order.flow = flow
-
-        # Update order status
-        all_lines = OrderLine.objects.filter(order_id=order.pk)
-        all_fulfilled = all(
-            (l.quantity or {}).get('remaining', 0) == 0
-            for l in all_lines
-        )
-        if all_fulfilled:
-            order.status = 'complete'
-        else:
-            order.status = 'in_progress'
-
-        order.save(update_fields=['flow', 'status', 'dt_modified'])
-
-    return {
-        'invoice_id': invoice.pk,
-        'lines_shipped': lines_shipped,
-        'lines_backordered': len(backorder_lines),
-        'order_status': order.status,
-    }
 
 
 def complete_order(order_id: int) -> Dict:

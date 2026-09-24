@@ -29,13 +29,8 @@ Actions:
   Totals Recalculation:
     recalculate_totals         — recompute header totals from all lines
     recalculate_line           — recompute single line extended + update parent totals
-  Document Conversion Chain:
-    convert_quote_to_order      — quote lines to new order (partial supported)
-    convert_order_to_invoice       — order lines to new invoice (partial supported)
-    convert_order_to_purchase      — order lines to new PO (drop-ship / procurement)
-    convert_quote_to_invoice    — quote direct to invoice (over-the-counter)
+  Document Conversion Chain (converting is POST /wcapi/<source>/<id>/convert/ {to}):
     get_conversion_history         — trace parent/child chain for a transaction
-    bulk_convert                   — convert multiple source transactions at once
   Shipping / Packing Workflow:
     generate_pick_list             — pick list with bin locations for an order
     confirm_pack                   — record packed lines with tracking/carrier/weight
@@ -1087,7 +1082,6 @@ _ACTION_DISPATCH = {
     # ── Order Production (GAP-01) ──
     "spawn_workorder": lambda p: __import__('apps.transactions.services.production_fulfill', fromlist=['spawn_workorder']).spawn_workorder(p['order_id']),
     "record_production_action": lambda p: __import__('apps.transactions.services.production_fulfill', fromlist=['record_production_action']).record_production_action(p['order_id'], p['action_text'], p.get('assigned_to')),
-    "partial_ship": lambda p: __import__('apps.transactions.services.production_fulfill', fromlist=['partial_ship']).partial_ship(p['order_id'], p['shipped_lines']),
     "complete_order": lambda p: __import__('apps.transactions.services.production_fulfill', fromlist=['complete_order']).complete_order(p['order_id']),
     # ── Backorder Management (GAP-04) ──
     "get_open_backorders": lambda p: __import__('apps.transactions.services.fulfillment.fulfillment_backorder', fromlist=['get_open_backorders']).get_open_backorders(p.get('item_id')),
@@ -1180,12 +1174,7 @@ _ACTION_DISPATCH = {
     "scan_changed_files": lambda p: __import__('apps.ai_assistant.services.watch_code', fromlist=['scan_changed_files']).scan_changed_files(p['files']),
     "get_migration_report": lambda p: __import__('apps.ai_assistant.services.watch_code', fromlist=['get_migration_report']).get_migration_report(),
     # ── Document Conversion Chain ──
-    "convert_quote_to_order": lambda p: __import__('apps.transactions.services.convert.convert', fromlist=['convert_quote_to_order']).convert_quote_to_order(p['quote_id'], p.get('line_ids'), p.get('contact_id')),
-    "convert_order_to_invoice": lambda p: __import__('apps.transactions.services.convert.convert', fromlist=['convert_order_to_invoice']).convert_order_to_invoice(p['order_id'], p.get('line_ids'), p.get('contact_id')),
-    "convert_order_to_purchase": lambda p: __import__('apps.transactions.services.convert.convert', fromlist=['convert_order_to_purchase']).convert_order_to_purchase(p['order_id'], p.get('line_ids'), p.get('vendor_id'), p.get('contact_id')),
-    "convert_quote_to_invoice": lambda p: __import__('apps.transactions.services.convert.convert', fromlist=['convert_quote_to_invoice']).convert_quote_to_invoice(p['quote_id'], p.get('line_ids'), p.get('contact_id')),
     "get_conversion_history": lambda p: __import__('apps.transactions.services.convert.convert', fromlist=['get_conversion_history']).get_conversion_history(p['transaction_id'], p['model_name']),
-    "bulk_convert": lambda p: __import__('apps.transactions.services.convert.convert', fromlist=['bulk_convert']).bulk_convert(p['source_model'], p['source_ids'], p['target_model'], p.get('contact_id'), p.get('vendor_id')),
     # ── Shipping / Packing Workflow ──
     "generate_pick_list": lambda p: __import__('apps.transactions.services.fulfillment.fulfillment_ship', fromlist=['generate_pick_list']).generate_pick_list(p['order_id']),
     "confirm_pack": lambda p: __import__('apps.transactions.services.fulfillment.fulfillment_ship', fromlist=['confirm_pack']).confirm_pack(p['order_id'], p['packed_lines']),

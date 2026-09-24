@@ -151,25 +151,71 @@ def test_the_rep_travels_quote_to_order_to_invoice(world):
     conversion copied neither rep_id nor attention_rep, so a converted order lost its rep
     and fell out of that rep's reach."""
     from apps.transactions.models import Invoice, Quote, QuoteLine
-    from apps.transactions.services.convert import convert_order_to_invoice as order_to_invoice
-    from apps.transactions.services.convert import convert_quote_to_order as quote_to_order
+    from apps.transactions.services.convert.convert import (convert_order_to_invoice,
+                                                            convert_quote_to_order)
 
     quote = Quote.objects.create(customer_id=world['her_customer'].pk, rep_id=world['mine'].pk,
                                  attention_rep='Jane', terms='Net 30',
                                  finance={'tax': {'rate': 7.5}})
     QuoteLine.objects.create(quote=quote, status='OPEN', item={"id_num": 1},
                              quantity={"active": 1}, price={"amount": 1})
-    made = quote_to_order.transfer_quote_to_order(quote=quote, transfer_all=True)
-    order = Order.objects.get(pk=(made.get('data') or made)['order_id'])
+    order = Order.objects.get(pk=convert_quote_to_order(quote.pk)['order_id'])
     assert (order.rep_id, order.attention_rep) == (world['mine'].pk, 'Jane')
 
     from apps.transactions.models import OrderLine
     if not OrderLine.objects.filter(order=order).exists():
         OrderLine.objects.create(order=order, status='OPEN', item={"id_num": 1},
                                  quantity={"active": 1}, price={"amount": 1})
-    made = order_to_invoice.transfer_order_to_invoice(order=order, transfer_all=True)
-    invoice = Invoice.objects.get(pk=(made.get('data') or made)['invoice_id'])
+    invoice = Invoice.objects.get(pk=convert_order_to_invoice(order.pk)['invoice_id'])
     assert (invoice.rep_id, invoice.attention_rep) == (world['mine'].pk, 'Jane')
     # The one engine carries the sale's terms and tax setup; the old invoice builder did not.
     assert invoice.terms == 'Net 30'
     assert (invoice.finance or {}).get('tax', {}).get('rate') == 7.5
+
+
+
+def test_a_rep_converts_their_quote_and_the_order_keeps_what_they_cannot_type(world):
+    """The converted header is the server's (plan §14a.1): a rep whose order list names
+    only id, status, rep_id and customer_id still gets an order that carries its quote's
+    lineage, tax setup and commission. Converting goes through the command, as the rep —
+    their create right and scope still decide."""
+    from apps.core.models.setting import Setting
+    from apps.core.management.commands.seed_rep_access import REP_SCOPE
+    from apps.core.services import verbs
+    from apps.transactions.models import Quote, QuoteLine
+
+    setting = Setting.objects.filter(purpose='wc:model', parent_model='quote').first()
+    config = dict(setting.config or {})
+    acc = dict(config.get('access') or {})
+    acc['roles'] = {**(acc.get('roles') or {}),
+                    'rep': {'view': ORDER_FIELDS, 'edit': ORDER_FIELDS, 'create': True,
+                            'scope': REP_SCOPE['quote']}}
+    config['access'] = acc
+    setting.config = config
+    setting._setting_update_authorized = True
+    setting.save(update_fields=['config'])
+    access.clear_cache()
+
+    quote = Quote.objects.create(customer_id=world['her_customer'].pk, rep_id=world['mine'].pk,
+                                 finance={'tax': {'rate': 6.0}}, security_level=1,
+                                 commission={'reps': [{'id': world['mine'].pk}], 'total': 5})
+    QuoteLine.objects.create(quote=quote, status='OPEN', item={"id_num": 1},
+                             quantity={"active": 2}, price={"amount": 1})
+
+    result = verbs.run_command(world['jane'], 'convert', 'quote', quote.pk, {'to': 'order'})
+    order = Order.objects.get(pk=result['order_id'])
+    assert (order.parent_model, order.parent_id) == ('quote', quote.pk)
+    assert (order.finance or {}).get('tax', {}).get('rate') == 6.0
+    assert (order.commission or {}).get('reps') == [{'id': world['mine'].pk}]
+    assert order.rep_id == world['mine'].pk
+
+
+def test_a_rep_cannot_convert_another_reps_quote(world):
+    from apps.core.services import verbs
+    from apps.transactions.models import Quote, QuoteLine
+    quote = Quote.objects.create(customer_id=world['their_customer'].pk,
+                                 rep_id=world['other'].pk)
+    QuoteLine.objects.create(quote=quote, status='OPEN', quantity={"active": 1})
+    with pytest.raises(Refused) as refused:
+        verbs.run_command(world['jane'], 'convert', 'quote', quote.pk, {'to': 'order'})
+    assert refused.value.status in (403, 404)

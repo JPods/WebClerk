@@ -16,6 +16,10 @@ class TransactionsConfig(AppConfig):
         from .services.cash import cash_commands
         cash_commands.register()
 
+        # Convert: one engine, a command on its source (services/convert/convert.py).
+        from .services.convert import convert
+        convert.register()
+
         # Hard delete only: a journalized or reconciled record refuses deletion.
         # Connected first, so it refuses before the cash door reverses anything.
         from .models import hard_delete

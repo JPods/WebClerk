@@ -15,3 +15,7 @@ class ProductsConfig(AppConfig):
             from .models import inventory_reservation  # noqa: F401
         except Exception:
             pass
+
+        # Allocate and release: commands on an item (services/inventory/inventory_allocate.py).
+        from .services.inventory import inventory_allocate
+        inventory_allocate.register()

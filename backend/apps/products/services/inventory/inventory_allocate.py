@@ -90,3 +90,30 @@ def allocation_history(item_id: int, limit: int = 50) -> list[dict]:
 
 
 __all__ = ['allocate', 'release', 'allocation_history']
+
+
+# ── the commands: POST /wcapi/item/<id>/allocate/ and /release/ ───────
+
+def _command(verb):
+    def base(ctx) -> Dict[str, Any]:
+        """{qty, reason?, order_id?} — who is the actor; the item is the command's record."""
+        from apps.core.services.door import Refused
+        who = (getattr(ctx.user, 'email', None) or ctx.actor.describe()) if ctx.user else \
+            ctx.actor.describe()
+        try:
+            return (allocate if verb == 'allocate' else release)(
+                ctx.obj.pk, ctx.data.get('qty'), acted_by=who,
+                reason=ctx.data.get('reason') or '', order_id=ctx.data.get('order_id'))
+        except ValidationError as e:
+            details = getattr(e, 'message_dict', None) or {'qty': e.messages}
+            raise Refused(400, f'{verb}_refused', '; '.join(
+                f'{k}: {" ".join(map(str, v))}' for k, v in details.items()), details)
+    return base
+
+
+def register() -> None:
+    """Allocation is a person's manual isolation of stock: available = on_hand − allocated
+    (Bill, 2026-09-19 and 2026-09-24)."""
+    from apps.core.services.verbs import register_command
+    register_command('item', 'allocate', _command('allocate'))
+    register_command('item', 'release', _command('release'))

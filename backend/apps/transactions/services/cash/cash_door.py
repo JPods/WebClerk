@@ -155,6 +155,26 @@ def reverse_application(pending, reason: str, *, acted_by: Optional[int] = None,
     return reversal
 
 
+def relink_deposits(order, invoice) -> int:
+    """A deposit taken on an order follows the order to its invoice (the convert base calls
+    this). Only a deposit not yet linked to an invoice moves: a second partial invoice from
+    the same order no longer takes the first one's deposit. No money moves — the Cash is
+    re-pointed and stays available for a person to apply (Bill, 2026-09-17)."""
+    from apps.transactions.models import Cash
+    moved = 0
+    for cash in Cash.objects.select_for_update().filter(
+            is_active=True, parent_model='order', parent_id=order.pk, invoice__isnull=True):
+        cash.invoice_id = invoice.pk
+        refs = cash.refs if isinstance(cash.refs, dict) else {}
+        ids = list(refs.get('invoice_ids') or [])
+        if invoice.pk not in ids:
+            refs['invoice_ids'] = ids + [invoice.pk]
+        cash.refs = refs
+        cash.save(update_fields=['invoice_id', 'refs', 'dt_modified', 'version'])
+        moved += 1
+    return moved
+
+
 def close_queued(pending, reason: str, *, acted_by: Optional[int] = None) -> bool:
     """Close an application that never applied. No money moved, so there is nothing to
     reverse: it is marked canceled and processed, with the reason. This is the one

@@ -1,10 +1,8 @@
 import pytest
 from apps.orgs.models import OrgBase
 from apps.transactions.models import Order, OrderLine, Invoice, InvoiceLine
-from apps.transactions.services.convert.convert_order_to_invoice import (
-    transfer_order_to_invoice,
-    OrderToInvoiceTransferError,
-)
+from apps.core.services.door import Refused
+from apps.transactions.services.convert.convert import convert_order_to_invoice
 from tests.utils import save_document
 
 
@@ -42,8 +40,7 @@ def test_transfer_all_lines_success(customer_a, monkeypatch):
     l1 = OrderLine.objects.create(order=order, item={'description': 'Item 1'}, price={'amount': 100.0, 'unit': 100.0}, quantity={'active': 1})
     l2 = OrderLine.objects.create(order=order, item={'description': 'Item 2'}, price={'amount': 200.0, 'unit': 100.0}, quantity={'active': 2})
 
-    result = transfer_order_to_invoice(order=order, transfer_all=True, invoice_status='pending', preserve_order=True)
-    assert result['success'] is True
+    result = convert_order_to_invoice(order.pk)
     inv = Invoice.objects.get(id=result['invoice_id'])
     assert inv.customer_id == customer_a.id
     assert inv.parent_model == 'order'
@@ -70,7 +67,7 @@ def test_transfer_selected_lines_only(customer_b, monkeypatch):
     order = Order.objects.create(status='confirmed', customer_id=customer_b.id)
     l1 = OrderLine.objects.create(order=order, item={'description': 'Item 1'}, price={'amount': 100.0}, quantity={'active': 1})
     l2 = OrderLine.objects.create(order=order, item={'description': 'Item 2'}, price={'amount': 200.0}, quantity={'active': 2})
-    res = transfer_order_to_invoice(order=order, line_ids=[l1.id], transfer_all=False)
+    res = convert_order_to_invoice(order.pk, line_ids=[l1.id])
     assert res['lines_for_review'] == 1
     assert res['lines'][0]['refs']['source']['order_line_id'] == l1.id
 
@@ -84,9 +81,7 @@ def test_transfer_selected_lines_only(customer_b, monkeypatch):
 @pytest.mark.django_db
 def test_validation_errors(customer_c):
     order = Order.objects.create(status='confirmed', customer_id=customer_c.id)
-    with pytest.raises(OrderToInvoiceTransferError):
-        transfer_order_to_invoice(order=order, line_ids=None, transfer_all=False)
-    with pytest.raises(OrderToInvoiceTransferError):
-        transfer_order_to_invoice(order=order, line_ids=[999], transfer_all=False)
-    with pytest.raises(OrderToInvoiceTransferError):
-        transfer_order_to_invoice(order=order, transfer_all=True)
+    with pytest.raises(Refused, match="Line IDs not found"):
+        convert_order_to_invoice(order.pk, line_ids=[999])
+    with pytest.raises(Refused, match="No lines to convert"):
+        convert_order_to_invoice(order.pk)

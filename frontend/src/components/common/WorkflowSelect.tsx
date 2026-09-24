@@ -16,16 +16,18 @@ interface ActionDef {
   confirm?: string;
   needsDialog?: boolean;
   params?: (record: any) => Record<string, unknown>;
+  /** A command on this record: POST /wcapi/<model>/<id>/<command>/ with params as the body. */
+  command?: string;
 }
 
 const ACTION_CONFIGS: Record<string, ActionDef[]> = {
   order: [
-    { key: 'convert_order_to_invoice', label: 'To Invoice',
+    { key: 'convert_to_invoice', label: 'To Invoice', command: 'convert',
       confirm: 'Post this order to an invoice?',
-      params: (r) => ({ order_id: r.id }) },
-    { key: 'convert_order_to_purchase', label: 'To Purchase',
+      params: () => ({ to: 'invoice' }) },
+    { key: 'convert_to_purchase', label: 'To Purchase', command: 'convert',
       confirm: 'Post this order to a purchase order?',
-      params: (r) => ({ order_id: r.id, vendor_id: r.vendor_id || r.vendor }) },
+      params: (r) => ({ to: 'purchase', vendor_id: r.vendor_id || r.vendor }) },
     { key: 'spawn_workorder', label: 'To Work Order',
       confirm: 'Post this order to a work order?',
       params: (r) => ({ order_id: r.id }) },
@@ -56,12 +58,12 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
     { key: 'create_serial_on_receive', label: 'Create Serial', needsDialog: true },
   ],
   quote: [
-    { key: 'convert_quote_to_order', label: 'To Order',
+    { key: 'convert_to_order', label: 'To Order', command: 'convert',
       confirm: 'Post this quote to an order?',
-      params: (r) => ({ quote_id: r.id }) },
-    { key: 'convert_quote_to_invoice', label: 'To Invoice',
+      params: () => ({ to: 'order' }) },
+    { key: 'convert_to_invoice', label: 'To Invoice', command: 'convert',
       confirm: 'Post directly to invoice (over-the-counter)?',
-      params: (r) => ({ quote_id: r.id }) },
+      params: () => ({ to: 'invoice' }) },
     { key: 'clone_record', label: 'Clone',
       confirm: 'Duplicate this quote with fresh dates?',
       params: (r) => ({ model_name: 'quote', record_id: r.id, include_children: true }) },
@@ -80,6 +82,13 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
       params: (r) => ({ item_id: r.id }) },
   ],
 };
+
+async function callCommand(model: string, id: number, command: string,
+                           body: Record<string, unknown>): Promise<any> {
+  const { default: apiClient } = await import('@/api/axios');
+  const res = await apiClient.post(`/wcapi/${model}/${id}/${command}/`, body);
+  return res.data?.data?.result;
+}
 
 async function callManage(action: string, params: Record<string, unknown>): Promise<any> {
   const { default: apiClient } = await import('@/api/axios');
@@ -118,7 +127,9 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
     try {
       setLoading(true);
       const params = action.params ? action.params(record || {}) : {};
-      const result = await callManage(action.key, params);
+      const result = action.command
+        ? await callCommand(modelName, record.id, action.command, params)
+        : await callManage(action.key, params);
       dispatch(showToast({ message: `${action.label} completed`, type: 'success' }));
       onComplete?.({ ...result, _action: action.key });
     } catch (err: any) {
@@ -126,7 +137,7 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
     } finally {
       setLoading(false);
     }
-  }, [actions, record, dispatch, onComplete]);
+  }, [actions, record, modelName, dispatch, onComplete]);
 
   if (!actions.length) return null;
 

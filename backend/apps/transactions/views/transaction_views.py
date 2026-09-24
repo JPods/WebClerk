@@ -13,9 +13,6 @@ from apps.transactions.serializers import (
     QuoteSerializer, OrderSerializer, PurchaseSerializer,
     InvoiceSerializer
 )
-from apps.transactions.services.convert import convert_quote_to_order as quote_to_order
-from apps.transactions.services.convert import convert_order_to_invoice as order_to_invoice
-from apps.transactions.services import inventory_flow
 from apps.transactions.services.transaction_flow import receive_purchase, ReceiveLine
 from apps.transactions.services.pricing.commission_compute import populate_transaction_commission
 
@@ -51,23 +48,6 @@ class QuoteViewSet(_VisibleActions):
     serializer_class = QuoteSerializer
 
     @action(detail=True, methods=['post'])
-    def convert_to_order(self, request, pk=None):
-        """Convert quote to order."""
-        quote = self.get_object()
-        try:
-            result = quote_to_order.transfer_quote_to_order(
-                quote=quote,
-                line_ids=request.data.get('line_ids'),
-                transfer_all=request.data.get('transfer_all', True),
-                order_status=request.data.get('order_status', 'confirmed'),
-                preserve_quote=request.data.get('preserve_quote', True),
-            )
-            return Response(result, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
-    @action(detail=True, methods=['post'])
     def populate_commission(self, request, pk=None):
         """Populate commission from customer's rep assignments. Staff only."""
         denied = _require_staff(request)
@@ -86,53 +66,6 @@ class OrderViewSet(_VisibleActions):
 
     model_key = 'order'
     serializer_class = OrderSerializer
-
-    @action(detail=True, methods=['post'])
-    def convert_to_invoice(self, request, pk=None):
-        """Convert order to invoice."""
-        order = self.get_object()
-        try:
-            result = order_to_invoice.transfer_order_to_invoice(
-                order=order,
-                line_ids=request.data.get('line_ids'),
-                transfer_all=request.data.get('transfer_all', True),
-                invoice_status=request.data.get('invoice_status', 'pending'),
-                preserve_order=request.data.get('preserve_order', True),
-                invoice_type=request.data.get('invoice_type', 'standard'),
-            )
-            return Response(result, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=True, methods=['post'])
-    def create_purchase(self, request, pk=None):
-        """Create purchase from order."""
-        from apps.transactions.services.convert.convert_order_to_purchase import transfer_order_to_purchase
-
-        order = self.get_object()
-        group_by_vendor = request.data.get('group_by_vendor', True)
-        line_ids = request.data.get('line_ids')
-
-        try:
-            result = transfer_order_to_purchase(
-                order=order,
-                line_ids=line_ids,
-                transfer_all=line_ids is None,
-                group_by_vendor=group_by_vendor
-            )
-            return Response(result, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=True, methods=['post'])
-    def reserve_inventory(self, request, pk=None):
-        """Reserve inventory for order."""
-        order = self.get_object()
-        try:
-            result = inventory_flow.reserve_inventory_for_order(order)
-            return Response(result, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'])
     def populate_commission(self, request, pk=None):

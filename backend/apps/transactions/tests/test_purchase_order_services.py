@@ -1,7 +1,7 @@
 from decimal import Decimal
 from django.test import TestCase
 from apps.transactions.models import Purchase, PurchaseLine, Order, OrderLine
-from apps.transactions.services.convert.convert_order_to_purchase import transfer_order_to_purchase
+from apps.transactions.services.convert.convert import convert_order_to_purchase
 from apps.orgs.models import OrgBase
 
 
@@ -96,75 +96,22 @@ class OrderToPurchaseServiceTest(TestCase):
         )
 
     def test_transfer_order_to_purchase_basic(self):
-        """Test basic transfer from order to purchase order."""
-        # Create order lines
+        """One purchase from an order, its lines back for review (the one engine, plan
+        §14a.4: the old vendor grouping and customer link were dropped deliberately)."""
         OrderLine.objects.create(
             order=self.order,
             item={'description': 'Item 1'},
-            quantity={'staged': 2},
+            quantity={'staged': 2, 'active': 2},
             price={'unit': 10.00},
             cost={'unit': 8.00}
         )
 
-        result = transfer_order_to_purchase(
-            order=self.order,
-            group_by_vendor=False,
-            transfer_all=True
-        )
+        result = convert_order_to_purchase(self.order.pk, vendor_id=self.vendor.id)
 
-        self.assertTrue(result['success'])
-        self.assertEqual(len(result['purchase_ids']), 1)
-        self.assertEqual(result['lines_transferred'], 1)
-
-        # Check PO was created
-        po = Purchase.objects.get(id=result['purchase_ids'][0])
+        po = Purchase.objects.get(id=result['purchase_id'])
         self.assertEqual(po.status, "planned")
-        self.assertEqual(po.customer_id, self.customer.id)
-        self.assertEqual(po.refs['source']['order_id'], self.order.id)
-
-        # Check PO line was created
-        po_lines = po.lines.all()
-        self.assertEqual(len(po_lines), 1)
-        line = po_lines[0]
-        self.assertEqual(line.quantity['staged'], 2)
-        self.assertEqual(line.cost['unit'], 8.00)
-
-    def test_transfer_order_to_purchase_with_vendor_grouping(self):
-        """Test transfer with vendor grouping."""
-        vendor2 = OrgBase.objects.create(
-            company="Bob Vendor",
-            org_type="vendor"
-        )
-
-        # Create order lines with different vendors in item envelope
-        OrderLine.objects.create(
-            order=self.order,
-            item={'description': 'Item 1', 'vendor_id': self.vendor.id},
-            quantity={'staged': 2},
-            price={'unit': 10.00},
-            cost={'unit': 8.00}
-        )
-        OrderLine.objects.create(
-            order=self.order,
-            item={'description': 'Item 2', 'vendor_id': vendor2.id},
-            quantity={'staged': 1},
-            price={'unit': 15.00},
-            cost={'unit': 12.00}
-        )
-
-        result = transfer_order_to_purchase(
-            order=self.order,
-            group_by_vendor=True,
-            transfer_all=True
-        )
-
-        self.assertTrue(result['success'])
-        self.assertEqual(len(result['purchase_ids']), 2)
-        self.assertEqual(result['lines_transferred'], 2)
-        self.assertEqual(result['vendor_groups'], 2)
-
-        # Check POs were created with correct vendors
-        pos = Purchase.objects.filter(id__in=result['purchase_ids'])
-        vendor_ids = [po.vendor_id for po in pos]
-        self.assertIn(self.vendor.id, vendor_ids)
-        self.assertIn(vendor2.id, vendor_ids)
+        self.assertEqual((po.parent_model, po.parent_id), ("order", self.order.id))
+        self.assertEqual(po.vendor_id, self.vendor.id)
+        self.assertEqual(result['lines_for_review'], 1)
+        self.assertEqual(result['lines'][0]['quantity']['active'], 2)
+        self.assertEqual(po.lines.count(), 0, "lines are created when the reviewed PO is saved")

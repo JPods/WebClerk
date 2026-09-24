@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.test import TestCase
 from apps.transactions.models import Invoice, InvoiceLine, Order, OrderLine
 from apps.transactions.services.pricing.totals_compute import _d
-from apps.transactions.services.convert.convert_order_to_invoice import transfer_order_to_invoice
+from apps.transactions.services.convert.convert import convert_order_to_invoice
 from apps.orgs.models import OrgBase
 
 
@@ -93,15 +93,15 @@ class OrderToInvoiceServiceTest(TestCase):
             cost={"extended": 16.00}
         )
 
-        result = transfer_order_to_invoice(self.order)
+        result = convert_order_to_invoice(self.order.pk)
 
-        self.assertTrue(result['success'])
         self.assertIsNotNone(result['invoice_id'])
 
         # Check invoice was created
         invoice = Invoice.objects.get(id=result['invoice_id'])
-        self.assertEqual(invoice.status, "pending")
-        self.assertEqual(invoice.refs['source']['original_id'], self.order.id)
+        self.assertEqual(invoice.status, "planned")
+        self.assertEqual(invoice.parent_id, self.order.id)
+        self.assertEqual(invoice.refs['source']['order_id'], self.order.id)
 
         # Lines are returned for React, not saved server-side
         self.assertEqual(result['lines_for_review'], 1)
@@ -126,8 +126,7 @@ class OrderToInvoiceServiceTest(TestCase):
             cost={"extended": 0.00}
         )
 
-        result = transfer_order_to_invoice(self.order)
+        result = convert_order_to_invoice(self.order.pk)
 
-        self.assertTrue(result['success'])
         # is_complete forces remaining=0, so only one line transferred
         self.assertEqual(result['lines_for_review'], 1)

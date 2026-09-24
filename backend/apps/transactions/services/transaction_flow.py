@@ -68,159 +68,9 @@ class ReceiveLine:
     serial_batch: str | None = None
 
 
-def _copy_common_line_fields(src: QuoteLine | OrderLine | PurchaseLine,
-                             dst: OrderLine | InvoiceLine | PurchaseLine):
-    """Copy scalar + JSON attributes from one line to a new line instance.
-
-    Uses centralized LINE_JSON_FIELDS_TO_COPY for maintainability. Adding a
-    new JSONField to line models requires only updating the constant (tests
-    enforce parity). Missing attributes are ignored to allow phased rollout.
-    Parent relationships (parent_ref_id) handled in model save().
-    """
-    # Scalar fields
-    if hasattr(dst, 'status'):
-        dst.status = getattr(src, 'status', None)  # type: ignore[attr-defined]
-
-    # JSON / dict fields (shallow clone to detach references)
-    for field_name in LINE_JSON_FIELDS_TO_COPY:
-        if hasattr(src, field_name):
-            val = getattr(src, field_name) or {}
-            if isinstance(val, dict):
-                setattr(dst, field_name, val.copy())
-            else:
-                # Non-dict JSON-like (unlikely) – assign as-is to avoid mutation issues
-                setattr(dst, field_name, val)
-
-    # Flow lineage & quantity snapshot injection (metadata.parent_link)
-    try:
-        parent_obj = getattr(src, 'parent', None)
-        if parent_obj is not None and getattr(parent_obj, 'pk', None):
-            meta = getattr(dst, 'metadata', {}) or {}
-            if isinstance(meta, dict):
-                plink = meta.get('parent_link') or {}
-                if isinstance(plink, dict):
-                    # Only set if absent to preserve prior chain if multi-hop
-                    plink.setdefault('parent_id', parent_obj.pk)
-                    plink.setdefault('parent_model', parent_obj._meta.model_name)  # type: ignore[attr-defined]
-                    # Quantity snapshot (best-effort) – capture ordered/extended style hints if present
-                    qty_src = getattr(src, 'quantity', {}) or {}
-                    if isinstance(qty_src, dict):
-                        q_parent = {}
-                        for k in ('staged', 'active', 'remaining', 'shipped', 'packed', 'extended', 'unit'):
-                            if k in qty_src:
-                                q_parent[k] = qty_src.get(k)
-                        if q_parent:
-                            plink.setdefault('quantity_at_parent', q_parent)
-                    meta['parent_link'] = plink
-                setattr(dst, 'metadata', meta)
-    except Exception:  # pragma: no cover - defensive
-        pass
-
-    # Ensure serial reservations scaffold present inside refs
-    try:
-        refs = getattr(dst, 'refs', {}) or {}
-        if isinstance(refs, dict):
-            serials = refs.get('serials')
-            if serials is None:
-                refs['serials'] = []  # list of {id, serial_number, status, qty?, lot?}
-            # Preserve linkage chain; if src had refs.links.linkage propagate it.
-            try:
-                src_refs = getattr(src, 'refs', {}) or {}
-                src_links = (src_refs.get('links') or {}) if isinstance(src_refs, dict) else {}
-                linkage_ids = []
-                if isinstance(src_links, dict):
-                    linkage_ids = src_links.get('linkage') or []
-                links = refs.setdefault('links', {"linkage": []})
-                if isinstance(links, dict) and linkage_ids and not links.get('linkage'):
-                    links['linkage'] = list(linkage_ids)  # copy ids
-            except Exception:
-                pass
-            setattr(dst, 'refs', refs)
-    except Exception:  # pragma: no cover
-        pass
-
-
 # ---------------------------------------------------------------------------
 # Linkage helpers (DISABLED - use LinkageEntry if needed)
 # ---------------------------------------------------------------------------
-def ensure_linkage_for_lines(lines) -> Optional[int]:
-    """Linkage functionality removed. Returns None.
-    
-    TODO: Reimplement using LinkageEntry if cross-transaction linking is needed.
-    """
-    return None
-
-
-def quote_to_order(quote: Quote, order_no: Optional[str] = None) -> Order:
-    so = Order.objects.create(order_no=order_no or f"SO-{quote.pk or 'new'}")
-    src_lines = list(QuoteLine.objects.filter(quote=quote).order_by('id'))
-    # Linkage disabled - pass None
-    linkage_id = None
-    # Copy lines after ensuring linkage id
-    for pl in src_lines:
-        sol = OrderLine(order=so)
-        _copy_common_line_fields(pl, sol)
-        if linkage_id:
-            # Ensure propagated (could already be present from copy)
-            refs = getattr(sol, 'refs', {}) or {}
-            if isinstance(refs, dict):
-                links = refs.setdefault('links', {"linkage": []})
-                lst = links.setdefault('linkage', [])
-                if not lst:
-                    lst.append(linkage_id)
-                setattr(sol, 'refs', refs)
-        # quote quantity schema can be different; leave as-is and let later edits normalize
-        sol.save()
-    return so
-
-
-@transaction.atomic
-def order_to_invoice(so: Order, invoice_no: Optional[str] = None) -> Invoice:
-    # invoice_no is deprecated; ida is auto-generated from id.
-    inv = Invoice.objects.create()
-    src_lines = list(OrderLine.objects.filter(order=so).order_by('id'))
-    linkage_id = ensure_linkage_for_lines(src_lines) if src_lines else None
-    for sol in src_lines:
-        il = InvoiceLine(invoice=inv)
-        _copy_common_line_fields(sol, il)
-        if linkage_id:
-            refs = getattr(il, 'refs', {}) or {}
-            if isinstance(refs, dict):
-                links = refs.setdefault('links', {"linkage": []})
-                lst = links.setdefault('linkage', [])
-                if not lst:
-                    lst.append(linkage_id)
-                setattr(il, 'refs', refs)
-        # price becomes authoritative for billing; leave quantities/prices as provided
-        il.save()
-    return inv
-
-
-@transaction.atomic
-def order_to_purchase(so: Order, po_no: Optional[str] = None) -> Purchase:
-    """Create a supporting Purchase from an Order.
-
-    Propagates / creates linkage id across involved lines to maintain unified
-    comment & lineage chain.
-    """
-    po = Purchase.objects.create(po_no=po_no or f"PO-SO-{so.pk or 'new'}")
-    src_lines = list(OrderLine.objects.filter(order=so).order_by('id'))
-    linkage_id = ensure_linkage_for_lines(src_lines) if src_lines else None
-    for sol in src_lines:
-        pol = PurchaseLine(purchase=po)
-        _copy_common_line_fields(sol, pol)
-        if linkage_id:
-            refs = getattr(pol, 'refs', {}) or {}
-            if isinstance(refs, dict):
-                links = refs.setdefault('links', {"linkage": []})
-                lst = links.setdefault('linkage', [])
-                if not lst:
-                    lst.append(linkage_id)
-                setattr(pol, 'refs', refs)
-        pol.save()
-    return po
-
-
 def _resolve_item_id_from_line(line: PurchaseLine | OrderLine | QuoteLine | WorkOrderLine) -> Optional[int]:
     item = getattr(line, 'item', {}) or {}
     # Prefer id_num, fallback: try 'id' or 'item_id' if present
@@ -699,9 +549,6 @@ __all__ = [
     'CompleteWorkOrderLine',
     'CountLine',
     # Transaction flow conversions
-    'quote_to_order',
-    'order_to_invoice',
-    'order_to_purchase',
     # Inventory receiving functions
     'receive_purchase',
     'complete_workorder',

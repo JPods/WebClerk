@@ -53,8 +53,9 @@ def _command(verb: str):
 
 
 #: The closed list. The commands join as their base services are built: pay, refund and
-#: receive (cash) are; convert, reserve, release, adjust, recalc, run, export and import
-#: are to come.
+#: receive (cash), convert (documents), allocate and release (items) are; recalc, run,
+#: export and import are to come. There is no reserve (Bill: no reservation at this time)
+#: and no adjust (an adjustment is a workorder, saved like any document).
 VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
     'get': _get,
     'save': _save,
@@ -62,6 +63,9 @@ VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
     'pay': _command('pay'),
     'refund': _command('refund'),
     'receive': _command('receive'),
+    'convert': _command('convert'),
+    'allocate': _command('allocate'),
+    'release': _command('release'),
 }
 
 #: Which model answers which command, and the base service that does it. A command is

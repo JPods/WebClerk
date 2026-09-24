@@ -1,11 +1,8 @@
 from __future__ import annotations
 import pytest
 from apps.transactions.models import Quote, QuoteLine, Order, OrderLine
-from apps.transactions.services.convert.convert_quote_to_order import (
-    transfer_quote_to_order,
-    validate_quote_for_transfer,
-    QuoteToOrderTransferError
-)
+from apps.core.services.door import Refused
+from apps.transactions.services.convert.convert import convert_quote_to_order
 from tests.utils import save_document
 
 
@@ -273,20 +270,14 @@ class TestQuoteToOrderTransfer:
             quantity={'active': 2, 'is_blanket': False, 'increment': 0}
         )
 
-        result = transfer_quote_to_order(
-            quote=quote,
-            transfer_all=True,
-            order_status='confirmed',
-        )
+        result = convert_quote_to_order(quote.id)
 
-        assert result['success'] is True
-        assert result['quote_id'] == quote.id
         assert result['lines_for_review'] == 2
         source_ids = {ln['refs']['source']['quote_line_id'] for ln in result['lines']}
         assert source_ids == {line1.id, line2.id}
 
         order = Order.objects.get(id=result['order_id'])
-        assert order.status == 'confirmed'
+        assert order.status == 'planned' and order.parent_id == quote.id
         assert order.refs['source']['quote_id'] == quote.id
         # Header only — no lines until the reviewed order is saved
         assert OrderLine.objects.filter(order=order).count() == 0
@@ -323,13 +314,8 @@ class TestQuoteToOrderTransfer:
             quantity={'active': 1}
         )
 
-        result = transfer_quote_to_order(
-            quote=quote,
-            line_ids=[line1.id, line3.id],
-            transfer_all=False,
-        )
+        result = convert_quote_to_order(quote.id, line_ids=[line1.id, line3.id])
 
-        assert result['success'] is True
         assert result['lines_for_review'] == 2
         source_ids = {ln['refs']['source']['quote_line_id'] for ln in result['lines']}
         assert source_ids == {line1.id, line3.id}
@@ -348,32 +334,13 @@ class TestQuoteToOrderTransfer:
         assert line2.quantity['remaining'] == 2
 
     def test_transfer_validation_errors(self):
-        """Test various validation error conditions."""
+        """What cannot be converted is refused, with the reason."""
         quote = Quote.objects.create(status='approved',)
-        
-        # Test missing line_ids when transfer_all=False
-        with pytest.raises(QuoteToOrderTransferError, match="Must specify line_ids"):
-            transfer_quote_to_order(
-                quote=quote,
-                line_ids=None,
-                transfer_all=False
-            )
-        
-        # Test invalid line IDs
-        with pytest.raises(QuoteToOrderTransferError, match="Line IDs not found"):
-            transfer_quote_to_order(
-                quote=quote,
-                line_ids=[999, 1000],
-                transfer_all=False
-            )
-        
-        # Test no lines to transfer
-        with pytest.raises(QuoteToOrderTransferError, match="No lines to transfer"):
-            transfer_quote_to_order(
-                quote=quote,
-                transfer_all=True
-            )
-    
+        with pytest.raises(Refused, match="Line IDs not found"):
+            convert_quote_to_order(quote.id, line_ids=[999, 1000])
+        with pytest.raises(Refused, match="No lines to convert"):
+            convert_quote_to_order(quote.id)
+
     def test_quantity_conversion(self):
         """Quantity carried from quote line to order line: active/staged = quote
         remaining; precision and is_fixed preserved."""
@@ -390,7 +357,7 @@ class TestQuoteToOrderTransfer:
             }
         )
 
-        result = transfer_quote_to_order(quote=quote, transfer_all=True)
+        result = convert_quote_to_order(quote.id)
         reviewed = result['lines'][0]['quantity']
         assert reviewed['active'] == 3
         assert reviewed['staged'] == 3
@@ -412,69 +379,6 @@ class TestQuoteToOrderTransfer:
         assert line.status == 'transferred'
 
 
-@pytest.mark.django_db
-class TestQuoteTransferValidation:
-    """Test quote transfer validation."""
-    
-    def test_validation_success(self):
-        """Test successful validation."""
-        quote = Quote.objects.create(status='approved',)
-        QuoteLine.objects.create(
-            quote=quote,
-            quantity={'active': 1},
-            price={'unit': 100.0, 'precision': 2}
-        )
-        QuoteLine.objects.create(
-            quote=quote,
-            quantity={'active': 2},
-            price={'unit': 100.0, 'precision': 2}
-        )
-
-        result = validate_quote_for_transfer(quote)
-
-        assert result['can_transfer'] is True
-        assert len(result['errors']) == 0
-        assert result['line_count'] == 2
-        assert result['total'] == 300.0
-    
-    def test_validation_warnings(self):
-        """Test validation with warnings."""
-        quote = Quote.objects.create(status='converted',)
-        line1 = QuoteLine.objects.create(
-            quote=quote,
-            price={'amount': 100.0, 'unit': 100.0, 'precision': 2}
-        )
-        line2 = QuoteLine.objects.create(
-            quote=quote,
-            status='transferred',
-            price={'amount': 200.0, 'unit': 200.0, 'precision': 2}
-        )
-        
-        result = validate_quote_for_transfer(quote)
-        
-        assert result['can_transfer'] is True
-        assert len(result['warnings']) == 2
-        assert 'status is converted' in result['warnings'][0]
-        assert 'already transferred' in result['warnings'][1]
-    
-    def test_validation_errors(self):
-        """Test validation errors."""
-        # Test missing quote
-        result = validate_quote_for_transfer(None)
-        assert result['can_transfer'] is False
-        assert 'Quote not found' in result['errors']
-        
-        # Test no lines
-        quote = Quote.objects.create(status='approved',)
-        result = validate_quote_for_transfer(quote)
-        assert result['can_transfer'] is False
-        assert 'No lines to transfer' in result['errors']
-        
-        # Test invalid line IDs
-        QuoteLine.objects.create(quote=quote, price={'amount': 100.0})
-        result = validate_quote_for_transfer(quote, line_ids=[999])
-        assert result['can_transfer'] is False
-        assert 'Line IDs not found' in result['errors'][0]
 # """
 # python
 # # Quote to Order Transfer Service
