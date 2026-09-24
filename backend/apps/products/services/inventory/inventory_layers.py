@@ -178,18 +178,29 @@ def _consume(
     source_doc_type: str = '',
     source_doc_id: Optional[int] = None,
 ) -> tuple[Decimal, str]:
-    """Internal consume implementation. Walks layers in given order."""
-    item = Item.objects.select_for_update().get(id=item_id)
+    """Internal consume implementation. Walks layers in given order.
+
+    Locks without waiting: a locked item or layer raises LayerLocked (409 layer_locked)
+    instead of blocking behind another save's transaction (defect B-6).
+    """
+    from django.db import DatabaseError
+    from apps.core.models.pending import LayerLocked
+
     batch_id = str(uuid.uuid4())
-
-    qs = InventoryLayer.objects.filter(item=item).exclude(
-        quantity__issued__gte=F('quantity__received')  # skip fully consumed
-    ).order_by(order)
-    if warehouse_id:
-        qs = qs.filter(warehouse_id=warehouse_id)
-
-    # Walk layers — can't use JSON F expressions for remaining, so use Python
-    layers = list(qs.select_for_update())
+    try:
+        item = Item.objects.select_for_update(nowait=True).get(id=item_id)
+        qs = InventoryLayer.objects.filter(item=item).exclude(
+            quantity__issued__gte=F('quantity__received')  # skip fully consumed
+        ).order_by(order)
+        if warehouse_id:
+            qs = qs.filter(warehouse_id=warehouse_id)
+        # Walk layers — can't use JSON F expressions for remaining, so use Python
+        layers = list(qs.select_for_update(nowait=True))
+    except DatabaseError as e:
+        raise LayerLocked(item_id=item_id) from e
+    locked = next((layer for layer in layers if getattr(layer, 'is_locked', False)), None)
+    if locked is not None:
+        raise LayerLocked(locked.pk, item_id=item_id)
     total_cost = Decimal('0')
     remaining = qty
 
@@ -223,27 +234,21 @@ def _consume(
         if remaining <= 0:
             break
 
-    # Deficit handling (#6): create synthetic layer + Action alert
+    # A shortage is recorded as what it is: an open deficit Pending, the note of the defect
+    # until receipts fill it (Bill, 2026-09-21), which check_balances already reads. The
+    # synthetic layer this made (received = issued = the shortfall) hid it in the layers
+    # instead (defect B-6).
     if remaining > 0:
+        from apps.core.models.pending import DEFICIT_PURPOSE, Pending
         avg_cost = _get_item_avg_cost(item)
         total_cost += remaining * avg_cost
-
-        wh = Warehouse.objects.filter(is_active=True).first()
-        if wh:
-            deficit_layer = InventoryLayer.objects.create(
-                item=item,
-                item_ida=item.ida or '',
-                warehouse=wh,
-                quantity={'received': float(remaining), 'issued': float(remaining), 'scrapped': 0},
-                cost={'unit_po': float(avg_cost), 'landed': float(avg_cost),
-                      'moving_avg': float(avg_cost), **{k: 0.0 for k in ('freight', 'duty', 'handling', 'vat', 'scrap_cost', 'trend_pct')},
-                      'currency': 'USD', 'exchange_rate': 1.0,
-                      'fifo_snapshot': float(avg_cost), 'lifo_snapshot': float(avg_cost)},
-                source={'auto_deficit': True, 'batch_id': batch_id},
-                source_doc_type='deficit',
-            )
-
-        # Create Action alert for negative inventory (#6)
+        Pending.objects.create(
+            purpose=DEFICIT_PURPOSE, model_name='item', record_id=str(item.pk),
+            name=f'Short {remaining} of {item.ida or item.pk}'[:120],
+            changes={'deficit_qty': float(remaining), 'unit_cost': float(avg_cost),
+                     'batch_id': batch_id, 'reason': reason,
+                     'source_doc_type': source_doc_type, 'source_doc_id': source_doc_id},
+        )
         _create_deficit_alert(item, remaining, batch_id, reason)
 
     # Recalculate average cost after consumption

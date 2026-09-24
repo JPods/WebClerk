@@ -27,8 +27,21 @@ INVENTORY_PURPOSES = (
 DEFICIT_PURPOSE = 'inventory_deficit'
 
 
-class LayerLocked(Exception):
-    """The layer a pending must move is locked; the pending waits, item and all."""
+from apps.core.services.door import Refused  # noqa: E402 — door imports models lazily
+
+
+class LayerLocked(Refused):
+    """The item or layer another save is moving is locked.
+
+    A pending catches it and waits for celery, item and all. Anywhere else it is the
+    door's answer: 409, a coached retry, not a wait behind someone else's transaction
+    (defect B-6, 2026-09-23).
+    """
+
+    def __init__(self, layer_id=None, *, item_id=None):
+        super().__init__(409, 'layer_locked',
+                         'That item is being updated by another save; try again in a moment.',
+                         {'item_id': item_id, 'layer_id': layer_id})
 
 
 class Pending(CoreModel):
