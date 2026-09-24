@@ -557,7 +557,7 @@ export default function AliceDashboard() {
                   const { default: apiClient } = await import('@/api/axios');
                   const existing = await getRecords('setting', { name: 'alice_llm_config', purpose: 'wc:coaching' }) as any;
                   const existingRec = (existing?.results || [])[0];
-                  await apiClient.post('/wcapi/save/', {
+                  await apiClient.post('/wcapi/save/setting/', {
                     model_name: 'setting', id: existingRec?.id,
                     name: 'alice_llm_config', purpose: 'wc:coaching',
                     data: llmConfig,
@@ -826,7 +826,7 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
               if (e.key === 'Enter' && askText.trim()) {
                 try {
                   const { default: apiClient } = await import('@/api/axios');
-                  await apiClient.post('/wcapi/save/', {
+                  await apiClient.post('/wcapi/save/setting/', {
                     model_name: 'setting',
                     name: `Ask Alice: ${askText.slice(0, 200)}`,
                     purpose: 'alice_pending',
@@ -843,7 +843,7 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
             if (!askText.trim()) return;
             try {
               const { default: apiClient } = await import('@/api/axios');
-              await apiClient.post('/wcapi/save/', {
+              await apiClient.post('/wcapi/save/setting/', {
                 model_name: 'setting',
                 name: `Ask Alice: ${askText.slice(0, 200)}`,
                 purpose: 'alice_pending',

@@ -103,7 +103,7 @@ async function sendToAlice(context?: string) {
 
   try {
     const { default: apiClient } = await import('@/api/axios');
-    await apiClient.post('/wcapi/save/', {
+    await apiClient.post('/wcapi/save/alice_observation/', {
       model_name: 'alice_observation',
       source: 'console_capture',
       category: 'console',

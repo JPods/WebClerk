@@ -7,7 +7,7 @@ inside the flow, and the tail after it is not optional.
 """
 import pytest
 
-from apps.core.services.behaviours import (ModelBehaviour, SaveContext, behaviour_for,
+from apps.core.services.behaviours import (ModelBehaviour, HookContext, behaviour_for,
                                            register, registered)
 from apps.core.services.save import Actor, Refused, save_record
 
@@ -93,7 +93,7 @@ def test_the_case_list_is_readable_at_runtime():
     cases = registered()
     assert cases['setting'] == 'SettingBehaviour'
     assert cases['action'] == 'ActionBehaviour'
-    assert cases['phone'] == 'CommunicationBehaviour'
+    assert cases['phone'] == 'PhoneBehaviour'
 
 
 def test_a_model_with_no_behaviour_takes_the_default():
@@ -104,10 +104,10 @@ def test_a_behaviour_runs_before_and_after_the_write(monkeypatch):
     seen = []
 
     class Noisy(ModelBehaviour):
-        def before(self, ctx: SaveContext) -> None:
+        def before_save(self, ctx: HookContext) -> None:
             seen.append(('before', ctx.obj.pk, ctx.is_update))
 
-        def after(self, ctx: SaveContext) -> None:
+        def after_save(self, ctx: HookContext) -> None:
             seen.append(('after', ctx.obj.pk is not None, ctx.is_update))
 
     register('item', Noisy())
@@ -123,7 +123,7 @@ def test_a_behaviour_runs_before_and_after_the_write(monkeypatch):
 
 def test_a_behaviour_can_refuse_the_save():
     class Refuser(ModelBehaviour):
-        def before(self, ctx: SaveContext) -> None:
+        def before_save(self, ctx: HookContext) -> None:
             raise Refused(409, 'item_refused', 'This item may not be saved.', 'because')
 
     register('item', Refuser())
@@ -144,7 +144,7 @@ def test_a_failure_after_the_write_rolls_the_whole_save_back():
     from apps.products.models import Item
 
     class Exploder(ModelBehaviour):
-        def after(self, ctx: SaveContext) -> None:
+        def after_save(self, ctx: HookContext) -> None:
             raise RuntimeError('after blew up')
 
     register('item', Exploder())

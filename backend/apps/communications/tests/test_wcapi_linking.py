@@ -34,7 +34,7 @@ def test_wcapi_save_email_creates_record(api_client, staff_user):
     """Test that /wcapi/save/ can create an email record."""
     client = api_client
     payload = {'model_name': 'email', 'data': {'email': 'auto@link.test', 'name': 'work'}}
-    resp = client.post('/wcapi/save/', payload, format='json')
+    resp = client.post(f"/wcapi/save/{payload['model_name']}/", payload, format='json')
     assert resp.status_code in (200, 201), f"Unexpected status {resp.status_code}: {resp.content}"
     data = _json(resp)
     # Response is an envelope: {status, code, message, data}
@@ -54,7 +54,7 @@ def test_wcapi_save_email_with_contact_id(api_client, db):
     api.defaults['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest'
 
     payload = {'model_name': 'email', 'data': {'email': 'explicit@link.test', 'name': 'home', 'contact_id': contact.id}}
-    resp = api.post('/wcapi/save/', payload, format='json')
+    resp = api.post(f"/wcapi/save/{payload['model_name']}/", payload, format='json')
     assert resp.status_code in (200, 201), f"Unexpected status {resp.status_code}: {resp.content}"
     data = _json(resp)
     inner = data.get('data', data)

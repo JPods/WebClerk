@@ -145,9 +145,9 @@ def _build_wcapi_url(method: str, model_name: str, record_id: str | None,
     """Build the target wcapi URL with query parameters."""
     # Map HTTP method → wcapi endpoint
     if method in ("POST", "PUT", "PATCH"):
-        endpoint = "/wcapi/save/"
+        endpoint = f"/wcapi/save/{model_name}/"
     elif method == "DELETE":
-        endpoint = "/wcapi/delete/"
+        endpoint = f"/wcapi/delete/{model_name}/"
     else:
         endpoint = "/wcapi/get/"
 

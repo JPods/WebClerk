@@ -21,10 +21,11 @@ Phases, in order:
     2 authorize  staff-only models, open-read models, edit filters, transaction rights,
                  the contact guard, and the role write-field filter
     3 assign     field assignment, envelope validation, model payload validation
-    4 before     pre-save hook, or the report hooks attached to <model>.save_pre
-    5 persist    obj.save()
-    6 after      org denormalization, lines, contact linking, post-save hook, keywords
-    7 result     the record, its messages, and what the caller should be told
+    4 before     the model's code hook, then the user hook in <model>.save_pre
+    5 persist    obj.save(); the tail every record gets (org links, lines, erosions)
+    6 flush      derived work (a document's totals and ledger), so the after hooks see it
+    7 after      the model's code hook, then the user hook in <model>.save_post; keywords
+    8 result     the record, its messages, and what the caller should be told
 
 Plan and review: Allie ``readmes/assessments/2026-09-22-save-door-steps-1-2.md``.
 """
@@ -40,9 +41,10 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models, transaction
 from django.forms.models import model_to_dict
 
-from apps.core.services.behaviours import SaveContext, behaviour_for
+from apps.core.services import verbs
+from apps.core.services.behaviours import HookContext
 from apps.core.services.door import Actor, Refused, SaveResult, resolve_model
-from apps.core.services.unit_of_work import unit_of_work
+from apps.core.services.unit_of_work import flush, unit_of_work
 
 console_logger = logging.getLogger('console')
 logger = logging.getLogger(__name__)
@@ -321,81 +323,17 @@ def _normalize_contact_id(obj, data: dict) -> None:
     setattr(obj, 'contact_id', resolved or 0)
 
 
-# ── phase 4 and 6: the model's own say ────────────────────────────────
+# ── what this save changed ────────────────────────────────────────────
 
-def _before(actor: Actor, obj, model_key: str, data: dict, is_update: bool) -> None:
-    """The model's pre-save hook, or the report hooks attached to <model>.save_pre."""
-    pre_hook = getattr(obj, 'pre_save_hook', None)
-    if callable(pre_hook):
-        context = {'model_name': model_key, 'is_update': is_update,
-                   'user_id': actor.user_id}
-        try:
-            result = _call_hook(pre_hook, data, is_update, context)
-        except Exception as e:  # noqa: BLE001 — a hook's refusal is the user's answer
-            raise Refused(400, 'validation_exception', 'Pre-save validation failed', str(e))
-        if result is not None:
-            if isinstance(result, tuple):
-                ok = bool(result[0])
-                msg = str(result[1] if len(result) > 1 else 'Validation failed')
-                if not ok:
-                    raise Refused(400, 'validation', msg, msg)
-            else:
-                raise Refused(400, 'validation', str(result), str(result))
-        return
-
-    # A blocking report rule stops the save with its own message; anything else is
-    # recorded, not raised.
-    from apps.core.services.report_hooks import HookBlocked, run_save_hooks
-    try:
-        pre_result = run_save_hooks(model_key, 'save_pre', obj, changed=set(data or {}),
-                                    user=actor.user)
-        if pre_result.errors:
-            console_logger.warning("[SAVE] save_pre hook problems: %s", pre_result.errors)
-    except HookBlocked as blocked:
-        raise Refused(400, 'hook_blocked', blocked.message, blocked.message,
-                      extra={'report': blocked.report_ida})
+def _snapshot(obj) -> Dict[str, Any]:
+    return {f.name: getattr(obj, f.attname, None) for f in obj._meta.concrete_fields}
 
 
-def _call_hook(hook, data, is_update, context):
-    """The hooks were written with three different signatures over time."""
-    try:
-        return hook(data, is_update, context)
-    except TypeError:
-        try:
-            return hook(data, is_update)
-        except TypeError:
-            return hook(data)
-
-
-def _after(actor: Actor, obj, model_key: str, data: dict, is_update: bool) -> Optional[str]:
-    """The model's post-save hook, or the report hooks at <model>.save_post.
-
-    Post-save never blocks: a problem is reported back with the record.
-    """
-    post_hook = getattr(obj, 'post_save_hook', None)
-    if callable(post_hook):
-        context = {'model_name': model_key, 'is_update': is_update,
-                   'user_id': actor.user_id}
-        try:
-            return _call_hook(post_hook, data, is_update, context)
-        except Exception as e:  # noqa: BLE001
-            console_logger.error("[SAVE] Error in post_save_hook: %s", e)
-            return f'post_save_hook error: {e}'
-
-    try:
-        from apps.core.services.report_hooks import run_save_hooks
-        post_result = run_save_hooks(model_key, 'save_post', obj, changed=set(data or {}),
-                                     user=actor.user)
-        if post_result.set_fields:
-            obj.save()
-        if post_result.errors:
-            note = '; '.join(post_result.errors)
-            console_logger.warning("[SAVE] save_post hook problems: %s", note)
-            return note
-    except Exception as e:  # noqa: BLE001
-        console_logger.error("[SAVE] Error running save_post report hooks: %s", e)
-        return f'Post-save hook error: {e}'
-    return None
+def _changed(obj, snapshot: Dict[str, Any]) -> frozenset:
+    """The fields whose value the payload changed — what ``when_changed`` means. A key
+    that arrives with the value it already had is not a change."""
+    return frozenset(f.name for f in obj._meta.concrete_fields
+                     if getattr(obj, f.attname, None) != snapshot.get(f.name))
 
 
 # ── the door ──────────────────────────────────────────────────────────
@@ -425,15 +363,13 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
     is_update = not created
 
     with unit_of_work():
-        size_warnings, ctx, note = _write(actor, obj, model_cls, model_key, norm_key,
-                                          data, is_update)
+        size_warnings, ctx = _write(actor, obj, model_cls, model_key, norm_key,
+                                    data, is_update)
     # Derived work — a document's totals — happened once, on the way out of the unit, so
     # what is read back here is what the caller will be told.
     obj.refresh_from_db()
 
-    messages = list(size_warnings)
-    if note:
-        messages.append(note)
+    messages = list(size_warnings) + ctx.messages
 
     try:
         record = model_to_dict(obj, fields=[f.name for f in obj._meta.concrete_fields])
@@ -454,17 +390,16 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
 
 def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: dict,
            is_update: bool):
-    """Authorize, assign, branch, persist, branch again — inside one unit of work."""
+    """Authorize, assign, before, persist, flush, after — inside one unit of work."""
     data = _authorize(actor, obj, model_cls, model_key, data, is_update)
+    snapshot = _snapshot(obj)
     size_warnings = _assign(obj, data, model_cls, model_key, norm_key, is_update)
 
-    # The branch — WC2's `Case of` on the table, dispatched by name. What a particular
-    # model does; everything after it is what every model gets.
-    ctx = SaveContext(actor=actor, obj=obj, data=data, model_key=model_key,
-                      is_update=is_update)
-    behaviour = behaviour_for(model_key)
-    behaviour.before(ctx)
-    _before(actor, obj, model_key, data, is_update)
+    # The branch — WC2's `Case of` on the table, dispatched by name — and then the
+    # user's hook for this slot. Everything after the base is what every model gets.
+    ctx = HookContext(actor=actor, verb='save', model_key=model_key, obj=obj, data=data,
+                      is_update=is_update, changed=_changed(obj, snapshot))
+    verbs.before(ctx)
 
     try:
         obj.save()
@@ -477,9 +412,9 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
         raise Refused(400, 'validation_failed', 'Validation failed', flat)
 
     _within_scope(actor, obj, model_key)
-    _post_persist(obj, data, model_key)
-    behaviour.after(ctx)
-    note = _after(actor, obj, model_key, data, is_update)
+    ctx.messages += _post_persist(obj, data, model_key)
+    flush()
+    verbs.after(ctx)
 
     # Keywords are updated synchronously so the response carries the current ones — but
     # written only if they changed. WC2's tail was `If (Modified record) SAVE RECORD`,
@@ -498,7 +433,7 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
     except Exception as e:  # noqa: BLE001
         console_logger.error("[SAVE] Error updating keywords: %s", e)
 
-    return size_warnings, ctx, note
+    return size_warnings, ctx
 
 
 def _within_scope(actor: Actor, obj, model_key: str) -> None:
@@ -540,9 +475,10 @@ def _saved_search_guard(actor: Actor, model_cls, model_key: str, data: dict, rec
                       'Only admin users can create or update saved searches', None)
 
 
-def _post_persist(obj, data: dict, model_key: str) -> None:
-    """The tail every record gets, whatever it is: its org links denormalized, and its
-    lines processed. WC2 ran this unconditionally after the case; so does this."""
+def _post_persist(obj, data: dict, model_key: str) -> List[str]:
+    """The tail every record gets, whatever it is: its org links denormalized, its lines
+    processed, and its erosion notes filed. WC2 ran this unconditionally after the case;
+    so does this. Returns notes for the caller."""
     try:
         from apps.transactions.services.denormalize_org_links import denormalize_org_links
         if denormalize_org_links(obj, model_key):
@@ -553,6 +489,27 @@ def _post_persist(obj, data: dict, model_key: str) -> None:
     # A source line's own door writes its release, so nothing is passed here.
     from apps.core.services.save_line_processing import process_lines
     process_lines(obj, data, model_key, adjust_source_fn=None)
+    return _sync_erosions(obj)
+
+
+def _sync_erosions(obj) -> List[str]:
+    """Erosion and small-sting notes written into metadata become Erosion records
+    (moved from BaseModel.post_save_hook — every model, so it is the base's work)."""
+    meta = getattr(obj, 'metadata', None)
+    if not isinstance(meta, dict):
+        return []
+    pending = any(isinstance(entry, dict) and not entry.get('erosion_id')
+                  for key in ('small_stings', 'erosions')
+                  for entry in (meta.get(key) if isinstance(meta.get(key), list) else []))
+    if not pending:
+        return []
+    try:
+        from apps.accounts.services.value_erosion import sync_metadata_erosions
+        count = sync_metadata_erosions(obj)
+    except Exception:  # noqa: BLE001 — logged, and the save stands
+        logger.exception('[SAVE] erosion sync failed for %s #%s', type(obj).__name__, obj.pk)
+        return []
+    return [f'{count} erosion record(s) created'] if count else []
 
 
 def _setting_warning(actor: Actor, model_key: str, obj) -> Optional[str]:

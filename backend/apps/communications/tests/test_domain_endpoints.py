@@ -54,7 +54,7 @@ def test_domain_list_and_create(api_client, staff_user):
     assert body.get('status') == 'success'
 
     # Create via wcapi/save/
-    create = client.post('/wcapi/save/', {'model_name': 'domain', 'data': {'name': 'example.com', 'is_active': True}}, format='json')
+    create = client.post('/wcapi/save/domain/', {'model_name': 'domain', 'data': {'name': 'example.com', 'is_active': True}}, format='json')
     assert create.status_code in (200, 201)
     cbody = create.json()
     assert cbody.get('status') == 'success'

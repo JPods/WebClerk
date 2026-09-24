@@ -108,25 +108,17 @@ class UnknownFilterError(ValueError):
 
 
 class WCAPIDeleteView(APIView):
-    """Delete WCAPI endpoint supporting record removal by model_name and id."""
+    """POST /wcapi/delete/<model_name>/ — record removal through the delete door."""
 
-    http_method_names = ["get", "post", "options", "head"]
+    http_method_names = ["post", "options", "head"]
 
-    def get(self, request, *args, **kwargs):
-        """Handle GET requests with query params: ?model_name=X&id=Y"""
-        model_key = request.query_params.get("model_name") or request.query_params.get("model")
-        record_id = request.query_params.get("id")
-        return self._do_delete(request, model_key, record_id)
-
-    def post(self, request, *args, **kwargs):
-        """Handle POST requests with body: { model_name, id }"""
+    def post(self, request, model_name: str):
+        """POST /wcapi/delete/<model_name>/ with body { id }. A delete is never a GET."""
         body: Dict[str, Any] = request.data or {}
-        model_key = body.get("model_name") or body.get("model") or body.get("modelName")
-        record_id = body.get("id")
-        return self._do_delete(request, model_key, record_id)
+        return self._do_delete(request, model_name, body.get("id"))
 
     def _do_delete(self, request, model_key, record_id):
-        """Shared by GET and POST. The delete itself is the door's."""
+        """The delete itself is the door's."""
         from django.conf import settings as _settings
         from apps.core.services.delete import delete_record
         from apps.core.services.door import Actor, Refused

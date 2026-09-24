@@ -226,7 +226,7 @@ class WorkOrderPhase1Tests(TestCase):
         """Status changes through /wcapi/save/ with model_name and status field."""
         # Transition planned -> released via save endpoint
         resp = self.client.post(
-            '/wcapi/save/',
+            '/wcapi/save/workorder/',
             data=json.dumps({
                 'model_name': 'workorder',
                 'id': self.wo.pk,

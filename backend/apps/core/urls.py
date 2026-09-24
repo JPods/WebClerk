@@ -6,7 +6,7 @@ from django.urls import path
 from apps.core.views.cookie_token_refresh import CookieTokenRefreshView
 from apps.core.token_views import RoleTokenObtainPairView
 
-from apps.core.views.save_view import SaveWcapiView, SaveWcapiViewWithModel
+from apps.core.views.save_view import SaveWcapiView
 from apps.core.views.auth_views import AuthLoginView, AuthLogoutView, AuthMeView, AuthRegisterView
 from apps.core.views.wcapi import (
     WCAPIGetView,
@@ -50,6 +50,13 @@ from apps.core.views.hook_submit_view import HookSubmitView
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
 from apps.docs.views.qa_view import ApplyQuestionsView, ListQuestionGroupsView, ParentQAView
 
+from apps.core.services.verbs import VERBS
+
+#: The HTTP shell for each verb. A verb in VERBS with no view here is an import error,
+#: not a missing route.
+VERB_VIEWS = {'save': SaveWcapiView, 'delete': WCAPIDeleteView}
+assert set(VERB_VIEWS) == set(VERBS), f'verbs without a view: {set(VERBS) ^ set(VERB_VIEWS)}'
+
 urlpatterns = [
     # ── Auth (no prefix — user-facing) ─────────────────────────────
     path("wcapi/register/", AuthRegisterView.as_view(), name="api-auth-register"),
@@ -70,11 +77,11 @@ urlpatterns = [
     path("wcapi/get/<str:model_name>/", WCAPIGetViewWithModel.as_view(), name="wcapi-get-with-model"),
     path("wcapi/<str:model_name>/get/", WCAPIGetViewWithModel.as_view(), name="wcapi-model-get"),
     path("wcapi/<str:model_name>/<str:field>/<str:from_val>/<str:to_val>/", RangeQueryView.as_view(), name="wcapi-range-query"),
-    path("wcapi/save/", SaveWcapiView.as_view(), name="wcapi-save"),
-    path("wcapi/save/<str:model_name>/", SaveWcapiViewWithModel.as_view(), name="wcapi-save-with-model"),
+    # One route per verb: /wcapi/<verb>/<model_name>/ (Bill, 2026-09-24). The verbs are
+    # the closed list in services/verbs.py; the route-shape test holds every route to it.
+    *[path(f"wcapi/{verb}/<str:model_name>/", VERB_VIEWS[verb].as_view(), name=f"wcapi-{verb}")
+      for verb in VERBS],
     path("wcapi/transaction/save/", WCAPITransactionSaveView.as_view(), name="wcapi-transaction-save"),
-    path("wcapi/<str:model_name>/save/", SaveWcapiViewWithModel.as_view(), name="wcapi-model-save"),
-    path("wcapi/delete/", WCAPIDeleteView.as_view(), name="wcapi-delete"),
     path("wcapi/report/", ReportDownloadView.as_view(), name="wcapi-report"),
 
     # ── System plumbing (_ prefix — React-to-WC3 metadata/config) ──

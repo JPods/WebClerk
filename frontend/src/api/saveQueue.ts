@@ -96,7 +96,7 @@ const startNext = () => {
   }
 
   apiClient
-    .post(PostLoginURL.allSave, { ...next.payload }, { signal: next.controller.signal })
+    .post(PostLoginURL.save(next.payload.model_name), { ...next.payload }, { signal: next.controller.signal })
     .then((response) => {
       if (!active) return;
       active.status = "success";

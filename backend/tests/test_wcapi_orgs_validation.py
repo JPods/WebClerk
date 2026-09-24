@@ -21,7 +21,7 @@ def test_wcapi_org_create_validation_enabled_success():
         'status': 'active'
     }
     with override_settings(UNIVERSAL_API_VALIDATE=True):
-        resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
+        resp = c.post(f"/wcapi/save/{payload['model_name']}/", data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 200, resp.content
     data = assert_envelope(resp.json(), expect_status='success')
     assert OrgBase.objects.filter(company='Valid Co').exists()
@@ -38,7 +38,7 @@ def test_wcapi_org_create_validation_enabled_failure():
         'status': 'active'
     }
     with override_settings(UNIVERSAL_API_VALIDATE=True):
-        resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
+        resp = c.post(f"/wcapi/save/{payload['model_name']}/", data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 400
     body = resp.json()
     assert_envelope(body, expect_status='fail')
@@ -59,7 +59,7 @@ def test_wcapi_org_partial_update_validation_failure():
         'domains': [{'domain': 'invalid_domain'}]
     }
     with override_settings(UNIVERSAL_API_VALIDATE=True):
-        resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
+        resp = c.post(f"/wcapi/save/{payload['model_name']}/", data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 400
     body = resp.json()
     assert_envelope(body, expect_status='fail')
@@ -78,7 +78,7 @@ def test_wcapi_org_partial_update_validation_success():
         'domains': [{'domain': 'example.com'}]
     }
     with override_settings(UNIVERSAL_API_VALIDATE=True):
-        resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
+        resp = c.post(f"/wcapi/save/{payload['model_name']}/", data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 200, resp.content
     org.refresh_from_db()
     assert isinstance(org.domains, list) and org.domains[0]['domain'] == 'example.com'

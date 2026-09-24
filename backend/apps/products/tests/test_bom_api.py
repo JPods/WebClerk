@@ -44,7 +44,7 @@ def test_bom_create_via_wcapi():
             'sequence': 10,
         }
     }
-    resp = client.post('/wcapi/save/', payload, format='json')
+    resp = client.post(f"/wcapi/save/{payload['model_name']}/", payload, format='json')
     assert resp.status_code in (200, 201), f"Unexpected: {resp.status_code} {resp.content}"
     body = resp.json()
     assert body.get('status') == 'success'

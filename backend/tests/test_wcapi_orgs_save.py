@@ -26,7 +26,7 @@ def test_wcapi_save_create_org():
         'company': 'Save Created Co',
         'status': 'active'
     }
-    resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
+    resp = c.post(f"/wcapi/save/{payload['model_name']}/", data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status='success')
     org = OrgBase.objects.get(id=data['id'])
@@ -47,7 +47,7 @@ def test_wcapi_save_update_org_with_version():
         'version': v,
         'company': 'Update Co Renamed'
     }
-    resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
+    resp = c.post(f"/wcapi/save/{payload['model_name']}/", data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 200
     assert_envelope(resp.json(), expect_status='success')
     org.refresh_from_db()

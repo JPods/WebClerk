@@ -44,19 +44,16 @@ def test_wcapi_get_rejects_post(client, user1):
 
 
 @pytest.mark.django_db
-def test_save_missing_table(client, user2):
+def test_save_without_a_model_in_the_path_is_no_route(client, user2):
     client.force_login(user2)
     resp = client.post('/wcapi/save/', data=json.dumps({'name_first': 'A'}), content_type='application/json')
-    assert resp.status_code == 400
-    body = resp.json()
-    assert_envelope(body, expect_status='fail')
-    assert 'Missing required field' in body['message']
+    assert resp.status_code == 404
 
 
 @pytest.mark.django_db
 def test_save_unknown_table(client, user2):
     client.force_login(user2)
-    resp = client.post('/wcapi/save/', data=json.dumps({'model_name': 'nope'}), content_type='application/json')
+    resp = client.post('/wcapi/save/nope/', data=json.dumps({'model_name': 'nope'}), content_type='application/json')
     assert resp.status_code == 400
     body = resp.json()
     assert_envelope(body, expect_status='fail')
@@ -66,7 +63,7 @@ def test_save_unknown_table(client, user2):
 @pytest.mark.django_db
 def test_save_invalid_json(client, user2):
     client.force_login(user2)
-    resp = client.post('/wcapi/save/', data='{"oops"', content_type='application/json')
+    resp = client.post('/wcapi/save/contact/', data='{"oops"', content_type='application/json')
     assert resp.status_code == 400
     body = resp.json()
     assert_envelope(body, expect_status='fail')

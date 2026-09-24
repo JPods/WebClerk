@@ -98,11 +98,11 @@ class TestBuildWcapiUrl:
 
     def test_post_goes_to_save(self):
         url = _build_wcapi_url("POST", "order", None, "")
-        assert url.startswith("/wcapi/save/")
+        assert url.startswith("/wcapi/save/order/")
 
     def test_delete_goes_to_delete(self):
         url = _build_wcapi_url("DELETE", "order", "5", "")
-        assert url.startswith("/wcapi/delete/")
+        assert url.startswith("/wcapi/delete/order/")
         assert "id=5" in url
 
 
@@ -170,7 +170,7 @@ class TestRestToWcapiMiddleware:
         request = rf.post("/api/orgs/customers/", content_type="application/json")
         response = mw(request)
         assert response.status_code == 301
-        assert "/wcapi/save/" in response["Location"]
+        assert "/wcapi/save/customer/" in response["Location"]
         assert "model_name=customer" in response["Location"]
 
     def test_delete_redirects_to_delete(self, rf, noop_response):
@@ -178,7 +178,7 @@ class TestRestToWcapiMiddleware:
         request = rf.delete("/api/transactions/orders/42/")
         response = mw(request)
         assert response.status_code == 301
-        assert "/wcapi/delete/" in response["Location"]
+        assert "/wcapi/delete/order/" in response["Location"]
         assert "model_name=order" in response["Location"]
         assert "id=42" in response["Location"]
 

@@ -16,11 +16,13 @@ and the message the guard wrote, so the caller can show it to the person who tri
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from typing import Any, Optional
+from dataclasses import dataclass, field
+from typing import Any, List, Optional
 
 from django.db import transaction
 
+from apps.core.services import verbs
+from apps.core.services.behaviours import HookContext
 from apps.core.services.door import Actor, Refused, resolve_model
 
 console_logger = logging.getLogger('console')
@@ -31,9 +33,13 @@ class DeleteResult:
     deleted: bool
     obj_id: Any
     model_key: str
+    messages: List[str] = field(default_factory=list)
 
     def payload(self) -> dict:
-        return {'deleted': self.deleted, 'id': self.obj_id, 'model_name': self.model_key}
+        out = {'deleted': self.deleted, 'id': self.obj_id, 'model_name': self.model_key}
+        if self.messages:
+            out['messages'] = self.messages
+        return out
 
 
 @transaction.atomic
@@ -63,6 +69,11 @@ def delete_record(actor: Actor, model_key: str, record_id, *,
     if obj is None:
         return DeleteResult(deleted=False, obj_id=record_id, model_key=model_key)
 
+    # The same structure as every verb: code before, user before, the base, then code
+    # after and user after — the after hooks only once the record is really gone.
+    ctx = HookContext(actor=actor, verb='delete', model_key=model_key, obj=obj,
+                      data={'id': record_id}, is_update=True)
+    verbs.before(ctx)
     try:
         obj.delete()
     except Refused:
@@ -76,8 +87,10 @@ def delete_record(actor: Actor, model_key: str, record_id, *,
         raise Refused(409, 'delete_refused', message,
                       {'model_name': model_key, 'id': record_id}) from e
 
+    verbs.after(ctx)
     console_logger.info("[DELETE] %s #%s deleted by %s", model_key, record_id, actor.describe())
-    return DeleteResult(deleted=True, obj_id=record_id, model_key=model_key)
+    return DeleteResult(deleted=True, obj_id=record_id, model_key=model_key,
+                        messages=ctx.messages)
 
 
 def _find(actor: Actor, model_cls, model_key: str, record_id, visible_only: bool):

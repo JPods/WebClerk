@@ -81,14 +81,14 @@ def review_request(payload: Dict[str, Any]) -> Dict[str, Any]:
 # ── 1. structure ─────────────────────────────────────────────────────────────
 
 def _structure_findings(hooks: dict) -> List[dict]:
-    from apps.core.services.report_hooks import VERBS, CONDITIONS, MODIFIERS
+    from apps.core.services.report_hooks import RULE_ACTIONS, CONDITIONS, MODIFIERS
 
     findings = []
     point = hooks.get('point') or ''
     if not point or '.' not in point:
         findings.append({'kind': 'unknown_point', 'by': 'structure',
                          'detail': f"point '{point}' is not a model.phase pair"})
-    known = set(VERBS) | set(CONDITIONS) | set(MODIFIERS)
+    known = set(RULE_ACTIONS) | set(CONDITIONS) | set(MODIFIERS)
     for phase in ('before', 'during', 'after'):
         for index, rule in enumerate(hooks.get(phase) or []):
             if not isinstance(rule, dict):

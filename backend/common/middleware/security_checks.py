@@ -192,7 +192,7 @@ class SecurityAlertMiddleware:
         if request.method != 'POST':
             return
         path = request.path or ''
-        if path not in ('/wcapi/save/', '/wcapi/save'):
+        if not path.startswith('/wcapi/save/'):
             return
 
         validated = getattr(request, '_athena_validated', None)

@@ -26,7 +26,8 @@ import logging
 logger = logging.getLogger('console')
 
 # Paths that require Athena validation (write endpoints)
-ATHENA_PATHS = ('/wcapi/save/', '/wcapi/save')
+# Write endpoints that require Athena validation: /wcapi/save/<model_name>/
+ATHENA_PREFIX = '/wcapi/save/'
 
 
 class AthenaValidationMiddleware:
@@ -36,7 +37,7 @@ class AthenaValidationMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.method != 'POST' or request.path not in ATHENA_PATHS:
+        if request.method != 'POST' or not request.path.startswith(ATHENA_PREFIX):
             return self.get_response(request)
 
         athena_header = request.META.get('HTTP_X_ATHENA_VALIDATED', '')

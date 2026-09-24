@@ -168,19 +168,6 @@ class Touch(BaseModel):
         contact_str = f"contact #{self.contact_id}" if self.contact_id else 'unknown'
         return f"{self.get_channel_display()} {direction} {contact_str}"
 
-    def pre_save_hook(self, data):
-        if 'channel' in data and data['channel'] not in dict(self.CHANNEL_CHOICES):
-            return f'channel: must be one of {", ".join(dict(self.CHANNEL_CHOICES).keys())}'
-        # Validate org_id if provided (uses shared behavior)
-        org_id = data.get('org_id')
-        if org_id:
-            from apps.core.serializers.behaviors import validate_org_id
-            try:
-                validate_org_id(org_id, org_model=data.get('org_model'))
-            except Exception as e:
-                return str(e.detail[0]) if hasattr(e, 'detail') else str(e)
-        return None
-
     def _resolve_org_from_contact(self):
         """When contact is set, populate org_id and org_model from contact's org links."""
         if not self.contact_id:
@@ -222,7 +209,3 @@ class Touch(BaseModel):
             self._compute_dt_next()
             # Save just the dt_next field
             type(self).objects.filter(pk=self.pk).update(dt_next=self.dt_next)
-
-    def post_save_hook(self, data, is_update=False, context=None):
-        base_msg = super().post_save_hook(data, is_update=is_update, context=context)
-        return '; '.join(filter(None, [base_msg, 'touch saved']))

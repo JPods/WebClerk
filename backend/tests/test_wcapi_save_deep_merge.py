@@ -38,7 +38,7 @@ def test_wcapi_save_deep_merge_prefs_and_unknown_capture():
             'flags': {'beta': True}
         },
     }
-    resp1 = c.post('/wcapi/save/', data=json.dumps(payload1), content_type='application/json')
+    resp1 = c.post(f"/wcapi/save/{payload1['model_name']}/", data=json.dumps(payload1), content_type='application/json')
     assert resp1.status_code == 200
     data1 = assert_envelope(resp1.json(), expect_status='success')
     domain_id = data1['id']
@@ -58,7 +58,7 @@ def test_wcapi_save_deep_merge_prefs_and_unknown_capture():
         },
         'unknownFieldX': 'keep-me',  # should be captured into prefs.userdefined.unknownFieldX
     }
-    resp2 = c.post('/wcapi/save/', data=json.dumps(payload2), content_type='application/json')
+    resp2 = c.post(f"/wcapi/save/{payload2['model_name']}/", data=json.dumps(payload2), content_type='application/json')
     assert resp2.status_code == 200
     data2 = assert_envelope(resp2.json(), expect_status='success')
     v2 = data2.get('version')

@@ -11,7 +11,8 @@
  * WCAPI Endpoints:
  *   GET  /wcapi/get/?model_name={name}           - List records
  *   GET  /wcapi/get/?model_name={name}&id={id}   - Get single record
- *   POST /wcapi/save/                            - Create/Update/Delete records
+ *   POST /wcapi/save/<model_name>/               - Create/Update records
+ *   POST /wcapi/delete/<model_name>/             - Delete a record
  * 
  * Usage:
  *   import { convertRestToWcapi, getWcapiEndpoint } from '@/api/restToWcapi';
@@ -212,8 +213,8 @@ export const REST_PATH_TO_MODEL: Record<string, string> = {
 export const WCAPI_ENDPOINTS = {
   // Data endpoints
   GET: '/wcapi/get/',           // GET with params: model_name, id?, limit?, offset?, search?, filters?
-  SAVE: '/wcapi/save/',         // POST with body: { model_name, id?, data? }
-  DELETE: '/wcapi/delete/',     // POST with body: { model_name, id }
+  SAVE: '/wcapi/save/',         // + '<model_name>/'; POST with body: { id?, data? }
+  DELETE: '/wcapi/delete/',     // + '<model_name>/'; POST with body: { id }
   
   // Model metadata endpoints
   MODEL_LIST: '/wcapi/_model_list/',
@@ -258,17 +259,17 @@ export interface WcapiRequest {
  * @example
  * // Create record
  * convertRestToWcapi('/api/orgs/customer', 'POST', { name: 'Acme Corp' })
- * // { endpoint: '/wcapi/save/', method: 'POST', body: { model_name: 'customer', data: { name: 'Acme Corp' } } }
+ * // { endpoint: '/wcapi/save/customer/', method: 'POST', body: { model_name: 'customer', data: { name: 'Acme Corp' } } }
  * 
  * @example
  * // Update record
  * convertRestToWcapi('/api/orgs/customer/42', 'PUT', { name: 'Updated' })
- * // { endpoint: '/wcapi/save/', method: 'POST', body: { model_name: 'customer', id: 42, data: { name: 'Updated' } } }
+ * // { endpoint: '/wcapi/save/customer/', method: 'POST', body: { model_name: 'customer', id: 42, data: { name: 'Updated' } } }
  * 
  * @example
  * // Delete record
  * convertRestToWcapi('/api/orgs/customer/42', 'DELETE')
- * // { endpoint: '/wcapi/save/', method: 'POST', body: { model_name: 'customer', id: 42, method: 'delete' } }
+ * // { endpoint: '/wcapi/delete/customer/', method: 'POST', body: { id: 42 } }
  */
 export function convertRestToWcapi(
   restPath: string,
@@ -299,12 +300,9 @@ export function convertRestToWcapi(
       throw new Error(`DELETE requires a record ID in the path: ${restPath}`);
     }
     return {
-      endpoint: WCAPI_ENDPOINTS.DELETE,
+      endpoint: `${WCAPI_ENDPOINTS.DELETE}${resolvedModel}/`,
       method: 'POST',
-      body: {
-        model_name: resolvedModel,
-        id,
-      },
+      body: { id },
     };
   }
   
@@ -323,7 +321,7 @@ export function convertRestToWcapi(
   }
   
   return {
-    endpoint: WCAPI_ENDPOINTS.SAVE,
+    endpoint: `${WCAPI_ENDPOINTS.SAVE}${resolvedModel}/`,
     method: 'POST',
     body,
   };
@@ -363,7 +361,7 @@ export function getWcapiEndpoint(
     case 'create':
     case 'update':
       return {
-        url: WCAPI_ENDPOINTS.SAVE,
+        url: `${WCAPI_ENDPOINTS.SAVE}${resolved}/`,
         method: 'POST',
       };
     
@@ -372,8 +370,8 @@ export function getWcapiEndpoint(
         throw new Error(`delete operation requires an ID for model: ${modelName}`);
       }
       return {
-        url: `${WCAPI_ENDPOINTS.DELETE}?model_name=${resolved}&id=${id}`,
-        method: 'GET',
+        url: `${WCAPI_ENDPOINTS.DELETE}${resolved}/`,
+        method: 'POST',
       };
   }
 }

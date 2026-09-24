@@ -141,6 +141,31 @@ class Report(BaseModel):
                 hooks['athena'] = athena
                 self.config = {**(self.config or {}), 'hooks': hooks}
 
+        self._refuse_taken_slot(hooks)
         result = super().save(*args, **kwargs)
         self._hooks_authorized = False
         return result
+
+    def _refuse_taken_slot(self, hooks) -> None:
+        """One report per hook slot (Bill, 2026-09-24). A user who needs more chains from
+        the report already in the slot with ``run_report``. Alice polices repeats: the
+        refusal is logged under [HOOK_SLOT] with the report that tried."""
+        from django.core.exceptions import ValidationError
+        import re
+        point = (hooks or {}).get('point') if isinstance(hooks, dict) else None
+        # A verb slot is <model>.<verb>_pre / _post. A report's own points
+        # (invoice.report_after) are shared by the reports that run there.
+        if not point or not self.is_active or not re.fullmatch(r'\w+\.\w+_(pre|post)', point):
+            return
+        holder = (Report.objects.filter(is_active=True, config__hooks__point=point)
+                  .exclude(pk=self.pk).order_by('pk').first())
+        if holder is None:
+            return
+        import logging
+        logging.getLogger('console').warning(
+            '[HOOK_SLOT] %s refused: slot %s is held by %s', self.ida or self.name, point,
+            holder.ida)
+        raise ValidationError({'config.hooks.point': (
+            f"The hook slot {point} is already filled by report {holder.ida}. A slot takes "
+            f"one report: add these rules to {holder.ida}, or have it call this report "
+            f"with run_report.")})

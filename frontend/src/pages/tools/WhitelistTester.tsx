@@ -185,13 +185,13 @@ const PRESETS: Preset[] = [
   {
     label: 'wcapi › Save (POST)',
     method: 'POST',
-    url: '/wcapi/save/',
-    body: { model_name: 'contact', id: 1 },
+    url: '/wcapi/save/contact/',
+    body: { id: 1 },
     info: {
       description: 'Create or update a record depending on presence of id.',
-      requires: { body: ['model_name', 'fields…'] },
+      requires: { body: ['fields…'] },
       notes: ['Include id to update; omit id to create.', 'Field validation depends on model.'],
-      example: { model_name: 'contact', id: 1, name: 'Alice' },
+      example: { id: 1, name: 'Alice' },
     },
   },
 

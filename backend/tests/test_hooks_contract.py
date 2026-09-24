@@ -1,32 +1,38 @@
-import inspect
-import pytest
-from django.apps import apps
+"""The code-hook contract: one class per model, one method pair per verb.
 
-EXPECTED_HOOKS = {
-    'pre_save_hook': ('self', 'data'),
-    'api_validate_payload': ('self', 'data', 'is_update'),
-    'post_save_hook': ('self', 'data'),
-}
+Hooks are ``before_<verb>(self, ctx)`` / ``after_<verb>(self, ctx)`` on a registered
+``ModelBehaviour`` (Bill, 2026-09-24). A hook named for a verb that does not exist would
+never run, so it is a defect, not a spare.
+"""
+import inspect
+
+import pytest
+
+from apps.core.services import behaviours
+from apps.core.services.verbs import VERBS
+
+
+@pytest.mark.hooks
+def test_every_hook_names_a_real_verb_and_takes_one_context():
+    violations = []
+    for model_key, behaviour in behaviours._REGISTRY.items():
+        for name, fn in inspect.getmembers(type(behaviour), inspect.isfunction):
+            moment, _, verb = name.partition('_')
+            if moment not in ('before', 'after') or not verb:
+                continue
+            if verb not in VERBS:
+                violations.append(f'{model_key}: {name} names no verb in {sorted(VERBS)}')
+            params = tuple(inspect.signature(fn).parameters)
+            if params != ('self', 'ctx'):
+                violations.append(f'{model_key}: {name}{params} — expected (self, ctx)')
+    assert not violations, 'Hook contract violations:\n' + '\n'.join(violations)
+
 
 @pytest.mark.django_db
 @pytest.mark.hooks
-def test_base_model_hooks_contract():
-    from common.models import BaseModel
-    violations = []
-    for model in apps.get_models():
-        if not issubclass(model, BaseModel) or model is BaseModel:
-            continue
-        for hook, expected_params in EXPECTED_HOOKS.items():
-            if not hasattr(model, hook):
-                violations.append(f"{model.__name__}: missing {hook}")
-                continue
-            fn = getattr(model, hook)
-            # bound function -> inspect on function defined on class
-            try:
-                sig = inspect.signature(fn)
-            except (TypeError, ValueError):
-                continue
-            params = tuple(p.name for p in sig.parameters.values())
-            if params[:len(expected_params)] != expected_params:
-                violations.append(f"{model.__name__}.{hook} params {params} != {expected_params}")
-    assert not violations, "Hook contract violations:\n" + "\n".join(violations)
+def test_no_model_carries_the_retired_save_hooks():
+    """pre_save_hook / post_save_hook on models were a second code-hook mechanism."""
+    from django.apps import apps
+    carrying = [m.__name__ for m in apps.get_models()
+                if hasattr(m, 'pre_save_hook') or hasattr(m, 'post_save_hook')]
+    assert not carrying, f'models still carrying retired hooks: {carrying}'

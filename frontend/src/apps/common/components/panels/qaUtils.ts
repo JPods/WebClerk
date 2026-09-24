@@ -311,7 +311,7 @@ export async function getQAAnswers(
  */
 export async function saveQAAnswer(answer: QAAnswerRecord): Promise<QAAnswerRecord | null> {
   try {
-    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/', {
+    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/question_answer/', {
       model_name: 'question_answer',
       ...answer,
     });
@@ -327,7 +327,7 @@ export async function saveQAAnswer(answer: QAAnswerRecord): Promise<QAAnswerReco
  */
 export async function deleteQAAnswer(id: number): Promise<boolean> {
   try {
-    await apiClient.post('/wcapi/delete/', {
+    await apiClient.post('/wcapi/delete/question_answer/', {
       model_name: 'question_answer',
       id,
     });

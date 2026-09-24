@@ -1335,15 +1335,7 @@ class UniversalDictMixin(models.Model):
             return obj.model_dump(*args, **kwargs)  # type: ignore[attr-defined]
         return cast(Dict[str, Any], obj)
 
-    # --- Universal API hooks (generalized) ---------------------------------
-    def pre_save_hook(self, data: Dict[str, Any]):  # invoked by save endpoint before obj.save()
-        """Optional early mutation/validation hook.
-
-        Return a string (error message) to abort save with HTTP 400, or None to continue.
-        Override in concrete models for domain-specific checks (lightweight; avoid heavy DB queries).
-        """
-        return None
-
+    # --- Universal API validation -------------------------------------------
     def api_validate_payload(self, data: Dict[str, Any], is_update: bool):  # consumed when UNIVERSAL_API_VALIDATE enabled
         """Default validation hook for all BaseModel descendants.
 
@@ -1357,14 +1349,6 @@ class UniversalDictMixin(models.Model):
                 return (not errors, errors)
         """
         return True, []
-
-    def post_save_hook(self, data: Dict[str, Any]):  # invoked by save endpoint immediately after obj.save()
-        """Optional post-persist hook for synchronous side-effects.
-
-        Return a string (warning/info) to append to response messages list. Errors should be rare; raise only for critical rollback scenarios.
-        Override in models needing immediate follow-up (e.g., propagate denormalized counters). Heavy work should be deferred to async task queue.
-        """
-        return None
 
 
 # ---------------- Full composition ----------------------------------------
@@ -1586,45 +1570,6 @@ class BaseModel(
         type(self).objects.filter(pk=self.pk).update(**update_map)
         self.dt_modified = now_ms  # type: ignore[attr-defined]
         self._capture_original_state()
-
-    # ── Post-save hook (universal) ────────────────────────────────────
-    def post_save_hook(self, data: Dict[str, Any], is_update: bool = False, context: dict | None = None):
-        """Standard post-save hook for all BaseModel descendants.
-
-        Responsibilities:
-        - Sync pending metadata erosion annotations → Erosion records.
-
-        Subclasses that override should call ``super().post_save_hook(data, is_update, context)``
-        to preserve universal behaviour.
-
-        Returns a message string or None.
-        """
-        messages: list[str] = []
-        # ── Erosion annotation sync ──────────────────────────────────
-        try:
-            meta = getattr(self, 'metadata', None)
-            if isinstance(meta, dict):
-                stings = meta.get('small_stings')
-                erosions = meta.get('erosions')
-                has_pending = False
-                for lst in (stings, erosions):
-                    if isinstance(lst, list):
-                        for entry in lst:
-                            if isinstance(entry, dict) and not entry.get('erosion_id'):
-                                has_pending = True
-                                break
-                    if has_pending:
-                        break
-                if has_pending:
-                    from apps.accounts.services.value_erosion import sync_metadata_erosions
-                    count = sync_metadata_erosions(self)
-                    if count:
-                        messages.append(f'{count} erosion record(s) created')
-        except Exception:
-            logger.exception('post_save_hook: erosion sync failed for %s #%s',
-                             self.__class__.__name__, self.pk)
-
-        return '; '.join(messages) if messages else None
 
 
 # Slim alias (for clarity when declaring lightweight models)

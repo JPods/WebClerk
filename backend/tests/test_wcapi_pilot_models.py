@@ -32,7 +32,7 @@ def admin_client():
 def test_contact_crud(admin_client):
     # Create
     resp = admin_client.post(
-        "/wcapi/save/",
+        "/wcapi/save/contact/",
         data=json.dumps({
             "model_name": "contact",
             "name_first": "Ada",
@@ -56,7 +56,7 @@ def test_contact_crud(admin_client):
 
     # Delete
     resp = admin_client.post(
-        "/wcapi/delete/",
+        "/wcapi/delete/contact/",
         data=json.dumps({"model_name": "contact", "id": cid}),
         content_type="application/json",
     )
@@ -69,7 +69,7 @@ def test_contact_crud(admin_client):
 def test_customer_crud(admin_client):
     # Create
     resp = admin_client.post(
-        "/wcapi/save/",
+        "/wcapi/save/customer/",
         data=json.dumps({
             "model_name": "customer",
             "company": "Pilot Customer Co",
@@ -91,7 +91,7 @@ def test_customer_crud(admin_client):
 
     # Delete
     resp = admin_client.post(
-        "/wcapi/delete/",
+        "/wcapi/delete/customer/",
         data=json.dumps({"model_name": "customer", "id": oid}),
         content_type="application/json",
     )
@@ -104,7 +104,7 @@ def test_customer_crud(admin_client):
 def test_setting_crud(admin_client):
     # Create
     resp = admin_client.post(
-        "/wcapi/save/",
+        "/wcapi/save/setting/",
         data=json.dumps({
             "model_name": "setting",
             "name": "pilot_test_setting",
@@ -127,7 +127,7 @@ def test_setting_crud(admin_client):
 
     # Delete
     resp = admin_client.post(
-        "/wcapi/delete/",
+        "/wcapi/delete/setting/",
         data=json.dumps({"model_name": "setting", "id": sid}),
         content_type="application/json",
     )

@@ -43,7 +43,7 @@ def test_connection_create_via_wcapi(api_client, staff_user):
         'model_name': 'connection',
         'data': {'name': 'Main ERP', 'type': 'erp', 'config': {'host': 'h'}}
     }
-    resp = api_client.post('/wcapi/save/', payload, format='json')
+    resp = api_client.post(f"/wcapi/save/{payload['model_name']}/", payload, format='json')
     assert resp.status_code in (200, 201)
     body = resp.json()
     assert body.get('status') == 'success'

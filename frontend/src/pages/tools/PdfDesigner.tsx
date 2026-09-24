@@ -107,7 +107,7 @@ const PdfDesigner: React.FC<PdfDesignerProps> = ({ report, model } = {}) => {
     setMessage(null);
 
     try {
-      await apiClient.post("/wcapi/save/", {
+      await apiClient.post("/wcapi/save/alice_observation/", {
         model_name: "alice_observation",
         data: {
           source: "pdf_designer",

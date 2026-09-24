@@ -78,6 +78,20 @@ def unit_of_work():
                 _flush(pending)
 
 
+def flush() -> None:
+    """Do the marked work now, still inside the unit and its transaction.
+
+    The verb calls this between persisting and the after hooks, so an after hook reads a
+    document's current totals and ledger, not the ones from before the edit (Fable review,
+    2026-09-24). Work marked after this — by an after hook — is done when the unit closes.
+    """
+    if not active():
+        return
+    pending = _PENDING.get() or {}
+    _PENDING.set({})
+    _flush(pending)
+
+
 def _flush(pending: Dict[Tuple[str, Any], Callable[[], None]]) -> None:
     """Runs inside the writer's transaction, so a failure here fails the edit.
 

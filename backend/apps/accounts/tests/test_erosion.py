@@ -406,8 +406,8 @@ class TestMetadataErosionSync:
         count = sync_metadata_erosions(org)
         assert count == 0
 
-    def test_post_save_hook_triggers_sync(self, org):
-        """BaseModel.post_save_hook should sync pending erosion annotations."""
+    def test_the_save_base_syncs_erosions(self, org):
+        """The save door's base tail syncs pending erosion annotations, for every model."""
         from apps.accounts.models import Erosion
 
         org.metadata.setdefault('erosions', [])
@@ -419,9 +419,8 @@ class TestMetadataErosionSync:
         })
         org.save()
 
-        # Simulate what save_view does
-        msg = org.post_save_hook({})
-        assert '1 erosion record(s) created' in (msg or '')
+        from apps.core.services.save import _sync_erosions
+        assert _sync_erosions(org) == ['1 erosion record(s) created']
 
         # Verify the Erosion record exists
         assert Erosion.objects.filter(

@@ -1,4 +1,4 @@
-"""What a particular model does when it is saved — the branch inside the one flow.
+"""What a particular model does on a verb — the code hooks, one class per model.
 
 WC2's ``jAcceptButton`` had a ``Case of`` on the table: orders ran ``acceptOrders``,
 invoices ``acceptInvoice``, items ``acceptItem``, and everything else fell to the default
@@ -12,31 +12,38 @@ cannot be skipped. Bill, 2026-09-22: *"wc2 is much more crude than inheritance i
 But the single flow creates a manageable path to maintain."* The flow is the door; the
 inheritance is here.
 
-A behaviour has two moments:
+Every verb has the same two moments (Bill, 2026-09-24, Channel_Inheritance.png):
 
-    before(ctx)   after the payload is assigned and validated, before obj.save()
-    after(ctx)    after obj.save(), before the universal tail
+    before_<verb>(ctx)   after the payload is authorized and assigned, before the base acts
+    after_<verb>(ctx)    after the base succeeded and derived work is flushed
 
-Either may raise ``Refused`` to stop the save with a coached message and a code.
+A method that is not defined does nothing: the default class is WC2's ``Else``. A hook
+never has to be called — the verb calls it. Either moment may raise ``Refused`` to stop the
+verb with a coached message and a code; an after hook may add a note to
+``ctx.messages`` for the caller. The user hooks (Report rules) run after the code hook at
+each moment — see ``verbs.py``.
 """
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from dataclasses import dataclass, field
+from typing import Any, Dict, FrozenSet, List, Optional
 
 console_logger = logging.getLogger('console')
 
 
 @dataclass
-class SaveContext:
-    """What a behaviour is given. One object, so adding a fact later changes no signature."""
+class HookContext:
+    """What a hook is given. One object, so adding a fact later changes no signature."""
     actor: Any
-    obj: Any
-    data: Dict[str, Any]
+    verb: str
     model_key: str
-    is_update: bool
-    linked: bool = False        # a communication record linked back to its contact
+    obj: Any
+    data: Dict[str, Any] = field(default_factory=dict)
+    is_update: bool = False
+    changed: FrozenSet[str] = frozenset()   # fields whose value this verb changed
+    linked: bool = False                    # a communication record linked back to its contact
+    messages: List[str] = field(default_factory=list)
 
     @property
     def user(self):
@@ -50,11 +57,10 @@ class SaveContext:
 class ModelBehaviour:
     """The default: a record that needs nothing of its own. WC2's ``Else SAVE RECORD``."""
 
-    def before(self, ctx: SaveContext) -> None:
-        return None
-
-    def after(self, ctx: SaveContext) -> None:
-        return None
+    def hook(self, moment: str, ctx: HookContext) -> None:
+        method = getattr(self, f'{moment}_{ctx.verb}', None)
+        if callable(method):
+            method(ctx)
 
 
 _REGISTRY: Dict[str, ModelBehaviour] = {}
@@ -79,13 +85,13 @@ def registered() -> Dict[str, str]:
 class SettingBehaviour(ModelBehaviour):
     """A Setting is authority, not business data: the door is what authorizes it."""
 
-    def before(self, ctx: SaveContext) -> None:
+    def before_save(self, ctx: HookContext) -> None:
         # Setting.save() calls full_clean() and refuses an unauthorized write; reaching
         # here means the door has already applied the staff and superuser checks.
         ctx.obj._setting_update_authorized = True
         ctx.obj._setting_create_authorized = True
 
-    def after(self, ctx: SaveContext) -> None:
+    def after_save(self, ctx: HookContext) -> None:
         purpose = getattr(ctx.obj, 'purpose', '')
         if purpose in ('wc:workbench_fields', 'wc:model'):
             stored = getattr(ctx.obj, 'data', {})
@@ -97,10 +103,19 @@ class SettingBehaviour(ModelBehaviour):
 
 
 class ActionBehaviour(ModelBehaviour):
-    """An action links to whoever filed it, schedules from its parents, and pushes its
-    children when its own dates move."""
+    """An action takes client aliases into its columns, links to whoever filed it and to
+    its attachments, schedules from its parents, and pushes its children when its own
+    dates move."""
 
-    def after(self, ctx: SaveContext) -> None:
+    def before_save(self, ctx: HookContext) -> None:
+        _normalize_action_payload(ctx.obj, ctx.data)
+
+    def after_save(self, ctx: HookContext) -> None:
+        pending = ctx.data.get('_pending_attachments')
+        if isinstance(pending, list) and pending:
+            note = _link_action_attachments(ctx.obj, pending)
+            if note:
+                ctx.messages.append(note)
         from apps.core.services.action_links import (append_contact_link,
                                                      auto_schedule_from_parents,
                                                      check_and_reschedule_children)
@@ -133,7 +148,7 @@ class ActionBehaviour(ModelBehaviour):
 class CommunicationBehaviour(ModelBehaviour):
     """An email, phone, address or domain saved by a contact links back to them."""
 
-    def after(self, ctx: SaveContext) -> None:
+    def after_save(self, ctx: HookContext) -> None:
         from apps.core.models import Contact
         from apps.core.services.save_contact_linking import (link_comm_to_contact,
                                                              link_obj_to_contact)
@@ -168,11 +183,199 @@ class CommunicationBehaviour(ModelBehaviour):
                 pass
 
 
+class PhoneBehaviour(CommunicationBehaviour):
+    """A phone number shorter than four digits is refused (moved from Phone.pre_save_hook)."""
+
+    def before_save(self, ctx: HookContext) -> None:
+        number = ctx.data.get('number')
+        if number and len(str(number)) < 4:
+            from apps.core.services.door import Refused
+            raise Refused(400, 'validation', 'number: too short', 'number: too short')
+
+
+class TouchBehaviour(ModelBehaviour):
+    """A touch names a known channel and a real org (moved from Touch.pre_save_hook)."""
+
+    def before_save(self, ctx: HookContext) -> None:
+        from apps.core.services.door import Refused
+        channels = dict(type(ctx.obj).CHANNEL_CHOICES)
+        if 'channel' in ctx.data and ctx.data['channel'] not in channels:
+            msg = f'channel: must be one of {", ".join(channels.keys())}'
+            raise Refused(400, 'validation', msg, msg)
+        org_id = ctx.data.get('org_id')
+        if org_id:
+            from apps.core.serializers.behaviors import validate_org_id
+            try:
+                validate_org_id(org_id, org_model=ctx.data.get('org_model'))
+            except Exception as e:  # noqa: BLE001 — the validator's message is the answer
+                msg = str(e.detail[0]) if hasattr(e, 'detail') else str(e)
+                raise Refused(400, 'validation', msg, msg)
+
+
+# ── helpers moved off the models ──────────────────────────────────────
+
+def _normalize_action_payload(obj, data) -> None:
+    """Client alias fields into canonical columns (moved from Action.pre_save_hook).
+
+    - action_<lang> / description_<lang> -> action / description JSON
+    - progress -> percent_complete
+    - kanban_column_id -> kanban_column (title-cased)
+    - merges derived languages into languages list
+    - attachments -> _pending_attachments, linked in after_save
+    """
+    if not isinstance(data, dict):
+        return
+
+    def _extract_value(raw):
+        if isinstance(raw, dict) and 'value' in raw:
+            return raw.get('value')
+        return raw
+
+    title_by_lang = {}
+    desc_by_lang = {}
+    derived_langs: set[str] = set()
+
+    for key in list(data.keys()):
+        if not isinstance(key, str):
+            continue
+        if key.startswith('action_'):
+            lang = key.split('_', 1)[1] or 'en'
+            val = _extract_value(data.pop(key))
+            if val not in (None, ''):
+                title_by_lang[lang] = val
+                derived_langs.add(lang)
+        elif key.startswith('description_'):
+            lang = key.split('_', 1)[1] or 'en'
+            val = _extract_value(data.pop(key))
+            if val not in (None, ''):
+                desc_by_lang[lang] = val
+                derived_langs.add(lang)
+
+    if title_by_lang:
+        current_action: dict = {}
+        # Accept both 'action' and legacy 'task' key from clients
+        raw_action = data.get('action') or data.get('task')
+        if isinstance(raw_action, dict) and 'value' in raw_action and isinstance(raw_action.get('value'), dict):
+            current_action = raw_action.get('value') or {}
+        elif isinstance(obj.action, dict):
+            current_action = obj.action or {}
+        merged_action = {**current_action, **title_by_lang}
+        data['action'] = {'mode': 'update', 'value': merged_action}
+        data.pop('task', None)  # remove legacy key
+
+    if desc_by_lang:
+        current_desc: dict = {}
+        raw_desc = data.get('description')
+        if isinstance(raw_desc, dict) and 'value' in raw_desc and isinstance(raw_desc.get('value'), dict):
+            current_desc = raw_desc.get('value') or {}
+        elif isinstance(obj.description, dict):
+            current_desc = obj.description or {}
+        merged_desc = {**current_desc, **desc_by_lang}
+        data['description'] = {'mode': 'update', 'value': merged_desc}
+
+    progress_raw = data.pop('progress', None)
+    progress_val = _extract_value(progress_raw)
+    try:
+        progress_int = int(progress_val) if progress_val not in (None, '') else None
+    except (TypeError, ValueError):
+        progress_int = None
+    if progress_int is not None and 'percent_complete' not in data:
+        data['percent_complete'] = {'mode': 'update', 'value': progress_int}
+
+    column_raw = data.pop('kanban_column_id', None)
+    column_val = _extract_value(column_raw)
+    if column_val and 'kanban_column' not in data:
+        col_str = str(column_val)
+        if col_str.startswith('column-'):
+            col_str = col_str[len('column-'):]
+        normalized = col_str.replace('-', ' ').strip().title()
+        if normalized:
+            data['kanban_column'] = {'mode': 'update', 'value': normalized}
+
+    languages_field = data.get('languages')
+    existing_langs: set[str] = set()
+    if isinstance(languages_field, dict) and isinstance(languages_field.get('value'), list):
+        existing_langs = {str(l).strip() for l in languages_field.get('value') if str(l).strip()}
+    elif isinstance(languages_field, list):
+        existing_langs = {str(l).strip() for l in languages_field if str(l).strip()}
+    elif isinstance(obj.languages, list):
+        existing_langs = {str(l).strip() for l in obj.languages if str(l).strip()}
+
+    merged_langs = sorted((existing_langs | derived_langs) - {''})
+    if derived_langs:
+        data['languages'] = {'mode': 'update', 'value': merged_langs or ['en']}
+
+    # Handle attachments - create LinkageEntry records
+    attachments_raw = data.pop('attachments', None)
+    attachments_val = _extract_value(attachments_raw)
+    if attachments_val and isinstance(attachments_val, list):
+        # Store attachment document IDs for post-save processing
+        data['_pending_attachments'] = attachments_val
+
+    return None
+
+
+def _link_action_attachments(obj, pending) -> Optional[str]:
+    """Attachments named on the payload become LinkageEntry rows (moved from
+    Action.post_save_hook)."""
+    try:
+        from apps.docs.models import LinkageEntry
+        from django.db import transaction
+
+        with transaction.atomic():
+            # Get or create a group ID for this action's attachments
+            existing_entries = LinkageEntry.objects.filter(
+                model_name='action',
+                record_id=obj.id
+            )
+            
+            if existing_entries.exists():
+                # Use existing group
+                group_id = existing_entries.first().group_id
+                # Remove existing entries for this action
+                existing_entries.delete()
+            else:
+                # Create new group
+                group_id = LinkageEntry.next_group_id()
+
+            # Create entry for the action
+            LinkageEntry.objects.create(
+                group_id=group_id,
+                model_name='action',
+                record_id=obj.id,
+                purpose='attachment',
+                name=f'Action {obj.id} attachments',
+                role='parent'
+            )
+
+            # Create entries for each document
+            for doc_id in pending:
+                try:
+                    doc_id_int = int(doc_id)
+                    LinkageEntry.objects.create(
+                        group_id=group_id,
+                        model_name='document',
+                        record_id=doc_id_int,
+                        purpose='attachment',
+                        name=f'Attachment for Action {obj.id}',
+                        role='child'
+                    )
+                except (ValueError, TypeError):
+                    continue
+
+    except Exception as e:
+        console_logger.error(f"[SAVE] action Failed to create attachment linkages: {e}")
+        return f"Failed to link attachments: {str(e)}"
+    return None
+
+
 def _register_defaults() -> None:
     register('setting', SettingBehaviour())
     register('action', ActionBehaviour())
-    for comm in ('email', 'phone', 'address', 'domain'):
+    for comm in ('email', 'address', 'domain'):
         register(comm, CommunicationBehaviour())
+    register('phone', PhoneBehaviour())
+    register('touch', TouchBehaviour())
 
 
 _register_defaults()

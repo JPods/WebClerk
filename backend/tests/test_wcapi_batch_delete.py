@@ -34,7 +34,7 @@ def test_batch_delete_by_ids(admin_client):
     ids = []
     for i in range(3):
         resp = admin_client.post(
-            "/wcapi/save/",
+            "/wcapi/save/setting/",
             data=json.dumps({
                 "model_name": "setting",
                 "name": f"batch_del_test_{i}",
@@ -51,7 +51,7 @@ def test_batch_delete_by_ids(admin_client):
     # Delete first two
     for rid in ids[:2]:
         del_resp = admin_client.post(
-            "/wcapi/delete/",
+            "/wcapi/delete/setting/",
             data=json.dumps({"model_name": "setting", "id": rid}),
             content_type="application/json",
         )
@@ -71,7 +71,7 @@ def test_batch_delete_via_model_objects(admin_client):
     ids = []
     for i in range(4):
         resp = admin_client.post(
-            "/wcapi/save/",
+            "/wcapi/save/setting/",
             data=json.dumps({
                 "model_name": "setting",
                 "name": f"batch_filter_test_{i}",
@@ -90,7 +90,7 @@ def test_batch_delete_via_model_objects(admin_client):
     # Delete all via API
     for rid in ids:
         del_resp = admin_client.post(
-            "/wcapi/delete/",
+            "/wcapi/delete/setting/",
             data=json.dumps({"model_name": "setting", "id": rid}),
             content_type="application/json",
         )

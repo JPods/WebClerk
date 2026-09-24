@@ -29,7 +29,7 @@ class WcapiConcurrencyTests(TestCase):
         """POST helper for /wcapi/save/ with JSON body."""
         headers = headers or {}
         return self.client.post(
-            '/wcapi/save/',
+            f"/wcapi/save/{payload['model_name']}/",
             data=json.dumps(payload),
             content_type='application/json',
             **headers,

@@ -47,21 +47,21 @@ def test_wcapi_get_with_model_path(admin_user):
 
 
 @pytest.mark.django_db
-def test_wcapi_save_requires_data(admin_user):
-    """POST /wcapi/save/ with empty payload returns an error."""
+def test_wcapi_save_refuses_a_payload_naming_another_model(admin_user):
+    """POST /wcapi/save/<model>/ — the path names the model; a payload naming another is refused."""
     client = APIClient()
     client.force_authenticate(user=admin_user)
 
-    resp = client.post('/wcapi/save/', {}, format='json')
-    # Missing model_name should return an error (400 or 500 depending on how save validates)
-    assert resp.status_code in (400, 422, 500)
+    resp = client.post('/wcapi/save/contact/', {'model_name': 'item'}, format='json')
+    assert resp.status_code == 400
+    assert resp.json()['error']['code'] == 'model_mismatch'
 
 
 @pytest.mark.django_db
 def test_wcapi_delete_requires_model_and_id(admin_user):
-    """POST /wcapi/delete/ without model_name and id returns 400."""
+    """POST /wcapi/delete/<model>/ without an id returns 400."""
     client = APIClient()
     client.force_authenticate(user=admin_user)
 
-    resp = client.post('/wcapi/delete/', {}, format='json')
+    resp = client.post('/wcapi/delete/contact/', {}, format='json')
     assert resp.status_code == 400

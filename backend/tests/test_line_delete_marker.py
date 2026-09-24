@@ -16,7 +16,7 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def request_obj(rf, django_user_model):
-    request = rf.post('/wcapi/save/')
+    request = rf.post('/wcapi/save/item/')
     request.user = django_user_model.objects.create_user(username='door', password='x')
     return request
 

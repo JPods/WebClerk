@@ -68,7 +68,10 @@ class PostLoginURL {
   static readonly kanbanOrder: string = "/kanban/order/";
 
   static readonly allTypes: string = "/wcapi/get/?";
-  static readonly allSave: string = "/wcapi/save/";
+  /** One route per verb: /wcapi/save/<model_name>/ (Bill, 2026-09-24). */
+  static save(modelName: string): string {
+    return `/wcapi/save/${modelName}/`;
+  }
 }
 
 class IntegrationURL {

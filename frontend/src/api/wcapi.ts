@@ -416,7 +416,7 @@ export async function saveRecord(model_name: string, payload: any) {
     if (athenaToken) {
       headers['X-Athena-Validated'] = athenaToken;
     }
-    return await wcapiPost<any>("save/", body, headers);
+    return await wcapiPost<any>(`save/${body.model_name}/`, body, headers);
   } catch (err: any) {
     throw new Error(getBackendErrorMessage(err, "Save failed"));
   }
@@ -477,10 +477,9 @@ export async function saveTransactionWithLines(
     },
   };
 
-  // Use save/ directly — transaction/save/ has intermittent 404 issues.
-  // save/ handles lines in the payload for header models (order, invoice, quote, purchase).
+  // save/<model>/ takes a header with its lines (order, invoice, quote, purchase).
   try {
-    return await wcapiPost<any>("save/", body);
+    return await wcapiPost<any>(`save/${resolved}/`, body);
   } catch (err: any) {
     throw new Error(getBackendErrorMessage(err, "Failed to save transaction"));
   }
@@ -508,7 +507,7 @@ export async function populateCommission(
 
 export async function deleteRecord(model_name: string, id: number) {
   const resolved = resolveModelName(model_name);
-  return wcapiPost<any>("delete/", { model_name: resolved, id });
+  return wcapiPost<any>(`delete/${resolved}/`, { id });
 }
 
 /**
@@ -801,7 +800,7 @@ export function clearDetailFieldSettingCache(model_name?: string): void {
 export async function saveDetailFieldSetting(
   setting: DetailFieldSettingRecord,
 ) {
-  const result = await wcapiPost<any>("save/", {
+  const result = await wcapiPost<any>("save/setting/", {
     ...setting,
     model_name: "setting",
   });
@@ -819,7 +818,7 @@ export async function getAllWorkbenchFieldsSettings(): Promise<
 }
 
 export async function saveWorkbenchFieldsSetting(setting: SettingRecord) {
-  return wcapiPost<any>("save/", { ...setting, model_name: "setting" });
+  return wcapiPost<any>("save/setting/", { ...setting, model_name: "setting" });
 }
 
 /**

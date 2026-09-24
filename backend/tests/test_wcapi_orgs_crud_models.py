@@ -45,7 +45,7 @@ def test_wcapi_org_model_crud(model_name, org_type):
     if model_name == "orgbase":
         payload["org_type"] = org_type
 
-    resp = client.post("/wcapi/save/", data=json.dumps(payload), content_type="application/json")
+    resp = client.post(f"/wcapi/save/{payload['model_name']}/", data=json.dumps(payload), content_type="application/json")
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status="success")
     record_id = data["id"]
@@ -68,7 +68,7 @@ def test_wcapi_org_model_crud(model_name, org_type):
         "id": record_id,
         "company": f"{model_name} co updated",
     }
-    resp = client.post("/wcapi/save/", data=json.dumps(update_payload), content_type="application/json")
+    resp = client.post(f"/wcapi/save/{update_payload['model_name']}/", data=json.dumps(update_payload), content_type="application/json")
     assert resp.status_code == 200
     assert_envelope(resp.json(), expect_status="success")
 
@@ -81,7 +81,7 @@ def test_wcapi_org_model_crud(model_name, org_type):
         "id": record_id,
         "status": {"mode": "delete"},
     }
-    resp = client.post("/wcapi/save/", data=json.dumps(delete_field_payload), content_type="application/json")
+    resp = client.post(f"/wcapi/save/{delete_field_payload['model_name']}/", data=json.dumps(delete_field_payload), content_type="application/json")
     assert resp.status_code == 200
     assert_envelope(resp.json(), expect_status="success")
 
@@ -90,8 +90,8 @@ def test_wcapi_org_model_crud(model_name, org_type):
 
     # Delete record
     resp = client.post(
-        "/wcapi/delete/",
-        data=json.dumps({"model_name": model_name, "id": record_id}),
+        f"/wcapi/delete/{model_name}/",
+        data=json.dumps({"id": record_id}),
         content_type="application/json",
     )
     assert resp.status_code == 200
@@ -247,7 +247,7 @@ def test_wcapi_save_saved_search_requires_admin(client):
     client.force_login(user)
 
     resp = client.post(
-        "/wcapi/save/",
+        "/wcapi/save/setting/",
         data=json.dumps(
             {
                 "model_name": "setting",
@@ -282,7 +282,7 @@ def test_wcapi_save_saved_search_allows_admin(client):
     client.force_login(user)
 
     resp = client.post(
-        "/wcapi/save/",
+        "/wcapi/save/setting/",
         data=json.dumps(
             {
                 "model_name": "setting",

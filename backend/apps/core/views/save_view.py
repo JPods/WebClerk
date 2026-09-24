@@ -329,7 +329,8 @@ class SaveWcapiView(APIView):
         description="Create or update a record by model_name using universal field operations. Each field must specify a mode ('update', 'insert', 'delete') with optional value. If id is provided, updates that record; otherwise creates a new record. Returns JSON envelope with saved record and messages."
     )
 
-    def post(self, request):
+    def post(self, request, model_name: str):
+        """POST /wcapi/save/<model_name>/ — the model is the path's, never the body's."""
         # Demo mode — block all saves at the application layer
         if getattr(settings, 'READ_ONLY_MODE', False):
             return api_response(
@@ -445,8 +446,14 @@ class SaveWcapiView(APIView):
 
         # Query parameters are the HTTP layer's business: fold them into the payload
         # before the door sees it.
-        if not data.get('model_name') and request.query_params.get('model_name'):
-            data['model_name'] = request.query_params.get('model_name')
+        named = data.get('model_name') or data.get('model')
+        if named and str(named).lower() != model_name.lower():
+            return api_response(
+                success=False, status_code=400,
+                message=f'The path saves {model_name}; the payload names {named}.',
+                error={'code': 'model_mismatch',
+                       'details': {'path': model_name, 'payload': named}})
+        data['model_name'] = model_name
         if data.get('id') is None and request.query_params.get('id') is not None:
             data['id'] = request.query_params.get('id')
         data['id'] = coerce_int(data.get('id'))
@@ -495,44 +502,3 @@ class SaveWcapiView(APIView):
             return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
 
         return api_response(data=result.payload(), message=result.warning)
-
-
-class SaveWcapiViewWithModel(APIView):
-    """
-    WCAPI save view that accepts model_name in the URL path.
-    Supports URLs like /wcapi/<model_name>/save or /wcapi/save/<model_name>
-    """
-    http_method_names = ["post", "options", "head"]
-
-    def post(self, request, model_name=None, *args, **kwargs):
-        # Get model_name from URL path, fallback to body if not provided
-        if not model_name:
-            # This shouldn't happen with proper URL routing, but defensive
-            body = request.data or {}
-            model_name = body.get('model_name') or body.get('model') or body.get('modelName')
-
-        if not model_name:
-            return api_response(
-                data={"detail": "Missing required field: model_name (in URL or body)"},
-                status=400
-            )
-
-        # Create a copy of request data and inject model_name
-        data = dict(request.data or {})
-        data['model_name'] = model_name
-
-        # Create a mock request with the modified data
-        from django.http import HttpRequest
-        modified_request = HttpRequest()
-        modified_request.method = request.method
-        modified_request.META = request.META.copy()
-        modified_request.GET = request.GET.copy()
-        modified_request.POST = request.POST.copy()
-        modified_request.COOKIES = request.COOKIES.copy()
-        modified_request.session = request.session
-        modified_request.user = request.user
-        modified_request.data = data
-
-        # Delegate to the main SaveWcapiView
-        view_instance = SaveWcapiView()
-        return view_instance.post(modified_request, *args, **kwargs)

@@ -257,7 +257,7 @@ class UserDailyLog(BaseModel):
 
     error_details:
         [
-            {"endpoint": "/wcapi/save/", "model": "order", "status_code": 400,
+            {"endpoint": "/wcapi/save/order/", "model": "order", "status_code": 400,
              "error_message": "…", "count": 3, "first_at": "…", "last_at": "…"}
         ]
     """

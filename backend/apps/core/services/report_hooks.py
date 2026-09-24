@@ -46,12 +46,15 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-# Time budgets per phase, in seconds. save_pre is in the user's save path, so it
-# is the tightest: a hook that cannot answer in a quarter second does not get to
-# hold the dialog open.
+# Time budgets, in seconds, per verb moment and per report phase. A pre hook is in
+# the caller's path, so it is the tightest; a get hook is on every read.
 BUDGETS = {
     'save_pre': 0.25,
     'save_post': 1.0,
+    'delete_pre': 0.25,
+    'delete_post': 1.0,
+    'get_pre': 0.1,
+    'get_post': 0.25,
     'before': 5.0,
     'during': 5.0,
     'after': 30.0,
@@ -59,7 +62,7 @@ BUDGETS = {
 
 MAX_CHAIN_DEPTH = 5
 
-VERBS = ('require', 'match', 'range', 'block', 'set', 'add_note', 'create_action',
+RULE_ACTIONS = ('require', 'match', 'range', 'block', 'set', 'add_note', 'create_action',
          'append_log', 'run_report')
 CONDITIONS = ('when', 'when_changed')
 MODIFIERS = ('message',)  # the text a failed validate shows the user
@@ -187,10 +190,10 @@ def _validate_rule(rule: Any, phase: str, index: int, declared: dict) -> List[st
     if not isinstance(rule, dict):
         return [f'{where}: rule must be an object']
     problems = []
-    unknown = set(rule) - set(VERBS) - set(CONDITIONS) - set(MODIFIERS)
+    unknown = set(rule) - set(RULE_ACTIONS) - set(CONDITIONS) - set(MODIFIERS)
     if unknown:
         problems.append(f"{where}: unknown key(s) {sorted(unknown)}")
-    if not (set(rule) & set(VERBS)):
+    if not (set(rule) & set(RULE_ACTIONS)):
         problems.append(f'{where}: rule has no verb')
 
     if 'set' in rule:
@@ -297,6 +300,7 @@ def run_phase(
     stack: Optional[List[str]] = None,
     user=None,
     simulate: bool = False,
+    budget_key: Optional[str] = None,
 ) -> HookResult:
     """Run one phase of one report's hooks.
 
@@ -319,7 +323,7 @@ def run_phase(
         return result
 
     declared = point_rules(hooks.get('point')) or {}
-    budget = BUDGETS.get(phase, BUDGETS['after'])
+    budget = BUDGETS.get(budget_key or phase, BUDGETS['after'])
     started = time.monotonic()
 
     ctx = dict(context or {})
@@ -449,14 +453,17 @@ def _add_note(record, text, ida):
 
 
 def _create_action(spec, ctx, record, user):
+    """A hook's action is written through the save door, as the system: authorized as our
+    own code, with the action's own hooks (verbs.py refuses a chain deeper than one)."""
     from apps.core.models import Action
+    from apps.core.services.door import Actor
+    from apps.core.services.save import save_record
     fields = {k: _render(v, ctx) for k, v in (spec or {}).items()}
-    action = Action(**{k: v for k, v in fields.items() if hasattr(Action, k)})
-    if record is not None and hasattr(action, 'refs'):
-        action.refs = {**(action.refs or {}), 'source': {
+    payload = {k: v for k, v in fields.items() if hasattr(Action, k)}
+    if record is not None:
+        payload['refs'] = {**(payload.get('refs') or {}), 'source': {
             'model': record.__class__.__name__.lower(), 'id': getattr(record, 'id', None)}}
-    action.save()
-    return action
+    return save_record(Actor.system(source='hook'), payload, model_key='action').obj
 
 
 def _run_report(target_ida, report, ida, declared, ctx, result, depth, stack, user, record,
@@ -568,15 +575,17 @@ def _mark_unhealthy(report, reason):
 # ── model save points ────────────────────────────────────────────────────────
 
 def hooks_for_point(point: str):
-    """Active, cleared reports whose hooks attach to this point.
+    """Active reports whose hooks attach to this point, oldest first.
 
-    Suspended hooks (three budget strikes) are skipped until a superuser clears
-    the strike count.
+    A point is a slot: one report per slot (Bill, 2026-09-24). The Report save gate
+    refuses a second, so more than one here is a fault the verb refuses loudly.
+    Suspended hooks (three budget strikes) are skipped until a superuser clears the
+    strike count.
     """
     from apps.core.models import Report
     candidates = Report.objects.filter(
         is_active=True, config__hooks__point=point
-    )
+    ).order_by('pk')
     ready = []
     for report in candidates:
         health = (report.metadata or {}).get('hook_health') or {}
@@ -587,28 +596,39 @@ def hooks_for_point(point: str):
     return ready
 
 
-def run_save_hooks(model_key: str, phase: str, record, changed=None, user=None) -> HookResult:
-    """Run every report hooked to `<model>.<phase>` for one record.
+class HookSlotConflict(Exception):
+    """Two active reports claim one slot. Carries their idas."""
 
-    phase is 'save_pre' or 'save_post'. A pre-save rule that blocks raises
-    HookBlocked, which the save view turns into an inline message; nothing here
-    opens a dialog or waits on a network call.
+    def __init__(self, point: str, idas: List[str]):
+        super().__init__(f"{len(idas)} reports claim the hook slot {point}: {', '.join(idas)}")
+        self.point = point
+        self.idas = idas
+
+
+def slot_point(model_key: str, verb: str, moment: str) -> str:
+    """The slot a user hook fills: ``<model>.<verb>_<pre|post>`` (WC2's ``OnSave_<Table>``)."""
+    return f'{model_key}.{verb}_{moment}'
+
+
+def run_hooks(model_key: str, verb: str, moment: str, record, changed=None,
+              user=None) -> HookResult:
+    """Run the one report in the slot ``<model>.<verb>_<moment>`` for one record.
+
+    moment is 'pre' or 'post'. A pre rule that blocks raises HookBlocked; two reports in
+    one slot raise HookSlotConflict. Nothing here opens a dialog or waits on a network call.
     """
-    combined = HookResult()
-    point = f'{model_key}.{phase}'
-    for report in hooks_for_point(point):
-        phase_key = 'before' if phase == 'save_pre' else 'after'
-        result = run_phase(
-            report, phase_key, record=record, changed=changed,
-            context={'phase': phase, 'model': model_key}, user=user,
-        )
-        combined.ran += result.ran
-        combined.set_fields += result.set_fields
-        combined.created += result.created
-        combined.called += result.called
-        combined.errors += result.errors
-        combined.timed_out = combined.timed_out or result.timed_out
-    return combined
+    point = slot_point(model_key, verb, moment)
+    reports = hooks_for_point(point)
+    if not reports:
+        return HookResult()
+    if len(reports) > 1:
+        raise HookSlotConflict(point, [r.ida for r in reports])
+    return run_phase(
+        reports[0], 'before' if moment == 'pre' else 'after', record=record,
+        changed=changed, context={'phase': f'{verb}_{moment}', 'model': model_key,
+                                  'verb': verb}, user=user,
+        budget_key=f'{verb}_{moment}',
+    )
 
 
 # ── WCHQ review and Athena binding ───────────────────────────────────────────

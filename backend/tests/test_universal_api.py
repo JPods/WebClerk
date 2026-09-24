@@ -42,7 +42,7 @@ class UniversalAPITestCase(TestCase):
         payload = {'model_name': model_key.rstrip('s') if model_key.endswith('s') else model_key}
         payload.update(record)
         return self.client.post(
-            '/wcapi/save/',
+            f"/wcapi/save/{payload['model_name']}/",
             data=json.dumps(payload),
             content_type='application/json'
         )
