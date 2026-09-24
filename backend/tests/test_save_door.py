@@ -31,7 +31,9 @@ def test_a_system_actor_saves_without_a_request():
 def test_the_door_stamps_identity_the_same_way_for_every_actor():
     made = {}
     for kind in ('user', 'system'):
-        actor = Actor.system() if kind == 'system' else Actor(user=None, kind='user')
+        from apps.core.models import Contact
+        person = Contact.objects.create(email=f'door-{kind}@example.com', role='admin')
+        actor = Actor.system() if kind == 'system' else Actor(user=person, kind='user')
         result = save_record(actor, {'model_name': 'item', 'name': f'Door {kind}',
                                      'ida': f'zz-door-{kind}'})
         made[kind] = result.obj

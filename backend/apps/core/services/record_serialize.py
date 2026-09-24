@@ -138,8 +138,38 @@ def get_queryset(model_key: str, *, user) -> Tuple[type[Model], QuerySet]:
     qs = policy.inject_constraints(qs, user=user, model_key=model_key)
     return ModelCls, qs
 
+def visible_queryset(model_key: str, *, user) -> Tuple[type[Model], QuerySet]:
+    """The rows a reader may see, in one call, so no caller has to remember a filter.
+
+    The one read channel (Bill, 2026-09-23). Three gates: security_level (access.level_q),
+    the role's block, and the role's id scope (both in inject_role_filters). An anonymous
+    visitor passes gate 1 at level 1 and reaches only the models the public role lists.
+    """
+    from apps.core.services import access
+    from apps.core.services.role_filter import inject_role_filters
+
+    if not (user and getattr(user, 'is_authenticated', False)):
+        ModelCls = registry.resolve(model_key or "")
+        if not ModelCls:
+            raise ValueError("invalid model")
+        if not access.public_fields(model_key):
+            return ModelCls, ModelCls.objects.none()
+        return ModelCls, ModelCls.objects.filter(access.level_q(None), is_active=True)
+
+    ModelCls, qs = get_queryset(model_key, user=user)
+    if any(f.name == 'security_level' for f in ModelCls._meta.concrete_fields):
+        qs = qs.filter(access.level_q(user))
+    qs = qs.filter(inject_role_filters(user, model_key))
+    # A person always reaches their own contact, role or none (Bill, 2026-09-23). What they
+    # may change on it is still the edit enumeration and the contact account guard —
+    # authority fields (role, is_superuser, security_level) stay refused.
+    if access.model_key(model_key) == 'contact' and getattr(user, 'pk', None):
+        from django.db.models import Q
+        qs = ModelCls.objects.filter(Q(pk__in=qs.values('pk')) | Q(pk=user.pk))
+    return ModelCls, qs
+
 def get_item(model_key: str, *, request, id: Any) -> Optional[Model]:
-    ModelCls, qs = get_queryset(model_key, user=getattr(request, 'user', None))
+    ModelCls, qs = visible_queryset(model_key, user=getattr(request, 'user', None))
     try:
         obj = qs.get(pk=id)
         # Force refresh from database to get latest data
@@ -149,7 +179,7 @@ def get_item(model_key: str, *, request, id: Any) -> Optional[Model]:
         return None
 
 def list_items(model_key: str, *, request, filters: Optional[Dict[str, Any]] = None, limit: int = 500, ordering: Optional[str] = None) -> List[Model]:
-    ModelCls, qs = get_queryset(model_key, user=getattr(request, 'user', None))
+    ModelCls, qs = visible_queryset(model_key, user=getattr(request, 'user', None))
     if filters:
         qs = qs.filter(**filters)
     if ordering:

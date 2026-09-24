@@ -5,13 +5,12 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from django.shortcuts import get_object_or_404
 from django.conf import settings
-from rest_framework import viewsets, status
-from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.response import Response
 from apps.transactions.models import Cash, Invoice, Receipt
-from apps.transactions.serializers.cash_serializer import CashSerializer
 from apps.transactions.services.cash.spreedly_gateway import SpreedlyService, SpreedlyError, process_cash as spreedly_process, refund_cash as spreedly_refund
 from apps.transactions.services.pricing.dual_pricing import compute_dual_pricing, compute_cash_amount, get_dual_pricing_config
 from apps.core.services import record_serialize as wcapi
@@ -356,52 +355,3 @@ def checkout_pricing(request, invoice_id):
     })
 
 
-class CashViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only ViewSet for Cash. Writes go through /wcapi/save/."""
-
-    queryset = Cash.objects.active()
-    serializer_class = CashSerializer
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = 'cash'
-
-    @action(detail=True, methods=['get'])
-    def status(self, request, pk=None):
-        """Get detailed cash status."""
-        cash = self.get_object()
-
-        # Invoices this cash was applied to — read from Pending application records
-        from apps.core.models.pending import Pending
-        from apps.transactions.services.cash.cash_pending import CASH_PURPOSE
-        rows = (Pending.objects.filter(purpose=CASH_PURPOSE, changes__cash_id=cash.pk)
-                .order_by('-dt_created').values('id', 'changes', 'dt_processed'))
-        invoice_totals = {i.pk: (i.totals or {}) for i in Invoice.objects.filter(
-            pk__in={r['changes'].get('invoice_id') for r in rows})}
-        invoice_statuses = [
-            {
-                'pending_id': r['id'],
-                'invoice_id': r['changes'].get('invoice_id'),
-                'amount': r['changes'].get('amount'),
-                'state': r['changes'].get('state', 'pending'),
-                'invoice_total': invoice_totals.get(r['changes'].get('invoice_id'), {}).get('total'),
-                'invoice_balance': invoice_totals.get(r['changes'].get('invoice_id'), {}).get('balance'),
-            }
-            for r in rows
-        ]
-
-        return Response({
-            'cash_id': cash.id,
-            'status': cash.status,
-            'amount': cash.amount,
-            'gateway': cash.gateway,
-            'reconciled': cash.reconciled,
-            'refs': cash.refs,
-            'metadata': cash.metadata,
-            'invoice_statuses': invoice_statuses,
-            'dt_created': cash.dt_created,
-            'dt_modified': cash.dt_modified
-        })
-
-    @action(detail=False, methods=['post'])
-    def process_gateway_cash(self, request):
-        """Process a cash entry through gateway (alternative to function-based view)."""
-        return process_cash(request)

@@ -15,7 +15,8 @@ class WcapiConcurrencyTests(TestCase):
             password='pass123',
             name_first='CC',
             name_last='User',
-            username=''
+            username='',
+            role='admin',   # a real role: this tests version conflicts, not access
         )
         self.client.login(email='cc@test.com', password='pass123')
         self.contact = Contact.objects.create(

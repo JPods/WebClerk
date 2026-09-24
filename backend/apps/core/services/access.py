@@ -37,6 +37,8 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
+from django.db.models import Q
+
 logger = logging.getLogger(__name__)
 
 # The role vocabulary (Bill, 2026-09-18). Portal roles are people outside the
@@ -113,6 +115,66 @@ OPEN_READ_MODELS = frozenset({'setting'})
 
 def is_open_read(name: str) -> bool:
     return model_key(name) in OPEN_READ_MODELS
+
+
+# ── Security level: the first of three read gates ───────────────────────
+# Bill, 2026-09-23. Every read passes three gates, each answering one question:
+#   1. security_level  — how sensitive is this record        (per record, here)
+#   2. role blocks     — what may this role do with the model (view/edit, below)
+#   3. id injection    — whose record is it                  (scope: customer_id, vendor_id, rep_id)
+# 0 is unpublished and is the column default: staff only. Everyone else sees a record
+# when 0 < security_level <= their ceiling. Roles live in code (Bill: they rarely change).
+STAFF_LEVEL = 9
+PUBLIC_LEVEL = 1          # the anonymous visitor's ceiling
+LEVEL_CEILING = {
+    'superuser': STAFF_LEVEL, 'admin': STAFF_LEVEL,
+    'employee': 4, 'accounting': 4, 'sales': 4, 'production': 4, 'warehouse': 4, 'agent': 4,
+    'rep': 3, 'vendor': 3, 'manufacturer': 3,
+    'customer': 2, 'buyer': 2,
+}
+
+#: Models whose new records start unpublished (0): publishing is a deliberate act, and
+#: Alice counts what is waiting. Every other new record is stamped NEW_RECORD_LEVEL so
+#: its creator sees it (Bill, 2026-09-23).
+PUBLISHED_MODELS = frozenset({'item'})
+NEW_RECORD_LEVEL = 1
+
+
+def level_ceiling(user) -> Optional[int]:
+    """The highest security_level this reader may see; None = no role, sees nothing."""
+    if user is None or not getattr(user, 'is_authenticated', False):
+        return PUBLIC_LEVEL
+    role = user_role(user)
+    return LEVEL_CEILING.get(role) if role else None
+
+
+def level_q(user) -> Q:
+    """Gate 1 as a filter: staff see 0..9, everyone else 0 < level <= ceiling."""
+    ceiling = level_ceiling(user)
+    if ceiling is None:
+        return Q(pk__isnull=True)
+    if ceiling >= STAFF_LEVEL:
+        return Q(security_level__lte=ceiling)
+    return Q(security_level__gt=0, security_level__lte=ceiling)
+
+
+def new_record_level(name: str) -> int:
+    return 0 if model_key(name) in PUBLISHED_MODELS else NEW_RECORD_LEVEL
+
+
+# ── Public: the anonymous visitor ───────────────────────────────────────
+# A record is public only when its model is listed here AND it passes gate 1 at the
+# anonymous ceiling (level 1). Anything more requires a login. Items only (Bill).
+PUBLIC_READ = {
+    'item': ('id', 'ida', 'sku', 'name', 'description', 'kind', 'uom',
+             'price.retail', 'price.currency',
+             'refs.categories', 'refs.tags', 'refs.keywords', 'refs.variants'),
+}
+
+
+def public_fields(name: str) -> tuple:
+    """The leaves an anonymous visitor may see on a published record; () = not public."""
+    return PUBLIC_READ.get(model_key(name) or '', ())
 
 
 def open_read_can_write(user) -> bool:

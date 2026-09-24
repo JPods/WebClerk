@@ -33,6 +33,24 @@ from apps.core.utils.model_policies import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
+def _grant(model_key, role, block):
+    """Give a role a block on one model. The test database carries only the install
+    defaults (superuser, admin, agent): any other role sees nothing until granted."""
+    from apps.core.models.setting import Setting
+    from apps.core.services import access
+    setting = Setting.objects.filter(purpose='wc:model', parent_model=model_key).first()
+    config = dict(setting.config or {})
+    acc = dict(config.get('access') or {})
+    roles = dict(acc.get('roles') or {})
+    roles[role] = block
+    acc['roles'] = roles
+    config['access'] = acc
+    setting.config = config
+    setting._setting_update_authorized = True
+    setting.save(update_fields=['config'])
+    access.clear_cache()
+
 def _mock_user(role="user", is_superuser=False, is_staff=False, is_authenticated=True):
     """A fake user carrying the given role.
 
@@ -287,11 +305,14 @@ class TestWcapiSaveWritePolicy:
         superuser) is real and is now enforced more strongly: the save is refused and the
         caller is told which field did it.
         """
+        _grant('contact', 'employee', {'view': ['@all'], 'edit': ['email', 'name_first'],
+                                       'scope': {}, 'create': False})
         employee = django_user_model.objects.create_user(
             email="emp@example.com", password=TEST_PASSWORD, role="employee",
         )
         target = django_user_model.objects.create_user(
             email="target@example.com", password=TEST_PASSWORD, role="user",
+            security_level=1,   # as the save door stamps a new contact; 0 is staff-only
         )
         client = _auth_client(employee)
         resp = client.post("/wcapi/save/", {
@@ -335,13 +356,16 @@ class TestWcapiSaveWritePolicy:
 
     @override_settings(WCAPI_POLICIES_ENABLED=True, WCAPI_MODEL_POLICIES=_TEST_POLICIES)
     def test_a_user_may_not_set_role_on_a_contact(self, django_user_model):
-        """role is authority too, and the guard refuses rather than ignores."""
+        """role is authority too, and the guard refuses rather than ignores.
+
+        On their own contact (Bill, 2026-09-23: a person always reaches their own record):
+        reaching it is not authority over it. Another person's contact is out of reach
+        entirely for a login with no role — see test_get_channel.
+        """
         user = django_user_model.objects.create_user(
             email="user@example.com", password=TEST_PASSWORD, role="user",
         )
-        target = django_user_model.objects.create_user(
-            email="target3@example.com", password=TEST_PASSWORD, role="user",
-        )
+        target = user
         client = _auth_client(user)
         resp = client.post("/wcapi/save/", {
             "model_name": "contact", "id": target.pk, "role": "admin",

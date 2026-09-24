@@ -16,7 +16,8 @@ class UniversalAPITestCase(TestCase):
             password='testpass123',
             name_first='Test',
             name_last='User',
-            username=''
+            username='',
+            role='admin',   # a real role: this tests the API contract, not access
         )
         # A second contact (distinct from auth user)
         self.contact = Contact.objects.create(

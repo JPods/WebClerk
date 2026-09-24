@@ -29,7 +29,6 @@ from apps.transactions.views.transaction_views import (
     OrderViewSet,
     PurchaseViewSet,
     InvoiceViewSet,
-    CashViewSet,
 )
 from apps.transactions.views.actions import OrderToPurchaseView
 
@@ -40,7 +39,6 @@ router.register(r'quote', QuoteViewSet, basename='quote')
 router.register(r'order', OrderViewSet, basename='order')
 router.register(r'purchase', PurchaseViewSet, basename='purchase')
 router.register(r'invoice', InvoiceViewSet, basename='invoice')
-router.register(r'cash', CashViewSet, basename='cash')
 
 urlpatterns = [
     # DRF router URLs for CRUD operations

@@ -2,15 +2,15 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
 
 from common.base_views import BaseOptimisticDetailView
+from apps.core.services.record_serialize import visible_queryset
 from apps.transactions.models import (
-    Quote, Order, Purchase, Invoice, Cash
+    Quote, Order, Purchase, Invoice
 )
 from apps.transactions.serializers import (
     QuoteSerializer, OrderSerializer, PurchaseSerializer,
-    InvoiceSerializer, CashSerializer
+    InvoiceSerializer
 )
 from apps.transactions.services.convert import convert_quote_to_order as quote_to_order
 from apps.transactions.services.convert import convert_order_to_invoice as order_to_invoice
@@ -30,13 +30,24 @@ def _require_staff(request):
     return None
 
 
-class QuoteViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only ViewSet for Quote. Writes go through /wcapi/save/."""
+class _VisibleActions(viewsets.GenericViewSet):
+    """Actions on one transaction, looked up through the one read channel.
 
-    queryset = Quote.objects.active().prefetch_related('lines')
+    No list and no retrieve: reads go through /wcapi/get/ (Bill, 2026-09-23 — all gets
+    flow through one channel). get_object() sees only the rows visible_queryset shows
+    this user, so an action cannot reach a record its caller could not read.
+    """
+    model_key = ''
+
+    def get_queryset(self):
+        return visible_queryset(self.model_key, user=self.request.user)[1]
+
+
+class QuoteViewSet(_VisibleActions):
+    """Actions on a quote. Writes go through /wcapi/save/."""
+
+    model_key = 'quote'
     serializer_class = QuoteSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'customer', 'vendor']
 
     @action(detail=True, methods=['post'])
     def convert_to_order(self, request, pk=None):
@@ -69,13 +80,11 @@ class QuoteViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class OrderViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only ViewSet for Order. Writes go through /wcapi/save/."""
+class OrderViewSet(_VisibleActions):
+    """Actions on a order. Writes go through /wcapi/save/."""
 
-    queryset = Order.objects.active().prefetch_related('lines')
+    model_key = 'order'
     serializer_class = OrderSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'customer', 'vendor', 'ida']
 
     @action(detail=True, methods=['post'])
     def convert_to_invoice(self, request, pk=None):
@@ -138,13 +147,11 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PurchaseViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only ViewSet for Purchase. Writes go through /wcapi/save/."""
+class PurchaseViewSet(_VisibleActions):
+    """Actions on a purchase. Writes go through /wcapi/save/."""
 
-    queryset = Purchase.objects.active().prefetch_related('lines')
+    model_key = 'purchase'
     serializer_class = PurchaseSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'customer', 'vendor', 'ida']
 
     @action(detail=True, methods=['post'])
     def receive_goods(self, request, pk=None):
@@ -183,13 +190,11 @@ class PurchaseViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(totals)
 
 
-class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only ViewSet for Invoice. Writes go through /wcapi/save/."""
+class InvoiceViewSet(_VisibleActions):
+    """Actions on a invoice. Writes go through /wcapi/save/."""
 
-    queryset = Invoice.objects.active()
+    model_key = 'invoice'
     serializer_class = InvoiceSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'customer', 'vendor']
 
     @action(detail=True, methods=['get'])
     def cash_status(self, request, pk=None):
@@ -211,19 +216,9 @@ class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CashViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only ViewSet for Cash. Writes go through /wcapi/save/."""
-
-    queryset = Cash.objects.active()
-    serializer_class = CashSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'gateway', 'contact_id', 'invoice', 'method']
-
-
 __all__ = [
     'QuoteViewSet',
     'OrderViewSet',
     'PurchaseViewSet',
     'InvoiceViewSet',
-    'CashViewSet',
 ]

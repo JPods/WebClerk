@@ -14,7 +14,7 @@ Usage:
     result = parse_contact_text('''
         Bill James, CEO, JPods Inc, 612-555-1234, bill@jpods.com
         Jane Smith, VP Sales, Acme Corp, 651-555-9876, jane@acme.com
-    ''')
+    ''', user=request.user)
     # {
     #   'columns': ['name_first', 'name_last', 'title', 'company', ...],
     #   'rows': [
@@ -756,7 +756,7 @@ def detect_structure(text: str) -> dict[str, Any] | None:
 
 
 def parse_structured_confirmed(text: str, delimiter: str, column_map: list[dict],
-                                header_row: int = 0) -> dict[str, Any]:
+                                header_row: int = 0, *, user) -> dict[str, Any]:
     """Step 2: Parse structured text using user-confirmed column mapping.
 
     column_map: list of {'index': N, 'mapped_to': 'name_first'} — user-confirmed mapping.
@@ -878,7 +878,7 @@ def parse_structured_confirmed(text: str, delimiter: str, column_map: list[dict]
             })
 
         if chips:
-            matches = _find_contact_matches(chips)
+            matches = _find_contact_matches(chips, user=user)
             rows.append({
                 'row': len(rows) + 1,
                 'chips': chips,
@@ -896,7 +896,7 @@ def parse_structured_confirmed(text: str, delimiter: str, column_map: list[dict]
     }
 
 
-def _parse_structured_no_header(text: str, delimiter: str) -> dict[str, Any] | None:
+def _parse_structured_no_header(text: str, delimiter: str, *, user) -> dict[str, Any] | None:
     """Parse structured data without a header row.
 
     Uses content-based guessing: emails → email column, phones → phone column,
@@ -949,7 +949,7 @@ def _parse_structured_no_header(text: str, delimiter: str) -> dict[str, Any] | N
             first_val = (chips.get('name_first', {}).get('text', '') or '').lower()
             if first_val == 'vacant':
                 continue
-            matches = _find_contact_matches(chips)
+            matches = _find_contact_matches(chips, user=user)
             rows.append({
                 'row': len(rows) + 1,
                 'chips': chips,
@@ -972,7 +972,7 @@ def _parse_structured_no_header(text: str, delimiter: str) -> dict[str, Any] | N
 
 # ── Main Entry Point ─────────────────────────────────────────────────
 
-def parse_contact_text(text: str) -> dict[str, Any]:
+def parse_contact_text(text: str, *, user) -> dict[str, Any]:
     """Parse pasted text into a grid of rows and columns.
 
     Returns:
@@ -1005,13 +1005,14 @@ def parse_contact_text(text: str) -> dict[str, Any]:
                 text, delimiter,
                 detection['columns'],
                 header_row=detection['header_row'],
+                user=user,
             )
             if result and result.get('rows'):
                 result['_detection'] = detection  # pass detection to UI
                 return result
 
         # No header found — still structured, do best-effort positional mapping
-        result = _parse_structured_no_header(text, delimiter)
+        result = _parse_structured_no_header(text, delimiter, user=user)
         if result and result.get('rows'):
             result['_no_header'] = True
             return result
@@ -1166,7 +1167,7 @@ def parse_contact_text(text: str) -> dict[str, Any]:
                 assigned[field] = True
 
         # Find matching contacts
-        matches = _find_contact_matches(chips)
+        matches = _find_contact_matches(chips, user=user)
 
         rows.append({
             'row': row_idx + 1,
@@ -1182,7 +1183,7 @@ def parse_contact_text(text: str) -> dict[str, Any]:
     }
 
 
-def _find_contact_matches(chips: dict[str, dict]) -> list[dict[str, Any]]:
+def _find_contact_matches(chips: dict[str, dict], *, user) -> list[dict[str, Any]]:
     """Find existing contacts matching the parsed chips.
 
     Returns field-level data so the UI can show each match as a full row
@@ -1194,7 +1195,7 @@ def _find_contact_matches(chips: dict[str, dict]) -> list[dict[str, Any]]:
     email = chips.get('email', {}).get('text', '')
 
     try:
-        from apps.core.models.contact import Contact
+        from apps.core.services.record_serialize import visible_queryset
         from django.db.models import Q
 
         q = Q()
@@ -1206,7 +1207,7 @@ def _find_contact_matches(chips: dict[str, dict]) -> list[dict[str, Any]]:
             q |= Q(name_last__iexact=last)
 
         if q:
-            for c in Contact.objects.filter(q, is_active=True)[:5]:
+            for c in visible_queryset('contact', user=user)[1].filter(q, is_active=True)[:5]:
                 conf = 0.0
                 if email and c.email and c.email.lower() == email.lower():
                     conf = 0.95
@@ -1267,13 +1268,14 @@ def _find_contact_matches(chips: dict[str, dict]) -> list[dict[str, Any]]:
 
 # ── Load Existing Contacts (search + cleanup mode) ──────────────────
 
-def load_contacts(query: str, limit: int = 20) -> dict[str, Any]:
-    """Search existing contacts and return them in the same grid format.
+def load_contacts(query: str, limit: int = 20, *, user) -> dict[str, Any]:
+    """Search the contacts this user may see and return them in the same grid format.
 
     Each contact becomes a row with editable chips. Cross-row duplicate
-    scores show which contacts might be the same person.
+    scores show which contacts might be the same person. Rows come through
+    visible_queryset, the one read channel.
     """
-    from apps.core.models.contact import Contact
+    from apps.core.services.record_serialize import visible_queryset
     from django.db.models import Q
 
     q = Q()
@@ -1285,7 +1287,7 @@ def load_contacts(query: str, limit: int = 20) -> dict[str, Any]:
             | Q(email__icontains=query)
         )
 
-    contacts = Contact.objects.filter(q, is_active=True).order_by('name_last', 'name_first')[:limit]
+    contacts = visible_queryset('contact', user=user)[1].filter(q, is_active=True).order_by('name_last', 'name_first')[:limit]
 
     rows = []
     chip_id = 0

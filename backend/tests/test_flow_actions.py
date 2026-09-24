@@ -8,6 +8,10 @@ from apps.transactions.models import (
 )
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
+import secrets
+
+# Generated per run — no password literal in the repository.
+TEST_PASSWORD = secrets.token_urlsafe(16)
 
 
 def _permission_setting(parent_model, config):
@@ -27,7 +31,7 @@ def _auth(user):
 def test_quote_to_order_action(django_user_model):
     # Minimal permission rules for Quote (header) actions
     _permission_setting('quote', {"USER": {"view": ["id"], "edit": ["id"]}})
-    user = django_user_model.objects.create_user(email='flow1@example.com', password='pass12345', role='USER')
+    user = django_user_model.objects.create_user(email='flow1@example.com', password=TEST_PASSWORD, role='admin')
     client = _auth(user)
 
     quote = Quote.objects.create(name="P-ACT")
@@ -47,7 +51,7 @@ def test_quote_to_order_action(django_user_model):
 def test_order_to_invoice_action(django_user_model):
     # Permission for Order header
     _permission_setting('order', {"USER": {"view": ["id"], "edit": ["id"]}})
-    user = django_user_model.objects.create_user(email='flow2@example.com', password='pass12345', role='USER')
+    user = django_user_model.objects.create_user(email='flow2@example.com', password=TEST_PASSWORD, role='admin')
     client = _auth(user)
 
     so = Order.objects.create(ida="SO-T1")
@@ -66,7 +70,7 @@ def test_order_to_invoice_action(django_user_model):
 def test_receive_purchase_action(django_user_model):
     # Permission for Purchase header
     _permission_setting('purchase', {"USER": {"view": ["id"], "edit": ["id"]}})
-    user = django_user_model.objects.create_user(email='flow3@example.com', password='pass12345', role='USER')
+    user = django_user_model.objects.create_user(email='flow3@example.com', password=TEST_PASSWORD, role='admin')
     client = _auth(user)
 
     item = Item.objects.create(name='Widget', sku='W-1', description='Widget')

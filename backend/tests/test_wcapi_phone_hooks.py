@@ -4,14 +4,18 @@ from django.test import Client, override_settings
 from django.contrib.auth import get_user_model
 from apps.communications.models import Phone
 from tests.utils import assert_envelope
+import secrets
+
+# Generated per run — no password literal in the repository.
+TEST_PASSWORD = secrets.token_urlsafe(16)
 
 User = get_user_model()
 
 @pytest.mark.django_db
 @pytest.mark.hooks
 def test_phone_pre_and_post_hooks_success(monkeypatch):
-    user = User.objects.create_user(email='phook@example.com', password='pw12345', name_first='P', name_last='User', username='')
-    c = Client(); assert c.login(email='phook@example.com', password='pw12345')
+    user = User.objects.create_user(email='phook@example.com', password=TEST_PASSWORD, name_first='P', name_last='User', username='', role='admin')  # hooks, not access
+    c = Client(); assert c.login(email='phook@example.com', password=TEST_PASSWORD)
     payload = {
         'model_name': 'phone',  #chaned from t_n
         'number': '5551234',
@@ -29,8 +33,8 @@ def test_phone_pre_and_post_hooks_success(monkeypatch):
 @pytest.mark.django_db
 @pytest.mark.hooks
 def test_phone_pre_save_rejects_short_number():
-    user = User.objects.create_user(email='phook2@example.com', password='pw12345', name_first='P', name_last='User', username='')
-    c = Client(); assert c.login(email='phook2@example.com', password='pw12345')
+    user = User.objects.create_user(email='phook2@example.com', password=TEST_PASSWORD, name_first='P', name_last='User', username='', role='admin')  # hooks, not access
+    c = Client(); assert c.login(email='phook2@example.com', password=TEST_PASSWORD)
     payload = {
         'model_name': 'phone',  #chaned from t_n
         'number': '12',  # too short triggers pre_save_hook rejection
@@ -45,8 +49,8 @@ def test_phone_pre_save_rejects_short_number():
 @pytest.mark.django_db
 @pytest.mark.hooks
 def test_phone_api_validate_country_code_error():
-    user = User.objects.create_user(email='phook3@example.com', password='pw12345', name_first='P', name_last='User', username='')
-    c = Client(); assert c.login(email='phook3@example.com', password='pw12345')
+    user = User.objects.create_user(email='phook3@example.com', password=TEST_PASSWORD, name_first='P', name_last='User', username='', role='admin')  # hooks, not access
+    c = Client(); assert c.login(email='phook3@example.com', password=TEST_PASSWORD)
     payload = {
         'model_name': 'phone',  #chaned from t_n
         'number': '5559999',

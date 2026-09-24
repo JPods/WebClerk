@@ -224,9 +224,9 @@ class FeedbackView(APIView):
 class HealthView(APIView):
     """
     GET /wcapi/ai/health/
-    Public health check for the AI subsystem.
+    Health check for the AI subsystem (signed-in users).
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         rag = RAGService()
@@ -462,12 +462,12 @@ class DeviceStatusView(APIView):
     POST /wcapi/ai/device-status/  — Andi/Mac pushes device telemetry.
 
     Stored in Setting(purpose='device_status', parent_model='system').
-    Dashboard reads GET; Andi/Mac scripts POST every 5 minutes.
+    Dashboard reads GET; Andi/Mac scripts POST every 5 minutes, signed in as andi.
 
     The stress_rating (1-5) is computed from the telemetry:
       1 = cool and quiet, 5 = critical.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]  # scripts post as the andi instance agent
 
     def get(self, request):
         from apps.core.models import Setting
@@ -740,7 +740,7 @@ class ModesView(APIView):
     GET /wcapi/ai/modes/
     Returns the list of available AI assistant modes.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         return api_response(data={"modes": RAGService.available_modes()})
@@ -1206,7 +1206,7 @@ class ContactParseView(APIView):
     Request:  {"text": "Bill James, CEO, JPods Inc, 612-555-1234\\nJane Smith..."}
     Response: {"columns": [...], "rows": [...]}
     """
-    permission_classes = [AllowAny]  # Tool served from same origin; CSRF protects
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         text = (request.data.get('text') or '').strip()
@@ -1215,7 +1215,7 @@ class ContactParseView(APIView):
             return api_response(error='text is required', status_code=400)
 
         from .services.contact_parser import parse_contact_text, log_import_episode
-        result = parse_contact_text(text)
+        result = parse_contact_text(text, user=request.user)
 
         # Log episode for Alice's learning
         if result.get('rows'):
@@ -1230,7 +1230,7 @@ class ContactDetectView(APIView):
     Step 1 of structured import. Returns header detection + mapping proposal.
     User confirms/adjusts, then calls /contact/parse-confirmed/.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         text = (request.data.get('text') or '').strip()
@@ -1265,7 +1265,7 @@ class ContactParseConfirmedView(APIView):
 
     Step 2 of structured import. Uses the confirmed mapping to build JSON rows.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         text = (request.data.get('text') or '').strip()
@@ -1278,7 +1278,7 @@ class ContactParseConfirmedView(APIView):
             return api_response(error='text and column_map required', status_code=400)
 
         from .services.contact_parser import parse_structured_confirmed, log_import_episode
-        result = parse_structured_confirmed(text, delimiter, column_map, header_row)
+        result = parse_structured_confirmed(text, delimiter, column_map, header_row, user=request.user)
 
         if result.get('rows'):
             log_import_episode(result, source_label=source_label)
@@ -1291,7 +1291,7 @@ class ContactSearchView(APIView):
 
     Returns same grid format as parse, plus cross-row duplicate scores.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         query = request.query_params.get('q', '').strip()
@@ -1300,7 +1300,7 @@ class ContactSearchView(APIView):
             return api_response(error='q parameter required', status_code=400)
 
         from .services.contact_parser import load_contacts
-        result = load_contacts(query, limit=limit)
+        result = load_contacts(query, limit=limit, user=request.user)
         return api_response(data=result)
 
 
@@ -1309,7 +1309,7 @@ class ContactParseCorrectView(APIView):
 
     Request: {"text": "CEO", "original_field": "unassigned", "corrected_field": "title"}
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         text = request.data.get('text', '')

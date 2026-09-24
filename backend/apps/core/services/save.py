@@ -63,12 +63,25 @@ TRANSACTION_LINE_MODELS = ('order', 'invoice', 'quote', 'purchase', 'requisition
 def _load_or_new(actor: Actor, model_cls, model_key: str, record_id, expected_version):
     if not record_id:
         obj = model_cls()
+        # Gate 1 on the way in: a published model's record starts unpublished (0); every
+        # other record starts where its creator can see it (Bill, 2026-09-23). A payload
+        # that names a level, and may write it, overrides this at assign.
+        if hasattr(obj, 'security_level'):
+            from apps.core.services.access import new_record_level
+            obj.security_level = new_record_level(model_key)
         # Training mode (flight simulator): every record the user makes is a qq record.
         prefs = getattr(actor.user, 'prefs', None) or {}
         if isinstance(prefs, dict) and prefs.get('training'):
             obj._training_prefix = 'qq'
         return obj, True
 
+    # A person may change only what they may read: visibility is asked of the read
+    # channel, so an unseen record answers exactly like a missing one. The lock is taken on
+    # the bare row — the channel's filters can carry DISTINCT, which FOR UPDATE refuses.
+    if actor.is_person:
+        from apps.core.services.record_serialize import visible_queryset
+        if not visible_queryset(model_key, user=actor.user)[1].filter(pk=record_id).exists():
+            raise Refused(404, 'not_found', 'Record not found', 'Record not found')
     try:
         obj = model_cls.objects.select_for_update().get(id=record_id)
     except model_cls.DoesNotExist:  # type: ignore[attr-defined]
@@ -102,6 +115,15 @@ def _authorize(actor: Actor, obj, model_cls, model_key: str, data: dict,
         return dict(data or {})
 
     user = actor.user
+
+    # Create rights: the role's block for this model must say create — the write twin of
+    # the delete door's can_delete. A role with no block gets nothing (access.py).
+    if not is_update:
+        from apps.core.services.role_filter import can_create
+        if not can_create(user, model_key):
+            raise Refused(403, 'create_not_permitted',
+                          f'Your role may not create {model_key} records.',
+                          {'model_name': model_key})
 
     # Row-level edit rights: wide visibility, narrow edit.
     if is_update and user and getattr(user, 'is_authenticated', False):

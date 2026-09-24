@@ -1,8 +1,8 @@
 """
 Cash integration tests.
 
-The DRF CashViewSet is ReadOnly -- all writes go through /wcapi/save/.
-These tests verify model behavior and the read endpoints.
+Reads go through /wcapi/get/, writes through /wcapi/save/.
+These tests verify model behavior.
 """
 import pytest
 from decimal import Decimal
@@ -92,33 +92,8 @@ def test_cash_str_format(invoice, contact):
     assert 'pending' in s
 
 
-def test_cash_list_endpoint(api_client):
-    """Test that the cash list endpoint resolves and returns a valid HTTP response."""
-    url = reverse('transactions:cash-list')
-    response = api_client.get(url)
-    # On a fully migrated DB: 200. May return 500 if test DB is missing tables.
-    assert response.status_code != 404, "Cash list endpoint should exist"
-
-
-def test_cash_detail_endpoint(api_client, invoice):
-    """Test that the cash detail endpoint resolves for an existing cash."""
-    cash = Cash.objects.create(
-        invoice=invoice,
-        amount=Decimal('50.00'),
-        status='completed',
-    )
-    url = reverse('transactions:cash-detail', kwargs={'pk': cash.pk})
-    response = api_client.get(url)
-    # On a fully migrated DB: 200. May return 500 if test DB schema is stale.
-    assert response.status_code != 404, "Cash detail endpoint should exist"
-
-
-def test_cash_list_is_read_only(api_client, invoice):
-    """POST to cash-list should return 405 (ReadOnly viewset)."""
-    url = reverse('transactions:cash-list')
-    response = api_client.post(url, {
-        'invoice_id': invoice.id,
-        'amount': 50.00,
-        'status': 'pending',
-    }, format='json')
-    assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+def test_cash_has_no_viewset_route():
+    """Cash is read through /wcapi/get/ only (Bill, 2026-09-23: one read channel)."""
+    from django.urls import NoReverseMatch
+    with pytest.raises(NoReverseMatch):
+        reverse('transactions:cash-list')

@@ -4,13 +4,17 @@ from django.test import Client, override_settings
 from django.contrib.auth import get_user_model
 from apps.orgs.models import OrgBase, OrgType
 from tests.utils import assert_envelope
+import secrets
+
+# Generated per run — no password literal in the repository.
+TEST_PASSWORD = secrets.token_urlsafe(16)
 
 User = get_user_model()
 
 @pytest.mark.django_db
 def test_wcapi_org_create_validation_enabled_success():
-    user = User.objects.create_user(username='valsucc@example.com', email='valsucc@example.com', password='pw12345', name_first='Val', name_last='User')
-    c = Client(); assert c.login(email='valsucc@example.com', password='pw12345')
+    user = User.objects.create_user(username='valsucc@example.com', email='valsucc@example.com', password=TEST_PASSWORD, name_first='Val', name_last='User', role='admin')  # a real role: this tests validation, not access
+    c = Client(); assert c.login(email='valsucc@example.com', password=TEST_PASSWORD)
     payload = {
         'model_name': 'customer',
         'company': 'Valid Co',
@@ -24,8 +28,8 @@ def test_wcapi_org_create_validation_enabled_success():
 
 @pytest.mark.django_db
 def test_wcapi_org_create_validation_enabled_failure():
-    user = User.objects.create_user(username='valfail@example.com', email='valfail@example.com', password='pw12345', name_first='Val', name_last='User')
-    c = Client(); assert c.login(email='valfail@example.com', password='pw12345')
+    user = User.objects.create_user(username='valfail@example.com', email='valfail@example.com', password=TEST_PASSWORD, name_first='Val', name_last='User', role='admin')  # a real role: this tests validation, not access
+    c = Client(); assert c.login(email='valfail@example.com', password=TEST_PASSWORD)
     # invalid org_type
     payload = {
         'model_name': 'customer',
@@ -44,8 +48,8 @@ def test_wcapi_org_create_validation_enabled_failure():
 
 @pytest.mark.django_db
 def test_wcapi_org_partial_update_validation_failure():
-    user = User.objects.create_user(username='valpartial@example.com', email='valpartial@example.com', password='pw12345', name_first='Val', name_last='User')
-    c = Client(); assert c.login(email='valpartial@example.com', password='pw12345')
+    user = User.objects.create_user(username='valpartial@example.com', email='valpartial@example.com', password=TEST_PASSWORD, name_first='Val', name_last='User', role='admin')  # a real role: this tests validation, not access
+    c = Client(); assert c.login(email='valpartial@example.com', password=TEST_PASSWORD)
     org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company='Patch Co', status='active')
     # supply invalid domains list entry (missing dot TLD)
     payload = {
@@ -64,8 +68,8 @@ def test_wcapi_org_partial_update_validation_failure():
 
 @pytest.mark.django_db
 def test_wcapi_org_partial_update_validation_success():
-    user = User.objects.create_user(username='valpartial2@example.com', email='valpartial2@example.com', password='pw12345', name_first='Val', name_last='User')
-    c = Client(); assert c.login(email='valpartial2@example.com', password='pw12345')
+    user = User.objects.create_user(username='valpartial2@example.com', email='valpartial2@example.com', password=TEST_PASSWORD, name_first='Val', name_last='User', role='admin')  # a real role: this tests validation, not access
+    c = Client(); assert c.login(email='valpartial2@example.com', password=TEST_PASSWORD)
     org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company='Patch Co2', status='active')
     payload = {
         'model_name': 'customer',

@@ -104,8 +104,11 @@ def test_admin_save_goes_through_the_door(rf):
 
     door_module.save_record = _spy
     try:
+        from apps.core.models import Contact
         request = rf.post('/admin/')
-        request.user = None
+        # The admin always has a signed-in person; the door guards them like anyone else.
+        request.user = Contact.objects.create(email='admin-door@example.com', role='admin',
+                                              is_staff=True)
 
         class _Form:
             cleaned_data = {'name': 'From Admin', 'ida': 'zz-del-admin'}

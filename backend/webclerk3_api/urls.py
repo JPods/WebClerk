@@ -41,7 +41,6 @@ urlpatterns = [
     path('wcapi/ai/', include('apps.ai_assistant.urls')),
     path('wcapi/jpods/', include('apps.jpods.urls')),
     path('wcapi/reports/', include('apps.accounts.urls')),
-    path('wcapi/orgs/', include('apps.orgs.urls')),
     path('wcapi/docs/', include('apps.docs.urls')),
     path('wcapi/products/', include('apps.products.urls')),
     path('wcapi/sync/', include('apps.sync.urls')),

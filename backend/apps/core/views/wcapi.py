@@ -11,13 +11,13 @@ logger = logging.getLogger(__name__)
 from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from django.utils import timezone
 
 from apps.core.services import record_serialize as services
 from apps.core.constants.filter_operators import ALLOWED_LOOKUPS
-from apps.core.services.role_filter import inject_role_filters
 from apps.core.services.field_projection import filter_response_data
 from apps.core.utils import policy
 from apps.core.utils.registry import resolve, get as get_registry_config
@@ -158,9 +158,60 @@ class WCAPIDeleteView(APIView):
 
 
 class WCAPIGetView(APIView):
-    """Read-only WCAPI endpoint supporting query-parameter access with filtering, pagination, and search."""
+    """Read-only WCAPI endpoint supporting query-parameter access with filtering, pagination, and search.
+
+    The one read channel (Bill, 2026-09-23: all gets flow through one channel, and seeing
+    more than published items requires authorization). Anonymous visitors are answered by
+    _public alone; every other branch of this view runs for a signed-in person only.
+    """
 
     http_method_names = ["get", "options", "head"]
+    permission_classes = [AllowAny]
+
+    def _public(self, request, model_key: str, record_id) -> Response:
+        """An anonymous read: published rows of a public model, projected to public leaves."""
+        from apps.core.services import access
+        from apps.core.services.field_projection import filter_data_by_fields
+
+        fields = access.public_fields(model_key)
+        if not fields:
+            return Response({"detail": "Authentication credentials were not provided."},
+                            status=status.HTTP_401_UNAUTHORIZED)
+        ModelCls, qs = services.visible_queryset(model_key, user=request.user)
+
+        def project(obj):
+            return filter_data_by_fields(services.to_dict(obj), fields)
+
+        if record_id is not None:
+            try:
+                obj = qs.filter(pk=int(record_id)).first()
+            except (TypeError, ValueError):
+                return api_response(error="id must be an integer", status_code=400)
+            return api_response(data={"record": project(obj) if obj else None})
+
+        search = (request.query_params.get("search") or "").strip()
+        if search:
+            text = {f.name for f in ModelCls._meta.get_fields()
+                    if f.get_internal_type() in ("CharField", "TextField")} if ModelCls else set()
+            q = Q()
+            for name in (f for f in fields if f in text):
+                q |= Q(**{f"{name}__icontains": search})
+            qs = qs.filter(q)
+
+        total = qs.count()
+        limit, offset = self._parse_pagination(request)
+        results = [project(obj) for obj in qs.order_by("name", "id")[offset:offset + limit]]
+        return api_response(data={
+            "results": results,
+            "count": len(results),
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "page": (offset // limit) + 1,
+            "total_pages": (total + limit - 1) // limit,
+            "has_next": offset + limit < total,
+            "has_previous": offset > 0,
+        })
 
     @staticmethod
     def _get_line_key(header_key: str) -> Optional[str]:
@@ -993,22 +1044,12 @@ class WCAPIGetView(APIView):
                 error={"code": "invalid_model", "details": model_key},
             )
 
-        # Single record retrieval
+        # Single record retrieval — get_item reads through visible_queryset, so a record
+        # this user may not see answers exactly like one that does not exist.
         if record_id is not None:
             obj = services.get_item(model_key, request=request, id=record_id)
             if not obj:
                 return api_response(data={"record": None}, status_code=status.HTTP_200_OK)
-
-            # ── RBAC: verify user can see this specific record ──────
-            # Same scoping as list queries — external users can only
-            # view records linked to their org. Returns empty if the
-            # record doesn't pass the role filter. See wcapi-query-scoping.md
-            if request.user and request.user.is_authenticated and not request.user.is_superuser:
-                role_q = inject_role_filters(request.user, model_key)
-                if role_q:
-                    ModelCls = type(obj)
-                    if not ModelCls.objects.filter(pk=obj.pk).filter(role_q).exists():
-                        return api_response(data={"record": None}, status_code=status.HTTP_200_OK)
 
             allow = policy.field_allowlist(type(obj), request=request)
             logger = logging.getLogger(__name__)
@@ -1093,8 +1134,10 @@ class WCAPIGetView(APIView):
             
             return api_response(data={"record": payload}, status_code=status.HTTP_200_OK)
 
-        # List retrieval with filters, search, and pagination
-        ModelCls, qs = services.get_queryset(model_key, user=request.user)
+        # List retrieval with filters, search, and pagination. visible_queryset applies the
+        # role filter (RBAC query scoping, readmes/wcapi-query-scoping.md): an external user
+        # sees only rows belonging to their org(s).
+        ModelCls, qs = services.visible_queryset(model_key, user=request.user)
 
         saved_search = None
         try:
@@ -1128,22 +1171,6 @@ class WCAPIGetView(APIView):
         request_keyword = self._saved_request_keyword(request, saved_data)
         saved_request_filters, consumed_filter_params = self._saved_request_filters(request, saved_data, ModelCls)
         relative_filters = self._resolve_relative_period(saved_data.get("relative_period"))
-        
-        # ── RBAC Query Scoping ──────────────────────────────────────
-        # All data flows through wcapi. For external users (customers,
-        # vendors, reps), inject_role_filters reads the field_access
-        # Setting for this model and adds Q filters that restrict the
-        # queryset to only records belonging to the user's org(s).
-        #
-        # Example: a customer with org_ids.customer=[5,12] querying
-        # orders gets: Order.objects.filter(customer_id__in=[5, 12])
-        #
-        # Superusers bypass all filters. See readmes/wcapi-query-scoping.md
-        # ───────────────────────────────────────────────────────────────
-        if request.user and request.user.is_authenticated:
-            role_q = inject_role_filters(request.user, model_key)
-            if role_q:
-                qs = qs.filter(role_q)
         
         # Apply search first (before filters for better performance with indexes)
         search_query = self._parse_search(request, model_key, ModelCls)
@@ -1545,7 +1572,9 @@ Retrieve records from any configured model with comprehensive query support.
                         record_id = body_data['data'].get('id')
             except (json.JSONDecodeError, UnicodeDecodeError, KeyError):
                 pass
-        
+
+        if not (request.user and request.user.is_authenticated):
+            return self._public(request, model_key, record_id)
         return self._handle(model_key, record_id, None, request)
 
 

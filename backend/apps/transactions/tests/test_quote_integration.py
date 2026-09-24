@@ -1,9 +1,8 @@
 """
 Quote integration tests.
 
-The DRF QuoteViewSet is ReadOnly -- all writes go through /wcapi/save/
-or /wcapi/transaction/save/. These tests verify the read endpoints work
-and skip write-dependent workflows that require the full wcapi pipeline.
+The QuoteViewSet carries actions only: reads go through /wcapi/get/, writes through
+/wcapi/save/ or /wcapi/transaction/save/.
 """
 import pytest
 from django.urls import reverse
@@ -45,35 +44,13 @@ def vendor(db):
     return OrgBase.objects.create(company="Jane Smith", org_type="vendor")
 
 
-def test_quote_list_endpoint(api_client):
-    """Test that the quote list endpoint returns 200."""
-    url = reverse('transactions:quote-list')
-    response = api_client.get(url)
-    assert response.status_code == status.HTTP_200_OK
-
-
-def test_quote_detail_endpoint(api_client, customer, vendor):
-    """Test that the quote detail endpoint returns 200 for an existing quote."""
-    quote = Quote.objects.create(
-        status='planned',
-        customer_id=customer.id,
-        vendor_id=vendor.id,
-    )
-    url = reverse('transactions:quote-detail', kwargs={'pk': quote.pk})
-    response = api_client.get(url)
-    assert response.status_code == status.HTTP_200_OK
-
-
-def test_quote_list_is_read_only(api_client, customer, vendor):
-    """POST to quote-list should return 405 (ReadOnly viewset)."""
-    url = reverse('transactions:quote-list')
-    response = api_client.post(url, {
-        'ida': 'PROP-RO-001',
-        'status': 'planned',
-        'customer_id': customer.id,
-        'vendor_id': vendor.id,
-    }, format='json')
-    assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+def test_quote_has_no_list_or_detail_route():
+    """Reads go through /wcapi/get/ only (Bill, 2026-09-23: all gets flow through one
+    channel). The viewset carries actions, never a second list or detail read."""
+    from django.urls import NoReverseMatch
+    for name, kwargs in (('transactions:quote-list', {}), ('transactions:quote-detail', {'pk': 1})):
+        with pytest.raises(NoReverseMatch):
+            reverse(name, kwargs=kwargs)
 
 
 def test_quote_convert_to_order_endpoint_exists(api_client, customer):

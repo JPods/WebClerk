@@ -24,7 +24,8 @@ def test_bom_list_via_wcapi():
 @pytest.mark.django_db
 def test_bom_create_via_wcapi():
     """Test that BOM records can be created via /wcapi/save/."""
-    user = Contact.objects.create(email='bomcreator@example.com', name_first='Bo', name_last='C', is_staff=True)
+    user = Contact.objects.create(email='bomcreator@example.com', name_first='Bo', name_last='C', is_staff=True,
+                                  role='admin')  # a role: is_staff alone grants no create
     client = APIClient()
     client.force_authenticate(user=user)
     client.defaults['HTTP_ACCEPT'] = 'application/json'

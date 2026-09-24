@@ -4,6 +4,10 @@ from django.test import Client
 from django.contrib.auth import get_user_model
 from apps.communications.models.domain import Domain
 from tests.utils import assert_envelope
+import secrets
+
+# Generated per run — no password literal in the repository.
+TEST_PASSWORD = secrets.token_urlsafe(16)
 
 
 User = get_user_model()
@@ -20,9 +24,9 @@ def test_wcapi_save_deep_merge_prefs_and_unknown_capture():
     """
     # Auth
     user = User.objects.create_user(
-        email='deepmerge@example.com', password='pw12345', name_first='Deep', name_last='Merge', username=''
+        email='deepmerge@example.com', password=TEST_PASSWORD, name_first='Deep', name_last='Merge', username='', role='admin'  # tests merging/validation, not access
     )
-    c = Client(); assert c.login(email='deepmerge@example.com', password='pw12345')
+    c = Client(); assert c.login(email='deepmerge@example.com', password=TEST_PASSWORD)
 
     # 1) Create with nested prefs
     payload1 = {
