@@ -1195,6 +1195,7 @@ def _find_contact_matches(chips: dict[str, dict], *, user) -> list[dict[str, Any
     email = chips.get('email', {}).get('text', '')
 
     try:
+        from apps.core.services.door import Actor
         from apps.core.services.record_serialize import visible_queryset
         from django.db.models import Q
 
@@ -1207,7 +1208,7 @@ def _find_contact_matches(chips: dict[str, dict], *, user) -> list[dict[str, Any
             q |= Q(name_last__iexact=last)
 
         if q:
-            for c in visible_queryset('contact', user=user)[1].filter(q, is_active=True)[:5]:
+            for c in visible_queryset('contact', actor=Actor(user=user))[1].filter(q, is_active=True)[:5]:
                 conf = 0.0
                 if email and c.email and c.email.lower() == email.lower():
                     conf = 0.95
@@ -1275,6 +1276,7 @@ def load_contacts(query: str, limit: int = 20, *, user) -> dict[str, Any]:
     scores show which contacts might be the same person. Rows come through
     visible_queryset, the one read channel.
     """
+    from apps.core.services.door import Actor
     from apps.core.services.record_serialize import visible_queryset
     from django.db.models import Q
 
@@ -1287,7 +1289,7 @@ def load_contacts(query: str, limit: int = 20, *, user) -> dict[str, Any]:
             | Q(email__icontains=query)
         )
 
-    contacts = visible_queryset('contact', user=user)[1].filter(q, is_active=True).order_by('name_last', 'name_first')[:limit]
+    contacts = visible_queryset('contact', actor=Actor(user=user))[1].filter(q, is_active=True).order_by('name_last', 'name_first')[:limit]
 
     rows = []
     chip_id = 0

@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from apps.core.utils import registry
+from apps.core.services.door import Actor
 from apps.core.services.role_filter import inject_role_filters, can_create, can_delete
 from apps.core.services.field_projection import validate_user_edit
 
@@ -195,7 +196,7 @@ _ENVELOPE_KEYS = frozenset({"options", "_dirty"})
 _NOT_A_FIELD = _IDENTITY_KEYS | _ENVELOPE_KEYS
 
 
-def _not_enumerated(user, model_name: str, payload: dict, prefix: str = "") -> list:
+def _not_enumerated(actor, model_name: str, payload: dict, prefix: str = "") -> list:
     """Paths in this payload that the role's edit enumeration does not name.
 
     Access is an enumeration, not a filter (Bill, 2026-09-20): a filter answers "may you
@@ -204,7 +205,7 @@ def _not_enumerated(user, model_name: str, payload: dict, prefix: str = "") -> l
     """
     from apps.core.services import access, field_leaves
 
-    block = access.block_for(user, model_name)
+    block = access.block_for(actor, model_name)
     if block is None:
         return []                       # no block at all is handled by the caller
     allowed = set(block.get("edit") or [])
@@ -219,7 +220,7 @@ def _not_enumerated(user, model_name: str, payload: dict, prefix: str = "") -> l
                   and p.split(".")[0] not in _NOT_A_FIELD)
 
 
-def _transaction_save_denial(user, model_key: str, record_data: dict, lines_data: list):
+def _transaction_save_denial(actor, model_key: str, record_data: dict, lines_data: list):
     """Enforce role create/edit permission on /wcapi/transaction/save/.
 
     Returns (http_status, message) when denied, else None.
@@ -228,25 +229,26 @@ def _transaction_save_denial(user, model_key: str, record_data: dict, lines_data
     line re-priced server-side (client price/cost fields are discarded).
     """
     from apps.core.services import access
-    from apps.core.services.role_filter import build_user_context, get_user_filter_config
+    from apps.core.services.door import as_actor
+    from apps.core.services.record_serialize import visible_queryset
+    from apps.core.services.role_filter import get_user_filter_config
     from apps.products.services.price_resolver import resolve_price_legacy
 
-    if not (user and user.is_authenticated):
+    actor = as_actor(actor)
+    if actor.kind == 'public':
         return status.HTTP_401_UNAUTHORIZED, "Authentication required"
 
-    config = get_user_filter_config(user, model_key)
+    config = get_user_filter_config(actor, model_key)
     if not config:
         return status.HTTP_403_FORBIDDEN, f"No permission for {model_key}"
 
     record_id = record_data.get("id")
     if not record_id:
-        if not can_create(user, model_key):
+        if not can_create(actor, model_key):
             return status.HTTP_403_FORBIDDEN, f"Not permitted to create {model_key}"
     else:
-        HeaderModel = registry.resolve(model_key)
-        visible = HeaderModel is not None and HeaderModel.objects.filter(
-            inject_role_filters(user, model_key)
-        ).filter(pk=record_id).exists()
+        # The one read channel: all three gates, not the role filter alone.
+        visible = visible_queryset(model_key, actor=actor)[1].filter(pk=record_id).exists()
         if not visible or not config.get("edit"):
             return status.HTTP_403_FORBIDDEN, f"Not permitted to edit this {model_key}"
 
@@ -265,7 +267,7 @@ def _transaction_save_denial(user, model_key: str, record_data: dict, lines_data
     # and "may they see this row" — both filters. Neither says which fields, so this
     # endpoint used to accept any header field once edit was true, while /wcapi/save/
     # allowed only what the enumeration named (Bite 1 finding, fixed 2026-09-20).
-    denied = _not_enumerated(user, model_key, record_data)
+    denied = _not_enumerated(actor, model_key, record_data)
     if denied:
         return (status.HTTP_403_FORBIDDEN,
                 f"Not permitted to write on {model_key}: {', '.join(denied[:8])}"
@@ -273,15 +275,19 @@ def _transaction_save_denial(user, model_key: str, record_data: dict, lines_data
     # A line's permissions live on the header's block, prefixed "lines." — that is how
     # the Settings are written (sales holds 189 lines.* paths of its 469 on order).
     for line in (lines_data or []):
-        denied = _not_enumerated(user, model_key, line, prefix="lines.")
+        denied = _not_enumerated(actor, model_key, line, prefix="lines.")
         if denied:
             return (status.HTTP_403_FORBIDDEN,
                     f"Not permitted to write on {model_key} lines: {', '.join(denied[:8])}"
                     + (f" (+{len(denied) - 8} more)" if len(denied) > 8 else ""))
 
-    context = build_user_context(user)
-    if not access.is_portal(user) or record_id or model_key not in _PORTAL_ORDER_MODELS:
+    # The portal rewrite is for a signed-in portal person raising their own order: it
+    # stamps them as the contact. A Connection never takes this path.
+    if (actor.kind not in ('user', 'staff') or not access.is_portal(actor) or record_id
+            or model_key not in _PORTAL_ORDER_MODELS):
         return None
+    context = actor.context()
+    user = actor.user
 
     customer_ids = (context.get("org_ids") or {}).get("customer") or []
     if not customer_ids:
@@ -290,7 +296,7 @@ def _transaction_save_denial(user, model_key: str, record_data: dict, lines_data
 
     # The portal role's own enumeration decides what survives — not a tuple in a view.
     from apps.core.services import access as _access
-    portal_block = _access.block_for(user, model_key) or {}
+    portal_block = _access.block_for(actor, model_key) or {}
     portal_allowed = {p.split(".")[0] for p in (portal_block.get("edit") or [])}
     safe_header = {k: v for k, v in record_data.items() if k in portal_allowed}
     record_data.clear()
@@ -395,7 +401,7 @@ class WCAPITransactionSaveView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        denial = _transaction_save_denial(request.user, model_key.lower(), record_data, lines_data)
+        denial = _transaction_save_denial(Actor.from_request(request), model_key.lower(), record_data, lines_data)
         if denial:
             logging.getLogger(__name__).warning(
                 "Transaction save denied for %s user=%s: %s",

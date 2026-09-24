@@ -131,7 +131,10 @@ def test_a_staff_actor_is_a_person_and_meets_the_guards():
     2026-09-22)."""
     from apps.core.services.door import Actor
 
-    assert Actor(kind='staff').is_person is True
-    assert Actor(kind='user').is_person is True
-    assert Actor.system().is_person is False
-    assert Actor(kind='sync').is_person is False
+    assert Actor(kind='staff', user=object()).is_guarded is True
+    assert Actor(kind='user', user=object()).is_guarded is True
+    assert Actor.system().is_guarded is False
+    # Since 2026-09-23 the privileged kinds are named and the rest are guarded: a sync
+    # actor is guarded by its Connection's role, and an unknown kind cannot be built.
+    assert Actor.for_connection(object()).is_guarded is True
+    assert Actor.anonymous().is_guarded is True

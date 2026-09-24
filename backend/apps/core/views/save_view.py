@@ -182,13 +182,16 @@ def _setting_edit_warning(user, model_key: str, obj):
 def _contact_account_denial(user, obj, data, is_update):
     """Return the name of the first contact field this user may not change, else None.
 
-    Admins (superuser or staff) are unrestricted. Everyone else:
+    Admins (superuser, or own role admin — not is_staff) are unrestricted. Everyone else:
       - password: own contact only (never set on create — accounts come from signup)
       - email: may be set on a new contact; changed only on their own contact
       - privilege fields: never
       - org scope fields: never on their own contact (prevents self re-homing into another org)
     """
-    if user and getattr(user, 'is_authenticated', False) and (user.is_superuser or user.is_staff):
+    from apps.core.services.access import own_role
+    # Admin is superuser or an own role of admin — not is_staff (Bill, 2026-09-23).
+    if user and getattr(user, 'is_authenticated', False) and (
+            user.is_superuser or own_role(user) == 'admin'):
         return None
     data = data or {}
     roots = {_key_root(k): k for k in data.keys()}

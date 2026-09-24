@@ -10,6 +10,7 @@ from rest_framework.test import APIClient
 
 from apps.core.models import Contact
 from apps.core.services import access
+from apps.core.services.door import Actor
 from apps.core.services.record_serialize import visible_queryset
 from apps.products.models import Item
 from apps.transactions.models import Quote
@@ -31,13 +32,13 @@ def items(db):
 
 def test_anonymous_sees_only_published_items(items):
     published, unpublished = items
-    _cls, qs = visible_queryset('item', user=None)
+    _cls, qs = visible_queryset('item', actor=Actor.anonymous())
     assert list(qs.values_list('pk', flat=True)) == [published.pk]
 
 
 def test_anonymous_sees_no_other_model(items):
     Contact.objects.create(email='someone@example.com', security_level=access.PUBLIC_LEVEL)
-    _cls, qs = visible_queryset('contact', user=None)
+    _cls, qs = visible_queryset('contact', actor=Actor.anonymous())
     assert not qs.exists()
 
 
@@ -104,13 +105,13 @@ def test_level_ladder(role, seen):
     """Staff see 0 (unpublished); everyone else sees 0 < level <= their ceiling."""
     for level in (0, 1, 2, 3, 4, 5, 9):
         Item.objects.create(ida=f'LVL-{level}', name=f'L{level}', security_level=level)
-    q = access.level_q(_person(role))
+    q = access.level_q(Actor(user=_person(role)))
     assert set(Item.objects.filter(q).values_list('security_level', flat=True)) == seen
 
 
 def test_a_login_with_no_role_sees_nothing():
     Item.objects.create(ida='LVL-NR', name='x', security_level=1)
-    assert not Item.objects.filter(access.level_q(_person('user'))).exists()
+    assert not Item.objects.filter(access.level_q(Actor(user=_person('user')))).exists()
 
 
 def test_new_records_start_where_bill_ruled():
@@ -131,7 +132,7 @@ def test_a_login_with_no_role_reaches_its_own_contact_and_no_other():
     """Bill, 2026-09-23: a person always reaches their own contact, role or none."""
     me = Contact.objects.create(email='me@example.com', role='user')
     other = Contact.objects.create(email='other@example.com', role='user', security_level=1)
-    _cls, qs = visible_queryset('contact', user=me)
+    _cls, qs = visible_queryset('contact', actor=Actor(user=me))
     assert set(qs.values_list('pk', flat=True)) == {me.pk}
     assert other.pk not in set(qs.values_list('pk', flat=True))
 

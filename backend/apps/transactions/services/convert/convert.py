@@ -46,6 +46,8 @@ logger = logging.getLogger(__name__)
 _HEADER_COPY_FIELDS_SELL = (
     "customer", "customer_id", "contact_id",
     "company", "attention", "ship_via",
+    # The rep travels with the sale: quote → order → invoice (Bill, 2026-09-23).
+    "rep_id", "attention_rep",
     # Party blocks shown in bill_to / ship_to. The JSON aspects are the source
     # of truth; address_full/email/phone are read-only properties derived from them.
     "addresses", "emails", "phones",

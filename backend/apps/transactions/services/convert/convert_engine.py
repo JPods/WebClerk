@@ -182,6 +182,10 @@ def _cross_quantity(src_qty: Dict) -> Dict:
 # Header / line builders
 # ---------------------------------------------------------------------------
 
+#: Documents that record the sale and so carry the rep who made it.
+SELL_DOCUMENTS = ('quote', 'order', 'invoice')
+
+
 def _build_header_kwargs(
     source: Model,
     source_type: str,
@@ -223,6 +227,13 @@ def _build_header_kwargs(
             val = getattr(source, field, None)
             if val is not None:
                 kwargs[field] = val
+        # The rep travels with the sale: quote → order → invoice (Bill, 2026-09-23). Only
+        # sell documents carry a rep; purchases and work orders have no rep_id.
+        if target_type in SELL_DOCUMENTS:
+            for field in ("rep_id", "attention_rep"):
+                val = getattr(source, field, None)
+                if val is not None:
+                    kwargs[field] = val
         # A document discount carries as a percent, so a partial transfer gets its share.
         alloc = getattr(source, "allocations", None) or {}
         pct = alloc.get("discount_percent") or 0

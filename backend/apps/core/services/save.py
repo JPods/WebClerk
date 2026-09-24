@@ -48,9 +48,8 @@ console_logger = logging.getLogger('console')
 logger = logging.getLogger(__name__)
 
 # Models that hold authority rather than business data: a Connection carries a bearer
-# token, a Setting defines layout and policy, a Report can dispatch a command. None has a
-# WCAPI_MODEL_POLICIES entry, and an absent policy means unrestricted — so staff only,
-# until each has a policy of its own (reproduced 2026-09-15).
+# token, a Setting defines layout and policy, a Report can dispatch a command — staff
+# only (reproduced 2026-09-15).
 STAFF_ONLY_MODELS = ('connection', 'bundle', 'setting', 'report', 'rolebase', 'roleconfig',
                      'modelroleconfig', 'group', 'permission', 'session')
 # Header models whose lines carry the transaction endpoint's rights.
@@ -78,9 +77,9 @@ def _load_or_new(actor: Actor, model_cls, model_key: str, record_id, expected_ve
     # A person may change only what they may read: visibility is asked of the read
     # channel, so an unseen record answers exactly like a missing one. The lock is taken on
     # the bare row — the channel's filters can carry DISTINCT, which FOR UPDATE refuses.
-    if actor.is_person:
+    if actor.is_guarded:
         from apps.core.services.record_serialize import visible_queryset
-        if not visible_queryset(model_key, user=actor.user)[1].filter(pk=record_id).exists():
+        if not visible_queryset(model_key, actor=actor)[1].filter(pk=record_id).exists():
             raise Refused(404, 'not_found', 'Record not found', 'Record not found')
     try:
         obj = model_cls.objects.select_for_update().get(id=record_id)
@@ -103,15 +102,13 @@ def _authorize(actor: Actor, obj, model_cls, model_key: str, data: dict,
                is_update: bool) -> dict:
     """Everything that can refuse the write, and the field filter that trims it.
 
-    Returns the filtered payload. A ``system`` actor skips the user-facing guards: it has
-    no role, no edit filters and no portal to re-price for.
+    Returns the filtered payload. Only a ``system`` actor skips these guards: a staff
+    actor is a person at the admin (Bill: no staff backdoor), and a sync actor is guarded
+    by its Connection's role (Bill, 2026-09-23).
     """
     from apps.core.services import access
 
-    # A system or sync actor has no role, no edit filters and no portal to re-price for.
-    # A staff actor is a person at the admin, and every guard written for a person
-    # applies to them (Bill: no staff backdoor).
-    if not actor.is_person:
+    if not actor.is_guarded:
         return dict(data or {})
 
     user = actor.user
@@ -120,36 +117,36 @@ def _authorize(actor: Actor, obj, model_cls, model_key: str, data: dict,
     # the delete door's can_delete. A role with no block gets nothing (access.py).
     if not is_update:
         from apps.core.services.role_filter import can_create
-        if not can_create(user, model_key):
+        if not can_create(actor, model_key):
             raise Refused(403, 'create_not_permitted',
                           f'Your role may not create {model_key} records.',
                           {'model_name': model_key})
 
     # Row-level edit rights: wide visibility, narrow edit.
-    if is_update and user and getattr(user, 'is_authenticated', False):
+    if is_update:
         from apps.core.services.role_filter import get_edit_filters
-        edit_filters = get_edit_filters(user, model_key)
+        edit_filters = get_edit_filters(actor, model_key)
         if edit_filters:
             from django.db.models import Q
             if not type(obj).objects.filter(pk=obj.pk).filter(Q(**edit_filters)).exists():
-                console_logger.info("[SAVE] Edit denied by edit_filters for %s #%s user=%s",
-                                    model_key, getattr(obj, 'id', '?'), actor.user_id)
+                console_logger.info("[SAVE] Edit denied by edit_filters for %s #%s by %s",
+                                    model_key, getattr(obj, 'id', '?'), actor.describe())
                 raise Refused(403, 'edit_filter_denied',
                               'You can only edit records assigned to you.',
                               'Record does not match your edit permissions.')
 
     # Models that carry authority rather than business data.
     if model_key in STAFF_ONLY_MODELS:
-        if not (user and user.is_authenticated and (user.is_superuser or user.is_staff)):
-            console_logger.warning("[SAVE] Non-staff write refused on %s by user=%s",
-                                   model_key, actor.user_id)
+        if not access.is_admin(actor):
+            console_logger.warning("[SAVE] Non-staff write refused on %s by %s",
+                                   model_key, actor.describe())
             raise Refused(403, 'staff_only_model', f'Not permitted to write {model_key}.',
                           model_key)
 
     # Open-read models (Settings): the login's own superuser role writes them.
-    if access.is_open_read(model_key) and not access.open_read_can_write(user):
-        console_logger.warning("[SAVE] Non-superuser write refused on %s by user=%s",
-                               model_key, actor.user_id)
+    if access.is_open_read(model_key) and not actor.may_write_open_read:
+        console_logger.warning("[SAVE] Non-superuser write refused on %s by %s",
+                               model_key, actor.describe())
         raise Refused(403, 'superuser_only_model',
                       f'Only a superuser may change {model_key} records.', model_key)
 
@@ -159,7 +156,7 @@ def _authorize(actor: Actor, obj, model_cls, model_key: str, data: dict,
     if model_key in TRANSACTION_LINE_MODELS and data.get('lines'):
         from apps.transactions.views.wcapi import _transaction_save_denial
         lines_payload = data.get('lines') or []
-        tx_denial = _transaction_save_denial(user, model_key, data, lines_payload)
+        tx_denial = _transaction_save_denial(actor, model_key, data, lines_payload)
         if tx_denial:
             console_logger.warning("[SAVE] Transaction save denied for %s user=%s: %s",
                                    model_key, actor.user_id, tx_denial[1])
@@ -169,6 +166,17 @@ def _authorize(actor: Actor, obj, model_cls, model_key: str, data: dict,
         # customer_id for a portal role and leave the order with no customer at all.
         server_set_fields = {k: data[k] for k in ('customer_id', 'contact_id', 'status')
                              if k in data}
+
+    # A rep's transaction carries the rep's own id, set by the server — never chosen by the
+    # caller (Bill, 2026-09-23). The customer the rep names must still be one of theirs:
+    # the write-scope check refuses anything else.
+    if not is_update and model_key in TRANSACTION_LINE_MODELS and actor.role == 'rep':
+        rep_ids = actor.context()['org_ids'].get('rep') or []
+        if not rep_ids:
+            raise Refused(403, 'no_rep_account', 'No rep account is linked to this login.',
+                          model_key)
+        data['rep_id'] = rep_ids[0]
+        server_set_fields['rep_id'] = rep_ids[0]
 
     # Identity, authority and org scope on a contact.
     if model_key == 'contact':
@@ -183,14 +191,60 @@ def _authorize(actor: Actor, obj, model_cls, model_key: str, data: dict,
     # Role-based write-field filtering. Bill, 2026-09-20: "If it is not enumerated as
     # edit, the back end should never read it as being there regardless of if it is in
     # the payload or not." So it filters the input; it does not refuse the save.
-    from apps.core.utils.model_policies import enforce_write_policy
-    data, denied_fields = enforce_write_policy(model_cls, data, user=user)
+    data, denied_fields = _enumerated_edit(actor, obj, model_key, data)
     if server_set_fields:
         data.update(server_set_fields)
     if denied_fields:
         console_logger.info("[SAVE] Not enumerated as edit for %s, ignored: %s",
                             model_key, ", ".join(denied_fields))
     return data
+
+
+#: Payload keys that are not fields: the envelope, and the collection the door walks.
+PASSTHROUGH_KEYS = frozenset({'model_name', 'id', 'version', 'bulk', 'lines', 'password'})
+#: Stamped by the system; never written from a payload by anyone but an admin.
+SYSTEM_ONLY_FIELDS = frozenset({'id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'version',
+                                'is_archived', 'health_rating'})
+
+
+def _enumerated_edit(actor: Actor, obj, model_key: str, data: dict):
+    """Keep only what the role's edit list enumerates — the one field authority.
+
+    Bill, 2026-09-23: the settings.py write lists are retired; the role block's ``edit`` is
+    the only answer to "which fields may this role write". A field not enumerated is
+    ignored, not refused (2026-09-20). A JSON field keeps only its enumerated leaves.
+    A person editing their own contact may also write the self-edit fields.
+    """
+    from apps.core.services import access
+    from apps.core.services.field_projection import filter_data_by_fields
+    from apps.core.services.role_filter import get_allowed_fields
+    from common.schemas.carrier import read_carrier
+
+    read_carrier(data or {})            # a carrier signal is typed or refused, never a field
+    allowed = set(get_allowed_fields(actor, model_key, mode='edit'))
+    if model_key == 'contact' and getattr(obj, 'pk', None) and obj.pk == actor.user_id:
+        allowed |= set(access.SELF_CONTACT_EDIT)
+    admin = access.is_admin(actor)          # an admin may set an ida, as before
+    kept: dict = {}
+    denied: list = []
+    for key, value in (data or {}).items():
+        if not isinstance(key, str):
+            continue
+        if key.startswith('_') or key in PASSTHROUGH_KEYS:
+            kept[key] = value
+        elif key in SYSTEM_ONLY_FIELDS and not admin:
+            denied.append(key)
+        elif isinstance(value, dict) and not (key in allowed):
+            leaves = filter_data_by_fields({key: value}, allowed).get(key)
+            if leaves:
+                kept[key] = leaves
+            if leaves != value:
+                denied.append(key)
+        elif key in allowed or f'{key}_id' in allowed:
+            kept[key] = value
+        else:
+            denied.append(key)
+    return kept, denied
 
 
 # ── phase 3: assign and validate ──────────────────────────────────────
@@ -394,7 +448,7 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
         warning=_setting_warning(actor, model_key, obj),
         sync=_queue_remote_sync(model_key, getattr(obj, 'id', None)),
     )
-    console_logger.info("[SAVE] %s #%s saved by %s actor", model_key, result.obj_id, actor.kind)
+    console_logger.info("[SAVE] %s #%s saved by %s", model_key, result.obj_id, actor.describe())
     return result
 
 
@@ -422,6 +476,7 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
         console_logger.warning("[SAVE] Validation failed on %s: %s", model_key, flat)
         raise Refused(400, 'validation_failed', 'Validation failed', flat)
 
+    _within_scope(actor, obj, model_key)
     _post_persist(obj, data, model_key)
     behaviour.after(ctx)
     note = _after(actor, obj, model_key, data, is_update)
@@ -446,21 +501,41 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
     return size_warnings, ctx, note
 
 
+def _within_scope(actor: Actor, obj, model_key: str) -> None:
+    """A write must land inside the writer's scope (Bill, 2026-09-23).
+
+    The read gates filter rows that exist; on a create there is no row yet, and an update
+    was checked only as it was before the change. So after the row is written — inside the
+    transaction — it must pass the actor's role and scope, or the whole edit is refused and
+    rolled back. A rep takes orders for their own customers; a Connection writes only what
+    its scope names. Level is not checked: a new item starts unpublished (0), which is
+    staff-only, and its creator may still make it.
+    """
+    if not actor.is_guarded:
+        return
+    if model_key == 'contact' and obj.pk == actor.user_id:
+        return                              # a person always reaches their own contact
+    from apps.core.services.role_filter import inject_role_filters
+    if type(obj).objects.filter(pk=obj.pk).filter(inject_role_filters(actor, model_key)).exists():
+        return
+    console_logger.warning("[SAVE] %s #%s would land outside the scope of %s",
+                           model_key, obj.pk, actor.describe())
+    raise Refused(403, 'outside_scope',
+                  f'That {model_key} would be outside what your role may reach.',
+                  {'model_name': model_key})
+
+
 def _saved_search_guard(actor: Actor, model_cls, model_key: str, data: dict, record_id) -> None:
     """A saved search is a global, admin-managed Setting."""
-    if model_key != 'setting' or not actor.is_person:
+    if model_key != 'setting' or not actor.is_guarded:
         return
     purpose = data.get('purpose')
     if purpose is None and record_id:
         purpose = model_cls.objects.filter(id=record_id).values_list('purpose', flat=True).first()
     if str(purpose or '').strip().lower() != 'search':
         return
-    user = actor.user
-    is_admin_writer = bool(
-        user and getattr(user, 'is_authenticated', False)
-        and (getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False)
-             or str(getattr(user, 'role', '')).lower() == 'admin'))
-    if not is_admin_writer:
+    from apps.core.services.access import is_admin
+    if not is_admin(actor):
         raise Refused(403, 'saved_search_admin_required',
                       'Only admin users can create or update saved searches', None)
 

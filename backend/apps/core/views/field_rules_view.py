@@ -12,6 +12,7 @@ comments and operational fields stay editable (Bill, 2026-09-17). The UI shows a
 field that is viewable but not editable with an italic label.
 """
 from __future__ import annotations
+from apps.core.services.door import Actor
 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -48,8 +49,9 @@ class FieldRulesView(APIView):
                                 error={"code": "unknown_model"})
 
         user = request.user
-        view_fields = get_allowed_fields(user, model_name, mode="view")
-        edit_fields = get_allowed_fields(user, model_name, mode="edit")
+        actor = Actor.from_request(request)
+        view_fields = get_allowed_fields(actor, model_name, mode="view")
+        edit_fields = get_allowed_fields(actor, model_name, mode="edit")
 
         record = None
         record_id = request.query_params.get('id')

@@ -46,15 +46,17 @@ def test_a_record_with_no_signals_is_fine():
 
 @pytest.mark.django_db
 def test_the_write_policy_passes_signals_and_refuses_a_strange_one():
-    from apps.core.utils.model_policies import enforce_write_policy
+    from apps.core.services.door import Actor
+    from apps.core.services.save import _enumerated_edit
     from apps.products.models import Item
 
     data = {'name': 'CARRIER-1', '_dirty': True, '_delete': False}
-    filtered, _denied = enforce_write_policy(Item, data, user=None)
+    filtered, _denied = _enumerated_edit(Actor.system(), Item(), 'item', data)
     assert filtered['_dirty'] is True                               # signals reach the save pipeline
 
     with pytest.raises(CarrierError):
-        enforce_write_policy(Item, {'name': 'x', '__dict__': {'is_superuser': True}}, user=None)
+        _enumerated_edit(Actor.system(), Item(), 'item',
+                         {'name': 'x', '__dict__': {'is_superuser': True}})
 
 
 @pytest.mark.django_db

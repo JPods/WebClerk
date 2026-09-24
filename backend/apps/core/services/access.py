@@ -55,7 +55,8 @@ ROLES = STAFF_ROLES + PORTAL_ROLES
 LOGIN_ROLES = tuple(r for r in ROLES if r != 'superuser') + ('user',)
 
 ACT_AS_HEADER = 'HTTP_X_WC_ACT_AS'
-ACT_AS_ATTR = '_wc_act_as'
+#: Where the authentication class leaves a validated act-as role for Actor.from_request.
+ACT_AS_REQUEST_ATTR = 'wc_act_as'
 
 BLOCK_KEYS = {'view', 'edit', 'scope', 'edit_scope', 'create', 'delete'}
 
@@ -74,21 +75,38 @@ def own_role(user) -> Optional[str]:
     return role if role in ROLES else None
 
 
-def user_role(user) -> Optional[str]:
-    """The role this request runs as: an agent's act-as role, else the user's own."""
-    acting = getattr(user, ACT_AS_ATTR, None)
-    return acting or own_role(user)
 
 
-def is_portal(user) -> bool:
-    return user_role(user) in PORTAL_ROLES
+def is_portal(actor) -> bool:
+    from apps.core.services.door import as_actor
+    return as_actor(actor).role in PORTAL_ROLES
 
 
-def apply_act_as_user(user, meta: dict) -> Optional[str]:
-    """Honour X-WC-Act-As for agents. Returns the role acted as, or None.
+#: Roles a Connection may hold (Bill, 2026-09-23): the portal roles, rep, and the
+#: employee-level roles. Never admin or superuser — a Connection holding either would make
+#: sync privileged again by the side door. 'agent' is a login role, not applicable here.
+CONNECTION_ROLES = PORTAL_ROLES + ('rep', 'employee', 'accounting', 'sales', 'production',
+                                   'warehouse')
+
+
+def connection_role(connection) -> Optional[str]:
+    """The role a Connection holds, or None. An inactive Connection holds none — disabling
+    it revokes it, with no second field for anyone to remember to clear."""
+    if connection is None:
+        return None
+    if not getattr(connection, 'is_active', False) or getattr(connection, 'status', '') != 'active':
+        return None
+    role = (getattr(connection, 'role', '') or '').strip().lower()
+    return role if role in CONNECTION_ROLES else None
+
+
+def act_as_role(user, meta: dict) -> Optional[str]:
+    """Validate X-WC-Act-As for an agent login. Returns the role to act as, or None.
 
     Raises PermissionDenied when a non-agent asks, or the role is unknown or
-    superuser — a refused act-as fails the request, it never falls back.
+    superuser — a refused act-as fails the request, it never falls back. The role is
+    carried by the request's Actor (Actor.acting_as), never written onto the user
+    object (Bill, 2026-09-23: the identity is per call, the login is a record).
     """
     from rest_framework.exceptions import PermissionDenied
     wanted = (meta.get(ACT_AS_HEADER) or '').strip().lower()
@@ -99,7 +117,6 @@ def apply_act_as_user(user, meta: dict) -> Optional[str]:
         raise PermissionDenied(f'act-as is for agents; this login is {mine!r}')
     if wanted not in ROLES or wanted == 'superuser':
         raise PermissionDenied(f'cannot act as {wanted!r}')
-    setattr(user, ACT_AS_ATTR, wanted)
     logger.info('[ACCESS] agent user=%s acting as %s: %s %s', user.id, wanted,
                 meta.get('REQUEST_METHOD', ''), meta.get('PATH_INFO', ''))
     return wanted
@@ -126,6 +143,7 @@ def is_open_read(name: str) -> bool:
 # when 0 < security_level <= their ceiling. Roles live in code (Bill: they rarely change).
 STAFF_LEVEL = 9
 PUBLIC_LEVEL = 1          # the anonymous visitor's ceiling
+STAFF_FLAG_LEVEL = 4      # a login flagged is_staff (Bill, 2026-09-23)
 LEVEL_CEILING = {
     'superuser': STAFF_LEVEL, 'admin': STAFF_LEVEL,
     'employee': 4, 'accounting': 4, 'sales': 4, 'production': 4, 'warehouse': 4, 'agent': 4,
@@ -140,17 +158,27 @@ PUBLISHED_MODELS = frozenset({'item'})
 NEW_RECORD_LEVEL = 1
 
 
-def level_ceiling(user) -> Optional[int]:
-    """The highest security_level this reader may see; None = no role, sees nothing."""
-    if user is None or not getattr(user, 'is_authenticated', False):
+def level_ceiling(actor) -> Optional[int]:
+    """The highest security_level this actor may see; None = no role, sees nothing."""
+    from apps.core.services.door import as_actor
+    actor = as_actor(actor)
+    if actor.kind == 'public':
         return PUBLIC_LEVEL
-    role = user_role(user)
-    return LEVEL_CEILING.get(role) if role else None
+    if not actor.is_guarded:
+        return STAFF_LEVEL
+    role = actor.role
+    ceiling = LEVEL_CEILING.get(role) if role else None
+    # One level per contact, the higher (Bill, 2026-09-23): is_staff sets 4, a role with a
+    # higher ceiling takes over. is_staff grants no model access — that is the role's.
+    user = actor.user if actor.kind in ('user', 'staff') else None
+    if user is not None and getattr(user, 'is_staff', False):
+        ceiling = max(STAFF_FLAG_LEVEL, ceiling or 0)
+    return ceiling
 
 
-def level_q(user) -> Q:
+def level_q(actor) -> Q:
     """Gate 1 as a filter: staff see 0..9, everyone else 0 < level <= ceiling."""
-    ceiling = level_ceiling(user)
+    ceiling = level_ceiling(actor)
     if ceiling is None:
         return Q(pk__isnull=True)
     if ceiling >= STAFF_LEVEL:
@@ -172,14 +200,33 @@ PUBLIC_READ = {
 }
 
 
+#: What a person may write on their own contact, role or none (Bill, 2026-09-23: a person
+#: always reaches their own record). Authority fields are never here — the contact guard
+#: refuses them regardless.
+SELF_CONTACT_EDIT = ('email', 'name_first', 'name_last', 'name_middle', 'name_prefix',
+                     'name_suffix', 'title')
+
+
 def public_fields(name: str) -> tuple:
     """The leaves an anonymous visitor may see on a published record; () = not public."""
     return PUBLIC_READ.get(model_key(name) or '', ())
 
 
+def is_admin(actor) -> bool:
+    """Admin authority: a login that is superuser or whose OWN role is admin — never an
+    act-as role, never a Connection, and not is_staff (Bill, 2026-09-23: is_staff sets a
+    security level, it is not admin). One definition; it replaced three copies."""
+    from apps.core.services.door import as_actor
+    actor = as_actor(actor)
+    user = actor.user if actor.kind in ('user', 'staff') else None
+    if not user or not getattr(user, 'is_authenticated', False):
+        return False
+    return bool(getattr(user, 'is_superuser', False) or own_role(user) == 'admin')
+
+
 def open_read_can_write(user) -> bool:
     """Writes to an open-read model: the login's own superuser role (never act-as)."""
-    return own_role(user) == 'superuser' and getattr(user, ACT_AS_ATTR, None) is None
+    return own_role(user) == 'superuser'
 
 
 # ── Blocks ──────────────────────────────────────────────────────────────
@@ -230,9 +277,10 @@ def model_access(name: str) -> dict:
     return _cache[key]
 
 
-def block_for(user, name: str) -> Optional[dict]:
-    """The access block for this user on this model, or None (no access)."""
-    role = user_role(user)
+def block_for(actor, name: str) -> Optional[dict]:
+    """The access block for this actor's role on this model, or None (no access)."""
+    from apps.core.services.door import as_actor
+    role = as_actor(actor).role
     if role is None:
         return None
     return model_access(name).get(role)

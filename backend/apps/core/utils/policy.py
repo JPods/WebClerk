@@ -2,10 +2,6 @@ from __future__ import annotations
 from django.db.models import QuerySet
 from typing import List, Optional
 
-try:
-    from apps.core.utils.model_policies import read_allowlist as _mp_read_allowlist
-except Exception:
-    _mp_read_allowlist = None
 
 def _org_scope_q(model_fields: set[str], user) -> Optional["Q"]:
     """Build org-based visibility constraints derived from the user's org associations."""
@@ -49,12 +45,21 @@ def _org_scope_q(model_fields: set[str], user) -> Optional["Q"]:
     return scope
 
 
-def inject_constraints(qs: QuerySet, *, user, model_key: str) -> QuerySet:
+def inject_constraints(qs: QuerySet, *, actor, model_key: str) -> QuerySet:
     """Enforce tenant isolation and strict role-based visibility.
 
-    Takes the user, not the request: the get and delete doors are called by writers and
-    readers that have no request (Bill, 2026-09-22 — one channel per verb).
+    Takes the actor, not the request: the get and delete doors are called by writers and
+    readers that have no request (Bill, 2026-09-22 — one channel per verb). Applies to a
+    person only: a system actor is unguarded, and a sync actor's rows are its Connection's
+    role scope (gates 2–3), not a login's org pointers.
     """
+    from apps.core.services.door import as_actor
+    actor = as_actor(actor)
+    if not actor.is_guarded or actor.kind == 'sync':
+        return qs
+    if actor.kind == 'public':
+        return qs.none()
+    user = actor.user
     try:
         from django.conf import settings
         from django.db.models import Q
@@ -179,65 +184,3 @@ def inject_constraints(qs: QuerySet, *, user, model_key: str) -> QuerySet:
         logger = logging.getLogger(__name__)
         logger.warning(f"Error applying settings constraints for {model_key}: {str(e)}")
         return qs
-
-def field_allowlist(model, request=None):
-    """
-    Existing API used across the project. If model policies are enabled,
-    return their resolved read allowlist; else keep legacy behavior.
-    """
-    if _mp_read_allowlist:
-        allow = _mp_read_allowlist(model, request=request)
-        if allow is not None:
-            return allow
-    # Optional: restrict outbound fields by role/settings
-    # fall back to prior static/default logic
-    return None
-
-def get_accessible_fields(model_name: str, mode: str, user) -> Optional[List[str]]:
-    """
-    Get list of accessible fields for a model based on user role and mode.
-
-    Args:
-        model_name: Name of the model (e.g., 'invoice', 'order')
-        mode: 'view' or 'edit'
-        user: Django user object
-
-    Returns:
-        List of allowed field names, or None for all fields
-    """
-    if not user or not user.is_authenticated:
-        # Anonymous users get minimal fields
-        return ['id', 'uuid']
-
-    # Check if user is privileged
-    privileged = getattr(user, 'role', '') in {'staff', 'admin'} or getattr(user, 'is_superuser', False)
-
-    if privileged:
-        # Admin/staff can access all fields
-        return None
-
-    # For regular users, implement role-based field restrictions
-    # This is a basic implementation - can be extended with settings-driven policies
-
-    # Default allowed fields for most models
-    base_fields = ['id', 'uuid', 'created_at', 'updated_at']
-
-    if mode == 'view':
-        # Add read-only fields
-        base_fields.extend(['name', 'status', 'customer_id'])
-    elif mode == 'edit':
-        # Add editable fields
-        base_fields.extend(['status', 'notes'])
-
-    # Model-specific field allowances
-    model_specific = {
-        'invoice': ['amount', 'tax', 'total', 'sales_tax'],
-        'order': ['order_no', 'total'],
-        'quote': ['quote_no', 'estimated_total'],
-        'purchase': ['po_number', 'vendor_id']
-    }
-
-    if model_name.lower() in model_specific:
-        base_fields.extend(model_specific[model_name.lower()])
-
-    return base_fields

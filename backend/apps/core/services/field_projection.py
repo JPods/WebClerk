@@ -83,12 +83,14 @@ def filter_data_by_fields(data: dict, allowed_fields: Iterable[str], mode: str =
     return _project(data, '', set(allowed_fields))
 
 
-def filter_response_data(user: AbstractUser, model_name: str, data: dict) -> dict:
-    """Project a record to what this user's role may see."""
+def filter_response_data(actor, model_name: str, data: dict) -> dict:
+    """Project a record to what this actor's role may see."""
     from apps.core.services import access
+    from apps.core.services.door import as_actor
+    actor = as_actor(actor)
     if access.is_open_read(model_name):
-        return data if access.user_role(user) else {}
-    return filter_data_by_fields(data, get_allowed_fields(user, model_name, mode="view"))
+        return data if actor.role else {}
+    return filter_data_by_fields(data, get_allowed_fields(actor, model_name, mode="view"))
 
 
 def filter_lines_data(lines: list, allowed_line_fields: Iterable[str]) -> list:
@@ -97,8 +99,8 @@ def filter_lines_data(lines: list, allowed_line_fields: Iterable[str]) -> list:
     return [_project(line, '', allowed) for line in (lines or []) if isinstance(line, dict)]
 
 
-def filter_setting_layout(user, setting_data: dict) -> dict:
-    """Drop layout columns for fields this user's role may not see.
+def filter_setting_layout(actor, setting_data: dict) -> dict:
+    """Drop layout columns for fields this actor's role may not see.
 
     Applies to wc:model / wc:workbench_fields Settings describing parent_model.
     A role that may see nothing on the model gets no columns.
@@ -110,7 +112,7 @@ def filter_setting_layout(user, setting_data: dict) -> dict:
     if not target_model or not isinstance(config, dict) or not isinstance(config.get('layout'), dict):
         return setting_data
 
-    allowed = set(get_allowed_fields(user, target_model, mode="view"))
+    allowed = set(get_allowed_fields(actor, target_model, mode="view"))
 
     def column_allowed(col) -> bool:
         field = col if isinstance(col, str) else (col.get('field', '') if isinstance(col, dict) else '')
@@ -166,10 +168,12 @@ def validate_edit_fields(original: Optional[dict], modified: dict,
     return not disallowed, disallowed
 
 
-def validate_user_edit(user: AbstractUser, model_name: str,
+def validate_user_edit(actor, model_name: str,
                        original: Optional[dict], modified: dict) -> tuple[bool, list]:
-    """Validate an edit against the user's role edit list."""
+    """Validate an edit against the actor's role edit list."""
     from apps.core.services import access
+    from apps.core.services.door import as_actor
+    actor = as_actor(actor)
     if access.is_open_read(model_name):
-        return (True, []) if access.open_read_can_write(user) else (False, [f'{model_name}: superuser only'])
-    return validate_edit_fields(original, modified, get_allowed_fields(user, model_name, mode="edit"))
+        return (True, []) if actor.may_write_open_read else (False, [f'{model_name}: superuser only'])
+    return validate_edit_fields(original, modified, get_allowed_fields(actor, model_name, mode="edit"))

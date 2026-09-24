@@ -55,7 +55,9 @@ def test_order_to_invoice_action(django_user_model):
     client = _auth(user)
 
     so = Order.objects.create(ida="SO-T1")
-    OrderLine.objects.create(order=so, status='OPEN',
+    # A line with a quantity to invoice: the one engine refuses a line with nothing left
+    # (the old hand-built invoice accepted it and made a zero-quantity invoice).
+    OrderLine.objects.create(order=so, status='OPEN', quantity={"active": 1},
                                   price={"amount": 2}, cost={"extended": 1})
 
     resp = client.post(f'/wcapi/order/{so.pk}/convert-to-invoice/', {}, format='json')

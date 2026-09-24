@@ -16,17 +16,15 @@ from rest_framework.views import APIView
 from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from django.utils import timezone
 
+from apps.core.services import access
 from apps.core.services import record_serialize as services
+from apps.core.services.door import Actor
 from apps.core.constants.filter_operators import ALLOWED_LOOKUPS
 from apps.core.services.field_projection import filter_response_data
 from apps.core.utils import policy
 from apps.core.utils.registry import resolve, get as get_registry_config
 from common.api_responses import api_response
 
-try:  # pragma: no cover - optional dependency in some deployments
-    from apps.core.utils.model_policies import model_policies as mp  # noqa: F401
-except Exception:  # pragma: no cover - fallback if policies unavailable
-    mp = None
 
 
 WcapiResponseSerializer = inline_serializer(
@@ -177,7 +175,7 @@ class WCAPIGetView(APIView):
         if not fields:
             return Response({"detail": "Authentication credentials were not provided."},
                             status=status.HTTP_401_UNAUTHORIZED)
-        ModelCls, qs = services.visible_queryset(model_key, user=request.user)
+        ModelCls, qs = services.visible_queryset(model_key, actor=Actor.from_request(request))
 
         def project(obj):
             return filter_data_by_fields(services.to_dict(obj), fields)
@@ -323,7 +321,7 @@ class WCAPIGetView(APIView):
         results: List[Dict[str, Any]] = []
         for line in qs:
             try:
-                allow = policy.field_allowlist(type(line), request=request)
+                allow = None
                 payload = services.to_dict(line, allow=allow)
             except Exception:
                 payload = {}
@@ -388,10 +386,10 @@ class WCAPIGetView(APIView):
         fetched_map: Dict[int, Dict[str, Any]] = {}
         if fetch_ids and line_model_key:
             try:
-                ModelCls, qs = services.get_queryset(line_model_key, user=request.user)
+                ModelCls, qs = services.visible_queryset(line_model_key, actor=Actor.from_request(request))
                 objs = list(qs.filter(pk__in=fetch_ids))
                 for line in objs:
-                    allow_line = policy.field_allowlist(type(line), request=request)
+                    allow_line = None
                     fetched_map[getattr(line, "pk")] = services.to_dict(line, allow=allow_line)
             except Exception:
                 pass
@@ -713,15 +711,6 @@ class WCAPIGetView(APIView):
         logger.info(f"[_parse_filters] Parsed filters: {filters}")
         return filters
 
-    def _is_admin_user(self, request) -> bool:
-        user = getattr(request, "user", None)
-        if not user or not getattr(user, "is_authenticated", False):
-            return False
-        return bool(
-            getattr(user, "is_superuser", False)
-            or getattr(user, "is_staff", False)
-            or str(getattr(user, "role", "")).lower() == "admin"
-        )
 
     def _validate_search_fields(self, ModelCls, raw_fields: Any) -> List[str]:
         if raw_fields is None:
@@ -821,7 +810,7 @@ class WCAPIGetView(APIView):
             required_role = str(report.role_required or "").strip().lower()
             user_role = str(getattr(user, "role", "") or "").strip().lower()
             role_open = required_role in {"", "all", "*"}
-            if not role_open and not self._is_admin_user(request) and user_role != required_role:
+            if not role_open and not access.is_admin(Actor.from_request(request)) and user_role != required_role:
                 raise PermissionError("saved search is not shared with your role")
 
         return {
@@ -1051,7 +1040,7 @@ class WCAPIGetView(APIView):
             if not obj:
                 return api_response(data={"record": None}, status_code=status.HTTP_200_OK)
 
-            allow = policy.field_allowlist(type(obj), request=request)
+            allow = None
             logger = logging.getLogger(__name__)
             field_names: Set[str] = set()
             try:
@@ -1117,10 +1106,10 @@ class WCAPIGetView(APIView):
             
             # Apply RBAC field filtering for single record
             if request.user and request.user.is_authenticated:
-                payload = filter_response_data(request.user, model_key, payload)
+                payload = filter_response_data(Actor.from_request(request), model_key, payload)
                 if self._normalize_model_key(model_key) == 'setting':
                     from apps.core.services.field_projection import filter_setting_layout
-                    payload = filter_setting_layout(request.user, payload)
+                    payload = filter_setting_layout(Actor.from_request(request), payload)
 
             # Contact detail UI depends on full refs for related links/tags panels.
             # Force canonical refs payload after field projection so React always
@@ -1137,7 +1126,7 @@ class WCAPIGetView(APIView):
         # List retrieval with filters, search, and pagination. visible_queryset applies the
         # role filter (RBAC query scoping, readmes/wcapi-query-scoping.md): an external user
         # sees only rows belonging to their org(s).
-        ModelCls, qs = services.visible_queryset(model_key, user=request.user)
+        ModelCls, qs = services.visible_queryset(model_key, actor=Actor.from_request(request))
 
         saved_search = None
         try:
@@ -1258,7 +1247,7 @@ class WCAPIGetView(APIView):
         items = list(qs_paginated)
         
         # Serialize results
-        allow = policy.field_allowlist(ModelCls, request=request) if ModelCls else None
+        allow = None
         results = []
         for obj in items:
             payload = services.to_dict(obj, allow=allow)
@@ -1269,11 +1258,11 @@ class WCAPIGetView(APIView):
                 pass
             # Apply RBAC field filtering
             if request.user and request.user.is_authenticated:
-                payload = filter_response_data(request.user, model_key, payload)
+                payload = filter_response_data(Actor.from_request(request), model_key, payload)
                 # Filter setting layout columns to role-allowed fields
                 if self._normalize_model_key(model_key) == 'setting':
                     from apps.core.services.field_projection import filter_setting_layout
-                    payload = filter_setting_layout(request.user, payload)
+                    payload = filter_setting_layout(Actor.from_request(request), payload)
             results.append(payload)
 
         if self._normalize_model_key(model_key) == "action":
@@ -1321,7 +1310,7 @@ class WCAPIGetView(APIView):
     def _dashboard_snapshot(self, request) -> Response:
         def safe_count(model_key: str, filters: Optional[Dict[str, Any]] = None) -> Optional[int]:
             try:
-                ModelCls, qs = services.get_queryset(model_key, user=request.user)
+                ModelCls, qs = services.visible_queryset(model_key, actor=Actor.from_request(request))
                 if filters:
                     qs = qs.filter(**filters)
                 return qs.count()
@@ -1330,7 +1319,7 @@ class WCAPIGetView(APIView):
 
         def safe_recent(model_key: str, limit: int = 5) -> List[Dict[str, Any]]:
             try:
-                ModelCls, qs = services.get_queryset(model_key, user=request.user)
+                ModelCls, qs = services.visible_queryset(model_key, actor=Actor.from_request(request))
             except Exception:
                 return []
 
@@ -1350,7 +1339,7 @@ class WCAPIGetView(APIView):
             results: List[Dict[str, Any]] = []
             for obj in items:
                 try:
-                    allow = policy.field_allowlist(type(obj), request=request)
+                    allow = None
                     payload = services.to_dict(obj, allow=allow)
                 except Exception:
                     payload = {}
@@ -1614,15 +1603,6 @@ class SearchPresetListView(APIView):
 
     http_method_names = ["get", "options", "head"]
 
-    @staticmethod
-    def _is_admin_user(user) -> bool:
-        if not user or not getattr(user, "is_authenticated", False):
-            return False
-        return bool(
-            getattr(user, "is_superuser", False)
-            or getattr(user, "is_staff", False)
-            or str(getattr(user, "role", "")).lower() == "admin"
-        )
 
     @extend_schema(
         operation_id="search_preset_list",
@@ -1666,7 +1646,7 @@ class SearchPresetListView(APIView):
             )
 
         user = getattr(request, "user", None)
-        is_admin = self._is_admin_user(user)
+        is_admin = access.is_admin(Actor.from_request(request))
         user_role = str(getattr(user, "role", "") or "").strip()
 
         presets = []

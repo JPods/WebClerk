@@ -1,12 +1,14 @@
 from rest_framework import serializers
 import uuid
-from apps.core.utils import get_accessible_fields
+from apps.core.services.door import Actor
+from apps.core.services.role_filter import get_allowed_fields
 
 
 class RoleAwareModelSerializer(serializers.ModelSerializer):
     """Base serializer enforcing role-based field visibility/edit rules.
 
-    Uses settings-driven matrices (view_edit) via get_accessible_fields(table, mode, user).
+    Fields are the role's view or edit enumeration (role_filter.get_allowed_fields) — the
+    one field authority; a field not enumerated is not served (Bill, 2026-09-23).
     Subclasses should define Meta.model & Meta.fields normally; set model_name when needed.
     """
     model_name: str | None = None
@@ -20,16 +22,10 @@ class RoleAwareModelSerializer(serializers.ModelSerializer):
         meta = getattr(self, 'Meta', None)
         model = getattr(meta, 'model', None) if meta else None
         model_name = self.model_name or (model.__name__ if model is not None else '')
-        allowed = get_accessible_fields(model_name or '', mode, request.user)
-        privileged = getattr(request.user, 'role', '') in {'staff','admin'} or getattr(request.user, 'is_superuser', False)
-        if allowed:
-            for f in set(self.fields) - set(allowed):
-                self.fields.pop(f, None)
-        elif not privileged:
-            minimal = {'id','uuid'}
-            for f in list(self.fields.keys()):
-                if f not in minimal:
-                    self.fields.pop(f, None)
+        allowed = {leaf.split('.')[0] for leaf in
+                   get_allowed_fields(Actor.from_request(request), model_name or '', mode=mode)}
+        for f in set(self.fields) - allowed:
+            self.fields.pop(f, None)
 
     # --- UUID policy at the API boundary ---
     # If this serializer is used in an API request and the model has a 'uuid' field that is currently null,

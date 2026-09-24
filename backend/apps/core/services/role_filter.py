@@ -117,7 +117,7 @@ def build_user_context(user: AbstractUser) -> dict:
     
     # The login is the Contact (AUTH_USER_MODEL = core.Contact).
     context["contact_id"] = user.id
-    role = access.user_role(user)
+    role = access.own_role(user)
     context["roles"] = [role] if role else []
     links = ((getattr(user, 'refs', None) or {}).get('links') or {})
     # 'rep' joined these on 2026-09-20: a rep is staff, and their rows are the customers
@@ -136,16 +136,39 @@ def build_user_context(user: AbstractUser) -> dict:
     return context
 
 
+ORG_TYPES = ("customer", "vendor", "manufacturer", "employee", "rep")
+
+
+def empty_context() -> dict:
+    """A principal with no ids: every $user.* list is empty, so every scoped rule matches
+    nothing."""
+    return {"user_id": None, "contact_id": None, "org_ids": {t: [] for t in ORG_TYPES},
+            "roles": [], "is_superuser": False}
+
+
+def build_connection_context(connection, role: Optional[str]) -> dict:
+    """The ids a Connection speaks for — its validated scope envelope, e.g.
+    {"vendor": [12]} — in the same shape a login's context has, so one scope rule serves
+    both. No user_id and no contact_id: a sync write is linked to no contact."""
+    context = empty_context()
+    scope = getattr(connection, "scope", None) or {}
+    for org_type in ORG_TYPES:
+        ids = scope.get(org_type) or []
+        context["org_ids"][org_type] = [i for i in ids if isinstance(i, int)]
+    context["roles"] = [role] if role else []
+    return context
+
+
 # =============================================================================
 # Filter Configuration Lookup
 # =============================================================================
 
-def get_user_filter_config(user: AbstractUser, model_name: str) -> Optional[dict]:
-    """The access block for this user on this model, or None (no access).
+def get_user_filter_config(actor, model_name: str) -> Optional[dict]:
+    """The access block for this actor on this model, or None (no access).
 
     Block keys: view, edit, scope, edit_scope, create, delete (access.py).
     """
-    return access.block_for(user, model_name)
+    return access.block_for(actor, model_name)
 
 
 # =============================================================================
@@ -231,7 +254,7 @@ def _links_contains_q(key: str, value) -> Q:
 # =============================================================================
 
 def inject_role_filters(
-    user: AbstractUser,
+    actor,
     model_name: str,
     existing_q: Optional[Q] = None
 ) -> Q:
@@ -241,7 +264,7 @@ def inject_role_filters(
     Main entry point for RBAC query filtering.
     
     Args:
-        user: Django User instance
+        actor: the Actor asking (door.Actor)
         model_name: Model being queried
         existing_q: Optional existing Q object to combine with
     
@@ -250,15 +273,17 @@ def inject_role_filters(
     
     Example:
         # In view:
-        q = inject_role_filters(request.user, "order")
+        q = inject_role_filters(Actor.from_request(request), "order")
         orders = Order.objects.filter(q)
     """
     existing_q = existing_q or Q()
 
+    from apps.core.services.door import as_actor
+    actor = as_actor(actor)
     if access.is_open_read(model_name):
-        return existing_q if access.user_role(user) else Q(pk__isnull=True)
+        return existing_q if actor.role else Q(pk__isnull=True)
 
-    config = get_user_filter_config(user, model_name)
+    config = get_user_filter_config(actor, model_name)
     if not config:
         # No block for this role on this model: no rows.
         return Q(pk__isnull=True)
@@ -269,8 +294,7 @@ def inject_role_filters(
         return existing_q
     
     # Resolve variables
-    user_context = build_user_context(user)
-    resolved_filters = resolve_filter_variables(query_filters, user_context)
+    resolved_filters = resolve_filter_variables(query_filters, actor.context())
     
     # Handle empty org_ids (user has role but no orgs assigned)
     # Replace empty lists with impossible condition
@@ -288,7 +312,7 @@ def inject_role_filters(
 
 
 def get_allowed_fields(
-    user: AbstractUser,
+    actor,
     model_name: str,
     mode: str = "view"
 ) -> list:
@@ -296,22 +320,24 @@ def get_allowed_fields(
     Get list of allowed fields for user/model.
 
     Args:
-        user: Django User instance
+        actor: the Actor asking (door.Actor)
         model_name: Model name
         mode: "view" or "edit"
 
     Returns:
         List of leaf paths. Empty = nothing.
     """
+    from apps.core.services.door import as_actor
+    actor = as_actor(actor)
     if access.is_open_read(model_name):
         from apps.core.services import field_leaves as fl
-        if not access.user_role(user) or (mode != "view" and not access.open_read_can_write(user)):
+        if not actor.role or (mode != "view" and not actor.may_write_open_read):
             return []
         return sorted(fl.model_leaves(access.model_key(model_name))['leaves'])
-    config = get_user_filter_config(user, model_name)
+    config = get_user_filter_config(actor, model_name)
     if not config:
         return []
-    return _resolve_field_tokens(config.get("view" if mode == "view" else "edit", []), user)
+    return _resolve_field_tokens(config.get("view" if mode == "view" else "edit", []), actor)
 
 
 def user_price_level(user: AbstractUser) -> str:
@@ -327,13 +353,13 @@ def user_price_level(user: AbstractUser) -> str:
         return ''
 
 
-def _resolve_field_tokens(fields, user) -> list:
+def _resolve_field_tokens(fields, actor) -> list:
     """Replace $user.price_level in field paths. A path whose token cannot be
     resolved is dropped — never widened to every tier."""
     if not isinstance(fields, list) or not any(
             isinstance(f, str) and '$user.' in f for f in fields):
         return fields
-    level = user_price_level(user)
+    level = actor.price_level
     resolved = []
     for field in fields:
         if isinstance(field, str) and '$user.price_level' in field:
@@ -345,29 +371,35 @@ def _resolve_field_tokens(fields, user) -> list:
 
 
 def get_edit_filters(
-    user: AbstractUser,
+    actor,
     model_name: str,
 ) -> Optional[dict]:
     """Row-level edit rule for user/model, variables resolved; None when every
     visible row may be edited. Wide visibility, narrow edit (e.g. a customer sees
     the project's actions but edits only those assigned to them)."""
-    config = get_user_filter_config(user, model_name)
+    from apps.core.services.door import as_actor
+    actor = as_actor(actor)
+    config = get_user_filter_config(actor, model_name)
     if not config or not config.get("edit_scope"):
         return None
-    return resolve_filter_variables(config["edit_scope"], build_user_context(user))
+    return resolve_filter_variables(config["edit_scope"], actor.context())
 
 
-def can_create(user: AbstractUser, model_name: str) -> bool:
-    """Check if user can create records for a model."""
+def can_create(actor, model_name: str) -> bool:
+    """May this actor create records of the model?"""
+    from apps.core.services.door import as_actor
+    actor = as_actor(actor)
     if access.is_open_read(model_name):
-        return access.open_read_can_write(user)
-    config = get_user_filter_config(user, model_name)
+        return actor.may_write_open_read
+    config = get_user_filter_config(actor, model_name)
     return bool(config and config.get("create"))
 
 
-def can_delete(user: AbstractUser, model_name: str) -> bool:
-    """Check if user can delete records for a model."""
+def can_delete(actor, model_name: str) -> bool:
+    """May this actor delete records of the model?"""
+    from apps.core.services.door import as_actor
+    actor = as_actor(actor)
     if access.is_open_read(model_name):
-        return access.open_read_can_write(user)
-    config = get_user_filter_config(user, model_name)
+        return actor.may_write_open_read
+    config = get_user_filter_config(actor, model_name)
     return bool(config and config.get("delete"))
