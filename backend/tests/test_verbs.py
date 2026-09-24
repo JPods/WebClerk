@@ -177,3 +177,57 @@ def test_flush_does_marked_work_inside_the_unit():
         flush()
         assert done == ['recomputed'], 'an after hook would see the recomputed document'
     assert done == ['recomputed'], 'and it is not done twice on the way out'
+
+
+# ── what the hooks are given (Fable review of step 1) ─────────────────
+
+def test_after_hooks_start_from_what_derived_work_wrote():
+    """Derived work writes through its own instance (a document's recompute); the after
+    hooks must see that, and nothing after them may write the stale copy back."""
+    from apps.core.services.unit_of_work import defer
+    from apps.products.models import Item
+    seen = {}
+
+    class Deriving(ModelBehaviour):
+        def before_save(self, ctx: HookContext) -> None:
+            ida = ctx.data['ida']
+            defer(('item', ida), lambda: Item.objects.filter(ida=ida).update(name='Derived'))
+
+        def after_save(self, ctx: HookContext) -> None:
+            seen['name'] = ctx.obj.name
+
+    register('item', Deriving())
+    try:
+        item = _item('zz-verb-derived')
+    finally:
+        register('item', ModelBehaviour())
+    assert seen['name'] == 'Derived'
+    item.refresh_from_db()
+    assert item.name == 'Derived', 'the stale in-memory copy was not written back'
+
+
+def test_when_changed_sees_json_fields(registry):
+    user_hook('RPT-JSON', {'point': 'item.save_post', 'after': [
+        {'when_changed': 'comments', 'set': {'metadata.review.config_changed': True}}]})
+    item = _item('zz-verb-json')
+    type(item).objects.filter(pk=item.pk).update(metadata={})
+    save_record(Actor.system(), {'model_name': 'item', 'id': item.pk,
+                                 'comments': {'mode': 'update', 'value': {'notes': 'red'}}})
+    item.refresh_from_db()
+    assert item.metadata['review']['config_changed'] is True
+
+
+def test_after_delete_hooks_know_which_record_went():
+    seen = {}
+
+    class Watcher(ModelBehaviour):
+        def after_delete(self, ctx: HookContext) -> None:
+            seen['id'] = ctx.obj.id
+
+    item = _item('zz-verb-gone')
+    register('item', Watcher())
+    try:
+        delete_record(Actor.system(), 'item', item.pk)
+    finally:
+        register('item', ModelBehaviour())
+    assert seen['id'] == item.pk

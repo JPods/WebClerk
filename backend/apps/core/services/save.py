@@ -31,6 +31,7 @@ Plan and review: Allie ``readmes/assessments/2026-09-22-save-door-steps-1-2.md``
 """
 from __future__ import annotations
 
+import copy
 import json
 import logging
 from dataclasses import dataclass, field
@@ -326,7 +327,9 @@ def _normalize_contact_id(obj, data: dict) -> None:
 # ── what this save changed ────────────────────────────────────────────
 
 def _snapshot(obj) -> Dict[str, Any]:
-    return {f.name: getattr(obj, f.attname, None) for f in obj._meta.concrete_fields}
+    """Copies, not references: assignment merges JSON envelopes in place."""
+    return {f.name: copy.deepcopy(getattr(obj, f.attname, None))
+            for f in obj._meta.concrete_fields}
 
 
 def _changed(obj, snapshot: Dict[str, Any]) -> frozenset:
@@ -400,6 +403,8 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
     ctx = HookContext(actor=actor, verb='save', model_key=model_key, obj=obj, data=data,
                       is_update=is_update, changed=_changed(obj, snapshot))
     verbs.before(ctx)
+    # What the before hooks assigned is part of what this save changed.
+    ctx.changed = _changed(obj, snapshot)
 
     try:
         obj.save()
@@ -414,6 +419,9 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
     _within_scope(actor, obj, model_key)
     ctx.messages += _post_persist(obj, data, model_key)
     flush()
+    # The recompute wrote the document through its own instance; the after hooks, and the
+    # keyword save below, must start from what it wrote — not overwrite it.
+    obj.refresh_from_db()
     verbs.after(ctx)
 
     # Keywords are updated synchronously so the response carries the current ones — but
