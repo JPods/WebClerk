@@ -415,14 +415,11 @@ export async function saveRecord(model_name: string, payload: any) {
 }
 
 /**
- * Save a transaction with lines using the transaction-specific save endpoint.
- * This endpoint handles creating/updating/deleting lines along with the header.
+ * Save a document (order, invoice, quote, purchase, workorder) with its lines — the REST
+ * save like any other record: PUT /wcapi/<model>/<id>/ or POST /wcapi/<model>/. The lines
+ * ride in `lines`; a removed line carries `_delete: true`. Totals are the server's.
  */
-export async function saveTransactionWithLines(
-  model_name: string,
-  payload: any,
-  options?: { verifyCalculations?: boolean; saveOnlyDirty?: boolean },
-) {
+export async function saveTransactionWithLines(model_name: string, payload: any) {
   const resolved = resolveModelName(model_name);
   // Strip read-only and calculated fields — only send what the server needs
   const headerStripKeys = [
@@ -458,18 +455,8 @@ export async function saveTransactionWithLines(
       );
     });
   }
-  // Build the request body in the format expected by WCAPITransactionSaveView
-  const body = {
-    model_name: resolved,
-    record: cleanPayload,
-    id: cleanPayload.id, // record should include lines array
-    options: {
-      verify_calculations: options?.verifyCalculations ?? false, // Disable verification for now
-      save_only_dirty: options?.saveOnlyDirty ?? false, // Save all lines, not just dirty ones
-    },
-  };
+  const body = { model_name: resolved, ...cleanPayload };
 
-  // save/<model>/ takes a header with its lines (order, invoice, quote, purchase).
   try {
     return await wcapiSave<any>(resolved, body);
   } catch (err: any) {

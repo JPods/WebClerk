@@ -43,7 +43,6 @@ from apps.core.views.register_installation_view import RegisterInstallationView,
 from apps.core.views.instance_submit_view import InstanceSubmitView
 from apps.core.views.hook_clearance_view import HookClearanceView
 from apps.core.views.hook_submit_view import HookSubmitView
-from apps.transactions.views.wcapi import WCAPITransactionSaveView
 from apps.docs.views.qa_view import ApplyQuestionsView, ListQuestionGroupsView, ParentQAView
 
 urlpatterns = [
@@ -63,7 +62,6 @@ urlpatterns = [
          name="wcapi-field-rules"),
 
     path("wcapi/<str:model_name>/<str:field>/<str:from_val>/<str:to_val>/", RangeQueryView.as_view(), name="wcapi-range-query"),
-    path("wcapi/transaction/save/", WCAPITransactionSaveView.as_view(), name="wcapi-transaction-save"),
     path("wcapi/report/run/", ReportDownloadView.as_view(), name="wcapi-report-run"),
 
     # ── System plumbing (_ prefix — React-to-WC3 metadata/config) ──

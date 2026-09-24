@@ -233,7 +233,7 @@ def register_line_totals_signals(line_model, parent_attr: str):
 
 _LINE_CONFIG = [
     # (model,         parent_attr,  model_key,    txn_type,         link_key)
-    (QuoteLine,   'parent',     'quote',   'quote',       'quote_line'),
+    (QuoteLine,      'quote',      'quote',      'quote',          'quote_line'),
     (OrderLine,      'order',      'order',      'order',          'order_line'),
     (InvoiceLine,    'invoice',    'invoice',    'invoice',        'invoice_line'),
     (PurchaseLine,   'purchase',   'purchase',   'purchase',       'purchase_line'),
@@ -247,7 +247,7 @@ for _model, _parent, _key, _txn, _link in _LINE_CONFIG:
 
 # Line types that auto-recalculate parent header totals on save/delete.
 # (Previously only QuoteLine was wired; all types added Feb 2026.)
-register_line_totals_signals(QuoteLine, 'parent')
+register_line_totals_signals(QuoteLine, 'quote')
 register_line_totals_signals(OrderLine, 'order')
 register_line_totals_signals(InvoiceLine, 'invoice')
 register_line_totals_signals(PurchaseLine, 'purchase')

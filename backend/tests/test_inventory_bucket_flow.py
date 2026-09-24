@@ -77,7 +77,7 @@ class TestInventoryBucketFlow:
             purpose__startswith='inventory',
         )
         # No pending from direct model creation — pending only created
-        # by save_transaction_with_lines pipeline
+        # by the save door's line engine
         assert pendings.count() == 0
 
     def test_pending_bucket_rules_documented(self):

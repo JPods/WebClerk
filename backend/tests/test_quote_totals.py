@@ -6,7 +6,7 @@ from apps.transactions.services.convert.convert_quote_to_order import (
     validate_quote_for_transfer,
     QuoteToOrderTransferError
 )
-from apps.transactions.services.transaction_save import save_transaction_with_lines
+from tests.utils import save_document
 
 
 @pytest.mark.django_db
@@ -233,12 +233,10 @@ pytest -xvs tests/test_quote_totals.py
 '''
 def _save_reviewed_order(result):
     """Save the lines a conversion returned for review — the step that creates lines."""
-    return save_transaction_with_lines(
+    return save_document(
         model_key="order",
         header_data={"id": result["order_id"]},
         lines_data=result["lines"],
-        request=None,
-        verify_calculations=False,
     )
 
 

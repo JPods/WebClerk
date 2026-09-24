@@ -312,66 +312,23 @@ Pre/post save logic is defined in `Setting` records with `purpose: "save_pre_pos
 
 This allows customization without code deployment. Check existing hooks before adding inline logic.
 
-### Two Save Paths
+### One Save Path
 
-| Endpoint | Handler | Pending Strategy | Used By |
-|----------|---------|------------------|---------|
-| `/wcapi/save/` | `save_view.py` `post()` | Per-line via `LineItemService._create_pending_for_new_line()` | Generic saves, order deactivation |
-| `/wcapi/transaction/save/` | `transaction_save.py` `save_transaction_with_lines()` | **Collect-then-create** via `_create_pending_from_deltas()` | R25 transaction saves with lines |
-
-### Transaction Save Flow — Collect-then-Create (2026-02-21)
+Every save — a plain record or a document with its lines — is the REST channel:
+`POST /wcapi/<model>/` creates, `PUT|PATCH /wcapi/<model>/<id>/` updates. Both end in the
+door, `apps/core/services/save.py` `save_record()`:
 
 ```
-POST /wcapi/transaction/save/  { model_name: "invoice", record: { lines: [...] } }
-  │
-  ├── Phase 1 — Atomic save (signals suppressed)
-  │   ├── transaction.atomic() begins
-  │   │     ├── Verify R25 calculations against WC3 math
-  │   │     ├── Save header (create or update)
-  │   │     ├── Read current_line_increment from header
-  │   │     ├── For each dirty line:
-  │   │     │     ├── Assign line_number from current_line_increment if == 0
-  │   │     │     ├── Save line (create or update)
-  │   │     │     ├── Set line._pending_created = True (suppresses signal)
-  │   │     │     └── Collect pending delta into pending_deltas[]
-  │   │     ├── Persist bumped line_increment back to header
-  │   │     └── (No Pending records created yet)
-  │   └── transaction.atomic() commits
-  │
-  ├── Phase 2 — Create Pending records from collected deltas
-  │   └── _create_pending_from_deltas() — backend-authoritative:
-  │         ├── Derives type from model_key (not front-end data)
-  │         ├── Detects transfers from header.parent_id/parent_model
-  │         ├── Stores (invoice_line_id, order_line_id) pair in each record
-  │         ├── In-memory seen_pairs + DB duplicate guard
-  │         └── For IN-from-order: on_in=+qty, on_so=-qty, on_hand=-qty
-  │
-  ├── Phase 3 — Update source lines (transfer only)
-  │   └── Bumps actioned, sets remaining, marks transferred
-  │
-  └── Phase 4 — Single dispatch_pending_processing() call
-      └── Celery applies pending deltas to Item.quantity
+authorize → assign → code before → user before → persist
+  → lines (apps/core/services/save_line_processing.py — each line's door writes its Pending)
+  → flush (the document's totals, and an invoice's ledger, once)
+  → code after → user after
 ```
 
-### Generic Save Flow (`/wcapi/save/`)
-
-```
-POST /wcapi/save/  { model_name: "order", record: { lines: [...] } }
-  │
-  ├── save_pre hooks — validation, normalization
-  │
-  ├── transaction.atomic() begins
-  │     ├── Save parent record
-  │     ├── For each line:
-  │     │     ├── Set _pending_created = True
-  │     │     ├── Save line record
-  │     │     └── Call _create_pending_for_new_line() (one Pending per line)
-  │     └── Dispatch Celery task
-  │
-  ├── transaction.atomic() commits
-  │
-  └── save_post / save_async hooks
-```
+A document's own work is its code hooks (`apps/transactions/behaviours.py`): the
+transfer-quantity and stock checks run in `before_save`; erosion detection in
+`after_save`. `/wcapi/transaction/save/` and `save_transaction_with_lines()` were deleted
+2026-09-24 (plan: Allie `readmes/assessments/2026-09-24-one-route-per-verb.md`).
 
 ### Pending Record Rules (Inventory)
 

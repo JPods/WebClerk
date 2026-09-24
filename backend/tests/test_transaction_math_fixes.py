@@ -9,7 +9,6 @@ import pytest
 
 from apps.transactions.models import Order, OrderLine, Quote, QuoteLine
 from apps.transactions.services.convert.convert import convert_quote_to_order
-from apps.transactions.services.transaction_save import calculate_header_totals
 
 
 def _line(quote, qty, unit, *, discount_amount=0.0, discount_percent=0, cost=0.0,
@@ -107,14 +106,17 @@ def test_flat_discount_last_child_takes_the_remainder():
 
 
 @pytest.mark.django_db
-def test_verifier_uses_the_same_engine():
-    """#9: the pre-save verifier agrees with the engine for 5 and 0.05 alike."""
-    lines = [
-        {"line_type": "product", "quantity": {"active": 2},
-         "price": {"unit": 50.0, "discount_amount": 10.0}, "cost": {}},
-    ]
+def test_the_engine_reads_a_rate_of_5_and_0_05_alike():
+    """#9: a sales tax rate written as a percent or a fraction taxes the discounted price."""
+    from types import SimpleNamespace
+    from apps.transactions.services.pricing.totals_compute import compute_totals
+    line = SimpleNamespace(pk=None, line_type="product", quantity={"active": 2},
+                           price={"unit": 50.0, "discount_amount": 10.0}, cost={}, tax={},
+                           physical={}, item={}, line_number=10)
     for rate in (5, 0.05):
-        t = calculate_header_totals(lines, {"finance": {"sales_tax_rate": rate}}, "quote")
+        header = SimpleNamespace(finance={"sales_tax_rate": rate}, allocations={},
+                                 customer_id=None, tax={}, cost={}, ship_via="", totals={})
+        t = compute_totals(header, [line], "quote")["totals"]
         assert float(t["amount"]) == pytest.approx(90.00)
         assert float(t["tax"]) == pytest.approx(4.50)   # tax on the discounted price
         assert float(t["total"]) == pytest.approx(94.50)
@@ -310,15 +312,14 @@ def test_a_rate_left_by_the_old_engine_is_not_treated_as_typed():
 
 @pytest.mark.django_db
 def test_a_caller_cannot_write_totals():
-    """Recheck 2: header totals were writable through the transaction endpoint."""
-    from apps.transactions.services.transaction_save import save_transaction_with_lines
+    """Recheck 2: header and line totals are the engine's, whoever saves the document."""
+    from tests.utils import save_document
     q = Quote.objects.create()
-    result = save_transaction_with_lines(
+    save_document(
         'quote',
         {'id': q.pk, 'totals': {'amount': 1.00, 'total': 1.00}},
         [{'quantity': {'active': 2}, 'price': {'unit': 10.0, 'precision': 2}, 'cost': {'unit': 0},
-          'totals': {'amount': 999.0}, '_dirty': True}],
-        request=None, verify_calculations=False, save_only_dirty=False)
+          'totals': {'amount': 999.0}, '_dirty': True}])
     q.refresh_from_db()
     assert q.totals["amount"] == pytest.approx(20.00)        # the engine's, not the caller's
     assert q.lines.first().totals["amount"] == pytest.approx(20.00)

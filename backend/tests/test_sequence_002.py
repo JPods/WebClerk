@@ -31,13 +31,11 @@ def _now_ms():
 def _save_reviewed(model_key, header_id, lines):
     """Conversions create the header only and return lines for review.
     Saving the reviewed document is the step that creates the lines."""
-    from apps.transactions.services.transaction_save import save_transaction_with_lines
-    return save_transaction_with_lines(
+    from tests.utils import save_document
+    return save_document(
         model_key=model_key,
         header_data={'id': header_id},
         lines_data=lines,
-        request=None,
-        verify_calculations=False,
     )
 
 

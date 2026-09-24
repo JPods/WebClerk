@@ -221,7 +221,7 @@ def _not_enumerated(actor, model_name: str, payload: dict, prefix: str = "") -> 
 
 
 def _transaction_save_denial(actor, model_key: str, record_data: dict, lines_data: list):
-    """Enforce role create/edit permission on /wcapi/transaction/save/.
+    """Enforce role create/edit permission on a document saved with its lines.
 
     Returns (http_status, message) when denied, else None.
     For portal customers creating an order/quote, rewrites the payload in place:
@@ -256,8 +256,7 @@ def _transaction_save_denial(actor, model_key: str, record_data: dict, lines_dat
     # say nothing about how many rows it carries, so the cap is checked first — before
     # anything is walked, re-priced or saved (Bill, 2026-09-20: "To address malicious
     # behavior we can limit their size").
-    # Both shapes: the REST save carries the collection inside the record, and
-    # /wcapi/transaction/save/ passes it beside the record as its own argument.
+    # The record carries its lines; the door passes them beside it as well.
     oversize = (_collection_too_large(model_key, record_data)
                 or _collection_too_large(model_key, {'lines': lines_data or []}))
     if oversize:
@@ -330,205 +329,6 @@ def _transaction_save_denial(actor, model_key: str, record_data: dict, lines_dat
     lines_data[:] = priced_lines
     return None
 
-
-class WCAPITransactionSaveView(APIView):
-    """Save transaction with lines, dirty tracking, and calculation verification.
-    
-    Lines are provided in `record.lines` (consistent with existing /wcapi/save/ pattern).
-    
-    Payload:
-    {
-        "model_name": "invoice",
-        "record": {
-            "id": 123,
-            "totals": {...},
-            "finance": {...},
-            "lines": [                          // <-- Lines are INSIDE record
-                { "id": 1, "_dirty": false, ... },  // Skipped - not dirty
-                { "id": 2, "_dirty": true, ... },   // Updated - dirty
-                { "_dirty": true, ... }             // Created - new line
-            ]
-        },
-        "options": {
-            "verify_calculations": true,  // Default: true
-            "save_only_dirty": true        // Default: true
-        }
-    }
-    
-    Response:
-    {
-        "header": { "id": 123 },
-        "lines": [
-            { "id": 1, "action": "skipped", "reason": "not_dirty" },
-            { "id": 2, "action": "updated" },
-            { "id": 456, "action": "created" }
-        ],
-        "lines_saved": 2,
-        "lines_skipped": 1,
-        "action": "updated",
-        "recalculated_totals": { ... }  // WC3's authoritative totals
-    }
-    """
-    http_method_names = ["post", "options", "head"]
-
-    def post(self, request, *args, **kwargs):
-        from apps.transactions.services.transaction_save import (
-            save_transaction_with_lines,
-            CalculationMismatchError,
-            ItemIdChangeError,
-            TransferQuantityError,
-            InsufficientInventoryError,
-        )
-        from common.write_through import is_write_through, forward_transaction_and_store
-        
-        body: Dict[str, Any] = request.data or {}
-        model_key = body.get("model_name") or body.get("model") or body.get("modelName")
-        record_data = body.get("record") or {}
-        options = body.get("options") or {}
-        
-        # Extract lines from record.lines (consistent with /wcapi/save/ pattern)
-        lines_data = record_data.pop("lines", []) or []
-        
-        if not model_key:
-            return Response(
-                {"detail": "model_name is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        if model_key.lower() not in TRANSACTION_MODELS_WITH_LINES:
-            return Response(
-                {"detail": f"Model {model_key} does not support lines"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        denial = _transaction_save_denial(Actor.from_request(request), model_key.lower(), record_data, lines_data)
-        if denial:
-            logging.getLogger(__name__).warning(
-                "Transaction save denied for %s user=%s: %s",
-                model_key, getattr(request.user, "id", None), denial[1])
-            return Response({"detail": denial[1]}, status=denial[0])
-
-        # ── Write-through: forward to remote, store result locally ───
-        if is_write_through():
-            result, status_code = forward_transaction_and_store(
-                request=request,
-                model_key=model_key,
-                record_data=record_data,
-                lines_data=lines_data,
-                options=options,
-            )
-            return Response(result, status=status_code)
-        
-        try:
-            result = save_transaction_with_lines(
-                model_key=model_key.lower(),
-                header_data=record_data,
-                lines_data=lines_data,
-                request=request,
-                verify_calculations=options.get("verify_calculations", True),
-                save_only_dirty=options.get("save_only_dirty", True),
-            )
-            
-            # Re-fetch the full saved record so the frontend gets a complete
-            # Transaction object (with all fields & nested lines).
-            # Post-save signal runs the real totals engine; re-fetched record
-            # has authoritative totals (PJPV: one compute engine, read from JSON).
-            saved_id = result.get('header', {}).get('id')
-            if saved_id is not None:
-                try:
-                    from apps.core.services.record_serialize import get_item
-                    saved_obj = get_item(model_key.lower(), request=request, id=saved_id)
-                    if saved_obj is not None:
-                        record_dict = to_dict(saved_obj)
-                        # Attach lines
-                        line_model_key = f"{model_key.lower()}line"
-                        from apps.core.utils import registry
-                        LineModel = registry.resolve(line_model_key)
-                        if LineModel is not None:
-                            from apps.transactions.services.transaction_save import _resolve_parent_fk
-                            parent_fk = _resolve_parent_fk(LineModel, type(saved_obj), model_key.lower())
-                            line_qs = LineModel.objects.filter(**{parent_fk: saved_id}).order_by('id')
-                            record_dict['lines'] = [to_dict(ln) for ln in line_qs]
-                        result['record'] = record_dict
-                        # Authoritative totals from the saved record (PJPV: JSON envelope is source of truth)
-                        totals_env = record_dict.get('totals')
-                        if isinstance(totals_env, dict):
-                            result['recalculated_totals'] = totals_env
-                except Exception as fetch_err:
-                    logger.warning("Failed to re-fetch saved record %s: %s", saved_id, fetch_err)
-
-            # ── Local-sync: queue async push to remote DB ────────────
-            if saved_id is not None:
-                from common.sync_tasks import dispatch_sync_to_remote
-                sync_task_id = dispatch_sync_to_remote(model_key.lower(), saved_id)  # record_id
-                if sync_task_id:
-                    result['sync_task_id'] = sync_task_id
-                    result['sync_status'] = 'queued'
-
-            return Response(result, status=status.HTTP_200_OK)
-            
-        except CalculationMismatchError as e:
-            return Response({
-                "detail": "Calculation mismatch",
-                "error": str(e),
-                "field": e.field,
-                "r25_value": e.r25_value,
-                "wc3_value": e.wc3_value,
-                "line_id": e.line_id,
-            }, status=status.HTTP_400_BAD_REQUEST)
-            
-        except ItemIdChangeError as e:
-            return Response({
-                "detail": "Item ID change not allowed",
-                "error": str(e),
-                "line_id": e.line_id,
-                "old_item_id": e.old_item_id,
-                "new_item_id": e.new_item_id,
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        except TransferQuantityError as e:
-            return Response({
-                "detail": "Transfer quantity exceeds source remaining",
-                "error": str(e),
-                "source_model": e.source_model,
-                "source_line_id": e.source_line_id,
-                "requested": e.requested,
-                "remaining": e.remaining,
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        except InsufficientInventoryError as e:
-            return Response({
-                "detail": "Insufficient inventory",
-                "error": str(e),
-                "item_id": e.item_id,
-                "sku": e.sku,
-                "required": e.required,
-                "available": e.available,
-            }, status=status.HTTP_400_BAD_REQUEST)
-            
-        except LookupError as e:
-            return Response(
-                {"detail": str(e)},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        except IntegrityError as e:
-            logger = logging.getLogger(__name__)
-            logger.warning("Transaction save integrity error: %s", e)
-            return Response({
-                "detail": "Integrity error",
-                "error": str(e)
-            }, status=status.HTTP_400_BAD_REQUEST)
-            
-        except Exception as e:
-            logger = logging.getLogger(__name__)
-            logger.exception("Transaction save failed")
-            import traceback
-            return Response({
-                "detail": "Save failed",
-                "error": str(e),
-                "traceback": traceback.format_exc()[-500:],
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # WCAPIGetView, WCAPIQueryView, WCAPISaveView, WCAPIDeleteView and WCAPISyncView lived
 # here until 2026-09-22: a second, unrouted implementation of get/save/delete/sync with

@@ -10,8 +10,7 @@ system.
 
 | Endpoint | View | Service | Purpose |
 |----------|------|---------|---------|
-| `POST /wcapi/save/` | `SaveWcapiView.post()` in `apps/core/views/save_view.py` L282 | Per-line pending via `LineItemService` (L825) | Generic create/update for any model. Used for order deactivation after transfer, non-transaction saves. |
-| `POST /wcapi/transaction/save/` | `WCAPITransactionSaveView.post()` in `apps/transactions/views/wcapi.py` L126 | `save_transaction_with_lines()` in `apps/transactions/services/transaction_save.py` L780 | Transaction saves with lines. R25 uses `saveTransactionWithLines()` for all transaction saves. |
+| `POST /wcapi/<model>/`, `PUT\|PATCH /wcapi/<model>/<id>/` | `ModelChannelView` in `apps/core/views/channel_view.py` | `save_record()` in `apps/core/services/save.py`; lines in `save_line_processing.py`; document hooks in `apps/transactions/behaviours.py` | Every save, a document with its lines included. |
 
 ---
 
@@ -63,14 +62,13 @@ entry in `children_active.lines`, then recomputes remaining.
 `line_number` is a scalar `IntegerField` on every line (via `BaseLineCore`).
 `line_increment` is a counter on every transaction header (via `TransactionBaseModel`, default `10`).
 
-During `save_transaction_with_lines()`:
+In the door's line engine (`apps/core/services/save_line_processing.py`):
 
 1. Before the line loop, read `current_line_increment` from the header
 2. For each **new line** where `line_number == 0`:
    - Assign `line_number = current_line_increment`
    - Bump `current_line_increment += 10`
 3. After all lines, persist the bumped value back: `header.line_increment = current_line_increment`
-4. The response includes `line_number` for both created and updated lines
 
 The backend `BaseLineCore.save()` also auto-assigns `line_number` from `parent.line_increment` when `line_number == 0` (fallback for non-transaction-save paths).
 
@@ -122,7 +120,7 @@ Three layers:
 
 When R25 creates an invoice from an order:
 
-1. R25 calls `saveTransactionWithLines("invoice", payload)` → `POST /wcapi/transaction/save/`
+1. R25 calls `saveTransactionWithLines("invoice", payload)` → `PUT /wcapi/invoice/<id>/`
 2. Header has `parent_id` (order PK) and `parent_model: "order"`
 3. Each invoice line has `refs.source.order_line_id` pointing to the source order line
 4. **One Pending per invoice line** captures:

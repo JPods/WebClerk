@@ -59,9 +59,7 @@ class TestQuoteOrderInvoiceChain:
             Invoice, InvoiceLine,
         )
         from apps.products.models import Item
-        from apps.transactions.services.transaction_save import (
-            save_transaction_with_lines,
-        )
+        from tests.utils import save_document
 
         # Ensure item exists (create if needed in test DB)
         from apps.orgs.models.base import OrgBase
@@ -96,7 +94,7 @@ class TestQuoteOrderInvoiceChain:
 
         # ── Step 1: Create Quote with qty=15 ──────────────────────
         print("\n═══ Step 1: Create Quote (qty=15) ═══")
-        quote_result = save_transaction_with_lines(
+        quote_result = save_document(
             model_key='quote',
             header_data={
                 'status': 'planned',
@@ -109,9 +107,6 @@ class TestQuoteOrderInvoiceChain:
                 'price': {'unit': 10.0, 'amount': 150.0},
                 'cost': {'unit': 5.0, 'extended': 75.0},
             }],
-            request=None,
-            verify_calculations=False,
-            save_only_dirty=False,
         )
         quote_id = quote_result['header']['id']
         quote_line_id = quote_result['lines'][0]['id']
@@ -127,7 +122,7 @@ class TestQuoteOrderInvoiceChain:
 
         # ── Step 2: Create child Order from quote.remaining=15 ────
         print("\n═══ Step 2: Create Child Order (staged=15 from quote) ═══")
-        order_result = save_transaction_with_lines(
+        order_result = save_document(
             model_key='order',
             header_data={
                 'status': 'planned',
@@ -149,9 +144,6 @@ class TestQuoteOrderInvoiceChain:
                     }
                 },
             }],
-            request=None,
-            verify_calculations=False,
-            save_only_dirty=False,
         )
         order_id = order_result['header']['id']
         order_line_id = order_result['lines'][0]['id']
@@ -180,7 +172,7 @@ class TestQuoteOrderInvoiceChain:
 
         # ── Step 3: User reduces order active to 7 ───────────────────
         print("\n═══ Step 3: Edit Order active 15→7 ═══")
-        save_transaction_with_lines(
+        save_document(
             model_key='order',
             header_data={'id': order_id, 'status': 'planned'},
             lines_data=[{
@@ -191,9 +183,6 @@ class TestQuoteOrderInvoiceChain:
                 'price': {'unit': 10.0, 'amount': 70.0},
                 'cost': {'unit': 5.0, 'extended': 35.0},
             }],
-            request=None,
-            verify_calculations=False,
-            save_only_dirty=False,
         )
 
         ol.refresh_from_db()
@@ -215,7 +204,7 @@ class TestQuoteOrderInvoiceChain:
 
         # ── Step 4: Create Invoice #1 from order.remaining=7 ─────────
         print("\n═══ Step 4: Create Invoice #1 (staged=7 from order) ═══")
-        inv1_result = save_transaction_with_lines(
+        inv1_result = save_document(
             model_key='invoice',
             header_data={
                 'status': 'planned',
@@ -237,9 +226,6 @@ class TestQuoteOrderInvoiceChain:
                     }
                 },
             }],
-            request=None,
-            verify_calculations=False,
-            save_only_dirty=False,
         )
         inv1_id = inv1_result['header']['id']
         inv1_line_id = inv1_result['lines'][0]['id']
@@ -267,7 +253,7 @@ class TestQuoteOrderInvoiceChain:
 
         # ── Step 5: User reduces invoice #1 active to 3 ─────────────
         print("\n═══ Step 5: Edit Invoice #1 active 7→3 ═══")
-        save_transaction_with_lines(
+        save_document(
             model_key='invoice',
             header_data={'id': inv1_id, 'status': 'planned'},
             lines_data=[{
@@ -278,9 +264,6 @@ class TestQuoteOrderInvoiceChain:
                 'price': {'unit': 10.0, 'amount': 30.0},
                 'cost': {'unit': 5.0, 'extended': 15.0},
             }],
-            request=None,
-            verify_calculations=False,
-            save_only_dirty=False,
         )
 
         il1.refresh_from_db()
@@ -301,7 +284,7 @@ class TestQuoteOrderInvoiceChain:
 
         # ── Step 6: Create Invoice #2 from order.remaining=4 ─────────
         print("\n═══ Step 6: Create Invoice #2 (staged=4 from order) ═══")
-        inv2_result = save_transaction_with_lines(
+        inv2_result = save_document(
             model_key='invoice',
             header_data={
                 'status': 'planned',
@@ -323,9 +306,6 @@ class TestQuoteOrderInvoiceChain:
                     }
                 },
             }],
-            request=None,
-            verify_calculations=False,
-            save_only_dirty=False,
         )
         inv2_id = inv2_result['header']['id']
         inv2_line_id = inv2_result['lines'][0]['id']
@@ -351,7 +331,7 @@ class TestQuoteOrderInvoiceChain:
 
         # ── Step 7: User reduces invoice #2 active to 1 ─────────────
         print("\n═══ Step 7: Edit Invoice #2 active 4→1 ═══")
-        save_transaction_with_lines(
+        save_document(
             model_key='invoice',
             header_data={'id': inv2_id, 'status': 'planned'},
             lines_data=[{
@@ -362,9 +342,6 @@ class TestQuoteOrderInvoiceChain:
                 'price': {'unit': 10.0, 'amount': 10.0},
                 'cost': {'unit': 5.0, 'extended': 5.0},
             }],
-            request=None,
-            verify_calculations=False,
-            save_only_dirty=False,
         )
 
         il2.refresh_from_db()

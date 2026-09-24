@@ -8,6 +8,10 @@ class TransactionsConfig(AppConfig):
         # Import signal handlers only after apps are loaded
         from . import signals  # noqa: F401
 
+        # The documents' code hooks on every verb (behaviours.py).
+        from .behaviours import register_documents
+        register_documents()
+
         # Hard delete only: a journalized or reconciled record refuses deletion.
         # Connected first, so it refuses before the cash door reverses anything.
         from .models import hard_delete

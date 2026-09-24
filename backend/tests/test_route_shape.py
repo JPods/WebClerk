@@ -145,7 +145,7 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/docs/qa/groups/',
     'wcapi/docs/stats/',
     'wcapi/document/<int:document_id>/delete/',
-    'wcapi/document/<int:document_id>/download/',
+    'wcapi/document/<int:document_id>/download/',  # step 1 made it; owed: after_get on document
     'wcapi/get/bundle_<str:name>.json',
     'wcapi/hooks/review/',
     'wcapi/hooks/submit/',
@@ -161,9 +161,6 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/jpods/ui/price/',
     'wcapi/jpods/ui/stations/',
     'wcapi/jpods/ui/travel/',
-    'wcapi/login/',
-    'wcapi/logout/',
-    'wcapi/me/',
     'wcapi/order/<int:pk>/convert-to-invoice/',
     'wcapi/order/<int:pk>/convert-to-purchase/',
     'wcapi/products/bom/<int:pk>/',
@@ -189,23 +186,18 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/products/serials/warranty/',
     'wcapi/purchase/<int:pk>/receive-goods/',
     'wcapi/quote/<int:pk>/convert-to-order/',
-    'wcapi/redoc/',
     'wcapi/register-installation/',
     'wcapi/register-installation/subscribe/',
-    'wcapi/register/',
-    'wcapi/report/run/',
+    'wcapi/report/run/',                         # step 1 made it; owed: POST /wcapi/report/<id>/run/
     'wcapi/reports/aged_receivables/',
     'wcapi/reports/gl-export/',
     'wcapi/reports/statement/<int:customer_id>/',
-    'wcapi/schema/',
-    'wcapi/signup/',
     'wcapi/statements/export/',
     'wcapi/statements/files/',
     'wcapi/statements/harvest/',
     'wcapi/statements/lines/',
     'wcapi/statements/promote/',
     'wcapi/statements/save/',
-    'wcapi/swagger/',
     'wcapi/sync/bundle/<str:bundle_uuid>/approve/',
     'wcapi/sync/bundle/<str:bundle_uuid>/status/',
     'wcapi/sync/bundle/callback/',
@@ -219,9 +211,6 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/sync/po-status/<int:pk>/<str:bundle_uuid>/',
     'wcapi/sync/po-to-so/<int:pk>/',
     'wcapi/sync/receive/',
-    'wcapi/token/',
-    'wcapi/token_refresh/',
-    'wcapi/transaction/save/',
     'wcapi/transfers/bulk/orders-to-invoices/',
     'wcapi/transfers/bulk/quotes-to-orders/',
     'wcapi/transfers/execute/',
@@ -261,6 +250,11 @@ def test_no_new_route_breaks_the_shape():
                  if not _conforms(r) and r not in OUT_OF_RULE and r not in KNOWN_VIOLATIONS)
     assert not new, ('Routes are the REST channel — /wcapi/<model>/[<id>/] — not their own '
                      'shape:\n' + '\n'.join(new))
+
+
+def test_an_excluded_route_is_not_also_a_violation():
+    """A route is out of the rule or not yet in it — never both, or the list cannot shrink."""
+    assert not (OUT_OF_RULE & KNOWN_VIOLATIONS)
 
 
 def test_the_known_violations_list_only_shrinks():

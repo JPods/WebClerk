@@ -5,7 +5,7 @@ from apps.transactions.services.convert.convert_order_to_invoice import (
     transfer_order_to_invoice,
     OrderToInvoiceTransferError,
 )
-from apps.transactions.services.transaction_save import save_transaction_with_lines
+from tests.utils import save_document
 
 
 @pytest.fixture
@@ -29,12 +29,10 @@ def _save_reviewed_invoice(monkeypatch, result):
         "apps.products.dispatch_pending.dispatch_pending_processing",
         lambda *args, **kwargs: None,
     )
-    return save_transaction_with_lines(
+    return save_document(
         model_key="invoice",
         header_data={"id": result["invoice_id"]},
         lines_data=result["lines"],
-        request=None,
-        verify_calculations=False,
     )
 
 

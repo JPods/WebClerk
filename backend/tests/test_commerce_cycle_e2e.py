@@ -111,29 +111,3 @@ class TestContactOrgLinking:
         contact = ContactFactory(email="standalone@test.com")
         result = contact.save_after({})
         assert result is True
-
-
-@pytest.mark.django_db
-@pytest.mark.usefixtures("chart_of_accounts")
-class TestInventoryPending:
-    """Verify Pending records are created by transaction line saves."""
-
-    def test_pending_bucket_mapping(self):
-        """Verify the type→bucket mapping is correct."""
-        from apps.transactions.services.transaction_save import _create_pending_from_deltas
-
-        # The mapping should be: SO→on_so, PO→on_po, IN→on_in
-        # We can't easily call _create_pending_from_deltas without a full
-        # header object, so we verify the mapping dict directly
-        mapping = {
-            'SO': 'on_so',
-            'PO': 'on_po',
-            'WO': 'on_wo',
-            'QT': 'on_qt',
-            'IN': 'on_in',
-        }
-        # This mapping is defined inside _create_pending_from_deltas
-        # Verify it's consistent with our understanding
-        assert mapping['SO'] == 'on_so', "Order should increase on_so"
-        assert mapping['IN'] == 'on_in', "Invoice should increase on_in"
-        assert mapping['PO'] == 'on_po', "Purchase should increase on_po"

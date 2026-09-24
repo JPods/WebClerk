@@ -3,7 +3,7 @@
 Verifies that when DB_MODE=write-through:
 - is_write_through() returns True
 - forward_and_store() saves to the remote alias and mirrors locally
-- forward_transaction_and_store() handles header+lines
+- forward_and_store() saves through the door (save_record) on the remote, lines included
 - Error paths return 502 with write_through_error flag
 - When disabled, is_write_through() returns False
 
@@ -20,8 +20,6 @@ from common.write_through import (
     is_write_through,
     get_remote_alias,
     forward_and_store,
-    forward_transaction_and_store,
-    _apply_fields,
     _serialize_record,
     _store_bundle_locally,
 )
@@ -31,16 +29,14 @@ from common.write_through import (
 
 
 def _mock_request(user=None):
-    """Create a minimal mock DRF request."""
-    request = MagicMock()
-    request.user = user or MagicMock(
-        is_authenticated=True,
-        is_superuser=True,
-        is_staff=True,
-        pk=1,
-    )
-    request.data = {}
-    return request
+    """A request as the door reads it: who is asking. The save runs as that person."""
+    from types import SimpleNamespace
+    if user is None:
+        from django.contrib.auth import get_user_model
+        user = get_user_model().objects.create_user(
+            email=f'wt-{_uuid.uuid4().hex[:8]}@test.com', password='x', username='',
+            role='admin', is_superuser=True, is_staff=True)
+    return SimpleNamespace(user=user, data={})
 
 
 # ── is_write_through() ─────────────────────────────────────────────
@@ -79,55 +75,6 @@ class TestGetRemoteAlias:
     @override_settings(WRITE_THROUGH_REMOTE_ALIAS='custom_remote')
     def test_returns_custom_alias(self):
         assert get_remote_alias() == 'custom_remote'
-
-
-# ── _apply_fields() ────────────────────────────────────────────────
-
-
-@pytest.mark.django_db
-class TestApplyFields:
-
-    def test_flat_value_assignment(self, item):
-        """Plain key-value pairs are applied directly."""
-        from apps.core.utils import registry
-        ItemModel = type(item)
-        payload = {'description': 'Updated via write-through'}
-        _apply_fields(item, payload, ItemModel)
-        assert item.description == 'Updated via write-through'
-
-    def test_envelope_format(self, item):
-        """WCAPI envelope {mode, value} is unwrapped."""
-        ItemModel = type(item)
-        payload = {
-            'description': {'mode': 'update', 'value': 'Envelope test'},
-        }
-        _apply_fields(item, payload, ItemModel)
-        assert item.description == 'Envelope test'
-
-    def test_delete_mode_sets_none(self, item):
-        """mode='delete' sets the field to None."""
-        ItemModel = type(item)
-        item.description = 'Will be deleted'
-        payload = {
-            'description': {'mode': 'delete'},
-        }
-        _apply_fields(item, payload, ItemModel)
-        assert item.description is None
-
-    def test_skip_fields_ignored(self, item):
-        """Fields in _SKIP_FIELDS are not applied."""
-        ItemModel = type(item)
-        original_id = item.id
-        payload = {'id': 999, 'model_name': 'item', 'description': 'kept'}
-        _apply_fields(item, payload, ItemModel)
-        assert item.id == original_id  # id was skipped
-        assert item.description == 'kept'
-
-    def test_nonexistent_field_ignored(self, item):
-        """Unknown field names are silently skipped."""
-        ItemModel = type(item)
-        payload = {'totally_fake_field_xyz': 'value'}
-        _apply_fields(item, payload, ItemModel)  # should not raise
 
 
 # ── _serialize_record() ────────────────────────────────────────────
@@ -305,28 +252,22 @@ class TestForwardAndStore:
         assert result.get('write_through_error') is True
 
 
-# ── forward_transaction_and_store() — integration ───────────────────
-
-
 @pytest.mark.django_db
-class TestForwardTransactionAndStore:
-
-    @override_settings(
-        WRITE_THROUGH_ENABLED=True,
-        WRITE_THROUGH_REMOTE_ALIAS='default',
-    )
-    def test_error_returns_502_on_bad_model(self):
-        """Invalid model key returns 502."""
-        request = _mock_request()
-        result, status_code = forward_transaction_and_store(
-            request=request,
-            model_key='nonexistentmodel',
-            record_data={},
-            lines_data=[],
-            options={},
-        )
-        assert status_code == 502
-        assert result.get('write_through_error') is True
+@override_settings(WRITE_THROUGH_ENABLED=True, WRITE_THROUGH_REMOTE_ALIAS='default')
+def test_write_through_saves_through_the_door():
+    """The remote write is the door's: a login with no role is refused, as it is locally,
+    and nothing is written."""
+    from django.contrib.auth import get_user_model
+    from apps.core.utils import registry
+    ItemModel = registry.resolve('item')
+    nobody = get_user_model().objects.create_user(email='wt-norole@test.com', password='x',
+                                                  username='')
+    before = ItemModel.objects.count()
+    result, status_code = forward_and_store(_mock_request(nobody), ItemModel,
+                                            {'model_name': 'item', 'description': 'no role'})
+    assert status_code == 403
+    assert result['code'] == 'create_not_permitted'
+    assert ItemModel.objects.count() == before
 
 
 # ── SaveWcapiView integration (HTTP-level) ──────────────────────────
@@ -345,22 +286,6 @@ class TestSaveViewWriteThrough:
     def test_write_through_mode_is_active(self):
         """When write-through is on, the flag is True."""
         assert is_write_through() is True
-
-
-# ── WCAPITransactionSaveView integration ────────────────────────────
-
-
-@pytest.mark.django_db
-class TestTransactionSaveViewWriteThrough:
-
-    @override_settings(WRITE_THROUGH_ENABLED=True)
-    def test_write_through_flag_detected(self):
-        """Transaction save view checks write-through flag."""
-        assert is_write_through() is True
-
-    @override_settings(WRITE_THROUGH_ENABLED=False)
-    def test_normal_mode_skips_write_through(self):
-        assert is_write_through() is False
 
 
 # ── WCAPISaveView integration ──────────────────────────────────────

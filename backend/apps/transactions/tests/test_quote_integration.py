@@ -1,8 +1,8 @@
 """
 Quote integration tests.
 
-The QuoteViewSet carries actions only: reads go through /wcapi/get/, writes through
-/wcapi/save/ or /wcapi/transaction/save/.
+The QuoteViewSet carries actions only: reads go through GET /wcapi/quote/[<id>/], writes
+through POST /wcapi/quote/ and PUT /wcapi/quote/<id>/ (lines included).
 """
 import pytest
 from django.urls import reverse

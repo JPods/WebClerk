@@ -411,24 +411,6 @@ class SaveWcapiView(APIView):
             else:
                 console_logger.info(f"[SAVE_VIEW] Preserved 'data' field for model {model_key}")
 
-        # Handle nested 'record' key (used by R25 saveTransactionWithLines)
-        if 'record' in data and isinstance(data['record'], dict):
-            record_data = data['record']
-            # Preserve model_name, id, and options at top level
-            model_name = data.get('model_name')
-            record_id = data.get('id')
-            options = data.get('options')
-            data.update(record_data)
-            # Restore top-level fields that may have been overwritten
-            if model_name:
-                data['model_name'] = model_name
-            if record_id:
-                data['id'] = record_id
-            if options:
-                data['options'] = options
-            # Remove the record key itself — its contents are now at top level
-            del data['record']
-            console_logger.info(f"[SAVE_VIEW] Merged 'record' fields into payload, lines count: {len(data.get('lines', []))}")
 
         # If client provided a project_slug but not a numeric project_id, try to resolve it here.
         try:
@@ -483,7 +465,8 @@ class SaveWcapiView(APIView):
                 return api_response(
                     success=False, status_code=wt_status,
                     message=wt_payload.get('detail', 'Write-through failed'),
-                    error={'code': 'write_through_error', 'details': wt_payload},
+                    error={'code': wt_payload.get('code', 'write_through_error'),
+                           'details': wt_payload},
                 )
             return api_response(data=wt_payload, status_code=wt_status)
 

@@ -38,3 +38,27 @@ def wcapi_get(client, params=None, **kwargs):
     model, rid = params.pop('model_name'), params.pop('id', None)
     path = f'/wcapi/{model}/{rid}/' if rid else f'/wcapi/{model}/'
     return client.get(path, params, **kwargs)
+
+
+def save_document(model_key, header_data, lines_data, actor=None):
+    """Save a document with its lines through the door, as every channel does.
+
+    Returns what the old transaction endpoint answered — ``header.id``, the created lines'
+    ids in order, and ``action`` — plus the door's ``SaveResult``.
+    """
+    from apps.core.services.door import Actor
+    from apps.core.services.save import save_record
+    from apps.core.services.save_line_processing import LINE_MODEL_MAP
+    from apps.core.utils import registry
+
+    line_name, fk = LINE_MODEL_MAP[model_key]
+    LineModel = registry.resolve(line_name.lower())
+    header_id = header_data.get('id')
+    before = set(LineModel.objects.filter(**{f'{fk}_id': header_id})
+                 .values_list('pk', flat=True)) if header_id else set()
+    result = save_record(actor or Actor.system(source='test'),
+                         {**header_data, 'lines': list(lines_data)}, model_key=model_key)
+    created = (LineModel.objects.filter(**{f'{fk}_id': result.obj_id})
+               .exclude(pk__in=before).order_by('pk').values_list('pk', flat=True))
+    return {'header': {'id': result.obj_id}, 'lines': [{'id': pk} for pk in created],
+            'action': 'created' if result.created else 'updated', 'result': result}

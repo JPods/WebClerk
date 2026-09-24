@@ -209,9 +209,8 @@ Uses the **wcapi SDK** for all backend communication — never per-model REST ro
 import { getRecord, saveRecord, saveTransactionWithLines, deleteRecord } from '@/api/wcapi';
 
 // Unified wcapi endpoints (all transactions route through these)
-GET    /wcapi/get/?model_name={type}&id={id}     // Fetch
-POST   /wcapi/<model>/  ·  PUT /wcapi/<model>/<id>/   // Create / update
-POST   /wcapi/transaction/save/                   // Create/update with lines (atomic)
+GET    /wcapi/<model>/<id>/                       // Fetch
+POST   /wcapi/<model>/  ·  PUT /wcapi/<model>/<id>/   // Create / update (a document's lines ride in `lines`)
 DELETE /wcapi/<model>/<id>/                        // Delete
 ```
 

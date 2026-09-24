@@ -6,27 +6,16 @@ saves are forwarded to the remote database.  The remote's response
 (the "bundle") is stored in the local database so both copies stay
 current without a separate sync step.
 
-Flow:
-  1. SaveWcapiView receives a POST from the browser.
-  2. write_through.forward_save() sends the same payload to remote.
-  3. Remote's CoreModel.save() assigns id, uuid, dt_modified, version.
-  4. Remote returns the response bundle (standard WCAPI envelope).
-  5. write_through.store_bundle() inserts/updates the local DB.
-  6. The same response is returned to the browser.
-
-Usage:
-  # In save_view.py — called instead of local obj.save() when enabled
-  from common.write_through import is_write_through, forward_and_store
-
-  if is_write_through():
-      return forward_and_store(request, model_cls)
-  else:
-      # normal local save path
-      ...
+Flow (one door, Bill 2026-09-22 and 2026-09-24):
+  1. The REST save (SaveWcapiView) sees write-through mode.
+  2. forward_and_store() runs the save door — save_record, with the caller's actor, its
+     authorization, hooks and lines — against the remote database.
+  3. The saved record, and a document's lines, are copied into the local database.
+  4. The browser gets the same response shape as a local save.
 """
-import json
 import logging
 import time
+from contextlib import contextmanager
 from typing import Any, Dict, Optional, Tuple, Type
 
 from django.conf import settings
@@ -54,152 +43,108 @@ def forward_and_store(
     model_cls: Type[models.Model],
     payload: Dict[str, Any],
 ) -> Tuple[Dict[str, Any], int]:
+    """Save through the door on the remote database, then mirror the result locally.
+
+    The remote is authoritative, so the save — authorization, hooks, lines, the Pendings
+    the lines write — happens there, through ``save_record`` like every other save. There
+    is no second writer: until 2026-09-24 this applied payload fields straight onto a
+    remote row, outside the door, and a document's lines went through a separate route.
+
+    Returns ``(response_dict, status_code)``: the door's refusal keeps its own status; a
+    remote that cannot be reached is 502.
     """
-    Forward a save payload to the remote database, store the result locally.
+    from apps.core.services.door import Actor, Refused
+    from apps.core.services.save import save_record
+    from apps.core.views.save_view import coerce_int
 
-    Instead of making an HTTP call to a remote API (which would require
-    a running remote Django server and auth forwarding), we save directly
-    to the remote database using Django's multi-database ORM — the same
-    approach sync_model already uses.
-
-    Args:
-        request:   The incoming DRF request (for actor context).
-        model_cls: The resolved Django model class.
-        payload:   The parsed save payload (model_name, id, field data).
-
-    Returns:
-        (response_dict, status_code) to be returned to the browser.
-    """
     remote_alias = get_remote_alias()
-    record_id = payload.get('id')
-    is_update = bool(record_id)
     model_key = payload.get('model_name', model_cls.__name__.lower())
-
+    actor = Actor.from_request(request)
     t0 = time.time()
 
     try:
-        # ── Step 1: Save on remote DB ────────────────────────────────
-        if is_update:
-            try:
-                remote_obj = model_cls.objects.using(remote_alias).get(id=record_id)
-            except model_cls.DoesNotExist:
-                return {
-                    'detail': f'Record {record_id} not found on remote database',
-                }, 404
-            _apply_fields(remote_obj, payload, model_cls)
-            remote_obj.save(using=remote_alias)
-            action = 'updated'
-            status_code = 200
-        else:
-            remote_obj = model_cls()
-            _apply_fields(remote_obj, payload, model_cls)
-            remote_obj.save(using=remote_alias)
-            action = 'created'
-            status_code = 201
-
-        # ── Step 2: Build the response bundle ────────────────────────
-        # Re-read from remote to get the authoritative state
-        # (includes anything CoreModel.save() set: id, dt_modified, version, ida)
-        remote_obj.refresh_from_db(using=remote_alias)
+        with _remote_as_default(remote_alias):
+            result = save_record(actor, payload, record_id=coerce_int(payload.get('id')),
+                                 expected_version=coerce_int(payload.get('version')))
+        remote_obj = model_cls.objects.using(remote_alias).get(pk=result.obj_id)
         bundle = _serialize_record(remote_obj)
-
-        # ── Step 3: Store bundle in local DB ─────────────────────────
         _store_bundle_locally(model_cls, remote_obj, bundle)
-
-        elapsed = time.time() - t0
-        logger.info(
-            "write-through %s %s id=%s uuid=%s  remote→local  %.1fs",
-            action, model_key, remote_obj.pk,
-            getattr(remote_obj, 'uuid', None), elapsed,
-        )
-
-        # ── Step 4: Return the same shape SaveWcapiView would ────────
-        response_payload = {
-            'id': remote_obj.pk,
-            'record': bundle,
-            'model_name': model_key,
-            'version': getattr(remote_obj, 'version', None),
-            'linked': False,
-            'write_through': True,
-        }
-        return response_payload, status_code
-
-    except Exception as exc:
-        elapsed = time.time() - t0
-        logger.error(
-            "write-through FAILED %s id=%s  %.1fs  %s",
-            model_key, record_id, elapsed, exc,
-            exc_info=True,
-        )
+        _store_lines_locally(result.model_key, remote_obj, remote_alias)
+    except Refused as refused:
+        return {'detail': refused.message, 'code': refused.code,
+                'details': refused.details}, refused.status
+    except Exception as exc:  # noqa: BLE001 — the remote is unreachable or failed
+        logger.error("write-through FAILED %s id=%s  %.1fs  %s", model_key,
+                     payload.get('id'), time.time() - t0, exc, exc_info=True)
         return {
             'detail': f'Write-through save failed: {str(exc)}',
             'write_through_error': True,
         }, 502
 
+    logger.info("write-through %s %s id=%s  remote→local  %.1fs",
+                'created' if result.created else 'updated', model_key, remote_obj.pk,
+                time.time() - t0)
+    return {
+        'id': remote_obj.pk,
+        'record': bundle,
+        'model_name': result.model_key,
+        'version': getattr(remote_obj, 'version', None),
+        'linked': result.linked,
+        'messages': result.messages,
+        'write_through': True,
+    }, 201 if result.created else 200
+
+
+@contextmanager
+def _remote_as_default(remote_alias: str):
+    """Point the ORM's default connection at the remote for the length of one save.
+
+    The door writes through ``Model.objects`` without ``using=``, so the save runs against
+    whatever 'default' is. This swaps the connection settings and reconnects; it is
+    process-wide, so write-through is for a single-worker desktop, not a threaded server.
+    """
+    if remote_alias == 'default':
+        yield
+        return
+    remote_cfg = settings.DATABASES.get(remote_alias)
+    if not remote_cfg:
+        raise RuntimeError(f"Remote DB alias '{remote_alias}' not configured")
+    original = dict(settings.DATABASES['default'])
+
+    def _reconnect():
+        if 'default' in connections._connections.__dict__:
+            connections['default'].close()
+            del connections._connections.__dict__['default']
+
+    settings.DATABASES['default'] = dict(remote_cfg)
+    _reconnect()
+    try:
+        yield
+    finally:
+        settings.DATABASES['default'] = original
+        _reconnect()
+
+
+def _store_lines_locally(model_key: str, remote_header, remote_alias: str) -> None:
+    """A document's lines follow their header into the local database."""
+    from apps.core.constants.model_registry import get_model
+    from apps.core.services.save_line_processing import LINE_MODEL_MAP
+    mapped = LINE_MODEL_MAP.get(model_key)
+    if not mapped:
+        return
+    LineModel = get_model(mapped[0].lower())
+    by_header = {f'{mapped[1]}_id': remote_header.pk}
+    remote_lines = list(LineModel.objects.using(remote_alias).filter(**by_header))
+    for remote_line in remote_lines:
+        _store_bundle_locally(LineModel, remote_line, _serialize_record(remote_line))
+    # A line the remote deleted is gone here too. A raw delete, which sends no signals: the
+    # remote already wrote the Pendings; this copy mirrors, it does not act.
+    gone = LineModel.objects.using('default').filter(**by_header).exclude(
+        uuid__in=[line.uuid for line in remote_lines])
+    gone._raw_delete(gone.db)
+
 
 # ── Internal Helpers ────────────────────────────────────────────────
-
-
-# Fields that should never be forwarded from the save payload
-_SKIP_FIELDS = frozenset({
-    'model_name', 'id', 'version', 'expected_version',
-    'bulk', 'lines', 'password', 'data', 'record', 'options',
-})
-
-
-def _apply_fields(
-    obj: models.Model,
-    payload: Dict[str, Any],
-    model_cls: Type[models.Model],
-) -> None:
-    """Apply save-payload fields to a model instance.
-
-    Understands the WCAPI field envelope format:
-        {"field_name": {"mode": "update", "value": <val>}}
-    as well as flat values:
-        {"field_name": <val>}
-    """
-    json_field_names = {
-        f.name for f in model_cls._meta.get_fields()
-        if hasattr(f, 'attname') and isinstance(f, models.JSONField)
-    }
-
-    for field_name, field_data in payload.items():
-        if field_name in _SKIP_FIELDS:
-            continue
-
-        # Unwrap WCAPI envelope {mode, value}
-        if isinstance(field_data, dict) and 'value' in field_data:
-            mode = field_data.get('mode', 'update')
-            value = field_data['value']
-        elif isinstance(field_data, dict) and 'mode' in field_data:
-            mode = field_data['mode']
-            value = field_data.get('value')
-        else:
-            mode = 'update'
-            value = field_data
-
-        if mode == 'delete':
-            if hasattr(obj, field_name):
-                setattr(obj, field_name, None)
-            continue
-
-        if value is None:
-            continue
-
-        if not hasattr(obj, field_name):
-            continue
-
-        # JSON field deep-merge
-        current = getattr(obj, field_name, None)
-        if isinstance(value, dict) and (field_name in json_field_names or isinstance(current, dict)):
-            if not isinstance(current, dict):
-                current = {}
-            from apps.core.views.save_view import deep_merge_dict
-            merged = deep_merge_dict(current, value)
-            setattr(obj, field_name, merged)
-        else:
-            setattr(obj, field_name, value)
 
 
 def _serialize_record(obj: models.Model) -> Dict[str, Any]:
@@ -277,126 +222,3 @@ def _reset_local_sequence(model_cls: Type[models.Model]) -> None:
     except Exception as exc:
         # Non-fatal — sequence may not exist for UUID PKs
         logger.debug("Sequence reset skipped for %s: %s", table, exc)
-
-
-# ── Transaction Write-Through ──────────────────────────────────────
-
-
-def forward_transaction_and_store(
-    request,
-    model_key: str,
-    record_data: Dict[str, Any],
-    lines_data: list,
-    options: Dict[str, Any],
-) -> Tuple[Dict[str, Any], int]:
-    """
-    Forward a transaction save (header + lines) to remote, then store
-    the saved records in the local database.
-
-    Uses Django's multi-DB ORM: temporarily switches the default DB
-    connection for the save_transaction_with_lines service call to the
-    remote alias, then copies the resulting records locally.
-    """
-    remote_alias = get_remote_alias()
-    t0 = time.time()
-
-    try:
-        from apps.transactions.services.transaction_save import (
-            save_transaction_with_lines,
-        )
-        from apps.core.utils import registry
-
-        # ── Step 1: Run the save on the remote database ──────────────
-        # We achieve this by temporarily swapping Django's 'default' DB
-        # to point at remote. This is the most reliable approach because
-        # save_transaction_with_lines uses .objects.create() and .save()
-        # without explicit `using=` parameters.
-        from django.db import connections as _conns
-
-        # Save original default and swap
-        _orig_default = settings.DATABASES.get('default')
-        _remote_cfg = settings.DATABASES.get(remote_alias)
-        if not _remote_cfg:
-            raise RuntimeError(f"Remote DB alias '{remote_alias}' not configured")
-
-        # Use the remote DB alias directly by making save_transaction_with_lines
-        # operate through a database router instead of swapping globals.
-        # Simpler approach: use Django's `using` on the save service.
-        # Since save_transaction_with_lines doesn't accept `using`, we'll
-        # apply a thread-local override for the ORM default.
-
-        import threading
-        _thread_local = threading.local()
-
-        # Store the original DATABASES['default'] and temporarily swap
-        original_default = dict(settings.DATABASES['default'])
-        settings.DATABASES['default'] = dict(_remote_cfg)
-
-        # Force Django to reconnect with new settings
-        if 'default' in _conns._connections.__dict__:
-            _conns['default'].close()
-            del _conns._connections.__dict__['default']
-
-        try:
-            result = save_transaction_with_lines(
-                model_key=model_key.lower(),
-                header_data=record_data,
-                lines_data=lines_data,
-                request=request,
-                verify_calculations=options.get("verify_calculations", True),
-                save_only_dirty=options.get("save_only_dirty", True),
-            )
-
-        finally:
-            # ── Restore the original default DB ──────────────────────
-            settings.DATABASES['default'] = original_default
-            if 'default' in _conns._connections.__dict__:
-                _conns['default'].close()
-                del _conns._connections.__dict__['default']
-
-        # ── Step 2: Sync saved records to local DB ───────────────────
-        header_id = result.get('header', {}).get('id')
-        if header_id:
-            HeaderModel = registry.resolve(model_key)
-            if HeaderModel:
-                try:
-                    remote_header = HeaderModel.objects.using(remote_alias).get(pk=header_id)
-                    _store_bundle_locally(HeaderModel, remote_header, _serialize_record(remote_header))
-
-                    # Authoritative totals from saved record (PJPV: JSON envelope is source of truth)
-                    totals_env = getattr(remote_header, 'totals', None)
-                    if isinstance(totals_env, dict):
-                        result['recalculated_totals'] = totals_env
-
-                    # Sync lines too
-                    LineModel = registry.resolve(f"{model_key}line")
-                    if LineModel:
-                        remote_lines = LineModel.objects.using(remote_alias).filter(parent_id=header_id)
-                        for remote_line in remote_lines:
-                            _store_bundle_locally(LineModel, remote_line, _serialize_record(remote_line))
-                except Exception as sync_exc:
-                    logger.warning(
-                        "write-through: remote save OK but local sync failed for %s id=%s: %s",
-                        model_key, header_id, sync_exc,
-                    )
-
-        elapsed = time.time() - t0
-        logger.info(
-            "write-through transaction %s id=%s  remote→local  %.1fs",
-            model_key, header_id, elapsed,
-        )
-
-        result['write_through'] = True
-        return result, 200
-
-    except Exception as exc:
-        elapsed = time.time() - t0
-        logger.error(
-            "write-through transaction FAILED %s  %.1fs  %s",
-            model_key, elapsed, exc,
-            exc_info=True,
-        )
-        return {
-            'detail': f'Write-through transaction save failed: {str(exc)}',
-            'write_through_error': True,
-        }, 502

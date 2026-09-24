@@ -43,7 +43,6 @@ WHITELIST: List[str] = [
     r'^/wcapi/get/$',                # GET  – registry-backed list/detail
     r'^/wcapi/[a-z_]+/$',            # GET list / POST create (REST channel)
     r'^/wcapi/[a-z_]+/\d+/$',        # GET / PUT / PATCH / DELETE one record
-    r'^/wcapi/transaction/save/$',   # POST – transaction save endpoint
     r'^/wcapi/models/$',             # GET  – model name -> field names
     r'^/api/model-fields/$',         # GET  – detailed field metadata
     r'^/wcapi/model_name/list/$',    # GET  – list of canonical model_name codes

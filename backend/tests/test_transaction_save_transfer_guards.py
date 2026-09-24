@@ -2,11 +2,8 @@ import pytest
 
 from apps.products.models import Item
 from apps.transactions.models import Invoice, InvoiceLine, Order, OrderLine
-from apps.transactions.services.transaction_save import (
-    InsufficientInventoryError,
-    TransferQuantityError,
-    save_transaction_with_lines,
-)
+from apps.core.services.door import Refused
+from tests.utils import save_document
 
 
 def _make_item(*, name: str, sku: str, on_hand: float, available: float):
@@ -60,7 +57,7 @@ def test_transfer_partial_quantity_updates_only_requested_amount(monkeypatch):
         already_invoiced=2,
     )
 
-    result = save_transaction_with_lines(
+    result = save_document(
         model_key="invoice",
         header_data={
             "status": "pending",
@@ -85,9 +82,6 @@ def test_transfer_partial_quantity_updates_only_requested_amount(monkeypatch):
                 "_dirty": True,
             }
         ],
-        request=None,
-        verify_calculations=False,
-        save_only_dirty=True,
     )
 
     assert result["action"] == "created"
@@ -118,8 +112,8 @@ def test_transfer_blocks_when_requested_exceeds_source_remaining(monkeypatch):
         already_invoiced=8,
     )
 
-    with pytest.raises(TransferQuantityError):
-        save_transaction_with_lines(
+    with pytest.raises(Refused, match='has 2 left') as refused:
+        save_document(
             model_key="invoice",
             header_data={
                 "status": "pending",
@@ -144,9 +138,6 @@ def test_transfer_blocks_when_requested_exceeds_source_remaining(monkeypatch):
                     "_dirty": True,
                 }
             ],
-            request=None,
-            verify_calculations=False,
-            save_only_dirty=True,
         )
 
 
@@ -163,8 +154,8 @@ def test_transfer_blocks_when_inventory_insufficient(monkeypatch):
         active=5,
     )
 
-    with pytest.raises(InsufficientInventoryError):
-        save_transaction_with_lines(
+    with pytest.raises(Refused, match='available') as refused:
+        save_document(
             model_key="invoice",
             header_data={
                 "status": "pending",
@@ -189,9 +180,6 @@ def test_transfer_blocks_when_inventory_insufficient(monkeypatch):
                     "_dirty": True,
                 }
             ],
-            request=None,
-            verify_calculations=False,
-            save_only_dirty=True,
         )
 
 
@@ -215,7 +203,7 @@ def test_order_from_quote_may_backorder(monkeypatch):
         cost={"unit": 5, "extended": 25},
     )
 
-    result = save_transaction_with_lines(
+    result = save_document(
         model_key="order",
         header_data={"status": "confirmed", "parent_model": "quote", "parent_id": quote.id,
                      "totals": {}, "finance": {}},
@@ -227,8 +215,6 @@ def test_order_from_quote_may_backorder(monkeypatch):
             "refs": {"source": {"quote_line_id": source.id, "quote_id": quote.id}},
             "_dirty": True,
         }],
-        request=None,
-        verify_calculations=False,
     )
 
     order_line = OrderLine.objects.get(order_id=result["header"]["id"])

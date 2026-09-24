@@ -406,17 +406,11 @@ def _find_parent_fk(
     header_model: type[models.Model],
     model_key: str,
 ) -> Optional[str]:
-    """Find the FK field name on the line model that points to the header."""
-    try:
-        from apps.transactions.services.transaction_save import _resolve_parent_fk
-        return _resolve_parent_fk(line_model, header_model, model_key)
-    except Exception:
-        pass
+    """The column on the line model that points to the header (e.g. 'invoice_id')."""
     for field in line_model._meta.fields:
-        if isinstance(field, models.ForeignKey):
-            if field.related_model is header_model:
-                return field.name
-    return 'parent_id'
+        if isinstance(field, models.ForeignKey) and field.related_model is header_model:
+            return field.attname
+    return f'{model_key}_id'
 
 
 # ── Dispatch helper (used by views) ──────────────────────────────────

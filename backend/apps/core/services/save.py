@@ -395,6 +395,7 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
            is_update: bool):
     """Authorize, assign, before, persist, flush, after — inside one unit of work."""
     data = _authorize(actor, obj, model_cls, model_key, data, is_update)
+    _results_are_computed(model_key, data)
     snapshot = _snapshot(obj)
     size_warnings = _assign(obj, data, model_cls, model_key, norm_key, is_update)
 
@@ -442,6 +443,18 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
         console_logger.error("[SAVE] Error updating keywords: %s", e)
 
     return size_warnings, ctx
+
+
+def _results_are_computed(model_key: str, data: dict) -> None:
+    """A document's totals, and its lines' totals, are the totals engine's — never the
+    caller's, whoever the caller is (recheck 2). Ignored, not refused, as a field that is
+    not enumerated is (Bill, 2026-09-20); the flush writes them."""
+    if model_key not in TRANSACTION_LINE_MODELS:
+        return
+    data.pop('totals', None)
+    for line in data.get('lines') or []:
+        if isinstance(line, dict):
+            line.pop('totals', None)
 
 
 def _within_scope(actor: Actor, obj, model_key: str) -> None:
@@ -494,9 +507,9 @@ def _post_persist(obj, data: dict, model_key: str) -> List[str]:
     except Exception:  # noqa: BLE001 — non-transaction models simply return False
         pass
 
-    # A source line's own door writes its release, so nothing is passed here.
+    # A source line's own door writes its release; the line engine writes only lines.
     from apps.core.services.save_line_processing import process_lines
-    process_lines(obj, data, model_key, adjust_source_fn=None)
+    process_lines(obj, data, model_key)
     return _sync_erosions(obj)
 
 
