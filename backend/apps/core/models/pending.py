@@ -48,8 +48,10 @@ class LayerLocked(Refused):
 class Pending(CoreModel):
     """Ephemeral queue / staging record (CoreModel only).
 
-    Lightweight by design: no refs/prefs/comments overhead. ``metadata`` holds only
-    what happened to the record after it was made (incremental_apply).
+    Lightweight by design: no refs/prefs overhead. ``metadata`` holds only
+    what happened to the record after it was made (incremental_apply). ``comments`` is the
+    standard ``comments.<channel>`` list, ``process`` only: the readable audit line (a cash
+    application names its cash and its document there — Bill, 2026-09-25).
 
     EVERY Pending record tries to apply itself on save. This is the
     universal behavior — not specific to inventory. On save, new records
@@ -76,6 +78,7 @@ class Pending(CoreModel):
     # source_pending_id, gl_journal_ids, variance}] when only part could apply
     # (Bill, 2026-09-21); remaining = the change's qty − Σ incremental_apply.qty.
     metadata = models.JSONField(default=dict, blank=True)
+    comments = models.JSONField(default=dict, blank=True)
 
     class Meta:
         db_table = 'pending'
@@ -126,6 +129,12 @@ class Pending(CoreModel):
         # ── Cash application (AP — Receipt) ───────────────────
         elif self.purpose == 'cash_application_receipt':
             applied = self._apply_receipt_cash()
+
+        if applied is False and self.purpose in ('cash_application', 'cash_application_receipt'):
+            # Queued, not applied: the Pending still says which cash and which document, so a
+            # stuck one is readable (the applier writes the 'applied' line when it lands).
+            from apps.transactions.services.cash.cash_pending import note_application
+            note_application(self, 'queued')
 
         if applied is not None:
             # Every cash and inventory event, checked once it commits (BALANCE_EVENT_LOG).

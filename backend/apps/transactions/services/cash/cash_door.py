@@ -193,6 +193,8 @@ def close_queued(pending, reason: str, *, acted_by: Optional[int] = None) -> boo
     pending.changes = changes
     pending.dt_processed = int(timezone.now().timestamp() * 1000)
     pending.save(update_fields=['changes', 'dt_processed', 'dt_modified', 'version'])
+    from apps.transactions.services.cash.cash_pending import note_application
+    note_application(pending, 'closed')
     from apps.core.services.balance_checker import log_balance_event
     log_balance_event(pending, True, event='cancel')
     return True

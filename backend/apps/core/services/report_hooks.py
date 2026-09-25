@@ -456,14 +456,8 @@ def _add_comment(record, channel, text, ida, user):
     """A hook's comment carries the same stamp as one a person types (CommentsPanel):
     ``{user, mgs, time, user_id}`` in ``comments.<channel>``. The person is whoever's
     verb ran the hook; ``source`` names the hook."""
-    from apps.core.services.comment_stamp import stamp
-    comments = record.comments if isinstance(getattr(record, 'comments', None), dict) else {}
-    entries = comments.get(channel)
-    if not isinstance(entries, list):
-        entries = []
-    entries.append({**stamp(user), 'mgs': text, 'source': f'hook:{ida}'})
-    comments[channel] = entries
-    record.comments = comments
+    from apps.core.services.comment_stamp import append_comment
+    append_comment(record, channel, text, user=user, source=f'hook:{ida}')
 
 
 def _create_action(spec, ctx, record, user):

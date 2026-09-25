@@ -1114,7 +1114,7 @@ _ACTION_DISPATCH = {
     # ── Cash Pending (One Path) ──
     "apply_cash_to_invoice": lambda p: __import__('apps.transactions.services.cash.cash_pending', fromlist=['apply_cash_to_invoice']).apply_cash_to_invoice(p['cash_id'], p['invoice_id'], p['amount'], p.get('reason', ''), p.get('contact_id'), discount_pct=p.get('discount_pct', 0), discount_amt=p.get('discount_amt', 0), dismiss_balance=p.get('dismiss_balance', False), fx_difference=p.get('fx_difference', 0), acted_by=p.get('_acting_user_id')),
     "apply_pending_cash_entries": lambda p: __import__('apps.transactions.services.cash.cash_pending', fromlist=['apply_pending_for_invoice']).apply_pending_for_invoice(p['invoice_id']),
-    "apply_cash_to_receipt": lambda p: __import__('apps.transactions.services.cash.cash_pending_receipt', fromlist=['apply_cash_to_receipt']).apply_cash_to_receipt(p['cash_id'], p['receipt_id'], p['amount'], p.get('reason', '')),
+    "apply_cash_to_receipt": lambda p: __import__('apps.transactions.services.cash.cash_pending_receipt', fromlist=['apply_cash_to_receipt']).apply_cash_to_receipt(p['cash_id'], p['receipt_id'], p['amount'], p.get('reason', ''), acted_by=p.get('_acting_user_id')),
     "unapply_cash_application": lambda p: __import__('apps.transactions.services.cash.cash_pending', fromlist=['unapply_cash_application']).unapply_cash_application(p['pending_id'], p.get('reason', '')),
     "transfer_credit": lambda p: __import__('apps.transactions.services.cash.cash_pending', fromlist=['transfer_credit']).transfer_credit(p['credit_invoice_id'], p['invoice_id'], p['amount'], p.get('reason', '')),
     # ── Commission ──

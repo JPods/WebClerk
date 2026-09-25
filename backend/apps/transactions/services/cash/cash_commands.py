@@ -219,6 +219,9 @@ def record_outcome(cash_id: int, *, state: str, txn: Dict[str, Any]) -> Optional
 
     cash.status = 'completed'
     cash.dt_processed = timezone.now()
+    # The money arrived: nothing could apply while it was processing (holds_money was
+    # false), so all of it is available. Left at 0, every card payment read as drift (Fable).
+    cash.available = _d(cash.amount)
     cash.gateway_response = {'succeeded': True, 'spreedly_token': event_id,
                              'gateway_transaction_id': txn.get('gateway_transaction_id', ''),
                              'message': txn.get('message', '')}

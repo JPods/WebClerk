@@ -80,14 +80,6 @@ def refresh_receipt_paid(receipt) -> Dict[str, Any]:
     return result
 
 
-def refresh_cash_available(cash) -> Decimal:
-    """One function, in ``cash_pending``. This was the second copy: its formula was the
-    right one (it counts both sides), and the AR copy ignored AP applications entirely.
-    Kept as a name AP callers already import (2026-09-22)."""
-    from apps.transactions.services.cash.cash_pending import refresh_cash_available as _one
-    return _one(cash)
-
-
 @transaction.atomic
 def _check_receipt_application(cash, receipt, amount: Decimal) -> None:
     """AP's call into the one application check (``cash_pending._check_application``).
@@ -117,6 +109,7 @@ def apply_cash_to_receipt(
     amount,
     reason: str = '',
     contact_id: Optional[int] = None,
+    acted_by: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Create a Pending record for AP cash application to a Receipt.
 
@@ -149,6 +142,7 @@ def apply_cash_to_receipt(
         'receipt_id': receipt_id,
         'amount': float(amount),
         'reason': reason,
+        'acted_by': acted_by,
         'contact_id': contact_id,
         'state': 'pending',
         'dt_applied': None,
@@ -229,7 +223,11 @@ def apply_receipt_cash_pending(pending) -> bool:
 
             # No clamp: paying more than is owed shows as a negative balance for a person
             # to resolve, rather than being quietly absorbed (Axiom 6).
+            from apps.transactions.services.cash.cash_pending import (
+                note_application, refresh_cash_available)
             refresh_cash_available(cash)
+            note_application(pending, 'reversed' if changes.get('reverses') else 'applied',
+                             cash, receipt)
 
             logger.info(
                 "Applied receipt cash pending %s: cash %s → receipt %s, $%s (available now $%s)",

@@ -117,7 +117,7 @@ def test_a_positive_cash_cannot_settle_a_credit_memo():
 def test_the_payment_may_not_give_more_than_it_holds():
     """Fable, recheck 3: a -20 cash was allowed to pay 30. AR refused it; AP had no check
     at all beyond `amount must be positive`."""
-    with pytest.raises(ValueError, match="still unapplied"):
+    with pytest.raises(ValueError, match="available to apply"):
         _check(_cash(amount='-20.00'), _payable(total='500.00'), '30.00', **_AP)
 
 
@@ -158,14 +158,14 @@ def test_an_ar_application_counts_what_the_cash_already_paid_vendors():
     """A -100 payment out has paid 60 of a vendor's bill (spend -60). A refund of 50 to a
     customer's credit memo from the same cash would put 110 out of a 100 payment. The AR
     check counted AR only and let it through."""
-    with pytest.raises(ValueError, match="still unapplied"):
+    with pytest.raises(ValueError, match="available to apply"):
         _check(_cash(amount='-100.00'), _doc(total='-50.00'), '-50.00', cash_spent='-60.00')
 
 
 def test_an_ap_application_counts_what_the_cash_already_refunded_customers():
     """The mirror: the -100 payment refunded a customer 30 (spend -30), and 80 more to a
     vendor makes 110. The AP check added AR + AP (-30 + 0) and let it through."""
-    with pytest.raises(ValueError, match="still unapplied"):
+    with pytest.raises(ValueError, match="available to apply"):
         _check(_cash(amount='-100.00'), _payable(total='500.00'), '80.00',
                cash_spent='-30.00', **_AP)
 

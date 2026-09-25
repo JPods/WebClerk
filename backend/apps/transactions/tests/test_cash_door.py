@@ -294,14 +294,15 @@ def test_deleting_a_cash_takes_its_ledger_rows_with_it(buyer, seller):
 # ── one available, both sides ─────────────────────────────────────────
 
 def test_available_counts_both_sides_of_the_house(buyer, seller):
-    """One refresh_cash_available, and both names give the same answer.
+    """One refresh_cash_available, counting both sides.
 
     There were two functions with different formulas: the AR one ignored AP applications,
     so a payment that had already paid a vendor still reported the money as available.
-    Both reviewers found it independently in the recheck-3 audit.
+    Both reviewers found it independently in the recheck-3 audit. The second name was
+    kept as an alias until 2026-09-25; it is gone (no aliases), so there is one name.
     """
-    from apps.transactions.services.cash.cash_pending_receipt import (
-        refresh_cash_available as ap_name)
+    import apps.transactions.services.cash.cash_pending_receipt as ap_module
+    assert not hasattr(ap_module, 'refresh_cash_available'), "one function, one name"
 
     receipt = _receipt(seller.pk, total='30.00')
     cash = _cash(amount='-80.00', vendor_id=seller.pk)
@@ -310,4 +311,3 @@ def test_available_counts_both_sides_of_the_house(buyer, seller):
 
     # -80.00 paid out, 30.00 of it spent on a payable: 50.00 left to give.
     assert refresh_cash_available(cash) == Decimal('-50.00')
-    assert ap_name(cash) == refresh_cash_available(cash), "one function, two names"

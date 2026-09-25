@@ -105,7 +105,7 @@ class TestApply:
     def test_cannot_apply_more_than_available(self, customer, term_net30):
         inv = _invoice(customer, 100, term_net30)
         cash = _cash(customer, 30)
-        with pytest.raises(ValueError, match='still unapplied'):
+        with pytest.raises(ValueError, match='available to apply'):
             _apply(cash, inv, 50)
 
     def test_overpayment_stays_as_customer_credit(self, customer, term_net30):

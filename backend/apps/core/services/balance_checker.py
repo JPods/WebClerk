@@ -22,10 +22,15 @@ shares the writer's bug and reports clean: that is how the AP sign error survive
   holds no layer and no bucket (Bill, 2026-09-22).
 - **Inventory — commitments.** on_qt / on_so / on_po / on_wo against the open documents
   (``commitment_gaps``: the same function the repair uses).
-- **Cash — invariants and echoes, not a Pending sum.** ``refresh_cash_available`` already
-  derives available as amount − Σ applied Pendings, so summing those Pendings again would be
-  the writer's formula twice. Cash uses the range invariant and the ledger echoes in
+- **Cash — every Cash's stored available against its Pendings** (Bill, 2026-09-25): available
+  = amount − Σ applied AR + Σ applied AP − refunds, the same rule inventory buckets follow.
+  Summing is not "the writer's formula twice": it compares the *stored* number to the
+  journal, and a stored number can drift while the formula is fine (wc_demo cash 58–60 sat
+  at 0.00 for weeks; their Pendings said 1,663.00). Every Cash is checked, with or without
+  a customer or vendor. Then the org invariants and ledger echoes in
   ``compute_org_summary`` / ``compute_vendor_summary``.
+- **Cash Pendings that say processed but not applied** (state still ``pending`` with
+  ``dt_processed`` set): money the record promises and the books never count.
 - **Pendings that should have applied and did not.** A Pending with a handler that is still
   unprocessed after ``stuck_minutes`` is money or stock that the record says moved and the
   books say did not.
@@ -214,11 +219,57 @@ def check_pendings(stuck_minutes=STUCK_MINUTES, item_id=None) -> tuple[list, dic
             f"pending {p.pk} ({p.purpose}, {p.model_name} {p.record_id}) unapplied after "
             f"{p.attempts} attempts — the record says it moved, the books say it did not"))
 
+    # Processed but never applied: the applier marks 'applied' and dt_processed together,
+    # close_queued marks 'canceled' and dt_processed together. 'pending' with dt_processed
+    # set is neither — it counts nowhere (wc_demo #850, 2026-09-25).
+    limbo = Pending.objects.filter(purpose__in=CASH_PURPOSES, changes__state='pending'
+                                   ).exclude(dt_processed=0)
+    for p in ([] if item_id else limbo):
+        c = p.changes if isinstance(p.changes, dict) else {}
+        findings.append(_finding(
+            'pending.limbo', 'pending', p.pk,
+            f"pending {p.pk} ({p.purpose}: {c.get('amount')} from cash {c.get('cash_id')} to "
+            f"{'receipt ' + str(c.get('receipt_id')) if c.get('receipt_id') else 'invoice ' + str(c.get('invoice_id'))}) "
+            f"is marked processed but was never applied — it counts on neither side"))
+
     backlog = defaultdict(int)
     for purpose in (Pending.objects.filter(dt_processed=0).exclude(handled)
                     .values_list('purpose', flat=True)):
         backlog[purpose or '(none)'] += 1
     return findings, {'unhandled_backlog': dict(backlog)}
+
+
+def check_cash_available(org_id=None, cash_id=None) -> list:
+    """Every Cash: stored ``available`` == amount − Σ applied AR + Σ applied AP − refunds,
+    and the Pendings never take it past zero (``cash.overspent``). The creation check under
+    the cash row lock refuses an overspend; this warns when any path wrote one anyway —
+    Rule 10: an applier never refuses, so the warning is the fail-safe (Bill, 2026-09-25)."""
+    from apps.transactions.services.cash.cash_pending import _applied, refunded
+    from apps.transactions.services.cash.cash_pending_receipt import _applied as _applied_ap
+    Cash = dj_apps.get_model('transactions', 'Cash')
+    qs = Cash.objects.all()
+    if org_id:
+        qs = qs.filter(Q(customer_id=org_id) | Q(vendor_id=org_id))
+    if cash_id:
+        qs = qs.filter(pk=cash_id)
+    findings = []
+    for cash in qs.order_by('pk'):
+        expect = ((_d(cash.amount) - _applied(cash_id=cash.pk) + _applied_ap(cash_id=cash.pk)
+                   - refunded(cash)) if cash.holds_money else Decimal('0'))
+        have = _d(cash.available)
+        amount = _d(cash.amount)
+        if expect and amount and (expect > 0) != (amount > 0):
+            findings.append(_finding(
+                'cash.overspent', 'cash', cash.pk,
+                f"cash {cash.pk} ({cash.ida}) of {abs(amount)} has {abs(amount - expect)} "
+                f"applied: {abs(expect)} more than it received",
+                ida=cash.ida, field='available', have=expect, expect=Decimal('0')))
+        if abs(have - expect) > TOLERANCE:
+            findings.append(_finding(
+                'cash.available', 'cash', cash.pk,
+                f"cash {cash.pk} ({cash.ida}) shows {have} available; its Pendings say {expect}",
+                ida=cash.ida, field='available', have=have, expect=expect))
+    return findings
 
 
 def check_cash(org_id=None) -> tuple[list, dict]:
@@ -234,9 +285,9 @@ def check_cash(org_id=None) -> tuple[list, dict]:
             qs = qs.filter(**{field: org_id})
         return set(qs.values_list(field, flat=True).distinct())
 
+    findings = check_cash_available(org_id)
     customers = ids(Invoice.objects, 'customer_id') | ids(Cash.objects, 'customer_id')
     vendors = ids(Receipt.objects, 'vendor_id') | ids(Cash.objects, 'vendor_id')
-    findings = []
     for side, org_ids, summarize in (('customer', customers, compute_org_summary),
                                      ('vendor', vendors, compute_vendor_summary)):
         for oid in sorted(org_ids):
@@ -314,8 +365,18 @@ def _write_event(pending, applied: bool, event: str) -> None:
         area, target = _event_scope(pending)
         if area == 'inventory' and target:
             findings, _ = check_inventory(target['item_id'])
-        elif area == 'cash' and target:
-            findings, _ = check_cash(target['org_id'])
+        elif area == 'cash':
+            cash_id = (pending.changes or {}).get('cash_id') if isinstance(pending.changes, dict) else None
+            # The org check already includes the org's cash; a cash with no party is
+            # checked on its own (wc_demo 58–60 had none, so nothing ever looked).
+            Cash = dj_apps.get_model('transactions', 'Cash')
+            if target:
+                findings = check_cash(target['org_id'])[0]
+            elif cash_id and Cash.objects.filter(pk=cash_id).exists():
+                findings = check_cash_available(cash_id=cash_id)
+            else:                                     # the cash is gone: say so, never "balanced"
+                findings = [_finding('event.unscoped', pending.model_name, pending.record_id,
+                                     f"pending {pending.pk}: cash {cash_id} not found")]
         else:
             findings = [_finding('event.unscoped', pending.model_name, pending.record_id,
                                  f"pending {pending.pk}: cannot tell which item or party it moved")]

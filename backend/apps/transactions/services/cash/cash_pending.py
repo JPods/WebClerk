@@ -144,17 +144,6 @@ def refunded(cash) -> Decimal:
     return Decimal(cents) / 100
 
 
-def _cash_committed(cash) -> Decimal:
-    """What this cash has spent or promised, both sides, in the cash's own direction.
-
-    AR applications point the cash's way; AP applications carry the payable's sign, the
-    opposite way — so AR − AP, applied and queued. ``refresh_cash_available`` is the same
-    rule over what has been applied.
-    """
-    from apps.transactions.services.cash.cash_pending_receipt import _committed as _committed_ap
-    return _committed(cash_id=cash.pk) - _committed_ap(cash_id=cash.pk) + refunded(cash)
-
-
 def _utc_now_iso() -> str:
     from datetime import datetime, timezone
     return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -230,6 +219,62 @@ def record_application_event(document, pending, changes, cash=None) -> None:
     document.events = events
     document.save(update_fields=['events', 'dt_modified', 'version'])
 
+def note_application(pending, step: str, cash=None, target=None) -> None:
+    """The readable audit line for one cash application (Bill, 2026-09-25).
+
+    ``changes`` already holds cash_id and the document id; this says it in words, where a
+    person and Alice read: ``comments.process`` on the Pending at every step (queued,
+    applied, reversed, closed), and — once money moved — on the Cash ("applied to invoice
+    68") and on the document ("received from cash 58"). Each line is keyed on the Pending
+    and the step, so an apply that runs twice writes once. Saves ``comments`` only.
+    """
+    from apps.core.services.comment_stamp import append_comment
+    from apps.transactions.models import Cash, Invoice, Receipt
+
+    changes = pending.changes if isinstance(pending.changes, dict) else {}
+    is_ap = pending.purpose == 'cash_application_receipt'
+    kind, key = ('receipt', 'receipt_id') if is_ap else ('invoice', 'invoice_id')
+    cash_id, target_id = changes.get('cash_id'), changes.get(key)
+    if cash is None and cash_id:
+        cash = Cash.objects.filter(pk=cash_id).first()
+    if target is None and target_id:
+        target = (Receipt if is_ap else Invoice).objects.filter(pk=target_id).first()
+    amount = _d(changes.get('amount'))
+    by = changes.get('acted_by') if isinstance(changes.get('acted_by'), int) else None
+    cash_name = f"cash {cash_id}" + (f" ({cash.ida})" if cash is not None and cash.ida else "")
+    doc_name = f"{kind} {target_id}" + (f" ({target.ida})" if target is not None and target.ida else "")
+    reason = changes.get('cancel_reason') or changes.get('reason') or ''
+    tail = f" — {reason}" if reason else ""
+    if changes.get('reverses'):
+        tail = f" (reverses #{changes['reverses']}){tail}"
+
+    ref = f"Pending {pending.pk}"
+    verb = 'reversed' if step == 'reversed' else 'applied'
+    writes = [(pending, f"{step} {amount}: {cash_name} → {doc_name}{tail}", step)]
+    if step in ('applied', 'reversed'):              # queued / closed: no money moved
+        writes += [
+            (cash, f"{amount} {verb} to {doc_name}, {ref}{tail}", f"pending:{pending.pk}:{step}"),
+            (target, f"{amount} {'reversed from' if step == 'reversed' else 'received from'} "
+                     f"{cash_name}, {ref}{tail}", f"pending:{pending.pk}:{step}"),
+        ]
+    for record, text, key in writes:
+        if record is None:
+            continue
+        try:
+            # Comments are written by update, not save: a save re-runs the Cash and
+            # document receivers (ledger rebuild, Alice's event) for text, and a Pending
+            # save would carry any in-memory change to ``changes`` with it (Fable). The
+            # row's own comments are read first, so a copy loaded earlier loses nothing.
+            model = type(record)
+            record.comments = model.objects.filter(pk=record.pk).values_list(
+                'comments', flat=True).first() or {}
+            if append_comment(record, 'process', text, user=by, source='cash_door', key=key):
+                model.objects.filter(pk=record.pk).update(comments=record.comments)
+        except Exception as e:                       # the words never undo the money
+            logger.warning("audit line for pending %s on %s %s not written: %s",
+                           pending.pk, type(record).__name__, record.pk, e)
+
+
 def cash_state(total: Decimal, received: Decimal) -> str:
     """open | partial | paid | credit | over — derived, never typed.
 
@@ -257,7 +302,7 @@ def refresh_invoice_cash(invoice) -> Dict[str, Any]:
     return result
 
 
-def refresh_cash_available(cash) -> Decimal:
+def refresh_cash_available(cash, *, before_use: bool = False) -> Decimal:
     """What this cash still has to give, counting both sides of the house.
 
     **One function** (2026-09-22). There were two, with different formulas: this one
@@ -271,12 +316,33 @@ def refresh_cash_available(cash) -> Decimal:
     """
     from apps.transactions.services.cash.cash_pending_receipt import _applied as _applied_ap
 
+    # Compare the row, not the instance: a caller may hold a copy loaded before this
+    # application applied (reverse_application does), which read as false drift (Fable).
+    cash.refresh_from_db(fields=['available', 'version', 'dt_modified', 'amount', 'metadata'])
     available = (_d(cash.amount) - _applied(cash_id=cash.pk) + _applied_ap(cash_id=cash.pk)
                  - refunded(cash)) if cash.holds_money else Decimal('0')
     if _d(cash.available) != available:
+        # After an application the recompute is meant to move available by its amount.
+        # Before one (``before_use``: the application check) every earlier application has
+        # already recomputed it, so a difference there is drift:
+        # the stored number disagreed with the Pendings. Said out loud (Axiom 6) — three
+        # wc_demo cash records sat at 0.00 for weeks with nothing noticing. "Found", not
+        # "corrected": the correction commits with the caller's transaction or not at all.
+        if before_use:
+            logger.warning("cash %s available found at %s, the Pendings say %s",
+                           cash.pk, _d(cash.available), available)
         cash.available = available
         cash.save(update_fields=['available', 'dt_modified', 'version'])
     return available
+
+
+def _queued_net(cash) -> Decimal:
+    """Applications of this cash written but not yet applied, in the cash's direction
+    (AR − AP, the rule ``refresh_cash_available`` uses for what has applied)."""
+    from apps.transactions.services.cash.cash_pending_receipt import (
+        _applied as _applied_ap, _committed as _committed_ap)
+    return ((_committed(cash_id=cash.pk) - _applied(cash_id=cash.pk))
+            - (_committed_ap(cash_id=cash.pk) - _applied_ap(cash_id=cash.pk)))
 
 
 def _check_application(cash, target, amount: Decimal, *,
@@ -347,20 +413,27 @@ def _check_application(cash, target, amount: Decimal, *,
             f"cannot apply {amount} to {kind} {target.pk}: that would put {after} against "
             f"a {kind} of {total}. {total - _d(target_applied)} of it is still open.")
 
-    # The cash bounds magnitude only, because on AP it points the other way: a -60.00
-    # payment can give 60.00 to a payable and no more. Requiring its sign here would
-    # forbid every AP application there is.
-    cash_amount = _d(cash.amount)
-    spent = _cash_committed(cash) if cash_spent is None else _d(cash_spent)
-    # An AP application carries the payable's sign, opposed to the cash that settles it.
-    cash_after = spent - amount if is_ap else spent + amount
+    # **Available is the bound, not amount** (Bill, 2026-09-25). Available is recomputed
+    # from the applied Pendings first (and stored, loudly, if it had drifted), then what is
+    # already queued against this cash is set aside. The attempt must fit in what is left.
+    # Size does not matter — 2.11 from 10.00 leaves 7.89 — exact balance does.
+    # An AP application carries the payable's sign, opposed to the cash that settles it,
+    # so in the cash's own direction it takes ``-amount``.
     # A credit transfer carries no money of its own (amount 0) and its two legs net to
     # zero, so there is no cash to bound — only the two documents.
-    if bound_cash and abs(cash_after) > abs(cash_amount):
-        raise ValueError(
-            f"cannot apply {amount} from cash {cash.pk}: that would put {abs(cash_after)} "
-            f"against a payment of {abs(cash_amount)}. "
-            f"{abs(cash_amount) - abs(spent)} of it is still unapplied.")
+    if bound_cash:
+        cash_amount = _d(cash.amount)
+        take = -amount if is_ap else amount
+        if cash_spent is None:
+            available = refresh_cash_available(cash, before_use=True)
+            free = available - _queued_net(cash)
+        else:                                        # pure tests pass what is spent
+            free = cash_amount - _d(cash_spent)
+        left = free - take
+        if _sign(left) not in (0, _sign(cash_amount)) or abs(left) > abs(cash_amount):
+            raise ValueError(
+                f"cannot apply {amount} from cash {cash.pk}: it has {abs(free)} available "
+                f"to apply (of {abs(cash_amount)} received), so this would leave {left}.")
 
     party = getattr(cash, party_attr, None)
     target_party = getattr(target, party_attr, None)
@@ -457,6 +530,7 @@ def apply_cash_to_invoice(
         'amount': float(amount),
         'reason': reason,
         'contact_id': contact_id,
+        'acted_by': acted_by,       # names the person in the audit line (Fable)
         'state': 'pending',
         'dt_applied': None,
     }
@@ -544,6 +618,8 @@ def apply_cash_pending(pending) -> bool:
             record_application_event(invoice, pending, changes, cash)
             refresh_invoice_cash(invoice)
             available = refresh_cash_available(cash)
+            note_application(pending, 'reversed' if changes.get('reverses') else 'applied',
+                             cash, invoice)
 
             logger.info(
                 "Applied cash pending %s: cash %s → invoice %s, $%s (available now $%s)",

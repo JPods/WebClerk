@@ -33,3 +33,34 @@ def display_time(now=None) -> str:
     """The panel's 'datetime_tz' label, in the installation's zone."""
     local = (now or timezone.now()).astimezone(ZoneInfo(settings.TIME_ZONE))
     return local.strftime('%b %-d, %Y, %I:%M %p %Z')
+
+
+def append_comment(record, channel: str, text: str, *, user=None, source: str | None = None,
+                   key: str | None = None) -> bool:
+    """Append one stamped entry to ``record.comments[channel]`` — the one writer.
+
+    The shape CommentsPanel reads: ``comments.<channel>`` is a list of
+    ``{user, mgs, time, user_id}``, plus ``source`` (who wrote it: a hook, the cash door)
+    and ``key`` when given. ``key`` makes the append idempotent: a retry that carries the
+    same key writes nothing (an apply that runs twice records once). ``user`` is a Contact,
+    a Contact id, or None for the system. Does not save; the caller saves ``comments``.
+    Returns True when an entry was added.
+    """
+    if isinstance(user, int):
+        from django.contrib.auth import get_user_model
+        user = get_user_model().objects.filter(pk=user).first()
+    comments = record.comments if isinstance(getattr(record, 'comments', None), dict) else {}
+    entries = comments.get(channel)
+    if not isinstance(entries, list):
+        entries = []
+    if key and any(isinstance(e, dict) and e.get('key') == key for e in entries):
+        return False
+    entry = {**stamp(user), 'mgs': text}
+    if source:
+        entry['source'] = source
+    if key:
+        entry['key'] = key
+    entries.append(entry)
+    comments[channel] = entries
+    record.comments = comments
+    return True
