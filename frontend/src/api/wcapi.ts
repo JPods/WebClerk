@@ -119,9 +119,11 @@ export function recordPath(model: string, id?: number | string | null): string {
   return id !== undefined && id !== null && id !== '' ? `/wcapi/${model}/${id}/` : `/wcapi/${model}/`;
 }
 
-export async function wcapiSave<T>(model: string, body: any, extraHeaders?: Record<string, string>): Promise<T> {
+export async function wcapiSave<T>(model: string, body: any, extraHeaders?: Record<string, string>,
+                                   recordId?: number | string): Promise<T> {
+  // REST only (2026-09-24): the model and the id are the path; the body is the fields, flat.
   const config = extraHeaders ? { headers: extraHeaders } : undefined;
-  const id = body?.id;
+  const id = recordId ?? body?.id;
   const res = id
     ? await apiClient.put<ApiEnvelope<T>>(recordPath(model, id), body, config)
     : await apiClient.post<ApiEnvelope<T>>(recordPath(model), body, config);
@@ -366,8 +368,8 @@ export async function getRecord(model_name: string, id: number) {
 
 export async function saveRecord(model_name: string, payload: any) {
   const resolved = resolveModelName(model_name);
-  // Extract id and mode from payload if present (they go at root level, not in data)
-  const { id, mode, ...record } = payload;
+  // id goes in the path; mode is not a REST concept (PUT and PATCH merge) — neither is sent.
+  const { id, mode: _mode, ...record } = payload;
   // Strip computed property fields that don't exist as model columns — they cause
   // envelope_invalid errors when the backend tries to pack them into config.
   // These are @property methods on TransactionBaseModel, not real DB fields.
@@ -382,14 +384,10 @@ export async function saveRecord(model_name: string, payload: any) {
     throw new Error(`Validation failed: ${messages.join('; ')}`);
   }
 
-  // Always use `record` wrapper — `data` wrapper is deprecated (fixed 2026-06).
-  const body: any = { model_name: resolved, record };
-  if (id !== undefined) {
-    body.id = id;
-  }
-  if (mode !== undefined) {
-    body.mode = mode;
-  }
+  // The fields go flat: no `record` wrapper, no model_name, no id, no mode in the body.
+  // The door does not unwrap `record` and drops unknown keys, so the wrapped form returned
+  // success and saved nothing (Fable bottom-up L5 H-1, 2026-09-25). PUT and PATCH merge.
+  const body: any = { ...record };
 
   // ── Pre-flight: payload size check ──
   const serialized = JSON.stringify(body);
@@ -408,7 +406,7 @@ export async function saveRecord(model_name: string, payload: any) {
     if (athenaToken) {
       headers['X-Athena-Validated'] = athenaToken;
     }
-    return await wcapiSave<any>(body.model_name, body, headers);
+    return await wcapiSave<any>(resolved, body, headers, id);
   } catch (err: any) {
     throw new Error(getBackendErrorMessage(err, "Save failed"));
   }
@@ -455,10 +453,11 @@ export async function saveTransactionWithLines(model_name: string, payload: any)
       );
     });
   }
-  const body = { model_name: resolved, ...cleanPayload };
+  const { id: docId, model_name: _model, mode: _mode, ...docFields } = cleanPayload;
+  const body = docFields;                                   // flat: model and id are the path
 
   try {
-    return await wcapiSave<any>(resolved, body);
+    return await wcapiSave<any>(resolved, body, undefined, docId);
   } catch (err: any) {
     throw new Error(getBackendErrorMessage(err, "Failed to save transaction"));
   }
