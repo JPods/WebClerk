@@ -36,9 +36,18 @@ BINARY_ALLOWED_MODELS = frozenset({'document'})
 BINARY_ALLOWED_FIELDS = frozenset({'path'})
 
 SKIP_FIELDS = frozenset({
-    'model_name', 'id', 'version',
-    'bulk', 'lines', 'uuid', 'record', 'options',
+    'model_name', 'id', 'version',       # model_name: the internal save_record convention;
+                                         # a client sending it is refused at the REST view
+    'bulk', 'lines', 'uuid', 'options',
 })
+
+# A key that is not a field is refused with coaching, never dropped (Bill, 2026-09-25): a
+# silent drop returned success for every UI save sent in a `record` wrapper and blanked every
+# card sent with a retired alias. These two get their own coaching.
+WRAPPER_COACHING = {
+    w: "send the fields flat in the body — the model and the id are the path "
+       "(PUT /wcapi/<model>/<id>/)" for w in ('record', 'data')
+}
 
 INT_FIELD_TYPES = (
     models.AutoField,
@@ -219,6 +228,7 @@ def assign_fields(
     """
     field_size_errors: list[str] = []
     field_value_errors: list[str] = []
+    unknown_fields: list[str] = []
     raw_password = None
     _model_name_lower = (model_name or '').lower()
 
@@ -365,7 +375,8 @@ def assign_fields(
                         else:
                             setattr(obj, field, value)
                 else:
-                    continue                        # not a field: ignored, never stored
+                    unknown_fields.append(_coach_unknown(field, model_cls, json_field_names))
+                    continue
 
         except (ValueError, TypeError) as e:
             field_value_errors.append(f"{field}: {e}")
@@ -375,4 +386,22 @@ def assign_fields(
         'raw_password': raw_password,
         'field_size_errors': field_size_errors,
         'field_value_errors': field_value_errors,
+        'unknown_fields': unknown_fields,
     }
+
+
+def _coach_unknown(field: str, model_cls, json_field_names: set) -> str:
+    """'action_en: not a field of action — did you mean action.en?' The nearest real name:
+    a retired i18n alias (<field>_<lang>) maps to <field>.<lang>; otherwise the closest field."""
+    import difflib
+    if field in WRAPPER_COACHING:                    # only reached when not a real field
+        return f"{field}: {WRAPPER_COACHING[field]}"
+    names = [f.name for f in model_cls._meta.concrete_fields]
+    label = getattr(model_cls._meta, 'model_name', 'this model')
+    base, _, lang = field.rpartition('_')
+    if base in json_field_names and len(lang) == 2:
+        hint = f"{base}.{lang}"
+    else:
+        close = difflib.get_close_matches(field, names, n=1, cutoff=0.6)
+        hint = close[0] if close else None
+    return f"{field}: not a field of {label}" + (f" — did you mean {hint}?" if hint else "")

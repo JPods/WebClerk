@@ -376,6 +376,16 @@ class SaveWcapiView(APIView):
             console_logger.error(f"[SAVE_VIEW] JSON parse error: {e}")
             return api_response(success=False, status_code=400, message='Invalid JSON', error={'code':'parse_error','details': str(e)})
 
+        # REST only (2026-09-24): the model is the path. A body that names a model is refused
+        # with coaching, not silently overridden (2026-09-25: unknown keys are refused).
+        sent_model = [k for k in ('model_name', 'model') if k in data]
+        if sent_model:
+            return api_response(
+                success=False, status_code=400,
+                message=f"{', '.join(sent_model)}: the model is the path (/wcapi/{model_name}/), "
+                        f"never a key in the body",
+                error={'code': 'unknown_field', 'details': sent_model})
+
         # Log all keys for debugging dot-path support
         dot_keys = [k for k in data.keys() if '.' in k or '[' in k]
         if dot_keys:
@@ -387,30 +397,6 @@ class SaveWcapiView(APIView):
                 data[key] = True
             elif value == 'off':
                 data[key] = False
-
-        # Handle nested 'data' key for compatibility with some clients
-        # Models that previously had a 'data' field now use 'config'.
-        # If 'data' key contains a dict and the model doesn't have a 'data' column, merge it into the payload.
-        if 'data' in data and isinstance(data['data'], dict):
-            model_key = data.get('model_name') or data.get('model') or ''
-            has_data_field = False
-            try:
-                from apps.core.utils.registry import resolve
-                resolved = resolve(model_key)
-                # resolve() may return a ModelMeta or the model class directly
-                if resolved is not None:
-                    cls = resolved.import_model() if hasattr(resolved, 'import_model') else resolved
-                    if hasattr(cls, '_meta'):
-                        has_data_field = any(f.name == 'data' for f in cls._meta.get_fields() if hasattr(f, 'column'))
-            except Exception as e:
-                console_logger.warning(f"[SAVE_VIEW] data-field check failed for {model_key}: {e}")
-            if not has_data_field:
-                data.update(data['data'])
-                del data['data']
-                console_logger.info(f"[SAVE_VIEW] Merged 'data' fields into payload")
-            else:
-                console_logger.info(f"[SAVE_VIEW] Preserved 'data' field for model {model_key}")
-
 
         # If client provided a project_slug but not a numeric project_id, try to resolve it here.
         try:

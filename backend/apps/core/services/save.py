@@ -281,6 +281,12 @@ def _assign(obj, data: dict, model_cls, model_key: str, norm_key: str,
         except Exception as e:  # noqa: BLE001 — the caller is told which step failed
             raise Refused(400, 'hash_password', 'Failed to hash password', str(e))
 
+    if assignment.get('unknown_fields'):
+        details = assignment['unknown_fields']
+        console_logger.warning("[SAVE] Unknown keys refused for %s: %s", model_key, details)
+        raise Refused(400, 'unknown_field',
+                      f"Not fields of {model_key}: " + '; '.join(details), details)
+
     if assignment['field_value_errors']:
         details = [str(e) for e in assignment['field_value_errors']]
         console_logger.error("[SAVE] Field coercion errors for %s: %s", model_key, details)
