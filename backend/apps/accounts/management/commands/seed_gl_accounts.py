@@ -12,7 +12,7 @@ Numbering: 1xxx assets, 2xxx liabilities, 3xxx equity, 4xxx revenue (49xx contra
 revenue), 5xxx cost of sales, 6xxx operating expense, 7xxx other income & expense.
 Types carry the normal balance, categories the statement section (services/chart.py).
 ida format: {number}-{lowercase_words}, e.g. 1100-accounts_receivable.
-Each account's summary is written to comments.process (kind=account_use).
+Each account's summary is written to comments.process (key=account_use).
 """
 import datetime
 
@@ -199,16 +199,9 @@ REPLACED = {
 }
 
 
-def account_use_comment(summary: str) -> dict:
-    return {
-        'by': 'seed_gl_accounts',
-        'dt': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
-        'text': summary,
-        'kind': 'account_use',
-        'capacity': 'ops',
-        'replaces': None,
-    }
 
+
+from apps.core.services.comment_stamp import append_comment
 
 class Command(BaseCommand):
     help = f'Seed the standard chart of accounts ({len(ACCOUNTS)} accounts)'
@@ -236,12 +229,13 @@ class Command(BaseCommand):
                         setattr(account, field, value)
                 comments = account.comments if isinstance(account.comments, dict) else {}
                 process = comments.get('process') or []
-                has_use = any(isinstance(c, dict) and c.get('kind') == 'account_use' for c in process)
+                has_use = any(isinstance(c, dict) and c.get('key') == 'account_use' for c in process)
                 if is_new or force or not has_use:
-                    process = [c for c in process if not (isinstance(c, dict) and c.get('kind') == 'account_use')]
-                    process.append(account_use_comment(summary))
-                    comments['process'] = process
+                    comments['process'] = [c for c in process
+                                           if not (isinstance(c, dict) and c.get('key') == 'account_use')]
                     account.comments = comments
+                    append_comment(account, 'process', summary, source='seed_gl_accounts',
+                                   key='account_use')
                 account.save()
                 created += is_new
                 updated += not is_new

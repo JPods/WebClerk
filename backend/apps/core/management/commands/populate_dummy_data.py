@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand
 from django.apps import apps
 from django.db import connection
 from faker import Faker
-from common.models import default_metadata, default_refs, default_prefs, default_comments
+from common.models import default_metadata, default_refs, default_prefs
 from apps.core.constants.model_registry import VALID_MODEL_NAMES
 import logging
 
@@ -291,7 +291,7 @@ class Command(BaseCommand):
                 elif field_name == 'prefs':
                     value = default_prefs()
                 elif field_name == 'comments':
-                    value = default_comments()
+                    value = {}
                 elif field_name == 'actions':
                     value = {}
                 else:

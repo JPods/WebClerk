@@ -59,14 +59,11 @@ export function validateEnvelope(record: Record<string, any>): EnvelopeError[] {
     }
   }
 
-  // ── comments ──
+  // ── comments ── one flat standard: comments.<channel> → [{user, mgs, time, user_id}]
   const comments = record.comments;
   if (comments && typeof comments === 'object') {
-    const general = comments.general;
-    if (general && typeof general === 'object') {
-      for (const channel of ['public', 'process', 'foreign'] as const) {
-        validateCommentChannel(general[channel], `comments.general.${channel}`, errors);
-      }
+    for (const channel of ['public', 'process', 'foreign'] as const) {
+      validateCommentChannel(comments[channel], `comments.${channel}`, errors);
     }
   }
 
@@ -157,9 +154,9 @@ function validateCommentChannel(channel: any, path: string, errors: EnvelopeErro
   }
   for (let i = 0; i < channel.length; i++) {
     const entry = channel[i];
-    if (entry && typeof entry.text === 'string' && entry.text.length > COMMENT_TEXT_MAX_LEN) {
+    if (entry && typeof entry.mgs === 'string' && entry.mgs.length > COMMENT_TEXT_MAX_LEN) {
       errors.push({
-        path: `${path}[${i}].text`,
+        path: `${path}[${i}].mgs`,
         message: `Comment exceeds ${COMMENT_TEXT_MAX_LEN} characters`,
       });
     }

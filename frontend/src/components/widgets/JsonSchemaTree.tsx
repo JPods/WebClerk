@@ -132,12 +132,10 @@ const PREFS_ENVELOPE: Record<string, SchemaNode> = {
 };
 
 const COMMENTS_ENVELOPE: Record<string, SchemaNode> = {
-  general: OBJ('General comments', {
-    public:  ARR('Customer-visible comments'),
-    process: ARR('Internal process notes'),
-    foreign: ARR('External/imported comments'),
-  }),
-  records: OBJ('Per-record comments keyed by model/id', {}),
+  // comments.<channel> → [{user, user_id, mgs, time}] — one flat standard (2026-09-25)
+  public:  ARR('Customer-visible comments'),
+  process: ARR('Internal process notes'),
+  foreign: ARR('External/imported comments'),
 };
 
 const ACTIONS_ENVELOPE: Record<string, SchemaNode> = {

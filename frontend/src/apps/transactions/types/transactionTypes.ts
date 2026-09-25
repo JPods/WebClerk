@@ -190,34 +190,20 @@ export interface TransactionPrefs {
   };
 }
 
-// --- Comments Structure (from CommentsMixin) ---
+// --- Comments Structure: one flat standard (2026-09-25) ---
+// comments.<channel> → [{user, user_id, mgs, time}] — CoreModel.comments on every record.
 
-export interface CommentEntry {
-  ts: string;
-  by: string | number;
-  text: string;
+export interface TransactionCommentEntry {
+  user: string;
+  mgs: string;
+  time: string;
+  user_id?: number | null;
   source?: string;
+  key?: string;
 }
 
-export interface TransactionComments {
-  public?: string;
-  process?: string;
-  partner?: string;
-  notes?: CommentEntry[];
-  general?: {
-    public?: CommentEntry[];
-    process?: CommentEntry[];
-    foreign?: CommentEntry[];
-  };
-  records?: Record<
-    string,
-    {
-      public?: CommentEntry[];
-      process?: CommentEntry[];
-      foreign?: CommentEntry[];
-    }
-  >;
-}
+export type TransactionComments = Partial<Record<'public' | 'process' | 'foreign', TransactionCommentEntry[]>>
+  & Record<string, TransactionCommentEntry[] | undefined>;
 
 // --- Actions Structure (from ActionsMixin) ---
 

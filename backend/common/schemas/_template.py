@@ -8,7 +8,7 @@ Six envelopes — every record inherits all six:
   MetadataBase — system-managed: history, health, flags, audit trail
   RecordPrefsBase — user-managed: userdefined, tags, pinned
   RefsBase — relationship cache: links, source (FKs are truth)
-  CommentsBase — structured comments: public, process, partner, notes[]
+  CommentsBase — comments.<channel> → [{user, mgs, time, user_id}]
   ActionsBase — next-action metadata: required, status, who, when, what, kind
 
 Mixins (compose only where needed):

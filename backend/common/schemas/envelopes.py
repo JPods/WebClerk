@@ -587,13 +587,21 @@ class CartPrefsMixin(BaseModel):
 # ═══════════════════════════════════════════════════════════════════════
 
 class CommentEntry(BaseModel):
-    """One entry in a comment channel. Append-only."""
-    ts: str = ''                              # ISO timestamp
-    by: str = ''                              # contact_id or username
-    text: str = ''                            # max 1000 chars — enforced
-    source: str = ''                          # optional origin
+    """One entry in a comment channel. Append-only.
 
-    @field_validator('text', mode='before')
+    The stamp a person's entry carries in CommentsPanel, and a hook's or the cash door's
+    through ``comment_stamp.append_comment`` (Bill, 2026-09-24/25): who, what, when.
+    ``time`` is a displayed dt with its zone (accepted deviation). ``key`` makes a
+    system write idempotent.
+    """
+    user: str = ''                            # display name, or 'system'
+    user_id: Optional[int] = None             # Contact id; None for the system
+    mgs: str = ''                             # the message — max 1000 chars, enforced
+    time: str = ''                            # "Sep 25, 2026, 02:06 PM CDT"
+    source: str = ''                          # who wrote it when not a person: hook:<ida>, cash_door
+    key: str = ''                             # idempotency key for system writes
+
+    @field_validator('mgs', mode='before')
     @classmethod
     def _cap_text(cls, v: Any) -> str:
         if isinstance(v, str) and len(v) > COMMENT_TEXT_MAX_LEN:
@@ -602,7 +610,7 @@ class CommentEntry(BaseModel):
             )
         return v or ''
 
-    @field_validator('by', 'source', 'ts', mode='before')
+    @field_validator('user', 'source', 'time', 'key', mode='before')
     @classmethod
     def _cap_short_strings(cls, v: Any) -> str:
         if isinstance(v, str) and len(v) > 255:
@@ -610,8 +618,11 @@ class CommentEntry(BaseModel):
         return v or ''
 
 
-class CommentChannels(BaseModel):
-    """Three comment channels — public, process, foreign."""
+class CommentsBase(BaseModel):
+    """Standard comments inherited by every record (CoreModel.comments): one flat level,
+    ``comments.<channel>`` → list of entries. Replaced ``general``/``records`` scopes on
+    2026-09-25 (Bill: one standard): the panel, hooks and the cash door already wrote flat.
+    """
     public: list[CommentEntry] = Field(default_factory=list)
     process: list[CommentEntry] = Field(default_factory=list)
     foreign: list[CommentEntry] = Field(default_factory=list)
@@ -624,17 +635,6 @@ class CommentChannels(BaseModel):
                 f"comment channel exceeds {COMMENT_CHANNEL_MAX_COUNT} entries"
             )
         return v if isinstance(v, list) else []
-
-
-class CommentsBase(BaseModel):
-    """Standard comments structure inherited by every BaseModel record.
-
-    Two scopes:
-      general — about the record itself (3 channels)
-      records — about related records, keyed by 'model/id' (same 3 channels)
-    """
-    general: CommentChannels = Field(default_factory=CommentChannels)
-    records: dict = Field(default_factory=dict)  # keyed by 'model/id'
 
 
 # ═══════════════════════════════════════════════════════════════════════

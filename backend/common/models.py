@@ -353,25 +353,11 @@ def default_data() -> dict:  # reserved placeholder (not currently used)
 
 
 def default_comments() -> dict:
-    """Structured comment container — matches _ensure_comment_root and CommentsBase.
-
-    Two scopes:
-      general — about the record itself (3 channels: public, process, foreign)
-      records — about related records, keyed by 'model/id' (same 3 channels)
-
-    Channels:
-      public  — customer-facing notes
-      process — internal workflow notes
-      foreign — vendor/supplier/partner communication
-    """
-    return {
-        "general": {
-            "public": [],
-            "process": [],
-            "foreign": [],
-        },
-        "records": {},
-    }
+    """Migration history only: ~80 historical migrations name this callable, and Django
+    must import it to load them. Live code declares ``CoreModel.comments`` (default {},
+    flat ``comments.<channel>``) and never calls this. Delete it when migrations are
+    squashed (2026-09-25)."""
+    return {}
 
 
 # ---------------- Model-specific envelope defaults ------------------------
@@ -390,7 +376,7 @@ class CoreModel(models.Model):
     - Exposes optimistic helpers assert_version / optimistic_save for thin models.
     """
 
-    feature_flags = {"core"}
+    feature_flags = {"core", "comments"}
     #unique per data system.
     id = models.BigAutoField(primary_key=True)
     # exchanged between data systems (if any). Nullable for safe backfill; generated in save() when missing.
@@ -406,6 +392,10 @@ class CoreModel(models.Model):
     is_active = models.BooleanField(default=True, db_index=True, help_text="Record is logically active")
     security_level = models.IntegerField(default=0, blank=True, db_index=True, help_text="Security level or classification")
     dt_approved = models.BigIntegerField(default=0, db_index=True, help_text="Epoch ms when record was approved; 0 = not approved")
+    # Every record can carry comments: comments.<channel> is a list of {user, mgs, time,
+    # user_id} (comment_stamp.append_comment is the one writer). Declared here so a thin
+    # model — Pending — has the standard behaviour with nothing of its own (Bill, 2026-09-25).
+    comments = models.JSONField(default=dict, blank=True, help_text="comments.<channel>: stamped entries")
     times_used = models.BigIntegerField(default=0, db_index=True, help_text="Lifetime use count")
     dt_last_used = models.BigIntegerField(default=0, db_index=True, help_text="Epoch ms of last use; 0 = never used")
     purpose = models.CharField(max_length=255, blank=True, null=True, db_index=True, help_text="Why this record exists: team_memory, alice_pending, search, template, etc.")
@@ -875,122 +865,6 @@ class ActionsMixin(models.Model):
     def set_action(self, value: dict | None):
         self.actions = value or {}
 
-class CommentsMixin(models.Model):
-    """Structured comments & append-only notes list (audit assistance)."""
-
-    feature_flags = {"comments"}
-    comments = models.JSONField(default=default_comments, blank=True, help_text="Threaded notes / comment fields")
-
-    class Meta:
-        abstract = True
-
-    # ---- Internal helpers -------------------------------------------------
-    def _ensure_comment_root(self):  # pragma: no cover trivial
-        if not isinstance(self.comments, dict):
-            self.comments = {}
-        # QQQ general is about the records
-        self.comments.setdefault('general', {})
-        self.comments.setdefault('records', {})
-        for ch in ('public', 'process', 'foreign'):
-            self.comments['general'].setdefault(ch, [])
-
-    @staticmethod
-    def _clip_comment_text(txt: str) -> str:
-        if not isinstance(txt, str):
-            txt = str(txt)
-        return txt[:255]
-
-    def _get_linkage_id(self) -> int | None:
-        """Return linkage id if present in refs.links.linkage[0].
-
-        Handles both raw int format [1] and denormalized dict format [{"id": 1}].
-        """
-        if not hasattr(self, 'refs'):
-            return None
-        refs = getattr(self, 'refs') or {}
-        if not isinstance(refs, dict):
-            return None
-        links = refs.get('links') or {}
-        if not isinstance(links, dict):
-            return None
-        linkage_list = links.get('linkage') or []
-        if isinstance(linkage_list, list) and linkage_list:
-            first = linkage_list[0]
-            if isinstance(first, dict):
-                return first.get('id')
-            return first
-        return None
-
-    # ---- Public API -------------------------------------------------------
-    def add_comment(self,
-                    channel: str,
-                    text: str,
-                    by: str | int = 'system',
-                    model: str | None = None,
-                    record_id: int | None = None,
-                    scope: str = 'auto',
-                    source: str | None = None,
-                    use_linkage: bool = True) -> dict:
-        """Add a comment to this record or its linkage hub if present.
-
-        channel: public|process|foreign (defaults to public if invalid)
-        scope: 'general' | 'record' | 'auto'. 'auto' chooses 'record' when model & record_id provided.
-        If use_linkage and a linkage id is attached, comment is routed to linkage record
-        (centralized cross-table feed). Fallback: local comments JSON.
-        Returns stored comment entry.
-        """
-        channel = channel if channel in ('public', 'process', 'foreign') else 'public'
-        clipped = self._clip_comment_text(text)
-        linkage_id = self._get_linkage_id() if use_linkage else None
-        if linkage_id:
-            try:
-                from apps.docs.models.linkage_entry import LinkageEntry  # local import to avoid cycles
-                linkage = LinkageEntry.objects.filter(pk=linkage_id).first()
-                if linkage:
-                    return linkage.add_comment(channel=channel, text=clipped, by=str(by), model=model, record_id=record_id, scope=scope, source=source)
-            except Exception:  # pragma: no cover
-                pass
-        # Fallback local storage
-        self._ensure_comment_root()
-        target_container = None
-        if scope == 'general' or (scope == 'auto' and not (model and record_id)):
-            target_container = self.comments['general']
-        else:
-            rec_key = f"{model}/{record_id}" if model and record_id else None
-            if rec_key is None:
-                target_container = self.comments['general']
-            else:
-                rec_bucket = self.comments['records'].setdefault(rec_key, {})
-                for ch in ('public', 'process', 'foreign'):
-                    rec_bucket.setdefault(ch, [])
-                target_container = rec_bucket
-        entry = {
-            'ts': timezone.now().isoformat().replace('+00:00', 'Z'),
-            'by': by,
-            'text': clipped,
-        }
-        if source:
-            entry['source'] = source
-        target_container[channel].append(entry)  # type: ignore[index]
-        self.save(update_fields=['comments', 'dt_modified', 'version'])  # type: ignore[attr-defined]
-        return entry
-
-    def aggregated_comments(self) -> dict:
-        """Return linkage aggregated comments if linkage present, else local."""
-        linkage_id = self._get_linkage_id()
-        if linkage_id:
-            try:
-                from apps.docs.models.linkage_entry import LinkageEntry
-                linkage = LinkageEntry.objects.filter(pk=linkage_id).first()
-                if linkage:
-                    return linkage.aggregated_comment_summary()
-            except Exception:  # pragma: no cover
-                pass
-        # ensure local structure for callers
-        self._ensure_comment_root()
-        return self.comments
-
-
 class HealthMixin(models.Model):
     """Aggregated data quality score (single numeric rating for now)."""
 
@@ -1361,7 +1235,6 @@ class BaseModel(
     KeywordsMixin, # QQQ
 
     PrefsMixin,
-    CommentsMixin,
 
     HealthMixin,
     LifecycleMixin,  # QQQ should be these combined

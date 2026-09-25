@@ -7,7 +7,7 @@ Model-specific schemas live next to their Django models as *_pydantic.py files.
 _APP_SCHEMA_MAP routes each model_key to its module path.
 
 Base defaults (universal, no model awareness) live in common/models.py:
-    default_metadata(), default_refs(), default_prefs(), default_comments()
+    default_metadata(), default_refs(), default_prefs()  (comments: CoreModel, default {})
 
 Usage:
     from common.schemas.defaults import get_envelope_default

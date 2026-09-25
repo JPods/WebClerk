@@ -137,4 +137,6 @@ def test_journalized_write_is_refused_not_just_hidden():
     line.status = 'shipped'
     line.save()
     invoice.refresh_from_db()
-    invoice.add_comment('process', 'customer called about this invoice', use_linkage=False)
+    from apps.core.services.comment_stamp import append_comment
+    append_comment(invoice, 'process', 'customer called about this invoice')
+    invoice.save(update_fields=['comments'])

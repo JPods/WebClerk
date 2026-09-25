@@ -305,7 +305,7 @@ PORTAL_ORDER_ROLES = ('customer', 'buyer')
 PORTAL_ORDER_MODELS = frozenset({'order', 'quote'})
 #: 'notes' and 'comments' were in the tuple this replaced. Neither belongs: notes is not
 #: a field of any model (Bill, 2026-09-20: "There should be no notes field or object.
-#: Only comments"), and comments is a parent path whose leaves are comments.general.*,
+#: Only comments"), and comments is a parent path whose leaves are comments.<channel>.*,
 #: which a positive list may not name.
 PORTAL_ORDER_FIELDS = ('attention', 'dt_needed', 'ship_via', 'purpose',
                        'lines.item.item_id', 'lines.quantity.active')

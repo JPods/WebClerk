@@ -223,7 +223,7 @@ class Command(BaseCommand):
             "  ├── RefsMixin           (refs JSONField — keywords, tags, links, parents, depends_on, categories)",
             "  ├── KeywordsMixin       (keywords TextField — full-text search)",
             "  ├── PrefsMixin          (prefs JSONField — user-defined settings)",
-            "  ├── CommentsMixin       (comments JSONField — public, process, partner, notes[])",
+            "  ├── CoreModel.comments  (comments.<channel>: [{user, mgs, time, user_id}])",
             "  ├── HealthMixin         (health_rating IntegerField)",
             "  ├── LifecycleMixin      (is_archived + archive/unarchive; no soft delete)",
             "  ├── UniversalDictMixin  (to_universal_dict() serialization contract)",

@@ -255,15 +255,6 @@ export interface CommentMessage {
   user_id?: number | string;
 }
 
-/** Legacy comment entry (deprecated - use CommentMessage) */
-export interface CommentEntry {
-  id?: number | string;
-  text: string;
-  by?: string;
-  ts?: number | string;
-  source?: "Public" | "Process" | "Partner" | "Notes";
-}
-
 /** Comments structure with tabs */
 export interface EntityComments {
   public?: CommentMessage[];

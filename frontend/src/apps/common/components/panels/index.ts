@@ -19,7 +19,6 @@ export type {
   EntityRefs,
   EntityPrefs,
   CommentMessage,
-  CommentEntry,
   EntityComments,
   RawEntityComments,
   ActionEntry,

@@ -242,7 +242,9 @@ class Cash(HardDeleteOnly, BaseModel):
         self.status = 'failed'
         self.save()
         if reason:
-            self.add_comment('process', f"Failure reason: {reason}", use_linkage=False)
+            from apps.core.services.comment_stamp import append_comment
+            append_comment(self, 'process', f"Failure reason: {reason}", source='cash')
+            type(self).objects.filter(pk=self.pk).update(comments=self.comments)
 
     def reconcile(self):
         """Mark cash as reconciled"""

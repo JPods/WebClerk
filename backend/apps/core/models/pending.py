@@ -49,8 +49,8 @@ class Pending(CoreModel):
     """Ephemeral queue / staging record (CoreModel only).
 
     Lightweight by design: no refs/prefs overhead. ``metadata`` holds only
-    what happened to the record after it was made (incremental_apply). ``comments`` is the
-    standard ``comments.<channel>`` list, ``process`` only: the readable audit line (a cash
+    what happened to the record after it was made (incremental_apply). ``comments`` (from
+    CoreModel) is the standard ``comments.<channel>`` list, ``process`` only: the readable audit line (a cash
     application names its cash and its document there — Bill, 2026-09-25).
 
     EVERY Pending record tries to apply itself on save. This is the
@@ -78,7 +78,6 @@ class Pending(CoreModel):
     # source_pending_id, gl_journal_ids, variance}] when only part could apply
     # (Bill, 2026-09-21); remaining = the change's qty − Σ incremental_apply.qty.
     metadata = models.JSONField(default=dict, blank=True)
-    comments = models.JSONField(default=dict, blank=True)
 
     class Meta:
         db_table = 'pending'

@@ -35,14 +35,11 @@ logger = logging.getLogger(__name__)
 
 def _process_comment(text: str) -> dict:
     """Erosion has no notes field; the explanation is a process comment."""
-    from common.models import default_comments
-    comments = default_comments()
-    comments['general']['process'].append({
-        'ts': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
-        'by': 'system',
-        'text': text,
-    })
-    return comments
+    from types import SimpleNamespace
+    from apps.core.services.comment_stamp import append_comment
+    holder = SimpleNamespace(comments={})           # a fresh dict per erosion
+    append_comment(holder, 'process', text, source='value_erosion')
+    return holder.comments
 
 
 # ─── Margin Erosion ──────────────────────────────────────────────────

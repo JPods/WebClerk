@@ -65,8 +65,8 @@ def test_unmapped_role_fails_with_the_role_named(db):
 
 def test_every_seeded_account_has_a_use_summary(chart_of_accounts):
     for account in GlAccount.objects.all():
-        notes = [c for c in (account.comments or {}).get("process", []) if c.get("kind") == "account_use"]
-        assert notes and notes[0]["text"], account.ida
+        notes = [c for c in (account.comments or {}).get("process", []) if c.get("key") == "account_use"]
+        assert notes and notes[0]["mgs"], account.ida
         assert account.name and account.type and account.category and account.used_for, account.ida
 
 

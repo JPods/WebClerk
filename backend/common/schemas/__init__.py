@@ -10,7 +10,7 @@ Six envelopes:
     .metadata — system-managed (MetadataBase: history, health, flags, audit)
     .prefs    — user-managed (RecordPrefsBase: userdefined, tags, pinned)
     .refs     — relationship cache (RefsBase: links, source)
-    .comments — structured notes (CommentsBase: public, process, partner, notes[])
+    .comments — structured notes (CommentsBase: comments.<channel> → [{user, mgs, time, user_id}])
     .actions  — next-action (ActionsBase: required, status, who, when, what, kind)
 
 Usage:

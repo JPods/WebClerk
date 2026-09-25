@@ -177,7 +177,7 @@ class CashModelTest(TestCase):
         cash.refresh_from_db()
 
         self.assertEqual(cash.status, "failed")
-        self.assertIn("Gateway timeout", cash.comments["general"]["process"][-1]["text"])
+        self.assertIn("Gateway timeout", cash.comments["process"][-1]["mgs"])
 
     def test_cash_reconcile(self):
         """Test reconciling cash."""

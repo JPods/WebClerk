@@ -1,7 +1,7 @@
 """Schema Compliance — validate model Pydantic schemas inherit from BaseModel defaults.
 
 The source of truth is BaseModel's default factories in common/models.py:
-  default_metadata(), default_refs(), default_prefs(), default_comments()
+  default_metadata(), default_refs(), default_prefs(); comments default {}
 
 Every model's Pydantic schema MUST inherit from the corresponding base class
 in common/schemas/envelopes.py, which mirrors those defaults. If a model's
@@ -69,13 +69,13 @@ def _get_envelope_bases():
 def _get_defaults():
     """Get BaseModel's actual default dictionaries — the ground truth."""
     from common.models import (
-        default_metadata, default_refs, default_prefs, default_comments,
+        default_metadata, default_refs, default_prefs,
     )
     return {
         'metadata': default_metadata(),
         'refs': default_refs(),
         'prefs': default_prefs(),
-        'comments': default_comments(),
+        'comments': {},
         'config': {},
     }
 

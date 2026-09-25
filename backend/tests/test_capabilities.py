@@ -13,11 +13,11 @@ def test_capabilities_full_base_model():
 @pytest.mark.django_db
 def test_capabilities_core_only():
     caps = set(model_capabilities(Pending))
-    assert caps == {"core"}
+    assert caps == {"core", "comments"}      # comments is on CoreModel (Bill, 2026-09-25)
 
 @pytest.mark.django_db
 def test_atomic_methods_absent_on_core_only():
-    # Pending has no metadata/refs/prefs/comments fields, calling atomic_json_set with one should error
+    # Pending has no metadata/refs/prefs fields (comments comes from CoreModel), calling atomic_json_set with one should error
     p = Pending.objects.create()
     assert not hasattr(Pending, 'atomic_json_set')
     # Control: Action supports atomic update
