@@ -129,26 +129,17 @@ def test_a_write_off_is_its_own_payment_and_counts_as_adjusted(admin_client):
     assert off.changes['acted_by'] is not None, 'a write-off names who decided'
 
 
-def test_a_write_off_that_cannot_apply_leaves_nothing_behind(admin_client):
-    from apps.core.models import Setting
-    company = Setting.objects.filter(purpose='wc:company_profile', is_active=True).first()
-    if company is None:
-        company = Setting(purpose='wc:company_profile', name='Company', config={})
-        company._setting_create_authorized = True
-        company.save()
-    Setting.objects.filter(pk=company.pk).update(config={**(company.config or {}),
-                                                         'cash_policy': {'write_off_limit': '2.00'}})
+def test_a_write_off_that_cannot_apply_leaves_nothing_behind(admin_client, monkeypatch):
+    """A write-off is never refused (Bill), so a failure to apply one is a fault: add_cash
+    takes it back — no write-off Cash left standing as a credit that does not exist."""
+    from apps.transactions.services.cash import cash_pending
     inv = _invoice(100.0)
     before = Cash.objects.count()
+    monkeypatch.setattr(cash_pending, 'apply_cash_to_invoice',
+                        lambda *a, **k: (_ for _ in ()).throw(ValueError('a fault for the test')))
     r = _post(admin_client, 'invoice', inv.pk, {'amount': '5.00', 'method': 'write_off'})
-    # Bill, 2026-09-26: a write-off is an internal record, never left standing unapplied — a
-    # failure takes it back, so no $5 credit that does not exist is left for anyone to spend.
     assert r.status_code == 409 and r.json()['error']['code'] == 'adjustment_failed', r.content
-    assert 'may not exceed 2.00' in r.json()['message']
     assert Cash.objects.count() == before
-    inv.refresh_from_db()
-    assert inv.totals['adjusted'] == 0.0
-
 
 def test_the_write_off_posts_to_the_loss_account_with_the_payment_sides_flipped(admin_client, chart_of_accounts):
     """Bill, 2026-09-26: WebClerk values the write-off Cash at +$5; the chart values it as a $5

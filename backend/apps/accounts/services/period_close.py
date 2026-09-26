@@ -198,11 +198,17 @@ def _generate_period_summary(year: int, month: int) -> Dict[str, Any]:
     summary["total_purchases"] = float(purchases.aggregate(t=Sum(totals_total()))["t"] or 0)
     summary["purchase_count"] = purchases.count()
 
-    # Money only: a write-off, discount or FX adjustment settles a receivable against a loss
-    # or gain account; it is not cash in (Bill, 2026-09-26).
+    # A write-off (discount, FX…) is negative cash received (Bill, 2026-09-26): money in, less
+    # the adjustments. Each adjustment kind is also reported on its own line, so accounting can
+    # put it in another pocket.
     from apps.transactions.services.cash.cash_pending import ADJUSTMENT_METHODS
-    cash_entries = Cash.objects.filter(**in_period).exclude(method__in=ADJUSTMENT_METHODS)
-    summary["total_cash_entries"] = float(cash_entries.aggregate(t=Sum("amount"))["t"] or 0)
+    cash_entries = Cash.objects.filter(**in_period)
+    money = cash_entries.exclude(method__in=ADJUSTMENT_METHODS)
+    adjustments = {row['method']: float(row['t'] or 0) for row in
+                   cash_entries.filter(method__in=ADJUSTMENT_METHODS)
+                   .values('method').annotate(t=Sum('amount'))}
+    summary["total_cash_entries"] = float(money.aggregate(t=Sum("amount"))["t"] or 0) - sum(adjustments.values())
+    summary["adjustments"] = adjustments
     summary["cash_count"] = cash_entries.count()
 
     # Commissions — sum from invoice commission JSON where accrued

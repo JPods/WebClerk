@@ -58,3 +58,19 @@ describe('AddCashDialog', () => {
     await waitFor(() => expect(addCash).toHaveBeenCalledWith('order', 3, expect.objectContaining({ amount: 250 })));
   });
 });
+
+describe('AddCashDialog guards (Fable review)', () => {
+  it('does not write off after a refused payment', async () => {
+    addCash.mockResolvedValue({ applied: { state: 'refused', reason: 'customers differ' } });
+    render(<AddCashDialog isOpen onClose={() => {}} model="invoice" id={9} balance={100} />);
+    fireEvent.change(screen.getByLabelText('Amount received *'), { target: { value: '40' } });
+    fireEvent.click(screen.getByLabelText('Write off what is left'));
+    fireEvent.click(screen.getByText('Add and apply'));
+    await waitFor(() => expect(addCash).toHaveBeenCalledTimes(1));
+  });
+
+  it('offers no write-off on a receipt', () => {
+    render(<AddCashDialog isOpen onClose={() => {}} model="receipt" id={2} balance={100} />);
+    expect(screen.queryByLabelText('Write off what is left')).toBeNull();
+  });
+});

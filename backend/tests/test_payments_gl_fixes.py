@@ -140,7 +140,9 @@ def test_the_write_off_records_who_decided(chart_of_accounts):
 
 
 @pytest.mark.django_db
-def test_company_policy_limits_a_write_off(chart_of_accounts):
+def test_a_write_off_is_never_limited(chart_of_accounts):
+    """Bill, 2026-09-26: a write-off is never refused — no limit on bad debt, no clearing
+    service; the user creates it and applies it. A leftover write_off_limit is ignored."""
     from apps.core.models import Setting
     from apps.transactions.services.cash.cash_pending import apply_cash_to_invoice
     company = Setting.objects.get(purpose='wc:company_profile')
@@ -149,8 +151,9 @@ def test_company_policy_limits_a_write_off(chart_of_accounts):
     company.save()
     inv = _invoice(20.00)                                   # 21.00
     cash = Cash.objects.create(amount=Decimal("20.50"))
-    with pytest.raises(ValueError, match="Company policy"):
-        apply_cash_to_invoice(cash.pk, inv.pk, Decimal("20.50"), dismiss_balance=True, acted_by=1)
+    apply_cash_to_invoice(cash.pk, inv.pk, Decimal("20.50"), dismiss_balance=True, acted_by=1)
+    inv.refresh_from_db()
+    assert inv.totals["balance"] == pytest.approx(0.00) and inv.totals["adjusted"] == pytest.approx(0.50)
 
 
 @pytest.mark.django_db

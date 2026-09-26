@@ -135,7 +135,9 @@ def test_month_end_reports_real_sales_purchases_and_cash():
     summary = _generate_period_summary(now.year, now.month)
     assert summary['invoice_count'] >= 2
     assert Decimal(str(summary['total_sales'])) >= Decimal('100.00')
-    assert summary['cash_count'] >= 1 and Decimal(str(summary['total_cash_entries'])) >= Decimal('12.50')
+    assert summary['cash_count'] >= 2
+    assert summary['adjustments'].get('write_off') == 3.0, 'a write-off is reported on its own line'
+    assert Decimal(str(summary['total_cash_entries'])) >= Decimal('9.50'), 'and counts as negative cash received'
 
 
 def test_a_customer_statement_lists_its_open_invoices():

@@ -42,7 +42,8 @@ logger = logging.getLogger(__name__)
 #: A Cash saved for its id at the start of a payment through a gateway Connection, fully
 #: populated except the money (Bill, 2026-09-26; plan §13a). pay holds the payment values in
 #: metadata.payservice; on success they move into amount/fee and the Cash becomes 'payment';
-#: on a decline they stay as evidence and amount stays 0. Alice sweeps unused ones.
+#: on a decline they stay as evidence and amount stays 0. (An unused one is a candidate for
+#: Alice's weekly scrub; that sweep is not built yet.)
 PAYSERVICE = 'connection-payservice'
 PAYMENT = 'payment'        # a Cash a pay has claimed
 PROVIDERS = ('spreedly',)  # known gateways; Stripe and PayPal checks are to be written
@@ -245,7 +246,9 @@ def record_outcome(cash_id: int, *, state: str, txn: Dict[str, Any]) -> Optional
         return 'failed'
 
     # The held values move into their places now that the gateway has said yes.
-    held = _held(cash)
+    # A card Cash claimed before metadata.payservice existed carries its amount already (Fable:
+    # one in flight across the deploy must not settle as 0).
+    held = _held(cash) or {'charge': cash.amount, 'fee': cash.fee_amount}
     cash.amount = _d(held.get('charge'))
     cash.fee_amount = _d(held.get('fee'))
     cash.purpose = PAYMENT

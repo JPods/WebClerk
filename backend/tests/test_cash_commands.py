@@ -465,3 +465,24 @@ def test_a_cash_that_holds_no_money_credits_no_one(invoice, monkeypatch,
     with pytest.raises(ValueError, match='holds no money'):
         from apps.transactions.services.cash.cash_pending import apply_cash_to_invoice
         apply_cash_to_invoice(empty.pk, invoice.pk, Decimal('10.00'))
+
+
+def test_a_card_payment_in_flight_is_not_journalized_as_zero(invoice):
+    """Fable: GL batch H10 locked a zero-amount Cash as done; a connection-payservice Cash sits at
+    amount 0 until the gateway answers, so it would never post. It is skipped instead."""
+    from apps.accounts.services.journalize import journalize_cash
+    cash = _payservice_cash(invoice)
+    assert journalize_cash(cash.pk)['status'] == 'skipped_payservice'
+    cash.refresh_from_db()
+    assert not cash.is_locked
+
+
+def test_a_card_claimed_before_payservice_settles_at_its_own_amount(invoice, django_capture_on_commit_callbacks):
+    """Deploy safety (Fable): a Cash claimed under the old flow has amount set and no held block."""
+    cash = _payservice_cash(invoice)
+    Cash.objects.filter(pk=cash.pk).update(amount=Decimal('100.00'), status='processing',
+                                           metadata={}, gateway='spreedly')
+    cash_commands.record_outcome(cash.pk, state='succeeded', txn={'token': 'txn-old'})
+    cash.refresh_from_db()
+    assert (cash.status, cash.amount) == ('completed', Decimal('100.00'))
+    assert _balance(invoice) == Decimal('0')

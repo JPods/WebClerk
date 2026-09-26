@@ -563,6 +563,11 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
     if pay_status.startswith('hold'):
         return {'created': 0, 'status': 'skipped_hold', 'error': f'Cash on hold (status={cash.status})'}
 
+    # A card payment in flight (connection-payservice) holds its amount in metadata.payservice
+    # until the gateway says yes: it is not a zero-amount cash, it is not yet anything (Fable).
+    if getattr(cash, 'purpose', '') == 'connection-payservice':
+        return {'created': 0, 'status': 'skipped_payservice', 'cash_ida': cash.ida}
+
     # H10: Zero-amount cash auto-complete without GL (WC2 GL_JrnlCash rule)
     # Adjusting entries, memo credits — mark as journalized immediately.
     amount = Decimal(str(getattr(cash, 'amount', 0) or 0))

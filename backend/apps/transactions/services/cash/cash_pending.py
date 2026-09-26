@@ -151,8 +151,8 @@ def _utc_now_iso() -> str:
 
 def _check_policy(invoice, kind: str, value: Decimal) -> None:
     """The company's policy for adjustments, if it has one (company profile
-    config.cash_policy): {discount_limit, discount_limit_pct, write_off_limit,
-    write_off_limit_pct}. No policy = the user decides."""
+    config.cash_policy): {discount_limit, discount_limit_pct}. No policy = the user decides.
+    A write-off has no limit (Bill, 2026-09-26: no limit on bad debt, no clearing service)."""
     from apps.core.models import Setting
     company = Setting.objects.filter(purpose='wc:company_profile').only('config').first()
     policy = ((company.config or {}).get('cash_policy') or {}) if company else {}
@@ -526,13 +526,16 @@ def apply_cash_to_invoice(
 
     # A Cash whose method is an adjustment (a write-off, a discount, FX) settles the invoice
     # against a loss or gain account, not as money received (Bill, 2026-09-26: the $5 write-off
-    # is its own payment, posted to bad debt). It is a person's decision, within policy, and
-    # counts in totals.adjusted — recorded as its kind, or it would read as received.
+    # is its own payment, posted to bad debt). It is a person's decision and counts in
+    # totals.adjusted — recorded as its kind, or it would read as received. A write-off is
+    # never refused: no limit on bad debt, no clearing service — the user creates it and
+    # applies it (Bill). Only a settlement discount answers to the company's discount policy.
     kind = cash.method if cash.method in ADJUSTMENT_METHODS else None
     if kind:
         if not acted_by:
             raise ValueError(f"A {kind.replace('_', ' ')} is a person's decision: name who made it.")
-        _check_policy(invoice, kind, _d(amount))
+        if kind == 'discount':
+            _check_policy(invoice, kind, _d(amount))
 
     changes = {
         'cash_id': cash_id,
@@ -564,8 +567,7 @@ def apply_cash_to_invoice(
     if dismiss_balance and applied:
         invoice.refresh_from_db()
         remaining = Decimal(str((invoice.totals or {}).get('balance', 0)))
-        if remaining > 0:
-            _check_policy(invoice, 'write_off', remaining)
+        if remaining > 0:                         # a write-off: never refused (Bill, 2026-09-26)
             _create_adjustment_cash(
                 invoice, 'small_balance', remaining,
                 reason=reason or 'Balance dismissed by user',

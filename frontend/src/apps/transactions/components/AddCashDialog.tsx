@@ -47,10 +47,14 @@ const AddCashDialog: React.FC<AddCashDialogProps> = ({
   const dispatch = useDispatch();
   const [available, setAvailable] = useState<any[]>([]);
   const applies = model !== 'order';
+  // A write-off settles a receivable (AR); the AP side has no write-off yet (Fable: a receipt's
+  // would post a disbursement that never happened).
+  const canWriteOff = model === 'invoice';
 
   const loadAvailable = useCallback(async () => {
     if (model !== 'invoice' || !customerId) { setAvailable([]); return; }
-    const res = await getRecords('cash', { customer_id: customerId, limit: 50 });
+    // Only cash with money left, asked of the server (Fable: 50 then a client filter could miss them).
+    const res = await getRecords('cash', { customer_id: customerId, available__gt: 0, limit: 50 });
     setAvailable((res?.results || []).filter((c: any) => (c.available ?? 0) > 0.005));
   }, [model, customerId]);
 
@@ -62,7 +66,7 @@ const AddCashDialog: React.FC<AddCashDialogProps> = ({
     { name: 'date', label: 'Date', kind: 'date' },
     { name: 'reference', label: 'Reference / check #', kind: 'text', placeholder: 'Check #, trans ID…' },
     { name: 'reason', label: 'Note', kind: 'textarea', placeholder: 'Optional' },
-    ...(applies ? [{ name: 'write_off_rest', label: 'Write off what is left', kind: 'checkbox' as const,
+    ...(canWriteOff ? [{ name: 'write_off_rest', label: 'Write off what is left', kind: 'checkbox' as const,
                      hint: 'A write-off Cash for the remaining balance, posted to bad debt' }] : []),
   ];
 
@@ -78,8 +82,11 @@ const AddCashDialog: React.FC<AddCashDialogProps> = ({
       dispatch(showToast({ message: model === 'order'
         ? `Deposit of ${formatCurrency(amount)} recorded` : `${formatCurrency(amount)} applied`, type: 'success' }));
     }
-    const rest = Math.round((balance - amount) * 100) / 100;
-    if (applies && v.write_off_rest && rest > 0) {
+    // Only after the payment applied, and only what the invoice still shows open (Fable: a
+    // refused apply must not be followed by a write-off of the wrong amount).
+    const applied = result?.applied?.state === 'applied';
+    const rest = Math.round(Number(result?.balance ?? (balance - amount)) * 100) / 100;
+    if (canWriteOff && v.write_off_rest && applied && rest > 0) {
       await addCash(model, id, { amount: rest, method: 'write_off', reason: String(v.reason || 'written off') });
       dispatch(showToast({ message: `${formatCurrency(rest)} written off`, type: 'success' }));
     }
