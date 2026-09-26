@@ -223,7 +223,9 @@ def _enumerated_edit(actor: Actor, obj, model_key: str, data: dict):
     from apps.core.services.role_filter import get_allowed_fields
     from common.schemas.carrier import read_carrier
 
-    read_carrier(data or {})            # a carrier signal is typed or refused, never a field
+    # A carrier signal is typed or refused, never a field; a model's own hooks declare theirs.
+    from apps.core.services.behaviours import behaviour_for
+    read_carrier(data or {}, declared=behaviour_for(model_key).SIGNALS)
     allowed = set(get_allowed_fields(actor, model_key, mode='edit'))
     if model_key == 'contact' and getattr(obj, 'pk', None) and obj.pk == actor.user_id:
         allowed |= set(access.SELF_CONTACT_EDIT)

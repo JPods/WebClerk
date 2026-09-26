@@ -55,16 +55,28 @@ class CarrierError(ValueError):
             f"a signal is not a field, and an unknown one is refused rather than ignored.")
 
 
-def read_carrier(payload: dict[str, Any]) -> CarrierBase:
-    """The signals on one record. Raises CarrierError on anything unknown or ill-typed."""
+def read_carrier(payload: dict[str, Any], declared: Optional[dict] = None) -> CarrierBase:
+    """The signals on one record. Raises CarrierError on anything unknown or ill-typed.
+
+    ``declared``: the signals this model's behaviour reads, beside the shared ones
+    ({"_attachments": list} for an action). Bill, 2026-09-25: each ModelBehaviour declares
+    the underscore signals it reads — one registry, so a hook's own signal is not refused at
+    the door (Fable L3 H-2: every person's Kanban attach was a 400).
+    """
+    declared = declared or {}
     signals = {k: v for k, v in (payload or {}).items()
-               if isinstance(k, str) and k.startswith('_')}
+               if isinstance(k, str) and k.startswith('_') and k not in declared}
+    for name, expected in declared.items():
+        if name in (payload or {}) and not isinstance(payload[name], expected):
+            raise CarrierError(f"{name}: expected {expected.__name__}, "
+                               f"got {type(payload[name]).__name__}")
     try:
         return CarrierBase(**signals)
     except ValidationError as exc:
         raise CarrierError(
             '; '.join(f"{'.'.join(str(p) for p in e['loc']) or '?'}: {e['msg']}"
-                      for e in exc.errors())) from exc
+                      for e in exc.errors())
+            + (f" (this model also reads {', '.join(sorted(declared))})" if declared else '')) from exc
 
 
 def without_carrier(payload: dict[str, Any]) -> dict[str, Any]:

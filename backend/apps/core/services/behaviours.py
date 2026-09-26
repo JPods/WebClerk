@@ -57,6 +57,11 @@ class HookContext:
 class ModelBehaviour:
     """The default: a record that needs nothing of its own. WC2's ``Else SAVE RECORD``."""
 
+    #: The underscore signals this model's hooks read, wire name → type, beside the shared
+    #: carrier signals (common/schemas/carrier.py). Declared here, so the door admits them
+    #: and refuses any other (Bill, 2026-09-25).
+    SIGNALS: Dict[str, type] = {}
+
     def hook(self, moment: str, ctx: HookContext) -> None:
         method = getattr(self, f'{moment}_{ctx.verb}', None)
         if callable(method):
@@ -107,6 +112,8 @@ class ActionBehaviour(ModelBehaviour):
     ``_attachments`` signal, schedules from its parents, and pushes its children when its
     own dates move. Its text is written as branch.leaf (``action.en``), never as an
     alternate name (Bill, 2026-09-24)."""
+
+    SIGNALS = {'_attachments': list}          # document ids to link (KanbanBoardPage)
 
     def after_save(self, ctx: HookContext) -> None:
         pending = ctx.data.get('_attachments')
