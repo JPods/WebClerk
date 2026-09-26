@@ -358,7 +358,7 @@ class Cash(HardDeleteOnly, BaseModel):
         """Money actually moved. An empty Cash (saved for its id), a failed or cancelled
         one, and a card Cash not yet charged hold none: they credit no one's balance and
         cannot be applied. Manual cash (a check, cash in hand) holds what it says."""
-        if self.purpose == 'empty' or self.status in ('failed', 'cancelled'):
+        if self.purpose == 'connection-payservice' or self.status in ('failed', 'cancelled'):
             return False
         if self.gateway and self.gateway != 'manual':
             return self.status not in self.UNSETTLED_GATEWAY_STATUSES

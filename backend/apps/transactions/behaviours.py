@@ -139,8 +139,9 @@ class InvoiceBehaviour(DocumentBehaviour):
 
 class CashBehaviour(ModelBehaviour):
     """A Cash names only a document its writer can see — the old cash/process/ loaded any
-    invoice by id, so anyone signed in could charge anyone's. An empty Cash (saved for its
-    id, plan §13.5) stays empty until a command claims it: a save cannot mark it paid."""
+    invoice by id, so anyone signed in could charge anyone's. A connection-payservice Cash is
+    saved fully populated except its money (plan §13a; Bill, 2026-09-26): pay holds the payment
+    values in metadata.payservice, and they move into amount/fee only when the gateway says yes."""
 
     DOCUMENTS = (('invoice_id', 'invoice'), ('receipt_id', 'receipt'), ('purchase_id', 'purchase'))
     #: What a save may not change once money has moved on this Cash (Fable review): a
@@ -163,6 +164,15 @@ class CashBehaviour(ModelBehaviour):
                 or bool(cash_door._applications(cash_id=obj.pk)))
 
     def before_save(self, ctx: HookContext) -> None:
+        # The party comes from the document when the save names only the document, so a Cash is
+        # scoped like its invoice or receipt from its first save (Bill, 2026-09-26: fully populated).
+        from apps.transactions.models import Invoice, Receipt
+        if ctx.obj.invoice_id and not ctx.obj.customer_id:
+            ctx.obj.customer_id = Invoice.objects.filter(pk=ctx.obj.invoice_id).values_list(
+                'customer_id', flat=True).first()
+        if ctx.obj.receipt_id and not ctx.obj.vendor_id:
+            ctx.obj.vendor_id = Receipt.objects.filter(pk=ctx.obj.receipt_id).values_list(
+                'vendor_id', flat=True).first()
         if ctx.actor.is_guarded:
             from apps.core.services.record_serialize import visible_queryset
             for field, model_key in self.DOCUMENTS:
@@ -178,11 +188,17 @@ class CashBehaviour(ModelBehaviour):
                           f'{", ".join(sorted(ctx.changed & self.SETTLED_FIELDS))} move only '
                           f'through its commands (pay, refund) and the cash door.',
                           {'fields': sorted(ctx.changed & self.SETTLED_FIELDS)})
-        if getattr(ctx.obj, 'purpose', None) == 'empty':
+        if getattr(ctx.obj, 'purpose', None) == 'connection-payservice':
+            # A fully populated record except the money: amount and fee arrive only through pay,
+            # held in metadata.payservice until the gateway succeeds (Bill, 2026-09-26).
+            if ctx.obj.amount or ctx.obj.fee_amount:
+                raise Refused(400, 'payservice_cash',
+                              'A connection-payservice Cash carries no amount of its own; the pay '
+                              'command holds it until the gateway answers.', {'amount': str(ctx.obj.amount)})
             if ctx.obj.status not in ('', None, 'pending') or ctx.obj.gateway_transaction_id:
-                raise Refused(400, 'empty_cash',
-                              'An empty Cash moves nothing; charge it with '
-                              'POST /wcapi/cash/<id>/pay/.', {'status': ctx.obj.status})
+                raise Refused(400, 'payservice_cash',
+                              'A connection-payservice Cash moves nothing until its pay; charge it '
+                              'with POST /wcapi/cash/<id>/pay/.', {'status': ctx.obj.status})
 
 
 def register_documents() -> None:

@@ -1,6 +1,7 @@
 """The cash commands — pay, refund, receive (Bill, 2026-09-24; plan §11.6, §13).
 
-    POST /wcapi/cash/                        save an empty Cash (purpose "empty") for its id
+    POST /wcapi/cash/                        {purpose: "connection-payservice", invoice_id, method, …}
+                                             — everything but the money, for its id
     POST /wcapi/cash/<id>/pay/               charge it: {payment_method_token}
     POST /wcapi/cash/<id>/refund/            refund it: {amount_cents?}
     POST /wcapi/cash/_receive/<provider>/    the gateway tells us how a charge ended
@@ -38,7 +39,11 @@ from apps.core.services.door import Refused
 
 logger = logging.getLogger(__name__)
 
-EMPTY = 'empty'            # a Cash saved for its id; nothing moved (plan §13.5)
+#: A Cash saved for its id at the start of a payment through a gateway Connection, fully
+#: populated except the money (Bill, 2026-09-26; plan §13a). pay holds the payment values in
+#: metadata.payservice; on success they move into amount/fee and the Cash becomes 'payment';
+#: on a decline they stay as evidence and amount stays 0. Alice sweeps unused ones.
+PAYSERVICE = 'connection-payservice'
 PAYMENT = 'payment'        # a Cash a pay has claimed
 PROVIDERS = ('spreedly',)  # known gateways; Stripe and PayPal checks are to be written
 
@@ -70,19 +75,34 @@ def pay(ctx) -> Dict[str, Any]:
     if not token:
         raise Refused(400, 'payment_method_token_required',
                       'A card payment needs the payment_method_token from the card form.')
-    if cash.purpose != EMPTY or cash.status not in (None, '', 'pending') or cash.gateway_transaction_id:
-        raise Refused(409, 'cash_not_empty',
+    if cash.purpose != PAYSERVICE or cash.status not in (None, '', 'pending') or cash.gateway_transaction_id:
+        raise Refused(409, 'cash_not_payservice',
                       f'Cash {cash.pk} is already {cash.status or cash.purpose}; a new payment '
-                      f'starts with a new empty Cash (POST /wcapi/cash/).',
+                      f'starts with a new naked Cash (POST /wcapi/cash/ '
+                      f'{{"purpose": "{PAYSERVICE}"}}).',
                       {'id': cash.pk, 'status': cash.status, 'purpose': cash.purpose})
-    if not cash.invoice_id:
+    # The naked Cash is filled here, under its lock: what it pays comes with the pay (Bill 09-26).
+    invoice_id = ctx.data.get('invoice_id') or cash.invoice_id
+    if not invoice_id:
         raise Refused(400, 'invoice_required',
-                      f'Cash {cash.pk} names no invoice; a payment pays an invoice.')
+                      f'Say which invoice this pays: {{"invoice_id": n, "amount": x, "method": "card", '
+                      f'"payment_method_token": "…"}}.')
 
     from apps.transactions.models import Invoice
     from apps.transactions.services.pricing.dual_pricing import compute_cash_amount
-    invoice = Invoice.objects.select_for_update().get(pk=cash.invoice_id)
-    amount = _d(ctx.data.get('amount') or cash.amount).quantize(Decimal('0.01'))
+    if ctx.actor.is_guarded:
+        # The naked save named no invoice, so its write-scope check could not see one: the
+        # person must be able to see the invoice they pay (a rep, another rep's customer).
+        from apps.core.services.record_serialize import visible_queryset
+        if not visible_queryset('invoice', actor=ctx.actor)[1].filter(pk=invoice_id).exists():
+            raise Refused(404, 'not_found', f'Invoice {invoice_id} not found', {'invoice_id': invoice_id})
+    invoice = Invoice.objects.select_for_update().filter(pk=invoice_id).first()
+    if invoice is None:
+        raise Refused(404, 'not_found', f'Invoice {invoice_id} not found', {'invoice_id': invoice_id})
+    cash.invoice_id = invoice.pk
+    cash.customer_id = cash.customer_id or invoice.customer_id
+    cash.method = ctx.data.get('method') or cash.method or 'card'
+    amount = _d(ctx.data.get('amount')).quantize(Decimal('0.01'))
     balance = _d((invoice.totals or {}).get('balance'))
     if amount <= 0:
         raise Refused(400, 'amount_required', 'A payment needs an amount above zero.')
@@ -105,10 +125,11 @@ def pay(ctx) -> Dict[str, Any]:
         meta.setdefault('processing_fees', []).append({
             'type': 'dual_pricing_surcharge', 'rate': pricing['card_rate'],
             'amount': float(fee), 'base_total': float(amount)})
+    # The payment values wait in metadata.payservice until the gateway says yes (Bill,
+    # 2026-09-26): a crash or a decline leaves amount/fee empty, so nothing reads as money.
+    meta['payservice'] = {'amount': float(amount), 'fee': float(fee), 'charge': float(charge),
+                          'requested_at': timezone.now().isoformat(), 'by': ctx.user_id}
     cash.metadata = meta
-    cash.amount = charge
-    cash.fee_amount = fee
-    cash.purpose = PAYMENT
     cash.status = 'processing'
     cash.gateway = 'spreedly'
     cash.contact_id = cash.contact_id or ctx.user_id
@@ -129,7 +150,7 @@ def charge_card(cash_id: int, token: str) -> None:
     from apps.transactions.services.cash.spreedly_gateway import SpreedlyError
     cash = Cash.objects.get(pk=cash_id)
     try:
-        result = _gateway().purchase(token, _cents(cash.amount), order_id=f'wc3-{cash_id}')
+        result = _gateway().purchase(token, _cents(_held(cash)['charge']), order_id=f'wc3-{cash_id}')
     except SpreedlyError as e:
         if 400 <= (e.status_code or 0) < 500:            # the gateway said no
             logger.warning('Cash %s: the gateway declined the charge: %s', cash_id, e)
@@ -184,6 +205,12 @@ def _stamp(cash_id: int, txn: Dict[str, Any]) -> None:
     cash.save()
 
 
+def _held(cash) -> Dict[str, Any]:
+    """The payment values held on a connection-payservice Cash until the gateway answers."""
+    meta = cash.metadata if isinstance(cash.metadata, dict) else {}
+    return meta.get('payservice') or {}
+
+
 # ── the outcome of a charge ───────────────────────────────────────────
 
 @transaction.atomic
@@ -217,6 +244,11 @@ def record_outcome(cash_id: int, *, state: str, txn: Dict[str, Any]) -> Optional
         cash.save()
         return 'failed'
 
+    # The held values move into their places now that the gateway has said yes.
+    held = _held(cash)
+    cash.amount = _d(held.get('charge'))
+    cash.fee_amount = _d(held.get('fee'))
+    cash.purpose = PAYMENT
     cash.status = 'completed'
     cash.dt_processed = timezone.now()
     # The money arrived: nothing could apply while it was processing (holds_money was

@@ -63,16 +63,20 @@ def invoice(db):
                                   totals={'total': 100.0, 'received': 0.0, 'balance': 100.0})
 
 
-def _empty_cash(invoice, amount='100.00'):
-    return save_record(Actor.system(), {'model_name': 'cash', 'invoice_id': invoice.pk,
-                                        'amount': amount, 'method': 'card',
-                                        'purpose': 'empty'}).obj
+def _payservice_cash(invoice, amount='100.00'):
+    """A connection-payservice Cash: everything but the money (Bill, 2026-09-26, plan §13a);
+    the amount comes with pay and is held until the gateway says yes."""
+    cash = save_record(Actor.system(), {'model_name': 'cash', 'purpose': 'connection-payservice',
+                                        'invoice_id': invoice.pk, 'method': 'card'}).obj
+    cash._pays = {'amount': amount}
+    return cash
 
 
 def _pay(cash, capture, token='pm-1'):
     with capture(execute=True):
         return verbs.run(Actor.system(), 'pay', 'cash',
-                         {'id': cash.pk, 'payment_method_token': token})
+                         {'id': cash.pk, 'payment_method_token': token,
+                          **getattr(cash, '_pays', {})})
 
 
 def _applications(cash):
@@ -89,7 +93,7 @@ def _balance(invoice):
 
 def test_a_completed_charge_applies_itself_to_its_invoice_once(
         invoice, gateway, django_capture_on_commit_callbacks):
-    cash = _empty_cash(invoice)
+    cash = _payservice_cash(invoice)
     _pay(cash, django_capture_on_commit_callbacks)
 
     cash.refresh_from_db()
@@ -110,11 +114,11 @@ def test_a_completed_charge_applies_itself_to_its_invoice_once(
 
 def test_a_cash_already_claimed_cannot_be_charged_again(
         invoice, gateway, django_capture_on_commit_callbacks):
-    cash = _empty_cash(invoice)
+    cash = _payservice_cash(invoice)
     _pay(cash, django_capture_on_commit_callbacks)
     with pytest.raises(Refused) as refused:
         _pay(cash, django_capture_on_commit_callbacks)
-    assert refused.value.code == 'cash_not_empty'
+    assert refused.value.code == 'cash_not_payservice'
     assert len(gateway.purchases) == 1, 'a double-click cannot charge twice'
 
 
@@ -122,35 +126,55 @@ def test_a_declined_charge_moves_nothing(invoice, monkeypatch,
                                          django_capture_on_commit_callbacks):
     declined = FakeGateway(succeeds=False)
     monkeypatch.setattr(cash_commands, '_gateway', lambda: declined)
-    cash = _empty_cash(invoice)
+    cash = _payservice_cash(invoice)
     _pay(cash, django_capture_on_commit_callbacks)
     cash.refresh_from_db()
     assert cash.status == 'failed'
     assert not _applications(cash).exists()
     assert _balance(invoice) == Decimal('100')
+    # Bill, 2026-09-26: a declined attempt keeps what was asked as evidence; no money field moved.
+    assert cash.amount == Decimal('0') and cash.fee_amount == Decimal('0')
+    assert cash.metadata['payservice']['charge'] == 100.0
 
+
+def test_the_payment_values_wait_in_payservice_until_the_gateway_says_yes(invoice, monkeypatch):
+    """Processing: the amount is held in metadata.payservice, amount stays 0 (a crash here leaves
+    no money on the record). Success moves it into amount/available and applies it."""
+    gw = FakeGateway()
+    monkeypatch.setattr(cash_commands, '_gateway', lambda: gw)
+    cash = _payservice_cash(invoice)
+    verbs.run(Actor.system(), 'pay', 'cash', {'id': cash.pk, 'payment_method_token': 'pm-1',
+                                               **cash._pays})       # on_commit not run: in flight
+    cash.refresh_from_db()
+    assert (cash.status, cash.amount, cash.purpose) == ('processing', Decimal('0'), 'connection-payservice')
+    assert cash.metadata['payservice']['amount'] == 100.0 and not cash.holds_money
+    cash_commands.charge_card(cash.pk, 'pm-1')
+    cash.refresh_from_db()
+    assert (cash.status, cash.amount, cash.available, cash.purpose) == (
+        'completed', Decimal('100.00'), Decimal('0.00'), 'payment')
+    assert _balance(invoice) == Decimal('0')
 
 def test_a_refused_pay_never_reaches_the_gateway(invoice, gateway,
                                                  django_capture_on_commit_callbacks):
-    cash = _empty_cash(invoice)
+    cash = _payservice_cash(invoice)
     with django_capture_on_commit_callbacks(execute=True), pytest.raises(Refused):
         verbs.run(Actor.system(), 'pay', 'cash', {'id': cash.pk})     # no card token
     assert gateway.purchases == []
 
 
-def test_an_empty_cash_cannot_be_saved_as_paid(invoice):
+def test_a_payservice_cash_cannot_be_saved_as_paid(invoice):
     with pytest.raises(Refused) as refused:
         save_record(Actor.system(), {'model_name': 'cash', 'invoice_id': invoice.pk,
-                                     'amount': '100.00', 'purpose': 'empty',
+                                     'amount': '100.00', 'purpose': 'connection-payservice',
                                      'status': 'completed'})
-    assert refused.value.code == 'empty_cash'
+    assert refused.value.code == 'payservice_cash'
 
 
 # ── refund ────────────────────────────────────────────────────────────
 
 def test_a_full_refund_reverses_the_application_through_the_cash_door(
         invoice, gateway, django_capture_on_commit_callbacks):
-    cash = _empty_cash(invoice)
+    cash = _payservice_cash(invoice)
     _pay(cash, django_capture_on_commit_callbacks)
     with django_capture_on_commit_callbacks(execute=True):
         verbs.run(Actor.system(), 'refund', 'cash', {'id': cash.pk})
@@ -179,7 +203,7 @@ def test_a_full_refund_reverses_the_application_through_the_cash_door(
 
 def test_a_partial_refund_is_a_credit_not_a_void(
         invoice, gateway, django_capture_on_commit_callbacks):
-    cash = _empty_cash(invoice)
+    cash = _payservice_cash(invoice)
     _pay(cash, django_capture_on_commit_callbacks)
     with django_capture_on_commit_callbacks(execute=True):
         verbs.run(Actor.system(), 'refund', 'cash', {'id': cash.pk, 'amount_cents': 2500})
@@ -194,7 +218,7 @@ def test_a_partial_refund_is_a_credit_not_a_void(
 
 
 def test_an_uncharged_cash_cannot_be_refunded(invoice, gateway):
-    cash = _empty_cash(invoice)
+    cash = _payservice_cash(invoice)
     with pytest.raises(Refused) as refused:
         verbs.run(Actor.system(), 'refund', 'cash', {'id': cash.pk})
     assert refused.value.code == 'cash_not_refundable'
@@ -203,7 +227,7 @@ def test_an_uncharged_cash_cannot_be_refunded(invoice, gateway):
 # ── receive and who may ───────────────────────────────────────────────
 
 def test_the_public_reaches_receive_and_nothing_else(invoice, gateway):
-    cash = _empty_cash(invoice)
+    cash = _payservice_cash(invoice)
     with pytest.raises(Refused) as refused:
         verbs.run_command(Actor.anonymous(), 'pay', 'cash', cash.pk,
                           {'payment_method_token': 'pm-x'})
@@ -219,13 +243,14 @@ def test_the_routes(client, django_user_model, invoice, gateway,
     admin = django_user_model.objects.create_user(email='pay-admin@test.com', password='x',
                                                   username='', role='admin')
     client.force_login(admin)
-    saved = client.post('/wcapi/cash/', {'invoice_id': invoice.pk,
-                                         'amount': '100.00', 'method': 'card',
-                                         'purpose': 'empty'}, content_type='application/json')
+    saved = client.post('/wcapi/cash/', {'purpose': 'connection-payservice',
+                                         'invoice_id': invoice.pk, 'method': 'card'},
+                        content_type='application/json')
     assert saved.status_code in (200, 201), saved.content
     cash_id = saved.json()['data']['id']
     with django_capture_on_commit_callbacks(execute=True):
-        paid = client.post(f'/wcapi/cash/{cash_id}/pay/', {'payment_method_token': 'pm-1'},
+        paid = client.post(f'/wcapi/cash/{cash_id}/pay/',
+                           {'amount': '100.00', 'payment_method_token': 'pm-1'},
                            content_type='application/json')
     assert paid.status_code == 200, paid.content
     assert paid.json()['data']['result']['status'] == 'processing'
@@ -273,9 +298,9 @@ def test_a_webhook_before_the_charges_own_answer_settles_it_once(
         invoice, gateway, django_capture_on_commit_callbacks):
     """The charge went through but its answer has not arrived: the webhook finds the Cash
     by its order reference, and the late answer changes nothing."""
-    cash = _empty_cash(invoice)
+    cash = _payservice_cash(invoice)
     with django_capture_on_commit_callbacks(execute=False):         # the answer is late
-        verbs.run(Actor.system(), 'pay', 'cash', {'id': cash.pk, 'payment_method_token': 'pm-1'})
+        verbs.run(Actor.system(), 'pay', 'cash', {'id': cash.pk, 'payment_method_token': 'pm-1', **cash._pays})
     answer = gateway.purchase('pm-1', 10000, order_id=f'wc3-{cash.pk}')['transaction']
 
     verbs.run_command(Actor.anonymous(), 'receive', 'cash', None,
@@ -298,7 +323,7 @@ def test_a_charge_that_fails_to_settle_is_kept_and_the_webhook_settles_it(
         return real(*args, **kwargs)
     monkeypatch.setattr(cash_pending, 'apply_cash_to_invoice', flaky)
 
-    cash = _empty_cash(invoice)
+    cash = _payservice_cash(invoice)
     _pay(cash, django_capture_on_commit_callbacks)
     cash.refresh_from_db()
     assert cash.gateway_transaction_id == 'txn-1', 'the answer was kept'
@@ -313,7 +338,7 @@ def test_a_charge_that_fails_to_settle_is_kept_and_the_webhook_settles_it(
 def test_a_refund_takes_unapplied_money_before_touching_a_document(
         invoice, gateway, django_capture_on_commit_callbacks):
     from apps.transactions.services.cash.cash_pending import unapply_cash_application
-    cash = _empty_cash(invoice)
+    cash = _payservice_cash(invoice)
     _pay(cash, django_capture_on_commit_callbacks)
     unapply_cash_application(_applications(cash).get().pk, reason='moved elsewhere')
     assert _balance(invoice) == Decimal('100')
@@ -336,7 +361,7 @@ def test_a_refund_whose_reversal_fails_is_finished_by_the_next(
         return real(*args, **kwargs)
     monkeypatch.setattr(cash_door, 'reverse_application', flaky)
 
-    cash = _empty_cash(invoice)
+    cash = _payservice_cash(invoice)
     _pay(cash, django_capture_on_commit_callbacks)
     with django_capture_on_commit_callbacks(execute=True):
         verbs.run(Actor.system(), 'refund', 'cash', {'id': cash.pk, 'amount_cents': 4000})
@@ -357,17 +382,17 @@ def test_a_refund_whose_reversal_fails_is_finished_by_the_next(
 
 def test_a_payment_above_the_balance_charges_nothing(invoice, gateway,
                                                       django_capture_on_commit_callbacks):
-    cash = _empty_cash(invoice, amount='150.00')
+    cash = _payservice_cash(invoice, amount='150.00')
     with django_capture_on_commit_callbacks(execute=True), pytest.raises(Refused) as refused:
-        verbs.run(Actor.system(), 'pay', 'cash', {'id': cash.pk, 'payment_method_token': 'pm'})
+        verbs.run(Actor.system(), 'pay', 'cash', {'id': cash.pk, 'payment_method_token': 'pm', **cash._pays})
     assert refused.value.code == 'amount_exceeds_balance' and gateway.purchases == []
 
 
 def test_a_charged_cash_cannot_be_reset_by_a_save(invoice, gateway,
                                                   django_capture_on_commit_callbacks):
-    cash = _empty_cash(invoice)
+    cash = _payservice_cash(invoice)
     _pay(cash, django_capture_on_commit_callbacks)
-    for change in ({'purpose': 'empty', 'status': 'pending', 'gateway_transaction_id': ''},
+    for change in ({'purpose': 'connection-payservice', 'status': 'pending', 'gateway_transaction_id': ''},
                    {'amount': '500.00'}, {'invoice_id': invoice.pk + 999}):
         with pytest.raises(Refused) as refused:
             save_record(Actor.system(), {'model_name': 'cash', 'id': cash.pk, **change})
@@ -375,7 +400,7 @@ def test_a_charged_cash_cannot_be_reset_by_a_save(invoice, gateway,
 
 
 def test_the_public_cannot_refund(invoice, gateway):
-    cash = _empty_cash(invoice)
+    cash = _payservice_cash(invoice)
     with pytest.raises(Refused) as refused:
         verbs.run_command(Actor.anonymous(), 'refund', 'cash', cash.pk, {})
     assert refused.value.status == 401
@@ -409,13 +434,15 @@ def test_a_rep_cannot_charge_another_reps_invoice(db):
 
     mine, other = (OrgBase.objects.create(company=n, org_type='rep') for n in ('Mine', 'Other'))
     theirs = OrgBase.objects.create(company='Globex', org_type='customer', rep_id=other.pk)
-    their_invoice = Invoice.objects.create(customer_id=theirs.pk, rep_id=other.pk,
-                                           status='open', totals={'balance': 50.0})
+    # Level 1, as the door makes it: at 0 it was hidden from every rep, so this test passed
+    # without the rep scope doing the refusing.
+    their_invoice = Invoice.objects.create(customer_id=theirs.pk, rep_id=other.pk, status='open',
+                                           security_level=1, totals={'balance': 50.0})
     jane = Actor(user=Contact.objects.create(email='jane.pay@example.com', role='rep',
                                              rep_id=mine.pk))
     with pytest.raises(Refused) as refused:
         save_record(jane, {'model_name': 'cash', 'invoice_id': their_invoice.pk,
-                           'amount': '50.00', 'method': 'card', 'purpose': 'empty'})
+                           'method': 'card', 'purpose': 'connection-payservice'})
     assert refused.value.status == 404
     assert not Cash.objects.filter(invoice_id=their_invoice.pk).exists()
 
@@ -425,7 +452,7 @@ def test_a_cash_that_holds_no_money_credits_no_one(invoice, monkeypatch,
     """An empty Cash and a declined card charge used to start with available = amount, so
     the cash ledger credited the customer before (or without) any money arriving."""
     from apps.accounts.models import Ledger
-    empty = _empty_cash(invoice)
+    empty = _payservice_cash(invoice)
     assert empty.available == Decimal('0') and not empty.holds_money
     assert not Ledger.objects.filter(model_name='cash', parent_id=empty.pk).exists()
 

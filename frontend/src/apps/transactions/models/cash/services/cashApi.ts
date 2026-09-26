@@ -43,9 +43,11 @@ export const fetchGatewayConfig = async () => {
 };
 
 /**
- * Pay an invoice by card: save an empty Cash for its id, then charge it (Bill, 2026-09-24).
- *   POST /wcapi/cash/              {invoice_id, amount, method, purpose: 'empty'}
- *   POST /wcapi/cash/<id>/pay/     {payment_method_token}
+ * Pay an invoice by card (Bill, 2026-09-26, plan §13a): save the Cash fully populated except
+ * its money, for its id; then pay. The amount is held in metadata.payservice until the gateway
+ * says yes, and only then moves into the Cash's amount and applies to the invoice.
+ *   POST /wcapi/cash/              {purpose: 'connection-payservice', invoice_id, method}
+ *   POST /wcapi/cash/<id>/pay/     {amount, payment_method_token}
  * The gateway is called after the Cash is committed; a second pay of the same Cash is
  * refused, so a double-click cannot charge twice. A completed charge applies itself to
  * the invoice. `status` is the Cash's after the charge: completed, failed or processing.
@@ -58,12 +60,12 @@ export const processGatewayCash = async (
 ) => {
   // The path names the model; the body is the Cash's fields, flat (REST only).
   const saved: any = await wcapiSave<any>(MODEL, {
-    invoice_id: invoiceId, amount, method, purpose: 'empty',
+    purpose: 'connection-payservice', invoice_id: invoiceId, method,
   });
   const cashId: number = saved?.id ?? saved?.record?.id;
   const res = await apiClient.post(`/wcapi/cash/${cashId}/pay/`, {
-    payment_method_token: paymentMethodToken,
     amount,
+    payment_method_token: paymentMethodToken,   // secret-guard:allow — a variable; the token exists only at runtime
   });
   const record = res.data?.data?.record ?? {};
   return {
