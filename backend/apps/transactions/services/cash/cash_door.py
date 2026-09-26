@@ -326,9 +326,51 @@ def _on_record_deleted(sender, instance, **kwargs):
 
 # ── a cash Pending is permanent, and frozen once processed ────────────
 
+#: Data-set kinds whose journal a repair may rewrite (Bill, 2026-09-26: demo, training and
+#: dev only; a live company's journal is never deleted). ``DATA_SET_KIND`` defaults to live:
+#: install.sh writes DATA_SET_ID=DEV on every install, so the id cannot be the test.
+DISPOSABLE_DATA_SETS = ('demo', 'training', 'dev')
+_orphan_delete_ok: set = set()
+
+
+def data_set_is_disposable() -> bool:
+    from decouple import config
+    return config('DATA_SET_KIND', default='live').strip().lower() in DISPOSABLE_DATA_SETS
+
+
+def delete_orphan_application(pending_id: int, reason: str) -> Dict[str, Any]:
+    """Delete one cash application whose cash and document are both gone — the only way a
+    cash Pending is ever deleted, and only on a demo, training or dev data set (Bill,
+    2026-09-26: a raw purge left six on wc_demo; unapplying needs the cash and the document).
+    Logged with what it said. Refused for anything else: the journal is permanent."""
+    from apps.transactions.models import Cash, Invoice, Receipt
+    if not data_set_is_disposable():
+        raise CashDoorError('a cash application is deleted only on a demo, training or dev data '
+                            'set (DATA_SET_KIND); this one is live. Unapply it instead.')
+    p = _pending_model().objects.get(pk=pending_id, purpose__in=CASH_PURPOSES)
+    c = p.changes or {}
+    doc_model, doc_key = (Receipt, 'receipt_id') if p.purpose == AP else (Invoice, 'invoice_id')
+    cash_gone = c.get('cash_id') is not None and not Cash.objects.filter(pk=c['cash_id']).exists()
+    doc_gone = c.get(doc_key) is not None and not doc_model.objects.filter(pk=c[doc_key]).exists()
+    if not (cash_gone and doc_gone):
+        raise CashDoorError(f'pending {pending_id} still points at a live cash or document; '
+                            f'unapply it instead.')
+    logger.warning("[cash_door] deleting orphan application pending %s (%s): %s", pending_id,
+                   reason, c)
+    _orphan_delete_ok.add(p.pk)
+    try:
+        p.delete()
+    finally:
+        _orphan_delete_ok.discard(pending_id)
+    return {'deleted': pending_id, 'changes': c, 'reason': reason}
+
+
 def _on_pending_delete(sender, instance, **kwargs):
     """Pendings are permanent (Bill, 2026-09-21). wcapi can reach a Pending directly
-    through the record registry; this is where that stops."""
+    through the record registry; this is where that stops. The one exception is
+    ``delete_orphan_application`` on a disposable data set."""
+    if instance.pk in _orphan_delete_ok:
+        return
     if instance.purpose in CASH_PURPOSES:
         raise CashDoorError(
             f"a cash application (pending {instance.pk}) is permanent: it is the record the "
