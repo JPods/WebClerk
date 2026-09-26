@@ -44,25 +44,26 @@ def test_an_invoices_line_links_are_id_dicts_in_one_shape():
 
 
 @pytest.mark.django_db
-def test_normalize_rebuilds_mixed_lists_drops_dead_links_and_leaves_history_alone():
-    from apps.core.models import Contact
+def test_normalize_reports_and_writes_nothing_yet():
+    """Report only until every writer uses link_entry (Bill, after Fable's review)."""
     from apps.orgs.models import OrgBase
-    person = Contact.objects.create(email='now@example.com', name_first='Now', name_last='Name')
-    org = OrgBase.objects.create(company='Mixed Co', org_type='customer', is_active=True)
-    stale = [{'purpose': 'primary', 'contact_id': person.pk, 'display_name': 'Old Name'},
-             {'id': person.pk, 'name': 'x'}, 10 ** 9]
+    org = OrgBase.objects.create(company='Report Co', org_type='customer', is_active=True)
+    stale = [{'purpose': 'primary', 'contact_id': 1, 'display_name': 'Old'}, 10 ** 9]
     OrgBase.objects.filter(pk=org.pk).update(refs={'links': {'contact': stale}})
-
     out = StringIO()
-    call_command('normalize_links', apply=True, stdout=out)
+    call_command('normalize_links', stdout=out)
     org.refresh_from_db()
-    links = org.refs['links']['contact']
-    assert len(links) == 1, 'the duplicate collapses and the dead link is dropped'
-    assert links[0]['id'] == person.pk and links[0]['purpose'] == 'primary'
-    assert links[0] == {**link_entry(person, 'contact'), 'purpose': 'primary'}
-    assert 'dropped' in out.getvalue()
+    assert org.refs['links']['contact'] == stale, 'nothing is written'
+    assert 'Would rewrite' in out.getvalue()
 
 
-def test_normalize_is_scheduled_weekly():
-    from apps.support.scheduler.registry import build_celery_beat_schedule
-    assert build_celery_beat_schedule()['normalize-links-weekly']['task'].endswith('task_normalize_links')
+@pytest.mark.django_db
+def test_a_bare_int_org_link_still_counts_for_access():
+    """The deleted every-save step used to turn bare ints into dicts; role_filter read only
+    dicts, so a contact linked by an old writer would have lost its customer's scope."""
+    from apps.core.models import Contact
+    from apps.core.services.role_filter import build_user_context
+    user = Contact.objects.create(email='scope@example.com', role='user')
+    Contact.objects.filter(pk=user.pk).update(refs={'links': {'customer': [4242, {'id': 4343}]}})
+    user.refresh_from_db()
+    assert set(build_user_context(user)['org_ids']['customer']) >= {4242, 4343}

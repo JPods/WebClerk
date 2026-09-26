@@ -129,7 +129,8 @@ def build_user_context(user: AbstractUser) -> dict:
         if fk_id:
             ids.append(fk_id)
         for link in links.get(org_type, []) or []:
-            link_id = link.get("id") if isinstance(link, dict) else None
+            # {"id": n}, or a bare int an older writer left (it still names the org).
+            link_id = link.get("id") if isinstance(link, dict) else (link if isinstance(link, int) else None)
             if link_id and link_id not in ids:
                 ids.append(link_id)
         context["org_ids"][org_type] = ids

@@ -35,10 +35,12 @@ def link_obj_to_contact(obj, contact) -> bool:
     obj_links = refs.setdefault('links', {})
     contact_list = obj_links.setdefault('contact', [])
 
-    if contact.pk not in contact_list:
-        contact_list.append(contact.pk)
-        return True
-    return False
+    # {"id": n}, matched by id (a bare int left by the old writer counts too): the broken
+    # every-save step that turned ints into dicts is gone (Fable #4).
+    if contact.pk in [e.get('id') if isinstance(e, dict) else e for e in contact_list]:
+        return False
+    contact_list.append({'id': contact.pk})
+    return True
 
 
 def link_comm_to_contact(obj, contact, bucket: str, denorm_fields: list[str]) -> bool:

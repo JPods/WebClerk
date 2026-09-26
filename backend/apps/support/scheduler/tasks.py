@@ -152,19 +152,6 @@ def task_drain_queued_cash(self, limit=200):
     return drain_queued_cash(limit=limit)
 
 
-@shared_task(bind=True, max_retries=0)
-def task_normalize_links(self):
-    """Refresh every refs.links snapshot from its source (Bill, 2026-09-26: "Regularly Alice
-    should run denormalization clean up"). Derived data: allowed on every data set. Dead
-    links are dropped; history (audit) is untouched."""
-    from io import StringIO
-    from django.core.management import call_command
-    out = StringIO()
-    call_command('normalize_links', apply=True, stdout=out)
-    logger.info("[normalize_links] %s", out.getvalue().strip().splitlines()[0] if out.getvalue() else '')
-    return out.getvalue()
-
-
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def task_refresh_keywords(self, limit=500, batch_size=200):
     """

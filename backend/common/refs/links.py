@@ -65,7 +65,7 @@ def upsert_link(obj, *, to_model: str, to_id: int, kind: str, direction: str) ->
                 return False
             if isinstance(e, int) and e == to_id:
                 return False
-        bucket.append(to_id)
+        bucket.append({"id": to_id})         # one element shape: {"id": n} (Fable #4)
         _set_links_list(obj, links_field)
         return True
 

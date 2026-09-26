@@ -11,7 +11,12 @@ its source record. A snapshot is derived data, so this repair is allowed on any 
 snapshot there is a fact about that moment, not a copy to refresh (Bill).
 
     manage.py normalize_links            # report what would change
-    manage.py normalize_links --apply    # write it
+
+REPORT ONLY (Bill, 2026-09-26, after Fable's review): writing waits until every link writer
+builds through link_entry, the transaction buckets have registry entries, link-time keys
+(commission_pc, url, authority…) and id-less elements (bundle links, nested contact) are
+kept, and one contact may carry two purposes. Until then a write would destroy data and the
+other writers would put their shapes back every week.
 """
 from django.apps import apps
 from django.db import DEFAULT_DB_ALIAS, router
@@ -49,11 +54,8 @@ def _element_id(element):
 class Command(BaseCommand):
     help = "Rewrite refs.links elements to link_entry's shape from their source records."
 
-    def add_arguments(self, parser):
-        parser.add_argument('--apply', action='store_true', help='Write the changes (default: report).')
-
     def handle(self, *args, **opts):
-        apply = opts['apply']
+        apply = False                    # report only — see the module docstring
         from collections import Counter
         changed = records = gone = 0
         by_list, gone_by = Counter(), Counter()
