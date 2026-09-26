@@ -66,6 +66,7 @@ VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
     'convert': _command('convert'),
     'allocate': _command('allocate'),
     'release': _command('release'),
+    'apply_balance': _command('apply_balance'),
 }
 
 #: Which model answers which command, and the base service that does it. A command is

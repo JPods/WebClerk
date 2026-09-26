@@ -16,6 +16,10 @@ class TransactionsConfig(AppConfig):
         from .services.cash import cash_commands
         cash_commands.register()
 
+        # An invoice's money: apply_balance by rule (services/cash/invoice_commands.py).
+        from .services.cash import invoice_commands
+        invoice_commands.register()
+
         # Convert: one engine, a command on its source (services/convert/convert.py).
         from .services.convert import convert
         convert.register()

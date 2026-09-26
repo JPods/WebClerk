@@ -21,11 +21,12 @@ from apps.core.models import Contact
 from apps.products.models import Item
 from django.db import transaction
 
-from apps.core.services.door import Actor
+from apps.core.services.door import Actor, Refused
+from apps.core.services.verbs import run_command
 from apps.core.services.save import save_record
-from apps.transactions.models import Cash, Invoice
+from apps.transactions.models import Invoice
 from apps.transactions.services.cash.cash_pending import (
-    _create_adjustment_cash, _utc_now_iso, apply_cash_to_invoice)
+    _create_adjustment_cash, _utc_now_iso)
 
 logger = logging.getLogger(__name__)
 
@@ -118,9 +119,6 @@ def create_trip_invoice(data: dict[str, Any]) -> dict[str, Any]:
         return {"error": "A shelter ride is written off by a named attendant: send authorized_by "
                          "(the attendant's contact id)", "code": "shelter_unauthorized"}
     owner = {"customer_id": customer.pk}
-    funds = [] if shelter else [
-        c for c in Cash.objects.filter(**owner, available__gt=0).order_by("dt_created", "pk")
-        if c.holds_money]
 
     refs = {
         "trip_id": trip_id,
@@ -153,17 +151,14 @@ def create_trip_invoice(data: dict[str, Any]) -> dict[str, Any]:
             "price_level": price_level, "refs": {**refs, "shelter": shelter}, "lines": [line],
         })
         invoice = Invoice.objects.get(pk=result.obj_id)
-        remaining = price
-        for cash in funds:                       # oldest money first
-            if remaining <= 0:
-                break
-            take = min(Decimal(str(cash.available)), remaining)
+        if not shelter:
+            # The general command any company uses (Bill: "nothing special"): the customer's
+            # money, oldest first. Refused → the trip still goes; the invoice stays open.
             try:
-                with transaction.atomic():       # a refused application undoes only itself
-                    apply_cash_to_invoice(cash.pk, invoice.pk, take, reason=f"JPods trip {trip_id}")
-                remaining -= take
-            except ValueError as e:              # the trip still goes; the rest stays open
-                logger.warning("JPods trip %s: cash %s not applied: %s", trip_id, cash.pk, e)
+                run_command(Actor.system(source="jpods"), "apply_balance", "invoice", invoice.pk,
+                            {"reason": f"JPods trip {trip_id}"})
+            except Refused as e:
+                logger.warning("JPods trip %s: balance not applied: %s", trip_id, e)
         if shelter:
             _create_adjustment_cash(
                 invoice, "write_off", price, reason=f"Shelter ride, JPods trip {trip_id}",
