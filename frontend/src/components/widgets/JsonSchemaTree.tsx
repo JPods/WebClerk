@@ -135,7 +135,7 @@ const COMMENTS_ENVELOPE: Record<string, SchemaNode> = {
   // comments.<channel> → [{user, user_id, mgs, time}] — one flat standard (2026-09-25)
   public:  ARR('Customer-visible comments'),
   process: ARR('Internal process notes'),
-  foreign: ARR('External/imported comments'),
+  partner: ARR('Partner comments (customers, vendors, web inquiries)'),
 };
 
 const ACTIONS_ENVELOPE: Record<string, SchemaNode> = {
@@ -152,7 +152,7 @@ const BASE_ENVELOPES: Record<string, SchemaNode> = {
   metadata: OBJ('Record metadata — history, health, flags, images', METADATA_ENVELOPE),
   refs:     OBJ('References — links, tags, keywords, dependencies', REFS_ENVELOPE),
   prefs:    OBJ('User preferences', PREFS_ENVELOPE),
-  comments: OBJ('Comments — public, process, foreign', COMMENTS_ENVELOPE),
+  comments: OBJ('Comments — public, process, partner', COMMENTS_ENVELOPE),
   actions:  OBJ('Action tracking', ACTIONS_ENVELOPE),
   config:   OBJ('Model-specific configuration', {}),
 };

@@ -7,7 +7,7 @@
  *
  * Each channel: { key, label, color }
  *   key   = data key in the comments envelope (e.g. "process", "public", "partner")
- *   label = display label (e.g. "foreign" for the partner key)
+ *   label = display label (the key itself: public, process, partner — Bill, 2026-09-25)
  *   color = CSS color value
  *
  * Falls back to a default set if the Setting doesn't define channels.
@@ -48,7 +48,7 @@ export interface ChannelDef {
 const DEFAULT_CHANNELS: ChannelDef[] = [
   { key: "process", label: "process", color: "var(--db-accent-green)" },
   { key: "public",  label: "public",  color: "var(--db-accent)" },
-  { key: "partner", label: "foreign", color: "var(--db-accent-purple)" },
+  { key: "partner", label: "partner", color: "var(--db-accent-purple)" },
 ];
 
 // ---------------------------------------------------------------------------

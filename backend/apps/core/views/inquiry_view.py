@@ -364,28 +364,27 @@ class InquiryView(_Public):
         return Response({'ok': True, 'reference': action.ida})
 
     def _add_followup(self, request, action, inquiry: dict, token: str, message: str):
-        """Add a repeat submission to the open inquiry as a comment (foreign channel) and spend
-        the link. Refused when the comment channel is full."""
+        """Add a repeat submission to the open inquiry as a comment on the partner channel and
+        spend the link. Refused when the channel is full."""
         from common.schemas.envelopes import COMMENT_CHANNEL_MAX_COUNT, COMMENT_TEXT_MAX_LEN
         parts = [f"Again from {inquiry['email']}: {inquiry['name']}, {inquiry['company']} — {message}"]
         if inquiry.get('market_use'):
             parts.append(f"uses the market {inquiry['market_use']}")
         parts += [f"{a['q']} {a['a']}" for a in inquiry.get('answers') or [] if a.get('a')]
         text = ' | '.join(parts)
-        comments = action.comments or {}
-        general = comments.setdefault('general', {})
-        foreign = general.setdefault('foreign', [])
-        if len(foreign) >= COMMENT_CHANNEL_MAX_COUNT:
+        from apps.core.services.comment_stamp import append_comment
+        # comments.partner, flat, through the one writer — the retired comments.general.foreign
+        # was a place no panel read (Fable L5 M-4; Bill: the third channel is 'partner').
+        if len((action.comments or {}).get('partner') or []) >= COMMENT_CHANNEL_MAX_COUNT:
             _refused('followups_full', request, action.ida)
             return Response({'ok': False, 'errors': {'message': (
                 f'We already have your inquiry ({action.ida}) and several additions — '
                 'a person will answer by email.')}}, status=429)
-        foreign.append({'ts': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
-                        'by': inquiry['email'], 'source': 'web inquiry',
-                        'text': text[:COMMENT_TEXT_MAX_LEN]})
+        append_comment(action, 'partner', text[:COMMENT_TEXT_MAX_LEN],
+                       source=f"web inquiry: {inquiry['email']}")
         cfg = action.config or {}
         cfg.setdefault('inquiry', {}).setdefault('followup_token_ids', []).append(_token_id(token))
-        action.comments, action.config = comments, cfg
+        action.config = cfg
         action.save(update_fields=['comments', 'config'])
         logger.info('[INQUIRY] follow-up added to %s from %s', action.ida, inquiry['email'])
         return Response({'ok': True, 'reference': action.ida, 'followup': True})

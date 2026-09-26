@@ -140,11 +140,18 @@ function renderDetailFields(section: DetailFieldsSection, data: any): string {
 }
 
 function renderComments(section: CommentsSection, data: any): string {
+  // A channel is a list of entries {user, mgs, time} (comment_stamp.append_comment). Each one
+  // prints as "time — user: mgs"; an entry object handed to esc() threw (Fable L5 M-4).
   const val = resolve(data, section.source);
   if (!val) return '';
-  const text = Array.isArray(val) ? val[0] : String(val);
-  if (!text) return '';
-  return `<div class="up-comments"><strong>${esc(section.label || 'Comments')}:</strong> ${esc(text)}</div>`;
+  const entries: any[] = Array.isArray(val) ? val : [val];
+  const lines = entries
+    .map((e) => (e && typeof e === 'object'
+      ? `${e.time ? `${e.time} — ` : ''}${e.user ? `${e.user}: ` : ''}${e.mgs ?? ''}`
+      : String(e ?? '')))
+    .filter((line) => line.trim());
+  if (!lines.length) return '';
+  return `<div class="up-comments"><strong>${esc(section.label || 'Comments')}:</strong> ${lines.map((l) => esc(l)).join('<br>')}</div>`;
 }
 
 function renderLineItems(section: LineItemsSection, data: any): string {

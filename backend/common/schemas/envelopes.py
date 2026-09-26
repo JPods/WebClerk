@@ -625,9 +625,9 @@ class CommentsBase(BaseModel):
     """
     public: list[CommentEntry] = Field(default_factory=list)
     process: list[CommentEntry] = Field(default_factory=list)
-    foreign: list[CommentEntry] = Field(default_factory=list)
+    partner: list[CommentEntry] = Field(default_factory=list)   # Bill 09-25: the third channel is 'partner'
 
-    @field_validator('public', 'process', 'foreign', mode='before')
+    @field_validator('public', 'process', 'partner', mode='before')
     @classmethod
     def _cap_channel_count(cls, v: Any) -> list:
         if isinstance(v, list) and len(v) > COMMENT_CHANNEL_MAX_COUNT:

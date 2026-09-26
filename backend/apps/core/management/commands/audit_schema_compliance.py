@@ -166,7 +166,7 @@ class Command(BaseCommand):
                 'metadata': {},
                 'refs': {'links': {}, 'tags': [], 'keywords': [], 'categories': []},
                 'prefs': {'userdefined': {}},
-                'comments': {'general': {'public': [], 'process': [], 'foreign': []}, 'records': {}},
+                'comments': {'public': [], 'process': [], 'partner': []},
                 'config': {},
             }
             setattr(record, field, defaults.get(field, {}))
