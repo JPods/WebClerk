@@ -151,7 +151,7 @@ ADD_CASH_SIDES = {
 
 
 def add_cash(ctx) -> Dict[str, Any]:
-    """POST /wcapi/<invoice|receipt|order>/<id>/add_cash/ {amount ±, method, reference, reason}.
+    """POST /wcapi/<invoice|receipt|order>/<id>/add_cash/ {amount ±, method, reference, reason, date}.
 
     Bill, 2026-09-26: one service — the Cash is saved through the standard save (save_record,
     as the acting person: their rights, enumerated fields, hooks), then the command base applies
@@ -186,6 +186,8 @@ def add_cash(ctx) -> Dict[str, Any]:
                  'method': ctx.data.get('method') or 'manual',
                  'reference_number': ctx.data.get('reference') or '',
                  'status': 'completed'}
+    if ctx.data.get('date'):
+        cash_data['dt_cash'] = ctx.data['date']       # when the money was received (ISO)
     if getattr(doc, 'contact_id', None):
         cash_data['contact_id'] = doc.contact_id
     if side['link']:
@@ -214,6 +216,15 @@ def add_cash(ctx) -> Dict[str, Any]:
                     applied = {'cash_id': cash.pk, 'amount': float(amount),
                                'state': 'applied' if result.get('applied') else 'queued'}
         except ValueError as e:
+            from apps.transactions.services.cash.cash_pending import ADJUSTMENT_METHODS
+            if cash.method in ADJUSTMENT_METHODS:
+                # A write-off (discount, FX…) is an internal company record: it is never refused
+                # (Bill, 2026-09-26). If applying it fails, that is a fault — fail loudly and take
+                # it back, never leave it standing as a credit that does not exist.
+                raise Refused(409, 'adjustment_failed',
+                              f'The {cash.method.replace("_", " ")} could not be applied to '
+                              f'{model_key} {doc.pk}: {e}. Nothing was recorded.',
+                              {'method': cash.method, 'amount': float(amount)})
             applied = {'cash_id': cash.pk, 'amount': float(amount), 'state': 'refused',
                        'reason': f'Saved, not applied to {model_key} {doc.pk}: {e}. The cash is '
                                  f'available to apply.'}

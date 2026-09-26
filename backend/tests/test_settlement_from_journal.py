@@ -130,6 +130,7 @@ def test_month_end_reports_real_sales_purchases_and_cash():
     buyer = _customer('Month Buyer')
     a, b = _invoice(buyer, 30.00), _invoice(buyer, 70.00)
     Cash.objects.create(amount=Decimal('12.50'), customer_id=buyer.pk)
+    Cash.objects.create(amount=Decimal('3.00'), customer_id=buyer.pk, method='write_off')   # not cash in
     now = datetime.now(timezone.utc)
     summary = _generate_period_summary(now.year, now.month)
     assert summary['invoice_count'] >= 2

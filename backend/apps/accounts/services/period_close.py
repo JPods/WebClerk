@@ -198,7 +198,10 @@ def _generate_period_summary(year: int, month: int) -> Dict[str, Any]:
     summary["total_purchases"] = float(purchases.aggregate(t=Sum(totals_total()))["t"] or 0)
     summary["purchase_count"] = purchases.count()
 
-    cash_entries = Cash.objects.filter(**in_period)
+    # Money only: a write-off, discount or FX adjustment settles a receivable against a loss
+    # or gain account; it is not cash in (Bill, 2026-09-26).
+    from apps.transactions.services.cash.cash_pending import ADJUSTMENT_METHODS
+    cash_entries = Cash.objects.filter(**in_period).exclude(method__in=ADJUSTMENT_METHODS)
     summary["total_cash_entries"] = float(cash_entries.aggregate(t=Sum("amount"))["t"] or 0)
     summary["cash_count"] = cash_entries.count()
 

@@ -45,13 +45,15 @@ def _invoice(unit=100.0):
 def test_cash_added_to_an_invoice_is_applied_at_once(admin_client):
     inv = _invoice(100.0)
     r = _post(admin_client, 'invoice', inv.pk,
-              {'amount': '40.00', 'method': 'check', 'reference': '1042', 'reason': 'mailed check'})
+              {'amount': '40.00', 'method': 'check', 'reference': '1042', 'reason': 'mailed check',
+               'date': '2026-09-24T12:00:00Z'})
     assert r.status_code == 200, r.content
     cash = Cash.objects.get(pk=_data(r)['cash_id'])
     assert (cash.amount, cash.method, cash.reference_number, cash.invoice_id,
             cash.customer_id) == (Decimal('40.00'), 'check', '1042', inv.pk, inv.customer_id)
     assert cash.available == Decimal('0.00')
     assert cash.comments['process'][0]['mgs'] == 'mailed check'
+    assert cash.dt_cash.date().isoformat() == '2026-09-24'
     inv.refresh_from_db()
     assert (inv.totals['received'], inv.totals['balance']) == (40.0, 60.0)
 
@@ -127,7 +129,7 @@ def test_a_write_off_is_its_own_payment_and_counts_as_adjusted(admin_client):
     assert off.changes['acted_by'] is not None, 'a write-off names who decided'
 
 
-def test_a_write_off_past_company_policy_is_not_applied(admin_client):
+def test_a_write_off_that_cannot_apply_leaves_nothing_behind(admin_client):
     from apps.core.models import Setting
     company = Setting.objects.filter(purpose='wc:company_profile', is_active=True).first()
     if company is None:
@@ -137,9 +139,13 @@ def test_a_write_off_past_company_policy_is_not_applied(admin_client):
     Setting.objects.filter(pk=company.pk).update(config={**(company.config or {}),
                                                          'cash_policy': {'write_off_limit': '2.00'}})
     inv = _invoice(100.0)
+    before = Cash.objects.count()
     r = _post(admin_client, 'invoice', inv.pk, {'amount': '5.00', 'method': 'write_off'})
-    body = _data(r)
-    assert body['applied']['state'] == 'refused' and 'may not exceed 2.00' in body['applied']['reason']
+    # Bill, 2026-09-26: a write-off is an internal record, never left standing unapplied — a
+    # failure takes it back, so no $5 credit that does not exist is left for anyone to spend.
+    assert r.status_code == 409 and r.json()['error']['code'] == 'adjustment_failed', r.content
+    assert 'may not exceed 2.00' in r.json()['message']
+    assert Cash.objects.count() == before
     inv.refresh_from_db()
     assert inv.totals['adjusted'] == 0.0
 
