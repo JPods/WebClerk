@@ -72,12 +72,27 @@ export function refusedFrom(err: any, fallback = 'Request failed'): Refusal {
     (typeof error === 'string' && error) ||
     err?.message ||
     fallback;
+  const details = error && typeof error === 'object' ? error.details : undefined;
+  // Some answers carry only a label in `message` ("Invalid field values") and the cause
+  // in details — a string, or {field: [msgs]}. Name the cause unless the sentence already does.
+  const cause = describeDetails(details);
   return {
     status: err?.response?.status ?? null,
     code: (error && typeof error === 'object' && error.code) || null,
-    message,
-    details: error && typeof error === 'object' ? error.details : undefined,
+    message: cause && !message.includes(cause) ? `${message}: ${cause}` : message,
+    details,
   };
+}
+
+function describeDetails(details: unknown): string {
+  if (typeof details === 'string') return details;
+  if (Array.isArray(details)) return details.filter((d) => typeof d === 'string').join('; ');
+  if (details && typeof details === 'object') {
+    return Object.entries(details as Record<string, unknown>)
+      .map(([field, v]) => `${field}: ${Array.isArray(v) ? v.join(', ') : String(v)}`)
+      .join('; ');
+  }
+  return '';
 }
 
 function getBackendErrorMessage(err: any, fallback: string): string {

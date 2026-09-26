@@ -26,7 +26,7 @@ interface AvailableCash {
   id: number;
   ida?: string;
   amount: number;
-  available?: number;
+  available: number;
   reference_number?: string;
   status?: string;
   method?: string;
@@ -113,7 +113,7 @@ const AddCashModal: React.FC<AddCashModalProps> = ({
           const cashEntries = (response?.results || response || []) as AvailableCash[];
           // Filter to cash with available balance != 0
           const withBalance = cashEntries.filter((p) => {
-            const avail = p.available ?? p.amount ?? 0;
+            const avail = p.available;
             return avail !== 0;
           });
           setAvailableCashEntries(withBalance);
@@ -176,7 +176,7 @@ const AddCashModal: React.FC<AddCashModalProps> = ({
   // When selecting an existing cash, default apply amount to min(available, balance)
   useEffect(() => {
     if (selectedCash) {
-      const avail = selectedCash.available ?? selectedCash.amount ?? 0;
+      const avail = selectedCash.available;
       const balance = orderTotal ?? 0;
       setApplyAmount(Math.min(avail, balance).toFixed(2));
     }
@@ -520,7 +520,7 @@ const AddCashModal: React.FC<AddCashModalProps> = ({
                   </thead>
                   <tbody>
                     {availableCashEntries.map((p) => {
-                      const avail = p.available ?? p.amount ?? 0;
+                      const avail = p.available;
                       const isSelected = selectedCash?.id === p.id;
                       const pm = p.parent_model || '';
                       const pid = p.parent_id || '';
