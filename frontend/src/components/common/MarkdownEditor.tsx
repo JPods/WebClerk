@@ -19,7 +19,7 @@
  */
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import MDEditor from '@uiw/react-md-editor';
-import { saveRecord } from '@/api/wcapi';
+import { createRecord } from '@/api/wcapi';
 import { formatDt } from '@/utils/fieldFormatters';
 
 // ---------------------------------------------------------------------------
@@ -207,11 +207,9 @@ async function submitToWCHQ(
   templateName: string,
 ): Promise<number | null> {
   try {
-    const result = await saveRecord('action', {
-      ida: `TEMPLATE-SUBMIT-${Date.now()}`,
-      name: `Template contribution: ${templateName || modelName}`,
+    const result = await createRecord('action', {
+      action: `Template contribution: ${templateName || modelName}`,
       description: `User submitted a markdown template for ${modelName}.\n\nTemplate name: ${templateName}\n\nThis template should be reviewed and sent to WC_HQ for distribution.`,
-      status: 'pending',
       config: {
         template_content: content,
         model_name: modelName,

@@ -29,7 +29,7 @@ import {
   FaUndo,
 } from "react-icons/fa";
 import { ChevronDown, ChevronRight, Building2 } from "lucide-react";
-import { getRecord, saveRecord } from "@/api/wcapi";
+import { getRecord, saveRecord, createRecord } from "@/api/wcapi";
 import { updateContact } from "@/apps/core/models/contact/services/contactApi";
 import { useDispatch } from "react-redux";
 import { showToast } from "@/store/slices/toastSlice";
@@ -491,12 +491,15 @@ const OrgLinkPanel: React.FC<OrgLinkPanelProps> = ({
       delete payload._orgType;
 
       if (creatingNewOrg) {
-        // Creating a new org record
-        payload.org_type =
-          field.orgType === "organization" ? "other" : field.orgType;
-        const res: any = await saveRecord(model, payload);
-        const record = res?.record ?? res;
-        const newId = Number(record?.id ?? res?.id);
+        // Creating a new org record: the values the user typed that are org fields
+        // (display_name, phone and notes are not fields of the org models).
+        const values: Record<string, any> = {};
+        for (const k of ["company", "attention", "email", "status", "price_level"]) {
+          if (payload[k] !== undefined && payload[k] !== "") values[k] = payload[k];
+        }
+        values.org_type = field.orgType === "organization" ? "other" : field.orgType;
+        const res: any = await createRecord(model, values);
+        const newId = Number(res?.id);
         if (!Number.isFinite(newId) || newId <= 0) {
           throw new Error("Failed to create org record");
         }

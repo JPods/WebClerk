@@ -1,24 +1,8 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
-import { getRecords, saveRecord, deleteRecord } from "@/api/wcapi";
+import { getRecords, createRecord, deleteRecord } from "@/api/wcapi";
 import type {
-  CreateDocumentRequest,
   DocumentApiTask,
-  UpdateDocumentRequest,
 } from "../types/documentType";
-
-export const createDocument = async (
-  payload: CreateDocumentRequest
-): Promise<DocumentApiTask> => {
-  const res = await saveRecord("document", payload);
-  return res;
-};
-
-export const updateDocument = async (
-  payload: UpdateDocumentRequest
-): Promise<DocumentApiTask> => {
-  const res = await saveRecord("document", payload);
-  return res;
-};
 
 export const deleteDocument = async (id: number) => {
   return deleteRecord("document", id);
@@ -61,13 +45,12 @@ export const submitFeedback = async (opts: {
   training?: boolean;
 }) => {
   const isTrainingNote = opts.training || opts.feedback.startsWith('tn-');
-  return saveRecord("ai_message", {
+  return createRecord("ai_message", {
     kind: "feedback",
     sender: "user",
     receiver: "alice",
     subject: isTrainingNote ? `Training Note: ${opts.label}` : `Feedback: ${opts.label}`,
     body: opts.feedback,
-    status: "pending",
     context: {
       element: opts.label,
       field: opts.field || undefined,

@@ -54,7 +54,7 @@ import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
 
 interface DocumentDisplayProps {
   inline?: boolean;
-  modeProp?: "add" | "edit" | "view";
+  modeProp?: "edit" | "view";
   dataProp?: any;
   onSaved?: () => void;
   onCancelInline?: () => void;
@@ -73,8 +73,8 @@ export default function DocumentDisplay({
   const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const dispatch = useDispatch();
-  const initialMode: "add" | "edit" | "view" = modeProp || "view";
-  const [currentMode, setCurrentMode] = useState<"add" | "edit" | "view">(initialMode);
+  const initialMode: "edit" | "view" = modeProp || "view";
+  const [currentMode, setCurrentMode] = useState<"edit" | "view">(initialMode);
 
   const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
 
@@ -110,8 +110,6 @@ export default function DocumentDisplay({
         }
       };
       fetchData();
-    } else if (modeProp === "add") {
-      setData({});
     } else if (dataProp) {
       setData(dataProp);
     }
@@ -123,11 +121,7 @@ export default function DocumentDisplay({
       await saveRecord('document', data);
       dispatch(showToast({ message: "Document saved successfully", type: "success" }));
       onSaved?.();
-      if (currentMode === "add") {
-        onCancelInline?.();
-      } else {
-        setCurrentMode("view");
-      }
+      setCurrentMode("view");
     } catch (error) {
       console.error("Failed to save", error);
       dispatch(showToast({ message: "Failed to save document", type: "error" }));
@@ -141,8 +135,6 @@ export default function DocumentDisplay({
   const handleCancel = () => {
     if (inline && onCancelInline) {
       onCancelInline();
-    } else if (initialMode === "add") {
-      onCancelInline?.();
     } else {
       if (dataProp) setData(dataProp);
       setCurrentMode("view");

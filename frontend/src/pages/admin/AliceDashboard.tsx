@@ -7,7 +7,16 @@
  * Route: /alice-dashboard
  */
 import React, { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
-import { getRecords } from '@/api/wcapi';
+import { getRecords, saveRecord, createRecord } from '@/api/wcapi';
+
+/** A question for Alice: a pending Setting she reviews in her next coaching cycle. */
+function askAlice(question: string, email?: string) {
+  return createRecord('setting', {
+    name: `Ask Alice: ${question.slice(0, 200)}`,
+    purpose: 'alice_pending',
+    config: { question, user: email, dt: Date.now() },
+  });
+}
 import { formatDt } from '@/utils/fieldFormatters';
 import { consoleCapture, type ConsoleEntry } from '@/utils/consoleCapture';
 import { useAppSelector } from '@/store/hooks';
@@ -554,15 +563,15 @@ export default function AliceDashboard() {
               <button onClick={async () => {
                 setLlmSaving(true);
                 try {
-                  const { default: apiClient } = await import('@/api/axios');
+                  // The LLM config is the Setting's config (what the loader reads): saved when
+                  // it exists, else made.
                   const existing = await getRecords('setting', { name: 'alice_llm_config', purpose: 'wc:coaching' }) as any;
                   const existingRec = (existing?.results || [])[0];
-                  const save = existingRec?.id ? apiClient.put : apiClient.post;
-                  await save(`/wcapi/setting/${existingRec?.id ? `${existingRec.id}/` : ''}`, {
-                    model_name: 'setting', id: existingRec?.id,
-                    name: 'alice_llm_config', purpose: 'wc:coaching',
-                    data: llmConfig,
-                  });
+                  if (existingRec?.id) {
+                    await saveRecord('setting', { id: existingRec.id, config: llmConfig });
+                  } else {
+                    await createRecord('setting', { name: 'alice_llm_config', purpose: 'wc:coaching', config: llmConfig });
+                  }
                   alert('LLM configuration saved.');
                 } catch { alert('Failed to save LLM config.'); }
                 finally { setLlmSaving(false); }
@@ -826,13 +835,7 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
             onKeyDown={async (e) => {
               if (e.key === 'Enter' && askText.trim()) {
                 try {
-                  const { default: apiClient } = await import('@/api/axios');
-                  await apiClient.post('/wcapi/setting/', {
-                    model_name: 'setting',
-                    name: `Ask Alice: ${askText.slice(0, 200)}`,
-                    purpose: 'alice_pending',
-                    data: { question: askText, user: user?.email, dt: Date.now() },
-                  });
+                  await askAlice(askText, user?.email);
                   setAskText('');
                   alert('Question sent to Alice. She will respond in her next review.');
                 } catch { alert('Failed to send question.'); }
@@ -843,13 +846,7 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
           <button onClick={async () => {
             if (!askText.trim()) return;
             try {
-              const { default: apiClient } = await import('@/api/axios');
-              await apiClient.post('/wcapi/setting/', {
-                model_name: 'setting',
-                name: `Ask Alice: ${askText.slice(0, 200)}`,
-                purpose: 'alice_pending',
-                data: { question: askText, user: user?.email, dt: Date.now() },
-              });
+              await askAlice(askText, user?.email);
               setAskText('');
               alert('Question sent to Alice.');
             } catch { alert('Failed to send.'); }

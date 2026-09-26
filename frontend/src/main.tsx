@@ -5,7 +5,6 @@ import "./index.css";
 import App from "./App.tsx";
 import { AppWrapper } from "./components/common/PageMeta.tsx";
 import { ThemeProvider } from "./context/ThemeContext.tsx";
-import { SaveQueueProvider } from "./context/SaveQueueContext.tsx";
 import { RequestQueueProvider } from "./context/RequestQueueContext.tsx";
 // AliceProvider moved to App.tsx (inside Redux Provider)
 
@@ -46,11 +45,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>
       <RequestQueueProvider>
-        <SaveQueueProvider>
-          <AppWrapper>
-            <App />
-          </AppWrapper>
-        </SaveQueueProvider>
+        <AppWrapper>
+          <App />
+        </AppWrapper>
       </RequestQueueProvider>
     </ThemeProvider>
   </StrictMode>,

@@ -16,7 +16,7 @@ import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { showToast } from '@/store/slices/toastSlice';
-import { getRecord, saveRecord } from '@/api/wcapi';
+import { getRecord, newRecord, saveRecord } from '@/api/wcapi';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { useDetailLayout } from '@/hooks/useDetailLayout';
 import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
@@ -252,8 +252,7 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
 
   const handleAddNew = async () => {
     try {
-      const res = await saveRecord(modelName, { is_active: true });
-      const newId = res?.record?.id || res?.id;
+      const { id: newId } = await newRecord(modelName);
       if (newId) windowManager.ensureWindow(`/${modelName}/${newId}`, `${modelName} #${newId}`);
     } catch {
       dispatch(showToast({ message: `Failed to create ${modelName}`, type: 'error' }));

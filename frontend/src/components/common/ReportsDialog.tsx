@@ -13,7 +13,7 @@
  * LastChecked: 2026-07-21 | WhereUsed: DataBrowser, TransactionDetailBase | WhoCreated: Bill+Claude
  */
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { getRecords, getRecord, saveRecord, getFormLibrary, checkoutForm, submitFormToLibrary, restoreFormFromLibrary } from '@/api/wcapi';
+import { getRecords, getRecord, saveRecord, createRecord, getFormLibrary, checkoutForm, submitFormToLibrary, restoreFormFromLibrary } from '@/api/wcapi';
 import type { FormLibraryEntry } from '@/api/wcapi';
 import { openUniversalPrint } from '@/components/print/UniversalPrint';
 import { fetchPrintLayout } from '@/hooks/usePrintLayout'; // fallback for reports without config.form
@@ -610,15 +610,13 @@ const ReportsDialog: React.FC<Props> = ({
                   const outputType = e.target.value;
                   e.target.value = '';
                   if (!outputType) return;
-                  saveRecord('report', {
+                  // Report.model_name (the report's target model) cannot be sent: the REST
+                  // door refuses any body carrying model_name (save_view). Server-side gap.
+                  createRecord('report', {
                     name: `New ${outputType.charAt(0).toUpperCase() + outputType.slice(1)} Report`,
-                    model_name: model,
                     output_type: outputType,
-                    category: 'report',
-                    sort_order: 99,
-                    config: {},
                   }).then((res: any) => {
-                    const newId = res?.record?.id || res?.id;
+                    const newId = res?.id ?? res?.record?.id;
                     setLoadedModel(''); // refresh list
                     if (newId) {
                       window.open(`/report?search=${newId}`, '_blank');

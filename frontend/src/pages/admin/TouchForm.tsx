@@ -320,7 +320,7 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
       impact: impact || 0, plan: plan || 0, purpose: purpose || null,
       action_id: ctx.model === 'action' ? ctx.recordId : null,
       org_id: ctx.orgId || null, org_model: ctx.orgModel || null,
-      project_id: null, linkage_id: ctx.linkageId || null,
+      linkage_id: ctx.linkageId || null,
       logged_by: fromContact.id || loggedByUser,
       config: { template_id: selectedTemplate?.id || null, template_name: selectedTemplate?.name || null },
       refs: { parents, links: { contact: contactLinks } },
@@ -331,9 +331,10 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { saveRecord } = await import('@/api/wcapi');
-      const res = await saveRecord('touch', buildTouchData());
-      const id = (res as any)?.record?.id;
+      const { saveRecord, createRecord } = await import('@/api/wcapi');
+      const values = buildTouchData();
+      const res: any = touchId ? await saveRecord('touch', values) : await createRecord('touch', values);
+      const id = res?.id;
       if (id) setTouchId(id);
       onSaved?.();
     } catch (err) {

@@ -241,8 +241,8 @@ export function isSequenceActive(): boolean {
 
 async function logSpotlight(wcId: string, mode: 'manual' | 'guided') {
   try {
-    const { saveRecord } = await import('@/api/wcapi');
-    saveRecord('ai_message', {
+    const { createRecord } = await import('@/api/wcapi');
+    createRecord('ai_message', {
       kind: 'help_lookup',
       sender: 'user',
       receiver: 'alice',

@@ -31,7 +31,7 @@ import {
   type IssuePriority,
 } from "../apps/support/services/issueApi";
 import { useConsoleCapture } from "../hooks/useConsoleCapture";
-import { saveRecord, submitToWchq } from "@/api/wcapi";
+import { createRecord, submitToWchq } from "@/api/wcapi";
 import { useSelector } from "react-redux";
 import type { RootState } from "../store";
 import useDataSetInfo from "../hooks/useDataSetInfo";
@@ -130,8 +130,6 @@ export function IssueReporter() {
           project_name: "Issues",
           kanban_column: "Backlog",
           priority,
-          status: "Open",
-          dt_start: Date.now(),
           refs: {
             tags: [category, ...(component.trim() ? [component.trim()] : [])],
             keywords: ["issue", category],
@@ -164,9 +162,9 @@ export function IssueReporter() {
         };
 
         // Save locally first
-        const localResult = await saveRecord("action", actionPayload);
+        const localResult: any = await createRecord("action", actionPayload);
         const localId = localResult?.id ?? null;
-        const localUuid = localResult?.uuid ?? null;
+        const localUuid = localResult?.record?.uuid ?? null;
 
         // Forward to WC HQ through our server, which holds the Athena token.
         if (systemInfo?.wchq?.url) {

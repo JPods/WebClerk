@@ -9,7 +9,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { OPERATORS_BY_TYPE, type FilterOperator } from '@/constants/filterOperators';
-import { getRecords, saveRecord } from '@/api/wcapi';
+import { getRecords, createRecord } from '@/api/wcapi';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -249,7 +249,7 @@ const QueryBuilderPanel: React.FC<QueryBuilderPanelProps> = ({
     if (!name?.trim()) return;
     try {
       const params = rulesToParams(rules, fieldBehaviors);
-      await saveRecord('setting', {
+      await createRecord('setting', {
         name: name.trim(),
         purpose: 'saved_search',
         parent_model: model,

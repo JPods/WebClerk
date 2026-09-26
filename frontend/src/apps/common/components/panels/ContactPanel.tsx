@@ -416,9 +416,9 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
 
   const handleAddNew = useCallback(async () => {
     try {
-      const { saveRecord } = await import('@/api/wcapi');
-      const res = await saveRecord('contact', {});
-      const created = (res as any)?.record || res;
+      const { newRecord } = await import('@/api/wcapi');
+      const made = await newRecord('contact');
+      const created: any = { ...(made.record || {}), id: made.id };
       if (created?.id) {
         const newContact: RefContact = {
           contact_id: created.id,
@@ -554,15 +554,15 @@ const TouchInlineForm: React.FC<{
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { saveRecord: sr, getRecord: gr } = await import('@/api/wcapi');
-      const touchRes = await sr('touch', {
+      const { saveRecord: sr, createRecord: cr, getRecord: gr } = await import('@/api/wcapi');
+      const touchRes: any = await cr('touch', {
         contact_id: contact.contact_id,
         channel,
         direction,
         subject: subject || `${channel} — ${contactName}`,
         summary,
         outcome,
-        action_id: parentModel === 'action' ? parentId : 0,
+        ...(parentModel === 'action' && parentId ? { action_id: parentId } : {}),
       });
       // Add to parent's refs.links.touch so the TOUCHS panel count updates
       if (parentModel && parentId) {

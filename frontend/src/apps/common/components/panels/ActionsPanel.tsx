@@ -61,7 +61,7 @@ import {
   FaThumbsUp,
 } from "react-icons/fa";
 import { usePermissions } from "./usePermissions";
-import { getRecords, saveRecord } from "@/api/wcapi";
+import { getRecords, saveRecord, createRecord } from "@/api/wcapi";
 import { SearchableSelect } from "../../../../components/ui/dropdown/SearchableSelect";
 import type {
   BasePanelProps,
@@ -350,13 +350,14 @@ const buildActionPayload = (
   const deadline = toMillis(
     (action.dt_deadline || action.when) as number | string | undefined,
   );
+  // Only Action's real fields: the text is the i18n `action` / `description` JSON; a new
+  // action's priority and status are the server's defaults unless the user chose them.
   const payload: Record<string, unknown> = {
-    action_en: action.what,
-    description_en: action.notes,
-    languages: action.what ? ["en"] : [],
-    priority: priorityToBackend(action.priority),
+    ...(action.what ? { action: { en: action.what }, languages: ["en"] } : {}),
+    ...(action.notes ? { description: { en: action.notes } } : {}),
+    ...(action.priority ? { priority: priorityToBackend(action.priority) } : {}),
     difficulty: action.difficulty,
-    status: statusToBackend(action.status),
+    ...(action.status ? { status: statusToBackend(action.status) } : {}),
     percent_complete:
       action.progress ?? (action.status === "completed" ? 100 : undefined),
     dt_start: toMillis(action.dt_start as number | string | undefined),
@@ -368,15 +369,14 @@ const buildActionPayload = (
     is_active: (action as ActionEntry & { is_active?: boolean }).is_active,
   };
 
-  if (opts.parentModel) payload.parent_model = opts.parentModel;
-  if (opts.parentId) payload.parent_id = opts.parentId;
-
+  // Action has no parent_model / parent_id fields; the parent holds the action's id
+  // (onActionIdsChange). A contact parent is the action's contact.
   if (opts.parentModel === "contact" && opts.parentId) {
     payload.contact_id = opts.parentId;
   }
 
   // If assigned_to has a single id, pass through as contact_id for convenience
-  if (!payload.parent_model && action.assigned_to?.length === 1) {
+  if (!opts.parentModel && action.assigned_to?.length === 1) {
     const firstId = action.assigned_to[0]?.id;
     if (firstId !== undefined && firstId !== null) {
       const maybeNum = Number(firstId);
@@ -1588,8 +1588,9 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
         parentModel,
         parentId,
       });
-      if (existingId !== undefined) payload.id = existingId;
-      const res = await saveRecord(actionModelName, payload);
+      const res = existingId !== undefined
+        ? await saveRecord(actionModelName, { ...payload, id: existingId })
+        : await createRecord(actionModelName, payload);
       const persistedId = extractActionId(res) ?? existingId;
       return persistedId;
     };

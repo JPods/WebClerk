@@ -8,7 +8,7 @@ import { DevBadge } from "@/components/common/DevBadge";
 
 interface ReportDisplayProps {
   inline?: boolean;
-  modeProp?: "add" | "edit" | "view";
+  modeProp?: "edit" | "view";
   dataProp?: any;
   onSaved?: () => void;
   onCancelInline?: () => void;
@@ -55,8 +55,6 @@ export default function ReportDisplay({
         }
       };
       fetchData();
-    } else if (modeProp === "add") {
-      setData({});
     } else if (dataProp) {
       setData(dataProp);
     }
@@ -88,11 +86,10 @@ export default function ReportDisplay({
     <div className="p-4 space-y-4">
       <h2 className="text-xl font-semibold">
         <DevBadge label="ReportDisplay" className="mr-2" />
-        {modeProp === "add" ? "Add Report" : modeProp === "edit" ? "Edit Report" : "View Report"}
+        {modeProp === "edit" ? "Edit Report" : "View Report"}
       </h2>
       <div className="grid grid-cols-2 gap-4">
         {fields
-          .filter((k) => k !== "id" || modeProp !== "add")
           .map((k) => {
             const v = data?.[k];
             return (

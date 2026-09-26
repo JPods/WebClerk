@@ -1,4 +1,4 @@
-import { getRecords, saveRecord } from "@/api/wcapi";
+import { getRecords } from "@/api/wcapi";
 
 export interface SettingScope {
   purpose: string;
@@ -64,25 +64,4 @@ export async function fetchSettingRecords<T = unknown>(
 
   const result = await getRecords("setting", params);
   return pickRows(result).sort(sortLatest) as SettingRecord<T>[];
-}
-
-export async function upsertSettingRecord<T = unknown>(args: {
-  scope: SettingScope;
-  config: T;
-}): Promise<SettingRecord<T>> {
-  const { scope, config } = args;
-  const existing = await fetchLatestSettingRecord<T>(scope);
-
-  const payload: Record<string, unknown> = {
-    purpose: scope.purpose,
-    config,
-  };
-
-  if (scope.parent_model) payload.parent_model = scope.parent_model;
-  if (scope.name) payload.name = scope.name;
-  if (scope.role) payload.role = scope.role;
-  if (existing?.id) payload.id = existing.id;
-
-  const saved = await saveRecord("setting", payload);
-  return (saved as SettingRecord<T>) ?? ({ ...payload } as SettingRecord<T>);
 }

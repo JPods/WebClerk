@@ -21,7 +21,7 @@
  *   config.responses[] = { question_ida, answer_ida, correct, dt }
  */
 import { useCallback, useEffect, useState } from 'react';
-import { getRecords, saveRecord } from '@/api/wcapi';
+import { getRecords, saveRecord, createRecord } from '@/api/wcapi';
 import { useAppSelector } from '@/store/hooks';
 import { formatDt } from '@/utils/fieldFormatters';
 
@@ -58,6 +58,7 @@ export default function AliceQuiz() {
   const [quizSets, setQuizSets] = useState<QuizSet[]>([]);
   const [selectedSet, setSelectedSet] = useState<QuizSet | null>(null);
   const [responses, setResponses] = useState<QuizResponse[]>([]);
+  const [responseSettingId, setResponseSettingId] = useState<number | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -98,6 +99,7 @@ export default function AliceQuiz() {
         limit: 1,
       });
       const rec = (res?.results || [])[0];
+      setResponseSettingId(rec?.id ?? null);
       setResponses(rec?.config?.responses || []);
     } catch { /* ignore */ }
   }, [user?.id]);
@@ -120,16 +122,22 @@ export default function AliceQuiz() {
     setResponses(updated);
 
     try {
-      await saveRecord('setting', {
-        model_name: 'setting',
-        name: `alice-employee-qa-response-${user.id}`,
-        purpose: 'alice_quiz_response',
-        config: { responses: updated, user_id: user.id, user_email: user.email },
-      });
+      // One response Setting per user: save it when it exists, else make it.
+      const config = { responses: updated, user_id: user.id, user_email: user.email };
+      if (responseSettingId) {
+        await saveRecord('setting', { id: responseSettingId, config });
+      } else {
+        const made: any = await createRecord('setting', {
+          name: `alice-employee-qa-response-${user.id}`,
+          purpose: 'alice_quiz_response',
+          config,
+        });
+        if (made?.id) setResponseSettingId(made.id);
+      }
     } catch (err) {
       console.error('[AliceQuiz] Failed to save response:', err);
     }
-  }, [user, responses]);
+  }, [user, responses, responseSettingId]);
 
   const startQuiz = (set: QuizSet) => {
     setSelectedSet(set);

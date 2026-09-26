@@ -13,6 +13,7 @@ import {
   getRecords,
   getRecord,
   saveRecord,
+  newRecord,
   deleteRecord,
   getWorkbenchFieldsSetting,
   saveWorkbenchFieldsSetting,
@@ -83,6 +84,7 @@ function ModelScaffold({
   const [saving, setSaving] = useState<boolean>(false);
   const [allFields, setAllFields] = useState<string[]>([]);
   const [fieldPrefs, setFieldPrefs] = useState<FieldPreference>(defaultFields);
+  const [prefsSettingId, setPrefsSettingId] = useState<number | undefined>(undefined);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [draft, setDraft] = useState<RecordLike>({});
   const [mode, setMode] = useState<"list" | "add" | "edit" | "view">("list");
@@ -122,6 +124,7 @@ function ModelScaffold({
       setAllFields(fields);
 
       const prefs = await getWorkbenchFieldsSetting(modelName);
+      setPrefsSettingId(prefs?.id);
       if (prefs?.config) {
         setFieldPrefs({
           list: prefs.config.list || defaultFields.list,
@@ -181,9 +184,10 @@ function ModelScaffold({
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
+      // The record exists (Add made it with newRecord); this is always a save.
       const payload = { ...draft, id: selectedId ?? draft.id };
-      const res = await saveRecord(modelName, payload);
-      const newId = res?.id || selectedId;
+      await saveRecord(modelName, payload);
+      const newId = payload.id;
       dispatch(showToast({ message: "Saved successfully", type: "success" }));
       await loadModel();
       if (newId) {
@@ -233,11 +237,15 @@ function ModelScaffold({
       };
       setFieldPrefs(next);
       try {
-        await saveWorkbenchFieldsSetting({
-          model_name: modelName,
-          purpose: "wc:model",
+        // The workbench-fields Setting is keyed by parent_model (what getWorkbenchFieldsSetting
+        // reads); saved by id once it exists so a toggle does not make a Setting each time.
+        const saved: any = await saveWorkbenchFieldsSetting({
+          id: prefsSettingId,
+          parent_model: modelName,
+          purpose: "wc:workbench_fields",
           config: next,
         } as any);
+        if (!prefsSettingId && saved?.id) setPrefsSettingId(saved.id);
       } catch (err) {
         dispatch(
           showToast({
@@ -247,7 +255,7 @@ function ModelScaffold({
         );
       }
     },
-    [fieldPrefs, modelName, dispatch]
+    [fieldPrefs, modelName, dispatch, prefsSettingId]
   );
 
   const columns = useMemo<any[]>(() => {
@@ -359,10 +367,19 @@ function ModelScaffold({
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => {
-              setMode("add");
-              setSelectedId(null);
-              setDraft({});
+            onClick={async () => {
+              // new: the server makes the empty record (its defaults and hooks) and hands it back.
+              try {
+                const made = await newRecord(modelName);
+                setDraft(made.record || { id: made.id });
+                setSelectedId(made.id);
+                setMode("add");
+              } catch (err) {
+                dispatch(showToast({
+                  message: err instanceof Error ? err.message : "New record failed",
+                  type: "error",
+                }));
+              }
             }}
             className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600"
           >

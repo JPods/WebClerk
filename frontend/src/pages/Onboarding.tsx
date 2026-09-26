@@ -11,6 +11,7 @@
  */
 import { useState } from "react";
 import axios from "axios";
+import { getRecords, saveRecord, createRecord } from "@/api/wcapi";
 
 const WCHQ_URL = "https://webclerk.com";
 
@@ -112,30 +113,30 @@ const Onboarding: React.FC = () => {
       // Register with WCHQ
       const resp = await axios.post(`${WCHQ_URL}/wcapi/register-installation/`, payload);
 
-      // Store the Athena token locally
+      // Store the Athena token and the subscription on the WCHQ connection Setting
+      // (ida wchq-connection, seeded by seed_wchq_settings; the backend reads it by ida).
+      // It is saved when it exists; else made, then these values are its first save.
       const token = resp.data.token;
-      await axios.post("/wcapi/setting/", {
-        model_name: "setting",
-        data: {
+      const config = {
+        athena_token: token,
+        installation_id,
+        subscribed: form.subscribed,
+        dt_registered: resp.data.dt_registered,
+        subscription: { subscribed: form.subscribed, dt_started: resp.data.dt_registered },
+      };
+      const found = await getRecords("setting", { ida: "wchq-connection", limit: 1 });
+      const existingId = (found?.results || [])[0]?.id;
+      if (existingId) {
+        await saveRecord("setting", { id: existingId, config });
+      } else {
+        await createRecord("setting", {
+          ida: "wchq-connection",
           name: "WCHQ Connection",
-          purpose: "wchq_connection",
+          purpose: "wc:wchq_connection",
           scope: "system",
-          config: {
-            athena_token: token,
-            installation_id,
-            subscribed: form.subscribed,
-            dt_registered: resp.data.dt_registered,
-          },
-        },
-      });
-
-      // Store subscription in WCHQ connection record
-      await axios.post("/wcapi/setting/", {
-        model_name: "setting",
-        ida: "wchq-connection",
-        "config.subscription.subscribed": { mode: "update", value: form.subscribed },
-        "config.subscription.dt_started": { mode: "update", value: resp.data.dt_registered },
-      });
+          config,
+        });
+      }
 
       setResult({ token: token.slice(0, 12) + "..." });
     } catch (err: unknown) {

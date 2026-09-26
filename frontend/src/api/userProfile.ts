@@ -1,7 +1,7 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import apiClient, { notionClient } from "./axios"; // unified protected API client
 import { IntegrationURL, PostLoginURL } from "../routes/network"; // Adjust the import path as necessary
-import { enqueueSaveRequest } from "./saveQueue";
+import { createRecord } from "./wcapi";
 import {
   NotionModule,
   NotionModuleUpdatePayload,
@@ -19,15 +19,7 @@ export const patchUserProfile = async (data:any) => {
   }  
 };
 
-export const postPhone = async (data:any) => {
-  try {
-  const res = await apiClient.post(PostLoginURL.record('phone'),{...data});
-    return res;
-  }
-  catch (error: any) { 
-    throw error.response?.data || { message: error.message || 'Request failed' };
-  }  
-};
+export const postPhone = (data: Record<string, any>) => createRecord('phone', data);
 
 export const getPhone = async (id:any = '') => {
   const url = PostLoginURL.record('phone', id);
@@ -40,31 +32,13 @@ export const getPhone = async (id:any = '') => {
   }  
 };
 
-export const postEmail = async (data:any) => {
-  try {
-  const res = await apiClient.post(PostLoginURL.record('email'),{...data});
-    return res;
-  }
-  catch (error: any) { 
-    throw error.response?.data || { message: error.message || 'Request failed' };
-  }  
-};
+export const postEmail = (data: Record<string, any>) => createRecord('email', data);
 
 export const getEmail = async (id:any = '') => {
   const url = PostLoginURL.record('email', id);
   try {
   const res = await apiClient.get(url);
     return res.data;
-  }
-  catch (error: any) { 
-    throw error.response?.data || { message: error.message || 'Request failed' };
-  }  
-};
-
-export const postAddress = async (data:any) => {
-  try {
-  const res = await apiClient.post(PostLoginURL.record('address'),{...data});
-    return res;
   }
   catch (error: any) { 
     throw error.response?.data || { message: error.message || 'Request failed' };
@@ -82,31 +56,11 @@ export const getAddress = async (id:any='') => {
   }  
 };
 
-export const postDomain = async (data:any) => {
-  try {
-  const res = await apiClient.post(PostLoginURL.record('domain'),{...data});
-    return res;
-  }
-  catch (error: any) { 
-    throw error.response?.data || { message: error.message || 'Request failed' };
-  }  
-};
-
 export const getDomain = async (id:any='') => {
    const url = PostLoginURL.record('domain', id);
   try {
   const res = await apiClient.get(url);
     return res.data;
-  }
-  catch (error: any) { 
-    throw error.response?.data || { message: error.message || 'Request failed' };
-  }  
-};
-
-export const postAction = async (data:any) => {
-  try {
-  const res = await apiClient.post(PostLoginURL.record('action'),{...data});
-    return res;
   }
   catch (error: any) { 
     throw error.response?.data || { message: error.message || 'Request failed' };
@@ -184,18 +138,6 @@ export const Projects = async (params?: Record<string, WcapiQueryValue | WcapiQu
   catch (error: any) {
     throw error.response?.data || { message: error.message || 'Request failed' };
   }
-};
-
-export const patchAction = async (data: any) => {
-  const label = (() => {
-    if (data?.action?.value?.en) return `Action: ${data.action.value.en}`;
-    if (data?.action_en) return `Action: ${data.action_en}`;
-    if (data?.model_name) return `${data.model_name} save`;
-    return "Save";
-  })();
-
-  const { promise } = enqueueSaveRequest(data, label);
-  return promise;
 };
 
 

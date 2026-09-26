@@ -1,17 +1,9 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import { getRecords, saveRecord, deleteRecord } from "@/api/wcapi";
 import type {
-  CreateContactRequest,
   ContactApiTask,
   UpdateContactRequest,
 } from "../types/contactType";
-
-export const createContact = async (
-  payload: CreateContactRequest
-): Promise<ContactApiTask> => {
-  const res = await saveRecord("contact", payload);
-  return res;
-};
 
 export const updateContact = async (
   payload: UpdateContactRequest

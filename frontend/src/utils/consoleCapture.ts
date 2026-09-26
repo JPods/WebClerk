@@ -102,13 +102,12 @@ async function sendToAlice(context?: string) {
   ].join('\n').slice(0, 250); // wcapi name field limit
 
   try {
-    const { default: apiClient } = await import('@/api/axios');
-    await apiClient.post('/wcapi/alice_observation/', {
-      model_name: 'alice_observation',
+    const { createRecord } = await import('@/api/wcapi');
+    await createRecord('alice_observation', {
       source: 'console_capture',
       category: 'console',
-      name: body,
-      data: {
+      message: body,
+      detail: JSON.stringify({
         entries: errors.slice(-20),
         all_count: entries.length,
         error_count: errors.length,
@@ -116,7 +115,7 @@ async function sendToAlice(context?: string) {
         dt_captured: Date.now(),
         url: window.location.href,
         user_agent: navigator.userAgent,
-      },
+      }),
     });
     // Clear sent errors so we don't re-send
     entries = entries.filter((e) => e.level === 'log');

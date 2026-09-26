@@ -23,7 +23,7 @@
  */
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useWindowManager } from "@/context/WindowManagerContext";
-import { getRecord, getRecords, saveRecord } from "@/api/wcapi";
+import { getRecord, getRecords, saveRecord, createRecord, getModelDetail } from "@/api/wcapi";
 import { DbColumns } from "./DbColumns";
 import type { DbColumnDef } from "./DbColumns";
 import { getModelDetailPath, getModelWindowTitle, getModelWindowPreset } from "./getModelDetailPath";
@@ -415,19 +415,18 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
       const parentRes = await getRecord(parentModel, parentId);
       const parent = parentRes?.record || parentRes;
 
-      const newRecord: Record<string, any> = {};
-      // Link back to parent
-      if (parentModel !== linkedModel) {
-        newRecord[`${parentModel}_id`] = parentId;
+      // The parent ids the caller holds, for the ones that are fields of the linked model.
+      const inherited: Record<string, any> = {};
+      if (parentModel !== linkedModel) inherited[`${parentModel}_id`] = parentId;
+      for (const k of ['contact_id', 'customer_id', 'vendor_id', 'project_id']) {
+        if (parent?.[k]) inherited[k] = parent[k];
       }
-      // Inherit contact/customer from parent
-      if (parent?.contact_id) newRecord.contact_id = parent.contact_id;
-      if (parent?.customer_id) newRecord.customer_id = parent.customer_id;
-      if (parent?.vendor_id) newRecord.vendor_id = parent.vendor_id;
-      if (parent?.project_id) newRecord.project_id = parent.project_id;
+      const detail = await getModelDetail(linkedModel);
+      const fieldNames = new Set((detail?.model?.fields || []).map((f: any) => (typeof f === 'string' ? f : f?.name)));
+      const values = Object.fromEntries(Object.entries(inherited).filter(([k]) => fieldNames.has(k) || fieldNames.has(k.replace(/_id$/, ''))));  // an FK is listed by name
 
-      const res = await saveRecord(linkedModel, newRecord);
-      const created = (res as any)?.record || res;
+      const res: any = await createRecord(linkedModel, values);
+      const created = res?.id ? { ...(res.record || {}), id: res.id } : null;
       if (created?.id) {
         const newIds = [...linkedIds, created.id];
         await saveLinks(newIds);

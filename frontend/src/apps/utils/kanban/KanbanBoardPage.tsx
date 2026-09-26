@@ -12,7 +12,7 @@ import type { DragItem, DropResult } from "./dndTypes";
 import { DRAG_TYPE_TASK } from "./dndTypes";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry, TaskAttachment, TaskFormFieldValue } from "./taskFormTypes";
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "./type/kanban";
-import { getRecords, manageAction, saveRecord, uploadDocument } from "@/api/wcapi";
+import { getRecords, manageAction, saveRecord, createRecord, uploadDocument } from "@/api/wcapi";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
 import { Link, useSearchParams } from "react-router";
 import { PageRoutes } from "../../../routes/Routes";
@@ -606,21 +606,13 @@ const createTranslationEntry = (language: string, title = "", description = ""):
 const normalizeLanguageCode = (code: string) => code.trim().toLowerCase();
 
 const createInitialTaskFormState = (columnId: string): TaskFormState => {
-  // Helper to format date as datetime-local string (YYYY-MM-DDTHH:MM)
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  const formatDT = (d: Date) =>
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-
-  const now = new Date();
-  const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
   return {
     translations: [createTranslationEntry(DEFAULT_LANGUAGE_ORDER[0])],
     columnId,
     projectId: "",
     priority: "medium",
-    dt_deadline: formatDT(sevenDaysLater),
-    dt_start: formatDT(now),
+    dt_deadline: "",   // dates are the server's defaults for a new action
+    dt_start: "",
     dt_completed: "",
     dt_expected: "",
     assigned_to: [],
@@ -1810,38 +1802,13 @@ const KanbanBoardPage: React.FC = () => {
       const targetTask = nextBoard.tasks[item.taskId];
       if (!targetTask?.id) return;
 
-      // Build complete payload with all necessary fields
+      // A drag changes the column and the order — only those fields go (kanban_column_id,
+      // order, position and action_<lang> are not action fields; the door refuses them).
       const entry: Record<string, unknown> = {
         id: targetTask.id,
         kanban_column: destinationColumn.title,
-        kanban_column_id: destinationColumn.id,
         sequence: newSequence,
-        order: newSequence,
-        position: newSequence,
       };
-
-      // Include action titles to ensure backend has them
-      if (targetTask.title) {
-        entry.action_en = targetTask.title;
-      }
-
-      // Include translations if available
-      if (targetTask.title_translations) {
-        Object.entries(targetTask.title_translations).forEach(([lang, text]) => {
-          if (text) {
-            entry[`action_${lang}`] = text;
-          }
-        });
-      }
-
-      if (selectedProjectName) {
-        entry.project_name = selectedProjectName;
-      }
-
-      if (selectedProjectId) {
-        const numericId = Number(selectedProjectId);
-        entry.project_id = Number.isNaN(numericId) ? selectedProjectId : numericId;
-      }
 
       console.log("Dragging task - payload:", entry);
 
@@ -1853,7 +1820,7 @@ const KanbanBoardPage: React.FC = () => {
         console.error("Error details:", error);
       }
     },
-    [selectedProjectName, selectedProjectId]
+    []
   );
 
   const removeTaskInBackend = useCallback(async (taskId: string | number) => {
@@ -1866,7 +1833,6 @@ const KanbanBoardPage: React.FC = () => {
         is_active: { mode: "update", value: false },
         status: { mode: "update", value: "Removed" },
         kanban_column: { mode: "update", value: "Removed" },
-        kanban_column_id: { mode: "update", value: "column-removed" },
       });
 
       return { success: true } as const;
@@ -2298,14 +2264,9 @@ const KanbanBoardPage: React.FC = () => {
 
   const handleNewActionFloating = useCallback(async () => {
     try {
-      const result = await saveRecord("action", {
-        model_name: "action",
-        action: { en: "" },
-        status: "open",
-        priority: 2,
-        project_id: selectedProjectId || undefined,
-      });
-      const newId = result?.id || result?.record?.id;
+      // new: the server's defaults populate it; the project is the context the board holds.
+      const result: any = await createRecord("action", selectedProjectId ? { project_id: selectedProjectId } : {});
+      const newId = result?.id;
       if (newId) setFloatingActionId(String(newId));
     } catch { /* no-op */ }
   }, [selectedProjectId]);
@@ -2709,8 +2670,8 @@ const KanbanBoardPage: React.FC = () => {
 
       originalLanguages.forEach((language) => {
         if (language && !effectiveTranslations.has(language)) {
-          removalTokens.push(`action_${language}`);
-          removalTokens.push(`description_${language}`);
+          removalTokens.push(`action.${language}`);
+          removalTokens.push(`description.${language}`);
         }
       });
     }
@@ -2746,15 +2707,13 @@ const KanbanBoardPage: React.FC = () => {
     );
 
     const payloadItem: Record<string, unknown> = {
-      model_name: "action",
       languages,
-      needtoremove: removalTokens.join(","),
       ...(Object.keys(actionPayload).length ? { action: actionPayload } : {}),
       ...(Object.keys(descriptionPayload).length ? { description: descriptionPayload } : {}),
       kanban_column: columnTitle,
       priority: PRIORITY_TO_VALUE[state.priority],
       difficulty: resolvedDifficulty,
-      status: baseTask?.status ?? "In progress",
+      ...(baseTask?.status ? { status: baseTask.status } : {}),   // a new action's status is the server's
       dt_deadline: dueTimestamp ?? null,
       dt_start: startTimestamp ?? null,
       dt_completed: completedTimestamp ?? null,
@@ -2776,9 +2735,8 @@ const KanbanBoardPage: React.FC = () => {
       }
     }
 
-    if (!removalTokens.length) {
-      payloadItem.needtoremove = "";
-    }
+    // A language the user removed: delete its key from the action / description JSON.
+    removalTokens.forEach((path) => { payloadItem[path] = { mode: "delete" }; });
 
     const projectIdFromState = state.projectId?.trim();
     const resolvedProjectId = projectIdFromState || selectedProjectId || "";
@@ -2795,25 +2753,16 @@ const KanbanBoardPage: React.FC = () => {
       payloadItem.project_name = resolvedProjectName;
     }
 
-    if (resolvedProjectId) {
-      const numericId = Number(resolvedProjectId);
-      payloadItem.project_id = Number.isNaN(numericId) ? resolvedProjectId : numericId;
+    // project_id is the FK; project_slug is not an action field (the door refuses it).
+    const numericProjectId = Number(resolvedProjectId);
+    if (resolvedProjectId && Number.isFinite(numericProjectId)) {
+      payloadItem.project_id = numericProjectId;
     }
 
-    // Provide project_slug when available to help backend resolve non-numeric identifiers
-    try {
-      const selectedOpt = projectOptions.find((o) => String(o.id) === String(resolvedProjectId));
-      if (selectedOpt && selectedOpt.slug) {
-        payloadItem.project_slug = selectedOpt.slug;
-      } else if (resolvedProjectId && isNaN(Number(resolvedProjectId))) {
-        // If the provided project id looks non-numeric, include it as a slug too
-        payloadItem.project_slug = resolvedProjectId;
-      }
-    } catch {
-      // defensive - ignore
+    // is_active goes when it is the user's change, not as a default on a new action.
+    if (mode === "edit" || state.is_active === "false") {
+      payloadItem.is_active = state.is_active !== "false";
     }
-
-    payloadItem.is_active = state.is_active !== "false";
 
     // Add attachments if present
     if (state.attachments && state.attachments.length > 0) {
@@ -2846,9 +2795,10 @@ const KanbanBoardPage: React.FC = () => {
           return;
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { model_name: _mn, ...savePayload } = result.payload;
-        const body: any = await saveRecord("action", savePayload);
+        // _attachments is a signal the action hook reads on new; the rest are the first save.
+        const { _attachments, ...values } = result.payload;
+        const body: any = await createRecord("action", values,
+          _attachments ? { _attachments } : {});
         console.log("Create task response:", body);
 
         if (body?.status === "fail") {
@@ -2963,9 +2913,7 @@ const KanbanBoardPage: React.FC = () => {
           // ignore
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { model_name: _mn2, ...editSavePayload } = result.payload;
-        await saveRecord("action", editSavePayload);
+        await saveRecord("action", result.payload);
 
         const pendingUploads = (editTaskState.attachments || []).filter((attachment) => attachment.file instanceof File);
         const uploadedAttachments: TaskAttachment[] = [];

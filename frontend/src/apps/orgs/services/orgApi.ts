@@ -3,14 +3,12 @@
  * Unified Organization API Service
  * Handles all org CRUD operations via the wcapi SDK.
  */
-import { getRecords, getRecord, saveRecord, deleteRecord } from '@/api/wcapi';
+import { getRecords, getRecord, deleteRecord } from '@/api/wcapi';
 import type {
   Organization,
   OrgType,
   OrgListParams,
   OrgListResponse,
-  OrgCreateRequest,
-  OrgUpdateRequest,
 } from '../types/orgTypes';
 
 // --- Core API methods ---
@@ -44,28 +42,6 @@ export const orgApi = {
     const modelName = orgType || 'organization';
     const data = await getRecord(modelName, id);
     return (data?.record ?? {}) as Organization;
-  },
-
-  /**
-   * Create new organization.
-   */
-  create: async (data: OrgCreateRequest): Promise<Organization> => {
-    const modelName = data.org_type || 'organization';
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { org_type: _drop, ...payload } = data;
-    const result = await saveRecord(modelName, payload);
-    return result as Organization;
-  },
-
-  /**
-   * Update existing organization.
-   */
-  update: async (data: OrgUpdateRequest): Promise<Organization> => {
-    const modelName = data.org_type || 'organization';
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { org_type: _drop, ...payload } = data;
-    const result = await saveRecord(modelName, payload);
-    return result as Organization;
   },
 
   /**

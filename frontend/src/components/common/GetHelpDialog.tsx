@@ -288,8 +288,8 @@ export default function GetHelpDialog({ open, onClose, trainingMode }: GetHelpDi
 
     // Log help lookup as AiMessage — frequency = confusion signal
     try {
-      const { saveRecord } = await import('@/api/wcapi');
-      saveRecord('ai_message', {
+      const { createRecord } = await import('@/api/wcapi');
+      createRecord('ai_message', {
         kind: 'help_lookup',
         sender: 'user',
         receiver: 'alice',

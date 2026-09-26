@@ -10,7 +10,7 @@
  * LastChecked: 2026-08-21 | WhereUsed: /agenda | WhoCreated: Bill+Claude
  */
 import { useEffect, useState } from 'react';
-import { getRecords, saveRecord } from '@/api/wcapi';
+import { getRecords, createRecord } from '@/api/wcapi';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -224,11 +224,14 @@ const AliceFeedbackBadge: React.FC = () => {
     if (!text.trim()) return;
     setSending(true);
     try {
-      await saveRecord('note', {
+      // There is no `note` model: feedback for Alice is an AiMessage (as submitFeedback).
+      await createRecord('ai_message', {
+        kind: 'feedback',
+        sender: 'user',
+        receiver: 'alice',
         subject: 'Agenda feedback',
         body: text.trim(),
-        purpose: 'alice_log',
-        source: 'agenda',
+        context: { source: 'agenda' },
       });
       setText('');
       setOpen(false);

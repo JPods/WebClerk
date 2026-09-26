@@ -7,6 +7,7 @@
  */
 import { apiClient } from "@/api/axios";
 import type { ApiEnvelope, GetListPayload } from "@/api/wcapi";
+import { saveRecord, createRecord } from "@/api/wcapi";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -307,11 +308,17 @@ export async function getQAAnswers(
  */
 export async function saveQAAnswer(answer: QAAnswerRecord): Promise<QAAnswerRecord | null> {
   try {
-    const body = { model_name: 'question_answer', ...answer };
-    const res = answer.id
-      ? await apiClient.put<ApiEnvelope<any>>(`/wcapi/question_answer/${answer.id}/`, body)
-      : await apiClient.post<ApiEnvelope<any>>('/wcapi/question_answer/', body);
-    return res.data.data;
+    // Only QuestionAnswer's real fields go. setting_id and answers[] (multi-select) are not
+    // fields on question_answer; the door would refuse them.
+    const { id, question, answer: text, question_id, answer_id, parent_model, parent_id,
+            status, sequence, metadata } = answer;
+    const values: Record<string, any> = { question, answer: text, question_id, answer_id,
+                                          parent_model, parent_id, status, sequence, metadata };
+    for (const k of Object.keys(values)) if (values[k] === undefined) delete values[k];
+    const res: any = id
+      ? await saveRecord('question_answer', { ...values, id })
+      : await createRecord('question_answer', values);
+    return res ? { ...(res.record || {}), id: res.id } : null;
   } catch (err: any) {
     console.error('Failed to save Q&A answer:', err);
     throw err;

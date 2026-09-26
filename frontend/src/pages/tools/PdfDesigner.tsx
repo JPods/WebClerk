@@ -1,7 +1,7 @@
 /* LastChecked: 2026-08-10 | WhereUsed: /pdf-designer, ReportsDialog | WhoCreated: Claude */
 import { useEffect, useRef, useState } from "react";
 import { useAppSelector } from "../../store/hooks";
-import apiClient from "../../api/axios";
+import { createRecord } from "../../api/wcapi";
 
 interface PdfDesignerProps {
   /** Report record — if provided, loads its pdfme_template from config */
@@ -107,15 +107,11 @@ const PdfDesigner: React.FC<PdfDesignerProps> = ({ report, model } = {}) => {
     setMessage(null);
 
     try {
-      await apiClient.post("/wcapi/alice_observation/", {
-        model_name: "alice_observation",
-        data: {
-          source: "pdf_designer",
-          type: "template_submission",
-          content,
-          submitted_by: user?.id,
-          notes,
-        },
+      await createRecord("alice_observation", {
+        source: "pdf_designer",
+        message: notes ? `PDF template submission: ${notes}` : "PDF template submission",
+        detail: JSON.stringify({ type: "template_submission", content, notes }),
+        ...(user?.id ? { contact_id: user.id } : {}),
       });
       setMessage({ type: "success", text: "PDF template submitted to library successfully." });
       setNotes("");

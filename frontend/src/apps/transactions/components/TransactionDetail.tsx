@@ -7,7 +7,7 @@
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { getRecord, saveRecord, saveTransactionWithLines } from '@/api/wcapi';
+import { getRecord, newRecord, saveRecord, saveTransactionWithLines } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store';
@@ -176,8 +176,7 @@ const UiDetail: React.FC<UiDetailProps> = ({
 
   const handleAddNew = async () => {
     try {
-      const res = await saveRecord(modelName, { status: 'open' });
-      const newId = res?.record?.id || res?.id;
+      const { id: newId } = await newRecord(modelName);
       if (newId) windowManager.ensureWindow(`/${modelName}/${newId}`, `${modelName} #${newId}`);
     } catch {
       dispatch(showToast({ message: `Failed to create ${modelName}`, type: 'error' }));

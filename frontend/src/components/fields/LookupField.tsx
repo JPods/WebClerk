@@ -53,17 +53,18 @@ export default function LookupField(props: LookupFieldProps) {
 
   const handleAddNew = async () => {
     try {
-      const { saveRecord } = await import('@/api/wcapi');
-      const blank: any = { ida: query };
+      const { createRecord } = await import('@/api/wcapi');
+      // The text the user typed is the new record's name; everything else is the server's.
+      const values: Record<string, any> = {};
       if (model === 'contact') {
         const parts = query.trim().split(/\s+/);
-        blank.name_first = parts[0] || query;
-        blank.name_last = parts.slice(1).join(' ') || '';
+        values.name_first = parts[0] || query;
+        values.name_last = parts.slice(1).join(' ') || '';
       } else {
-        blank.name = query;
+        values.name = query;
       }
-      const result = await saveRecord(model, blank) as any;
-      if (result?.id) handleSelect(result);
+      const result = await createRecord(model, values) as any;
+      if (result?.id) handleSelect({ ...(result.record || {}), id: result.id });
     } catch (err) {
       console.error('[LookupField] add new failed:', err);
     }

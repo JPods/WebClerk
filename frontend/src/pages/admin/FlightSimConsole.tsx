@@ -14,7 +14,7 @@
  */
 import React, { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { manageAction, saveRecord } from "../../api/wcapi";
+import { manageAction, createRecord } from "../../api/wcapi";
 import { FaSync } from "react-icons/fa";
 import "./FlightSimConsole.css";
 import { formatCurrency } from "@/utils/stringUtils";
@@ -511,14 +511,13 @@ const FlightSimConsole: React.FC = () => {
     try {
       const defaults = await manageAction("get_sim_header_defaults", {}) as any;
       const simHeader = defaults?.data ?? defaults ?? {};
-      const result = await saveRecord(model, {
-        is_active: true,
+      const result = await createRecord(model, {
         status: "planned",
         ...(simHeader.ship_via ? { ship_via: simHeader.ship_via } : {}),
         ...(simHeader.finance ? { finance: simHeader.finance } : {}),
         metadata: { training: true, flight_sim: true },
       }) as any;
-      const newId = result?.data?.id || result?.id || result?.data?.record?.id;
+      const newId = result?.id;
       return newId || null;
     } catch (e) {
       console.error(`Failed to create ${model}:`, e);

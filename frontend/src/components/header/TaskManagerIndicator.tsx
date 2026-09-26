@@ -7,7 +7,6 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import clsx from "clsx";
 import { useRequestQueue } from "../../context/RequestQueueContext";
-import { useSaveQueue } from "../../context/SaveQueueContext";
 
 const TEN_MINUTES = 10 * 60 * 1000;
 
@@ -28,7 +27,6 @@ const Chip: React.FC<{ label: string; count: number }> = ({ label, count }) => (
 
 export const TaskManagerIndicator: React.FC = () => {
   const { active: activeRequests, cancel: cancelRequest } = useRequestQueue();
-  const { queued, active: activeSave, cancel: cancelSave } = useSaveQueue();
   const [open, setOpen] = useState(false);
   const [now, setNow] = useState(Date.now());
   const firstSeenRef = useRef<Map<string, number>>(new Map());
@@ -46,31 +44,8 @@ export const TaskManagerIndicator: React.FC = () => {
       onCancel: () => cancelRequest(req.id),
     }));
 
-    const mappedSaves: TaskItem[] = [];
-    if (activeSave) {
-      mappedSaves.push({
-        id: activeSave.id,
-        label: activeSave.label || "Save",
-        status: activeSave.status,
-        method: "POST",
-        startedAt: (activeSave as any).startedAt,
-        onCancel: () => cancelSave(activeSave.id),
-      });
-    }
-
-    queued.forEach((item) => {
-      mappedSaves.push({
-        id: item.id,
-        label: item.label || "Save",
-        status: item.status,
-        method: "POST",
-        startedAt: (item as any).startedAt,
-        onCancel: () => cancelSave(item.id),
-      });
-    });
-
-    return [...mappedRequests, ...mappedSaves];
-  }, [activeRequests, activeSave, queued, cancelRequest, cancelSave]);
+    return mappedRequests;
+  }, [activeRequests, cancelRequest]);
 
   // Track first-seen time for each item
   useEffect(() => {

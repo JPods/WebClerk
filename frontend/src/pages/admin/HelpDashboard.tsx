@@ -10,7 +10,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getRecords, saveRecord } from '@/api/wcapi';
+import { getRecords, createRecord } from '@/api/wcapi';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -127,7 +127,7 @@ export default function HelpDashboard() {
   const sendFeedback = useCallback(async (itemId: string, vote: 'up' | 'down') => {
     setFeedback((p) => ({ ...p, [itemId]: vote }));
     try {
-      await saveRecord('setting', {
+      await createRecord('setting', {
         name: `help_feedback:${itemId}`,
         purpose: 'alice_log',
         config: { item_id: itemId, vote, context, model, dt: Date.now() },
@@ -138,7 +138,7 @@ export default function HelpDashboard() {
   // Report problem
   const reportProblem = useCallback(async (description: string) => {
     try {
-      await saveRecord('setting', {
+      await createRecord('setting', {
         name: `Help problem: ${description.slice(0, 200)}`,
         purpose: 'alice_pending',
         config: { description, context, model, field, dt: Date.now(), url: window.location.href },
@@ -289,19 +289,19 @@ export default function HelpDashboard() {
               className="px-3 py-1.5 text-xs rounded border border-gray-300 text-gray-500 hover:bg-gray-100">Cancel</button>
             <button disabled={!newBookmark.title.trim() || !newBookmark.url.trim()} onClick={async () => {
               try {
-                const doc = await saveRecord('document', {
+                // Document.model_name ('system') cannot be sent — the door refuses model_name.
+                const doc = await createRecord('document', {
                   name: newBookmark.title,
                   slug: `bookmark-${Date.now()}`,
                   description: newBookmark.url,
                   body: `${newBookmark.notes}\n\nLink: ${newBookmark.url}`,
                   status: 'published',
-                  model_name: 'system',
                   confidential: 'internal',
                   purpose: 'bookmark',
                   metadata: { url: newBookmark.url, context, model },
                 });
                 // Add to bookmarks
-                const newId = `local-${(doc as any)?.record?.id || (doc as any)?.id}`;
+                const newId = `local-${(doc as any)?.id}`;
                 toggleBookmark(newId);
                 setShowAddBookmark(false);
                 setNewBookmark({ title: '', url: '', notes: '' });

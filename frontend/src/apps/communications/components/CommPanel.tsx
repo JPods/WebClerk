@@ -21,7 +21,7 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
-import { saveRecord, deleteRecord } from '@/api/wcapi';
+import { createRecord, deleteRecord } from '@/api/wcapi';
 import { DbColumns, type DbColumnDef } from '@/apps/common/components/panels/DbColumns';
 import { getUI } from '@/utils/contactUI';
 
@@ -121,9 +121,10 @@ const AddRow: React.FC<{
       else if (type === 'phone') payload.number = value;
       else if (type === 'address') payload.full = value;
       else if (type === 'domain') payload.path = value;
-      if (name) payload.name = name;
+      // name is a field of email and phone only
+      if (name && (type === 'email' || type === 'phone')) payload.name = name;
 
-      await saveRecord(type, payload);
+      await createRecord(type, payload);
       dispatch(showToast({ message: `${type} added`, type: 'success' }));
       onSaved();
     } catch {
