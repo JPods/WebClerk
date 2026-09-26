@@ -2,7 +2,7 @@
 /**
  * DataSetBadge Component
  * 
- * Visual indicator showing current data set (DEV/STAGING/PRODUCTION).
+ * Visual indicator showing current data set (DATA_SET_KIND: live/demo/training/dev).
  * Displays a warning if frontend and backend data sets don't match.
  */
 
@@ -28,11 +28,11 @@ const positionStyles: Record<string, React.CSSProperties> = {
 };
 
 const colorSchemes: Record<string, { bg: string; text: string; border: string }> = {
+  // DATA_SET_KIND (Bill, 2026-09-26): live is the one to be careful with — red.
   DEV: { bg: '#22c55e20', text: '#16a34a', border: '#22c55e' },
-  STAGING: { bg: '#f59e0b20', text: '#d97706', border: '#f59e0b' },
-  PRODUCTION: { bg: '#ef444420', text: '#dc2626', border: '#ef4444' },
-  PROD: { bg: '#ef444420', text: '#dc2626', border: '#ef4444' },
-  LOCAL: { bg: '#3b82f620', text: '#2563eb', border: '#3b82f6' },
+  DEMO: { bg: '#3b82f620', text: '#2563eb', border: '#3b82f6' },
+  TRAINING: { bg: '#f59e0b20', text: '#d97706', border: '#f59e0b' },
+  LIVE: { bg: '#ef444420', text: '#dc2626', border: '#ef4444' },
   UNKNOWN: { bg: 'color-mix(in srgb, var(--db-text-muted) 12%, transparent)', text: 'var(--db-text-muted)', border: 'var(--db-border)' },
 };
 

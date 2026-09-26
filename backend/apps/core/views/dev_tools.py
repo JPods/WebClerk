@@ -18,7 +18,9 @@ from decouple import config
 
 def _is_dev_mode():
     """Check if we're in development mode."""
-    return settings.DEBUG and config('DATA_SET_ID', default='').upper() in ('DEV', 'LOCAL')
+    # Never on live data: DEBUG and a disposable data set (DATA_SET_KIND, default live).
+    from apps.transactions.services.cash.cash_door import data_set_is_disposable
+    return settings.DEBUG and data_set_is_disposable()
 
 
 def _get_dev_config_path():
@@ -45,7 +47,7 @@ def _read_dev_config():
             return json.load(f)
     return {
         'db_mode': config('DB_MODE', default='remote'),
-        'data_set_id': config('DATA_SET_ID', default='UNKNOWN'),
+        'data_set_kind': config('DATA_SET_KIND', default='live'),
         'data_set_name': config('DATA_SET_NAME', default='Unknown'),
     }
 
@@ -101,7 +103,7 @@ def dev_config_status(request):
         'status': 'success',
         'data': {
             'db_mode': config('DB_MODE', default='remote'),
-            'data_set_id': config('DATA_SET_ID', default='UNKNOWN'),
+            'data_set_kind': config('DATA_SET_KIND', default='live'),
             'data_set_name': config('DATA_SET_NAME', default='Unknown'),
             'available_modes': dev_config.get('available_modes', {
                 'remote': {'label': 'Remote (Team)', 'description': 'Shared database for team collaboration'},

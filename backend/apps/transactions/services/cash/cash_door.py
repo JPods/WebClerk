@@ -327,8 +327,8 @@ def _on_record_deleted(sender, instance, **kwargs):
 # ── a cash Pending is permanent, and frozen once processed ────────────
 
 #: Data-set kinds whose journal a repair may rewrite (Bill, 2026-09-26: demo, training and
-#: dev only; a live company's journal is never deleted). ``DATA_SET_KIND`` defaults to live:
-#: install.sh writes DATA_SET_ID=DEV on every install, so the id cannot be the test.
+#: dev only; a live company's journal is never deleted). ``DATA_SET_KIND`` defaults to live,
+#: and a new install writes live.
 DISPOSABLE_DATA_SETS = ('demo', 'training', 'dev')
 _orphan_delete_ok: set = set()
 

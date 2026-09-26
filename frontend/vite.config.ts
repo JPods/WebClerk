@@ -36,7 +36,7 @@ function getBackendDbMode(): string {
 export default defineConfig(({ mode }) => {
   // Load env to display in startup message
   const env = loadEnv(mode, process.cwd(), "");
-  const dataSetId = env.VITE_DATA_SET_ID || "UNKNOWN";
+  const dataSetId = env.VITE_DATA_SET_KIND || "live";
   const dataSetName = env.VITE_DATA_SET_NAME || "Unknown";
   const dbMode = getBackendDbMode();
   const dbColor = dbMode === "REMOTE" ? "\x1b[32m" : "\x1b[34m"; // Green for remote, blue for local

@@ -56,8 +56,8 @@ if [ ! -f ".env" ]; then
 
 DEBUG=True
 
-DATA_SET_ID=DEV
-DATA_SET_NAME=Development Server
+DATA_SET_KIND=live
+DATA_SET_NAME=My WebClerk
 
 # Database — local PostgreSQL
 DB_MODE=local
@@ -119,8 +119,8 @@ VITE_ENV='DEV'
 VITE_URL="http://localhost:5173"
 VITE_DEBUG_BADGES='true'
 
-VITE_DATA_SET_ID='DEV'
-VITE_DATA_SET_NAME='Development Server'
+VITE_DATA_SET_KIND='live'
+VITE_DATA_SET_NAME='My WebClerk'
 
 VITE_API_URL="http://localhost:8000"
 VITE_AUTH_API_URL="http://localhost:8000"

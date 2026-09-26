@@ -16,7 +16,7 @@ import { getUI } from '@/utils/contactUI';
 
 interface DevConfig {
   db_mode: string;
-  data_set_id: string;
+  data_set_kind: string;
   data_set_name: string;
   available_modes: Record<string, { label: string; description: string }>;
   restart_required: boolean;
@@ -366,7 +366,7 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
                 CURRENT DATA SET
               </div>
               <div style={{ fontWeight: 600 }}>
-                {config.data_set_id} - {config.data_set_name}
+                {config.data_set_kind} - {config.data_set_name}
               </div>
               <div style={{ marginTop: '8px' }}>
                 <span style={backendStatusStyle}>

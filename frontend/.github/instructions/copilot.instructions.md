@@ -275,7 +275,7 @@ All frontend env vars use `VITE_` prefix (Vite requirement).
 | Variable | Example | Notes |
 |----------|---------|-------|
 | `VITE_API_URL` | `http://localhost:8000` | **Must NOT include `/wcapi`** — SDK appends it |
-| `VITE_DATA_SET_ID` | `DEV` | Environment identifier |
+| `VITE_DATA_SET_KIND` | `live` | live, demo, training or dev (must match the backend's DATA_SET_KIND) |
 | `VITE_DATA_SET_NAME` | `Development Server` | Display name |
 | `VITE_NOTION_TOKEN` | (secret) | Notion API key |
 | `VITE_NOTION_DATABASE_ID` | (uuid) | Notion DB for notes |

@@ -15,7 +15,7 @@ consoleCapture.start();
 consoleCapture.startAutoFlush(60_000); // flush errors to Alice every 60s
 
 // Data Set Identification - startup notice
-const dataSetId = import.meta.env.VITE_DATA_SET_ID || "UNKNOWN";
+const dataSetId = import.meta.env.VITE_DATA_SET_KIND || "live";
 const dataSetName = import.meta.env.VITE_DATA_SET_NAME || "Unknown";
 const env = import.meta.env.VITE_ENV || "DEV";
 

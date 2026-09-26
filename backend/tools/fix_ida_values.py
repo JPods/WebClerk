@@ -11,7 +11,7 @@ Records with a valid prefixed ida (e.g. 'DEV-42', 'LOC-15', 'ida-1087')
 are LEFT UNTOUCHED to preserve provenance — a record born on another
 environment keeps its original ida (see §25 Sync Topologies in data-sync docs).
 
-Uses the IDA_PREFIX from settings / DATA_SET_ID (see common/ida.py).
+Uses the IDA_PREFIX from settings (see common/ida.py).
 """
 import os, sys
 

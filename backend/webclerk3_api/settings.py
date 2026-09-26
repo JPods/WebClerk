@@ -210,7 +210,7 @@ if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg)
         LOCAL_SYNC_ENABLED = False
         WRITE_THROUGH_REMOTE_ALIAS = '_wt_remote'
         WRITE_THROUGH_TIMEOUT = int(config('WRITE_THROUGH_TIMEOUT', default='30'))
-        print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
+        print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}')
         print(f'[webClerk3] Database: WRITE-THROUGH  read=LOCAL@{_local_db_cfg["HOST"]}  write=REMOTE@{_remote_db_cfg["HOST"]}\n')
     elif _db_mode == 'local-sync':
         # Local-sync: saves to local (fast), Celery pushes to remote async.
@@ -222,7 +222,7 @@ if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg)
         WRITE_THROUGH_ENABLED = False
         LOCAL_SYNC_ENABLED = True
         WRITE_THROUGH_REMOTE_ALIAS = '_wt_remote'
-        print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
+        print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}')
         print(f'[webClerk3] Database: LOCAL-SYNC  save=LOCAL@{_local_db_cfg["HOST"]}  async→REMOTE@{_remote_db_cfg["HOST"]}\n')
     elif _db_mode == 'local':
         # Local database for debugging
@@ -231,7 +231,7 @@ if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg)
         }
         WRITE_THROUGH_ENABLED = False
         LOCAL_SYNC_ENABLED = False
-        print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
+        print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}')
         print(f'[webClerk3] Database: LOCAL @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n')
     else:
         # Remote database for team collaboration (default)
@@ -240,7 +240,7 @@ if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg)
         }
         WRITE_THROUGH_ENABLED = False
         LOCAL_SYNC_ENABLED = False
-        print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
+        print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}')
         print(f'[webClerk3] Database: REMOTE @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n')
 else:
     # Fast in-memory database for tests
@@ -290,12 +290,14 @@ DATABASE_ROUTERS = [
 ]
 
 
-# ── Identity: DATA_SET_ID & IDA_PREFIX ──────────────────────────────
-# DATA_SET_ID identifies this environment (LOCAL, DEV, STAGING, PRODUCTION).
-# IDA_PREFIX is the born-on prefix stamped into every record's ida field.
-# See common/ida.py for the full identity model (id / ida / uuid).
-DATA_SET_ID = config('DATA_SET_ID', default='UNKNOWN')
-IDA_PREFIX = config('IDA_PREFIX', default='')  # empty → auto-derived from DATA_SET_ID in common/ida.py
+# ── Identity: DATA_SET_KIND & IDA_PREFIX ────────────────────────────
+# DATA_SET_KIND says what this data is: live | demo | training | dev. Default live — the safe
+# case: only demo/training/dev data may have its journal repaired (cash_door) or run dev
+# tools (Bill, 2026-09-26: one setting; it replaced DATA_SET_ID, which install.sh set to DEV
+# on every install). Which instance this is: WC_INSTANCE_UUID.
+# IDA_PREFIX is the born-on prefix stamped into every record's ida field (common/ida.py).
+DATA_SET_KIND = config('DATA_SET_KIND', default='live').strip().lower()
+IDA_PREFIX = config('IDA_PREFIX', default='')
 WC_INSTANCE_UUID = config('WC_INSTANCE_UUID', default='')
 # What the server needs before it can trust its own database (common/instance_env.py).
 # WC_HQ support link — works when the database is damaged.

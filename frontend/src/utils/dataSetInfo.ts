@@ -32,7 +32,7 @@ export interface SystemInfo {
  */
 export function getFrontendDataSet(): DataSetInfo {
   return {
-    id: String(import.meta.env.VITE_DATA_SET_ID || "UNKNOWN").replace(
+    id: String(import.meta.env.VITE_DATA_SET_KIND || "live").replace(
       /['"]/g,
       "",
     ),

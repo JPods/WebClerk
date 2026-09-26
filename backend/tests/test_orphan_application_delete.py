@@ -32,7 +32,7 @@ def _orphan(p):
 
 
 def test_a_live_data_set_never_deletes_an_application(monkeypatch):
-    monkeypatch.delenv('DATA_SET_KIND', raising=False)
+    monkeypatch.setenv('DATA_SET_KIND', 'live')          # beats .env, which may say demo
     p = _orphan(_application())
     with pytest.raises(cash_door.CashDoorError, match='live'):
         cash_door.delete_orphan_application(p.pk, 'test')

@@ -30,7 +30,7 @@ class SystemInfoView(APIView):
 
     def get(self, request):
         # Get data set identification from environment
-        data_set_id = config('DATA_SET_ID', default='UNKNOWN')
+        data_set_kind = config('DATA_SET_KIND', default='live')
         data_set_name = config('DATA_SET_NAME', default='Unknown Environment')
         instance_uuid = config('WC_INSTANCE_UUID', default='')
 
@@ -61,7 +61,7 @@ class SystemInfoView(APIView):
             'instance_uuid': instance_uuid,
             'wchq': wchq,
             'data_set': {
-                'id': data_set_id,
+                'id': data_set_kind,
                 'name': data_set_name,
             },
             'database': {
@@ -74,7 +74,7 @@ class SystemInfoView(APIView):
                 'python_version': platform.python_version(),
             },
             'pending': pending_health,
-            'message': f"Connected to {data_set_name} ({data_set_id})"
+            'message': f"Connected to {data_set_name} ({data_set_kind})"
         })
 
     @staticmethod
