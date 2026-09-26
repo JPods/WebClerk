@@ -839,12 +839,12 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
           <Btn small variant="ghost" onClick={() => setShowReassignDialog(true)}>
             Reassign{db.selectedRowIds.size > 0 ? ` (${db.selectedRowIds.size})` : ''}
           </Btn>
+          <ToolbarIcon action={TB.addRecord} title={`Add ${db.modelLabel || 'Record'} (⌘N)`} disabled={!db.selectedModel} onClick={() => addRecord()} />
           <span className="db-spacer" />
           <span className="db-pagination-info">{db.totalRecords}</span>
           <Btn small variant="ghost" disabled={db.page === 0} onClick={() => db.setPage((p) => p - 1)}>←</Btn>
           <span className="db-pagination-info">{db.page + 1}/{db.totalPages}</span>
           <Btn small variant="ghost" disabled={db.page >= db.totalPages - 1} onClick={() => db.setPage((p) => p + 1)}>→</Btn>
-          <ToolbarIcon action={TB.addRecord} title={`Add ${db.modelLabel || 'Record'} (⌘N)`} disabled={!db.selectedModel} onClick={() => addRecord()} />
         </div>
 
         {/* Detail toolbar — shown when record selected or list empty */}
