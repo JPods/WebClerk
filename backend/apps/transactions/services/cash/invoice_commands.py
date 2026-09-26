@@ -138,6 +138,94 @@ def apply_balance(ctx) -> Dict[str, Any]:
             'balance': t.get('balance'), 'cash_state': t.get('cash_state')}
 
 
+# ── add_cash: a Cash from the document, applied in the same transaction ─────────────
+
+#: Where the new Cash points, and how it is applied, per document (Bill, 2026-09-26, release #9).
+#: amount in the payload is what this document is paid (+) or credited (−). The Cash carries the
+#: checkbook sign of its side: AR money in is +, AP money out is −, so a receipt's Cash is −amount.
+ADD_CASH_SIDES = {
+    'invoice': {'party': 'customer_id', 'link': 'invoice_id', 'cash_sign': 1, 'apply': 'invoice'},
+    'receipt': {'party': 'vendor_id', 'link': 'receipt_id', 'cash_sign': -1, 'apply': 'receipt'},
+    'order':   {'party': 'customer_id', 'link': None, 'cash_sign': 1, 'apply': None},   # a deposit
+}
+
+
+def add_cash(ctx) -> Dict[str, Any]:
+    """POST /wcapi/<invoice|receipt|order>/<id>/add_cash/ {amount ±, method, reference, reason}.
+
+    Bill, 2026-09-26: one service — the Cash is saved through the standard save (save_record,
+    as the acting person: their rights, enumerated fields, hooks), then the command base applies
+    it. The apply is completely after the save: a refused apply leaves the Cash saved and
+    available, and the answer says why it did not apply (Bill's correction, same day). The apply
+    runs in its own savepoint, so a refusal undoes only the application.
+    An order's Cash is a deposit: unapplied, parent_model='order', and it follows the order to
+    its invoice (cash_door.relink_deposits).
+    """
+    from apps.core.services.save import save_record
+    from apps.transactions.models import Cash
+    doc = ctx.obj
+    model_key = ctx.model_key
+    side = ADD_CASH_SIDES[model_key]
+    amount = _d(ctx.data.get('amount'))
+    if amount == 0:
+        raise Refused(400, 'amount_required', 'Say how much: "amount" (+ pays the document, − credits it).')
+    party_id = getattr(doc, side['party'], None)
+    if not party_id:
+        who = 'customer' if side['party'] == 'customer_id' else 'vendor'
+        raise Refused(400, f'{who}_required', f'{model_key.title()} {doc.pk} names no {who}; '
+                      f'money needs a party.')
+    if side['apply']:
+        balance = _balance(doc)
+        if amount > 0 and amount > balance:     # a credit (−) is judged by the cash door's check
+            raise Refused(400, 'amount_exceeds_balance',
+                          f'{model_key.title()} {doc.pk} has {balance} open; {amount} was asked. '
+                          f'Nothing was added.', {'balance': float(balance), 'amount': float(amount)})
+    reason = (ctx.data.get('reason') or '').strip()
+    cash_data = {'model_name': 'cash', side['party']: party_id,
+                 'amount': str(amount * side['cash_sign']),
+                 'method': ctx.data.get('method') or 'manual',
+                 'reference_number': ctx.data.get('reference') or '',
+                 'status': 'completed'}
+    if getattr(doc, 'contact_id', None):
+        cash_data['contact_id'] = doc.contact_id
+    if side['link']:
+        cash_data[side['link']] = doc.pk
+    else:
+        cash_data.update({'parent_model': model_key, 'parent_id': doc.pk})
+    saved = save_record(ctx.actor, cash_data)
+    cash = Cash.objects.get(pk=saved.obj_id)
+    if reason:
+        from apps.core.services.comment_stamp import append_comment
+        append_comment(cash, 'process', reason, user=getattr(ctx.actor, 'user_id', None))
+        Cash.objects.filter(pk=cash.pk).update(comments=cash.comments)
+
+    applied = None
+    if side['apply']:
+        from django.db import transaction
+        acted_by = getattr(ctx.actor, 'user_id', None)
+        why = reason or f'add_cash on {model_key} {doc.pk}'
+        try:
+            with transaction.atomic():           # the application alone; the Cash stands
+                if side['apply'] == 'invoice':
+                    applied = _apply(doc, cash.pk, amount, why, acted_by)
+                else:
+                    from apps.transactions.services.cash.cash_pending_receipt import apply_cash_to_receipt
+                    result = apply_cash_to_receipt(cash.pk, doc.pk, amount, reason=why, acted_by=acted_by)
+                    applied = {'cash_id': cash.pk, 'amount': float(amount),
+                               'state': 'applied' if result.get('applied') else 'queued'}
+        except ValueError as e:
+            applied = {'cash_id': cash.pk, 'amount': float(amount), 'state': 'refused',
+                       'reason': f'Saved, not applied to {model_key} {doc.pk}: {e}. The cash is '
+                                 f'available to apply.'}
+    doc.refresh_from_db()
+    t = doc.totals or {}
+    return {'cash_id': cash.pk, 'cash_amount': float(cash.amount), 'applied': applied,
+            'deposit': side['apply'] is None,
+            'balance': t.get('balance'), 'received': t.get('received'), 'paid': t.get('paid')}
+
+
 def register() -> None:
     from apps.core.services.verbs import register_command
     register_command('invoice', 'apply_balance', apply_balance)
+    for model_key in ADD_CASH_SIDES:
+        register_command(model_key, 'add_cash', add_cash)
