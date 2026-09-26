@@ -2,7 +2,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUI, setUI } from '@/utils/contactUI';
-import { createBlankRecord } from '../../tools/createBlankRecord';
 import { useAppSelector } from '../../store/hooks';
 import { useDataBrowser, numId, type FieldSpec } from '../../hooks/useDataBrowser';
 import { getDetailViewPref } from '../../layout/MacTopBar';
@@ -317,7 +316,6 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   const [detailIsEditing, setDetailIsEditing] = useState(true); // default true for app mode
   const detailSaveRef = useRef<(() => void) | null>(null);
   const detailCancelRef = useRef<(() => void) | null>(null);
-  const detailAddRef = useRef<(() => void) | null>(null);
   const detailDeleteRef = useRef<(() => void) | null>(null);
 
   // ── Draggable splitter between list and detail panes ──
@@ -443,6 +441,28 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
 
   // inputStyle removed — use className="db-input" or "db-search" instead
 
+  // Add Record — one path for the list toolbar, the detail toolbar and Cmd+N. The body is the
+  // model's field defaults only: the server stamps id/uuid/ida/dt_*/version, and the door refuses
+  // model_name in the body (fix #1). The new id is selected, so db.detail opens it in the form
+  // the current view uses (App ui.json component or the Admin field grid).
+  const addRecord = useCallback(async () => {
+    if (!db.selectedModel) return;
+    const body: Record<string, any> = {};
+    Object.entries(db.fieldDefaults || {}).forEach(([k, v]) => {
+      if (v === '' || v == null) return;
+      if (k.endsWith('_offset_days')) body[k.replace('_offset_days', '')] = Date.now() + Number(v) * 86400000;
+      else body[k] = v;
+    });
+    try {
+      const { saveRecord: sr } = await import('@/api/wcapi');
+      const result = await sr(db.selectedModel, body) as any;
+      if (result?.id) { db.fetchRecords(); db.setSelectedId(numId(result.id)); }
+    } catch (err: any) {
+      console.error('[AddRecord] error:', err);
+      alert('Add failed: ' + (err?.message || JSON.stringify(err)));
+    }
+  }, [db.selectedModel, db.fieldDefaults, db.fetchRecords, db.setSelectedId]);
+
   // Keyboard shortcuts
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -490,26 +510,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
       if (mod && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         e.stopPropagation();
-        if (detailAddRef.current) { detailAddRef.current(); }
-        else {
-          (async () => {
-            try {
-              const blank = createBlankRecord(db.selectedModel, db.allFields);
-              if (db.fieldDefaults) {
-                Object.entries(db.fieldDefaults).forEach(([k, v]) => {
-                  if (v !== '' && v != null) {
-                    if (k.endsWith('_offset_days')) {
-                      blank[k.replace('_offset_days', '')] = Date.now() + (Number(v) * 86400000);
-                    } else { blank[k] = v; }
-                  }
-                });
-              }
-              const { saveRecord: sr } = await import('@/api/wcapi');
-              const result = await sr(db.selectedModel, blank) as any;
-              if (result?.id) { db.fetchRecords(); db.setSelectedId(result.id); }
-            } catch (err: any) { console.error('[AddRecord] error:', err); }
-          })();
-        }
+        addRecord();
         return;
       }
       // Cmd+Z = discard changes (only when dirty, not in input)
@@ -524,7 +525,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
     };
     window.addEventListener('keydown', handler, true);
     return () => window.removeEventListener('keydown', handler, true);
-  }, [db.selectedId, db.selectedRecord, db.isDirty, detailIsEditing]);
+  }, [db.selectedId, db.selectedRecord, db.isDirty, detailIsEditing, addRecord]);
 
   // Build fieldSpecs map from listFieldSpecs for DataGrid formatting
   const fieldSpecsMap = useMemo(() => {
@@ -843,6 +844,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
           <Btn small variant="ghost" disabled={db.page === 0} onClick={() => db.setPage((p) => p - 1)}>←</Btn>
           <span className="db-pagination-info">{db.page + 1}/{db.totalPages}</span>
           <Btn small variant="ghost" disabled={db.page >= db.totalPages - 1} onClick={() => db.setPage((p) => p + 1)}>→</Btn>
+          <ToolbarIcon action={TB.addRecord} title={`Add ${db.modelLabel || 'Record'} (⌘N)`} disabled={!db.selectedModel} onClick={() => addRecord()} />
         </div>
 
         {/* Detail toolbar — shown when record selected or list empty */}
@@ -850,29 +852,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
           <>
             <div className="db-toolbar-divider" />
             <div data-wc="db-detail-toolbar" className="db-list-toolbar" data-zone="db.DetailToolbar | .db-detail-toolbar | DataBrowser.tsx" style={{ gap: 4, width: detailWidth, flexShrink: 0 }}>
-              <ToolbarIcon action={TB.addRecord} title="Add New Record" onClick={() => {
-                if (detailAddRef.current) { detailAddRef.current(); }
-                else {
-                  (async () => {
-                    try {
-                      const blank = createBlankRecord(db.selectedModel, db.allFields);
-                      if (db.fieldDefaults) {
-                        Object.entries(db.fieldDefaults).forEach(([k, v]) => {
-                          if (v !== '' && v != null) {
-                            if (k.endsWith('_offset_days')) {
-                              const targetField = k.replace('_offset_days', '');
-                              blank[targetField] = Date.now() + (Number(v) * 86400000);
-                            } else { blank[k] = v; }
-                          }
-                        });
-                      }
-                      const { saveRecord: sr } = await import('@/api/wcapi');
-                      const result = await sr(db.selectedModel, blank) as any;
-                      if (result?.id) { db.fetchRecords(); db.setSelectedId(result.id); }
-                    } catch (err: any) { console.error('[AddRecord] error:', err); alert('Add failed: ' + (err?.message || JSON.stringify(err))); }
-                  })();
-                }
-              }} />
+              <ToolbarIcon action={TB.addRecord} title="Add New Record" onClick={() => addRecord()} />
               <ToolbarIcon action={TB.save} title="Save" disabled={!detailIsEditing && !db.isDirty} onClick={() => {
                 if (detailSaveRef.current) { detailSaveRef.current(); }
                 else { db.handleSaveRecord(); }
@@ -1112,7 +1092,6 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                   onRegisterActions={(actions: { save?: () => void; cancel?: () => void; addNew?: () => void; delete?: () => void }) => {
                     detailSaveRef.current = actions.save || null;
                     detailCancelRef.current = actions.cancel || null;
-                    detailAddRef.current = actions.addNew || null;
                     detailDeleteRef.current = actions.delete || null;
                   }}
                   onEditStateChange={(editing: boolean) => setDetailIsEditing(editing)}
