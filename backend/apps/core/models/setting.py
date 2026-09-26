@@ -132,6 +132,11 @@ class Setting(BaseModel):
             gl_defaults = {k: v for k, v in (self.config.get('gl_defaults') or {}).items() if k != 'note'}
             validate_gl_map(gl_defaults, owner='company gl_defaults')
             validate_gl_map((self.config.get('commission') or {}).get('gl_accounts'), owner='company commission.gl_accounts')
+            from common.ida import validate_sequences
+            try:
+                validate_sequences(self.config.get('sequences'))
+            except ValueError as e:              # a format that cannot make unique idas
+                raise ValidationError(str(e))
 
         result = super().save(*args, **kwargs)
         # Reset flags after save
