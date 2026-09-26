@@ -54,6 +54,32 @@ type GetRecordsOptions = {
   cacheExempt?: "default-company";
 };
 
+/** A refusal as the door answers it: HTTP status, the door's code, its coaching sentence,
+ *  and the details. The sentence is `message`; `error` is an object and never shown raw. */
+export interface Refusal {
+  status: number | null;
+  code: string | null;
+  message: string;
+  details: unknown;
+}
+
+export function refusedFrom(err: any, fallback = 'Request failed'): Refusal {
+  const data = err?.response?.data;
+  const error = data?.error;
+  const message =
+    (typeof data?.message === 'string' && data.message) ||
+    (typeof data === 'string' && data) ||
+    (typeof error === 'string' && error) ||
+    err?.message ||
+    fallback;
+  return {
+    status: err?.response?.status ?? null,
+    code: (error && typeof error === 'object' && error.code) || null,
+    message,
+    details: error && typeof error === 'object' ? error.details : undefined,
+  };
+}
+
 function getBackendErrorMessage(err: any, fallback: string): string {
   const data = err?.response?.data;
   if (!data) {
@@ -65,8 +91,6 @@ function getBackendErrorMessage(err: any, fallback: string): string {
   }
 
   const detail = data?.detail;
-  const error = data?.error;
-  const message = data?.message;
 
   if (detail === "Insufficient inventory") {
     const sku = data?.sku || data?.item_id || "item";
@@ -91,9 +115,8 @@ function getBackendErrorMessage(err: any, fallback: string): string {
     }
   }
 
-  if (typeof detail === 'object') return JSON.stringify(detail);
-  if (typeof error === 'object') return JSON.stringify(error);
-  return detail || error || message || err?.message || fallback;
+  if (typeof detail === 'string' && detail) return detail;
+  return refusedFrom(err, fallback).message;
 }
 
 /**

@@ -104,8 +104,7 @@ class Command(BaseCommand):
         for i, org in enumerate(queryset.iterator(chunk_size=batch_size)):
             try:
                 if dry_run:
-                    # Just check without saving
-                    result = self._check_org(org)
+                    result = reconcile_org(org, update_balances=False)
                 elif rebuild:
                     result = rebuild_org_ledgers(org)
                     self.stdout.write(f'  Rebuilt {org.id}: {result}')
@@ -154,63 +153,6 @@ class Command(BaseCommand):
                 self.stdout.write(f'  {item["org_id"]}: {item["details"]}')
             if len(results['discrepancy_details']) > 20:
                 self.stdout.write(f'  ... and {len(results["discrepancy_details"]) - 20} more')
-
-    def _check_org(self, org):
-        """Check an org's balances without making changes."""
-        from django.apps import apps as dj_apps
-        from django.db import models
-        from decimal import Decimal
-        
-        Ledger = dj_apps.get_model('accounts', 'Ledger')
-        Invoice = dj_apps.get_model('transactions', 'Invoice')
-        Cash = dj_apps.get_model('transactions', 'Cash')
-        
-        org_id = str(org.id)
-        
-        # This is a simplified check - actual implementation may vary
-        # based on how orgs are linked to ledgers
-        ledger_sum = Decimal('0')
-        invoice_sum = Decimal('0')
-        cash_sum = Decimal('0')
-        
-        try:
-            # Try to get ledger sum
-            ledger_qs = Ledger.objects.filter(invoice_id__org_id=org_id)
-            ledger_sum = ledger_qs.aggregate(total=models.Sum('value_available'))['total'] or Decimal('0')
-        except Exception:
-            pass
-        
-        try:
-            # Get invoice balance sum
-            invoice_qs = Invoice.objects.filter(org_id=org_id)
-            # This depends on how balance_due is stored
-            for inv in invoice_qs:
-                total_data = getattr(inv, 'total', {}) or {}
-                bal = total_data.get('balance_due', 0) if isinstance(total_data, dict) else 0
-                invoice_sum += Decimal(str(bal))
-        except Exception:
-            pass
-        
-        try:
-            # Get cash available sum
-            cash_qs = Cash.objects.filter(org_id=org_id)
-            cash_sum = cash_qs.aggregate(total=models.Sum('amount_available'))['total'] or Decimal('0')
-        except Exception:
-            pass
-        
-        expected = invoice_sum - cash_sum
-        balanced = (ledger_sum == expected)
-        
-        return {
-            'balanced': balanced,
-            'ledger_sum': ledger_sum,
-            'invoice_sum': invoice_sum,
-            'cash_sum': cash_sum,
-            'discrepancies': [] if balanced else [{
-                'type': 'balance_mismatch',
-                'deviation': float(ledger_sum - expected),
-            }],
-        }
 
     def _update_ytd_sales(self, org_queryset):
         """Update YTD sales/purchases for orgs (batch operation)."""

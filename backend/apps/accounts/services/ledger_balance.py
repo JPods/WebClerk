@@ -10,7 +10,7 @@ directly impact accounts receivable/payable reporting and credit decisions.
 
 FINANCIAL INTEGRITY RULES:
 1. Ledger Sum MUST equal Invoice Balances minus Cash Available
-   Formula: Σ(ledger.value_available) = Σ(invoice.balance_due) - Σ(cash.amount_available)
+   Formula: Σ(ledger.value_available) = Σ(invoice.balance_due) - Σ(cash.available)
    
 2. Aging buckets MUST sum to total balance due
    Formula: future + current + period_1 + period_2 + period_3 = balance_due
@@ -850,7 +850,7 @@ def on_cash_save(cash) -> None:
     
     WHAT HAPPENS:
     1. DELETE any existing ledger records for this cash (idempotent)
-    2. If amount_available > 0, create a NEGATIVE ledger record
+    2. If available > 0, create a NEGATIVE ledger record
     3. Update org balances to reflect cash receipt
     
     LEDGER VALUE CONVENTION:
@@ -944,7 +944,7 @@ def _flag_vendor_claim(receipt) -> None:
     receipt.__class__.objects.filter(pk=receipt.pk).update(metadata=meta)
 
 
-def reconcile_org(org: 'OrgBase') -> Dict[str, Any]:
+def reconcile_org(org: 'OrgBase', update_balances: bool = True) -> Dict[str, Any]:
     """
     Full reconciliation of an org's ledgers and financial data.
     
@@ -952,7 +952,7 @@ def reconcile_org(org: 'OrgBase') -> Dict[str, Any]:
     Used to detect and report data integrity issues.
     
     RECONCILIATION FORMULA:
-    Σ(ledger.value_available) == Σ(invoice.balance_due) - Σ(cash.amount_available)
+    Σ(ledger.value_available) == Σ(invoice.balance_due) - Σ(cash.available)
     
     If this equation doesn't balance, there's a data integrity issue:
     - Ledger sum > expected: Extra/duplicate ledger records
@@ -974,6 +974,7 @@ def reconcile_org(org: 'OrgBase') -> Dict[str, Any]:
     
     Args:
         org: The org to reconcile
+        update_balances: False for a dry run — check, change nothing
     
     Returns:
         Dict with reconciliation results:
@@ -981,7 +982,7 @@ def reconcile_org(org: 'OrgBase') -> Dict[str, Any]:
         - balanced: True if ledgers match source documents
         - ledger_sum: Total of ledger.value_available
         - invoice_sum: Total of invoice.balance_due
-        - cash_sum: Total of cash.amount_available
+        - cash_sum: Total of cash.available
         - discrepancies: List of issues found
     """
     Ledger = dj_apps.get_model('accounts', 'Ledger')
@@ -1047,9 +1048,10 @@ def reconcile_org(org: 'OrgBase') -> Dict[str, Any]:
     else:
         results['balanced'] = True
     
-    # Update org.financial balances regardless of reconciliation result
-    # This ensures displayed balances match current ledger state
-    update_org_balances(org)
+    # Update org.financial balances regardless of reconciliation result, so displayed
+    # balances match the ledger. A dry run checks only.
+    if update_balances:
+        update_org_balances(org)
     
     return results
 

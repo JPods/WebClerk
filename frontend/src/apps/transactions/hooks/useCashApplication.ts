@@ -10,14 +10,14 @@
  */
 import { useCallback, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { getRecords, manageAction } from "@/api/wcapi";
+import { getRecords, manageAction, refusedFrom } from "@/api/wcapi";
 import { showToast } from '../../../store/slices/toastSlice';
 
 export interface CashRecord {
   id: number;
   ida?: string;
   amount: number;
-  amount_available?: number;
+  available: number;
   dt_cash?: string;
   dt_created?: string;
   reference_number?: string;
@@ -101,8 +101,7 @@ export function useCashApplication() {
       // Filter to those with available amount
       // Note: Backend should ideally handle this, but filter client-side for now
       return cashEntries.filter((p: CashRecord) => {
-        const available = p.amount_available ?? p.amount;
-        return available > 0;
+        return p.available > 0;
       });
     } catch (err: any) {
       const msg = err?.message || 'Failed to fetch cash';
@@ -161,7 +160,7 @@ export function useCashApplication() {
       });
       return { success: true, applied: !!result?.applied, state: result?.state, amount: result?.amount ?? amount, pending_id: result?.pending_id };
     } catch (err: any) {
-      const msg = err?.response?.data?.error || err?.message || 'Failed to apply cash';
+      const msg = refusedFrom(err, 'Failed to apply cash').message;
       setError(msg);
       dispatch(showToast({ message: msg, type: 'error' }));
       return { success: false, applied: false, amount: 0, error: msg };
@@ -195,7 +194,7 @@ export function useCashApplication() {
    * Get cash available amount (helper)
    */
   const getCashAvailable = useCallback((cash: CashRecord): number => {
-    return cash.amount_available ?? cash.amount;
+    return cash.available;
   }, []);
 
   return {

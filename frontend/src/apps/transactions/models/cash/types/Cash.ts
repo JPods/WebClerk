@@ -72,6 +72,8 @@ export interface Cash {
 
   // Core fields
   amount: number;
+  /** Amount still to apply: starts = amount, decremented as applied (Cash.available). */
+  available: number;
   dt_cash?: string;
   reference_number?: string;
   notes?: string;
@@ -92,9 +94,6 @@ export interface Cash {
   // JSONB
   refs?: CashRefs;
   metadata?: CashMetadata;
-
-  // Amount tracking (computed or from API)
-  amount_available?: number;
 
   // Timestamps
   dt_created?: string;

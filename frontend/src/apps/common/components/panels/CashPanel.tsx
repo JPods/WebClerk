@@ -36,7 +36,7 @@ interface CashRow {
   id: number;
   ida?: string;
   amount?: number;
-  amount_available?: number;
+  available?: number;
   status?: string;
   gateway?: string;
   cash_method_name?: string;
@@ -72,7 +72,7 @@ interface CashPanelProps {
 const CASH_COLUMN_METAS = [
   { key: 'status', label: 'status' },
   { key: 'amount', label: 'amount' },
-  { key: 'amount_available', label: 'amount_available' },
+  { key: 'available', label: 'available' },
   { key: 'cash_method', label: 'cash_method' },
   { key: 'reference', label: 'reference_number' },
   { key: 'invoice', label: 'invoice' },
@@ -126,9 +126,9 @@ const CashRowItem: React.FC<{
     )}
 
     {/* Amount Available */}
-    {visibleCols.has('amount_available') && (
+    {visibleCols.has('available') && (
       <span className="shrink-0 w-[80px] text-right db-text-muted">
-        {formatCurrency(cash.amount_available)}
+        {formatCurrency(cash.available)}
       </span>
     )}
 
@@ -257,7 +257,7 @@ const CashPanel: React.FC<CashPanelProps> = ({
     [cashEntries],
   );
   const totalAvailable = useMemo(
-    () => cashEntries.reduce((s, p) => s + (p.amount_available ?? 0), 0),
+    () => cashEntries.reduce((s, p) => s + (p.available ?? 0), 0),
     [cashEntries],
   );
 
@@ -316,7 +316,7 @@ const CashPanel: React.FC<CashPanelProps> = ({
           <div className="flex items-center gap-3 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider db-surface-alt-muted db-border-bottom-light">
             {visibleCols.has('status') && <span className="shrink-0 min-w-[60px] text-center">status</span>}
             {visibleCols.has('amount') && <span className="shrink-0 w-[80px] text-right">amount</span>}
-            {visibleCols.has('amount_available') && (
+            {visibleCols.has('available') && (
               <span className="shrink-0 w-[80px] text-right">available</span>
             )}
             {visibleCols.has('cash_method') && (
@@ -363,7 +363,7 @@ const CashPanel: React.FC<CashPanelProps> = ({
                   {formatCurrency(totalAmount)}
                 </span>
               )}
-              {visibleCols.has('amount_available') && (
+              {visibleCols.has('available') && (
                 <span className="shrink-0 w-[80px] text-right db-text-muted">
                   {formatCurrency(totalAvailable)}
                 </span>

@@ -119,8 +119,7 @@ const ApplyCash: React.FC = () => {
 
       // Keep only cash with remaining balance > 0
       const unapplied = records.filter((p) => {
-        const avail = p.amount_available ?? p.amount;
-        return avail > 0.005; // tolerance for floating point
+        return p.available > 0.005; // tolerance for floating point
       });
       setCashEntries(unapplied);
     } catch (err) {
