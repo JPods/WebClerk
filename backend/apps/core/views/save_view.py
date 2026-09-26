@@ -44,7 +44,6 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiExample
 from typing import Type, cast, List, Dict, Any
 from common.refs.links import ensure_bidirectional
-from common.models import LINK_DENORMALIZE_FIELDS
 from apps.core.models import Contact
 from apps.core.services.field_behaviors import _I18N_FIELDS as _i18n_field_set
 from django.utils import timezone

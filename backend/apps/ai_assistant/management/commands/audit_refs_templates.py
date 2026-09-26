@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 
 from apps.ai_assistant.services.notes import create_note
 from apps.core.services.link_defaults import MODEL_LINK_TEMPLATES
-from common.denorm_registry import DENORM_REGISTRY
+from common.denorm_registry import get_denorm_fields
 
 
 RECOMMENDED_FIELDS: dict[str, list[str]] = {
@@ -41,7 +41,7 @@ class Command(BaseCommand):
 
         for model_key in models:
             recommended = RECOMMENDED_FIELDS.get(model_key, [])
-            denorm_fields = DENORM_REGISTRY.get(model_key, [])
+            denorm_fields = get_denorm_fields(model_key)
             template_cfg = MODEL_LINK_TEMPLATES.get(model_key, {})
             template = template_cfg.get("link_template", {}) if isinstance(template_cfg, dict) else {}
             keyword_fields = template_cfg.get("keyword_fields", []) if isinstance(template_cfg, dict) else []

@@ -332,10 +332,6 @@ def default_refs() -> dict:
     }
 
 
-# Denormalization fields for links — single source of truth lives in common.denorm_registry.
-# This dict is populated from the registry so legacy callers keep working.
-from common.denorm_registry import DENORM_REGISTRY as _DENORM_REGISTRY  # noqa: E402
-LINK_DENORMALIZE_FIELDS = {k: list(v) for k, v in _DENORM_REGISTRY.items()}
 
 
 def default_prefs() -> dict:
@@ -768,60 +764,6 @@ class RefsMixin(models.Model):
     def add_tag(self, tag: str):
         if tag not in self.refs.get("tags", []):
             self.refs.setdefault("tags", []).append(tag)
-
-    def denormalize_links(self) -> dict:
-        """Return refs.links with denormalized objects instead of just IDs.
-
-        For each model in links, fetches the related objects and includes
-        the specified fields from LINK_DENORMALIZE_FIELDS.
-        """
-        links = self.refs.get("links", {}) if isinstance(self.refs, dict) else {}
-        if not isinstance(links, dict):
-            return {}
-
-        denormalized = {}
-        for model_name, items in links.items():
-            if not isinstance(items, list):
-                denormalized[model_name] = items
-                continue
-
-            # Check if already denormalized (first item is dict)
-            if items and isinstance(items[0], dict):
-                denormalized[model_name] = items
-                continue
-
-            # It's a list of IDs, denormalize
-            ids = items
-            fields = LINK_DENORMALIZE_FIELDS.get(model_name.lower(), ["id"])
-            if not ids:
-                denormalized[model_name] = []
-                continue
-
-            # Get the model class
-            try:
-                from django.apps import apps
-                model_class = apps.get_model(model_name)
-            except Exception:
-                # If model not found, convert to dicts with just id
-                denormalized[model_name] = [{"id": id_} for id_ in ids]
-                continue
-
-            # Fetch objects
-            objects = model_class.objects.filter(id__in=ids).values(*fields)
-            obj_dict = {obj["id"]: obj for obj in objects}
-
-            # Build denormalized list in original order
-            denormalized[model_name] = [obj_dict.get(id_, {"id": id_}) for id_ in ids]
-
-        return denormalized
-
-    def ensure_links_denormalized(self):
-        """Ensure refs.links are denormalized, updating in place if needed."""
-        if not isinstance(self.refs, dict):
-            return
-        links = self.refs.get("links")
-        if isinstance(links, dict):
-            self.refs["links"] = self.denormalize_links()
 
 
 class PrefsMixin(models.Model):
@@ -1377,10 +1319,6 @@ class BaseModel(
         # Ensure userdefined catch-all exists in prefs
         if hasattr(self, 'prefs') and isinstance(self.prefs, dict):
             self.prefs.setdefault('userdefined', {})
-
-        # Ensure links are denormalized
-        if isinstance(self, RefsMixin):
-            self.ensure_links_denormalized()
 
         super().save(*args, **kwargs)
         self._capture_original_state()  # refresh snapshot

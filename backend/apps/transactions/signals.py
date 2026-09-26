@@ -120,13 +120,18 @@ def register_line_inventory_signals(
 def register_line_header_links(line_model, parent_attr: str, link_key: str):
     """Register post_save signal that maintains ``refs.links.<link_key>`` on the parent header."""
 
+    # Elements are {"id": n} (link_entry's shape — a line bucket copies only its id); a bare
+    # int left by the old writer is read as its id (Fable #4, normalize_links rewrites them).
+    def _ids(lst):
+        return [e.get("id") if isinstance(e, dict) else e for e in lst]
+
     def _link(header, line_id):
         refs = _ensure_refs_dict(header.refs)
         links = refs.setdefault("links", {})
         lst = links.setdefault(link_key, [])
-        if line_id in lst:
+        if line_id in _ids(lst):
             return
-        lst.append(line_id)
+        lst.append({"id": line_id})
         header.refs = refs
         header.save(update_fields=["refs", "dt_modified", "version"])
 
@@ -138,7 +143,8 @@ def register_line_header_links(line_model, parent_attr: str, link_key: str):
         ids = list(line_model.objects.filter(**{parent_attr: header})
                    .order_by('id').values_list('id', flat=True))
         current = links.get(link_key) or []
-        merged = current + [i for i in ids if i not in current]
+        have = _ids(current)
+        merged = current + [{"id": i} for i in ids if i not in have]
         if merged == current:
             return
         links[link_key] = merged

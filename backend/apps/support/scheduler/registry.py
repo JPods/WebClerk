@@ -101,6 +101,10 @@ def build_celery_beat_schedule() -> dict[str, dict[str, Any]]:
             "schedule": crontab(minute="*"),
             "kwargs": {"limit": 200},
         },
+        "normalize-links-weekly": {
+            "task": f"{TASK_MODULE_PATH}.task_normalize_links",
+            "schedule": crontab(day_of_week="sun", hour=3, minute=30),
+        },
         "refresh-keywords-every-15-min": {
             "task": f"{TASK_MODULE_PATH}.task_refresh_keywords",
             "schedule": crontab(minute="*/15"),

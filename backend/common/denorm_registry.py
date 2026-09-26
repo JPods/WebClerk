@@ -1,9 +1,9 @@
 """Centralized registry of fields denormalized into ``refs.links``.
 
 Every model that can appear inside a record's ``refs.links.<bucket>`` is
-listed here with the exact fields that should be snapshot-copied.  Both the
-generic ``RefsMixin.denormalize_links()`` path and the transaction-specific
-``denormalize_org_links()`` service read from this single source of truth.
+listed here with the exact fields that should be snapshot-copied. Every link element is
+built by ``link_entry()`` from ``get_denorm_fields()`` (Bill, 2026-09-26: a rich {} that
+shows the key facts without a query); ``normalize_links`` rewrites stored lists to it.
 
 Migration toward schema-driven denormalization (started 2026-08-24)
 -------------------------------------------------------------------
@@ -39,77 +39,40 @@ from typing import Dict, List, Optional
 # ---------------------------------------------------------------------------
 
 DENORM_REGISTRY: Dict[str, List[str]] = {
-    # ── Org roles (source: OrgBase) ─────────────────────────────────────
-    # All org-role buckets share the same field list.  When an OrgBase record
-    # is snapshot into refs.links.customer (or vendor, manufacturer, etc.)
-    # these are the fields that get copied.
-    "customer":     ["ida", "display_name", "email", "phone", "address_full", "attention", "status"],
-    "vendor":       ["ida", "display_name", "email", "phone", "address_full", "attention", "status"],
-    "manufacturer": ["ida", "display_name", "email", "phone", "address_full", "attention", "status"],
-    "rep":          ["ida", "display_name", "email", "phone", "address_full", "attention", "status"],
-    "employee":     ["id", "display_name", "email", "phone", "address_full", "attention", "status"],
-
-    # ── Contact (source: Contact) ───────────────────────────────────────
-    "contact": [
-        "id",
-        "ida", "display_name",
-        "company", "title", "role", "email", "phone", "attention",
-    ],
-
+    # Org roles (OrgBase) and Contact declare DENORM_FIELDS on the model — the one definition;
+    # they are not repeated here (a second copy here kept the renamed display_name alive).
     # ── Communication records ───────────────────────────────────────────
     "email":   ["id", "ida", "email", "name", "type", "is_primary", "is_verified", "opt_out"],
     "phone":   ["id", "ida", "number", "country_code", "format", "name", "opt_out"],
     "address": ["id", "ida", "address1", "city", "state", "zip", "country", "full"],
     "domain":  ["id", "ida", "path", "type", "status"],
-
     # ── Catalog / Inventory ─────────────────────────────────────────────
     "item":      ["ida", "name", "sku", "description", "kind", "uom"],
-    "variant":   ["ida", "name"],
+    "variant":   ["item_ida", "description"],
     "warehouse": ["ida", "name", "code"],
-    "catalog":   ["ida  ", "name", "code", "currency"],
-
+    "catalog":   ["name", "code", "currency"],
     # ── Financial / Accounting ──────────────────────────────────────────
     "currency":       ["ida", "code", "name", "symbol"],
-    "exchangerate":   ["ida", "from_currency", "to_currency", "rate"],
     "glaccount":      ["ida", "account_credit"],
-    "taxjurisdiction":["ida", "name", "code"],
-
+    "taxjurisdiction":["ida", "tax_jurisdiction", "tax_name"],
     # ── Project / Document ──────────────────────────────────────────────
     "project":  ["ida", "name", "status"],
-    "document": ["ida", "name", "type"],
-    "template": ["ida", "purpose"],
+    "document": ["ida", "name", "mime_type", "size_bytes"],
     "report":   ["ida", "name"],
-    "bundle":   ["ida", "name"],
-
+    "bundle":   ["ida", "purpose", "status", "direction"],
     # ── Workflow / Logistics ────────────────────────────────────────────
-    "action":       ["ida", "name"],
+    "action":       ["ida", "action", "status"],
     "connection":   ["ida", "name", "type"],
     "notification": ["ida", "name"],
     "setting":      ["ida", "name"],
     "tag":          ["ida", "name"],
-    "linkage":      ["ida", "name"],
-
     # ── Child / Detail records ──────────────────────────────────────────
-    "questionanswer":              ["ida", "question"],
-    "seriallog":                   ["ida", "serial_number"],
-    "purchasereceipt":             ["ida", "receipt_number"],
-    "cashapplication":          ["ida", "amount_applied"],
-    "projectassociation":          ["ida", "project_id"],
-    "inventoryreservation":        ["ida", "quantity_reserved"],
-    "inventoryadjustmentprocessor":["ida", "status"],
-    "inventorymetricssnapshot":    ["ida", "snapshot_date"],
-    "pendinginventoryadjustment":  ["ida", "adjustment_type"],
-    "auditlog":                    ["ida", "action"],
-    "term":                        ["ida", "name"],
-    "billofmaterial":              ["ida", "parent_item_id", "child_item_id", "child_ida", "child_description", "quantity", "sequence"],
-    "service":                     ["ida", "name"],
-    "campaign":                    ["ida", "name"],
-    "support":                     ["id", "name"],
+    "questionanswer": ["ida", "question"],
+    "seriallog":      ["serial", "action"],
+    "auditlog":       ["ida", "action"],
+    "term":           ["ida", "name"],
+    "billofmaterial": ["ida", "parent_item_id", "child_item_id", "child_ida", "child_description", "quantity", "sequence"],
 }
-
-# The generic "orgbase" key used by RefsMixin.denormalize_links()
-# shares the same denorm fields as the role-specific keys.
-DENORM_REGISTRY["orgbase"] = DENORM_REGISTRY["customer"]
 
 # ── Org-role keys (all share the same source model) ────────────────────
 ORG_ROLE_KEYS = frozenset({"customer", "vendor", "manufacturer", "rep", "employee"})
@@ -137,7 +100,40 @@ def get_denorm_fields(model_key: str) -> List[str]:
     if model_fields is not None:
         return list(model_fields)
 
+    if key in ORG_ROLE_KEYS or key == 'orgbase' or key == 'contact':
+        raise LookupError(f'{key} links are defined by DENORM_FIELDS on the model, which was not found.')
     return list(DENORM_REGISTRY.get(key, ["id"]))
+
+
+def _json_value(value):
+    """A snapshot value as JSON holds it: Decimal → float, dates → ISO text, a model → its id."""
+    from datetime import date, datetime
+    from decimal import Decimal
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if hasattr(value, '_meta') and hasattr(value, 'pk'):
+        return value.pk
+    if hasattr(value, 'hex') and type(value).__name__ == 'UUID':
+        return str(value)
+    return value
+
+
+def link_entry(obj, bucket: str) -> Dict[str, object]:
+    """The one writer of a refs.links element: {"id": pk, <the bucket's fields>}.
+
+    Bill, 2026-09-26: a link is a rich {} that shows the key facts without a query (a
+    contact's refs.links.phone shows the numbers). Which facts: get_denorm_fields(bucket) —
+    DENORM_FIELDS on the model, else this registry. Every writer calls this; nothing else
+    builds a link element.
+    """
+    entry: Dict[str, object] = {"id": obj.pk}
+    for field in get_denorm_fields(bucket):
+        field = field.strip()
+        if field != "id":
+            entry[field] = _json_value(getattr(obj, field, None))
+    return entry
 
 
 def _get_model_denorm_fields(model_key: str) -> Optional[List[str]]:
@@ -162,17 +158,16 @@ def _get_model_denorm_fields(model_key: str) -> Optional[List[str]]:
     }
 
     model_label = _ROLE_TO_MODEL.get(model_key)
-    if not model_label:
-        # Try direct lookup by model_key
-        try:
-            model_cls = apps.get_model(model_key)
-        except (LookupError, ValueError):
-            return None
+    if model_label:
+        model_cls = apps.get_model(model_label)
     else:
-        try:
-            model_cls = apps.get_model(model_label)
-        except (LookupError, ValueError):
+        # The model registry resolves a bare key (contact, phone…). apps.get_model(key)
+        # without an app label always raised, so DENORM_FIELDS was never read (Fable #4).
+        from apps.core.utils import registry
+        resolved = registry.resolve(model_key)
+        if resolved is None:
             return None
+        model_cls = resolved if hasattr(resolved, '_meta') else resolved.import_model()
 
     fields = getattr(model_cls, 'DENORM_FIELDS', None)
     if fields is not None:
@@ -182,7 +177,7 @@ def _get_model_denorm_fields(model_key: str) -> Optional[List[str]]:
 
 def get_org_denorm_fields() -> List[str]:
     """Return fields denormalized for any org-role bucket (customer, vendor, …)."""
-    return list(DENORM_REGISTRY["customer"])
+    return get_denorm_fields("orgbase")
 
 
 def describe_registry() -> Dict[str, List[str]]:

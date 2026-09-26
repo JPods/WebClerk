@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Sequence, Set
 
-from common.models import LINK_DENORMALIZE_FIELDS
+from common.denorm_registry import get_denorm_fields
 
 
 def _as_list(value: Any) -> List[Any]:
@@ -107,7 +107,7 @@ def _build_contact_payload(base: Dict[str, Any], *, contact_obj: Any = None) -> 
     if "domain" in payload:
         payload["domain"] = _normalize_comm_list(payload.get("domain"), kind="domain")
     if contact_obj is not None:
-        for field in LINK_DENORMALIZE_FIELDS.get("contact", []):
+        for field in get_denorm_fields("contact"):
             if field not in payload:
                 try:
                     payload[field] = getattr(contact_obj, field, None)

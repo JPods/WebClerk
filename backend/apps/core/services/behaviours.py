@@ -150,7 +150,7 @@ class CommunicationBehaviour(ModelBehaviour):
         from apps.core.models import Contact
         from apps.core.services.save_contact_linking import (link_comm_to_contact,
                                                              link_obj_to_contact)
-        from common.models import LINK_DENORMALIZE_FIELDS
+        from common.denorm_registry import get_denorm_fields
 
         user = ctx.user
         if user is None or not getattr(user, 'is_authenticated', False):
@@ -160,7 +160,7 @@ class CommunicationBehaviour(ModelBehaviour):
             return
 
         bucket = ctx.model_key.lower()
-        fields = LINK_DENORMALIZE_FIELDS.get(bucket, ['id']) or ['id']
+        fields = get_denorm_fields(bucket)
         ctx.linked = link_comm_to_contact(ctx.obj, contact, bucket, fields)
 
         if not getattr(contact, '_refs_pending_save', False):
