@@ -116,3 +116,29 @@ def test_another_customers_payment_is_refused_with_the_reason(admin_client):
     assert 'customers differ' in r.json()['message']
     theirs.refresh_from_db()
     assert theirs.available == Decimal('50.00')
+
+
+def test_oldest_skips_a_refused_payment_and_the_others_stand(admin_client, monkeypatch):
+    """Bill: the rest stays open. One refused application must not undo the others (Fable:
+    run_command's single transaction rolled every earlier application back)."""
+    from apps.transactions.services.cash import cash_pending
+    buyer = _customer('Mixed Buyer')
+    first = Cash.objects.create(amount=Decimal('10.00'), customer_id=buyer.pk)
+    bad = Cash.objects.create(amount=Decimal('10.00'), customer_id=buyer.pk)
+    third = Cash.objects.create(amount=Decimal('10.00'), customer_id=buyer.pk)
+    inv = _invoice(buyer, 100.00)
+    real = cash_pending.apply_cash_to_invoice
+
+    def refuse_bad(cash_id, *args, **kwargs):
+        if cash_id == bad.pk:
+            raise ValueError('refused for the test')
+        return real(cash_id, *args, **kwargs)
+    monkeypatch.setattr(cash_pending, 'apply_cash_to_invoice', refuse_bad)
+
+    r = _post(admin_client, inv)
+    assert r.status_code == 200, r.content
+    data = r.json()['data']
+    states = {a['cash_id']: a['state'] for a in (data.get('result') or data)['applied']}
+    assert states == {first.pk: 'applied', bad.pk: 'refused', third.pk: 'applied'}
+    inv.refresh_from_db()
+    assert inv.totals['received'] == 20.0 and inv.totals['balance'] == 80.0
