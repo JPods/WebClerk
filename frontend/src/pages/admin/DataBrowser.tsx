@@ -441,27 +441,20 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
 
   // inputStyle removed — use className="db-input" or "db-search" instead
 
-  // Add Record — one path for the list toolbar, the detail toolbar and Cmd+N. The body is the
-  // model's field defaults only: the server stamps id/uuid/ida/dt_*/version, and the door refuses
-  // model_name in the body (fix #1). The new id is selected, so db.detail opens it in the form
-  // the current view uses (App ui.json component or the Admin field grid).
+  // Add Record — one path for the list toolbar, the detail toolbar and Cmd+N. `new` makes the
+  // record on the server (the model's Setting defaults, then its hooks, marked config.is_new)
+  // and hands it back; selecting its id opens it in db.detail, in the current view's form.
   const addRecord = useCallback(async () => {
     if (!db.selectedModel) return;
-    const body: Record<string, any> = {};
-    Object.entries(db.fieldDefaults || {}).forEach(([k, v]) => {
-      if (v === '' || v == null) return;
-      if (k.endsWith('_offset_days')) body[k.replace('_offset_days', '')] = Date.now() + Number(v) * 86400000;
-      else body[k] = v;
-    });
     try {
-      const { saveRecord: sr } = await import('@/api/wcapi');
-      const result = await sr(db.selectedModel, body) as any;
-      if (result?.id) { db.fetchRecords(); db.setSelectedId(numId(result.id)); }
+      const { newRecord } = await import('@/api/wcapi');
+      const made = await newRecord(db.selectedModel);
+      if (made?.id) { db.fetchRecords(); db.setSelectedId(numId(made.id)); }
     } catch (err: any) {
       console.error('[AddRecord] error:', err);
       alert('Add failed: ' + (err?.message || JSON.stringify(err)));
     }
-  }, [db.selectedModel, db.fieldDefaults, db.fetchRecords, db.setSelectedId]);
+  }, [db.selectedModel, db.fetchRecords, db.setSelectedId]);
 
   // Keyboard shortcuts
   React.useEffect(() => {

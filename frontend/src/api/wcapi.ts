@@ -151,7 +151,9 @@ async function wcapiPost<T>(path: string, body: any, extraHeaders?: Record<strin
 /**
  * The REST channel (Bill, 2026-09-24: REST only). The path names the model and the record;
  * the HTTP method names the verb:
- *   POST /wcapi/<model>/ creates · PUT /wcapi/<model>/<id>/ updates · DELETE /wcapi/<model>/<id>/
+ *   POST /wcapi/<model>/ is `new` · PUT /wcapi/<model>/<id>/ saves · DELETE /wcapi/<model>/<id>/
+ * `new` (Bill, 2026-09-26) makes the record on the server — defaults and hooks populate it,
+ * marked config.is_new — and takes no values; they are the next save.
  */
 export function recordPath(model: string, id?: number | string | null): string {
   return id !== undefined && id !== null && id !== '' ? `/wcapi/${model}/${id}/` : `/wcapi/${model}/`;
@@ -160,12 +162,33 @@ export function recordPath(model: string, id?: number | string | null): string {
 export async function wcapiSave<T>(model: string, body: any, extraHeaders?: Record<string, string>,
                                    recordId?: number | string): Promise<T> {
   // REST only (2026-09-24): the model and the id are the path; the body is the fields, flat.
-  const config = extraHeaders ? { headers: extraHeaders } : undefined;
+  // A save changes a record that exists; a record is made by newRecord / createRecord.
   const id = recordId ?? body?.id;
-  const res = id
-    ? await apiClient.put<ApiEnvelope<T>>(recordPath(model, id), body, config)
-    : await apiClient.post<ApiEnvelope<T>>(recordPath(model), body, config);
+  if (!id) throw new Error(`Saving ${model} needs its id — make the record with newRecord or createRecord`);
+  const config = extraHeaders ? { headers: extraHeaders } : undefined;
+  const res = await apiClient.put<ApiEnvelope<T>>(recordPath(model, id), body, config);
   return res.data.data;
+}
+
+export type NewRecordResult = { id: number; record: Record<string, any> };
+
+/**
+ * POST /wcapi/<model>/ — the server makes an empty record (Setting defaults, then the model's
+ * hooks, which case on config.is_new) and returns it with its id. It takes no values; pass
+ * only the underscore signals the model declares (e.g. `_parent`).
+ */
+export async function newRecord(model_name: string, signals: Record<string, any> = {}): Promise<NewRecordResult> {
+  const resolved = resolveModelName(model_name);
+  const res = await apiClient.post<ApiEnvelope<NewRecordResult>>(recordPath(resolved), signals);
+  return res.data.data;
+}
+
+/** A record with values the caller already holds: `new`, then the values as its next save. */
+export async function createRecord(model_name: string, values: Record<string, any>,
+                                   signals: Record<string, any> = {}) {
+  const made = await newRecord(model_name, signals);
+  if (!values || Object.keys(values).length === 0) return made;
+  return saveRecord(model_name, { ...values, id: made.id });
 }
 
 // ---------------------------------------------------------------------------
@@ -791,16 +814,6 @@ export function clearDetailFieldSettingCache(model_name?: string): void {
   }
 }
 
-export async function saveDetailFieldSetting(
-  setting: DetailFieldSettingRecord,
-) {
-  const result = await wcapiSave<any>("setting", {
-    ...setting,
-    model_name: "setting",
-  });
-  clearDetailFieldSettingCache(setting.model_name);
-  return result;
-}
 
 export async function getAllWorkbenchFieldsSettings(): Promise<
   SettingRecord[]
@@ -812,7 +825,9 @@ export async function getAllWorkbenchFieldsSettings(): Promise<
 }
 
 export async function saveWorkbenchFieldsSetting(setting: SettingRecord) {
-  return wcapiSave<any>("setting", { ...setting, model_name: "setting" });
+  // The path is the model (setting); the body never names one (the door refuses model_name).
+  const { id, model_name: _m, ...values } = setting as any;
+  return id ? saveRecord("setting", { ...values, id }) : createRecord("setting", values);
 }
 
 /**

@@ -369,7 +369,6 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
 
   // --- Field behaviors ---
   const [fieldBehaviors, setFieldBehaviors] = useState<Record<string, any>>({});
-  const [fieldDefaults, setFieldDefaults] = useState<Record<string, any>>({});
   const [detailRowSizes, setDetailRowSizes] = useState<Record<string, number>>({});
   const [leafDeclarations, setLeafDeclarations] = useState<Record<string, any>>({});
 
@@ -820,7 +819,6 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
         }
 
         setFieldBehaviors(behaviors);
-        setFieldDefaults(faRec?.prefs?.defaults || {});
         setFieldGroups(faRec?.config?.field_groups || []);
         setDefaultCollapsed(faRec?.config?.default_collapsed || []);
 
@@ -833,7 +831,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
           else if (b.type === 'json') computedLeaves[field] = { type: 'json' };
         }
         setLeafDeclarations(computedLeaves);
-      } catch { setFieldBehaviors({}); setFieldDefaults({}); setFieldGroups([]); setDefaultCollapsed([]); setLeafDeclarations({}); }
+      } catch { setFieldBehaviors({}); setFieldGroups([]); setDefaultCollapsed([]); setLeafDeclarations({}); }
     } catch (e) {
       if (modelChangeRef.current !== fetchId) return; // don't show error for stale fetch
       const msg = errMsg(e, 'Failed to load records');
@@ -1361,7 +1359,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
     // Columns
     colWidths, setColWidths, handleColumnDrop, handleResizeStart, handleWidthClick,
     // Field behaviors
-    fieldBehaviors, fieldDefaults, detailRowSizes, setDetailRowSizes, leafDeclarations,
+    fieldBehaviors, detailRowSizes, setDetailRowSizes, leafDeclarations,
     // Field groups
     fieldGroups, currentCollapsed, toggleFieldGroup,
     // CRUD
