@@ -349,8 +349,15 @@ def check_ledger_rows(org_id=None) -> list:
     (``ledger.sum``). The count is structural: a missing or doubled row shows here even
     when the money happens to add up.
     """
-    from apps.accounts.services.terms_ledger import expected_ledger_rows
+    from apps.accounts.services.terms_ledger import expected_ledger_rows, resolve_term
     Ledger = dj_apps.get_model('accounts', 'Ledger')
+    Term = dj_apps.get_model('accounts', 'Term')
+    terms = {t.ida.lower(): t for t in Term.objects.filter(is_active=True)}
+
+    def term_of(doc):
+        # One Term query for the whole check; resolve_term only for the rest (fallback
+        # to terms_fk or the company default, and its refusal when nothing resolves).
+        return terms.get((getattr(doc, 'terms', '') or '').strip().lower()) or resolve_term(doc)
     Invoice = dj_apps.get_model('transactions', 'Invoice')
     Receipt = dj_apps.get_model('transactions', 'Receipt')
     findings = []
@@ -366,7 +373,7 @@ def check_ledger_rows(org_id=None) -> list:
             qs = qs.filter(**{org_field: org_id})
         for doc in qs.order_by('pk'):
             try:
-                expect = expected_ledger_rows(doc, label)
+                expect = expected_ledger_rows(doc, label, term=term_of(doc))
             except ValueError as e:                  # no resolvable terms: say so
                 findings.append(_finding('ledger.terms', label, doc.pk, f"{label} {doc.pk} ({doc.ida}): {e}",
                                          ida=doc.ida))

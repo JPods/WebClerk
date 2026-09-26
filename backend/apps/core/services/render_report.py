@@ -1422,15 +1422,21 @@ def _load_statement_data(model_name: str, record_id: int) -> Dict[str, Any]:
     contact_name = getattr(record, "name", "") or getattr(record, "ida", "")
     addr = getattr(record, "address_full", "") or ""
 
-    # A statement is for a customer (an org) or for a contact; key the documents on that.
+    # Whose statement: a vendor's is AP (its bills — receipts — and the cash paid it);
+    # a customer's or a contact's is AR (invoices and the cash received).
     from apps.orgs.models import OrgBase
-    owner = 'customer_id' if isinstance(record, OrgBase) else 'contact_id'
     from common.json_lookups import totals_balance
+    is_vendor = model_name == 'vendor' or getattr(record, 'org_type', '') == 'vendor'
+    if is_vendor:
+        owner, doc_model = 'vendor_id', 'receipt'
+    else:
+        owner = 'customer_id' if isinstance(record, OrgBase) else 'contact_id'
+        doc_model = 'invoice'
 
-    # Open invoices: balance is a leaf of totals (Invoice.balance is a read-only property).
-    Invoice = _get_model_class("invoice")
+    # Open documents: balance is a leaf of totals (.balance is a read-only property).
+    Document = _get_model_class(doc_model)
     invoices = list(
-        Invoice.objects.filter(**{owner: record_id}, is_active=True)
+        Document.objects.filter(**{owner: record_id}, is_active=True)
         .annotate(_balance=totals_balance())
         .exclude(_balance=0).exclude(_balance=None)
         .order_by("dt_created")[:500]

@@ -706,7 +706,7 @@ def record_cash(invoice, amount: Decimal, dt_paid, cash=None, gl_account_id=None
     return obj
 
 
-def expected_ledger_rows(document, model_name: str) -> int:
+def expected_ledger_rows(document, model_name: str, term=None) -> int:
     """How many ledger rows a document's terms call for — the count the writers create.
 
     Bill, 2026-09-26: rows per document = instalments of its terms, open or paid (a paid
@@ -727,4 +727,4 @@ def expected_ledger_rows(document, model_name: str) -> int:
         dt = getattr(document, 'dt_received', None) or getattr(document, 'dt_created', None)
     if isinstance(dt, (int, float)):
         dt = datetime.fromtimestamp(dt / 1000, timezone.utc)
-    return len(compute_schedule(dt or datetime.now(timezone.utc), total, resolve_term(document)))
+    return len(compute_schedule(dt or datetime.now(timezone.utc), total, term or resolve_term(document)))

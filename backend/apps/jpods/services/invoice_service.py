@@ -105,7 +105,10 @@ def create_trip_invoice(data: dict[str, Any]) -> dict[str, Any]:
     owner = {"customer_id": customer.pk} if customer else {"contact_id": contact.pk if contact else None}
     if not owner.get("customer_id") and not owner.get("contact_id"):
         return {"error": "A trip needs a rider (contact_id) with a prepaid balance"}
-    funds = [c for c in Cash.objects.filter(**owner, available__gt=0).order_by("dt_created", "pk")
+    # A rider with no customer org pays from Cash that names no customer either: the
+    # application refuses cash whose customer differs from the invoice's (Fable).
+    cash_owner = owner if customer else {**owner, "customer_id__isnull": True}
+    funds = [c for c in Cash.objects.filter(**cash_owner, available__gt=0).order_by("dt_created", "pk")
              if c.holds_money]
     on_account = sum((Decimal(str(c.available)) for c in funds), Decimal("0"))
     if on_account < price:
@@ -137,21 +140,28 @@ def create_trip_invoice(data: dict[str, Any]) -> dict[str, Any]:
     if not item:
         logger.warning("invoice: no Item found for %s→%s (network=%s)", origin, destination, network_id)
 
-    with transaction.atomic():
-        result = save_record(Actor.system(source="jpods"), {
-            "model_name": "invoice", **owner, "source_name": "jpods",
-            "contact_id": contact.pk if contact else None,
-            "price_level": price_level, "refs": refs, "lines": [line],
-        })
-        invoice = Invoice.objects.get(pk=result.obj_id)
-        remaining = price
-        for cash in funds:                       # oldest money first
-            if remaining <= 0:
-                break
-            take = min(Decimal(str(cash.available)), remaining)
-            apply_cash_to_invoice(cash.pk, invoice.pk, take, reason=f"JPods trip {trip_id}")
-            remaining -= take
-        invoice.refresh_from_db()
+    # One transaction: an application the cash check refuses (stored available above the
+    # journal, a customer mismatch) rolls the invoice back and the rider is told why.
+    try:
+        with transaction.atomic():
+            result = save_record(Actor.system(source="jpods"), {
+                "model_name": "invoice", **owner, "source_name": "jpods",
+                "contact_id": contact.pk if contact else None,
+                "price_level": price_level, "refs": refs, "lines": [line],
+            })
+            invoice = Invoice.objects.get(pk=result.obj_id)
+            remaining = price
+            for cash in funds:                   # oldest money first
+                if remaining <= 0:
+                    break
+                take = min(Decimal(str(cash.available)), remaining)
+                apply_cash_to_invoice(cash.pk, invoice.pk, take, reason=f"JPods trip {trip_id}")
+                remaining -= take
+            invoice.refresh_from_db()
+    except ValueError as e:
+        logger.warning("JPods trip %s refused at payment: %s", trip_id, e)
+        return {"error": f"The trip could not be paid from the prepaid balance: {e}",
+                "code": "payment_refused"}
 
     logger.info(
         "JPods invoice created: pk=%s contact=%s %s→%s price=%s %s",

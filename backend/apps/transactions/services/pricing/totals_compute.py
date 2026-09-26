@@ -201,11 +201,18 @@ def _recalculate_locked(transaction_id: int, model_name: str) -> Dict[str, Any]:
     # the settlement moved (a journal repair), re-spread it over the ledgers (Fable, fix #2).
     settled_moved = old_settled != tuple(_d(totals.get(k, 0)) for k in SETTLEMENT_KEYS)
     if _d(old_total) == _d(totals['total']) and settled_moved:
+        from apps.accounts.services.ledger_balance import update_org_balances
         from apps.accounts.services.terms_ledger import allocate_paid, allocate_received
         if model_name == 'invoice':
             allocate_received(header)
+            org = getattr(header, 'customer', None)
         elif model_name == 'receipt':
             allocate_paid(header)
+            org = getattr(header, 'vendor', None)
+        else:
+            org = None
+        if org is not None:
+            update_org_balances(org)             # the org's balance and aging follow (Fable)
     if _d(old_total) != _d(totals['total']):
         if model_name == 'invoice':
             from apps.accounts.services.ledger_balance import rebuild_invoice_ledger

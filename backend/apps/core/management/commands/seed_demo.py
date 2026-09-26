@@ -429,12 +429,12 @@ class Command(BaseCommand):
 
             # 3. Invoice
             inv_status = 'complete' if cycle['status'] == 'complete' else 'released'
-            inv_totals = dict(totals)            # received comes from the applications below
             invoice = Invoice.objects.create(
                 ida=f'{prefix}-INV', status=inv_status,
                 customer=customer, contact=contact,
                 attention=contact.attention,
-                totals=inv_totals, refs=_demo_refs(),
+                refs=_demo_refs(),               # totals: computed from the lines, which
+                                                  # also builds the ledger (Fable, fix #2)
                 dt_created=now_ms, dt_modified=now_ms,
             )
             for i, ld in enumerate(line_data):
@@ -458,6 +458,7 @@ class Command(BaseCommand):
                     type='cash_in',
                     parent_id=invoice.pk,
                     parent_model='invoice',
+                    invoice=invoice,
                     customer=customer,
                     contact_id=contact.pk,
                     amount=paid,

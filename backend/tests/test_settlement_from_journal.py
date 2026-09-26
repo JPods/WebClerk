@@ -200,3 +200,31 @@ def test_ledger_rows_match_the_terms_instalments_open_or_paid():
 
     rows.order_by('-pk').first().delete()      # a lost row
     assert 'ledger.rows' in mine()
+
+
+def test_a_vendor_statement_lists_its_open_bills_not_invoices():
+    """Fable: a Vendor is an OrgBase, so the statement keyed it as a customer (AR for an AP party)."""
+    from apps.core.services.render_report import _load_statement_data
+    from apps.transactions.models import Receipt
+    vendor = OrgBase.objects.create(company='Bill Vendor', org_type='vendor', is_active=True)
+    bill = Receipt.objects.create(vendor_id=vendor.pk, totals={'total': 80.0, 'balance': 80.0})
+    stray = Invoice.objects.create(customer_id=vendor.pk, totals={'total': 5.0, 'balance': 5.0})
+    data = _load_statement_data('vendor', vendor.pk)
+    ids = {d.pk for d in data['invoices']}
+    assert bill.pk in ids and not any(isinstance(d, Invoice) for d in data['invoices'])
+
+
+def test_a_rider_with_no_customer_pays_from_cash_that_names_no_customer():
+    from apps.core.models import Contact
+    from apps.jpods.services.invoice_service import create_trip_invoice
+    rider = Contact.objects.create(email='solo@jpods.test')
+    other_org = _customer('Somebody Else')
+    Cash.objects.create(amount=Decimal('9.00'), contact_id=rider.pk, customer_id=other_org.pk)
+    refused = create_trip_invoice({'contact_id': rider.pk, 'origin_station_id': 'S1',
+                                   'destination_station_id': 'S2', 'price': '2.00', 'currency': 'USD'})
+    assert refused.get('code') == 'insufficient_balance', 'cash naming another customer is not theirs'
+    Cash.objects.create(amount=Decimal('3.00'), contact_id=rider.pk)
+    paid = create_trip_invoice({'contact_id': rider.pk, 'origin_station_id': 'S1',
+                                'destination_station_id': 'S2', 'price': '2.00', 'currency': 'USD'})
+    assert 'error' not in paid, paid
+    assert Invoice.objects.get(pk=paid['invoice_id']).totals['received'] == 2.0
