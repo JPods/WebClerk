@@ -33,24 +33,46 @@ _DAY_MS = 86_400_000
 
 
 def new_record(actor: Actor, model_key: str, payload: dict):
-    from apps.core.services.save import save_record
+    from django.core.exceptions import ObjectDoesNotExist
+    from django.db import IntegrityError
 
+    from apps.core.services.behaviours import behaviour_for
+    from apps.core.services.save import resolve_model, save_record
+
+    _model_cls, model_key, _norm = resolve_model(model_key)
     if payload.get('id') is not None:
         raise Refused(400, 'id_in_new',
                       f'new makes a record; to change {model_key} {payload["id"]}, '
                       f'PUT /wcapi/{model_key}/{payload["id"]}/.',
                       {'id': payload['id']})
-    values = sorted(k for k in payload if k not in _ENVELOPE and not k.startswith('_'))
+    requires = tuple(behaviour_for(model_key).NEW_REQUIRES)
+    values = sorted(k for k in payload
+                    if k not in _ENVELOPE and not k.startswith('_') and k not in requires)
     if values:
+        also = f' It takes only {", ".join(requires)}.' if requires else ''
         raise Refused(400, 'new_takes_no_values',
                       f'new saves an empty {model_key} and returns it with its id; PUT the '
-                      f'values to /wcapi/{model_key}/<id>/. Sent: {", ".join(values)}.',
+                      f'values to /wcapi/{model_key}/<id>/.{also} Sent: {", ".join(values)}.',
                       values)
+    missing = [k for k in requires if payload.get(k) in (None, '')]
+    if missing:
+        raise Refused(400, 'new_requires',
+                      f'A {model_key} cannot exist without {", ".join(missing)}; send '
+                      f'{"them" if len(missing) > 1 else "it"} to new.', missing)
 
     data = setting_defaults(model_key)
-    data.update({k: v for k, v in payload.items() if k.startswith('_')})
+    data.update({k: v for k, v in payload.items() if k.startswith('_') or k in requires})
     data['model_name'] = model_key
-    return save_record(actor, data, model_key=model_key, new=True)
+    try:
+        return save_record(actor, data, model_key=model_key, new=True)
+    except (IntegrityError, ObjectDoesNotExist) as e:
+        # A model that cannot be saved empty and declares nothing: coached, never a 500.
+        # The fix is its behaviour's NEW_REQUIRES, or its is_new case populating it.
+        detail = str(e).splitlines()[0][:200]
+        raise Refused(400, 'new_incomplete',
+                      f'A {model_key} cannot be saved empty ({detail}). Its behaviour must '
+                      f'declare NEW_REQUIRES or populate it when config.is_new.',
+                      {'model_name': model_key, 'detail': detail})
 
 
 def setting_defaults(model_key: str) -> Dict[str, Any]:

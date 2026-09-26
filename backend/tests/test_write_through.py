@@ -168,18 +168,22 @@ class TestForwardAndStore:
             pytest.skip("Item model not registered")
 
         request = _mock_request()
+        # A create is `new` (no values), then the values as its first save — both forwarded.
+        made, status_code = forward_and_store(request, ItemModel, {'model_name': 'item'})
+        assert status_code == 201
+        assert made.get('write_through') is True
+        assert made.get('id') is not None
+        assert made['record']['config']['is_new'] is True
+
         payload = {
-            'model_name': 'item',
+            'model_name': 'item', 'id': made['id'],
             'ida': f'WT-TEST-{_uuid.uuid4().hex[:8]}',
             'description': 'Write-through create test',
         }
-
         result, status_code = forward_and_store(request, ItemModel, payload)
-
-        assert status_code == 201
-        assert result.get('write_through') is True
-        assert result.get('id') is not None
+        assert status_code in (200, 201)
         assert result['record']['description'] == 'Write-through create test'
+        assert 'is_new' not in (result['record']['config'] or {})
 
         # Verify the record exists in DB
         obj = ItemModel.objects.get(pk=result['id'])
@@ -264,7 +268,7 @@ def test_write_through_saves_through_the_door():
                                                   username='')
     before = ItemModel.objects.count()
     result, status_code = forward_and_store(_mock_request(nobody), ItemModel,
-                                            {'model_name': 'item', 'description': 'no role'})
+                                            {'model_name': 'item'})
     assert status_code == 403
     assert result['code'] == 'create_not_permitted'
     assert ItemModel.objects.count() == before

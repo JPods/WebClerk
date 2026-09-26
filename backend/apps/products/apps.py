@@ -19,3 +19,5 @@ class ProductsConfig(AppConfig):
         # Allocate and release: commands on an item (services/inventory/inventory_allocate.py).
         from .services.inventory import inventory_allocate
         inventory_allocate.register()
+        from .behaviours import register_products
+        register_products()

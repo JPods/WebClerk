@@ -21,17 +21,27 @@ def assert_envelope(body, *, expect_status=None):
 
 
 def wcapi_save(client, data=None, **kwargs):
-    """A REST save, as the frontend makes it: POST /wcapi/<model>/ creates, PUT
-    /wcapi/<model>/<id>/ updates. The test names the model (model_name) and, for an update,
-    the id; both go in the path and the fields go flat in the body, as the door requires."""
+    """A REST save, as the frontend makes it. An update is PUT /wcapi/<model>/<id>/. A create
+    is the frontend's createRecord: POST /wcapi/<model>/ (`new`, no values) makes the empty
+    record, then the values are its first save, PUT to its id (Bill, 2026-09-26). The test
+    names the model (model_name) and, for an update, the id; both go in the path, the fields
+    go flat in the body. A refused `new` is returned as it came."""
     import json
-    body = json.loads(data) if isinstance(data, (str, bytes)) else dict(data or {})
+    as_text = isinstance(data, (str, bytes))
+    body = json.loads(data) if as_text else dict(data or {})
     model, rid = body.pop('model_name'), body.pop('id', None)
-    if isinstance(data, (str, bytes)):
+    from apps.core.services.behaviours import behaviour_for
+    # new takes the signals and the fields the model cannot exist without; the rest is the save.
+    takes = set(behaviour_for(model).NEW_REQUIRES)
+    signals = {k: body.pop(k) for k in [k for k in body if k.startswith('_') or k in takes]}
+    if not rid:
+        made = client.post(f'/wcapi/{model}/', signals, content_type='application/json')
+        if made.status_code >= 400 or not body:
+            return made
+        rid = made.json()['data']['id']
+    if as_text:
         body = json.dumps(body)
-    if rid:
-        return client.put(f'/wcapi/{model}/{rid}/', body, **kwargs)
-    return client.post(f'/wcapi/{model}/', body, **kwargs)
+    return client.put(f'/wcapi/{model}/{rid}/', body, **kwargs)
 
 
 def wcapi_get(client, params=None, **kwargs):

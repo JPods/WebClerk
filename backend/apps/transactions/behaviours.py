@@ -201,7 +201,22 @@ class CashBehaviour(ModelBehaviour):
                               'with POST /wcapi/cash/<id>/pay/.', {'status': ctx.obj.status})
 
 
+class LineBehaviour(ModelBehaviour):
+    """A line cannot exist without its document; `new` takes that id."""
+
+    def __init__(self, document_fk: str):
+        self.NEW_REQUIRES = (document_fk,)
+
+
+#: Each line model and the document it belongs to.
+LINE_DOCUMENTS = {'invoice_line': 'invoice_id', 'order_line': 'order_id', 'quote_line': 'quote_id',
+                  'purchase_line': 'purchase_id', 'receipt_line': 'receipt_id',
+                  'workorder_line': 'workorder_id', 'requisition_line': 'requisition_id'}
+
+
 def register_documents() -> None:
+    for key, fk in LINE_DOCUMENTS.items():
+        register(key, LineBehaviour(fk))
     for key in ('quote', 'purchase', 'workorder'):
         register(key, DocumentBehaviour())
     register('order', OrderBehaviour())

@@ -27,7 +27,8 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, FrozenSet, List, Optional
+import functools
+from typing import Any, Dict, FrozenSet, List, Optional, Tuple
 
 console_logger = logging.getLogger('console')
 
@@ -62,6 +63,12 @@ class ModelBehaviour:
     #: and refuses any other (Bill, 2026-09-25).
     SIGNALS: Dict[str, type] = {}
 
+    #: The fields a record cannot exist without, which only the caller knows (a BOM line's
+    #: parent and child items, a line's document). `new` takes exactly these as values and
+    #: refuses the rest; content a record needs is its Setting defaults or its ``is_new``
+    #: case (Bill, 2026-09-26).
+    NEW_REQUIRES: Tuple[str, ...] = ()
+
     def hook(self, moment: str, ctx: HookContext) -> None:
         method = getattr(self, f'{moment}_{ctx.verb}', None)
         if callable(method):
@@ -72,12 +79,21 @@ _REGISTRY: Dict[str, ModelBehaviour] = {}
 _DEFAULT = ModelBehaviour()
 
 
+@functools.lru_cache(maxsize=None)
+def _key(model_key: str) -> str:
+    """One spelling per model: the door's (``to_model_name`` — ``billofmaterial`` for the
+    route's ``bill_of_material``), so a behaviour registered by either name is found."""
+    from apps.core.constants.model_registry import get_model, normalize_table_key, to_model_name
+    model = get_model(normalize_table_key(model_key) or model_key)
+    return (to_model_name(model) if model else None) or model_key
+
+
 def register(model_key: str, behaviour: ModelBehaviour) -> None:
-    _REGISTRY[model_key] = behaviour
+    _REGISTRY[_key(model_key)] = behaviour
 
 
 def behaviour_for(model_key: str) -> ModelBehaviour:
-    return _REGISTRY.get(model_key, _DEFAULT)
+    return _REGISTRY.get(_key(model_key), _DEFAULT)
 
 
 def registered() -> Dict[str, str]:

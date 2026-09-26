@@ -81,14 +81,13 @@ const BomPanel: React.FC<BomPanelProps> = ({ itemId, itemCode }) => {
       const childId = item.id || item.item_id;
       const childCode = item.ida_item || item.item_num || item.sku || '';
       const childDesc = item.description || item.name || '';
+      // A BOM line cannot exist without its parent and child items: those go to `new`.
       await createRecord('bill_of_material', {
-        parent_item_id: itemId,
         parent_ida: itemCode,
-        child_item_id: childId,
         child_ida: childCode,
         child_description: childDesc,
         sequence: (components.length + 1) * 10,
-      });
+      }, { parent_item_id: itemId, child_item_id: childId });
       dispatch(showToast({ message: `Added ${childCode || childId} to BOM`, type: 'success' }));
       setShowSearch(false);
       setSearchQuery('');

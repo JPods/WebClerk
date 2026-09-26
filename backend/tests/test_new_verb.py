@@ -142,3 +142,35 @@ def test_the_routes(client, django_user_model):
     not_a_command = client.post(f'/wcapi/item/{item_id}/new/', {},
                                 content_type='application/json')
     assert not_a_command.status_code == 404
+
+
+def test_a_model_that_cannot_exist_empty_declares_what_new_takes():
+    from apps.products.models import Item
+    parent, child = Item.objects.create(name='P'), Item.objects.create(name='C')
+    with pytest.raises(Refused) as refused:
+        _new('bill_of_material')
+    assert refused.value.code == 'new_requires'
+    assert refused.value.details == ['parent_item_id', 'child_item_id']
+    bom = _new('bill_of_material', {'parent_item_id': parent.pk, 'child_item_id': child.pk}).obj
+    assert bom.config['is_new'] is True and bom.child_item_id == child.pk
+    with pytest.raises(Refused) as refused:          # only what it declares; the rest is the save
+        _new('bill_of_material', {'parent_item_id': parent.pk, 'child_item_id': child.pk,
+                                  'quantity': 3})
+    assert refused.value.code == 'new_takes_no_values'
+
+
+def test_a_line_names_its_document_and_the_route_spelling_finds_its_behaviour():
+    with pytest.raises(Refused) as refused:
+        _new('order_line')
+    assert refused.value.code == 'new_requires' and refused.value.details == ['order_id']
+
+
+def test_a_new_org_is_named_until_someone_names_it():
+    customer = _new('customer').obj
+    assert customer.company == 'New Customer' and customer.org_type == 'customer'
+
+
+def test_a_model_that_cannot_be_saved_empty_is_coached_never_a_500():
+    with pytest.raises(Refused) as refused:
+        _new('item_usage')
+    assert refused.value.status == 400 and refused.value.code == 'new_incomplete'

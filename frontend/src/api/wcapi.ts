@@ -174,19 +174,21 @@ export type NewRecordResult = { id: number; record: Record<string, any> };
 
 /**
  * POST /wcapi/<model>/ — the server makes an empty record (Setting defaults, then the model's
- * hooks, which case on config.is_new) and returns it with its id. It takes no values; pass
- * only the underscore signals the model declares (e.g. `_parent`).
+ * hooks, which case on config.is_new) and returns it with its id. It takes no values, only
+ * `init`: the fields the model cannot exist without (its NEW_REQUIRES — a BOM line's parent
+ * and child items, a line's document) and the underscore signals it declares (`_parent`).
  */
-export async function newRecord(model_name: string, signals: Record<string, any> = {}): Promise<NewRecordResult> {
+export async function newRecord(model_name: string, init: Record<string, any> = {}): Promise<NewRecordResult> {
   const resolved = resolveModelName(model_name);
-  const res = await apiClient.post<ApiEnvelope<NewRecordResult>>(recordPath(resolved), signals);
+  const res = await apiClient.post<ApiEnvelope<NewRecordResult>>(recordPath(resolved), init);
   return res.data.data;
 }
 
-/** A record with values the caller already holds: `new`, then the values as its next save. */
+/** A record with values the caller already holds: `new` (with its `init`), then the values
+ * as its next save. */
 export async function createRecord(model_name: string, values: Record<string, any>,
-                                   signals: Record<string, any> = {}) {
-  const made = await newRecord(model_name, signals);
+                                   init: Record<string, any> = {}) {
+  const made = await newRecord(model_name, init);
   if (!values || Object.keys(values).length === 0) return made;
   return saveRecord(model_name, { ...values, id: made.id });
 }
