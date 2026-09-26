@@ -61,7 +61,6 @@ ALLOWED_NESTED_KEYS = {
 #}
 # YYY 2026-02-15
 MAX_FIELD_SIZE = 15000  # bytes, example
-UNKNOWN_FIELD_MAX_CHARS = 256  # max len for unknown field values captured into prefs.userdefined
 
 def check_field_size(field_value, max_size, field_name):
     size = len(json.dumps(field_value).encode('utf-8'))

@@ -54,14 +54,16 @@ def test_domain_list_and_create(api_client, staff_user):
     body = resp.json()
     assert body.get('status') == 'success'
 
-    # Create via wcapi/save/
-    create = wcapi_save(client, {'model_name': 'domain', 'data': {'name': 'example.com', 'is_active': True}}, format='json')
-    assert create.status_code in (200, 201)
+    # Create: POST /wcapi/domain/ with flat fields
+    create = wcapi_save(client, {'model_name': 'domain', 'path': 'https://example.com',
+                                 'type': 'website'}, format='json')
+    assert create.status_code in (200, 201), create.content
     cbody = create.json()
     assert cbody.get('status') == 'success'
-    cdata = cbody.get('data', {})
-    did = cdata.get('id')
+    did = cbody.get('data', {}).get('id')
     assert did
+    saved = Domain.objects.get(pk=did)
+    assert (saved.path, saved.type) == ('https://example.com', 'website')
 
     # Re-list to confirm item is present
     resp2 = wcapi_get(client, {'model_name': 'domain'})

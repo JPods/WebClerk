@@ -22,13 +22,16 @@ def assert_envelope(body, *, expect_status=None):
 
 def wcapi_save(client, data=None, **kwargs):
     """A REST save, as the frontend makes it: POST /wcapi/<model>/ creates, PUT
-    /wcapi/<model>/<id>/ updates. The body (a dict, or JSON text) names both."""
+    /wcapi/<model>/<id>/ updates. The test names the model (model_name) and, for an update,
+    the id; both go in the path and the fields go flat in the body, as the door requires."""
     import json
-    body = json.loads(data) if isinstance(data, (str, bytes)) else (data or {})
-    model, rid = body['model_name'], body.get('id')
+    body = json.loads(data) if isinstance(data, (str, bytes)) else dict(data or {})
+    model, rid = body.pop('model_name'), body.pop('id', None)
+    if isinstance(data, (str, bytes)):
+        body = json.dumps(body)
     if rid:
-        return client.put(f'/wcapi/{model}/{rid}/', data, **kwargs)
-    return client.post(f'/wcapi/{model}/', data, **kwargs)
+        return client.put(f'/wcapi/{model}/{rid}/', body, **kwargs)
+    return client.post(f'/wcapi/{model}/', body, **kwargs)
 
 
 def wcapi_get(client, params=None, **kwargs):

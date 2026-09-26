@@ -228,12 +228,19 @@ def _enumerated_edit(actor: Actor, obj, model_key: str, data: dict):
     if model_key == 'contact' and getattr(obj, 'pk', None) and obj.pk == actor.user_id:
         allowed |= set(access.SELF_CONTACT_EDIT)
     admin = access.is_admin(actor)          # an admin may set an ida, as before
+    # 2026-09-20 ignores a FIELD the role may not edit; 2026-09-25 refuses a key that is no
+    # field at all. So a non-field passes through here and the assignment refuses it with
+    # coaching — dropped here, a `data` wrapper hid its fields and the save failed as a 500.
+    field_names = {n for f in obj._meta.get_fields()
+                   for n in (f.name, getattr(f, 'attname', None)) if n}
     kept: dict = {}
     denied: list = []
     for key, value in (data or {}).items():
         if not isinstance(key, str):
             continue
         if key.startswith('_') or key in PASSTHROUGH_KEYS:
+            kept[key] = value
+        elif '.' not in key and key not in field_names:
             kept[key] = value
         elif key in SYSTEM_ONLY_FIELDS and not admin:
             denied.append(key)

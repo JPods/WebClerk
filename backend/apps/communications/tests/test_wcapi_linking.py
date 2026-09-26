@@ -34,7 +34,7 @@ def _json(resp):
 def test_wcapi_save_email_creates_record(api_client, staff_user):
     """Test that /wcapi/save/ can create an email record."""
     client = api_client
-    payload = {'model_name': 'email', 'data': {'email': 'auto@link.test', 'name': 'work'}}
+    payload = {'model_name': 'email', 'email': 'auto@link.test', 'name': 'work'}
     resp = wcapi_save(client, payload, format='json')
     assert resp.status_code in (200, 201), f"Unexpected status {resp.status_code}: {resp.content}"
     data = _json(resp)
@@ -42,10 +42,13 @@ def test_wcapi_save_email_creates_record(api_client, staff_user):
     inner = data.get('data', data)
     created_id = inner.get('id')
     assert created_id, f"Expected id in response data: {data}"
+    from apps.communications.models import Email
+    saved = Email.objects.get(pk=created_id)
+    assert (saved.email, saved.name) == ('auto@link.test', 'work'), 'the fields were stored, not just an id'
 
 
 def test_wcapi_save_email_with_contact_id(api_client, db):
-    """Test that /wcapi/save/ can create an email record with explicit contact_id."""
+    """POST /wcapi/email/ with flat fields creates an email linked to the named contact."""
     from apps.core.models import Contact
     contact = Contact.objects.create(email='other@example.com', name_first='Other', name_last='Person')
     api = APIClient()
@@ -54,10 +57,13 @@ def test_wcapi_save_email_with_contact_id(api_client, db):
     api.defaults['HTTP_ACCEPT'] = 'application/json'
     api.defaults['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest'
 
-    payload = {'model_name': 'email', 'data': {'email': 'explicit@link.test', 'name': 'home', 'contact_id': contact.id}}
+    payload = {'model_name': 'email', 'email': 'explicit@link.test', 'name': 'home', 'contact_id': contact.id}
     resp = wcapi_save(api, payload, format='json')
     assert resp.status_code in (200, 201), f"Unexpected status {resp.status_code}: {resp.content}"
     data = _json(resp)
     inner = data.get('data', data)
     created_id = inner.get('id')
     assert created_id, f"Expected id in response data: {data}"
+    from apps.communications.models import Email
+    saved = Email.objects.get(pk=created_id)
+    assert (saved.email, saved.name, saved.contact_id) == ('explicit@link.test', 'home', contact.id)

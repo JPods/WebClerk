@@ -15,13 +15,11 @@ User = get_user_model()
 
 
 @pytest.mark.django_db
-def test_wcapi_save_deep_merge_prefs_and_unknown_capture():
-    """A save deep-merges the envelope leaves the role may write, and ignores the rest.
-
-    Before the one field authority (Bill, 2026-09-20/23: "if it is not enumerated as edit,
-    the back end should never read it"), this test expected an untyped prefs.ui and an
-    unknown top-level field to be stored — the second captured into prefs.userdefined.
-    Neither is a leaf any role can be given, so both are ignored now.
+def test_wcapi_save_deep_merges_the_leaves_and_refuses_a_key_that_is_no_field():
+    """A save deep-merges the envelope leaves the role may write and ignores an envelope
+    branch no role is given (Bill, 2026-09-20: "if it is not enumerated as edit, the back
+    end should never read it"). A top-level key that is no field of the model is refused
+    with coaching, never dropped (Bill, 2026-09-25).
     """
     user = User.objects.create_user(
         email='deepmerge@example.com', password=TEST_PASSWORD, name_first='Deep', name_last='Merge', username='', role='admin'  # tests merging, not access
@@ -37,10 +35,19 @@ def test_wcapi_save_deep_merge_prefs_and_unknown_capture():
     obj = Domain.objects.get(id=data1['id'])
     assert obj.prefs['pinned'] is True and obj.prefs['tags'] == ['ops']
 
+    refused = wcapi_save(c, data=json.dumps({
+        'model_name': 'domain', 'id': obj.id, 'version': data1.get('version'),
+        'prefs': {'pinned': False}, 'unknownFieldX': 'x',
+    }), content_type='application/json')
+    assert refused.status_code == 400, refused.content
+    assert refused.json()['error']['code'] == 'unknown_field'
+    assert 'unknownFieldX' in refused.json()['message']
+    obj.refresh_from_db()
+    assert obj.prefs['pinned'] is True, 'a refused save writes nothing'
+
     resp2 = wcapi_save(c, data=json.dumps({
         'model_name': 'domain', 'id': obj.id, 'version': data1.get('version'),
         'prefs': {'pinned': False, 'ui': {'theme': 'dark'}},
-        'unknownFieldX': 'ignored',
     }), content_type='application/json')
     assert resp2.status_code == 200, resp2.content
 
@@ -48,4 +55,3 @@ def test_wcapi_save_deep_merge_prefs_and_unknown_capture():
     assert obj.prefs['pinned'] is False, 'the written leaf changed'
     assert obj.prefs['tags'] == ['ops'], 'the leaf not sent was kept (deep merge)'
     assert 'ui' not in obj.prefs, 'an untyped branch is not a leaf any role may write'
-    assert 'unknownFieldX' not in (obj.prefs.get('userdefined') or {})

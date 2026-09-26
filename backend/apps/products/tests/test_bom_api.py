@@ -24,7 +24,7 @@ def test_bom_list_via_wcapi():
 
 @pytest.mark.django_db
 def test_bom_create_via_wcapi():
-    """Test that BOM records can be created via /wcapi/save/."""
+    """A BOM record is created by POST /wcapi/bill_of_material/ with flat fields."""
     user = Contact.objects.create(email='bomcreator@example.com', name_first='Bo', name_last='C', is_staff=True,
                                   role='admin')  # a role: is_staff alone grants no create
     client = APIClient()
@@ -37,13 +37,11 @@ def test_bom_create_via_wcapi():
 
     payload = {
         'model_name': 'bill_of_material',
-        'data': {
-            'parent_item_id': parent.id,
-            'child_item_id': component.id,
-            'quantity': '2',
-            'scrap_factor': '0',
-            'sequence': 10,
-        }
+        'parent_item_id': parent.id,
+        'child_item_id': component.id,
+        'quantity': '2',
+        'scrap_factor': '0',
+        'sequence': 10,
     }
     resp = wcapi_save(client, payload, format='json')
     assert resp.status_code in (200, 201), f"Unexpected: {resp.status_code} {resp.content}"

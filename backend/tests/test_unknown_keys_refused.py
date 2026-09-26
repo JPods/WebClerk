@@ -50,3 +50,28 @@ def test_a_client_naming_the_model_in_the_body_is_refused_at_the_rest_view(clien
     assert r.status_code in (400, 401)
     if r.status_code == 400:
         assert 'the model is the path' in r.json()['message']
+
+
+def test_a_data_wrapper_is_refused_before_any_field_is_read():
+    """A model with required links (a BOM needs its child item) must answer the coaching
+    400, not fail with a 500 while reading the fields the wrapper hid."""
+    from apps.products.models import Item
+    parent, child = Item.objects.create(name='P'), Item.objects.create(name='C')
+    with pytest.raises(Refused) as e:
+        save_record(Actor.system(), {'model_name': 'bill_of_material', 'data': {
+            'parent_item_id': parent.pk, 'child_item_id': child.pk, 'quantity': '2'}})
+    assert e.value.status == 400 and e.value.code == 'unknown_field'
+    assert 'send the fields flat' in e.value.message
+
+
+def test_a_data_wrapper_sent_to_the_rest_route_is_coached_not_a_500(client, django_user_model):
+    from apps.products.models import Item
+    admin = django_user_model.objects.create_user(email='wrap@test.com', password='x',
+                                                  username='', role='admin')
+    client.force_login(admin)
+    parent, child = Item.objects.create(name='P'), Item.objects.create(name='C')
+    r = client.post('/wcapi/bill_of_material/', {'data': {
+        'parent_item_id': parent.pk, 'child_item_id': child.pk, 'quantity': '2'}},
+        content_type='application/json')
+    assert r.status_code == 400, r.content
+    assert r.json()['error']['code'] == 'unknown_field'

@@ -25,9 +25,8 @@ from common.json_path import delete_nested_value
 console_logger = logging.getLogger('console')
 
 MAX_FIELD_SIZE = 15000
-UNKNOWN_FIELD_MAX_CHARS = 255       # max chars per userdefined string value
-UNKNOWN_FIELD_MAX_KEY_LEN = 64      # max chars per userdefined key name
-UNKNOWN_FIELD_MAX_KEYS = 20         # max name:value pairs in userdefined
+# The userdefined bounds live with the envelope that defines the bag.
+from common.schemas.envelopes import USERDEFINED_KEY_MAX_LEN, USERDEFINED_VALUE_MAX_LEN  # noqa: E402
 MAX_MERGE_DEPTH = 8                 # max recursion depth for deep_merge_dict
 MAX_DOT_PATH_DEPTH = 8             # max segments in a dot-path field name
 
@@ -304,10 +303,10 @@ def assign_fields(
                     # Also enforce scalar-only and limits on the value
                     if len(_parts) == _ud_idx + 2:
                         _ud_key = _parts[_ud_idx + 1]
-                        if len(_ud_key) > UNKNOWN_FIELD_MAX_KEY_LEN:
+                        if len(_ud_key) > USERDEFINED_KEY_MAX_LEN:
                             field_size_errors.append(
                                 f"userdefined key '{_ud_key[:20]}...' exceeds "
-                                f"{UNKNOWN_FIELD_MAX_KEY_LEN} chars"
+                                f"{USERDEFINED_KEY_MAX_LEN} chars"
                             )
                             continue
                         if isinstance(value, (dict, list)):
@@ -316,10 +315,10 @@ def assign_fields(
                                 f"got {type(value).__name__}"
                             )
                             continue
-                        if isinstance(value, str) and len(value) > UNKNOWN_FIELD_MAX_CHARS:
+                        if isinstance(value, str) and len(value) > USERDEFINED_VALUE_MAX_LEN:
                             field_size_errors.append(
                                 f"userdefined['{_ud_key}'] string exceeds "
-                                f"{UNKNOWN_FIELD_MAX_CHARS} chars"
+                                f"{USERDEFINED_VALUE_MAX_LEN} chars"
                             )
                             continue
                 except ValueError:

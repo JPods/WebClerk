@@ -48,14 +48,17 @@ def test_wcapi_get_with_model_path(admin_user):
 
 
 @pytest.mark.django_db
-def test_wcapi_save_refuses_a_payload_naming_another_model(admin_user):
-    """POST /wcapi/<model>/ — the path names the model; a payload naming another is refused."""
+def test_wcapi_save_refuses_a_payload_naming_a_model(admin_user):
+    """POST /wcapi/<model>/ — the path names the model; a body that names any model, even
+    the same one, is refused with coaching (Bill, 2026-09-25: unknown keys are refused)."""
     client = APIClient()
     client.force_authenticate(user=admin_user)
 
-    resp = client.post('/wcapi/contact/', {'model_name': 'item'}, format='json')
-    assert resp.status_code == 400
-    assert resp.json()['error']['code'] == 'model_mismatch'
+    for named in ('item', 'contact'):
+        resp = client.post('/wcapi/contact/', {'model_name': named}, format='json')
+        assert resp.status_code == 400
+        assert resp.json()['error']['code'] == 'unknown_field'
+        assert 'the model is the path' in resp.json()['message']
 
 
 @pytest.mark.django_db

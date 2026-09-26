@@ -122,7 +122,7 @@ def test_new_records_start_where_bill_ruled():
     from apps.core.services.save import save_record
     admin = _person('admin', is_staff=True, is_superuser=True)
     item = save_record(Actor(user=admin), {'model_name': 'item', 'ida': 'NEW-I', 'name': 'n'})
-    quote = save_record(Actor(user=admin), {'model_name': 'quote', 'name': 'NEW-Q'})
+    quote = save_record(Actor(user=admin), {'model_name': 'quote'})
     assert Item.objects.get(pk=item.obj_id).security_level == 0
     assert Quote.objects.get(pk=quote.obj_id).security_level == 1
 
@@ -144,6 +144,6 @@ def test_a_login_with_no_role_may_not_create():
     from apps.core.services.save import save_record
     me = Contact.objects.create(email='nocreate@example.com', role='user')
     with pytest.raises(Refused) as refused:
-        save_record(Actor(user=me), {'model_name': 'quote', 'name': 'NOPE'})
+        save_record(Actor(user=me), {'model_name': 'quote'})
     assert refused.value.status == 403
     assert refused.value.code == 'create_not_permitted'

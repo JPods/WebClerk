@@ -275,13 +275,13 @@ def test_wcapi_save_saved_search_allows_admin(client):
                 "purpose": "wc:search",
                 "parent_model": "customer",
                 "role": "sales",
-                "data": {"keyword": "acme", "filters": {"status": "active"}},
+                "config": {"request_keyword": "company", "ordering": "-dt_created"},
             }
         ),
         content_type="application/json",
     )
 
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.content
     body = resp.json()
     data = assert_envelope(body, expect_status="success")
     setting_id = data.get("id") or data.get("record", {}).get("id")
@@ -290,6 +290,7 @@ def test_wcapi_save_saved_search_allows_admin(client):
     saved = Setting.objects.get(id=setting_id)
     assert saved.purpose == "wc:search"
     assert saved.parent_model == "customer"
+    assert saved.config.get("request_keyword") == "company", "the criteria were stored"
 
 
 @pytest.mark.django_db

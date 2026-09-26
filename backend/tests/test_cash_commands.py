@@ -219,7 +219,7 @@ def test_the_routes(client, django_user_model, invoice, gateway,
     admin = django_user_model.objects.create_user(email='pay-admin@test.com', password='x',
                                                   username='', role='admin')
     client.force_login(admin)
-    saved = client.post('/wcapi/cash/', {'model_name': 'cash', 'invoice_id': invoice.pk,
+    saved = client.post('/wcapi/cash/', {'invoice_id': invoice.pk,
                                          'amount': '100.00', 'method': 'card',
                                          'purpose': 'empty'}, content_type='application/json')
     assert saved.status_code in (200, 201), saved.content
