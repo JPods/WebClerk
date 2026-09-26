@@ -24,7 +24,7 @@ const AUTHORITY_OPTIONS: { value: ProjectAuthority; label: string; desc: string 
   { value: 'add_to_comment', label: 'Comment', desc: 'Add comments only' },
 ];
 
-// Contact as stored in project.refs.links.contacts
+// Contact as stored in project.refs.links.contact
 export interface ProjectContact {
   id: number | string;
   attention?: string;
@@ -173,12 +173,13 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
     setSaveError(null);
 
     try {
-      // Build the payload to update project.refs.links.contacts (with authority)
+      // Update project.refs.links.contact (with authority). `id` is the project: without it the
+      // save is a POST and makes a new project every time.
       const payload = {
-        project_id: Number(projectId),
+        id: Number(projectId),
         refs: {
           links: {
-            contacts: contacts.map((c) => ({
+            contact: contacts.map((c) => ({
               id: Number(c.id),
               attention: c.attention || "",
               authority: c.authority || "read_only",

@@ -279,7 +279,7 @@ export function useListFieldConfig<T>(
       config.layout = layout;
 
       const { saveRecord } = await import('@/api/wcapi');
-      await saveRecord('setting', { ...setting, config });
+      await saveRecord('setting', { id: setting.id, version: setting.version, config });
     } catch (e) {
       console.error('Failed to save list config to Setting:', e);
     }

@@ -11,6 +11,7 @@
  * employee, rep, item, or any future model with a detail_layout Setting.
  */
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { changedFields } from '@/utils/changedFields';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store';
@@ -236,9 +237,7 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
     if (!editData) return;
     setSaving(true);
     try {
-      const { uuid, metadata, refs, prefs, _contact, ...clean } = editData;
-      void uuid; void metadata; void refs; void prefs; void _contact;
-      await saveRecord(modelName, clean);
+      await saveRecord(modelName, changedFields(data, editData));
       dispatch(showToast({ message: `${modelName} saved`, type: 'success' }));
       setIsEditing(false);
       fetchData();

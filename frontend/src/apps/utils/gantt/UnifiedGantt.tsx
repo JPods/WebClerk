@@ -175,7 +175,6 @@ async function saveProjectGanttSettings(
   try {
     const wcapi = await import("../../../api/wcapi");
     await wcapi.saveRecord("project", {
-      model_name: "project",
       id: projectId,
       metadata: { mode: "update", value: meta },
     });
@@ -2937,7 +2936,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                         if (!meta.kanban) meta.kanban = {};
                         meta.kanban.default_view = current;
                         saveRecord("project", {
-                          model_name: "project",
                           id: projectId,
                           metadata: { mode: "update", value: meta },
                         }).then(() => {
@@ -2967,7 +2965,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                           meta.kanban.sprint = { day, hour: 15, minute: 1 };
                         }
                         saveRecord("project", {
-                          model_name: "project",
                           id: projectId,
                           metadata: { mode: "update", value: meta },
                         }).then(() => {
@@ -3208,7 +3205,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         onClose={() => setShowContactManager(false)}
         projectId={projectId}
         projectName={projectRecord?.name || `Project #${projectId}`}
-        currentContacts={(projectRecord?.refs?.links?.contacts || []) as ProjectContact[]}
+        currentContacts={(projectRecord?.refs?.links?.contact || []) as ProjectContact[]}
         onContactsUpdated={(contacts) => {
           setProjectRecord((prev: any) => ({
             ...prev,

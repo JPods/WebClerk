@@ -13,6 +13,7 @@ import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import { useWindowPath } from '@/context/WindowPathContext';
 import { useWindowManagerSafe } from '@/context/WindowManagerContext';
 import { dbLog } from '@/utils/dbLog';
+import { changedFields } from '@/utils/changedFields';
 import {
   getModelNames,
   getModelDetail,
@@ -344,6 +345,8 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
   // --- Selection & detail ---
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<WorkbenchRecord | null>(null);
+  // The record as the server gave it: an update sends only what differs from this.
+  const loadedRecordRef = useRef<WorkbenchRecord | null>(null);
   const [isDirty, setIsDirty] = useState(false);
 
   // --- Subset filtering ---
@@ -896,6 +899,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
         (rec as any)._sourceModel = fetchModel;
         (rec as any)._sourceId = fetchId;
       }
+      loadedRecordRef.current = rec;
       setSelectedRecord(rec);
       setIsDirty(false);
       // Notify other windows
@@ -1254,12 +1258,13 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
     setValidationErrors(errors);
     if (hasErrors(errors)) return;
     try {
-      await saveRecord(selectedModel, { ...selectedRecord });
+      await saveRecord(selectedModel, changedFields(loadedRecordRef.current, selectedRecord));
       setIsDirty(false); setValidationErrors({}); fetchRecords();
       // Re-fetch detail to get updated version (prevents 412 on next save)
       if (selectedId != null) {
         const d = await getRecord(selectedModel, selectedId) as { record?: unknown };
-        setSelectedRecord(toRec(d?.record));
+        loadedRecordRef.current = toRec(d?.record);
+        setSelectedRecord(loadedRecordRef.current);
       }
       // Notify other windows
       import('@/utils/windowChannel').then(({ windowChannel }) => {
@@ -1284,6 +1289,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
     if (nextIdx >= 0) {
       const next = filtered[nextIdx];
       setSelectedId(numId(next.id));
+      loadedRecordRef.current = next;
       setSelectedRecord(next);
     } else {
       setSelectedRecord(null);

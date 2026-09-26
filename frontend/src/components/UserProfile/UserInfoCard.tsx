@@ -95,10 +95,14 @@ function UserInfoCard() {
       try {
            const [userResponse, phoneResponses, emailResponse] = await Promise.all([
               patchUserProfile(userProfile),
-              Promise.all(data.phoneNumbers.map((list: any) => postPhone(list))),
-              Promise.all(data.emails.map((list: any) => postEmail(list))),
+              // The form holds only rows being added (it never loads the saved ones): post the
+              // filled rows once, then clear them, so a second save adds nothing twice.
+              Promise.all(data.phoneNumbers.filter((p: any) => p.number?.trim()).map((p: any) => postPhone(p))),
+              Promise.all(data.emails.filter((e: any) => e.email?.trim()).map((e: any) => postEmail(e))),
            ]);
            
+           setValue('phoneNumbers', [{ format: "", country_code: "", number: "" }]);
+           setValue('emails', [{ type: "", email: "" }]);
            if(userResponse.status === 200)
               dispatch(showToast({ message: "Profile Updated successfully", type: "success" }));
            

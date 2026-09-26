@@ -566,10 +566,13 @@ function DynamicDetail({
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      const payload: Record<string, any> = { model_name: modelName, id: String(recordId) };
+      // Only what the person changed: the path carries the model and id, and an untouched
+      // field is never echoed back (extractValue flattens objects to their display text).
+      const payload: Record<string, any> = { id: String(recordId) };
       for (const [key, cfg] of Object.entries(fieldRegistry)) {
         if (cfg.type === "readonly") continue;
         const val = values[key];
+        if (JSON.stringify(val) === JSON.stringify(extractValue(key, cfg, data))) continue;
         const path = cfg.path || key;
         if (path.includes(".")) {
           // Nested JSON field — build atomic update for the top-level key
@@ -596,8 +599,10 @@ function DynamicDetail({
           payload[key] = { mode: "update", value: val };
         }
       }
-      await saveRecord(modelName, payload);
-      dispatch(showToast({ message: "Saved", type: "success" }));
+      if (Object.keys(payload).length > 1) {
+        await saveRecord(modelName, payload);
+        dispatch(showToast({ message: "Saved", type: "success" }));
+      }
       setEditing(false);
       onSaved?.();
     } catch (e: any) {
@@ -605,7 +610,7 @@ function DynamicDetail({
     } finally {
       setSaving(false);
     }
-  }, [modelName, recordId, values, fieldRegistry, data, dispatch, onSaved]);
+  }, [modelName, recordId, values, fieldRegistry, data, extractValue, dispatch, onSaved]);
 
   // Expose actions to parent via ref
   useEffect(() => {
@@ -721,7 +726,6 @@ function DynamicDetail({
               if (arranging) {
                 if (layoutReportId) {
                   saveRecord("report", {
-                    model_name: "report",
                     id: String(layoutReportId),
                     config: { mode: "update", value: layout },
                   }).then(() => {
