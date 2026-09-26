@@ -524,6 +524,16 @@ def apply_cash_to_invoice(
 
     _check_application(cash, invoice, amount)
 
+    # A Cash whose method is an adjustment (a write-off, a discount, FX) settles the invoice
+    # against a loss or gain account, not as money received (Bill, 2026-09-26: the $5 write-off
+    # is its own payment, posted to bad debt). It is a person's decision, within policy, and
+    # counts in totals.adjusted — recorded as its kind, or it would read as received.
+    kind = cash.method if cash.method in ADJUSTMENT_METHODS else None
+    if kind:
+        if not acted_by:
+            raise ValueError(f"A {kind.replace('_', ' ')} is a person's decision: name who made it.")
+        _check_policy(invoice, kind, _d(amount))
+
     changes = {
         'cash_id': cash_id,
         'invoice_id': invoice_id,
@@ -534,6 +544,8 @@ def apply_cash_to_invoice(
         'state': 'pending',
         'dt_applied': None,
     }
+    if kind:
+        changes['kind'] = kind
     if gateway_event_id:
         changes['gateway_event_id'] = gateway_event_id
 

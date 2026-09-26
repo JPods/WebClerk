@@ -109,3 +109,50 @@ def test_bad_amounts_are_coached(admin_client, body, code):
     inv = _invoice(100.0)
     r = _post(admin_client, 'invoice', inv.pk, body)
     assert r.status_code == 400 and r.json()['error']['code'] == code, r.content
+
+
+def test_a_write_off_is_its_own_payment_and_counts_as_adjusted(admin_client):
+    """Bill, 2026-09-26: invoice $100 stays $100; the customer's $95 payment and a $5 'write
+    off' payment against a loss account balance the receivable."""
+    inv = _invoice(100.0)
+    assert _post(admin_client, 'invoice', inv.pk, {'amount': '95.00', 'method': 'check'}).status_code == 200
+    r = _post(admin_client, 'invoice', inv.pk, {'amount': '5.00', 'method': 'write_off',
+                                                'reason': 'too small to chase'})
+    assert r.status_code == 200 and _data(r)['applied']['state'] == 'applied', r.content
+    inv.refresh_from_db()
+    t = inv.totals
+    assert (t['total'], t['received'], t['adjusted'], t['balance'], t['cash_state']) == (100.0, 95.0, 5.0, 0.0, 'paid')
+    off = Pending.objects.get(purpose='cash_application', changes__invoice_id=inv.pk,
+                              changes__kind='write_off')
+    assert off.changes['acted_by'] is not None, 'a write-off names who decided'
+
+
+def test_a_write_off_past_company_policy_is_not_applied(admin_client):
+    from apps.core.models import Setting
+    company = Setting.objects.filter(purpose='wc:company_profile', is_active=True).first()
+    if company is None:
+        company = Setting(purpose='wc:company_profile', name='Company', config={})
+        company._setting_create_authorized = True
+        company.save()
+    Setting.objects.filter(pk=company.pk).update(config={**(company.config or {}),
+                                                         'cash_policy': {'write_off_limit': '2.00'}})
+    inv = _invoice(100.0)
+    r = _post(admin_client, 'invoice', inv.pk, {'amount': '5.00', 'method': 'write_off'})
+    body = _data(r)
+    assert body['applied']['state'] == 'refused' and 'may not exceed 2.00' in body['applied']['reason']
+    inv.refresh_from_db()
+    assert inv.totals['adjusted'] == 0.0
+
+
+def test_the_write_off_posts_to_the_loss_account_with_the_payment_sides_flipped(admin_client, chart_of_accounts):
+    """Bill, 2026-09-26: WebClerk values the write-off Cash at +$5; the chart values it as a $5
+    loss — a normal payment's debit to cash becomes a debit to bad debt, AR is credited."""
+    from apps.accounts.services.chart import role_account
+    from apps.accounts.services.journalize import journalize_cash
+    inv = _invoice(100.0)
+    r = _post(admin_client, 'invoice', inv.pk, {'amount': '5.00', 'method': 'write_off'})
+    cash = Cash.objects.get(pk=_data(r)['cash_id'])
+    assert cash.amount == Decimal('5.00')
+    accounts = {p['account'] for p in journalize_cash(cash.pk)['postings']}
+    assert role_account('bad_debt_writeoff') in accounts
+    assert role_account('undeposited_funds') not in accounts, 'never to the bank'
