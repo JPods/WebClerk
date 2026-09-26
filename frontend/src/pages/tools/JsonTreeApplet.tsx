@@ -48,8 +48,6 @@ export default function JsonTreeApplet() {
   const [splitPct, setSplitPct] = useState(45);
   const [copied, setCopied] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [posting, setPosting] = useState(false);
-  const [postResult, setPostResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [filePath, setFilePath] = useState('');
   const codeRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -94,8 +92,8 @@ export default function JsonTreeApplet() {
   const doMinify = () => { try { setCode(JSON.stringify(JSON.parse(code))); setError(''); } catch (e: any) { setError(e.message); } };
   const doValidate = () => { try { JSON.parse(code); setError(''); alert('Valid JSON'); } catch (e: any) { setError(e.message); } };
   const doCopy = () => { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1500); };
-  const doClear = () => { setCode(''); setData({}); setError(''); setPostResult(null); setFilePath(''); };
-  const doSample = () => { const s = JSON.stringify(SAMPLE, null, 2); setCode(s); setData(SAMPLE); setError(''); setPostResult(null); setFilePath('sample.json'); };
+  const doClear = () => { setCode(''); setData({}); setError(''); setFilePath(''); };
+  const doSample = () => { const s = JSON.stringify(SAMPLE, null, 2); setCode(s); setData(SAMPLE); setError(''); setFilePath('sample.json'); };
 
   // Save as .json file
   const doSave = () => {
@@ -107,40 +105,6 @@ export default function JsonTreeApplet() {
     a.download = filePath || 'data.json';
     a.click();
     URL.revokeObjectURL(url);
-  };
-
-  // Post as bundle to WC3 SelfConnection
-  const doPostBundle = async () => {
-    if (error || !code.trim()) return;
-    setPosting(true);
-    setPostResult(null);
-    try {
-      const payload = JSON.parse(code);
-      const body = {
-        idempotency_key: crypto.randomUUID(),
-        sequence: 1,
-        payload,
-        meta: { source: 'json-tree', posted: new Date().toISOString() },
-      };
-      const res = await fetch('/wcapi/sync/receive/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Sync-Key': 'self-connection',
-        },
-        body: JSON.stringify(body),
-      });
-      const result = await res.json();
-      if (result.ack) {
-        setPostResult({ ok: true, msg: `Bundle #${result.bundle_id} created` });
-      } else {
-        setPostResult({ ok: false, msg: result.error || 'Post failed' });
-      }
-    } catch (e: any) {
-      setPostResult({ ok: false, msg: e.message || 'Network error' });
-    } finally {
-      setPosting(false);
-    }
   };
 
   // Drag splitter
@@ -214,20 +178,6 @@ export default function JsonTreeApplet() {
         <button className="jt-btn" onClick={doSample}>Sample</button>
         <span className="jt-toolbar-divider" />
         <button className="jt-btn" onClick={doSave} title="Save as .json file">Save</button>
-        <button
-          className="jt-btn jt-btn--success"
-          onClick={doPostBundle}
-          disabled={posting || !!error}
-          style={{ opacity: posting ? 0.6 : 1 }}
-          title="Post as bundle to WebClerk"
-        >
-          {posting ? 'Posting...' : 'Post Bundle'}
-        </button>
-        {postResult && (
-          <span className="jt-toolbar-msg" style={{ color: postResult.ok ? 'var(--jt-success)' : 'var(--jt-danger)' }}>
-            {postResult.msg}
-          </span>
-        )}
         {error && <span className="jt-toolbar-error">{error}</span>}
       </div>
 

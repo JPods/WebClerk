@@ -263,7 +263,9 @@ const ReportsDialog: React.FC<Props> = ({
   // ---- Filter by context ----
   // All reports show in both contexts — reports apply to the model, not to a specific view.
   // The context only affects execution (list = all selected, detail = one record).
-  const filteredReports = reports;
+  // Export reports are hidden until the export command exists (Bill, 2026-09-26): /wcapi/export/
+  // was never a route, and the fallback below would run them as print reports.
+  const filteredReports = reports.filter((r) => (r.output_type || '').toLowerCase() !== 'export');
 
   // ---- Keyboard: Escape, Enter, Arrow keys ----
   useEffect(() => {
@@ -335,13 +337,6 @@ const ReportsDialog: React.FC<Props> = ({
       if (screenUrl) {
         window.open(screenUrl, '_blank');
       }
-      onClose();
-      return;
-    }
-
-    // Export reports → trigger CSV download via wcapi
-    if (ot === 'export') {
-      window.open(`/wcapi/export/?model=${encodeURIComponent(model)}&format=csv`, '_blank');
       onClose();
       return;
     }
@@ -634,7 +629,6 @@ const ReportsDialog: React.FC<Props> = ({
                 <option value="" disabled className="rd-new-report-option">New Report</option>
                 <option value="print" className="rd-new-report-option">Print</option>
                 <option value="email" className="rd-new-report-option">Email</option>
-                <option value="export" className="rd-new-report-option">Export</option>
                 <option value="label" className="rd-new-report-option">Label</option>
                 <option value="screen" className="rd-new-report-option">Screen</option>
                 <option value="api" className="rd-new-report-option">API</option>

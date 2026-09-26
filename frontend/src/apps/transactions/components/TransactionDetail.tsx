@@ -14,7 +14,6 @@ import type { RootState } from '@/store';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { useDetailLayout } from '@/hooks/useDetailLayout';
 import { applyCustomerDefaults } from '@/apps/transactions/utils/applyCustomerDefaults';
-import { populateCommission } from '@/api/wcapi';
 import { getNextLineNumber } from '../utils/lineHelpers';
 import { getActiveLines, getRemovedLines, isPersistedLine } from '../services/lineItemService';
 import type { TransactionLine } from '../types/transactionTypes';
@@ -273,21 +272,6 @@ const UiDetail: React.FC<UiDetailProps> = ({
       if (hasLinesToSave) { await saveTransactionWithLines(modelName, payload); }
       else { await saveRecord(modelName, payload); }
       dispatch(showToast({ message: `${modelName} saved`, type: 'success' }));
-      // Auto-populate commission if customer has reps — staff only
-      const txId = editData.id;
-      const sellModels = ['order', 'quote', 'invoice'];
-      const isStaff = authUser?.is_staff || authUser?.is_superuser;
-      if (isStaff && editData.has_reps && txId && sellModels.includes(modelName)) {
-        try {
-          const commResult = await populateCommission(modelName, txId);
-          if (commResult.lines_updated > 0) {
-            dispatch(showToast({
-              message: `Commission populated: ${commResult.reps?.map((r: any) => r.name).join(', ') || 'reps assigned'}`,
-              type: 'info',
-            }));
-          }
-        } catch { /* commission populate is best-effort */ }
-      }
       setIsEditing(false);
       fetchData();
       if (typeof onAfterSave === 'function') onAfterSave();

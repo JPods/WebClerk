@@ -21,7 +21,6 @@ import { useReportShortcuts } from '../../hooks/useReportShortcuts';
 import { openUniversalPrint } from '../../components/print/UniversalPrint';
 import { fetchPrintLayout } from '../../hooks/usePrintLayout';
 import QueryBuilderPanel from '../../components/common/QueryBuilderPanel';
-import { HarvestBar } from './HarvestBar';
 import { useItemImagePopup } from '@/components/common/ItemImagePopup';
 import { TouchBar, TOUCH_MODELS } from './TouchBar';
 import { BOMPanel } from './BOMPanel';
@@ -34,7 +33,7 @@ import './DataBrowser.css';
 
 // ---------------------------------------------------------------------------
 // Extracted components — each in its own file in this directory:
-// RelatedPanel, HarvestBar, SpawnLinks, TouchBar, BOMPanel,
+// RelatedPanel, SpawnLinks, TouchBar, BOMPanel,
 // MatchCandidatesPanel, GroupedDetailFields, dbThemes
 // ---------------------------------------------------------------------------
 
@@ -942,10 +941,6 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
 
         {/* List pane */}
         <div data-wc="db-list-pane" className="db-list-pane" data-zone="db.list | .db-list-pane | DataBrowser.tsx" data-theme={listTheme}>
-          {/* Harvest bar — statement_line only */}
-          {db.selectedModel === 'statement_line' && (
-            <HarvestBar onComplete={() => db.fetchRecords()} />
-          )}
           {db.recordsLoading && <div className="db-status-msg">Loading...</div>}
           {db.recordsError && <div className="db-status-msg db-status-msg--error">{db.recordsError}</div>}
           {!db.recordsLoading && (

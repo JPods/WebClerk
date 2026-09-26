@@ -501,26 +501,6 @@ export async function saveTransactionWithLines(model_name: string, payload: any)
   }
 }
 
-/**
- * Populate commission on a transaction from customer's rep assignments.
- * Calls the backend populate_transaction_commission service.
- * @param modelName - 'order', 'quote', or 'invoice'
- * @param transactionId - PK of the transaction
- */
-export async function populateCommission(
-  modelName: string,
-  transactionId: number,
-): Promise<{ header_total: number; lines_updated: number; reps: any[] }> {
-  const pluralMap: Record<string, string> = {
-    order: 'orders', quote: 'quotes', invoice: 'invoices',
-  };
-  const plural = pluralMap[modelName] || `${modelName}s`;
-  const res = await apiClient.post<any>(
-    `/tx/${plural}/${transactionId}/populate_commission/`,
-  );
-  return res.data;
-}
-
 export async function deleteRecord(model_name: string, id: number) {
   const resolved = resolveModelName(model_name);
   const res = await apiClient.delete<ApiEnvelope<any>>(recordPath(resolved, id));
