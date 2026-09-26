@@ -40,7 +40,8 @@ def _balance(invoice) -> Decimal:
 
 def _apply(invoice, cash_id: int, amount: Decimal, reason: str, acted_by) -> Dict[str, Any]:
     """One application through the checked path. ValueError when it refuses; the result says
-    whether it applied or only queued (Pending._apply_cash queues on a failure)."""
+    whether it applied or only queued (Pending._apply_cash queues only on a locked row; any
+    other failure raises)."""
     from apps.transactions.services.cash.cash_pending import apply_cash_to_invoice
     result = apply_cash_to_invoice(cash_id, invoice.pk, amount, reason=reason, acted_by=acted_by)
     return {'cash_id': cash_id, 'amount': float(amount),

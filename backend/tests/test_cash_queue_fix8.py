@@ -46,7 +46,7 @@ def test_a_locked_row_queues_counts_the_attempt_and_the_drain_lands_it(monkeypat
     assert p.dt_processed == 0 and p.attempts == 1
 
     monkeypatch.setattr(cash_pending, 'apply_cash_pending', real)
-    assert cash_pending.drain_queued_cash() == {'applied': 1, 'queued': 0}
+    assert cash_pending.drain_queued_cash() == {'applied': 1, 'queued': 0, 'failed': 0, 'orphans': 0}
     inv.refresh_from_db(); cash.refresh_from_db(); p.refresh_from_db()
     assert p.dt_processed > 0
     assert inv.totals['received'] == 25.0 and cash.available == Decimal('0.00')
@@ -56,3 +56,33 @@ def test_the_drain_is_scheduled_every_minute():
     from apps.support.scheduler.registry import build_celery_beat_schedule
     entry = build_celery_beat_schedule()['drain-queued-cash-every-minute']
     assert entry['task'].endswith('task_drain_queued_cash')
+
+
+def test_one_bad_row_does_not_stop_the_drain_and_orphans_are_skipped(monkeypatch):
+    """Fable: the drain ran as one transaction, so one failing row rolled back the rest and
+    headed the queue forever; orphans looped every minute."""
+    inv, cash = _setup('60.00')
+    real = cash_pending.apply_cash_pending
+    monkeypatch.setattr(cash_pending, 'apply_cash_pending',
+                        lambda p: (_ for _ in ()).throw(OperationalError('could not obtain lock')))
+    for _ in range(3):
+        cash_pending.apply_cash_to_invoice(cash.pk, inv.pk, Decimal('20.00'), acted_by=1)
+    first, second, third = Pending.objects.filter(
+        purpose='cash_application', changes__invoice_id=inv.pk).order_by('pk')
+    Pending.objects.filter(pk=third.pk).update(changes={**third.changes, 'invoice_id': 10 ** 9})
+
+    def fail_first(p):
+        if p.pk == first.pk:
+            raise RuntimeError('a bug for one row')
+        return real(p)
+    monkeypatch.setattr(cash_pending, 'apply_cash_pending', fail_first)
+    assert cash_pending.drain_queued_cash() == {'applied': 1, 'queued': 0, 'failed': 1, 'orphans': 1}
+    second.refresh_from_db()
+    assert second.dt_processed > 0, 'the good row landed despite the bad one'
+
+
+def test_apply_pending_for_invoice_still_runs_in_its_own_transaction():
+    """Fable: the drain was inserted under its decorator, so a bare call raised
+    TransactionManagementError at select_for_update."""
+    inv, _cash = _setup()
+    assert cash_pending.apply_pending_for_invoice(inv.pk) is not None

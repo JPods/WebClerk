@@ -748,29 +748,54 @@ def _apply_now(cash, invoice, amount: Decimal, reason: str) -> int:
     return pending.pk
 
 
-@transaction.atomic
 def drain_queued_cash(limit: int = 200) -> Dict[str, int]:
     """Retry cash applications that queued (a row was locked) — AR and AP, oldest first.
 
     Nothing drained cash before (Fable fix #8): the inventory dispatcher selects inventory
     only, and apply_pending_for_invoice runs for one invoice when someone asks. Scheduled
-    every minute (support/scheduler/registry.py). A row still stuck after STUCK_MINUTES is
-    reported by balance_checker (pending.stuck), with its attempts.
+    every minute (support/scheduler/registry.py).
+
+    One transaction per row (Fable): a failing row is logged and counted and the rest still
+    land. Each row is locked (skip_locked: a row another worker holds is left for it) and
+    re-read as unprocessed under the lock, so a row applied concurrently is never applied
+    twice. An orphan (its cash or document gone) is skipped — balance_checker reports it as
+    pending.orphan; retrying it every minute would only crowd the queue.
     """
+    from django.db import transaction as db_transaction
     from apps.core.models.pending import Pending
-    applied = queued = 0
-    for p in (Pending.objects.filter(purpose__in=('cash_application', 'cash_application_receipt'),
-                                     dt_processed=0, changes__state='pending')
-              .order_by('pk')[:limit]):
-        if p.try_apply():
-            applied += 1
-        else:
-            queued += 1
-    if applied or queued:
-        logger.info("[cash drain] applied %s, still queued %s", applied, queued)
-    return {'applied': applied, 'queued': queued}
+    from apps.transactions.models import Cash, Invoice, Receipt
+    applied = queued = failed = orphans = 0
+    ids = list(Pending.objects.filter(purpose__in=('cash_application', 'cash_application_receipt'),
+                                      dt_processed=0, changes__state='pending')
+               .order_by('pk').values_list('pk', flat=True)[:limit])
+    for pk in ids:
+        try:
+            with db_transaction.atomic():
+                p = (Pending.objects.select_for_update(skip_locked=True)
+                     .filter(pk=pk, dt_processed=0).first())
+                if p is None:
+                    continue                      # applied meanwhile, or held by another worker
+                c = p.changes or {}
+                doc_model, doc_key = ((Receipt, 'receipt_id') if p.purpose == 'cash_application_receipt'
+                                      else (Invoice, 'invoice_id'))
+                if not (Cash.objects.filter(pk=c.get('cash_id')).exists()
+                        and doc_model.objects.filter(pk=c.get(doc_key)).exists()):
+                    orphans += 1
+                    continue
+                if p.try_apply():
+                    applied += 1
+                else:
+                    queued += 1
+        except Exception:
+            failed += 1
+            logger.error("[cash drain] pending %s failed to apply", pk, exc_info=True)
+    if applied or queued or failed or orphans:
+        logger.info("[cash drain] applied %s, still queued %s, failed %s, orphans skipped %s",
+                    applied, queued, failed, orphans)
+    return {'applied': applied, 'queued': queued, 'failed': failed, 'orphans': orphans}
 
 
+@transaction.atomic
 def apply_pending_for_invoice(invoice_id: int) -> Dict[str, Any]:
     """Apply all pending cash records for an invoice after unlock.
 
