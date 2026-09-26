@@ -704,3 +704,27 @@ def record_cash(invoice, amount: Decimal, dt_paid, cash=None, gl_account_id=None
     )
     obj.save()
     return obj
+
+
+def expected_ledger_rows(document, model_name: str) -> int:
+    """How many ledger rows a document's terms call for — the count the writers create.
+
+    Bill, 2026-09-26: rows per document = instalments of its terms, open or paid (a paid
+    instalment keeps its row at 0). Invoice: total 0 → none; a credit memo (total < 0) → one;
+    else one per schedule entry. Receipt: total 0 or no vendor → none; else one per entry.
+    """
+    from decimal import Decimal as D
+    total = D(str((getattr(document, 'totals', None) or {}).get('total') or 0))
+    if not total:
+        return 0
+    if model_name == 'invoice':
+        if total < 0:
+            return 1
+        dt = getattr(document, 'dt_created', None)
+    else:
+        if not getattr(document, 'vendor_id', None):
+            return 0
+        dt = getattr(document, 'dt_received', None) or getattr(document, 'dt_created', None)
+    if isinstance(dt, (int, float)):
+        dt = datetime.fromtimestamp(dt / 1000, timezone.utc)
+    return len(compute_schedule(dt or datetime.now(timezone.utc), total, resolve_term(document)))

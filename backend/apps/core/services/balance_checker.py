@@ -272,6 +272,150 @@ def check_cash_available(org_id=None, cash_id=None) -> list:
     return findings
 
 
+def _applied_by(purpose: str, key: str, adjustment_kinds=()) -> tuple[dict, dict]:
+    """Σ applied amounts per document id for one application purpose, in one query:
+    ({doc_id: money}, {doc_id: adjustments})."""
+    Pending = dj_apps.get_model('core', 'Pending')
+    money, adjusted = defaultdict(Decimal), defaultdict(Decimal)
+    for changes in (Pending.objects.filter(purpose=purpose, changes__state='applied')
+                    .values_list('changes', flat=True)):
+        doc_id = (changes or {}).get(key)
+        if doc_id is None:
+            continue
+        amount = _d(changes.get('amount'))
+        if changes.get('kind') in adjustment_kinds:
+            adjusted[int(doc_id)] += amount
+        else:
+            money[int(doc_id)] += amount
+    return money, adjusted
+
+
+def check_document_settlement(org_id=None) -> list:
+    """Every invoice and receipt: the stored settlement against its applications.
+
+    The mirror of ``check_cash_available`` (fix #2, Fable L2 H-1): ``totals.received`` /
+    ``adjusted`` (AR) and ``totals.paid`` (AP) must equal Σ their applied Pendings, and
+    ``balance`` must equal total − settled − adjusted. Stored numbers are compared with the
+    journal; nothing is recomputed the writer's way. wc_demo invoices 75, 96–101 read
+    received 0.00 over 734.00 applied, and ``in_step`` agreed because the ledger echo was
+    written from the same wrong number.
+    """
+    from apps.transactions.services.cash.cash_pending import ADJUSTMENT_METHODS
+    Invoice = dj_apps.get_model('transactions', 'Invoice')
+    Receipt = dj_apps.get_model('transactions', 'Receipt')
+    findings = []
+    sides = (
+        (Invoice, 'invoice', 'customer_id', 'cash_application', 'invoice_id', 'received', ADJUSTMENT_METHODS),
+        (Receipt, 'receipt', 'vendor_id', 'cash_application_receipt', 'receipt_id', 'paid', ()),
+    )
+    for Model, label, org_field, purpose, key, settle_key, adj_kinds in sides:
+        money, adjusted = _applied_by(purpose, key, adj_kinds)
+        qs = Model.objects.all()
+        if org_id:
+            qs = qs.filter(**{org_field: org_id})
+        for doc in qs.only('id', 'ida', 'totals').order_by('pk'):
+            t = doc.totals if isinstance(doc.totals, dict) else {}
+            expect_settled = money.get(doc.pk, Decimal(0))
+            have_settled = _d(t.get(settle_key))
+            if abs(have_settled - expect_settled) > TOLERANCE:
+                findings.append(_finding(
+                    f'{label}.{settle_key}', label, doc.pk,
+                    f"{label} {doc.pk} ({doc.ida}) shows {settle_key} {have_settled}; its applications say "
+                    f"{expect_settled}", ida=doc.ida, field=f'totals.{settle_key}',
+                    have=have_settled, expect=expect_settled))
+            stored_adj = _d(t.get('adjusted'))
+            if label == 'invoice':
+                expect_adj = adjusted.get(doc.pk, Decimal(0))
+                if abs(stored_adj - expect_adj) > TOLERANCE:
+                    findings.append(_finding(
+                        'invoice.adjusted', label, doc.pk,
+                        f"invoice {doc.pk} ({doc.ida}) shows adjusted {stored_adj}; its applications say {expect_adj}",
+                        ida=doc.ida, field='totals.adjusted', have=stored_adj, expect=expect_adj))
+            expect_balance = _d(t.get('total')) - have_settled - stored_adj
+            if abs(_d(t.get('balance')) - expect_balance) > TOLERANCE:
+                findings.append(_finding(
+                    f'{label}.balance', label, doc.pk,
+                    f"{label} {doc.pk} ({doc.ida}) balance {_d(t.get('balance'))} ≠ total − {settle_key} − "
+                    f"adjusted = {expect_balance}", ida=doc.ida, field='totals.balance',
+                    have=_d(t.get('balance')), expect=expect_balance))
+    return findings
+
+
+def check_ledger_rows(org_id=None) -> list:
+    """Every invoice and receipt: its ledger rows against its terms.
+
+    Bill, 2026-09-26: rows per document = the instalments its terms call for, open or paid
+    (``ledger.rows``), and Σ value_available of those rows = the document's balance
+    (``ledger.sum``). The count is structural: a missing or doubled row shows here even
+    when the money happens to add up.
+    """
+    from apps.accounts.services.terms_ledger import expected_ledger_rows
+    Ledger = dj_apps.get_model('accounts', 'Ledger')
+    Invoice = dj_apps.get_model('transactions', 'Invoice')
+    Receipt = dj_apps.get_model('transactions', 'Receipt')
+    findings = []
+    sides = ((Invoice, 'invoice', 'customer_id', 'invoice_id'),
+             (Receipt, 'receipt', 'vendor_id', 'parent_id'))
+    for Model, label, org_field, key in sides:
+        rows = defaultdict(list)
+        for doc_id, value in (Ledger.objects.filter(model_name=label)
+                              .values_list(key, 'value_available')):
+            rows[doc_id].append(_d(value))
+        qs = Model.objects.all()
+        if org_id:
+            qs = qs.filter(**{org_field: org_id})
+        for doc in qs.order_by('pk'):
+            try:
+                expect = expected_ledger_rows(doc, label)
+            except ValueError as e:                  # no resolvable terms: say so
+                findings.append(_finding('ledger.terms', label, doc.pk, f"{label} {doc.pk} ({doc.ida}): {e}",
+                                         ida=doc.ida))
+                continue
+            have = rows.get(doc.pk, [])
+            if len(have) != expect:
+                findings.append(_finding(
+                    'ledger.rows', label, doc.pk,
+                    f"{label} {doc.pk} ({doc.ida}) has {len(have)} ledger rows; its terms call for {expect}",
+                    ida=doc.ida, field='ledger', have=len(have), expect=expect))
+            if have:
+                balance = _d((doc.totals or {}).get('balance'))
+                if abs(sum(have, Decimal(0)) - balance) > TOLERANCE:
+                    findings.append(_finding(
+                        'ledger.sum', label, doc.pk,
+                        f"{label} {doc.pk} ({doc.ida}) ledger rows hold {sum(have, Decimal(0))}; "
+                        f"its balance is {balance}", ida=doc.ida, field='ledger.value_available',
+                        have=sum(have, Decimal(0)), expect=balance))
+    return findings
+
+
+def check_orphan_applications() -> list:
+    """An applied application whose cash or document no longer exists: money the journal
+    says moved, pointing nowhere (wc_demo: six Pendings, 699.90, after the 09-23 purge)."""
+    Pending = dj_apps.get_model('core', 'Pending')
+    Cash = dj_apps.get_model('transactions', 'Cash')
+    Invoice = dj_apps.get_model('transactions', 'Invoice')
+    Receipt = dj_apps.get_model('transactions', 'Receipt')
+    cash_ids = set(Cash.objects.values_list('pk', flat=True))
+    docs = {'invoice_id': set(Invoice.objects.values_list('pk', flat=True)),
+            'receipt_id': set(Receipt.objects.values_list('pk', flat=True))}
+    findings = []
+    for p in (Pending.objects.filter(purpose__in=CASH_PURPOSES, changes__state='applied')
+              .only('id', 'changes').order_by('pk')):
+        c = p.changes or {}
+        gone = []
+        if c.get('cash_id') is not None and int(c['cash_id']) not in cash_ids:
+            gone.append(f"cash {c['cash_id']}")
+        for key, ids in docs.items():
+            if c.get(key) is not None and int(c[key]) not in ids:
+                gone.append(f"{key.removesuffix('_id')} {c[key]}")
+        if gone:
+            findings.append(_finding(
+                'pending.orphan', 'pending', p.pk,
+                f"pending {p.pk} applied {_d(c.get('amount'))} to {', '.join(gone)}, which no longer exist",
+                have=_d(c.get('amount')), expect=Decimal(0)))
+    return findings
+
+
 def check_cash(org_id=None) -> tuple[list, dict]:
     """Every customer and vendor with documents or cash: the in_step invariants."""
     from apps.accounts.services.ledger_balance import compute_org_summary, compute_vendor_summary
@@ -285,7 +429,10 @@ def check_cash(org_id=None) -> tuple[list, dict]:
             qs = qs.filter(**{field: org_id})
         return set(qs.values_list(field, flat=True).distinct())
 
-    findings = check_cash_available(org_id)
+    findings = (check_cash_available(org_id) + check_document_settlement(org_id)
+                + check_ledger_rows(org_id))
+    if not org_id:
+        findings += check_orphan_applications()
     customers = ids(Invoice.objects, 'customer_id') | ids(Cash.objects, 'customer_id')
     vendors = ids(Receipt.objects, 'vendor_id') | ids(Cash.objects, 'vendor_id')
     for side, org_ids, summarize in (('customer', customers, compute_org_summary),

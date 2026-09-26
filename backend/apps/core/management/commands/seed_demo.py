@@ -429,10 +429,7 @@ class Command(BaseCommand):
 
             # 3. Invoice
             inv_status = 'complete' if cycle['status'] == 'complete' else 'released'
-            inv_totals = dict(totals)
-            if cycle['status'] == 'complete':
-                inv_totals['received'] = inv_totals['total']
-                inv_totals['balance'] = 0
+            inv_totals = dict(totals)            # received comes from the applications below
             invoice = Invoice.objects.create(
                 ida=f'{prefix}-INV', status=inv_status,
                 customer=customer, contact=contact,
@@ -447,9 +444,15 @@ class Command(BaseCommand):
                 )
             self.stdout.write(f'  {prefix}: invoice {invoice.ida} ({inv_status})')
 
-            # 4. Cash (only for complete cycles)
+            # 4. Cash (only for complete cycles): real money, applied — the invoice reads paid
+            #    because an application says so, never because its totals claim it (fix #2).
             if cycle['status'] == 'complete':
-                Cash.objects.create(
+                from apps.transactions.services.cash.cash_pending import apply_cash_to_invoice
+                from apps.transactions.services.pricing.totals_compute import recalculate_totals
+                recalculate_totals(invoice.pk, 'invoice')
+                invoice.refresh_from_db()
+                paid = Decimal(str((invoice.totals or {}).get('total') or subtotal))
+                cash = Cash.objects.create(
                     ida=f'{prefix}-PAY',
                     status='complete',
                     type='cash_in',
@@ -457,12 +460,12 @@ class Command(BaseCommand):
                     parent_model='invoice',
                     customer=customer,
                     contact_id=contact.pk,
-                    amount=subtotal,
-                    available=Decimal('0'),
+                    amount=paid,
                     refs=_demo_refs(),
                     dt_created=now_ms, dt_modified=now_ms,
                 )
-                self.stdout.write(f'  {prefix}: cash ${subtotal}')
+                apply_cash_to_invoice(cash.pk, invoice.pk, paid, reason='demo cycle paid')
+                self.stdout.write(f'  {prefix}: cash ${paid}, applied')
 
             created += 1
 

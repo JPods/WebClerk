@@ -24,7 +24,7 @@ AUDIT TRAIL:
 - Each ledger tracks original value vs current available (for partial payments)
 
 RECONCILIATION:
-- Nightly batch validates all balances via reconcile_org()
+- balance_checker.check_cash validates balances against the journal (reconcile_financials)
 - Discrepancies are logged and flagged for review
 - rebuild_org_ledgers() recreates all records from source documents
 
@@ -32,7 +32,6 @@ Key methods:
 - update_org_balances: Recalculates aging buckets from ledger records
 - on_invoice_save: Creates ledger records and updates balances
 - on_cash_save: Creates cash ledger and updates balances
-- reconcile_org: Validates and corrects org financial data
 - rebuild_org_ledgers: Complete ledger reconstruction from source documents
 """
 
@@ -944,118 +943,6 @@ def _flag_vendor_claim(receipt) -> None:
     receipt.__class__.objects.filter(pk=receipt.pk).update(metadata=meta)
 
 
-def reconcile_org(org: 'OrgBase', update_balances: bool = True) -> Dict[str, Any]:
-    """
-    Full reconciliation of an org's ledgers and financial data.
-    
-    AUDIT: This is the VALIDATION function, typically run nightly via batch.
-    Used to detect and report data integrity issues.
-    
-    RECONCILIATION FORMULA:
-    Σ(ledger.value_available) == Σ(invoice.balance_due) - Σ(cash.available)
-    
-    If this equation doesn't balance, there's a data integrity issue:
-    - Ledger sum > expected: Extra/duplicate ledger records
-    - Ledger sum < expected: Missing ledger records or incorrect amounts
-    
-    WHAT WE VALIDATE:
-    1. Ledger total matches Invoice - Cash total
-    2. All invoices have corresponding ledger records
-    3. All cash have corresponding ledger records
-    4. Aging buckets sum to balance due
-    
-    WHAT WE FIX:
-    - Recalculates and updates org.financial balances
-    - Does NOT create/delete ledger records (use rebuild_org_ledgers for that)
-    
-    REPORTING:
-    - Returns dict with all sums and any discrepancies
-    - Discrepancies should be investigated - they indicate data problems
-    
-    Args:
-        org: The org to reconcile
-        update_balances: False for a dry run — check, change nothing
-    
-    Returns:
-        Dict with reconciliation results:
-        - org_id: Identifier
-        - balanced: True if ledgers match source documents
-        - ledger_sum: Total of ledger.value_available
-        - invoice_sum: Total of invoice.balance_due
-        - cash_sum: Total of cash.available
-        - discrepancies: List of issues found
-    """
-    Ledger = dj_apps.get_model('accounts', 'Ledger')
-    Invoice = dj_apps.get_model('transactions', 'Invoice')
-    Cash = dj_apps.get_model('transactions', 'Cash')
-    
-    org_id = getattr(org, 'id', None)
-    
-    # AUDIT: Initialize results structure for reporting
-    results = {
-        'org_id': org_id,
-        'discrepancies': [],
-        'ledger_sum': Decimal('0'),
-        'invoice_sum': Decimal('0'),
-        'cash_sum': Decimal('0'),
-        'balanced': False,
-    }
-    
-    # ==========================================================================
-    # STEP 1: Sum all ledger values (the "actual" state)
-    # ==========================================================================
-    ledger_sum = Ledger.objects.filter(
-        org_id=org_id
-    ).aggregate(
-        total=models.Sum('value_available')
-    )['total'] or Decimal('0')
-    results['ledger_sum'] = ledger_sum
-    
-    # ==========================================================================
-    # STEP 2: Sum invoice balances (what we EXPECT in ledgers, positive)
-    # ==========================================================================
-    invoice_sum = Invoice.objects.filter(
-        customer_id=org_id,
-    ).exclude(
-        total={}
-    ).aggregate(
-        total=models.Sum('total__balance_due')
-    )['total'] or Decimal('0')
-    results['invoice_sum'] = invoice_sum
-    
-    # ==========================================================================
-    # STEP 3: Sum cash available (what we EXPECT in ledgers, negative)
-    # WC2: ledger uses amountAvailable, not amount — tracks partial applications
-    # ==========================================================================
-    cash_sum = Cash.objects.filter(
-        invoice__customer_id=org_id
-    ).aggregate(
-        total=models.Sum('available')
-    )['total'] or Decimal('0')
-    results['cash_sum'] = cash_sum
-    
-    # ==========================================================================
-    # STEP 4: Validate the reconciliation formula
-    # AUDIT: This is the critical check - if this fails, investigate!
-    # ==========================================================================
-    expected = invoice_sum - cash_sum
-    if ledger_sum != expected:
-        results['discrepancies'].append({
-            'type': 'balance_mismatch',
-            'message': f'Ledger sum ({ledger_sum}) != Invoice - Cash ({expected})',
-            'deviation': float(ledger_sum - expected),
-        })
-    else:
-        results['balanced'] = True
-    
-    # Update org.financial balances regardless of reconciliation result, so displayed
-    # balances match the ledger. A dry run checks only.
-    if update_balances:
-        update_org_balances(org)
-    
-    return results
-
-
 def rebuild_org_ledgers(org: 'OrgBase') -> Dict[str, int]:
     """
     Rebuild all ledger records for an org from source documents.
@@ -1068,12 +955,12 @@ def rebuild_org_ledgers(org: 'OrgBase') -> Dict[str, int]:
     be used when ledger data is known to be corrupted.
     
     WHEN TO USE:
-    - reconcile_org() shows persistent discrepancies that can't be explained
+    - balance_checker.check_cash shows persistent discrepancies that can't be explained
     - After data migration or import where ledgers weren't created
     - When cash applications have become out of sync
     
     WHEN NOT TO USE:
-    - For routine maintenance (use reconcile_org instead)
+    - For routine maintenance (use balance_checker.check_cash / update_org_balances instead)
     - If you don't understand why ledgers are out of balance
     - In production without a backup
     

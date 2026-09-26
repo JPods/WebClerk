@@ -15,6 +15,7 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from django.core.exceptions import ValidationError
+from django.db import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,39 @@ from common.decimals import safe_decimal as _d  # noqa: E302
 # Model resolution helpers
 # ---------------------------------------------------------------------------
 
+#: What settles a document; read from its applications, never carried forward.
+SETTLEMENT_KEYS = ('received', 'adjusted', 'paid')
+
+
+def _settlement(header, model_name: str):
+    """(received, adjusted, settled) for a header, from the journal.
+
+    The applications (cash_application / cash_application_receipt Pendings) are the record:
+    received, adjusted and paid are read from them, never carried forward from the stored
+    totals — a stored number that went wrong once stayed wrong through every recalculation
+    (wc_demo invoices 75, 96–101: 734.00 applied, received 0.00; Fable fix #2). AP settles
+    with ``paid`` where AR settles with ``received``. A header not yet saved has none.
+    Other documents (order deposits: L2 M-2) keep their stored values until their own fix.
+    """
+    pk = getattr(header, 'pk', None)
+    stored = getattr(header, 'totals', None) or {}
+    if model_name == 'invoice':
+        if not pk:
+            return Decimal(0), Decimal(0), Decimal(0)
+        from apps.transactions.services.cash.cash_pending import _applied_split
+        received, adjusted = _applied_split(invoice_id=pk)
+        return received, adjusted, received
+    if model_name == 'receipt':
+        adjusted = _d(stored.get('adjusted', 0))
+        if not pk:
+            return Decimal(0), adjusted, Decimal(0)
+        from apps.transactions.services.cash.cash_pending_receipt import _applied
+        paid = _applied(receipt_id=pk)
+        return _d(stored.get('received', 0)), adjusted, paid
+    received = _d(stored.get('received', 0))
+    return received, _d(stored.get('adjusted', 0)), received
+
+
 def _resolve_header_and_lines(transaction_id: int, model_name: str):
     """Load the header and its lines. Returns (header, lines_queryset).
 
@@ -51,7 +85,9 @@ def _resolve_header_and_lines(transaction_id: int, model_name: str):
 
     HeaderModel = meta.import_model()
     try:
-        header = HeaderModel.objects.get(pk=transaction_id)
+        # Locked: settlement is read from the journal below, and an application that
+        # commits between that read and this save would otherwise be overwritten.
+        header = HeaderModel.objects.select_for_update().get(pk=transaction_id)
     except HeaderModel.DoesNotExist:
         raise ValueError(f"{model_name} #{transaction_id} not found")
 
@@ -100,8 +136,15 @@ def recalculate_totals(
     Works for both sell-side (quote/order/invoice) and exec-side
     (purchase/workorder) transactions.
     """
+    with transaction.atomic():
+        return _recalculate_locked(transaction_id, model_name)
+
+
+def _recalculate_locked(transaction_id: int, model_name: str) -> Dict[str, Any]:
     header, lines = _resolve_header_and_lines(transaction_id, model_name)
-    old_total = (getattr(header, 'totals', None) or {}).get('total', 0)
+    old = getattr(header, 'totals', None) or {}
+    old_total = old.get('total', 0)
+    old_settled = tuple(_d(old.get(k, 0)) for k in SETTLEMENT_KEYS)
     computed = compute_totals(header, lines, model_name)
     totals = computed['totals']
     tax_decisions = computed['tax_decisions']
@@ -154,7 +197,15 @@ def recalculate_totals(
     if model_name == 'receipt':
         _land_on_layers(lines, computed['line_totals'])
 
-    # A ledger echoes its primary record: rebuild whenever the total changes.
+    # A ledger echoes its primary record: rebuild whenever the total changes; when only
+    # the settlement moved (a journal repair), re-spread it over the ledgers (Fable, fix #2).
+    settled_moved = old_settled != tuple(_d(totals.get(k, 0)) for k in SETTLEMENT_KEYS)
+    if _d(old_total) == _d(totals['total']) and settled_moved:
+        from apps.accounts.services.terms_ledger import allocate_paid, allocate_received
+        if model_name == 'invoice':
+            allocate_received(header)
+        elif model_name == 'receipt':
+            allocate_paid(header)
     if _d(old_total) != _d(totals['total']):
         if model_name == 'invoice':
             from apps.accounts.services.ledger_balance import rebuild_invoice_ledger
@@ -586,11 +637,7 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
     doc = {k: sum((t[k] for t in line_totals.values()), Decimal(0)) for k in LINE_TOTAL_KEYS}
     margin_pc = float(_d(doc['margin'] / doc['amount'] * 100)) if doc['amount'] > 0 else 0.0
 
-    existing_totals = getattr(header, 'totals', None) or {}
-    received = _d(existing_totals.get('received', 0))
-    adjusted = _d(existing_totals.get('adjusted', 0))      # write-offs, small balances, FX
-    # AP settles with 'paid' where AR settles with 'received'.
-    settled = _d(existing_totals.get('paid', 0)) if model_name == 'receipt' else received
+    received, adjusted, settled = _settlement(header, model_name)
     balance = doc['total'] - settled - adjusted
     state = ''
     if model_name == 'invoice':

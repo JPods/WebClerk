@@ -1,5 +1,6 @@
 """
-Management command for nightly financial reconciliation.
+Check each org's money against the journal (balance_checker.check_cash) and refresh its
+balances. YTD lives in org.metrics (compute_org_metrics, via update_org_balances).
 
 Usage:
     python manage.py reconcile_financials
@@ -42,11 +43,6 @@ class Command(BaseCommand):
             help='Check for discrepancies without making changes',
         )
         parser.add_argument(
-            '--update-ytd',
-            action='store_true',
-            help='Also update YTD sales/purchases aggregates',
-        )
-        parser.add_argument(
             '--batch-size',
             type=int,
             default=100,
@@ -55,11 +51,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         from django.apps import apps as dj_apps
-        from apps.accounts.services.ledger_balance import (
-            reconcile_org,
-            rebuild_org_ledgers,
-            update_org_balances,
-        )
+        from apps.accounts.services.ledger_balance import rebuild_org_ledgers, update_org_balances
+        from apps.core.services.balance_checker import check_cash
         
         OrgBase = dj_apps.get_model('orgs', 'OrgBase')
         
@@ -67,7 +60,6 @@ class Command(BaseCommand):
         org_type = options.get('org_type')
         rebuild = options.get('rebuild')
         dry_run = options.get('dry_run')
-        update_ytd = options.get('update_ytd')
         batch_size = options.get('batch_size')
         
         # Build queryset
@@ -103,14 +95,15 @@ class Command(BaseCommand):
         # Process in batches
         for i, org in enumerate(queryset.iterator(chunk_size=batch_size)):
             try:
-                if dry_run:
-                    result = reconcile_org(org, update_balances=False)
-                elif rebuild:
-                    result = rebuild_org_ledgers(org)
-                    self.stdout.write(f'  Rebuilt {org.id}: {result}')
-                    result = reconcile_org(org)
-                else:
-                    result = reconcile_org(org)
+                # The check is balance_checker's (one definition): stored numbers against the
+                # journal, documents against their applications, ledger echoes against both.
+                if rebuild and not dry_run:
+                    self.stdout.write(f'  Rebuilt {org.id}: {rebuild_org_ledgers(org)}')
+                findings, _ = check_cash(org_id=org.id)
+                if not dry_run:
+                    update_org_balances(org)
+                result = {'balanced': not findings,
+                          'discrepancies': [f['message'] for f in findings]}
                 
                 results['processed'] += 1
                 
@@ -133,11 +126,6 @@ class Command(BaseCommand):
                 logger.exception(f'Error processing org {org.id}')
                 self.stdout.write(self.style.ERROR(f'Error on {org.id}: {e}'))
         
-        # Update YTD if requested (batch operation)
-        if update_ytd and not dry_run:
-            self.stdout.write('Updating YTD aggregates...')
-            self._update_ytd_sales(queryset)
-        
         # Summary
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS('=== Reconciliation Complete ==='))
@@ -153,47 +141,3 @@ class Command(BaseCommand):
                 self.stdout.write(f'  {item["org_id"]}: {item["details"]}')
             if len(results['discrepancy_details']) > 20:
                 self.stdout.write(f'  ... and {len(results["discrepancy_details"]) - 20} more')
-
-    def _update_ytd_sales(self, org_queryset):
-        """Update YTD sales/purchases for orgs (batch operation)."""
-        from django.apps import apps as dj_apps
-        from django.db.models import Sum
-        from django.db.models.functions import Coalesce
-        from datetime import date
-        
-        Invoice = dj_apps.get_model('transactions', 'Invoice')
-        
-        year_start = date(date.today().year, 1, 1)
-        
-        for org in org_queryset.iterator():
-            try:
-                # Calculate YTD sales from invoices
-                ytd_total = Invoice.objects.filter(
-                    org_id=org.id,
-                    dt_created__gte=year_start,
-                ).aggregate(
-                    total=Coalesce(Sum('total__total'), Decimal('0'))
-                )['total']
-                
-                # Update financial JSON
-                financial = org.financial or {}
-                org_type = getattr(org, 'org_type', 'customer')
-                
-                if org_type == 'customer':
-                    customer = financial.get('customer', {})
-                    sales = customer.get('sales', {})
-                    sales['ytd'] = float(ytd_total)
-                    customer['sales'] = sales
-                    financial['customer'] = customer
-                elif org_type == 'vendor':
-                    vendor = financial.get('vendor', {})
-                    purchases = vendor.get('purchases', {})
-                    purchases['ytd'] = float(ytd_total)
-                    vendor['purchases'] = purchases
-                    financial['vendor'] = vendor
-                
-                org.financial = financial
-                org.save(update_fields=['financial'])
-                
-            except Exception as e:
-                logger.warning(f'Error updating YTD for {org.id}: {e}')

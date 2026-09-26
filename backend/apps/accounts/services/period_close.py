@@ -147,7 +147,7 @@ def _verify_gl_balance(year: int, month: int) -> Dict[str, Any]:
         # Model may not exist yet
         return {"balanced": True, "total_debits": 0, "total_credits": 0, "difference": 0}
 
-    start, end = _period_range(year, month)
+    start, end = _period_range_ms(year, month)  # dt_created is UTC epoch ms (Axiom 14)
 
     totals = GlJournal.objects.filter(
         dt_created__gte=start, dt_created__lt=end
@@ -170,7 +170,7 @@ def _verify_gl_balance(year: int, month: int) -> Dict[str, Any]:
 
 def _generate_period_summary(year: int, month: int) -> Dict[str, Any]:
     """Generate summary totals for the period."""
-    start, end = _period_range(year, month)
+    start, end = _period_range_ms(year, month)  # dt_created is UTC epoch ms (Axiom 14)
 
     summary = {
         "total_sales": 0,
@@ -182,51 +182,33 @@ def _generate_period_summary(year: int, month: int) -> Dict[str, Any]:
         "cash_count": 0,
     }
 
-    # Sales (invoices)
-    try:
-        Invoice = dj_apps.get_model("transactions", "Invoice")
-        invoices = Invoice.objects.filter(dt_created__gte=start, dt_created__lt=end)
-        agg = invoices.aggregate(total=Sum("total"))
-        summary["total_sales"] = float(agg["total"] or 0)
-        summary["invoice_count"] = invoices.count()
-    except Exception as e:
-        logger.warning("EOM: invoice summary failed: %s", e)
+    # No try/except here: a month-end summary that fails must say so, not report zeros
+    # (every close reported 0 sales/purchases/cash after Invoice.total was removed).
+    from common.json_lookups import totals_total
+    Invoice = dj_apps.get_model("transactions", "Invoice")
+    Purchase = dj_apps.get_model("transactions", "Purchase")
+    Cash = dj_apps.get_model("transactions", "Cash")
+    in_period = {"dt_created__gte": start, "dt_created__lt": end}
 
-    # Purchases
-    try:
-        Purchase = dj_apps.get_model("transactions", "Purchase")
-        purchases = Purchase.objects.filter(dt_created__gte=start, dt_created__lt=end)
-        agg = purchases.aggregate(total=Sum("total"))
-        summary["total_purchases"] = float(agg["total"] or 0)
-        summary["purchase_count"] = purchases.count()
-    except Exception as e:
-        logger.warning("EOM: purchase summary failed: %s", e)
+    invoices = Invoice.objects.filter(**in_period)
+    summary["total_sales"] = float(invoices.aggregate(t=Sum(totals_total()))["t"] or 0)
+    summary["invoice_count"] = invoices.count()
 
-    # Cash
-    try:
-        Cash = dj_apps.get_model("transactions", "Cash")
-        cash_entries = Cash.objects.filter(dt_created__gte=start, dt_created__lt=end)
-        agg = cash_entries.aggregate(total=Sum("total"))
-        summary["total_cash_entries"] = float(agg["total"] or 0)
-        summary["cash_count"] = cash_entries.count()
-    except Exception as e:
-        logger.warning("EOM: cash summary failed: %s", e)
+    purchases = Purchase.objects.filter(**in_period)
+    summary["total_purchases"] = float(purchases.aggregate(t=Sum(totals_total()))["t"] or 0)
+    summary["purchase_count"] = purchases.count()
+
+    cash_entries = Cash.objects.filter(**in_period)
+    summary["total_cash_entries"] = float(cash_entries.aggregate(t=Sum("amount"))["t"] or 0)
+    summary["cash_count"] = cash_entries.count()
 
     # Commissions — sum from invoice commission JSON where accrued
-    try:
-        Invoice = dj_apps.get_model("transactions", "Invoice")
-        comm_invoices = Invoice.objects.filter(
-            dt_created__gte=start, dt_created__lt=end,
-            commission__isnull=False,
-        ).exclude(commission={})
-        total_comm = Decimal("0")
-        for inv in comm_invoices:
-            comm = inv.commission or {}
-            amt = comm.get("amount") or comm.get("total") or 0
-            total_comm += Decimal(str(amt))
-        summary["total_commissions"] = float(total_comm)
-    except Exception as e:
-        logger.warning("EOM: commission summary failed: %s", e)
+    total_comm = Decimal("0")
+    for comm in (invoices.filter(commission__isnull=False).exclude(commission={})
+                 .values_list("commission", flat=True)):
+        comm = comm or {}
+        total_comm += Decimal(str(comm.get("amount") or comm.get("total") or 0))
+    summary["total_commissions"] = float(total_comm)
 
     return summary
 
@@ -240,7 +222,7 @@ def _lock_period_transactions(year: int, month: int) -> int:
 
     Returns count of records marked.
     """
-    start, end = _period_range(year, month)
+    start, end = _period_range_ms(year, month)  # dt_created is UTC epoch ms (Axiom 14)
     locked_count = 0
     period_key = f"{year}-{month:02d}"
 
@@ -393,7 +375,7 @@ def get_eom_status(
         raise ValueError("period_month must be 1-12")
 
     period_key = f"{period_year}-{period_month:02d}"
-    start, end = _period_range(period_year, period_month)
+    start, end = _period_range_ms(period_year, period_month)  # dt_created is UTC epoch ms (Axiom 14)
 
     # Check if EOM document exists
     closed = False
@@ -475,7 +457,7 @@ def reopen_period(
         raise ValueError("period_month must be 1-12")
 
     period_key = f"{period_year}-{period_month:02d}"
-    start, end = _period_range(period_year, period_month)
+    start, end = _period_range_ms(period_year, period_month)  # dt_created is UTC epoch ms (Axiom 14)
 
     # Remove period lock from transactions
     unlocked = 0

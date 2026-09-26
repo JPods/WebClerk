@@ -1422,30 +1422,24 @@ def _load_statement_data(model_name: str, record_id: int) -> Dict[str, Any]:
     contact_name = getattr(record, "name", "") or getattr(record, "ida", "")
     addr = getattr(record, "address_full", "") or ""
 
-    # Load open invoices for this customer
-    Invoice = _get_model_class("invoice")
-    invoices = []
-    if Invoice:
-        invoices = list(
-            Invoice.objects.filter(
-                contact_id=record_id,
-                is_active=True,
-                ).exclude(balance=0).exclude(balance=None).order_by("dt_created")[:500]
-        )
+    # A statement is for a customer (an org) or for a contact; key the documents on that.
+    from apps.orgs.models import OrgBase
+    owner = 'customer_id' if isinstance(record, OrgBase) else 'contact_id'
+    from common.json_lookups import totals_balance
 
-    # Load recent cash
+    # Open invoices: balance is a leaf of totals (Invoice.balance is a read-only property).
+    Invoice = _get_model_class("invoice")
+    invoices = list(
+        Invoice.objects.filter(**{owner: record_id}, is_active=True)
+        .annotate(_balance=totals_balance())
+        .exclude(_balance=0).exclude(_balance=None)
+        .order_by("dt_created")[:500]
+    )
+
     Cash = _get_model_class("cash")
-    cash_entries = []
-    if Cash:
-        try:
-            cash_entries = list(
-                Cash.objects.filter(
-                    contact_id=record_id,
-                    is_active=True,
-                    ).order_by("-dt_created")[:20]
-            )
-        except Exception:
-            pass
+    cash_entries = list(
+        Cash.objects.filter(**{owner: record_id}, is_active=True).order_by("-dt_created")[:20]
+    )
 
     return {
         "contact_name": contact_name,

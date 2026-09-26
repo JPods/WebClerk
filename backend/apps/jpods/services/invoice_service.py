@@ -19,14 +19,22 @@ from django.utils import timezone
 
 from apps.core.models import Contact
 from apps.products.models import Item
-from apps.transactions.models import Invoice, InvoiceLine
+from django.db import transaction
+
+from apps.core.services.door import Actor
+from apps.core.services.save import save_record
+from apps.transactions.models import Cash, Invoice
+from apps.transactions.services.cash.cash_pending import apply_cash_to_invoice
 
 logger = logging.getLogger(__name__)
 
 
 def create_trip_invoice(data: dict[str, Any]) -> dict[str, Any]:
     """
-    Create a completed Invoice + InvoiceLine for a finished JPods trip.
+    Invoice a JPods trip through the door and pay it from the rider's prepaid balance.
+
+    received is never written here: it is the Σ of the applications made from the rider's
+    Cash (fix #2). A balance short of the price refuses the trip with coaching.
 
     Required input keys:
         contact_id           — from price_query response
@@ -91,7 +99,20 @@ def create_trip_invoice(data: dict[str, Any]) -> dict[str, Any]:
         sku = f"JPODS-{network_id}-{origin}-{destination}".upper()
         item = Item.objects.filter(sku=sku, kind=Item.KIND_SERVICE, is_active=True).first()
 
-    # ── Build Invoice refs ────────────────────────────────────────────
+    # ── The rider pays from their prepaid balance (Bill, 2026-09-26) ──
+    # received is never claimed: it is the Σ of real applications, from Cash that arrived
+    # earlier (fix #2). A short balance refuses the trip with coaching; nothing is written.
+    owner = {"customer_id": customer.pk} if customer else {"contact_id": contact.pk if contact else None}
+    if not owner.get("customer_id") and not owner.get("contact_id"):
+        return {"error": "A trip needs a rider (contact_id) with a prepaid balance"}
+    funds = [c for c in Cash.objects.filter(**owner, available__gt=0).order_by("dt_created", "pk")
+             if c.holds_money]
+    on_account = sum((Decimal(str(c.available)) for c in funds), Decimal("0"))
+    if on_account < price:
+        return {"error": f"Prepaid balance {on_account:.2f} {currency} is short of this trip's "
+                         f"{price:.2f}: add {price - on_account:.2f} {currency} to ride",
+                "code": "insufficient_balance"}
+
     refs = {
         "trip_id": trip_id,
         "origin_station_id": origin,
@@ -101,68 +122,36 @@ def create_trip_invoice(data: dict[str, Any]) -> dict[str, Any]:
         "discount_applied": discount_applied,
         "network_id": network_id,
         "currency": currency,
-        "source": "natalie",
+        "dispatched_by": "natalie",
         "dt_trip_created": timezone.now().isoformat(),
     }
-
-    totals = {
-        "amount": float(price),
-        "discount": 0,
-        "taxable": float(price),
-        "tax": 0,
-        "shipping": 0,
-        "other": 0,
-        "total": float(price),
-        "cost": 0,
-        "margin": float(price),
-        "margin_pc": 100,
-        "received": float(price),
-        "balance": 0,
+    line = {
+        "item_fk_id": item.pk if item else None,
+        "price_level": price_level,
+        "item": {"item_id": item.pk if item else None,
+                 "description": (item.name if item else "") or f"JPods Trip {origin}→{destination}",
+                 "unit_measure": "trip"},
+        "quantity": {"active": 1},
+        "price": {"unit": float(price), "unit_base": float(price)},
     }
+    if not item:
+        logger.warning("invoice: no Item found for %s→%s (network=%s)", origin, destination, network_id)
 
-    # ── Create Invoice ────────────────────────────────────────────────
-    invoice = Invoice(
-        customer=customer,
-        contact=contact,
-        total=price,
-        balance=Decimal("0.00"),
-        status=Invoice.STATUS_COMPLETE,
-        price_level=price_level,
-        refs=refs,
-        totals=totals,
-    )
-    invoice.save()
-
-    # ── Create InvoiceLine referencing the Item ───────────────────────
-    if item:
-        line = InvoiceLine(
-            invoice=invoice,
-            item_fk=item,
-            price_level=price_level,
-            item={
-                "item_id": item.pk,
-                "description": item.name or f"JPods Trip {origin}→{destination}",
-                "unit_measure": "trip",
-            },
-            quantity={
-                "active": 1,
-                "staged": 1,
-                "remaining": 0,
-            },
-            price={
-                "unit": float(price),
-                "unit_base": float(price),
-                "discount_percent": 0.0,
-                "discount_amount": 0.0,
-                "amount": float(price),
-            },
-        )
-        line.save()
-    else:
-        logger.warning(
-            "invoice: no Item found for %s→%s (network=%s); invoice created without line",
-            origin, destination, network_id,
-        )
+    with transaction.atomic():
+        result = save_record(Actor.system(source="jpods"), {
+            "model_name": "invoice", **owner, "source_name": "jpods",
+            "contact_id": contact.pk if contact else None,
+            "price_level": price_level, "refs": refs, "lines": [line],
+        })
+        invoice = Invoice.objects.get(pk=result.obj_id)
+        remaining = price
+        for cash in funds:                       # oldest money first
+            if remaining <= 0:
+                break
+            take = min(Decimal(str(cash.available)), remaining)
+            apply_cash_to_invoice(cash.pk, invoice.pk, take, reason=f"JPods trip {trip_id}")
+            remaining -= take
+        invoice.refresh_from_db()
 
     logger.info(
         "JPods invoice created: pk=%s contact=%s %s→%s price=%s %s",
@@ -172,7 +161,8 @@ def create_trip_invoice(data: dict[str, Any]) -> dict[str, Any]:
     return {
         "invoice_id": invoice.pk,
         "status": invoice.status,
-        "total": str(price),
+        "total": str(invoice.total),
+        "received": str((invoice.totals or {}).get("received")),
         "currency": currency,
         "contact_name": contact.get_full_name() if contact else None,
         "customer_id": customer.pk if customer else None,
