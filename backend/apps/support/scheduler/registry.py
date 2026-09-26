@@ -96,6 +96,11 @@ def run_maintenance_function(task_name: str, **kwargs: Any) -> Any:
 def build_celery_beat_schedule() -> dict[str, dict[str, Any]]:
     """Return canonical Celery beat schedule entries for scheduler tasks."""
     return {
+        "drain-queued-cash-every-minute": {
+            "task": f"{TASK_MODULE_PATH}.task_drain_queued_cash",
+            "schedule": crontab(minute="*"),
+            "kwargs": {"limit": 200},
+        },
         "refresh-keywords-every-15-min": {
             "task": f"{TASK_MODULE_PATH}.task_refresh_keywords",
             "schedule": crontab(minute="*/15"),

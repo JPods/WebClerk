@@ -1,6 +1,6 @@
 import logging
 
-from django.db import models
+from django.db import OperationalError, models
 from django.db.models.fields.json import KT
 from django.utils import timezone
 from common.models import CoreModel
@@ -134,6 +134,9 @@ class Pending(CoreModel):
             # stuck one is readable (the applier writes the 'applied' line when it lands).
             from apps.transactions.services.cash.cash_pending import note_application
             note_application(self, 'queued')
+        if applied is False and self.pk:
+            # Counted, so a stuck row says how often it was tried (Fable L1 M-8).
+            type(self).objects.filter(pk=self.pk).update(attempts=models.F('attempts') + 1)
 
         if applied is not None:
             # Every cash and inventory event, checked once it commits (BALANCE_EVENT_LOG).
@@ -388,22 +391,33 @@ class Pending(CoreModel):
         line.save(update_fields=fields)
 
     def _apply_cash(self):
-        """Apply cash to invoice (AR). Delegates to cash_pending service."""
+        """Apply cash to invoice (AR). Delegates to cash_pending service.
+
+        Queued only when a row is locked (the applier answers False; the drain retries). Any
+        other failure raises (Axiom 6, Fable fix #8): swallowed, it left the application
+        pending, counted against the cash by _committed, while no money had moved.
+        """
+        from apps.transactions.services.cash.cash_pending import apply_cash_pending
         try:
-            from apps.transactions.services.cash.cash_pending import apply_cash_pending
             return apply_cash_pending(self)
-        except Exception:
-            logger.debug("Pending %s: cash apply failed, queued for celery", self.pk, exc_info=True)
+        except OperationalError:
+            logger.info("Pending %s: cash or invoice locked, queued for the drain", self.pk)
             return False
+        except Exception:
+            logger.error("Pending %s: cash apply failed", self.pk, exc_info=True)
+            raise
 
     def _apply_receipt_cash(self):
-        """Apply cash to receipt (AP). Delegates to cash_pending_receipt service."""
+        """Apply cash to receipt (AP) — the same rule as AR."""
+        from apps.transactions.services.cash.cash_pending_receipt import apply_receipt_cash_pending
         try:
-            from apps.transactions.services.cash.cash_pending_receipt import apply_receipt_cash_pending
             return apply_receipt_cash_pending(self)
-        except Exception:
-            logger.debug("Pending %s: receipt cash apply failed, queued for celery", self.pk, exc_info=True)
+        except OperationalError:
+            logger.info("Pending %s: cash or receipt locked, queued for the drain", self.pk)
             return False
+        except Exception:
+            logger.error("Pending %s: receipt cash apply failed", self.pk, exc_info=True)
+            raise
 
     def mark_processed(self, save: bool = True):
         if self.dt_processed == 0:

@@ -144,6 +144,14 @@ def _create_task_run(task_name: str, celery_task_id: str, kwargs: dict):
 # Keyword & Search Maintenance
 # -----------------------------------------------------------------------------
 
+@shared_task(bind=True, max_retries=0)
+def task_drain_queued_cash(self, limit=200):
+    """Retry cash applications that queued on a locked row (Fable fix #8). A failure other
+    than a lock raises inside the applier and is logged there; this task only retries."""
+    from apps.transactions.services.cash.cash_pending import drain_queued_cash
+    return drain_queued_cash(limit=limit)
+
+
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def task_refresh_keywords(self, limit=500, batch_size=200):
     """

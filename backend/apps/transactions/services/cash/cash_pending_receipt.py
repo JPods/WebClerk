@@ -103,6 +103,7 @@ def _check_receipt_application(cash, receipt, amount: Decimal) -> None:
         party_attr='vendor_id', party_label='vendor')
 
 
+@transaction.atomic                      # locks, checks and writes together, as AR does (Fable L2 H-4)
 def apply_cash_to_receipt(
     cash_id: int,
     receipt_id: int,

@@ -749,6 +749,28 @@ def _apply_now(cash, invoice, amount: Decimal, reason: str) -> int:
 
 
 @transaction.atomic
+def drain_queued_cash(limit: int = 200) -> Dict[str, int]:
+    """Retry cash applications that queued (a row was locked) — AR and AP, oldest first.
+
+    Nothing drained cash before (Fable fix #8): the inventory dispatcher selects inventory
+    only, and apply_pending_for_invoice runs for one invoice when someone asks. Scheduled
+    every minute (support/scheduler/registry.py). A row still stuck after STUCK_MINUTES is
+    reported by balance_checker (pending.stuck), with its attempts.
+    """
+    from apps.core.models.pending import Pending
+    applied = queued = 0
+    for p in (Pending.objects.filter(purpose__in=('cash_application', 'cash_application_receipt'),
+                                     dt_processed=0, changes__state='pending')
+              .order_by('pk')[:limit]):
+        if p.try_apply():
+            applied += 1
+        else:
+            queued += 1
+    if applied or queued:
+        logger.info("[cash drain] applied %s, still queued %s", applied, queued)
+    return {'applied': applied, 'queued': queued}
+
+
 def apply_pending_for_invoice(invoice_id: int) -> Dict[str, Any]:
     """Apply all pending cash records for an invoice after unlock.
 
