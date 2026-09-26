@@ -24,17 +24,22 @@ from django.db import transaction
 from apps.core.services.door import Actor
 from apps.core.services.save import save_record
 from apps.transactions.models import Cash, Invoice
-from apps.transactions.services.cash.cash_pending import apply_cash_to_invoice
+from apps.transactions.services.cash.cash_pending import (
+    _create_adjustment_cash, _utc_now_iso, apply_cash_to_invoice)
 
 logger = logging.getLogger(__name__)
 
 
 def create_trip_invoice(data: dict[str, Any]) -> dict[str, Any]:
     """
-    Invoice a JPods trip through the door and pay it from the rider's prepaid balance.
+    Invoice a JPods trip through the door and apply the rider's prepaid balance to it.
 
-    received is never written here: it is the Σ of the applications made from the rider's
-    Cash (fix #2). A balance short of the price refuses the trip with coaching.
+    Bill, 2026-09-26: a rider is never turned away for money. The attendant or station
+    viewer gives a newcomer a contact and a customer; whatever the prepaid balance does not
+    cover stays open on the invoice (paid later by phone/email or charged to the account).
+    A ride to a shelter is invoiced at full price and written off by the attendant, a
+    named user, so the books show the service given (``shelter`` + ``authorized_by``).
+    received is never written here: it is the Σ of real applications (fix #2).
 
     Required input keys:
         contact_id           — from price_query response
@@ -50,6 +55,8 @@ def create_trip_invoice(data: dict[str, Any]) -> dict[str, Any]:
         duration_actual_s    — seconds the trip actually took
         price_level          — price level applied
         discount_applied     — discount label if any
+        shelter              — True: a ride to a shelter, written off in full
+        authorized_by        — the attendant's contact id (required with shelter)
 
     Returns:
         invoice_id, status, total, currency, contact_name, customer_id, trip_id
@@ -102,19 +109,18 @@ def create_trip_invoice(data: dict[str, Any]) -> dict[str, Any]:
     # ── The rider pays from their prepaid balance (Bill, 2026-09-26) ──
     # received is never claimed: it is the Σ of real applications, from Cash that arrived
     # earlier (fix #2). A short balance refuses the trip with coaching; nothing is written.
-    owner = {"customer_id": customer.pk} if customer else {"contact_id": contact.pk if contact else None}
-    if not owner.get("customer_id") and not owner.get("contact_id"):
-        return {"error": "A trip needs a rider (contact_id) with a prepaid balance"}
-    # A rider with no customer org pays from Cash that names no customer either: the
-    # application refuses cash whose customer differs from the invoice's (Fable).
-    cash_owner = owner if customer else {**owner, "customer_id__isnull": True}
-    funds = [c for c in Cash.objects.filter(**cash_owner, available__gt=0).order_by("dt_created", "pk")
-             if c.holds_money]
-    on_account = sum((Decimal(str(c.available)) for c in funds), Decimal("0"))
-    if on_account < price:
-        return {"error": f"Prepaid balance {on_account:.2f} {currency} is short of this trip's "
-                         f"{price:.2f}: add {price - on_account:.2f} {currency} to ride",
-                "code": "insufficient_balance"}
+    if not customer:
+        return {"error": "The rider needs a contact and a customer before the trip: the attendant "
+                         "or station viewer assigns them", "code": "rider_unassigned"}
+    shelter = bool(data.get("shelter"))
+    authorized_by = data.get("authorized_by")
+    if shelter and not authorized_by:
+        return {"error": "A shelter ride is written off by a named attendant: send authorized_by "
+                         "(the attendant's contact id)", "code": "shelter_unauthorized"}
+    owner = {"customer_id": customer.pk}
+    funds = [] if shelter else [
+        c for c in Cash.objects.filter(**owner, available__gt=0).order_by("dt_created", "pk")
+        if c.holds_money]
 
     refs = {
         "trip_id": trip_id,
@@ -140,28 +146,30 @@ def create_trip_invoice(data: dict[str, Any]) -> dict[str, Any]:
     if not item:
         logger.warning("invoice: no Item found for %s→%s (network=%s)", origin, destination, network_id)
 
-    # One transaction: an application the cash check refuses (stored available above the
-    # journal, a customer mismatch) rolls the invoice back and the rider is told why.
-    try:
-        with transaction.atomic():
-            result = save_record(Actor.system(source="jpods"), {
-                "model_name": "invoice", **owner, "source_name": "jpods",
-                "contact_id": contact.pk if contact else None,
-                "price_level": price_level, "refs": refs, "lines": [line],
-            })
-            invoice = Invoice.objects.get(pk=result.obj_id)
-            remaining = price
-            for cash in funds:                   # oldest money first
-                if remaining <= 0:
-                    break
-                take = min(Decimal(str(cash.available)), remaining)
-                apply_cash_to_invoice(cash.pk, invoice.pk, take, reason=f"JPods trip {trip_id}")
+    with transaction.atomic():
+        result = save_record(Actor.system(source="jpods"), {
+            "model_name": "invoice", **owner, "source_name": "jpods",
+            "contact_id": contact.pk if contact else None,
+            "price_level": price_level, "refs": {**refs, "shelter": shelter}, "lines": [line],
+        })
+        invoice = Invoice.objects.get(pk=result.obj_id)
+        remaining = price
+        for cash in funds:                       # oldest money first
+            if remaining <= 0:
+                break
+            take = min(Decimal(str(cash.available)), remaining)
+            try:
+                with transaction.atomic():       # a refused application undoes only itself
+                    apply_cash_to_invoice(cash.pk, invoice.pk, take, reason=f"JPods trip {trip_id}")
                 remaining -= take
-            invoice.refresh_from_db()
-    except ValueError as e:
-        logger.warning("JPods trip %s refused at payment: %s", trip_id, e)
-        return {"error": f"The trip could not be paid from the prepaid balance: {e}",
-                "code": "payment_refused"}
+            except ValueError as e:              # the trip still goes; the rest stays open
+                logger.warning("JPods trip %s: cash %s not applied: %s", trip_id, cash.pk, e)
+        if shelter:
+            _create_adjustment_cash(
+                invoice, "write_off", price, reason=f"Shelter ride, JPods trip {trip_id}",
+                decision={"decided_by_user_id": authorized_by, "dt_decided": _utc_now_iso(),
+                          "policy": "jpods_shelter_ride"})
+        invoice.refresh_from_db()
 
     logger.info(
         "JPods invoice created: pk=%s contact=%s %s→%s price=%s %s",
@@ -173,6 +181,7 @@ def create_trip_invoice(data: dict[str, Any]) -> dict[str, Any]:
         "status": invoice.status,
         "total": str(invoice.total),
         "received": str((invoice.totals or {}).get("received")),
+        "balance": str((invoice.totals or {}).get("balance")),
         "currency": currency,
         "contact_name": contact.get_full_name() if contact else None,
         "customer_id": customer.pk if customer else None,

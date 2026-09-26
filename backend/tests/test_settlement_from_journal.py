@@ -167,18 +167,38 @@ def test_a_jpods_trip_is_paid_from_the_riders_prepaid_balance():
     assert not _checks(inv)
 
 
-def test_a_short_prepaid_balance_refuses_the_trip_and_writes_nothing():
+def test_a_short_prepaid_balance_never_stops_the_ride_and_the_rest_stays_open():
+    """Bill, 2026-09-26: a rider is never turned away for money; what the balance does not
+    cover stays open (paid later by phone/email or charged to the account)."""
     from apps.core.models import Contact
     from apps.jpods.services.invoice_service import create_trip_invoice
     buyer = _customer('Short Rider Org')
     rider = Contact.objects.create(email='short@jpods.test', customer_id=buyer.pk)
     Cash.objects.create(amount=Decimal('1.00'), customer_id=buyer.pk)
-    before = Invoice.objects.count()
     result = create_trip_invoice({'contact_id': rider.pk, 'origin_station_id': 'S001',
                                   'destination_station_id': 'S003', 'price': '3.25', 'currency': 'USD'})
-    assert result.get('code') == 'insufficient_balance'
-    assert 'add 2.25 USD to ride' in result['error']
-    assert Invoice.objects.count() == before
+    assert 'error' not in result, result
+    t = Invoice.objects.get(pk=result['invoice_id']).totals
+    assert (t['received'], t['balance'], t['cash_state']) == (1.0, 2.25, 'partial')
+
+
+def test_a_shelter_ride_is_invoiced_and_written_off_by_the_attendant():
+    from apps.core.models import Contact
+    from apps.jpods.services.invoice_service import create_trip_invoice
+    buyer = _customer('Shelter Rider')
+    rider = Contact.objects.create(email='shelter@jpods.test', customer_id=buyer.pk)
+    attendant = Contact.objects.create(email='attendant@jpods.test', role='employee')
+    trip = {'contact_id': rider.pk, 'origin_station_id': 'S001', 'destination_station_id': 'S009',
+            'price': '4.00', 'currency': 'USD', 'shelter': True}
+    assert create_trip_invoice(trip).get('code') == 'shelter_unauthorized'
+    result = create_trip_invoice({**trip, 'authorized_by': attendant.pk})
+    assert 'error' not in result, result
+    inv = Invoice.objects.get(pk=result['invoice_id'])
+    assert (inv.totals['total'], inv.totals['received'], inv.totals['adjusted'],
+            inv.totals['balance']) == (4.0, 0.0, 4.0, 0.0)
+    off = Pending.objects.get(purpose='cash_application', changes__invoice_id=inv.pk)
+    assert off.changes['kind'] == 'write_off'
+    assert not _checks(inv)
 
 
 def test_ledger_rows_match_the_terms_instalments_open_or_paid():
@@ -214,17 +234,10 @@ def test_a_vendor_statement_lists_its_open_bills_not_invoices():
     assert bill.pk in ids and not any(isinstance(d, Invoice) for d in data['invoices'])
 
 
-def test_a_rider_with_no_customer_pays_from_cash_that_names_no_customer():
+def test_a_rider_without_a_customer_is_sent_to_the_attendant():
     from apps.core.models import Contact
     from apps.jpods.services.invoice_service import create_trip_invoice
     rider = Contact.objects.create(email='solo@jpods.test')
-    other_org = _customer('Somebody Else')
-    Cash.objects.create(amount=Decimal('9.00'), contact_id=rider.pk, customer_id=other_org.pk)
-    refused = create_trip_invoice({'contact_id': rider.pk, 'origin_station_id': 'S1',
-                                   'destination_station_id': 'S2', 'price': '2.00', 'currency': 'USD'})
-    assert refused.get('code') == 'insufficient_balance', 'cash naming another customer is not theirs'
-    Cash.objects.create(amount=Decimal('3.00'), contact_id=rider.pk)
-    paid = create_trip_invoice({'contact_id': rider.pk, 'origin_station_id': 'S1',
-                                'destination_station_id': 'S2', 'price': '2.00', 'currency': 'USD'})
-    assert 'error' not in paid, paid
-    assert Invoice.objects.get(pk=paid['invoice_id']).totals['received'] == 2.0
+    result = create_trip_invoice({'contact_id': rider.pk, 'origin_station_id': 'S1',
+                                  'destination_station_id': 'S2', 'price': '2.00', 'currency': 'USD'})
+    assert result.get('code') == 'rider_unassigned'
