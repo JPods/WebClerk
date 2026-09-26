@@ -385,7 +385,7 @@ def _changed(obj, snapshot: Dict[str, Any]) -> frozenset:
 @transaction.atomic
 def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
                 record_id=None, expected_version=None,
-                server_set: Optional[Dict[str, Any]] = None) -> SaveResult:
+                server_set: Optional[Dict[str, Any]] = None, new: bool = False) -> SaveResult:
     """Write one record. The only path that does.
 
     ``data`` is the payload as the caller holds it (already parsed; dot-paths and the
@@ -396,6 +396,9 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
     header built from its source (lineage, tax setup, commission, discount). It is merged
     after the role's field filter, so a role that may not type those fields still carries
     them forward; everything else (create rights, scope, hooks) is still the actor's.
+
+    ``new`` is the `new` verb's: the record is saved empty and marked ``config.is_new``
+    (see ``_mark_new``). Only ``verbs.VERBS['new']`` passes it.
 
     Raises ``Refused`` with the status and code the caller should answer with.
     """
@@ -421,7 +424,7 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
         data = {k: v for k, v in data.items() if k not in server_set}
     with unit_of_work():
         size_warnings, ctx = _write(actor, obj, model_cls, model_key, norm_key,
-                                    data, is_update, server_set=server_set)
+                                    data, is_update, server_set=server_set, new=new)
     # Derived work — a document's totals — happened once, on the way out of the unit, so
     # what is read back here is what the caller will be told.
     obj.refresh_from_db()
@@ -487,8 +490,29 @@ def _wrap_i18n(model_cls, data: dict, language: str) -> dict:
     return {**data, **wrapped} if wrapped else data
 
 
+def _mark_new(obj, model_key: str, data: dict, new: bool) -> None:
+    """``config.is_new`` — the record was saved empty by `new` and handed to the front end.
+
+    Bill, 2026-09-26: the hooks case on it to populate a naked record (``if config.is_new``);
+    the next save removes it. The door alone writes it: a payload's value (the front end
+    echoes the whole record on its first save) is overwritten, not refused.
+    """
+    config = getattr(obj, 'config', None)
+    if not isinstance(config, dict):
+        return
+    sent = data.get('config')
+    if (isinstance(sent, dict) and 'is_new' in sent) or 'config.is_new' in data:
+        console_logger.debug("[SAVE] %s: config.is_new in the payload is the door's; ignored",
+                             model_key)
+    if new:
+        obj.config = {**config, 'is_new': True}
+    else:
+        from apps.core.services.new import clear_mark
+        clear_mark(obj)
+
+
 def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: dict,
-           is_update: bool, server_set: Optional[Dict[str, Any]] = None):
+           is_update: bool, server_set: Optional[Dict[str, Any]] = None, new: bool = False):
     """Authorize, assign, before, persist, flush, after — inside one unit of work."""
     data = _wrap_i18n(model_cls, data, actor_language(actor))
     data = _authorize(actor, obj, model_cls, model_key, data, is_update)
@@ -497,6 +521,8 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
     _results_are_computed(model_key, data)
     snapshot = _snapshot(obj)
     size_warnings = _assign(obj, data, model_cls, model_key, norm_key, is_update)
+    # After the payload, before the hooks: the hooks see the mark, and no payload sets it.
+    _mark_new(obj, model_key, data, new)
 
     # The branch — WC2's `Case of` on the table, dispatched by name — and then the
     # user's hook for this slot. Everything after the base is what every model gets.

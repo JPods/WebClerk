@@ -69,9 +69,16 @@ def test_a_data_wrapper_sent_to_the_rest_route_is_coached_not_a_500(client, djan
     admin = django_user_model.objects.create_user(email='wrap@test.com', password='x',
                                                   username='', role='admin')
     client.force_login(admin)
+    from apps.products.models import BillOfMaterial
     parent, child = Item.objects.create(name='P'), Item.objects.create(name='C')
-    r = client.post('/wcapi/bill_of_material/', {'data': {
-        'parent_item_id': parent.pk, 'child_item_id': child.pk, 'quantity': '2'}},
-        content_type='application/json')
+    wrapped = {'data': {'parent_item_id': parent.pk, 'child_item_id': child.pk, 'quantity': '2'}}
+    # POST is `new`: it takes no values at all, and says to PUT them.
+    r = client.post('/wcapi/bill_of_material/', wrapped, content_type='application/json')
+    assert r.status_code == 400, r.content
+    assert r.json()['error']['code'] == 'new_takes_no_values'
+    # PUT is the save door, which coaches the wrapper.
+    bom = BillOfMaterial.objects.create(parent_item=parent, child_item=child, quantity=1)
+    r = client.put(f'/wcapi/bill_of_material/{bom.pk}/', wrapped,
+                   content_type='application/json')
     assert r.status_code == 400, r.content
     assert r.json()['error']['code'] == 'unknown_field'

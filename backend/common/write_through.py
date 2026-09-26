@@ -54,8 +54,7 @@ def forward_and_store(
     remote that cannot be reached is 502.
     """
     from apps.core.services.door import Actor, Refused
-    from apps.core.services.save import save_record
-    from apps.core.views.save_view import coerce_int
+    from apps.core.services.verbs import run as run_verb
 
     remote_alias = get_remote_alias()
     model_key = payload.get('model_name', model_cls.__name__.lower())
@@ -64,8 +63,9 @@ def forward_and_store(
 
     try:
         with _remote_as_default(remote_alias):
-            result = save_record(actor, payload, record_id=coerce_int(payload.get('id')),
-                                 expected_version=coerce_int(payload.get('version')))
+            # The same verb the local door would run: POST is `new`, PUT/PATCH `save`.
+            result = run_verb(actor, 'save' if payload.get('id') is not None else 'new',
+                              model_key, payload)
         remote_obj = model_cls.objects.using(remote_alias).get(pk=result.obj_id)
         bundle = _serialize_record(remote_obj)
         _store_bundle_locally(model_cls, remote_obj, bundle)

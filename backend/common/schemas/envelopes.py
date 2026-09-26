@@ -670,6 +670,11 @@ class ConfigBase(BaseModel):
     _init_metadata_if_needed on every save.
     """
 
+    #: Set by the `new` verb: the record was saved empty and handed to the front end. The
+    #: next save clears it (a card Cash: the gateway's reply). Hooks case on it to populate;
+    #: Alice sweeps what stays marked. Written by the door only (Bill, 2026-09-26).
+    is_new: bool = False
+
     class Config:
         extra = 'forbid'
 

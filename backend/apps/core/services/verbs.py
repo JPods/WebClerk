@@ -35,6 +35,11 @@ def _save(actor: Actor, model_key: str, payload: dict):
     return save_record(actor, payload, model_key=model_key)
 
 
+def _new(actor: Actor, model_key: str, payload: dict):
+    from apps.core.services.new import new_record
+    return new_record(actor, model_key, payload)
+
+
 def _get(actor: Actor, model_key: str, payload: dict):
     from apps.core.services.get import read
     record_id = payload.pop('id', None)
@@ -58,6 +63,7 @@ def _command(verb: str):
 #: and no adjust (an adjustment is a workorder, saved like any document).
 VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
     'get': _get,
+    'new': _new,
     'save': _save,
     'delete': _delete,
     'pay': _command('pay'),
@@ -146,7 +152,7 @@ def _command_record(actor: Actor, model_key: str, record_id, admitted: bool = Fa
 
 #: REST names the verb with the HTTP method (Bill, 2026-09-24: REST only). A command is
 #: the last segment of POST /wcapi/<model>/<id>/<command>/.
-METHOD_VERBS = {'GET': 'get', 'POST': 'save', 'PUT': 'save', 'PATCH': 'save',
+METHOD_VERBS = {'GET': 'get', 'POST': 'new', 'PUT': 'save', 'PATCH': 'save',
                 'DELETE': 'delete'}
 
 

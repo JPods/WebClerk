@@ -4,8 +4,7 @@ from common.write_through import is_write_through, forward_and_store
 from django.conf import settings
 import logging
 from apps.core.services.save import (Actor, Refused, STAFF_ONLY_MODELS,
-                                     TRANSACTION_LINE_MODELS, resolve_model,
-                                     save_record)
+                                     TRANSACTION_LINE_MODELS, resolve_model)
 
 console_logger = logging.getLogger('console')  # Console logger for debugging
 # This module provides a Django view for saving (creating or updating) records in a database table via a POST request with JSON payload.
@@ -433,6 +432,8 @@ class SaveWcapiView(APIView):
                 message=f'The path names {model_name} {record_id}; the payload names {body_id}.',
                 error={'code': 'id_mismatch', 'details': {'path': record_id, 'payload': body_id}})
         data['id'] = record_id
+        if data.get('version') is not None:
+            data['version'] = coerce_int(data['version'])
 
         # ── Write-through: forward to remote, store bundle locally ──
         if is_write_through():
@@ -457,13 +458,11 @@ class SaveWcapiView(APIView):
         # Everything a save does lives in core/services/save.py, so a command, a sync
         # bundle or the admin reaches the same authorization, validation, hooks and
         # version check as this endpoint (Bill, 2026-09-22: one door, no backdoor).
+        # POST is `new`, PUT/PATCH `save` (verbs.METHOD_VERBS): the view is a shell over the verb.
+        from apps.core.services.verbs import run as run_verb
         try:
-            result = save_record(
-                Actor.from_request(request),
-                data,
-                record_id=coerce_int(data.get('id')),
-                expected_version=coerce_int(data.get('version')),
-            )
+            result = run_verb(Actor.from_request(request),
+                              'new' if record_id is None else 'save', model_name, data)
         except Refused as refused:
             console_logger.info("[SAVE_VIEW] Refused (%s): %s", refused.code, refused.message)
             return api_response(success=False, status_code=refused.status,
