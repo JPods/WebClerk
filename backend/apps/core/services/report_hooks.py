@@ -50,6 +50,11 @@ logger = logging.getLogger(__name__)
 # Time budgets, in seconds, per verb moment and per report phase. A pre hook is in
 # the caller's path, so it is the tightest; a get hook is on every read.
 BUDGETS = {
+    # A slot with no entry of its own takes its moment's: a pre hook stands in front of the
+    # verb (a payment, a conversion) and must be quick; a post hook reacts. Never the 30 s
+    # a report's own 'after' phase gets (channels walkthrough, 2026-09-25).
+    'pre': 0.25,
+    'post': 1.0,
     'save_pre': 0.25,
     'save_post': 1.0,
     'delete_pre': 0.25,
@@ -294,6 +299,16 @@ def _condition_holds(rule: dict, record, changed: set, context: dict) -> bool:
 
 # ── the runner ───────────────────────────────────────────────────────────────
 
+def budget_for(budget_key: Optional[str], phase: str) -> float:
+    """Seconds a hook may run: its slot's own budget, else its moment's (``<verb>_pre`` →
+    ``pre``), else the phase's."""
+    if budget_key in BUDGETS:
+        return BUDGETS[budget_key]
+    if budget_key and budget_key.rsplit('_', 1)[-1] in ('pre', 'post'):
+        return BUDGETS[budget_key.rsplit('_', 1)[-1]]
+    return BUDGETS.get(phase, BUDGETS['after'])
+
+
 def run_phase(
     report,
     phase: str,
@@ -327,7 +342,7 @@ def run_phase(
         return result
 
     declared = point_rules(hooks.get('point')) or {}
-    budget = BUDGETS.get(budget_key or phase, BUDGETS['after'])
+    budget = budget_for(budget_key, phase)
     started = time.monotonic()
 
     ctx = dict(context or {})

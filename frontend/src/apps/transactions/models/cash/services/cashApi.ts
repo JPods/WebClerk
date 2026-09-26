@@ -56,8 +56,9 @@ export const processGatewayCash = async (
   paymentMethodToken: string,
   method = 'card',
 ) => {
+  // The path names the model; the body is the Cash's fields, flat (REST only).
   const saved: any = await wcapiSave<any>(MODEL, {
-    model_name: MODEL, invoice_id: invoiceId, amount, method, purpose: 'empty',
+    invoice_id: invoiceId, amount, method, purpose: 'empty',
   });
   const cashId: number = saved?.id ?? saved?.record?.id;
   const res = await apiClient.post(`/wcapi/cash/${cashId}/pay/`, {

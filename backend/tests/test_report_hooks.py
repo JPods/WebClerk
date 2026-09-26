@@ -619,3 +619,14 @@ def test_withdraw_stops_a_local_hook(db, log_registry, invoice):
     assert ah.withdraw(report, by=FakeSuper(), reason='changed my mind')['ok']
     report.refresh_from_db()
     assert not rh.is_cleared(report)
+
+
+def test_a_command_hook_gets_its_moments_budget_not_a_reports():
+    """A user hook on a command (cash.pay_pre, quote.convert_post) has no slot budget of its
+    own; it takes its moment's — a quick pre, a short post — never a report's 30 s."""
+    from apps.core.services.report_hooks import BUDGETS, budget_for
+    assert budget_for('pay_pre', 'before') == BUDGETS['pre']
+    assert budget_for('convert_post', 'after') == BUDGETS['post']
+    assert budget_for('save_pre', 'before') == BUDGETS['save_pre']
+    assert budget_for(None, 'after') == BUDGETS['after']            # a report's own phase
+    assert BUDGETS['pre'] < 1 and BUDGETS['post'] <= 1
