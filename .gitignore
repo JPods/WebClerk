@@ -28,8 +28,8 @@ nohup.out
 dump.rdb
 **/__pycache__/
 *.pyc
-backend/venv/
-backend/venv_*/
+backend/venv
+backend/venv_*
 frontend/node_modules/
 frontend/dist/
 .hypothesis/
