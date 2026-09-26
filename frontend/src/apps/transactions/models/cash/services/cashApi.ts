@@ -6,7 +6,7 @@
  * Direct REST calls are used only for cash-specific actions
  * not covered by the generic wcapi SDK.
  */
-import { getRecords, getRecord, saveRecord, deleteRecord, wcapiSave } from '@/api/wcapi';
+import { getRecords, getRecord, saveRecord, deleteRecord, wcapiSave, refusedFrom } from '@/api/wcapi';
 import apiClient from '@/api/axios';
 import type { Cash, CreateCashRequest, UpdateCashRequest } from '../types/Cash';
 
@@ -80,4 +80,33 @@ export const processGatewayCash = async (
 export const fetchCashMethods = async () => {
   const res = await getRecords('cash_method', { is_active: true, limit: 50 });
   return res?.results || [];
+};
+
+/**
+ * Add cash from a document (release #9, Bill 2026-09-26): POST /wcapi/<model>/<id>/add_cash/.
+ * amount is what the document is paid (+) or credited (−). The Cash is saved, then applied on an
+ * invoice or receipt; a refused apply keeps the Cash and says why (result.applied.state
+ * 'refused'). An order's cash is a deposit. A refusal of the save throws the server's sentence.
+ */
+export const addCash = async (
+  model: 'order' | 'invoice' | 'receipt',
+  id: number,
+  body: { amount: number | string; method?: string; reference?: string; reason?: string; date?: string },
+) => {
+  try {
+    const res = await apiClient.post(`/wcapi/${model}/${id}/add_cash/`, body);
+    return res.data?.data?.result ?? res.data?.data;
+  } catch (err) {
+    throw new Error(refusedFrom(err, 'Cash not added').message);
+  }
+};
+
+/** Apply a customer's money to an invoice by rule: none = oldest first; {cash_id, amount} = that payment. */
+export const applyBalance = async (invoiceId: number, body: { cash_id?: number; amount?: number | string; reason?: string } = {}) => {
+  try {
+    const res = await apiClient.post(`/wcapi/invoice/${invoiceId}/apply_balance/`, body);
+    return res.data?.data?.result ?? res.data?.data;
+  } catch (err) {
+    throw new Error(refusedFrom(err, 'Not applied').message);
+  }
 };

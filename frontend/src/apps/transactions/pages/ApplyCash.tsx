@@ -19,7 +19,6 @@ import {
   FaSpinner,
   FaEraser,
   FaMagic,
-  FaPlus,
 } from 'react-icons/fa';
 import PageBreadcrumb from '@/components/common/PageBreadCrumb';
 import { formatDt } from '@/utils/fieldFormatters';
@@ -30,7 +29,6 @@ import useCashApplication, {
   CashRecord,
   InvoiceRecord,
 } from '../hooks/useCashApplication';
-import CashDialog from '../components/CashDialog';
 import { formatCurrency } from '@/utils/stringUtils';
 
 /* ------------------------------------------------------------------ */
@@ -93,7 +91,6 @@ const ApplyCash: React.FC = () => {
 
   /* ---------- submit state ---------- */
   const [submitting, setSubmitting] = useState(false);
-  const [showCashDialog, setShowCashDialog] = useState(false);
 
   /* ---------------------------------------------------------------- */
   /*  Load all unapplied cash                                      */
@@ -419,13 +416,6 @@ const ApplyCash: React.FC = () => {
               >
                 <FaSync className={loadingCashEntries ? 'animate-spin' : ''} />
               </button>
-              <button
-                onClick={() => setShowCashDialog(true)}
-                className="text-xs px-2 py-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded flex items-center gap-1"
-                title="Record new cash"
-              >
-                <FaPlus /> New
-              </button>
             </div>
 
             {/* Cash list */}
@@ -713,14 +703,6 @@ const ApplyCash: React.FC = () => {
         </ComponentCard>
       </div>
 
-      {/* ---- Make Cash Dialog ---- */}
-      <CashDialog
-        isOpen={showCashDialog}
-        onClose={() => setShowCashDialog(false)}
-        onCashAdded={() => {
-          loadCashEntries();
-        }}
-      />
     </div>
   );
 };

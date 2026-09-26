@@ -31,7 +31,7 @@ import '@/components/cards';
 import { DetailToolbar } from '@/components/common/DetailToolbar';
 import TransactionFlowIndicator from './detail/TransactionFlowIndicator';
 import DesignMode from './detail/DesignMode';
-import AddCashModal from './AddCashModal';
+import AddCashDialog from './AddCashDialog';
 import { useNavigate } from 'react-router-dom';
 
 // ---------------------------------------------------------------------------
@@ -420,7 +420,7 @@ const UiDetail: React.FC<UiDetailProps> = ({
                   isEditing={isEditing}
                   isLocked={editTier === 'closed'}
                   onLinesChange={handleLinesChange}
-                  onEnterCash={['order', 'invoice'].includes(modelName) ? () => setShowAddCash(true) : undefined}
+                  onEnterCash={['order', 'invoice', 'receipt'].includes(modelName) ? () => setShowAddCash(true) : undefined}
                 />
               );
             case 'tabs':
@@ -483,18 +483,19 @@ const UiDetail: React.FC<UiDetailProps> = ({
         </Suspense>
       )}
 
-      {/* Enter Cash modal */}
-      <AddCashModal
-        isOpen={showAddCash}
-        onClose={() => setShowAddCash(false)}
-        order_id={modelName === 'order' ? data?.id : undefined}
-        invoice_id={modelName === 'invoice' ? data?.id : undefined}
-        customer_id={data?.customer_id || data?.customer || data?.refs?.links?.customer?.id}
-        contact_id={data?.contact_id || data?.contact || data?.refs?.links?.contact?.id || data?.refs?.links?.customer?.id}
-        customer_name={data?.customer_company || data?.customer_name || data?.refs?.links?.customer?.company || data?.refs?.links?.customer?.display_name || data?.refs?.links?.customer?.attention || ''}
-        orderTotal={modelName === 'invoice' ? (data?.totals?.balance ?? data?.totals?.total ?? 0) : (data?.totals?.total ?? 0)}
-        onCashAdded={fetchData}
-      />
+      {/* Add cash from this document (release #9): add_cash, apply_balance */}
+      {['order', 'invoice', 'receipt'].includes(modelName) && data?.id && (
+        <AddCashDialog
+          isOpen={showAddCash}
+          onClose={() => setShowAddCash(false)}
+          model={modelName as 'order' | 'invoice' | 'receipt'}
+          id={data.id}
+          balance={Number(modelName === 'order' ? (data?.totals?.total ?? 0) : (data?.totals?.balance ?? data?.totals?.total ?? 0))}
+          customerId={data?.customer_id ?? null}
+          partyName={data?.company?.name || data?.customer_company || data?.customer_name || ''}
+          onDone={fetchData}
+        />
+      )}
     </div>
   );
 };
