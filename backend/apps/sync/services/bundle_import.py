@@ -251,6 +251,35 @@ def run_import(ctx) -> Dict[str, Any]:
     return {'created': created, 'updated': updated}
 
 
+def write_digest(day: str | None = None) -> Dict[str, Any]:
+    """Nightly: the day's imports (hash, approvals, who imported) written outside the database,
+    one JSON line per bundle, to IMPORT_DIGEST_DIR (default DATA_DIR/import-digest). On Bill's Mac
+    point it into ~/Allie so the copy leaves the server (Allie's plan, Bill 2026-09-26; review
+    again 2027-02). Rewriting a day's file is harmless — it is rebuilt from the bundles."""
+    import os
+    from pathlib import Path
+    from datetime import timedelta
+    from apps.sync.models import Bundle
+    day = day or (datetime.now(timezone.utc) - timedelta(days=1)).strftime('%Y-%m-%d')
+    lines = []
+    for b in (Bundle.objects.filter(config__import_run__imported__dt__startswith=day)
+              .order_by('pk').only('pk', 'connection_id', 'config')):
+        run = _run(b)
+        if not run.get('imported'):             # unsigned or hand-edited: not an import
+            continue
+        lines.append(json.dumps({
+            'bundle': b.pk, 'connection': b.connection_id, 'content_hash': run.get('content_hash'),
+            'approvals': {n: {k: a.get(k) for k in ('by', 'dt', 'content_hash')}
+                          for n, a in (run.get('approvals') or {}).items()},
+            'imported': run['imported'], 'sig': run.get('sig')}, sort_keys=True))
+    if not lines:
+        return {'day': day, 'imports': 0}
+    out = Path(os.environ.get('IMPORT_DIGEST_DIR') or Path(settings.DATA_DIR) / 'import-digest')
+    out.mkdir(parents=True, exist_ok=True)
+    (out / f'{day}.jsonl').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+    return {'day': day, 'imports': len(lines), 'path': str(out / f'{day}.jsonl')}
+
+
 def is_approver(actor) -> bool:
     """Alice's or Athena's own login (by the configured email), not acting as anyone."""
     user = getattr(actor, 'user', None)

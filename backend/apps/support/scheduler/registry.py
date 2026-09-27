@@ -140,6 +140,10 @@ def build_celery_beat_schedule() -> dict[str, dict[str, Any]]:
             "task": f"{TASK_MODULE_PATH}.task_reconcile_aging",
             "schedule": crontab(hour=2, minute=40),
         },
+        "import-digest-nightly": {
+            "task": f"{TASK_MODULE_PATH}.task_import_digest",
+            "schedule": crontab(hour=3, minute=15),
+        },
         "alice-dedup-scan-weekly": {
             "task": "apps.ai_assistant.tasks.dedup_scan_task",
             "schedule": crontab(hour=3, minute=30, day_of_week="wednesday"),

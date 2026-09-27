@@ -202,3 +202,22 @@ def test_a_malformed_uuid_is_refused_by_the_preview(client, django_user_model):
     _client(client, django_user_model, 'boss9@wc.test', is_superuser=True, role='admin')
     status, _, body = _cmd(client, b, 'preview')
     assert status == 400 and body['error']['code'] == 'bad_uuid'
+
+
+def test_the_nightly_digest_writes_each_import_outside_the_database(client, django_user_model, tmp_path, monkeypatch):
+    import json as _json
+    from apps.sync.services.bundle_import import write_digest
+    monkeypatch.setenv('IMPORT_DIGEST_DIR', str(tmp_path))
+    b = _bundle([{'model_name': 'item', 'uuid': str(uuid.uuid4()), 'name': 'Digest'}])
+    boss = 'boss10@wc.test'
+    _client(client, django_user_model, boss, is_superuser=True, role='admin')
+    _cmd(client, b, 'preview')
+    _approve_both(client, django_user_model, b)
+    client.logout(); client.force_login(django_user_model.objects.get(email=boss))
+    assert _cmd(client, b, 'import')[0] == 200
+    b.refresh_from_db()
+    day = b.config['import_run']['imported']['dt'][:10]
+    result = write_digest(day)
+    assert result['imports'] == 1
+    line = _json.loads((tmp_path / f'{day}.jsonl').read_text().splitlines()[0])
+    assert line['bundle'] == b.pk and set(line['approvals']) == {'alice', 'athena'}

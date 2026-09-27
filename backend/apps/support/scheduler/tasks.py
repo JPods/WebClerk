@@ -821,6 +821,13 @@ def task_reconcile_aging(self, batch_size=200):
     return {'updated': updated, 'errors': errors}
 
 
+@shared_task(bind=True, max_retries=1, default_retry_delay=300)
+def task_import_digest(self):
+    """Nightly: yesterday's imports written to IMPORT_DIGEST_DIR, a copy outside the database."""
+    from apps.sync.services.bundle_import import write_digest
+    return write_digest()
+
+
 # Import this in Django settings:
 #
 #   from apps.scheduler.tasks import CELERY_BEAT_SCHEDULE
