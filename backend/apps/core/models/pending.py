@@ -482,9 +482,13 @@ class Pending(CoreModel):
                         cost += take * unit
                         qty -= take
                 spec = {**spec, 'consume': float(qty), 'layer_id': None}
-            if spec.get('found'):
-                layer = _return_layer(Decimal(str(spec['found'])), spec['warehouse_id'], 'Found in count',
-                                      unit=Decimal(str(spec.get('unit_cost') or 0)), flag='found')
+            if spec.get('found') or spec.get('build'):
+                # Found stock (a count) or a made item (a build's + line): a layer of the line's
+                # own at the unit cost the door worked out — for a build, what its parts consumed.
+                flag = 'found' if spec.get('found') else 'build'
+                layer = _return_layer(Decimal(str(spec[flag])), spec['warehouse_id'],
+                                      'Found in count' if flag == 'found' else 'Built',
+                                      unit=Decimal(str(spec.get('unit_cost') or 0)), flag=flag)
                 if config.get('line_model') == 'workorderline' and doc_id:
                     from apps.transactions.models import WorkOrderLine
                     # .update(): the line's own save would run its door again inside this apply.

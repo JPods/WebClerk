@@ -79,6 +79,8 @@ VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
     'approve': _command('approve'),
     'import': _command('import'),
     'unjournalize': _command('unjournalize'),   # kept, and glaring (Bill, 2026-09-26; §16d)
+    'expand': _command('expand'),               # a build line's BOM into lines (workorder plan)
+    'complete': _command('complete'),           # a build moves its stock, all or nothing
 }
 
 #: Which model answers which command, and the base service that does it. A command is

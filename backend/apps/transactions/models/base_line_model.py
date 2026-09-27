@@ -513,6 +513,12 @@ class BaseLineCore(HardDeleteOnly, BaseModel):
         # 'adjust' a change with its reason in comments.process.
         ('count', 'Count'),
         ('adjust', 'Adjust'),
+        # A production workorder's lines (plan 2026-09-26-workorder-window): one item per line,
+        # signed. 'build' (+) is the item being made; 'consume' (−) a part it uses; 'scrap' (−)
+        # the part expected lost, corrected to actual before Complete. Nothing moves until Complete.
+        ('build', 'Build'),
+        ('consume', 'Consume'),
+        ('scrap', 'Scrap'),
     ]
     line_type = models.CharField(max_length=20, choices=LINE_TYPE_CHOICES, default='product', db_index=True)
 

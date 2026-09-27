@@ -84,6 +84,12 @@ def footprint(item_id: Optional[int], quantity: Dict[str, Any], header, line=Non
             return item_id, empty
         return item_id, ({'on_hand': held} if held else empty)
 
+    if (_header_model_name(header) == 'workorder' and line is not None
+            and getattr(line, 'line_type', None) in ('consume', 'scrap')):
+        # A part a build uses commits nothing: a plan holds nothing, and its stock moves only at
+        # Complete (workorder plan, Fable #1). Only the build line commits on_wo.
+        return item_id, empty
+
     active = float(quantity.get('active') or 0)
     remaining = quantity.get('remaining')
     remaining = active if remaining is None else float(remaining)
@@ -132,6 +138,7 @@ def _difference(before: Dict[str, float], after: Dict[str, float]) -> Dict[str, 
 #: a workorder line's commitment Pendings carry none (its events are its completions)
 EVENT_LINES = ('invoiceline', 'receiptline')
 CORRECTION_TYPES = ('count', 'adjust')
+PRODUCTION_TYPES = ('build', 'consume', 'scrap')
 
 
 def is_correction(line) -> bool:
@@ -157,7 +164,10 @@ def _by(line):
     return getattr(user, 'pk', None) or f"{actor.kind}:{getattr(actor, 'source', '')}"
 
 
-def _write(line, item_id: int, deltas: Dict[str, float], *, reason: str, layer=None) -> None:
+def _write(line, item_id: int, deltas: Dict[str, float], *, reason: str, layer=None,
+           event_extra: Optional[Dict[str, Any]] = None):
+    """Write one Pending for this line's change and return it (it applies on save unless a row
+    is locked; a caller that needs it applied checks ``is_processed()``)."""
     import time
     import uuid
     from apps.core.models import Pending
@@ -174,6 +184,13 @@ def _write(line, item_id: int, deltas: Dict[str, float], *, reason: str, layer=N
         # with what the layers gave (consumed) filled in there.
         event = {'id': uuid.uuid4().hex, 'kind': reason, 'dt': int(time.time() * 1000),
                  'by': _by(line), 'qty': deltas['on_hand']}
+    elif (getattr(line, 'line_type', None) in PRODUCTION_TYPES and line._meta.model_name == 'workorderline'
+          and ('on_hand' in deltas or event_extra is not None)):
+        # Only Complete's stock moves are events; the build line's on_wo commitment is not.
+        # A build's line at Complete: its event is what it made or used (qty signed) and, filled in
+        # by the applier, what the layers gave or took.
+        event = {'id': uuid.uuid4().hex, 'kind': line.line_type, 'dt': int(time.time() * 1000),
+                 'by': _by(line), 'qty': deltas.get('on_hand', 0.0)}
     elif is_correction(line):
         # The count's evidence, even when nothing moved (a zero variance proves the count).
         quantity = line.quantity if isinstance(line.quantity, dict) else {}
@@ -185,8 +202,9 @@ def _write(line, item_id: int, deltas: Dict[str, float], *, reason: str, layer=N
             event.update(book=float(quantity.get('staged') or 0), counted=float(quantity.get('active') or 0))
             event['variance'] = round(event['counted'] - event['book'], 6)
     if event:
+        event.update(event_extra or {})
         config['event'] = event
-    Pending.objects.create(
+    return Pending.objects.create(
         model_name='item',
         record_id=str(item_id),
         purpose='inventory_line_add',
@@ -297,11 +315,37 @@ def _refuse_correction(line, *, deleted: bool) -> None:
                       {'line_id': line.pk})
 
 
+def _refuse_production(line, *, deleted: bool) -> None:
+    """A completed build is the record of what was made: its lines do not change (workorder
+    plan, Fable #7). The applier's own event save changes nothing and passes."""
+    from apps.core.services.door import Refused
+    from apps.transactions.models.base_line_model import line_item_id
+    header = line.parent
+    if (header is None or _header_model_name(header) != 'workorder'
+            or getattr(header, 'kind', '') == 'count'
+            or getattr(line, 'line_type', None) not in PRODUCTION_TYPES):
+        return
+    done = (getattr(header, 'status', '') == 'complete'
+            or any(isinstance(e, dict) for e in (getattr(line, 'events', None) or [])))
+    if not done:
+        return
+    loaded = getattr(line, '_loaded', None) or {}
+    quantity = line.quantity if isinstance(line.quantity, dict) else {}
+    changed = (deleted or 'active' not in loaded
+               or round(float(quantity.get('active') or 0) - loaded['active'], 6)
+               or loaded.get('item_id') != line_item_id(line))
+    if changed:
+        raise Refused(409, 'workorder_complete',
+                      "This workorder is complete and is the record of what was made; its lines do not "
+                      "change. Make a new workorder for the correction.", {'line_id': line.pk})
+
+
 def post_line_change(line, *, deleted: bool = False) -> None:
     """The one door. Called from the line's save and from its post_delete receiver."""
     from apps.transactions.services.line_manage import _receipt_layer
 
     _refuse_correction(line, deleted=deleted)
+    _refuse_production(line, deleted=deleted)
     header = line.parent
     before_item, before = _snapshot_footprint(line, header)
     if deleted:

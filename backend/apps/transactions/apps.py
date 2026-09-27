@@ -20,6 +20,10 @@ class TransactionsConfig(AppConfig):
         from .services.cash import invoice_commands
         invoice_commands.register()
 
+        # Production workorders: expand and complete (services/workorder_bom.py).
+        from .services import workorder_bom
+        workorder_bom.register()
+
         # Unjournalize: kept, and glaring (services/journal_commands.py, plan §16d).
         from .services import journal_commands
         journal_commands.register()
