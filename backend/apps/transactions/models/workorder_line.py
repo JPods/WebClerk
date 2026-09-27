@@ -1,9 +1,5 @@
 from django.db import models
-from .base_line_model import BaseExecLineModel
-
-
-def default_events() -> list:
-    return []
+from .base_line_model import BaseExecLineModel, EVENTS_HELP, default_events
 
 
 class WorkOrderLine(BaseExecLineModel):
@@ -33,9 +29,15 @@ class WorkOrderLine(BaseExecLineModel):
         null=True,
         blank=True,
     )
-    events = models.JSONField(
-        default=default_events, blank=True,
-        help_text="What happened to this line: completions and counts, each an event",
+    events = models.JSONField(default=default_events, blank=True, help_text=EVENTS_HELP)
+    # Found stock on a count/adjust line lands in a layer of its own, as a receipt line's does.
+    inventory_layer = models.ForeignKey(
+        "products.InventoryLayer",
+        related_name="workorder_lines",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Layer created for stock this line found",
     )
 
     def __str__(self):

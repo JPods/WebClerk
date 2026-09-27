@@ -1,5 +1,5 @@
 from django.db import models
-from .base_line_model import BaseExecLineModel
+from .base_line_model import BaseExecLineModel, EVENTS_HELP, default_events
 
 
 class ReceiptLine(BaseExecLineModel):
@@ -38,6 +38,8 @@ class ReceiptLine(BaseExecLineModel):
         blank=True,
         help_text="Inventory layer/stack created for this receipt"
     )
+
+    events = models.JSONField(default=default_events, blank=True, help_text=EVENTS_HELP)
 
     # Lot/serial tracking
     lot = models.CharField(max_length=100, blank=True, help_text="Lot number")

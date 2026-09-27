@@ -1,5 +1,5 @@
 from django.db import models
-from .base_line_model import BaseSellLineModel
+from .base_line_model import BaseSellLineModel, EVENTS_HELP, default_events
 
 
 class InvoiceLine(BaseSellLineModel):
@@ -11,6 +11,7 @@ class InvoiceLine(BaseSellLineModel):
         null=True,
         blank=True,
     )
+    events = models.JSONField(default=default_events, blank=True, help_text=EVENTS_HELP)
 
     def __str__(self):
         return f"InvoiceLine {self.id} on invoice {self.invoice_id}"

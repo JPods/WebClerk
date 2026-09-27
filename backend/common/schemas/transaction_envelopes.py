@@ -832,7 +832,17 @@ class TransactionAllocations(BaseModel):
 
 
 class LinePhysical(BaseModel):
-    """Physical attributes for a line item — weight, dimensions, hazmat."""
+    """Physical attributes for a line item — weight, dimensions, hazmat, and where it is."""
+    warehouse_id: Optional[int] = Field(
+        None, title="Warehouse",
+        description="Where this line's goods leave or land; else the header's shipping.warehouse_id",
+        json_schema_extra={'widget': 'number'},
+    )
+    layer_id: Optional[int] = Field(
+        None, title="Layer",
+        description="A count line may name the layer it counted",
+        json_schema_extra={'widget': 'number'},
+    )
     weight: float = Field(
         0.0, ge=0, title="Weight",
         json_schema_extra={'widget': 'number', 'precision': 2},
@@ -1367,6 +1377,7 @@ class TransactionShipping(BaseModel):
     carrier_account: str = Field('', title="Carrier Account", description="Carrier account number for third-party billing", json_schema_extra={'widget': 'text'})
     service: str = Field('', title="Service", description="Ground, 2Day, NextDay, etc.", json_schema_extra={'widget': 'select', 'selectlist_key': 'shipping_service'})
     package_count: int = Field(0, ge=0, title="Package Count", json_schema_extra={'widget': 'number'})
+    warehouse_id: Optional[int] = Field(None, title="Warehouse", description="Where this document's goods leave from or return to; a line's physical.warehouse_id overrides it", json_schema_extra={'widget': 'number'})
     ship_to: ShipToSnapshot = Field(default_factory=ShipToSnapshot)
     packages: list[ShippingPackage] = Field(default_factory=list)
     costs: ShippingCosts = Field(default_factory=ShippingCosts)

@@ -338,8 +338,28 @@ def default_physical() -> Dict[str, Any]:
         "dimensions": {"length": 0.0, "width": 0.0, "height": 0.0, "unit": ""},
         "volume": {"value": 0.0, "unit": ""},
         "package_count": 0,
-        "is_hazmat": False
+        "is_hazmat": False,
+        # Where the goods are: a line names its warehouse (else the header's
+        # shipping.warehouse_id), and a count line may name the layer it counted.
+        "warehouse_id": None,
+        "layer_id": None,
     }
+
+
+def default_events() -> list:
+    return []
+
+
+# What happened to a stock line, one entry per Pending applied to it.
+#
+# The Pending is what moves stock and money: the line door writes it, the applier applies it
+# under the item's lock. ``events[]`` is the line's own record of each Pending that applied to
+# it, appended by the applier in that same transaction (Pending._record_line_event), never by a
+# request, keyed by the event id so a re-apply adds nothing. A sale's event carries what it
+# consumed ({layers: [{layer_id, qty, unit_cost}], cost, short}); a count's carries the book,
+# the count and the variance. This per-line history is what the future trading-partner `flow`
+# feature builds on (Bill, 2026-09-26).
+EVENTS_HELP = "What happened to this line: one event per Pending applied to it"
 
 
 # ---------------------------------------------------------------------------
@@ -489,6 +509,10 @@ class BaseLineCore(HardDeleteOnly, BaseModel):
         ('shipping', 'Shipping'),
         ('discount', 'Discount'),
         ('finance_charge', 'Finance Charge'),  # interest on past-due balance → totals.finance_charge
+        # A count workorder's lines (plan §16b/§16c): 'count' carries what was counted,
+        # 'adjust' a change with its reason in comments.process.
+        ('count', 'Count'),
+        ('adjust', 'Adjust'),
     ]
     line_type = models.CharField(max_length=20, choices=LINE_TYPE_CHOICES, default='product', db_index=True)
 
