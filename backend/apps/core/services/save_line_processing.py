@@ -71,6 +71,20 @@ def _get_fk_descriptors(line_model) -> set:
     return descriptors
 
 
+def _stamp_line_comments(line_data: dict, actor) -> None:
+    """A comment entry sent with a line (an adjust line's reason) is stamped by the server with
+    who and when, as CommentsPanel's are; an entry that already carries its time is left alone."""
+    from apps.core.services.comment_stamp import stamp
+    comments = line_data.get('comments')
+    if not isinstance(comments, dict):
+        return
+    user = getattr(actor, 'user', None) if actor is not None else None
+    for entries in comments.values():
+        for entry in entries if isinstance(entries, list) else []:
+            if isinstance(entry, dict) and not entry.get('time'):
+                entry.update({k: v for k, v in stamp(user).items() if not entry.get(k)})
+
+
 def _copy_line_fields(line_obj, line_data: dict, skip_fields: tuple, fk_descriptors: set,
                       merge: bool):
     """Copy fields from line_data to line_obj, skipping FK descriptors, signals and results."""
@@ -174,6 +188,7 @@ def process_lines(obj, data: dict, model_key: str, actor=None) -> list[int]:
                 raise Refused(409, 'line_uuid_elsewhere',
                               f'Line uuid {keep_uuid} belongs to another document.', model_key)
         carrier = read_carrier(line_data)      # typed; an unknown signal raises
+        _stamp_line_comments(line_data, actor)
 
         if _is_new_line(line_id):
             if carrier.delete:

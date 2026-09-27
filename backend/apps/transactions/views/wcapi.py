@@ -149,6 +149,19 @@ def _leaf_paths(payload, prefix: str = "", collections: frozenset = frozenset())
     out = set()
     for key, value in (payload or {}).items():
         path = f"{prefix}{key}"
+        if key == 'comments' and isinstance(value, dict):
+            # Every record's BaseModel comments: each channel is a list of entries whose fields
+            # the leaf map names (comments.process.mgs), so an entry is checked field by field,
+            # as a line is (Bill, 2026-09-27: a line's reason is checked as the line's own field).
+            # Only comment channels are walked this way; any other list still fails closed.
+            for channel, entries in value.items():
+                if isinstance(entries, list):
+                    for entry in entries:
+                        if isinstance(entry, dict):
+                            out |= {f"{path}.{channel}.{field}" for field in entry}
+                else:
+                    out.add(f"{path}.{channel}")
+            continue
         if isinstance(value, dict) and value:
             out |= _leaf_paths(value, f"{path}.")
         elif not prefix and key in collections and isinstance(value, list):

@@ -40,6 +40,13 @@ def _item_env(item) -> Dict[str, Any]:
     return {'item_id': item.pk, 'id_num': item.pk, 'ida': item.ida or '', 'description': item.name or ''}
 
 
+def is_full_bom_locked(workorder_id) -> bool:
+    """A workorder expanded by full BOM is locked from normal editing (Bill, 2026-09-27: "This
+    applies to workorders exploded by all BOM. If exploding by 1 BOM user might edit.")."""
+    from apps.transactions.models import WorkOrderLine
+    return WorkOrderLine.objects.filter(workorder_id=workorder_id, refs__bom_expand__depth=0).exists()
+
+
 def _refuse_production_state(wo, lines) -> None:
     if getattr(wo, 'kind', '') == 'count':
         raise Refused(400, 'count_workorder', 'A count workorder has no BOM to expand or build to complete.', wo.pk)
@@ -85,6 +92,7 @@ def expand(ctx) -> Dict[str, Any]:
     for line in lines:                         # replace what an earlier expand made
         if _bom(line).get('root_line_id') == root.pk:
             line._actor = ctx.actor
+            line._by_command = True
             line.delete()
 
     from apps.products.models import Item
@@ -97,6 +105,7 @@ def expand(ctx) -> Dict[str, Any]:
         if cost_unit is not None:
             line.cost = {'unit': float(cost_unit)}
         line._actor = ctx.actor
+        line._by_command = True
         line.save()
         made.append(line.pk)
         return line
@@ -125,6 +134,11 @@ def expand(ctx) -> Dict[str, Any]:
                           {**ref, 'role': 'scrap', 'of_line_id': part.pk})
 
     walk(top, Decimal(str((root.quantity or {}).get('active') or 0)), root.pk, 1, frozenset({top.pk}))
+    # How it was expanded, on the build line itself. Full BOM locks the workorder from normal
+    # editing (Bill, 2026-09-27); one level stays editable. .update(): no door, nothing moves.
+    refs = dict(root.refs) if isinstance(root.refs, dict) else {}
+    refs['bom_expand'] = {'depth': depth}
+    WorkOrderLine.objects.filter(pk=root.pk).update(refs=refs)
     return {'workorder_id': wo.pk, 'line_id': root.pk, 'depth': depth, 'lines_created': made}
 
 

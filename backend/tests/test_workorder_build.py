@@ -170,3 +170,23 @@ def test_a_locked_part_refuses_the_whole_complete(cart):
         _run('complete', wo)
     assert refused.value.code == 'item_locked'
     assert (_q(cart['cart']), _q(cart['wheel']), _q(cart['frame'])) == (0, 40, 20)   # nothing moved
+
+
+def test_a_full_bom_workorder_is_locked_from_normal_editing(cart):
+    """Bill, 2026-09-27: full-BOM workorders change only through their commands; one level stays
+    editable."""
+    from apps.core.services.door import Refused
+    from apps.transactions.models import WorkOrderLine
+    wo, line = _wo(cart['cart'], 10)
+    _run('expand', wo, line_id=line.pk, depth=0)
+    frame = WorkOrderLine.objects.get(workorder=wo, item_fk_id=cart['frame'].pk)
+    frame.quantity = {**frame.quantity, 'active': -12}
+    with pytest.raises(Refused) as refused:
+        frame.save()
+    assert refused.value.code == 'full_bom_locked'
+    _run('expand', wo, line_id=line.pk, depth=1)                   # expand again, one level
+    frame = WorkOrderLine.objects.get(workorder=wo, item_fk_id=cart['frame'].pk)
+    frame.quantity = {**frame.quantity, 'active': -12}
+    frame.save()                                                   # editable by hand
+    _run('complete', wo)                                           # and complete still works
+    assert _q(cart['frame']) == 8

@@ -340,12 +340,37 @@ def _refuse_production(line, *, deleted: bool) -> None:
                       "change. Make a new workorder for the correction.", {'line_id': line.pk})
 
 
+def _refuse_full_bom_edit(line, *, deleted: bool) -> None:
+    """A workorder expanded by full BOM changes only through its commands (expand, complete);
+    a normal edit of its lines is refused. The applier's own event save changes nothing."""
+    from apps.core.services.door import Refused
+    from apps.transactions.models.base_line_model import line_item_id
+    header = line.parent
+    if (getattr(line, '_by_command', False) or header is None
+            or _header_model_name(header) != 'workorder' or getattr(header, 'kind', '') == 'count'):
+        return
+    from apps.transactions.services.workorder_bom import is_full_bom_locked
+    if not is_full_bom_locked(header.pk):
+        return
+    loaded = getattr(line, '_loaded', None) or {}
+    quantity = line.quantity if isinstance(line.quantity, dict) else {}
+    changed = (deleted or 'active' not in loaded
+               or round(float(quantity.get('active') or 0) - loaded['active'], 6)
+               or loaded.get('item_id') != line_item_id(line))
+    if changed:
+        raise Refused(409, 'full_bom_locked',
+                      "This build was expanded from the full BOM, so its lines follow the BOM: change "
+                      "the BOM and expand again, or expand one level to edit lines by hand.",
+                      {'line_id': line.pk})
+
+
 def post_line_change(line, *, deleted: bool = False) -> None:
     """The one door. Called from the line's save and from its post_delete receiver."""
     from apps.transactions.services.line_manage import _receipt_layer
 
     _refuse_correction(line, deleted=deleted)
     _refuse_production(line, deleted=deleted)
+    _refuse_full_bom_edit(line, deleted=deleted)
     header = line.parent
     before_item, before = _snapshot_footprint(line, header)
     if deleted:
