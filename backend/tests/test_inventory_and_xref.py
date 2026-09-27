@@ -7,90 +7,31 @@ from tests.conftest import ItemFactory, WarehouseFactory
 
 @pytest.mark.django_db
 class TestInventoryAvailability:
-    """Inventory availability: on_hand - reserved = available."""
+    """Availability reads the item's leaves: available = on_hand − allocated (Bill, 2026-09-26:
+    "Needs to read the leaf, item.quantity.on_hand"). No reservation; no per-warehouse figures
+    until the warehouse review (action 31277)."""
 
-    def test_single_layer_availability(self):
+    def test_the_leaves_are_the_answer(self):
         from apps.products.services.inventory.inventory_available import get_item_availability
-        from apps.products.models import InventoryLayer
-
-        item = ItemFactory()
-        wh = WarehouseFactory()
-        InventoryLayer.objects.create(
-            item=item,
-            warehouse=wh,
-            quantity={'on_hand': 100, 'on_so': 20, 'on_po': 50},
-        )
-
+        item = ItemFactory(quantity={'on_hand': 100, 'on_so': 20, 'on_po': 50, 'allocated': 10,
+                                     'available': 90})
         result = get_item_availability(item.pk)
-        assert result['on_hand'] == 100.0
-        assert result['on_so'] == 20.0
-        assert result['on_po'] == 50.0
-        assert result['available'] == 100.0  # no reservations
+        assert (result['on_hand'], result['on_so'], result['on_po']) == (100.0, 20.0, 50.0)
+        assert (result['allocated'], result['available']) == (10.0, 90.0)
 
-    def test_multiple_layers_aggregate(self):
-        from apps.products.services.inventory.inventory_available import get_item_availability
+    def test_layers_do_not_answer_for_the_item(self):
+        """A layer holds received/issued, not on_hand: the item's leaf is the book."""
         from apps.products.models import InventoryLayer
+        from apps.products.services.inventory.inventory_available import get_item_availability
+        item = ItemFactory(quantity={'on_hand': 7, 'allocated': 0})
+        InventoryLayer.objects.create(item=item, warehouse=WarehouseFactory(), quantity={'received': 100})
+        assert get_item_availability(item.pk)['on_hand'] == 7.0
 
-        item = ItemFactory()
-        wh = WarehouseFactory()
-        InventoryLayer.objects.create(
-            item=item, warehouse=wh,
-            quantity={'on_hand': 50, 'on_so': 10},
-        )
-        InventoryLayer.objects.create(
-            item=item, warehouse=wh,
-            quantity={'on_hand': 30, 'on_so': 5},
-        )
-
+    def test_an_item_with_no_quantity_is_all_zeros(self):
+        from apps.products.services.inventory.inventory_available import get_item_availability
+        item = ItemFactory(quantity={})
         result = get_item_availability(item.pk)
-        assert result['on_hand'] == 80.0
-        assert result['on_so'] == 15.0
-
-    def test_filter_by_warehouse(self):
-        from apps.products.services.inventory.inventory_available import get_item_availability
-        from apps.products.models import InventoryLayer
-
-        item = ItemFactory()
-        wh1 = WarehouseFactory(name="Warehouse A")
-        wh2 = WarehouseFactory(name="Warehouse B")
-        InventoryLayer.objects.create(
-            item=item, warehouse=wh1,
-            quantity={'on_hand': 100},
-        )
-        InventoryLayer.objects.create(
-            item=item, warehouse=wh2,
-            quantity={'on_hand': 200},
-        )
-
-        result_wh1 = get_item_availability(item.pk, warehouse_id=wh1.pk)
-        assert result_wh1['on_hand'] == 100.0
-
-        result_wh2 = get_item_availability(item.pk, warehouse_id=wh2.pk)
-        assert result_wh2['on_hand'] == 200.0
-
-    def test_no_layers_returns_zeros(self):
-        from apps.products.services.inventory.inventory_available import get_item_availability
-
-        item = ItemFactory()
-        result = get_item_availability(item.pk)
-        assert result['on_hand'] == 0.0
-        assert result['available'] == 0.0
-
-    def test_availability_by_warehouse_breakdown(self):
-        from apps.products.services.inventory.inventory_available import get_item_availability_by_warehouse
-        from apps.products.models import InventoryLayer
-
-        item = ItemFactory()
-        wh1 = WarehouseFactory(name="WH-1")
-        wh2 = WarehouseFactory(name="WH-2")
-        InventoryLayer.objects.create(item=item, warehouse=wh1, quantity={'on_hand': 40})
-        InventoryLayer.objects.create(item=item, warehouse=wh2, quantity={'on_hand': 60})
-
-        results = get_item_availability_by_warehouse(item.pk)
-        assert len(results) == 2
-        wh_ids = {r['warehouse_id'] for r in results}
-        assert wh1.pk in wh_ids
-        assert wh2.pk in wh_ids
+        assert result['on_hand'] == 0.0 and result['available'] == 0.0
 
 
 @pytest.mark.django_db

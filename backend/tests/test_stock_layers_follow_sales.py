@@ -141,7 +141,7 @@ def test_a_return_lands_in_a_layer_of_its_own_at_average_cost():
     item, warehouse = _stocked()
     item.refresh_from_db()
     average = item.cost['avg']                 # (5·1 + 5·2 + 5·3) / 15 = 2
-    line = _line(_invoice(shipping={'warehouse_id': warehouse.pk}), item, -3)
+    line = _line(_invoice(), item, -3)
     assert _on_hand(item) == 18
     [consumed] = _consumed(line)
     [back] = consumed['layers']
@@ -154,20 +154,22 @@ def test_a_return_lands_in_a_layer_of_its_own_at_average_cost():
 
 def test_a_smaller_return_takes_its_own_layer_back_down():
     item, warehouse = _stocked()
-    line = _line(_invoice(shipping={'warehouse_id': warehouse.pk}), item, -3)
+    line = _line(_invoice(), item, -3)
     _set(line, -1)
     assert _on_hand(item) == 16
     assert _balanced(item)
 
 
-def test_a_return_with_several_warehouses_and_none_named_is_refused_coached():
-    from apps.core.services.door import Refused
+def test_a_return_lands_in_the_default_warehouse_while_warehouses_are_set_aside():
+    """Bill, 2026-09-26: the warehouse feature waits for the joint review (action 31277); stock
+    arriving on a line lands in the first active warehouse, and nothing is refused for it."""
     from apps.products.models import Warehouse
-    item, _ = _stocked()
+    from apps.products.models.inventory_layer import InventoryLayer
+    item, first = _stocked()
     Warehouse.objects.create(code='WH2', name='Second')
-    with pytest.raises(Refused) as refused:
-        _line(_invoice(), item, -3)
-    assert refused.value.code == 'warehouse_required'
+    line = _line(_invoice(), item, -3)
+    [consumed] = _consumed(line)
+    assert InventoryLayer.objects.get(pk=consumed['layers'][0]['layer_id']).warehouse_id == first.pk
 
 
 def test_a_sale_is_consumed_once_however_often_its_pending_is_tried():

@@ -69,7 +69,7 @@ class PendingInventoryTests(TestCase):
         the Pending — deleted.)"""
         stack = InventoryLayer.objects.create(
             item=self.item, warehouse=self.wh,
-            quantity={'received': 100}, cost={'landed': 2.0},
+            quantity={'received': 100, 'issued': 0, 'scrapped': 0}, cost={'landed': 2.0},
         )
         pending = Pending.objects.create(
             model_name='item', record_id=str(self.item.pk), purpose='inventory_line_add',

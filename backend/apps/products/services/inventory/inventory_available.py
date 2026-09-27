@@ -1,13 +1,11 @@
 """Inventory availability service.
 
-Provides item availability queries across warehouses/sites.
-Available = on_hand - reserved. Does not block overselling — visibility aid only.
+Item availability from the item's own leaves: available = on_hand − allocated.
+Does not block overselling — visibility aid only.
 """
 import logging
-from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
-from django.db.models import Q
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +14,7 @@ def available_from_quantity(quantity: Optional[Dict[str, Any]]) -> Optional[floa
     """The item-level availability formula: available = on_hand - allocated.
 
     This is the number stored in Item.quantity['available'] and the one every
-    caller must use. It is deliberately NOT the layer/reservation calculation in
-    get_item_availability() below, which answers a different question from
-    InventoryLayer and InventoryReservation rows.
+    caller must use; get_item_availability() below reports it with the other leaves.
 
     Anything that needs to derive availability — the item save path, the flight
     simulator's reconstructed history, reports — calls this rather than writing
@@ -42,75 +38,29 @@ def available_from_quantity(quantity: Optional[Dict[str, Any]]) -> Optional[floa
         return None
 
 
-def get_item_availability(
-    item_id: int,
-    warehouse_id: Optional[int] = None,
-) -> Dict[str, Any]:
-    """Get inventory availability for an item, optionally filtered by warehouse.
+def get_item_availability(item_id: int) -> Dict[str, Any]:
+    """One item's stock, as its leaves say.
 
-    Returns aggregate quantities across all matching InventoryLayers.
-    Available = on_hand - reserved (visibility aid, not a hard block).
+    Bill, 2026-09-26: "Needs to read the leaf, item.quantity.on_hand." Item.quantity is the book
+    the applier keeps: on_hand, on_so, on_po, allocated, and available = on_hand − allocated
+    (available_from_quantity). There is no reservation (Bill, 2026-09-24), and per-warehouse
+    figures wait for the warehouse review (action 31277). Until 2026-09-26 this summed a layer
+    'on_hand' key that layers never have, so it always answered 0.
     """
-    from apps.products.models import InventoryLayer
-    from apps.products.models.inventory_reservation import InventoryReservation
+    from apps.products.models import Item
 
-    filters = Q(item_id=item_id, is_active=True)
-    if warehouse_id:
-        filters &= Q(warehouse_id=warehouse_id)
+    item = Item.objects.filter(pk=item_id).only('id', 'quantity').first()
+    quantity = item.quantity if item is not None and isinstance(item.quantity, dict) else {}
 
-    layers = InventoryLayer.objects.filter(filters)
+    def leaf(key):
+        return float(quantity.get(key) or 0)
 
-    on_hand = Decimal('0')
-    on_so = Decimal('0')
-    on_po = Decimal('0')
-
-    for layer in layers:
-        qty = layer.quantity if isinstance(layer.quantity, dict) else {}
-        on_hand += Decimal(str(qty.get('on_hand', 0) or 0))
-        on_so += Decimal(str(qty.get('on_so', 0) or 0))
-        on_po += Decimal(str(qty.get('on_po', 0) or 0))
-
-    # Active reservations reduce available
-    reserved = Decimal('0')
-    res_filters = Q(item_id=item_id, is_active=True)
-    if warehouse_id:
-        res_filters &= Q(warehouse_id=warehouse_id)
-    try:
-        from django.db.models import Sum
-        res_sum = InventoryReservation.objects.filter(
-            res_filters
-        ).aggregate(total=Sum('quantity'))
-        reserved = Decimal(str(res_sum['total'] or 0))
-    except Exception:
-        pass
-
-    available = on_hand - reserved
-
+    available = available_from_quantity(quantity)
     return {
         'item_id': item_id,
-        'warehouse_id': warehouse_id,
-        'on_hand': float(on_hand),
-        'on_so': float(on_so),
-        'on_po': float(on_po),
-        'reserved': float(reserved),
-        'available': float(available),
+        'on_hand': leaf('on_hand'),
+        'on_so': leaf('on_so'),
+        'on_po': leaf('on_po'),
+        'allocated': leaf('allocated'),
+        'available': float(leaf('on_hand') - leaf('allocated') if available is None else available),
     }
-
-
-def get_item_availability_by_warehouse(item_id: int) -> List[Dict[str, Any]]:
-    """Get availability breakdown per warehouse for an item."""
-    from apps.products.models import InventoryLayer
-
-    warehouse_ids = (
-        InventoryLayer.objects
-        .filter(item_id=item_id, is_active=True)
-        .values_list('warehouse_id', flat=True)
-        .distinct()
-    )
-
-    results = []
-    for wh_id in warehouse_ids:
-        avail = get_item_availability(item_id, warehouse_id=wh_id)
-        results.append(avail)
-
-    return results

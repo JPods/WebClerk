@@ -18,7 +18,7 @@ type InventorySnapshot = {
   on_hand: number;
   on_so: number;
   on_po: number;
-  reserved: number;
+  allocated: number;
   available: number;
 };
 
@@ -168,21 +168,17 @@ export default function AliceTraining() {
   const refreshInventory = useCallback(async () => {
     if (!trainingItem) return;
     try {
-      // Use the availability service via a simple GET
-      const res = await apiClient.get("/wcapi/inventory_layer/", {
-        params: { search: "TRAINING" },
+      // The item's own leaves are the book (Bill, 2026-09-26): a layer holds received/issued,
+      // not on_hand, and there is no reservation — available = on_hand − allocated.
+      const res = await apiClient.get(`/wcapi/item/${trainingItem.id}/`);
+      const qty = res.data?.data?.record?.quantity || {};
+      setInventory({
+        on_hand: qty.on_hand || 0,
+        on_so: qty.on_so || 0,
+        on_po: qty.on_po || 0,
+        allocated: qty.allocated || 0,
+        available: qty.available ?? (qty.on_hand || 0) - (qty.allocated || 0),
       });
-      const layers = res.data?.data?.results || res.data?.data?.items || [];
-      if (layers.length > 0) {
-        const qty = layers[0].quantity || {};
-        setInventory({
-          on_hand: qty.on_hand || 0,
-          on_so: qty.on_so || 0,
-          on_po: qty.on_po || 0,
-          reserved: qty.reserved || 0,
-          available: (qty.on_hand || 0) - (qty.reserved || 0),
-        });
-      }
     } catch (e) {
       console.warn("Could not fetch inventory", e);
     }

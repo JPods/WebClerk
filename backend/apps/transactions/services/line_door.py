@@ -197,28 +197,23 @@ def _write(line, item_id: int, deltas: Dict[str, float], *, reason: str, layer=N
 
 
 def _warehouse_of(line, header) -> Optional[int]:
-    """Where a line's goods leave or land: the line's own, else its document's."""
-    physical = line.physical if isinstance(getattr(line, 'physical', None), dict) else {}
-    warehouse_id = physical.get('warehouse_id') or getattr(line, 'warehouse_id', None)
-    if not warehouse_id and header is not None:
-        shipping = getattr(header, 'shipping', None)
-        warehouse_id = (shipping if isinstance(shipping, dict) else {}).get('warehouse_id')
-    return int(warehouse_id) if warehouse_id else None
+    """Where a line's goods leave or land. The warehouse feature is set aside until the joint
+    review (Bill, 2026-09-26; action 31277, due 2026-12-26): stock runs as one warehouse, so this
+    names none and sales consume from any layer. The fields stay (physical.warehouse_id,
+    shipping.warehouse_id); nothing reads them until the review decides what they mean."""
+    return None
 
 
-def _return_warehouse(line, header) -> int:
-    """A return must land somewhere: the named warehouse, the only one, or a coached refusal."""
+def _stock_warehouse(line) -> int:
+    """Where stock that arrives on a line lands (a return, found stock): the default warehouse,
+    the first active one, while the warehouse feature is set aside."""
     from apps.core.services.door import Refused
     from apps.products.models.warehouse import Warehouse
-    warehouse_id = _warehouse_of(line, header)
-    if warehouse_id:
-        return warehouse_id
-    only = list(Warehouse.objects.filter(is_active=True).values_list('id', flat=True)[:2])
-    if len(only) == 1:
-        return only[0]
-    raise Refused(400, 'warehouse_required',
-                  "Name the warehouse to return it to: the invoice's shipping.warehouse_id, "
-                  "or this line's physical.warehouse_id.", {'line_id': line.pk})
+    warehouse_id = Warehouse.objects.filter(is_active=True).order_by('id').values_list('id', flat=True).first()
+    if warehouse_id is None:
+        raise Refused(400, 'no_warehouse', 'Stock has nowhere to land: add a warehouse first.',
+                      {'line_id': line.pk})
+    return warehouse_id
 
 
 def _invoice_layer_specs(line, header, before_active: float, after_active: float) -> list:
@@ -241,7 +236,7 @@ def _invoice_layer_specs(line, header, before_active: float, after_active: float
         specs.append({'give_back': -sold, 'history': history})
     returned = round(max(-after_active, 0) - max(-before_active, 0), 6)
     if returned > 0:
-        specs.append({'return': returned, 'warehouse_id': _return_warehouse(line, header)})
+        specs.append({'return': returned, 'warehouse_id': _stock_warehouse(line)})
     elif returned < 0:
         specs.append({'return_shrink': -returned, 'history': history})
     return specs
@@ -252,23 +247,13 @@ def _correction_layer_specs(line, header, before: float, after: float) -> list:
     line's own at the line's unit cost (zero allowed); missing stock comes off the layer the line
     names, else by the item's costing method. Less found shrinks the line's own layer; less
     missing gives back to the layers it took."""
-    from apps.core.services.door import Refused
     history = [e['consumed'] for e in (getattr(line, 'events', None) or [])
                if isinstance(e, dict) and isinstance(e.get('consumed'), dict)]
     physical = line.physical if isinstance(getattr(line, 'physical', None), dict) else {}
     specs = []
     found = round(max(after, 0) - max(before, 0), 6)
     if found > 0:
-        warehouse_id = _warehouse_of(line, header)
-        if not warehouse_id:
-            from apps.products.models.warehouse import Warehouse
-            only = list(Warehouse.objects.filter(is_active=True).values_list('id', flat=True)[:2])
-            if len(only) != 1:
-                raise Refused(400, 'warehouse_required',
-                              "Name the warehouse the found stock is in: the workorder's "
-                              "shipping.warehouse_id, or this line's physical.warehouse_id.",
-                              {'line_id': line.pk})
-            warehouse_id = only[0]
+        warehouse_id = _stock_warehouse(line)
         cost = line.cost if isinstance(getattr(line, 'cost', None), dict) else {}
         specs.append({'found': found, 'warehouse_id': warehouse_id,
                       'unit_cost': float(cost.get('unit') or 0)})

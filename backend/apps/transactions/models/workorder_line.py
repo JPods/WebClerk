@@ -58,9 +58,9 @@ class WorkOrderLine(BaseExecLineModel):
 
     def save(self, *args, **kwargs):
         """A count line records the book itself (plan §16a.1/§16c.1): on first save its staged is
-        the item's on_hand — or, when the line names a warehouse, what that warehouse's layers
-        hold — whatever the caller sent (the line editors always send staged). After that the
-        book never moves: a save that changes it is refused."""
+        the item's on_hand, whatever the caller sent (the line editors always send staged). After
+        that the book never moves: a save that changes it is refused. (Per-warehouse books wait
+        for the warehouse review, action 31277.)"""
         from apps.transactions.services.line_door import is_correction
         if self.line_type == 'count' and is_correction(self):
             quantity = dict(self.quantity) if isinstance(self.quantity, dict) else {}
@@ -78,18 +78,9 @@ class WorkOrderLine(BaseExecLineModel):
         return super().save(*args, **kwargs)
 
     def _book(self) -> float:
-        from decimal import Decimal
         from apps.products.models import Item
-        from apps.products.models.inventory_layer import InventoryLayer
         from apps.transactions.models.base_line_model import line_item_id
-        from apps.transactions.services.line_door import _warehouse_of
-        item_id = line_item_id(self)
-        warehouse_id = _warehouse_of(self, self.parent)
-        if warehouse_id:
-            return float(sum((Decimal(str(layer.remaining_qty())) for layer in
-                              InventoryLayer.objects.filter(item_id=item_id, warehouse_id=warehouse_id)),
-                             Decimal('0')))
-        item = Item.objects.filter(pk=item_id).only('quantity').first()
+        item = Item.objects.filter(pk=line_item_id(self)).only('quantity').first()
         return float(((item.quantity or {}) if item else {}).get('on_hand') or 0)
 
     @property

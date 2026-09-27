@@ -367,12 +367,7 @@ class Pending(CoreModel):
         if not (isinstance(event, dict) and event.get('kind') == 'count' and 'book' in event):
             return
         from decimal import Decimal
-        from apps.products.models.inventory_layer import InventoryLayer
-        if event.get('warehouse_id'):
-            now = sum((Decimal(str(layer.remaining_qty())) for layer in InventoryLayer.objects.filter(
-                item_id=item_id, warehouse_id=event['warehouse_id'])), Decimal('0'))
-        else:
-            now = Decimal(str(quantity.get('on_hand') or 0))
+        now = Decimal(str(quantity.get('on_hand') or 0))
         event['book_now'] = float(now)
         event['moved_during_count'] = float(now) != float(event['book'])
         self.config = config
