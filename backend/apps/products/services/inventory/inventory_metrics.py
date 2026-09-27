@@ -12,23 +12,12 @@ from django.db.models import Sum, Count, Q
 from django.utils import timezone
 
 from apps.products.models.inventory_layer import InventoryLayer
-from apps.products.models.inventory_reservation import InventoryReservation
 from apps.products.models.metrics import InventoryMetricsSnapshot
 from apps.products.models.processor_runs import InventoryAdjustmentProcessorRun
 
 
 def summarize_inventory_metrics(include_samples: bool = False, sample_limit: int = 5) -> Dict[str, Any]:
     now = timezone.now()
-    # Reservation aggregates
-    res_qs = InventoryReservation.objects.all()
-    by_state = res_qs.values('state').annotate(c=Count('id'), qty=Sum('qty'))
-    res_state_counts = {row['state']: int(row['c']) for row in by_state}
-    res_state_qty = {row['state']: float(row['qty'] or 0) for row in by_state}
-    active_reserved_qty = float(
-        InventoryReservation.objects.filter(state=InventoryReservation.STATE_PENDING, expires_at__gt=now)
-        .aggregate(total=Sum('qty'))['total'] or 0
-    )
-
     # Pending inventory adjustments (via Pending model)
     from apps.core.models import Pending
     padj_qs = Pending.objects.filter(model_name='item', purpose__startswith='inventory_')
@@ -52,44 +41,8 @@ def summarize_inventory_metrics(include_samples: bool = False, sample_limit: int
     # Lock statistics
     locked_stack_count = stacks.filter(is_locked=True).count()
 
-    # TTL analytics for pending reservations
-    pending_qs = InventoryReservation.objects.filter(state=InventoryReservation.STATE_PENDING, expires_at__gt=now)
-    soonest_expiry = pending_qs.order_by('expires_at').values_list('expires_at', flat=True).first()
-    if soonest_expiry:
-        soonest_expiry_in_s = max(0, int((soonest_expiry - now).total_seconds()))
-    else:
-        soonest_expiry_in_s = 0
-    # Average remaining TTL
-    ttl_sum = 0
-    ttl_count = 0
-    # histogram buckets (seconds) roughly exponential
-    ttl_bucket_bounds = [30, 60, 120, 300, 600, 1200, 3600, 7200, 14400, 28800, 86400]
-    ttl_buckets = {str(b): 0 for b in ttl_bucket_bounds}
-    ttl_buckets['+Inf'] = 0
-    for ts in pending_qs.values_list('expires_at', flat=True):
-        rem = max(0, (ts - now).total_seconds())
-        ttl_sum += rem
-        ttl_count += 1
-        placed = False
-        for bound in ttl_bucket_bounds:
-            if rem <= bound:
-                ttl_buckets[str(bound)] += 1
-                placed = True
-                break
-        if not placed:
-            ttl_buckets['+Inf'] += 1
-    avg_pending_ttl = (ttl_sum / ttl_count) if ttl_count else 0
-
     metrics: Dict[str, Any] = {
         'timestamp': now.isoformat(),
-        'reservations': {
-            'counts': res_state_counts,
-            'qty': res_state_qty,
-            'active_reserved_qty': active_reserved_qty,
-            'avg_pending_ttl_s': round(avg_pending_ttl, 2),
-            'soonest_expiry_in_s': soonest_expiry_in_s,
-            'pending_ttl_buckets': ttl_buckets,
-        },
         'pending_adjustments': {
             'counts': padj_state_counts,
             'qty': padj_state_qty,
@@ -99,9 +52,6 @@ def summarize_inventory_metrics(include_samples: bool = False, sample_limit: int
             'locked': locked_stack_count,
             'remaining_total': float(remaining_agg),
             'received_total': float(received_agg),
-        },
-        'protection': {
-            'reserved_vs_remaining_pct': (float(active_reserved_qty) / float(remaining_agg) * 100.0) if remaining_agg > 0 else 0.0,
         },
     }
 
@@ -167,14 +117,8 @@ def summarize_inventory_metrics(include_samples: bool = False, sample_limit: int
             .order_by('-dt_created')[:sample_limit]
             .values('id', 'record_id', 'purpose', 'changes', 'dt_created')
         )
-        sample_reservations = list(
-            InventoryReservation.objects.filter(state=InventoryReservation.STATE_PENDING, expires_at__gt=now)
-            .order_by('expires_at')[:sample_limit]
-            .values('id', 'stack_id', 'qty', 'expires_at')
-        )
         metrics['samples'] = {
             'pending_adjustments': sample_padjs,
-            'active_reservations': sample_reservations,
         }
     return metrics
 

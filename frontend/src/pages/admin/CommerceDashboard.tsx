@@ -466,7 +466,6 @@ function InventoryTab({ data, filters }: { data: any; filters: Filters }) {
         <MetricCard label="Total Items" value={data?.total_items || 0}
           active={selected === 'item'} onClick={() => toggle('item')} />
         <MetricCard label="Active Layers" value={data?.active_layers || 0} />
-        <MetricCard label="Reservations" value={data?.active_reservations || 0} />
         <MetricCard label="Low Stock" value={data?.low_stock_count || 0} />
       </div>
       <div className="cd-metrics-row">

@@ -96,7 +96,6 @@ _APP_SCHEMA_MAP = {
     'inventory_adjustment_run':      'apps.products.models.processor_runs_pydantic',
     'inventory_layer':               'apps.products.models.inventory_layer_pydantic',
     'inventory_metrics_snapshot':     'apps.products.models.metrics_pydantic',
-    'inventory_reservation':         'apps.products.models.inventory_reservation_pydantic',
     'item':                          'apps.products.models.item_pydantic',
     'item_usage':                    'apps.products.models.usage_pydantic',
     'item_xref':                     'apps.products.models.item_xref_pydantic',

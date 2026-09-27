@@ -153,7 +153,6 @@ LIST_PRIORITIES = {
     'sync_bundle':  ['ida', 'name', 'status', 'model_name', 'dt_created'],
 
     # Inventory
-    'inventory_reservation': ['ida', 'item', 'qty', 'status'],
     'inventory_adjustment_run': ['ida', 'status', 'dt_created'],
     'inventory_metrics_snapshot': ['ida', 'item', 'dt_created'],
     'pending_inventory_adjustment': ['ida', 'item', 'qty', 'status'],

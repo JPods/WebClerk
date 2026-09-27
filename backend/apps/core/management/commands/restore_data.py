@@ -59,7 +59,6 @@ class Command(BaseCommand):
         'siteinventory.json',
         'inventorylayer.json',
         'inventorymovement.json',
-        'inventoryreservation.json',
         'inventorymetricsnapshot.json',
         'pendinginventoryadjustment.json',
         'inventoryadjustmentprocessorrun.json',

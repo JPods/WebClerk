@@ -8,7 +8,6 @@ from django.utils import timezone
 from apps.transactions.models import Order, OrderLine, Invoice, InvoiceLine, Purchase
 from apps.products.models.item import Item
 from apps.products.models.inventory_layer import InventoryLayer
-from apps.products.models.inventory_reservation import InventoryReservation
 from apps.core.models.pending import Pending
 
 

@@ -98,7 +98,6 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'inventory_adjustment_run': ModelMeta('inventory_adjustment_run', 'apps.products.models.processor_runs.InventoryAdjustmentProcessorRun', 'Inventory Adjustment Run', 'Inventory Adjustment Runs', 'inventory-adjustment-runs', kind='support', aliases=['inventory_adjustment_runs']),
     'inventory_layer': ModelMeta('inventory_layer', 'apps.products.models.inventory_layer.InventoryLayer', 'Inventory Layer', 'Inventory Layers', 'inventory-layers', kind='support', aliases=['inventory_layers']),
     'inventory_metrics_snapshot': ModelMeta('inventory_metrics_snapshot', 'apps.products.models.metrics.InventoryMetricsSnapshot', 'Inventory Metrics Snapshot', 'Inventory Metrics Snapshots', 'inventory-metrics-snapshots', kind='support', aliases=['inventory_metrics_snapshots']),
-    'inventory_reservation': ModelMeta('inventory_reservation', 'apps.products.models.inventory_reservation.InventoryReservation', 'Inventory Reservation', 'Inventory Reservations', 'inventory-reservations', kind='support', aliases=['inventory_reservations']),
     'item_usage': ModelMeta('item_usage', 'apps.products.models.ItemUsage', 'Item Usage', 'Item Usages', 'item-usages', kind='support', aliases=['item_usages']),
     'item_xref': ModelMeta('item_xref', 'apps.products.models.ItemXRef', 'Item XRef', 'Item XRefs', 'item-xrefs', kind='support', aliases=['item_xrefs']),
     'serial': ModelMeta('serial', 'apps.products.models.serial.Serial', 'Serial', 'Serials', 'serials', kind='support', aliases=['serials']),

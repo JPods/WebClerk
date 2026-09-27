@@ -28,7 +28,6 @@ REQUIRED_FK_RELATIONSHIPS = [
     # Inventory
     ('products', 'InventoryLayer', 'warehouse_id', 'products', 'Warehouse'),
     ('products', 'InventoryLayer', 'item_id', 'products', 'Item'),
-    ('products', 'InventoryReservation', 'item_id', 'products', 'Item'),
     ('products', 'ItemXRef', 'item_id', 'products', 'Item'),
     ('products', 'BillOfMaterial', 'parent_item_id', 'products', 'Item'),
     # Sync

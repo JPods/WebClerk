@@ -10,11 +10,6 @@ class ProductsConfig(AppConfig):
             from . import signals  # noqa: F401
         except Exception:
             pass
-        # Ensure reservation model imported so admin/auto-discovery picks it up (no side-effects)
-        try:  # pragma: no cover
-            from .models import inventory_reservation  # noqa: F401
-        except Exception:
-            pass
 
         # Allocate and release: commands on an item (services/inventory/inventory_allocate.py).
         from .services.inventory import inventory_allocate

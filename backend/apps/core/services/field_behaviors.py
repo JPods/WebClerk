@@ -258,12 +258,6 @@ ADDRESS_PURPOSE_OPTIONS = [
     {'value': 'location', 'label': 'Location'},
     {'value': 'other', 'label': 'Other'},
 ]
-RESERVATION_REASON_OPTIONS = [
-    {'value': 'sales_order', 'label': 'Sales Order'},
-    {'value': 'work_order', 'label': 'Work Order'},
-    {'value': 'transfer', 'label': 'Transfer'},
-    {'value': 'hold', 'label': 'Hold'},
-]
 INVENTORY_MOVEMENT_OPTIONS = [
     {'value': 'receipt', 'label': 'Receipt'},
     {'value': 'shipment', 'label': 'Shipment'},
@@ -624,8 +618,6 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
         if name == 'type' and model_key == 'connection':
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': CONNECTION_TYPE_OPTIONS}
             continue
-        if name == 'reason' and model_key == 'inventory_reservation':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': RESERVATION_REASON_OPTIONS}
             continue
         if name == 'movement_type':
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': INVENTORY_MOVEMENT_OPTIONS}

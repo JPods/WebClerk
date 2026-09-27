@@ -593,7 +593,6 @@ WCAPI_BLESSED_MODELS = {
     "bill_of_material": "products.BillOfMaterial",
     "catalog": "products.Catalog",
     "inventory_layer": "products.InventoryLayer",
-    "inventory_reservation": "products.InventoryReservation",
     "item": "products.Item",
     "item_xref": "products.ItemXRef",
     "metrics": "products.InventoryMetricsSnapshot",

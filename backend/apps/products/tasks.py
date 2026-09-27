@@ -9,7 +9,6 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from apps.transactions.services.inventory_pending_process import process_line_item_pending as process_pending_inventory
-from apps.products.services.inventory.inventory_reserve import release_expired
 
 logger = logging.getLogger('inventory')
 
@@ -45,15 +44,6 @@ def process_pending_inventory_task(limit: int = 200, dry_run: bool = False):
     """
     return process_pending_inventory(limit=limit, dry_run=dry_run)
 
-
-def expire_inventory_reservations_task(batch: int = 500):
-    """Expire stale pending inventory reservations (soft holds)."""
-    return release_expired(batch=batch)
-
-
-# =============================================================================
-# Adaptive Inventory Processing
-# =============================================================================
 
 def get_adaptive_state() -> Dict[str, Any]:
     """Get the current adaptive delay state from cache."""

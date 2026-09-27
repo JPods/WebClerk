@@ -20,9 +20,6 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 #: Known and owned — each entry names who removes it.
 ALLOWED = {
-    # allie-82, plan §16b item 9: the InventoryReservation model and these callers are deleted.
-    ('InventoryReservation', 'expires_at'), ('InventoryReservation', 'context'),
-    ('InventoryReservation', 'quantity'),
 }
 
 QS = {'filter', 'exclude', 'get', 'get_or_create', 'update_or_create', 'values', 'values_list',

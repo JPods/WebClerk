@@ -20,6 +20,5 @@ productions.models.warehouse.py documents the various locations quanties of an i
 
 productions.models.usage.py is a history by period of time of the purchase and sales of items. Not all items are tracked. Some may be tracked by type such as consumables to keep the number of records managable.
 
-productions.models.inventory_reservation.py is a temporary storage of item inventories that are scarce and pulled from available inventory for a period of time to prevent scarce quanties from being sold multiple times.
 
 

@@ -75,25 +75,9 @@ class TransferResponseSerializer(serializers.Serializer):
     errors = serializers.ListField(child=serializers.CharField(), required=False)
 
 
-class InventoryReservationRequestSerializer(serializers.Serializer):
-    """Serializer for inventory reservation requests."""
-
-    order_id = serializers.IntegerField(help_text="Sales order ID")
-
-
-class InventoryReservationResponseSerializer(serializers.Serializer):
-    """Serializer for inventory reservation responses."""
-
-    reservations_created = serializers.IntegerField()
-    lines_reserved = serializers.IntegerField()
-    total_quantity_reserved = serializers.DecimalField(max_digits=15, decimal_places=2)
-
-
 __all__ = [
     'TransferValidationSerializer',
     'TransferValidationResponseSerializer',
     'TransferRequestSerializer',
     'TransferResponseSerializer',
-    'InventoryReservationRequestSerializer',
-    'InventoryReservationResponseSerializer',
 ]

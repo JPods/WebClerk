@@ -392,14 +392,6 @@ PANEL_COLUMNS = {
         f('lot', width=80),
         f('source_doc_type', width=80),
     ],
-    'inventory_reservation': [
-        f('ida', width=80),
-        f('purpose', width=80),
-        f('status', width=70),
-        f('item_ida', width=100),
-        f('qty', width=60, align='right'),
-        f('reason', width=100),
-    ],
     'inventory_adjustment_run': [
         f('ida', width=80),
         f('purpose', width=80),

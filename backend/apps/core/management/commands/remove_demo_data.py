@@ -47,7 +47,6 @@ FK_CLEANUP = [
     ('products_inventorylayer', 'item_id', 'products_item'),
     ('products_siteinventory', 'item_id', 'products_item'),
     ('products_inventorymovement', 'item_id', 'products_item'),
-    ('products_inventoryreservation', 'item_id', 'products_item'),
     ('products_serial', 'item_id', 'products_item'),
     ('products_catalogline', 'item_id', 'products_item'),
     ('products_itemusage', 'item_id', 'products_item'),

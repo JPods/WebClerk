@@ -130,20 +130,3 @@ class ItemUsageSerializer(serializers.ModelSerializer):
             "year", "month", "metrics",
         ]
         read_only_fields = _BASE_RO
-
-
-
-class InventoryReservationSerializer(serializers.ModelSerializer):
-    """InventoryReservation does NOT extend BaseModel — limited system fields."""
-    class Meta:
-        model = _model("InventoryReservation")
-        fields = [
-            "id", "item_ida", "description", "item_id", "warehouse_id",
-            "inventory_layer_id", "qty", "state", "dt_expires",
-            "dt_committed", "dt_released", "context", "reason", "dt_modified",
-        ]
-        read_only_fields = ["id", "dt_modified"]
-
-
-# NOTE: Flow model does not exist in the products app.
-# Serializer removed to prevent import crash. Re-add when model is created.

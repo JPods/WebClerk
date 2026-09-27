@@ -259,7 +259,6 @@ def get_inventory_summary(params):
         'total_items': total_items,
         'in_stock': in_stock,
         'active_layers': 0,
-        'active_reservations': 0,
         'low_stock_count': low_stock,
         'total_value': float(total_value),
         'avg_turns': float(avg_turns),

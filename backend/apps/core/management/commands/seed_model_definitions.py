@@ -396,11 +396,6 @@ INVENTORY_CHECK_LIST_COLUMNS = [
     _lc('ida', width=100), _lc('purpose', width=140), _lc('status', width=80),
     _lc('dt_created', width=90), _lc('comments.process', width=200),
 ]
-INVENTORY_RESERVATION_LIST_COLUMNS = [
-    _lc('ida', width=100), _lc('item_ida', width=100), _lc('purpose', width=140),
-    _lc('status', width=80), _lc('quantity.reserved', width=80, align='right'),
-    _lc('dt_created', width=90), _lc('comments.process', width=200),
-]
 
 # ── Docs ──
 QA_LIST_COLUMNS = [
@@ -485,7 +480,6 @@ MODEL_LIST_COLUMNS = {
     'warehouse': WAREHOUSE_LIST_COLUMNS,
     'inventory_metrics_snapshot': INVENTORY_CHECK_LIST_COLUMNS,
     'inventory_adjustment_run': INVENTORY_CHECK_LIST_COLUMNS,
-    'inventory_reservation': INVENTORY_RESERVATION_LIST_COLUMNS,
     # Core
     'contact': CONTACT_LIST_COLUMNS, 'action': ACTION_LIST_COLUMNS,
     'project': PROJECT_LIST_COLUMNS, 'setting': SETTING_LIST_COLUMNS,

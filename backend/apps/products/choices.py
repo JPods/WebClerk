@@ -11,13 +11,6 @@ ITEM_KIND_CHOICES: Final[ChoiceList] = (
     ("bundle", "Bundle"),
 )
 
-INVENTORY_RESERVATION_STATE_CHOICES: Final[ChoiceList] = (
-    ("pending", "Pending"),
-    ("committed", "Committed"),
-    ("canceled", "Canceled"),
-    ("expired", "Expired"),
-)
-
 INVENTORY_MOVEMENT_TYPE_CHOICES: Final[ChoiceList] = (
     ("receipt", "Receipt"),
     ("issue", "Issue"),
@@ -44,9 +37,6 @@ ITEM_XREF_SOURCE_CHOICES: Final[ChoiceList] = (
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
     "Item": {
         "kind": ITEM_KIND_CHOICES,
-    },
-    "InventoryReservation": {
-        "state": INVENTORY_RESERVATION_STATE_CHOICES,
     },
     "InventoryMovement": {
         "movement_type": INVENTORY_MOVEMENT_TYPE_CHOICES,

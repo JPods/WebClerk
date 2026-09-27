@@ -94,7 +94,6 @@ LAYOUTS = {
     # --- Products (additional) ---
     'inventory_adjustment_run': {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
     'inventory_metrics_snapshot': {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
-    'inventory_reservation': {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
     'pending_inventory_adjustment': {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
     'serial_log':  {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
 

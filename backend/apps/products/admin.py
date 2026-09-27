@@ -8,7 +8,6 @@ from .models import (
     ItemUsage,
     InventoryMetricsSnapshot, InventoryAdjustmentProcessorRun, Variant
 )
-from .models.inventory_reservation import InventoryReservation
 from .models.specification import Specification
 
 
@@ -131,14 +130,6 @@ class VariantAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.Model
     list_display = ("description", "canonical_key", "health_rating", "is_locked", "item_ida", "security_level", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("item_ida", "canonical_key", "description")
-
-
-@admin.register(InventoryReservation)
-class InventoryReservationAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
-    # Scalar fields: description, dt_committed, dt_expires, dt_modified, dt_released, item_ida, qty, reason, state
-    list_display = ("description", "dt_committed", "dt_expires", "dt_released", "item_ida", "qty")
-    list_filter = ("state", "warehouse")
-    search_fields = ("item_ida", "description", "reason")
 
 
 @admin.register(Specification)
