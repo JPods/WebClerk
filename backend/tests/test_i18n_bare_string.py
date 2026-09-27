@@ -20,3 +20,14 @@ def test_a_bare_string_lands_in_the_language_and_keeps_the_others(client, django
     assert r.status_code == 200, r.content
     action.refresh_from_db()
     assert action.action == {'en': 'Call Joe', 'es': 'viejo'}
+
+
+def test_a_plain_text_field_of_the_same_name_is_not_wrapped():
+    """`description` is translated on an action and plain text on an item."""
+    from apps.core.services.door import Actor
+    from apps.core.services.save import save_record
+    from apps.products.models import Item
+    item = Item.objects.create(name='Plain')
+    save_record(Actor.system(), {'model_name': 'item', 'id': item.pk, 'description': 'Just text'})
+    item.refresh_from_db()
+    assert item.description == 'Just text'
