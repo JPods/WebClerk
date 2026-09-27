@@ -547,7 +547,7 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
         raise Refused(400, 'validation_failed', 'Validation failed', flat)
 
     _within_scope(actor, obj, model_key)
-    ctx.messages += _post_persist(obj, data, model_key)
+    ctx.messages += _post_persist(obj, data, model_key, actor=actor)
     flush()
     # The recompute wrote the document through its own instance; the after hooks, and the
     # keyword save below, must start from what it wrote — not overwrite it.
@@ -625,7 +625,7 @@ def _saved_search_guard(actor: Actor, model_cls, model_key: str, data: dict, rec
                       'Only admin users can create or update saved searches', None)
 
 
-def _post_persist(obj, data: dict, model_key: str) -> List[str]:
+def _post_persist(obj, data: dict, model_key: str, actor: Optional[Actor] = None) -> List[str]:
     """The tail every record gets, whatever it is: its org links denormalized, its lines
     processed, and its erosion notes filed. WC2 ran this unconditionally after the case;
     so does this. Returns notes for the caller."""
@@ -638,7 +638,7 @@ def _post_persist(obj, data: dict, model_key: str) -> List[str]:
 
     # A source line's own door writes its release; the line engine writes only lines.
     from apps.core.services.save_line_processing import process_lines
-    process_lines(obj, data, model_key)
+    process_lines(obj, data, model_key, actor=actor)
     return _sync_erosions(obj)
 
 

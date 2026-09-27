@@ -11,8 +11,8 @@ from apps.products.views.serial_views import (
 )
 from apps.products.views.item_inventory_views import BulkItemInventoryView
 from apps.products.views.inventory_adjustment_views import (
-    InventoryAdjustmentView, InventoryAdjustmentHistoryView,
-    InventoryBOMAdjustView, InventoryLayersView,
+     InventoryAdjustmentHistoryView,
+     InventoryLayersView,
 )
 
 app_name = 'products'
@@ -22,8 +22,6 @@ urlpatterns = [
     path('items/inventory/', BulkItemInventoryView.as_view(), name='item-bulk-inventory'),
 
     # Inventory adjustment
-    path('inventory/adjust/', InventoryAdjustmentView.as_view(), name='inventory-adjust'),
-    path('inventory/adjust-bom/', InventoryBOMAdjustView.as_view(), name='inventory-adjust-bom'),
     path('inventory/adjustments/', InventoryAdjustmentHistoryView.as_view(), name='inventory-adjustments'),
     path('inventory/layers/', InventoryLayersView.as_view(), name='inventory-layers'),
 

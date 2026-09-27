@@ -520,106 +520,6 @@ def transfer_layer(
 # 6. Count check — two-phase blind counting (#5)
 # ---------------------------------------------------------------------------
 
-def get_count_sheet(
-    warehouse_id: int,
-    *,
-    item_ids: Optional[list[int]] = None,
-    blind: bool = True,
-) -> list[dict]:
-    """Generate a count sheet for a warehouse. Phase 1 (blind=True) hides expected qty (#5)."""
-    qs = InventoryLayer.objects.filter(warehouse_id=warehouse_id)
-    if item_ids:
-        qs = qs.filter(item_id__in=item_ids)
-
-    # Only layers with remaining qty
-    layers = [l for l in qs.select_related('item', 'warehouse') if l.remaining_qty() > 0]
-
-    sheet = []
-    for layer in layers:
-        row = {
-            'layer_id': layer.id,
-            'item_id': layer.item_id,
-            'item_ida': layer.item_ida,
-            'item_name': layer.item.name if layer.item else '',
-            'lot': layer.lot,
-            'location': {
-                'warehouse': layer.warehouse.code,
-                'aisle': layer.warehouse.count.get('aisle', ''),
-                'shelf': layer.warehouse.count.get('shelf', ''),
-                'bin': layer.warehouse.count.get('bin', ''),
-            },
-            'qr_code': layer.item.qr_code if hasattr(layer.item, 'qr_code') else '',
-            'unit_cost': float(layer.cost.get('landed', 0)),
-        }
-        if not blind:  # Phase 2 — reveal expected qty
-            row['expected_qty'] = float(layer.remaining_qty())
-        sheet.append(row)
-
-    return sheet
-
-
-@transaction.atomic
-def record_count(
-    layer_id: int,
-    actual_qty: Decimal,
-    *,
-    counted_by: str = '',
-    counted_by_id: Optional[int] = None,
-    explanation: str = '',
-) -> dict:
-    """Record a physical count against a layer. Creates adjustment if variance exists."""
-    layer = InventoryLayer.objects.select_for_update().get(id=layer_id)
-    expected = layer.remaining_qty()
-    variance = actual_qty - Decimal(str(expected))
-
-    result = {
-        'layer_id': layer_id,
-        'expected': float(expected),
-        'actual': float(actual_qty),
-        'variance': float(variance),
-        'adjustment_posted': False,
-    }
-
-    if variance != 0:
-        # Post adjustment movement
-        InventoryMovement.objects.create(
-            item=layer.item,
-            warehouse=layer.warehouse,
-            inventory_layer=layer,
-            site_code=layer.warehouse.site_code,
-            movement_type=InventoryMovement.MOVEMENT_ADJUST,
-            quantity=variance,
-            reason=f'Count: {explanation}' if explanation else f'Count variance: {variance}',
-            source_doc_type='count',
-            source_doc_id=layer_id,
-        )
-
-        # Adjust the layer's quantity
-        if variance > 0:
-            q = layer.quantity or {}
-            q['received'] = float(Decimal(str(q.get('received', 0))) + variance)
-            layer.quantity = q
-        else:
-            layer.mark_issue(abs(variance))
-
-        layer.save(update_fields=['quantity'])
-        result['adjustment_posted'] = True
-
-        # Recalc average cost
-        recalc_average_cost(layer.item_id)
-
-    # Update warehouse count snapshot
-    layer.warehouse.update_count(
-        value=float(actual_qty),
-        user=counted_by or counted_by_id,
-        deviation=float(variance),
-        item=layer.item,
-    )
-    layer.warehouse.save(update_fields=['count'])
-
-    return result
-
-
 # ---------------------------------------------------------------------------
 # 7. ABC classification for cycle counting (#4)
 # ---------------------------------------------------------------------------
@@ -908,56 +808,11 @@ def _create_deficit_alert(item: Item, deficit_qty: Decimal, batch_id: str, reaso
         logger.error('%s alert Action not created', 'negative-inventory', exc_info=True)
 
 
-def adjust_item_quantity_via_pending(params: dict) -> dict:
-    """Manage action wrapper: create a Pending record for an inventory adjustment.
-
-    Pending.save() calls try_apply() automatically.
-
-    A correction moves real stock, so it carries the name of whoever made it (Bill,
-    2026-09-20: *"with a workorder controlling multiple lines there is a responsible
-    person directly involved"*). A batch of corrections belongs in a count workorder,
-    which holds the lines together under one person; this is the single-item path, and
-    it is anonymous no longer.
-    """
-    from django.core.exceptions import ValidationError
-
-    from apps.core.models import Pending
-
-    acted_by = (params.get('acted_by') or '').strip()
-    if not acted_by:
-        raise ValidationError({'acted_by': 'An adjustment records who made it'})
-
-    pending = Pending.objects.create(
-        model_name='item',
-        record_id=str(params['item_id']),
-        purpose='inventory_line_add',
-        name=f"Adjust {params['field']}: {params['item_id']} ({acted_by})",
-        changes={
-            params['field']: float(params['delta']),
-            'item_id': params['item_id'],
-            'reason': params.get('reason', ''),
-            'acted_by': acted_by,
-            'source_type': params.get('source_type', ''),
-            'source_id': params.get('source_id'),
-            'source_line_id': params.get('source_line_id'),
-        },
-    )
-    return {
-        'pending_id': pending.pk,
-        'applied': pending.is_processed(),
-        'item_id': params['item_id'],
-        'field': params['field'],
-        'delta': float(params['delta']),
-        'acted_by': acted_by,
-    }
-
-
 __all__ = [
     'create_layer', 'consume_fifo', 'consume_lifo', 'consume_by_item_method', 'give_back',
     'settle_deficit',
     'recalc_average_cost', 'split_layer', 'transfer_layer',
-    'get_count_sheet', 'record_count', 'classify_abc',
+    'classify_abc',
     'compute_margin_velocity', 'update_item_margin_velocity',
     'check_orphaned_events', 'tally_site_buckets',
-    'adjust_item_quantity_via_pending',
 ]

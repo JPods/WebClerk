@@ -517,55 +517,6 @@ def _post_gl_entries(params: dict) -> dict:
     }
 
 
-def _reverse_gl_entries(params: dict) -> dict:
-    """Reverse GL journal entries for a journalized invoice or cash.
-
-    Creates contra entries (debit↔credit swapped). Original entries remain
-    as permanent record. Record is unlocked after reversal so it can be
-    edited and re-journalized.
-
-    Params:
-        model_name: 'invoice' or 'cash'
-        id: record primary key
-        reason: optional reason for reversal
-    """
-    from django.apps import apps as dj_apps
-    from apps.accounts.services.ledger_balance import reverse_gl_entries
-
-    model_name = params.get('model_name', '').lower()
-    record_id = params.get('id')
-    reason = params.get('reason', '')
-    if not model_name or not record_id:
-        raise ValueError("model_name and id are required")
-    if model_name not in ('invoice', 'cash'):
-        raise ValueError("model_name must be 'invoice' or 'cash'")
-
-    app_label = 'transactions'
-    Model = dj_apps.get_model(app_label, model_name.capitalize())
-    try:
-        instance = Model.objects.get(pk=record_id)
-    except Model.DoesNotExist:
-        raise ValueError(f"{model_name} #{record_id} not found")
-
-    if not getattr(instance, 'is_locked', False):
-        raise ValueError(f"{model_name} #{record_id} is not journalized (not locked)")
-
-    count = reverse_gl_entries(instance, reason=reason)
-    if count == 0:
-        return {
-            'reversed': 0,
-            'message': f"No entries to reverse (already reversed or no GL entries)",
-        }
-
-    return {
-        'reversed': count,
-        'model_name': model_name,
-        'id': record_id,
-        'unlocked': True,
-        'message': f"Reversed {count} GL entries for {model_name} #{record_id}. Record unlocked for editing.",
-    }
-
-
 def _run_training_flow(params: dict) -> dict:
     """Alice: run a training/health-check transaction cycle.
 
@@ -929,7 +880,6 @@ def _get_bootstrap_dt(params):
 
 _ACTION_DISPATCH = {
     "post_gl_entries": _post_gl_entries,
-    "reverse_gl_entries": _reverse_gl_entries,
     "run_training_flow": _run_training_flow,
     "cleanup_training": _cleanup_training,
     "get_training_activity": _get_training_activity,
@@ -1088,8 +1038,6 @@ _ACTION_DISPATCH = {
     "fulfill_backorder": lambda p: __import__('apps.transactions.services.fulfillment.fulfillment_backorder', fromlist=['fulfill_backorder']).fulfill_backorder(p['action_id'], p['qty_fulfilled']),
     "get_backorder_summary": lambda p: __import__('apps.transactions.services.fulfillment.fulfillment_backorder', fromlist=['get_backorder_summary_by_item']).get_backorder_summary_by_item(),
     # ── Inventory Stacks FIFO/LIFO (GAP-02) ──
-    "receive_inventory": lambda p: __import__('apps.products.services.inventory.inventory_stacks', fromlist=['receive_inventory']).receive_inventory(p['item_id'], p['warehouse_id'], p['qty_received'], __import__('decimal').Decimal(str(p['unit_cost'])), p.get('source_type', 'purchase'), p.get('source_id'), p.get('lot', ''), p.get('serial_numbers')),
-    "consume_inventory": lambda p: __import__('apps.products.services.inventory.inventory_stacks', fromlist=['consume_inventory']).consume_inventory(p['item_id'], p['qty_to_consume'], p.get('method', 'fifo'), p.get('warehouse_id'), p.get('source_type', 'invoice'), p.get('source_id')),
     "get_inventory_summary": lambda p: __import__('apps.products.services.inventory.inventory_stacks', fromlist=['get_item_inventory_summary']).get_item_inventory_summary(p['item_id'], p.get('warehouse_id')),
     # ── Serial Lifecycle (GAP-03) ──
     "create_serial_on_receive": lambda p: __import__('apps.products.services.serial.serial_lifecycle', fromlist=['create_serial_on_receive']).create_serial_on_receive(p['item_id'], p['serial_number'], p.get('vendor_id'), p.get('purchase_id'), p.get('purchase_line_id'), p.get('unit_cost', '0'), p.get('warehouse_id'), p.get('model_ida', '')),
@@ -1199,7 +1147,6 @@ _ACTION_DISPATCH = {
     # ── Clone / Duplicate ──
     "clone_record": lambda p: __import__('apps.core.services.record_clone', fromlist=['clone_record']).clone_record(p['model_name'], p['record_id'], p.get('include_children', True), p.get('contact_id')),
     # ── Inventory Pending (ONE PATH — Pending.try_apply on save) ──
-    "adjust_item_quantity": lambda p: __import__('apps.products.services.inventory.inventory_layers', fromlist=['adjust_item_quantity_via_pending']).adjust_item_quantity_via_pending(p),
     "get_pending_for_item": lambda p: list(
         __import__('apps.core.models', fromlist=['Pending']).Pending.objects.filter(
             model_name='item', record_id=str(p['item_id']),
@@ -1294,24 +1241,6 @@ _ACTION_DISPATCH = {
     "allocation_history": lambda p: __import__(
         'apps.products.services.inventory.inventory_allocate', fromlist=['allocation_history']
     ).allocation_history(int(p['item_id']), limit=int(p.get('limit', 50))),
-    # A count is a workorder used as an audit tool, with someone answerable for it
-    # (Bill, 2026-09-20). The counter writes what they see; nobody types a variance.
-    "count_inventory": lambda p: __import__(
-        'apps.transactions.services.transaction_flow', fromlist=['count_inventory', 'CountLine']
-    ).count_inventory(
-        p['count_id'],
-        [__import__('apps.transactions.services.transaction_flow',
-                    fromlist=['CountLine']).CountLine(
-            item_id=int(line['item_id']), counted=line['counted'],
-            warehouse_code=line['warehouse_code'], reason=line.get('reason', 'cycle_count'),
-            unit_cost=line.get('unit_cost'), lot=line.get('lot'),
-            serial_batch=line.get('serial_batch'))
-         for line in (p.get('lines') or [])],
-        counted_by=p.get('counted_by', ''),
-        notes=p.get('notes', ''),
-        contact_id=int(p['contact_id']) if p.get('contact_id') else None,
-    ),
-    # Buckets vs documents — the reconciliation, as data (Bite 3).
     "commitment_gaps": lambda p: __import__(
         'apps.products.management.commands.rebuild_commitment_buckets',
         fromlist=['commitment_gaps']

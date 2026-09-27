@@ -120,8 +120,11 @@ def _line_not_found(line_id, model_key: str, header_id):
                    {'line_id': line_id, 'model_name': model_key, 'id': header_id})
 
 
-def process_lines(obj, data: dict, model_key: str) -> list[int]:
+def process_lines(obj, data: dict, model_key: str, actor=None) -> list[int]:
     """Write the lines named in ``data['lines']`` for header ``obj`` (already saved).
+
+    ``actor`` is who is saving: each line carries it (``line._actor``) to its door, which
+    records it on the line's event and refuses a count nobody is responsible for (plan §16c).
 
     Returns the ids of the lines created. Raises ``Refused`` for a line that is not this
     header's, or that tries to change its item; the door rolls the whole save back.
@@ -178,6 +181,7 @@ def process_lines(obj, data: dict, model_key: str) -> list[int]:
             line_obj = LineModel()
             if keep_uuid:
                 line_obj.uuid = keep_uuid
+            line_obj._actor = actor
             setattr(line_obj, f'{fk_field_name}_id', obj.pk)
             _copy_line_fields(line_obj, line_data, skip_fields, fk_descriptors, merge=False)
             if not getattr(line_obj, 'line_number', 0):
@@ -192,6 +196,7 @@ def process_lines(obj, data: dict, model_key: str) -> list[int]:
         line_obj = held.get(_as_pk(line_id))
         if line_obj is None:
             raise _line_not_found(line_id, model_key, obj.pk)
+        line_obj._actor = actor
 
         # A removed line arrives marked (Bill, 2026-09-22); the backend deletes it, and the
         # line's post_delete writes the Pending that releases what it held.
@@ -213,7 +218,8 @@ def process_lines(obj, data: dict, model_key: str) -> list[int]:
         obj.save(update_fields=['line_increment', 'version', 'dt_modified'])
     if changed:
         # After the commit (Fable, import plan): it called Celery apply_async inside the
-        # transaction, so a rolled-back save — an import preview — still started a drain.
+        # transaction, so a rolled-back save — an import preview — still started a drain, and a
+        # worker started before the commit would not see these rows (walkthrough stop 6).
         from django.db import transaction
         from apps.products.dispatch_pending import dispatch_pending_processing
         transaction.on_commit(lambda: dispatch_pending_processing(limit=200, caller='save_line_processing'))

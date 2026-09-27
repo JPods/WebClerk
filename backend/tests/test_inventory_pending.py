@@ -62,16 +62,22 @@ class PendingInventoryTests(TestCase):
         self.item.refresh_from_db()
         self.assertEqual(self.item.quantity.get('on_po'), 6)
 
-    def test_issue_or_enqueue_creates_pending(self):
-        """InventoryLayer.issue_or_enqueue creates a Pending record."""
+    def test_an_issue_that_names_no_layer_consumes_one(self):
+        """Layers follow every decrease (plan §16b, Bill 2026-09-26): an applied Pending that
+        takes on_hand down and names no layer is consumed by the item's costing method, in the
+        same apply. (Replaces InventoryLayer.issue_or_enqueue, which marked the layer outside
+        the Pending — deleted.)"""
         stack = InventoryLayer.objects.create(
             item=self.item, warehouse=self.wh,
-            quantity={'received': 100},
+            quantity={'received': 100}, cost={'landed': 2.0},
         )
-        ok, pending = stack.issue_or_enqueue(Decimal('5'), reason='pick')
-        self.assertIsInstance(pending, Pending)
-        self.assertTrue(ok)
+        pending = Pending.objects.create(
+            model_name='item', record_id=str(self.item.pk), purpose='inventory_line_add',
+            changes={'on_hand': -5, 'item_id': self.item.pk, 'reason': 'pick'})
         self.assertTrue(pending.is_processed())
+        stack.refresh_from_db()
+        self.assertEqual(float(stack.quantity['issued']), 5)
+        self.assertEqual(pending.changes['consumed']['layers'][0]['layer_id'], stack.pk)
 
     def test_stale_copy_does_not_apply_twice(self):
         """G9: a trigger holding a copy loaded before another trigger applied the record

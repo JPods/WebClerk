@@ -20,6 +20,10 @@ class TransactionsConfig(AppConfig):
         from .services.cash import invoice_commands
         invoice_commands.register()
 
+        # Unjournalize: kept, and glaring (services/journal_commands.py, plan §16d).
+        from .services import journal_commands
+        journal_commands.register()
+
         # Convert: one engine, a command on its source (services/convert/convert.py).
         from .services.convert import convert
         convert.register()

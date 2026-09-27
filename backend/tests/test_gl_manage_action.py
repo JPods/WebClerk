@@ -77,6 +77,15 @@ class TestPostGLManageAction:
 
 
 @pytest.mark.django_db
+def _unjournalize(invoice, reason='test correction'):
+    """Unjournalize is a command on the record now (plan §16d, Bill 2026-09-26); the _manage
+    reverse_gl_entries action is gone."""
+    from apps.core.services.door import Actor
+    from apps.core.services.verbs import run_command
+    return run_command(Actor(kind='system', source='command'), 'unjournalize', 'invoice',
+                       invoice.pk, {'reason': reason})
+
+
 @pytest.mark.usefixtures("chart_of_accounts")
 class TestReverseGLManageAction:
     """Reverse GL entries — contra entries, unlock record."""
@@ -88,13 +97,12 @@ class TestReverseGLManageAction:
 
     def test_reversal_creates_contra_entries(self):
         """Reversal swaps debit↔credit, same amounts."""
-        from apps.core.views.manage_view import _reverse_gl_entries
         from apps.accounts.models import GlJournal
 
         invoice = invoice_with_line(500.0)
         self._journalize(invoice)
 
-        result = _reverse_gl_entries({'model_name': 'invoice', 'id': invoice.pk})
+        result = _unjournalize(invoice)
         assert result['reversed'] == 2
 
         # Should now have 4 entries: 2 original + 2 reversal
@@ -116,7 +124,6 @@ class TestReverseGLManageAction:
 
     def test_reversal_unlocks_record(self):
         """After reversal, record is unlocked for editing."""
-        from apps.core.views.manage_view import _reverse_gl_entries
 
         invoice = invoice_with_line(500.0)
         self._journalize(invoice)
@@ -124,38 +131,38 @@ class TestReverseGLManageAction:
         invoice.refresh_from_db()
         assert invoice.is_locked is True
 
-        _reverse_gl_entries({'model_name': 'invoice', 'id': invoice.pk})
+        _unjournalize(invoice)
 
         invoice.refresh_from_db()
         assert invoice.is_locked is False
 
     def test_double_reversal_blocked(self):
         """Can't reverse the same entries twice."""
-        from apps.core.views.manage_view import _reverse_gl_entries
 
         invoice = invoice_with_line(500.0)
         self._journalize(invoice)
 
-        result1 = _reverse_gl_entries({'model_name': 'invoice', 'id': invoice.pk})
+        result1 = _unjournalize(invoice)
         assert result1['reversed'] == 2
 
         # Re-lock to allow second attempt
         invoice.__class__.objects.filter(pk=invoice.pk).update(is_locked=True)
 
-        result2 = _reverse_gl_entries({'model_name': 'invoice', 'id': invoice.pk})
+        result2 = _unjournalize(invoice)
         assert result2['reversed'] == 0
 
     def test_unlocked_record_rejected(self):
         """Can't reverse a record that isn't journalized."""
-        from apps.core.views.manage_view import _reverse_gl_entries
 
+        from apps.core.services.door import Refused
         invoice = InvoiceFactory()
-        with pytest.raises(ValueError, match="not journalized"):
-            _reverse_gl_entries({'model_name': 'invoice', 'id': invoice.pk})
+        with pytest.raises(Refused) as refused:
+            _unjournalize(invoice)
+        assert refused.value.code == 'not_journalized'
 
     def test_full_cycle_post_reverse_repost(self):
         """Post → Reverse → Edit → Re-post: the complete correction workflow."""
-        from apps.core.views.manage_view import _post_gl_entries, _reverse_gl_entries
+        from apps.core.views.manage_view import _post_gl_entries
         from apps.accounts.models import GlJournal
 
         invoice = invoice_with_line(500.0)
@@ -163,7 +170,7 @@ class TestReverseGLManageAction:
         assert GlJournal.objects.filter(source_id=invoice.pk).count() == 2
 
         # Reverse
-        _reverse_gl_entries({'model_name': 'invoice', 'id': invoice.pk})
+        _unjournalize(invoice)
         assert GlJournal.objects.filter(source_id=invoice.pk).count() == 4
 
         invoice.refresh_from_db()

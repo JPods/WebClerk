@@ -642,6 +642,8 @@ class BaseLineCore(HardDeleteOnly, BaseModel):
             'item_id': line_item_id(self),
             'active': float(quantity.get('active') or 0),
             'remaining': None if remaining is None else float(remaining),
+            # A count line's book (plan §16a.2): its variance is active − staged.
+            'staged': float(quantity.get('staged') or 0),
             'parent_line_id': loaded['parent_line_id'],
             'version': loaded['version'],
         }
@@ -762,8 +764,9 @@ class JournalizedLineError(ValueError):
         self.envelopes = list(envelopes)
         super().__init__(
             f"line {line_id} belongs to a journalized document: {', '.join(self.envelopes)} "
-            f"cannot change. Reverse the journal entry first. Comments, cash and operational "
-            f"fields are not locked.")
+            f"cannot change. Correct it with an amending document (a return line or credit, an "
+            f"adjustment invoice, a count workorder); unjournalizing is a counted command with a "
+            f"reason. Comments, cash and operational fields are not locked.")
 
 
 def _envelope_changed(was: dict, now: dict) -> bool:

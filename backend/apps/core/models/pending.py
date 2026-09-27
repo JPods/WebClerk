@@ -195,6 +195,7 @@ class Pending(CoreModel):
                     return False
 
                 quantity = item.quantity or {}
+                self._note_count_book(item_id, quantity)
 
                 # Apply deltas from the pending data. 'allocated' is here because a
                 # salesperson's allocation is a movement like any other — entered, never
@@ -358,6 +359,24 @@ class Pending(CoreModel):
             raise ValidationError({'layer': f"receipt line {spec.get('line_id')} not found "
                                             f"for layer {layer.pk}"})
 
+    def _note_count_book(self, item_id, quantity):
+        """A count's book was taken when the line was saved; if stock moved before this apply,
+        the counter's number still wins and the move is on the record (§16a.10)."""
+        config = self.config if isinstance(self.config, dict) else {}
+        event = config.get('event')
+        if not (isinstance(event, dict) and event.get('kind') == 'count' and 'book' in event):
+            return
+        from decimal import Decimal
+        from apps.products.models.inventory_layer import InventoryLayer
+        if event.get('warehouse_id'):
+            now = sum((Decimal(str(layer.remaining_qty())) for layer in InventoryLayer.objects.filter(
+                item_id=item_id, warehouse_id=event['warehouse_id'])), Decimal('0'))
+        else:
+            now = Decimal(str(quantity.get('on_hand') or 0))
+        event['book_now'] = float(now)
+        event['moved_during_count'] = float(now) != float(event['book'])
+        self.config = config
+
     def _open_deficit(self, item_id, qty, *, reason: str):
         """The shelf is short by qty: an open deficit Pending says so until stock settles it."""
         from decimal import Decimal
@@ -412,20 +431,78 @@ class Pending(CoreModel):
         live = self._line_history(config)
         layers, cost, short, settled, method = [], Decimal('0'), Decimal('0'), Decimal('0'), None
 
-        def _return_layer(qty, warehouse_id, why):
+        def _return_layer(qty, warehouse_id, why, unit=None, flag='return'):
             nonlocal cost
-            item = Item.objects.only('id', 'cost').get(pk=item_id)
-            unit = _get_item_avg_cost(item)
+            if unit is None:
+                unit = _get_item_avg_cost(Item.objects.only('id', 'cost').get(pk=item_id))
             layer = create_layer(item_id, warehouse_id, qty, unit, source_doc_type=doc_type,
                                  source_doc_id=doc_id, reason=why, recalc=False)
             layers.append({'layer_id': layer.pk, 'qty': float(-qty), 'unit_cost': float(unit),
-                           'return': True})
+                           flag: True})
             cost -= qty * unit
+            return layer
+
+        def _shrink_own(qty, flag):
+            """Take the line's own layers (its returns, or what it found) back down, newest first."""
+            nonlocal cost
+            held: dict = {}
+            for e in (e for h in history for e in (h.get('layers') or []) if e.get(flag)):
+                held[e['layer_id']] = held.get(e['layer_id'], Decimal('0')) - Decimal(str(e['qty']))
+            for layer_id in sorted(held, reverse=True):
+                if qty <= 0:
+                    break
+                layer = InventoryLayer.objects.select_for_update(nowait=True).get(pk=layer_id)
+                if layer.is_locked:
+                    raise LayerLocked(layer.pk)
+                take = min(held[layer_id], Decimal(str(layer.remaining_qty())), qty)
+                if take <= 0:
+                    continue
+                q = dict(layer.quantity or {})
+                q['received'] = float(Decimal(str(q.get('received') or 0)) - take)
+                layer.quantity = q
+                layer.save(update_fields=['quantity', 'dt_modified', 'version'])
+                unit = Decimal(str((layer.cost or {}).get('landed') or 0))
+                layers.append({'layer_id': layer_id, 'qty': float(take), 'unit_cost': float(unit), flag: True})
+                cost += take * unit
+                qty -= take
+            return qty
 
         for spec in specs:
             # The line as it stands, or — deleted before this applied — the history it carried.
             history = live or spec.get('history') or []
-            if spec.get('consume'):
+            if spec.get('consume') and spec.get('layer_id'):
+                # A count names the layer it counted: missing stock comes off that layer first.
+                qty = Decimal(str(spec['consume']))
+                layer = InventoryLayer.objects.select_for_update(nowait=True).select_related(
+                    'warehouse').filter(pk=spec['layer_id'], item_id=item_id).first()
+                if layer is not None:
+                    if layer.is_locked:
+                        raise LayerLocked(layer.pk)
+                    take = min(Decimal(str(layer.remaining_qty())), qty)
+                    if take > 0:
+                        layer.mark_issue(take)
+                        layer.save(update_fields=['quantity'])
+                        unit = Decimal(str((layer.cost or {}).get('landed') or 0))
+                        layers.append({'layer_id': layer.pk, 'qty': float(take), 'unit_cost': float(unit)})
+                        cost += take * unit
+                        qty -= take
+                spec = {**spec, 'consume': float(qty), 'layer_id': None}
+            if spec.get('found'):
+                layer = _return_layer(Decimal(str(spec['found'])), spec['warehouse_id'], 'Found in count',
+                                      unit=Decimal(str(spec.get('unit_cost') or 0)), flag='found')
+                if config.get('line_model') == 'workorderline' and doc_id:
+                    from apps.transactions.models import WorkOrderLine
+                    # .update(): the line's own save would run its door again inside this apply.
+                    WorkOrderLine.objects.filter(pk=doc_id).update(inventory_layer=layer)
+            elif spec.get('found_shrink'):
+                left = _shrink_own(Decimal(str(spec['found_shrink'])), 'found')
+                if left > 0:
+                    r = consume_by_item_method(item_id, left, reason=reason, source_doc_type=doc_type,
+                                               source_doc_id=doc_id, recalc=False)
+                    layers += r['layers']
+                    cost += Decimal(str(r['cost']))
+                    short += Decimal(str(r['short']))
+            elif spec.get('consume'):
                 r = consume_by_item_method(item_id, Decimal(str(spec['consume'])),
                                            warehouse_id=spec.get('warehouse_id'), reason=reason,
                                            source_doc_type=doc_type, source_doc_id=doc_id, recalc=False)
@@ -443,7 +520,8 @@ class Pending(CoreModel):
                     settled += take
                     qty -= take
                 if qty > 0:
-                    taken = [e for h in history for e in (h.get('layers') or []) if not e.get('return')]
+                    taken = [e for h in history for e in (h.get('layers') or [])
+                             if not e.get('return') and not e.get('found')]
                     g = give_back(item_id, taken, qty, reason=reason, source_doc_type=doc_type,
                                   source_doc_id=doc_id)
                     layers += g['layers']
@@ -463,28 +541,7 @@ class Pending(CoreModel):
             elif spec.get('return'):
                 _return_layer(Decimal(str(spec['return'])), spec['warehouse_id'], 'Return')
             elif spec.get('return_shrink'):
-                qty = Decimal(str(spec['return_shrink']))
-                held: dict = {}
-                for e in (e for h in history for e in (h.get('layers') or []) if e.get('return')):
-                    held[e['layer_id']] = held.get(e['layer_id'], Decimal('0')) - Decimal(str(e['qty']))
-                for layer_id in sorted(held, reverse=True):
-                    if qty <= 0:
-                        break
-                    layer = InventoryLayer.objects.select_for_update(nowait=True).get(pk=layer_id)
-                    if layer.is_locked:
-                        raise LayerLocked(layer.pk)
-                    take = min(held[layer_id], Decimal(str(layer.remaining_qty())), qty)
-                    if take <= 0:
-                        continue
-                    q = dict(layer.quantity or {})
-                    q['received'] = float(Decimal(str(q.get('received') or 0)) - take)
-                    layer.quantity = q
-                    layer.save(update_fields=['quantity', 'dt_modified', 'version'])
-                    unit = Decimal(str((layer.cost or {}).get('landed') or 0))
-                    layers.append({'layer_id': layer_id, 'qty': float(take), 'unit_cost': float(unit),
-                                   'return': True})
-                    cost += take * unit
-                    qty -= take
+                qty = _shrink_own(Decimal(str(spec['return_shrink'])), 'return')
                 if qty > 0:
                     # The return's layer has been sold from: the rest leaves by costing method.
                     r = consume_by_item_method(item_id, qty, reason=reason, source_doc_type=doc_type,

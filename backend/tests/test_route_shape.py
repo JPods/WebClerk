@@ -147,8 +147,6 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/jpods/ui/stations/',
     'wcapi/jpods/ui/travel/',
     'wcapi/products/bom/<int:pk>/',
-    'wcapi/products/inventory/adjust-bom/',
-    'wcapi/products/inventory/adjust/',
     'wcapi/products/inventory/adjustments/',
     'wcapi/products/inventory/layers/',
     'wcapi/products/items/<int:item_id>/bom/propagate-cost/',

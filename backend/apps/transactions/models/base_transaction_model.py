@@ -462,8 +462,9 @@ class JournalizedLockError(ValueError):
         self.keys = list(keys)
         super().__init__(
             f"{label} is journalized: totals.{', totals.'.join(self.keys)} cannot change. "
-            f"Reverse the journal entry first. Cash, comments and operational fields are "
-            f"not locked.")
+            f"Correct it with an amending document (a return line or credit, an adjustment "
+            f"invoice, a count workorder); unjournalizing is a counted command with a reason. "
+            f"Cash, comments and operational fields are not locked.")
 
 
 def _round(value):

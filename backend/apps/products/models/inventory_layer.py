@@ -191,41 +191,6 @@ class InventoryLayer(ItemLinkedBase):
             c.setdefault('trend_pct', 0.0)
         setattr(self, 'cost', c)
 
-    def issue_or_enqueue(self, qty: Decimal | float, reason: str = "issue", request_ref: dict | None = None):
-        """Create a Pending record for this inventory layer issue.
-
-        The Pending.save() automatically calls try_apply() which applies
-        immediately if the item is not locked. If locked, celery picks it up.
-        Returns (applied: bool, pending_obj).
-        """
-        from apps.core.models import Pending
-
-        request_qty = Decimal(str(qty))
-        item_id = self.item_id
-
-        # Create Pending — try_apply fires automatically in save()
-        pending = Pending.objects.create(
-            model_name='item',
-            record_id=str(item_id),
-            purpose='inventory_line_add',
-            name=f'Layer issue: {reason}',
-            changes={
-                'on_hand': float(-request_qty),
-                'item_id': item_id,
-                'layer_id': self.pk,
-                'reason': reason,
-                **(request_ref or {}),
-            },
-        )
-
-        applied = pending.is_processed()
-        if applied:
-            # Also update the layer's issued quantity
-            self.mark_issue(qty)
-            self.save(update_fields=['quantity', 'dt_modified', 'version'])
-
-        return applied, pending
-
 
 class SiteInventory(ItemLinkedBase):
     @property

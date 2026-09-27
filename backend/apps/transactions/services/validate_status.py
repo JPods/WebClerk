@@ -108,6 +108,13 @@ JOURNALIZABLE_MODELS = {
     'invoice_line', 'purchase_line', 'receipt_line',
 }
 
+#: Bill, 2026-09-26: a journalized record is corrected by an amending document, so the fault
+#: stays glaring and can later be prevented. Unjournalizing stays possible, and loud.
+AMEND_COACHING = ("Correct it with an amending document: a return "
+                  "(negative) line or credit, an adjustment invoice, or a count/adjust workorder. "
+                  "(Unjournalize is POST /wcapi/<model>/<id>/unjournalize/ with a reason, and it "
+                  "is counted.)")
+
 
 def is_journalized(instance) -> bool:
     """Check if a record has been journalized (GL posted).
@@ -247,8 +254,7 @@ def validate_transition(
     if is_journalized(instance):
         return ValidationResult(
             False,
-            [f"Cannot change status — {model_type} has been journalized. "
-             f"Reverse the journal entry first."],
+            [f"Cannot change status — {model_type} has been journalized. {AMEND_COACHING}"],
         )
 
     # ── Same status — no-op, allow ──
@@ -327,11 +333,7 @@ def validate_modification(
 
     if model_type in JOURNALIZABLE_MODELS or check_type in JOURNALIZABLE_MODELS:
         if is_journalized(instance):
-            return ValidationResult(
-                False,
-                [f"Cannot modify {model_type} — record has been journalized. "
-                 f"To correct, reverse the journal entry, make changes, then re-journalize."],
-            )
+            return ValidationResult(False, [f"Cannot modify {model_type}. {AMEND_COACHING}"])
 
     return ValidationResult(True)
 

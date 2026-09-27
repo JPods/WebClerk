@@ -91,6 +91,11 @@ def children_active_sum(line: Any) -> Optional[float]:
     if name == 'workorderline':
         events = [e for e in (getattr(line, 'events', None) or []) if isinstance(e, dict)]
         line._child_count = len(events)
+        if getattr(line, 'line_type', None) in ('count', 'adjust'):
+            # A correction is done once recorded: its remaining is 0, not active − Σ event qty
+            # (an event's qty is the stock it moved, not work done — §16c.2).
+            quantity = line.quantity if isinstance(line.quantity, dict) else {}
+            return float(quantity.get('active') or 0) if events else 0.0
         return round(sum(float(e.get('qty') or 0) for e in events), 6)
     if name not in CHILD_OF:
         return None
