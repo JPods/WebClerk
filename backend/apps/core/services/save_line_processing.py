@@ -188,6 +188,17 @@ def process_lines(obj, data: dict, model_key: str, actor=None) -> list[int]:
                 raise Refused(409, 'line_uuid_elsewhere',
                               f'Line uuid {keep_uuid} belongs to another document.', model_key)
         carrier = read_carrier(line_data)      # typed; an unknown signal raises
+        refs = line_data.get('refs') if isinstance(line_data.get('refs'), dict) else {}
+        if 'bom' in refs or 'bom_expand' in refs:
+            # Expand writes where a line came from; a request never re-links it (Fable #10).
+            raise Refused(400, 'bom_link_is_the_record',
+                          "A line's BOM link is set by expand; expand again to change it.",
+                          {'line_id': line_data.get('id')})
+        if 'events' in line_data:
+            # A line's events are what the applier did to it; a request never writes them.
+            raise Refused(400, 'events_are_the_record',
+                          "A line's events are written by the server as stock moves; send the change, "
+                          "not the record of it.", {'line_id': line_data.get('id')})
         _stamp_line_comments(line_data, actor)
 
         if _is_new_line(line_id):

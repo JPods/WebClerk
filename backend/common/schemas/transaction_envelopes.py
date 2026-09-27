@@ -22,7 +22,7 @@ Architecture (established 2026-08-23):
 See: readmes/topics/architecture/pjpv-architecture.md
 """
 from typing import Literal, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -829,6 +829,50 @@ class TransactionAllocations(BaseModel):
 
     class Config:
         extra = "forbid"
+
+
+class ConsumedLayer(BaseModel):
+    """One layer a line's Pending moved: qty taken (+) or put back on the shelf (−)."""
+    model_config = ConfigDict(extra='allow')
+    layer_id: Optional[int] = None
+    qty: float = 0.0
+    unit_cost: float = 0.0
+    found: Optional[bool] = None
+    build: Optional[bool] = None
+    fallback: Optional[str] = None
+
+
+class EventConsumed(BaseModel):
+    """What the layers gave for one apply: the line's cost of goods (stock plan §16b)."""
+    model_config = ConfigDict(extra='allow')
+    layers: list[ConsumedLayer] = Field(default_factory=list)
+    cost: float = 0.0
+    short: float = 0.0
+    short_settled: float = 0.0
+    method: str = ''
+
+
+class LineEvent(BaseModel):
+    """One Pending applied to a stock line, appended by the applier — the line's record of what
+    happened to it; never written by a request (plan §16c/§16d, workorder plan)."""
+    model_config = ConfigDict(extra='allow')
+    id: str = ''
+    kind: str = ''
+    dt: Optional[int] = None
+    by: Optional[int | str] = None           # a Contact id, or '<kind>:<source>' for a system actor
+    qty: float = 0.0
+    reason: str = ''
+    book: Optional[float] = None
+    counted: Optional[float] = None
+    variance: Optional[float] = None
+    book_now: Optional[float] = None
+    moved_during_count: Optional[bool] = None
+    warehouse_id: Optional[int] = None
+    layer_id: Optional[int] = None
+    unit_cost: Optional[float] = None
+    parts_cost: Optional[float] = None
+    cost: Optional[float] = None
+    consumed: Optional[EventConsumed] = None
 
 
 class LinePhysical(BaseModel):

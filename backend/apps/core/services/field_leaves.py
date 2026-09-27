@@ -71,6 +71,9 @@ FIELD_SCHEMAS: dict[str, str] = {
        ('created', 'updated', 'start', 'deadline', 'expected', 'completed', 'end')},
     'question_answer.answered_by': f'{_AC}:UserStamp',
     'action.assigned_to': f'{_AC}:AssignedPerson',   # list of
+    # A stock line's record of each Pending applied to it: viewable, never writable (the
+    # applier writes it; process_lines refuses it in a payload).
+    **{f'{_m}.events': f'{_TE}:LineEvent' for _m in ('invoice_line', 'receipt_line', 'workorder_line')},   # list of
     'item.gls': f'{_RA}:ItemGls',
     'item.flags': f'{_RA}:ItemFlags',
     'item.tax_code': f'{_RA}:ItemTaxCode',

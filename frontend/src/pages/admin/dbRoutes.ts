@@ -44,7 +44,8 @@ export const APP_DETAIL_COMPONENTS: Record<string, React.LazyExoticComponent<Rea
   order: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
   invoice: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
   purchase: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  workorder: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
+  // Hand-built, not the layout form (Bill, 2026-09-26: no JSON forms in workorder).
+  workorder: React.lazy(() => import('@/apps/transactions/pages/WorkOrderWindow')),
   receipt: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
   requisition: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
   cash: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),

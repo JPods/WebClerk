@@ -32,6 +32,7 @@ const JsonTreeApplet = React.lazy(() => import("../pages/tools/JsonTreeApplet"))
 const JsonSchemaReference = React.lazy(() => import("../pages/tools/JsonSchemaReference"));
 const KanbanBoardPageLazy = React.lazy(() => import("../apps/utils/kanban/KanbanBoardPage"));
 const UnifiedGanttPageLazy = React.lazy(() => import("../apps/utils/gantt/UnifiedGanttPage"));
+const WorkOrderWindowLazy = React.lazy(() => import("../apps/transactions/pages/WorkOrderWindow"));
 
 // Static imports — lightweight or always-needed
 import JsonViewer from "../pages/admin/JsonViewer";
@@ -118,7 +119,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.transactionsPurchaseList, element: <Navigate to="/purchase" replace /> },
   { path: PageRoutes.transactionsPurchaseDetail, element: <S><UiDetail modelName="purchase" /></S> },
   { path: PageRoutes.transactionsWorkOrderList, element: <Navigate to="/workorder" replace /> },
-  { path: PageRoutes.transactionsWorkOrderDetail, element: <S><UiDetail modelName="workorder" /></S> },
+  { path: PageRoutes.transactionsWorkOrderDetail, element: <S><WorkOrderWindowLazy /></S> },
   { path: PageRoutes.transactionsReceiptList, element: <Navigate to="/receipt" replace /> },
   { path: PageRoutes.transactionsReceiptDetail, element: <S><UiDetail modelName="receipt" /></S> },
   { path: PageRoutes.transactionsAdjustmentList, element: <Navigate to="/inventory-dashboard" replace /> },

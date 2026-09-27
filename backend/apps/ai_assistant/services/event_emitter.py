@@ -156,7 +156,10 @@ class InventoryEventEmitter:
             # no row lock is held while a model writes (plan 2026-09-24 §4 — an observer
             # never slows a save). Inside a test transaction that never commits, it never runs.
             from django.db import transaction
-            transaction.on_commit(lambda: cls._process_with_llm(event))
+            # Queued, not run: an on_commit callback runs inside the request, and the local LLM
+            # took ~20 s per line — every stock save waited for a summary nobody was reading
+            # (found 2026-09-27 on the workorder window).
+            transaction.on_commit(lambda: _queue_summary(event.pk))
             
             # Check for alerts (Phase 3)
             cls._check_alerts(event, qty_buckets)
@@ -325,3 +328,12 @@ class InventoryEventEmitter:
                         'threshold': float(safety_stock),
                     }
                 )
+
+
+def _queue_summary(event_id) -> None:
+    """Hand the event's LLM summary to Celery; if it cannot be queued, the event keeps no summary."""
+    try:
+        from apps.ai_assistant.tasks import summarize_inventory_event_task
+        summarize_inventory_event_task.delay(event_id)
+    except Exception as e:   # the summary is optional; the stock move is not
+        logger.warning("LLM summary for inventory event %s not queued: %s", event_id, e)

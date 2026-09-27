@@ -12,6 +12,9 @@ import apiClient from './axios';
 
 export type CorrectionLine = {
   item_id: number;
+  /** The item's code and name, kept on the line so it reads without a lookup. */
+  ida?: string;
+  description?: string;
   /** 'count': quantity is what was counted. 'adjust': quantity is the signed change. */
   line_type: 'count' | 'adjust';
   quantity: number;
@@ -25,17 +28,23 @@ export type CorrectionLine = {
 
 export type BuildLine = {
   item_id: number;
+  ida?: string;
+  description?: string;
   line_type: 'build' | 'consume' | 'scrap';
   /** Signed: + for build, − for consume and scrap. */
   quantity: number;
   unit_cost?: number;
 };
 
-function lineBody(line: CorrectionLine | BuildLine, i: number): Record<string, unknown> {
+export function lineBody(line: CorrectionLine | BuildLine, i: number): Record<string, unknown> {
   const body: Record<string, unknown> = {
     id: -(i + 1),
     line_type: line.line_type,
-    item: { item_id: line.item_id },
+    item: {
+      item_id: line.item_id,
+      ...(line.ida ? { ida: line.ida } : {}),
+      ...(line.description ? { description: line.description } : {}),
+    },
     quantity: { active: line.quantity },
   };
   if (line.unit_cost !== undefined) body.cost = { unit: line.unit_cost };
@@ -43,6 +52,20 @@ function lineBody(line: CorrectionLine | BuildLine, i: number): Record<string, u
   if (c.layer_id) body.physical = { layer_id: c.layer_id };
   if (c.reason && c.reason.trim()) body.comments = { process: [{ mgs: c.reason.trim() }] };
   return body;
+}
+
+/** Save a workorder's kind and lines: new lines (negative ids), changed ones ({id, _dirty}),
+ * removed ones ({id, _delete}). Count and adjust lines move stock as they save. */
+export async function saveWorkorderLines(workorderId: number, kind: 'count' | 'production',
+                                         lines: Record<string, unknown>[]) {
+  return wcapiSave<any>('workorder', { kind, lines }, undefined, workorderId);
+}
+
+/** A new, empty workorder of this kind; returns its id. */
+export async function createWorkorder(kind: 'count' | 'production'): Promise<number> {
+  const made = await newRecord('workorder');
+  await wcapiSave<any>('workorder', { kind }, undefined, made.id);
+  return made.id;
 }
 
 /** A new workorder of this kind with these lines; returns the saved record. */
@@ -62,13 +85,13 @@ export async function saveCorrection(lines: CorrectionLine[]) {
 /** POST /wcapi/workorder/<id>/expand/ — a build line's BOM, one level (1) or all of it (0). */
 export async function expandWorkorder(workorderId: number, lineId: number, depth: 0 | 1) {
   const res = await apiClient.post(`/wcapi/workorder/${workorderId}/expand/`, { line_id: lineId, depth });
-  return res.data?.data ?? res.data;
+  return res.data?.data?.result ?? res.data?.data ?? res.data;   // a command answers {result}
 }
 
 /** POST /wcapi/workorder/<id>/complete/ — the build moves its stock, all or nothing. */
 export async function completeWorkorder(workorderId: number) {
   const res = await apiClient.post(`/wcapi/workorder/${workorderId}/complete/`, {});
-  return res.data?.data ?? res.data;
+  return res.data?.data?.result ?? res.data?.data ?? res.data;
 }
 
 /** Build qty of an item from its BOM on a new workorder: build line → expand → complete. */

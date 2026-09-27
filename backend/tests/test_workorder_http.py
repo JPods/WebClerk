@@ -83,3 +83,18 @@ def test_a_build_over_http(client):
     assert (_q(cart), _q(wheel)) == (10, 0)
     build.refresh_from_db()
     assert build.events[0]['unit_cost'] == pytest.approx(float(Decimal('32')))   # 4 × 8
+
+
+def test_a_line_payload_never_writes_events(client):
+    """Events are what the applier did to a line; a request carrying them is refused."""
+    tire = _item('Tire', stock='10', cost='2')
+    made = client.post('/wcapi/workorder/', {}, format='json')
+    wo_id = made.json()['data']['id']
+    saved = client.put(f'/wcapi/workorder/{wo_id}/', {'kind': 'count', 'lines': [
+        {'id': -1, 'line_type': 'count', 'item': {'item_id': tire.pk}, 'quantity': {'active': 10},
+         'events': [{'id': 'forged', 'kind': 'count', 'qty': 500}]}]}, format='json')
+    # Refused either by the role's enumeration (403, when its sets predate the events leaves)
+    # or by the line engine (400 events_are_the_record); never saved.
+    assert saved.status_code in (400, 403)
+    assert saved.json()['error']['code'] in ('events_are_the_record', 'transaction_denied')
+    assert _q(tire) == 10

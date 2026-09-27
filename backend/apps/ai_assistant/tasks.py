@@ -732,3 +732,15 @@ def config_backup_task() -> dict:
         duration,
     )
     return result
+
+
+@shared_task
+def summarize_inventory_event_task(event_id: int) -> bool:
+    """An inventory event's LLM summary, off the request (event_emitter queues it on commit)."""
+    from apps.ai_assistant.models import InventoryEvent
+    from apps.ai_assistant.services.event_emitter import InventoryEventEmitter
+    event = InventoryEvent.objects.filter(pk=event_id).first()
+    if event is None:
+        return False
+    InventoryEventEmitter._process_with_llm(event)
+    return True
