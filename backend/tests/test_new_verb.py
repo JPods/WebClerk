@@ -182,3 +182,20 @@ def test_the_models_the_front_end_makes_can_be_made_empty(model):
     """A field turned required would make every create from the front end a 400 (Fable)."""
     made = _new(model)
     assert made.obj_id and made.obj.config['is_new'] is True
+
+
+def test_a_new_cash_filled_with_money_is_seeded_and_a_payservice_cash_is_not():
+    """Cash.save seeds available/tendered on an insert; under `new` the insert is empty, so
+    the save that fills it seeds them — only when the Cash holds money (Fable; allie-75)."""
+    from decimal import Decimal
+    manual = _new('cash').obj
+    save_record(Actor.system(), {'model_name': 'cash', 'id': manual.pk, 'amount': '100.00',
+                                 'method': 'check'})
+    manual.refresh_from_db()
+    assert manual.available == Decimal('100.00') and manual.tendered == Decimal('100.00')
+
+    card = _new('cash').obj
+    save_record(Actor.system(), {'model_name': 'cash', 'id': card.pk,
+                                 'purpose': 'connection-payservice', 'method': 'card'})
+    card.refresh_from_db()
+    assert card.available == Decimal('0') and not card.holds_money

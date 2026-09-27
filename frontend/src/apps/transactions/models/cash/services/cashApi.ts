@@ -6,9 +6,9 @@
  * Direct REST calls are used only for cash-specific actions
  * not covered by the generic wcapi SDK.
  */
-import { getRecords, getRecord, saveRecord, deleteRecord, wcapiSave, refusedFrom } from '@/api/wcapi';
+import { getRecords, getRecord, saveRecord, deleteRecord, createRecord, refusedFrom } from '@/api/wcapi';
 import apiClient from '@/api/axios';
-import type { Cash, CreateCashRequest, UpdateCashRequest } from '../types/Cash';
+import type { Cash, UpdateCashRequest } from '../types/Cash';
 
 const MODEL = 'cash';
 
@@ -21,9 +21,6 @@ export const fetchCash = async (id: number): Promise<Cash> => {
   const res = await getRecord(MODEL, id);
   return res?.record ?? res;
 };
-
-export const createCash = async (data: CreateCashRequest) =>
-  saveRecord(MODEL, data);
 
 export const updateCash = async (id: number, data: UpdateCashRequest) =>
   saveRecord(MODEL, { ...data, id });
@@ -46,7 +43,8 @@ export const fetchGatewayConfig = async () => {
  * Pay an invoice by card (Bill, 2026-09-26, plan §13a): save the Cash fully populated except
  * its money, for its id; then pay. The amount is held in metadata.payservice until the gateway
  * says yes, and only then moves into the Cash's amount and applies to the invoice.
- *   POST /wcapi/cash/              {purpose: 'connection-payservice', invoice_id, method}
+ *   POST /wcapi/cash/              {}  (`new`: the empty Cash, config.is_new)
+ *   PUT  /wcapi/cash/<id>/         {purpose: 'connection-payservice', invoice_id, method}
  *   POST /wcapi/cash/<id>/pay/     {amount, payment_method_token}
  * The gateway is called after the Cash is committed; a second pay of the same Cash is
  * refused, so a double-click cannot charge twice. A completed charge applies itself to
@@ -58,8 +56,8 @@ export const processGatewayCash = async (
   paymentMethodToken: string,
   method = 'card',
 ) => {
-  // The path names the model; the body is the Cash's fields, flat (REST only).
-  const saved: any = await wcapiSave<any>(MODEL, {
+  // `new` makes the Cash; its fields are the next save (Bill, 2026-09-26). No money yet.
+  const saved: any = await createRecord(MODEL, {
     purpose: 'connection-payservice', invoice_id: invoiceId, method,
   });
   const cashId: number = saved?.id ?? saved?.record?.id;

@@ -243,11 +243,14 @@ def test_the_routes(client, django_user_model, invoice, gateway,
     admin = django_user_model.objects.create_user(email='pay-admin@test.com', password='x',
                                                   username='', role='admin')
     client.force_login(admin)
-    saved = client.post('/wcapi/cash/', {'purpose': 'connection-payservice',
-                                         'invoice_id': invoice.pk, 'method': 'card'},
-                        content_type='application/json')
-    assert saved.status_code in (200, 201), saved.content
-    cash_id = saved.json()['data']['id']
+    # `new` makes the Cash; its fields are the next save (the card form's createRecord).
+    made = client.post('/wcapi/cash/', {}, content_type='application/json')
+    assert made.status_code in (200, 201), made.content
+    cash_id = made.json()['data']['id']
+    saved = client.put(f'/wcapi/cash/{cash_id}/', {'purpose': 'connection-payservice',
+                                                   'invoice_id': invoice.pk, 'method': 'card'},
+                       content_type='application/json')
+    assert saved.status_code == 200, saved.content
     with django_capture_on_commit_callbacks(execute=True):
         paid = client.post(f'/wcapi/cash/{cash_id}/pay/',
                            {'amount': '100.00', 'payment_method_token': 'pm-1'},
