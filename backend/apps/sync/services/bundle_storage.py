@@ -132,7 +132,10 @@ def load_payload(bundle_id: int, model_name: str, direction: str) -> dict | list
 
 def load_payload_by_path(payload_path: str) -> dict | list | None:
     """Read payload using the relative path stored in config.payload_path."""
-    filepath = Path(settings.DATA_DIR) / payload_path
+    root = Path(settings.DATA_DIR).resolve()
+    filepath = (root / payload_path).resolve()
+    if root not in filepath.parents:            # config is editable: never read outside DATA_DIR
+        return None
     if not filepath.exists():
         return None
     try:

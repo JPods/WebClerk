@@ -174,3 +174,31 @@ def test_lines_match_by_uuid_so_a_second_import_adds_nothing():
     lines = OrderLine.objects.filter(order=order)
     assert lines.count() == 1 and lines.get().uuid == line_uuid
     assert lines.get().quantity.get('active') == 3
+
+
+def test_a_hand_written_approval_does_not_count(client, django_user_model):
+    """Fable: bundle.config is editable, so an approval must be one the route signed."""
+    from apps.sync.services.bundle_import import _records, content_hash
+    b = _bundle([{'model_name': 'item', 'uuid': str(uuid.uuid4()), 'name': 'Forged'}])
+    h = content_hash(b, _records(b))
+    forged = {'content_hash': h, 'approvals': {n: {'content_hash': h} for n in ('alice', 'athena')}}
+    Bundle.objects.filter(pk=b.pk).update(config={'import_run': forged})
+    _client(client, django_user_model, 'boss7@wc.test', is_superuser=True, role='admin')
+    status, _, body = _cmd(client, b, 'import')
+    assert status == 409 and body['error']['code'] == 'approval_required'
+
+
+def test_a_person_with_alices_email_is_not_alice(client, django_user_model):
+    b = _bundle([{'model_name': 'item', 'uuid': str(uuid.uuid4()), 'name': 'Imposter'}])
+    _client(client, django_user_model, 'boss8@wc.test', is_superuser=True, role='admin')
+    _cmd(client, b, 'preview')
+    client.logout(); _client(client, django_user_model, ALICE, role='admin')
+    status, _, body = _cmd(client, b, 'approve')
+    assert status in (403, 404) and body['error']['code'] in ('approver_required', 'not_found')
+
+
+def test_a_malformed_uuid_is_refused_by_the_preview(client, django_user_model):
+    b = _bundle([{'model_name': 'item', 'uuid': 'nope', 'name': 'Bad'}])
+    _client(client, django_user_model, 'boss9@wc.test', is_superuser=True, role='admin')
+    status, _, body = _cmd(client, b, 'preview')
+    assert status == 400 and body['error']['code'] == 'bad_uuid'

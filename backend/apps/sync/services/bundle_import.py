@@ -14,7 +14,9 @@ uuid) so the person cleans the data up first.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
+import uuid as _uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
@@ -54,6 +56,10 @@ def _records(bundle) -> List[Dict[str, Any]]:
             raise Refused(400, 'row_incomplete', f'Row {i}: every row names its model_name and carries a '
                           f'uuid (Bill: a uuid that matches updates; one that does not is new).',
                           {'row': i})
+        try:
+            _uuid.UUID(str(row['uuid']))
+        except ValueError:
+            raise Refused(400, 'bad_uuid', f'Row {i}: "{row["uuid"]}" is not a uuid.', {'row': i})
     return rows
 
 
@@ -64,13 +70,24 @@ def content_hash(bundle, rows: List[Dict[str, Any]]) -> str:
     return hashlib.sha256(canon.encode()).hexdigest()
 
 
+def _sign(bundle, run: Dict[str, Any]) -> str:
+    """The run is kept in bundle.config, which admins and agents can PUT; only a run this module
+    signed counts (Fable: a hand-written approval would otherwise import unseen content)."""
+    body = json.dumps({'bundle': bundle.pk, 'run': {k: v for k, v in run.items() if k != 'sig'}},
+                      sort_keys=True, separators=(',', ':'), default=str)
+    return hmac.new(settings.SECRET_KEY.encode(), body.encode(), hashlib.sha256).hexdigest()
+
+
 def _run(bundle) -> Dict[str, Any]:
     run = dict((bundle.config or {}).get('import_run') or {})
+    if run and not hmac.compare_digest(str(run.get('sig', '')), _sign(bundle, run)):
+        run = {}                                # written by hand, not by the route: nothing stands
     run.setdefault('approvals', {})
     return run
 
 
 def _store_run(bundle, run: Dict[str, Any]) -> None:
+    run['sig'] = _sign(bundle, run)
     config = dict(bundle.config or {})
     config['import_run'] = run
     type(bundle).objects.filter(pk=bundle.pk).update(config=config)
@@ -104,10 +121,9 @@ def _look_alikes(model_key: str, row: Dict[str, Any]) -> List[Dict[str, Any]]:
         value = row.get(field)
         if field not in names or not isinstance(value, str) or not value.strip():
             continue
-        for rec in (model_cls.objects.filter(**{f'{field}__iexact': value.strip()})
-                    .exclude(uuid=row.get('uuid')).values('pk', 'ida', 'uuid')[:5]):
-            found.setdefault(rec['pk'], {'id': rec['pk'], 'ida': rec['ida'], 'uuid': str(rec['uuid']),
-                                         'matched_on': field})
+        for rec in model_cls.objects.filter(**{f'{field}__iexact': value.strip()}).exclude(uuid=row.get('uuid'))[:5]:
+            found.setdefault(rec.pk, {'id': rec.pk, 'ida': getattr(rec, 'ida', None), 'uuid': str(rec.uuid),
+                                      'matched_on': field})
     return list(found.values())
 
 
@@ -140,7 +156,8 @@ def preview(ctx) -> Dict[str, Any]:
             try:
                 with transaction.atomic():
                     result = save_record(ctx.actor, _row_for_door(row))
-                entry['id'] = result.obj_id
+                if known:                       # a new row's previewed id is not the id it will get
+                    entry['id'] = result.obj_id
                 if result.messages:
                     entry['messages'] = list(result.messages)
             except Refused as e:
@@ -174,7 +191,7 @@ def approve(ctx) -> Dict[str, Any]:
     email = (getattr(user, 'email', '') or '').lower()
     who = next((name for name, key in AGENTS.items()
                 if getattr(settings, key, '') and email == getattr(settings, key, '').lower()), None)
-    if who is None or getattr(ctx.actor, 'acting_as', None):
+    if who is None or not is_approver(ctx.actor):
         raise Refused(403, 'approver_required', 'An import is approved by Alice and by Athena, each from '
                       'their own login.', {})
     rows = _records(bundle)
@@ -238,7 +255,9 @@ def is_approver(actor) -> bool:
     """Alice's or Athena's own login (by the configured email), not acting as anyone."""
     user = getattr(actor, 'user', None)
     email = (getattr(user, 'email', '') or '').lower()
+    # An agent login, not a person who set their email to the agent's (Fable).
     return (not getattr(actor, 'acting_as', None) and bool(email)
+            and getattr(user, 'role', '') == 'agent' and getattr(user, 'is_active', False)
             and any(email == (getattr(settings, key, '') or '').lower() for key in AGENTS.values()))
 
 
