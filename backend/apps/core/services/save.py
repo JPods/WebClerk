@@ -63,6 +63,22 @@ TRANSACTION_LINE_MODELS = ('order', 'invoice', 'quote', 'purchase', 'requisition
 
 # ── the record being written ──────────────────────────────────────────
 
+def _by_uuid(model_cls, raw):
+    """A row that names its record by uuid (Bill, 2026-09-26, plan §17.13): a uuid WebClerk
+    knows is that record (an update — visibility is still asked in _load_or_new, so an unseen
+    record answers as missing, never as new); an unknown one is a new record that keeps it.
+    Returns (record_id, uuid_to_keep)."""
+    import uuid as _uuid
+    try:
+        value = _uuid.UUID(str(raw))
+    except (ValueError, AttributeError, TypeError):
+        raise Refused(400, 'bad_uuid', f'"{raw}" is not a uuid.', {'uuid': str(raw)})
+    if not any(f.name == 'uuid' for f in model_cls._meta.concrete_fields):
+        raise Refused(400, 'no_uuid', f'{model_cls.__name__} records carry no uuid.', {})
+    pk = model_cls.objects.filter(uuid=value).values_list('pk', flat=True).first()
+    return (pk, None) if pk else (None, value)
+
+
 def _load_or_new(actor: Actor, model_cls, model_key: str, record_id, expected_version):
     if not record_id:
         obj = model_cls()
@@ -388,6 +404,9 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
 
     if record_id is None:
         record_id = data.get('id')
+    keep_uuid = None
+    if not record_id and data.get('uuid'):
+        record_id, keep_uuid = _by_uuid(model_cls, data['uuid'])
     if expected_version is None:
         expected_version = data.get('version')
 
@@ -395,6 +414,8 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
 
     obj, created = _load_or_new(actor, model_cls, model_key, record_id, expected_version)
     is_update = not created
+    if created and keep_uuid:
+        obj.uuid = keep_uuid                   # a new record keeps the uuid it arrived with
 
     if server_set:
         data = {k: v for k, v in data.items() if k not in server_set}

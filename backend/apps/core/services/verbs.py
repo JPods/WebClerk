@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import contextvars
 import logging
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
 from django.db import transaction
 
@@ -68,6 +68,10 @@ VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
     'release': _command('release'),
     'apply_balance': _command('apply_balance'),
     'add_cash': _command('add_cash'),
+    # Import on one route (plan §17.13): Alice's pre-import, the approvals, the import.
+    'preview': _command('preview'),
+    'approve': _command('approve'),
+    'import': _command('import'),
 }
 
 #: Which model answers which command, and the base service that does it. A command is
@@ -78,11 +82,15 @@ COMMANDS: Dict[tuple, dict] = {}
 
 
 def register_command(model_key: str, verb: str, base: Callable, *,
-                     needs_record: bool = True, public: bool = False) -> None:
+                     needs_record: bool = True, public: bool = False,
+                     admit: Optional[Callable] = None) -> None:
+    """``admit(actor) -> bool``: named actors this one command admits past the record's role
+    gate (the import approvers, Alice and Athena, on a staff-only bundle). Everyone else is
+    gated as usual; the base still decides what they may do."""
     if verb not in VERBS:
         raise ValueError(f'{verb} is not in VERBS; add it there first.')
     COMMANDS[(model_key, verb)] = {'base': base, 'needs_record': needs_record,
-                                   'public': public}
+                                   'public': public, 'admit': admit}
 
 
 def run_command(actor: Actor, verb: str, model_key: str, record_id, payload: dict):
@@ -104,7 +112,9 @@ def run_command(actor: Actor, verb: str, model_key: str, record_id, payload: dic
         raise Refused(401, 'authentication_required', 'Sign in to do that.', verb)
 
     with transaction.atomic(), unit_of_work():
-        obj = _command_record(actor, model_key, record_id) if spec['needs_record'] else None
+        admitted = bool(spec.get('admit')) and spec['admit'](actor)
+        obj = (_command_record(actor, model_key, record_id, admitted=admitted)
+               if spec['needs_record'] else None)
         ctx = HookContext(actor=actor, verb=verb, model_key=model_key, obj=obj,
                           data=dict(payload or {}), is_update=obj is not None)
         before(ctx)
@@ -116,12 +126,12 @@ def run_command(actor: Actor, verb: str, model_key: str, record_id, payload: dic
     return result
 
 
-def _command_record(actor: Actor, model_key: str, record_id):
+def _command_record(actor: Actor, model_key: str, record_id, admitted: bool = False):
     from apps.core.services.door import resolve_model
     model_cls, model_key, _norm = resolve_model(model_key)
     if record_id is None:
         raise Refused(400, 'record_required', f'Name the {model_key}: /wcapi/{model_key}/<id>/.')
-    if actor.is_guarded:
+    if actor.is_guarded and not admitted:
         from apps.core.services.record_serialize import visible_queryset
         from apps.core.services.role_filter import get_user_filter_config
         if not visible_queryset(model_key, actor=actor)[1].filter(pk=record_id).exists():

@@ -140,10 +140,13 @@ def process_lines(obj, data: dict, model_key: str) -> list[int]:
         raise Refused(500, 'line_model_missing', f'No line model for {model_key}.', model_key)
 
     fk_descriptors = _get_fk_descriptors(LineModel)
-    skip_fields = ('id', 'model_name', 'totals', fk_field_name, f'{fk_field_name}_id',
+    # uuid is set once, on a new line, and never copied onto an existing one (a line's uuid
+    # cannot change: common/models.py raises — it was an uncaught 500).
+    skip_fields = ('id', 'uuid', 'model_name', 'totals', fk_field_name, f'{fk_field_name}_id',
                    'parent', 'parent_id')
     held = {line.pk: line for line in
             LineModel.objects.select_for_update().filter(**{f'{fk_field_name}_id': obj.pk})}
+    by_uuid = {str(line.uuid): line.pk for line in held.values() if getattr(line, 'uuid', None)}
     first_number = next_number = getattr(obj, 'line_increment', None) or 10
     new_line_ids: list[int] = []
     changed = 0
@@ -152,12 +155,29 @@ def process_lines(obj, data: dict, model_key: str) -> list[int]:
         if not isinstance(line_data, dict):
             raise Refused(400, 'line_not_an_object', 'Each line is an object.', model_key)
         line_id = line_data.get('id')
+        keep_uuid = None
+        if _is_new_line(line_id) and line_data.get('uuid'):
+            # A line named by uuid (plan §17.13): this document's line with that uuid, or a new
+            # line that keeps it.
+            import uuid as _uuid
+            try:
+                keep_uuid = _uuid.UUID(str(line_data['uuid']))
+            except (ValueError, AttributeError, TypeError):
+                raise Refused(400, 'bad_uuid', f'"{line_data["uuid"]}" is not a uuid.', model_key)
+            line_id = by_uuid.get(str(keep_uuid)) or line_id
+            if not _is_new_line(line_id):
+                keep_uuid = None
+            elif LineModel.objects.filter(uuid=keep_uuid).exists():
+                raise Refused(409, 'line_uuid_elsewhere',
+                              f'Line uuid {keep_uuid} belongs to another document.', model_key)
         carrier = read_carrier(line_data)      # typed; an unknown signal raises
 
         if _is_new_line(line_id):
             if carrier.delete:
                 continue                       # never saved; nothing to delete
             line_obj = LineModel()
+            if keep_uuid:
+                line_obj.uuid = keep_uuid
             setattr(line_obj, f'{fk_field_name}_id', obj.pk)
             _copy_line_fields(line_obj, line_data, skip_fields, fk_descriptors, merge=False)
             if not getattr(line_obj, 'line_number', 0):
@@ -192,8 +212,11 @@ def process_lines(obj, data: dict, model_key: str) -> list[int]:
         obj.line_increment = next_number
         obj.save(update_fields=['line_increment', 'version', 'dt_modified'])
     if changed:
+        # After the commit (Fable, import plan): it called Celery apply_async inside the
+        # transaction, so a rolled-back save — an import preview — still started a drain.
+        from django.db import transaction
         from apps.products.dispatch_pending import dispatch_pending_processing
-        dispatch_pending_processing(limit=200, caller='save_line_processing')
+        transaction.on_commit(lambda: dispatch_pending_processing(limit=200, caller='save_line_processing'))
     return new_line_ids
 
 
