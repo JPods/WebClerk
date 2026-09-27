@@ -975,6 +975,22 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.ai_assistant.tasks.detect_help_patterns_task',
         'schedule': crontab(hour=4, minute=40),
     },
+
+    # ── Moved from scheduler/registry.py (Fable 2026-09-27: Celery reads only this dict, so
+    #    these three never ran). One schedule, here.
+    'drain-queued-cash-every-minute': {
+        'task': 'apps.support.scheduler.tasks.task_drain_queued_cash',
+        'schedule': crontab(minute='*'),
+        'kwargs': {'limit': 200},
+    },
+    'alice-dedup-scan-weekly': {
+        'task': 'apps.ai_assistant.tasks.dedup_scan_task',
+        'schedule': crontab(hour=3, minute=30, day_of_week='wednesday'),
+    },
+    'import-digest-nightly': {
+        'task': 'apps.support.scheduler.tasks.task_import_digest',
+        'schedule': crontab(hour=3, minute=15),
+    },
 }
 
 # ── Payload size gates ─────────────────────────────────────────────

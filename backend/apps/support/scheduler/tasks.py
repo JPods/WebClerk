@@ -102,7 +102,6 @@ from django.utils import timezone
 from io import StringIO
 
 from .registry import (
-    build_celery_beat_schedule,
     run_maintenance_function,
 )
 
@@ -1084,5 +1083,3 @@ def task_cash_flow_patterns(self):
             run.fail(str(exc), traceback.format_exc())
         self.retry(exc=exc)
 
-
-CELERY_BEAT_SCHEDULE = build_celery_beat_schedule()

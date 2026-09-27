@@ -149,9 +149,12 @@ def _resolve_model(model_name: str):
 
 def _check_local(model_name: str, ida: str, filename: str) -> dict | None:
     """Check local image library."""
-    root = get_image_root()
-    # Try: images/{model}/{ida}/{size}.jpg
-    path = root / model_name / ida / filename
+    root = Path(get_image_root()).resolve()
+    # Try: images/{model}/{ida}/{size}.jpg — names come from an unauthenticated URL, so the
+    # path must stay under the image root (Fable: '..' in model_name or ida reached out of it).
+    path = (root / model_name / ida / filename).resolve()
+    if root not in path.parents:
+        return None
     if path.exists():
         return {
             'found': True,

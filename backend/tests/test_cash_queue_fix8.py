@@ -53,9 +53,19 @@ def test_a_locked_row_queues_counts_the_attempt_and_the_drain_lands_it(monkeypat
 
 
 def test_the_drain_is_scheduled_every_minute():
-    from apps.support.scheduler.registry import build_celery_beat_schedule
-    entry = build_celery_beat_schedule()['drain-queued-cash-every-minute']
+    """What Celery reads (settings), not a second list beside it (Fable: the drain never ran)."""
+    from django.conf import settings
+    entry = settings.CELERY_BEAT_SCHEDULE['drain-queued-cash-every-minute']
     assert entry['task'].endswith('task_drain_queued_cash')
+
+
+def test_every_scheduled_task_exists():
+    """A beat entry naming a task no module defines never runs, and never says so."""
+    import importlib
+    from django.conf import settings
+    for name, entry in settings.CELERY_BEAT_SCHEDULE.items():
+        module, _, func = entry['task'].rpartition('.')
+        assert hasattr(importlib.import_module(module), func), f'{name}: {entry["task"]} does not exist'
 
 
 def test_one_bad_row_does_not_stop_the_drain_and_orphans_are_skipped(monkeypatch):
