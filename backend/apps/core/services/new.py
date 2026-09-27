@@ -99,3 +99,6 @@ def clear_mark(obj) -> None:
     config = getattr(obj, 'config', None)
     if isinstance(config, dict) and 'is_new' in config:
         obj.config = {k: v for k, v in config.items() if k != 'is_new'}
+        # For the model's own save(): this save fills a record `new` saved empty, so what a
+        # model seeds on its first insert (a Cash's available, tendered) is seeded now.
+        obj._filling_new = True

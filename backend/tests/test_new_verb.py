@@ -174,3 +174,11 @@ def test_a_model_that_cannot_be_saved_empty_is_coached_never_a_500():
     with pytest.raises(Refused) as refused:
         _new('item_usage')
     assert refused.value.status == 400 and refused.value.code == 'new_incomplete'
+
+
+@pytest.mark.parametrize('model', ['setting', 'report', 'action', 'touch', 'phone', 'email',
+                                   'document', 'item', 'contact', 'invoice', 'order', 'cash'])
+def test_the_models_the_front_end_makes_can_be_made_empty(model):
+    """A field turned required would make every create from the front end a 400 (Fable)."""
+    made = _new(model)
+    assert made.obj_id and made.obj.config['is_new'] is True

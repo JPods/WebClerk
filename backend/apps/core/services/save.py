@@ -498,7 +498,11 @@ def _mark_new(obj, model_key: str, data: dict, new: bool) -> None:
     echoes the whole record on its first save) is overwritten, not refused.
     """
     config = getattr(obj, 'config', None)
+    if config is None and hasattr(obj, 'config'):
+        config = {}                           # an envelope not yet set is an empty one
     if not isinstance(config, dict):
+        if new:      # a hook casing on config.is_new would never fire: say so
+            console_logger.warning("[SAVE] %s: config is not a dict; not marked is_new", model_key)
         return
     sent = data.get('config')
     if (isinstance(sent, dict) and 'is_new' in sent) or 'config.is_new' in data:

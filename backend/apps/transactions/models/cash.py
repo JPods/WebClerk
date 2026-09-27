@@ -373,8 +373,9 @@ class Cash(HardDeleteOnly, BaseModel):
             update_fields = kwargs.get('update_fields')
             if update_fields is not None and 'type' not in update_fields:
                 kwargs['update_fields'] = list(update_fields) + ['type']
-        if not self.pk:
-            # New cash: available starts equal to amount — if money moved
+        if not self.pk or getattr(self, '_filling_new', False):
+            # New cash — inserted, or saved empty by `new` and now filled (the next save, or
+            # a card's gateway reply): available starts equal to amount — if money moved
             if not self.available and self.holds_money:
                 self.available = self.amount
             # New cash: tendered defaults to amount if not set
