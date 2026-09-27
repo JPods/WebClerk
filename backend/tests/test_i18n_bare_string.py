@@ -53,3 +53,26 @@ def test_a_language_is_a_two_letter_code():
     assert ContactPrefs(language='').language is None
     with pytest.raises(ValueError, match='ISO 639-1'):
         ContactPrefs(language='eng')
+
+
+def test_the_field_op_form_and_a_bad_stored_language(client, django_user_model):
+    """{mode: update, value: '…'} is a bare string too; a stored language that is not a code
+    (a dot-path write skips the envelope check) is never a translation key (Fable)."""
+    admin = django_user_model.objects.create_user(email='i18n-op@test.com', password='x',
+                                                  username='', role='admin')
+    admin.prefs = {**(admin.prefs or {}), 'language': 'English'}
+    admin.save(update_fields=['prefs'])
+    client.force_login(admin)
+    action = Action.objects.create(action={'en': 'old'})
+    r = client.put(f'/wcapi/action/{action.pk}/',
+                   {'action': {'mode': 'update', 'value': 'Call Joe'}, 'version': action.version},
+                   content_type='application/json')
+    assert r.status_code == 200, r.content
+    action.refresh_from_db()
+    assert action.action == {'en': 'Call Joe'}
+
+
+def test_a_list_field_named_like_a_translation_is_not_wrapped():
+    from apps.core.services.door import Actor
+    from apps.core.services.save import _wrap_i18n
+    assert _wrap_i18n(Action, {'languages': 'es'}, 'en') == {'languages': 'es'}

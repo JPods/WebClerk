@@ -45,7 +45,6 @@ from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiExamp
 from typing import Type, cast, List, Dict, Any
 from common.refs.links import ensure_bidirectional
 from apps.core.models import Contact
-from apps.core.services.field_behaviors import _I18N_FIELDS as _i18n_field_set
 from django.utils import timezone
 
 ALLOWED_NESTED_KEYS = {

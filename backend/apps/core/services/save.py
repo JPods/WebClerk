@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Type, cast
@@ -427,10 +428,18 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
 DEFAULT_LANGUAGE = 'en'
 
 
+#: The translated fields: {language: text}. Not every JSON field named in _I18N_FIELDS is a
+#: translation — languages and assigned_to are lists, *_by is audit data (Fable, 2026-09-26).
+TRANSLATED_FIELDS = frozenset({'action', 'description'})
+
+
 def actor_language(actor: Actor) -> str:
-    """The language this actor writes in: their contact's ``prefs.language``, else en."""
+    """The language this actor writes in: their contact's ``prefs.language``, else en. A value
+    that is not a two-letter code (a dot-path write skips the envelope check) is never used
+    as a translation key."""
     prefs = getattr(getattr(actor, 'user', None), 'prefs', None)
-    return ((prefs or {}).get('language') if isinstance(prefs, dict) else None) or DEFAULT_LANGUAGE
+    code = str((prefs or {}).get('language') or '').strip().lower() if isinstance(prefs, dict) else ''
+    return code if re.fullmatch(r'[a-z]{2}', code) else DEFAULT_LANGUAGE
 
 
 def _wrap_i18n(model_cls, data: dict, language: str) -> dict:
@@ -441,12 +450,19 @@ def _wrap_i18n(model_cls, data: dict, language: str) -> dict:
     """
     from django.db.models import JSONField
 
-    from apps.core.services.field_behaviors import _I18N_FIELDS
     # Only a JSON field is translated: `description` is i18n on an action, plain text on an item.
     translated = {f.name for f in model_cls._meta.concrete_fields
-                  if f.name in _I18N_FIELDS and isinstance(f, JSONField)}
-    wrapped = {k: {language: v} for k, v in data.items()
-               if k in translated and isinstance(v, str)}
+                  if f.name in TRANSLATED_FIELDS and isinstance(f, JSONField)}
+    wrapped = {}
+    for k, v in data.items():
+        if k not in translated:
+            continue
+        # The field-op form {mode|task: 'update', value: '…'} carries a bare string too.
+        if (isinstance(v, dict) and set(v) <= {'mode', 'task', 'value'}
+                and v.get('mode', v.get('task')) == 'update' and isinstance(v.get('value'), str)):
+            v = v['value']
+        if isinstance(v, str):
+            wrapped[k] = {language: v}
     return {**data, **wrapped} if wrapped else data
 
 
