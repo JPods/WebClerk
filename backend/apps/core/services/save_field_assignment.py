@@ -19,7 +19,6 @@ from typing import Any
 
 from django.db import models
 
-from apps.core.services.field_behaviors import _I18N_FIELDS as _i18n_field_set
 from common.json_path import delete_nested_value
 
 console_logger = logging.getLogger('console')
@@ -337,10 +336,6 @@ def assign_fields(
                 if _is_model_field:
                     current = getattr(obj, field)
                     is_json_field = field in json_field_names or isinstance(current, dict)
-
-                    # i18n wrapping
-                    if is_json_field and field in _i18n_field_set and isinstance(value, str):
-                        value = {'en': value}
 
                     if isinstance(value, dict) and is_json_field:
                         if isinstance(current, str):

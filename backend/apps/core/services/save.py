@@ -423,9 +423,28 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
     return result
 
 
+#: The language a bare string for a translated field is stored in. There is no per-user
+#: language yet; when there is, it replaces this (Bill, 2026-09-26: wrap in the user's language).
+DEFAULT_LANGUAGE = 'en'
+
+
+def _wrap_i18n(model_cls, data: dict) -> dict:
+    """A bare string for a translated field is that field in the user's language.
+
+    Before the role filter: the filter keeps only enumerated leaves (``action.en``), so a
+    bare ``action`` string was dropped — a 200 that stored nothing (allie-76, 2026-09-26).
+    """
+    from apps.core.services.field_behaviors import _I18N_FIELDS
+    names = {f.name for f in model_cls._meta.concrete_fields}
+    wrapped = {k: {DEFAULT_LANGUAGE: v} for k, v in data.items()
+               if k in _I18N_FIELDS and k in names and isinstance(v, str)}
+    return {**data, **wrapped} if wrapped else data
+
+
 def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: dict,
            is_update: bool, server_set: Optional[Dict[str, Any]] = None):
     """Authorize, assign, before, persist, flush, after — inside one unit of work."""
+    data = _wrap_i18n(model_cls, data)
     data = _authorize(actor, obj, model_cls, model_key, data, is_update)
     if server_set:
         data.update(copy.deepcopy(server_set))
