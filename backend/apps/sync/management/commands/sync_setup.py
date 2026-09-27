@@ -71,10 +71,11 @@ class Command(BaseCommand):
                 "status": "active",
                 "config": {
                     "endpoint": endpoint,
-                    "key": key,
                 },
             },
         )
+        conn.set_sync_key(key)
+        conn.save(update_fields=["encryption"])
 
         verb = "Created" if created else "Updated"
         self.stdout.write(f"{verb} connection: {conn.name} (id={conn.id})")

@@ -23,15 +23,33 @@ def _is_dev_mode():
     return settings.DEBUG and data_set_is_disposable()
 
 
+def _superuser_required(view):
+    """The dev tools switch modes, restart servers and copy whole databases: a signed-in superuser
+    only (the Sync button sends its JWT through apiClient). They were csrf-exempt with no login."""
+    import functools
+    from rest_framework.exceptions import AuthenticationFailed
+    from rest_framework_simplejwt.authentication import JWTAuthentication
+
+    @functools.wraps(view)
+    def wrapped(request, *args, **kwargs):
+        user = getattr(request, 'user', None)
+        if not (user and user.is_authenticated):
+            try:
+                found = JWTAuthentication().authenticate(request)
+            except AuthenticationFailed:
+                found = None
+            user = found[0] if found else None
+        if not (user and getattr(user, 'is_superuser', False)):
+            return JsonResponse({'status': 'error', 'message': 'A superuser signs in to use the dev tools.'},
+                                status=403)
+        return view(request, *args, **kwargs)
+    return wrapped
+
+
 def _get_dev_config_path():
     """Get path to dev-config.json."""
     base_dir = Path(settings.BASE_DIR)
     return base_dir / 'tools' / 'dev-config.json'
-
-
-def _get_sync_status_path():
-    base_dir = Path(settings.BASE_DIR)
-    return base_dir / 'tools' / '.sync_status.json'
 
 
 def _get_sync_status_path():
@@ -141,35 +159,9 @@ def dev_sync_status(request):
     return JsonResponse({'status': 'success', 'data': data})
 
 
-@require_http_methods(["GET"])
-def dev_sync_status(request):
-    """
-    GET /wcapi/dev/sync-status/
-
-    Returns current remote->local sync status for dev tools progress UI.
-    """
-    if not _is_dev_mode():
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Dev tools are only available in development mode'
-        }, status=403)
-
-    status_path = _get_sync_status_path()
-    data = {'state': 'idle', 'progress': 0, 'message': ''}
-    if status_path.exists():
-        try:
-            with open(status_path, 'r') as handle:
-                parsed = json.load(handle)
-                if isinstance(parsed, dict):
-                    data.update(parsed)
-        except Exception:
-            data = {'state': 'failed', 'progress': 100, 'message': 'Unable to parse sync status'}
-
-    return JsonResponse({'status': 'success', 'data': data})
-
-
 @csrf_exempt
 @require_http_methods(["POST"])
+@_superuser_required
 def dev_switch_mode(request):
     """
     POST /wcapi/dev/switch/
@@ -259,6 +251,7 @@ def dev_switch_mode(request):
 
 @csrf_exempt
 @require_http_methods(["POST"])
+@_superuser_required
 def dev_sync_data(request):
     """
     POST /wcapi/dev/sync/
@@ -349,6 +342,7 @@ def dev_sync_data(request):
 
 @csrf_exempt
 @require_http_methods(["POST"])
+@_superuser_required
 def dev_restart_servers(request):
     """
     POST /wcapi/dev/restart/

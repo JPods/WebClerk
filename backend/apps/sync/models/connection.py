@@ -95,4 +95,27 @@ class Connection(BaseModel):
 
     def __str__(self):
         return f"{self.name or 'Connection'} ({self.id})"
+
+    # The shared bundle key lives in encryption.credentials.sync_key, which never leaves the server
+    # (field_leaves.NEVER_EXPOSED). It was in config.key, which the API returned (import plan §17.5).
+    @property
+    def sync_key(self) -> str:
+        enc = self.encryption if isinstance(self.encryption, dict) else {}
+        return str(((enc.get('credentials') or {}).get('sync_key')) or '')
+
+    def set_sync_key(self, key: str) -> None:
+        enc = dict(self.encryption) if isinstance(self.encryption, dict) else {}
+        enc['credentials'] = {**(enc.get('credentials') or {}), 'sync_key': key}
+        self.encryption = enc
+
+    @classmethod
+    def by_sync_key(cls, key: str):
+        """The active Connection holding this key (constant-time compare), or None."""
+        import hmac
+        if not key:
+            return None
+        for conn in cls.objects.filter(status='active', is_active=True).only('pk', 'encryption'):
+            if conn.sync_key and hmac.compare_digest(conn.sync_key, key):
+                return cls.objects.get(pk=conn.pk)
+        return None
     

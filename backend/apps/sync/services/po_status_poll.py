@@ -50,7 +50,7 @@ def poll_bundle_status(
     connection = bundle.connection
     conn_config = connection.config if isinstance(connection.config, dict) else {}
     endpoint = conn_config.get("endpoint", "")
-    key = conn_config.get("key", "")
+    key = connection.sync_key
 
     if not endpoint or not key:
         raise ValueError("Connection has no endpoint or key configured")

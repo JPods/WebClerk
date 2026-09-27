@@ -36,11 +36,7 @@ def _valid_sync_key(request):
     key = request.headers.get('X-Sync-Key', '')
     if not key:
         return False
-    for conn in Connection.objects.filter(status='active', is_active=True):
-        conn_key = (conn.config or {}).get('key', '')
-        if conn_key and conn_key == key:
-            return True
-    return False
+    return Connection.by_sync_key(key) is not None
 
 
 class FormLibraryCatalogView(APIView):
@@ -110,7 +106,7 @@ class FormLibraryCatalogView(APIView):
 
         cfg = conn.config or {}
         endpoint = cfg.get('endpoint', '')
-        key = cfg.get('key', '')
+        key = conn.sync_key
         if not endpoint or not key:
             return api_response(success=False, status_code=400, error={'code': 'library_connection_missing_end', 'details': 'Library connection missing endpoint or key'})
 

@@ -71,7 +71,7 @@ class POToSOSendView(APIView):
         connection = Connection.objects.get(pk=connection_id)
         conn_config = connection.config if isinstance(connection.config, dict) else {}
         endpoint = conn_config.get("endpoint")
-        key = conn_config.get("key")
+        key = connection.sync_key
 
         if not endpoint or not key:
             # Bundle created but not sent — vendor can pull later
@@ -165,7 +165,7 @@ class BundleApproveView(APIView):
                 connection = Connection.objects.get(pk=connection_id)
                 conn_config = connection.config if isinstance(connection.config, dict) else {}
                 callback_url = conn_config.get("callback_endpoint")
-                key = conn_config.get("key")
+                key = connection.sync_key
 
                 if callback_url and key:
                     callback_body = {
@@ -228,7 +228,8 @@ class BundleStatusView(APIView):
         # Verify key matches connection
         connection = bundle.connection
         conn_config = connection.config if isinstance(connection.config, dict) else {}
-        if conn_config.get("key") != key:
+        import hmac
+        if not (connection.sync_key and hmac.compare_digest(connection.sync_key, key or "")):
             return Response(
                 {"detail": "invalid key"},
                 status=status.HTTP_403_FORBIDDEN,
@@ -322,7 +323,8 @@ class BundleCallbackView(APIView):
         # Verify key
         connection = bundle.connection
         conn_config = connection.config if isinstance(connection.config, dict) else {}
-        if conn_config.get("key") != key:
+        import hmac
+        if not (connection.sync_key and hmac.compare_digest(connection.sync_key, key or "")):
             return Response(
                 {"detail": "invalid key"},
                 status=status.HTTP_403_FORBIDDEN,

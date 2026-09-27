@@ -164,7 +164,7 @@ def send_gl_journal_bundle(connection, bundle_data: dict) -> dict:
 
     config = connection.config if isinstance(connection.config, dict) else {}
     endpoint = config.get('endpoint', '')
-    key = config.get('key', '')
+    key = connection.sync_key
 
     if not endpoint or not key:
         raise ValueError(

@@ -39,7 +39,7 @@ def handle_bundle_out(pending: Pending) -> bool:
 
     conn_config = connection.config or {}
     endpoint = conn_config.get("endpoint")
-    key = conn_config.get("key")
+    key = connection.sync_key
 
     if not endpoint:
         _log_attempt(pending, "no endpoint in connection config")

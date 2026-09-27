@@ -146,7 +146,7 @@ def harvest_episodes(connection) -> dict:
 
     config = connection.config if isinstance(connection.config, dict) else {}
     endpoint = config.get('endpoint', '')
-    key = config.get('key', '')
+    key = connection.sync_key
 
     if not endpoint or not key:
         raise ValueError(

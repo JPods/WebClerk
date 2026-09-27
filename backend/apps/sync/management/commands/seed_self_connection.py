@@ -3,6 +3,8 @@ to their own WC3 instance (JSON Tree, Matrix Builder, etc.).
 
 Usage: ./manage.py seed_self_connection
 """
+import secrets
+
 from django.core.management.base import BaseCommand
 from apps.sync.models.connection import Connection
 
@@ -19,12 +21,15 @@ class Command(BaseCommand):
                 'purpose': 'ingest',
                 'status': 'active',
                 'config': {
-                    'key': 'self-connection',
                     'description': 'Internal connection for tools posting bundles to this instance',
                 },
-                'comment': 'Auto-created. Used by JSON Tree, Matrix Builder, and other local tools.',
             },
         )
+        if not conn.sync_key:
+            # A random key, never the literal 'self-connection' (import plan §17.5): nothing in a
+            # browser holds it; local tools post bundles as their signed-in user.
+            conn.set_sync_key(secrets.token_urlsafe(32))
+            conn.save(update_fields=['encryption'])
         if created:
             self.stdout.write(self.style.SUCCESS(f"Created SelfConnection #{conn.id}"))
         else:

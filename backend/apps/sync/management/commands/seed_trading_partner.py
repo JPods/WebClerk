@@ -58,7 +58,6 @@ class Command(BaseCommand):
                     "direction": "push",
                     "endpoint": vendor_endpoint,
                     "callback_endpoint": buyer_callback,
-                    "key": shared_key,
                     "auth_method": "sync_key",
                     "content_types": ["po_to_so"],
                     "schema_map": {
@@ -107,12 +106,16 @@ class Command(BaseCommand):
                     "channel": "bundle",
                     "direction": "pull",
                     "callback_endpoint": buyer_callback,
-                    "key": shared_key,
                     "auth_method": "sync_key",
                     "content_types": ["po_to_so"],
                 },
             },
         )
+
+        for conn in (buyer_conn, vendor_conn):
+            if created or v_created or not conn.sync_key:
+                conn.set_sync_key(shared_key)
+                conn.save(update_fields=["encryption"])
 
         action = "Created" if created else "Already exists"
         v_action = "Created" if v_created else "Already exists"

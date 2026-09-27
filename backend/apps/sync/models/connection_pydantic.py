@@ -26,6 +26,7 @@ class ConnectionCredentials(BaseModel):
     api_key: str = ''
     signing_key: str = ''                    # webhook signature verification
     token: str = ''                          # e.g. a gateway token
+    sync_key: str = ''                       # the shared bundle key (X-Sync-Key; Fernet for payloads)
 
     class Config:
         extra = "forbid"

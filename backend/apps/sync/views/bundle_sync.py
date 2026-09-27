@@ -25,9 +25,9 @@ from apps.sync.services.bundle_crypto import decrypt_payload
 class BundleReceiveView(APIView):
     """Accept an incoming bundle from a connected system.
 
-    Authentication is via X-Sync-Key header matched against the
-    Connection's config.key field.  No Django user auth required —
-    this is machine-to-machine.
+    Authentication is via X-Sync-Key header matched against the Connection's sync key
+    (encryption.credentials.sync_key).  No Django user auth — machine-to-machine.
+    Receiving stores the bundle; it imports nothing (import plan §17: preview, approve, import).
     """
 
     authentication_classes = []
@@ -41,16 +41,7 @@ class BundleReceiveView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        # Find connection with this key
-        connections = Connection.objects.filter(
-            status="active",
-            is_active=True,
-        )
-        matched = None
-        for conn in connections:
-            if isinstance(conn.config, dict) and conn.config.get("key") == key:
-                matched = conn
-                break
+        matched = Connection.by_sync_key(key)
 
         if not matched:
             return Response(
@@ -117,7 +108,7 @@ class BundleReceiveView(APIView):
             direction="pull",
             model_name=bundle_model,
             config=bundle_config,
-            status="success",
+            status="",                          # received; success only when the import route imports it
             response={"dt_received": dt_received, "test": is_test},
         )
         bundle.save_payload_to_disk(payload)
