@@ -82,14 +82,6 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
       return;
     }
 
-    // Dialog-type report — emit custom event for parent to handle
-    if (config.action === 'import_vcard_dialog') {
-      window.dispatchEvent(new CustomEvent('wc:open-vcard-import', {
-        detail: { recordId: rec.id, modelName },
-      }));
-      return;
-    }
-
     // Action-type report — calls a manage action
     if (config.action) {
       const confirmMsg = config.confirm as string;

@@ -100,7 +100,7 @@ class ReportConfig(ConfigBase):
     topic: Optional[str] = None
 
     # -- toolbar actions (DetailToolbar) --
-    action: Optional[str] = None            # manage action name, open_url, import_vcard_dialog
+    action: Optional[str] = None            # manage action name, open_url
     url: Optional[str] = None
     confirm: Optional[str] = None
     params: dict = Field(default_factory=dict)

@@ -50,7 +50,6 @@ Actions:
     get_aged_payables              — vendor aging by bucket (mirrors aged receivables)
     get_cash_forecast              — projected cash inflows/outflows from operational data + budget entries
     get_budget_vs_actual           — compare budget vs actual (GlJournal) for a period
-    import_budget                  — import budget entries from Excel/CSV/JSON via Connection/Bundle
   Report Parade (Alice onboarding):
     start_parade                   — build parade manifest with sample data URLs
     save_parade_feedback           — save Keep/Modify/Don't Need feedback on a report
@@ -1002,22 +1001,6 @@ _ACTION_DISPATCH = {
         'apps.core.services.contact_vcard',
         fromlist=['export_vcards']
     ).export_vcards(params),
-    "preview_vcard": lambda params: __import__(
-        'apps.core.services.contact_vcard',
-        fromlist=['preview_vcard']
-    ).preview_vcard(params),
-    "import_vcard": lambda params: __import__(
-        'apps.core.services.contact_vcard',
-        fromlist=['import_vcard']
-    ).import_vcard(params),
-    "check_collisions": lambda params: __import__(
-        'apps.core.services.contact_vcard',
-        fromlist=['check_collisions']
-    ).check_collisions(params),
-    "import_bundle": lambda params: __import__(
-        'apps.core.services.contact_vcard',
-        fromlist=['import_bundle']
-    ).import_bundle(params),
     "generate_kanban_projects": _generate_kanban_projects,
     "get_receivable_aging": _get_receivable_aging,
     "get_summary_by_period": _get_summary_by_period,
@@ -1220,14 +1203,6 @@ _ACTION_DISPATCH = {
         'apps.accounts.services.forecast', fromlist=['cash_flow_forecast']
     ).cash_flow_forecast(
         months_ahead=min(max(int(p.get('months', 6)), 1), 24),
-    ),
-    "import_budget": lambda p: __import__(
-        'apps.accounts.services.budget_import', fromlist=['import_budget']
-    ).import_budget(
-        connection_id=int(p['connection_id']) if p.get('connection_id') else None,
-        file_path=p.get('file_path'),
-        data=p.get('data'),
-        dry_run=p.get('dry_run', False),
     ),
     # Allocation is a person's act, recorded with who and why (Bill, 2026-09-19).
     "allocate_inventory": lambda p: __import__(

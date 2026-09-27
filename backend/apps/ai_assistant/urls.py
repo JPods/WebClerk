@@ -26,11 +26,6 @@ urlpatterns = [
     path("pii/parse/", views.PiiParseView.as_view(), name="pii-parse"),
     path("pii/correct/", views.PiiCorrectView.as_view(), name="pii-correct"),
     # Contact paste parser
-    path("contact/parse/", views.ContactParseView.as_view(), name="contact-parse"),
-    path("contact/detect/", views.ContactDetectView.as_view(), name="contact-detect"),
-    path("contact/parse-confirmed/", views.ContactParseConfirmedView.as_view(), name="contact-parse-confirmed"),
-    path("contact/search/", views.ContactSearchView.as_view(), name="contact-search"),
-    path("contact/correct/", views.ContactParseCorrectView.as_view(), name="contact-correct"),
     # Upstream Alice — any WC3 can serve these for downstream instances
     path("alice/ask/", views.AliceAskUpstreamView.as_view(), name="alice-ask-upstream"),
     path("alice/ask-claude/", views.AliceAskClaudeUpstreamView.as_view(), name="alice-ask-claude-upstream"),

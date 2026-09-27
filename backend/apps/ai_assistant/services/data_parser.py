@@ -1,7 +1,7 @@
 """
-5C. Data Input Parsing — Clean and normalize addresses, phones, and vCards.
+5C. Data Input Parsing — Clean and normalize addresses and phones already in WebClerk.
 
-Deterministic libraries first (phonenumbers, usaddress, vobject), then
+Deterministic libraries first (phonenumbers, usaddress), then
 Ollama for fuzzy cases that rules can't handle.
 
 Usage:
@@ -10,7 +10,6 @@ Usage:
     parser = DataParser()
     result = parser.parse_address("123 Main St, Anytown, CA 90210")
     result = parser.parse_phone("+1 (555) 123-4567")
-    result = parser.parse_vcard(vcard_string)
     result = parser.clean_address_record(address_id=42)
     report = parser.bulk_clean_addresses(limit=200)
 """
@@ -145,75 +144,6 @@ def _parse_address_regex(raw: str) -> dict[str, Any]:
 
 # ── vCard parsing ──────────────────────────────────────────────────────
 
-def _parse_vcard(vcard_text: str) -> dict[str, Any]:
-    """Parse a vCard string into structured contact data."""
-    try:
-        import vobject
-        vcard = vobject.readOne(vcard_text)
-        result: dict[str, Any] = {"method": "vobject", "confidence": 0.9}
-
-        # Name
-        if hasattr(vcard, "fn"):
-            result["name"] = vcard.fn.value
-        if hasattr(vcard, "n"):
-            n = vcard.n.value
-            result["first_name"] = n.given or ""
-            result["last_name"] = n.family or ""
-
-        # Organization
-        if hasattr(vcard, "org"):
-            result["organization"] = vcard.org.value[0] if vcard.org.value else ""
-
-        # Emails
-        emails = []
-        for email in vcard.contents.get("email", []):
-            emails.append({
-                "address": email.value,
-                "type": email.params.get("TYPE", ["work"])[0] if email.params else "work",
-            })
-        result["emails"] = emails
-
-        # Phones
-        phones = []
-        for tel in vcard.contents.get("tel", []):
-            phones.append({
-                "number": tel.value,
-                "type": tel.params.get("TYPE", ["work"])[0] if tel.params else "work",
-            })
-        result["phones"] = phones
-
-        # Addresses
-        addresses = []
-        for adr in vcard.contents.get("adr", []):
-            addr = adr.value
-            addresses.append({
-                "address1": addr.street or "",
-                "city": addr.city or "",
-                "state": addr.region or "",
-                "zip": addr.code or "",
-                "country": addr.country or "",
-                "type": adr.params.get("TYPE", ["work"])[0] if adr.params else "work",
-            })
-        result["addresses"] = addresses
-
-        # Title
-        if hasattr(vcard, "title"):
-            result["title"] = vcard.title.value
-
-        # URL
-        if hasattr(vcard, "url"):
-            result["url"] = vcard.url.value
-
-        return result
-
-    except ImportError:
-        logger.warning("vobject library not installed — vCard parsing unavailable")
-        return {"error": "vobject not installed", "raw": vcard_text, "confidence": 0.0}
-    except Exception as e:
-        logger.debug("vCard parse failed: %s", e)
-        return {"error": str(e), "raw": vcard_text, "confidence": 0.0}
-
-
 class DataParser:
     """Unified data parsing service with deterministic + LLM fallback."""
 
@@ -250,10 +180,6 @@ class DataParser:
         if self.use_llm:
             return self._llm_parse_address(raw, result)
         return result
-
-    def parse_vcard(self, vcard_text: str) -> dict[str, Any]:
-        """Parse a vCard string into structured contact data."""
-        return _parse_vcard(vcard_text)
 
     # ── LLM fallbacks ─────────────────────────────────────────────────
 

@@ -66,10 +66,6 @@ urlpatterns = [
         open(os.path.join(settings.BASE_DIR, 'tools', 'journal_formatter.html'), 'rb'),
         content_type='text/html',
     ), name='journal-formatter'),
-    path('tools/contact_paste.html', lambda r: FileResponse(
-        open(os.path.join(settings.BASE_DIR, 'tools', 'contact_paste.html'), 'rb'),
-        content_type='text/html',
-    ), name='contact-paste'),
 
     # Customer / Vendor portal (plain HTML+JS, no build step)
     path('portal/', lambda r: FileResponse(

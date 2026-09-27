@@ -20,7 +20,6 @@ import "./FlightSimConsole.css";
 import { formatCurrency } from "@/utils/stringUtils";
 
 const UiDetail = React.lazy(() => import("../../apps/transactions/components/TransactionDetail"));
-const VCardImportDialog = React.lazy(() => import("../../components/common/VCardImportDialog"));
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -386,7 +385,6 @@ const FlightSimConsole: React.FC = () => {
   const [itemQty, setItemQty] = useState<Record<string, number>>({});
 
   // vCard import dialog
-  const [showVcardImport, setShowVcardImport] = useState(false);
 
   // Transaction array
   const [rows, setRows] = useState<TransactionRow[]>([]);
@@ -795,11 +793,6 @@ const FlightSimConsole: React.FC = () => {
         <button className="fs-btn" onClick={refreshArray} disabled={loading}>
           <FaSync size={10} className={loading ? "animate-spin" : ""} /> Refresh
         </button>
-        {activeSim?.id === 'first-customer' && (
-          <button className="fs-btn fs-btn-tx" onClick={() => setShowVcardImport(true)}>
-            Import from Contacts
-          </button>
-        )}
         {activeSim?.needsItem && (
           <button
             className={`fs-btn${!itemId ? " fs-btn-unresolved" : ""}`}
@@ -1100,20 +1093,6 @@ const FlightSimConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* vCard import dialog */}
-      {showVcardImport && (
-        <Suspense fallback={null}>
-          <VCardImportDialog
-            isOpen={showVcardImport}
-            onClose={() => setShowVcardImport(false)}
-            onImported={(contactId) => {
-              setShowVcardImport(false);
-              setRightModel('contact');
-              setRightRecordId(contactId);
-            }}
-          />
-        </Suspense>
-      )}
     </div>
   );
 };

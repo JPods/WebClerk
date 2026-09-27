@@ -45,7 +45,6 @@ SKIP_FILE_NAMES = {
     'alice_deliberate.py',
     'dedup.py',
     'load_qa.py',
-    'load_bom.py',
     'export_data.py',
     'restore_data.py',
     'restore_data_smart.py',

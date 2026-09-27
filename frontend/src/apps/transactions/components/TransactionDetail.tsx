@@ -21,7 +21,6 @@ import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
 
 import { useCustomerSearch } from './detail/CustomerSearch';
 import HeaderRenderer from './detail/HeaderRenderer';
-const VCardImportDialog = React.lazy(() => import('@/components/common/VCardImportDialog'));
 import LineCardRenderer from './detail/LineCardRenderer';
 import TabsRenderer from './detail/TabsRenderer';
 import PanelSectionRenderer from './detail/PanelSectionRenderer';
@@ -86,7 +85,6 @@ const UiDetail: React.FC<UiDetailProps> = ({
   const [designMode] = useState(false);
   const [designLayout, setDesignLayout] = useState<any>(null);
   const [showAddCash, setShowAddCash] = useState(false);
-  const [showVcardImport, setShowVcardImport] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const navigate = useNavigate();
 
@@ -124,13 +122,6 @@ const UiDetail: React.FC<UiDetailProps> = ({
   }, [modelName, recordId, dispatch]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-
-  // Listen for vCard import dialog event from Report dropdown
-  useEffect(() => {
-    const handler = () => setShowVcardImport(true);
-    window.addEventListener('wc:open-vcard-import', handler);
-    return () => window.removeEventListener('wc:open-vcard-import', handler);
-  }, []);
 
   // ── Inject initial lines from conversion (user reviews before saving) ──
   useEffect(() => {
@@ -467,20 +458,6 @@ const UiDetail: React.FC<UiDetailProps> = ({
         })}
       </div>
 
-      {/* vCard Import dialog (triggered via Report dropdown custom event) */}
-      {showVcardImport && (
-        <Suspense fallback={null}>
-          <VCardImportDialog
-            isOpen={showVcardImport}
-            onClose={() => setShowVcardImport(false)}
-            customerId={data?.customer_id || data?.customer || undefined}
-            onImported={() => {
-              setShowVcardImport(false);
-              fetchData();
-            }}
-          />
-        </Suspense>
-      )}
 
       {/* Add cash from this document (release #9): add_cash, apply_balance */}
       {['order', 'invoice', 'receipt'].includes(modelName) && data?.id && (

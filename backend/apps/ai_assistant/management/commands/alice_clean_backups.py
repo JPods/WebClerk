@@ -21,7 +21,7 @@ class Command(BaseCommand):
         parser.add_argument('--dry-run', action='store_true', help='Preview without deleting')
 
     def handle(self, *args, **options):
-        from apps.ai_assistant.services.contact_parser import clean_merge_backups
+        from apps.ai_assistant.services.merge_backups import clean_merge_backups
 
         result = clean_merge_backups(
             max_age_hours=options['hours'],
