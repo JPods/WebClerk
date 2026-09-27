@@ -10,11 +10,16 @@ vi.mock('../../models/cash/services/cashApi', () => ({
 vi.mock('@/api/wcapi', () => ({ getRecords: vi.fn().mockResolvedValue({ results: [] }) }));
 vi.mock('react-redux', () => ({ useDispatch: () => vi.fn() }));
 vi.mock('@/store/slices/toastSlice', () => ({ showToast: (x: any) => x }));
+let role: string | string[] = 'admin';
+vi.mock('@/store/hooks', () => ({ useAppSelector: (f: any) => f({ auth: { user: { role } } }) }));
+vi.mock('../SpreedlyCardForm', () => ({
+  default: (p: any) => <div>card form for invoice {p.invoiceId}: {p.amount}</div>,
+}));
 
 import AddCashDialog from '../AddCashDialog';
 import AddRelatedDialog from '@/apps/common/components/dialogs/AddRelatedDialog';
 
-beforeEach(() => { addCash.mockReset(); applyBalance.mockReset(); });
+beforeEach(() => { addCash.mockReset(); applyBalance.mockReset(); role = 'admin'; });
 
 describe('AddRelatedDialog', () => {
   it("shows the server's sentence when a save is refused and stays open", async () => {
@@ -72,5 +77,25 @@ describe('AddCashDialog guards (Fable review)', () => {
   it('offers no write-off on a receipt', () => {
     render(<AddCashDialog isOpen onClose={() => {}} model="receipt" id={2} balance={100} />);
     expect(screen.queryByLabelText('Write off what is left')).toBeNull();
+  });
+});
+
+describe('Charge a card', () => {
+  it('opens the card form on an invoice for the amount chosen', async () => {
+    render(<AddCashDialog isOpen onClose={() => {}} model="invoice" id={7} balance={40} />);
+    fireEvent.change(screen.getByLabelText('Amount to charge'), { target: { value: '25' } });
+    fireEvent.click(screen.getByText('Charge a card'));
+    expect(await screen.findByText('card form for invoice 7: 25')).toBeTruthy();
+  });
+
+  it('is not offered to a rep (Bill: reps do not take card payments)', () => {
+    role = ['rep'];
+    render(<AddCashDialog isOpen onClose={() => {}} model="invoice" id={7} balance={40} />);
+    expect(screen.queryByText('Charge a card')).toBeNull();
+  });
+
+  it('is not offered on an order or a receipt', () => {
+    render(<AddCashDialog isOpen onClose={() => {}} model="receipt" id={7} balance={40} />);
+    expect(screen.queryByText('Charge a card')).toBeNull();
   });
 });

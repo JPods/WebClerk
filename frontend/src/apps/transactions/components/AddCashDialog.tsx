@@ -7,12 +7,16 @@
  * what is left — a company record against a loss account, never refused (Bill). On an invoice,
  * the customer's available cash is listed and applied through apply_balance.
  * Replaces CashDialog and AddCashModal, which sent non-fields (cash_method_id, notes).
+ * "Charge a card" (invoice only; never for reps — Bill, 2026-09-26) opens SpreedlyCardForm:
+ * processGatewayCash makes a connection-payservice Cash, then pays it through the gateway.
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import AddRelatedDialog, { RelatedField, RelatedValues } from '@/apps/common/components/dialogs/AddRelatedDialog';
 import { getRecords } from '@/api/wcapi';
 import { addCash, applyBalance } from '../models/cash/services/cashApi';
+import SpreedlyCardForm from './SpreedlyCardForm';
+import { useAppSelector } from '@/store/hooks';
 import { showToast } from '@/store/slices/toastSlice';
 import { formatCurrency } from '@/utils/stringUtils';
 
@@ -50,6 +54,14 @@ const AddCashDialog: React.FC<AddCashDialogProps> = ({
   // A write-off settles a receivable (AR); the AP side has no write-off yet (Fable: a receipt's
   // would post a disbursement that never happened).
   const canWriteOff = model === 'invoice';
+  // Reps do not take card payments at this time (Bill, 2026-09-26).
+  const role = useAppSelector((state) => state.auth.user?.role);
+  const isRep = Array.isArray(role) ? role.includes('rep') : role === 'rep';
+  const canCharge = model === 'invoice' && !isRep && balance > 0;
+  const [charging, setCharging] = useState(false);
+  const [chargeAmount, setChargeAmount] = useState('');
+  useEffect(() => { if (isOpen) { setCharging(false); setChargeAmount(balance > 0 ? String(balance) : ''); } },
+            [isOpen, balance]);
 
   const loadAvailable = useCallback(async () => {
     if (model !== 'invoice' || !customerId) { setAvailable([]); return; }
@@ -116,6 +128,32 @@ const AddCashDialog: React.FC<AddCashDialogProps> = ({
       onSave={save}
       onClose={onClose}
     >
+      {canCharge && (
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wider db-text-muted mb-1">Or charge a card</div>
+          {!charging ? (
+            <div className="flex items-center gap-2 text-sm db-text">
+              <input type="number" min="0" step="0.01" value={chargeAmount}
+                     onChange={(e) => setChargeAmount(e.target.value)}
+                     className="w-28 px-2 py-0.5 rounded border db-input" aria-label="Amount to charge" />
+              <button onClick={() => setCharging(true)}
+                      disabled={!(Number(chargeAmount) > 0 && Number(chargeAmount) <= balance + 0.005)}
+                      className="px-2 py-0.5 text-xs rounded disabled:opacity-50"
+                      style={{ background: 'var(--db-btn-primary)', color: 'var(--db-btn-primary-text)' }}>
+                Charge a card
+              </button>
+            </div>
+          ) : (
+            <SpreedlyCardForm
+              invoiceId={id}
+              amount={Number(chargeAmount)}
+              customerName={partyName}
+              onSuccess={() => { onDone?.(); onClose(); }}
+              onCancel={() => setCharging(false)}
+            />
+          )}
+        </div>
+      )}
       {available.length > 0 && (
         <div>
           <div className="text-xs font-semibold uppercase tracking-wider db-text-muted mb-1">
