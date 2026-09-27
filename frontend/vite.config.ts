@@ -36,6 +36,9 @@ function getBackendDbMode(): string {
 export default defineConfig(({ mode }) => {
   // Load env to display in startup message
   const env = loadEnv(mode, process.cwd(), "");
+  // The Django the dev server proxies to. A second checkout (a branch under test) runs its own
+  // backend beside the main one: VITE_API_TARGET=http://127.0.0.1:8001 npx vite --port 5174.
+  const apiTarget = env.VITE_API_TARGET || "http://127.0.0.1:8000";
   const dataSetId = env.VITE_DATA_SET_KIND || "live";
   const dataSetName = env.VITE_DATA_SET_NAME || "Unknown";
   const dbMode = getBackendDbMode();
@@ -109,23 +112,23 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         "/wcapi": {
-          target: "http://127.0.0.1:8000",
+          target: apiTarget,
           changeOrigin: true,
         },
         "/api": {
-          target: "http://127.0.0.1:8000",
+          target: apiTarget,
           changeOrigin: true,
         },
         "/communications": {
-          target: "http://127.0.0.1:8000",
+          target: apiTarget,
           changeOrigin: true,
         },
         "/tx": {
-          target: "http://127.0.0.1:8000",
+          target: apiTarget,
           changeOrigin: true,
         },
         "/media": {
-          target: "http://127.0.0.1:8000",
+          target: apiTarget,
           changeOrigin: true,
         },
       },
