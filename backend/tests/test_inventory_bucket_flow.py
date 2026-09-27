@@ -34,16 +34,18 @@ class TestInventoryBucketFlow:
         from apps.products.models import InventoryLayer
 
         item = ItemFactory(ida='TEST-250', description='Test Widget')
+        # The item's leaves are the book; its layer holds received/issued (Bill, 2026-09-26).
         item.__class__.objects.filter(pk=item.pk).update(
             price={'base': 50.0, 'retail': 50.0},
             cost={'standard': 20.0},
+            quantity={'on_hand': 20, 'on_so': 0, 'on_po': 0, 'allocated': 0, 'available': 20},
         )
         item.refresh_from_db()
 
         wh = WarehouseFactory(name='Main Warehouse')
         InventoryLayer.objects.create(
             item=item, warehouse=wh,
-            quantity={'on_hand': 20, 'on_so': 0, 'on_po': 0},
+            quantity={'received': 20, 'issued': 0, 'scrapped': 0},
         )
         customer = CustomerFactory(company='Test Customer')
         return item, wh, customer
@@ -134,8 +136,6 @@ class TestInventoryBucketFlow:
         - Receive 8: on_hand=25, on_po=2
         """
         from apps.products.services.inventory.inventory_available import get_item_availability
-        from apps.products.models import InventoryLayer
-
         item, wh, customer = self._setup_item_with_inventory()
 
         # Starting state
@@ -144,39 +144,18 @@ class TestInventoryBucketFlow:
         assert avail['on_so'] == 0.0
         assert avail['available'] == 20.0
 
-        # Simulate what the Pending processor would do after an order for 4
-        layer = InventoryLayer.objects.get(item=item, warehouse=wh)
-        qty = layer.quantity
-        qty['on_so'] = 4
-        InventoryLayer.objects.filter(pk=layer.pk).update(quantity=qty)
+        # What the applier does to the item's leaves as the cycle runs.
+        def moved(**leaves):
+            q = {**item.__class__.objects.get(pk=item.pk).quantity, **leaves}
+            q['available'] = q['on_hand'] - q.get('allocated', 0)
+            item.__class__.objects.filter(pk=item.pk).update(quantity=q)
+            return get_item_availability(item.pk)
 
-        avail = get_item_availability(item.pk)
-        assert avail['on_hand'] == 20.0
-        assert avail['on_so'] == 4.0
-        assert avail['available'] == 20.0  # on_hand unchanged, available = on_hand - reserved
-
-        # After invoice for 3 (on_hand -= 3, on_so -= 3)
-        qty['on_hand'] = 17
-        qty['on_so'] = 1
-        InventoryLayer.objects.filter(pk=layer.pk).update(quantity=qty)
-
-        avail = get_item_availability(item.pk)
-        assert avail['on_hand'] == 17.0
-        assert avail['on_so'] == 1.0
-
-        # After PO for 10
-        qty['on_po'] = 10
-        InventoryLayer.objects.filter(pk=layer.pk).update(quantity=qty)
-
-        avail = get_item_availability(item.pk)
+        avail = moved(on_so=4)                          # order for 4
+        assert (avail['on_hand'], avail['on_so'], avail['available']) == (20.0, 4.0, 20.0)
+        avail = moved(on_hand=17, on_so=1)              # invoice for 3
+        assert (avail['on_hand'], avail['on_so']) == (17.0, 1.0)
+        avail = moved(on_po=10)                         # PO for 10
         assert avail['on_po'] == 10.0
-
-        # After receiving 8 (on_hand += 8, on_po -= 8)
-        qty['on_hand'] = 25
-        qty['on_po'] = 2
-        InventoryLayer.objects.filter(pk=layer.pk).update(quantity=qty)
-
-        avail = get_item_availability(item.pk)
-        assert avail['on_hand'] == 25.0
-        assert avail['on_po'] == 2.0
-        assert avail['on_so'] == 1.0
+        avail = moved(on_hand=25, on_po=2)              # receive 8
+        assert (avail['on_hand'], avail['on_po'], avail['on_so']) == (25.0, 2.0, 1.0)

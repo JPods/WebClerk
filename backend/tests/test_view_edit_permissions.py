@@ -119,7 +119,7 @@ def test_journalized_write_is_refused_not_just_hidden():
     invoice.totals = {**invoice.totals, 'total': 999}
     with pytest.raises(JournalizedLockError) as err:
         invoice.save()
-    assert 'Reverse the journal entry first' in str(err.value)
+    assert 'amending document' in str(err.value)
 
     # Cash is not locked: received/balance/cash_state may still move
     invoice.refresh_from_db()

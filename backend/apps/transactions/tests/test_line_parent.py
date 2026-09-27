@@ -90,6 +90,10 @@ class TestStatus:
 @pytest.mark.django_db
 class TestSignedQuantities:
     def test_negative_parent_and_children(self, item):
+        # A negative invoice line is a return: its stock lands in a layer, so the install has a
+        # warehouse (plan §16d; with none, the return is refused 'no_warehouse').
+        from apps.products.models import Warehouse
+        Warehouse.objects.create(code="WH1", name="Main")
         order = Order.objects.create(status="draft")
         ol = OrderLine.objects.create(order=order, item_fk=item, quantity={"active": -10})
         _invoice_line(item, ol, -6)
