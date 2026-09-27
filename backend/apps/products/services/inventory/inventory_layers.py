@@ -60,6 +60,7 @@ def create_layer(
     vat: Decimal = Decimal('0'),
     serial_numbers: Optional[list] = None,
     reason: str = 'Receipt',
+    recalc: bool = True,
 ) -> InventoryLayer:
     """Create a new inventory layer on receipt. Landed cost computed at create time (#8)."""
     item = Item.objects.get(id=item_id)
@@ -104,8 +105,9 @@ def create_layer(
         source_doc_id=source_doc_id,
     )
 
-    # Update item average cost
-    recalc_average_cost(item_id)
+    # Update item average cost (the applier recalculates once per apply instead)
+    if recalc:
+        recalc_average_cost(item_id)
 
     return layer
 
@@ -123,15 +125,16 @@ def consume_fifo(
     reason: str = 'Issue',
     source_doc_type: str = '',
     source_doc_id: Optional[int] = None,
-) -> tuple[Decimal, str]:
-    """Consume qty using FIFO (oldest layers first). Returns (total_cost, batch_id).
+    recalc: bool = True,
+) -> dict:
+    """Consume qty using FIFO (oldest layers first). Returns the consumption (see _consume).
 
     FIX #1: WC2 missed cost on partial layer consumption. Every unit drained
     contributes to total_cost regardless of whether the layer is fully or
     partially consumed.
     """
-    return _consume(item_id, qty, order='id', warehouse_id=warehouse_id,
-                    reason=reason, source_doc_type=source_doc_type, source_doc_id=source_doc_id)
+    return _consume(item_id, qty, order='id', warehouse_id=warehouse_id, reason=reason,
+                    source_doc_type=source_doc_type, source_doc_id=source_doc_id, recalc=recalc)
 
 
 @transaction.atomic
@@ -143,29 +146,27 @@ def consume_lifo(
     reason: str = 'Issue',
     source_doc_type: str = '',
     source_doc_id: Optional[int] = None,
-) -> tuple[Decimal, str]:
-    """Consume qty using LIFO (newest layers first). Returns (total_cost, batch_id)."""
-    return _consume(item_id, qty, order='-id', warehouse_id=warehouse_id,
-                    reason=reason, source_doc_type=source_doc_type, source_doc_id=source_doc_id)
+    recalc: bool = True,
+) -> dict:
+    """Consume qty using LIFO (newest layers first). Returns the consumption (see _consume)."""
+    return _consume(item_id, qty, order='-id', warehouse_id=warehouse_id, reason=reason,
+                    source_doc_type=source_doc_type, source_doc_id=source_doc_id, recalc=recalc)
 
 
 def consume_by_item_method(
     item_id: int,
     qty: Decimal,
     **kwargs,
-) -> tuple[Decimal, str]:
-    """Consume using the item's configured costing method (#2)."""
+) -> dict:
+    """Consume using the item's configured costing method (#2); the result names the method."""
     item = Item.objects.get(id=item_id)
     method = _get_costing_method(item)
-    if method == 'fifo':
-        return consume_fifo(item_id, qty, **kwargs)
-    elif method == 'lifo':
-        return consume_lifo(item_id, qty, **kwargs)
-    elif method == 'last':
+    if method in ('lifo', 'last'):
         # Last cost: consume LIFO but cost at last receipt price
-        return consume_lifo(item_id, qty, **kwargs)
-    else:  # average
-        return consume_fifo(item_id, qty, **kwargs)
+        result = consume_lifo(item_id, qty, **kwargs)
+    else:  # fifo, and average (walked FIFO)
+        result = consume_fifo(item_id, qty, **kwargs)
+    return {**result, 'method': method}
 
 
 def _consume(
@@ -177,8 +178,12 @@ def _consume(
     reason: str = 'Issue',
     source_doc_type: str = '',
     source_doc_id: Optional[int] = None,
-) -> tuple[Decimal, str]:
+    recalc: bool = True,
+) -> dict:
     """Internal consume implementation. Walks layers in given order.
+
+    Returns {cost, batch_id, layers: [{layer_id, qty, unit_cost}], short}: what each layer
+    gave, and how much the layers could not (the shortfall, left as an open deficit Pending).
 
     Locks without waiting: a locked item or layer raises LayerLocked (409 layer_locked)
     instead of blocking behind another save's transaction (defect B-6).
@@ -203,6 +208,7 @@ def _consume(
         raise LayerLocked(locked.pk, item_id=item_id)
     total_cost = Decimal('0')
     remaining = qty
+    taken = []
 
     for layer in layers:
         avail = layer.remaining_qty()
@@ -216,6 +222,7 @@ def _consume(
 
         layer.mark_issue(take)
         layer.save(update_fields=['quantity'])
+        taken.append({'layer_id': layer.pk, 'qty': float(take), 'unit_cost': float(unit_cost)})
 
         # Post movement for this layer
         InventoryMovement.objects.create(
@@ -251,10 +258,12 @@ def _consume(
         )
         _create_deficit_alert(item, remaining, batch_id, reason)
 
-    # Recalculate average cost after consumption
-    recalc_average_cost(item_id)
+    # Recalculate average cost after consumption (the applier does it once per apply)
+    if recalc:
+        recalc_average_cost(item_id)
 
-    return total_cost, batch_id
+    return {'cost': total_cost, 'batch_id': batch_id, 'layers': taken,
+            'short': float(remaining) if remaining > 0 else 0.0}
 
 
 # ---------------------------------------------------------------------------
@@ -277,16 +286,97 @@ def recalc_average_cost(item_id: int) -> Decimal:
 
     avg = (total_value / total_qty).quantize(COST_DECIMALS) if total_qty > 0 else Decimal('0')
 
-    # Update item.cost.avg
-    try:
-        item = Item.objects.get(id=item_id)
-        if isinstance(item.cost, dict):
-            item.cost['avg'] = float(avg)
-            item.save(update_fields=['cost'])
-    except Exception:
-        pass
+    # Update item.cost.avg. A queryset update: the item's own save would run its signals inside
+    # the applier's transaction. A failure raises (plan §16c.6) — it used to pass silently.
+    item = Item.objects.only('id', 'cost').get(id=item_id)
+    cost = dict(item.cost) if isinstance(item.cost, dict) else {}
+    cost['avg'] = float(avg)
+    Item.objects.filter(pk=item_id).update(cost=cost)
 
     return avg
+
+
+def give_back(item_id: int, consumed: list, qty: Decimal, *, reason: str = 'Given back',
+              source_doc_type: str = '', source_doc_id: Optional[int] = None) -> dict:
+    """Return qty to the layers a line consumed, newest consumption first, at the costs taken.
+
+    ``consumed`` is the line's history, oldest first: each entry {layer_id, qty, unit_cost}, a
+    give-back entered negative. The net still out per layer is what can come back. Returns
+    {layers: [{layer_id, qty, unit_cost}] (qty negative: back on the shelf), cost, unplaced}; what
+    the history cannot place (a line older than its events) is left to the caller.
+    """
+    from django.db import DatabaseError
+    from apps.core.models.pending import LayerLocked
+
+    out: dict = {}
+    order: list = []
+    for entry in consumed:
+        lid = entry.get('layer_id')
+        if not lid:
+            continue
+        out[lid] = out.get(lid, Decimal('0')) + Decimal(str(entry.get('qty') or 0))
+        if lid in order:
+            order.remove(lid)
+        order.append(lid)
+    costs = {e.get('layer_id'): Decimal(str(e.get('unit_cost') or 0)) for e in consumed if e.get('layer_id')}
+
+    left = Decimal(str(qty))
+    back, cost = [], Decimal('0')
+    for lid in reversed(order):
+        if left <= 0:
+            break
+        take = min(out[lid], left)
+        if take <= 0:
+            continue
+        try:
+            layer = InventoryLayer.objects.select_for_update(nowait=True).select_related(
+                'warehouse').get(pk=lid)
+        except InventoryLayer.DoesNotExist:
+            continue                       # the layer is gone; the rest is the caller's
+        except DatabaseError as e:
+            raise LayerLocked(lid, item_id=item_id) from e
+        if layer.is_locked:
+            raise LayerLocked(layer.pk, item_id=item_id)
+        layer.mark_issue(-take)
+        layer.save(update_fields=['quantity'])
+        InventoryMovement.objects.create(
+            item_id=item_id, warehouse=layer.warehouse, inventory_layer=layer,
+            site_code=layer.warehouse.site_code, movement_type=InventoryMovement.MOVEMENT_ADJUST,
+            quantity=take, reason=reason[:120], source_doc_type=source_doc_type,
+            source_doc_id=source_doc_id)
+        back.append({'layer_id': lid, 'qty': float(-take), 'unit_cost': float(costs.get(lid, 0))})
+        cost += take * costs.get(lid, Decimal('0'))
+        left -= take
+    return {'layers': back, 'cost': -cost, 'unplaced': float(left)}
+
+
+def settle_deficit(item_id: int, qty: Decimal, *, source_pending_id: Optional[int] = None) -> Decimal:
+    """Take qty off the item's open deficits, oldest first; what is left over is returned.
+
+    A deficit Pending is never edited: each settlement is an entry in its
+    metadata.incremental_apply, and it closes when nothing remains (Pending.incremental_remaining).
+    """
+    from apps.core.models.pending import DEFICIT_PURPOSE, Pending
+    left = Decimal(str(qty))
+    for p in (Pending.objects.select_for_update()
+              .filter(purpose=DEFICIT_PURPOSE, record_id=str(item_id), dt_processed=0).order_by('id')):
+        if left <= 0:
+            break
+        open_qty = p.incremental_remaining('deficit_qty')
+        take = min(open_qty, left)
+        if take <= 0:
+            continue
+        meta = dict(p.metadata or {})
+        meta['incremental_apply'] = list(meta.get('incremental_apply') or []) + [
+            {'qty': float(take), 'source_pending_id': source_pending_id}]
+        p.metadata = meta
+        fields = ['metadata', 'dt_modified', 'version']
+        if open_qty - take <= 0:
+            p.mark_processed(save=False)
+            fields.append('dt_processed')
+        p.save(update_fields=fields)
+        left -= take
+    return left
 
 
 # ---------------------------------------------------------------------------
@@ -863,7 +953,8 @@ def adjust_item_quantity_via_pending(params: dict) -> dict:
 
 
 __all__ = [
-    'create_layer', 'consume_fifo', 'consume_lifo', 'consume_by_item_method',
+    'create_layer', 'consume_fifo', 'consume_lifo', 'consume_by_item_method', 'give_back',
+    'settle_deficit',
     'recalc_average_cost', 'split_layer', 'transfer_layer',
     'get_count_sheet', 'record_count', 'classify_abc',
     'compute_margin_velocity', 'update_item_margin_velocity',

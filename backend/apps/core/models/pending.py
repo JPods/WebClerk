@@ -218,7 +218,10 @@ class Pending(CoreModel):
 
                 Item.objects.filter(pk=item_id).update(quantity=quantity)
                 self._record_line_event()
-                self.mark_processed(save=True)
+                # changes and config carry what the layers gave (consumed), written by the
+                # apply: saved with the mark, or lost (Fable §16c.5).
+                self.mark_processed(save=False)
+                self.save(update_fields=['dt_processed', 'changes', 'config', 'dt_modified', 'version'])
 
             logger.debug(f"Pending {self.pk} applied to item {item_id}")
             return True
@@ -258,9 +261,18 @@ class Pending(CoreModel):
 
         spec = data.get('layer')
         on_hand = Decimal(str(data.get('on_hand', 0) or 0))
-        if data.get('type_id') == 'RC' and on_hand and not spec:
+        config = self.config if isinstance(self.config, dict) else {}
+        source_type = config.get('source_type') or ''
+        if isinstance(spec, list):
+            return self._apply_line_specs(item_id, spec, data, config)
+        if source_type == 'receipt' and on_hand and not spec:
             raise ValidationError({'layer': f'Pending {self.pk} moves on_hand by {on_hand} '
                                             'for a receipt and names no layer'})
+        if on_hand < 0 and not spec and source_type != 'workorder_completion':
+            # Layers follow every decrease (Bill, 2026-09-26): one that names no layer is
+            # consumed by the item's costing method. A completion's layer is made by
+            # complete_workorder itself, until production moves onto the door.
+            return self._apply_line_specs(item_id, [{'consume': float(-on_hand)}], data, config)
         from apps.products.models.inventory_layer import InventoryLayer, InventoryMovement
         from apps.products.services.inventory.inventory_layers import create_layer, recalc_average_cost
 
@@ -285,9 +297,15 @@ class Pending(CoreModel):
             if layer.is_locked:
                 raise LayerLocked(layer.pk)
             q = dict(layer.quantity or {})
-            # Rule 10: a Pending applies. A layer left holding less than it issued is a
-            # finding for check_balances (inventory.layer_range), corrected by a new record.
-            q['received'] = float(Decimal(str(q.get('received', 0) or 0)) + on_hand)
+            received = Decimal(str(q.get('received', 0) or 0)) + on_hand
+            out = Decimal(str(q.get('issued', 0) or 0)) + Decimal(str(q.get('scrapped', 0) or 0))
+            if received < out:
+                # A receipt cut below what its layer has already issued (Bill, 2026-09-26: allow,
+                # record the shortfall): the layer holds what left it, and the rest is an open
+                # deficit, as a short sale's is.
+                self._open_deficit(item_id, out - received, reason='receipt reduced below issued')
+                received = out
+            q['received'] = float(received)
             layer.quantity = q
             layer.save(update_fields=['quantity', 'dt_modified', 'version'])
             InventoryMovement.objects.create(
@@ -339,6 +357,153 @@ class Pending(CoreModel):
         if not ReceiptLine.objects.filter(pk=spec.get('line_id')).update(inventory_layer=layer):
             raise ValidationError({'layer': f"receipt line {spec.get('line_id')} not found "
                                             f"for layer {layer.pk}"})
+
+    def _open_deficit(self, item_id, qty, *, reason: str):
+        """The shelf is short by qty: an open deficit Pending says so until stock settles it."""
+        from decimal import Decimal
+        from apps.products.services.inventory.inventory_layers import _get_item_avg_cost
+        from apps.products.models import Item
+        item = Item.objects.get(pk=item_id)
+        type(self).objects.create(
+            purpose=DEFICIT_PURPOSE, model_name='item', record_id=str(item_id),
+            name=f'Short {qty} of {item.ida or item.pk}'[:120],
+            changes={'deficit_qty': float(qty), 'unit_cost': float(_get_item_avg_cost(item)),
+                     'reason': reason, 'source_pending_id': self.pk},
+        )
+
+    def _line_history(self, config):
+        """What this Pending's line has already had done to its layers, oldest first."""
+        from django.apps import apps as dj_apps
+        line_model, line_id = config.get('line_model'), config.get('line_id')
+        if not (line_model and line_id):
+            return []
+        try:
+            LineModel = dj_apps.get_model('transactions', line_model)
+        except LookupError:
+            return []
+        line = LineModel.objects.filter(pk=line_id).only('id', 'events').first() \
+            if hasattr(LineModel, 'events') else None
+        history = []
+        for event in (getattr(line, 'events', None) or []):
+            consumed = (event or {}).get('consumed') if isinstance(event, dict) else None
+            if isinstance(consumed, dict):
+                history.append(consumed)
+        return history
+
+    def _apply_line_specs(self, item_id, specs, data, config):
+        """Carry out what the line door decided a line's change does to the layers (plan §16d).
+
+        consume: take by the item's costing method (short → an open deficit).
+        give_back: settle the line's own shortfall first, then return to the layers it consumed,
+            newest first; anything its history cannot place lands at average cost.
+        return: a layer of its own at the item's average cost (Bill, 2026-09-26).
+        return_shrink: take the line's return layers back down, newest first.
+        What happened is written to changes['consumed'] and the line's event: its cost of goods.
+        """
+        from decimal import Decimal
+        from apps.products.services.inventory.inventory_layers import (
+            _get_item_avg_cost, consume_by_item_method, create_layer, give_back,
+            recalc_average_cost, settle_deficit)
+        from apps.products.models import Item
+        from apps.products.models.inventory_layer import InventoryLayer
+
+        doc_type, doc_id = config.get('line_model') or self.purpose, config.get('line_id')
+        reason = str(data.get('reason') or self.purpose)[:120]
+        live = self._line_history(config)
+        layers, cost, short, settled, method = [], Decimal('0'), Decimal('0'), Decimal('0'), None
+
+        def _return_layer(qty, warehouse_id, why):
+            nonlocal cost
+            item = Item.objects.only('id', 'cost').get(pk=item_id)
+            unit = _get_item_avg_cost(item)
+            layer = create_layer(item_id, warehouse_id, qty, unit, source_doc_type=doc_type,
+                                 source_doc_id=doc_id, reason=why, recalc=False)
+            layers.append({'layer_id': layer.pk, 'qty': float(-qty), 'unit_cost': float(unit),
+                           'return': True})
+            cost -= qty * unit
+
+        for spec in specs:
+            # The line as it stands, or — deleted before this applied — the history it carried.
+            history = live or spec.get('history') or []
+            if spec.get('consume'):
+                r = consume_by_item_method(item_id, Decimal(str(spec['consume'])),
+                                           warehouse_id=spec.get('warehouse_id'), reason=reason,
+                                           source_doc_type=doc_type, source_doc_id=doc_id, recalc=False)
+                layers += r['layers']
+                cost += Decimal(str(r['cost']))
+                short += Decimal(str(r['short']))
+                method = r.get('method')
+            elif spec.get('give_back'):
+                qty = Decimal(str(spec['give_back']))
+                open_short = sum((Decimal(str(h.get('short') or 0)) - Decimal(str(h.get('short_settled') or 0))
+                                  for h in history), Decimal('0'))
+                if open_short > 0:
+                    take = min(open_short, qty)
+                    settle_deficit(item_id, take, source_pending_id=self.pk)
+                    settled += take
+                    qty -= take
+                if qty > 0:
+                    taken = [e for h in history for e in (h.get('layers') or []) if not e.get('return')]
+                    g = give_back(item_id, taken, qty, reason=reason, source_doc_type=doc_type,
+                                  source_doc_id=doc_id)
+                    layers += g['layers']
+                    cost += Decimal(str(g['cost']))
+                    unplaced = Decimal(str(g['unplaced']))
+                    if unplaced > 0:
+                        # A line older than its events: its stock comes back at average cost.
+                        warehouse = (InventoryLayer.objects.filter(item_id=item_id)
+                                     .order_by('-id').values_list('warehouse_id', flat=True).first())
+                        if not warehouse:
+                            from apps.products.models.warehouse import Warehouse
+                            warehouse = Warehouse.objects.filter(is_active=True).order_by('id') \
+                                .values_list('id', flat=True).first()
+                        _return_layer(unplaced, warehouse, 'given back, no consumption on record')
+                        layers[-1]['fallback'] = 'avg'
+                        layers[-1].pop('return', None)
+            elif spec.get('return'):
+                _return_layer(Decimal(str(spec['return'])), spec['warehouse_id'], 'Return')
+            elif spec.get('return_shrink'):
+                qty = Decimal(str(spec['return_shrink']))
+                held: dict = {}
+                for e in (e for h in history for e in (h.get('layers') or []) if e.get('return')):
+                    held[e['layer_id']] = held.get(e['layer_id'], Decimal('0')) - Decimal(str(e['qty']))
+                for layer_id in sorted(held, reverse=True):
+                    if qty <= 0:
+                        break
+                    layer = InventoryLayer.objects.select_for_update(nowait=True).get(pk=layer_id)
+                    if layer.is_locked:
+                        raise LayerLocked(layer.pk)
+                    take = min(held[layer_id], Decimal(str(layer.remaining_qty())), qty)
+                    if take <= 0:
+                        continue
+                    q = dict(layer.quantity or {})
+                    q['received'] = float(Decimal(str(q.get('received') or 0)) - take)
+                    layer.quantity = q
+                    layer.save(update_fields=['quantity', 'dt_modified', 'version'])
+                    unit = Decimal(str((layer.cost or {}).get('landed') or 0))
+                    layers.append({'layer_id': layer_id, 'qty': float(take), 'unit_cost': float(unit),
+                                   'return': True})
+                    cost += take * unit
+                    qty -= take
+                if qty > 0:
+                    # The return's layer has been sold from: the rest leaves by costing method.
+                    r = consume_by_item_method(item_id, qty, reason=reason, source_doc_type=doc_type,
+                                               source_doc_id=doc_id, recalc=False)
+                    layers += r['layers']
+                    cost += Decimal(str(r['cost']))
+                    short += Decimal(str(r['short']))
+
+        recalc_average_cost(item_id)
+        consumed = {'layers': layers, 'cost': float(cost), 'short': float(short),
+                    'short_settled': float(settled)}
+        if method:
+            consumed['method'] = method
+        data['consumed'] = consumed
+        self.changes = data
+        event = config.get('event')
+        if isinstance(event, dict):
+            event['consumed'] = consumed
+            self.config = config
 
     def _record_line_event(self):
         """Append this pending's event to the record it belongs to, in the same

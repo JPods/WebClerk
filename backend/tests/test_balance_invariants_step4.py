@@ -64,13 +64,15 @@ def test_in_process_without_its_on_assembly_pointer_is_a_finding():
     assert 'inventory.in_process' not in checks
 
 
-def test_an_open_deficit_accounts_for_the_short_shelf():
-    """30 on the shelf, 40 issued: on_hand −10, layers 0, deficit 10 → 0 = −10 + 10."""
+def test_an_issue_the_layers_cannot_fill_opens_its_own_deficit():
+    """Nothing on the shelf, 10 issued: on_hand −10, layers 0, deficit 10 → 0 = −10 + 10.
+    Bill, 2026-09-26: layers follow every decrease, and a short one is recorded, not refused —
+    the applier opens the deficit itself."""
+    from apps.core.models.pending import DEFICIT_PURPOSE, Pending
     item = _item()
     _move(item, on_hand=-10)
-    checks, _ = _checks(item)
-    assert 'inventory.layers' in checks                 # nothing explains the gap yet
-    _deficit(item, 10)
+    deficits = Pending.objects.filter(purpose=DEFICIT_PURPOSE, record_id=str(item.pk), dt_processed=0)
+    assert [float(d.changes['deficit_qty']) for d in deficits] == [10.0]
     checks, _ = _checks(item)
     assert 'inventory.layers' not in checks
     assert 'inventory.deficit_stale' not in checks      # still negative: a known defect, not a fault
@@ -78,8 +80,7 @@ def test_an_open_deficit_accounts_for_the_short_shelf():
 
 def test_a_partly_filled_deficit_counts_only_what_remains():
     from decimal import Decimal
-    item = _item()
-    _move(item, on_hand=-9)
+    item = _item(on_hand=-9)                            # fixture state: a shelf already short 9
     p = _deficit(item, 11, applied=[2])
     assert p.incremental_remaining('deficit_qty') == Decimal('9')
     checks, _ = _checks(item)

@@ -117,22 +117,85 @@ def _difference(before: Dict[str, float], after: Dict[str, float]) -> Dict[str, 
             if round(after.get(b, 0.0) - before.get(b, 0.0), 6)}
 
 
+#: lines that keep an events[] — one event per Pending applied to them (plan §16c/§16d)
+EVENT_LINES = ('invoiceline', 'receiptline')
+
+
 def _write(line, item_id: int, deltas: Dict[str, float], *, reason: str, layer=None) -> None:
+    import time
+    import uuid
     from apps.core.models import Pending
 
     changes: Dict[str, Any] = {'item_id': item_id, 'reason': reason, **deltas}
     if layer:
         changes['layer'] = layer
+    config = {'line_id': line.pk, 'line_model': line._meta.model_name,
+              'source_type': _header_model_name(line.parent) if line.parent else '',
+              'source_id': getattr(line.parent, 'pk', None)}
+    if line._meta.model_name in EVENT_LINES and deltas.get('on_hand'):
+        # The applier appends this to the line's events[] in the apply that moves the stock,
+        # with what the layers gave (consumed) filled in there.
+        config['event'] = {'id': uuid.uuid4().hex, 'kind': reason, 'dt': int(time.time() * 1000),
+                           'by': getattr(line, '_actor_id', None), 'qty': deltas['on_hand']}
     Pending.objects.create(
         model_name='item',
         record_id=str(item_id),
         purpose='inventory_line_add',
         name=f"{line._meta.model_name} {line.pk}: {reason}"[:120],
         changes=changes,
-        config={'line_id': line.pk, 'line_model': line._meta.model_name,
-                'source_type': _header_model_name(line.parent) if line.parent else '',
-                'source_id': getattr(line.parent, 'pk', None)},
+        config=config,
     )
+
+
+def _warehouse_of(line, header) -> Optional[int]:
+    """Where a line's goods leave or land: the line's own, else its document's."""
+    physical = line.physical if isinstance(getattr(line, 'physical', None), dict) else {}
+    warehouse_id = physical.get('warehouse_id') or getattr(line, 'warehouse_id', None)
+    if not warehouse_id and header is not None:
+        shipping = getattr(header, 'shipping', None)
+        warehouse_id = (shipping if isinstance(shipping, dict) else {}).get('warehouse_id')
+    return int(warehouse_id) if warehouse_id else None
+
+
+def _return_warehouse(line, header) -> int:
+    """A return must land somewhere: the named warehouse, the only one, or a coached refusal."""
+    from apps.core.services.door import Refused
+    from apps.products.models.warehouse import Warehouse
+    warehouse_id = _warehouse_of(line, header)
+    if warehouse_id:
+        return warehouse_id
+    only = list(Warehouse.objects.filter(is_active=True).values_list('id', flat=True)[:2])
+    if len(only) == 1:
+        return only[0]
+    raise Refused(400, 'warehouse_required',
+                  "Name the warehouse to return it to: the invoice's shipping.warehouse_id, "
+                  "or this line's physical.warehouse_id.", {'line_id': line.pk})
+
+
+def _invoice_layer_specs(line, header, before_active: float, after_active: float) -> list:
+    """What an invoice line's change does to the layers (plan §16d), in the order to apply.
+
+    A positive line sells: more consumes by the item's costing method, less gives back to the
+    layers this line consumed. A negative line is a return: it lands in a layer of its own at
+    the item's average cost, and a smaller return takes that layer back down. A line crossing
+    zero does both.
+    """
+    specs = []
+    # What this line has had done to its layers so far, carried with a give-back: a deleted
+    # line is gone before its Pending applies, so the applier cannot read it then.
+    history = [e['consumed'] for e in (getattr(line, 'events', None) or [])
+               if isinstance(e, dict) and isinstance(e.get('consumed'), dict)]
+    sold = round(max(after_active, 0) - max(before_active, 0), 6)
+    if sold > 0:
+        specs.append({'consume': sold, 'warehouse_id': _warehouse_of(line, header)})
+    elif sold < 0:
+        specs.append({'give_back': -sold, 'history': history})
+    returned = round(max(-after_active, 0) - max(-before_active, 0), 6)
+    if returned > 0:
+        specs.append({'return': returned, 'warehouse_id': _return_warehouse(line, header)})
+    elif returned < 0:
+        specs.append({'return_shrink': -returned, 'history': history})
+    return specs
 
 
 def post_line_change(line, *, deleted: bool = False) -> None:
@@ -146,12 +209,25 @@ def post_line_change(line, *, deleted: bool = False) -> None:
     else:
         after_item, after = _current_footprint(line)
 
+    is_invoice = _header_model_name(header) == 'invoice' if header is not None else False
+    loaded = getattr(line, '_loaded', None) or {}
+    before_active = float(loaded.get('active') or 0) if before else 0.0
+    quantity = line.quantity if isinstance(line.quantity, dict) else {}
+    after_active = 0.0 if deleted else float(quantity.get('active') or 0)
+
     if before_item and after_item and before_item != after_item:
         # The item changed: the old one gives back everything, the new one takes what it holds.
+        # A receipt's old layer comes down by its own id; the new item gets a layer of its own.
+        is_receipt = _header_model_name(header) == 'receipt'
+        old_layer = getattr(line, 'inventory_layer_id', None)
         if before:
-            _write(line, before_item, _difference(before, {}), reason='item changed away')
+            layer = (_invoice_layer_specs(line, header, before_active, 0.0) if is_invoice
+                     else {'layer_id': old_layer} if is_receipt and old_layer else None)
+            _write(line, before_item, _difference(before, {}), reason='item changed away', layer=layer)
         if after:
-            _write(line, after_item, _difference({}, after), reason='item changed to')
+            layer = (_invoice_layer_specs(line, header, 0.0, after_active) if is_invoice
+                     else _receipt_layer(line, header, create=True) if is_receipt else None)
+            _write(line, after_item, _difference({}, after), reason='item changed to', layer=layer)
         return
 
     item_id = after_item or before_item
@@ -160,7 +236,9 @@ def post_line_change(line, *, deleted: bool = False) -> None:
         return
 
     layer = None
-    if _header_model_name(header) == 'receipt' and deltas.get('on_hand'):
+    if is_invoice and deltas.get('on_hand'):
+        layer = _invoice_layer_specs(line, header, before_active, after_active)
+    elif _header_model_name(header) == 'receipt' and deltas.get('on_hand'):
         # Received goods move a layer with them; a new line creates it, a change or a delete
         # moves the one the line already has.
         layer = _receipt_layer(line, header, create=not getattr(line, 'inventory_layer_id', None))

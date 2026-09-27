@@ -245,12 +245,12 @@ def consume_bom(
             if qty_to_consume <= 0:
                 continue
 
-        child_cost, _child_batch = consume_by_item_method(
+        child_cost = consume_by_item_method(
             line.child_item_id,
             qty_to_consume,
             reason=f"BOM build {batch_id[:8]} for {parent.ida or parent_item_id}",
             source_doc_type="bom_build",
-        )
+        )['cost']
         total_component_cost += child_cost
         movement_count += 1
 

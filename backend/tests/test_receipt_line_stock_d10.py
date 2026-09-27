@@ -108,10 +108,11 @@ def test_a_locked_layer_holds_the_item_back_until_both_can_move():
     assert process_pending_for_item(item.pk)['total_found'] == 0
 
 
-def test_giving_back_goods_already_issued_applies_and_is_a_finding():
-    """Rule 10 (Bill, 2026-09-21): a Pending applies. The applier does not refuse a layer
-    that ends up holding less than it issued; check_balances reports it, and the user
-    corrects it with a new record."""
+def test_a_receipt_cut_below_what_it_issued_applies_and_records_the_shortfall():
+    """Rule 10 (Bill, 2026-09-21): a Pending applies. Bill, 2026-09-26: a receipt reduced below
+    what its layer already issued is allowed and the shortfall is recorded: the layer holds what
+    left it, and an open deficit Pending carries the rest, as a short sale's does."""
+    from apps.core.models.pending import DEFICIT_PURPOSE, Pending
     from apps.core.services.balance_checker import check_inventory
     item, line, _ = _received(qty=7, ordered=10)
     layer = line.inventory_layer
@@ -119,6 +120,8 @@ def test_giving_back_goods_already_issued_applies_and_is_a_finding():
     layer.save(update_fields=['quantity'])
     _set_qty(line, 6)
     assert _stock(item) == (6, 6, 4)
-    assert _layer_received(line) == 6
+    assert _layer_received(line) == 7                  # never below what it issued
+    deficits = Pending.objects.filter(purpose=DEFICIT_PURPOSE, record_id=str(item.pk), dt_processed=0)
+    assert [float(d.changes['deficit_qty']) for d in deficits] == [1.0]
     findings, _ = check_inventory(item_id=item.pk)
-    assert any(f['check'] == 'inventory.layer_range' for f in findings)
+    assert not any(f['check'] == 'inventory.layer_range' for f in findings)
