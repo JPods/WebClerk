@@ -12,7 +12,7 @@ import type { DragItem, DropResult } from "./dndTypes";
 import { DRAG_TYPE_TASK } from "./dndTypes";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry, TaskAttachment, TaskFormFieldValue } from "./taskFormTypes";
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "./type/kanban";
-import { getRecords, manageAction, saveRecord, createRecord, uploadDocument } from "@/api/wcapi";
+import { getRecords, manageAction, saveRecord, createRecord, uploadDocument, refusedFrom } from "@/api/wcapi";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
 import { Link, useSearchParams } from "react-router";
 import { PageRoutes } from "../../../routes/Routes";
@@ -2264,11 +2264,18 @@ const KanbanBoardPage: React.FC = () => {
 
   const handleNewActionFloating = useCallback(async () => {
     try {
-      // new: the server's defaults populate it; the project is the context the board holds.
-      const result: any = await createRecord("action", selectedProjectId ? { project_id: selectedProjectId } : {});
+      // new: the server's defaults populate it; the project is the context the board holds
+      // (project_id is the FK — a project picked by slug in the URL is not an id).
+      const projectId = Number(selectedProjectId);
+      const result: any = await createRecord("action",
+        selectedProjectId && Number.isFinite(projectId) ? { project_id: projectId } : {});
       const newId = result?.id;
       if (newId) setFloatingActionId(String(newId));
-    } catch { /* no-op */ }
+    } catch (err) {
+      // Never silent (Axiom 6): the board said nothing when the door refused.
+      console.error("[Kanban] New Action failed:", err);
+      alert("New Action failed: " + refusedFrom(err).message);
+    }
   }, [selectedProjectId]);
 
   const handleCloseCreateModal = () => {
