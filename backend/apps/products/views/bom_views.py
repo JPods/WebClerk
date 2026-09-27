@@ -154,21 +154,6 @@ class BOMExpandTreeView(APIView):
         return api_response(data={'rows': data, 'total_cost': float(total_cost), 'total_rows': len(data)})
 
 
-class BOMConsumeView(APIView):
-    """Post inventory movements for a BOM assembly build."""
-    permission_classes = [permissions.IsAuthenticated]
-
-    @extend_schema(operation_id="products_bom_consume")
-    def post(self, request, parent_id: int):
-        from decimal import Decimal
-        get_object_or_404(Item, pk=parent_id)
-        qty = Decimal(str(request.data.get('qty', '1')))
-        adjust = bool(request.data.get('adjust_for_on_hand', False))
-        reason = request.data.get('reason', 'BOM assembly')
-        result = bom_services.consume_bom(parent_id, qty, adjust_for_on_hand=adjust, reason=reason)
-        return api_response(data={**result, 'parent_id': parent_id}, message='Build posted')
-
-
 class BOMWhereUsedView(APIView):
     """Find all top-level assemblies that contain this item."""
     permission_classes = [permissions.IsAuthenticated]

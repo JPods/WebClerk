@@ -96,7 +96,7 @@ def receive_purchase(po: Purchase,
     Returns a summary dict with created receipt id, stack ids, and deltas created.
 
     See also:
-        - complete_workorder: For workorder completion (manufacturing)
+        - Building items is a production workorder: expand, then complete (workorder_bom)
         - Counts and corrections are a count workorder saved through the door (plan §16b)
     """
     from apps.transactions.models.receipt import Receipt
@@ -170,146 +170,10 @@ def receive_purchase(po: Purchase,
 # ---------------------------------------------------------------------------
 # WorkOrder Completion - produces finished goods into inventory
 # ---------------------------------------------------------------------------
-@dataclass
-class CompleteWorkOrderLine:
-    """Data for completing a workorder line (producing finished goods)."""
-    wo_line_id: int
-    qty_completed: Decimal | float | int
-    warehouse_code: str
-    unit_cost: float | int | Decimal | None = None
-    lot: str | None = None
-    serial_batch: str | None = None
-
-
-@transaction.atomic
-def complete_workorder(wo: WorkOrder,
-                       receipt_id: str,
-                       lines: Sequence[CompleteWorkOrderLine],
-                       completed_by: str = '') -> dict:
-    """Complete a WorkOrder, producing finished goods into inventory.
-
-    When a workorder is completed:
-    - Increases quantity_on_hand (finished goods produced)
-    - Decreases quantity_on_wo (no longer in WIP)
-    - Creates inventory layer stacks for warehouse tracking
-
-    Args:
-        wo: The WorkOrder being completed
-        receipt_id: Client-provided receipt identifier (stored in ida field)
-        lines: Sequence of CompleteWorkOrderLine objects with qty, warehouse, etc.
-
-    Returns a summary dict with created receipt id, stack ids, and deltas created.
-
-    See also:
-        - receive_purchase: For receiving goods from vendors (PO)
-        - Counts and corrections are a count workorder saved through the door (plan §16b)
-    """
-    from apps.core.models.pending import Pending
-
-    if not receipt_id:
-        raise ValidationError({'receipt_id': 'Required'})
-
-    # Production is not receiving (Bill, 2026-09-20). A receipt says goods came from
-    # outside and carries a vendor, terms and an AP ledger; a workorder owes nobody, so
-    # its output is an event on the workorder line and can never become a payable.
-    created_stack_ids: list[int] = []
-    created_event_ids: list[str] = []
-    deltas_created = 0
-
-    for cl in lines:
-        try:
-            wol = WorkOrderLine.objects.select_related('workorder').get(pk=cl.wo_line_id, workorder_id=wo)
-        except WorkOrderLine.DoesNotExist:
-            raise ValidationError({'lines': f'wo_line_id {cl.wo_line_id} not found for this WorkOrder'})
-        
-        item_id = _resolve_item_id_from_line(wol)
-        if not item_id:
-            raise ValidationError({'lines': f'wo_line_id {cl.wo_line_id} missing item.id_num in line.item JSON'})
-        try:
-            item = Item.objects.get(pk=item_id)
-        except Item.DoesNotExist:
-            raise ValidationError({'lines': f'Item {item_id} not found'})
-        try:
-            wh = Warehouse.objects.get(code=cl.warehouse_code)
-        except Warehouse.DoesNotExist:
-            raise ValidationError({'lines': f'Warehouse code {cl.warehouse_code} not found'})
-
-        # Create inventory layer stack for warehouse tracking
-        stack = InventoryLayer.objects.create(
-            item=item,
-            warehouse=wh,
-            quantity={'received': float(cl.qty_completed), 'issued': 0, 'scrapped': 0},
-            lot=cl.lot or '',
-            serial_batch=cl.serial_batch or '',
-            source_doc_type='workorder_completion',
-            source_doc_id=wol.pk,       # the line; the event's id is on the layer's refs
-        )
-        # Use provided unit_cost or estimate from workorder line cost
-        unit_cost = float(cl.unit_cost) if cl.unit_cost is not None else float((wol.cost or {}).get('unit') or 0)
-        stack.update_cost_after_receipt(unit_cost)
-        stack.save()
-        created_stack_ids.append(stack.id)
-
-        # One pending: it moves the buckets and records the event on the line, in the
-        # same apply. No on_rc — that bucket counts goods received from outside, and
-        # nothing arrived from outside here; work in progress became stock.
-        qty_completed = Decimal(str(cl.qty_completed))
-        event_id = uuid.uuid4().hex
-        Pending.objects.create(
-            model_name='item',
-            record_id=str(item_id),
-            purpose='line_event',
-            name=f"WorkOrder completion {receipt_id} - item {item_id}",
-            changes={
-                # on_wo is NOT here: recording the event drops the line's remaining, and the
-                # line's own door releases the commitment. Writing it here too moved it twice
-                # (Fable, 2026-09-22 — one door).
-                'on_hand': float(qty_completed),  # produced
-            },
-            config={
-                'item_id': item_id,
-                'line_model': 'WorkOrderLine',
-                'line_id': wol.pk,
-                'event': {
-                    'id': event_id,
-                    'kind': 'completion',
-                    'dt': _now_ms(),
-                    'by': completed_by,
-                    'qty': float(qty_completed),
-                    'warehouse_id': wh.id,
-                    'warehouse_code': wh.code,
-                    'lot': cl.lot or '',
-                    'serial_batch': cl.serial_batch or '',
-                    'layer_id': stack.id,
-                    'unit_cost': unit_cost,
-                    'run': receipt_id,
-                },
-                'source_type': 'workorder_completion',
-                'source_id': wo.id,
-                'unit_cost': unit_cost,
-                'notes': f"WorkOrder completion {receipt_id} - produced {qty_completed} units",
-            }
-        )
-        created_event_ids.append(event_id)
-        deltas_created += 1
-
-    return {
-        'workorder_id': wo.id,  # type: ignore[attr-defined]
-        'events_created': created_event_ids,
-        'stacks_created': created_stack_ids,
-        'deltas_created': deltas_created
-    }
-
-
-# ---------------------------------------------------------------------------
-# Inventory Count - a workorder used as an audit tool
-# ---------------------------------------------------------------------------
 __all__ = [
     # Data classes for line input
     'ReceiveLine',
-    'CompleteWorkOrderLine',
     # Transaction flow conversions
     # Inventory receiving functions
     'receive_purchase',
-    'complete_workorder',
 ]

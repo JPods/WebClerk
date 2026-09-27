@@ -60,6 +60,7 @@ def spawn_workorder(order_id: int) -> Dict:
         for ol in order_lines:
             WorkOrderLine.objects.create(
                 workorder=wo,
+                line_type='build',          # an ordered item to make; complete builds it (workorder plan)
                 line_number=ol.line_number,
                 item_fk=ol.item_fk,
                 quantity=ol.quantity or {},

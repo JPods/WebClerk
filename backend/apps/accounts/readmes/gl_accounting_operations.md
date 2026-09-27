@@ -49,7 +49,6 @@ GlJournal
 | `journalize_invoice(id)` | AR + Revenue + COGS + Inventory per line, with commission |
 | `journalize_cash(id)` | Cash + AR |
 | `journalize_purchase(id)` | Inventory + AP per line |
-| `journalize_bom_build(batch_id, parent, qty, components)` | FG inventory + component inventory transfer |
 | `journalize_adjustment(item_id, qty, cost, reason)` | Inventory ↔ COGS (positive = found, negative = lost/scrapped) |
 | `batch_journalize()` | All un-journalized documents in one pass |
 | `account_summary_by_period(year, month)` | $ by account code — the screen users retype |

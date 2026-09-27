@@ -269,10 +269,9 @@ class Pending(CoreModel):
         if source_type == 'receipt' and on_hand and not spec:
             raise ValidationError({'layer': f'Pending {self.pk} moves on_hand by {on_hand} '
                                             'for a receipt and names no layer'})
-        if on_hand < 0 and not spec and source_type != 'workorder_completion':
+        if on_hand < 0 and not spec:
             # Layers follow every decrease (Bill, 2026-09-26): one that names no layer is
-            # consumed by the item's costing method. A completion's layer is made by
-            # complete_workorder itself, until production moves onto the door.
+            # consumed by the item's costing method.
             return self._apply_line_specs(item_id, [{'consume': float(-on_hand)}], data, config)
         from apps.products.models.inventory_layer import InventoryLayer, InventoryMovement
         from apps.products.services.inventory.inventory_layers import create_layer, recalc_average_cost

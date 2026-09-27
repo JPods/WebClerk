@@ -202,90 +202,6 @@ def propagate_cost_up(item_id: int, max_depth: int = 20) -> list[int]:
 # 3. Consume / produce (assembly production transaction)
 # ---------------------------------------------------------------------------
 
-@transaction.atomic
-def consume_bom(
-    parent_item_id: int,
-    qty: Decimal,
-    *,
-    adjust_for_on_hand: bool = False,
-    reason: str = "BOM assembly",
-    as_of: date | None = None,
-    revision: str | None = None,
-) -> dict:
-    """Post inventory movements for a BOM assembly build.
-
-    Consumes child components via FIFO/LIFO (proper layer drain with cost),
-    sums the total component cost, then receipts the parent as a new layer
-    at unit_cost = total_component_cost / qty_built.
-
-    The new parent layer is weighted-averaged into the parent's existing
-    inventory by create_layer → recalc_average_cost.
-
-    Returns dict with batch_id, build_cost, unit_cost, movements count.
-    """
-    from apps.products.services.inventory.inventory_layers import (
-        consume_by_item_method, create_layer,
-    )
-    from apps.products.models.warehouse import Warehouse
-
-    parent = Item.objects.get(id=parent_item_id)
-    batch_id = str(uuid.uuid4())
-    total_component_cost = Decimal("0")
-    movement_count = 0
-
-    # 1. Consume each child component using proper layer drain
-    lines = list_bom_lines(parent_item_id, as_of=as_of, revision=revision)
-    for line in lines:
-        qty_plan = line.quantity * (Decimal("1") + line.scrap_factor)
-        qty_to_consume = qty_plan * qty
-
-        if adjust_for_on_hand:
-            on_hand = _get_on_hand(line.child_item_id)
-            qty_to_consume = calc_net_build_qty(qty_to_consume, on_hand)
-            if qty_to_consume <= 0:
-                continue
-
-        child_cost = consume_by_item_method(
-            line.child_item_id,
-            qty_to_consume,
-            reason=f"BOM build {batch_id[:8]} for {parent.ida or parent_item_id}",
-            source_doc_type="bom_build",
-        )['cost']
-        total_component_cost += child_cost
-        movement_count += 1
-
-    # 2. Calculate unit cost for the built assembly
-    unit_cost = total_component_cost / qty if qty > 0 else Decimal("0")
-
-    # 3. Receipt the parent as a new inventory layer at the build cost
-    #    create_layer handles: layer creation, cost recording, receipt movement,
-    #    and recalc_average_cost (weighted average into existing inventory)
-    default_wh = Warehouse.objects.filter(is_active=True).first()
-    if default_wh:
-        create_layer(
-            item_id=parent_item_id,
-            warehouse_id=default_wh.id,
-            qty=qty,
-            unit_cost=unit_cost,
-            source_doc_type="bom_build",
-            lot=f"build-{batch_id[:8]}",
-            reason=f"{reason} (batch {batch_id[:8]})",
-        )
-        movement_count += 1
-
-    return {
-        "batch_id": batch_id,
-        "build_cost": float(total_component_cost),
-        "unit_cost": float(unit_cost),
-        "movements": movement_count,
-        "qty_built": float(qty),
-    }
-
-
-# ---------------------------------------------------------------------------
-# 4. Where-used: find top-level assemblies
-# ---------------------------------------------------------------------------
-
 def find_top_level_assemblies(child_item_id: int, max_depth: int = 20) -> list[int]:
     """Walk UP the BOM from a child to find all root assemblies (items with no parents).
 
@@ -354,6 +270,6 @@ def _get_on_hand(item_id: int) -> Decimal:
 
 __all__ = [
     'list_bom_lines', 'create_bom_line', 'update_bom_line', 'delete_bom_line',
-    'recalc_parent_cost', 'expand_tree', 'propagate_cost_up', 'consume_bom',
+    'recalc_parent_cost', 'expand_tree', 'propagate_cost_up',
     'find_top_level_assemblies', 'calc_net_build_qty', 'BOMTreeRow',
 ]

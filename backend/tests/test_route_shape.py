@@ -150,7 +150,6 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/products/items/<int:item_id>/serials/receive/',
     'wcapi/products/items/<int:item_id>/serials/reference/',
     'wcapi/products/items/<int:parent_id>/bom/',
-    'wcapi/products/items/<int:parent_id>/bom/consume/',
     'wcapi/products/items/<int:parent_id>/bom/expand/',
     'wcapi/products/items/<int:parent_id>/bom/recalc-cost/',
     'wcapi/products/items/inventory/',
