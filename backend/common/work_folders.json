@@ -1,5 +1,10 @@
 {
   "_about": "Seed for WORK_DIR/manifest.json (Bill, 2026-09-27). The installed copy is the company's: it sets keep_days and backup per folder, and Alice carries them out. A folder the code names that the installed copy lacks is added from here. keep_days null = keep; backup none | local | offsite; token none | company | import. Readme: webclerk.com readmes — architecture/work-folders.",
+  "backup_targets": {
+    "_about": "Where Alice copies each folder's files. local: null = <DATA_DIR>/work-backup (it then rides along with the data backup). offsite: a folder another machine or service carries away (on Bill's Mac, inside ~/Allie, which iCloud syncs); null = offsite copies wait, and the scrub says so. certs never go offsite.",
+    "local": null,
+    "offsite": null
+  },
   "folders": {
     "bundles":        {"purpose": "bundle payloads in and out: <model>/<incoming|outgoing>/<pending|processed|rejected>, the GL journal and select-list files", "keep_days": 180, "backup": "local", "token": "import"},
     "imports/digest": {"purpose": "nightly record of each import: content hash, approvals, who imported", "keep_days": null, "backup": "offsite", "token": "none"},

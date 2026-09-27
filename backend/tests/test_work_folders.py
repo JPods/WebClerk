@@ -52,7 +52,7 @@ def test_scrub_prunes_past_keep_days_keeps_the_digest_and_names_strays(work):
     assert dry['pruned'] == {'logs': 1} and stale.exists()
     result = wf.scrub()
     assert not stale.exists() and fresh.exists() and digest.exists()
-    assert result['strays'] == ['mystery'] and result['backup']['imports/digest'] == 'offsite'
+    assert result['strays'] == ['mystery'] and result['backup']['offsite_waiting'] == ['imports/digest']
 
 
 @pytest.mark.django_db
@@ -65,3 +65,35 @@ def test_a_document_is_found_by_its_key_wherever_the_data_folder_is(settings, tm
     assert document_file(doc) == os.path.realpath(str(tmp_path / 'moved-data' / 'uploads/document/2026/09/a.pdf'))
     doc.path = {'key': '../../etc/passwd'}
     assert document_file(doc) is None
+
+
+def test_backups_copy_by_rule_never_delete_and_keep_certs_home(work, settings, tmp_path):
+    import json
+    settings.DATA_DIR = str(tmp_path / 'data')
+    wf.manifest()
+    mine = json.loads((work / 'manifest.json').read_text())
+    mine['backup_targets']['offsite'] = str(tmp_path / 'away')
+    mine['folders']['certs']['backup'] = 'offsite'            # even if someone asks, certs stay home
+    (work / 'manifest.json').write_text(json.dumps(mine))
+    (wf.work_folder('imports/digest') / 'd.jsonl').write_text('{}')
+    (wf.work_folder('certs') / 'c.pem').write_text('secret')
+    (wf.work_folder('logs') / 'l.log').write_text('x')          # backup: none
+    first = wf.back_up()
+    assert first['copied']['imports/digest'] == {'local': 1, 'offsite': 1}
+    assert (tmp_path / 'data/work-backup/imports/digest/d.jsonl').exists()
+    assert (tmp_path / 'away/imports/digest/d.jsonl').exists()
+    assert not (tmp_path / 'away/certs').exists() and (tmp_path / 'data/work-backup/certs/c.pem').exists()
+    assert 'logs' not in first['copied']
+    (wf.work_folder('imports/digest') / 'd.jsonl').unlink()
+    again = wf.back_up()
+    assert again['copied']['imports/digest'] == {'local': 0, 'offsite': 0}
+    assert (tmp_path / 'away/imports/digest/d.jsonl').exists(), 'a backup never deletes'
+
+
+def test_scrub_copies_before_it_prunes(work, settings, tmp_path):
+    settings.DATA_DIR = str(tmp_path / 'data')
+    old = time.time() - 400 * 86400
+    f = wf.work_folder('audits') / 'old.json'                  # audits: keep 365, backup local
+    f.write_text('{}'); os.utime(f, (old, old))
+    wf.scrub()
+    assert not f.exists() and (tmp_path / 'data/work-backup/audits/old.json').exists()

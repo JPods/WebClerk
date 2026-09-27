@@ -31,8 +31,8 @@ def work_root() -> Path:
     return root
 
 
-def manifest() -> Dict[str, Dict[str, Any]]:
-    """The company's manifest, seeded (and topped up) from the one shipped with WebClerk."""
+def _company_manifest() -> Dict[str, Any]:
+    """The company's manifest file, seeded (and topped up) from the one shipped with WebClerk."""
     seed = json.loads(_SEED.read_text())
     path = work_root() / 'manifest.json'
     try:
@@ -41,10 +41,64 @@ def manifest() -> Dict[str, Dict[str, Any]]:
         mine = {}
     folders = mine.get('folders') or {}
     missing = {k: v for k, v in seed['folders'].items() if k not in folders}
-    if missing or not path.exists():
-        mine = {'_about': seed['_about'], 'folders': {**folders, **missing}}
+    if missing or 'backup_targets' not in mine or not path.exists():
+        mine = {'_about': seed['_about'], 'backup_targets': mine.get('backup_targets') or seed['backup_targets'],
+                'folders': {**folders, **missing}}
         path.write_text(json.dumps(mine, indent=2) + '\n')
-    return mine['folders']
+    return mine
+
+
+def manifest() -> Dict[str, Dict[str, Any]]:
+    """The folders and their rules (the company's copy)."""
+    return _company_manifest()['folders']
+
+
+def backup_targets() -> Dict[str, Path | None]:
+    targets = _company_manifest().get('backup_targets') or {}
+    local = targets.get('local')
+    offsite = targets.get('offsite')
+    return {'local': Path(os.path.expanduser(local)) if local else Path(settings.DATA_DIR) / 'work-backup',
+            'offsite': Path(os.path.expanduser(offsite)) if offsite else None}
+
+
+def _copy_new(src: Path, dst: Path) -> int:
+    """Copy files that are new or changed; a backup never deletes."""
+    import shutil
+    copied = 0
+    for f in src.rglob('*'):
+        if not f.is_file():
+            continue
+        to = dst / f.relative_to(src)
+        if to.exists() and to.stat().st_mtime >= f.stat().st_mtime and to.stat().st_size == f.stat().st_size:
+            continue
+        to.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(f, to)
+        copied += 1
+    return copied
+
+
+def back_up(dry_run: bool = False) -> Dict[str, Any]:
+    """Alice's copy of each folder by its backup rule. local → the local target; offsite → the
+    local target and the offsite one (when the company named it). certs never go offsite."""
+    root, targets = work_root(), backup_targets()
+    copied: Dict[str, Dict[str, int]] = {}
+    waiting: List[str] = []
+    for name, rule in manifest().items():
+        kind = rule.get('backup', 'none')
+        src = root.joinpath(*name.split('/'))
+        if kind == 'none' or not src.is_dir():
+            continue
+        places = {'local': targets['local']}
+        if kind == 'offsite' and name != 'certs':
+            if targets['offsite'] is None:
+                waiting.append(name)
+            else:
+                places['offsite'] = targets['offsite']
+        for where, base in places.items():
+            n = 0 if dry_run else _copy_new(src, base.joinpath(*name.split('/')))
+            copied.setdefault(name, {})[where] = n
+    return {'copied': copied, 'offsite_waiting': waiting,
+            'targets': {k: str(v) if v else None for k, v in targets.items()}}
 
 
 def work_folder(name: str, *parts: str) -> Path:
@@ -61,8 +115,9 @@ def work_folder(name: str, *parts: str) -> Path:
 
 
 def scrub(dry_run: bool = False) -> Dict[str, Any]:
-    """Alice's pass over WORK_DIR: prune files past each folder's keep_days, and name what no
-    manifest entry owns (reported, never deleted). Backup rules are reported for Alice's copy."""
+    """Alice's pass over WORK_DIR: copy each folder by its backup rule, prune files past its
+    keep_days, and name what no manifest entry owns (reported, never deleted)."""
+    backed_up = back_up(dry_run)                 # copy first, so nothing is pruned before it is kept
     folders = manifest()
     root = work_root()
     now = time.time()
@@ -85,5 +140,4 @@ def scrub(dry_run: bool = False) -> Dict[str, Any]:
     tops = {n.split('/')[0] for n in folders}
     strays: List[str] = sorted(p.name for p in root.iterdir()
                                if p.name not in tops and p.name != 'manifest.json')
-    return {'pruned': pruned, 'strays': strays, 'dry_run': dry_run,
-            'backup': {n: r.get('backup', 'none') for n, r in folders.items() if r.get('backup') != 'none'}}
+    return {'pruned': pruned, 'strays': strays, 'dry_run': dry_run, 'backup': backed_up}
