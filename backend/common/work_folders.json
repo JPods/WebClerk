@@ -3,7 +3,7 @@
   "folders": {
     "bundles":        {"purpose": "bundle payloads in and out: <model>/<incoming|outgoing>/<pending|processed|rejected>, the GL journal and select-list files", "keep_days": 180, "backup": "local", "token": "import"},
     "imports/digest": {"purpose": "nightly record of each import: content hash, approvals, who imported", "keep_days": null, "backup": "offsite", "token": "none"},
-    "exports":        {"purpose": "files made to send or hand to someone", "keep_days": 90, "backup": "none", "token": "none"},
+    "outbox":         {"purpose": "files made to send or hand to someone", "keep_days": 90, "backup": "none", "token": "none"},
     "reports":        {"purpose": "generated reports", "keep_days": 90, "backup": "none", "token": "none"},
     "audits":         {"purpose": "Alice's scrubs, integrity checks, scans", "keep_days": 365, "backup": "local", "token": "none"},
     "ship":           {"purpose": "labels and carrier manifests", "keep_days": 90, "backup": "none", "token": "none"},
