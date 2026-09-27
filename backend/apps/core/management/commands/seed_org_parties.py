@@ -59,7 +59,7 @@ class Command(BaseCommand):
         orgs = OrgBase.objects.filter(
             is_active=True,
             org_type__in=['customer', 'vendor'],
-        ).order_by('display_name')
+        ).order_by('company')
 
         for org in orgs:
             # Find contacts linked to this org

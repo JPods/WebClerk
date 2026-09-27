@@ -327,18 +327,21 @@ def _create_margin_approval(item, result: PriceResolution, contact_id: Optional[
     try:
         from apps.core.models.action import Action
         Action.objects.create(
-            title=f'Below-margin price: {item.ida or item.name}',
-            description=(
+            action={'en': f'Below-margin price: {item.ida or item.name}'},
+            description={'en': (
                 f'{item.ida} priced at ${result.price} produces {result.margin_pct}% margin, '
                 f'below floor of {result.margin_floor}%. '
                 f'Catalog: {result.catalog_name} (#{result.catalog_id}). '
                 f'Contact: #{contact_id}. Review in sales dashboard.'
-            ),
+            )},
             status='Backlog',
-            priority='low',
+            priority=1,            # low
         )
     except Exception:
-        pass
+        # Never blocks the price; said out loud (Axiom 6) — it was silently failing
+        # on a field Action does not have (title) and no alert was ever made.
+        import logging
+        logging.getLogger(__name__).error('below-margin alert Action not created', exc_info=True)
 
 
 # ---------------------------------------------------------------------------

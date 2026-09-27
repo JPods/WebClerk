@@ -803,17 +803,19 @@ def _create_deficit_alert(item: Item, deficit_qty: Decimal, batch_id: str, reaso
     try:
         from apps.core.models.action import Action
         Action.objects.create(
-            title=f'Negative inventory: {item.ida or item.name}',
-            description=(
+            action={'en': f'Negative inventory: {item.ida or item.name}'},
+            description={'en': (
                 f'{item.ida} went negative by {deficit_qty} units. '
                 f'Reason: {reason}. Batch: {batch_id}. '
                 f'Investigate: missed receipt, double-ship, or count error.'
-            ),
+            )},
             status='Backlog',
-            priority='high',
+            priority=3,            # high (1 low … 4 urgent)
         )
     except Exception:
-        pass  # Action model may not be available in all contexts
+        # Never blocks the stock move; said out loud (Axiom 6) — it was silently
+        # failing on a field Action does not have (title) and no alert was ever made.
+        logger.error('%s alert Action not created', 'negative-inventory', exc_info=True)
 
 
 def adjust_item_quantity_via_pending(params: dict) -> dict:

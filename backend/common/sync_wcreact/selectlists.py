@@ -210,7 +210,7 @@ def push_selectlists_to_wc3(stdout, style, keys=None, dry_run=False):
                 setting = Setting.objects.create(
                     name=key,
                     purpose=PURPOSE,
-                    data=new_data,
+                    config=new_data,
                 )
                 stdout.write(style.SUCCESS(
                     f"  Created: '{key}' (id={setting.id}) "

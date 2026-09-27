@@ -247,7 +247,7 @@ def approve_field_change(action_id: int, contact_id: int) -> dict:
         data['behaviors'] = behaviors
     else:
         data['field_behaviors'] = behaviors
-    Setting.objects.filter(pk=setting.pk).update(data=data, dt_modified=_now_ms())
+    Setting.objects.filter(pk=setting.pk).update(config=data, dt_modified=_now_ms())
 
     # Mark action as approved and complete
     meta['approved'] = True

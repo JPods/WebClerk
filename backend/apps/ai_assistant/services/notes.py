@@ -114,7 +114,7 @@ def create_note(
         purpose=purpose,
         role=role,
         parent_model=parent_model or "",
-        data=data,
+        config=data,
         is_active=True,
     )
     setting.save()

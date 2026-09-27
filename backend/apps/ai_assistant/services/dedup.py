@@ -87,10 +87,10 @@ def _get_or_create_dedup_connection():
         type='internal',
         status='active',
         purpose='ingest',
-        comment='Internal connection for duplicate detection and extraction. '
-                'Bundles reference retained records; payloads stored as files '
-                'in sync/dedup/pending/ and sync/dedup/processed/.',
         config={
+            'description': 'Internal connection for duplicate detection and extraction. '
+                           'Bundles reference retained records; payloads stored as files '
+                           'in sync/dedup/pending/ and sync/dedup/processed/.',
             'from_agent': 'alice',
             'dedup_paths': {
                 'pending': 'sync/dedup/pending/',
@@ -654,7 +654,7 @@ class DedupService:
 
         Action.objects.create(
             ida=f'ALICE-DEDUP-{bundle.pk}',
-            name=f'Dedup review: {group["model"]} — {group["match_key"]}',
+            action={'en': f'Dedup review: {group["model"]} — {group["match_key"]}'},
             status='pending',
             config={
                 'escalation': {

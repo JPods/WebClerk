@@ -37,7 +37,7 @@ def spawn_workorder(order_id: int) -> Dict:
     Returns: {workorder_id, line_count, status}
     """
     order = Order.objects.get(pk=order_id)
-    order_lines = OrderLine.objects.filter(parent_id=order.pk)
+    order_lines = OrderLine.objects.filter(order_id=order.pk)
 
     now = _now_ms()
 
@@ -59,7 +59,7 @@ def spawn_workorder(order_id: int) -> Dict:
         line_count = 0
         for ol in order_lines:
             WorkOrderLine.objects.create(
-                parent_id=wo.pk,
+                workorder=wo,
                 line_number=ol.line_number,
                 item_fk=ol.item_fk,
                 quantity=ol.quantity or {},
@@ -101,7 +101,6 @@ def record_production_action(order_id: int, action_text: str, assigned_to: int =
         project_name=f'Order #{order.ida or order.pk}',
         project_ida=f'order-{order.pk}',
         contact_id=assigned_to,
-        parent_id=order.pk,
         dt_created=now,
         dt_modified=now,
         metadata={'source': {'model': 'order', 'id': order.pk}},

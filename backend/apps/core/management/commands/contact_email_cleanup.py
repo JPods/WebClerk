@@ -53,8 +53,8 @@ class Command(BaseCommand):
         # Data health report
         total = Contact.objects.count()
         null_email = Contact.objects.filter(email__isnull=True).count()
-        null_phone = Contact.objects.filter(phone__isnull=True).count()
-        null_both = Contact.objects.filter(email__isnull=True, phone__isnull=True).count()
+        null_phone = Contact.objects.filter(phone_id__isnull=True).count()
+        null_both = Contact.objects.filter(email__isnull=True, phone_id__isnull=True).count()
         has_email_fk = Contact.objects.filter(email_id__isnull=False).count()
         has_phone_fk = Contact.objects.filter(phone_id__isnull=False).count()
         ida_aligned = Contact.objects.annotate(

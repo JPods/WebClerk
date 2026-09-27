@@ -23,9 +23,9 @@ class Command(BaseCommand):
             now_ms = int(timezone.now().timestamp() * 1000)
             catalog, _ = Catalog.objects.get_or_create(
                 code="SAMPLE-CAT",
-                vendor_org=vendor,
+                orgbase=vendor,
                 defaults={
-                    "customer_org": customer,
+                    "customer_orgbase": customer,
                     "dt_effective_start": now_ms,
                     "name": "Sample Catalog",
                 },

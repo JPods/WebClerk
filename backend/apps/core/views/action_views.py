@@ -83,7 +83,7 @@ class ActionSerializer(serializers.ModelSerializer):
             document_entries = LinkageEntry.objects.filter(
                 group_id__in=group_ids,
                 model_name='document'
-            ).select_related('document')
+            )                                  # the document is read by record_id below
             
             attachments = []
             for entry in document_entries:

@@ -226,7 +226,7 @@ class TrainingFlow:
         self.cash = Cash.objects.create(
             amount=Decimal(str(amount or 0)),
             status='completed',
-            contact=contact,
+            contact_id=getattr(contact, 'pk', contact),
             invoice=self.invoice,
             dt_cash=timezone.now(),
         )

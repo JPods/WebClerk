@@ -123,7 +123,7 @@ def split_order_by_vendor(order_id: int) -> Dict[str, Any]:
     from django.apps import apps
     OrgBase = apps.get_model('orgs', 'OrgBase')
     vendor_names = {}
-    for org in OrgBase.objects.filter(pk__in=vendors_with_lines).only('pk', 'display_name'):
+    for org in OrgBase.objects.filter(pk__in=vendors_with_lines).only('pk', 'company'):
         vendor_names[org.pk] = org.company or f'Vendor #{org.pk}'
 
     # Create one new order per vendor

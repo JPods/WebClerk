@@ -220,8 +220,8 @@ def _sales_by_dimension_month(params: Dict[str, Any], *, dimension_field: str) -
 
     names: dict[int, str] = {}
     if org_ids:
-        for org in OrgBase.objects.filter(id__in=org_ids).values("id", "display_name"):
-            names[int(org["id"])] = org.get("display_name") or f"Org #{org['id']}"
+        for org in OrgBase.objects.filter(id__in=org_ids).values("id", "company"):
+            names[int(org["id"])] = org.get("company") or f"Org #{org['id']}"
 
     rows: list[dict[str, Any]] = []
     grand_count = 0
@@ -308,8 +308,8 @@ def get_sales_by_customer_year(params: Dict[str, Any]) -> Dict[str, Any]:
 
     names: dict[int, str] = {}
     if org_ids:
-        for org in OrgBase.objects.filter(id__in=org_ids).values("id", "display_name"):
-            names[int(org["id"])] = org.get("display_name") or f"Org #{org['id']}"
+        for org in OrgBase.objects.filter(id__in=org_ids).values("id", "company"):
+            names[int(org["id"])] = org.get("company") or f"Org #{org['id']}"
 
     yearly_totals: dict[int, dict[int, Decimal]] = {}
     for (dim_pk, year), entry in grouped.items():

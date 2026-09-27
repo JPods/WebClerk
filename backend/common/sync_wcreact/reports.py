@@ -572,7 +572,7 @@ def sync_reports(stdout, style, models=None, dry_run=False):
                         role_required=defn.get("role_required", ""),
                         security_level=defn.get("security_level", 0),
                         purpose=defn.get("purpose", ""),
-                        data=defn.get("data", {}),
+                        config=defn.get("data", {}),
                     )
                     stdout.write(style.SUCCESS(
                         f"    Created: '{name}' (id={report.id}) [{defn.get('output_type', 'print')}]"

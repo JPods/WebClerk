@@ -415,7 +415,7 @@ class Command(BaseCommand):
                     method=method,
                     category='Sales',
                     reference_number=method,
-                    notes=f'Demo cash for {cycle["invoice_ida"]}',
+                    comments={'process': [{'user': 'system', 'mgs': f'Demo cash for {cycle["invoice_ida"]}'}]},
                     status=pay_status,
                     is_active=True,
                     refs=_demo_refs(),

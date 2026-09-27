@@ -51,7 +51,7 @@ def receive_serial(
     item = Item.objects.get(id=item_id)
 
     serial = Serial.objects.create(
-        item=item,
+        item_id=item.pk,
         item_ida=item.ida or '',
         serial_ida=serial_number,
         model_ida=model_number,
@@ -200,7 +200,7 @@ def reference_existing(
 
     # Find or create
     serial, created = Serial.objects.get_or_create(
-        item=item,
+        item_id=item.pk,
         serial_ida=serial_number,
         defaults={
             'item_ida': item.ida or '',

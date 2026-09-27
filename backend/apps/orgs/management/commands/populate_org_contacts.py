@@ -153,5 +153,5 @@ class Command(BaseCommand):
         for field in fk_fields:
             updated = Contact.objects.filter(**{f"{field}__isnull": False}).update(**{field: None})
             count += updated
-        org_count = OrgBase.objects.filter(contact__isnull=False).update(contact=None)
+        org_count = OrgBase.objects.filter(contact_id__isnull=False).update(contact_id=None)
         self.stdout.write(f"  Cleared {count} contact FK values, {org_count} org contact_id values.")

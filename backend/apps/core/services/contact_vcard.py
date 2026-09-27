@@ -139,9 +139,9 @@ def preview_vcard(params: dict) -> dict[str, Any]:
     existing_orgs = {}
     if all_orgs:
         for org in OrgBase.objects.filter(
-            display_name__in=all_orgs, is_active=True
-        ).values('id', 'display_name', 'status', 'org_type'):
-            existing_orgs[org['display_name'].lower()] = org
+            company__in=all_orgs, is_active=True
+        ).values('id', 'company', 'status', 'org_type'):
+            existing_orgs[(org['company'] or '').lower()] = org
 
     # Annotate each contact with match status
     for c in contacts:
@@ -150,7 +150,7 @@ def preview_vcard(params: dict) -> dict[str, Any]:
 
         company = c.get('company', '')
         org_match = existing_orgs.get(company.lower()) if company else None
-        c['org_match'] = org_match  # None or {id, display_name, ...}
+        c['org_match'] = org_match  # None or {id, company, ...}
 
     return {
         'contacts': contacts,
@@ -186,7 +186,7 @@ def import_vcard(params: dict) -> dict[str, Any]:
         if params.get('address'):
             contact_list[0]['address'] = params['address']
         if params.get('create_org'):
-            contact_list[0]['company'] = params['create_org'].get('display_name', '')
+            contact_list[0]['company'] = params['create_org'].get('company', '')   # the dialog sends company
         if params.get('org_id'):
             contact_list[0]['_org_id'] = params['org_id']
 
@@ -208,7 +208,7 @@ def import_vcard(params: dict) -> dict[str, Any]:
     all_companies = list({c.get('company', '') for c in contact_list if c.get('company')})
     if all_companies:
         for org in OrgBase.objects.filter(
-            display_name__in=all_companies, is_active=True
+            company__in=all_companies, is_active=True
         ):
             org_cache[org.company.lower()] = org
 
@@ -455,21 +455,16 @@ def check_collisions(params: dict) -> dict[str, Any]:
     all_companies = list({c.get('company', '').lower() for c in contact_list if c.get('company')})
     org_matches = {}
     if all_companies:
-        for org in OrgBase.objects.filter(
-            display_name__iexact__in=all_companies, is_active=True
-        ).values('id', 'display_name', 'status', 'org_type', 'ida'):
-            org_matches[org['display_name'].lower()] = org
-
-    # If iexact__in doesn't work, fall back to case-insensitive loop
-    if not org_matches and all_companies:
+        # Case-insensitive, in one query (iexact__in is not a lookup; it raised before the
+        # old fallback could run).
         from django.db.models import Q
         q = Q()
         for comp in all_companies:
-            q |= Q(display_name__iexact=comp)
+            q |= Q(company__iexact=comp)
         for org in OrgBase.objects.filter(
             q, is_active=True
-        ).values('id', 'display_name', 'status', 'org_type', 'ida'):
-            org_matches[org['display_name'].lower()] = org
+        ).values('id', 'company', 'status', 'org_type', 'ida'):
+            org_matches[(org['company'] or '').lower()] = org
 
     # Annotate each contact
     results = []
@@ -519,7 +514,7 @@ def import_bundle(params: dict) -> dict[str, Any]:
     org_cache: dict[str, OrgBase] = {}
     all_companies = list({c.get('company', '') for c in contact_list if c.get('company')})
     if all_companies:
-        for org in OrgBase.objects.filter(display_name__in=all_companies, is_active=True):
+        for org in OrgBase.objects.filter(company__in=all_companies, is_active=True):
             org_cache[org.company.lower()] = org
 
     created = 0

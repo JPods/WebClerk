@@ -270,11 +270,11 @@ def _update_frequency(topic: str, norm_key: str, raw_question: str):
 
         # Use the system contact (claude@jpods.com or first superuser)
         system_contact = Contact.objects.filter(
-            communication__email__icontains='claude@jpods.com'
+            email__iexact='claude@jpods.com'
         ).first()
         if not system_contact:
             system_contact = Contact.objects.filter(
-                userprofile__user__is_superuser=True
+                is_superuser=True
             ).first()
         if not system_contact:
             return

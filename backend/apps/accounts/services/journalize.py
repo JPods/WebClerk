@@ -805,7 +805,7 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
                                         parent_model='invoice',
                                         parent_id=invoice_id,
                                         dt_event=timezone.now(),
-                                        notes=f'FX loss: {currency} rate {captured}→{current} on cash {cash.ida}',
+                                        config={'note': f'FX loss: {currency} rate {captured}→{current} on cash {cash.ida}'},
                                         is_auto=True,
                                     )
                                 except Exception as e:

@@ -145,7 +145,7 @@ class RegisterInstallationView(View):
                 from apps.communications.models import Email
                 Email.objects.create(
                     contact=contact,
-                    address=email,
+                    email=email,
                     purpose='primary',
                     is_active=True,
                 )
@@ -160,9 +160,9 @@ class RegisterInstallationView(View):
                 uuid=uuid.uuid4(),
                 ida=f'wchq-cust-{installation_id[:8]}',
                 company=company_name,
-                role='customer',
+                org_type='customer',
                 status='active',
-                contact=contact,
+                contact_id=contact.pk,
                 config={
                     'installation_id': installation_id,
                     'industry': company_data.get('industry', ''),

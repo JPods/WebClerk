@@ -46,7 +46,7 @@ def create_campaign(
         name=f'campaign:{name}',
         purpose='user:campaign',
         parent_model='',
-        data={
+        config={
             'name': name,
             'budget': str(budget),
             'spent': '0',

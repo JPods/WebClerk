@@ -92,10 +92,10 @@ class InventoryEventEmitter:
             if item_id:
                 try:
                     from apps.products.models import Item
-                    item = Item.objects.filter(id=item_id).only('data').first()
-                    if item and item.data:
-                        item_data = item.data
-                        qty_buckets = item_data.get('quantity', {})
+                    item = Item.objects.filter(id=item_id).only('quantity').first()
+                    if item and item.quantity:
+                        item_data = {'quantity': item.quantity}
+                        qty_buckets = item.quantity
                 except Exception as e:
                     logger.debug(f"Could not fetch item {item_id}: {e}")
             

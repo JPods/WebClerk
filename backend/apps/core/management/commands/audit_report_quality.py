@@ -298,7 +298,7 @@ class Command(BaseCommand):
 
                 action = Action(
                     ida=f'ALICE-REPORT-AUDIT-{model.upper()}-{len(model_issues)}',
-                    task={'en': f'Fix {len(model_issues)} report description(s) for {model}'},
+                    action={'en': f'Fix {len(model_issues)} report description(s) for {model}'},
                     description={'en': desc},
                     status='planned',
                     priority=2,  # 1=low, 2=medium, 3=high, 4=urgent

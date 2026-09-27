@@ -361,7 +361,7 @@ def _get_receivable_aging(params: Dict[str, Any]) -> Dict[str, Any]:
     org_ids = list(org_data.keys())
     org_names: Dict[int, str] = {}
     if org_ids:
-        for o in OrgBase.objects.filter(id__in=org_ids).values('id', 'name'):
+        for o in OrgBase.objects.filter(id__in=org_ids).values('id', 'company'):
             org_names[o['id']] = o['name'] or f"Org #{o['id']}"
 
     # ── Build result rows ──────────────────────────────────────────────

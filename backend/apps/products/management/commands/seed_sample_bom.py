@@ -119,7 +119,7 @@ class Command(BaseCommand):
                         child_item=child_item,
                         quantity=Decimal(str(bom_data["qty"])),
                         cost_snapshot=Decimal(bom_data["plan_cost"]),
-                        description=bom_data["description"],
+                        child_description=bom_data["description"],
                         sequence=bom_created,
                     )
                 bom_created += 1

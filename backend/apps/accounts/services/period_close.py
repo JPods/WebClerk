@@ -327,7 +327,7 @@ def run_eom_close(
             model_name="eom_close",
             status="active",
             body=f"End of month close for {period_key}",
-            data={
+            config={
                 "period": period_key,
                 "period_year": period_year,
                 "period_month": period_month,

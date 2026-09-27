@@ -170,14 +170,14 @@ def _receipt_performance(
     """Avg days from PO creation to receipt, by vendor."""
     Receipt = dj_apps.get_model("transactions", "Receipt")
 
-    receipt_qs = Receipt.objects.filter(
-        source_type=Receipt.SOURCE_PURCHASE,
-    ).select_related("purchase__vendor")
-
+    Purchase = dj_apps.get_model("transactions", "Purchase")
+    # A receipt names its purchase by parent_model/parent_id; there is no 'purchase' relation.
+    receipt_qs = list(Receipt.objects.filter(source_type=Receipt.SOURCE_PURCHASE, parent_model='purchase'))
+    purchases = Purchase.objects.in_bulk({r.parent_id for r in receipt_qs if r.parent_id})
     if start_ms:
-        receipt_qs = receipt_qs.filter(purchase__dt_created__gte=start_ms)
+        purchases = {k: p for k, p in purchases.items() if (p.dt_created or 0) >= start_ms}
     if end_ms:
-        receipt_qs = receipt_qs.filter(purchase__dt_created__lte=end_ms)
+        purchases = {k: p for k, p in purchases.items() if (p.dt_created or 0) <= end_ms}
 
     vendor_days: Dict[int, List[float]] = {}
     all_days: List[float] = []
@@ -185,7 +185,7 @@ def _receipt_performance(
     total_count = 0
 
     for receipt in receipt_qs:
-        purchase = receipt.parent if receipt.parent_model == 'purchase' else None
+        purchase = purchases.get(receipt.parent_id)
         if not purchase:
             continue
 

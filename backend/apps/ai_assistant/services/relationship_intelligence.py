@@ -143,6 +143,7 @@ class RelationshipIntelligence:
         Updates metadata.health on each contact.
         Creates AliceObservation records for actionable findings.
         """
+        from django.db.models import Q
         Contact = apps.get_model('core', 'Contact')
         AliceObservation = apps.get_model('ai_assistant', 'AliceObservation')
 
@@ -150,8 +151,7 @@ class RelationshipIntelligence:
         customers = (
             Contact.objects
             .filter(is_active=True)
-            .exclude(name='')
-            .exclude(name__isnull=True)
+            .filter(Q(name_first__gt='') | Q(name_last__gt=''))   # has a name
             .order_by('-dt_modified')[:limit]
         )
 

@@ -128,7 +128,7 @@ def bulk_receive_serials(payload: dict) -> dict:
         unit_warranty = entry.get('warranty_days', warranty_days)
 
         serial = Serial(
-            item=item,
+            item_id=item.pk,
             item_ida=item.ida or str(item.pk),
             serial_ida=entry['serial_ida'],
             model_ida=entry.get('model_ida', ''),

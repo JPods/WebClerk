@@ -47,8 +47,8 @@ def save_layout_pending(params: dict) -> dict:
         AliceObservation.objects.create(
             source='layout_save',
             category='layout_pending',
-            name=f'Layout change: {model}',
-            data={
+            message=f'Layout change: {model}',
+            detail={
                 'model': model,
                 'layout_data': layout_data,
                 'contact_id': contact_id,

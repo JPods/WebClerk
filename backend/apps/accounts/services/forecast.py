@@ -66,21 +66,25 @@ def _get_budget_for_range(start_ms: int, end_ms: int) -> dict[str, dict]:
         dt_period_start__lt=end_ms,
         dt_period_end__gt=start_ms,
         is_active=True,
-        ).values('period', 'account', 'debit', 'credit', 'description')
+        ).values('period', 'account_debit', 'account_credit', 'debit', 'credit', 'description')
 
     result: dict[str, dict] = {}
     for e in entries:
         period = e['period']
         if period not in result:
             result[period] = {}
-        dr = Decimal(str(e['debit'] or 0))
-        cr = Decimal(str(e['credit'] or 0))
-        result[period][e['account']] = {
-            'debit': float(dr),
-            'credit': float(cr),
-            'net': float(dr - cr),
-            'description': e['description'] or '',
-        }
+        # A budget entry is a balanced line: its debit goes to account_debit and its credit to
+        # account_credit. Each account sums every entry that names it (there was no 'account'
+        # field, and a second entry overwrote the first).
+        for account, dr, cr in ((e['account_debit'], Decimal(str(e['debit'] or 0)), Decimal(0)),
+                                (e['account_credit'], Decimal(0), Decimal(str(e['credit'] or 0)))):
+            if not account or (dr == 0 and cr == 0):
+                continue
+            row = result[period].setdefault(account, {'debit': 0.0, 'credit': 0.0, 'net': 0.0,
+                                                       'description': e['description'] or ''})
+            row['debit'] = float(Decimal(str(row['debit'])) + dr)
+            row['credit'] = float(Decimal(str(row['credit'])) + cr)
+            row['net'] = float(Decimal(str(row['debit'])) - Decimal(str(row['credit'])))
 
     return result
 

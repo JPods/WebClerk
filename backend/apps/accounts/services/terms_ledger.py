@@ -400,7 +400,7 @@ def settlement_days(org_id, model_name: str = 'invoice') -> List[int]:
     from django.apps import apps as dj_apps
 
     Ledger = dj_apps.get_model('accounts', 'Ledger')
-    Document = dj_apps.get_model('transactions', 'Invoice' if model_name == 'invoice' else 'Receipt')
+    DocModel = dj_apps.get_model('transactions', 'Invoice' if model_name == 'invoice' else 'Receipt')
     org_field = 'customer_id' if model_name == 'invoice' else 'vendor_id'
 
     due_by_doc = {}
@@ -415,7 +415,7 @@ def settlement_days(org_id, model_name: str = 'invoice') -> List[int]:
 
     from datetime import datetime as _dt, timezone as _tz
     days = []
-    for doc in Document.objects.filter(
+    for doc in DocModel.objects.filter(
         pk__in=list(due_by_doc), **{org_field: org_id},
     ).only('id', 'events', 'totals'):
         events = [e for e in (getattr(doc, 'events', None) or [])
