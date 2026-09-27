@@ -4,8 +4,8 @@
     python manage.py move_to_work --apply    # stop the server and Celery first (chroma is a live database)
 
 Moves data/bundles, data/logs, data/chroma, data/import-digest, the repo's backend/logs and the
-layout state that lived inside the repo. A file already at the destination is left where it is
-and named. Bundle payload paths need no rewrite: they were 'bundles/…' under DATA_DIR and are
+layout state that lived inside the repo. A log already at the destination gets the old lines in front;
+any other file already there is left where it is and named. Bundle payload paths need no rewrite: they were 'bundles/…' under DATA_DIR and are
 'bundles/…' under WORK_DIR. Documents drop the absolute 'full' path; the key is the only path.
 """
 from pathlib import Path
@@ -59,6 +59,12 @@ class Command(BaseCommand):
             self.stdout.write('Dry run. Stop the server and Celery, then: python manage.py move_to_work --apply')
 
     def _move(self, src: Path, dst: Path, apply: bool):
+        if dst.exists() and src.suffix in ('.log', '.jsonl'):
+            # Starting any command opens a fresh log in work/logs: the old lines go in front of it.
+            if apply:
+                dst.write_bytes(src.read_bytes() + dst.read_bytes())
+                src.unlink()
+            return 1, 0
         if dst.exists():
             self.stdout.write(f'  exists, left: {src} (at {dst})')
             return 0, 1
