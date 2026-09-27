@@ -82,11 +82,11 @@ class TestBuildStoragePath:
         assert result["key"].endswith(".jpg")
 
     def test_path_has_required_keys(self):
-        """Result should contain key, full, and storage."""
+        """The key is the only path (no absolute 'full' to go stale when data/ moves)."""
         _, _, _build_storage_path = _get_upload_helpers()
         result = _build_storage_path("test.txt")
         assert "key" in result
-        assert "full" in result
+        assert "full" not in result
         assert "storage" in result
         assert result["storage"] == "local"
 

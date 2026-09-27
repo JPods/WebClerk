@@ -51,16 +51,9 @@ CYAN = '\033[96m'
 
 
 def _get_log_dir() -> Path:
-    """Get or create the logs directory."""
-    # Find webClerk3 root (where manage.py is)
-    current = Path(__file__).resolve()
-    for parent in current.parents:
-        if (parent / 'manage.py').exists():
-            log_dir = parent / 'logs'
-            log_dir.mkdir(exist_ok=True)
-            return log_dir
-    # Fallback to current directory
-    return Path('.')
+    """Traces are scratch: the work folder 'debug' (kept 7 days)."""
+    from common.work_folders import work_folder
+    return work_folder('debug')
 
 
 def _strip_ansi(text: str) -> str:

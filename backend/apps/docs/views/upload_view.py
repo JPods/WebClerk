@@ -7,7 +7,7 @@ import os
 import zlib
 import uuid
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from django.conf import settings
 from django.http import FileResponse, Http404, HttpResponse
@@ -79,13 +79,19 @@ def _build_storage_path(filename: str) -> Dict[str, str]:
     m = now.strftime("%m")
     ext = os.path.splitext(filename)[1]
     key = f"uploads/document/{y}/{m}/{uuid.uuid4().hex}{ext}"
-    data_dir = getattr(settings, "DATA_DIR", None)
-    base = str(data_dir) if data_dir else os.path.join(os.getcwd(), "data")
-    return {
-        "key": key,
-        "full": os.path.join(base, key),
-        "storage": "local",
-    }
+    return {"key": key, "storage": "local"}
+
+
+def document_file(doc) -> Optional[str]:
+    """The file on disk for a document: its key under DATA_DIR, never a stored absolute path
+    (one source of truth — the data folder can move, the key cannot go stale)."""
+    path = (doc.path or {}) if isinstance(doc.path, dict) else {}
+    key = path.get("key")
+    if not key:
+        return None
+    root = os.path.realpath(str(settings.DATA_DIR))
+    full = os.path.realpath(os.path.join(root, key))
+    return full if full.startswith(root + os.sep) else None
 
 
 def _serialize_document(doc: Document) -> Dict[str, Any]:
@@ -145,9 +151,10 @@ class DocumentUploadView(APIView):
 
         # Write file to disk — Alice moves to cloud library later
         storage = _build_storage_path(filename)
-        os.makedirs(os.path.dirname(storage["full"]), exist_ok=True)
+        file_path = os.path.join(str(settings.DATA_DIR), storage["key"])
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         upload.seek(0)
-        with open(storage["full"], "wb") as f:
+        with open(file_path, "wb") as f:
             for chunk in upload.chunks():
                 f.write(chunk)
 
@@ -199,7 +206,7 @@ class DocumentUploadView(APIView):
             description=description,
             mime_type=mime_type,
             size_bytes=upload.size,
-            path={"storage": "local", "key": storage["key"], "url": "", "full": storage["full"]},
+            path={"storage": "local", "key": storage["key"], "url": ""},
             checksum=checksum,
             purpose=purpose,
             target_model=target_model,
@@ -213,7 +220,7 @@ class DocumentUploadView(APIView):
         doc.save(update_fields=["path"])
 
         # Run sanitization immediately — strips active content
-        quarantine = sanitize_document(doc, file_path=storage["full"])
+        quarantine = sanitize_document(doc, file_path=file_path)
 
         geo_data = (metadata.get("address", {}).get("geo", {})) if metadata else {}
         payload = {
@@ -272,8 +279,7 @@ class DocumentDownloadView(APIView):
                 response["Content-Disposition"] = f'inline; filename="{doc.name}"'
             return response
 
-        path = (doc.path or {}) if isinstance(doc.path, dict) else {}
-        full_path = path.get("full")
+        full_path = document_file(doc)
         if not full_path or not os.path.exists(full_path):
             raise Http404("file not found")
         doc.increment_access()
@@ -304,8 +310,7 @@ class DocumentDeleteView(APIView):
         from apps.core.services.delete import delete_record
         from apps.core.services.door import Actor, Refused
 
-        path = (doc.path or {}) if isinstance(doc.path, dict) else {}
-        full_path = path.get("full")
+        full_path = document_file(doc)
         try:
             with transaction.atomic():
                 result = delete_record(Actor.from_request(request), 'document', doc.pk)

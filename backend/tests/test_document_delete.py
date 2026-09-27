@@ -24,7 +24,11 @@ def _doc(tmp_path, name='zz-doc-delete.txt', outside=False):
     folder.mkdir(parents=True, exist_ok=True)
     f = folder / name
     f.write_bytes(b'content')
-    return Document.objects.create(name=name, path={'full': str(f)}), f
+    import os
+    from django.conf import settings
+    # A document names its file by key under DATA_DIR; outside it, the key climbs out and is refused.
+    key = os.path.relpath(str(f), str(settings.DATA_DIR))
+    return Document.objects.create(name=name, path={'key': key}), f
 
 
 def test_delete_removes_the_record_and_then_the_file(tmp_path):

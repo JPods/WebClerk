@@ -65,7 +65,7 @@ _LOCAL_ALIAS = '_sync_local'
 _REMOTE_ALIAS = '_sync_remote'
 
 # ── audit log file ──────────────────────────────────────────────────
-_LOG_DIR = Path(settings.BASE_DIR) / 'logs'
+_LOG_DIR = Path(settings.WORK_DIR) / 'logs'        # the work folder 'logs' (common/work_folders)
 _LOG_FILE = _LOG_DIR / 'sync_model.log'
 
 

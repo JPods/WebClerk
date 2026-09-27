@@ -5,8 +5,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$SCRIPT_DIR/backend"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
-DATA_DIR="$(dirname "$SCRIPT_DIR")/data"
-LOG_DIR="$DATA_DIR/logs"
+# Logs live in the work folder, the sibling of data/ (backend/common/work_folders.json).
+LOG_DIR="$(dirname "$SCRIPT_DIR")/work/logs"
 mkdir -p "$LOG_DIR"
 
 # Track child PIDs for cleanup

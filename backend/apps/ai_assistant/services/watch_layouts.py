@@ -52,9 +52,9 @@ logger = logging.getLogger(__name__)
 R25_ROOT = Path(settings.BASE_DIR).parent / "React2025"
 
 # ── Persistent data directories ────────────────────────────────────────────
-DATA_DIR = Path(settings.BASE_DIR) / "apps" / "ai_assistant" / "data"
-DISMISSALS_FILE = DATA_DIR / "layout_dismissals.json"
-HISTORY_FILE = DATA_DIR / "layout_history.json"
+STATE_DIR = Path(settings.WORK_DIR) / "state"           # the work folder 'state' (was inside the repo)
+DISMISSALS_FILE = STATE_DIR / "layout_dismissals.json"
+HISTORY_FILE = STATE_DIR / "layout_history.json"
 REPORT_DIR = Path(settings.BASE_DIR) / "readmes" / "topics" / "ai"
 REPORT_FILE = REPORT_DIR / "layout-drift-report.md"
 
@@ -732,7 +732,7 @@ class LayoutDriftDetector:
 
     def _save_dismissals(self, data: dict[str, Any]) -> None:
         """Save dismissals to persistent JSON file."""
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        STATE_DIR.mkdir(parents=True, exist_ok=True)
         DISMISSALS_FILE.write_text(json.dumps(data, indent=2, default=str))
 
     def dismiss_issue(
@@ -803,7 +803,7 @@ class LayoutDriftDetector:
 
     def _save_history(self, data: dict[str, Any]) -> None:
         """Save correction history to persistent JSON file."""
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        STATE_DIR.mkdir(parents=True, exist_ok=True)
         # Keep last 50 runs to prevent unbounded growth
         if len(data.get("runs", [])) > 50:
             data["runs"] = data["runs"][-50:]

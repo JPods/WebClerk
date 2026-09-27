@@ -7,11 +7,18 @@ from sentry_sdk.integrations.django import DjangoIntegration
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# User data lives outside the repo — uploads, logs, backups, chroma, media.
+# User data lives outside the repo — uploads, media, backups (logs, bundles, chroma: WORK_DIR).
 # Code is code, data is data. A git clean never touches user files.
 # Override with DATA_DIR in .env for server deployments.
 DATA_DIR = Path(config('DATA_DIR', default=str(BASE_DIR.parent.parent / 'data')))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# Work folders (Bill, 2026-09-27): one owner-only sibling of the data folder for everything that is
+# not the company's irreplaceable data — bundles, logs, digests, cache, scripts, certs. Code asks
+# common.work_folders.work_folder(name); the folders and their keep/backup rules are its manifest.
+WORK_DIR = Path(config('WORK_DIR', default=str(DATA_DIR.parent / 'work')))
+(WORK_DIR / 'logs').mkdir(parents=True, exist_ok=True)
+os.chmod(WORK_DIR, 0o700)
 
 # Dev fallback only — production must set SECRET_KEY in .env or environment
 _SECRET_KEY_FALLBACK = 'insecure-dev-test-key'
@@ -491,7 +498,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(DATA_DIR, 'logs/webclerk3.log'),
+            'filename': str(WORK_DIR / 'logs' / 'webclerk3.log'),
             'formatter': 'verbose',
         },
     },
@@ -535,7 +542,7 @@ READ_ONLY_MODE = config('READ_ONLY_MODE', default=False, cast=bool)
 # Check balance after every cash and inventory Pending and append the result to
 # logs/balance-events.jsonl (apps/core/services/balance_checker.py). On while testing.
 BALANCE_EVENT_LOG = config('BALANCE_EVENT_LOG', default=DEBUG, cast=bool)
-BALANCE_EVENT_LOG_PATH = BASE_DIR / 'logs' / 'balance-events.jsonl'
+BALANCE_EVENT_LOG_PATH = WORK_DIR / 'logs' / 'balance-events.jsonl'
 
 WRITE_GATE_ENABLED = True
 WRITE_GATE_EXACT_PATHS = (
@@ -991,6 +998,11 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.support.scheduler.tasks.task_import_digest',
         'schedule': crontab(hour=3, minute=15),
     },
+    # Alice keeps the work folders: prune by keep_days, name strays (common/work_folders.py).
+    'work-folders-scrub-nightly': {
+        'task': 'apps.support.scheduler.tasks.task_work_folders_scrub',
+        'schedule': crontab(hour=4, minute=30),
+    },
 }
 
 # ── Payload size gates ─────────────────────────────────────────────
@@ -1012,5 +1024,5 @@ INVENTORY_PENDING_AUTO_PROCESS = config('INVENTORY_PENDING_AUTO_PROCESS', defaul
 OLLAMA_BASE_URL = config('OLLAMA_BASE_URL', default='')
 OLLAMA_MODEL = config('OLLAMA_MODEL', default='gpt-oss:20b')
 OLLAMA_TIMEOUT = int(config('OLLAMA_TIMEOUT', default=120))
-CHROMA_PERSIST_DIR = os.path.join(DATA_DIR, 'chroma')
+CHROMA_PERSIST_DIR = str(WORK_DIR / 'cache' / 'chroma')
 CHROMA_COLLECTION = 'commerce_expert_docs'

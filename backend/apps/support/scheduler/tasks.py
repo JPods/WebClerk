@@ -821,6 +821,15 @@ def task_reconcile_aging(self, batch_size=200):
 
 
 @shared_task(bind=True, max_retries=1, default_retry_delay=300)
+def task_work_folders_scrub(self):
+    """Nightly (Alice): prune each work folder past its keep_days; report strays and backup rules."""
+    from common.work_folders import scrub
+    result = scrub()
+    logger.info("Work folders scrub: %s", result)
+    return result
+
+
+@shared_task(bind=True, max_retries=1, default_retry_delay=300)
 def task_import_digest(self):
     """Nightly: yesterday's imports written to IMPORT_DIGEST_DIR, a copy outside the database."""
     from apps.sync.services.bundle_import import write_digest

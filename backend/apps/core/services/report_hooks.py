@@ -522,7 +522,7 @@ def _append_log(name: str, line: dict, simulate: bool = False) -> None:
     """Append one JSON line to a named hook log.
 
     The name is the whole address — no paths, no traversal. Logs land in
-    BASE_DIR/logs/hooks/<name>.jsonl, and the registry decides which names a hook
+    WORK_DIR/logs/hooks/<name>.jsonl, and the registry decides which names a hook
     point may write.
     """
     if simulate:
@@ -531,8 +531,8 @@ def _append_log(name: str, line: dict, simulate: bool = False) -> None:
     from datetime import datetime, timezone
     from django.conf import settings as django_settings
 
-    folder = pathlib.Path(getattr(django_settings, 'BASE_DIR', '.')) / 'logs' / 'hooks'
-    folder.mkdir(parents=True, exist_ok=True)
+    from common.work_folders import work_folder
+    folder = work_folder('logs', 'hooks')
     entry = {'dt_utc': datetime.now(timezone.utc).isoformat(), **line}
     with open(folder / f'{name}.jsonl', 'a') as handle:
         handle.write(json.dumps(entry, default=str) + '\n')

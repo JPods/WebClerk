@@ -12,7 +12,7 @@ normalizes to [{value, label}], and writes a single JSON file.
 Import reads that JSON and writes back to config.selectlists on each
 matched Setting. Matching is by ida (primary) or id (fallback).
 
-The JSON lives in DATA_DIR/bundles/selectlist/ by default.
+The JSON lives in WORK_DIR/bundles/selectlist/ by default.
 """
 import json
 import logging
@@ -30,7 +30,8 @@ DEFAULT_FILENAME = 'selectlists.json'
 
 
 def _bundle_dir() -> Path:
-    path = Path(settings.DATA_DIR) / 'bundles' / 'selectlist'
+    from common.work_folders import work_folder
+    path = work_folder('bundles', 'selectlist')
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -255,7 +256,7 @@ class Command(BaseCommand):
         parser.add_argument('action', choices=['export', 'import'],
                             help='export = Settings → JSON; import = JSON → Settings')
         parser.add_argument('--file', type=str, default=None,
-                            help=f'JSON file path (default: DATA_DIR/bundles/selectlist/{DEFAULT_FILENAME})')
+                            help=f'JSON file path (default: WORK_DIR/bundles/selectlist/{DEFAULT_FILENAME})')
         parser.add_argument('--dry-run', action='store_true',
                             help='Preview import without writing')
 

@@ -392,7 +392,7 @@ def log_registry(registry):
 
 
 def test_append_log_writes_a_line(db, log_registry, invoice, tmp_path, settings):
-    settings.BASE_DIR = str(tmp_path)
+    settings.WORK_DIR = str(tmp_path)
     report = make_report('RPT-LOG', {'point': 'invoice.save_post',
                                      'after': [{'append_log': {'log': 'record_saves',
                                                                'ida': '{{report.ida}}'}}]})
@@ -418,7 +418,7 @@ def test_log_name_cannot_be_a_path(db, log_registry):
 
 
 def test_dry_run_writes_nothing(db, log_registry, tmp_path, settings):
-    settings.BASE_DIR = str(tmp_path)
+    settings.WORK_DIR = str(tmp_path)
     outcome = rh.dry_run({'point': 'invoice.save_post',
                           'after': [{'set': {'metadata.review.flag': True}},
                                     {'append_log': {'log': 'record_saves'}},
@@ -547,7 +547,7 @@ def test_athena_offers_a_token(db, log_registry):
 
 
 def test_athena_clearance_runs_the_hook(db, log_registry, invoice, tmp_path, settings):
-    settings.BASE_DIR = str(tmp_path)
+    settings.WORK_DIR = str(tmp_path)
     report = make_report('RPT-ATH2', {'point': 'invoice.save_post',
                                       'after': [{'set': {'metadata.review.flag': True}}]},
                          cleared=False)

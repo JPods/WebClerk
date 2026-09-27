@@ -37,7 +37,7 @@ class ImportRun(BaseModel):
 class BundleConfig(ConfigBase):
     """Bundle configuration — includes import header when channel='import'."""
     import_header: Optional[ImportBundleHeader] = None
-    payload_path: str = ''                   # the JSON on disk (bundle_storage), relative to DATA_DIR
+    payload_path: str = ''                   # the JSON on disk (bundle_storage), relative to WORK_DIR
     import_run: Optional[ImportRun] = None
 
 

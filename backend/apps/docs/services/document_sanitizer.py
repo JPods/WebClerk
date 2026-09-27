@@ -240,8 +240,8 @@ def sanitize_document(doc, file_path: str | None = None) -> dict:
 
     # Resolve file path
     if not file_path:
-        path_data = doc.path if isinstance(doc.path, dict) else {}
-        file_path = path_data.get("full")
+        from apps.docs.views.upload_view import document_file
+        file_path = document_file(doc)
 
     # --- Inline content (stored in config) ---
     inline_content = config.get("inline_content_b64")

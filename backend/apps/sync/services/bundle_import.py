@@ -253,12 +253,11 @@ def run_import(ctx) -> Dict[str, Any]:
 
 def write_digest(day: str | None = None) -> Dict[str, Any]:
     """Nightly: the day's imports (hash, approvals, who imported) written outside the database,
-    one JSON line per bundle, to IMPORT_DIGEST_DIR (default DATA_DIR/import-digest). On Bill's Mac
-    point it into ~/Allie so the copy leaves the server (Allie's plan, Bill 2026-09-26; review
-    again 2027-02). Rewriting a day's file is harmless — it is rebuilt from the bundles."""
-    import os
-    from pathlib import Path
+    one JSON line per bundle, to the work folder imports/digest, whose manifest backup rule is
+    offsite (Allie's plan, Bill 2026-09-26; review 2027-02). Rewriting a day's file is harmless —
+    it is rebuilt from the bundles."""
     from datetime import timedelta
+    from common.work_folders import work_folder
     from apps.sync.models import Bundle
     day = day or (datetime.now(timezone.utc) - timedelta(days=1)).strftime('%Y-%m-%d')
     lines = []
@@ -274,8 +273,7 @@ def write_digest(day: str | None = None) -> Dict[str, Any]:
             'imported': run['imported'], 'sig': run.get('sig')}, sort_keys=True))
     if not lines:
         return {'day': day, 'imports': 0}
-    out = Path(os.environ.get('IMPORT_DIGEST_DIR') or Path(settings.DATA_DIR) / 'import-digest')
-    out.mkdir(parents=True, exist_ok=True)
+    out = work_folder('imports/digest')
     (out / f'{day}.jsonl').write_text('\n'.join(lines) + '\n', encoding='utf-8')
     return {'day': day, 'imports': len(lines), 'path': str(out / f'{day}.jsonl')}
 

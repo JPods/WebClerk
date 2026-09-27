@@ -67,17 +67,8 @@ class Command(BaseCommand):
         if options['output']:
             output = options['output']
         else:
-            data_dir = getattr(django_settings, 'DATA_DIR', None)
-            if data_dir:
-                bundle_dir = os.path.join(data_dir, 'bundles', 'journal')
-            else:
-                bundle_dir = os.path.join(
-                    os.path.dirname(os.path.dirname(os.path.dirname(
-                        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))),
-                    '..', '..', 'data', 'bundles', 'journal',
-                )
-            bundle_dir = os.path.abspath(bundle_dir)
-            os.makedirs(bundle_dir, exist_ok=True)
+            from common.work_folders import work_folder
+            bundle_dir = str(work_folder('bundles', 'journal'))
             output = os.path.join(bundle_dir, default_filename)
 
         with open(output, 'w') as f:
