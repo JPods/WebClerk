@@ -1003,6 +1003,11 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.support.scheduler.tasks.task_work_folders_scrub',
         'schedule': crontab(hour=4, minute=30),
     },
+    # Alice: records pointing at a file that is gone (moved folders, renamed idas).
+    'file-pointer-audit-nightly': {
+        'task': 'apps.support.scheduler.tasks.task_file_pointer_audit',
+        'schedule': crontab(hour=4, minute=45),
+    },
 }
 
 # ── Payload size gates ─────────────────────────────────────────────

@@ -830,8 +830,20 @@ def task_work_folders_scrub(self):
 
 
 @shared_task(bind=True, max_retries=1, default_retry_delay=300)
+def task_file_pointer_audit(self):
+    """Nightly (Alice): records whose file is gone — documents, bundles, local item images.
+    Reports to work/audits; never deletes (Bill: people move folders without changing links)."""
+    from apps.core.services.file_pointers import audit
+    result = audit()
+    if result['missing']:
+        logger.warning("File pointers: %d record(s) point at a missing file — %s",
+                       result['missing'], result.get('path'))
+    return {k: v for k, v in result.items() if k in ('dt', 'missing', 'path')}
+
+
+@shared_task(bind=True, max_retries=1, default_retry_delay=300)
 def task_import_digest(self):
-    """Nightly: yesterday's imports written to IMPORT_DIGEST_DIR, a copy outside the database."""
+    """Nightly: yesterday's imports written to the work folder imports/digest."""
     from apps.sync.services.bundle_import import write_digest
     return write_digest()
 

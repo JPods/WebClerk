@@ -59,7 +59,7 @@ if command -v ollama &>/dev/null; then
   else
     ollama serve >> "$LOG_DIR/ollama.log" 2>&1 &
     PIDS+=($!)
-    echo "Ollama:    started (log: data/logs/ollama.log)"
+    echo "Ollama:    started (log: ../work/logs/ollama.log)"
   fi
 else
   echo "Ollama:    not installed (AI features disabled)"
@@ -80,7 +80,7 @@ venv/bin/python -m celery -A webclerk3_api worker \
   -s /tmp/celerybeat-webclerk3-schedule \
   >> "$LOG_DIR/celery.log" 2>&1 &
 PIDS+=($!)
-echo "Celery:    started (log: data/logs/celery.log)"
+echo "Celery:    started (log: ../work/logs/celery.log)"
 
 # ── Wait for PostgreSQL ───────────────────────────────────────────
 

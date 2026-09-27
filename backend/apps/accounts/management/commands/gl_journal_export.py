@@ -46,7 +46,7 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             '--output', default='',
-            help='Output file path (default: data/bundles/journal/<period>.<ext>)',
+            help='Output file path (default: WORK_DIR/bundles/journal/<period>.<ext>)',
         )
         parser.add_argument(
             '--division', default='',
