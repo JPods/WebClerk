@@ -423,13 +423,18 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
     return result
 
 
-#: The language a bare string for a translated field is stored in. There is no per-user
-#: language yet; when there is, it replaces this (Bill, 2026-09-26: wrap in the user's language).
+#: The language when a person has none (contact.prefs.language empty, or no person).
 DEFAULT_LANGUAGE = 'en'
 
 
-def _wrap_i18n(model_cls, data: dict) -> dict:
-    """A bare string for a translated field is that field in the user's language.
+def actor_language(actor: Actor) -> str:
+    """The language this actor writes in: their contact's ``prefs.language``, else en."""
+    prefs = getattr(getattr(actor, 'user', None), 'prefs', None)
+    return ((prefs or {}).get('language') if isinstance(prefs, dict) else None) or DEFAULT_LANGUAGE
+
+
+def _wrap_i18n(model_cls, data: dict, language: str) -> dict:
+    """A bare string for a translated field is that field in the writer's language.
 
     Before the role filter: the filter keeps only enumerated leaves (``action.en``), so a
     bare ``action`` string was dropped — a 200 that stored nothing (allie-76, 2026-09-26).
@@ -440,7 +445,7 @@ def _wrap_i18n(model_cls, data: dict) -> dict:
     # Only a JSON field is translated: `description` is i18n on an action, plain text on an item.
     translated = {f.name for f in model_cls._meta.concrete_fields
                   if f.name in _I18N_FIELDS and isinstance(f, JSONField)}
-    wrapped = {k: {DEFAULT_LANGUAGE: v} for k, v in data.items()
+    wrapped = {k: {language: v} for k, v in data.items()
                if k in translated and isinstance(v, str)}
     return {**data, **wrapped} if wrapped else data
 
@@ -448,7 +453,7 @@ def _wrap_i18n(model_cls, data: dict) -> dict:
 def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: dict,
            is_update: bool, server_set: Optional[Dict[str, Any]] = None):
     """Authorize, assign, before, persist, flush, after — inside one unit of work."""
-    data = _wrap_i18n(model_cls, data)
+    data = _wrap_i18n(model_cls, data, actor_language(actor))
     data = _authorize(actor, obj, model_cls, model_key, data, is_update)
     if server_set:
         data.update(copy.deepcopy(server_set))

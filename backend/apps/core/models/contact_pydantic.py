@@ -6,8 +6,9 @@ Adds contact-specific fields only.
 """
 from __future__ import annotations
 
+import re
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from common.schemas.envelopes import (
     ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, SourceRef,
@@ -239,7 +240,7 @@ class OrgLink(BaseModel):
 class ContactPrefs(RecordPrefsBase):
     """Contact prefs — role-conditional sections activated by Setting.
 
-    Base (every contact): userdefined, tags, pinned
+    Base (every contact): userdefined, tags, pinned, language
     orgs: org relationships this contact cares about
     staff: is_staff or employee FK
     employee: employee FK
@@ -251,6 +252,19 @@ class ContactPrefs(RecordPrefsBase):
     employee: Optional[EmployeePrefsMixin] = None
     rep: Optional[RepPrefsMixin] = None
     cart: Optional[CartPrefsMixin] = None
+    #: The language this person reads and writes: an ISO 639-1 code (en, es, ar, bn). Empty
+    #: means en. A bare string saved to a translated field lands in it (Bill, 2026-09-26).
+    language: Optional[str] = None
+
+    @field_validator('language', mode='before')
+    @classmethod
+    def _iso_639_1(cls, v):
+        if v in (None, ''):
+            return None
+        code = str(v).strip().lower()
+        if not re.fullmatch(r'[a-z]{2}', code):
+            raise ValueError(f'language is a two-letter ISO 639-1 code (en, es, ar); got {v!r}')
+        return code
 
 
 # ── .refs ──────────────────────────────────────────────────────────
